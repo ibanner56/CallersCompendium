@@ -517,6 +517,221 @@ void main() {
   );
 
   test(
+    'applies tombstoned dances whose retained links target tombstones',
+    () async {
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+      final tombstoneStamp = stamp.add(const Duration(minutes: 1));
+      final target = Dance(
+        id: 'z-tombstoned-target',
+        title: 'Target',
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final parent = Dance(
+        id: 'a-tombstoned-parent',
+        title: 'Parent',
+        links: [
+          DanceLink(
+            id: 'retained-tombstone-link',
+            kind: LinkKind.relatedDance,
+            targetDanceId: target.id,
+          ),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final program = Program(
+        id: 'tombstoned-program',
+        title: 'Program',
+        slots: [
+          ProgramSlot(
+            id: 'retained-tombstone-slot',
+            position: 0,
+            danceId: target.id,
+          ),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      await repositories.dances.create(target);
+      await repositories.dances.create(parent);
+      await repositories.programs.create(program);
+
+      SyncMergeCandidate tombstone(Dance dance) => SyncMergeCandidate(
+        blob: SyncRecordBlob(
+          kind: SyncRecordKind.dance,
+          id: dance.id,
+          updatedAt: tombstoneStamp,
+          deletedAt: tombstoneStamp,
+          existenceAt: tombstoneStamp,
+          body: syncBodyForEntity(SyncRecordKind.dance, dance),
+        ),
+      );
+      final programTombstone = SyncMergeCandidate(
+        blob: SyncRecordBlob(
+          kind: SyncRecordKind.program,
+          id: program.id,
+          updatedAt: tombstoneStamp,
+          deletedAt: tombstoneStamp,
+          existenceAt: tombstoneStamp,
+          body: syncBodyForEntity(SyncRecordKind.program, program),
+        ),
+      );
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [tombstone(parent), tombstone(target), programTombstone],
+        storage: storage,
+      );
+
+      expect(result.applied, [
+        (kind: SyncRecordKind.dance, recordId: parent.id),
+        (kind: SyncRecordKind.dance, recordId: target.id),
+        (kind: SyncRecordKind.program, recordId: program.id),
+      ]);
+      expect(result.reports, isEmpty);
+      final storedParent = await repositories.dances.getById(
+        parent.id,
+        includeDeleted: true,
+      );
+      expect(storedParent!.deletedAt, tombstoneStamp);
+      expect(storedParent.links.single.targetDanceId, target.id);
+      expect(
+        (await repositories.dances.getById(
+          target.id,
+          includeDeleted: true,
+        ))!.deletedAt,
+        tombstoneStamp,
+      );
+      expect(
+        (await repositories.programs.getById(
+          program.id,
+          includeDeleted: true,
+        ))!.deletedAt,
+        tombstoneStamp,
+      );
+    },
+  );
+
+  test(
+    'rejects duplicate and foreign dependent row ids before parent writes',
+    () async {
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+      final duplicateLinks = Dance(
+        id: 'duplicate-link-dance',
+        title: 'Duplicate links',
+        links: [
+          DanceLink(id: 'same-link', kind: LinkKind.other, url: 'https://one'),
+          DanceLink(id: 'same-link', kind: LinkKind.other, url: 'https://two'),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final existingOwner = Dance(
+        id: 'existing-link-owner',
+        title: 'Existing owner',
+        links: [
+          DanceLink(
+            id: 'owned-link',
+            kind: LinkKind.other,
+            url: 'https://owner',
+          ),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      await repositories.dances.create(existingOwner);
+      final foreignOwner = Dance(
+        id: 'foreign-link-dance',
+        title: 'Foreign link',
+        links: [
+          DanceLink(
+            id: 'owned-link',
+            kind: LinkKind.other,
+            url: 'https://peer',
+          ),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final duplicateSlots = Program(
+        id: 'duplicate-slot-program',
+        title: 'Duplicate slots',
+        slots: [
+          ProgramSlot(id: 'same-slot', position: 0, text: 'first'),
+          ProgramSlot(id: 'same-slot', position: 1, text: 'second'),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final existingSlotOwner = Program(
+        id: 'existing-slot-owner',
+        title: 'Existing slot owner',
+        slots: [ProgramSlot(id: 'owned-slot', position: 0, text: 'owner')],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      await repositories.programs.create(existingSlotOwner);
+      final foreignSlotOwner = Program(
+        id: 'foreign-slot-program',
+        title: 'Foreign slot',
+        slots: [ProgramSlot(id: 'owned-slot', position: 0, text: 'peer')],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          for (final dance in [duplicateLinks, foreignOwner])
+            SyncMergeCandidate(
+              blob: SyncRecordBlob(
+                kind: SyncRecordKind.dance,
+                id: dance.id,
+                updatedAt: stamp.add(const Duration(minutes: 1)),
+                deletedAt: null,
+                existenceAt: stamp,
+                body: syncBodyForEntity(SyncRecordKind.dance, dance),
+              ),
+            ),
+          for (final program in [duplicateSlots, foreignSlotOwner])
+            SyncMergeCandidate(
+              blob: SyncRecordBlob(
+                kind: SyncRecordKind.program,
+                id: program.id,
+                updatedAt: stamp.add(const Duration(minutes: 1)),
+                deletedAt: null,
+                existenceAt: stamp,
+                body: syncBodyForEntity(SyncRecordKind.program, program),
+              ),
+            ),
+        ],
+        storage: storage,
+      );
+
+      expect(result.applied, isEmpty);
+      expect(
+        result.reports.where(
+          (report) => report.code == SyncReportCode.malformedRecord,
+        ),
+        hasLength(4),
+      );
+      expect(await repositories.dances.getById(duplicateLinks.id), isNull);
+      expect(await repositories.dances.getById(foreignOwner.id), isNull);
+      expect(await repositories.programs.getById(duplicateSlots.id), isNull);
+      expect(await repositories.programs.getById(foreignSlotOwner.id), isNull);
+      expect(
+        (await repositories.dances.getById(existingOwner.id))!.links.single.id,
+        'owned-link',
+      );
+      expect(
+        (await repositories.programs.getById(
+          existingSlotOwner.id,
+        ))!.slots.single.id,
+        'owned-slot',
+      );
+    },
+  );
+
+  test(
     'inbound dance writes preserve device-local custom-field values',
     () async {
       final stamp = DateTime.utc(2025, 1, 2, 12);

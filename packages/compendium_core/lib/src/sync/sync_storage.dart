@@ -351,18 +351,47 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
     } on ArgumentError catch (error) {
       return _malformedReferenceReport(record, '$error');
     }
+    // A tombstone may retain joins to other tombstones in the same batch. The
+    // live-record guard still applies, but deletion records resolve references
+    // against any existing row so their existence transition can converge.
+    final allowTombstonedReferences = record.deletedAt != null;
+    final referenceInboundLiveAddresses = allowTombstonedReferences
+        ? inboundAddresses
+        : inboundLiveAddresses;
+
+    final dependentRowIssue = switch (record.address.kind) {
+      SyncRecordKind.dance => await _invalidDanceDependentRows(
+        entity as Dance,
+        inboundRecords: inboundRecords,
+      ),
+      SyncRecordKind.program => await _invalidProgramDependentRows(
+        entity as Program,
+        inboundRecords: inboundRecords,
+      ),
+      _ => null,
+    };
+    if (dependentRowIssue != null) {
+      return SyncReport(
+        code: SyncReportCode.malformedRecord,
+        kind: record.address.kind,
+        recordId: record.address.recordId,
+        message: dependentRowIssue,
+      );
+    }
 
     final missing = switch (record.address.kind) {
       SyncRecordKind.dance => await _missingDanceReference(
         entity as Dance,
-        inboundLiveAddresses: inboundLiveAddresses,
+        inboundLiveAddresses: referenceInboundLiveAddresses,
         inboundAddresses: inboundAddresses,
         inboundRecords: inboundRecords,
+        allowTombstonedReferences: allowTombstonedReferences,
       ),
       SyncRecordKind.program => await _missingProgramReference(
         entity as Program,
-        inboundLiveAddresses: inboundLiveAddresses,
+        inboundLiveAddresses: referenceInboundLiveAddresses,
         inboundAddresses: inboundAddresses,
+        allowTombstonedReferences: allowTombstonedReferences,
       ),
       _ => null,
     };
@@ -559,6 +588,7 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
     required Set<SyncRecordAddress> inboundLiveAddresses,
     required Set<SyncRecordAddress> inboundAddresses,
     required Map<SyncRecordAddress, SyncApplyRecord> inboundRecords,
+    required bool allowTombstonedReferences,
   }) async {
     final difficultyId = dance.difficultyLevelId;
     if (difficultyId != null) {
@@ -572,7 +602,10 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
           ? null
           : (await (_db.select(_db.difficultyLevels)..where(
                       (row) =>
-                          row.id.equals(difficultyId) & row.deletedAt.isNull(),
+                          row.id.equals(difficultyId) &
+                          (allowTombstonedReferences
+                              ? const Constant(true)
+                              : row.deletedAt.isNull()),
                     ))
                     .getSingleOrNull())
                 ?.id;
@@ -592,7 +625,11 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
     if (authorLookupIds.isNotEmpty) {
       final rows =
           await (_db.select(_db.choreographers)..where(
-                (row) => row.id.isIn(authorLookupIds) & row.deletedAt.isNull(),
+                (row) =>
+                    row.id.isIn(authorLookupIds) &
+                    (allowTombstonedReferences
+                        ? const Constant(true)
+                        : row.deletedAt.isNull()),
               ))
               .get();
       final missing = _missingReferenceIds(
@@ -630,7 +667,11 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
     if (tagLookupIds.isNotEmpty) {
       final rows =
           await (_db.select(_db.tags)..where(
-                (row) => row.id.isIn(tagLookupIds) & row.deletedAt.isNull(),
+                (row) =>
+                    row.id.isIn(tagLookupIds) &
+                    (allowTombstonedReferences
+                        ? const Constant(true)
+                        : row.deletedAt.isNull()),
               ))
               .get();
       final missing = _missingReferenceIds(
@@ -670,7 +711,11 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
     if (sourceLookupIds.isNotEmpty) {
       final rows =
           await (_db.select(_db.publishedSources)..where(
-                (row) => row.id.isIn(sourceLookupIds) & row.deletedAt.isNull(),
+                (row) =>
+                    row.id.isIn(sourceLookupIds) &
+                    (allowTombstonedReferences
+                        ? const Constant(true)
+                        : row.deletedAt.isNull()),
               ))
               .get();
       final missing = _missingReferenceIds(
@@ -711,7 +756,10 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
       final rows =
           await (_db.select(_db.customFieldDefs)..where(
                 (row) =>
-                    row.id.isIn(customFieldLookupIds) & row.deletedAt.isNull(),
+                    row.id.isIn(customFieldLookupIds) &
+                    (allowTombstonedReferences
+                        ? const Constant(true)
+                        : row.deletedAt.isNull()),
               ))
               .get();
       final missing = _missingReferenceIds(
@@ -760,7 +808,10 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
       final rows =
           await (_db.select(_db.dances)..where(
                 (row) =>
-                    row.id.isIn(targetDanceLookupIds) & row.deletedAt.isNull(),
+                    row.id.isIn(targetDanceLookupIds) &
+                    (allowTombstonedReferences
+                        ? const Constant(true)
+                        : row.deletedAt.isNull()),
               ))
               .get();
       final missing = _missingReferenceIds(
@@ -794,6 +845,7 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
     Program program, {
     required Set<SyncRecordAddress> inboundLiveAddresses,
     required Set<SyncRecordAddress> inboundAddresses,
+    required bool allowTombstonedReferences,
   }) async {
     final danceIds = program.slots
         .map((slot) => slot.danceId)
@@ -805,9 +857,15 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
       inboundLiveAddresses: inboundLiveAddresses,
       inboundAddresses: inboundAddresses,
     );
-    final rows = await (_db.select(
-      _db.dances,
-    )..where((row) => row.id.isIn(lookupIds) & row.deletedAt.isNull())).get();
+    final rows =
+        await (_db.select(_db.dances)..where(
+              (row) =>
+                  row.id.isIn(lookupIds) &
+                  (allowTombstonedReferences
+                      ? const Constant(true)
+                      : row.deletedAt.isNull()),
+            ))
+            .get();
     final missing = _missingReferenceIds(
       ids: danceIds,
       kind: SyncRecordKind.dance,
@@ -819,6 +877,119 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
         ? null
         : 'Program "${program.id}" references unavailable dance '
               '"${missing.first}".';
+  }
+
+  Future<String?> _invalidDanceDependentRows(
+    Dance dance, {
+    required Map<SyncRecordAddress, SyncApplyRecord> inboundRecords,
+  }) async {
+    final linkIds = dance.links.map((link) => link.id).toList();
+    final duplicateId = _firstDuplicate(linkIds);
+    if (duplicateId != null) {
+      return 'Dance "${dance.id}" contains duplicate link id "$duplicateId".';
+    }
+
+    final inboundOwners = <String, String>{};
+    for (final entry in inboundRecords.entries) {
+      if (entry.key.kind != SyncRecordKind.dance ||
+          entry.key.recordId == dance.id) {
+        continue;
+      }
+      final Dance other;
+      try {
+        other = _decodeEntity(SyncRecordKind.dance, entry.value.body) as Dance;
+      } on FormatException {
+        continue;
+      } on ArgumentError {
+        continue;
+      } on StateError {
+        continue;
+      }
+      for (final link in other.links) {
+        final priorOwner = inboundOwners[link.id];
+        if (priorOwner != null && priorOwner != entry.key.recordId) {
+          return 'Inbound dances share link id "${link.id}".';
+        }
+        inboundOwners[link.id] = entry.key.recordId;
+        if (linkIds.contains(link.id)) {
+          return 'Dance link id "${link.id}" is also owned by '
+              '"${entry.key.recordId}".';
+        }
+      }
+    }
+
+    if (linkIds.isEmpty) return null;
+    final rows = await (_db.select(
+      _db.danceLinks,
+    )..where((row) => row.id.isIn(linkIds))).get();
+    for (final row in rows) {
+      if (row.danceId != dance.id) {
+        return 'Dance link id "${row.id}" is already owned by '
+            '"${row.danceId}".';
+      }
+    }
+    return null;
+  }
+
+  Future<String?> _invalidProgramDependentRows(
+    Program program, {
+    required Map<SyncRecordAddress, SyncApplyRecord> inboundRecords,
+  }) async {
+    final slotIds = program.slots.map((slot) => slot.id).toList();
+    final duplicateId = _firstDuplicate(slotIds);
+    if (duplicateId != null) {
+      return 'Program "${program.id}" contains duplicate slot id "$duplicateId".';
+    }
+
+    final inboundOwners = <String, String>{};
+    for (final entry in inboundRecords.entries) {
+      if (entry.key.kind != SyncRecordKind.program ||
+          entry.key.recordId == program.id) {
+        continue;
+      }
+      final Program other;
+      try {
+        other =
+            _decodeEntity(SyncRecordKind.program, entry.value.body) as Program;
+      } on FormatException {
+        continue;
+      } on ArgumentError {
+        continue;
+      } on StateError {
+        continue;
+      }
+      for (final slot in other.slots) {
+        final priorOwner = inboundOwners[slot.id];
+        if (priorOwner != null && priorOwner != entry.key.recordId) {
+          return 'Inbound programs share slot id "${slot.id}".';
+        }
+        inboundOwners[slot.id] = entry.key.recordId;
+        if (slotIds.contains(slot.id)) {
+          return 'Program slot id "${slot.id}" is also owned by '
+              '"${entry.key.recordId}".';
+        }
+      }
+    }
+
+    if (slotIds.isEmpty) return null;
+    final rows = await (_db.select(
+      _db.programSlots,
+    )..where((row) => row.id.isIn(slotIds))).get();
+    for (final row in rows) {
+      if (row.programId != program.id) {
+        return 'Program slot id "${row.id}" is already owned by '
+            '"${row.programId}".';
+      }
+    }
+    return null;
+  }
+
+  String? _firstDuplicate(Iterable<String> ids) {
+    final seen = <String>{};
+    for (final id in ids) {
+      if (!seen.add(id)) return id;
+    }
+    return null;
   }
 
   Future<String?> _invalidCustomFieldValue(

@@ -225,6 +225,18 @@ final class TransactionBoundSyncPassRunner implements SyncPassRunner {
   Future<T> run<T>(Future<T> Function() action) => action();
 }
 
+final class _PeerManifestCache {
+  const _PeerManifestCache({
+    required this.epoch,
+    required this.etag,
+    required this.manifest,
+  });
+
+  final String epoch;
+  final String etag;
+  final SyncManifest manifest;
+}
+
 /// A coalesced notification that a previously-used remote store is missing.
 class SyncReplacementRequiredEvent {
   const SyncReplacementRequiredEvent();
@@ -264,6 +276,7 @@ class SyncCoordinator {
   var _paused = false;
   Future<SyncPassResult>? _confirmation;
   var _disposed = false;
+  final _peerManifestCache = <String, _PeerManifestCache>{};
 
   static const _maxMissingHashesPerRequest = 10000;
 
@@ -362,8 +375,31 @@ class SyncCoordinator {
   Future<void> dispose() async {
     if (_disposed) return;
     _disposed = true;
+    _peerManifestCache.clear();
+    _queued = false;
+    final queuedResult = _queuedResult;
+    _queuedResult = null;
+    queuedResult?.complete(
+      const SyncPassResult(
+        SyncPassStatus.failed,
+        message: 'sync coordinator is closed', // i18n-ignore: internal status
+      ),
+    );
+    final inFlight = _inFlight;
     if (transport case final SyncHttpCoordinatorTransport httpTransport) {
       httpTransport.client.close();
+    }
+    if (inFlight != null) {
+      try {
+        await inFlight;
+      } on Object catch (error, stack) {
+        logCaughtErrorTypeOnly(
+          error,
+          stack,
+          source: 'sync_coordinator.dispose',
+        );
+      }
+      if (identical(_inFlight, inFlight)) _inFlight = null;
     }
     await _replacementEvents.close();
   }
@@ -391,6 +427,18 @@ class SyncCoordinator {
   void _finish(Future<SyncPassResult> pass) {
     if (!identical(_inFlight, pass)) return;
     _inFlight = null;
+    if (_disposed) {
+      _queued = false;
+      final queuedResult = _queuedResult;
+      _queuedResult = null;
+      queuedResult?.complete(
+        const SyncPassResult(
+          SyncPassStatus.failed,
+          message: 'sync coordinator is closed', // i18n-ignore: internal status
+        ),
+      );
+      return;
+    }
     if (!_queued) return;
 
     _queued = false;
@@ -456,7 +504,20 @@ class SyncCoordinator {
     final unresolved = <SyncRecordAddress>{};
     for (final peerId in metadata.devices) {
       if (peerId == deviceId) continue;
-      final response = await transport.getManifest(peerId);
+      final cached = _peerManifestCache[peerId];
+      final epochCached = cached?.epoch == metadata.epoch ? cached : null;
+      final response = await transport.getManifest(
+        peerId,
+        etag: epochCached?.etag,
+      );
+      final manifest = response.kind == SyncResponseKind.notModified
+          ? epochCached?.manifest
+          : response.isSuccess
+          ? _decodeManifest(response.body)
+          : null;
+      if (response.kind == SyncResponseKind.notModified && manifest == null) {
+        _peerManifestCache.remove(peerId);
+      }
       if (!response.isSuccess) {
         unresolved.addAll(snapshot.baseline.keys);
         reports.add(
@@ -469,8 +530,8 @@ class SyncCoordinator {
         );
         continue;
       }
-      final manifest = _decodeManifest(response.body);
       if (manifest == null || manifest.epoch != metadata.epoch) {
+        _peerManifestCache.remove(peerId);
         unresolved.addAll(snapshot.baseline.keys);
         reports.add(
           SyncReport(
@@ -481,6 +542,24 @@ class SyncCoordinator {
           ),
         );
         continue;
+      }
+      final etag = _header(response.headers, 'etag');
+      if (response.kind == SyncResponseKind.notModified) {
+        if (etag != null && etag.isNotEmpty) {
+          _peerManifestCache[peerId] = _PeerManifestCache(
+            epoch: metadata.epoch,
+            etag: etag,
+            manifest: manifest,
+          );
+        }
+      } else if (etag == null || etag.isEmpty) {
+        _peerManifestCache.remove(peerId);
+      } else {
+        _peerManifestCache[peerId] = _PeerManifestCache(
+          epoch: metadata.epoch,
+          etag: etag,
+          manifest: manifest,
+        );
       }
       peerManifests.add((peerId: peerId, manifest: manifest));
     }
@@ -759,6 +838,7 @@ class SyncCoordinator {
   }
 
   void _emitReplacementRequired() {
+    if (_disposed) return;
     if (_replacementPending) return;
     _replacementPending = true;
     _confirmation = null;
@@ -773,6 +853,13 @@ class SyncCoordinator {
       // caller as per-record failures.
       return null;
     }
+  }
+
+  static String? _header(Map<String, String> headers, String name) {
+    for (final entry in headers.entries) {
+      if (entry.key.toLowerCase() == name.toLowerCase()) return entry.value;
+    }
+    return null;
   }
 
   static SyncRecordBlob? _decodeBlob(List<int> body) {

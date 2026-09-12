@@ -139,6 +139,68 @@ void main() {
     expect(transport.manifestPuts, 2);
   });
 
+  test('dispose settles queued work and does not start a follow-up', () async {
+    final passGate = Completer<void>();
+    var passRuns = 0;
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: _FakeStore(),
+      transport: _FakeTransport(),
+      passOperation: () async {
+        passRuns++;
+        await passGate.future;
+        return const SyncPassResult(SyncPassStatus.completed);
+      },
+    );
+
+    final first = coordinator.syncNow();
+    final queued = coordinator.syncNow();
+    final disposing = coordinator.dispose();
+
+    expect((await queued).status, SyncPassStatus.failed);
+    expect(passRuns, 1);
+    passGate.complete();
+    expect((await first).status, SyncPassStatus.completed);
+    await disposing;
+    expect(passRuns, 1);
+    expect((await coordinator.syncNow()).status, SyncPassStatus.failed);
+  });
+
+  test('reuses a cached peer manifest after a 304 response', () async {
+    final peerManifest = _manifest(deviceId: 'peer', records: const {});
+    final encodedManifest = encodeSyncManifestUtf8(peerManifest);
+    final transport = _FakeTransport(
+      devices: ['peer'],
+      manifestResponses: {
+        'peer': [
+          SyncHttpResponse(
+            statusCode: 200,
+            kind: SyncResponseKind.success,
+            headers: const {'etag': '"peer-v1"'},
+            body: encodedManifest,
+          ),
+          const SyncHttpResponse(
+            statusCode: 304,
+            kind: SyncResponseKind.notModified,
+            headers: {},
+            body: [],
+          ),
+        ],
+      },
+    );
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: _FakeStore(),
+      transport: transport,
+    );
+
+    expect((await coordinator.syncNow()).status, SyncPassStatus.completed);
+    expect((await coordinator.syncNow()).status, SyncPassStatus.completed);
+    expect(transport.manifestEtags, [null, '"peer-v1"']);
+  });
+
   test(
     'the queued pass publishes the newer snapshot, not the stale one',
     () async {
@@ -578,6 +640,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
     this.devices = const [],
     this.peerManifest,
     this.peerManifests = const {},
+    Map<String, List<SyncHttpResponse>>? manifestResponses,
     this.blobResponses = const {},
     List<List<String>>? missingResponses,
     this.putManifestStatus = 200,
@@ -585,13 +648,20 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   }) : missingResponses = [
          for (final response in missingResponses ?? const <List<String>>[[]])
            [...response],
-       ];
+       ],
+       manifestResponses = {
+         for (final entry
+             in (manifestResponses ?? const <String, List<SyncHttpResponse>>{})
+                 .entries)
+           entry.key: [...entry.value],
+       };
 
   final SyncStoreMissingKind? missingKind;
   final Completer<void>? _storeReadGate;
   final List<String> devices;
   final SyncManifest? peerManifest;
   final Map<String, SyncManifest> peerManifests;
+  final Map<String, List<SyncHttpResponse>> manifestResponses;
   final Map<String, SyncHttpResponse> blobResponses;
   final List<List<String>> missingResponses;
   final int putManifestStatus;
@@ -602,6 +672,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   int storeCalls = 0;
   int createCalls = 0;
   int manifestCalls = 0;
+  final manifestEtags = <String?>[];
   int manifestPuts = 0;
   int blobCalls = 0;
   int postMissingCalls = 0;
@@ -643,6 +714,11 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   Future<SyncHttpResponse> getManifest(String deviceId, {String? etag}) async {
     manifestCalls++;
     requestLog.add('manifest');
+    manifestEtags.add(etag);
+    final scripted = manifestResponses[deviceId];
+    if (scripted != null && scripted.isNotEmpty) {
+      return scripted.removeAt(0);
+    }
     final manifest = peerManifests[deviceId] ?? peerManifest;
     return _response(
       200,
@@ -688,20 +764,23 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   static SyncHttpResponse response(int status, {List<int>? body}) =>
       _response(status, body: body == null ? null : utf8.decode(body));
 
-  static SyncHttpResponse _response(int status, {String? body}) =>
-      SyncHttpResponse(
-        statusCode: status,
-        kind: switch (status) {
-          200 => SyncResponseKind.success,
-          201 => SyncResponseKind.created,
-          404 => SyncResponseKind.notFound,
-          409 => SyncResponseKind.conflict,
-          500 => SyncResponseKind.serverError,
-          _ => SyncResponseKind.unexpectedStatus,
-        },
-        headers: const {},
-        body: body == null ? const [] : utf8.encode(body),
-      );
+  static SyncHttpResponse _response(
+    int status, {
+    String? body,
+    Map<String, String> headers = const {},
+  }) => SyncHttpResponse(
+    statusCode: status,
+    kind: switch (status) {
+      200 => SyncResponseKind.success,
+      201 => SyncResponseKind.created,
+      404 => SyncResponseKind.notFound,
+      409 => SyncResponseKind.conflict,
+      500 => SyncResponseKind.serverError,
+      _ => SyncResponseKind.unexpectedStatus,
+    },
+    headers: headers,
+    body: body == null ? const [] : utf8.encode(body),
+  );
 }
 
 SyncManifest _manifest({
