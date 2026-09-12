@@ -1,0 +1,14 @@
+{
+  "id": "adr-004-w6-steady-state-merge",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Device Sync now converges steady-state edits through one guarded pass, queues at most one follow-up, and pauses for confirmation instead of silently recreating a missing collection."
+    ]
+  },
+  "core": {
+    "changed": [
+      "Add existence-first, classification-safe merge and transactional inbound-apply primitives for Device Sync."
+    ]
+  }
+}
