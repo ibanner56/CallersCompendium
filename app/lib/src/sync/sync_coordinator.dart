@@ -54,6 +54,8 @@ class SyncCoordinatorSnapshot {
 abstract interface class SyncCoordinatorStore implements SyncApplyStorage {
   Future<SyncCoordinatorSnapshot> snapshot();
 
+  Future<void> markSyncUsed(String syncId);
+
   Future<void> markPublished(Iterable<SyncRecordAddress> records);
 
   Future<void> advanceBaseline({
@@ -70,14 +72,17 @@ abstract interface class SyncCoordinatorStore implements SyncApplyStorage {
 /// coordinator's baseline/publication lifecycle.
 final class CompendiumSyncCoordinatorStore
     implements SyncCoordinatorStore, SyncApplyReportingStorage {
-  CompendiumSyncCoordinatorStore(CompendiumRepositories repositories)
-    : storage = CompendiumSyncStorage(repositories);
+  CompendiumSyncCoordinatorStore(
+    CompendiumRepositories repositories, {
+    this.syncId,
+  }) : storage = CompendiumSyncStorage(repositories);
 
   final CompendiumSyncStorage storage;
+  final String? syncId;
 
   @override
   Future<SyncCoordinatorSnapshot> snapshot() async {
-    final snapshot = await storage.snapshot();
+    final snapshot = await storage.snapshot(syncId: syncId);
     return SyncCoordinatorSnapshot(
       epoch: snapshot.epoch,
       previouslyUsed: snapshot.previouslyUsed,
@@ -85,6 +90,9 @@ final class CompendiumSyncCoordinatorStore
       baseline: snapshot.baseline,
     );
   }
+
+  @override
+  Future<void> markSyncUsed(String syncId) => storage.markSyncUsed(syncId);
 
   @override
   Future<void> markPublished(Iterable<SyncRecordAddress> records) =>
@@ -505,6 +513,24 @@ class SyncCoordinator {
         current.remove(decision.address);
       }
     }
+    if (appliedAddresses.isNotEmpty) {
+      final finalByHash = <String, SyncMergeCandidate>{};
+      for (final candidate in current.values) {
+        if (candidate != null) finalByHash[candidate.wireHash] = candidate;
+      }
+      final finalUploadSucceeded = await _uploadMissingLocalBlobs(
+        finalByHash,
+        reports: reports,
+      );
+      if (!finalUploadSucceeded) {
+        return SyncPassResult(
+          SyncPassStatus.failed,
+          reports: reports.reports,
+          message:
+              'post-apply blob publication failed', // i18n-ignore: internal status
+        );
+      }
+    }
     final manifest = SyncManifest(
       deviceId: deviceId,
       epoch: metadata.epoch,
@@ -527,6 +553,7 @@ class SyncCoordinator {
             'manifest publication returned ${published.statusCode}', // i18n-ignore: internal status
       );
     }
+    await store.markSyncUsed(syncId!);
 
     final observed = <SyncBaselineEntry>[];
     for (final entry in current.entries) {

@@ -275,6 +275,11 @@ class ProgramRepository {
   Future<void> update(Program program, {LiveVenueIds? knownVenueIds}) =>
       _upsert(program, knownVenueIds: knownVenueIds);
 
+  /// Persists an inbound sync body without stamping performed slots as a local
+  /// status-transition side effect.
+  Future<void> writeFromSync(Program program) =>
+      _upsert(program, stampPerformedSlots: false);
+
   /// Clears performed stamps created by one bulk mark action.
   ///
   /// The slot id and timestamp predicates make this an atomic compare-and-clear
@@ -336,6 +341,7 @@ class ProgramRepository {
   Future<void> _upsert(
     Program program, {
     LiveVenueIds? knownVenueIds,
+    bool stampPerformedSlots = true,
   }) => _db.transaction(() async {
     assertUtc(program.createdAt, 'program.createdAt');
     assertUtc(program.updatedAt, 'program.updatedAt');
@@ -387,7 +393,7 @@ class ProgramRepository {
     // dance-linked-only logic lives in [Program.stampDanceSlotsPerformed]. The
     // stamp uses the program's eventDate when set, else its updatedAt (the
     // save's "now"), keeping the timestamp deterministic and validated.
-    if (program.status == ProgramStatus.performed) {
+    if (stampPerformedSlots && program.status == ProgramStatus.performed) {
       final priorRow = await (_db.select(
         _db.programs,
       )..where((t) => t.id.equals(program.id))).getSingleOrNull();

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -48,12 +49,29 @@ void main() {
       await directory.delete(recursive: true);
     });
 
-    final result = await IsolatedSyncPassOperation(
+    final terminalSeen = Completer<void>();
+    final release = Completer<void>();
+    final operation = IsolatedSyncPassOperation(
       databasePath: '${directory.path}/compendium.sqlite',
       endpoint: Uri.parse('http://127.0.0.1:${server.port}'),
       syncId: 'alpha-beta-gamma-delta',
       deviceId: 'device-a',
-    )();
+      beforeTerminalAcknowledgement: () {
+        terminalSeen.complete();
+        return release.future;
+      },
+    );
+    final handle = await operation.start();
+    await terminalSeen.future;
+    var completed = false;
+    final resultFuture = handle.result.then((result) {
+      completed = true;
+      return result;
+    });
+    await Future<void>.delayed(Duration.zero);
+    expect(completed, isFalse);
+    release.complete();
+    final result = await resultFuture;
 
     expect(result.status, SyncPassStatus.completed);
     expect(requests, [

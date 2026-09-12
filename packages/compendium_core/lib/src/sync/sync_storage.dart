@@ -45,9 +45,9 @@ class SyncStorageSnapshot {
 /// The production storage adapter for the core sync engine.
 ///
 /// Reads use full-fidelity models so a shareable inbound overlay cannot erase
-/// device-local fields. Writes use the existing repositories for entity and
-/// join-table handling, then restore the wire timestamp triple because the
-/// repositories intentionally stamp local causal times.
+/// device-local fields. Writes use dedicated inbound repository writers so
+/// interactive side effects cannot alter the validated peer body, then restore
+/// the wire timestamp triple because local persistence stamps causal times.
 final class CompendiumSyncStorage implements SyncApplyReportingStorage {
   CompendiumSyncStorage(this.repositories);
 
@@ -55,10 +55,14 @@ final class CompendiumSyncStorage implements SyncApplyReportingStorage {
 
   CompendiumDatabase get _db => repositories.db;
 
-  Future<SyncStorageSnapshot> snapshot() async {
+  Future<SyncStorageSnapshot> snapshot({
+    String? syncId,
+  }) => repositories.transaction(() async {
     final baseline = await repositories.syncLocal.snapshotBaseline();
     final baselineState = await repositories.syncLocal.getBaselineState();
-    final published = await repositories.syncLocal.listPublishedRecords();
+    final lastUsedFingerprint = syncId == null
+        ? null
+        : await repositories.settings.get(syncLastUsedFingerprintKey);
     final local = <SyncRecordAddress, SyncMergeCandidate?>{};
     final customFields = await repositories.customFieldDefs
         .listAllWithDeleted();
@@ -270,11 +274,18 @@ final class CompendiumSyncStorage implements SyncApplyReportingStorage {
 
     return SyncStorageSnapshot(
       epoch: baselineState?.epoch,
-      previouslyUsed: published.isNotEmpty,
+      previouslyUsed:
+          syncId != null &&
+          lastUsedFingerprint == syncIdentityFingerprint(syncId),
       local: local,
       baseline: baseline,
     );
-  }
+  });
+
+  Future<void> markSyncUsed(String syncId) => repositories.settings.set(
+    syncLastUsedFingerprintKey,
+    syncIdentityFingerprint(syncId),
+  );
 
   @override
   Future<T> transaction<T>(Future<T> Function() action) =>
@@ -355,25 +366,9 @@ final class CompendiumSyncStorage implements SyncApplyReportingStorage {
 
     switch (kind) {
       case SyncRecordKind.dance:
-        final existing = await repositories.dances.getById(
-          record.address.recordId,
-          includeDeleted: true,
-        );
-        if (existing == null) {
-          await repositories.dances.create(entityToWrite as Dance);
-        } else {
-          await repositories.dances.update(entityToWrite as Dance);
-        }
+        await repositories.dances.writeFromSync(entityToWrite as Dance);
       case SyncRecordKind.program:
-        final existing = await repositories.programs.getById(
-          record.address.recordId,
-          includeDeleted: true,
-        );
-        if (existing == null) {
-          await repositories.programs.create(entityToWrite as Program);
-        } else {
-          await repositories.programs.update(entityToWrite as Program);
-        }
+        await repositories.programs.writeFromSync(entityToWrite as Program);
       case SyncRecordKind.choreographer:
         final _ = await repositories.choreographers.upsert(
           entityToWrite as Choreographer,
@@ -721,3 +716,9 @@ final class CompendiumSyncStorage implements SyncApplyReportingStorage {
 
   static final _epoch = DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
 }
+
+/// Device-local marker for the last configured sync identity that completed a
+/// publication. The raw bearer credential is never stored in this marker.
+const syncLastUsedFingerprintKey = 'sync_last_used_fingerprint';
+
+String syncIdentityFingerprint(String syncId) => sha256Hex(utf8.encode(syncId));

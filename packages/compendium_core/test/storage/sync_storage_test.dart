@@ -67,4 +67,80 @@ void main() {
       expect(row.deletedAt, isNull);
     },
   );
+
+  test(
+    'tracks prior use by sync identity even when the collection is empty',
+    () async {
+      expect(
+        (await storage.snapshot(syncId: 'sync-a')).previouslyUsed,
+        isFalse,
+      );
+
+      await storage.markSyncUsed('sync-a');
+
+      expect((await storage.snapshot(syncId: 'sync-a')).previouslyUsed, isTrue);
+      expect(
+        (await storage.snapshot(syncId: 'sync-b')).previouslyUsed,
+        isFalse,
+      );
+
+      await storage.markSyncUsed('sync-b');
+
+      expect(
+        (await storage.snapshot(syncId: 'sync-a')).previouslyUsed,
+        isFalse,
+      );
+      expect((await storage.snapshot(syncId: 'sync-b')).previouslyUsed, isTrue);
+    },
+  );
+
+  test(
+    'inbound performed programs preserve peer slot content without stamping it',
+    () async {
+      final originalStamp = DateTime.utc(2025, 1, 1, 12);
+      final remoteStamp = DateTime.utc(2025, 1, 2, 12);
+      final original = Program(
+        id: 'p1',
+        title: 'Program',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        createdAt: originalStamp,
+        updatedAt: originalStamp,
+      );
+      await repositories.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Dance',
+          createdAt: originalStamp,
+          updatedAt: originalStamp,
+        ),
+      );
+      await repositories.programs.create(original);
+
+      final remote = original.copyWith(
+        status: ProgramStatus.performed,
+        updatedAt: remoteStamp,
+      );
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.program,
+              id: remote.id,
+              updatedAt: remoteStamp,
+              deletedAt: null,
+              existenceAt: originalStamp,
+              body: syncBodyForEntity(SyncRecordKind.program, remote),
+            ),
+          ),
+        ],
+        storage: storage,
+      );
+
+      expect(result.applied, [(kind: SyncRecordKind.program, recordId: 'p1')]);
+      final stored = await repositories.programs.getById('p1');
+      expect(stored!.status, ProgramStatus.performed);
+      expect(stored.slots.single.performedAt, isNull);
+      expect(stored.updatedAt, remoteStamp);
+    },
+  );
 }

@@ -251,7 +251,12 @@ void main() {
             body: utf8.encode(encodeSyncRecordBlob(remote.blob)),
           ),
         },
+        missingResponses: const [
+          <String>[],
+          <String>['placeholder'],
+        ],
       );
+      transport.missingResponses[1] = [repaired.wireHash];
       final coordinator = SyncCoordinator(
         syncId: 'configured',
         deviceId: 'device-a',
@@ -269,6 +274,8 @@ void main() {
         manifest.records[SyncRecordKind.setting]!['custom_dialects'],
         repaired.wireHash,
       );
+      expect(transport.postMissingCalls, 2);
+      expect(transport.putBlobHashes, [repaired.wireHash]);
     },
   );
 
@@ -394,6 +401,9 @@ final class _FakeStore implements SyncCoordinatorStore {
   }
 
   @override
+  Future<void> markSyncUsed(String syncId) async {}
+
+  @override
   Future<Map<String, Object?>?> read(SyncRecordAddress address) async {
     for (final write in writes.reversed) {
       if (write.address == address) return write.body;
@@ -436,15 +446,20 @@ final class _FakeTransport implements SyncCoordinatorTransport {
     this.devices = const [],
     this.peerManifest,
     this.blobResponses = const {},
+    List<List<String>>? missingResponses,
     this.putManifestStatus = 200,
     this.onManifestPut,
-  });
+  }) : missingResponses = [
+         for (final response in missingResponses ?? const <List<String>>[[]])
+           [...response],
+       ];
 
   final SyncStoreMissingKind? missingKind;
   final Completer<void>? _storeReadGate;
   final List<String> devices;
   final SyncManifest? peerManifest;
   final Map<String, SyncHttpResponse> blobResponses;
+  final List<List<String>> missingResponses;
   final int putManifestStatus;
   final void Function(List<int> body)? onManifestPut;
   final firstStoreStarted = Completer<void>();
@@ -456,6 +471,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   int manifestPuts = 0;
   int blobCalls = 0;
   int postMissingCalls = 0;
+  final putBlobHashes = <String>[];
 
   List<String> get calls => [
     if (storeCalls > 0) 'store',
@@ -513,7 +529,10 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   Future<SyncHttpResponse> postMissing(Iterable<String> hashes) async {
     postMissingCalls++;
     requestLog.add('missing');
-    return _response(200, body: jsonEncode({'missing': <String>[]}));
+    final response = missingResponses.length >= postMissingCalls
+        ? missingResponses[postMissingCalls - 1]
+        : const <String>[];
+    return _response(200, body: jsonEncode({'missing': response}));
   }
 
   @override
@@ -524,8 +543,10 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   }
 
   @override
-  Future<SyncHttpResponse> putBlob(String hash, List<int> body) async =>
-      _response(201);
+  Future<SyncHttpResponse> putBlob(String hash, List<int> body) async {
+    putBlobHashes.add(hash);
+    return _response(201);
+  }
 
   static SyncHttpResponse response(int status, {List<int>? body}) =>
       _response(status, body: body == null ? null : utf8.decode(body));

@@ -50,7 +50,7 @@ final class ConfiguredSyncCoordinatorFactory {
     return SyncCoordinator(
       syncId: syncId,
       deviceId: deviceId,
-      store: CompendiumSyncCoordinatorStore(repositories),
+      store: CompendiumSyncCoordinatorStore(repositories, syncId: syncId),
       transport: SyncHttpCoordinatorTransport(client),
       passOperation: IsolatedSyncPassOperation(
         databasePath: databasePath,

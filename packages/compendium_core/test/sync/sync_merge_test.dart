@@ -124,7 +124,13 @@ void main() {
     final remote = _setting('custom_dialects', 'remote');
     final plan = engine.plan(
       local: {local.address: SyncMergeCandidate.fromBlob(local)},
-      baseline: const {},
+      baseline: {
+        local.address: SyncBaselineEntry(
+          kind: local.address.kind,
+          recordId: local.address.recordId,
+          wireHash: SyncMergeCandidate.fromBlob(local).wireHash,
+        ),
+      },
       peers: [
         {remote.address: SyncMergeCandidate.fromBlob(remote)},
       ],
@@ -158,7 +164,7 @@ void main() {
     'equal existenceAt silently chooses the tombstone and fresh attach bypasses guard',
     () {
       final local = _setting('custom_dialects', 'local');
-      final tombstone = _setting('custom_dialects', 'remote', deleted: true);
+      final tombstone = _setting('custom_dialects', 'local', deleted: true);
       final steadyState = engine.plan(
         local: {local.address: SyncMergeCandidate.fromBlob(local)},
         baseline: const {},
@@ -217,6 +223,57 @@ void main() {
     expect(plan.decisions.single.action, SyncMergeAction.download);
     expect(plan.decisions.single.winner!.blob.body['value'], 'newest');
   });
+
+  test('combines independent body and existence maxima across peers', () {
+    final local = _settingAt(
+      'custom_dialects',
+      'local',
+      updatedSeconds: 0,
+      existenceSeconds: 0,
+    );
+    final newestBody = _settingAt(
+      'custom_dialects',
+      'newest body',
+      updatedSeconds: 3,
+      existenceSeconds: 1,
+    );
+    final newestExistence = _settingAt(
+      'custom_dialects',
+      'stale body',
+      updatedSeconds: 2,
+      existenceSeconds: 5,
+      deleted: true,
+    );
+    final middle = _settingAt(
+      'custom_dialects',
+      'middle body',
+      updatedSeconds: 1,
+      existenceSeconds: 2,
+    );
+
+    final plan = engine.plan(
+      local: {local.address: SyncMergeCandidate.fromBlob(local)},
+      baseline: {
+        local.address: SyncBaselineEntry(
+          kind: local.address.kind,
+          recordId: local.address.recordId,
+          wireHash: SyncMergeCandidate.fromBlob(local).wireHash,
+        ),
+      },
+      peers: [
+        {newestBody.address: SyncMergeCandidate.fromBlob(newestBody)},
+        {newestExistence.address: SyncMergeCandidate.fromBlob(newestExistence)},
+        {middle.address: SyncMergeCandidate.fromBlob(middle)},
+      ],
+    );
+
+    final winner = plan.decisions.single.winner!;
+    expect(plan.decisions.single.action, SyncMergeAction.download);
+    expect(winner.blob.body['value'], 'newest body');
+    expect(winner.updatedAt, newestBody.updatedAt);
+    expect(winner.existenceAt, newestExistence.existenceAt);
+    expect(winner.isDeleted, isTrue);
+  });
 }
 
 SyncRecordBlob _setting(
@@ -232,6 +289,25 @@ SyncRecordBlob _setting(
     updatedAt: stamp,
     deletedAt: deleted ? stamp : null,
     existenceAt: stamp,
+    body: {'value': value},
+  );
+}
+
+SyncRecordBlob _settingAt(
+  String id,
+  String value, {
+  required int updatedSeconds,
+  required int existenceSeconds,
+  bool deleted = false,
+}) {
+  final updatedAt = _baseTime.add(Duration(seconds: updatedSeconds));
+  final existenceAt = _baseTime.add(Duration(seconds: existenceSeconds));
+  return SyncRecordBlob(
+    kind: SyncRecordKind.setting,
+    id: id,
+    updatedAt: updatedAt,
+    deletedAt: deleted ? existenceAt : null,
+    existenceAt: existenceAt,
     body: {'value': value},
   );
 }

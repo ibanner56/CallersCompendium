@@ -460,7 +460,18 @@ class DanceRepository {
 
   Future<void> update(Dance dance) => _upsert(dance);
 
-  Future<void> _upsert(Dance dance) => _db.transaction(() async {
+  /// Persists a validated peer body without taxonomy migration side effects.
+  ///
+  /// Sync records already passed wire admission and must retain their exact
+  /// serialized content; ordinary editor/import writes may normalize legacy
+  /// taxonomy IDs before persistence.
+  Future<void> writeFromSync(Dance dance) =>
+      _upsert(dance, normalizeTaxonomy: false);
+
+  Future<void> _upsert(
+    Dance dance, {
+    bool normalizeTaxonomy = true,
+  }) => _db.transaction(() async {
     assertUtc(dance.createdAt, 'dance.createdAt');
     assertUtc(dance.updatedAt, 'dance.updatedAt');
     assertUtcOrNull(dance.deletedAt, 'dance.deletedAt');
@@ -472,9 +483,11 @@ class DanceRepository {
     // persisting. This is the single convergence point for all figure writers.
     // v34-v35: normalize legacy figures here as well as in one-time sweeps, so
     // restores and later imports cannot reintroduce old taxonomy keys.
-    final normalisedDance = normaliseTaxonomyV34Public(
-      _normaliseTaxonomyV35Dance(_normaliseMoveIds(dance)),
-    );
+    final normalisedDance = normalizeTaxonomy
+        ? normaliseTaxonomyV34Public(
+            _normaliseTaxonomyV35Dance(_normaliseMoveIds(dance)),
+          )
+        : dance;
     final difficultyLevelId = normalisedDance.difficultyLevelId;
     if (difficultyLevelId != null) {
       final level =

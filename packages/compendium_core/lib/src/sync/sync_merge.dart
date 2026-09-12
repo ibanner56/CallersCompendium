@@ -235,17 +235,14 @@ class SyncMergeEngine {
       );
     }
 
-    final contentCandidates = candidates
-        .where((candidate) => candidate.isDeleted == deletedWins)
-        .toList(growable: false);
-    final maximumUpdated = contentCandidates
+    final maximumUpdated = candidates
         .map((candidate) => candidate.updatedAt)
         .reduce((left, right) => left.isAfter(right) ? left : right);
-    final updatedWinners = contentCandidates
+    final updatedWinners = candidates
         .where((candidate) => candidate.updatedAt == maximumUpdated)
         .toList(growable: false);
     final hashes = updatedWinners
-        .map((candidate) => candidate.wireHash)
+        .map((candidate) => candidate.bodyHash)
         .toSet();
     if (hashes.length > 1) {
       final first = updatedWinners.first;
@@ -263,9 +260,24 @@ class SyncMergeEngine {
 
     // Prefer local only when it has the same content. This keeps the result
     // deterministic without inventing a tie-break for differing bodies.
-    final winner = updatedWinners.firstWhere(
+    final contentWinner = updatedWinners.firstWhere(
       (candidate) => identical(candidate, local),
       orElse: () => updatedWinners.first,
+    );
+    final existenceWinner = existenceWinners.firstWhere(
+      (candidate) => candidate.isDeleted,
+      orElse: () => existenceWinners.first,
+    );
+    final winner = SyncMergeCandidate.fromBlob(
+      SyncRecordBlob(
+        v: contentWinner.blob.v,
+        kind: contentWinner.blob.kind,
+        id: contentWinner.blob.id,
+        updatedAt: contentWinner.updatedAt,
+        deletedAt: existenceWinner.blob.deletedAt,
+        existenceAt: existenceWinner.existenceAt,
+        body: contentWinner.blob.body,
+      ),
     );
     return _Resolution.winner(winner);
   }

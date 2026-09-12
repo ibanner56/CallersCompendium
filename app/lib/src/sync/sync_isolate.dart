@@ -79,12 +79,14 @@ final class IsolatedSyncPassOperation {
     required this.endpoint,
     required this.syncId,
     required this.deviceId,
+    this.beforeTerminalAcknowledgement,
   });
 
   final String databasePath;
   final Uri endpoint;
   final String syncId;
   final String deviceId;
+  final Future<void> Function()? beforeTerminalAcknowledgement;
 
   Future<SyncPassResult> call() async {
     final handle = await start();
@@ -99,6 +101,7 @@ final class IsolatedSyncPassOperation {
     final errorPort = ReceivePort();
     final result = Completer<SyncPassResult>();
     var finished = false;
+    var terminalMessageReceived = false;
 
     late final StreamSubscription<dynamic> resultSubscription;
     late final StreamSubscription<dynamic> exitSubscription;
@@ -127,13 +130,26 @@ final class IsolatedSyncPassOperation {
       closePorts();
     }
 
-    resultSubscription = resultPort.listen((message) {
+    resultSubscription = resultPort.listen((message) async {
       if (message is! Map<Object?, Object?>) {
         completeError(
           const FormatException('sync isolate returned a malformed message'),
         );
         return;
       }
+      final acknowledgement = message['ack'];
+      if (acknowledgement is! SendPort) {
+        completeError(
+          const FormatException(
+            'sync isolate terminal message omitted its acknowledgement port',
+          ),
+        );
+        return;
+      }
+      final beforeAcknowledgement = beforeTerminalAcknowledgement;
+      if (beforeAcknowledgement != null) await beforeAcknowledgement();
+      terminalMessageReceived = true;
+      acknowledgement.send(null);
       switch (message['type']) {
         case 'result':
           final encoded = message['result'];
@@ -145,6 +161,7 @@ final class IsolatedSyncPassOperation {
           }
           try {
             completeResult(_decodeResult(Map<String, Object?>.from(encoded)));
+            // diagnostics: silent — malformed terminal results are surfaced to the caller.
           } on Object catch (error, stack) {
             completeError(error, stack);
           }
@@ -160,10 +177,12 @@ final class IsolatedSyncPassOperation {
       }
     });
     exitSubscription = exitPort.listen((_) {
-      completeError(const SyncIsolateInterrupted());
+      if (!terminalMessageReceived) {
+        completeError(const SyncIsolateInterrupted());
+      }
     });
     errorSubscription = errorPort.listen((message) {
-      final values = message is List ? message : const [];
+      final values = message is List<Object?> ? message : const <Object?>[];
       final error = values.isNotEmpty ? values.first : null;
       final stack = values.length > 1 ? values[1] : null;
       completeError(
@@ -212,6 +231,7 @@ final class _SyncPassRequest {
 }
 
 Future<void> _runSyncPassWorker(_SyncPassRequest request) async {
+  final acknowledgementPort = ReceivePort();
   try {
     final applyControlPort = request.applyControlPort;
     final applyEngine = applyControlPort == null
@@ -226,14 +246,22 @@ Future<void> _runSyncPassWorker(_SyncPassRequest request) async {
       deviceId: request.deviceId,
       applyEngine: applyEngine,
     );
-    request.resultPort.send({'type': 'result', 'result': encoded});
+    request.resultPort.send({
+      'type': 'result',
+      'result': encoded,
+      'ack': acknowledgementPort.sendPort,
+    });
+    // diagnostics: silent — worker errors are serialized to the parent isolate.
   } on Object catch (error, stack) {
     request.resultPort.send({
       'type': 'error',
       'message': '$error',
       'stack': '$stack',
+      'ack': acknowledgementPort.sendPort,
     });
   }
+  await acknowledgementPort.first;
+  acknowledgementPort.close();
 }
 
 Future<void> _pauseAfterWrite(SendPort parentPort) async {
@@ -264,6 +292,7 @@ Future<Map<String, Object?>> _runSyncPass({
       deviceId: deviceId,
       store: CompendiumSyncCoordinatorStore(
         CompendiumRepositories(database, contraTaxonomy),
+        syncId: syncId,
       ),
       transport: SyncHttpCoordinatorTransport(client),
       applyEngine: applyEngine,

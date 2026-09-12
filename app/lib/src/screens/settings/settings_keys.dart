@@ -130,3 +130,7 @@ const String kSyncIdKey = 'sync_id';
 /// Key used to persist this installation's Device Sync routing identifier. It
 /// is minted locally and is never adopted from a peer or included in backups.
 const String kSyncDeviceIdKey = 'sync_device_id';
+
+/// Device-local fingerprint of the last sync identity that completed a
+/// publication. It is never included in backups or sync record content.
+const String kSyncLastUsedFingerprintKey = 'sync_last_used_fingerprint';
