@@ -717,8 +717,8 @@ void main() {
     'defers derived maintenance during sync relation writes to the batch rebuild',
     () async {
       final counter = FtsDeleteByDanceCounter();
-      final countingDb = openCountingTestDatabase(counter);
       await db.close();
+      final countingDb = openCountingTestDatabase(counter);
       db = countingDb;
       final countingRepositories = CompendiumRepositories(
         countingDb,
