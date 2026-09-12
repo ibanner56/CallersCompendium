@@ -6897,6 +6897,12 @@ abstract class AppLocalizations {
   /// **'Enter a title or author to search ContraDB.'**
   String get importErrorContraDbEmptyTitle;
 
+  /// Error shown when a ContraDB Figure search is not an exact canonical move name.
+  ///
+  /// In en, this message translates to:
+  /// **'ContraDB Figure searches use a complete move name, such as \"box circulate\".'**
+  String get importErrorContraDbUnsupportedFigure;
+
   /// Error shown when the ContraDB dance URL/id field is empty.
   ///
   /// In en, this message translates to:

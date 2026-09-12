@@ -4496,6 +4496,10 @@
   "@importErrorContraDbEmptyTitle": {
     "x-sourceSha256": "09eecfc63a328b106265565c2292a6ff0eaa08f51bcc08e512ef721ba042e616"
   },
+  "importErrorContraDbUnsupportedFigure": "Les recherches de figures dans ContraDB utilisent un nom de mouvement complet, par exemple \"box circulate\".",
+  "@importErrorContraDbUnsupportedFigure": {
+    "x-sourceSha256": "b3cdc0346e556478bbeb56d45067b5cc4e6361aa0ed3e239efe070a08fd08b57"
+  },
   "importErrorContraDbEmptyDanceInput": "Saisissez une URL ou un identifiant de danse ContraDB pour importer.",
   "@importErrorContraDbEmptyDanceInput": {
     "x-sourceSha256": "5aaddefa8c5f26cf63296ed62556451c87d6e6d52742e4e4f14952d37c6a2a20"

@@ -5856,6 +5856,10 @@
   "@importErrorContraDbEmptyTitle": {
     "description": "Error shown when a ContraDB search is attempted with no title or author."
   },
+  "importErrorContraDbUnsupportedFigure": "ContraDB Figure searches use a complete move name, such as \"box circulate\".",
+  "@importErrorContraDbUnsupportedFigure": {
+    "description": "Error shown when a ContraDB Figure search is not an exact canonical move name."
+  },
   "importErrorContraDbEmptyDanceInput": "Enter a ContraDB dance URL or id to import from.",
   "@importErrorContraDbEmptyDanceInput": {
     "description": "Error shown when the ContraDB dance URL/id field is empty."

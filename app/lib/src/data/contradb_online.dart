@@ -43,15 +43,19 @@ class ContraDbOnline implements OnlineSearchService {
   @override
   OnlineSource get source => OnlineSource.contraDb;
 
-  /// Searches ContraDB by the selected title, author, or figure criterion
-  /// (case-insensitive substring match, server side) and returns the parsed
-  /// result rows. Throws a typed [UrlFetchException] on any fetch failure, or
-  /// when there is nothing to search.
+  /// Searches ContraDB by the selected title, author, or exact canonical figure
+  /// criterion and returns the parsed result rows. Figure input accepts
+  /// case/whitespace variants and is resolved to ContraDB's source spelling
+  /// before the request. Throws a typed [UrlFetchException] on any fetch
+  /// failure, unsupported Figure input, or when there is nothing to search.
   @override
   Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async {
     final title = query.title.trim();
     final author = query.author.trim();
     final figure = query.figure.trim();
+    final canonicalFigure = figure.isEmpty
+        ? null
+        : canonicalContraDbFigureQuery(figure);
     final textCriteria = [
       title,
       author,
@@ -60,6 +64,11 @@ class ContraDbOnline implements OnlineSearchService {
     if (textCriteria > 1) {
       throw ArgumentError('title, author, and figure cannot be combined');
     }
+    if (figure.isNotEmpty && canonicalFigure == null) {
+      throw const UrlFetchException(
+        UrlFetchFailureReason.contraDbUnsupportedFigure,
+      );
+    }
     if (title.isEmpty && author.isEmpty && figure.isEmpty) {
       throw const UrlFetchException(UrlFetchFailureReason.contraDbEmptyTitle);
     }
@@ -67,7 +76,7 @@ class ContraDbOnline implements OnlineSearchService {
         ? title
         : author.isNotEmpty
         ? author
-        : figure;
+        : canonicalFigure!;
     final filter = title.isNotEmpty
         ? 'title'
         : author.isNotEmpty

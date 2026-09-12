@@ -46,22 +46,39 @@ void main() {
       expect(decoded['filter'], ['choreographer', 'Alice Gordon']);
     });
 
-    test('builds a figure filter', () {
+    test('builds a canonical figure filter', () {
       final decoded =
           jsonDecode(buildContraDbSearchBody('box circulate', filter: 'figure'))
               as Map<String, dynamic>;
       expect(decoded['filter'], ['figure', 'box circulate']);
     });
 
-    test(
-      'passes the query through verbatim (server lower-cases the match)',
-      () {
-        final decoded =
-            jsonDecode(buildContraDbSearchBody('Money Musk'))
-                as Map<String, Object?>;
-        expect(decoded['filter'], ['title', 'Money Musk']);
-      },
-    );
+    test('normalizes case and whitespace for a figure filter', () {
+      final decoded =
+          jsonDecode(
+                buildContraDbSearchBody(
+                  '  Box   Circulate  ',
+                  filter: 'figure',
+                ),
+              )
+              as Map<String, dynamic>;
+      expect(decoded['filter'], ['figure', 'box circulate']);
+    });
+
+    test('rejects a partial or unknown figure filter', () {
+      expect(
+        () => buildContraDbSearchBody('box circul', filter: 'figure'),
+        throwsArgumentError,
+      );
+      expect(canonicalContraDbFigureQuery('not a ContraDB figure'), isNull);
+    });
+
+    test('passes title query through verbatim', () {
+      final decoded =
+          jsonDecode(buildContraDbSearchBody('Money Musk'))
+              as Map<String, Object?>;
+      expect(decoded['filter'], ['title', 'Money Musk']);
+    });
   });
 
   group('parseContraDbSearchResults', () {

@@ -183,12 +183,33 @@ void main() {
           },
         );
         await online.search(
-          const OnlineSearchQuery(figure: '  box circulate  '),
+          const OnlineSearchQuery(figure: '  Box   Circulate  '),
         );
         expect(request.query, 'box circulate');
         expect(request.filter, 'figure');
       },
     );
+
+    test('rejects an unknown Figure before making a request', () async {
+      var called = false;
+      final online = ContraDbOnline(
+        searchFetcher: (_) async {
+          called = true;
+          return _searchJson();
+        },
+      );
+      await expectLater(
+        online.search(const OnlineSearchQuery(figure: 'box circul')),
+        throwsA(
+          isA<UrlFetchException>().having(
+            (error) => error.reason,
+            'reason',
+            UrlFetchFailureReason.contraDbUnsupportedFigure,
+          ),
+        ),
+      );
+      expect(called, isFalse);
+    });
 
     test('an empty query throws before any fetch', () async {
       var called = false;

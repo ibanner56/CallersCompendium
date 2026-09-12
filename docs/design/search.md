@@ -27,7 +27,8 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    author, and figure criteria to Caller's Box and ContraDB, while by-phrase
    criteria remain available only to sources that support them. Caller's Box
    maps the free-text Figure criterion to global positive figure lines;
-   ContraDB selects its fixed `figure` filter.
+   ContraDB resolves Figure input against its exact canonical vocabulary and
+   selects its fixed `figure` filter.
 4. **Injection-safe by construction.** Every user value is a bind variable;
    only a fixed vocabulary of column names, operators, and JSON key paths is
    ever interpolated, and each is validated against an allow-list.

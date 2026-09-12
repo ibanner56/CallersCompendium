@@ -4478,6 +4478,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Angiv en titel eller forfatter for at søge i ContraDB.';
 
   @override
+  String get importErrorContraDbUnsupportedFigure =>
+      'ContraDB-figursøgninger bruger et komplet figurnavn, f.eks. \"box circulate\".';
+
+  @override
   String get importErrorContraDbEmptyDanceInput =>
       'Indtast en ContraDB dans-URL eller id at importere fra.';
 

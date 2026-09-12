@@ -4547,6 +4547,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Saisissez un titre ou un auteur pour rechercher dans ContraDB.';
 
   @override
+  String get importErrorContraDbUnsupportedFigure =>
+      'Les recherches de figures dans ContraDB utilisent un nom de mouvement complet, par exemple \"box circulate\".';
+
+  @override
   String get importErrorContraDbEmptyDanceInput =>
       'Saisissez une URL ou un identifiant de danse ContraDB pour importer.';
 

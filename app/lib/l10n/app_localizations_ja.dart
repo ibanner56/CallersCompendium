@@ -4323,6 +4323,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'ContraDBを検索するには、タイトルまたは作者を入力してください。';
 
   @override
+  String get importErrorContraDbUnsupportedFigure =>
+      'ContraDBのFigure検索には、「box circulate」のような完全な技名を使用してください。';
+
+  @override
   String get importErrorContraDbEmptyDanceInput =>
       'インポートするContraDBのダンスURLまたはIDを入力してください。';
 

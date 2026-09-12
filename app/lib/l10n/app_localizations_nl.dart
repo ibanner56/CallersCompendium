@@ -4512,6 +4512,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Voer een titel of auteur in om ContraDB te doorzoeken.';
 
   @override
+  String get importErrorContraDbUnsupportedFigure =>
+      'ContraDB-figuurzoekopdrachten gebruiken een volledige bewegingsnaam, zoals \"box circulate\".';
+
+  @override
   String get importErrorContraDbEmptyDanceInput =>
       'Voer een ContraDB dans-URL of -id in om van te importeren.';
 

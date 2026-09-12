@@ -234,6 +234,7 @@ enum UrlFetchFailureReason {
   callersBoxUnsupportedHost,
   // ContraDB.
   contraDbEmptyTitle,
+  contraDbUnsupportedFigure,
   contraDbEmptyDanceInput,
   contraDbInvalidDanceUrl,
   contraDbMissingDanceId,
@@ -1499,7 +1500,8 @@ typedef ContraDbSearchFetcher =
 /// A validated ContraDB search criterion for the injected transport seam.
 ///
 /// [filter] is an internal fixed vocabulary value, never user-controlled
-/// structure. It is `title`, `choreographer`, or `figure`.
+/// structure. It is `title`, `choreographer`, or `figure`; Figure [query] text
+/// is normalized and must resolve to an exact canonical ContraDB move name.
 class ContraDbSearchRequest {
   const ContraDbSearchRequest({required this.query, required this.filter});
 
@@ -1574,9 +1576,10 @@ Future<http.Response> _sendContraDbSearch(
 
 /// Default [ContraDbSearchFetcher]: POSTs [query] using [filter] as a ContraDB
 /// title-, choreographer-, or figure-search JSON body to [contraDbSearchUrl]
-/// (with an [importFetchTimeout]) and returns the response body. Throws a
-/// [UrlFetchException] with a clear, user-presentable message for a network
-/// failure, a timeout, a non-2xx status, or an empty body.
+/// (with an [importFetchTimeout]) and returns the response body. Figure queries
+/// are normalized and invalid or partial names are rejected before the POST.
+/// Throws a [UrlFetchException] with a clear, user-presentable message for a
+/// network failure, a timeout, a non-2xx status, or an empty body.
 ///
 /// [client] is an injection point for tests (e.g. `package:http`'s
 /// `MockClient`); production callers omit it and a one-shot client is used.

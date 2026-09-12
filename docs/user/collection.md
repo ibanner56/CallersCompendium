@@ -96,7 +96,9 @@ Use **Search in** to choose the indexed fields: **All fields**, **Title**,
 **Author**, or **Figure**. When **Online search** is enabled in the Advanced
 panel, the same control offers **Title**, **Author**, and **Figure**; choose
 **Author** to search author names on Caller's Box or choreographer names on
-ContraDB, or **Figure** to search dance-movement text on either source.
+ContraDB, or **Figure** to search dance-movement text on either source. ContraDB
+Figure searches use complete canonical move names such as **box circulate**;
+case and extra spaces are normalized, but partial or unknown names are rejected.
 
 ## Narrow things down with filters
 
