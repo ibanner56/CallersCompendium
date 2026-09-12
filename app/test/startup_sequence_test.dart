@@ -11,6 +11,8 @@ import 'package:compendium_app/src/data/app_database.dart';
 import 'package:compendium_app/src/data/migration_guard.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/data/window_service.dart';
+import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
+import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart'
     show kAppThemeKey;
@@ -42,6 +44,15 @@ class _FailingWindowService extends WindowService {
 
   @override
   void dispose() {}
+}
+
+class _RecordingCrashLogSink implements CrashLogSink {
+  final List<String> sources = [];
+
+  @override
+  void record(Object error, StackTrace? stack, {required String source}) {
+    sources.add(source);
+  }
 }
 
 /// A [CompendiumRepositories] whose derived-index rebuild throws on its first
@@ -319,6 +330,37 @@ void main() {
     expect(find.textContaining('integrity check failed'), findsNothing);
     expect(find.byType(AppShell), findsOneWidget);
   });
+
+  testWidgets(
+    'a failing sync configuration does not block startup and is logged',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final sink = _RecordingCrashLogSink();
+      installCaughtErrorLog(sink);
+      addTearDown(resetCaughtErrorLogForTesting);
+      final appData = _openAppData();
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          integrityCheck: () async => true,
+          // A malformed persisted sync setting can throw synchronously before
+          // the factory returns a Future. Device Sync is optional, so this
+          // must not abort the rest of startup.
+          syncCoordinatorFactory: (_) {
+            throw const FormatException('stored sync ID must be a string');
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AppShell), findsOneWidget);
+      expect(sink.sources, contains('main.sync-configure'));
+    },
+  );
 
   testWidgets(
     'a downgrade preflight failure shows the update-app message and gates the '

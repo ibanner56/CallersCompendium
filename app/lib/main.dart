@@ -1060,7 +1060,13 @@ class _CompendiumAppState extends State<CompendiumApp> {
 
     final factory = widget.syncCoordinatorFactory;
     if (factory == null || !mounted) return;
-    final coordinator = await factory(_appData.repositories);
+    SyncCoordinator? coordinator;
+    try {
+      coordinator = await factory(_appData.repositories);
+    } on Object catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'main.sync-configure');
+      return;
+    }
     if (!mounted) {
       await coordinator?.dispose();
       return;
