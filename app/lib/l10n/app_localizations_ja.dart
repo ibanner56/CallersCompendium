@@ -3690,6 +3690,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onlineSearchFieldHint => 'タイトルまたは作者でオンラインのダンスを検索…';
 
   @override
+  String get collectionOnlineSearchFieldHint =>
+      'タイトル、作者、またはフィギュアでオンラインのダンスを検索…';
+
+  @override
   String onlineResultCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -3707,6 +3711,16 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String onlineSearchHintTitle(String source) {
     return '$sourceを検索するには、タイトルまたは作者を入力してください。';
+  }
+
+  @override
+  String collectionOnlineSearchHintByPhrase(String source) {
+    return '$sourceを検索するには、タイトル、作者、またはフィギュアを入力するか、フレーズ別のフィギュアを追加してください。';
+  }
+
+  @override
+  String collectionOnlineSearchHintTitle(String source) {
+    return '$sourceを検索するには、タイトル、作者、またはフィギュアを入力してください。';
   }
 
   @override

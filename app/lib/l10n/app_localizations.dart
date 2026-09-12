@@ -6045,6 +6045,12 @@ abstract class AppLocalizations {
   /// **'Search online dances by title or author…'**
   String get onlineSearchFieldHint;
 
+  /// Hint text for the Collection screen online search field; the CollectionPicker remains title-oriented.
+  ///
+  /// In en, this message translates to:
+  /// **'Search online dances by title, author, or figure…'**
+  String get collectionOnlineSearchFieldHint;
+
   /// Count of online search results shown above the results list.
   ///
   /// In en, this message translates to:
@@ -6062,6 +6068,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Type a title or author to search {source}.'**
   String onlineSearchHintTitle(String source);
+
+  /// Empty-query hint for the Collection screen's online sources that support by-phrase figure criteria.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a title, author, or figure, or add by-phrase figures to search {source}.'**
+  String collectionOnlineSearchHintByPhrase(String source);
+
+  /// Empty-query hint for the Collection screen's online sources without by-phrase support.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a title, author, or figure to search {source}.'**
+  String collectionOnlineSearchHintTitle(String source);
 
   /// Shown when an online search returns no matching dances.
   ///

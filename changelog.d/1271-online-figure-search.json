@@ -1,0 +1,14 @@
+{
+  "id": "1271-online-figure-search",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "You can search Caller's Box and ContraDB online by figure text from Collection."
+    ]
+  },
+  "core": {
+    "added": [
+      "Support the fixed ContraDB figure-search filter in the search request builder."
+    ]
+  }
+}

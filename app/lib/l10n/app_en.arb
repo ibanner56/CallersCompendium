@@ -5023,6 +5023,10 @@
   "@onlineSearchFieldHint": {
     "description": "Hint text for the online search field."
   },
+  "collectionOnlineSearchFieldHint": "Search online dances by title, author, or figure…",
+  "@collectionOnlineSearchFieldHint": {
+    "description": "Hint text for the Collection screen online search field; the CollectionPicker remains title-oriented."
+  },
   "onlineResultCount": "{count, plural, =1{1 online result} other{{count} online results}}",
   "@onlineResultCount": {
     "description": "Count of online search results shown above the results list.",
@@ -5045,6 +5049,26 @@
   "onlineSearchHintTitle": "Type a title or author to search {source}.",
   "@onlineSearchHintTitle": {
     "description": "Empty-query hint for online sources without by-phrase support.",
+    "placeholders": {
+      "source": {
+        "type": "String",
+        "example": "ContraDB"
+      }
+    }
+  },
+  "collectionOnlineSearchHintByPhrase": "Type a title, author, or figure, or add by-phrase figures to search {source}.",
+  "@collectionOnlineSearchHintByPhrase": {
+    "description": "Empty-query hint for the Collection screen's online sources that support by-phrase figure criteria.",
+    "placeholders": {
+      "source": {
+        "type": "String",
+        "example": "Caller's Box"
+      }
+    }
+  },
+  "collectionOnlineSearchHintTitle": "Type a title, author, or figure to search {source}.",
+  "@collectionOnlineSearchHintTitle": {
+    "description": "Empty-query hint for the Collection screen's online sources without by-phrase support.",
     "placeholders": {
       "source": {
         "type": "String",

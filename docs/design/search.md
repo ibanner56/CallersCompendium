@@ -23,9 +23,11 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    Collection text search may explicitly scope to raw title text, derived
    author names, or canonical figure text; Omni is the OR of the canonical
    cross-field query and a raw-title fallback. Long queries keep the complete
-   input as one literal substring. Online collection search exposes the title
-   and author criteria to Caller's Box and ContraDB, while by-phrase criteria
-   remain available only to sources that support them.
+   input as one literal substring. Online collection search exposes the title,
+   author, and figure criteria to Caller's Box and ContraDB, while by-phrase
+   criteria remain available only to sources that support them. Caller's Box
+   maps the free-text Figure criterion to global positive figure lines;
+   ContraDB selects its fixed `figure` filter.
 4. **Injection-safe by construction.** Every user value is a bind variable;
    only a fixed vocabulary of column names, operators, and JSON key paths is
    ever interpolated, and each is validated against an allow-list.

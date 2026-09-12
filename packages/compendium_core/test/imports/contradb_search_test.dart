@@ -46,6 +46,13 @@ void main() {
       expect(decoded['filter'], ['choreographer', 'Alice Gordon']);
     });
 
+    test('builds a figure filter', () {
+      final decoded =
+          jsonDecode(buildContraDbSearchBody('box circulate', filter: 'figure'))
+              as Map<String, dynamic>;
+      expect(decoded['filter'], ['figure', 'box circulate']);
+    });
+
     test(
       'passes the query through verbatim (server lower-cases the match)',
       () {

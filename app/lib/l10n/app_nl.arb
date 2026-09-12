@@ -3928,6 +3928,10 @@
   "@onlineSearchFieldHint": {
     "x-sourceSha256": "c7c8810fd4064a5490bb0279304af15ab4b75ae47e39631b64db57ec7636bb2c"
   },
+  "collectionOnlineSearchFieldHint": "Online dansen zoeken op titel, auteur of figuur…",
+  "@collectionOnlineSearchFieldHint": {
+    "x-sourceSha256": "03053cc3b96975f6adb099758a30e45cfc058fcc55e2c276cf63d976d5253c79"
+  },
   "onlineResultCount": "{count, plural, =1{1 online resultaat} other{{count} online resultaten}}",
   "@onlineResultCount": {
     "x-sourceSha256": "70de997e28d65e0ec02101f962391063f42342840a6f2cac9cf35619abaead8e"
@@ -3939,6 +3943,14 @@
   "onlineSearchHintTitle": "Typ een titel of auteur om te zoeken in {source}.",
   "@onlineSearchHintTitle": {
     "x-sourceSha256": "e9b2a7721ca72b726b085b08528fe362e0587b4a39524334c33dc68f913603b1"
+  },
+  "collectionOnlineSearchHintByPhrase": "Typ een titel, auteur of figuur, of voeg figuren per frase toe om te zoeken in {source}.",
+  "@collectionOnlineSearchHintByPhrase": {
+    "x-sourceSha256": "c339a5092286157b5267eb1af46d6d92884c12f6347268f7efbc57f5b7ad46a2"
+  },
+  "collectionOnlineSearchHintTitle": "Typ een titel, auteur of figuur om te zoeken in {source}.",
+  "@collectionOnlineSearchHintTitle": {
+    "x-sourceSha256": "623da0dbca6aeba450a345fdc0f37a180e39c14c830637d1eab26bf158d8438f"
   },
   "onlineNoResults": "Geen dansen op {source} komen overeen met je zoekopdracht.",
   "@onlineNoResults": {
