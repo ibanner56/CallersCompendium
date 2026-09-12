@@ -430,19 +430,23 @@
   "@settingsAboutLegalese": {
     "description": "Legal notice shown on the license page. 'The Caller's Compendium' and 'AGPL-3.0' are proper nouns kept verbatim."
   },
-  "settingsAboutVersion": "Version {version}",
+  "settingsAboutVersion": "Version {version}, “{codename}”",
   "@settingsAboutVersion": {
-    "description": "Version line under the app wordmark in the About header.",
+    "description": "Version and release-codename line under the app wordmark in the About header. The codename is a proper noun kept verbatim.",
     "placeholders": {
       "version": {
         "type": "String",
         "example": "1.4.0"
+      },
+      "codename": {
+        "type": "String",
+        "example": "Allemande Left"
       }
     }
   },
-  "settingsAboutVersionLine": "{appName} · Version {version} · {license}",
+  "settingsAboutVersionLine": "{appName} · Version {version}, “{codename}” · {license}",
   "@settingsAboutVersionLine": {
-    "description": "One-line footer at the bottom of the About section combining the app name, version, and license identifier. All three values are proper nouns / identifiers kept verbatim; only the word 'Version' is translatable.",
+    "description": "One-line footer at the bottom of the About section combining the app name, version, release codename, and license identifier. The app name, version, codename, and license are proper nouns / identifiers kept verbatim; only the word 'Version' is translatable.",
     "placeholders": {
       "appName": {
         "type": "String",
@@ -451,6 +455,10 @@
       "version": {
         "type": "String",
         "example": "1.4.0"
+      },
+      "codename": {
+        "type": "String",
+        "example": "Allemande Left"
       },
       "license": {
         "type": "String",

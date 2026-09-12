@@ -85,6 +85,7 @@ def build_metadata(
     repo: str,
     dist: Path,
     pub_date: str,
+    codename: str | None = None,
     extra_files: list[Path] | None = None,
 ) -> tuple[str, dict]:
     """Compute the SHA256SUMS text and the manifest dict for ``dist``.
@@ -164,6 +165,10 @@ def build_metadata(
         "pubDate": pub_date,
         "artifacts": artifacts,
     }
+    # Legacy tags use the tag itself as a release-title fallback, not a codename.
+    normalized_codename = codename.strip() if codename else ""
+    if normalized_codename and normalized_codename != tag:
+        manifest["codename"] = normalized_codename
 
     sums_text = "\n".join(sorted(sums_lines)) + "\n"
     return sums_text, manifest
@@ -177,6 +182,7 @@ def build_channel_manifests(
     repo: str,
     dist: Path,
     pub_date: str,
+    codename: str | None = None,
     extra_files: list[Path] | None = None,
     metadata: dict | None = None,
 ) -> dict[str, dict]:
@@ -194,6 +200,7 @@ def build_channel_manifests(
             repo=repo,
             dist=dist,
             pub_date=pub_date,
+            codename=codename,
             extra_files=extra_files,
         )
     return {
@@ -214,6 +221,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--repo", required=True, help="owner/name")
     ap.add_argument("--dist", required=True, type=Path, help="artifact dir")
     ap.add_argument("--pub-date", default=None, help="RFC3339 UTC; default now")
+    ap.add_argument(
+        "--codename",
+        default=None,
+        help="release codename for display on the Pages site",
+    )
     ap.add_argument(
         "--extra-file",
         action="append",
@@ -240,6 +252,7 @@ def main(argv: list[str] | None = None) -> int:
         repo=args.repo,
         dist=dist,
         pub_date=pub_date,
+        codename=args.codename,
         extra_files=args.extra_file,
     )
     manifests = build_channel_manifests(
@@ -249,6 +262,7 @@ def main(argv: list[str] | None = None) -> int:
         repo=args.repo,
         dist=dist,
         pub_date=pub_date,
+        codename=args.codename,
         extra_files=args.extra_file,
         metadata=manifest,
     )
