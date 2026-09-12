@@ -63,9 +63,7 @@ final class CompendiumSyncStorage
   Future<SyncStorageSnapshot> snapshot({
     String? syncId,
   }) => repositories.transaction(() async {
-    final usedVerifiers = syncId == null
-        ? const <_StoredSyncIdentityVerifier>[]
-        : await _loadUsedIdentityVerifiers(syncId);
+    final usedVerifiers = await _loadUsedIdentityVerifiers(syncId);
     final baseline = await repositories.syncLocal.snapshotBaseline();
     final baselineState = await repositories.syncLocal.getBaselineState();
     final local = <SyncRecordAddress, SyncMergeCandidate?>{};

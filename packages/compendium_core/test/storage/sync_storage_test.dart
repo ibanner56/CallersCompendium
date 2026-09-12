@@ -102,6 +102,12 @@ void main() {
       await repositories.settings.set(syncLastUsedFingerprintKey, [
         sha256Hex(utf8.encode('sync-a')),
       ]);
+      await storage.snapshot();
+      expect(await repositories.settings.get(syncLastUsedFingerprintKey), []);
+
+      await repositories.settings.set(syncLastUsedFingerprintKey, [
+        sha256Hex(utf8.encode('sync-a')),
+      ]);
 
       expect((await storage.snapshot(syncId: 'sync-a')).previouslyUsed, isTrue);
 
