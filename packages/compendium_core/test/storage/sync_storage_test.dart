@@ -657,7 +657,9 @@ void main() {
         type: CustomFieldType.choice,
         choices: ['valid'],
       );
+      // ignore: unused_result
       await repositories.customFieldDefs.upsert(preservedDef, at: stamp);
+      // ignore: unused_result
       await repositories.customFieldDefs.upsert(corruptDef, at: stamp);
       await (db.update(
         db.customFieldDefs,
