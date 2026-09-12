@@ -65,7 +65,8 @@
       "app/test/sync/sync_coordinator_test.dart proves a newer local wire hash is not overwritten by an inbound winner, reports concurrentLocalChange, and publishes a fresh post-apply snapshot; in `cd app && fvm flutter test test/sync/sync_coordinator_test.dart --plain-name 'skips a remote winner when its local address changed mid-pass'`, setting expectedWireHashes to const {} made the test red with Bad state: No element before restoration.",
       "app/test/sync/sync_coordinator_test.dart proves missing-blob negotiation runs only for hashes in the final manifest after merge, and keeps the protocol-limit batching at 10,000 hashes; in `cd app && fvm flutter test test/sync/sync_coordinator_test.dart --plain-name 'uploads only blobs retained by the final manifest'`, restoring the pre-merge upload made the test red with expected completed but actual failed before restoration.",
       "app/test/sync/sync_isolate_test.dart requires an interrupted apply to remain entirely pre-apply rather than accepting a non-transactional all-after state; in `cd app && fvm flutter test test/sync/sync_isolate_test.dart --plain-name 'terminating during apply leaves an atomic database state'`, replacing the real transaction with direct action made the test red because the persisted values were not the required wholly pre-apply state before restoration.",
-      "app/lib/main.dart routes shutdown and database replacement through awaited coordinator disposal, and settings_keys.dart documents the persisted identity-fingerprint set rather than a single last identity."
+      "app/lib/main.dart routes shutdown and database replacement through awaited coordinator disposal, and settings_keys.dart documents the persisted identity-fingerprint set rather than a single last identity.",
+      "On `6d36747f9`, `python3 tools/preflight.py` completed with 29 steps passed and one documented `release-tooling` skip because the `cryptography` module is unavailable."
     ]
   }
 }
