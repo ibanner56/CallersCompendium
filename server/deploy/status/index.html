@@ -55,14 +55,28 @@
       padding: 4rem 0;
     }
 
-    header { margin-bottom: 2rem; }
+    .brand-header {
+      display: grid;
+      grid-template-columns: 4.5rem minmax(0, 1fr);
+      align-items: center;
+      column-gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .brand-icon {
+      display: block;
+      width: 4.5rem;
+      height: 4.5rem;
+      border-radius: 1rem;
+      box-shadow: 0 .5rem 1.25rem rgb(20 25 50 / 14%);
+    }
 
     h1, h2 { line-height: 1.2; }
     h1 { margin: 0; font-size: clamp(2rem, 7vw, 3.25rem); }
     h2 { margin: 0; font-size: 1.2rem; }
 
     .lede {
-      margin: 1rem 0 0;
+      margin: .5rem 0 0;
       color: var(--muted);
       font-size: 1.15rem;
     }
@@ -135,6 +149,11 @@
     a { color: var(--accent); }
 
     @media (max-width: 30rem) {
+      .brand-header {
+        grid-template-columns: 3.5rem minmax(0, 1fr);
+        column-gap: .75rem;
+      }
+      .brand-icon { width: 3.5rem; height: 3.5rem; border-radius: .8rem; }
       .card-heading, dl div { align-items: flex-start; flex-direction: column; }
       dd { text-align: left; }
     }
@@ -142,9 +161,12 @@
 </head>
 <body>
   <main>
-    <header>
-      <h1>Athenaeum Device Sync</h1>
-      <p class="lede">Status and connection information for the shared sync service.</p>
+    <header class="brand-header">
+      <img class="brand-icon" src="icon.svg" width="72" height="72" alt="Caller's Compendium app icon">
+      <div>
+        <h1>Athenaeum Device Sync</h1>
+        <p class="lede">Status and connection information for the shared sync service.</p>
+      </div>
     </header>
 
     <section class="card" aria-labelledby="status-heading">
@@ -163,7 +185,7 @@
         </div>
         <div>
           <dt>Data handling</dt>
-          <dd>Encrypted in transit; no web dashboard</dd>
+          <dd><a href="https://callerscompendium.com/guide/breakglass-access-record.html">Encrypted in transit; no web dashboard</a></dd>
         </div>
       </dl>
     </section>
