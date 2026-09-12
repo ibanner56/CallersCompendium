@@ -233,8 +233,8 @@ final class TransactionBoundSyncPassRunner implements SyncPassRunner {
   Future<T> run<T>(Future<T> Function() action) => action();
 }
 
-final class _PeerManifestCache {
-  const _PeerManifestCache({
+final class SyncPeerManifestCacheEntry {
+  const SyncPeerManifestCacheEntry({
     required this.epoch,
     required this.etag,
     required this.manifest,
@@ -243,6 +243,74 @@ final class _PeerManifestCache {
   final String epoch;
   final String etag;
   final SyncManifest manifest;
+}
+
+/// Keeps verified peer manifests across isolated production passes.
+///
+/// Isolate boundaries cannot retain the coordinator instance, so this cache
+/// has an explicit message representation that the pass operation can return
+/// to its owner after each worker finishes.
+final class SyncPeerManifestCache {
+  SyncPeerManifestCache({Map<String, SyncPeerManifestCacheEntry>? entries})
+    : _entries = {...?entries};
+
+  final Map<String, SyncPeerManifestCacheEntry> _entries;
+
+  SyncPeerManifestCacheEntry? operator [](String peerId) => _entries[peerId];
+
+  void operator []=(String peerId, SyncPeerManifestCacheEntry entry) {
+    _entries[peerId] = entry;
+  }
+
+  void remove(String peerId) {
+    _entries.remove(peerId);
+  }
+
+  void clear() {
+    _entries.clear();
+  }
+
+  void replaceFrom(SyncPeerManifestCache source) {
+    _entries
+      ..clear()
+      ..addAll(source._entries);
+  }
+
+  Map<String, Object?> toMessage() => {
+    for (final entry in _entries.entries)
+      entry.key: {
+        'epoch': entry.value.epoch,
+        'etag': entry.value.etag,
+        'manifest': utf8.decode(encodeSyncManifestUtf8(entry.value.manifest)),
+      },
+  };
+
+  static SyncPeerManifestCache fromMessage(Object? message) {
+    if (message == null) return SyncPeerManifestCache();
+    if (message is! Map<Object?, Object?>) {
+      throw const FormatException('sync isolate returned a malformed cache');
+    }
+    final entries = <String, SyncPeerManifestCacheEntry>{};
+    for (final rawEntry in message.entries) {
+      final peerId = rawEntry.key;
+      final value = rawEntry.value;
+      if (peerId is! String || value is! Map<Object?, Object?>) {
+        throw const FormatException('sync isolate returned a malformed cache');
+      }
+      final epoch = value['epoch'];
+      final etag = value['etag'];
+      final manifestBody = value['manifest'];
+      if (epoch is! String || etag is! String || manifestBody is! String) {
+        throw const FormatException('sync isolate returned a malformed cache');
+      }
+      entries[peerId] = SyncPeerManifestCacheEntry(
+        epoch: epoch,
+        etag: etag,
+        manifest: decodeSyncManifest(manifestBody),
+      );
+    }
+    return SyncPeerManifestCache(entries: entries);
+  }
 }
 
 /// A coalesced notification that a previously-used remote store is missing.
@@ -262,8 +330,11 @@ class SyncCoordinator {
     this.onFreshAttach,
     SyncMergeEngine? mergeEngine,
     SyncApplyEngine? applyEngine,
+    SyncPeerManifestCache? peerManifestCache,
   }) : _mergeEngine = mergeEngine ?? const SyncMergeEngine(),
-       _applyEngine = applyEngine ?? const SyncApplyEngine();
+       _applyEngine = applyEngine ?? const SyncApplyEngine(),
+       _peerManifestCache = peerManifestCache ?? SyncPeerManifestCache(),
+       _ownsPeerManifestCache = peerManifestCache == null;
 
   final String deviceId;
   final SyncCoordinatorStore store;
@@ -274,6 +345,8 @@ class SyncCoordinator {
   final SyncMergeEngine _mergeEngine;
   final SyncApplyEngine _applyEngine;
   final String? syncId;
+  final SyncPeerManifestCache _peerManifestCache;
+  final bool _ownsPeerManifestCache;
   final _replacementEvents =
       StreamController<SyncReplacementRequiredEvent>.broadcast();
 
@@ -284,7 +357,6 @@ class SyncCoordinator {
   var _paused = false;
   Future<SyncPassResult>? _confirmation;
   var _disposed = false;
-  final _peerManifestCache = <String, _PeerManifestCache>{};
 
   static const _maxMissingHashesPerRequest = 10000;
 
@@ -383,7 +455,7 @@ class SyncCoordinator {
   Future<void> dispose() async {
     if (_disposed) return;
     _disposed = true;
-    _peerManifestCache.clear();
+    if (_ownsPeerManifestCache) _peerManifestCache.clear();
     _queued = false;
     final queuedResult = _queuedResult;
     _queuedResult = null;
@@ -394,12 +466,11 @@ class SyncCoordinator {
       ),
     );
     final inFlight = _inFlight;
-    if (transport case final SyncHttpCoordinatorTransport httpTransport) {
-      httpTransport.client.close();
-    }
-    if (inFlight != null) {
+    final confirmation = _confirmation;
+    Future<void> settle(Future<SyncPassResult>? operation) async {
+      if (operation == null) return;
       try {
-        await inFlight;
+        await operation;
       } on Object catch (error, stack) {
         logCaughtErrorTypeOnly(
           error,
@@ -407,7 +478,17 @@ class SyncCoordinator {
           source: 'sync_coordinator.dispose',
         );
       }
-      if (identical(_inFlight, inFlight)) _inFlight = null;
+    }
+
+    await settle(inFlight);
+    if (!identical(confirmation, inFlight)) {
+      await settle(confirmation);
+    }
+    if (transport case final SyncHttpCoordinatorTransport httpTransport) {
+      httpTransport.client.close();
+    }
+    if (inFlight != null && identical(_inFlight, inFlight)) {
+      _inFlight = null;
     }
     await _replacementEvents.close();
   }
@@ -557,7 +638,7 @@ class SyncCoordinator {
       final etag = _header(response.headers, 'etag');
       if (response.kind == SyncResponseKind.notModified) {
         if (etag != null && etag.isNotEmpty) {
-          _peerManifestCache[peerId] = _PeerManifestCache(
+          _peerManifestCache[peerId] = SyncPeerManifestCacheEntry(
             epoch: metadata.epoch,
             etag: etag,
             manifest: manifest,
@@ -566,7 +647,7 @@ class SyncCoordinator {
       } else if (etag == null || etag.isEmpty) {
         _peerManifestCache.remove(peerId);
       } else {
-        _peerManifestCache[peerId] = _PeerManifestCache(
+        _peerManifestCache[peerId] = SyncPeerManifestCacheEntry(
           epoch: metadata.epoch,
           etag: etag,
           manifest: manifest,
@@ -619,11 +700,6 @@ class SyncCoordinator {
     final current = <SyncRecordAddress, SyncMergeCandidate?>{
       ...(await store.snapshot()).local,
     };
-    for (final decision in plan.decisions) {
-      if (decision.action == SyncMergeAction.dropBaseline) {
-        current.remove(decision.address);
-      }
-    }
     final finalByHash = <String, SyncMergeCandidate>{};
     for (final candidate in current.values) {
       if (candidate != null) finalByHash[candidate.wireHash] = candidate;

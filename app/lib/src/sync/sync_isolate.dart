@@ -74,19 +74,21 @@ final class IsolatedSyncPassHandle {
 /// apply belongs to the isolate that the caller can terminate without leaving
 /// partially applied rows in the caller.
 final class IsolatedSyncPassOperation {
-  const IsolatedSyncPassOperation({
+  IsolatedSyncPassOperation({
     required this.databasePath,
     required this.endpoint,
     required this.syncId,
     required this.deviceId,
     this.beforeTerminalAcknowledgement,
-  });
+    SyncPeerManifestCache? peerManifestCache,
+  }) : peerManifestCache = peerManifestCache ?? SyncPeerManifestCache();
 
   final String databasePath;
   final Uri endpoint;
   final String syncId;
   final String deviceId;
   final Future<void> Function()? beforeTerminalAcknowledgement;
+  final SyncPeerManifestCache peerManifestCache;
 
   Future<SyncPassResult> call() async {
     final handle = await start();
@@ -160,7 +162,13 @@ final class IsolatedSyncPassOperation {
             return;
           }
           try {
-            completeResult(_decodeResult(Map<String, Object?>.from(encoded)));
+            final encodedResult = Map<String, Object?>.from(encoded);
+            final updatedCache = SyncPeerManifestCache.fromMessage(
+              encodedResult['_peerManifestCache'],
+            );
+            final decodedResult = _decodeResult(encodedResult);
+            peerManifestCache.replaceFrom(updatedCache);
+            completeResult(decodedResult);
             // diagnostics: silent — malformed terminal results are surfaced to the caller.
           } on Object catch (error, stack) {
             completeError(error, stack);
@@ -200,6 +208,7 @@ final class IsolatedSyncPassOperation {
         deviceId: deviceId,
         resultPort: resultPort.sendPort,
         applyControlPort: applyControl?._eventPort,
+        peerManifestCache: peerManifestCache.toMessage(),
       ),
       onExit: exitPort.sendPort,
       onError: errorPort.sendPort,
@@ -220,6 +229,7 @@ final class _SyncPassRequest {
     required this.deviceId,
     required this.resultPort,
     required this.applyControlPort,
+    required this.peerManifestCache,
   });
 
   final String databasePath;
@@ -228,11 +238,15 @@ final class _SyncPassRequest {
   final String deviceId;
   final SendPort resultPort;
   final SendPort? applyControlPort;
+  final Map<String, Object?> peerManifestCache;
 }
 
 Future<void> _runSyncPassWorker(_SyncPassRequest request) async {
   final acknowledgementPort = ReceivePort();
   try {
+    final peerManifestCache = SyncPeerManifestCache.fromMessage(
+      request.peerManifestCache,
+    );
     final applyControlPort = request.applyControlPort;
     final applyEngine = applyControlPort == null
         ? null
@@ -245,7 +259,9 @@ Future<void> _runSyncPassWorker(_SyncPassRequest request) async {
       syncId: request.syncId,
       deviceId: request.deviceId,
       applyEngine: applyEngine,
+      peerManifestCache: peerManifestCache,
     );
+    encoded['_peerManifestCache'] = peerManifestCache.toMessage();
     request.resultPort.send({
       'type': 'result',
       'result': encoded,
@@ -280,6 +296,7 @@ Future<Map<String, Object?>> _runSyncPass({
   required String syncId,
   required String deviceId,
   SyncApplyEngine? applyEngine,
+  required SyncPeerManifestCache peerManifestCache,
 }) async {
   final database = CompendiumDatabase(NativeDatabase(File(databasePath)));
   SyncHttpClient? client;
@@ -296,6 +313,7 @@ Future<Map<String, Object?>> _runSyncPass({
       ),
       transport: SyncHttpCoordinatorTransport(client),
       applyEngine: applyEngine,
+      peerManifestCache: peerManifestCache,
     );
     return _encodeResult(await coordinator.onAppStart());
   } finally {

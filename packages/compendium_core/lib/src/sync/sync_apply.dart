@@ -27,8 +27,8 @@ class SyncApplyRecord {
 ///
 /// An app adapter implements [transaction] with the database transaction that
 /// owns its repositories. [write] is responsible for mapping the already
-/// validated, shareable overlay to parent and join tables and for rebuilding
-/// derived indexes before the transaction commits.
+/// validated, shareable overlay to parent and join tables. The engine invokes
+/// [rebuildDerivedIndexes] once after the batch has been applied.
 abstract interface class SyncApplyStorage {
   Future<T> transaction<T>(Future<T> Function() action);
 
@@ -74,9 +74,10 @@ abstract interface class SyncApplyReportingStorage implements SyncApplyStorage {
 /// Optional two-phase writer for stores whose join rows have foreign keys to
 /// other records in the same inbound batch.
 ///
-/// Parent rows are written first, then references and join rows are validated
-/// and written. This permits forward references and cycles without weakening
-/// the database's foreign-key checks.
+/// References are validated to a fixed point before any parent row is written.
+/// Parent rows are then written, followed by references and join rows. This
+/// permits forward references and cycles without weakening the database's
+/// foreign-key checks.
 abstract interface class SyncApplyBatchStorage
     implements SyncApplyReportingStorage {
   Future<SyncReport?> writeParentWithReport(SyncApplyRecord record) =>

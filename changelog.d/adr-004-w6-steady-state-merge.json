@@ -3,13 +3,13 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "Device Sync now converges steady-state edits through one guarded pass, queues at most one follow-up, protects newer local edits from stale inbound snapshots, negotiates only final-manifest blobs after apply, rejects inbound non-shareable custom-field data, skips dependent cascades when an inbound parent cannot be persisted, settles pending work before shutdown, stops before publication until local attach state exists, reuses unchanged peer manifests and verified blobs, and pauses for confirmation instead of silently recreating a missing collection. Malformed persisted Device Sync configuration no longer prevents the rest of the app from starting."
+      "Device Sync now converges steady-state edits through one guarded pass, queues at most one follow-up, protects newer local edits and records created during a pass from stale inbound snapshots, negotiates only final-manifest blobs after apply, rejects inbound non-shareable custom-field data, skips malformed relation records and dependent cascades when an inbound parent cannot be persisted, settles pending work before shutdown, stops before publication until local attach state exists, reuses unchanged peer manifests and verified blobs across isolated passes, and pauses for confirmation instead of silently recreating a missing collection. Malformed persisted Device Sync configuration no longer prevents the rest of the app from starting."
     ]
   },
   "core": {
     "changed": [
         "Add existence-first, baseline-aware classification-safe merge and transactional inbound-apply primitives for Device Sync, including conditional custom-field egress validation, tombstone-safe relation validation, fixed-point dependent pruning after parent-write failures, per-owner dependent-row collision guards, and optimistic protection against overwriting concurrent local edits.",
-        "Store prior sync identities as salted, slow credential verifiers instead of fast unsalted hashes."
+        "Add existence-first, baseline-aware classification-safe merge and transactional inbound-apply primitives for Device Sync, including conditional custom-field egress validation, tombstone-safe relation validation, fixed-point dependent pruning after parent-write failures, per-owner and duplicate dependent-row collision guards, malformed-body isolation, and optimistic protection against overwriting concurrent local edits."
     ]
   }
 }

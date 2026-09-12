@@ -378,6 +378,8 @@ final class CompendiumSyncStorage
       return _malformedReferenceReport(record, error.message);
     } on ArgumentError catch (error) {
       return _malformedReferenceReport(record, '$error');
+    } on Object catch (error) {
+      return _malformedReferenceReport(record, '$error');
     }
     final classificationIssue = await _invalidCustomFieldClassification(
       record,
@@ -466,7 +468,12 @@ final class CompendiumSyncStorage
       return null;
     }
 
-    final entity = _decodeEntity(kind, record.body);
+    final Object entity;
+    try {
+      entity = _decodeEntity(kind, record.body);
+    } on Object catch (error) {
+      return _malformedReferenceReport(record, '$error');
+    }
     SyncReport? report;
     Object entityToWrite = entity;
     if (kind == SyncRecordKind.program) {
@@ -925,6 +932,22 @@ final class CompendiumSyncStorage
     Dance dance, {
     required Map<SyncRecordAddress, SyncApplyRecord> inboundRecords,
   }) async {
+    final duplicateAuthorId = _firstDuplicate(dance.authorIds);
+    if (duplicateAuthorId != null) {
+      return 'Dance "${dance.id}" contains duplicate choreographer id '
+          '"$duplicateAuthorId".';
+    }
+    final duplicateTagId = _firstDuplicate(dance.tagIds);
+    if (duplicateTagId != null) {
+      return 'Dance "${dance.id}" contains duplicate tag id "$duplicateTagId".';
+    }
+    final duplicateSourceId = _firstDuplicate(
+      dance.sourceCitations.map((citation) => citation.sourceId),
+    );
+    if (duplicateSourceId != null) {
+      return 'Dance "${dance.id}" contains duplicate source id '
+          '"$duplicateSourceId".';
+    }
     final linkIds = dance.links.map((link) => link.id).toList();
     final duplicateId = _firstDuplicate(linkIds);
     if (duplicateId != null) {
@@ -940,11 +963,7 @@ final class CompendiumSyncStorage
       final Dance other;
       try {
         other = _decodeEntity(SyncRecordKind.dance, entry.value.body) as Dance;
-      } on FormatException {
-        continue;
-      } on ArgumentError {
-        continue;
-      } on StateError {
+      } on Object {
         continue;
       }
       for (final link in other.links) {
@@ -986,11 +1005,7 @@ final class CompendiumSyncStorage
       try {
         other =
             _decodeEntity(SyncRecordKind.program, entry.value.body) as Program;
-      } on FormatException {
-        continue;
-      } on ArgumentError {
-        continue;
-      } on StateError {
+      } on Object {
         continue;
       }
       for (final slot in other.slots) {
@@ -1052,9 +1067,7 @@ final class CompendiumSyncStorage
             return 'Inbound dance contains a value for non-shareable custom '
                 'field "${value.fieldId}".';
           }
-        } on FormatException {
-          // The malformed definition receives its own malformed-record report.
-        } on ArgumentError {
+        } on Object {
           // The malformed definition receives its own malformed-record report.
         }
       } else if (!inboundAddresses.contains(address)) {
@@ -1097,10 +1110,7 @@ final class CompendiumSyncStorage
           definition =
               _decodeEntity(SyncRecordKind.customFieldDef, inbound.body)
                   as CustomFieldDef;
-        } on FormatException catch (error) {
-          return 'Dance "${dance.id}" references malformed custom field '
-              '"${value.fieldId}": $error';
-        } on ArgumentError catch (error) {
+        } on Object catch (error) {
           return 'Dance "${dance.id}" references malformed custom field '
               '"${value.fieldId}": $error';
         }

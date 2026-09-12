@@ -81,6 +81,76 @@ void main() {
     ]);
   });
 
+  test('preserves peer manifest cache across isolated passes', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'compendium-sync-isolate-cache-',
+    );
+    final database = CompendiumDatabase(
+      NativeDatabase(File('${directory.path}/compendium.sqlite')),
+    );
+    final repositories = CompendiumRepositories(database, contraTaxonomy);
+    await repositories.ensureMigrated();
+    await repositories.syncLocal.replaceBaseline(epoch: 'epoch-1');
+
+    final peerManifest = SyncManifest(
+      deviceId: 'peer',
+      epoch: 'epoch-1',
+      writtenAt: DateTime.utc(2026, 7, 15, 12),
+      records: const {},
+    );
+    final manifestEtags = <String?>[];
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    server.listen((request) async {
+      await request.drain<void>();
+      request.response.headers.contentType = ContentType.json;
+      if (request.method == 'GET' && request.uri.path == '/v1/store') {
+        request.response.write(
+          jsonEncode({
+            'epoch': 'epoch-1',
+            'devices': ['peer'],
+          }),
+        );
+      } else if (request.method == 'GET' &&
+          request.uri.path == '/v1/manifests/peer') {
+        final etag = request.headers.value(HttpHeaders.ifNoneMatchHeader);
+        manifestEtags.add(etag);
+        request.response.headers.set(HttpHeaders.etagHeader, '"peer-v1"');
+        if (etag == '"peer-v1"') {
+          request.response.statusCode = HttpStatus.notModified;
+        } else {
+          request.response.write(encodeSyncManifest(peerManifest));
+        }
+      } else if (request.method == 'POST' &&
+          request.uri.path == '/v1/blobs/missing') {
+        request.response.write(jsonEncode({'missing': <String>[]}));
+      } else if (request.method == 'PUT' &&
+          request.uri.path == '/v1/manifests/device-a') {
+        request.response.write('{}');
+      } else {
+        request.response
+          ..statusCode = HttpStatus.notFound
+          ..write('{}');
+      }
+      await request.response.close();
+    });
+    addTearDown(() async {
+      await server.close(force: true);
+      await database.close();
+      await directory.delete(recursive: true);
+    });
+
+    final operation = IsolatedSyncPassOperation(
+      databasePath: '${directory.path}/compendium.sqlite',
+      endpoint: Uri.parse('http://127.0.0.1:${server.port}'),
+      syncId: 'alpha-beta-gamma-delta',
+      deviceId: 'device-a',
+    );
+
+    expect((await operation.call()).status, SyncPassStatus.completed);
+    expect((await operation.call()).status, SyncPassStatus.completed);
+    expect(manifestEtags, [null, '"peer-v1"']);
+  });
+
   test('terminating during apply leaves an atomic database state', () async {
     final directory = await Directory.systemTemp.createTemp(
       'compendium-sync-isolate-',

@@ -503,7 +503,10 @@ made:**
 
 1. A device attaches to a sync ID for the first time.
 2. A device that had detached re-attaches. **Detaching forgets the sync ID
-   entirely** — there is no memory of previously-attached IDs.
+   entirely** — there is no recoverable list of previously-attached IDs. A
+   salted, slow verifier set remains only to distinguish prior use of an ID
+   from a first attach when the collection has disappeared; it cannot
+   reconstruct the credential and is not backed up or transmitted.
 3. A previously used sync ID no longer exists server-side and the user confirms
    creation of a replacement.
 

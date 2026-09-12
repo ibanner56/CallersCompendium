@@ -15,12 +15,13 @@
 > If the ADR and this document disagree, the ADR wins. If the specification and
 > this document disagree, that is a defect in one of them.
 
-**Status: design rationale. ADR-004 is `Accepted`; the protocol itself is
-unbuilt** — no client, no server, no network code. What is built is the
-groundwork this design filed as repair issues and `main` has since closed: the
-v25 schema migration (shipped early so its soft-delete columns hydrate across
-devices before sync code depends on them), the privacy-policy amendment
-(#1115), the standing-invariant ratchets (#1118), and shareable-text
+**Status: design rationale. ADR-004 is `Accepted`; the protocol is partially
+implemented.** W6 now supplies the client-side steady-state pass, transactional
+inbound apply, isolated worker boundary, and endpoint transport; the Athenaeum
+server and the remaining roadmap units are not yet built. Earlier groundwork
+includes the v25 schema migration (shipped early so its soft-delete columns
+hydrate across devices before sync code depends on them), the privacy-policy
+amendment (#1115), the standing-invariant ratchets (#1118), and shareable-text
 normalisation on every write path at schema v29 (#1119). ADR-004's
 *Implementation status* is the authoritative list; if this line and that section
 disagree, that section wins.
@@ -32,7 +33,7 @@ disagree, that section wins.
 | **Device Sync** | The user-facing feature. |
 | **Athenaeum** | The store Device Sync talks to. Default `https://athenaeum.callerscompendium.com/`; user-editable. |
 | **sync ID** | Diceware passphrase identifying one store. A bearer credential. |
-| **device ID** | Random v4 UUID minted per installation, on opt-in. Classified `protocolIdentifier`: it travels in manifest envelopes and request paths as an opaque routing key, and is **never adopted from a peer**. Not `deviceScoped`, which means never transmitted by any route. See "what `EgressClass` actually governs". |
+| **device ID** | Random opaque base64url identifier minted per installation, on opt-in. Classified `protocolIdentifier`: it travels in manifest envelopes and request paths as an opaque routing key, and is **never adopted from a peer**. Not `deviceScoped`, which means never transmitted by any route. See "what `EgressClass` actually governs". |
 | **epoch** | Opaque 128-bit random value the server stamps on a sync ID at creation. |
 | **record** | One syncable row — a dance, program, tag, choreographer, published source, custom field def, difficulty level, venue, or a settings key. |
 | **blob** | One record, serialised and content-addressed. |

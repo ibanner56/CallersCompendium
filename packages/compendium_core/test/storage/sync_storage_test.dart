@@ -874,6 +874,30 @@ void main() {
         createdAt: stamp,
         updatedAt: stamp,
       );
+      final duplicateAuthors = Dance(
+        id: 'duplicate-author-dance',
+        title: 'Duplicate authors',
+        authorIds: const ['same-author', 'same-author'],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final duplicateTags = Dance(
+        id: 'duplicate-tag-dance',
+        title: 'Duplicate tags',
+        tagIds: const ['same-tag', 'same-tag'],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final duplicateSources = Dance(
+        id: 'duplicate-source-dance',
+        title: 'Duplicate sources',
+        sourceCitations: [
+          SourceCitation(sourceId: 'same-source'),
+          SourceCitation(sourceId: 'same-source'),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
       final existingSlotOwner = Program(
         id: 'existing-slot-owner',
         title: 'Existing slot owner',
@@ -892,7 +916,13 @@ void main() {
 
       final result = await const SyncApplyEngine().apply(
         candidates: [
-          for (final dance in [duplicateLinks, foreignOwner])
+          for (final dance in [
+            duplicateLinks,
+            duplicateAuthors,
+            duplicateTags,
+            duplicateSources,
+            foreignOwner,
+          ])
             SyncMergeCandidate(
               blob: SyncRecordBlob(
                 kind: SyncRecordKind.dance,
@@ -923,9 +953,12 @@ void main() {
         result.reports.where(
           (report) => report.code == SyncReportCode.malformedRecord,
         ),
-        hasLength(4),
+        hasLength(7),
       );
       expect(await repositories.dances.getById(duplicateLinks.id), isNull);
+      expect(await repositories.dances.getById(duplicateAuthors.id), isNull);
+      expect(await repositories.dances.getById(duplicateTags.id), isNull);
+      expect(await repositories.dances.getById(duplicateSources.id), isNull);
       expect(await repositories.dances.getById(foreignOwner.id), isNull);
       expect(await repositories.programs.getById(duplicateSlots.id), isNull);
       expect(await repositories.programs.getById(foreignSlotOwner.id), isNull);
@@ -1062,6 +1095,66 @@ void main() {
         await repositories.programs.getById(conflictingProgramB.id),
         isNull,
       );
+    },
+  );
+
+  test(
+    'isolates wrong-typed inbound entity fields from valid records',
+    () async {
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+      final malformed = Dance(
+        id: 'wrong-typed-dance',
+        title: 'Wrong typed',
+        figures: [Figure(move: 'swing', note: 'valid note')],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final malformedBody = Map<String, Object?>.from(
+        syncBodyForEntity(SyncRecordKind.dance, malformed),
+      );
+      final malformedFigures = (malformedBody['figures'] as List).map((raw) {
+        final figure = Map<String, Object?>.from(raw as Map);
+        figure['note'] = 42;
+        return figure;
+      }).toList();
+      malformedBody['figures'] = malformedFigures;
+      final valid = Choreographer(
+        id: 'valid-after-malformed',
+        name: 'Still applied',
+      );
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.dance,
+              id: malformed.id,
+              updatedAt: stamp,
+              deletedAt: null,
+              existenceAt: stamp,
+              body: malformedBody,
+            ),
+          ),
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.choreographer,
+              id: valid.id,
+              updatedAt: stamp,
+              deletedAt: null,
+              existenceAt: stamp,
+              body: syncBodyForEntity(SyncRecordKind.choreographer, valid),
+            ),
+          ),
+        ],
+        storage: storage,
+      );
+
+      expect(result.applied, [
+        (kind: SyncRecordKind.choreographer, recordId: valid.id),
+      ]);
+      expect(result.reports.single.code, SyncReportCode.malformedRecord);
+      expect(await repositories.dances.getById(malformed.id), isNull);
+      expect(await repositories.choreographers.getById(valid.id), isNotNull);
     },
   );
 

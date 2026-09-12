@@ -202,6 +202,50 @@ void main() {
   });
 
   test(
+    'keeps a concurrently-created record in the final publication',
+    () async {
+      final candidate = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'created-during-pass'),
+      );
+      final store = _FakeStore(
+        snapshotBuilder: (snapshotNumber) => SyncCoordinatorSnapshot(
+          epoch: 'epoch-1',
+          previouslyUsed: false,
+          local: snapshotNumber == 1
+              ? {candidate.address: null}
+              : {candidate.address: candidate},
+          baseline: {
+            candidate.address: SyncBaselineEntry(
+              kind: candidate.address.kind,
+              recordId: candidate.address.recordId,
+              wireHash: _hash('baseline'),
+            ),
+          },
+        ),
+      );
+      final transport = _FakeTransport();
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+      );
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      final manifest = decodeSyncManifest(
+        utf8.decode(transport.manifestBodies.single),
+      );
+      expect(
+        manifest.records[candidate.address.kind]![candidate.address.recordId],
+        candidate.wireHash,
+      );
+      expect(store.droppedRecords, [candidate.address]);
+    },
+  );
+
+  test(
     'reuses verified local blobs across cached and duplicate manifests',
     () async {
       final localCandidate = SyncMergeCandidate.fromBlob(
