@@ -4128,9 +4128,9 @@ must say this plainly rather than implying sync is opaque to us.
   a blob not containing it. This is the test that must never be allowed to
   become vacuous.
 - **Interrupted sync has no partial apply or publication** — kill after blob
-  upload, before manifest `PUT`; assert peers see no new manifest and local
-  state is wholly pre-apply or post-apply, never a partial apply. A committed
-  post-apply state remains for the next pass to publish.
+  upload, before manifest `PUT`; assert peers see no new manifest, the baseline
+  remains old, and the next pass republishes. Local state is wholly pre-apply
+  or post-apply, never a partial apply; a committed post-apply state remains.
 - **Fresh-attach union and silent merge** — `{B,C}` joining `{A,B}` yields
   `{A,B,C}`; identical-choreography duplicates merge without a prompt;
   same-title-same-author-different-figures reaches the review queue.
