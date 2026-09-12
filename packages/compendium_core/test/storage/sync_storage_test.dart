@@ -103,7 +103,10 @@ void main() {
         sha256Hex(utf8.encode('sync-a')),
       ]);
       await storage.snapshot();
-      expect(await repositories.settings.get(syncLastUsedFingerprintKey), []);
+      expect(
+        await repositories.settings.get(syncLastUsedFingerprintKey),
+        const <Object?>[],
+      );
 
       await repositories.settings.set(syncLastUsedFingerprintKey, [
         sha256Hex(utf8.encode('sync-a')),
