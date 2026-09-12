@@ -1155,6 +1155,17 @@ void main() {
       expect(result.reports.single.code, SyncReportCode.malformedRecord);
       expect(await repositories.dances.getById(malformed.id), isNull);
       expect(await repositories.choreographers.getById(valid.id), isNotNull);
+
+      final directReport = await storage.writeWithReport(
+        SyncApplyRecord(
+          address: (kind: SyncRecordKind.dance, recordId: malformed.id),
+          body: malformedBody,
+          updatedAt: stamp,
+          deletedAt: null,
+          existenceAt: stamp,
+        ),
+      );
+      expect(directReport?.code, SyncReportCode.malformedRecord);
     },
   );
 
