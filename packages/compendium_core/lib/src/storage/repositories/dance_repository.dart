@@ -465,12 +465,16 @@ class DanceRepository {
   /// Sync records already passed wire admission and must retain their exact
   /// serialized content; ordinary editor/import writes may normalize legacy
   /// taxonomy IDs before persistence.
-  Future<void> writeFromSync(Dance dance) =>
-      _upsert(dance, normalizeTaxonomy: false);
+  Future<void> writeFromSync(Dance dance) => _upsert(
+    dance,
+    normalizeTaxonomy: false,
+    preserveDeviceLocalCustomFields: true,
+  );
 
   Future<void> _upsert(
     Dance dance, {
     bool normalizeTaxonomy = true,
+    bool preserveDeviceLocalCustomFields = false,
   }) => _db.transaction(() async {
     assertUtc(dance.createdAt, 'dance.createdAt');
     assertUtc(dance.updatedAt, 'dance.updatedAt');
@@ -624,10 +628,22 @@ class DanceRepository {
           );
     }
 
+    final deviceLocalCustomFields = preserveDeviceLocalCustomFields
+        ? await _deviceLocalCustomFields(dance.id)
+        : const <CustomFieldValue>[];
+    final incomingCustomFields = <String, CustomFieldValue>{
+      for (final value in dance.customFields)
+        if (!deviceLocalCustomFields.any(
+          (localValue) => localValue.fieldId == value.fieldId,
+        ))
+          value.fieldId: value,
+      for (final value in deviceLocalCustomFields) value.fieldId: value,
+    };
+
     await (_db.delete(
       _db.customFieldValues,
     )..where((t) => t.danceId.equals(dance.id))).go();
-    for (final value in dance.customFields) {
+    for (final value in incomingCustomFields.values) {
       final def = await (_db.select(
         _db.customFieldDefs,
       )..where((t) => t.id.equals(value.fieldId))).getSingleOrNull();
@@ -697,6 +713,31 @@ class DanceRepository {
 
     await _rebuildDerived(normalisedDance);
   });
+
+  Future<List<CustomFieldValue>> _deviceLocalCustomFields(
+    String danceId,
+  ) async {
+    final query = _db.select(_db.customFieldValues)
+      ..where((table) => table.danceId.equals(danceId));
+    final joined = query.join([
+      innerJoin(
+        _db.customFieldDefs,
+        _db.customFieldDefs.id.equalsExp(_db.customFieldValues.fieldId) &
+            _db.customFieldDefs.deletedAt.isNull() &
+            _db.customFieldDefs.shareable.equals(false),
+      ),
+    ]);
+    final rows = await joined.get();
+    return [
+      for (final row in rows)
+        decodeCustomFieldValue(
+          fieldId: row.readTable(_db.customFieldValues).fieldId,
+          type: row.readTable(_db.customFieldDefs).type,
+          valueText: row.readTable(_db.customFieldValues).valueText,
+          valueNum: row.readTable(_db.customFieldValues).valueNum,
+        ),
+    ];
+  }
 
   Dance _normaliseTaxonomyV35Dance(Dance dance) {
     List<Figure>? normalised;

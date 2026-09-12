@@ -145,8 +145,8 @@ final Map<String, DataClassification> settingsClassifications = {
     subject: DataSubject.none,
     egress: EgressClass.deviceScoped,
     note:
-        'A one-way local marker used only to distinguish a previously used '
-        'configured sync identity after detach; it is never transmitted, '
+        'A set of one-way local markers used only to distinguish previously '
+        'used configured sync identities after detach; it is never transmitted, '
         'adopted from a peer, or restored from a backup.',
   ),
 

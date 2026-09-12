@@ -86,11 +86,134 @@ void main() {
 
       await storage.markSyncUsed('sync-b');
 
-      expect(
-        (await storage.snapshot(syncId: 'sync-a')).previouslyUsed,
-        isFalse,
-      );
+      expect((await storage.snapshot(syncId: 'sync-a')).previouslyUsed, isTrue);
       expect((await storage.snapshot(syncId: 'sync-b')).previouslyUsed, isTrue);
+    },
+  );
+
+  test(
+    'skips an inbound record with an unavailable reference and applies peers',
+    () async {
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+      final invalidDance = Dance(
+        id: 'bad-dance',
+        title: 'Bad dance',
+        difficultyLevelId: 'missing-level',
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final validChoreographer = Choreographer(
+        id: 'c2',
+        name: 'Remote choreographer',
+      );
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.dance,
+              id: invalidDance.id,
+              updatedAt: stamp,
+              deletedAt: null,
+              existenceAt: stamp,
+              body: syncBodyForEntity(SyncRecordKind.dance, invalidDance),
+            ),
+          ),
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.choreographer,
+              id: validChoreographer.id,
+              updatedAt: stamp,
+              deletedAt: null,
+              existenceAt: stamp,
+              body: syncBodyForEntity(
+                SyncRecordKind.choreographer,
+                validChoreographer,
+              ),
+            ),
+          ),
+        ],
+        storage: storage,
+      );
+
+      expect(result.applied, [
+        (kind: SyncRecordKind.choreographer, recordId: 'c2'),
+      ]);
+      expect(result.reports.single.code, SyncReportCode.unresolvedReference);
+      expect(await repositories.choreographers.getById('c2'), isNotNull);
+      expect(await repositories.dances.getById('bad-dance'), isNull);
+    },
+  );
+
+  test(
+    'inbound dance writes preserve device-local custom-field values',
+    () async {
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+      await repositories.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'local-field',
+          key: 'local_field',
+          label: 'Local field',
+          type: CustomFieldType.text,
+          shareable: false,
+        ),
+      );
+      await repositories.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'shared-field',
+          key: 'shared_field',
+          label: 'Shared field',
+          type: CustomFieldType.text,
+        ),
+      );
+      final local = Dance(
+        id: 'dance-fields',
+        title: 'Local dance',
+        customFields: [
+          CustomFieldValue(fieldId: 'local-field', value: 'keep me'),
+          CustomFieldValue(fieldId: 'shared-field', value: 'old'),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      await repositories.dances.create(local);
+
+      final remote = local.copyWith(
+        title: 'Remote dance',
+        customFields: [CustomFieldValue(fieldId: 'shared-field', value: 'new')],
+        updatedAt: stamp.add(const Duration(hours: 1)),
+      );
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.dance,
+              id: remote.id,
+              updatedAt: remote.updatedAt,
+              deletedAt: null,
+              existenceAt: stamp,
+              body: syncBodyForEntity(
+                SyncRecordKind.dance,
+                remote,
+                allowedCustomFieldIds: {'shared-field'},
+              ),
+            ),
+          ),
+        ],
+        storage: storage,
+      );
+
+      expect(result.applied, [
+        (kind: SyncRecordKind.dance, recordId: remote.id),
+      ]);
+      final stored = await repositories.dances.getById(remote.id);
+      expect(
+        stored!.customFields,
+        containsAll([
+          CustomFieldValue(fieldId: 'local-field', value: 'keep me'),
+          CustomFieldValue(fieldId: 'shared-field', value: 'new'),
+        ]),
+      );
     },
   );
 

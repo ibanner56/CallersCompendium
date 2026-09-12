@@ -42,6 +42,13 @@ abstract interface class SyncApplyStorage {
 /// Optional extension implemented by adapters that can return a recoverable
 /// report while applying a record.
 abstract interface class SyncApplyReportingStorage implements SyncApplyStorage {
+  /// Validates references before a write can mutate any repository rows.
+  ///
+  /// Returning a report skips only this record; the outer batch transaction
+  /// remains available for valid records.
+  Future<SyncReport?> validateInboundReferences(SyncApplyRecord record) async =>
+      null;
+
   /// Writes one record and optionally reports a recoverable reference repair.
   ///
   /// The default keeps lightweight adapters source-compatible; concrete
@@ -167,9 +174,19 @@ class SyncApplyEngine {
             deletedAt: candidate.blob.deletedAt,
             existenceAt: candidate.existenceAt,
           );
-          final writeReport = storage is SyncApplyReportingStorage
-              ? await storage.writeWithReport(applyRecord)
-              : await _writeWithoutReport(storage, applyRecord);
+          final reportingStorage = storage is SyncApplyReportingStorage
+              ? storage
+              : null;
+          final referenceReport = reportingStorage == null
+              ? null
+              : await reportingStorage.validateInboundReferences(applyRecord);
+          if (referenceReport != null) {
+            reports.add(referenceReport);
+            continue;
+          }
+          final writeReport = reportingStorage == null
+              ? await _writeWithoutReport(storage, applyRecord)
+              : await reportingStorage.writeWithReport(applyRecord);
           if (writeReport != null) reports.add(writeReport);
           final afterWrite = onAfterWrite;
           if (afterWrite != null) await afterWrite(applyRecord);
@@ -190,6 +207,16 @@ class SyncApplyEngine {
               kind: candidate.blob.kind,
               recordId: candidate.blob.id,
               message: 'Inbound record was invalid: $error.',
+            ),
+          );
+          continue;
+        } on StateError catch (error) {
+          reports.add(
+            SyncReport(
+              code: SyncReportCode.unresolvedReference,
+              kind: candidate.blob.kind,
+              recordId: candidate.blob.id,
+              message: 'Inbound record referenced unavailable data: $error.',
             ),
           );
           continue;

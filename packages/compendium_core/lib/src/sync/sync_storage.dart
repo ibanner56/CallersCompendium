@@ -60,9 +60,10 @@ final class CompendiumSyncStorage implements SyncApplyReportingStorage {
   }) => repositories.transaction(() async {
     final baseline = await repositories.syncLocal.snapshotBaseline();
     final baselineState = await repositories.syncLocal.getBaselineState();
-    final lastUsedFingerprint = syncId == null
+    final lastUsedMarker = syncId == null
         ? null
         : await repositories.settings.get(syncLastUsedFingerprintKey);
+    final usedFingerprints = _decodeUsedFingerprints(lastUsedMarker);
     final local = <SyncRecordAddress, SyncMergeCandidate?>{};
     final customFields = await repositories.customFieldDefs
         .listAllWithDeleted();
@@ -276,16 +277,21 @@ final class CompendiumSyncStorage implements SyncApplyReportingStorage {
       epoch: baselineState?.epoch,
       previouslyUsed:
           syncId != null &&
-          lastUsedFingerprint == syncIdentityFingerprint(syncId),
+          usedFingerprints.contains(syncIdentityFingerprint(syncId)),
       local: local,
       baseline: baseline,
     );
   });
 
-  Future<void> markSyncUsed(String syncId) => repositories.settings.set(
-    syncLastUsedFingerprintKey,
-    syncIdentityFingerprint(syncId),
-  );
+  Future<void> markSyncUsed(String syncId) async {
+    final fingerprints = _decodeUsedFingerprints(
+      await repositories.settings.get(syncLastUsedFingerprintKey),
+    )..add(syncIdentityFingerprint(syncId));
+    await repositories.settings.set(
+      syncLastUsedFingerprintKey,
+      fingerprints.toList()..sort(),
+    );
+  }
 
   @override
   Future<T> transaction<T>(Future<T> Function() action) =>
@@ -326,6 +332,34 @@ final class CompendiumSyncStorage implements SyncApplyReportingStorage {
   @override
   Future<void> write(SyncApplyRecord record) async {
     await writeWithReport(record);
+  }
+
+  @override
+  Future<SyncReport?> validateInboundReferences(SyncApplyRecord record) async {
+    final Object entity;
+    try {
+      entity = _decodeEntity(record.address.kind, record.body);
+    } on FormatException catch (error) {
+      return _malformedReferenceReport(record, error.message);
+    } on ArgumentError catch (error) {
+      return _malformedReferenceReport(record, '$error');
+    }
+
+    final missing = switch (record.address.kind) {
+      SyncRecordKind.dance => await _missingDanceReference(entity as Dance),
+      SyncRecordKind.program => await _missingProgramReference(
+        entity as Program,
+      ),
+      _ => null,
+    };
+    return missing == null
+        ? null
+        : SyncReport(
+            code: SyncReportCode.unresolvedReference,
+            kind: record.address.kind,
+            recordId: record.address.recordId,
+            message: missing,
+          );
   }
 
   @override
@@ -416,6 +450,123 @@ final class CompendiumSyncStorage implements SyncApplyReportingStorage {
   Future<void> rebuildDerivedIndexes() async {
     await repositories.dances.rebuildAllDerived();
   }
+
+  Future<String?> _missingDanceReference(Dance dance) async {
+    final difficultyId = dance.difficultyLevelId;
+    if (difficultyId != null) {
+      final difficulty =
+          await (_db.select(_db.difficultyLevels)..where(
+                (row) => row.id.equals(difficultyId) & row.deletedAt.isNull(),
+              ))
+              .getSingleOrNull();
+      if (difficulty == null) {
+        return 'Dance "${dance.id}" references unavailable difficulty '
+            '"$difficultyId".';
+      }
+    }
+
+    final authorIds = dance.authorIds.toSet();
+    if (authorIds.isNotEmpty) {
+      final rows = await (_db.select(
+        _db.choreographers,
+      )..where((row) => row.id.isIn(authorIds) & row.deletedAt.isNull())).get();
+      final present = rows.map((row) => row.id).toSet();
+      final missing = authorIds.difference(present);
+      if (missing.isNotEmpty) {
+        return 'Dance "${dance.id}" references unavailable choreographer '
+            '"${missing.first}".';
+      }
+    }
+
+    final tagIds = dance.tagIds.toSet();
+    if (tagIds.isNotEmpty) {
+      final rows = await (_db.select(
+        _db.tags,
+      )..where((row) => row.id.isIn(tagIds) & row.deletedAt.isNull())).get();
+      final present = rows.map((row) => row.id).toSet();
+      final missing = tagIds.difference(present);
+      if (missing.isNotEmpty) {
+        return 'Dance "${dance.id}" references unavailable tag '
+            '"${missing.first}".';
+      }
+    }
+
+    final sourceIds = dance.sourceCitations
+        .map((citation) => citation.sourceId)
+        .toSet();
+    if (sourceIds.isNotEmpty) {
+      final rows = await (_db.select(
+        _db.publishedSources,
+      )..where((row) => row.id.isIn(sourceIds) & row.deletedAt.isNull())).get();
+      final present = rows.map((row) => row.id).toSet();
+      final missing = sourceIds.difference(present);
+      if (missing.isNotEmpty) {
+        return 'Dance "${dance.id}" references unavailable source '
+            '"${missing.first}".';
+      }
+    }
+
+    final customFieldIds = dance.customFields
+        .map((value) => value.fieldId)
+        .toSet();
+    if (customFieldIds.isNotEmpty) {
+      final rows =
+          await (_db.select(_db.customFieldDefs)..where(
+                (row) => row.id.isIn(customFieldIds) & row.deletedAt.isNull(),
+              ))
+              .get();
+      final present = rows.map((row) => row.id).toSet();
+      final missing = customFieldIds.difference(present);
+      if (missing.isNotEmpty) {
+        return 'Dance "${dance.id}" references unavailable custom field '
+            '"${missing.first}".';
+      }
+    }
+
+    final targetDanceIds = dance.links
+        .map((link) => link.targetDanceId)
+        .whereType<String>()
+        .toSet();
+    if (targetDanceIds.isNotEmpty) {
+      final rows = await (_db.select(
+        _db.dances,
+      )..where((row) => row.id.isIn(targetDanceIds))).get();
+      final present = rows.map((row) => row.id).toSet();
+      final missing = targetDanceIds.difference(present);
+      if (missing.isNotEmpty) {
+        return 'Dance "${dance.id}" references unavailable related dance '
+            '"${missing.first}".';
+      }
+    }
+    return null;
+  }
+
+  Future<String?> _missingProgramReference(Program program) async {
+    final danceIds = program.slots
+        .map((slot) => slot.danceId)
+        .whereType<String>()
+        .toSet();
+    if (danceIds.isEmpty) return null;
+    final rows = await (_db.select(
+      _db.dances,
+    )..where((row) => row.id.isIn(danceIds))).get();
+    final present = rows.map((row) => row.id).toSet();
+    final missing = danceIds.difference(present);
+    return missing.isEmpty
+        ? null
+        : 'Program "${program.id}" references unavailable dance '
+              '"${missing.first}".';
+  }
+
+  SyncReport _malformedReferenceReport(
+    SyncApplyRecord record,
+    String message,
+  ) => SyncReport(
+    code: SyncReportCode.malformedRecord,
+    kind: record.address.kind,
+    recordId: record.address.recordId,
+    message: 'Inbound record could not be decoded: $message.',
+  );
 
   Future<Map<String, Object?>?> _readDanceBody(String id) async {
     final dance = await repositories.dances.getById(id, includeDeleted: true);
@@ -567,11 +718,14 @@ final class CompendiumSyncStorage implements SyncApplyReportingStorage {
       'exportedAt': DateTime.now().toUtc().toIso8601String(),
       key: [body],
     });
-    if (result.errors.isNotEmpty || result.droppedEntities.isNotEmpty) {
+    final errors = result.errors
+        .where((error) => !_isUnknownDifficultyReference(error.message))
+        .toList(growable: false);
+    if (errors.isNotEmpty || result.droppedEntities.isNotEmpty) {
       throw FormatException(
-        result.errors.isEmpty
+        errors.isEmpty
             ? 'decoded entity was dropped'
-            : result.errors.map((error) => error.message).join('; '),
+            : errors.map((error) => error.message).join('; '),
       );
     }
     final archive = result.archive;
@@ -596,6 +750,9 @@ final class CompendiumSyncStorage implements SyncApplyReportingStorage {
     }
     return values.single;
   }
+
+  bool _isUnknownDifficultyReference(String message) =>
+      message.startsWith('references unknown difficulty level "');
 
   Future<bool> _isLiveVenue(String id) async =>
       (await (_db.select(_db.venues)
@@ -722,3 +879,12 @@ final class CompendiumSyncStorage implements SyncApplyReportingStorage {
 const syncLastUsedFingerprintKey = 'sync_last_used_fingerprint';
 
 String syncIdentityFingerprint(String syncId) => sha256Hex(utf8.encode(syncId));
+
+Set<String> _decodeUsedFingerprints(Object? marker) => switch (marker) {
+  String value when value.isNotEmpty => {value},
+  List<Object?> values => {
+    for (final value in values)
+      if (value is String && value.isNotEmpty) value,
+  },
+  _ => <String>{},
+};

@@ -121,6 +121,10 @@ final class CompendiumSyncCoordinatorStore
   Future<void> write(SyncApplyRecord record) => storage.write(record);
 
   @override
+  Future<SyncReport?> validateInboundReferences(SyncApplyRecord record) =>
+      storage.validateInboundReferences(record);
+
+  @override
   Future<SyncReport?> writeWithReport(SyncApplyRecord record) =>
       storage.writeWithReport(record);
 
@@ -243,6 +247,8 @@ class SyncCoordinator {
   var _paused = false;
   Future<SyncPassResult>? _confirmation;
   var _disposed = false;
+
+  static const _maxMissingHashesPerRequest = 10000;
 
   /// Emits at most one event while the same replacement decision is pending.
   Stream<SyncReplacementRequiredEvent> get replacementRequired =>
@@ -688,27 +694,40 @@ class SyncCoordinator {
     Map<String, SyncMergeCandidate> localByHash, {
     required SyncReportSink reports,
   }) async {
-    final response = await transport.postMissing(localByHash.keys);
-    if (!response.isSuccess) return false;
-    final missing = _decodeMissing(response.body);
-    if (missing == null) return false;
-    for (final hash in missing) {
-      final candidate = localByHash[hash];
-      if (candidate == null) {
-        reports.add(
-          SyncReport(
-            code: SyncReportCode.unresolvedBlob,
-            message:
-                'The store requested an unknown local blob.', // i18n-ignore: internal report
-          ),
-        );
-        return false;
-      }
-      final uploaded = await transport.putBlob(
-        hash,
-        encodeSyncRecordBlobUtf8(candidate.blob),
+    final entries = localByHash.entries.toList(growable: false);
+    for (
+      var offset = 0;
+      offset < entries.length;
+      offset += _maxMissingHashesPerRequest
+    ) {
+      final end = (offset + _maxMissingHashesPerRequest).clamp(
+        0,
+        entries.length,
       );
-      if (!uploaded.isSuccess) return false;
+      final response = await transport.postMissing(
+        entries.sublist(offset, end).map((entry) => entry.key),
+      );
+      if (!response.isSuccess) return false;
+      final missing = _decodeMissing(response.body);
+      if (missing == null) return false;
+      for (final hash in missing) {
+        final candidate = localByHash[hash];
+        if (candidate == null) {
+          reports.add(
+            SyncReport(
+              code: SyncReportCode.unresolvedBlob,
+              message:
+                  'The store requested an unknown local blob.', // i18n-ignore: internal report
+            ),
+          );
+          return false;
+        }
+        final uploaded = await transport.putBlob(
+          hash,
+          encodeSyncRecordBlobUtf8(candidate.blob),
+        );
+        if (!uploaded.isSuccess) return false;
+      }
     }
     return true;
   }

@@ -279,6 +279,61 @@ void main() {
     },
   );
 
+  test(
+    'chunks initial and post-apply missing-blob negotiation at the protocol limit',
+    () async {
+      final initial = <SyncRecordAddress, SyncMergeCandidate?>{};
+      for (var index = 0; index < 10000; index++) {
+        final candidate = SyncMergeCandidate.fromBlob(
+          _tag('tag-$index', 'local'),
+        );
+        initial[candidate.address] = candidate;
+      }
+      final remote = SyncMergeCandidate.fromBlob(
+        _tag('tag-remote', 'remote', seconds: 1),
+      );
+      final finalLocal = {...initial, remote.address: remote};
+      final store = _FakeStore(
+        snapshotBuilder: (snapshotNumber) => SyncCoordinatorSnapshot(
+          epoch: null,
+          previouslyUsed: false,
+          local: snapshotNumber == 1 ? initial : finalLocal,
+          baseline: const {},
+        ),
+      );
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        peerManifest: _manifest(
+          deviceId: 'peer',
+          records: {
+            SyncRecordKind.tag: {remote.blob.id: remote.wireHash},
+          },
+        ),
+        blobResponses: {
+          remote.wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(remote.blob)),
+          ),
+        },
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+      );
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(transport.postMissingBatches.map((batch) => batch.length), [
+        10000,
+        10000,
+        1,
+      ]);
+    },
+  );
+
   test('a missing peer blob is reported and remains retryable', () async {
     final hash = _hash('a');
     final address = (kind: SyncRecordKind.setting, recordId: 'custom_dialects');
@@ -472,6 +527,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   int blobCalls = 0;
   int postMissingCalls = 0;
   final putBlobHashes = <String>[];
+  final postMissingBatches = <List<String>>[];
 
   List<String> get calls => [
     if (storeCalls > 0) 'store',
@@ -527,6 +583,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
 
   @override
   Future<SyncHttpResponse> postMissing(Iterable<String> hashes) async {
+    postMissingBatches.add(hashes.toList(growable: false));
     postMissingCalls++;
     requestLog.add('missing');
     final response = missingResponses.length >= postMissingCalls
@@ -585,6 +642,18 @@ SyncRecordBlob _setting(String id, String value, {int seconds = 0}) {
     deletedAt: null,
     existenceAt: stamp,
     body: {'value': value},
+  );
+}
+
+SyncRecordBlob _tag(String id, String name, {int seconds = 0}) {
+  final stamp = DateTime.utc(2026, 7, 15, 12).add(Duration(seconds: seconds));
+  return SyncRecordBlob(
+    kind: SyncRecordKind.tag,
+    id: id,
+    updatedAt: stamp,
+    deletedAt: null,
+    existenceAt: stamp,
+    body: {'id': id, 'name': name},
   );
 }
 
