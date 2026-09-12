@@ -340,6 +340,7 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
     SyncApplyRecord record, {
     Set<SyncRecordAddress> inboundLiveAddresses = const {},
     Set<SyncRecordAddress> inboundAddresses = const {},
+    Map<SyncRecordAddress, SyncApplyRecord> inboundRecords = const {},
   }) async {
     if (record.address.kind == SyncRecordKind.setting) return null;
     final Object entity;
@@ -356,6 +357,7 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
         entity as Dance,
         inboundLiveAddresses: inboundLiveAddresses,
         inboundAddresses: inboundAddresses,
+        inboundRecords: inboundRecords,
       ),
       SyncRecordKind.program => await _missingProgramReference(
         entity as Program,
@@ -556,6 +558,7 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
     Dance dance, {
     required Set<SyncRecordAddress> inboundLiveAddresses,
     required Set<SyncRecordAddress> inboundAddresses,
+    required Map<SyncRecordAddress, SyncApplyRecord> inboundRecords,
   }) async {
     final difficultyId = dance.difficultyLevelId;
     if (difficultyId != null) {
@@ -735,6 +738,13 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
             '"${missing.first}".';
       }
     }
+    final customFieldIssue = await _invalidCustomFieldValue(
+      dance,
+      inboundLiveAddresses: inboundLiveAddresses,
+      inboundAddresses: inboundAddresses,
+      inboundRecords: inboundRecords,
+    );
+    if (customFieldIssue != null) return customFieldIssue;
 
     final targetDanceIds = dance.links
         .map((link) => link.targetDanceId)
@@ -809,6 +819,63 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
         ? null
         : 'Program "${program.id}" references unavailable dance '
               '"${missing.first}".';
+  }
+
+  Future<String?> _invalidCustomFieldValue(
+    Dance dance, {
+    required Set<SyncRecordAddress> inboundLiveAddresses,
+    required Set<SyncRecordAddress> inboundAddresses,
+    required Map<SyncRecordAddress, SyncApplyRecord> inboundRecords,
+  }) async {
+    for (final value in dance.customFields) {
+      final address = (
+        kind: SyncRecordKind.customFieldDef,
+        recordId: value.fieldId,
+      );
+      if (inboundAddresses.contains(address) &&
+          !inboundLiveAddresses.contains(address)) {
+        continue;
+      }
+
+      late final CustomFieldDef definition;
+      if (inboundLiveAddresses.contains(address)) {
+        final inbound = inboundRecords[address];
+        if (inbound == null) continue;
+        try {
+          definition =
+              _decodeEntity(SyncRecordKind.customFieldDef, inbound.body)
+                  as CustomFieldDef;
+        } on FormatException catch (error) {
+          return 'Dance "${dance.id}" references malformed custom field '
+              '"${value.fieldId}": $error';
+        } on ArgumentError catch (error) {
+          return 'Dance "${dance.id}" references malformed custom field '
+              '"${value.fieldId}": $error';
+        }
+      } else {
+        final row =
+            await (_db.select(_db.customFieldDefs)..where(
+                  (table) =>
+                      table.id.equals(value.fieldId) & table.deletedAt.isNull(),
+                ))
+                .getSingleOrNull();
+        if (row == null) continue;
+        final decoded = CustomFieldDefRepository.toModel(row);
+        if (decoded == null) {
+          return 'Dance "${dance.id}" references corrupt custom field '
+              '"${value.fieldId}".';
+        }
+        definition = decoded;
+      }
+
+      try {
+        encodeCustomFieldValue(value, definition);
+      } on ArgumentError catch (error) {
+        return 'Dance "${dance.id}" has an invalid value for custom field '
+            '"${value.fieldId}": $error';
+      }
+    }
+    return null;
   }
 
   Set<String> _referenceIdsToLookUp({

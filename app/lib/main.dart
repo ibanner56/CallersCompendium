@@ -90,7 +90,6 @@ import 'src/screens/settings_screen.dart'
 import 'src/theme/app_theme.dart';
 import 'src/app_metadata.dart';
 import 'src/sync/sync_coordinator.dart';
-import 'src/sync/sync_http_client.dart';
 import 'src/sync/sync_runtime.dart';
 import 'src/update/update_controller.dart';
 import 'src/update/update_scope.dart';

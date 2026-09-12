@@ -50,6 +50,7 @@ abstract interface class SyncApplyReportingStorage implements SyncApplyStorage {
     SyncApplyRecord record, {
     Set<SyncRecordAddress> inboundLiveAddresses = const {},
     Set<SyncRecordAddress> inboundAddresses = const {},
+    Map<SyncRecordAddress, SyncApplyRecord> inboundRecords = const {},
   }) async => null;
 
   /// Writes one record and optionally reports a recoverable reference repair.
@@ -359,6 +360,9 @@ class SyncApplyEngine {
 
     var eligible = List<SyncApplyRecord>.of(prepared);
     var inboundAddresses = {for (final record in eligible) record.address};
+    var inboundRecords = {
+      for (final record in eligible) record.address: record,
+    };
     var inboundLiveAddresses = {
       for (final record in eligible)
         if (record.deletedAt == null) record.address,
@@ -371,6 +375,7 @@ class SyncApplyEngine {
           record,
           inboundLiveAddresses: inboundLiveAddresses,
           inboundAddresses: inboundAddresses,
+          inboundRecords: inboundRecords,
         );
         if (referenceReport == null) {
           next.add(record);
@@ -381,6 +386,7 @@ class SyncApplyEngine {
       if (next.length == eligible.length) break;
       eligible = next;
       inboundAddresses = {for (final record in eligible) record.address};
+      inboundRecords = {for (final record in eligible) record.address: record};
       inboundLiveAddresses
         ..clear()
         ..addAll({

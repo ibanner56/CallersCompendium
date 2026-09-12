@@ -1,4 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/src/storage/database.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:test/test.dart';
 
 import 'test_database.dart';
@@ -466,6 +468,7 @@ void main() {
         id: 'existing-choreographer',
         name: 'Existing choreographer',
       );
+      // ignore: unused_result
       await repositories.choreographers.upsert(choreographer, at: stamp);
 
       final dance = Dance(
@@ -634,6 +637,77 @@ void main() {
       expect(stored!.status, ProgramStatus.performed);
       expect(stored.slots.single.performedAt, isNull);
       expect(stored.updatedAt, remoteStamp);
+    },
+  );
+
+  test(
+    'does not retain a parent when a stored custom-field definition is corrupt',
+    () async {
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+      final preservedDef = CustomFieldDef(
+        id: 'preserved-field',
+        key: 'preserved_field',
+        label: 'Preserved field',
+        type: CustomFieldType.text,
+      );
+      final corruptDef = CustomFieldDef(
+        id: 'corrupt-field',
+        key: 'corrupt_field',
+        label: 'Corrupt field',
+        type: CustomFieldType.choice,
+        choices: ['valid'],
+      );
+      await repositories.customFieldDefs.upsert(preservedDef, at: stamp);
+      await repositories.customFieldDefs.upsert(corruptDef, at: stamp);
+      await (db.update(
+        db.customFieldDefs,
+      )..where((row) => row.id.equals(corruptDef.id))).write(
+        const CustomFieldDefsCompanion(choicesJson: Value('{not valid json')),
+      );
+
+      final original = Dance(
+        id: 'dance-with-corrupt-field',
+        title: 'Original title',
+        customFields: [
+          CustomFieldValue(fieldId: preservedDef.id, value: 'preserve me'),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      await repositories.dances.create(original);
+
+      final inbound = original.copyWith(
+        title: 'Inbound title',
+        customFields: [
+          CustomFieldValue(fieldId: corruptDef.id, value: 'invalid definition'),
+        ],
+        updatedAt: stamp.add(const Duration(minutes: 1)),
+      );
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.dance,
+              id: inbound.id,
+              updatedAt: inbound.updatedAt,
+              deletedAt: null,
+              existenceAt: stamp,
+              body: syncBodyForEntity(
+                SyncRecordKind.dance,
+                inbound,
+                allowedCustomFieldIds: {corruptDef.id},
+              ),
+            ),
+          ),
+        ],
+        storage: storage,
+      );
+
+      expect(result.applied, isEmpty);
+      expect(result.reports.single.code, SyncReportCode.unresolvedReference);
+      final stored = await repositories.dances.getById(original.id);
+      expect(stored!.title, original.title);
+      expect(stored.customFields, original.customFields);
     },
   );
 }

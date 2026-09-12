@@ -125,10 +125,12 @@ final class CompendiumSyncCoordinatorStore
     SyncApplyRecord record, {
     Set<SyncRecordAddress> inboundLiveAddresses = const {},
     Set<SyncRecordAddress> inboundAddresses = const {},
+    Map<SyncRecordAddress, SyncApplyRecord> inboundRecords = const {},
   }) => storage.validateInboundReferences(
     record,
     inboundLiveAddresses: inboundLiveAddresses,
     inboundAddresses: inboundAddresses,
+    inboundRecords: inboundRecords,
   );
 
   @override
