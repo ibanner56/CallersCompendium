@@ -48,10 +48,11 @@ class SyncStorageSnapshot {
 /// device-local fields. Writes use dedicated inbound repository writers so
 /// interactive side effects cannot alter the validated peer body, then restore
 /// the wire timestamp triple because local persistence stamps causal times.
-final class CompendiumSyncStorage implements SyncApplyReportingStorage {
+final class CompendiumSyncStorage implements SyncApplyBatchStorage {
   CompendiumSyncStorage(this.repositories);
 
   final CompendiumRepositories repositories;
+  final Map<SyncRecordAddress, Object> _deferredEntities = {};
 
   CompendiumDatabase get _db => repositories.db;
 
@@ -335,7 +336,11 @@ final class CompendiumSyncStorage implements SyncApplyReportingStorage {
   }
 
   @override
-  Future<SyncReport?> validateInboundReferences(SyncApplyRecord record) async {
+  Future<SyncReport?> validateInboundReferences(
+    SyncApplyRecord record, {
+    Set<SyncRecordAddress> inboundAddresses = const {},
+  }) async {
+    if (record.address.kind == SyncRecordKind.setting) return null;
     final Object entity;
     try {
       entity = _decodeEntity(record.address.kind, record.body);
@@ -346,9 +351,13 @@ final class CompendiumSyncStorage implements SyncApplyReportingStorage {
     }
 
     final missing = switch (record.address.kind) {
-      SyncRecordKind.dance => await _missingDanceReference(entity as Dance),
+      SyncRecordKind.dance => await _missingDanceReference(
+        entity as Dance,
+        inboundAddresses: inboundAddresses,
+      ),
       SyncRecordKind.program => await _missingProgramReference(
         entity as Program,
+        inboundAddresses: inboundAddresses,
       ),
       _ => null,
     };
@@ -447,13 +456,109 @@ final class CompendiumSyncStorage implements SyncApplyReportingStorage {
   }
 
   @override
+  Future<SyncReport?> writeParentWithReport(SyncApplyRecord record) async {
+    final kind = record.address.kind;
+    if (kind != SyncRecordKind.dance && kind != SyncRecordKind.program) {
+      return writeWithReport(record);
+    }
+
+    final prepared = await _prepareEntity(record);
+    _deferredEntities[record.address] = prepared.entity;
+    switch (kind) {
+      case SyncRecordKind.dance:
+        await repositories.dances.writeFromSyncParent(prepared.entity as Dance);
+      case SyncRecordKind.program:
+        await repositories.programs.writeFromSyncParent(
+          prepared.entity as Program,
+        );
+      case SyncRecordKind.setting:
+      case SyncRecordKind.choreographer:
+      case SyncRecordKind.tag:
+      case SyncRecordKind.publishedSource:
+      case SyncRecordKind.customFieldDef:
+      case SyncRecordKind.difficultyLevel:
+      case SyncRecordKind.venue:
+        throw StateError('unexpected non-parent sync kind: $kind');
+    }
+    return prepared.report;
+  }
+
+  @override
+  Future<SyncReport?> writeJoinsWithReport(SyncApplyRecord record) async {
+    if (record.address.kind != SyncRecordKind.dance &&
+        record.address.kind != SyncRecordKind.program) {
+      return null;
+    }
+    final entity = _deferredEntities.remove(record.address);
+    if (entity == null) {
+      throw StateError(
+        'missing deferred sync parent for ${record.address.kind.name}:'
+        '${record.address.recordId}',
+      );
+    }
+    switch (record.address.kind) {
+      case SyncRecordKind.dance:
+        await repositories.dances.writeFromSyncRelations(entity as Dance);
+      case SyncRecordKind.program:
+        await repositories.programs.writeFromSyncRelations(entity as Program);
+      case SyncRecordKind.setting:
+      case SyncRecordKind.choreographer:
+      case SyncRecordKind.tag:
+      case SyncRecordKind.publishedSource:
+      case SyncRecordKind.customFieldDef:
+      case SyncRecordKind.difficultyLevel:
+      case SyncRecordKind.venue:
+        return null;
+    }
+    await _restoreTimestamps(
+      kind: record.address.kind,
+      id: record.address.recordId,
+      updatedAt: record.updatedAt,
+      deletedAt: record.deletedAt,
+      existenceAt: record.existenceAt,
+    );
+    return null;
+  }
+
+  Future<({Object entity, SyncReport? report})> _prepareEntity(
+    SyncApplyRecord record,
+  ) async {
+    final kind = record.address.kind;
+    final entity = _decodeEntity(kind, record.body);
+    if (kind != SyncRecordKind.program) {
+      return (entity: entity, report: null);
+    }
+    final program = entity as Program;
+    if (program.venueId == null || await _isLiveVenue(program.venueId!)) {
+      return (entity: program, report: null);
+    }
+    return (
+      entity: program.copyWith(clearVenueId: true),
+      report: SyncReport(
+        code: SyncReportCode.unresolvedReference,
+        kind: kind,
+        recordId: record.address.recordId,
+        message:
+            'Program venue reference was cleared because the venue is missing.',
+      ),
+    );
+  }
+
+  @override
   Future<void> rebuildDerivedIndexes() async {
     await repositories.dances.rebuildAllDerived();
   }
 
-  Future<String?> _missingDanceReference(Dance dance) async {
+  Future<String?> _missingDanceReference(
+    Dance dance, {
+    required Set<SyncRecordAddress> inboundAddresses,
+  }) async {
     final difficultyId = dance.difficultyLevelId;
-    if (difficultyId != null) {
+    if (difficultyId != null &&
+        !inboundAddresses.contains((
+          kind: SyncRecordKind.difficultyLevel,
+          recordId: difficultyId,
+        ))) {
       final difficulty =
           await (_db.select(_db.difficultyLevels)..where(
                 (row) => row.id.equals(difficultyId) & row.deletedAt.isNull(),
@@ -466,12 +571,24 @@ final class CompendiumSyncStorage implements SyncApplyReportingStorage {
     }
 
     final authorIds = dance.authorIds.toSet();
-    if (authorIds.isNotEmpty) {
-      final rows = await (_db.select(
-        _db.choreographers,
-      )..where((row) => row.id.isIn(authorIds) & row.deletedAt.isNull())).get();
+    final inboundAuthors = {
+      for (final id in authorIds)
+        if (inboundAddresses.contains((
+          kind: SyncRecordKind.choreographer,
+          recordId: id,
+        )))
+          id,
+    };
+    if (authorIds.difference(inboundAuthors).isNotEmpty) {
+      final rows =
+          await (_db.select(_db.choreographers)..where(
+                (row) =>
+                    row.id.isIn(authorIds.difference(inboundAuthors)) &
+                    row.deletedAt.isNull(),
+              ))
+              .get();
       final present = rows.map((row) => row.id).toSet();
-      final missing = authorIds.difference(present);
+      final missing = authorIds.difference(inboundAuthors).difference(present);
       if (missing.isNotEmpty) {
         return 'Dance "${dance.id}" references unavailable choreographer '
             '"${missing.first}".';
@@ -479,12 +596,21 @@ final class CompendiumSyncStorage implements SyncApplyReportingStorage {
     }
 
     final tagIds = dance.tagIds.toSet();
-    if (tagIds.isNotEmpty) {
-      final rows = await (_db.select(
-        _db.tags,
-      )..where((row) => row.id.isIn(tagIds) & row.deletedAt.isNull())).get();
+    final inboundTags = {
+      for (final id in tagIds)
+        if (inboundAddresses.contains((kind: SyncRecordKind.tag, recordId: id)))
+          id,
+    };
+    if (tagIds.difference(inboundTags).isNotEmpty) {
+      final rows =
+          await (_db.select(_db.tags)..where(
+                (row) =>
+                    row.id.isIn(tagIds.difference(inboundTags)) &
+                    row.deletedAt.isNull(),
+              ))
+              .get();
       final present = rows.map((row) => row.id).toSet();
-      final missing = tagIds.difference(present);
+      final missing = tagIds.difference(inboundTags).difference(present);
       if (missing.isNotEmpty) {
         return 'Dance "${dance.id}" references unavailable tag '
             '"${missing.first}".';
@@ -494,12 +620,24 @@ final class CompendiumSyncStorage implements SyncApplyReportingStorage {
     final sourceIds = dance.sourceCitations
         .map((citation) => citation.sourceId)
         .toSet();
-    if (sourceIds.isNotEmpty) {
-      final rows = await (_db.select(
-        _db.publishedSources,
-      )..where((row) => row.id.isIn(sourceIds) & row.deletedAt.isNull())).get();
+    final inboundSources = {
+      for (final id in sourceIds)
+        if (inboundAddresses.contains((
+          kind: SyncRecordKind.publishedSource,
+          recordId: id,
+        )))
+          id,
+    };
+    if (sourceIds.difference(inboundSources).isNotEmpty) {
+      final rows =
+          await (_db.select(_db.publishedSources)..where(
+                (row) =>
+                    row.id.isIn(sourceIds.difference(inboundSources)) &
+                    row.deletedAt.isNull(),
+              ))
+              .get();
       final present = rows.map((row) => row.id).toSet();
-      final missing = sourceIds.difference(present);
+      final missing = sourceIds.difference(inboundSources).difference(present);
       if (missing.isNotEmpty) {
         return 'Dance "${dance.id}" references unavailable source '
             '"${missing.first}".';
@@ -509,14 +647,28 @@ final class CompendiumSyncStorage implements SyncApplyReportingStorage {
     final customFieldIds = dance.customFields
         .map((value) => value.fieldId)
         .toSet();
-    if (customFieldIds.isNotEmpty) {
+    final inboundCustomFields = {
+      for (final id in customFieldIds)
+        if (inboundAddresses.contains((
+          kind: SyncRecordKind.customFieldDef,
+          recordId: id,
+        )))
+          id,
+    };
+    if (customFieldIds.difference(inboundCustomFields).isNotEmpty) {
       final rows =
           await (_db.select(_db.customFieldDefs)..where(
-                (row) => row.id.isIn(customFieldIds) & row.deletedAt.isNull(),
+                (row) =>
+                    row.id.isIn(
+                      customFieldIds.difference(inboundCustomFields),
+                    ) &
+                    row.deletedAt.isNull(),
               ))
               .get();
       final present = rows.map((row) => row.id).toSet();
-      final missing = customFieldIds.difference(present);
+      final missing = customFieldIds
+          .difference(inboundCustomFields)
+          .difference(present);
       if (missing.isNotEmpty) {
         return 'Dance "${dance.id}" references unavailable custom field '
             '"${missing.first}".';
@@ -527,12 +679,25 @@ final class CompendiumSyncStorage implements SyncApplyReportingStorage {
         .map((link) => link.targetDanceId)
         .whereType<String>()
         .toSet();
-    if (targetDanceIds.isNotEmpty) {
-      final rows = await (_db.select(
-        _db.dances,
-      )..where((row) => row.id.isIn(targetDanceIds))).get();
+    final inboundTargetDances = {
+      for (final id in targetDanceIds)
+        if (inboundAddresses.contains((
+          kind: SyncRecordKind.dance,
+          recordId: id,
+        )))
+          id,
+    };
+    if (targetDanceIds.difference(inboundTargetDances).isNotEmpty) {
+      final rows =
+          await (_db.select(_db.dances)..where(
+                (row) =>
+                    row.id.isIn(targetDanceIds.difference(inboundTargetDances)),
+              ))
+              .get();
       final present = rows.map((row) => row.id).toSet();
-      final missing = targetDanceIds.difference(present);
+      final missing = targetDanceIds
+          .difference(inboundTargetDances)
+          .difference(present);
       if (missing.isNotEmpty) {
         return 'Dance "${dance.id}" references unavailable related dance '
             '"${missing.first}".';
@@ -541,17 +706,28 @@ final class CompendiumSyncStorage implements SyncApplyReportingStorage {
     return null;
   }
 
-  Future<String?> _missingProgramReference(Program program) async {
+  Future<String?> _missingProgramReference(
+    Program program, {
+    required Set<SyncRecordAddress> inboundAddresses,
+  }) async {
     final danceIds = program.slots
         .map((slot) => slot.danceId)
         .whereType<String>()
         .toSet();
-    if (danceIds.isEmpty) return null;
+    final missingInBatch = danceIds
+        .where(
+          (id) => !inboundAddresses.contains((
+            kind: SyncRecordKind.dance,
+            recordId: id,
+          )),
+        )
+        .toSet();
+    if (missingInBatch.isEmpty) return null;
     final rows = await (_db.select(
       _db.dances,
-    )..where((row) => row.id.isIn(danceIds))).get();
+    )..where((row) => row.id.isIn(missingInBatch))).get();
     final present = rows.map((row) => row.id).toSet();
-    final missing = danceIds.difference(present);
+    final missing = missingInBatch.difference(present);
     return missing.isEmpty
         ? null
         : 'Program "${program.id}" references unavailable dance '

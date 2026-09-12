@@ -146,9 +146,99 @@ void main() {
   );
 
   test(
+    'applies forward and cyclic dance references after parent rows',
+    () async {
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+      Dance dance({
+        required String id,
+        required String target,
+        required String linkId,
+      }) => Dance(
+        id: id,
+        title: id,
+        links: [
+          DanceLink(
+            id: linkId,
+            kind: LinkKind.relatedDance,
+            targetDanceId: target,
+          ),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+
+      final source = dance(
+        id: 'a-source',
+        target: 'z-target',
+        linkId: 'forward-link',
+      );
+      final target = Dance(
+        id: 'z-target',
+        title: 'z-target',
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final cycleA = dance(
+        id: 'cycle-a',
+        target: 'cycle-b',
+        linkId: 'cycle-a-link',
+      );
+      final cycleB = dance(
+        id: 'cycle-b',
+        target: 'cycle-a',
+        linkId: 'cycle-b-link',
+      );
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          for (final dance in [source, target, cycleA, cycleB])
+            SyncMergeCandidate(
+              blob: SyncRecordBlob(
+                kind: SyncRecordKind.dance,
+                id: dance.id,
+                updatedAt: stamp,
+                deletedAt: null,
+                existenceAt: stamp,
+                body: syncBodyForEntity(SyncRecordKind.dance, dance),
+              ),
+            ),
+        ],
+        storage: storage,
+      );
+
+      expect(result.applied, [
+        (kind: SyncRecordKind.dance, recordId: 'a-source'),
+        (kind: SyncRecordKind.dance, recordId: 'cycle-a'),
+        (kind: SyncRecordKind.dance, recordId: 'cycle-b'),
+        (kind: SyncRecordKind.dance, recordId: 'z-target'),
+      ]);
+      expect(result.reports, isEmpty);
+      expect(
+        (await repositories.dances.getById(
+          'a-source',
+        ))!.links.single.targetDanceId,
+        'z-target',
+      );
+      expect(
+        (await repositories.dances.getById(
+          'cycle-a',
+        ))!.links.single.targetDanceId,
+        'cycle-b',
+      );
+      expect(
+        (await repositories.dances.getById(
+          'cycle-b',
+        ))!.links.single.targetDanceId,
+        'cycle-a',
+      );
+    },
+  );
+
+  test(
     'inbound dance writes preserve device-local custom-field values',
     () async {
       final stamp = DateTime.utc(2025, 1, 2, 12);
+      // ignore: unused_result
       await repositories.customFieldDefs.upsert(
         CustomFieldDef(
           id: 'local-field',
@@ -158,6 +248,7 @@ void main() {
           shareable: false,
         ),
       );
+      // ignore: unused_result
       await repositories.customFieldDefs.upsert(
         CustomFieldDef(
           id: 'shared-field',

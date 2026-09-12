@@ -280,6 +280,14 @@ class ProgramRepository {
   Future<void> writeFromSync(Program program) =>
       _upsert(program, stampPerformedSlots: false);
 
+  /// Persists only the program row for a two-phase inbound sync write.
+  Future<void> writeFromSyncParent(Program program) =>
+      _upsert(program, stampPerformedSlots: false, writeRelations: false);
+
+  /// Persists only the program's dependent rows for a two-phase inbound write.
+  Future<void> writeFromSyncRelations(Program program) =>
+      _upsert(program, stampPerformedSlots: false, writeParent: false);
+
   /// Clears performed stamps created by one bulk mark action.
   ///
   /// The slot id and timestamp predicates make this an atomic compare-and-clear
@@ -342,6 +350,8 @@ class ProgramRepository {
     Program program, {
     LiveVenueIds? knownVenueIds,
     bool stampPerformedSlots = true,
+    bool writeParent = true,
+    bool writeRelations = true,
   }) => _db.transaction(() async {
     assertUtc(program.createdAt, 'program.createdAt');
     assertUtc(program.updatedAt, 'program.updatedAt');
@@ -401,114 +411,118 @@ class ProgramRepository {
         program = program.stampDanceSlotsPerformed(fallback: program.updatedAt);
       }
     }
-    await _db
-        .into(_db.programs)
-        .insertOnConflictUpdate(
-          ProgramsCompanion.insert(
-            id: program.id,
-            title: normalizeShareableText(program.title),
-            eventDate: Value(program.eventDate),
-            venue: Value(
-              program.venue == null
-                  ? null
-                  : normalizeShareableText(program.venue!),
-            ),
-            venueId: Value(program.venueId),
-            band: Value(
-              program.band == null
-                  ? null
-                  : normalizeShareableText(program.band!),
-            ),
-            caller: Value(
-              program.caller == null
-                  ? null
-                  : normalizeShareableText(program.caller!),
-            ),
-            dancerLevel: Value(
-              program.dancerLevel == null
-                  ? null
-                  : normalizeShareableText(program.dancerLevel!),
-            ),
-            notes: Value(normalizeShareableText(program.notes)),
-            status: program.status,
-            hideAlternates: Value(program.hideAlternates),
-            createdAt: program.createdAt,
-            updatedAt: program.updatedAt,
-            deletedAt: Value(program.deletedAt),
-          ),
-        );
-    await seedExistenceIfMissing(
-      _db,
-      table: _db.programs,
-      keyColumn: 'id',
-      key: program.id,
-    );
-    await (_db.delete(
-      _db.programSlots,
-    )..where((t) => t.programId.equals(program.id))).go();
-    for (final slot in program.slots) {
+    if (writeParent) {
       await _db
-          .into(_db.programSlots)
-          .insert(
-            ProgramSlotsCompanion.insert(
-              id: slot.id,
-              programId: program.id,
-              position: slot.position,
-              danceId: Value(slot.danceId),
-              text_: Value(
-                slot.text == null ? null : normalizeShareableText(slot.text!),
-              ),
-              isPurgedDance: Value(slot.isPurgedDance),
-              isAlt: Value(slot.isAlt),
-              guestCaller: Value(
-                slot.guestCaller == null
+          .into(_db.programs)
+          .insertOnConflictUpdate(
+            ProgramsCompanion.insert(
+              id: program.id,
+              title: normalizeShareableText(program.title),
+              eventDate: Value(program.eventDate),
+              venue: Value(
+                program.venue == null
                     ? null
-                    : normalizeShareableText(slot.guestCaller!),
+                    : normalizeShareableText(program.venue!),
               ),
-              walkthroughMinutes: Value(slot.walkthroughMinutes),
-              danceMinutes: Value(slot.danceMinutes),
-              performedAt: Value(slot.performedAt),
+              venueId: Value(program.venueId),
+              band: Value(
+                program.band == null
+                    ? null
+                    : normalizeShareableText(program.band!),
+              ),
+              caller: Value(
+                program.caller == null
+                    ? null
+                    : normalizeShareableText(program.caller!),
+              ),
+              dancerLevel: Value(
+                program.dancerLevel == null
+                    ? null
+                    : normalizeShareableText(program.dancerLevel!),
+              ),
+              notes: Value(normalizeShareableText(program.notes)),
+              status: program.status,
+              hideAlternates: Value(program.hideAlternates),
+              createdAt: program.createdAt,
+              updatedAt: program.updatedAt,
+              deletedAt: Value(program.deletedAt),
             ),
           );
+      await seedExistenceIfMissing(
+        _db,
+        table: _db.programs,
+        keyColumn: 'id',
+        key: program.id,
+      );
     }
-    // Provenance is a single dependent row keyed on the program id: delete then
-    // (re)insert so an update refreshes it and a program that lost its
-    // provenance drops the row. Mirrors DanceRepository's provenance handling.
-    await (_db.delete(
-      _db.programProvenance,
-    )..where((t) => t.programId.equals(program.id))).go();
-    final prov = program.provenance;
-    if (prov != null) {
-      assertUtc(prov.importedAt, 'program.provenance.importedAt');
-      await _db
-          .into(_db.programProvenance)
-          .insert(
-            ProgramProvenanceCompanion.insert(
-              programId: program.id,
-              source: prov.source,
-              externalId: Value(
-                prov.externalId == null
-                    ? null
-                    : normalizeShareableText(prov.externalId!),
+    if (writeRelations) {
+      await (_db.delete(
+        _db.programSlots,
+      )..where((t) => t.programId.equals(program.id))).go();
+      for (final slot in program.slots) {
+        await _db
+            .into(_db.programSlots)
+            .insert(
+              ProgramSlotsCompanion.insert(
+                id: slot.id,
+                programId: program.id,
+                position: slot.position,
+                danceId: Value(slot.danceId),
+                text_: Value(
+                  slot.text == null ? null : normalizeShareableText(slot.text!),
+                ),
+                isPurgedDance: Value(slot.isPurgedDance),
+                isAlt: Value(slot.isAlt),
+                guestCaller: Value(
+                  slot.guestCaller == null
+                      ? null
+                      : normalizeShareableText(slot.guestCaller!),
+                ),
+                walkthroughMinutes: Value(slot.walkthroughMinutes),
+                danceMinutes: Value(slot.danceMinutes),
+                performedAt: Value(slot.performedAt),
               ),
-              importedAt: prov.importedAt,
-              permission: Value(
-                prov.permission == null
-                    ? null
-                    : normalizeShareableText(prov.permission!),
+            );
+      }
+      // Provenance is a single dependent row keyed on the program id: delete then
+      // (re)insert so an update refreshes it and a program that lost its
+      // provenance drops the row. Mirrors DanceRepository's provenance handling.
+      await (_db.delete(
+        _db.programProvenance,
+      )..where((t) => t.programId.equals(program.id))).go();
+      final prov = program.provenance;
+      if (prov != null) {
+        assertUtc(prov.importedAt, 'program.provenance.importedAt');
+        await _db
+            .into(_db.programProvenance)
+            .insert(
+              ProgramProvenanceCompanion.insert(
+                programId: program.id,
+                source: prov.source,
+                externalId: Value(
+                  prov.externalId == null
+                      ? null
+                      : normalizeShareableText(prov.externalId!),
+                ),
+                importedAt: prov.importedAt,
+                permission: Value(
+                  prov.permission == null
+                      ? null
+                      : normalizeShareableText(prov.permission!),
+                ),
+                license: Value(
+                  prov.license == null
+                      ? null
+                      : normalizeShareableText(prov.license!),
+                ),
+                sourceVersion: Value(
+                  prov.sourceVersion == null
+                      ? null
+                      : normalizeShareableText(prov.sourceVersion!),
+                ),
               ),
-              license: Value(
-                prov.license == null
-                    ? null
-                    : normalizeShareableText(prov.license!),
-              ),
-              sourceVersion: Value(
-                prov.sourceVersion == null
-                    ? null
-                    : normalizeShareableText(prov.sourceVersion!),
-              ),
-            ),
-          );
+            );
+      }
     }
   });
 
