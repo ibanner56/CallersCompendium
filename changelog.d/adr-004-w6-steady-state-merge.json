@@ -3,12 +3,12 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "Device Sync now converges steady-state edits through one guarded pass, queues at most one follow-up, reuses unchanged peer manifests and verified blobs, settles pending work on shutdown, and pauses for confirmation instead of silently recreating a missing collection."
+      "Device Sync now converges steady-state edits through one guarded pass, queues at most one follow-up, stops before publication until local attach state exists, reuses unchanged peer manifests and verified blobs, settles pending work on shutdown, and pauses for confirmation instead of silently recreating a missing collection."
     ]
   },
   "core": {
     "changed": [
-      "Add existence-first, baseline-aware classification-safe merge and transactional inbound-apply primitives for Device Sync, including tombstone-safe relation validation and dependent-row collision guards."
+      "Add existence-first, baseline-aware classification-safe merge and transactional inbound-apply primitives for Device Sync, including tombstone-safe relation validation and per-owner dependent-row collision guards."
     ]
   }
 }

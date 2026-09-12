@@ -732,6 +732,129 @@ void main() {
   );
 
   test(
+    'isolates dependent-id collisions to the conflicting inbound owners',
+    () async {
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+
+      SyncMergeCandidate danceCandidate(Dance dance) => SyncMergeCandidate(
+        blob: SyncRecordBlob(
+          kind: SyncRecordKind.dance,
+          id: dance.id,
+          updatedAt: stamp.add(const Duration(minutes: 1)),
+          deletedAt: null,
+          existenceAt: stamp,
+          body: syncBodyForEntity(SyncRecordKind.dance, dance),
+        ),
+      );
+
+      SyncMergeCandidate programCandidate(Program program) =>
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.program,
+              id: program.id,
+              updatedAt: stamp.add(const Duration(minutes: 1)),
+              deletedAt: null,
+              existenceAt: stamp,
+              body: syncBodyForEntity(SyncRecordKind.program, program),
+            ),
+          );
+
+      final conflictingDanceA = Dance(
+        id: 'conflicting-dance-a',
+        title: 'Conflicting dance A',
+        links: [
+          DanceLink(id: 'shared-link', kind: LinkKind.other, url: 'https://a'),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final conflictingDanceB = Dance(
+        id: 'conflicting-dance-b',
+        title: 'Conflicting dance B',
+        links: [
+          DanceLink(id: 'shared-link', kind: LinkKind.other, url: 'https://b'),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final validDance = Dance(
+        id: 'unrelated-dance',
+        title: 'Unrelated dance',
+        links: [
+          DanceLink(
+            id: 'unrelated-link',
+            kind: LinkKind.other,
+            url: 'https://unrelated',
+          ),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final conflictingProgramA = Program(
+        id: 'conflicting-program-a',
+        title: 'Conflicting program A',
+        slots: [ProgramSlot(id: 'shared-slot', position: 0, text: 'A')],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final conflictingProgramB = Program(
+        id: 'conflicting-program-b',
+        title: 'Conflicting program B',
+        slots: [ProgramSlot(id: 'shared-slot', position: 0, text: 'B')],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final validProgram = Program(
+        id: 'unrelated-program',
+        title: 'Unrelated program',
+        slots: [
+          ProgramSlot(id: 'unrelated-slot', position: 0, text: 'unrelated'),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          danceCandidate(conflictingDanceA),
+          danceCandidate(conflictingDanceB),
+          danceCandidate(validDance),
+          programCandidate(conflictingProgramA),
+          programCandidate(conflictingProgramB),
+          programCandidate(validProgram),
+        ],
+        storage: storage,
+      );
+
+      expect(
+        result.applied,
+        containsAll([
+          (kind: SyncRecordKind.dance, recordId: validDance.id),
+          (kind: SyncRecordKind.program, recordId: validProgram.id),
+        ]),
+      );
+      expect(
+        result.reports.where(
+          (report) => report.code == SyncReportCode.malformedRecord,
+        ),
+        hasLength(4),
+      );
+      expect(await repositories.dances.getById(validDance.id), isNotNull);
+      expect(await repositories.programs.getById(validProgram.id), isNotNull);
+      expect(await repositories.dances.getById(conflictingDanceA.id), isNull);
+      expect(await repositories.dances.getById(conflictingDanceB.id), isNull);
+      expect(
+        await repositories.programs.getById(conflictingProgramA.id),
+        isNull,
+      );
+      expect(
+        await repositories.programs.getById(conflictingProgramB.id),
+        isNull,
+      );
+    },
+  );
+
+  test(
     'inbound dance writes preserve device-local custom-field values',
     () async {
       final stamp = DateTime.utc(2025, 1, 2, 12);

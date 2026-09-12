@@ -494,7 +494,10 @@ class SyncCoordinator {
         message: 'store metadata was malformed', // i18n-ignore: internal status
       );
     }
-    if (snapshot.epoch != null && snapshot.epoch != metadata.epoch) {
+    if (snapshot.epoch == null) {
+      return const SyncPassResult(SyncPassStatus.freshAttachRequired);
+    }
+    if (snapshot.epoch != metadata.epoch) {
       return const SyncPassResult(SyncPassStatus.staleEpoch);
     }
 

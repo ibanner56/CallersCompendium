@@ -888,8 +888,8 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
     if (duplicateId != null) {
       return 'Dance "${dance.id}" contains duplicate link id "$duplicateId".';
     }
+    if (linkIds.isEmpty) return null;
 
-    final inboundOwners = <String, String>{};
     for (final entry in inboundRecords.entries) {
       if (entry.key.kind != SyncRecordKind.dance ||
           entry.key.recordId == dance.id) {
@@ -906,19 +906,12 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
         continue;
       }
       for (final link in other.links) {
-        final priorOwner = inboundOwners[link.id];
-        if (priorOwner != null && priorOwner != entry.key.recordId) {
-          return 'Inbound dances share link id "${link.id}".';
-        }
-        inboundOwners[link.id] = entry.key.recordId;
-        if (linkIds.contains(link.id)) {
-          return 'Dance link id "${link.id}" is also owned by '
-              '"${entry.key.recordId}".';
-        }
+        if (!linkIds.contains(link.id)) continue;
+        return 'Dance link id "${link.id}" is also owned by '
+            '"${entry.key.recordId}".';
       }
     }
 
-    if (linkIds.isEmpty) return null;
     final rows = await (_db.select(
       _db.danceLinks,
     )..where((row) => row.id.isIn(linkIds))).get();
@@ -940,8 +933,8 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
     if (duplicateId != null) {
       return 'Program "${program.id}" contains duplicate slot id "$duplicateId".';
     }
+    if (slotIds.isEmpty) return null;
 
-    final inboundOwners = <String, String>{};
     for (final entry in inboundRecords.entries) {
       if (entry.key.kind != SyncRecordKind.program ||
           entry.key.recordId == program.id) {
@@ -959,19 +952,12 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
         continue;
       }
       for (final slot in other.slots) {
-        final priorOwner = inboundOwners[slot.id];
-        if (priorOwner != null && priorOwner != entry.key.recordId) {
-          return 'Inbound programs share slot id "${slot.id}".';
-        }
-        inboundOwners[slot.id] = entry.key.recordId;
-        if (slotIds.contains(slot.id)) {
-          return 'Program slot id "${slot.id}" is also owned by '
-              '"${entry.key.recordId}".';
-        }
+        if (!slotIds.contains(slot.id)) continue;
+        return 'Program slot id "${slot.id}" is also owned by '
+            '"${entry.key.recordId}".';
       }
     }
 
-    if (slotIds.isEmpty) return null;
     final rows = await (_db.select(
       _db.programSlots,
     )..where((row) => row.id.isIn(slotIds))).get();

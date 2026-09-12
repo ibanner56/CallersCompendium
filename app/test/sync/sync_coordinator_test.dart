@@ -284,7 +284,7 @@ void main() {
       );
       final store = _FakeStore(
         snapshotBuilder: (snapshotNumber) => SyncCoordinatorSnapshot(
-          epoch: null,
+          epoch: 'epoch-1',
           previouslyUsed: false,
           local: {first.address: snapshotNumber == 1 ? first : second},
           baseline: const {},
@@ -371,6 +371,32 @@ void main() {
     },
   );
 
+  test('stops at the fresh-attach boundary without a local epoch', () async {
+    final candidate = SyncMergeCandidate.fromBlob(
+      _setting('custom_dialects', 'local'),
+    );
+    final store = _FakeStore(
+      epoch: null,
+      local: {candidate.address: candidate},
+    );
+    final transport = _FakeTransport(devices: ['peer']);
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: store,
+      transport: transport,
+    );
+
+    final result = await coordinator.syncNow();
+
+    expect(result.status, SyncPassStatus.freshAttachRequired);
+    expect(transport.manifestCalls, 0);
+    expect(transport.blobCalls, 0);
+    expect(transport.postMissingCalls, 0);
+    expect(transport.manifestPuts, 0);
+    expect(store.baselineAdvances, 0);
+  });
+
   test(
     'publishes the post-apply local snapshot after storage repair',
     () async {
@@ -385,7 +411,7 @@ void main() {
       );
       final store = _FakeStore(
         snapshotBuilder: (snapshotNumber) => SyncCoordinatorSnapshot(
-          epoch: null,
+          epoch: 'epoch-1',
           previouslyUsed: false,
           local: {local.address: snapshotNumber == 1 ? local : repaired},
           baseline: const {},
@@ -449,7 +475,7 @@ void main() {
       final finalLocal = {...initial, remote.address: remote};
       final store = _FakeStore(
         snapshotBuilder: (snapshotNumber) => SyncCoordinatorSnapshot(
-          epoch: null,
+          epoch: 'epoch-1',
           previouslyUsed: false,
           local: snapshotNumber == 1 ? initial : finalLocal,
           baseline: const {},
@@ -675,6 +701,7 @@ void main() {
 final class _FakeStore implements SyncCoordinatorStore {
   _FakeStore({
     this.previouslyUsed = false,
+    this.epoch = 'epoch-1',
     Map<SyncRecordAddress, SyncMergeCandidate?>? local,
     Map<SyncRecordAddress, SyncBaselineEntry>? baseline,
     this.snapshotBuilder,
@@ -684,6 +711,7 @@ final class _FakeStore implements SyncCoordinatorStore {
        lifecycle = lifecycle ?? <String>[];
 
   final bool previouslyUsed;
+  final String? epoch;
   final Map<SyncRecordAddress, SyncMergeCandidate?> local;
   final Map<SyncRecordAddress, SyncBaselineEntry> baseline;
   final SyncCoordinatorSnapshot Function(int snapshotNumber)? snapshotBuilder;
@@ -700,7 +728,7 @@ final class _FakeStore implements SyncCoordinatorStore {
     snapshotCalls++;
     return snapshotBuilder?.call(snapshotCalls) ??
         SyncCoordinatorSnapshot(
-          epoch: null,
+          epoch: epoch,
           previouslyUsed: previouslyUsed,
           local: local,
           baseline: baseline,
