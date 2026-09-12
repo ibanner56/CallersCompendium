@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/src/serialization/archive_entity_codec.dart';
 import 'package:compendium_core/src/storage/database.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:test/test.dart';
@@ -1048,6 +1049,87 @@ void main() {
       final stored = await repositories.dances.getById(original.id);
       expect(stored!.title, original.title);
       expect(stored.customFields, original.customFields);
+    },
+  );
+
+  test(
+    'rejects non-shareable custom-field definitions and inbound values',
+    () async {
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+      final localDefinition = CustomFieldDef(
+        id: 'local-private-field',
+        key: 'local_private_field',
+        label: 'Local private field',
+        type: CustomFieldType.text,
+        shareable: false,
+      );
+      final inboundDefinition = CustomFieldDef(
+        id: 'inbound-private-field',
+        key: 'inbound_private_field',
+        label: 'Inbound private field',
+        type: CustomFieldType.text,
+        shareable: false,
+      );
+      // ignore: unused_result
+      await repositories.customFieldDefs.upsert(localDefinition, at: stamp);
+      final inboundDance = Dance(
+        id: 'dance-with-private-field',
+        title: 'Inbound dance',
+        customFields: [
+          CustomFieldValue(fieldId: localDefinition.id, value: 'private'),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.customFieldDef,
+              id: inboundDefinition.id,
+              updatedAt: stamp,
+              deletedAt: null,
+              existenceAt: stamp,
+              body: archiveCustomFieldDefToJson(
+                inboundDefinition,
+                includeShareable: true,
+                includeOptionalFields: true,
+              ),
+            ),
+          ),
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.dance,
+              id: inboundDance.id,
+              updatedAt: stamp,
+              deletedAt: null,
+              existenceAt: stamp,
+              body: syncBodyForEntity(
+                SyncRecordKind.dance,
+                inboundDance,
+                allowedCustomFieldIds: {localDefinition.id},
+              ),
+            ),
+          ),
+        ],
+        storage: storage,
+      );
+
+      expect(result.applied, isEmpty);
+      expect(
+        result.reports
+            .where(
+              (report) => report.code == SyncReportCode.invalidClassification,
+            )
+            .map((report) => report.recordId),
+        containsAll([inboundDefinition.id, inboundDance.id]),
+      );
+      expect(
+        await repositories.customFieldDefs.getById(inboundDefinition.id),
+        isNull,
+      );
+      expect(await repositories.dances.getById(inboundDance.id), isNull);
     },
   );
 

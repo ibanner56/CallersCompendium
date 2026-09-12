@@ -356,6 +356,21 @@ final class CompendiumSyncStorage
     } on ArgumentError catch (error) {
       return _malformedReferenceReport(record, '$error');
     }
+    final classificationIssue = await _invalidCustomFieldClassification(
+      record,
+      entity,
+      inboundLiveAddresses: inboundLiveAddresses,
+      inboundAddresses: inboundAddresses,
+      inboundRecords: inboundRecords,
+    );
+    if (classificationIssue != null) {
+      return SyncReport(
+        code: SyncReportCode.invalidClassification,
+        kind: record.address.kind,
+        recordId: record.address.recordId,
+        message: classificationIssue,
+      );
+    }
     // A tombstone may retain joins to other tombstones in the same batch. The
     // live-record guard still applies, but deletion records resolve references
     // against any existing row so their existence transition can converge.
@@ -983,6 +998,66 @@ final class CompendiumSyncStorage
     return null;
   }
 
+  Future<String?> _invalidCustomFieldClassification(
+    SyncApplyRecord record,
+    Object entity, {
+    required Set<SyncRecordAddress> inboundLiveAddresses,
+    required Set<SyncRecordAddress> inboundAddresses,
+    required Map<SyncRecordAddress, SyncApplyRecord> inboundRecords,
+  }) async {
+    if (record.address.kind == SyncRecordKind.customFieldDef) {
+      if (record.deletedAt == null &&
+          entity is CustomFieldDef &&
+          !entity.shareable) {
+        return 'Inbound custom-field definition '
+            '"${record.address.recordId}" is not shareable.';
+      }
+      return null;
+    }
+    if (record.address.kind != SyncRecordKind.dance || entity is! Dance) {
+      return null;
+    }
+
+    for (final value in entity.customFields) {
+      final address = (
+        kind: SyncRecordKind.customFieldDef,
+        recordId: value.fieldId,
+      );
+      if (inboundLiveAddresses.contains(address)) {
+        final inbound = inboundRecords[address];
+        if (inbound == null) continue;
+        try {
+          final definition =
+              _decodeEntity(SyncRecordKind.customFieldDef, inbound.body)
+                  as CustomFieldDef;
+          if (!definition.shareable) {
+            return 'Inbound dance contains a value for non-shareable custom '
+                'field "${value.fieldId}".';
+          }
+        } on FormatException {
+          // The malformed definition receives its own malformed-record report.
+        } on ArgumentError {
+          // The malformed definition receives its own malformed-record report.
+        }
+      } else if (!inboundAddresses.contains(address)) {
+        final row =
+            await (_db.select(_db.customFieldDefs)..where(
+                  (table) =>
+                      table.id.equals(value.fieldId) & table.deletedAt.isNull(),
+                ))
+                .getSingleOrNull();
+        final definition = row == null
+            ? null
+            : CustomFieldDefRepository.toModel(row);
+        if (definition != null && !definition.shareable) {
+          return 'Inbound dance contains a value for non-shareable custom '
+              'field "${value.fieldId}".';
+        }
+      }
+    }
+    return null;
+  }
+
   Future<String?> _invalidCustomFieldValue(
     Dance dance, {
     required Set<SyncRecordAddress> inboundLiveAddresses,
@@ -1382,8 +1457,8 @@ final class CompendiumSyncStorage
   static final _epoch = DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
 }
 
-/// Device-local marker for the last configured sync identity that completed a
-/// publication. The raw bearer credential is never stored in this marker.
+/// Device-local marker for configured sync identities that completed a
+/// publication. The raw bearer credentials are never stored in this marker.
 const syncLastUsedFingerprintKey = 'sync_last_used_fingerprint';
 
 String syncIdentityFingerprint(String syncId) => sha256Hex(utf8.encode(syncId));
