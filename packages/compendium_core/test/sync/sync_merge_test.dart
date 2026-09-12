@@ -206,6 +206,32 @@ void main() {
     expect(plan.decisions, isEmpty);
   });
 
+  test(
+    'skips an unresolved address even when another peer has an older blob',
+    () {
+      final local = _setting('custom_dialects', 'local', seconds: 2);
+      final older = _setting('custom_dialects', 'older');
+      final address = local.address;
+      final plan = engine.plan(
+        local: {address: SyncMergeCandidate.fromBlob(local)},
+        baseline: {
+          address: SyncBaselineEntry(
+            kind: address.kind,
+            recordId: address.recordId,
+            wireHash: SyncMergeCandidate.fromBlob(local).wireHash,
+          ),
+        },
+        peers: [
+          {address: SyncMergeCandidate.fromBlob(older)},
+        ],
+        unresolved: {address},
+      );
+
+      expect(plan.decisions, isEmpty);
+      expect(plan.reports, isEmpty);
+    },
+  );
+
   test('takes the newest content across three peers', () {
     final local = _setting('custom_dialects', 'local', seconds: 1);
     final older = _setting('custom_dialects', 'older');
@@ -302,7 +328,7 @@ void main() {
     },
   );
 
-  test('combines independent body and existence maxima across peers', () {
+  test('resolves body content among candidates in the winning state', () {
     final local = _settingAt(
       'custom_dialects',
       'local',
@@ -347,8 +373,8 @@ void main() {
 
     final winner = plan.decisions.single.winner!;
     expect(plan.decisions.single.action, SyncMergeAction.download);
-    expect(winner.blob.body['value'], 'newest body');
-    expect(winner.updatedAt, newestBody.updatedAt);
+    expect(winner.blob.body['value'], 'stale body');
+    expect(winner.updatedAt, newestExistence.updatedAt);
     expect(winner.existenceAt, newestExistence.existenceAt);
     expect(winner.isDeleted, isTrue);
   });

@@ -712,4 +712,53 @@ void main() {
       expect(stored.customFields, original.customFields);
     },
   );
+
+  test(
+    'defers derived maintenance during sync relation writes to the batch rebuild',
+    () async {
+      final counter = FtsDeleteByDanceCounter();
+      final countingDb = openCountingTestDatabase(counter);
+      await db.close();
+      db = countingDb;
+      final countingRepositories = CompendiumRepositories(
+        countingDb,
+        contraTaxonomy,
+      );
+      final countingStorage = CompendiumSyncStorage(countingRepositories);
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+      final dance = Dance(
+        id: 'sync-derived-batch',
+        title: 'Sync dance',
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.dance,
+              id: dance.id,
+              updatedAt: dance.updatedAt,
+              deletedAt: null,
+              existenceAt: stamp,
+              body: syncBodyForEntity(SyncRecordKind.dance, dance),
+            ),
+          ),
+        ],
+        storage: countingStorage,
+      );
+
+      expect(result.applied, [
+        (kind: SyncRecordKind.dance, recordId: dance.id),
+      ]);
+      expect(
+        counter.count,
+        0,
+        reason:
+            'sync relation writes must defer per-dance derived maintenance '
+            'until the final bulk rebuild',
+      );
+    },
+  );
 }

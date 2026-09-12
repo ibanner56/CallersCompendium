@@ -568,6 +568,14 @@ class SyncCoordinator {
     ];
     await store.markPublished(addresses);
     final published = await transport.putManifest(deviceId, manifestBody);
+    if (published.kind == SyncResponseKind.conflict) {
+      return SyncPassResult(
+        SyncPassStatus.staleEpoch,
+        reports: reports.reports,
+        message:
+            'manifest publication observed a stale epoch', // i18n-ignore: internal status
+      );
+    }
     if (!published.isSuccess) {
       return SyncPassResult(
         SyncPassStatus.failed,
@@ -580,6 +588,7 @@ class SyncCoordinator {
 
     final observed = <SyncBaselineEntry>[];
     for (final entry in current.entries) {
+      if (unresolved.contains(entry.key)) continue;
       final candidate = entry.value;
       if (candidate == null) continue;
       final seenByPeer = peerMaps.any(

@@ -88,6 +88,7 @@ class SyncMergeEngine {
     final decisions = <SyncMergeDecision>[];
     final reports = <SyncReport>[];
     for (final address in addresses) {
+      if (unresolved.contains(address)) continue;
       final baselineEntry = baseline[address];
       final localCandidate = local[address];
       final remoteCandidates = [for (final peer in peerMaps) ?peer[address]];
@@ -95,7 +96,6 @@ class SyncMergeEngine {
       if (baselineEntry != null &&
           localCandidate == null &&
           remoteCandidates.isEmpty) {
-        if (unresolved.contains(address)) continue;
         decisions.add(
           SyncMergeDecision(
             address: address,
@@ -235,10 +235,13 @@ class SyncMergeEngine {
       );
     }
 
-    final maximumUpdated = candidates
+    final contentCandidates = candidates
+        .where((candidate) => candidate.isDeleted == deletedWins)
+        .toList(growable: false);
+    final maximumUpdated = contentCandidates
         .map((candidate) => candidate.updatedAt)
         .reduce((left, right) => left.isAfter(right) ? left : right);
-    final updatedWinners = candidates
+    final updatedWinners = contentCandidates
         .where((candidate) => candidate.updatedAt == maximumUpdated)
         .toList(growable: false);
     final hashes = updatedWinners

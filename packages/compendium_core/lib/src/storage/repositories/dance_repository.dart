@@ -485,6 +485,7 @@ class DanceRepository {
     normalizeTaxonomy: false,
     preserveDeviceLocalCustomFields: true,
     writeParent: false,
+    rebuildDerived: false,
   );
 
   Future<void> _upsert(
@@ -493,6 +494,7 @@ class DanceRepository {
     bool preserveDeviceLocalCustomFields = false,
     bool writeParent = true,
     bool writeRelations = true,
+    bool rebuildDerived = true,
   }) => _db.transaction(() async {
     assertUtc(dance.createdAt, 'dance.createdAt');
     assertUtc(dance.updatedAt, 'dance.updatedAt');
@@ -734,7 +736,7 @@ class DanceRepository {
             );
       }
 
-      await _rebuildDerived(normalisedDance);
+      if (rebuildDerived) await _rebuildDerived(normalisedDance);
     }
   });
 

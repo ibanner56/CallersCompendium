@@ -218,6 +218,27 @@ void main() {
   );
 
   test(
+    'returns staleEpoch when manifest publication loses the epoch race',
+    () async {
+      final candidate = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'local'),
+      );
+      final store = _FakeStore(local: {candidate.address: candidate});
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: _FakeTransport(putManifestStatus: 409),
+      );
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.staleEpoch);
+      expect(store.baselineAdvances, 0);
+    },
+  );
+
+  test(
     'publishes the post-apply local snapshot after storage repair',
     () async {
       final local = SyncMergeCandidate.fromBlob(
@@ -370,6 +391,62 @@ void main() {
     expect(store.droppedRecords, isEmpty);
   });
 
+  test(
+    'an unresolved address does not advance from another peer observation',
+    () async {
+      final candidate = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'local'),
+      );
+      final missingHash = _hash('a');
+      final address = candidate.address;
+      final store = _FakeStore(
+        local: {address: candidate},
+        baseline: {
+          address: SyncBaselineEntry(
+            kind: address.kind,
+            recordId: address.recordId,
+            wireHash: candidate.wireHash,
+          ),
+        },
+      );
+      final transport = _FakeTransport(
+        devices: ['peer-a', 'peer-b'],
+        peerManifests: {
+          'peer-a': _manifest(
+            deviceId: 'peer-a',
+            records: {
+              SyncRecordKind.setting: {address.recordId: missingHash},
+            },
+          ),
+          'peer-b': _manifest(
+            deviceId: 'peer-b',
+            records: {
+              SyncRecordKind.setting: {address.recordId: candidate.wireHash},
+            },
+          ),
+        },
+        blobResponses: {
+          candidate.wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(candidate.blob)),
+          ),
+          missingHash: _FakeTransport.response(404),
+        },
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+      );
+
+      final result = await coordinator.syncNow();
+
+      expect(result.reports.single.code, SyncReportCode.unresolvedBlob);
+      expect(store.advancedEntries, isEmpty);
+    },
+  );
+
   test('a wrong-envelope blob is reported and remains unapplied', () async {
     final wrong = SyncMergeCandidate.fromBlob(
       _setting('default_program_band', 'peer'),
@@ -500,6 +577,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
     this._storeReadGate,
     this.devices = const [],
     this.peerManifest,
+    this.peerManifests = const {},
     this.blobResponses = const {},
     List<List<String>>? missingResponses,
     this.putManifestStatus = 200,
@@ -513,6 +591,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   final Completer<void>? _storeReadGate;
   final List<String> devices;
   final SyncManifest? peerManifest;
+  final Map<String, SyncManifest> peerManifests;
   final Map<String, SyncHttpResponse> blobResponses;
   final List<List<String>> missingResponses;
   final int putManifestStatus;
@@ -564,11 +643,12 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   Future<SyncHttpResponse> getManifest(String deviceId, {String? etag}) async {
     manifestCalls++;
     requestLog.add('manifest');
+    final manifest = peerManifests[deviceId] ?? peerManifest;
     return _response(
       200,
-      body: peerManifest == null
+      body: manifest == null
           ? null
-          : utf8.decode(encodeSyncManifestUtf8(peerManifest!)),
+          : utf8.decode(encodeSyncManifestUtf8(manifest)),
     );
   }
 
@@ -615,6 +695,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
           200 => SyncResponseKind.success,
           201 => SyncResponseKind.created,
           404 => SyncResponseKind.notFound,
+          409 => SyncResponseKind.conflict,
           500 => SyncResponseKind.serverError,
           _ => SyncResponseKind.unexpectedStatus,
         },
