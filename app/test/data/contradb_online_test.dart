@@ -96,6 +96,21 @@ void main() {
       },
     );
 
+    test('POSTs a figure-filter JSON body for Figure searches', () async {
+      late http.Request captured;
+      final client = MockClient((request) async {
+        captured = request;
+        return http.Response(_searchJson(), 200);
+      });
+      await fetchContraDbSearch(
+        'box circulate',
+        filter: 'figure',
+        client: client,
+      );
+
+      expect(jsonDecode(captured.body)['filter'], ['figure', 'box circulate']);
+    });
+
     test('rejects an unsupported filter before making a request', () async {
       var called = false;
       final client = MockClient((request) async {
@@ -104,7 +119,7 @@ void main() {
       });
 
       await expectLater(
-        fetchContraDbSearch('Alice', filter: 'figure', client: client),
+        fetchContraDbSearch('Alice', filter: 'unsupported', client: client),
         throwsA(isA<ArgumentError>()),
       );
       expect(called, isFalse);
@@ -157,6 +172,45 @@ void main() {
       },
     );
 
+    test(
+      'passes the selected Figure filter through the injected seam',
+      () async {
+        late ContraDbSearchRequest request;
+        final online = ContraDbOnline(
+          searchFetcher: (value) async {
+            request = value;
+            return _searchJson();
+          },
+        );
+        await online.search(
+          const OnlineSearchQuery(figure: '  Box   Circulate  '),
+        );
+        expect(request.query, 'box circulate');
+        expect(request.filter, 'figure');
+      },
+    );
+
+    test('rejects an unknown Figure before making a request', () async {
+      var called = false;
+      final online = ContraDbOnline(
+        searchFetcher: (_) async {
+          called = true;
+          return _searchJson();
+        },
+      );
+      await expectLater(
+        online.search(const OnlineSearchQuery(figure: 'box circul')),
+        throwsA(
+          isA<UrlFetchException>().having(
+            (error) => error.reason,
+            'reason',
+            UrlFetchFailureReason.contraDbUnsupportedFigure,
+          ),
+        ),
+      );
+      expect(called, isFalse);
+    });
+
     test('an empty query throws before any fetch', () async {
       var called = false;
       final online = ContraDbOnline(
@@ -177,6 +231,24 @@ void main() {
       expect(
         online.search(
           const OnlineSearchQuery(title: 'Title', author: 'Author'),
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('rejects a query that supplies title and Figure', () async {
+      final online = ContraDbOnline(searchFetcher: (_) async => _searchJson());
+      expect(
+        online.search(const OnlineSearchQuery(title: 'Title', figure: 'swing')),
+        throwsArgumentError,
+      );
+    });
+
+    test('rejects a query that supplies author and Figure', () async {
+      final online = ContraDbOnline(searchFetcher: (_) async => _searchJson());
+      expect(
+        online.search(
+          const OnlineSearchQuery(author: 'Author', figure: 'swing'),
         ),
         throwsArgumentError,
       );

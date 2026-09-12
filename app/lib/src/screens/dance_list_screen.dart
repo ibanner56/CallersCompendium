@@ -859,7 +859,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
       if (value) {
         _localFtsScope = _ftsScope;
         if (_ftsScope != FullTextScope.title &&
-            _ftsScope != FullTextScope.author) {
+            _ftsScope != FullTextScope.author &&
+            _ftsScope != FullTextScope.figure) {
           _ftsScope = FullTextScope.title;
         }
       } else {
@@ -926,8 +927,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final text = _ftsController.text.trim();
     final title = _ftsScope == FullTextScope.title ? text : '';
     final author = _ftsScope == FullTextScope.author ? text : '';
+    final figure = _ftsScope == FullTextScope.figure ? text : '';
     final phrases = _effectivePhrases();
-    if (title.isEmpty && author.isEmpty && phrases == null) {
+    if (title.isEmpty && author.isEmpty && figure.isEmpty && phrases == null) {
       setState(() {
         _onlineResults = const [];
         _onlineError = null;
@@ -943,7 +945,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
     });
     try {
       final results = await _online.search(
-        OnlineSearchQuery(title: title, author: author, phrases: phrases),
+        OnlineSearchQuery(
+          title: title,
+          author: author,
+          figure: figure,
+          phrases: phrases,
+        ),
       );
       if (!mounted || seq != _onlineSeq) return;
       setState(() {
@@ -2256,11 +2263,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
                   value: FullTextScope.author,
                   child: Text(l10n.collectionSearchScopeAuthor),
                 ),
-                if (!_onlineEnabled)
-                  DropdownMenuItem(
-                    value: FullTextScope.figure,
-                    child: Text(l10n.collectionSearchScopeFigure),
-                  ),
+                DropdownMenuItem(
+                  value: FullTextScope.figure,
+                  child: Text(l10n.collectionSearchScopeFigure),
+                ),
               ],
               onChanged: _onFtsScopeChanged,
             ),
@@ -2284,7 +2290,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
                   ? l10n.onlineSearchFieldLabel(_onlineSource.label)
                   : l10n.collectionSearchFieldLabel,
               hintText: _onlineEnabled
-                  ? l10n.onlineSearchFieldHint
+                  ? l10n.collectionOnlineSearchFieldHint
                   : l10n.collectionSearchFieldHint,
               prefixIcon: Icon(
                 _onlineEnabled ? Icons.cloud_outlined : Icons.search,
@@ -2614,8 +2620,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
     }
     if (_ftsController.text.trim().isEmpty && _effectivePhrases() == null) {
       final hint = _onlineSource.supportsByPhrase
-          ? l10n.onlineSearchHintByPhrase(_onlineSource.label)
-          : l10n.onlineSearchHintTitle(_onlineSource.label);
+          ? l10n.collectionOnlineSearchHintByPhrase(_onlineSource.label)
+          : l10n.collectionOnlineSearchHintTitle(_onlineSource.label);
       return SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),

@@ -806,7 +806,7 @@ void main() {
             find.byKey(const ValueKey('collection-search-scope')),
           )
           .value,
-      FullTextScope.title,
+      FullTextScope.figure,
     );
 
     await tester.tap(find.byKey(const ValueKey('online-search-enable')));
@@ -845,7 +845,7 @@ void main() {
             find.byKey(const ValueKey('collection-search-scope')),
           )
           .value,
-      FullTextScope.title,
+      FullTextScope.figure,
     );
 
     filterController.filterByTag('tag-1');
@@ -861,7 +861,7 @@ void main() {
   });
 
   testWidgets(
-    'online mode exposes title and author scopes and forwards author',
+    'online mode exposes title, author, and Figure scopes and forwards author',
     (tester) async {
       final repos = openTestRepositories();
       String? callersUrl;
@@ -920,7 +920,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('collection-search-scope')));
       await tester.pumpAndSettle();
       expect(find.text('All fields'), findsNothing);
-      expect(find.text('Figure'), findsNothing);
+      expect(find.text('Figure'), findsWidgets);
       expect(find.text('Title'), findsWidgets);
       expect(find.text('Author'), findsWidgets);
       await tester.tap(find.text('Author').last);
@@ -942,6 +942,56 @@ void main() {
       expect(contraDbRequest?.filter, 'choreographer');
     },
   );
+
+  testWidgets('online Figure scope forwards to both sources', (tester) async {
+    final repos = openTestRepositories();
+    String? callersUrl;
+    ContraDbSearchRequest? contraDbRequest;
+    final callers = CallersBoxOnline(
+      searchFetcher: (url) async {
+        callersUrl = url;
+        return '<html><body></body></html>';
+      },
+    );
+    final contraDb = ContraDbOnline(
+      searchFetcher: (request) async {
+        contraDbRequest = request;
+        return '{"numberMatching":0,"dances":[]}';
+      },
+    );
+
+    await _pumpScreen(
+      tester,
+      repos,
+      callersBoxOnline: callers,
+      contraDbOnline: contraDb,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('advanced-panel')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('online-search-enable')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('collection-search-scope')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Figure').last);
+    await tester.pumpAndSettle();
+
+    expect(callersUrl, isNull);
+    await _search(tester, ' box circulate ');
+    final callersParams = Uri.parse(callersUrl!).queryParameters;
+    expect(callersParams['pos_lines'], 'box circulate');
+    expect(callersParams['pos_mode'], 'all_any');
+    expect(callersParams.containsKey('title'), isFalse);
+    expect(callersParams.containsKey('author'), isFalse);
+
+    await tester.tap(find.byKey(const ValueKey('online-source-selector')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ContraDB').last);
+    await tester.pumpAndSettle();
+    expect(contraDbRequest?.query, 'box circulate');
+    expect(contraDbRequest?.filter, 'figure');
+  });
 
   testWidgets('a facet chip filters the list', (tester) async {
     final repos = openTestRepositories();

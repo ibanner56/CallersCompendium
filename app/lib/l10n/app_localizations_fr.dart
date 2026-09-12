@@ -3866,6 +3866,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Rechercher des danses en ligne par titre ou auteur…';
 
   @override
+  String get collectionOnlineSearchFieldHint =>
+      'Rechercher des danses en ligne par titre, auteur ou figure…';
+
+  @override
   String onlineResultCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -3884,6 +3888,16 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String onlineSearchHintTitle(String source) {
     return 'Saisissez un titre ou un auteur pour rechercher dans $source.';
+  }
+
+  @override
+  String collectionOnlineSearchHintByPhrase(String source) {
+    return 'Saisissez un titre, un auteur ou une figure, ou ajoutez des figures par phrase pour rechercher dans $source.';
+  }
+
+  @override
+  String collectionOnlineSearchHintTitle(String source) {
+    return 'Saisissez un titre, un auteur ou une figure pour rechercher dans $source.';
   }
 
   @override
@@ -4531,6 +4545,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get importErrorContraDbEmptyTitle =>
       'Saisissez un titre ou un auteur pour rechercher dans ContraDB.';
+
+  @override
+  String get importErrorContraDbUnsupportedFigure =>
+      'Les recherches de figures dans ContraDB utilisent un nom de mouvement complet, par exemple \"box circulate\".';
 
   @override
   String get importErrorContraDbEmptyDanceInput =>

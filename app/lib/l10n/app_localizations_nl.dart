@@ -3836,6 +3836,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Online dansen zoeken op titel of auteur…';
 
   @override
+  String get collectionOnlineSearchFieldHint =>
+      'Online dansen zoeken op titel, auteur of figuur…';
+
+  @override
   String onlineResultCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -3854,6 +3858,16 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String onlineSearchHintTitle(String source) {
     return 'Typ een titel of auteur om te zoeken in $source.';
+  }
+
+  @override
+  String collectionOnlineSearchHintByPhrase(String source) {
+    return 'Typ een titel, auteur of figuur, of voeg figuren per frase toe om te zoeken in $source.';
+  }
+
+  @override
+  String collectionOnlineSearchHintTitle(String source) {
+    return 'Typ een titel, auteur of figuur om te zoeken in $source.';
   }
 
   @override
@@ -4496,6 +4510,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get importErrorContraDbEmptyTitle =>
       'Voer een titel of auteur in om ContraDB te doorzoeken.';
+
+  @override
+  String get importErrorContraDbUnsupportedFigure =>
+      'ContraDB-figuurzoekopdrachten gebruiken een volledige bewegingsnaam, zoals \"box circulate\".';
 
   @override
   String get importErrorContraDbEmptyDanceInput =>

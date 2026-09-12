@@ -46,15 +46,99 @@ void main() {
       expect(decoded['filter'], ['choreographer', 'Alice Gordon']);
     });
 
-    test(
-      'passes the query through verbatim (server lower-cases the match)',
-      () {
-        final decoded =
-            jsonDecode(buildContraDbSearchBody('Money Musk'))
-                as Map<String, Object?>;
-        expect(decoded['filter'], ['title', 'Money Musk']);
-      },
-    );
+    test('builds a canonical figure filter', () {
+      final decoded =
+          jsonDecode(buildContraDbSearchBody('box circulate', filter: 'figure'))
+              as Map<String, dynamic>;
+      expect(decoded['filter'], ['figure', 'box circulate']);
+    });
+
+    test('normalizes case and whitespace for a figure filter', () {
+      final decoded =
+          jsonDecode(
+                buildContraDbSearchBody(
+                  '  Box   Circulate  ',
+                  filter: 'figure',
+                ),
+              )
+              as Map<String, dynamic>;
+      expect(decoded['filter'], ['figure', 'box circulate']);
+    });
+
+    test('resolves every canonical ContraDB figure name', () {
+      const expectedSourceNames = [
+        'allemande',
+        'allemande orbit',
+        'arch & dive',
+        'balance',
+        'balance the ring',
+        'box circulate',
+        'box the gnat',
+        'butterfly whirl',
+        'California twirl',
+        'chain',
+        'circle',
+        'contra corners',
+        'cross trails',
+        'custom',
+        'do si do',
+        'dolphin hey',
+        'down the hall',
+        'facing star',
+        'figure 8',
+        'form a long wave',
+        'form an ocean wave',
+        'form long waves',
+        'gate',
+        'give & take',
+        'gyre',
+        'hey',
+        'long lines',
+        'mad robin',
+        'meltdown swing',
+        'pass by',
+        'pass through',
+        'petronella',
+        'poussette',
+        'promenade',
+        'pull by dancers',
+        'pull by direction',
+        'revolving door',
+        'right left through',
+        'roll away',
+        "Rory O'More",
+        'see saw',
+        'slice',
+        'slide along set',
+        'square through',
+        'stand still',
+        'star',
+        'star promenade',
+        'swat the flea',
+        'swing',
+        'turn alone',
+        'up the hall',
+        'zig zag',
+      ];
+      for (final sourceName in expectedSourceNames) {
+        expect(canonicalContraDbFigureQuery(sourceName), sourceName);
+      }
+    });
+
+    test('rejects a partial or unknown figure filter', () {
+      expect(
+        () => buildContraDbSearchBody('box circul', filter: 'figure'),
+        throwsArgumentError,
+      );
+      expect(canonicalContraDbFigureQuery('not a ContraDB figure'), isNull);
+    });
+
+    test('passes title query through verbatim', () {
+      final decoded =
+          jsonDecode(buildContraDbSearchBody('Money Musk'))
+              as Map<String, Object?>;
+      expect(decoded['filter'], ['title', 'Money Musk']);
+    });
   });
 
   group('parseContraDbSearchResults', () {

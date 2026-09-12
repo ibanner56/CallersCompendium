@@ -234,6 +234,7 @@ enum UrlFetchFailureReason {
   callersBoxUnsupportedHost,
   // ContraDB.
   contraDbEmptyTitle,
+  contraDbUnsupportedFigure,
   contraDbEmptyDanceInput,
   contraDbInvalidDanceUrl,
   contraDbMissingDanceId,
@@ -837,7 +838,9 @@ String buildCallersBoxJsonUrl(String input) {
 typedef CallersBoxSearchFetcher = Future<String> Function(String url);
 
 /// Builds the Caller's Box title- or author-search URL, optionally combined
-/// with by-phrase figure criteria ([phrases]).
+/// with by-phrase figure criteria ([phrases]). [CallersBoxOnline] represents
+/// its free-text Figure criterion by appending it to [phrases]' global positive
+/// figure lines before calling this helper.
 ///
 /// The Caller's Box search surface is an HTTP GET to `index.php` (under
 /// [callersBoxPathPrefix]). It accepts `title` or `author` query params
@@ -855,9 +858,9 @@ typedef CallersBoxSearchFetcher = Future<String> Function(String url);
 /// for negatives ("any of these lines" — exclude if any appears). These mirror
 /// the local by-phrase semantics (AND the matches, negate the excludes).
 ///
-/// Title or author and phrase criteria are non-exclusive: TCB accepts them in
-/// one request, so a text criterion and phrase figures combine. Title and
-/// author are mutually exclusive.
+/// A text criterion and phrase criteria are non-exclusive: TCB accepts them in
+/// one request, so title/author text or a global Figure criterion can combine
+/// with phrase figures. Title and author are mutually exclusive.
 ///
 /// LIMITATION (v1): [CallersBoxPhraseQuery.fromSelections] maps each selected
 /// move to its taxonomy display name as the TCB figure line. TCB uses its own
@@ -1480,8 +1483,9 @@ SharedDanceLink extractSharedDanceLink(String rawShared) {
 /// [parseContraDbSearchResults]. Verified live 2026-07-17.
 const String contraDbSearchUrl = 'https://contradb.com/api/v1/dances';
 
-/// Fetches **ContraDB** title- or choreographer-search results and returns the raw JSON body, or
-/// throws a [UrlFetchException] with a user-presentable message. See
+/// Fetches **ContraDB** title-, choreographer-, or figure-search results and
+/// returns the raw JSON body, or throws a [UrlFetchException] with a
+/// user-presentable message. See
 /// [fetchContraDbSearch] for the default implementation; tests override this
 /// seam to return a canned JSON response (or throw) so no real network call is
 /// made.
@@ -1496,7 +1500,8 @@ typedef ContraDbSearchFetcher =
 /// A validated ContraDB search criterion for the injected transport seam.
 ///
 /// [filter] is an internal fixed vocabulary value, never user-controlled
-/// structure. It is either `title` or `choreographer`.
+/// structure. It is `title`, `choreographer`, or `figure`; Figure [query] text
+/// is normalized and must resolve to an exact canonical ContraDB move name.
 class ContraDbSearchRequest {
   const ContraDbSearchRequest({required this.query, required this.filter});
 
@@ -1570,10 +1575,11 @@ Future<http.Response> _sendContraDbSearch(
 }
 
 /// Default [ContraDbSearchFetcher]: POSTs [query] using [filter] as a ContraDB
-/// title- or choreographer-search JSON body to [contraDbSearchUrl] (with an
-/// [importFetchTimeout]) and returns the response body. Throws a
-/// [UrlFetchException] with a clear, user-presentable message for a network
-/// failure, a timeout, a non-2xx status, or an empty body.
+/// title-, choreographer-, or figure-search JSON body to [contraDbSearchUrl]
+/// (with an [importFetchTimeout]) and returns the response body. Figure queries
+/// are normalized and invalid or partial names are rejected before the POST.
+/// Throws a [UrlFetchException] with a clear, user-presentable message for a
+/// network failure, a timeout, a non-2xx status, or an empty body.
 ///
 /// [client] is an injection point for tests (e.g. `package:http`'s
 /// `MockClient`); production callers omit it and a one-shot client is used.

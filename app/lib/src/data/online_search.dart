@@ -90,20 +90,22 @@ class OnlineSearchResultRow {
 
 /// A source-neutral online search request.
 ///
-/// Exactly one of [title] and [author] is normally non-empty. Caller's Box may
-/// also run with [phrases] alone. [phrases] carries by-phrase figure criteria
-/// for sources that support them ([OnlineSource.supportsByPhrase]); sources
-/// without by-phrase support ignore it.
+/// At most one of [title], [author], and [figure] is normally non-empty.
+/// Caller's Box may also run with [phrases] alone. [phrases] carries by-phrase
+/// figure criteria for sources that support them ([OnlineSource.supportsByPhrase]);
+/// sources without by-phrase support ignore it.
 class OnlineSearchQuery {
   const OnlineSearchQuery({
     this.title = '',
     this.author = '',
+    this.figure = '',
     this.phrases,
     this.requireFigures = true,
   });
 
   final String title;
   final String author;
+  final String figure;
   final CallersBoxPhraseQuery? phrases;
 
   /// Whether results are limited to dances whose figures the source will
