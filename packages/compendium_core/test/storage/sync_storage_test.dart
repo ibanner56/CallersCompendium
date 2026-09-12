@@ -270,6 +270,95 @@ void main() {
   });
 
   test(
+    'prunes same-kind dependents after an inbound parent write fails',
+    () async {
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+      await repositories.difficultyLevels.upsert(
+        DifficultyLevel(id: 'existing-level', label: 'Same label', position: 0),
+        at: stamp,
+      );
+
+      final inboundLevel = DifficultyLevel(
+        id: 'inbound-level',
+        label: 'Same label',
+        position: 1,
+      );
+      final blockedDance = Dance(
+        id: 'blocked-dance',
+        title: 'Blocked dance',
+        difficultyLevelId: inboundLevel.id,
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final dependentDance = Dance(
+        id: 'dependent-dance',
+        title: 'Dependent dance',
+        links: [
+          DanceLink(
+            id: 'dependent-link',
+            kind: LinkKind.relatedDance,
+            targetDanceId: blockedDance.id,
+          ),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+
+      SyncMergeCandidate candidate({
+        required SyncRecordKind kind,
+        required String id,
+        required Object entity,
+      }) => SyncMergeCandidate(
+        blob: SyncRecordBlob(
+          kind: kind,
+          id: id,
+          updatedAt: stamp,
+          deletedAt: null,
+          existenceAt: stamp,
+          body: syncBodyForEntity(kind, entity),
+        ),
+      );
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          candidate(
+            kind: SyncRecordKind.difficultyLevel,
+            id: inboundLevel.id,
+            entity: inboundLevel,
+          ),
+          candidate(
+            kind: SyncRecordKind.dance,
+            id: blockedDance.id,
+            entity: blockedDance,
+          ),
+          candidate(
+            kind: SyncRecordKind.dance,
+            id: dependentDance.id,
+            entity: dependentDance,
+          ),
+        ],
+        storage: storage,
+      );
+
+      expect(result.applied, isEmpty);
+      expect(
+        result.reports
+            .where(
+              (report) => report.code == SyncReportCode.unresolvedReference,
+            )
+            .map((report) => (report.kind, report.recordId)),
+        containsAll([
+          (SyncRecordKind.difficultyLevel, inboundLevel.id),
+          (SyncRecordKind.dance, blockedDance.id),
+          (SyncRecordKind.dance, dependentDance.id),
+        ]),
+      );
+      expect(await repositories.dances.getById(blockedDance.id), isNull);
+      expect(await repositories.dances.getById(dependentDance.id), isNull);
+    },
+  );
+
+  test(
     'applies forward and cyclic dance references after parent rows',
     () async {
       final stamp = DateTime.utc(2025, 1, 2, 12);

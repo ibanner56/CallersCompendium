@@ -459,29 +459,33 @@ class SyncApplyEngine {
           eligible[groupEnd].address.kind == kind) {
         groupEnd++;
       }
-      final group = eligible.sublist(groupStart, groupEnd);
-      final availableRecords = <SyncRecordAddress, SyncApplyRecord>{
-        ...parentWrittenByAddress,
-        for (final record in group) record.address: record,
-      };
-      final availableAddresses = availableRecords.keys.toSet();
-      final availableLiveAddresses = {
-        for (final record in availableRecords.values)
-          if (record.deletedAt == null) record.address,
-      };
-      final ready = <SyncApplyRecord>[];
-      for (final record in group) {
-        final referenceReport = await storage.validateInboundReferences(
-          record,
-          inboundLiveAddresses: availableLiveAddresses,
-          inboundAddresses: availableAddresses,
-          inboundRecords: availableRecords,
-        );
-        if (referenceReport == null) {
-          ready.add(record);
-        } else {
-          reports.add(referenceReport);
+      var ready = eligible.sublist(groupStart, groupEnd);
+      while (true) {
+        final availableRecords = <SyncRecordAddress, SyncApplyRecord>{
+          ...parentWrittenByAddress,
+          for (final record in ready) record.address: record,
+        };
+        final availableAddresses = availableRecords.keys.toSet();
+        final availableLiveAddresses = {
+          for (final record in availableRecords.values)
+            if (record.deletedAt == null) record.address,
+        };
+        final next = <SyncApplyRecord>[];
+        for (final record in ready) {
+          final referenceReport = await storage.validateInboundReferences(
+            record,
+            inboundLiveAddresses: availableLiveAddresses,
+            inboundAddresses: availableAddresses,
+            inboundRecords: availableRecords,
+          );
+          if (referenceReport == null) {
+            next.add(record);
+          } else if (reported.add(record.address)) {
+            reports.add(referenceReport);
+          }
         }
+        if (next.length == ready.length) break;
+        ready = next;
       }
 
       for (final record in ready) {
