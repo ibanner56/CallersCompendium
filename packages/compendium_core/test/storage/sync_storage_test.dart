@@ -234,6 +234,144 @@ void main() {
     },
   );
 
+  test('does not resolve references to tombstoned inbound parents', () async {
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    final tombstoneStamp = stamp.add(const Duration(minutes: 1));
+    final tombstoneChoreographer = Choreographer(
+      id: 'tomb-choreographer',
+      name: 'Tombstoned choreographer',
+    );
+    final tombstoneTag = Tag(id: 'tomb-tag', name: 'Tombstoned tag');
+    final tombstoneField = CustomFieldDef(
+      id: 'tomb-field',
+      key: 'tomb_field',
+      label: 'Tombstoned field',
+      type: CustomFieldType.text,
+    );
+    final tombstoneDance = Dance(
+      id: 'tomb-dance',
+      title: 'Tombstoned dance',
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+    final dances = [
+      Dance(
+        id: 'uses-choreographer',
+        title: 'Uses choreographer',
+        authorIds: [tombstoneChoreographer.id],
+        createdAt: stamp,
+        updatedAt: stamp,
+      ),
+      Dance(
+        id: 'uses-tag',
+        title: 'Uses tag',
+        tagIds: [tombstoneTag.id],
+        createdAt: stamp,
+        updatedAt: stamp,
+      ),
+      Dance(
+        id: 'uses-field',
+        title: 'Uses field',
+        customFields: [
+          CustomFieldValue(fieldId: tombstoneField.id, value: 'remote'),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      ),
+      Dance(
+        id: 'uses-dance',
+        title: 'Uses dance',
+        links: [
+          DanceLink(
+            id: 'uses-tombstone-link',
+            kind: LinkKind.relatedDance,
+            targetDanceId: tombstoneDance.id,
+          ),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      ),
+    ];
+
+    SyncMergeCandidate entityCandidate({
+      required SyncRecordKind kind,
+      required String id,
+      required Object entity,
+    }) => SyncMergeCandidate(
+      blob: SyncRecordBlob(
+        kind: kind,
+        id: id,
+        updatedAt: stamp,
+        deletedAt: tombstoneStamp,
+        existenceAt: stamp,
+        body: syncBodyForEntity(
+          kind,
+          entity,
+          allowedCustomFieldIds: kind == SyncRecordKind.dance
+              ? {tombstoneField.id}
+              : const {},
+        ),
+      ),
+    );
+
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        entityCandidate(
+          kind: SyncRecordKind.choreographer,
+          id: tombstoneChoreographer.id,
+          entity: tombstoneChoreographer,
+        ),
+        entityCandidate(
+          kind: SyncRecordKind.tag,
+          id: tombstoneTag.id,
+          entity: tombstoneTag,
+        ),
+        entityCandidate(
+          kind: SyncRecordKind.customFieldDef,
+          id: tombstoneField.id,
+          entity: tombstoneField,
+        ),
+        entityCandidate(
+          kind: SyncRecordKind.dance,
+          id: tombstoneDance.id,
+          entity: tombstoneDance,
+        ),
+        for (final dance in dances)
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.dance,
+              id: dance.id,
+              updatedAt: stamp,
+              deletedAt: null,
+              existenceAt: stamp,
+              body: syncBodyForEntity(
+                SyncRecordKind.dance,
+                dance,
+                allowedCustomFieldIds: {tombstoneField.id},
+              ),
+            ),
+          ),
+      ],
+      storage: storage,
+    );
+
+    expect(result.applied, [
+      (kind: SyncRecordKind.choreographer, recordId: tombstoneChoreographer.id),
+      (kind: SyncRecordKind.tag, recordId: tombstoneTag.id),
+      (kind: SyncRecordKind.customFieldDef, recordId: tombstoneField.id),
+      (kind: SyncRecordKind.dance, recordId: tombstoneDance.id),
+    ]);
+    expect(
+      result.reports.where(
+        (report) => report.code == SyncReportCode.unresolvedReference,
+      ),
+      hasLength(4),
+    );
+    for (final dance in dances) {
+      expect(await repositories.dances.getById(dance.id), isNull);
+    }
+  });
+
   test(
     'inbound dance writes preserve device-local custom-field values',
     () async {

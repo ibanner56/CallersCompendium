@@ -123,10 +123,10 @@ final class CompendiumSyncCoordinatorStore
   @override
   Future<SyncReport?> validateInboundReferences(
     SyncApplyRecord record, {
-    Set<SyncRecordAddress> inboundAddresses = const {},
+    Set<SyncRecordAddress> inboundLiveAddresses = const {},
   }) => storage.validateInboundReferences(
     record,
-    inboundAddresses: inboundAddresses,
+    inboundLiveAddresses: inboundLiveAddresses,
   );
 
   @override

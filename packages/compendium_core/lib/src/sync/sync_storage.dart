@@ -338,7 +338,7 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
   @override
   Future<SyncReport?> validateInboundReferences(
     SyncApplyRecord record, {
-    Set<SyncRecordAddress> inboundAddresses = const {},
+    Set<SyncRecordAddress> inboundLiveAddresses = const {},
   }) async {
     if (record.address.kind == SyncRecordKind.setting) return null;
     final Object entity;
@@ -353,11 +353,11 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
     final missing = switch (record.address.kind) {
       SyncRecordKind.dance => await _missingDanceReference(
         entity as Dance,
-        inboundAddresses: inboundAddresses,
+        inboundLiveAddresses: inboundLiveAddresses,
       ),
       SyncRecordKind.program => await _missingProgramReference(
         entity as Program,
-        inboundAddresses: inboundAddresses,
+        inboundLiveAddresses: inboundLiveAddresses,
       ),
       _ => null,
     };
@@ -551,11 +551,11 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
 
   Future<String?> _missingDanceReference(
     Dance dance, {
-    required Set<SyncRecordAddress> inboundAddresses,
+    required Set<SyncRecordAddress> inboundLiveAddresses,
   }) async {
     final difficultyId = dance.difficultyLevelId;
     if (difficultyId != null &&
-        !inboundAddresses.contains((
+        !inboundLiveAddresses.contains((
           kind: SyncRecordKind.difficultyLevel,
           recordId: difficultyId,
         ))) {
@@ -573,7 +573,7 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
     final authorIds = dance.authorIds.toSet();
     final inboundAuthors = {
       for (final id in authorIds)
-        if (inboundAddresses.contains((
+        if (inboundLiveAddresses.contains((
           kind: SyncRecordKind.choreographer,
           recordId: id,
         )))
@@ -598,7 +598,10 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
     final tagIds = dance.tagIds.toSet();
     final inboundTags = {
       for (final id in tagIds)
-        if (inboundAddresses.contains((kind: SyncRecordKind.tag, recordId: id)))
+        if (inboundLiveAddresses.contains((
+          kind: SyncRecordKind.tag,
+          recordId: id,
+        )))
           id,
     };
     if (tagIds.difference(inboundTags).isNotEmpty) {
@@ -622,7 +625,7 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
         .toSet();
     final inboundSources = {
       for (final id in sourceIds)
-        if (inboundAddresses.contains((
+        if (inboundLiveAddresses.contains((
           kind: SyncRecordKind.publishedSource,
           recordId: id,
         )))
@@ -649,7 +652,7 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
         .toSet();
     final inboundCustomFields = {
       for (final id in customFieldIds)
-        if (inboundAddresses.contains((
+        if (inboundLiveAddresses.contains((
           kind: SyncRecordKind.customFieldDef,
           recordId: id,
         )))
@@ -681,7 +684,7 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
         .toSet();
     final inboundTargetDances = {
       for (final id in targetDanceIds)
-        if (inboundAddresses.contains((
+        if (inboundLiveAddresses.contains((
           kind: SyncRecordKind.dance,
           recordId: id,
         )))
@@ -708,7 +711,7 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
 
   Future<String?> _missingProgramReference(
     Program program, {
-    required Set<SyncRecordAddress> inboundAddresses,
+    required Set<SyncRecordAddress> inboundLiveAddresses,
   }) async {
     final danceIds = program.slots
         .map((slot) => slot.danceId)
@@ -716,7 +719,7 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
         .toSet();
     final missingInBatch = danceIds
         .where(
-          (id) => !inboundAddresses.contains((
+          (id) => !inboundLiveAddresses.contains((
             kind: SyncRecordKind.dance,
             recordId: id,
           )),

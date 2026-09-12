@@ -48,7 +48,7 @@ abstract interface class SyncApplyReportingStorage implements SyncApplyStorage {
   /// remains available for valid records.
   Future<SyncReport?> validateInboundReferences(
     SyncApplyRecord record, {
-    Set<SyncRecordAddress> inboundAddresses = const {},
+    Set<SyncRecordAddress> inboundLiveAddresses = const {},
   }) async => null;
 
   /// Writes one record and optionally reports a recoverable reference repair.
@@ -355,14 +355,17 @@ class SyncApplyEngine {
     }
 
     var eligible = List<SyncApplyRecord>.of(prepared);
-    final inboundAddresses = {for (final record in eligible) record.address};
+    final inboundLiveAddresses = {
+      for (final record in eligible)
+        if (record.deletedAt == null) record.address,
+    };
     final reported = <SyncRecordAddress>{};
     while (eligible.isNotEmpty) {
       final next = <SyncApplyRecord>[];
       for (final record in eligible) {
         final referenceReport = await storage.validateInboundReferences(
           record,
-          inboundAddresses: inboundAddresses,
+          inboundLiveAddresses: inboundLiveAddresses,
         );
         if (referenceReport == null) {
           next.add(record);
@@ -372,9 +375,12 @@ class SyncApplyEngine {
       }
       if (next.length == eligible.length) break;
       eligible = next;
-      inboundAddresses
+      inboundLiveAddresses
         ..clear()
-        ..addAll({for (final record in eligible) record.address});
+        ..addAll({
+          for (final record in eligible)
+            if (record.deletedAt == null) record.address,
+        });
     }
 
     final parentWritten = <SyncApplyRecord>[];
@@ -399,12 +405,13 @@ class SyncApplyEngine {
     }
 
     final writtenAddresses = {
-      for (final record in parentWritten) record.address,
+      for (final record in parentWritten)
+        if (record.deletedAt == null) record.address,
     };
     for (final record in parentWritten) {
       final referenceReport = await storage.validateInboundReferences(
         record,
-        inboundAddresses: writtenAddresses,
+        inboundLiveAddresses: writtenAddresses,
       );
       if (referenceReport != null) {
         reports.add(referenceReport);
