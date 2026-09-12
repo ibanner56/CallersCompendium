@@ -372,6 +372,91 @@ void main() {
     }
   });
 
+  test('does not resolve relations to a locally tombstoned dance', () async {
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    final tombstoneStamp = stamp.add(const Duration(minutes: 1));
+    final tombstone = Dance(
+      id: 'local-tombstone',
+      title: 'Locally tombstoned',
+      createdAt: stamp,
+      updatedAt: stamp,
+      deletedAt: tombstoneStamp,
+    );
+    await repositories.dances.create(tombstone);
+
+    final linkedDance = Dance(
+      id: 'linked-to-local-tombstone',
+      title: 'Linked dance',
+      links: [
+        DanceLink(
+          id: 'local-tombstone-link',
+          kind: LinkKind.relatedDance,
+          targetDanceId: tombstone.id,
+        ),
+      ],
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+    final program = Program(
+      id: 'program-with-local-tombstone',
+      title: 'Program',
+      slots: [
+        ProgramSlot(
+          id: 'local-tombstone-slot',
+          position: 0,
+          danceId: tombstone.id,
+        ),
+      ],
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+
+    SyncMergeCandidate candidate({
+      required SyncRecordKind kind,
+      required String id,
+      required Object entity,
+    }) => SyncMergeCandidate(
+      blob: SyncRecordBlob(
+        kind: kind,
+        id: id,
+        updatedAt: stamp,
+        deletedAt: null,
+        existenceAt: stamp,
+        body: syncBodyForEntity(kind, entity),
+      ),
+    );
+
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        candidate(
+          kind: SyncRecordKind.dance,
+          id: linkedDance.id,
+          entity: linkedDance,
+        ),
+        candidate(
+          kind: SyncRecordKind.program,
+          id: program.id,
+          entity: program,
+        ),
+      ],
+      storage: storage,
+    );
+
+    expect(result.applied, isEmpty);
+    expect(
+      result.reports
+          .where((report) => report.code == SyncReportCode.unresolvedReference)
+          .length,
+      2,
+    );
+    expect(await repositories.dances.getById(linkedDance.id), isNull);
+    expect(await repositories.programs.getById(program.id), isNull);
+    expect(
+      await repositories.dances.getById(tombstone.id, includeDeleted: true),
+      isNotNull,
+    );
+  });
+
   test(
     'inbound dance writes preserve device-local custom-field values',
     () async {

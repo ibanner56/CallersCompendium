@@ -694,7 +694,10 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
       final rows =
           await (_db.select(_db.dances)..where(
                 (row) =>
-                    row.id.isIn(targetDanceIds.difference(inboundTargetDances)),
+                    row.id.isIn(
+                      targetDanceIds.difference(inboundTargetDances),
+                    ) &
+                    row.deletedAt.isNull(),
               ))
               .get();
       final present = rows.map((row) => row.id).toSet();
@@ -726,9 +729,11 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
         )
         .toSet();
     if (missingInBatch.isEmpty) return null;
-    final rows = await (_db.select(
-      _db.dances,
-    )..where((row) => row.id.isIn(missingInBatch))).get();
+    final rows =
+        await (_db.select(_db.dances)..where(
+              (row) => row.id.isIn(missingInBatch) & row.deletedAt.isNull(),
+            ))
+            .get();
     final present = rows.map((row) => row.id).toSet();
     final missing = missingInBatch.difference(present);
     return missing.isEmpty
