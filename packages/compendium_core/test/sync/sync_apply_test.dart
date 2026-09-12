@@ -168,6 +168,41 @@ void main() {
     expect(storage.rebuilds, 0);
   });
 
+  test(
+    'isolates an unavailable reference from valid records in the same batch',
+    () async {
+      final bad = SyncRecordBlob(
+        kind: SyncRecordKind.setting,
+        id: 'custom_dialects',
+        updatedAt: DateTime.utc(2026, 7, 15, 12),
+        deletedAt: null,
+        existenceAt: DateTime.utc(2026, 7, 15, 12),
+        body: {'value': 'bad'},
+      );
+      final valid = SyncRecordBlob(
+        kind: SyncRecordKind.setting,
+        id: 'default_program_band',
+        updatedAt: DateTime.utc(2026, 7, 15, 12, 1),
+        deletedAt: null,
+        existenceAt: DateTime.utc(2026, 7, 15, 12, 1),
+        body: {'value': 'valid'},
+      );
+      final storage = _ReferenceFailureStorage(bad.address);
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate.fromBlob(bad),
+          SyncMergeCandidate.fromBlob(valid),
+        ],
+        storage: storage,
+      );
+
+      expect(result.applied, [valid.address]);
+      expect(result.reports.single.code, SyncReportCode.unresolvedReference);
+      expect(storage.records[valid.address], {'value': 'valid'});
+    },
+  );
+
   test('isolates normalized text collisions to one record', () async {
     final storage = _MemoryApplyStorage({});
     final collision = SyncRecordBlob(
@@ -266,5 +301,19 @@ final class _RollbackApplyStorage extends _MemoryApplyStorage {
     writes++;
     if (writes == failOnWrite) throw const InterruptedApply();
     await super.write(record);
+  }
+}
+
+final class _ReferenceFailureStorage extends _MemoryApplyStorage {
+  _ReferenceFailureStorage(this.unavailableAddress) : super({});
+
+  final SyncRecordAddress unavailableAddress;
+
+  @override
+  Future<void> write(SyncApplyRecord record) {
+    if (record.address == unavailableAddress) {
+      throw StateError('unavailable reference');
+    }
+    return super.write(record);
   }
 }
