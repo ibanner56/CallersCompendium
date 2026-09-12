@@ -9,6 +9,7 @@ enum SyncReportCode {
   unresolvedBlob,
   blobIdentityMismatch,
   unresolvedReference,
+  concurrentLocalChange,
 }
 
 /// A structured, non-blocking diagnostic produced by a sync pass.

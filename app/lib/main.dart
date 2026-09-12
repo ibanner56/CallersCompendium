@@ -473,6 +473,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     super.initState();
     _windowService = widget.windowService;
     _initializeDatabaseBackedServices(widget.appData);
+    widget.applicationShutdownController?.replaceCloseApp(_closeForShutdown);
     // Listen for files opened while the app is running (AirDrop / "Open with"
     // on an already-launched app). The cold-start file is pulled once the ready
     // UI is shown (see [_buildReadyApp]). No-op when intake is not wired.
@@ -520,18 +521,29 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _shorthandMappings.dispose();
     _walkthroughSnippets.dispose();
     _updateController.dispose();
-    unawaited(_syncCoordinator?.dispose());
     _syncCoordinator = null;
 
     final appData = widget.appDataFactory();
-    widget.applicationShutdownController?.replaceCloseApp(appData.close);
     _windowService =
         widget.windowServiceFactory?.call(appData.repositories.settings) ??
         WindowService(
           appData.repositories.settings,
-          onClose: widget.applicationShutdownController?.close ?? appData.close,
+          onClose:
+              widget.applicationShutdownController?.close ?? _closeForShutdown,
         );
     _initializeDatabaseBackedServices(appData);
+    widget.applicationShutdownController?.replaceCloseApp(_closeForShutdown);
+  }
+
+  Future<void> _disposeSyncCoordinator() async {
+    final coordinator = _syncCoordinator;
+    _syncCoordinator = null;
+    await coordinator?.dispose();
+  }
+
+  Future<void> _closeForShutdown() async {
+    await _disposeSyncCoordinator();
+    await _appData.close();
   }
 
   void _resetAppPreferenceNotifiers() {
@@ -1044,9 +1056,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
   }
 
   Future<void> _configureSyncCoordinator() async {
-    final previous = _syncCoordinator;
-    _syncCoordinator = null;
-    if (previous != null) await previous.dispose();
+    await _disposeSyncCoordinator();
 
     final factory = widget.syncCoordinatorFactory;
     if (factory == null || !mounted) return;
@@ -1330,7 +1340,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
   void dispose() {
     unawaited(_incomingFileSub?.cancel());
     unawaited(_incomingUrlSub?.cancel());
-    unawaited(_syncCoordinator?.dispose());
+    unawaited(_disposeSyncCoordinator());
     widget.incomingFileChannel?.dispose();
     _dialectNotifier.dispose();
     _themeNotifier.dispose();
@@ -1526,6 +1536,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
   Future<void> _doReset(File dbFile, AppLocalizations l10n) async {
     // Close the database before deleting its file so the OS (particularly
     // Windows) does not hold a lock that prevents deletion.
+    await _disposeSyncCoordinator();
     await _appData.close();
     final result = await widget.databaseResetter(dbFile);
     if (result is ResetFailed) {

@@ -48,7 +48,8 @@ class SyncStorageSnapshot {
 /// device-local fields. Writes use dedicated inbound repository writers so
 /// interactive side effects cannot alter the validated peer body, then restore
 /// the wire timestamp triple because local persistence stamps causal times.
-final class CompendiumSyncStorage implements SyncApplyBatchStorage {
+final class CompendiumSyncStorage
+    implements SyncApplyBatchStorage, SyncApplyConcurrencyStorage {
   CompendiumSyncStorage(this.repositories);
 
   final CompendiumRepositories repositories;
@@ -329,6 +330,10 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
     };
     return body;
   }
+
+  @override
+  Future<Map<SyncRecordAddress, SyncMergeCandidate?>>
+  snapshotCandidates() async => (await snapshot()).local;
 
   @override
   Future<void> write(SyncApplyRecord record) async {

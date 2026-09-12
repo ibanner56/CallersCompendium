@@ -39,6 +39,13 @@ abstract interface class SyncApplyStorage {
   Future<void> rebuildDerivedIndexes();
 }
 
+/// Optional storage seam for guarding an inbound apply against a local edit
+/// that happened after the coordinator's merge snapshot.
+abstract interface class SyncApplyConcurrencyStorage
+    implements SyncApplyStorage {
+  Future<Map<SyncRecordAddress, SyncMergeCandidate?>> snapshotCandidates();
+}
+
 /// Optional extension implemented by adapters that can return a recoverable
 /// report while applying a record.
 abstract interface class SyncApplyReportingStorage implements SyncApplyStorage {
@@ -102,21 +109,28 @@ class SyncApplyEngine {
   Future<SyncApplyResult> apply({
     required Iterable<SyncMergeCandidate> candidates,
     required SyncApplyStorage storage,
+    Map<SyncRecordAddress, String?>? expectedWireHashes,
   }) async {
     final applied = <SyncRecordAddress>[];
     final reports = <SyncReport>[];
     final ordered = candidates.toList()..sort(_compareCandidates);
 
     await storage.transaction(() async {
+      final guarded = await _guardConcurrentCandidates(
+        candidates: ordered,
+        storage: storage,
+        expectedWireHashes: expectedWireHashes,
+        reports: reports,
+      );
       if (storage is SyncApplyBatchStorage) {
         await _applyInPhases(
-          candidates: ordered,
+          candidates: guarded,
           storage: storage,
           applied: applied,
           reports: reports,
         );
       } else {
-        for (final candidate in ordered) {
+        for (final candidate in guarded) {
           final validation = validateShareableRecordBody(
             candidate.blob.kind,
             candidate.blob.body,
@@ -262,6 +276,46 @@ class SyncApplyEngine {
       applied: List.unmodifiable(applied),
       reports: List.unmodifiable(reports),
     );
+  }
+
+  Future<List<SyncMergeCandidate>> _guardConcurrentCandidates({
+    required List<SyncMergeCandidate> candidates,
+    required SyncApplyStorage storage,
+    required Map<SyncRecordAddress, String?>? expectedWireHashes,
+    required List<SyncReport> reports,
+  }) async {
+    if (expectedWireHashes == null || expectedWireHashes.isEmpty) {
+      return candidates;
+    }
+    if (storage is! SyncApplyConcurrencyStorage) {
+      throw StateError(
+        'expected wire hashes require a concurrency-aware sync storage',
+      );
+    }
+    final current = await storage.snapshotCandidates();
+    final guarded = <SyncMergeCandidate>[];
+    for (final candidate in candidates) {
+      if (!expectedWireHashes.containsKey(candidate.address)) {
+        guarded.add(candidate);
+        continue;
+      }
+      final expected = expectedWireHashes[candidate.address];
+      final actual = current[candidate.address]?.wireHash;
+      if (actual == expected) {
+        guarded.add(candidate);
+        continue;
+      }
+      reports.add(
+        SyncReport(
+          code: SyncReportCode.concurrentLocalChange,
+          kind: candidate.blob.kind,
+          recordId: candidate.blob.id,
+          message:
+              'Local record changed while sync was preparing its inbound update.',
+        ),
+      );
+    }
+    return guarded;
   }
 
   Future<void> _applyInPhases({

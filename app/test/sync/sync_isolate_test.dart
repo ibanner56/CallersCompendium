@@ -194,19 +194,10 @@ void main() {
         'default_program_band',
       ),
     };
-    expect(
-      values,
-      anyOf(
-        {
-          'custom_dialects': 'before-first',
-          'default_program_band': 'before-second',
-        },
-        {
-          'custom_dialects': 'after-first',
-          'default_program_band': 'after-second',
-        },
-      ),
-    );
+    expect(values, {
+      'custom_dialects': 'before-first',
+      'default_program_band': 'before-second',
+    });
     expect(
       await verificationRepositories.syncLocal.snapshotBaseline(),
       isEmpty,

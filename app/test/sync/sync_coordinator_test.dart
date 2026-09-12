@@ -315,7 +315,7 @@ void main() {
         lastManifest.records[SyncRecordKind.setting]!['custom_dialects'],
         second.wireHash,
       );
-      expect(store.snapshotCalls, 2);
+      expect(store.snapshotCalls, 4);
     },
   );
 
@@ -431,12 +431,10 @@ void main() {
             body: utf8.encode(encodeSyncRecordBlob(remote.blob)),
           ),
         },
-        missingResponses: const [
-          <String>[],
-          <String>['placeholder'],
+        missingResponses: [
+          [repaired.wireHash],
         ],
       );
-      transport.missingResponses[1] = [repaired.wireHash];
       final coordinator = SyncCoordinator(
         syncId: 'configured',
         deviceId: 'device-a',
@@ -454,13 +452,121 @@ void main() {
         manifest.records[SyncRecordKind.setting]!['custom_dialects'],
         repaired.wireHash,
       );
-      expect(transport.postMissingCalls, 2);
+      expect(transport.postMissingCalls, 1);
       expect(transport.putBlobHashes, [repaired.wireHash]);
     },
   );
 
+  test('uploads only blobs retained by the final manifest', () async {
+    final local = SyncMergeCandidate.fromBlob(
+      _setting('custom_dialects', 'local'),
+    );
+    final remote = SyncMergeCandidate.fromBlob(
+      _setting('custom_dialects', 'remote', seconds: 1),
+    );
+    final store = _FakeStore(
+      snapshotBuilder: (snapshotNumber) => SyncCoordinatorSnapshot(
+        epoch: 'epoch-1',
+        previouslyUsed: false,
+        local: {local.address: snapshotNumber == 1 ? local : remote},
+        baseline: const {},
+      ),
+    );
+    final transport = _FakeTransport(
+      devices: ['peer'],
+      peerManifest: _manifest(
+        deviceId: 'peer',
+        records: {
+          SyncRecordKind.setting: {remote.blob.id: remote.wireHash},
+        },
+      ),
+      blobResponses: {
+        remote.wireHash: _FakeTransport.response(
+          200,
+          body: utf8.encode(encodeSyncRecordBlob(remote.blob)),
+        ),
+      },
+      missingResponses: [
+        [remote.wireHash],
+      ],
+    );
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: store,
+      transport: transport,
+    );
+
+    final result = await coordinator.syncNow();
+
+    expect(result.status, SyncPassStatus.completed);
+    expect(transport.postMissingBatches, [
+      [remote.wireHash],
+    ]);
+    expect(transport.putBlobHashes, [remote.wireHash]);
+  });
+
   test(
-    'chunks initial and post-apply missing-blob negotiation at the protocol limit',
+    'skips a remote winner when its local address changed mid-pass',
+    () async {
+      final local = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'local'),
+      );
+      final concurrent = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'concurrent', seconds: 1),
+      );
+      final remote = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'remote', seconds: 2),
+      );
+      final store = _FakeStore(
+        local: {local.address: local},
+        currentCandidatesBuilder: () => {concurrent.address: concurrent},
+        snapshotBuilder: (snapshotNumber) => SyncCoordinatorSnapshot(
+          epoch: 'epoch-1',
+          previouslyUsed: false,
+          local: {concurrent.address: snapshotNumber == 1 ? local : concurrent},
+          baseline: const {},
+        ),
+      );
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        peerManifest: _manifest(
+          deviceId: 'peer',
+          records: {
+            SyncRecordKind.setting: {remote.blob.id: remote.wireHash},
+          },
+        ),
+        blobResponses: {
+          remote.wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(remote.blob)),
+          ),
+        },
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+      );
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(result.reports.single.code, SyncReportCode.concurrentLocalChange);
+      expect(store.writes, isEmpty);
+      final manifest = decodeSyncManifest(
+        utf8.decode(transport.manifestBodies.single),
+      );
+      expect(
+        manifest.records[SyncRecordKind.setting]!['custom_dialects'],
+        concurrent.wireHash,
+      );
+    },
+  );
+
+  test(
+    'chunks final-manifest missing-blob negotiation at the protocol limit',
     () async {
       final initial = <SyncRecordAddress, SyncMergeCandidate?>{};
       for (var index = 0; index < 10000; index++) {
@@ -507,7 +613,6 @@ void main() {
 
       expect(result.status, SyncPassStatus.completed);
       expect(transport.postMissingBatches.map((batch) => batch.length), [
-        10000,
         10000,
         1,
       ]);
@@ -705,6 +810,7 @@ final class _FakeStore implements SyncCoordinatorStore {
     Map<SyncRecordAddress, SyncMergeCandidate?>? local,
     Map<SyncRecordAddress, SyncBaselineEntry>? baseline,
     this.snapshotBuilder,
+    this.currentCandidatesBuilder,
     List<String>? lifecycle,
   }) : local = local ?? const {},
        baseline = baseline ?? const {},
@@ -715,6 +821,8 @@ final class _FakeStore implements SyncCoordinatorStore {
   final Map<SyncRecordAddress, SyncMergeCandidate?> local;
   final Map<SyncRecordAddress, SyncBaselineEntry> baseline;
   final SyncCoordinatorSnapshot Function(int snapshotNumber)? snapshotBuilder;
+  final Map<SyncRecordAddress, SyncMergeCandidate?> Function()?
+  currentCandidatesBuilder;
   final List<String> lifecycle;
   final List<SyncRecordAddress> publishedRecords = [];
   final List<SyncRecordAddress> advancedEntries = [];
@@ -734,6 +842,10 @@ final class _FakeStore implements SyncCoordinatorStore {
           baseline: baseline,
         );
   }
+
+  @override
+  Future<Map<SyncRecordAddress, SyncMergeCandidate?>>
+  snapshotCandidates() async => currentCandidatesBuilder?.call() ?? local;
 
   @override
   Future<T> transaction<T>(Future<T> Function() action) async {

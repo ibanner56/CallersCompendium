@@ -51,8 +51,12 @@ class SyncCoordinatorSnapshot {
 /// The implementation owns the real database transaction. In particular,
 /// [SyncApplyStorage.transaction] must cover the whole inbound apply rather
 /// than only an individual record.
-abstract interface class SyncCoordinatorStore implements SyncApplyStorage {
+abstract interface class SyncCoordinatorStore
+    implements SyncApplyConcurrencyStorage {
   Future<SyncCoordinatorSnapshot> snapshot();
+
+  @override
+  Future<Map<SyncRecordAddress, SyncMergeCandidate?>> snapshotCandidates();
 
   Future<void> markSyncUsed(String syncId);
 
@@ -90,6 +94,10 @@ final class CompendiumSyncCoordinatorStore
       baseline: snapshot.baseline,
     );
   }
+
+  @override
+  Future<Map<SyncRecordAddress, SyncMergeCandidate?>> snapshotCandidates() =>
+      storage.snapshot().then((snapshot) => snapshot.local);
 
   @override
   Future<void> markSyncUsed(String syncId) => storage.markSyncUsed(syncId);
@@ -572,13 +580,6 @@ class SyncCoordinator {
       if (candidate != null) localByHash[candidate.wireHash] = candidate;
     }
     final availableByHash = <String, SyncMergeCandidate>{...localByHash};
-    final uploadResult = await _uploadMissingLocalBlobs(
-      localByHash,
-      reports: reports,
-    );
-    if (!uploadResult) {
-      return SyncPassResult(SyncPassStatus.failed, reports: reports.reports);
-    }
 
     for (final peer in peerManifests) {
       peerMaps.add(
@@ -603,40 +604,41 @@ class SyncCoordinator {
       for (final decision in plan.downloads)
         if (decision.winner != null) decision.winner!,
     ];
+    final expectedWireHashes = <SyncRecordAddress, String?>{
+      for (final decision in plan.downloads)
+        if (decision.winner != null)
+          decision.address: snapshot.local[decision.address]?.wireHash,
+    };
     final applyResult = await _applyEngine.apply(
       candidates: downloads,
       storage: store,
+      expectedWireHashes: expectedWireHashes,
     );
     reports.addAll(applyResult.reports);
 
-    final appliedAddresses = applyResult.applied.toSet();
-    final current = appliedAddresses.isEmpty
-        ? <SyncRecordAddress, SyncMergeCandidate?>{...snapshot.local}
-        : <SyncRecordAddress, SyncMergeCandidate?>{
-            ...(await store.snapshot()).local,
-          };
+    final current = <SyncRecordAddress, SyncMergeCandidate?>{
+      ...(await store.snapshot()).local,
+    };
     for (final decision in plan.decisions) {
       if (decision.action == SyncMergeAction.dropBaseline) {
         current.remove(decision.address);
       }
     }
-    if (appliedAddresses.isNotEmpty) {
-      final finalByHash = <String, SyncMergeCandidate>{};
-      for (final candidate in current.values) {
-        if (candidate != null) finalByHash[candidate.wireHash] = candidate;
-      }
-      final finalUploadSucceeded = await _uploadMissingLocalBlobs(
-        finalByHash,
-        reports: reports,
+    final finalByHash = <String, SyncMergeCandidate>{};
+    for (final candidate in current.values) {
+      if (candidate != null) finalByHash[candidate.wireHash] = candidate;
+    }
+    final finalUploadSucceeded = await _uploadMissingLocalBlobs(
+      finalByHash,
+      reports: reports,
+    );
+    if (!finalUploadSucceeded) {
+      return SyncPassResult(
+        SyncPassStatus.failed,
+        reports: reports.reports,
+        message:
+            'post-apply blob publication failed', // i18n-ignore: internal status
       );
-      if (!finalUploadSucceeded) {
-        return SyncPassResult(
-          SyncPassStatus.failed,
-          reports: reports.reports,
-          message:
-              'post-apply blob publication failed', // i18n-ignore: internal status
-        );
-      }
     }
     final manifest = SyncManifest(
       deviceId: deviceId,
