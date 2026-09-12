@@ -3573,8 +3573,12 @@ implementable.
 
 ### Failure and offline
 
-Device Sync is best-effort and never blocks the UI. Any failure leaves local data
-untouched and the baseline unchanged, so the next attempt retries cleanly.
+Device Sync is best-effort and never blocks the UI. A failure before apply
+leaves local data untouched. The inbound apply itself is one transaction, so it
+either commits whole or not at all; it never leaves a partial local apply. A
+failure after that transaction commits can therefore leave local data changed
+while the published manifest and baseline remain old, so the next attempt
+republishes and converges.
 
 - Network unreachable, DNS failure, TLS failure, `5xx` → retry with exponential
   backoff and jitter, cap 6 hours.
@@ -3586,10 +3590,12 @@ untouched and the baseline unchanged, so the next attempt retries cleanly.
   dances* toggle offered inline, since imports are usually the bulk and that
   setting is the lever.
 - Partial upload → harmless. Blobs are content-addressed and immutable; the
-  manifest is written last, so a half-finished sync publishes nothing.
+  manifest is written last, so a half-finished sync publishes no new manifest
+  or baseline, while any already-committed local apply remains.
 
 **The manifest is written last, always.** That single ordering rule is what
-makes an interrupted sync a no-op instead of a corruption.
+makes an interrupted sync publish no partial state. It does not roll back a
+transaction that already committed locally.
 
 ### Triggers
 
@@ -4121,8 +4127,10 @@ must say this plainly rather than implying sync is opaque to us.
   every field classified `deviceLocal`, a record carrying a value there produces
   a blob not containing it. This is the test that must never be allowed to
   become vacuous.
-- **Interrupted sync is a no-op** — kill after blob upload, before manifest
-  `PUT`; assert peers see nothing.
+- **Interrupted sync has no partial apply or publication** — kill after blob
+  upload, before manifest `PUT`; assert peers see no new manifest and local
+  state is wholly pre-apply or post-apply, never a partial apply. A committed
+  post-apply state remains for the next pass to publish.
 - **Fresh-attach union and silent merge** — `{B,C}` joining `{A,B}` yields
   `{A,B,C}`; identical-choreography duplicates merge without a prompt;
   same-title-same-author-different-figures reaches the review queue.
