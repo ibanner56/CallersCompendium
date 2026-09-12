@@ -1064,7 +1064,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
   Future<void> _runSyncStart(SyncCoordinator coordinator) async {
     try {
       await coordinator.onAppStart();
-    } on SyncTransportException catch (error, stackTrace) {
+    } on Object catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'main.sync-app-start');
     }
   }

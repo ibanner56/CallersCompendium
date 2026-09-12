@@ -458,6 +458,62 @@ void main() {
   });
 
   test(
+    'does not retain a parent when an inbound tombstone invalidates its join',
+    () async {
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+      final tombstoneStamp = stamp.add(const Duration(minutes: 1));
+      final choreographer = Choreographer(
+        id: 'existing-choreographer',
+        name: 'Existing choreographer',
+      );
+      await repositories.choreographers.upsert(choreographer, at: stamp);
+
+      final dance = Dance(
+        id: 'dance-with-tombstoned-author',
+        title: 'Dance with tombstoned author',
+        authorIds: [choreographer.id],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final tombstone = SyncMergeCandidate(
+        blob: SyncRecordBlob(
+          kind: SyncRecordKind.choreographer,
+          id: choreographer.id,
+          updatedAt: tombstoneStamp,
+          deletedAt: tombstoneStamp,
+          existenceAt: tombstoneStamp,
+          body: syncBodyForEntity(SyncRecordKind.choreographer, choreographer),
+        ),
+      );
+      final inboundDance = SyncMergeCandidate(
+        blob: SyncRecordBlob(
+          kind: SyncRecordKind.dance,
+          id: dance.id,
+          updatedAt: stamp,
+          deletedAt: null,
+          existenceAt: stamp,
+          body: syncBodyForEntity(SyncRecordKind.dance, dance),
+        ),
+      );
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [inboundDance, tombstone],
+        storage: storage,
+      );
+
+      expect(result.applied, [
+        (kind: SyncRecordKind.choreographer, recordId: choreographer.id),
+      ]);
+      expect(result.reports.single.code, SyncReportCode.unresolvedReference);
+      expect(await repositories.dances.getById(dance.id), isNull);
+      expect(
+        await repositories.choreographers.getById(choreographer.id),
+        isNull,
+      );
+    },
+  );
+
+  test(
     'inbound dance writes preserve device-local custom-field values',
     () async {
       final stamp = DateTime.utc(2025, 1, 2, 12);

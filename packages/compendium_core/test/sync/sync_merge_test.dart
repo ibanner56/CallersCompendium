@@ -224,6 +224,84 @@ void main() {
     expect(plan.decisions.single.winner!.blob.body['value'], 'newest');
   });
 
+  test(
+    'converges three device manifests and baselines across interleaved passes',
+    () {
+      final address = (
+        kind: SyncRecordKind.setting,
+        recordId: 'custom_dialects',
+      );
+      final devices = [
+        _SimulatedDevice(
+          'device-a',
+          SyncMergeCandidate.fromBlob(
+            _settingAt(
+              'custom_dialects',
+              'a-initial',
+              updatedSeconds: 0,
+              existenceSeconds: 0,
+            ),
+          ),
+        ),
+        _SimulatedDevice(
+          'device-b',
+          SyncMergeCandidate.fromBlob(
+            _settingAt(
+              'custom_dialects',
+              'b-initial',
+              updatedSeconds: 1,
+              existenceSeconds: 0,
+            ),
+          ),
+        ),
+        _SimulatedDevice(
+          'device-c',
+          SyncMergeCandidate.fromBlob(
+            _settingAt(
+              'custom_dialects',
+              'c-initial',
+              updatedSeconds: 2,
+              existenceSeconds: 0,
+            ),
+          ),
+        ),
+      ];
+
+      for (final device in devices) {
+        _runSimulatedPass(device, devices);
+      }
+      _expectConverged(devices, address, 'c-initial');
+
+      devices[0].local[address] = SyncMergeCandidate.fromBlob(
+        _settingAt(
+          'custom_dialects',
+          'a-interleaved',
+          updatedSeconds: 3,
+          existenceSeconds: 0,
+        ),
+      );
+      _runSimulatedPass(devices[0], devices);
+      _runSimulatedPass(devices[1], devices);
+      _runSimulatedPass(devices[2], devices);
+      _runSimulatedPass(devices[0], devices);
+      _expectConverged(devices, address, 'a-interleaved');
+
+      devices[2].local[address] = SyncMergeCandidate.fromBlob(
+        _settingAt(
+          'custom_dialects',
+          'c-interleaved',
+          updatedSeconds: 4,
+          existenceSeconds: 0,
+        ),
+      );
+      _runSimulatedPass(devices[2], devices);
+      _runSimulatedPass(devices[0], devices);
+      _runSimulatedPass(devices[1], devices);
+      _runSimulatedPass(devices[2], devices);
+      _expectConverged(devices, address, 'c-interleaved');
+    },
+  );
+
   test('combines independent body and existence maxima across peers', () {
     final local = _settingAt(
       'custom_dialects',
@@ -274,6 +352,87 @@ void main() {
     expect(winner.existenceAt, newestExistence.existenceAt);
     expect(winner.isDeleted, isTrue);
   });
+}
+
+final class _SimulatedDevice {
+  _SimulatedDevice(this.id, SyncMergeCandidate initial)
+    : local = {initial.address: initial},
+      manifest = {initial.address: initial};
+
+  final String id;
+  final Map<SyncRecordAddress, SyncMergeCandidate?> local;
+  final Map<SyncRecordAddress, SyncMergeCandidate?> manifest;
+  final Map<SyncRecordAddress, SyncBaselineEntry> baseline = {};
+}
+
+void _runSimulatedPass(
+  _SimulatedDevice device,
+  List<_SimulatedDevice> devices,
+) {
+  final peers = [
+    for (final peer in devices)
+      if (peer.id != device.id) peer.manifest,
+  ];
+  final plan = const SyncMergeEngine().plan(
+    local: device.local,
+    baseline: device.baseline,
+    peers: peers,
+  );
+  for (final decision in plan.decisions) {
+    switch (decision.action) {
+      case SyncMergeAction.download:
+        if (decision.winner != null) {
+          device.local[decision.address] = decision.winner;
+        }
+      case SyncMergeAction.dropBaseline:
+        device.local.remove(decision.address);
+      case SyncMergeAction.none:
+      case SyncMergeAction.upload:
+      case SyncMergeAction.report:
+        break;
+    }
+  }
+
+  device.manifest
+    ..clear()
+    ..addAll(device.local);
+  for (final decision in plan.decisions) {
+    if (decision.action == SyncMergeAction.dropBaseline) {
+      device.baseline.remove(decision.address);
+    }
+  }
+  for (final entry in device.local.entries) {
+    final candidate = entry.value;
+    if (candidate == null) continue;
+    if (!peers.any((peer) => peer[entry.key]?.wireHash == candidate.wireHash)) {
+      continue;
+    }
+    device.baseline[entry.key] = SyncBaselineEntry(
+      kind: candidate.blob.kind,
+      recordId: candidate.blob.id,
+      wireHash: candidate.wireHash,
+      bodyHash: candidate.bodyHash,
+    );
+  }
+}
+
+void _expectConverged(
+  List<_SimulatedDevice> devices,
+  SyncRecordAddress address,
+  String value,
+) {
+  expect(
+    devices.map((device) => device.local[address]!.blob.body['value']),
+    everyElement(value),
+  );
+  expect(
+    devices.map((device) => device.manifest[address]!.wireHash).toSet(),
+    hasLength(1),
+  );
+  expect(
+    devices.map((device) => device.baseline[address]!.wireHash).toSet(),
+    hasLength(1),
+  );
 }
 
 SyncRecordBlob _setting(

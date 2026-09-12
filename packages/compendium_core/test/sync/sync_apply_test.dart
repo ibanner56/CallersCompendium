@@ -38,6 +38,18 @@ void main() {
     },
   );
 
+  test('does not rebuild derived indexes for a no-op apply', () async {
+    final storage = _MemoryApplyStorage({});
+
+    final result = await const SyncApplyEngine().apply(
+      candidates: const [],
+      storage: storage,
+    );
+
+    expect(result.applied, isEmpty);
+    expect(storage.rebuilds, 0);
+  });
+
   test(
     'malformed records do not abort valid records in the same batch',
     () async {

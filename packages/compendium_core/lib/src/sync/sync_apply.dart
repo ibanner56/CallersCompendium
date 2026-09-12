@@ -49,6 +49,7 @@ abstract interface class SyncApplyReportingStorage implements SyncApplyStorage {
   Future<SyncReport?> validateInboundReferences(
     SyncApplyRecord record, {
     Set<SyncRecordAddress> inboundLiveAddresses = const {},
+    Set<SyncRecordAddress> inboundAddresses = const {},
   }) async => null;
 
   /// Writes one record and optionally reports a recoverable reference repair.
@@ -251,7 +252,9 @@ class SyncApplyEngine {
           applied.add(candidate.address);
         }
       }
-      await storage.rebuildDerivedIndexes();
+      if (applied.isNotEmpty) {
+        await storage.rebuildDerivedIndexes();
+      }
     });
 
     return SyncApplyResult(
@@ -355,7 +358,8 @@ class SyncApplyEngine {
     }
 
     var eligible = List<SyncApplyRecord>.of(prepared);
-    final inboundLiveAddresses = {
+    var inboundAddresses = {for (final record in eligible) record.address};
+    var inboundLiveAddresses = {
       for (final record in eligible)
         if (record.deletedAt == null) record.address,
     };
@@ -366,6 +370,7 @@ class SyncApplyEngine {
         final referenceReport = await storage.validateInboundReferences(
           record,
           inboundLiveAddresses: inboundLiveAddresses,
+          inboundAddresses: inboundAddresses,
         );
         if (referenceReport == null) {
           next.add(record);
@@ -375,6 +380,7 @@ class SyncApplyEngine {
       }
       if (next.length == eligible.length) break;
       eligible = next;
+      inboundAddresses = {for (final record in eligible) record.address};
       inboundLiveAddresses
         ..clear()
         ..addAll({
@@ -404,19 +410,7 @@ class SyncApplyEngine {
       }
     }
 
-    final writtenAddresses = {
-      for (final record in parentWritten)
-        if (record.deletedAt == null) record.address,
-    };
     for (final record in parentWritten) {
-      final referenceReport = await storage.validateInboundReferences(
-        record,
-        inboundLiveAddresses: writtenAddresses,
-      );
-      if (referenceReport != null) {
-        reports.add(referenceReport);
-        continue;
-      }
       try {
         final report = await storage.writeJoinsWithReport(record);
         if (report != null) reports.add(report);

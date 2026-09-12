@@ -54,12 +54,12 @@
     ],
     "summary": "Steady-state merge, transactional inbound apply, and isolated single-flight publication are implemented and guarded.",
     "evidence": [
-      "packages/compendium_core/test/sync/sync_merge_test.dart covers three-peer newest-content convergence, the total baseline table, and independent existence/body maxima.",
+      "packages/compendium_core/test/sync/sync_merge_test.dart covers three-device manifest and baseline convergence across interleaved passes, the total baseline table, and independent existence/body maxima.",
       "packages/compendium_core/test/sync/sync_merge_test.dart and packages/compendium_core/test/sync/sync_apply_test.dart report equal-time ties and malformed or rejected records without advancing their baseline.",
       "packages/compendium_core/test/sync/sync_apply_test.dart covers classification filtering, receive-only credentials, read-modify-write privacy, and transaction rollback; tools/ci/test_check_sync_invariants.py covers I1/I2.",
       "app/test/sync/sync_coordinator_test.dart covers previously-used missing-store stop, preserved state, one coalesced event, zero pre-confirmation POSTs, idempotent confirmation, and configured pause on decline.",
       "The replacement test was run against the automatic-createStore mutation and turned red before the final implementation was restored and the full preflight passed.",
-      "packages/compendium_core/test/storage/sync_storage_test.dart covers forward and cyclic live references, rejects tombstoned inbound parents, and rejects links or slots targeting locally tombstoned dances; both liveness mutations were run red before restoration."
+      "packages/compendium_core/test/storage/sync_storage_test.dart covers forward and cyclic live references, rejects tombstoned inbound parents, rejects links or slots targeting locally tombstoned dances, and preserves per-record state when an inbound tombstone invalidates a join; the liveness mutations were run red before restoration."
     ]
   }
 }

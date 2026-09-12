@@ -339,6 +339,7 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
   Future<SyncReport?> validateInboundReferences(
     SyncApplyRecord record, {
     Set<SyncRecordAddress> inboundLiveAddresses = const {},
+    Set<SyncRecordAddress> inboundAddresses = const {},
   }) async {
     if (record.address.kind == SyncRecordKind.setting) return null;
     final Object entity;
@@ -354,10 +355,12 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
       SyncRecordKind.dance => await _missingDanceReference(
         entity as Dance,
         inboundLiveAddresses: inboundLiveAddresses,
+        inboundAddresses: inboundAddresses,
       ),
       SyncRecordKind.program => await _missingProgramReference(
         entity as Program,
         inboundLiveAddresses: inboundLiveAddresses,
+        inboundAddresses: inboundAddresses,
       ),
       _ => null,
     };
@@ -552,18 +555,24 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
   Future<String?> _missingDanceReference(
     Dance dance, {
     required Set<SyncRecordAddress> inboundLiveAddresses,
+    required Set<SyncRecordAddress> inboundAddresses,
   }) async {
     final difficultyId = dance.difficultyLevelId;
-    if (difficultyId != null &&
-        !inboundLiveAddresses.contains((
-          kind: SyncRecordKind.difficultyLevel,
-          recordId: difficultyId,
-        ))) {
-      final difficulty =
-          await (_db.select(_db.difficultyLevels)..where(
-                (row) => row.id.equals(difficultyId) & row.deletedAt.isNull(),
-              ))
-              .getSingleOrNull();
+    if (difficultyId != null) {
+      final difficultyAddress = (
+        kind: SyncRecordKind.difficultyLevel,
+        recordId: difficultyId,
+      );
+      final difficulty = inboundLiveAddresses.contains(difficultyAddress)
+          ? difficultyId
+          : inboundAddresses.contains(difficultyAddress)
+          ? null
+          : (await (_db.select(_db.difficultyLevels)..where(
+                      (row) =>
+                          row.id.equals(difficultyId) & row.deletedAt.isNull(),
+                    ))
+                    .getSingleOrNull())
+                ?.id;
       if (difficulty == null) {
         return 'Dance "${dance.id}" references unavailable difficulty '
             '"$difficultyId".';
@@ -571,24 +580,37 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
     }
 
     final authorIds = dance.authorIds.toSet();
-    final inboundAuthors = {
-      for (final id in authorIds)
-        if (inboundLiveAddresses.contains((
-          kind: SyncRecordKind.choreographer,
-          recordId: id,
-        )))
-          id,
-    };
-    if (authorIds.difference(inboundAuthors).isNotEmpty) {
+    final authorLookupIds = _referenceIdsToLookUp(
+      ids: authorIds,
+      kind: SyncRecordKind.choreographer,
+      inboundLiveAddresses: inboundLiveAddresses,
+      inboundAddresses: inboundAddresses,
+    );
+    if (authorLookupIds.isNotEmpty) {
       final rows =
           await (_db.select(_db.choreographers)..where(
-                (row) =>
-                    row.id.isIn(authorIds.difference(inboundAuthors)) &
-                    row.deletedAt.isNull(),
+                (row) => row.id.isIn(authorLookupIds) & row.deletedAt.isNull(),
               ))
               .get();
-      final present = rows.map((row) => row.id).toSet();
-      final missing = authorIds.difference(inboundAuthors).difference(present);
+      final missing = _missingReferenceIds(
+        ids: authorIds,
+        kind: SyncRecordKind.choreographer,
+        inboundLiveAddresses: inboundLiveAddresses,
+        inboundAddresses: inboundAddresses,
+        storedLiveIds: rows.map((row) => row.id).toSet(),
+      );
+      if (missing.isNotEmpty) {
+        return 'Dance "${dance.id}" references unavailable choreographer '
+            '"${missing.first}".';
+      }
+    } else if (authorIds.isNotEmpty) {
+      final missing = _missingReferenceIds(
+        ids: authorIds,
+        kind: SyncRecordKind.choreographer,
+        inboundLiveAddresses: inboundLiveAddresses,
+        inboundAddresses: inboundAddresses,
+        storedLiveIds: const {},
+      );
       if (missing.isNotEmpty) {
         return 'Dance "${dance.id}" references unavailable choreographer '
             '"${missing.first}".';
@@ -596,24 +618,37 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
     }
 
     final tagIds = dance.tagIds.toSet();
-    final inboundTags = {
-      for (final id in tagIds)
-        if (inboundLiveAddresses.contains((
-          kind: SyncRecordKind.tag,
-          recordId: id,
-        )))
-          id,
-    };
-    if (tagIds.difference(inboundTags).isNotEmpty) {
+    final tagLookupIds = _referenceIdsToLookUp(
+      ids: tagIds,
+      kind: SyncRecordKind.tag,
+      inboundLiveAddresses: inboundLiveAddresses,
+      inboundAddresses: inboundAddresses,
+    );
+    if (tagLookupIds.isNotEmpty) {
       final rows =
           await (_db.select(_db.tags)..where(
-                (row) =>
-                    row.id.isIn(tagIds.difference(inboundTags)) &
-                    row.deletedAt.isNull(),
+                (row) => row.id.isIn(tagLookupIds) & row.deletedAt.isNull(),
               ))
               .get();
-      final present = rows.map((row) => row.id).toSet();
-      final missing = tagIds.difference(inboundTags).difference(present);
+      final missing = _missingReferenceIds(
+        ids: tagIds,
+        kind: SyncRecordKind.tag,
+        inboundLiveAddresses: inboundLiveAddresses,
+        inboundAddresses: inboundAddresses,
+        storedLiveIds: rows.map((row) => row.id).toSet(),
+      );
+      if (missing.isNotEmpty) {
+        return 'Dance "${dance.id}" references unavailable tag '
+            '"${missing.first}".';
+      }
+    } else if (tagIds.isNotEmpty) {
+      final missing = _missingReferenceIds(
+        ids: tagIds,
+        kind: SyncRecordKind.tag,
+        inboundLiveAddresses: inboundLiveAddresses,
+        inboundAddresses: inboundAddresses,
+        storedLiveIds: const {},
+      );
       if (missing.isNotEmpty) {
         return 'Dance "${dance.id}" references unavailable tag '
             '"${missing.first}".';
@@ -623,24 +658,37 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
     final sourceIds = dance.sourceCitations
         .map((citation) => citation.sourceId)
         .toSet();
-    final inboundSources = {
-      for (final id in sourceIds)
-        if (inboundLiveAddresses.contains((
-          kind: SyncRecordKind.publishedSource,
-          recordId: id,
-        )))
-          id,
-    };
-    if (sourceIds.difference(inboundSources).isNotEmpty) {
+    final sourceLookupIds = _referenceIdsToLookUp(
+      ids: sourceIds,
+      kind: SyncRecordKind.publishedSource,
+      inboundLiveAddresses: inboundLiveAddresses,
+      inboundAddresses: inboundAddresses,
+    );
+    if (sourceLookupIds.isNotEmpty) {
       final rows =
           await (_db.select(_db.publishedSources)..where(
-                (row) =>
-                    row.id.isIn(sourceIds.difference(inboundSources)) &
-                    row.deletedAt.isNull(),
+                (row) => row.id.isIn(sourceLookupIds) & row.deletedAt.isNull(),
               ))
               .get();
-      final present = rows.map((row) => row.id).toSet();
-      final missing = sourceIds.difference(inboundSources).difference(present);
+      final missing = _missingReferenceIds(
+        ids: sourceIds,
+        kind: SyncRecordKind.publishedSource,
+        inboundLiveAddresses: inboundLiveAddresses,
+        inboundAddresses: inboundAddresses,
+        storedLiveIds: rows.map((row) => row.id).toSet(),
+      );
+      if (missing.isNotEmpty) {
+        return 'Dance "${dance.id}" references unavailable source '
+            '"${missing.first}".';
+      }
+    } else if (sourceIds.isNotEmpty) {
+      final missing = _missingReferenceIds(
+        ids: sourceIds,
+        kind: SyncRecordKind.publishedSource,
+        inboundLiveAddresses: inboundLiveAddresses,
+        inboundAddresses: inboundAddresses,
+        storedLiveIds: const {},
+      );
       if (missing.isNotEmpty) {
         return 'Dance "${dance.id}" references unavailable source '
             '"${missing.first}".';
@@ -650,28 +698,38 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
     final customFieldIds = dance.customFields
         .map((value) => value.fieldId)
         .toSet();
-    final inboundCustomFields = {
-      for (final id in customFieldIds)
-        if (inboundLiveAddresses.contains((
-          kind: SyncRecordKind.customFieldDef,
-          recordId: id,
-        )))
-          id,
-    };
-    if (customFieldIds.difference(inboundCustomFields).isNotEmpty) {
+    final customFieldLookupIds = _referenceIdsToLookUp(
+      ids: customFieldIds,
+      kind: SyncRecordKind.customFieldDef,
+      inboundLiveAddresses: inboundLiveAddresses,
+      inboundAddresses: inboundAddresses,
+    );
+    if (customFieldLookupIds.isNotEmpty) {
       final rows =
           await (_db.select(_db.customFieldDefs)..where(
                 (row) =>
-                    row.id.isIn(
-                      customFieldIds.difference(inboundCustomFields),
-                    ) &
-                    row.deletedAt.isNull(),
+                    row.id.isIn(customFieldLookupIds) & row.deletedAt.isNull(),
               ))
               .get();
-      final present = rows.map((row) => row.id).toSet();
-      final missing = customFieldIds
-          .difference(inboundCustomFields)
-          .difference(present);
+      final missing = _missingReferenceIds(
+        ids: customFieldIds,
+        kind: SyncRecordKind.customFieldDef,
+        inboundLiveAddresses: inboundLiveAddresses,
+        inboundAddresses: inboundAddresses,
+        storedLiveIds: rows.map((row) => row.id).toSet(),
+      );
+      if (missing.isNotEmpty) {
+        return 'Dance "${dance.id}" references unavailable custom field '
+            '"${missing.first}".';
+      }
+    } else if (customFieldIds.isNotEmpty) {
+      final missing = _missingReferenceIds(
+        ids: customFieldIds,
+        kind: SyncRecordKind.customFieldDef,
+        inboundLiveAddresses: inboundLiveAddresses,
+        inboundAddresses: inboundAddresses,
+        storedLiveIds: const {},
+      );
       if (missing.isNotEmpty) {
         return 'Dance "${dance.id}" references unavailable custom field '
             '"${missing.first}".';
@@ -682,28 +740,38 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
         .map((link) => link.targetDanceId)
         .whereType<String>()
         .toSet();
-    final inboundTargetDances = {
-      for (final id in targetDanceIds)
-        if (inboundLiveAddresses.contains((
-          kind: SyncRecordKind.dance,
-          recordId: id,
-        )))
-          id,
-    };
-    if (targetDanceIds.difference(inboundTargetDances).isNotEmpty) {
+    final targetDanceLookupIds = _referenceIdsToLookUp(
+      ids: targetDanceIds,
+      kind: SyncRecordKind.dance,
+      inboundLiveAddresses: inboundLiveAddresses,
+      inboundAddresses: inboundAddresses,
+    );
+    if (targetDanceLookupIds.isNotEmpty) {
       final rows =
           await (_db.select(_db.dances)..where(
                 (row) =>
-                    row.id.isIn(
-                      targetDanceIds.difference(inboundTargetDances),
-                    ) &
-                    row.deletedAt.isNull(),
+                    row.id.isIn(targetDanceLookupIds) & row.deletedAt.isNull(),
               ))
               .get();
-      final present = rows.map((row) => row.id).toSet();
-      final missing = targetDanceIds
-          .difference(inboundTargetDances)
-          .difference(present);
+      final missing = _missingReferenceIds(
+        ids: targetDanceIds,
+        kind: SyncRecordKind.dance,
+        inboundLiveAddresses: inboundLiveAddresses,
+        inboundAddresses: inboundAddresses,
+        storedLiveIds: rows.map((row) => row.id).toSet(),
+      );
+      if (missing.isNotEmpty) {
+        return 'Dance "${dance.id}" references unavailable related dance '
+            '"${missing.first}".';
+      }
+    } else if (targetDanceIds.isNotEmpty) {
+      final missing = _missingReferenceIds(
+        ids: targetDanceIds,
+        kind: SyncRecordKind.dance,
+        inboundLiveAddresses: inboundLiveAddresses,
+        inboundAddresses: inboundAddresses,
+        storedLiveIds: const {},
+      );
       if (missing.isNotEmpty) {
         return 'Dance "${dance.id}" references unavailable related dance '
             '"${missing.first}".';
@@ -715,32 +783,59 @@ final class CompendiumSyncStorage implements SyncApplyBatchStorage {
   Future<String?> _missingProgramReference(
     Program program, {
     required Set<SyncRecordAddress> inboundLiveAddresses,
+    required Set<SyncRecordAddress> inboundAddresses,
   }) async {
     final danceIds = program.slots
         .map((slot) => slot.danceId)
         .whereType<String>()
         .toSet();
-    final missingInBatch = danceIds
-        .where(
-          (id) => !inboundLiveAddresses.contains((
-            kind: SyncRecordKind.dance,
-            recordId: id,
-          )),
-        )
-        .toSet();
-    if (missingInBatch.isEmpty) return null;
-    final rows =
-        await (_db.select(_db.dances)..where(
-              (row) => row.id.isIn(missingInBatch) & row.deletedAt.isNull(),
-            ))
-            .get();
-    final present = rows.map((row) => row.id).toSet();
-    final missing = missingInBatch.difference(present);
+    final lookupIds = _referenceIdsToLookUp(
+      ids: danceIds,
+      kind: SyncRecordKind.dance,
+      inboundLiveAddresses: inboundLiveAddresses,
+      inboundAddresses: inboundAddresses,
+    );
+    final rows = await (_db.select(
+      _db.dances,
+    )..where((row) => row.id.isIn(lookupIds) & row.deletedAt.isNull())).get();
+    final missing = _missingReferenceIds(
+      ids: danceIds,
+      kind: SyncRecordKind.dance,
+      inboundLiveAddresses: inboundLiveAddresses,
+      inboundAddresses: inboundAddresses,
+      storedLiveIds: rows.map((row) => row.id).toSet(),
+    );
     return missing.isEmpty
         ? null
         : 'Program "${program.id}" references unavailable dance '
               '"${missing.first}".';
   }
+
+  Set<String> _referenceIdsToLookUp({
+    required Iterable<String> ids,
+    required SyncRecordKind kind,
+    required Set<SyncRecordAddress> inboundLiveAddresses,
+    required Set<SyncRecordAddress> inboundAddresses,
+  }) => {
+    for (final id in ids)
+      if (!inboundLiveAddresses.contains((kind: kind, recordId: id)) &&
+          !inboundAddresses.contains((kind: kind, recordId: id)))
+        id,
+  };
+
+  Set<String> _missingReferenceIds({
+    required Iterable<String> ids,
+    required SyncRecordKind kind,
+    required Set<SyncRecordAddress> inboundLiveAddresses,
+    required Set<SyncRecordAddress> inboundAddresses,
+    required Set<String> storedLiveIds,
+  }) => {
+    for (final id in ids)
+      if (!inboundLiveAddresses.contains((kind: kind, recordId: id)) &&
+          (inboundAddresses.contains((kind: kind, recordId: id)) ||
+              !storedLiveIds.contains(id)))
+        id,
+  };
 
   SyncReport _malformedReferenceReport(
     SyncApplyRecord record,
