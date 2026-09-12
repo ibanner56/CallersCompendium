@@ -568,6 +568,7 @@ class SyncCoordinator {
     for (final candidate in snapshot.local.values) {
       if (candidate != null) localByHash[candidate.wireHash] = candidate;
     }
+    final availableByHash = <String, SyncMergeCandidate>{...localByHash};
     final uploadResult = await _uploadMissingLocalBlobs(
       localByHash,
       reports: reports,
@@ -583,6 +584,7 @@ class SyncCoordinator {
           peerId: peer.peerId,
           reports: reports,
           unresolved: unresolved,
+          candidateByHash: availableByHash,
         ),
       );
     }
@@ -723,12 +725,32 @@ class SyncCoordinator {
     required String peerId,
     required SyncReportSink reports,
     required Set<SyncRecordAddress> unresolved,
+    required Map<String, SyncMergeCandidate> candidateByHash,
   }) async {
     final result = <SyncRecordAddress, SyncMergeCandidate?>{};
     for (final kindEntry in manifest.records.entries) {
       for (final recordEntry in kindEntry.value.entries) {
-        final response = await transport.getBlob(recordEntry.value);
         final address = (kind: kindEntry.key, recordId: recordEntry.key);
+        final cachedCandidate = candidateByHash[recordEntry.value];
+        if (cachedCandidate != null) {
+          if (cachedCandidate.address != address) {
+            unresolved.add(address);
+            reports.add(
+              SyncReport(
+                code: SyncReportCode.blobIdentityMismatch,
+                kind: address.kind,
+                recordId: address.recordId,
+                peerId: peerId,
+                message:
+                    'Cached blob identity did not match its manifest address.', // i18n-ignore: internal report
+              ),
+            );
+            continue;
+          }
+          result[address] = cachedCandidate;
+          continue;
+        }
+        final response = await transport.getBlob(recordEntry.value);
         if (!response.isSuccess) {
           unresolved.add(address);
           reports.add(
@@ -786,10 +808,12 @@ class SyncCoordinator {
           );
           continue;
         }
-        result[address] = SyncMergeCandidate(
+        final candidate = SyncMergeCandidate(
           blob: blob,
           wireHash: recordEntry.value,
         );
+        candidateByHash[recordEntry.value] = candidate;
+        result[address] = candidate;
       }
     }
     return result;

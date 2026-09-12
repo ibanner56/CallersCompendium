@@ -202,6 +202,77 @@ void main() {
   });
 
   test(
+    'reuses verified local blobs across cached and duplicate manifests',
+    () async {
+      final localCandidate = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'local'),
+      );
+      final peerCandidate = SyncMergeCandidate.fromBlob(
+        _setting('default_program_band', 'peer'),
+      );
+      final manifest = _manifest(
+        deviceId: 'peer-a',
+        records: {
+          SyncRecordKind.setting: {
+            localCandidate.blob.id: localCandidate.wireHash,
+            peerCandidate.blob.id: peerCandidate.wireHash,
+          },
+        },
+      );
+      final encodedManifest = encodeSyncManifestUtf8(manifest);
+      final transport = _FakeTransport(
+        devices: ['peer-a', 'peer-b'],
+        manifestResponses: {
+          'peer-a': [
+            SyncHttpResponse(
+              statusCode: 200,
+              kind: SyncResponseKind.success,
+              headers: const {'etag': '"peer-a-v1"'},
+              body: encodedManifest,
+            ),
+            const SyncHttpResponse(
+              statusCode: 304,
+              kind: SyncResponseKind.notModified,
+              headers: {},
+              body: [],
+            ),
+          ],
+          'peer-b': [
+            SyncHttpResponse(
+              statusCode: 200,
+              kind: SyncResponseKind.success,
+              headers: const {'etag': '"peer-b-v1"'},
+              body: encodedManifest,
+            ),
+            const SyncHttpResponse(
+              statusCode: 304,
+              kind: SyncResponseKind.notModified,
+              headers: {},
+              body: [],
+            ),
+          ],
+        },
+        blobResponses: {
+          peerCandidate.wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(peerCandidate.blob)),
+          ),
+        },
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(local: {localCandidate.address: localCandidate}),
+        transport: transport,
+      );
+
+      expect((await coordinator.syncNow()).status, SyncPassStatus.completed);
+      expect((await coordinator.syncNow()).status, SyncPassStatus.completed);
+      expect(transport.blobCalls, 2);
+    },
+  );
+
+  test(
     'the queued pass publishes the newer snapshot, not the stale one',
     () async {
       final firstStoreRead = Completer<void>();
@@ -508,6 +579,54 @@ void main() {
       expect(store.advancedEntries, isEmpty);
     },
   );
+
+  test('an equal-time peer tie does not advance the baseline', () async {
+    final local = SyncMergeCandidate.fromBlob(
+      _setting('custom_dialects', 'local'),
+    );
+    final remote = SyncMergeCandidate.fromBlob(
+      _setting('custom_dialects', 'remote'),
+    );
+    final store = _FakeStore(
+      local: {local.address: local},
+      baseline: {
+        local.address: SyncBaselineEntry(
+          kind: local.address.kind,
+          recordId: local.address.recordId,
+          wireHash: local.wireHash,
+        ),
+      },
+    );
+    final transport = _FakeTransport(
+      devices: ['peer'],
+      peerManifest: _manifest(
+        deviceId: 'peer',
+        records: {
+          SyncRecordKind.setting: {remote.blob.id: remote.wireHash},
+        },
+      ),
+      blobResponses: {
+        remote.wireHash: _FakeTransport.response(
+          200,
+          body: utf8.encode(encodeSyncRecordBlob(remote.blob)),
+        ),
+      },
+    );
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: store,
+      transport: transport,
+    );
+
+    final result = await coordinator.syncNow();
+
+    expect(
+      result.reports.map((report) => report.code),
+      contains(SyncReportCode.equalUpdatedAt),
+    );
+    expect(store.advancedEntries, isEmpty);
+  });
 
   test('a wrong-envelope blob is reported and remains unapplied', () async {
     final wrong = SyncMergeCandidate.fromBlob(

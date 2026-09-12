@@ -127,7 +127,7 @@ class SyncMergeEngine {
         final resolution = _resolve(
           local: null,
           remotes: remoteCandidates,
-          baselinePresent: baselineEntry != null,
+          baselineEntry: baselineEntry,
           freshAttach: freshAttach,
         );
         if (resolution.report != null) {
@@ -154,7 +154,7 @@ class SyncMergeEngine {
       final resolution = _resolve(
         local: localCandidate,
         remotes: remoteCandidates,
-        baselinePresent: baselineEntry != null,
+        baselineEntry: baselineEntry,
         freshAttach: freshAttach,
       );
       if (resolution.report != null) {
@@ -203,7 +203,7 @@ class SyncMergeEngine {
   _Resolution _resolve({
     required SyncMergeCandidate? local,
     required List<SyncMergeCandidate> remotes,
-    required bool baselinePresent,
+    required SyncBaselineEntry? baselineEntry,
     required bool freshAttach,
   }) {
     final candidates = [?local, ...remotes];
@@ -218,7 +218,7 @@ class SyncMergeEngine {
     );
 
     if (!freshAttach &&
-        !baselinePresent &&
+        baselineEntry == null &&
         local != null &&
         !local.isDeleted &&
         deletedWins &&
@@ -235,9 +235,22 @@ class SyncMergeEngine {
       );
     }
 
-    final contentCandidates = candidates
+    var contentCandidates = candidates
         .where((candidate) => candidate.isDeleted == deletedWins)
         .toList(growable: false);
+    if (baselineEntry != null && local != null) {
+      final localIsInWinningState = contentCandidates.contains(local);
+      final changedRemotes = contentCandidates
+          .where((candidate) => candidate.wireHash != baselineEntry.wireHash)
+          .toList(growable: false);
+      if (localIsInWinningState &&
+          (local.wireHash != baselineEntry.wireHash ||
+              changedRemotes.isNotEmpty)) {
+        // Baseline classification determines which bodies enter the LWW
+        // comparison: an unchanged peer must not erase a local-only edit.
+        contentCandidates = [local, ...changedRemotes];
+      }
+    }
     final maximumUpdated = contentCandidates
         .map((candidate) => candidate.updatedAt)
         .reduce((left, right) => left.isAfter(right) ? left : right);

@@ -250,6 +250,83 @@ void main() {
     expect(plan.decisions.single.winner!.blob.body['value'], 'newest');
   });
 
+  test('distinguishes all four both-present baseline rows', () {
+    final baseline = _settingAt(
+      'custom_dialects',
+      'baseline',
+      updatedSeconds: 5,
+      existenceSeconds: 0,
+    );
+    final baselineCandidate = SyncMergeCandidate.fromBlob(baseline);
+    final baselineEntry = SyncBaselineEntry(
+      kind: baseline.kind,
+      recordId: baseline.id,
+      wireHash: baselineCandidate.wireHash,
+    );
+
+    SyncMergePlan planFor(SyncRecordBlob local, SyncRecordBlob remote) =>
+        engine.plan(
+          local: {local.address: SyncMergeCandidate.fromBlob(local)},
+          baseline: {local.address: baselineEntry},
+          peers: [
+            {remote.address: SyncMergeCandidate.fromBlob(remote)},
+          ],
+        );
+
+    final sameSame = planFor(baseline, baseline);
+    expect(sameSame.decisions.single.action, SyncMergeAction.none);
+
+    final changedSame = planFor(
+      _settingAt(
+        'custom_dialects',
+        'local change',
+        updatedSeconds: 1,
+        existenceSeconds: 0,
+      ),
+      baseline,
+    );
+    expect(changedSame.decisions.single.action, SyncMergeAction.upload);
+    expect(
+      changedSame.decisions.single.winner!.blob.body['value'],
+      'local change',
+    );
+
+    final sameChanged = planFor(
+      baseline,
+      _settingAt(
+        'custom_dialects',
+        'remote change',
+        updatedSeconds: 6,
+        existenceSeconds: 0,
+      ),
+    );
+    expect(sameChanged.decisions.single.action, SyncMergeAction.download);
+    expect(
+      sameChanged.decisions.single.winner!.blob.body['value'],
+      'remote change',
+    );
+
+    final changedChanged = planFor(
+      _settingAt(
+        'custom_dialects',
+        'local conflict',
+        updatedSeconds: 7,
+        existenceSeconds: 0,
+      ),
+      _settingAt(
+        'custom_dialects',
+        'remote conflict',
+        updatedSeconds: 8,
+        existenceSeconds: 0,
+      ),
+    );
+    expect(changedChanged.decisions.single.action, SyncMergeAction.download);
+    expect(
+      changedChanged.decisions.single.winner!.blob.body['value'],
+      'remote conflict',
+    );
+  });
+
   test(
     'converges three device manifests and baselines across interleaved passes',
     () {
