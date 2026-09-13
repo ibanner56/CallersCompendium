@@ -35,7 +35,7 @@
   "pullRequests": [],
   "hold": null,
   "completion": {
-    "complete": true,
+    "complete": false,
     "conditions": [
       "Absence alone never deletes a record.",
       "Reset preserves pending deletions.",
@@ -43,23 +43,7 @@
       "Detach and reattach cannot resurrect a deleted record.",
       "Reconciliation rewrites every affected reference safely."
     ],
-    "summary": "Pending tombstone publication, publication-marker forfeiture, natural-key collision reconciliation, aliases, and causal reference rewrites are implemented and guarded at the storage and coordinator boundaries.",
-    "evidence": [
-      "packages/compendium_core/test/sync/sync_merge_test.dart and app/test/sync/sync_coordinator_test.dart cover omission as non-deletion, explicit tombstones, live/publication snapshot separation, baseline exclusion for pending addresses, and post-apply publication.",
-      "packages/compendium_core/test/storage/sync_local_repository_test.dart covers epoch reset preserving pending deletions and published records, archive restore revalidation, detach clearing pending state without clearing publication history, and transactional rollback of the coupled state.",
-      "packages/compendium_core/test/storage/sync_storage_test.dart and app/test/sync/sync_coordinator_test.dart cover cited tombstones, pending tombstone overlay publication, final-citation application, deliberate restore versus archive restore, marker-before-manifest publication, and unavailable-peer alias retention.",
-      "packages/compendium_core/test/storage/sync_publication_lifecycle_test.dart covers published-record tombstoning through choreographer, tag, published-source, custom-field, difficulty, venue, dance, program, and shareable-settings permanent-delete paths.",
-      "packages/compendium_core/test/storage/sync_local_repository_test.dart covers transitive alias resolution, fixed-point alias remapping, publication-marker union from a transitive loser, peer-manifest alias retirement, and marker preservation across reset and detach.",
-      "packages/compendium_core/test/storage/sync_storage_test.dart covers both natural-key survivor directions, existence/content separation, equal-time body review, known-UUID rename review, malformed-collision isolation, shipped difficulty-ID canonicalization, custom-field type mismatch retention, deterministic short/full suffix escalation, and occupied-suffix review termination.",
-      "packages/compendium_core/test/storage/sync_storage_test.dart covers local author, tag, custom-field, and difficulty reference rewrites; the all-kind inbound-reference guard proves that losing IDs are rewritten before foreign-key validation and commit.",
-      "packages/compendium_core/test/storage/sync_storage_test.dart covers same-batch natural-key collisions, deterministic same-batch custom-field type suffixing, pending tombstone migration across an identity remap, and causal stamping of inbound bodies changed by aliases.",
-      "The all-kind inbound-reference guard was run with the tag rewrite removed from rewriteSyncInboundReferences and went red with an unresolved-reference report; restoring the rewrite made it green.",
-      "The device-local custom-field guard was first shown ineffective when only writeFromSyncParent was mutated; mutating the actual writeFromSyncRelations boundary to preserveDeviceLocalCustomFields: false went red because the stored dance lost one of two expected fields, and restoring both sync writers made it green.",
-      "The alias remap guard was strengthened to mark only the transitive loser; replacing the remap fixed-point loop with one pass went red because the survivor lacked the transitive publication marker, and restoring the loop made it green.",
-      "The local-reference I1 guard asserts a strict updated_at advance and changed publication wire hash; omitting the causal bump was run red and the restored implementation passed.",
-      "The renamed custom-field I1 guard asserts the renamed definition's causal timestamp and publication body; omitting that bump was run red and the restored implementation passed.",
-      "Mutation runs were completed and restored for pending exclusion, final-citation revalidation, existence/content separation, known-UUID review, custom-field suffix derivation and escalation, canonical difficulty IDs, publication-marker union, hard-delete protection, reset/detach lifecycle, alias retirement, and both collision survivor directions.",
-      "python3 tools/preflight.py completed with 30 steps passed and 0 skipped, including sync invariants, privacy and persisted-field ratchets, changelog checks, fixtures, formatting, analysis, core/app/server tests, and benchmark checks."
-    ]
+    "summary": null,
+    "evidence": []
   }
 }

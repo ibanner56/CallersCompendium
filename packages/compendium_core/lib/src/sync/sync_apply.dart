@@ -14,7 +14,6 @@ class SyncApplyRecord {
     required this.updatedAt,
     required this.deletedAt,
     required this.existenceAt,
-    this.sourceBlob,
   });
 
   final SyncRecordAddress address;
@@ -22,13 +21,6 @@ class SyncApplyRecord {
   final DateTime updatedAt;
   final DateTime? deletedAt;
   final DateTime existenceAt;
-
-  /// The validated wire candidate that produced this record.
-  ///
-  /// [body] may contain device-local fields overlaid from the current row,
-  /// so pending tombstones must retain this source rather than re-encoding
-  /// [body] as if it were the peer's blob.
-  final SyncRecordBlob? sourceBlob;
 }
 
 /// The narrow storage seam required by the core apply engine.
@@ -93,26 +85,6 @@ abstract interface class SyncApplyBatchStorage
 
   Future<SyncReport?> writeJoinsWithReport(SyncApplyRecord record) async =>
       null;
-}
-
-/// Result of the transaction-bound W7 reconciliation phase.
-class SyncApplyPreparation {
-  const SyncApplyPreparation({
-    required this.candidates,
-    this.reports = const [],
-  });
-
-  final List<SyncMergeCandidate> candidates;
-  final List<SyncReport> reports;
-}
-
-/// Optional W7 extension for stores that reconcile aliases and natural-key
-/// collisions before dependency validation and parent/join writes.
-abstract interface class SyncApplyReconciliationStorage
-    implements SyncApplyBatchStorage {
-  Future<SyncApplyPreparation> reconcileInbound(
-    List<SyncMergeCandidate> candidates,
-  );
 }
 
 /// Result of applying a batch. A report for one record does not reject the
@@ -243,7 +215,6 @@ class SyncApplyEngine {
               updatedAt: candidate.updatedAt,
               deletedAt: candidate.blob.deletedAt,
               existenceAt: candidate.existenceAt,
-              sourceBlob: candidate.blob,
             );
             final reportingStorage = storage is SyncApplyReportingStorage
                 ? storage
@@ -354,14 +325,8 @@ class SyncApplyEngine {
     required List<SyncRecordAddress> applied,
     required List<SyncReport> reports,
   }) async {
-    var reconciledCandidates = candidates;
-    if (storage is SyncApplyReconciliationStorage) {
-      final preparation = await storage.reconcileInbound(candidates);
-      reports.addAll(preparation.reports);
-      reconciledCandidates = preparation.candidates;
-    }
     final prepared = <SyncApplyRecord>[];
-    for (final candidate in reconciledCandidates) {
+    for (final candidate in candidates) {
       final validation = validateShareableRecordBody(
         candidate.blob.kind,
         candidate.blob.body,
@@ -444,7 +409,6 @@ class SyncApplyEngine {
           updatedAt: candidate.updatedAt,
           deletedAt: candidate.blob.deletedAt,
           existenceAt: candidate.existenceAt,
-          sourceBlob: candidate.blob,
         ),
       );
     }

@@ -2,12 +2,10 @@ import 'package:drift/drift.dart';
 import 'package:meta/meta.dart';
 
 import '../../model/tag.dart';
-import '../../sync/sync_record_kind.dart';
 import '../../util/argb.dart';
 import '../database.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
-import 'sync_local_repository.dart';
 
 /// CRUD for flat [Tag] rows.
 ///
@@ -252,21 +250,6 @@ class TagRepository {
   /// it either way.
   Future<void> delete(String id, {DateTime? at, bool permanent = false}) async {
     if (permanent) {
-      if (await isPublishedSyncRecord(
-        _db,
-        kind: SyncRecordKind.tag,
-        recordId: id,
-      )) {
-        await stampExistenceTransition(
-          _db,
-          table: _db.tags,
-          keyColumn: 'id',
-          key: id,
-          at: resolveStamp(at),
-          deleted: true,
-        );
-        return;
-      }
       await (_db.delete(_db.tags)..where((t) => t.id.equals(id))).go();
       return;
     }
@@ -280,27 +263,15 @@ class TagRepository {
     );
   }
 
-  Future<void> restore(
-    String id, {
-    required DateTime at,
-    bool clearPending = true,
-  }) async {
-    await stampExistenceTransition(
-      _db,
-      table: _db.tags,
-      keyColumn: 'id',
-      key: id,
-      at: at,
-      deleted: false,
-    );
-    if (clearPending) {
-      await clearPendingSyncDeletion(
+  Future<void> restore(String id, {required DateTime at}) =>
+      stampExistenceTransition(
         _db,
-        kind: SyncRecordKind.tag,
-        recordId: id,
+        table: _db.tags,
+        keyColumn: 'id',
+        key: id,
+        at: at,
+        deleted: false,
       );
-    }
-  }
 
   Future<void> hardDelete(Iterable<String> ids) async {
     for (final id in ids) {

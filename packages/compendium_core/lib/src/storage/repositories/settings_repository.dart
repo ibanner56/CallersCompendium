@@ -2,13 +2,11 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 
-import '../../sync/sync_record_kind.dart';
 import '../database.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
 import '../../privacy/data_classification.dart';
 import '../../privacy/settings_registry.dart';
-import 'sync_local_repository.dart';
 
 /// Free-form key/value app settings (dialect choice, prefs, source URLs).
 /// Values are stored as JSON so callers can persist any JSON-encodable type.
@@ -136,30 +134,6 @@ class SettingsRepository {
   /// is.
   Future<void> remove(String key, {DateTime? at, bool permanent = false}) {
     if (permanent) {
-      final isShareable =
-          classifySettingsKey(key)?.egress == EgressClass.shareable;
-      if (isShareable) {
-        return _db.transaction(() async {
-          if (await isPublishedSyncRecord(
-            _db,
-            kind: SyncRecordKind.setting,
-            recordId: key,
-          )) {
-            await stampExistenceTransition(
-              _db,
-              table: _db.settings,
-              keyColumn: 'key',
-              key: key,
-              at: resolveStamp(at),
-              deleted: true,
-            );
-            return;
-          }
-          await (_db.delete(
-            _db.settings,
-          )..where((t) => t.key.equals(key))).go();
-        });
-      }
       return (_db.delete(_db.settings)..where((t) => t.key.equals(key))).go();
     }
     return stampExistenceTransition(

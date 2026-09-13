@@ -425,44 +425,6 @@ void main() {
     },
   );
 
-  test('retires aliases from the complete current peer-manifest set', () async {
-    final store = _FakeStore();
-    final coordinator = SyncCoordinator(
-      syncId: 'configured',
-      deviceId: 'device-a',
-      store: store,
-      transport: _FakeTransport(
-        devices: ['peer'],
-        peerManifest: _manifest(deviceId: 'peer', records: const {}),
-      ),
-    );
-
-    final result = await coordinator.syncNow();
-
-    expect(result.status, SyncPassStatus.completed);
-    expect(store.retiredPeerAddresses, [<SyncRecordAddress>{}]);
-  });
-
-  test('does not retire aliases when a peer manifest is unavailable', () async {
-    final store = _FakeStore();
-    final coordinator = SyncCoordinator(
-      syncId: 'configured',
-      deviceId: 'device-a',
-      store: store,
-      transport: _FakeTransport(
-        devices: ['peer'],
-        manifestResponses: {
-          'peer': [_FakeTransport.response(500)],
-        },
-      ),
-    );
-
-    final result = await coordinator.syncNow();
-
-    expect(result.status, SyncPassStatus.completed);
-    expect(store.retiredPeerAddresses, isEmpty);
-  });
-
   test(
     'returns staleEpoch when manifest publication loses the epoch race',
     () async {
@@ -567,52 +529,6 @@ void main() {
       );
       expect(transport.postMissingCalls, 1);
       expect(transport.putBlobHashes, [repaired.wireHash]);
-    },
-  );
-
-  test(
-    'publishes a cited pending tombstone without removing the local live row',
-    () async {
-      final stamp = DateTime.utc(2026, 7, 15, 12);
-      final tombstone = SyncRecordBlob(
-        kind: SyncRecordKind.tag,
-        id: 'pending-tag',
-        updatedAt: stamp,
-        deletedAt: stamp,
-        existenceAt: stamp,
-        body: const {'id': 'pending-tag', 'name': 'Pending tag'},
-      );
-      final candidate = SyncMergeCandidate.fromBlob(tombstone);
-      final store = _FakeStore(
-        snapshotBuilder: (_) => SyncCoordinatorSnapshot(
-          epoch: 'epoch-1',
-          previouslyUsed: false,
-          local: const {},
-          publication: {candidate.address: candidate},
-          pending: {candidate.address},
-          baseline: const {},
-        ),
-      );
-      final transport = _FakeTransport();
-      final coordinator = SyncCoordinator(
-        syncId: 'configured',
-        deviceId: 'device-a',
-        store: store,
-        transport: transport,
-      );
-
-      final result = await coordinator.syncNow();
-
-      expect(result.status, SyncPassStatus.completed);
-      final manifest = decodeSyncManifest(
-        utf8.decode(transport.manifestBodies.single),
-      );
-      expect(
-        manifest.records[SyncRecordKind.tag]!['pending-tag'],
-        candidate.wireHash,
-      );
-      expect(store.publishedRecords, [candidate.address]);
-      expect(store.writes, isEmpty);
     },
   );
 
@@ -987,7 +903,6 @@ final class _FakeStore implements SyncCoordinatorStore {
   final List<SyncRecordAddress> advancedEntries = [];
   final List<SyncRecordAddress> droppedRecords = [];
   final List<SyncApplyRecord> writes = [];
-  final List<Set<SyncRecordAddress>> retiredPeerAddresses = [];
   int snapshotCalls = 0;
   int baselineAdvances = 0;
 
@@ -1038,14 +953,6 @@ final class _FakeStore implements SyncCoordinatorStore {
   Future<void> markPublished(Iterable<SyncRecordAddress> records) async {
     lifecycle.add('markPublished');
     publishedRecords.addAll(records);
-  }
-
-  @override
-  Future<void> retireAliases({
-    required Set<SyncRecordAddress> peerAddresses,
-  }) async {
-    lifecycle.add('retireAliases');
-    retiredPeerAddresses.add(peerAddresses);
   }
 
   @override

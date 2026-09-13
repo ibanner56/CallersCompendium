@@ -179,26 +179,6 @@ void main() {
       expect(await repo.getById('v2'), isNotNull);
     });
 
-    test('retains a published venue as a tombstone', () async {
-      final stamp = DateTime.utc(2026, 1, 2);
-      await repo.upsert(
-        Venue(id: 'v1', name: 'Published Hall'),
-        at: stamp,
-      );
-      await SyncLocalRepository(
-        db,
-      ).markPublished(kind: SyncRecordKind.venue, recordId: 'v1');
-
-      await repo.hardDelete(['v1']);
-
-      expect(await repo.getById('v1'), isNull);
-      final row = await (db.select(
-        db.venues,
-      )..where((table) => table.id.equals('v1'))).getSingle();
-      expect(row.deletedAt?.toUtc(), isNotNull);
-      expect(row.name, 'Published Hall');
-    });
-
     test('an empty id list is a no-op', () async {
       await repo.upsert(Venue(id: 'v1', name: 'Solo Hall'));
       await repo.hardDelete(const []);

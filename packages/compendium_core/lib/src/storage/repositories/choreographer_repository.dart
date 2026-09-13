@@ -2,11 +2,9 @@ import 'package:drift/drift.dart';
 import 'package:meta/meta.dart';
 
 import '../../model/choreographer.dart';
-import '../../sync/sync_record_kind.dart';
 import '../database.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
-import 'sync_local_repository.dart';
 
 /// CRUD for [Choreographer] rows. "Traditional"/"Unknown" are real rows the
 /// app seeds on first launch, not magic sentinel values — this repository
@@ -147,10 +145,13 @@ class ChoreographerRepository {
   /// references, and a tombstone for a still-credited author could not be
   /// applied by a peer anyway.
   ///
-  /// [permanent] removes the row for an unpublished record, for rolling back a
-  /// just-committed import (`ImportPipeline.undo`). A published record is
-  /// tombstoned instead so peers retain deletion evidence. The guard applies
-  /// either way.
+  /// [permanent] hard-deletes instead, for rolling back a just-committed
+  /// import (`ImportPipeline.undo`). A rollback must leave nothing behind: the
+  /// import is being erased, so a tombstone would advertise the deletion of an
+  /// entity that, as far as every other device is concerned, never existed.
+  /// This mirrors `DanceRepository.hardDelete` / `VenueRepository.hardDelete`,
+  /// which are hard deletes on kinds that have had soft delete for far longer.
+  /// The guard applies either way.
   Future<void> delete(String id, {DateTime? at, bool permanent = false}) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
@@ -164,21 +165,6 @@ class ChoreographerRepository {
         );
       }
       if (permanent) {
-        if (await isPublishedSyncRecord(
-          _db,
-          kind: SyncRecordKind.choreographer,
-          recordId: id,
-        )) {
-          await stampExistenceTransition(
-            _db,
-            table: _db.choreographers,
-            keyColumn: 'id',
-            key: id,
-            at: now,
-            deleted: true,
-          );
-          return;
-        }
         await (_db.delete(
           _db.choreographers,
         )..where((t) => t.id.equals(id))).go();
@@ -193,30 +179,6 @@ class ChoreographerRepository {
         deleted: true,
       );
     });
-  }
-
-  /// Explicitly revives a tombstoned choreographer and, by default, cancels
-  /// any pending sync tombstone held for it.
-  Future<void> restore(
-    String id, {
-    required DateTime at,
-    bool clearPending = true,
-  }) async {
-    await stampExistenceTransition(
-      _db,
-      table: _db.choreographers,
-      keyColumn: 'id',
-      key: id,
-      at: at,
-      deleted: false,
-    );
-    if (clearPending) {
-      await clearPendingSyncDeletion(
-        _db,
-        kind: SyncRecordKind.choreographer,
-        recordId: id,
-      );
-    }
   }
 
   Choreographer _toModel(ChoreographerRow row) => Choreographer(

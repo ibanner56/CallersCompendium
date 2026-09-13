@@ -5,11 +5,9 @@ import 'package:meta/meta.dart';
 
 import '../../model/custom_field.dart';
 import '../../model/enums.dart';
-import '../../sync/sync_record_kind.dart';
 import '../database.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
-import 'sync_local_repository.dart';
 
 /// CRUD for [CustomFieldDef] rows (the user-defined field schema).
 ///
@@ -174,9 +172,8 @@ class CustomFieldDefRepository {
   /// so no dance can acquire a value for [id] between the check and the
   /// delete (no check-then-act race). Mirrors `VenueRepository.delete`.
   ///
-  /// Tombstones by default (schema v25, issue #898); the guard is kept.
-  /// [permanent] removes unpublished rows for rollback, while published rows
-  /// are tombstoned so peers retain deletion evidence.
+  /// Tombstones by default (schema v25, issue #898); the guard is kept. See
+  /// `ChoreographerRepository.delete` for [permanent].
   Future<void> delete(String id, {DateTime? at, bool permanent = false}) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
@@ -191,21 +188,6 @@ class CustomFieldDefRepository {
       }
 
       if (permanent) {
-        if (await isPublishedSyncRecord(
-          _db,
-          kind: SyncRecordKind.customFieldDef,
-          recordId: id,
-        )) {
-          await stampExistenceTransition(
-            _db,
-            table: _db.customFieldDefs,
-            keyColumn: 'id',
-            key: id,
-            at: now,
-            deleted: true,
-          );
-          return;
-        }
         await (_db.delete(
           _db.customFieldDefs,
         )..where((t) => t.id.equals(id))).go();
@@ -222,27 +204,15 @@ class CustomFieldDefRepository {
     });
   }
 
-  Future<void> restore(
-    String id, {
-    required DateTime at,
-    bool clearPending = true,
-  }) async {
-    await stampExistenceTransition(
-      _db,
-      table: _db.customFieldDefs,
-      keyColumn: 'id',
-      key: id,
-      at: at,
-      deleted: false,
-    );
-    if (clearPending) {
-      await clearPendingSyncDeletion(
+  Future<void> restore(String id, {required DateTime at}) =>
+      stampExistenceTransition(
         _db,
-        kind: SyncRecordKind.customFieldDef,
-        recordId: id,
+        table: _db.customFieldDefs,
+        keyColumn: 'id',
+        key: id,
+        at: at,
+        deleted: false,
       );
-    }
-  }
 
   Future<void> hardDelete(Iterable<String> ids) async {
     for (final id in ids) {
