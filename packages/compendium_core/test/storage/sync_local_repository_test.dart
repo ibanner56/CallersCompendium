@@ -1,12 +1,44 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/src/storage/database.dart'
     show BaselineStateCompanion;
-import 'package:drift/drift.dart'
-    show BatchedStatements, QueryExecutor, QueryInterceptor, Value;
+import 'package:drift/drift.dart' hide isNotNull, isNull;
+import 'package:drift/native.dart';
 import 'package:sqlite3/sqlite3.dart' show SqliteException;
 import 'package:test/test.dart';
 
 import 'test_database.dart';
+
+class _SqliteBindLimitGuard extends QueryInterceptor {
+  static const maxVariables = 999;
+
+  void _check(List<Object?> args) {
+    if (args.length > maxVariables) {
+      throw StateError(
+        'test SQLite bind limit exceeded: ${args.length} > $maxVariables',
+      );
+    }
+  }
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    _check(args);
+    return super.runSelect(executor, statement, args);
+  }
+
+  @override
+  Future<int> runUpdate(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    _check(args);
+    return super.runUpdate(executor, statement, args);
+  }
+}
 
 void main() {
   group('SyncLocalRepository schema', () {
@@ -278,7 +310,9 @@ void main() {
     test(
       'remaps a large alias closure without exceeding SQLite bind limits',
       () async {
-        final db = openTestDatabase();
+        final db = CompendiumDatabase(
+          NativeDatabase.memory().interceptWith(_SqliteBindLimitGuard()),
+        );
         addTearDown(db.close);
         final repository = SyncLocalRepository(db);
         const total = 1001;
