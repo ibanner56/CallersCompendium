@@ -447,6 +447,11 @@ class SyncCoordinator {
         }
       },
       onError: (Object error, StackTrace stackTrace) {
+        logCaughtErrorTypeOnly(
+          error,
+          stackTrace,
+          source: 'sync_coordinator.confirmReplacement',
+        );
         if (identical(_confirmation, confirmation)) {
           _confirmation = null;
         }
