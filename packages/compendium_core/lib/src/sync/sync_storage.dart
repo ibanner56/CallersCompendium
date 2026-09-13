@@ -563,6 +563,20 @@ final class CompendiumSyncStorage
               ? _canonicalDifficultyId(naturalKey)
               : null;
           if (canonicalDifficultyId != null) {
+            if (incumbent != null) {
+              final localCandidate = await _localNaturalCandidate(
+                kind: kind,
+                id: incumbent.id,
+              );
+              if (localCandidate == null) continue;
+              final reconciled = await _reconcileNaturalKeyCollision(
+                candidate: candidate,
+                local: localCandidate,
+                survivorId: canonicalDifficultyId,
+              );
+              if (reconciled == null) continue;
+              candidate = reconciled;
+            }
             if (incumbent != null && incumbent.id != canonicalDifficultyId) {
               await _adoptCollision(
                 kind: kind,

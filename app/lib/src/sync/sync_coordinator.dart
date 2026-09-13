@@ -93,7 +93,7 @@ abstract interface class SyncCoordinatorStore
 /// semantics live in [CompendiumSyncStorage], while this layer owns only the
 /// coordinator's baseline/publication lifecycle.
 final class CompendiumSyncCoordinatorStore
-    implements SyncCoordinatorStore, SyncApplyBatchStorage {
+    implements SyncCoordinatorStore, SyncApplyReconciliationStorage {
   CompendiumSyncCoordinatorStore(
     CompendiumRepositories repositories, {
     this.syncId,
@@ -118,6 +118,11 @@ final class CompendiumSyncCoordinatorStore
   @override
   Future<Map<SyncRecordAddress, SyncMergeCandidate?>> snapshotCandidates() =>
       storage.snapshot().then((snapshot) => snapshot.local);
+
+  @override
+  Future<SyncApplyPreparation> reconcileInbound(
+    List<SyncMergeCandidate> candidates,
+  ) => storage.reconcileInbound(candidates);
 
   @override
   Future<void> markSyncUsed(String syncId) => storage.markSyncUsed(syncId);

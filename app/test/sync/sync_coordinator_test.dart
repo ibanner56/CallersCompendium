@@ -6,7 +6,50 @@ import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/test_repositories.dart';
+
 void main() {
+  test(
+    'coordinator store dispatches inbound reconciliation before apply',
+    () async {
+      final repositories = openTestRepositories();
+      final store = CompendiumSyncCoordinatorStore(repositories);
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+      await repositories.choreographers.upsert(
+        Choreographer(id: 'z-local', name: 'Shared author'),
+        at: stamp,
+      );
+      final inbound = Choreographer(id: 'a-peer', name: 'Shared author');
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.choreographer,
+              id: inbound.id,
+              updatedAt: stamp.add(const Duration(minutes: 1)),
+              deletedAt: null,
+              existenceAt: stamp.add(const Duration(minutes: 1)),
+              body: syncBodyForEntity(SyncRecordKind.choreographer, inbound),
+            ),
+          ),
+        ],
+        storage: store,
+      );
+
+      expect(result.reports, isEmpty);
+      expect(
+        await repositories.syncLocal.resolveAlias(
+          kind: SyncRecordKind.choreographer,
+          recordId: 'z-local',
+        ),
+        'a-peer',
+      );
+      expect(await repositories.choreographers.getById('z-local'), isNull);
+      expect(await repositories.choreographers.getById('a-peer'), isNotNull);
+    },
+  );
+
   test('unconfigured triggers make no transport calls', () async {
     final transport = _FakeTransport();
     final coordinator = SyncCoordinator(

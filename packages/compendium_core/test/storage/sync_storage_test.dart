@@ -559,6 +559,94 @@ void main() {
   );
 
   test(
+    'canonical difficulty keeps newer local content over stale inbound live',
+    () async {
+      final localStamp = DateTime.utc(2025, 1, 2, 12);
+      final inboundStamp = localStamp.subtract(const Duration(minutes: 1));
+      final custom = DifficultyLevel(
+        id: 'a-custom-beginner',
+        label: DifficultyLevel.beginner.label,
+        position: 7,
+      );
+      await (db.delete(
+        db.difficultyLevels,
+      )..where((row) => row.id.equals(DifficultyLevel.beginner.id))).go();
+      await repositories.difficultyLevels.upsert(custom, at: localStamp);
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.difficultyLevel,
+              id: DifficultyLevel.beginner.id,
+              updatedAt: inboundStamp,
+              deletedAt: null,
+              existenceAt: inboundStamp,
+              body: syncBodyForEntity(
+                SyncRecordKind.difficultyLevel,
+                DifficultyLevel.beginner,
+              ),
+            ),
+          ),
+        ],
+        storage: storage,
+      );
+
+      expect(result.reports, isEmpty);
+      expect(await repositories.difficultyLevels.getById(custom.id), isNull);
+      final stored = await repositories.difficultyLevels.getById(
+        DifficultyLevel.beginner.id,
+      );
+      expect(stored, isNotNull);
+      expect(stored!.position, custom.position);
+    },
+  );
+
+  test(
+    'canonical difficulty keeps newer local existence over stale inbound tombstone',
+    () async {
+      final localStamp = DateTime.utc(2025, 1, 2, 12);
+      final inboundStamp = localStamp.subtract(const Duration(minutes: 1));
+      final custom = DifficultyLevel(
+        id: 'a-custom-beginner',
+        label: DifficultyLevel.beginner.label,
+        position: 7,
+      );
+      await (db.delete(
+        db.difficultyLevels,
+      )..where((row) => row.id.equals(DifficultyLevel.beginner.id))).go();
+      await repositories.difficultyLevels.upsert(custom, at: localStamp);
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.difficultyLevel,
+              id: DifficultyLevel.beginner.id,
+              updatedAt: inboundStamp,
+              deletedAt: inboundStamp,
+              existenceAt: inboundStamp,
+              body: syncBodyForEntity(
+                SyncRecordKind.difficultyLevel,
+                DifficultyLevel.beginner,
+              ),
+            ),
+          ),
+        ],
+        storage: storage,
+      );
+
+      expect(result.reports, isEmpty);
+      final stored = await repositories.difficultyLevels.getById(
+        DifficultyLevel.beginner.id,
+      );
+      expect(stored, isNotNull);
+      expect(stored!.position, custom.position);
+      expect(await repositories.difficultyLevels.getById(custom.id), isNull);
+    },
+  );
+
+  test(
     'applies forward and cyclic dance references after parent rows',
     () async {
       final stamp = DateTime.utc(2025, 1, 2, 12);
