@@ -237,7 +237,7 @@ class ArchiveRestorer {
             ? await _repos.dances.getById(d.id, includeDeleted: true)
             : null;
         if (wasTombstoned) {
-          await _repos.dances.restore(d.id, at: causalAt);
+          await _repos.dances.restore(d.id, at: causalAt, clearPending: false);
         }
         try {
           final restoredDance = _repairRestoredCallersBoxRollAway(
@@ -286,7 +286,11 @@ class ArchiveRestorer {
             ? await _repos.programs.getById(p.id, includeDeleted: true)
             : null;
         if (wasTombstoned) {
-          await _repos.programs.restore(p.id, at: causalAt);
+          await _repos.programs.restore(
+            p.id,
+            at: causalAt,
+            clearPending: false,
+          );
         }
         try {
           await _repos.programs.create(

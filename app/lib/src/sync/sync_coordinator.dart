@@ -37,13 +37,19 @@ class SyncCoordinatorSnapshot {
     required this.previouslyUsed,
     required Map<SyncRecordAddress, SyncMergeCandidate?> local,
     required Map<SyncRecordAddress, SyncBaselineEntry> baseline,
+    Map<SyncRecordAddress, SyncMergeCandidate?>? publication,
+    Set<SyncRecordAddress> pending = const {},
   }) : local = Map.unmodifiable(local),
-       baseline = Map.unmodifiable(baseline);
+       baseline = Map.unmodifiable(baseline),
+       publication = Map.unmodifiable(publication ?? local),
+       pending = Set.unmodifiable(pending);
 
   final String? epoch;
   final bool previouslyUsed;
   final Map<SyncRecordAddress, SyncMergeCandidate?> local;
   final Map<SyncRecordAddress, SyncBaselineEntry> baseline;
+  final Map<SyncRecordAddress, SyncMergeCandidate?> publication;
+  final Set<SyncRecordAddress> pending;
 }
 
 /// Storage operations that the coordinator must compose with inbound apply.
@@ -61,6 +67,11 @@ abstract interface class SyncCoordinatorStore
   Future<void> markSyncUsed(String syncId);
 
   Future<void> markPublished(Iterable<SyncRecordAddress> records);
+
+  /// Drops aliases whose losing IDs no longer appear in any verified peer
+  /// manifest. The coordinator only invokes this when every current peer
+  /// manifest was available for the epoch.
+  Future<void> retireAliases({required Set<SyncRecordAddress> peerAddresses});
 
   /// Records publication intent before the network PUT, so a crash after the
   /// server accepts the manifest cannot lose the previously-used marker.
@@ -99,6 +110,8 @@ final class CompendiumSyncCoordinatorStore
       previouslyUsed: snapshot.previouslyUsed,
       local: snapshot.local,
       baseline: snapshot.baseline,
+      publication: snapshot.publication,
+      pending: snapshot.pending,
     );
   }
 
@@ -112,6 +125,12 @@ final class CompendiumSyncCoordinatorStore
   @override
   Future<void> markPublished(Iterable<SyncRecordAddress> records) =>
       storage.repositories.syncLocal.markPublishedAll(records);
+
+  @override
+  Future<void> retireAliases({required Set<SyncRecordAddress> peerAddresses}) =>
+      storage.repositories.syncLocal.retireAliases(
+        peerAddresses: peerAddresses,
+      );
 
   @override
   Future<void> markPublicationAttempt({
@@ -625,6 +644,7 @@ class SyncCoordinator {
     final peerMaps = <Map<SyncRecordAddress, SyncMergeCandidate?>>[];
     final peerManifests = <({String peerId, SyncManifest manifest})>[];
     final unresolved = <SyncRecordAddress>{};
+    var allPeerManifestsAvailable = true;
     for (final peerId in metadata.devices) {
       if (peerId == deviceId) continue;
       final cached = _peerManifestCache[peerId];
@@ -642,6 +662,7 @@ class SyncCoordinator {
         _peerManifestCache.remove(peerId);
       }
       if (!response.isSuccess) {
+        allPeerManifestsAvailable = false;
         unresolved.addAll(snapshot.baseline.keys);
         reports.add(
           SyncReport(
@@ -654,6 +675,7 @@ class SyncCoordinator {
         continue;
       }
       if (manifest == null || manifest.epoch != metadata.epoch) {
+        allPeerManifestsAvailable = false;
         _peerManifestCache.remove(peerId);
         unresolved.addAll(snapshot.baseline.keys);
         reports.add(
@@ -686,9 +708,18 @@ class SyncCoordinator {
       }
       peerManifests.add((peerId: peerId, manifest: manifest));
     }
+    if (allPeerManifestsAvailable) {
+      final peerAddresses = <SyncRecordAddress>{
+        for (final peer in peerManifests)
+          for (final kindEntry in peer.manifest.records.entries)
+            for (final recordId in kindEntry.value.keys)
+              (kind: kindEntry.key, recordId: recordId),
+      };
+      await store.retireAliases(peerAddresses: peerAddresses);
+    }
 
     final localByHash = <String, SyncMergeCandidate>{};
-    for (final candidate in snapshot.local.values) {
+    for (final candidate in snapshot.publication.values) {
       if (candidate != null) localByHash[candidate.wireHash] = candidate;
     }
     final availableByHash = <String, SyncMergeCandidate>{...localByHash};
@@ -705,9 +736,12 @@ class SyncCoordinator {
       );
     }
 
+    final mergeBaseline = <SyncRecordAddress, SyncBaselineEntry>{
+      ...snapshot.baseline,
+    }..removeWhere((address, _) => snapshot.pending.contains(address));
     final plan = _mergeEngine.plan(
       local: snapshot.local,
-      baseline: snapshot.baseline,
+      baseline: mergeBaseline,
       peers: peerMaps,
       unresolved: unresolved,
     );
@@ -728,11 +762,15 @@ class SyncCoordinator {
     );
     reports.addAll(applyResult.reports);
 
+    final currentSnapshot = await store.snapshot();
     final current = <SyncRecordAddress, SyncMergeCandidate?>{
-      ...(await store.snapshot()).local,
+      ...currentSnapshot.local,
+    };
+    final publication = <SyncRecordAddress, SyncMergeCandidate?>{
+      ...currentSnapshot.publication,
     };
     final finalByHash = <String, SyncMergeCandidate>{};
-    for (final candidate in current.values) {
+    for (final candidate in publication.values) {
       if (candidate != null) finalByHash[candidate.wireHash] = candidate;
     }
     final finalUploadSucceeded = await _uploadMissingLocalBlobs(
@@ -751,7 +789,7 @@ class SyncCoordinator {
       deviceId: deviceId,
       epoch: metadata.epoch,
       writtenAt: DateTime.now().toUtc(),
-      records: _manifestRecords(current),
+      records: _manifestRecords(publication),
     );
     final manifestBody = encodeSyncManifestUtf8(manifest);
     final addresses = [

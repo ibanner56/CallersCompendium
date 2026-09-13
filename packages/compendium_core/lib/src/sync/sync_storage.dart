@@ -19,6 +19,7 @@ import '../serialization/archive_codec.dart';
 import '../serialization/archive_entity_codec.dart';
 import '../sync/canonical_json.dart';
 import '../storage/database.dart';
+import '../storage/existence.dart';
 import '../storage/repositories/repositories.dart';
 import '../storage/repositories/custom_field_repository.dart';
 import '../storage/repositories/sync_local_repository.dart';
@@ -28,7 +29,17 @@ import 'sync_codec.dart';
 import 'sync_id.dart';
 import 'sync_merge.dart';
 import 'sync_record_kind.dart';
+import 'sync_reconciliation.dart';
 import 'sync_report.dart';
+import 'wire_mapping.dart';
+
+Iterable<List<T>> _chunked<T>(Iterable<T> values, int size) sync* {
+  final list = values.toList(growable: false);
+  for (var start = 0; start < list.length; start += size) {
+    final end = start + size < list.length ? start + size : list.length;
+    yield list.sublist(start, end);
+  }
+}
 
 /// A complete local sync snapshot owned by the repository/database boundary.
 class SyncStorageSnapshot {
@@ -37,12 +48,22 @@ class SyncStorageSnapshot {
     required this.previouslyUsed,
     required this.local,
     required this.baseline,
-  });
+    Map<SyncRecordAddress, SyncMergeCandidate?>? publication,
+    this.pending = const {},
+  }) : publication = publication ?? local;
 
   final String? epoch;
   final bool previouslyUsed;
   final Map<SyncRecordAddress, SyncMergeCandidate?> local;
   final Map<SyncRecordAddress, SyncBaselineEntry> baseline;
+
+  /// The manifest view. Pending tombstones overlay live rows here without
+  /// changing the live merge view until their citation is gone.
+  final Map<SyncRecordAddress, SyncMergeCandidate?> publication;
+
+  /// Addresses held in [pendingDeletions], excluded from merge and baseline
+  /// advancement while their local citations still exist.
+  final Set<SyncRecordAddress> pending;
 }
 
 final class _InboundDependentIndex {
@@ -57,11 +78,13 @@ final class _InboundDependentIndex {
 /// interactive side effects cannot alter the validated peer body, then restore
 /// the wire timestamp triple because local persistence stamps causal times.
 final class CompendiumSyncStorage
-    implements SyncApplyBatchStorage, SyncApplyConcurrencyStorage {
+    implements SyncApplyReconciliationStorage, SyncApplyConcurrencyStorage {
   CompendiumSyncStorage(this.repositories);
 
   final CompendiumRepositories repositories;
   final Map<SyncRecordAddress, Object> _deferredEntities = {};
+  final Set<SyncRecordAddress> _pendingParentWrites = {};
+  Set<SyncRecordAddress> _inboundTombstonedAddresses = {};
   final Expando<_InboundDependentIndex> _dependentIndexCache =
       Expando<_InboundDependentIndex>();
 
@@ -70,6 +93,7 @@ final class CompendiumSyncStorage
   Future<SyncStorageSnapshot> snapshot({
     String? syncId,
   }) => repositories.transaction(() async {
+    await _revalidatePendingDeletions();
     final usedVerifiers = await _loadUsedIdentityVerifiers(syncId);
     final baseline = await repositories.syncLocal.snapshotBaseline();
     final baselineState = await repositories.syncLocal.getBaselineState();
@@ -282,6 +306,26 @@ final class CompendiumSyncStorage
       );
     }
 
+    final publication = <SyncRecordAddress, SyncMergeCandidate?>{...local};
+    final pendingAddresses = <SyncRecordAddress>{};
+    final pendingRows = await repositories.syncLocal.listPendingDeletions();
+    for (final row in pendingRows) {
+      final blob = decodeSyncRecordBlob(row.tombstoneBlob);
+      final hash = sha256Hex(encodeSyncRecordBlobUtf8(blob));
+      if (blob.kind != row.kind ||
+          blob.id != row.recordId ||
+          hash != row.tombstoneHash ||
+          blob.deletedAt == null) {
+        throw StateError(
+          'pending tombstone does not match its stored identity or hash',
+        );
+      }
+      final address = (kind: row.kind, recordId: row.recordId);
+      local.remove(address);
+      publication[address] = SyncMergeCandidate(blob: blob, wireHash: hash);
+      pendingAddresses.add(address);
+    }
+
     return SyncStorageSnapshot(
       epoch: baselineState?.epoch,
       previouslyUsed:
@@ -289,8 +333,120 @@ final class CompendiumSyncStorage
           usedVerifiers.any((verifier) => verifier.matches(syncId)),
       local: local,
       baseline: baseline,
+      publication: publication,
+      pending: pendingAddresses,
     );
   });
+
+  /// Applies pending tombstones whose final local citation disappeared.
+  ///
+  /// This runs before every snapshot so a citation removed by an ordinary
+  /// repository transaction is observed by the next pass without requiring a
+  /// separate sync trigger.
+  Future<void> _revalidatePendingDeletions() async {
+    final rows = await repositories.syncLocal.listPendingDeletions();
+    for (final row in rows) {
+      if (await _hasCitation(row.kind, row.recordId)) continue;
+      final blob = decodeSyncRecordBlob(row.tombstoneBlob);
+      if (blob.kind != row.kind ||
+          blob.id != row.recordId ||
+          blob.deletedAt == null ||
+          sha256Hex(encodeSyncRecordBlobUtf8(blob)) != row.tombstoneHash) {
+        throw StateError(
+          'pending tombstone does not match its stored identity or hash',
+        );
+      }
+      final record = SyncApplyRecord(
+        address: (kind: blob.kind, recordId: blob.id),
+        body: blob.body,
+        updatedAt: blob.updatedAt,
+        deletedAt: blob.deletedAt,
+        existenceAt: blob.existenceAt,
+        sourceBlob: blob,
+      );
+      await writeWithReport(record);
+      await repositories.syncLocal.deletePendingDeletion(
+        kind: row.kind,
+        recordId: row.recordId,
+      );
+    }
+  }
+
+  Future<bool> _hasCitation(
+    SyncRecordKind kind,
+    String recordId, {
+    bool ignoreInboundTombstones = false,
+  }) async {
+    bool ownerRemainsLive(SyncRecordKind ownerKind, String ownerId) =>
+        !ignoreInboundTombstones ||
+        !_inboundTombstonedAddresses.contains((
+          kind: ownerKind,
+          recordId: ownerId,
+        ));
+
+    switch (kind) {
+      case SyncRecordKind.choreographer:
+        final rows = await (_db.select(
+          _db.danceAuthors,
+        )..where((row) => row.choreographerId.equals(recordId))).get();
+        return rows.any(
+          (row) => ownerRemainsLive(SyncRecordKind.dance, row.danceId),
+        );
+      case SyncRecordKind.tag:
+        final rows = await (_db.select(
+          _db.danceTags,
+        )..where((row) => row.tagId.equals(recordId))).get();
+        return rows.any(
+          (row) => ownerRemainsLive(SyncRecordKind.dance, row.danceId),
+        );
+      case SyncRecordKind.publishedSource:
+        final rows = await (_db.select(
+          _db.danceSources,
+        )..where((row) => row.sourceId.equals(recordId))).get();
+        return rows.any(
+          (row) => ownerRemainsLive(SyncRecordKind.dance, row.danceId),
+        );
+      case SyncRecordKind.customFieldDef:
+        final rows = await (_db.select(
+          _db.customFieldValues,
+        )..where((row) => row.fieldId.equals(recordId))).get();
+        return rows.any(
+          (row) => ownerRemainsLive(SyncRecordKind.dance, row.danceId),
+        );
+      case SyncRecordKind.difficultyLevel:
+        final rows = await (_db.select(
+          _db.dances,
+        )..where((row) => row.levelId.equals(recordId))).get();
+        return rows.any(
+          (row) => ownerRemainsLive(SyncRecordKind.dance, row.id),
+        );
+      case SyncRecordKind.venue:
+        final rows = await (_db.select(
+          _db.programs,
+        )..where((row) => row.venueId.equals(recordId))).get();
+        return rows.any(
+          (row) => ownerRemainsLive(SyncRecordKind.program, row.id),
+        );
+      case SyncRecordKind.dance:
+        final slots = await (_db.select(
+          _db.programSlots,
+        )..where((row) => row.danceId.equals(recordId))).get();
+        if (slots.any(
+          (row) => ownerRemainsLive(SyncRecordKind.program, row.programId),
+        )) {
+          return true;
+        }
+        final links = await (_db.select(
+          _db.danceLinks,
+        )..where((row) => row.targetDanceId.equals(recordId))).get();
+        return links.any(
+          (row) => ownerRemainsLive(SyncRecordKind.dance, row.danceId),
+        );
+      case SyncRecordKind.program:
+      case SyncRecordKind.setting:
+        return false;
+    }
+  }
 
   Future<void> markSyncUsed(String syncId) async {
     final verifiers = await _loadUsedIdentityVerifiers(syncId);
@@ -377,6 +533,1198 @@ final class CompendiumSyncStorage
   @override
   Future<Map<SyncRecordAddress, SyncMergeCandidate?>>
   snapshotCandidates() async => (await snapshot()).local;
+
+  @override
+  Future<SyncApplyPreparation> reconcileInbound(
+    List<SyncMergeCandidate> candidates,
+  ) async {
+    final aliases = await _aliasMap();
+    final baseline = await repositories.syncLocal.snapshotBaseline();
+    final prepared = <SyncMergeCandidate>[];
+    final reports = <SyncReport>[];
+    final preparedNatural = <({SyncRecordKind kind, String key}), int>{};
+    for (var candidate in candidates) {
+      final preflightReport = _preflightInboundCandidate(candidate);
+      if (preflightReport != null) {
+        reports.add(preflightReport);
+        continue;
+      }
+      final kind = candidate.blob.kind;
+      if (syncNaturalKeyKinds.contains(kind)) {
+        candidate = _rewriteCandidate(candidate, aliases);
+        final naturalKey = syncNaturalKeyForBody(kind, candidate.blob.body);
+        if (naturalKey != null) {
+          final byId = await _recordIdentity(kind, candidate.blob.id);
+          final incumbent = await _naturalKeyRow(kind, naturalKey);
+
+          // Shipped difficulty IDs are part of the persisted relationship
+          // contract and outrank a same-label custom ID.
+          final canonicalDifficultyId = kind == SyncRecordKind.difficultyLevel
+              ? _canonicalDifficultyId(naturalKey)
+              : null;
+          if (canonicalDifficultyId != null) {
+            if (incumbent != null && incumbent.id != canonicalDifficultyId) {
+              await _adoptCollision(
+                kind: kind,
+                losingId: incumbent.id,
+                survivingId: canonicalDifficultyId,
+                aliases: aliases,
+                localIdentity: incumbent,
+              );
+            }
+            if (candidate.blob.id != canonicalDifficultyId) {
+              await _adoptCollision(
+                kind: kind,
+                losingId: candidate.blob.id,
+                survivingId: canonicalDifficultyId,
+                aliases: aliases,
+                localIdentity: byId,
+              );
+            }
+            candidate = _rewriteCandidateIdentity(
+              candidate,
+              canonicalDifficultyId,
+              aliases,
+            );
+          } else if (byId != null &&
+              incumbent != null &&
+              incumbent.id != candidate.blob.id) {
+            await _enqueueCollisionReview(
+              candidate,
+              incumbent.id,
+              reason:
+                  'known UUID natural-key rename collides with '
+                  'another local row',
+            );
+            continue;
+          } else if (incumbent != null && incumbent.id != candidate.blob.id) {
+            if (candidate.blob.deletedAt != null &&
+                !incumbent.deleted &&
+                !baseline.containsKey((kind: kind, recordId: incumbent.id))) {
+              await _enqueueCollisionReview(
+                candidate,
+                incumbent.id,
+                recordId: incumbent.id,
+                reason:
+                    'a tombstone would remove a locally-created '
+                    'natural-key row before a peer observed it',
+              );
+              continue;
+            }
+
+            if (kind == SyncRecordKind.customFieldDef &&
+                incumbent.type != _customFieldType(candidate.blob.body)) {
+              final reconciled = await _reconcileCustomFieldTypeMismatch(
+                candidate,
+                incumbent,
+              );
+              if (reconciled == null) continue;
+              candidate = reconciled;
+            } else {
+              final localCandidate = await _localNaturalCandidate(
+                kind: kind,
+                id: incumbent.id,
+              );
+              if (localCandidate == null) {
+                continue;
+              }
+              final survivingId = candidate.blob.id.compareTo(incumbent.id) < 0
+                  ? candidate.blob.id
+                  : incumbent.id;
+              final reconciled = await _reconcileNaturalKeyCollision(
+                candidate: candidate,
+                local: localCandidate,
+                survivorId: survivingId,
+              );
+              if (reconciled == null) continue;
+              await _adoptCollision(
+                kind: kind,
+                losingId: survivingId == candidate.blob.id
+                    ? incumbent.id
+                    : candidate.blob.id,
+                survivingId: survivingId,
+                aliases: aliases,
+                localIdentity: survivingId == incumbent.id ? null : incumbent,
+              );
+              candidate = reconciled;
+            }
+          }
+        }
+      } else {
+        candidate = _rewriteCandidate(candidate, aliases);
+      }
+      final naturalKey = syncNaturalKeyKinds.contains(kind)
+          ? syncNaturalKeyForBody(kind, candidate.blob.body)
+          : null;
+      if (naturalKey != null) {
+        final naturalAddress = (kind: kind, key: naturalKey);
+        final previousIndex = preparedNatural[naturalAddress];
+        if (previousIndex != null) {
+          final previous = prepared[previousIndex];
+          if (kind == SyncRecordKind.customFieldDef &&
+              _customFieldType(previous.blob.body) !=
+                  _customFieldType(candidate.blob.body)) {
+            final incomingWins =
+                candidate.blob.id.compareTo(previous.blob.id) < 0;
+            final losing = incomingWins ? previous : candidate;
+            final losingKey = losing.blob.body['key'];
+            if (losingKey is! String) continue;
+            final shortKey = syncCustomFieldSuffix(
+              losingKey,
+              losing.blob.id,
+              full: false,
+            );
+            final fullKey = syncCustomFieldSuffix(
+              losingKey,
+              losing.blob.id,
+              full: true,
+            );
+            Future<bool> isOccupied(String key) async {
+              final address = (
+                kind: SyncRecordKind.customFieldDef,
+                key: key.toLowerCase(),
+              );
+              if (preparedNatural.containsKey(address) &&
+                  preparedNatural[address] != previousIndex) {
+                return true;
+              }
+              return await _naturalKeyRow(
+                    SyncRecordKind.customFieldDef,
+                    key.toLowerCase(),
+                  ) !=
+                  null;
+            }
+
+            final suffix = !await isOccupied(shortKey)
+                ? shortKey
+                : !await isOccupied(fullKey)
+                ? fullKey
+                : null;
+            if (suffix == null) {
+              await _enqueueCollisionReview(
+                candidate,
+                previous.blob.id,
+                reason:
+                    'custom-field type mismatch has no deterministic free key',
+              );
+              continue;
+            }
+            final losingBody = Map<String, Object?>.from(losing.blob.body)
+              ..['key'] = suffix;
+            final renamed = _candidateWithBody(
+              losing,
+              losing.blob.id,
+              losingBody,
+              updatedAt: nextExistenceStamp(
+                now: DateTime.now().toUtc(),
+                current: losing.blob.updatedAt,
+              ),
+            );
+            if (incomingWins) {
+              prepared[previousIndex] = renamed;
+              preparedNatural.remove(naturalAddress);
+              preparedNatural[(
+                    kind: SyncRecordKind.customFieldDef,
+                    key: suffix.toLowerCase(),
+                  )] =
+                  previousIndex;
+              preparedNatural[naturalAddress] = prepared.length;
+            } else {
+              candidate = renamed;
+              preparedNatural[(
+                    kind: SyncRecordKind.customFieldDef,
+                    key: suffix.toLowerCase(),
+                  )] =
+                  prepared.length;
+            }
+          } else {
+            final survivingId =
+                candidate.blob.id.compareTo(previous.blob.id) < 0
+                ? candidate.blob.id
+                : previous.blob.id;
+            final reconciled = await _reconcileNaturalKeyCollision(
+              candidate: candidate,
+              local: previous,
+              survivorId: survivingId,
+            );
+            if (reconciled == null) continue;
+            await _adoptCollision(
+              kind: kind,
+              losingId: survivingId == candidate.blob.id
+                  ? previous.blob.id
+                  : candidate.blob.id,
+              survivingId: survivingId,
+              aliases: aliases,
+              localIdentity: null,
+            );
+            prepared[previousIndex] = reconciled;
+            continue;
+          }
+        } else {
+          preparedNatural[naturalAddress] = prepared.length;
+        }
+      }
+      prepared.add(candidate);
+    }
+    _inboundTombstonedAddresses = {
+      for (final candidate in prepared)
+        if (candidate.blob.deletedAt != null) candidate.address,
+    };
+    return SyncApplyPreparation(candidates: prepared, reports: reports);
+  }
+
+  SyncReport? _preflightInboundCandidate(SyncMergeCandidate candidate) {
+    final validation = validateShareableRecordBody(
+      candidate.blob.kind,
+      candidate.blob.body,
+      settingsKey: candidate.blob.kind == SyncRecordKind.setting
+          ? candidate.blob.id
+          : null,
+    );
+    if (!validation.isValid) {
+      return SyncReport(
+        code: SyncReportCode.invalidClassification,
+        kind: candidate.blob.kind,
+        recordId: candidate.blob.id,
+        message:
+            'Inbound body contains a non-shareable wire path '
+            '${validation.invalidPath}.',
+      );
+    }
+    if (candidate.blob.kind == SyncRecordKind.setting &&
+        (candidate.blob.id == 'sync_id' ||
+            candidate.blob.id == 'sync_device_id')) {
+      return SyncReport(
+        code: SyncReportCode.invalidClassification,
+        kind: candidate.blob.kind,
+        recordId: candidate.blob.id,
+        message:
+            'Inbound sync credentials are receive-only and were not adopted.',
+      );
+    }
+
+    final Object? normalized;
+    try {
+      normalized = normalizeShareableJson(candidate.blob.body);
+    } on ArgumentError catch (error) {
+      return SyncReport(
+        code: SyncReportCode.malformedRecord,
+        kind: candidate.blob.kind,
+        recordId: candidate.blob.id,
+        message: 'Inbound record body could not be normalized: $error.',
+      );
+    } on ShareableJsonKeyCollision catch (error) {
+      return SyncReport(
+        code: SyncReportCode.malformedRecord,
+        kind: candidate.blob.kind,
+        recordId: candidate.blob.id,
+        message:
+            'Inbound record body has a normalized key collision: '
+            '${error.normalizedKey}.',
+      );
+    }
+    if (normalized is! Map) {
+      return SyncReport(
+        code: SyncReportCode.malformedRecord,
+        kind: candidate.blob.kind,
+        recordId: candidate.blob.id,
+        message: 'Inbound record body is not an object.',
+      );
+    }
+    if (candidate.blob.kind == SyncRecordKind.setting) return null;
+
+    try {
+      _decodeEntity(candidate.blob.kind, Map<String, Object?>.from(normalized));
+    } on Object catch (error) {
+      return SyncReport(
+        code: SyncReportCode.malformedRecord,
+        kind: candidate.blob.kind,
+        recordId: candidate.blob.id,
+        message: 'Inbound record could not be decoded: $error.',
+      );
+    }
+    return null;
+  }
+
+  Future<Map<SyncRecordKind, Map<String, String>>> _aliasMap() async {
+    final result = <SyncRecordKind, Map<String, String>>{};
+    for (final row in await repositories.syncLocal.listAliases()) {
+      result.putIfAbsent(row.kind, () => <String, String>{})[row.losingId] =
+          row.survivingId;
+    }
+    for (final byKind in result.values) {
+      for (final losingId in byKind.keys.toList()) {
+        var current = losingId;
+        final seen = <String>{losingId};
+        while (byKind[current] != null) {
+          final next = byKind[current]!;
+          if (!seen.add(next)) {
+            throw StateError('cyclic sync alias chain');
+          }
+          current = next;
+        }
+        byKind[losingId] = current;
+      }
+    }
+    return result;
+  }
+
+  SyncMergeCandidate _rewriteCandidate(
+    SyncMergeCandidate candidate,
+    Map<SyncRecordKind, Map<String, String>> aliases,
+  ) {
+    final byKind = aliases[candidate.blob.kind];
+    final resolvedId = _resolveInMap(candidate.blob.id, byKind);
+    final body = rewriteSyncInboundReferences(candidate.blob.body, aliases);
+    if (candidate.blob.kind != SyncRecordKind.setting) {
+      body['id'] = resolvedId;
+    }
+    return _candidateWithBody(
+      candidate,
+      resolvedId,
+      body,
+      updatedAt: contentHash(candidate.blob.body) == contentHash(body)
+          ? null
+          : nextExistenceStamp(
+              now: DateTime.now().toUtc(),
+              current: candidate.blob.updatedAt,
+            ),
+    );
+  }
+
+  SyncMergeCandidate _rewriteCandidateIdentity(
+    SyncMergeCandidate candidate,
+    String id,
+    Map<SyncRecordKind, Map<String, String>> aliases,
+  ) {
+    final body = rewriteSyncInboundReferences(candidate.blob.body, aliases);
+    if (candidate.blob.kind != SyncRecordKind.setting) body['id'] = id;
+    return _candidateWithBody(
+      candidate,
+      id,
+      body,
+      updatedAt: contentHash(candidate.blob.body) == contentHash(body)
+          ? null
+          : nextExistenceStamp(
+              now: DateTime.now().toUtc(),
+              current: candidate.blob.updatedAt,
+            ),
+    );
+  }
+
+  SyncMergeCandidate _candidateWithBody(
+    SyncMergeCandidate candidate,
+    String id,
+    Map<String, Object?> body, {
+    DateTime? updatedAt,
+  }) {
+    final blob = SyncRecordBlob(
+      v: candidate.blob.v,
+      kind: candidate.blob.kind,
+      id: id,
+      updatedAt: updatedAt ?? candidate.blob.updatedAt,
+      deletedAt: candidate.blob.deletedAt,
+      existenceAt: candidate.blob.existenceAt,
+      body: body,
+    );
+    return SyncMergeCandidate(blob: blob);
+  }
+
+  String _resolveInMap(String id, Map<String, String>? aliases) {
+    if (aliases == null) return id;
+    var current = id;
+    final seen = <String>{id};
+    while (aliases[current] != null) {
+      final next = aliases[current]!;
+      if (!seen.add(next)) throw StateError('cyclic sync alias chain');
+      current = next;
+    }
+    return current;
+  }
+
+  Future<void> _adoptCollision({
+    required SyncRecordKind kind,
+    required String losingId,
+    required String survivingId,
+    required Map<SyncRecordKind, Map<String, String>> aliases,
+    ({String id, String? type, bool deleted})? localIdentity,
+  }) async {
+    if (losingId == survivingId) return;
+    final target = await repositories.syncLocal.resolveAlias(
+      kind: kind,
+      recordId: survivingId,
+    );
+    final targetIdentity = await _recordIdentity(kind, target);
+    if (localIdentity != null && localIdentity.id == losingId) {
+      if (target == survivingId && targetIdentity == null) {
+        await _migrateLocalIdentity(kind, losingId, target);
+      } else if (targetIdentity != null) {
+        await _rewriteLocalReferences(kind, losingId, target);
+        await _deleteIdentityRow(kind, losingId);
+      }
+    }
+    await _rewriteLocalReferences(kind, losingId, target);
+    await _remapPendingDeletions(
+      kind: kind,
+      losingId: losingId,
+      survivingId: target,
+    );
+    await repositories.syncLocal.remapIdentity(
+      kind: kind,
+      losingId: losingId,
+      survivingId: target,
+    );
+    final byKind = aliases.putIfAbsent(kind, () => <String, String>{});
+    for (final entry in byKind.entries.toList()) {
+      if (entry.value == losingId) byKind[entry.key] = target;
+    }
+    byKind[losingId] = target;
+  }
+
+  Future<void> _remapPendingDeletions({
+    required SyncRecordKind kind,
+    required String losingId,
+    required String survivingId,
+  }) async {
+    if (losingId == survivingId) return;
+    final aliases = await repositories.syncLocal.listAliases();
+    final remappedIds = <String>{losingId};
+    var changed = true;
+    while (changed) {
+      changed = false;
+      for (final alias in aliases) {
+        if (alias.kind == kind &&
+            remappedIds.contains(alias.survivingId) &&
+            remappedIds.add(alias.losingId)) {
+          changed = true;
+        }
+      }
+    }
+    final pendingIds = {...remappedIds, survivingId};
+    final rows = <PendingDeletionRow>[];
+    for (final chunk in _chunked(pendingIds, 500)) {
+      rows.addAll(
+        await (_db.select(_db.pendingDeletions)..where(
+              (row) => row.kind.equals(kind.name) & row.recordId.isIn(chunk),
+            ))
+            .get(),
+      );
+    }
+    if (rows.isEmpty) return;
+
+    final candidates =
+        <({SyncRecordBlob blob, DateTime tombstonedAt, String hash})>[];
+    for (final row in rows) {
+      final blob = decodeSyncRecordBlob(row.tombstoneBlob);
+      if (blob.kind != kind ||
+          blob.id != row.recordId ||
+          blob.deletedAt == null ||
+          sha256Hex(encodeSyncRecordBlobUtf8(blob)) != row.tombstoneHash) {
+        throw StateError(
+          'pending tombstone does not match its stored identity or hash',
+        );
+      }
+      final body = Map<String, Object?>.from(blob.body);
+      if (kind != SyncRecordKind.setting) body['id'] = survivingId;
+      final remapped = SyncRecordBlob(
+        v: blob.v,
+        kind: blob.kind,
+        id: survivingId,
+        updatedAt: blob.updatedAt,
+        deletedAt: blob.deletedAt,
+        existenceAt: blob.existenceAt,
+        body: body,
+      );
+      candidates.add((
+        blob: remapped,
+        tombstonedAt: row.tombstonedAt,
+        hash: sha256Hex(encodeSyncRecordBlobUtf8(remapped)),
+      ));
+    }
+    candidates.sort((a, b) {
+      final existence = a.blob.existenceAt.compareTo(b.blob.existenceAt);
+      if (existence != 0) return existence;
+      final updated = a.blob.updatedAt.compareTo(b.blob.updatedAt);
+      if (updated != 0) return updated;
+      final tombstoned = a.tombstonedAt.compareTo(b.tombstonedAt);
+      if (tombstoned != 0) return tombstoned;
+      return a.hash.compareTo(b.hash);
+    });
+    final selected = candidates.last;
+    for (final chunk in _chunked(pendingIds, 500)) {
+      await (_db.delete(_db.pendingDeletions)..where(
+            (row) => row.kind.equals(kind.name) & row.recordId.isIn(chunk),
+          ))
+          .go();
+    }
+    await _db
+        .into(_db.pendingDeletions)
+        .insert(
+          PendingDeletionsCompanion.insert(
+            kind: kind,
+            recordId: survivingId,
+            tombstonedAt: selected.tombstonedAt,
+            tombstoneHash: selected.hash,
+            tombstoneBlob: encodeSyncRecordBlob(selected.blob),
+          ),
+        );
+  }
+
+  Future<({String id, String? type, bool deleted})?> _recordIdentity(
+    SyncRecordKind kind,
+    String id,
+  ) async {
+    switch (kind) {
+      case SyncRecordKind.choreographer:
+        final row = await (_db.select(
+          _db.choreographers,
+        )..where((table) => table.id.equals(id))).getSingleOrNull();
+        return row == null
+            ? null
+            : (id: row.id, type: null, deleted: row.deletedAt != null);
+      case SyncRecordKind.tag:
+        final row = await (_db.select(
+          _db.tags,
+        )..where((table) => table.id.equals(id))).getSingleOrNull();
+        return row == null
+            ? null
+            : (id: row.id, type: null, deleted: row.deletedAt != null);
+      case SyncRecordKind.customFieldDef:
+        final row = await (_db.select(
+          _db.customFieldDefs,
+        )..where((table) => table.id.equals(id))).getSingleOrNull();
+        return row == null
+            ? null
+            : (id: row.id, type: row.type.name, deleted: row.deletedAt != null);
+      case SyncRecordKind.difficultyLevel:
+        final row = await (_db.select(
+          _db.difficultyLevels,
+        )..where((table) => table.id.equals(id))).getSingleOrNull();
+        return row == null
+            ? null
+            : (id: row.id, type: null, deleted: row.deletedAt != null);
+      case SyncRecordKind.dance:
+      case SyncRecordKind.program:
+      case SyncRecordKind.publishedSource:
+      case SyncRecordKind.venue:
+      case SyncRecordKind.setting:
+        return null;
+    }
+  }
+
+  Future<({String id, String? type, bool deleted})?> _naturalKeyRow(
+    SyncRecordKind kind,
+    String key,
+  ) async {
+    switch (kind) {
+      case SyncRecordKind.choreographer:
+        final rows = await _db.select(_db.choreographers).get();
+        for (final row in rows) {
+          if (normalizeShareableText(row.name).toLowerCase() == key) {
+            return (id: row.id, type: null, deleted: row.deletedAt != null);
+          }
+        }
+      case SyncRecordKind.tag:
+        final rows = await _db.select(_db.tags).get();
+        for (final row in rows) {
+          if (normalizeShareableText(row.name).toLowerCase() == key) {
+            return (id: row.id, type: null, deleted: row.deletedAt != null);
+          }
+        }
+      case SyncRecordKind.customFieldDef:
+        final rows = await _db.select(_db.customFieldDefs).get();
+        for (final row in rows) {
+          if (normalizeShareableText(row.key).toLowerCase() == key) {
+            return (
+              id: row.id,
+              type: row.type.name,
+              deleted: row.deletedAt != null,
+            );
+          }
+        }
+      case SyncRecordKind.difficultyLevel:
+        final rows = await _db.select(_db.difficultyLevels).get();
+        for (final row in rows) {
+          if (normalizeShareableText(row.label).toLowerCase() == key) {
+            return (id: row.id, type: null, deleted: row.deletedAt != null);
+          }
+        }
+      case SyncRecordKind.dance:
+      case SyncRecordKind.program:
+      case SyncRecordKind.publishedSource:
+      case SyncRecordKind.venue:
+      case SyncRecordKind.setting:
+        break;
+    }
+    return null;
+  }
+
+  String? _customFieldType(Map<String, Object?> body) =>
+      body['type'] is String ? body['type']! as String : null;
+
+  Future<SyncMergeCandidate?> _localNaturalCandidate({
+    required SyncRecordKind kind,
+    required String id,
+  }) async {
+    final body = await read((kind: kind, recordId: id));
+    if (body == null) return null;
+    final metadata = await _naturalRecordMetadata(kind, id);
+    if (metadata == null) return null;
+    final entity = _decodeEntity(kind, body);
+    return SyncMergeCandidate(
+      blob: SyncRecordBlob(
+        kind: kind,
+        id: id,
+        updatedAt: metadata.updatedAt,
+        deletedAt: metadata.deletedAt,
+        existenceAt: metadata.existenceAt,
+        body: syncBodyForEntity(kind, entity),
+      ),
+    );
+  }
+
+  Future<({DateTime updatedAt, DateTime existenceAt, DateTime? deletedAt})?>
+  _naturalRecordMetadata(SyncRecordKind kind, String id) async {
+    switch (kind) {
+      case SyncRecordKind.choreographer:
+        final row = await (_db.select(
+          _db.choreographers,
+        )..where((table) => table.id.equals(id))).getSingleOrNull();
+        if (row == null) return null;
+        return (
+          updatedAt: row.updatedAt ?? row.existenceAt ?? _epoch,
+          existenceAt: row.existenceAt ?? row.updatedAt ?? _epoch,
+          deletedAt: row.deletedAt,
+        );
+      case SyncRecordKind.tag:
+        final row = await (_db.select(
+          _db.tags,
+        )..where((table) => table.id.equals(id))).getSingleOrNull();
+        if (row == null) return null;
+        return (
+          updatedAt: row.updatedAt ?? row.existenceAt ?? _epoch,
+          existenceAt: row.existenceAt ?? row.updatedAt ?? _epoch,
+          deletedAt: row.deletedAt,
+        );
+      case SyncRecordKind.customFieldDef:
+        final row = await (_db.select(
+          _db.customFieldDefs,
+        )..where((table) => table.id.equals(id))).getSingleOrNull();
+        if (row == null) return null;
+        return (
+          updatedAt: row.updatedAt ?? row.existenceAt ?? _epoch,
+          existenceAt: row.existenceAt ?? row.updatedAt ?? _epoch,
+          deletedAt: row.deletedAt,
+        );
+      case SyncRecordKind.difficultyLevel:
+        final row = await (_db.select(
+          _db.difficultyLevels,
+        )..where((table) => table.id.equals(id))).getSingleOrNull();
+        if (row == null) return null;
+        return (
+          updatedAt: row.updatedAt ?? row.existenceAt ?? _epoch,
+          existenceAt: row.existenceAt ?? row.updatedAt ?? _epoch,
+          deletedAt: row.deletedAt,
+        );
+      case SyncRecordKind.dance:
+      case SyncRecordKind.program:
+      case SyncRecordKind.publishedSource:
+      case SyncRecordKind.venue:
+      case SyncRecordKind.setting:
+        return null;
+    }
+  }
+
+  Future<SyncMergeCandidate?> _reconcileNaturalKeyCollision({
+    required SyncMergeCandidate candidate,
+    required SyncMergeCandidate local,
+    required String survivorId,
+  }) async {
+    final incomingExistenceWins =
+        candidate.blob.existenceAt.isAfter(local.blob.existenceAt) ||
+        (candidate.blob.existenceAt == local.blob.existenceAt &&
+            candidate.blob.deletedAt != null &&
+            local.blob.deletedAt == null);
+    final localExistenceWins =
+        local.blob.existenceAt.isAfter(candidate.blob.existenceAt) ||
+        (candidate.blob.existenceAt == local.blob.existenceAt &&
+            local.blob.deletedAt != null &&
+            candidate.blob.deletedAt == null);
+    final existenceSource = incomingExistenceWins
+        ? candidate
+        : localExistenceWins
+        ? local
+        : candidate;
+    final winningDeleted = existenceSource.blob.deletedAt != null;
+    final contentCandidates = [
+      if ((candidate.blob.deletedAt != null) == winningDeleted) candidate,
+      if ((local.blob.deletedAt != null) == winningDeleted) local,
+    ];
+    final contentSource = _newerNaturalContent(
+      candidate: contentCandidates.first,
+      other: contentCandidates.length == 1 ? null : contentCandidates.last,
+    );
+    if (contentSource == null) {
+      await _enqueueCollisionReview(
+        candidate,
+        local.blob.id,
+        reason:
+            'natural-key collision has different bodies at the same '
+            'updatedAt',
+      );
+      return null;
+    }
+    final body = Map<String, Object?>.from(contentSource.blob.body)
+      ..['id'] = survivorId;
+    return SyncMergeCandidate(
+      blob: SyncRecordBlob(
+        v: contentSource.blob.v,
+        kind: candidate.blob.kind,
+        id: survivorId,
+        updatedAt: contentSource.blob.updatedAt,
+        deletedAt: existenceSource.blob.deletedAt,
+        existenceAt: candidate.blob.existenceAt.isAfter(local.blob.existenceAt)
+            ? candidate.blob.existenceAt
+            : local.blob.existenceAt,
+        body: body,
+      ),
+    );
+  }
+
+  SyncMergeCandidate? _newerNaturalContent({
+    required SyncMergeCandidate candidate,
+    required SyncMergeCandidate? other,
+  }) {
+    if (other == null) return candidate;
+    final comparison = candidate.blob.updatedAt.compareTo(other.blob.updatedAt);
+    if (comparison > 0) return candidate;
+    if (comparison < 0) return other;
+    final candidateBody = Map<String, Object?>.from(candidate.blob.body)
+      ..remove('id');
+    final otherBody = Map<String, Object?>.from(other.blob.body)..remove('id');
+    return contentHash(candidateBody) == contentHash(otherBody)
+        ? candidate
+        : null;
+  }
+
+  String? _canonicalDifficultyId(String key) {
+    for (final level in DifficultyLevel.shipped) {
+      if (normalizeShareableText(level.label).toLowerCase() == key) {
+        return level.id;
+      }
+    }
+    return null;
+  }
+
+  Future<SyncMergeCandidate?> _reconcileCustomFieldTypeMismatch(
+    SyncMergeCandidate candidate,
+    ({String id, String? type, bool deleted}) incumbent,
+  ) async {
+    final incomingWins = candidate.blob.id.compareTo(incumbent.id) < 0;
+    final losingId = incomingWins ? incumbent.id : candidate.blob.id;
+    final key = candidate.blob.body['key'];
+    if (key is! String) return null;
+    final shortKey = syncCustomFieldSuffix(key, losingId, full: false);
+    final fullKey = syncCustomFieldSuffix(key, losingId, full: true);
+    final suffix =
+        await _naturalKeyRow(
+              SyncRecordKind.customFieldDef,
+              shortKey.toLowerCase(),
+            ) ==
+            null
+        ? shortKey
+        : await _naturalKeyRow(
+                SyncRecordKind.customFieldDef,
+                fullKey.toLowerCase(),
+              ) ==
+              null
+        ? fullKey
+        : null;
+    if (suffix == null) {
+      await _enqueueCollisionReview(
+        candidate,
+        incumbent.id,
+        reason: 'custom-field type mismatch has no deterministic free key',
+      );
+      return null;
+    }
+    if (incomingWins) {
+      await _renameLocalCustomField(incumbent.id, suffix);
+      return candidate;
+    }
+    final body = rewriteSyncInboundReferences(
+      candidate.blob.body,
+      const <SyncRecordKind, Map<String, String>>{},
+    )..['key'] = suffix;
+    final stamp = nextExistenceStamp(
+      now: DateTime.now().toUtc(),
+      current: candidate.blob.updatedAt,
+    );
+    return _candidateWithBody(
+      candidate,
+      candidate.blob.id,
+      body,
+      updatedAt: stamp,
+    );
+  }
+
+  Future<void> _enqueueCollisionReview(
+    SyncMergeCandidate candidate,
+    String counterpartId, {
+    String? recordId,
+    required String reason,
+  }) => repositories.syncLocal.enqueueReview(
+    kind: candidate.blob.kind,
+    recordId: recordId ?? candidate.blob.id,
+    counterpartId: counterpartId,
+    reason: reason,
+    candidateBlob: encodeSyncRecordBlob(candidate.blob),
+    candidateHash: candidate.wireHash,
+    queuedAt: DateTime.now().toUtc(),
+  );
+
+  Future<void> _renameLocalCustomField(String id, String newKey) async {
+    final row = await (_db.select(
+      _db.customFieldDefs,
+    )..where((table) => table.id.equals(id))).getSingleOrNull();
+    if (row == null) return;
+    final stamp = nextExistenceStamp(
+      now: DateTime.now().toUtc(),
+      current: row.updatedAt,
+    );
+    await (_db.update(
+      _db.customFieldDefs,
+    )..where((table) => table.id.equals(id))).write(
+      CustomFieldDefsCompanion(key: Value(newKey), updatedAt: Value(stamp)),
+    );
+  }
+
+  /// Moves a local losing row onto the deterministic survivor identity before
+  /// the inbound candidate is written. The temporary natural key keeps the
+  /// unique index valid while the new parent row is inserted.
+  Future<void> _migrateLocalIdentity(
+    SyncRecordKind kind,
+    String losingId,
+    String survivingId,
+  ) async {
+    if (losingId == survivingId) return;
+    switch (kind) {
+      case SyncRecordKind.choreographer:
+        final row = await (_db.select(
+          _db.choreographers,
+        )..where((table) => table.id.equals(losingId))).getSingleOrNull();
+        if (row == null) return;
+        final temporaryName = '__sync_${losingId}_$survivingId';
+        await (_db.update(
+          _db.choreographers,
+        )..where((table) => table.id.equals(losingId))).write(
+          ChoreographersCompanion(
+            name: Value(temporaryName),
+            updatedAt: Value(row.updatedAt),
+          ),
+        );
+        await _db
+            .into(_db.choreographers)
+            .insert(
+              ChoreographersCompanion.insert(
+                id: survivingId,
+                name: row.name,
+                website: Value(row.website),
+                notes: Value(row.notes),
+                email: Value(row.email),
+                location: Value(row.location),
+                deceased: Value(row.deceased),
+                updatedAt: Value(row.updatedAt),
+                deletedAt: Value(row.deletedAt),
+                existenceAt: Value(row.existenceAt),
+              ),
+            );
+      case SyncRecordKind.tag:
+        final row = await (_db.select(
+          _db.tags,
+        )..where((table) => table.id.equals(losingId))).getSingleOrNull();
+        if (row == null) return;
+        final temporaryName = '__sync_${losingId}_$survivingId';
+        await (_db.update(
+          _db.tags,
+        )..where((table) => table.id.equals(losingId))).write(
+          TagsCompanion(
+            name: Value(temporaryName),
+            updatedAt: Value(row.updatedAt),
+          ),
+        );
+        await _db
+            .into(_db.tags)
+            .insert(
+              TagsCompanion.insert(
+                id: survivingId,
+                name: row.name,
+                color: Value(row.color),
+                updatedAt: Value(row.updatedAt),
+                deletedAt: Value(row.deletedAt),
+                existenceAt: Value(row.existenceAt),
+              ),
+            );
+      case SyncRecordKind.customFieldDef:
+        final row = await (_db.select(
+          _db.customFieldDefs,
+        )..where((table) => table.id.equals(losingId))).getSingleOrNull();
+        if (row == null) return;
+        final temporaryKey = '__sync_${losingId}_$survivingId';
+        await (_db.update(
+          _db.customFieldDefs,
+        )..where((table) => table.id.equals(losingId))).write(
+          CustomFieldDefsCompanion(
+            key: Value(temporaryKey),
+            updatedAt: Value(row.updatedAt),
+          ),
+        );
+        await _db
+            .into(_db.customFieldDefs)
+            .insert(
+              CustomFieldDefsCompanion.insert(
+                id: survivingId,
+                key: row.key,
+                label: row.label,
+                type: row.type,
+                choicesJson: Value(row.choicesJson),
+                showInList: Value(row.showInList),
+                searchable: Value(row.searchable),
+                shareable: Value(row.shareable),
+                updatedAt: Value(row.updatedAt),
+                deletedAt: Value(row.deletedAt),
+                existenceAt: Value(row.existenceAt),
+              ),
+            );
+      case SyncRecordKind.difficultyLevel:
+        final row = await (_db.select(
+          _db.difficultyLevels,
+        )..where((table) => table.id.equals(losingId))).getSingleOrNull();
+        if (row == null) return;
+        final temporaryLabel = '__sync_${losingId}_$survivingId';
+        await (_db.update(
+          _db.difficultyLevels,
+        )..where((table) => table.id.equals(losingId))).write(
+          DifficultyLevelsCompanion(
+            label: Value(temporaryLabel),
+            updatedAt: Value(row.updatedAt),
+          ),
+        );
+        await _db
+            .into(_db.difficultyLevels)
+            .insert(
+              DifficultyLevelsCompanion.insert(
+                id: survivingId,
+                label: row.label,
+                position: row.position,
+                updatedAt: Value(row.updatedAt),
+                deletedAt: Value(row.deletedAt),
+                existenceAt: Value(row.existenceAt),
+              ),
+            );
+      case SyncRecordKind.dance:
+      case SyncRecordKind.program:
+      case SyncRecordKind.publishedSource:
+      case SyncRecordKind.venue:
+      case SyncRecordKind.setting:
+        return;
+    }
+    await _rewriteLocalReferences(kind, losingId, survivingId);
+    await _deleteIdentityRow(kind, losingId);
+  }
+
+  Future<void> _deleteIdentityRow(SyncRecordKind kind, String id) async {
+    switch (kind) {
+      case SyncRecordKind.choreographer:
+        await (_db.delete(
+          _db.choreographers,
+        )..where((table) => table.id.equals(id))).go();
+      case SyncRecordKind.tag:
+        await (_db.delete(
+          _db.tags,
+        )..where((table) => table.id.equals(id))).go();
+      case SyncRecordKind.customFieldDef:
+        await (_db.delete(
+          _db.customFieldDefs,
+        )..where((table) => table.id.equals(id))).go();
+      case SyncRecordKind.difficultyLevel:
+        await (_db.delete(
+          _db.difficultyLevels,
+        )..where((table) => table.id.equals(id))).go();
+      case SyncRecordKind.dance:
+      case SyncRecordKind.program:
+      case SyncRecordKind.publishedSource:
+      case SyncRecordKind.venue:
+      case SyncRecordKind.setting:
+        return;
+    }
+  }
+
+  Future<void> _rewriteLocalReferences(
+    SyncRecordKind kind,
+    String losingId,
+    String survivingId,
+  ) async {
+    if (losingId == survivingId) return;
+    final affectedDances = <String>{};
+    switch (kind) {
+      case SyncRecordKind.choreographer:
+        final rows = await (_db.select(
+          _db.danceAuthors,
+        )..where((row) => row.choreographerId.equals(losingId))).get();
+        affectedDances.addAll(rows.map((row) => row.danceId));
+        for (final row in rows) {
+          final existing =
+              await (_db.select(_db.danceAuthors)..where(
+                    (table) =>
+                        table.danceId.equals(row.danceId) &
+                        table.choreographerId.equals(survivingId),
+                  ))
+                  .getSingleOrNull();
+          if (existing != null) {
+            await (_db.delete(_db.danceAuthors)..where(
+                  (table) =>
+                      table.danceId.equals(row.danceId) &
+                      table.choreographerId.equals(losingId),
+                ))
+                .go();
+          } else {
+            await (_db.update(_db.danceAuthors)..where(
+                  (table) =>
+                      table.danceId.equals(row.danceId) &
+                      table.choreographerId.equals(losingId),
+                ))
+                .write(
+                  DanceAuthorsCompanion(choreographerId: Value(survivingId)),
+                );
+          }
+        }
+      case SyncRecordKind.tag:
+        final rows = await (_db.select(
+          _db.danceTags,
+        )..where((row) => row.tagId.equals(losingId))).get();
+        affectedDances.addAll(rows.map((row) => row.danceId));
+        for (final row in rows) {
+          final existing =
+              await (_db.select(_db.danceTags)..where(
+                    (table) =>
+                        table.danceId.equals(row.danceId) &
+                        table.tagId.equals(survivingId),
+                  ))
+                  .getSingleOrNull();
+          if (existing != null) {
+            await (_db.delete(_db.danceTags)..where(
+                  (table) =>
+                      table.danceId.equals(row.danceId) &
+                      table.tagId.equals(losingId),
+                ))
+                .go();
+          } else {
+            await (_db.update(_db.danceTags)..where(
+                  (table) =>
+                      table.danceId.equals(row.danceId) &
+                      table.tagId.equals(losingId),
+                ))
+                .write(DanceTagsCompanion(tagId: Value(survivingId)));
+          }
+        }
+      case SyncRecordKind.publishedSource:
+        final rows = await (_db.select(
+          _db.danceSources,
+        )..where((row) => row.sourceId.equals(losingId))).get();
+        affectedDances.addAll(rows.map((row) => row.danceId));
+        for (final row in rows) {
+          final existing =
+              await (_db.select(_db.danceSources)..where(
+                    (table) =>
+                        table.danceId.equals(row.danceId) &
+                        table.sourceId.equals(survivingId),
+                  ))
+                  .getSingleOrNull();
+          if (existing != null) {
+            await (_db.delete(_db.danceSources)..where(
+                  (table) =>
+                      table.danceId.equals(row.danceId) &
+                      table.sourceId.equals(losingId),
+                ))
+                .go();
+          } else {
+            await (_db.update(_db.danceSources)..where(
+                  (table) =>
+                      table.danceId.equals(row.danceId) &
+                      table.sourceId.equals(losingId),
+                ))
+                .write(DanceSourcesCompanion(sourceId: Value(survivingId)));
+          }
+        }
+      case SyncRecordKind.customFieldDef:
+        final rows = await (_db.select(
+          _db.customFieldValues,
+        )..where((row) => row.fieldId.equals(losingId))).get();
+        affectedDances.addAll(rows.map((row) => row.danceId));
+        for (final row in rows) {
+          final existing =
+              await (_db.select(_db.customFieldValues)..where(
+                    (table) =>
+                        table.danceId.equals(row.danceId) &
+                        table.fieldId.equals(survivingId),
+                  ))
+                  .getSingleOrNull();
+          if (existing != null) {
+            await (_db.delete(_db.customFieldValues)..where(
+                  (table) =>
+                      table.danceId.equals(row.danceId) &
+                      table.fieldId.equals(losingId),
+                ))
+                .go();
+          } else {
+            await (_db.update(_db.customFieldValues)..where(
+                  (table) =>
+                      table.danceId.equals(row.danceId) &
+                      table.fieldId.equals(losingId),
+                ))
+                .write(CustomFieldValuesCompanion(fieldId: Value(survivingId)));
+          }
+        }
+      case SyncRecordKind.difficultyLevel:
+        final rows = await (_db.select(
+          _db.dances,
+        )..where((row) => row.levelId.equals(losingId))).get();
+        affectedDances.addAll(rows.map((row) => row.id));
+        for (final row in rows) {
+          await (_db.update(
+            _db.dances,
+          )..where((table) => table.id.equals(row.id))).write(
+            DancesCompanion(
+              levelId: Value(survivingId),
+              updatedAt: Value(row.updatedAt),
+            ),
+          );
+        }
+      case SyncRecordKind.dance:
+      case SyncRecordKind.program:
+      case SyncRecordKind.venue:
+      case SyncRecordKind.setting:
+        return;
+    }
+    if (affectedDances.isEmpty) return;
+    final now = DateTime.now().toUtc();
+    for (final danceId in affectedDances) {
+      final row = await (_db.select(
+        _db.dances,
+      )..where((table) => table.id.equals(danceId))).getSingleOrNull();
+      if (row == null) continue;
+      await (_db.update(
+        _db.dances,
+      )..where((table) => table.id.equals(danceId))).write(
+        DancesCompanion(
+          updatedAt: Value(
+            nextExistenceStamp(now: now, current: row.updatedAt),
+          ),
+        ),
+      );
+    }
+  }
 
   @override
   Future<void> write(SyncApplyRecord record) async {
@@ -473,6 +1821,15 @@ final class CompendiumSyncStorage
   @override
   Future<SyncReport?> writeWithReport(SyncApplyRecord record) async {
     final kind = record.address.kind;
+    if (record.deletedAt != null &&
+        await _hasCitation(
+          kind,
+          record.address.recordId,
+          ignoreInboundTombstones: true,
+        )) {
+      await _storePendingDeletion(record);
+      return null;
+    }
     if (kind == SyncRecordKind.setting) {
       final value = record.body['value'];
       await _db
@@ -561,6 +1918,17 @@ final class CompendiumSyncStorage
 
   @override
   Future<SyncReport?> writeParentWithReport(SyncApplyRecord record) async {
+    if (record.deletedAt != null &&
+        await _hasCitation(
+          record.address.kind,
+          record.address.recordId,
+          ignoreInboundTombstones: true,
+        )) {
+      await _storePendingDeletion(record);
+      _pendingParentWrites.add(record.address);
+      return null;
+    }
+    _pendingParentWrites.remove(record.address);
     final kind = record.address.kind;
     if (kind != SyncRecordKind.dance && kind != SyncRecordKind.program) {
       return writeWithReport(record);
@@ -589,10 +1957,12 @@ final class CompendiumSyncStorage
 
   @override
   Future<SyncReport?> writeJoinsWithReport(SyncApplyRecord record) async {
+    if (_pendingParentWrites.remove(record.address)) return null;
     if (record.address.kind != SyncRecordKind.dance &&
         record.address.kind != SyncRecordKind.program) {
       return null;
     }
+
     final entity = _deferredEntities.remove(record.address);
     if (entity == null) {
       throw StateError(
@@ -622,6 +1992,27 @@ final class CompendiumSyncStorage
       existenceAt: record.existenceAt,
     );
     return null;
+  }
+
+  Future<void> _storePendingDeletion(SyncApplyRecord record) async {
+    final blob =
+        record.sourceBlob ??
+        SyncRecordBlob(
+          kind: record.address.kind,
+          id: record.address.recordId,
+          updatedAt: record.updatedAt,
+          deletedAt: record.deletedAt,
+          existenceAt: record.existenceAt,
+          body: record.body,
+        );
+    final encoded = encodeSyncRecordBlob(blob);
+    await repositories.syncLocal.upsertPendingDeletion(
+      kind: record.address.kind,
+      recordId: record.address.recordId,
+      tombstonedAt: record.deletedAt!,
+      tombstoneHash: sha256Hex(utf8.encode(encoded)),
+      tombstoneBlob: encoded,
+    );
   }
 
   Future<({Object entity, SyncReport? report})> _prepareEntity(
@@ -1434,11 +2825,16 @@ final class CompendiumSyncStorage
     required DateTime? deletedAt,
     required DateTime existenceAt,
   }) async {
+    final currentUpdatedAt = await _currentUpdatedAt(kind, id);
+    final effectiveUpdatedAt =
+        currentUpdatedAt == null || currentUpdatedAt.isBefore(updatedAt)
+        ? updatedAt
+        : currentUpdatedAt;
     switch (kind) {
       case SyncRecordKind.dance:
         await (_db.update(_db.dances)..where((row) => row.id.equals(id))).write(
           DancesCompanion(
-            updatedAt: Value(updatedAt),
+            updatedAt: Value(effectiveUpdatedAt),
             deletedAt: Value(deletedAt),
             existenceAt: Value(existenceAt),
           ),
@@ -1448,7 +2844,7 @@ final class CompendiumSyncStorage
           _db.programs,
         )..where((row) => row.id.equals(id))).write(
           ProgramsCompanion(
-            updatedAt: Value(updatedAt),
+            updatedAt: Value(effectiveUpdatedAt),
             deletedAt: Value(deletedAt),
             existenceAt: Value(existenceAt),
           ),
@@ -1458,7 +2854,7 @@ final class CompendiumSyncStorage
           _db.choreographers,
         )..where((row) => row.id.equals(id))).write(
           ChoreographersCompanion(
-            updatedAt: Value(updatedAt),
+            updatedAt: Value(effectiveUpdatedAt),
             deletedAt: Value(deletedAt),
             existenceAt: Value(existenceAt),
           ),
@@ -1466,7 +2862,7 @@ final class CompendiumSyncStorage
       case SyncRecordKind.tag:
         await (_db.update(_db.tags)..where((row) => row.id.equals(id))).write(
           TagsCompanion(
-            updatedAt: Value(updatedAt),
+            updatedAt: Value(effectiveUpdatedAt),
             deletedAt: Value(deletedAt),
             existenceAt: Value(existenceAt),
           ),
@@ -1476,7 +2872,7 @@ final class CompendiumSyncStorage
           _db.publishedSources,
         )..where((row) => row.id.equals(id))).write(
           PublishedSourcesCompanion(
-            updatedAt: Value(updatedAt),
+            updatedAt: Value(effectiveUpdatedAt),
             deletedAt: Value(deletedAt),
             existenceAt: Value(existenceAt),
           ),
@@ -1486,7 +2882,7 @@ final class CompendiumSyncStorage
           _db.customFieldDefs,
         )..where((row) => row.id.equals(id))).write(
           CustomFieldDefsCompanion(
-            updatedAt: Value(updatedAt),
+            updatedAt: Value(effectiveUpdatedAt),
             deletedAt: Value(deletedAt),
             existenceAt: Value(existenceAt),
           ),
@@ -1496,7 +2892,7 @@ final class CompendiumSyncStorage
           _db.difficultyLevels,
         )..where((row) => row.id.equals(id))).write(
           DifficultyLevelsCompanion(
-            updatedAt: Value(updatedAt),
+            updatedAt: Value(effectiveUpdatedAt),
             deletedAt: Value(deletedAt),
             existenceAt: Value(existenceAt),
           ),
@@ -1504,7 +2900,7 @@ final class CompendiumSyncStorage
       case SyncRecordKind.venue:
         await (_db.update(_db.venues)..where((row) => row.id.equals(id))).write(
           VenuesCompanion(
-            updatedAt: Value(updatedAt),
+            updatedAt: Value(effectiveUpdatedAt),
             deletedAt: Value(deletedAt),
             existenceAt: Value(existenceAt),
           ),
@@ -1514,11 +2910,52 @@ final class CompendiumSyncStorage
           _db.settings,
         )..where((row) => row.key.equals(id))).write(
           SettingsCompanion(
-            updatedAt: Value(updatedAt),
+            updatedAt: Value(effectiveUpdatedAt),
             deletedAt: Value(deletedAt),
             existenceAt: Value(existenceAt),
           ),
         );
+    }
+  }
+
+  Future<DateTime?> _currentUpdatedAt(SyncRecordKind kind, String id) async {
+    switch (kind) {
+      case SyncRecordKind.dance:
+        return (await (_db.select(
+          _db.dances,
+        )..where((row) => row.id.equals(id))).getSingleOrNull())?.updatedAt;
+      case SyncRecordKind.program:
+        return (await (_db.select(
+          _db.programs,
+        )..where((row) => row.id.equals(id))).getSingleOrNull())?.updatedAt;
+      case SyncRecordKind.choreographer:
+        return (await (_db.select(
+          _db.choreographers,
+        )..where((row) => row.id.equals(id))).getSingleOrNull())?.updatedAt;
+      case SyncRecordKind.tag:
+        return (await (_db.select(
+          _db.tags,
+        )..where((row) => row.id.equals(id))).getSingleOrNull())?.updatedAt;
+      case SyncRecordKind.publishedSource:
+        return (await (_db.select(
+          _db.publishedSources,
+        )..where((row) => row.id.equals(id))).getSingleOrNull())?.updatedAt;
+      case SyncRecordKind.customFieldDef:
+        return (await (_db.select(
+          _db.customFieldDefs,
+        )..where((row) => row.id.equals(id))).getSingleOrNull())?.updatedAt;
+      case SyncRecordKind.difficultyLevel:
+        return (await (_db.select(
+          _db.difficultyLevels,
+        )..where((row) => row.id.equals(id))).getSingleOrNull())?.updatedAt;
+      case SyncRecordKind.venue:
+        return (await (_db.select(
+          _db.venues,
+        )..where((row) => row.id.equals(id))).getSingleOrNull())?.updatedAt;
+      case SyncRecordKind.setting:
+        return (await (_db.select(
+          _db.settings,
+        )..where((row) => row.key.equals(id))).getSingleOrNull())?.updatedAt;
     }
   }
 

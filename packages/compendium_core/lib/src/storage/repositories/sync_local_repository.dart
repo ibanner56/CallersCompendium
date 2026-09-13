@@ -3,6 +3,14 @@ import 'package:drift/drift.dart';
 import '../../sync/sync_record_kind.dart';
 import '../database.dart';
 
+Iterable<List<T>> _chunked<T>(Iterable<T> values, int size) sync* {
+  final list = values.toList(growable: false);
+  for (var start = 0; start < list.length; start += size) {
+    final end = start + size < list.length ? start + size : list.length;
+    yield list.sublist(start, end);
+  }
+}
+
 /// A polymorphic sync record identity.
 typedef SyncRecordAddress = ({SyncRecordKind kind, String recordId});
 
@@ -101,6 +109,15 @@ class SyncLocalRepository {
   Future<List<PendingDeletionRow>> listPendingDeletions() =>
       _db.select(_db.pendingDeletions).get();
 
+  Future<PendingDeletionRow?> getPendingDeletion({
+    required SyncRecordKind kind,
+    required String recordId,
+  }) =>
+      (_db.select(_db.pendingDeletions)..where(
+            (row) => row.kind.equals(kind.name) & row.recordId.equals(recordId),
+          ))
+          .getSingleOrNull();
+
   Future<void> upsertPendingDeletion({
     required SyncRecordKind kind,
     required String recordId,
@@ -115,6 +132,13 @@ class SyncLocalRepository {
       tombstoneHash: tombstoneHash,
       tombstoneBlob: tombstoneBlob,
     ),
+  );
+
+  Future<void> deletePendingDeletion({
+    required SyncRecordKind kind,
+    required String recordId,
+  }) => transaction(
+    (tx) => tx.deletePendingDeletion(kind: kind, recordId: recordId),
   );
 
   Future<List<ReviewQueueRow>> listReviewQueue() =>
@@ -172,6 +196,18 @@ class SyncLocalRepository {
       survivingId: survivingId,
     ),
   );
+
+  /// Retires aliases whose losing IDs are absent from every current peer
+  /// manifest. The caller must only invoke this after all peer manifests for
+  /// the current epoch were verified; an unavailable manifest is not evidence
+  /// that it dropped an ID.
+  Future<void> retireAliases({required Set<SyncRecordAddress> peerAddresses}) =>
+      transaction((tx) => tx.retireAliases(peerAddresses: peerAddresses));
+
+  Future<String> resolveAlias({
+    required SyncRecordKind kind,
+    required String recordId,
+  }) => transaction((tx) => tx.resolveAlias(kind: kind, recordId: recordId));
 }
 
 /// The transaction-bound operations of [SyncLocalRepository].
@@ -316,6 +352,15 @@ class SyncLocalTransaction {
         ),
       );
 
+  Future<void> deletePendingDeletion({
+    required SyncRecordKind kind,
+    required String recordId,
+  }) =>
+      (_db.delete(_db.pendingDeletions)..where(
+            (row) => row.kind.equals(kind.name) & row.recordId.equals(recordId),
+          ))
+          .go();
+
   Future<void> enqueueReview({
     required SyncRecordKind kind,
     required String recordId,
@@ -391,24 +436,48 @@ class SyncLocalTransaction {
         }
       }
     }
-    await (_db.update(_db.idAliases)..where(
-          (row) =>
-              row.kind.equals(kind.name) & row.survivingId.isIn(rewrittenIds),
-        ))
-        .write(IdAliasesCompanion(survivingId: Value(target)));
+    for (final chunk in _chunked(rewrittenIds, 500)) {
+      await (_db.update(_db.idAliases)..where(
+            (row) => row.kind.equals(kind.name) & row.survivingId.isIn(chunk),
+          ))
+          .write(IdAliasesCompanion(survivingId: Value(target)));
+    }
     await upsertAlias(kind: kind, losingId: losingId, survivingId: target);
 
-    final published =
-        await (_db.select(_db.publishedRecords)..where(
-              (row) =>
-                  row.kind.equals(kind.name) &
-                  row.recordId.isIn({...rewrittenIds, target}),
-            ))
-            .get();
-    if (published.isNotEmpty) {
-      await markPublished(kind: kind, recordId: target);
+    final publishedIds = {...rewrittenIds, target};
+    for (final chunk in _chunked(publishedIds, 500)) {
+      final published =
+          await (_db.select(_db.publishedRecords)..where(
+                (row) => row.kind.equals(kind.name) & row.recordId.isIn(chunk),
+              ))
+              .get();
+      if (published.isNotEmpty) {
+        await markPublished(kind: kind, recordId: target);
+        break;
+      }
     }
   }
+
+  Future<void> retireAliases({
+    required Set<SyncRecordAddress> peerAddresses,
+  }) async {
+    final aliases = await _db.select(_db.idAliases).get();
+    for (final alias in aliases) {
+      final address = (kind: alias.kind, recordId: alias.losingId);
+      if (peerAddresses.contains(address)) continue;
+      await (_db.delete(_db.idAliases)..where(
+            (row) =>
+                row.kind.equals(alias.kind.name) &
+                row.losingId.equals(alias.losingId),
+          ))
+          .go();
+    }
+  }
+
+  Future<String> resolveAlias({
+    required SyncRecordKind kind,
+    required String recordId,
+  }) => _resolveAlias(kind: kind, recordId: recordId, seen: {recordId});
 
   Future<String> _resolveAlias({
     required SyncRecordKind kind,
@@ -431,3 +500,53 @@ class SyncLocalTransaction {
     }
   }
 }
+
+/// Returns whether a record has ever been named by a successfully prepared
+/// publication. Repository hard-delete paths use this marker instead of the
+/// sync baseline because the marker survives reset, detach, and restore.
+Future<bool> isPublishedSyncRecord(
+  CompendiumDatabase db, {
+  required SyncRecordKind kind,
+  required String recordId,
+}) async =>
+    (await (db.select(db.publishedRecords)..where(
+          (row) => row.kind.equals(kind.name) & row.recordId.equals(recordId),
+        ))
+        .getSingleOrNull()) !=
+    null;
+
+Future<Set<String>> publishedSyncRecordIds(
+  CompendiumDatabase db, {
+  required SyncRecordKind kind,
+  required Iterable<String> recordIds,
+}) async {
+  final ids = recordIds.toSet().toList(growable: false);
+  if (ids.isEmpty) return const {};
+  final published = <String>{};
+  const chunkSize = 500;
+  for (var start = 0; start < ids.length; start += chunkSize) {
+    final end = start + chunkSize < ids.length ? start + chunkSize : ids.length;
+    final chunk = ids.sublist(start, end);
+    final rows =
+        await (db.select(db.publishedRecords)..where(
+              (row) => row.kind.equals(kind.name) & row.recordId.isIn(chunk),
+            ))
+            .get();
+    published.addAll([for (final row in rows) row.recordId]);
+  }
+  return published;
+}
+
+/// Clears a pending tombstone only for an explicit local existence transition.
+///
+/// Sync-originated body/reference writes deliberately do not call this helper;
+/// a newer [updatedAt] alone is not evidence that the user revived a record.
+Future<void> clearPendingSyncDeletion(
+  CompendiumDatabase db, {
+  required SyncRecordKind kind,
+  required String recordId,
+}) =>
+    (db.delete(db.pendingDeletions)..where(
+          (row) => row.kind.equals(kind.name) & row.recordId.equals(recordId),
+        ))
+        .go();
