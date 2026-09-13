@@ -349,9 +349,21 @@ class SyncLocalTransaction {
       );
 
   Future<void> markPublishedAll(Iterable<SyncRecordAddress> records) async {
-    for (final record in records) {
-      await markPublished(kind: record.kind, recordId: record.recordId);
-    }
+    final rows = [
+      for (final record in records)
+        PublishedRecordsCompanion.insert(
+          kind: record.kind,
+          recordId: record.recordId,
+        ),
+    ];
+    if (rows.isEmpty) return;
+    await _db.batch((batch) {
+      batch.insertAll(
+        _db.publishedRecords,
+        rows,
+        mode: InsertMode.insertOrIgnore,
+      );
+    });
   }
 
   Future<void> remapIdentity({

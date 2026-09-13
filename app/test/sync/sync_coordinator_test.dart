@@ -89,6 +89,36 @@ void main() {
     expect(transport.requestLog, ['store', 'create', 'store']);
   });
 
+  test('failed replacement confirmation can be retried', () async {
+    final transport = _FakeTransport(
+      missingKind: SyncStoreMissingKind.replacementRequired,
+      createResponses: [
+        _FakeTransport.response(500),
+        _FakeTransport.response(201),
+      ],
+    );
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: _FakeStore(previouslyUsed: true),
+      transport: transport,
+    );
+    addTearDown(coordinator.dispose);
+
+    await coordinator.onAppStart();
+
+    expect(
+      (await coordinator.confirmReplacement()).status,
+      SyncPassStatus.failed,
+    );
+    expect(
+      (await coordinator.confirmReplacement()).status,
+      SyncPassStatus.freshAttachRequired,
+    );
+    expect(transport.createCalls, 2);
+    expect(transport.storeCalls, 2);
+  });
+
   test('declining replacement keeps configured sync paused', () async {
     final transport = _FakeTransport(
       missingKind: SyncStoreMissingKind.replacementRequired,
@@ -943,12 +973,14 @@ final class _FakeTransport implements SyncCoordinatorTransport {
     this.devices = const [],
     this.peerManifest,
     this.peerManifests = const {},
+    List<SyncHttpResponse>? createResponses,
     Map<String, List<SyncHttpResponse>>? manifestResponses,
     this.blobResponses = const {},
     List<List<String>>? missingResponses,
     this.putManifestStatus = 200,
     this.onManifestPut,
-  }) : missingResponses = [
+  }) : createResponses = [...createResponses ?? const []],
+       missingResponses = [
          for (final response in missingResponses ?? const <List<String>>[[]])
            [...response],
        ],
@@ -964,6 +996,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   final List<String> devices;
   final SyncManifest? peerManifest;
   final Map<String, SyncManifest> peerManifests;
+  final List<SyncHttpResponse> createResponses;
   final Map<String, List<SyncHttpResponse>> manifestResponses;
   final Map<String, SyncHttpResponse> blobResponses;
   final List<List<String>> missingResponses;
@@ -1010,6 +1043,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   Future<SyncHttpResponse> createStore() async {
     createCalls++;
     requestLog.add('create');
+    if (createResponses.isNotEmpty) return createResponses.removeAt(0);
     return _response(201);
   }
 

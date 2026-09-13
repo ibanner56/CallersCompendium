@@ -1,7 +1,8 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/src/storage/database.dart'
     show BaselineStateCompanion;
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart'
+    show BatchedStatements, QueryExecutor, QueryInterceptor, Value;
 import 'package:sqlite3/sqlite3.dart' show SqliteException;
 import 'package:test/test.dart';
 
@@ -393,5 +394,57 @@ void main() {
         isTrue,
       );
     });
+
+    test('marks publication records with one database batch', () async {
+      final counter = _PublishedRecordBatchCounter();
+      final db = openCountingTestDatabase(counter);
+      addTearDown(db.close);
+      final repository = SyncLocalRepository(db);
+      counter.reset();
+
+      await repository.markPublishedAll([
+        for (var index = 0; index < 3; index++)
+          (kind: SyncRecordKind.dance, recordId: 'dance-$index'),
+      ]);
+
+      expect(counter.batchedSqlCounts, [1]);
+      expect(counter.individualInserts, 0);
+      expect(await repository.listPublishedRecords(), hasLength(3));
+    });
   });
+}
+
+final class _PublishedRecordBatchCounter extends QueryInterceptor {
+  final batchedSqlCounts = <int>[];
+  int individualInserts = 0;
+
+  void reset() {
+    batchedSqlCounts.clear();
+    individualInserts = 0;
+  }
+
+  bool _matches(String statement) =>
+      statement.toLowerCase().contains('published_records');
+
+  @override
+  Future<void> runBatched(
+    QueryExecutor executor,
+    BatchedStatements statements,
+  ) {
+    final matchingStatements = statements.statements.where(_matches).length;
+    if (matchingStatements > 0) {
+      batchedSqlCounts.add(matchingStatements);
+    }
+    return super.runBatched(executor, statements);
+  }
+
+  @override
+  Future<int> runInsert(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    if (_matches(statement)) individualInserts++;
+    return super.runInsert(executor, statement, args);
+  }
 }

@@ -439,6 +439,19 @@ class SyncCoordinator {
     }
     final confirmation = _confirmReplacement();
     _confirmation = confirmation;
+    confirmation.then<void>(
+      (result) {
+        if (result.status != SyncPassStatus.freshAttachRequired &&
+            identical(_confirmation, confirmation)) {
+          _confirmation = null;
+        }
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        if (identical(_confirmation, confirmation)) {
+          _confirmation = null;
+        }
+      },
+    );
     return confirmation;
   }
 
