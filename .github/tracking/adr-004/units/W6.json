@@ -72,7 +72,9 @@
       "On `5a2b435af`, restoring the prior raw SHA-256 marker implementation made `cd packages/compendium_core && fvm dart test test/storage/sync_storage_test.dart --plain-name 'stores salted slow verifiers and migrates legacy fast markers'` fail because the no-ID snapshot retained the raw hash (`Expected: []`, `Actual: ['fa79dd1ee8fe25d601870c1b05bb634a8086134bfbe57f870549e2ddaca444e2']`) at `sync_storage_test.dart:106`; restoring `5a2b435af` made the guard green.",
       "At implementation head `237cafd19`, removing the per-record decode report from `CompendiumSyncStorage.writeWithReport` made `isolates wrong-typed inbound entity fields from valid records` fail with the malformed figure `FormatException`; restoring the report path made the guard green.",
       "At implementation head `237cafd19`, removing the duplicate author, tag, and source guards made `rejects duplicate and foreign dependent row ids before parent writes` report four malformed records instead of seven; restoring the guards made the guard green.",
-      "The final implementation head `237cafd19` was validated with `python3 tools/preflight.py`, which completed with 30 steps passed and 0 skipped."
+      "At implementation head `307b35d0e`, retaining a failed replacement confirmation future made `cd app && fvm flutter test test/sync/sync_coordinator_test.dart --plain-name 'failed replacement confirmation can be retried'` fail with `Expected: SyncPassStatus.freshAttachRequired` and `Actual: SyncPassStatus.failed` on the retry; clearing only failed or thrown confirmation attempts made the guard green at `96a489689`.",
+      "At implementation head `307b35d0e`, retaining the per-record publication loop made `cd packages/compendium_core && fvm dart test test/storage/sync_local_repository_test.dart --plain-name 'marks publication records with one database batch'` fail with `Expected: [1]` and `Actual: []` for batched SQL; restoring the single `INSERT OR IGNORE` batch made the guard green at `2be3595b1`.",
+      "The final implementation head `96a489689` was validated with `python3 tools/preflight.py`, which completed with 30 steps passed and 0 skipped."
     ]
   }
 }
