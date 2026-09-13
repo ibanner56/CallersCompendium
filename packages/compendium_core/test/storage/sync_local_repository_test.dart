@@ -544,6 +544,34 @@ void main() {
 
     expect(await repository.listAliases(), hasLength(1));
   });
+
+  test('retains every alias in a peer-advertised alias chain', () async {
+    final db = openTestDatabase();
+    addTearDown(db.close);
+    final repository = SyncLocalRepository(db);
+
+    await repository.upsertAlias(
+      kind: SyncRecordKind.tag,
+      losingId: 'a-tag',
+      survivingId: 'b-tag',
+    );
+    await repository.upsertAlias(
+      kind: SyncRecordKind.tag,
+      losingId: 'b-tag',
+      survivingId: 'c-tag',
+    );
+
+    await repository.retireAliases(
+      peerAddresses: const {(kind: SyncRecordKind.tag, recordId: 'a-tag')},
+    );
+
+    expect(
+      (await repository.listAliases())
+          .map((alias) => (alias.losingId, alias.survivingId))
+          .toSet(),
+      {('a-tag', 'b-tag'), ('b-tag', 'c-tag')},
+    );
+  });
 }
 
 final class _PublishedRecordBatchCounter extends QueryInterceptor {

@@ -51,6 +51,50 @@ void main() {
     },
   );
 
+  test('normalizes peer aliases before baseline observation', () async {
+    final local = SyncMergeCandidate.fromBlob(_tag('canonical', 'Shared tag'));
+    final remote = SyncMergeCandidate.fromBlob(
+      _tag('legacy', 'Shared tag', seconds: 1),
+    );
+    final canonical = (kind: SyncRecordKind.tag, recordId: 'canonical');
+    final legacy = (kind: SyncRecordKind.tag, recordId: 'legacy');
+    final store = _FakeStore(
+      aliases: {legacy: canonical},
+      snapshotBuilder: (snapshotNumber) => SyncCoordinatorSnapshot(
+        epoch: 'epoch-1',
+        previouslyUsed: false,
+        local: {canonical: snapshotNumber == 1 ? local : remote},
+        baseline: const {},
+      ),
+    );
+    final transport = _FakeTransport(
+      devices: ['peer'],
+      peerManifest: _manifest(
+        deviceId: 'peer',
+        records: {
+          SyncRecordKind.tag: {remote.blob.id: remote.wireHash},
+        },
+      ),
+      blobResponses: {
+        remote.wireHash: _FakeTransport.response(
+          200,
+          body: utf8.encode(encodeSyncRecordBlob(remote.blob)),
+        ),
+      },
+    );
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: store,
+      transport: transport,
+    );
+
+    final result = await coordinator.syncNow();
+
+    expect(result.status, SyncPassStatus.completed);
+    expect(store.advancedEntries, [canonical]);
+  });
+
   test('unconfigured triggers make no transport calls', () async {
     final transport = _FakeTransport();
     final coordinator = SyncCoordinator(
@@ -1012,17 +1056,20 @@ final class _FakeStore implements SyncCoordinatorStore {
     this.epoch = 'epoch-1',
     Map<SyncRecordAddress, SyncMergeCandidate?>? local,
     Map<SyncRecordAddress, SyncBaselineEntry>? baseline,
+    Map<SyncRecordAddress, SyncRecordAddress>? aliases,
     this.snapshotBuilder,
     this.currentCandidatesBuilder,
     List<String>? lifecycle,
   }) : local = local ?? const {},
        baseline = baseline ?? const {},
+       aliases = aliases ?? const {},
        lifecycle = lifecycle ?? <String>[];
 
   final bool previouslyUsed;
   final String? epoch;
   final Map<SyncRecordAddress, SyncMergeCandidate?> local;
   final Map<SyncRecordAddress, SyncBaselineEntry> baseline;
+  final Map<SyncRecordAddress, SyncRecordAddress> aliases;
   final SyncCoordinatorSnapshot Function(int snapshotNumber)? snapshotBuilder;
   final Map<SyncRecordAddress, SyncMergeCandidate?> Function()?
   currentCandidatesBuilder;
@@ -1050,6 +1097,18 @@ final class _FakeStore implements SyncCoordinatorStore {
   @override
   Future<Map<SyncRecordAddress, SyncMergeCandidate?>>
   snapshotCandidates() async => currentCandidatesBuilder?.call() ?? local;
+
+  @override
+  Future<SyncRecordAddress> resolveAlias(SyncRecordAddress address) async {
+    final visited = <SyncRecordAddress>{};
+    var current = address;
+    while (visited.add(current)) {
+      final next = aliases[current];
+      if (next == null) return current;
+      current = next;
+    }
+    return current;
+  }
 
   @override
   Future<T> transaction<T>(Future<T> Function() action) async {

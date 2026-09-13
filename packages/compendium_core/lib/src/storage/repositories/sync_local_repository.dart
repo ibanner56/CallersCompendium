@@ -462,9 +462,24 @@ class SyncLocalTransaction {
     required Set<SyncRecordAddress> peerAddresses,
   }) async {
     final aliases = await _db.select(_db.idAliases).get();
+    final aliasesByAddress = {
+      for (final alias in aliases)
+        (kind: alias.kind, recordId: alias.losingId): alias,
+    };
+    final retainedAddresses = <SyncRecordAddress>{};
+    for (final peerAddress in peerAddresses) {
+      var current = peerAddress;
+      final seen = <SyncRecordAddress>{};
+      while (seen.add(current)) {
+        final alias = aliasesByAddress[current];
+        if (alias == null) break;
+        retainedAddresses.add(current);
+        current = (kind: alias.kind, recordId: alias.survivingId);
+      }
+    }
     for (final alias in aliases) {
       final address = (kind: alias.kind, recordId: alias.losingId);
-      if (peerAddresses.contains(address)) continue;
+      if (retainedAddresses.contains(address)) continue;
       await (_db.delete(_db.idAliases)..where(
             (row) =>
                 row.kind.equals(alias.kind.name) &

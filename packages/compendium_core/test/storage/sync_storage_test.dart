@@ -2654,6 +2654,200 @@ void main() {
   });
 
   test(
+    'canonical difficulty known-UUID conflicts enter the review queue',
+    () async {
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+      await (db.delete(
+        db.difficultyLevels,
+      )..where((row) => row.id.equals(DifficultyLevel.beginner.id))).go();
+      await repositories.difficultyLevels.upsert(
+        DifficultyLevel(id: 'known-level', label: 'Renamed level', position: 0),
+        at: stamp,
+      );
+      await repositories.difficultyLevels.upsert(
+        DifficultyLevel(
+          id: 'other-level',
+          label: DifficultyLevel.beginner.label,
+          position: 1,
+        ),
+        at: stamp,
+      );
+
+      final inbound = DifficultyLevel(
+        id: 'known-level',
+        label: DifficultyLevel.beginner.label,
+        position: 2,
+      );
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.difficultyLevel,
+              id: inbound.id,
+              updatedAt: stamp.add(const Duration(minutes: 1)),
+              deletedAt: null,
+              existenceAt: stamp.add(const Duration(minutes: 1)),
+              body: syncBodyForEntity(SyncRecordKind.difficultyLevel, inbound),
+            ),
+          ),
+        ],
+        storage: storage,
+      );
+
+      expect(result.applied, isEmpty);
+      expect(result.reports, isEmpty);
+      expect(
+        (await repositories.syncLocal.listReviewQueue()).map(
+          (row) => (row.recordId, row.counterpartId),
+        ),
+        [('known-level', 'other-level')],
+      );
+      expect(
+        (await repositories.difficultyLevels.getById('known-level'))!.label,
+        'Renamed level',
+      );
+      expect(
+        (await repositories.difficultyLevels.getById('other-level'))!.label,
+        DifficultyLevel.beginner.label,
+      );
+      expect(
+        await repositories.difficultyLevels.getById(
+          DifficultyLevel.beginner.id,
+        ),
+        isNull,
+      );
+    },
+  );
+
+  test(
+    'natural-key index chooses the smallest live legacy duplicate',
+    () async {
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+      // ignore: unused_result
+      await repositories.choreographers.upsert(
+        Choreographer(id: 'a-author', name: 'Case duplicate'),
+        at: stamp,
+      );
+      // ignore: unused_result
+      await repositories.choreographers.upsert(
+        Choreographer(id: 'z-author', name: 'CASE DUPLICATE'),
+        at: stamp,
+      );
+      final inbound = Choreographer(id: 'm-author', name: 'case duplicate');
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.choreographer,
+              id: inbound.id,
+              updatedAt: stamp.add(const Duration(minutes: 1)),
+              deletedAt: null,
+              existenceAt: stamp.add(const Duration(minutes: 1)),
+              body: syncBodyForEntity(SyncRecordKind.choreographer, inbound),
+            ),
+          ),
+        ],
+        storage: storage,
+      );
+
+      expect(result.reports, isEmpty);
+      expect(
+        (await repositories.syncLocal.resolveAlias(
+          kind: SyncRecordKind.choreographer,
+          recordId: inbound.id,
+        )),
+        'a-author',
+      );
+      expect(await repositories.choreographers.getById('a-author'), isNotNull);
+      expect(await repositories.choreographers.getById('z-author'), isNotNull);
+    },
+  );
+
+  test(
+    'shareability mismatch renames an inbound field without exposing private values',
+    () async {
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+      final privateField = CustomFieldDef(
+        id: 'private-field',
+        key: 'private_key',
+        label: 'Private key',
+        type: CustomFieldType.text,
+        shareable: false,
+      );
+      // ignore: unused_result
+      await repositories.customFieldDefs.upsert(privateField, at: stamp);
+      final inbound = CustomFieldDef(
+        id: 'shareable-field',
+        key: privateField.key,
+        label: privateField.label,
+        type: privateField.type,
+        shareable: true,
+      );
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.customFieldDef,
+              id: inbound.id,
+              updatedAt: stamp.add(const Duration(minutes: 1)),
+              deletedAt: null,
+              existenceAt: stamp.add(const Duration(minutes: 1)),
+              body: syncBodyForEntity(SyncRecordKind.customFieldDef, inbound),
+            ),
+          ),
+        ],
+        storage: storage,
+      );
+
+      expect(result.reports, isEmpty);
+      final storedPrivate = await repositories.customFieldDefs.getById(
+        privateField.id,
+      );
+      final storedInbound = await repositories.customFieldDefs.getById(
+        inbound.id,
+      );
+      expect(storedPrivate, isNotNull);
+      expect(storedPrivate!.key, privateField.key);
+      expect(storedPrivate.shareable, isFalse);
+      expect(storedInbound, isNotNull);
+      expect(storedInbound!.key, isNot(privateField.key));
+      expect(storedInbound.shareable, isTrue);
+
+      final sameId = CustomFieldDef(
+        id: privateField.id,
+        key: privateField.key,
+        label: privateField.label,
+        type: privateField.type,
+        shareable: true,
+      );
+      final sameIdResult = await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.customFieldDef,
+              id: sameId.id,
+              updatedAt: stamp.add(const Duration(minutes: 2)),
+              deletedAt: null,
+              existenceAt: stamp.add(const Duration(minutes: 2)),
+              body: syncBodyForEntity(SyncRecordKind.customFieldDef, sameId),
+            ),
+          ),
+        ],
+        storage: storage,
+      );
+      expect(sameIdResult.applied, isEmpty);
+      expect(
+        (await repositories.customFieldDefs.getById(
+          privateField.id,
+        ))!.shareable,
+        isFalse,
+      );
+    },
+  );
+
+  test(
     'malformed natural-key collisions do not mutate local identity state',
     () async {
       final stamp = DateTime.utc(2025, 1, 2, 12);
@@ -3016,6 +3210,7 @@ void main() {
         deletedAt: tombstoneStamp,
         existenceAt: tombstoneStamp,
       )!;
+      final danceTombstoneUpdatedAt = danceTombstone.updatedAt;
       final danceTombstoneJson = encodeSyncRecordBlob(danceTombstone);
       await repositories.syncLocal.upsertPendingDeletion(
         kind: SyncRecordKind.dance,
@@ -3065,6 +3260,12 @@ void main() {
       expect(
         decodeSyncRecordBlob(remappedDance!.tombstoneBlob).body['authorIds'],
         [inbound.id],
+      );
+      expect(
+        decodeSyncRecordBlob(
+          remappedDance.tombstoneBlob,
+        ).updatedAt.toUtc().isAfter(danceTombstoneUpdatedAt.toUtc()),
+        isTrue,
       );
     },
   );

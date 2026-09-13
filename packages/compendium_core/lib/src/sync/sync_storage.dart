@@ -42,7 +42,12 @@ Iterable<List<T>> _chunked<T>(Iterable<T> values, int size) sync* {
 }
 
 typedef _NaturalKeyAddress = ({SyncRecordKind kind, String key});
-typedef _NaturalKeyValue = ({String id, String? type, bool deleted});
+typedef _NaturalKeyValue = ({
+  String id,
+  String? type,
+  bool deleted,
+  bool? shareable,
+});
 
 final class _NaturalKeyIndex {
   _NaturalKeyIndex(this._rows);
@@ -58,15 +63,40 @@ final class _NaturalKeyIndex {
     );
   }
 
+  void add({
+    required SyncRecordKind kind,
+    required String key,
+    required _NaturalKeyValue value,
+  }) {
+    final address = (kind: kind, key: key);
+    final current = _rows[address];
+    if (current == null || _prefer(value, current)) {
+      _rows[address] = value;
+    }
+  }
+
   void replace({
     required SyncRecordKind kind,
     required String id,
     required String key,
     required String? type,
     required bool deleted,
+    required bool? shareable,
   }) {
     removeId(kind, id);
-    _rows[(kind: kind, key: key)] = (id: id, type: type, deleted: deleted);
+    add(
+      kind: kind,
+      key: key,
+      value: (id: id, type: type, deleted: deleted, shareable: shareable),
+    );
+  }
+
+  static bool _prefer(_NaturalKeyValue candidate, _NaturalKeyValue current) {
+    if (candidate.deleted != current.deleted) return !candidate.deleted;
+    if (candidate.shareable != current.shareable) {
+      return candidate.shareable == false;
+    }
+    return candidate.id.compareTo(current.id) < 0;
   }
 }
 
@@ -636,52 +666,60 @@ final class CompendiumSyncStorage
   snapshotCandidates() async => (await snapshot()).local;
 
   Future<_NaturalKeyIndex> _loadNaturalKeyIndex() async {
-    final rows = <_NaturalKeyAddress, _NaturalKeyValue>{};
+    final index = _NaturalKeyIndex({});
     final choreographers = await _db.select(_db.choreographers).get();
     for (final row in choreographers) {
-      rows[(
+      index.add(
         kind: SyncRecordKind.choreographer,
         key: normalizeShareableText(row.name).toLowerCase(),
-      )] = (
-        id: row.id,
-        type: null,
-        deleted: row.deletedAt != null,
+        value: (
+          id: row.id,
+          type: null,
+          deleted: row.deletedAt != null,
+          shareable: true,
+        ),
       );
     }
     final tags = await _db.select(_db.tags).get();
     for (final row in tags) {
-      rows[(
+      index.add(
         kind: SyncRecordKind.tag,
         key: normalizeShareableText(row.name).toLowerCase(),
-      )] = (
-        id: row.id,
-        type: null,
-        deleted: row.deletedAt != null,
+        value: (
+          id: row.id,
+          type: null,
+          deleted: row.deletedAt != null,
+          shareable: true,
+        ),
       );
     }
     final customFields = await _db.select(_db.customFieldDefs).get();
     for (final row in customFields) {
-      rows[(
+      index.add(
         kind: SyncRecordKind.customFieldDef,
         key: normalizeShareableText(row.key).toLowerCase(),
-      )] = (
-        id: row.id,
-        type: row.type.name,
-        deleted: row.deletedAt != null,
+        value: (
+          id: row.id,
+          type: row.type.name,
+          deleted: row.deletedAt != null,
+          shareable: row.shareable,
+        ),
       );
     }
     final difficultyLevels = await _db.select(_db.difficultyLevels).get();
     for (final row in difficultyLevels) {
-      rows[(
+      index.add(
         kind: SyncRecordKind.difficultyLevel,
         key: normalizeShareableText(row.label).toLowerCase(),
-      )] = (
-        id: row.id,
-        type: null,
-        deleted: row.deletedAt != null,
+        value: (
+          id: row.id,
+          type: null,
+          deleted: row.deletedAt != null,
+          shareable: true,
+        ),
       );
     }
-    return _NaturalKeyIndex(rows);
+    return index;
   }
 
   @override
@@ -732,6 +770,16 @@ final class CompendiumSyncStorage
               ? _canonicalDifficultyId(naturalKey)
               : null;
           if (canonicalDifficultyId != null) {
+            if (byId != null && incumbent != null && byId.id != incumbent.id) {
+              await _enqueueCollisionReview(
+                candidate,
+                incumbent.id,
+                reason:
+                    'known UUID natural-key rename collides with '
+                    'the shipped difficulty row',
+              );
+              continue;
+            }
             if (incumbent != null) {
               if (candidate.blob.deletedAt != null &&
                   !incumbent.deleted &&
@@ -818,6 +866,29 @@ final class CompendiumSyncStorage
                   'another local row',
             );
             continue;
+          } else if (incumbent != null &&
+              kind == SyncRecordKind.customFieldDef &&
+              incumbent.shareable == false &&
+              candidate.blob.body['shareable'] == true) {
+            if (incumbent.id == candidate.blob.id) {
+              await _enqueueCollisionReview(
+                candidate,
+                incumbent.id,
+                reason:
+                    'a shareable inbound definition cannot replace a '
+                    'private local definition',
+              );
+              continue;
+            }
+            final renamed = await _renameInboundCustomField(
+              candidate,
+              incumbent.id,
+              reason:
+                  'shareability mismatch cannot reconcile a private '
+                  'custom-field definition',
+            );
+            if (renamed == null) continue;
+            candidate = renamed;
           } else if (incumbent != null && incumbent.id != candidate.blob.id) {
             if (candidate.blob.deletedAt != null &&
                 !incumbent.deleted &&
@@ -1195,7 +1266,7 @@ final class CompendiumSyncStorage
     required String losingId,
     required String survivingId,
     required Map<SyncRecordKind, Map<String, String>> aliases,
-    ({String id, String? type, bool deleted})? localIdentity,
+    _NaturalKeyValue? localIdentity,
   }) async {
     if (losingId == survivingId) return;
     final target = await repositories.syncLocal.resolveAlias(
@@ -1290,11 +1361,18 @@ final class CompendiumSyncStorage
       final remappedId = remapOwnIdentity && kind != SyncRecordKind.setting
           ? survivingId
           : blob.id;
+      final remappedUpdatedAt =
+          contentHash(blob.body) == contentHash(rewrittenBody)
+          ? blob.updatedAt
+          : nextExistenceStamp(
+              now: DateTime.now().toUtc(),
+              current: blob.updatedAt,
+            );
       final remapped = SyncRecordBlob(
         v: blob.v,
         kind: blob.kind,
         id: remappedId,
-        updatedAt: blob.updatedAt,
+        updatedAt: remappedUpdatedAt,
         deletedAt: blob.deletedAt,
         existenceAt: blob.existenceAt,
         body: rewrittenBody,
@@ -1346,7 +1424,7 @@ final class CompendiumSyncStorage
         );
   }
 
-  Future<({String id, String? type, bool deleted})?> _recordIdentity(
+  Future<_NaturalKeyValue?> _recordIdentity(
     SyncRecordKind kind,
     String id,
   ) async {
@@ -1357,28 +1435,48 @@ final class CompendiumSyncStorage
         )..where((table) => table.id.equals(id))).getSingleOrNull();
         return row == null
             ? null
-            : (id: row.id, type: null, deleted: row.deletedAt != null);
+            : (
+                id: row.id,
+                type: null,
+                deleted: row.deletedAt != null,
+                shareable: true,
+              );
       case SyncRecordKind.tag:
         final row = await (_db.select(
           _db.tags,
         )..where((table) => table.id.equals(id))).getSingleOrNull();
         return row == null
             ? null
-            : (id: row.id, type: null, deleted: row.deletedAt != null);
+            : (
+                id: row.id,
+                type: null,
+                deleted: row.deletedAt != null,
+                shareable: true,
+              );
       case SyncRecordKind.customFieldDef:
         final row = await (_db.select(
           _db.customFieldDefs,
         )..where((table) => table.id.equals(id))).getSingleOrNull();
         return row == null
             ? null
-            : (id: row.id, type: row.type.name, deleted: row.deletedAt != null);
+            : (
+                id: row.id,
+                type: row.type.name,
+                deleted: row.deletedAt != null,
+                shareable: row.shareable,
+              );
       case SyncRecordKind.difficultyLevel:
         final row = await (_db.select(
           _db.difficultyLevels,
         )..where((table) => table.id.equals(id))).getSingleOrNull();
         return row == null
             ? null
-            : (id: row.id, type: null, deleted: row.deletedAt != null);
+            : (
+                id: row.id,
+                type: null,
+                deleted: row.deletedAt != null,
+                shareable: true,
+              );
       case SyncRecordKind.dance:
       case SyncRecordKind.program:
       case SyncRecordKind.publishedSource:
@@ -1388,7 +1486,7 @@ final class CompendiumSyncStorage
     }
   }
 
-  Future<({String id, String? type, bool deleted})?> _naturalKeyRow(
+  Future<_NaturalKeyValue?> _naturalKeyRow(
     SyncRecordKind kind,
     String key,
   ) async {
@@ -1399,14 +1497,24 @@ final class CompendiumSyncStorage
         final rows = await _db.select(_db.choreographers).get();
         for (final row in rows) {
           if (normalizeShareableText(row.name).toLowerCase() == key) {
-            return (id: row.id, type: null, deleted: row.deletedAt != null);
+            return (
+              id: row.id,
+              type: null,
+              deleted: row.deletedAt != null,
+              shareable: true,
+            );
           }
         }
       case SyncRecordKind.tag:
         final rows = await _db.select(_db.tags).get();
         for (final row in rows) {
           if (normalizeShareableText(row.name).toLowerCase() == key) {
-            return (id: row.id, type: null, deleted: row.deletedAt != null);
+            return (
+              id: row.id,
+              type: null,
+              deleted: row.deletedAt != null,
+              shareable: true,
+            );
           }
         }
       case SyncRecordKind.customFieldDef:
@@ -1417,6 +1525,7 @@ final class CompendiumSyncStorage
               id: row.id,
               type: row.type.name,
               deleted: row.deletedAt != null,
+              shareable: row.shareable,
             );
           }
         }
@@ -1424,7 +1533,12 @@ final class CompendiumSyncStorage
         final rows = await _db.select(_db.difficultyLevels).get();
         for (final row in rows) {
           if (normalizeShareableText(row.label).toLowerCase() == key) {
-            return (id: row.id, type: null, deleted: row.deletedAt != null);
+            return (
+              id: row.id,
+              type: null,
+              deleted: row.deletedAt != null,
+              shareable: true,
+            );
           }
         }
       case SyncRecordKind.dance:
@@ -1596,7 +1710,7 @@ final class CompendiumSyncStorage
 
   Future<SyncMergeCandidate?> _reconcileCustomFieldTypeMismatch(
     SyncMergeCandidate candidate,
-    ({String id, String? type, bool deleted}) incumbent,
+    _NaturalKeyValue incumbent,
   ) async {
     final incomingWins = candidate.blob.id.compareTo(incumbent.id) < 0;
     final losingId = incomingWins ? incumbent.id : candidate.blob.id;
@@ -1643,6 +1757,46 @@ final class CompendiumSyncStorage
       candidate.blob.id,
       body,
       updatedAt: stamp,
+    );
+  }
+
+  Future<SyncMergeCandidate?> _renameInboundCustomField(
+    SyncMergeCandidate candidate,
+    String counterpartId, {
+    required String reason,
+  }) async {
+    final key = candidate.blob.body['key'];
+    if (key is! String) return null;
+    final shortKey = syncCustomFieldSuffix(key, candidate.blob.id, full: false);
+    final fullKey = syncCustomFieldSuffix(key, candidate.blob.id, full: true);
+    final suffix =
+        await _naturalKeyRow(
+              SyncRecordKind.customFieldDef,
+              shortKey.toLowerCase(),
+            ) ==
+            null
+        ? shortKey
+        : await _naturalKeyRow(
+                SyncRecordKind.customFieldDef,
+                fullKey.toLowerCase(),
+              ) ==
+              null
+        ? fullKey
+        : null;
+    if (suffix == null) {
+      await _enqueueCollisionReview(candidate, counterpartId, reason: reason);
+      return null;
+    }
+    final body = Map<String, Object?>.from(candidate.blob.body)
+      ..['key'] = suffix;
+    return _candidateWithBody(
+      candidate,
+      candidate.blob.id,
+      body,
+      updatedAt: nextExistenceStamp(
+        now: DateTime.now().toUtc(),
+        current: candidate.blob.updatedAt,
+      ),
     );
   }
 
@@ -1708,6 +1862,7 @@ final class CompendiumSyncStorage
       key: normalizeShareableText(newKey).toLowerCase(),
       type: row.type.name,
       deleted: row.deletedAt != null,
+      shareable: row.shareable,
     );
   }
 
@@ -1780,6 +1935,7 @@ final class CompendiumSyncStorage
           key: normalizeShareableText(row.name).toLowerCase(),
           type: null,
           deleted: row.deletedAt != null,
+          shareable: true,
         );
       case SyncRecordKind.tag:
         final row = await (_db.select(
@@ -1812,6 +1968,7 @@ final class CompendiumSyncStorage
           key: normalizeShareableText(row.name).toLowerCase(),
           type: null,
           deleted: row.deletedAt != null,
+          shareable: true,
         );
       case SyncRecordKind.customFieldDef:
         final row = await (_db.select(
@@ -1849,6 +2006,7 @@ final class CompendiumSyncStorage
           key: normalizeShareableText(row.key).toLowerCase(),
           type: row.type.name,
           deleted: row.deletedAt != null,
+          shareable: row.shareable,
         );
       case SyncRecordKind.difficultyLevel:
         final row = await (_db.select(
@@ -1881,6 +2039,7 @@ final class CompendiumSyncStorage
           key: normalizeShareableText(row.label).toLowerCase(),
           type: null,
           deleted: row.deletedAt != null,
+          shareable: true,
         );
       case SyncRecordKind.dance:
       case SyncRecordKind.program:
