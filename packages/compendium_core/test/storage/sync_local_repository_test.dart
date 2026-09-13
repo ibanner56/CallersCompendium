@@ -3,7 +3,6 @@ import 'package:compendium_core/src/storage/database.dart'
     show BaselineStateCompanion;
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
-import 'package:sqlite3/sqlite3.dart' show SqliteException;
 import 'package:test/test.dart';
 
 import 'test_database.dart';
