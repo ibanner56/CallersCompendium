@@ -189,6 +189,67 @@ void main() {
     },
   );
 
+  test('rejected inbound tombstones do not suppress live citations', () async {
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    final tag = Tag(id: 'retained-tag', name: 'Retained tag');
+    // ignore: unused_result
+    await repositories.tags.upsert(tag, at: stamp);
+    await repositories.dances.create(
+      Dance(
+        id: 'live-dance',
+        title: 'Live dance',
+        tagIds: [tag.id],
+        createdAt: stamp,
+        updatedAt: stamp,
+      ),
+    );
+
+    final tombstoneStamp = stamp.add(const Duration(minutes: 1));
+    final invalidDance = Dance(
+      id: 'live-dance',
+      title: 'Live dance',
+      authorIds: const ['missing-author'],
+      tagIds: [tag.id],
+      createdAt: stamp,
+      updatedAt: tombstoneStamp,
+    );
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.tag,
+            id: tag.id,
+            updatedAt: tombstoneStamp,
+            deletedAt: tombstoneStamp,
+            existenceAt: tombstoneStamp,
+            body: syncBodyForEntity(SyncRecordKind.tag, tag),
+          ),
+        ),
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.dance,
+            id: invalidDance.id,
+            updatedAt: tombstoneStamp,
+            deletedAt: tombstoneStamp,
+            existenceAt: tombstoneStamp,
+            body: syncBodyForEntity(SyncRecordKind.dance, invalidDance),
+          ),
+        ),
+      ],
+      storage: storage,
+    );
+
+    expect(result.reports.single.code, SyncReportCode.unresolvedReference);
+    expect(await repositories.dances.getById('live-dance'), isNotNull);
+    expect(
+      await repositories.syncLocal.getPendingDeletion(
+        kind: SyncRecordKind.tag,
+        recordId: tag.id,
+      ),
+      isNotNull,
+    );
+  });
+
   test(
     'reconciles same-label difficulty levels before applying dependents',
     () async {

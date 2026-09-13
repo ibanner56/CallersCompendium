@@ -129,6 +129,11 @@ final class CompendiumSyncCoordinatorStore
   );
 
   @override
+  Future<void> setInboundTombstoneContext(
+    Set<SyncRecordAddress> tombstonedAddresses,
+  ) => storage.setInboundTombstoneContext(tombstonedAddresses);
+
+  @override
   Future<void> clearReconciliationContext() =>
       storage.clearReconciliationContext();
 

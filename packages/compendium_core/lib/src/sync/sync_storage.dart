@@ -1003,11 +1003,16 @@ final class CompendiumSyncStorage
       }
       prepared.add(candidate);
     }
-    _inboundTombstonedAddresses = {
-      for (final candidate in prepared)
-        if (candidate.blob.deletedAt != null) candidate.address,
-    };
     return SyncApplyPreparation(candidates: prepared, reports: reports);
+  }
+
+  @override
+  Future<void> setInboundTombstoneContext(
+    Set<SyncRecordAddress> tombstonedAddresses,
+  ) async {
+    _inboundTombstonedAddresses = Set<SyncRecordAddress>.of(
+      tombstonedAddresses,
+    );
   }
 
   @override

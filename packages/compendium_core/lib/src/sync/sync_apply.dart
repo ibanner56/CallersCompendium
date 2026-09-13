@@ -115,6 +115,13 @@ abstract interface class SyncApplyReconciliationStorage
     Map<SyncRecordAddress, String?>? expectedWireHashes,
   });
 
+  /// Provides the final fixed-point eligible tombstones to the storage
+  /// adapter. Reconciliation may prepare candidates that reference validation
+  /// later rejects, so citation suppression must use this final set only.
+  Future<void> setInboundTombstoneContext(
+    Set<SyncRecordAddress> tombstonedAddresses,
+  ) async {}
+
   /// Clears batch-only reconciliation context after the transaction ends.
   ///
   /// The default keeps lightweight adapters source-compatible; database
@@ -375,8 +382,11 @@ class SyncApplyEngine {
     required List<SyncReport> reports,
   }) async {
     var reconciledCandidates = candidates;
-    if (storage is SyncApplyReconciliationStorage) {
-      final preparation = await storage.reconcileInbound(
+    final reconciliationStorage = storage is SyncApplyReconciliationStorage
+        ? storage
+        : null;
+    if (reconciliationStorage != null) {
+      final preparation = await reconciliationStorage.reconcileInbound(
         candidates,
         expectedWireHashes: expectedWireHashes,
       );
@@ -508,6 +518,10 @@ class SyncApplyEngine {
             if (record.deletedAt == null) record.address,
         });
     }
+    await reconciliationStorage?.setInboundTombstoneContext({
+      for (final record in eligible)
+        if (record.deletedAt != null) record.address,
+    });
 
     final parentWritten = <SyncApplyRecord>[];
     final parentWrittenByAddress = <SyncRecordAddress, SyncApplyRecord>{};
