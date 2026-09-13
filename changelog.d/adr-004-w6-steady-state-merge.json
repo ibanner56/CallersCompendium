@@ -8,8 +8,7 @@
   },
   "core": {
     "changed": [
-        "Add existence-first, baseline-aware classification-safe merge and transactional inbound-apply primitives for Device Sync, including conditional custom-field egress validation, tombstone-safe relation validation, fixed-point dependent pruning after parent-write failures, per-owner dependent-row collision guards, and optimistic protection against overwriting concurrent local edits.",
-        "Add existence-first, baseline-aware classification-safe merge and transactional inbound-apply primitives for Device Sync, including conditional custom-field egress validation, tombstone-safe relation validation, fixed-point dependent pruning after parent-write failures, per-owner and duplicate dependent-row collision guards, malformed-body isolation, and optimistic protection against overwriting concurrent local edits."
+      "Add existence-first, baseline-aware classification-safe merge and transactional inbound-apply primitives for Device Sync, including conditional custom-field egress validation, tombstone-safe relation validation, fixed-point dependent pruning after parent-write failures, per-owner and duplicate dependent-row collision guards, malformed-body isolation, and optimistic protection against overwriting concurrent local edits."
     ]
   }
 }
