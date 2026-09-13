@@ -1,9 +1,0 @@
-{
-  "id": "program-note-waltz",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "The program editor now labels the note option “Add note / waltz”."
-    ]
-  }
-}

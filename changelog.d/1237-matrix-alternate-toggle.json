@@ -1,9 +1,0 @@
-{
-  "id": "1237-matrix-alternate-toggle",
-  "user_visible": true,
-  "app": {
-    "added": [
-      "You can temporarily hide alternate rows in the program matrix without changing the saved program or its exports."
-    ]
-  }
-}

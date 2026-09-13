@@ -455,6 +455,60 @@ void main() {
       expect(results.single.formation, 'Triple Minor - Proper');
     });
 
+    test(
+      'maps Figure text to global positives without replacing phrases',
+      () async {
+        String? capturedUrl;
+        final online = CallersBoxOnline(
+          searchFetcher: (url) async {
+            capturedUrl = url;
+            return _resultsHtml;
+          },
+        );
+        const phrases = CallersBoxPhraseQuery(
+          globalPos: ['balance'],
+          globalNeg: ['hey'],
+          phrasePos: {
+            1: ['swing'],
+          },
+          phraseNeg: {
+            2: ['allemande'],
+          },
+        );
+
+        await online.search(
+          const OnlineSearchQuery(
+            figure: '  box circulate  ',
+            phrases: phrases,
+          ),
+        );
+
+        final params = Uri.parse(capturedUrl!).queryParameters;
+        expect(params['pos_lines'], 'balance\nbox circulate');
+        expect(params['pos_mode'], 'all_any');
+        expect(params['neg_lines'], 'hey');
+        expect(params['neg_mode'], 'any_any');
+        expect(params['phr1_pos_lines'], 'swing');
+        expect(params['phr1_pos_mode'], 'all_any');
+        expect(params['phr2_neg_lines'], 'allemande');
+        expect(params['phr2_neg_mode'], 'any_any');
+      },
+    );
+
+    test('rejects a query that supplies two text criteria', () async {
+      final online = CallersBoxOnline(searchFetcher: (_) async => _resultsHtml);
+      expect(
+        online.search(const OnlineSearchQuery(title: 'Title', figure: 'swing')),
+        throwsArgumentError,
+      );
+      expect(
+        online.search(
+          const OnlineSearchQuery(author: 'Author', figure: 'swing'),
+        ),
+        throwsArgumentError,
+      );
+    });
+
     test('propagates a UrlFetchException from the fetch seam', () async {
       final online = CallersBoxOnline(
         searchFetcher: (_) async =>

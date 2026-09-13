@@ -20,6 +20,14 @@ step-by-step does not prevent on its own.
   package version record, and the app entry is what users receive. The release-prep
   session cannot reliably reconstruct that context, so catch the missing app
   entry in the behavioral-change PR.
+- **Release-preparation identity is part of the process.** Use
+  `docs(release): prepare vX.Y.Z` for stable releases and
+  `docs(release): prepare vX.Y.Z-beta` for beta releases in both the
+  preparation commit subject and pull request title; #937 is the in-repo
+  precedent (`docs(release): prepare v0.1.0-beta.7`). Do not substitute
+  `chore(release)` unless a maintainer explicitly overrides the convention,
+  including when the preparation changes version literals, issue-template
+  metadata, or generated changelogs.
 - **Re-derive the schema and taxonomy versions from source at tag time.** They
   move while a release is being prepared, so a number quoted in a status report
   an hour old may already be wrong. The Data/Migrations section is where users

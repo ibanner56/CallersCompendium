@@ -670,19 +670,20 @@ abstract class AppLocalizations {
   /// **'© The Caller’s Compendium contributors. Licensed under AGPL-3.0.'**
   String get settingsAboutLegalese;
 
-  /// Version line under the app wordmark in the About header.
+  /// Version and release-codename line under the app wordmark in the About header. The codename is a proper noun kept verbatim.
   ///
   /// In en, this message translates to:
-  /// **'Version {version}'**
-  String settingsAboutVersion(String version);
+  /// **'Version {version}, “{codename}”'**
+  String settingsAboutVersion(String version, String codename);
 
-  /// One-line footer at the bottom of the About section combining the app name, version, and license identifier. All three values are proper nouns / identifiers kept verbatim; only the word 'Version' is translatable.
+  /// One-line footer at the bottom of the About section combining the app name, version, release codename, and license identifier. The app name, version, codename, and license are proper nouns / identifiers kept verbatim; only the word 'Version' is translatable.
   ///
   /// In en, this message translates to:
-  /// **'{appName} · Version {version} · {license}'**
+  /// **'{appName} · Version {version}, “{codename}” · {license}'**
   String settingsAboutVersionLine(
     String appName,
     String version,
+    String codename,
     String license,
   );
 
@@ -6044,6 +6045,12 @@ abstract class AppLocalizations {
   /// **'Search online dances by title or author…'**
   String get onlineSearchFieldHint;
 
+  /// Hint text for the Collection screen online search field; the CollectionPicker remains title-oriented.
+  ///
+  /// In en, this message translates to:
+  /// **'Search online dances by title, author, or figure…'**
+  String get collectionOnlineSearchFieldHint;
+
   /// Count of online search results shown above the results list.
   ///
   /// In en, this message translates to:
@@ -6061,6 +6068,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Type a title or author to search {source}.'**
   String onlineSearchHintTitle(String source);
+
+  /// Empty-query hint for the Collection screen's online sources that support by-phrase figure criteria.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a title, author, or figure, or add by-phrase figures to search {source}.'**
+  String collectionOnlineSearchHintByPhrase(String source);
+
+  /// Empty-query hint for the Collection screen's online sources without by-phrase support.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a title, author, or figure to search {source}.'**
+  String collectionOnlineSearchHintTitle(String source);
 
   /// Shown when an online search returns no matching dances.
   ///
@@ -6877,6 +6896,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter a title or author to search ContraDB.'**
   String get importErrorContraDbEmptyTitle;
+
+  /// Error shown when a ContraDB Figure search is not an exact canonical move name.
+  ///
+  /// In en, this message translates to:
+  /// **'ContraDB Figure searches use a complete move name, such as \"box circulate\".'**
+  String get importErrorContraDbUnsupportedFigure;
 
   /// Error shown when the ContraDB dance URL/id field is empty.
   ///

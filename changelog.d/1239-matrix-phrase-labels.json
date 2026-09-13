@@ -1,9 +1,0 @@
-{
-  "id": "1239-matrix-phrase-labels",
-  "user_visible": true,
-  "app": {
-    "added": [
-      "You can show the phrases where each comparable move starts directly in the program matrix."
-    ]
-  }
-}

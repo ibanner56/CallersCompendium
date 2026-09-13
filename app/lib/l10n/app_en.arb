@@ -430,19 +430,23 @@
   "@settingsAboutLegalese": {
     "description": "Legal notice shown on the license page. 'The Caller's Compendium' and 'AGPL-3.0' are proper nouns kept verbatim."
   },
-  "settingsAboutVersion": "Version {version}",
+  "settingsAboutVersion": "Version {version}, “{codename}”",
   "@settingsAboutVersion": {
-    "description": "Version line under the app wordmark in the About header.",
+    "description": "Version and release-codename line under the app wordmark in the About header. The codename is a proper noun kept verbatim.",
     "placeholders": {
       "version": {
         "type": "String",
         "example": "1.4.0"
+      },
+      "codename": {
+        "type": "String",
+        "example": "Allemande Left"
       }
     }
   },
-  "settingsAboutVersionLine": "{appName} · Version {version} · {license}",
+  "settingsAboutVersionLine": "{appName} · Version {version}, “{codename}” · {license}",
   "@settingsAboutVersionLine": {
-    "description": "One-line footer at the bottom of the About section combining the app name, version, and license identifier. All three values are proper nouns / identifiers kept verbatim; only the word 'Version' is translatable.",
+    "description": "One-line footer at the bottom of the About section combining the app name, version, release codename, and license identifier. The app name, version, codename, and license are proper nouns / identifiers kept verbatim; only the word 'Version' is translatable.",
     "placeholders": {
       "appName": {
         "type": "String",
@@ -451,6 +455,10 @@
       "version": {
         "type": "String",
         "example": "1.4.0"
+      },
+      "codename": {
+        "type": "String",
+        "example": "Allemande Left"
       },
       "license": {
         "type": "String",
@@ -5015,6 +5023,10 @@
   "@onlineSearchFieldHint": {
     "description": "Hint text for the online search field."
   },
+  "collectionOnlineSearchFieldHint": "Search online dances by title, author, or figure…",
+  "@collectionOnlineSearchFieldHint": {
+    "description": "Hint text for the Collection screen online search field; the CollectionPicker remains title-oriented."
+  },
   "onlineResultCount": "{count, plural, =1{1 online result} other{{count} online results}}",
   "@onlineResultCount": {
     "description": "Count of online search results shown above the results list.",
@@ -5037,6 +5049,26 @@
   "onlineSearchHintTitle": "Type a title or author to search {source}.",
   "@onlineSearchHintTitle": {
     "description": "Empty-query hint for online sources without by-phrase support.",
+    "placeholders": {
+      "source": {
+        "type": "String",
+        "example": "ContraDB"
+      }
+    }
+  },
+  "collectionOnlineSearchHintByPhrase": "Type a title, author, or figure, or add by-phrase figures to search {source}.",
+  "@collectionOnlineSearchHintByPhrase": {
+    "description": "Empty-query hint for the Collection screen's online sources that support by-phrase figure criteria.",
+    "placeholders": {
+      "source": {
+        "type": "String",
+        "example": "Caller's Box"
+      }
+    }
+  },
+  "collectionOnlineSearchHintTitle": "Type a title, author, or figure to search {source}.",
+  "@collectionOnlineSearchHintTitle": {
+    "description": "Empty-query hint for the Collection screen's online sources without by-phrase support.",
     "placeholders": {
       "source": {
         "type": "String",
@@ -5823,6 +5855,10 @@
   "importErrorContraDbEmptyTitle": "Enter a title or author to search ContraDB.",
   "@importErrorContraDbEmptyTitle": {
     "description": "Error shown when a ContraDB search is attempted with no title or author."
+  },
+  "importErrorContraDbUnsupportedFigure": "ContraDB Figure searches use a complete move name, such as \"box circulate\".",
+  "@importErrorContraDbUnsupportedFigure": {
+    "description": "Error shown when a ContraDB Figure search is not an exact canonical move name."
   },
   "importErrorContraDbEmptyDanceInput": "Enter a ContraDB dance URL or id to import from.",
   "@importErrorContraDbEmptyDanceInput": {

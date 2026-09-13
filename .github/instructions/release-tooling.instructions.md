@@ -30,6 +30,15 @@ prevent on its own are in
   unique JSON file under `changelog.d/`; only release preparation runs
   `tools/release/compile_changelog_fragments.py --write` to update the committed
   histories and consume those files. Do not hand-edit the compiled changelogs.
+- **Release-preparation subjects are normative.** The release-preparation
+  commit subject and pull request title must be
+  `docs(release): prepare vX.Y.Z` for a stable release or
+  `docs(release): prepare vX.Y.Z-beta` for a beta release, using the actual
+  version literal (the merged #937 release used
+  `docs(release): prepare v0.1.0-beta.7`). Never use `chore(release)` unless a
+  maintainer explicitly overrides this convention. This remains true when the
+  preparation changes version literals, issue-template metadata, or generated
+  changelogs.
 - **Review the compiler diff and rendered notes.** The compiler prevents shared
   edit conflicts and makes formatting deterministic, but it cannot determine
   whether the prose accurately describes the release.

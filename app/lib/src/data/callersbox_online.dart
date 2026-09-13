@@ -54,10 +54,10 @@ class CallersBoxOnline implements OnlineSearchService {
   OnlineSource get source => OnlineSource.callersBox;
 
   /// Searches The Caller's Box by [OnlineSearchQuery.title],
-  /// [OnlineSearchQuery.author], or by-phrase figure
-  /// [OnlineSearchQuery.phrases] and returns the parsed result rows. Title and
-  /// author are mutually exclusive text criteria; phrase criteria can be added
-  /// to either one. All criteria are serialized using TCB's fixed field names.
+  /// [OnlineSearchQuery.author], [OnlineSearchQuery.figure], or by-phrase
+  /// figure [OnlineSearchQuery.phrases] and returns the parsed result rows.
+  /// Text criteria are mutually exclusive; phrase criteria can be added to any
+  /// one. All criteria are serialized using TCB's fixed field names.
   /// Throws a typed [UrlFetchException] on any fetch failure, or when there is
   /// nothing to search.
   ///
@@ -80,10 +80,22 @@ class CallersBoxOnline implements OnlineSearchService {
   /// `show_all`. A missing or unreadable total simply skips the second request.
   @override
   Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async {
+    final title = query.title.trim();
+    final author = query.author.trim();
+    final figure = query.figure.trim();
+    final textCriteria = [
+      title,
+      author,
+      figure,
+    ].where((criterion) => criterion.isNotEmpty).length;
+    if (textCriteria > 1) {
+      throw ArgumentError('title, author, and figure cannot be combined');
+    }
+    final phrases = _withGlobalFigure(query.phrases, figure);
     final url = buildCallersBoxSearchUrl(
-      query.title,
-      author: query.author,
-      phrases: query.phrases,
+      title,
+      author: author,
+      phrases: phrases,
     );
     var html = await _searchFetcher(url);
     var rows = parseCallersBoxSearchResults(html);
@@ -91,9 +103,9 @@ class CallersBoxOnline implements OnlineSearchService {
     final total = parseCallersBoxMatchCount(html);
     if (total != null && total > rows.length && total <= showAllMatchLimit) {
       final allUrl = buildCallersBoxSearchUrl(
-        query.title,
-        author: query.author,
-        phrases: query.phrases,
+        title,
+        author: author,
+        phrases: phrases,
         showAll: true,
       );
       html = await _searchFetcher(allUrl);
@@ -112,6 +124,20 @@ class CallersBoxOnline implements OnlineSearchService {
             figuresAvailable: r.figuresAvailable,
           ),
     ];
+  }
+
+  CallersBoxPhraseQuery? _withGlobalFigure(
+    CallersBoxPhraseQuery? phrases,
+    String figure,
+  ) {
+    if (figure.isEmpty) return phrases;
+    final base = phrases ?? const CallersBoxPhraseQuery();
+    return CallersBoxPhraseQuery(
+      globalPos: [...base.globalPos, figure],
+      globalNeg: base.globalNeg,
+      phrasePos: base.phrasePos,
+      phraseNeg: base.phraseNeg,
+    );
   }
 
   /// Fetches the per-dance JSON for [result], parses it, and builds an

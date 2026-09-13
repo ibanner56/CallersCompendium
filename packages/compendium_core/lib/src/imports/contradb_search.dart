@@ -2,13 +2,14 @@ import 'dart:convert';
 
 import 'package:meta/meta.dart';
 
-/// One row of a **ContraDB** online title- or choreographer-search result.
+/// One row of a **ContraDB** online title-, choreographer-, or figure-search
+/// result.
 ///
 /// Unlike The Caller's Box (which has no JSON search surface — see
 /// `callersbox_search.dart`), ContraDB exposes a JSON search API at
 /// `POST https://contradb.com/api/v1/dances` (the Rails controller skips CSRF
 /// verification, so no token/login/cookie is needed). [buildContraDbSearchBody]
-/// builds the request body for a title or choreographer query and
+/// builds the request body for a title, choreographer, or figure query and
 /// [parseContraDbSearchResults]
 /// turns the JSON response into these lightweight rows.
 ///
@@ -61,18 +62,93 @@ class ContraDbSearchResult {
 /// matches for a title query.
 const int contraDbSearchCount = 20;
 
-/// Builds the JSON request body for a ContraDB **title** or **choreographer**
-/// search.
+/// Canonical Figure names exposed by ContraDB's `/figures` index.
 ///
-/// ContraDB's array query DSL (`lib/filter_dances.rb`) treats `["title", q]` and
-/// `["choreographer", q]` as case-insensitive substring matches on the selected
-/// field. The endpoint accepts `count` (page size), `offset` (page start), and an optional `sort_by`
-/// (`"titleA"` sorts by title ascending).
+/// ContraDB's `figure` operator resolves an exact, case-sensitive
+/// `defined_events` key rather than performing a text search. The app accepts
+/// case and whitespace variants from the user, then sends the source spelling
+/// from this map. Keep this vocabulary aligned with the live ContraDB figure
+/// index; `custom` is included because it is a valid source figure key even
+/// though it is not a seeded app taxonomy move.
+const Map<String, String> _contraDbFigureNames = {
+  'allemande': 'allemande',
+  'allemande orbit': 'allemande orbit',
+  'arch & dive': 'arch & dive',
+  'balance': 'balance',
+  'balance the ring': 'balance the ring',
+  'box circulate': 'box circulate',
+  'box the gnat': 'box the gnat',
+  'butterfly whirl': 'butterfly whirl',
+  'california twirl': 'California twirl',
+  'chain': 'chain',
+  'circle': 'circle',
+  'contra corners': 'contra corners',
+  'cross trails': 'cross trails',
+  'custom': 'custom',
+  'do si do': 'do si do',
+  'dolphin hey': 'dolphin hey',
+  'down the hall': 'down the hall',
+  'facing star': 'facing star',
+  'figure 8': 'figure 8',
+  'form a long wave': 'form a long wave',
+  'form an ocean wave': 'form an ocean wave',
+  'form long waves': 'form long waves',
+  'gate': 'gate',
+  'give & take': 'give & take',
+  'gyre': 'gyre',
+  'hey': 'hey',
+  'long lines': 'long lines',
+  'mad robin': 'mad robin',
+  'meltdown swing': 'meltdown swing',
+  'pass by': 'pass by',
+  'pass through': 'pass through',
+  'petronella': 'petronella',
+  'poussette': 'poussette',
+  'promenade': 'promenade',
+  'pull by dancers': 'pull by dancers',
+  'pull by direction': 'pull by direction',
+  'revolving door': 'revolving door',
+  'right left through': 'right left through',
+  'roll away': 'roll away',
+  "rory o'more": "Rory O'More",
+  'see saw': 'see saw',
+  'slice': 'slice',
+  'slide along set': 'slide along set',
+  'square through': 'square through',
+  'stand still': 'stand still',
+  'star': 'star',
+  'star promenade': 'star promenade',
+  'swat the flea': 'swat the flea',
+  'swing': 'swing',
+  'turn alone': 'turn alone',
+  'up the hall': 'up the hall',
+  'zig zag': 'zig zag',
+};
+
+String _normalizeContraDbFigureQuery(String query) =>
+    query.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
+
+/// Resolves user-entered Figure text to ContraDB's exact source spelling.
 ///
-/// Returns the body as a JSON-encoded string ready to POST. The [query] is sent
-/// verbatim (ContraDB lower-cases both sides for the match); an empty [query]
-/// still produces a valid body (ContraDB returns its default page), but callers
-/// should avoid searching on empty input.
+/// Returns `null` for partial, unknown, or empty text. The endpoint would
+/// return an error for those values, so callers must reject them before making
+/// a request.
+String? canonicalContraDbFigureQuery(String query) =>
+    _contraDbFigureNames[_normalizeContraDbFigureQuery(query)];
+
+/// Builds the JSON request body for a ContraDB **title**, **choreographer**, or
+/// **figure** search.
+///
+/// ContraDB's array query DSL accepts title and choreographer text, but its
+/// `figure` operator requires an exact canonical move key. Figure input is
+/// normalized through [canonicalContraDbFigureQuery] before serialization.
+/// The endpoint accepts `count` (page size), `offset` (page start), and an
+/// optional `sort_by` (`"titleA"` sorts by title ascending).
+///
+/// Returns the body as a JSON-encoded string ready to POST. Title and
+/// choreographer [query] text is sent verbatim; an invalid Figure query throws
+/// [ArgumentError]. An empty [query] still produces a valid non-Figure body,
+/// but callers should avoid searching on empty input.
 String buildContraDbSearchBody(
   String query, {
   String filter = 'title',
@@ -80,11 +156,23 @@ String buildContraDbSearchBody(
   int offset = 0,
   String sortBy = 'titleA',
 }) {
-  if (filter != 'title' && filter != 'choreographer') {
+  if (filter != 'title' && filter != 'choreographer' && filter != 'figure') {
     throw ArgumentError.value(filter, 'filter');
   }
+  var bodyQuery = query;
+  if (filter == 'figure') {
+    final canonical = canonicalContraDbFigureQuery(query);
+    if (canonical == null) {
+      throw ArgumentError.value(
+        query,
+        'query',
+        'must be an exact ContraDB figure name',
+      );
+    }
+    bodyQuery = canonical;
+  }
   return jsonEncode(<String, Object?>{
-    'filter': <Object?>[filter, query],
+    'filter': <Object?>[filter, bodyQuery],
     'count': count,
     'offset': offset,
     'sort_by': sortBy,

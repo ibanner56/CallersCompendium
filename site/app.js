@@ -3,14 +3,21 @@
  * The download section is populated LIVE from the update manifest that the
  * release pipeline already publishes to this same origin
  * (tools/release/publish_pages_manifest.sh -> gh-pages/beta.json). That means
- * versions, links, sizes and checksums stay correct every release with no edits
- * to this page. If the fetch fails we fall back to the Releases page.
+ * versions, codenames, links, sizes and checksums stay correct every release
+ * with no edits to this page. If the fetch fails we fall back to the Releases
+ * page.
  */
 (function () {
   "use strict";
 
   var MANIFEST = "beta.json"; // relative to the site root -> …/CallersCompendium/beta.json
   var RELEASES = "https://github.com/ibanner56/CallersCompendium/releases";
+  // The 0.4.0 manifests were published before codename became a manifest field.
+  // Keep the current Pages copy branded until the next release refreshes them.
+  var LEGACY_CODENAMES = {
+    "0.4.0": "Allemande Left",
+    "0.4.0-beta": "Allemande Left"
+  };
 
   // Presentation metadata per platform id used in the manifest artifacts.
   var PLATFORMS = {
@@ -39,11 +46,14 @@
   function render(manifest) {
     var version = manifest && manifest.version ? manifest.version : null;
     if (version) {
-      setText("hero-version", "v" + version);
-      setText("hero-status", "Our public beta is live — v" + version);
+      var codename = releaseCodename(manifest, version);
+      var releaseIdentity = formatReleaseIdentity(version, codename);
+      setText("hero-version", releaseIdentity);
+      setText("hero-status", "Our public beta is live — " + releaseIdentity);
       var line = document.getElementById("dl-version-line");
       if (line) {
         line.textContent = "Version " + version;
+        if (codename) line.textContent += ', “' + codename + '”';
         var when = formatDate(manifest.pubDate);
         if (when) line.textContent += " · released " + when;
       }
@@ -119,6 +129,19 @@
   }
 
   /* ---------- helpers ---------- */
+
+  function releaseCodename(manifest, version) {
+    if (manifest && typeof manifest.codename === "string") {
+      var codename = manifest.codename.trim();
+      if (codename) return codename;
+    }
+    return LEGACY_CODENAMES[version] || "";
+  }
+
+  function formatReleaseIdentity(version, codename) {
+    var identity = "v" + version;
+    return codename ? identity + ', “' + codename + '”' : identity;
+  }
 
   function orderOf(platform) {
     var m = PLATFORMS[platform];

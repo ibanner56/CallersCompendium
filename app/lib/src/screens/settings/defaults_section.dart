@@ -1249,6 +1249,10 @@ class _DefaultsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final sectionTitleStyle = theme.textTheme.labelLarge?.copyWith(
+      color: theme.colorScheme.primary,
+    );
     return ListView(
       keyboardDismissBehavior: kTextEntryKeyboardDismiss,
       children: [
@@ -1404,7 +1408,10 @@ class _DefaultsView extends StatelessWidget {
         ),
         ExpansionTile(
           key: const ValueKey('defaults-program-group'),
-          title: Text(l10n.settingsDefaultsProgramHeader),
+          title: Text(
+            l10n.settingsDefaultsProgramHeader,
+            style: sectionTitleStyle,
+          ),
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(
@@ -1458,7 +1465,10 @@ class _DefaultsView extends StatelessWidget {
         ),
         ExpansionTile(
           key: const ValueKey('defaults-authoring-group'),
-          title: Text(l10n.settingsDefaultsAuthoringHeader),
+          title: Text(
+            l10n.settingsDefaultsAuthoringHeader,
+            style: sectionTitleStyle,
+          ),
           children: [
             ExpansionTile(
               key: const ValueKey('defaults-difficulty-levels-section'),

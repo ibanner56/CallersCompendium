@@ -336,17 +336,18 @@ class AppLocalizationsEn extends AppLocalizations {
       '© The Caller’s Compendium contributors. Licensed under AGPL-3.0.';
 
   @override
-  String settingsAboutVersion(String version) {
-    return 'Version $version';
+  String settingsAboutVersion(String version, String codename) {
+    return 'Version $version, “$codename”';
   }
 
   @override
   String settingsAboutVersionLine(
     String appName,
     String version,
+    String codename,
     String license,
   ) {
-    return '$appName · Version $version · $license';
+    return '$appName · Version $version, “$codename” · $license';
   }
 
   @override
@@ -3797,6 +3798,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Search online dances by title or author…';
 
   @override
+  String get collectionOnlineSearchFieldHint =>
+      'Search online dances by title, author, or figure…';
+
+  @override
   String onlineResultCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -3815,6 +3820,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String onlineSearchHintTitle(String source) {
     return 'Type a title or author to search $source.';
+  }
+
+  @override
+  String collectionOnlineSearchHintByPhrase(String source) {
+    return 'Type a title, author, or figure, or add by-phrase figures to search $source.';
+  }
+
+  @override
+  String collectionOnlineSearchHintTitle(String source) {
+    return 'Type a title, author, or figure to search $source.';
   }
 
   @override
@@ -4451,6 +4466,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get importErrorContraDbEmptyTitle =>
       'Enter a title or author to search ContraDB.';
+
+  @override
+  String get importErrorContraDbUnsupportedFigure =>
+      'ContraDB Figure searches use a complete move name, such as \"box circulate\".';
 
   @override
   String get importErrorContraDbEmptyDanceInput =>

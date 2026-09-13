@@ -637,6 +637,29 @@ void main() {
     expect(find.byKey(const ValueKey('defaults-program-band')), findsOneWidget);
   });
 
+  testWidgets('default group headings use the shared section heading style', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpDefaults(tester, repos, expandGroups: false);
+
+    final theme = Theme.of(
+      tester.element(find.byKey(const ValueKey('defaults-program-group'))),
+    );
+    final expectedStyle = theme.textTheme.labelLarge?.copyWith(
+      color: theme.colorScheme.primary,
+    );
+
+    for (final key in [
+      const ValueKey('defaults-program-group'),
+      const ValueKey('defaults-authoring-group'),
+    ]) {
+      final tile = tester.widget<ExpansionTile>(find.byKey(key));
+      final title = tile.title as Text;
+      expect(title.style, expectedStyle);
+    }
+  });
+
   testWidgets('editing the default caller and band persists them', (
     tester,
   ) async {

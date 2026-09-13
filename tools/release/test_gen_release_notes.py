@@ -216,11 +216,13 @@ def _cases() -> None:
             )
         assert rc_stable == 1
         assert "::error::" in err.getvalue()
-        rc_beta = g.main(
-            ["--version", "9.9.9-beta", "--channel", "beta",
-             "--tag", "v9.9.9-beta", "--changelog", str(cl), "--check"]
-        )
+        with contextlib.redirect_stderr(io.StringIO()) as err:
+            rc_beta = g.main(
+                ["--version", "9.9.9-beta", "--channel", "beta",
+                 "--tag", "v9.9.9-beta", "--changelog", str(cl), "--check"]
+            )
         assert rc_beta == 1
+        assert "::error::" in err.getvalue()
 
         # 14. --macos-signing toggles the footer's macOS claim end-to-end via the
         #     CLI (default = unsigned; 'configured' = Developer ID-signed).

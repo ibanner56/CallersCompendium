@@ -1,9 +1,0 @@
-{
-  "id": "1231-preview-close",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "When you preview a dance in the Program editor, only one close control is shown."
-    ]
-  }
-}

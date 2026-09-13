@@ -330,17 +330,18 @@ class AppLocalizationsJa extends AppLocalizations {
       '© The Caller\'s Compendium contributors. AGPL-3.0のもとで使用許諾。';
 
   @override
-  String settingsAboutVersion(String version) {
-    return 'バージョン $version';
+  String settingsAboutVersion(String version, String codename) {
+    return 'バージョン $version、「$codename」';
   }
 
   @override
   String settingsAboutVersionLine(
     String appName,
     String version,
+    String codename,
     String license,
   ) {
-    return '$appName · バージョン $version · $license';
+    return '$appName · バージョン $version、「$codename」 · $license';
   }
 
   @override
@@ -3689,6 +3690,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onlineSearchFieldHint => 'タイトルまたは作者でオンラインのダンスを検索…';
 
   @override
+  String get collectionOnlineSearchFieldHint =>
+      'タイトル、作者、またはフィギュアでオンラインのダンスを検索…';
+
+  @override
   String onlineResultCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -3706,6 +3711,16 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String onlineSearchHintTitle(String source) {
     return '$sourceを検索するには、タイトルまたは作者を入力してください。';
+  }
+
+  @override
+  String collectionOnlineSearchHintByPhrase(String source) {
+    return '$sourceを検索するには、タイトル、作者、またはフィギュアを入力するか、フレーズ別のフィギュアを追加してください。';
+  }
+
+  @override
+  String collectionOnlineSearchHintTitle(String source) {
+    return '$sourceを検索するには、タイトル、作者、またはフィギュアを入力してください。';
   }
 
   @override
@@ -4306,6 +4321,10 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get importErrorContraDbEmptyTitle =>
       'ContraDBを検索するには、タイトルまたは作者を入力してください。';
+
+  @override
+  String get importErrorContraDbUnsupportedFigure =>
+      'ContraDBのFigure検索には、「box circulate」のような完全な技名を使用してください。';
 
   @override
   String get importErrorContraDbEmptyDanceInput =>

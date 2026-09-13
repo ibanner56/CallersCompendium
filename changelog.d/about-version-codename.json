@@ -1,0 +1,9 @@
+{
+  "id": "about-version-codename",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "The About page and GitHub Pages landing page now show the 0.4.0 release codename, “Allemande Left,” alongside the app version."
+    ]
+  }
+}

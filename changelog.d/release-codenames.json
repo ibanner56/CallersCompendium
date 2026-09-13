@@ -1,9 +1,0 @@
-{
-  "id": "release-codenames",
-  "user_visible": true,
-  "app": {
-    "changed": [
-      "Releases now carry a memorable codename that can continue across versions or change with a new release."
-    ]
-  }
-}

@@ -343,17 +343,18 @@ class AppLocalizationsFr extends AppLocalizations {
       '© Les contributeurs de Caller\'s Compendium. Publié sous AGPL-3.0.';
 
   @override
-  String settingsAboutVersion(String version) {
-    return 'Version $version';
+  String settingsAboutVersion(String version, String codename) {
+    return 'Version $version, “$codename”';
   }
 
   @override
   String settingsAboutVersionLine(
     String appName,
     String version,
+    String codename,
     String license,
   ) {
-    return '$appName · Version $version · $license';
+    return '$appName · Version $version, “$codename” · $license';
   }
 
   @override
@@ -3865,6 +3866,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Rechercher des danses en ligne par titre ou auteur…';
 
   @override
+  String get collectionOnlineSearchFieldHint =>
+      'Rechercher des danses en ligne par titre, auteur ou figure…';
+
+  @override
   String onlineResultCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -3883,6 +3888,16 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String onlineSearchHintTitle(String source) {
     return 'Saisissez un titre ou un auteur pour rechercher dans $source.';
+  }
+
+  @override
+  String collectionOnlineSearchHintByPhrase(String source) {
+    return 'Saisissez un titre, un auteur ou une figure, ou ajoutez des figures par phrase pour rechercher dans $source.';
+  }
+
+  @override
+  String collectionOnlineSearchHintTitle(String source) {
+    return 'Saisissez un titre, un auteur ou une figure pour rechercher dans $source.';
   }
 
   @override
@@ -4530,6 +4545,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get importErrorContraDbEmptyTitle =>
       'Saisissez un titre ou un auteur pour rechercher dans ContraDB.';
+
+  @override
+  String get importErrorContraDbUnsupportedFigure =>
+      'Les recherches de figures dans ContraDB utilisent un nom de mouvement complet, par exemple \"box circulate\".';
 
   @override
   String get importErrorContraDbEmptyDanceInput =>

@@ -1,9 +1,0 @@
-{
-  "id": "1236-alternate-primary-promotion",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "When you make an alternate primary, you now swap it with the nearest preceding primary while keeping the remaining alternates grouped."
-    ]
-  }
-}

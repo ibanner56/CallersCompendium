@@ -38,6 +38,58 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 _Nothing yet._
 
+## [0.4.0] - 2026-09-11
+
+### Added
+
+- You can track elapsed time and pause or resume while performing a single dance, with an opt-out under Program > Performance.
+- You can search your Collection and online dance archives by author, including Caller's Box and ContraDB author searches.
+- You can add an editable meanwhile container from the dance editor's Add menu and configure the side figures used to seed it in Settings.
+- You can author ordered modifier containers, use bounded meanwhile/modifier containers in shorthand mappings, preserve them through backups and exports, and configure the figures seeded by Add modifier in Settings.
+- You can now define, rename, reorder, and remove your own ordered dance difficulty levels from Settings > Defaults; existing dance assignments stay attached when a level is renamed, and levels in use cannot be removed.
+- You can configure a default starting program template for manually created programs.
+- You can now plan walkthrough and dance minutes separately for each program slot, with Perform showing each timing phase.
+- You can show per-slot caller notes above dance titles while performing a program; the new Program > Performance setting is on by default.
+- Program matrix rows now show numbered sections such as 1st, 2nd, and 3rd when breaks divide an evening into multiple sections.
+- You can temporarily hide alternate rows in the program matrix without changing the saved program or its exports.
+- Calling history can show the venues where a dance was called repeatedly, with a configurable number of results.
+- You can show the phrases where each comparable move starts directly in the program matrix.
+
+### Changed
+
+- Align figure parameter names and pull-by variants across imports, rendering, and editing.
+- Imported formations now keep recognized shape and source detail separate, so formation names are not duplicated in dance details.
+- You can select, search, color, and export Reverse progression improper formations.
+- You can show supported discouraged dance terms as canonical wording in dance details, notes, Perform mode, and exports. This display setting is on by default and never changes saved text.
+- Releases now carry a memorable codename that can continue across versions or change with a new release.
+
+### Fixed
+
+- Dismissing the mobile figure picker now leaves an existing stand still figure unchanged and no longer reopens the picker after you enter a new one.
+- You can undo marking all dances performed from a program without clearing earlier performed history or later edits.
+- CallersBox imports now preserve the crossing dancers and explicit loop direction in Circulate figures.
+- You now see “backing up” instead of “who” for the facing star dancer parameter in figure entry, search, defaults, and matrix controls.
+- You now get the non-rolling role and relationship assigned correctly when you import a CallersBox roll-away annotation.
+- When you import a mad robin from Callers Box, the app no longer invents which pair steps in front when the source does not say.
+- You can import ContraDB hey ricochets with their structured timing and dancer-position flags.
+- You no longer see tags in the dance or Collection pickers after removing their last live-dance association; newly created tags are saved together with the dance that uses them and survive an autosave restore.
+- You can now sort the Program editor and Perform dance pickers by the first meaningful word when "Ignore leading articles when sorting" is enabled, including while a picker is open.
+- You can read the complete move-substitution guidance on narrow screens.
+- When you preview a dance in the Program editor, only one close control is shown.
+- When you make an alternate primary, you now swap it with the nearest preceding primary while keeping the remaining alternates grouped.
+- Related-dance links to temporarily deleted dances are hidden until the target is restored, instead of appearing as missing dances.
+- ContraDB dances now preserve hall enders as structured figure details when you import them.
+- The program editor now labels the note option “Add note / waltz”.
+
+### Data / Migrations
+
+- Upgrade existing v34 figure data and saved snippet signatures to the v35 taxonomy while preserving nested figures and snippet conflicts.
+- When you first launch after this update, your legacy assumed mad robin subjects are corrected only when their source figure omitted an explicit subject, and your canonical and search indexes are rebuilt.
+- The schema 32 to 33 migration adds a nullable purge-caption marker for program slots; existing rows keep their legacy ambiguity and are preserved losslessly.
+- Existing program-slot planned times are retained as dance minutes.
+- Schema 32 -> 35: add the purge-caption marker and configurable difficulty vocabulary with sync tombstones, then split program-slot planned minutes into nullable walkthrough and dance minutes while preserving existing planned values as dance minutes.
+- Taxonomy 33 -> 35: normalize legacy mad-robin subjects only when the source omitted one, rename persisted parameter keys, consolidate pull-by aliases recursively through nested figures, and rebuild derived figure and search rows.
+
 ## [0.3.1] - 2026-09-03
 
 ### Added

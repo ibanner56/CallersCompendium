@@ -339,17 +339,18 @@ class AppLocalizationsDe extends AppLocalizations {
       '© Die Caller\'s Compendium-Mitwirkenden. Lizenziert unter AGPL-3.0.';
 
   @override
-  String settingsAboutVersion(String version) {
-    return 'Version $version';
+  String settingsAboutVersion(String version, String codename) {
+    return 'Version $version, “$codename”';
   }
 
   @override
   String settingsAboutVersionLine(
     String appName,
     String version,
+    String codename,
     String license,
   ) {
-    return '$appName · Version $version · $license';
+    return '$appName · Version $version, “$codename” · $license';
   }
 
   @override
@@ -3854,6 +3855,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Online-Tänze nach Titel oder Autor suchen…';
 
   @override
+  String get collectionOnlineSearchFieldHint =>
+      'Online-Tänze nach Titel, Autor oder Figur suchen…';
+
+  @override
   String onlineResultCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -3872,6 +3877,16 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String onlineSearchHintTitle(String source) {
     return 'Gib einen Titel oder Autor ein, um $source zu durchsuchen.';
+  }
+
+  @override
+  String collectionOnlineSearchHintByPhrase(String source) {
+    return 'Gib einen Titel, Autor oder eine Figur ein oder füge Figuren für die Phrasensuche hinzu, um $source zu durchsuchen.';
+  }
+
+  @override
+  String collectionOnlineSearchHintTitle(String source) {
+    return 'Gib einen Titel, Autor oder eine Figur ein, um $source zu durchsuchen.';
   }
 
   @override
@@ -4516,6 +4531,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get importErrorContraDbEmptyTitle =>
       'Gib einen Titel oder Autor ein, um ContraDB zu durchsuchen.';
+
+  @override
+  String get importErrorContraDbUnsupportedFigure =>
+      'ContraDB-Figurensuchen verwenden einen vollständigen Bewegungsnamen, z. B. \"box circulate\".';
 
   @override
   String get importErrorContraDbEmptyDanceInput =>

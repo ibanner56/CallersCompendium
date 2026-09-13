@@ -145,6 +145,12 @@ class AthenaeumStore {
   Directory get blobDirectory =>
       Directory(p.join(config.dataDirectory, 'blobs'));
 
+  void checkHealth() {
+    _database.select('SELECT 1');
+    _breakGlassDatabase.select('SELECT 1');
+    _diagnosticDatabase.select('SELECT 1');
+  }
+
   void _reconcileOrphanedBlobFiles() {
     if (!blobDirectory.existsSync()) return;
     final queuedAt = _clock().millisecondsSinceEpoch ~/ 1000;
