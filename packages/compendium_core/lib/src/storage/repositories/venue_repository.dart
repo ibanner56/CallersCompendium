@@ -4,10 +4,12 @@ import 'package:meta/meta.dart';
 import '../../model/enums.dart';
 import '../../model/provenance.dart';
 import '../../model/venue.dart';
+import '../../sync/sync_record_kind.dart';
 import '../database.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
 import '../utc_datetime.dart';
+import 'sync_local_repository.dart';
 
 /// CRUD for [Venue] rows — the reusable venue entity many programs are held at.
 /// Mirrors `PublishedSourceRepository`: editing a venue's address/contacts/
@@ -221,6 +223,21 @@ class VenueRepository {
         );
       }
       if (permanent) {
+        if (await isPublishedSyncRecord(
+          _db,
+          kind: SyncRecordKind.venue,
+          recordId: id,
+        )) {
+          await stampExistenceTransition(
+            _db,
+            table: _db.venues,
+            keyColumn: 'id',
+            key: id,
+            at: now,
+            deleted: true,
+          );
+          return;
+        }
         await (_db.delete(_db.venues)..where((t) => t.id.equals(id))).go();
         return;
       }
@@ -237,9 +254,13 @@ class VenueRepository {
 
   /// Restores a tombstoned venue without changing its fields. Exact archive
   /// re-imports use this when the provenance row survives a prior deletion.
-  Future<void> restore(String id, {DateTime? at}) {
+  Future<void> restore(
+    String id, {
+    DateTime? at,
+    bool clearPending = true,
+  }) async {
     final now = resolveStamp(at);
-    return stampExistenceTransition(
+    await stampExistenceTransition(
       _db,
       table: _db.venues,
       keyColumn: 'id',
@@ -247,25 +268,51 @@ class VenueRepository {
       at: now,
       deleted: false,
     );
+    if (clearPending) {
+      await clearPendingSyncDeletion(
+        _db,
+        kind: SyncRecordKind.venue,
+        recordId: id,
+      );
+    }
   }
 
-  /// Unconditionally removes the venues [ids] in a single transaction, skipping
-  /// the reference guard. Intended solely for reverting a just-committed import
+  /// Removes unpublished venues [ids] in a single transaction, skipping the
+  /// reference guard; published venues become tombstones so peers retain
+  /// deletion evidence. Intended solely for reverting a just-committed import
   /// batch (see `CompendiumArchiveImporter.undo`), where the caller has already
   /// removed the programs that referenced these venues; an empty [ids] is a
   /// no-op. Ordinary deletes must go through [delete].
   ///
-  /// Stays a **hard** delete after the schema-v25 soft-delete conversion
-  /// (issue #898), exactly as `DanceRepository.hardDelete` and
-  /// `ProgramRepository.hardDelete` do on kinds that have been soft-deletable
-  /// for far longer. A rollback erases an import that is being treated as never
-  /// having happened, so a tombstone would advertise the deletion of an entity
-  /// no other device ever saw.
+  /// Unpublished rollback rows stay hard-deleted after the schema-v25
+  /// soft-delete conversion (issue #898), exactly as the corresponding dance
+  /// and program paths do. A rollback erases an import that is being treated as
+  /// never having happened, but a row that was already published still needs
+  /// its tombstone.
   Future<void> hardDelete(Iterable<String> ids) {
     final list = ids.toList();
     if (list.isEmpty) return Future.value();
     return _db.transaction(() async {
-      for (final chunk in _chunkIds(list)) {
+      final publishedIds = await publishedSyncRecordIds(
+        _db,
+        kind: SyncRecordKind.venue,
+        recordIds: list,
+      );
+      final now = DateTime.now().toUtc();
+      for (final id in publishedIds) {
+        await stampExistenceTransition(
+          _db,
+          table: _db.venues,
+          keyColumn: 'id',
+          key: id,
+          at: now,
+          deleted: true,
+        );
+      }
+      final erasableIds = list
+          .where((id) => !publishedIds.contains(id))
+          .toList(growable: false);
+      for (final chunk in _chunkIds(erasableIds)) {
         await (_db.delete(_db.venues)..where((t) => t.id.isIn(chunk))).go();
       }
     });

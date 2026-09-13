@@ -276,6 +276,57 @@ void main() {
 
   group('SyncLocalRepository remapping and review queue', () {
     test(
+      'remaps a large alias closure without exceeding SQLite bind limits',
+      () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repository = SyncLocalRepository(db);
+        const total = 1001;
+
+        await repository.transaction((tx) async {
+          for (var i = 0; i < total; i++) {
+            await tx.upsertAlias(
+              kind: SyncRecordKind.dance,
+              losingId: 'alias-${i.toString().padLeft(4, '0')}',
+              survivingId: 'alias-${(i + 1).toString().padLeft(4, '0')}',
+            );
+          }
+          await tx.markPublished(
+            kind: SyncRecordKind.dance,
+            recordId: 'alias-0000',
+          );
+        });
+
+        await repository.remapIdentity(
+          kind: SyncRecordKind.dance,
+          losingId: 'alias-1001',
+          survivingId: 'survivor',
+        );
+
+        expect(
+          await repository.resolveAlias(
+            kind: SyncRecordKind.dance,
+            recordId: 'alias-0000',
+          ),
+          'survivor',
+        );
+        expect(
+          await repository.isPublished(
+            kind: SyncRecordKind.dance,
+            recordId: 'survivor',
+          ),
+          isTrue,
+        );
+        expect(
+          (await repository.listAliases())
+              .where((row) => row.kind == SyncRecordKind.dance)
+              .every((row) => row.survivingId == 'survivor'),
+          isTrue,
+        );
+      },
+    );
+
+    test(
       'remap unions publication markers and rewrites aliases to a fixed point',
       () async {
         final db = openTestDatabase();
@@ -284,53 +335,52 @@ void main() {
 
         await repository.upsertAlias(
           kind: SyncRecordKind.dance,
-          losingId: 'older',
-          survivingId: 'losing',
+          losingId: 'a',
+          survivingId: 'b',
         );
         await repository.upsertAlias(
           kind: SyncRecordKind.dance,
-          losingId: 'oldest',
-          survivingId: 'older',
+          losingId: 'b',
+          survivingId: 'c',
+        );
+        expect(
+          await repository.resolveAlias(
+            kind: SyncRecordKind.dance,
+            recordId: 'a',
+          ),
+          'c',
         );
         await repository.markPublished(
           kind: SyncRecordKind.dance,
-          recordId: 'oldest',
-        );
-        await repository.markPublished(
-          kind: SyncRecordKind.dance,
-          recordId: 'older',
-        );
-        await repository.markPublished(
-          kind: SyncRecordKind.dance,
-          recordId: 'losing',
+          recordId: 'a',
         );
 
         await repository.remapIdentity(
           kind: SyncRecordKind.dance,
-          losingId: 'losing',
+          losingId: 'c',
           survivingId: 'survivor',
         );
 
         expect(
           await repository.isPublished(
             kind: SyncRecordKind.dance,
-            recordId: 'losing',
+            recordId: 'a',
           ),
           isTrue,
         );
         expect(
           await repository.isPublished(
             kind: SyncRecordKind.dance,
-            recordId: 'older',
+            recordId: 'b',
           ),
-          isTrue,
+          isFalse,
         );
         expect(
           await repository.isPublished(
             kind: SyncRecordKind.dance,
-            recordId: 'oldest',
+            recordId: 'c',
           ),
-          isTrue,
+          isFalse,
         );
         expect(
           await repository.isPublished(
@@ -341,9 +391,9 @@ void main() {
         );
         final aliases = await repository.listAliases();
         expect(aliases.map((row) => (row.losingId, row.survivingId)).toSet(), {
-          ('oldest', 'survivor'),
-          ('older', 'survivor'),
-          ('losing', 'survivor'),
+          ('a', 'survivor'),
+          ('b', 'survivor'),
+          ('c', 'survivor'),
         });
       },
     );
@@ -411,6 +461,55 @@ void main() {
       expect(counter.individualInserts, 0);
       expect(await repository.listPublishedRecords(), hasLength(3));
     });
+  });
+
+  test('retires aliases by peer-manifest content without markers', () async {
+    final db = openTestDatabase();
+    addTearDown(db.close);
+    final repository = SyncLocalRepository(db);
+
+    await repository.upsertAlias(
+      kind: SyncRecordKind.tag,
+      losingId: 'old-tag',
+      survivingId: 'new-tag',
+    );
+    await repository.markPublished(
+      kind: SyncRecordKind.tag,
+      recordId: 'old-tag',
+    );
+
+    await repository.retireAliases(
+      peerAddresses: const {
+        (kind: SyncRecordKind.tag, recordId: 'unrelated-tag'),
+      },
+    );
+
+    expect(await repository.listAliases(), isEmpty);
+    expect(
+      await repository.isPublished(
+        kind: SyncRecordKind.tag,
+        recordId: 'old-tag',
+      ),
+      isTrue,
+    );
+  });
+
+  test('retains aliases named by a current peer manifest', () async {
+    final db = openTestDatabase();
+    addTearDown(db.close);
+    final repository = SyncLocalRepository(db);
+
+    await repository.upsertAlias(
+      kind: SyncRecordKind.tag,
+      losingId: 'old-tag',
+      survivingId: 'new-tag',
+    );
+
+    await repository.retireAliases(
+      peerAddresses: const {(kind: SyncRecordKind.tag, recordId: 'old-tag')},
+    );
+
+    expect(await repository.listAliases(), hasLength(1));
   });
 }
 
