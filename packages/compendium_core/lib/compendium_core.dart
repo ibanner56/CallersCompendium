@@ -107,6 +107,10 @@ export 'src/sync/sync_id.dart'
         syncIdStrengthWarningBits,
         syncIdWordCount,
         validateSyncId;
+export 'src/sync/sync_merge.dart';
+export 'src/sync/sync_report.dart';
+export 'src/sync/sync_apply.dart';
+export 'src/sync/sync_storage.dart';
 export 'src/sync/server/sync_id_server.dart';
 export 'src/sync/wire_mapping.dart';
 export 'src/snippet/snippet_library.dart';

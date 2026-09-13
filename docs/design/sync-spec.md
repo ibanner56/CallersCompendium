@@ -1945,8 +1945,7 @@ republishes, which is an ordinary upload and needs no special path.
    land within the same second. Recorded as a limitation in §10.
 
    With N peers, evaluate against all and take the newest `updatedAt`.
-5. `POST /v1/blobs/missing`; `PUT` only what is missing.
-6. `GET /v1/blobs/{hash}` for each needed hash. The client MUST verify the hash
+5. `GET /v1/blobs/{hash}` for each needed hash. The client MUST verify the hash
    before applying, and MUST verify that the decoded envelope's `kind` and `id`
    are exactly the pair the fetched manifest entry was filed under (§4.5).
    A blob whose envelope declares a different identity MUST be skipped and
@@ -1964,10 +1963,12 @@ republishes, which is an ordinary upload and needs no special path.
    — skip the record and report it (§6.7) — and MUST NOT be treated as a
    deletion, since absence never deletes (§6.8) and the peer's manifest still
    asserts the record exists. The record MUST NOT advance in the baseline, so
-   the next pass retries it; if this device is the record's origin, step 5 will
+   the next pass retries it; if this device is the record's origin, step 7 will
    find the blob missing and re-upload it. This is reachable without a faulty
    peer: a manifest can outlive its blob by §7.3.
-7. Apply in one transaction (§6.7). Rebuild derived indexes.
+6. Apply in one transaction (§6.7). Rebuild derived indexes.
+7. Recompute the local manifest from the post-apply state. `POST
+   /v1/blobs/missing`; `PUT` only what is missing from that final manifest.
 8. `PUT /v1/manifests/{self}`. A client relying on §3.1's forfeiture rule MUST
    record every record the manifest names in `published_records` **before**
    issuing the request. A crash between the two then over-marks rather than
@@ -2570,11 +2571,13 @@ trigger.
 **What a failure guarantees, stated precisely, because the obvious wording is
 false.** The guarantee is that no pass leaves a *partial* apply: §6.7's apply is
 one transaction, so it either commits whole or not at all. It is **not** that a
-failed pass leaves local data untouched. §6.3 commits that transaction at step
-7 and publishes at step 8, so a network error or an epoch `409` between them
-leaves local data legitimately changed by a pass that then failed. That is
-correct behaviour and MUST NOT be undone: the applied content was validly
-merged, and rolling it back would discard a peer's record on a transport error.
+failed pass leaves local data untouched. §6.3 applies and commits that
+transaction at step 6, uploads blobs missing from the post-apply final
+manifest at step 7, and publishes at step 8, so a network error or an epoch
+`409` between them leaves local data legitimately changed by a pass that then
+failed. That is correct behaviour and MUST NOT be undone: the applied content
+was validly merged, and rolling it back would discard a peer's record on a
+transport error.
 What the failure leaves unadvanced is the **published manifest and the
 baseline** — step 9 runs only after step 8 — so the next pass republishes and
 converges. The ordering cannot be reversed to make the two atomic, because
@@ -2856,9 +2859,9 @@ hours** MUST NOT be collected, whether or not any manifest references it. A
 recent upload is a temporary GC root.
 
 Without that exemption the specified GC deletes live data, because every upload
-passes through a window in which no manifest names it: the client uploads blobs
-at §6.3 step 5 and publishes its manifest at step 8, with a full
-download-and-apply in between. Device A `PUT`s a blob; before A's manifest
+passes through a window in which no manifest names it: the client applies inbound
+records, uploads the final manifest's blobs at §6.3 step 7, and publishes its
+manifest at step 8. Device A `PUT`s a blob; before A's manifest
 lands, device B `PUT`s its own manifest, which triggers store-scoped GC; A's
 blob is unreferenced and is deleted, and A then publishes a manifest naming a
 blob the store no longer holds. The hourly sweep firing in the same window
@@ -2868,7 +2871,7 @@ reproduces it with a single device.
 are one pass, bounded by request timeouts, so the exposure is seconds to
 minutes and the margin is three orders of magnitude. The cost of being generous
 is bounded twice over — by the 250 MB store cap, and by the fact that an
-abandoned upload is *reused* rather than duplicated, since step 5's
+abandoned upload is *reused* rather than duplicated, since step 7's
 `POST /v1/blobs/missing` reports it present. An age bound is preferred to an
 upload session or a client-declared intent because it keeps the server free of
 per-client state and needs no new endpoint, which is the property §7's

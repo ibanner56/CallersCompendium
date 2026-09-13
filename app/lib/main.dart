@@ -89,6 +89,8 @@ import 'src/screens/settings_screen.dart'
         kVenueEntityModeKey;
 import 'src/theme/app_theme.dart';
 import 'src/app_metadata.dart';
+import 'src/sync/sync_coordinator.dart';
+import 'src/sync/sync_runtime.dart';
 import 'src/update/update_controller.dart';
 import 'src/update/update_scope.dart';
 import 'src/widgets/app_bootstrap.dart';
@@ -172,6 +174,8 @@ Future<void> main() async {
         appData: appData,
         windowService: windowService,
         applicationShutdownController: shutdownController,
+        syncCoordinatorFactory:
+            ConfiguredSyncCoordinatorFactory.fromEnvironment().call,
         crashReporter: crashReporter,
         migrationPreflight: (onSnapshotFailure) => runMigrationPreflightForApp(
           runningSchemaVersion: kCompendiumSchemaVersion,
@@ -223,6 +227,7 @@ class CompendiumApp extends StatefulWidget {
     this.databaseFileResolver = resolveDatabaseFile,
     this.databaseResetter = _resetDatabaseFile,
     this.applicationShutdownController,
+    this.syncCoordinatorFactory,
   });
 
   /// The initially opened database + repositories facade. Injected from [main]
@@ -238,6 +243,12 @@ class CompendiumApp extends StatefulWidget {
   /// The reset flow swaps this controller's action to its replacement database,
   /// so native termination never closes a stale connection.
   final ApplicationShutdownController? applicationShutdownController;
+
+  /// Constructs the configured Device Sync coordinator after startup has
+  /// opened and migrated the database. W13 supplies the endpoint/configuration
+  /// surface; omitting this keeps Device Sync disabled.
+  final Future<SyncCoordinator?> Function(CompendiumRepositories repositories)?
+  syncCoordinatorFactory;
 
   /// Initial value for the history preference notifier. Exposed for widget
   /// tests that need to verify replacement resets a stale in-memory value.
@@ -421,6 +432,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// Loaded during bootstrap; the auto-check (opt-in, default off) is kicked off
   /// once per launch after preferences load.
   late UpdateController _updateController;
+  SyncCoordinator? _syncCoordinator;
 
   /// Result of the once-per-launch [_runIntegrityCheck]. `false` means the
   /// `PRAGMA quick_check` probe failed, so the ready app surfaces a (non-fatal)
@@ -461,6 +473,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     super.initState();
     _windowService = widget.windowService;
     _initializeDatabaseBackedServices(widget.appData);
+    widget.applicationShutdownController?.replaceCloseApp(_closeForShutdown);
     // Listen for files opened while the app is running (AirDrop / "Open with"
     // on an already-launched app). The cold-start file is pulled once the ready
     // UI is shown (see [_buildReadyApp]). No-op when intake is not wired.
@@ -508,16 +521,29 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _shorthandMappings.dispose();
     _walkthroughSnippets.dispose();
     _updateController.dispose();
+    _syncCoordinator = null;
 
     final appData = widget.appDataFactory();
-    widget.applicationShutdownController?.replaceCloseApp(appData.close);
     _windowService =
         widget.windowServiceFactory?.call(appData.repositories.settings) ??
         WindowService(
           appData.repositories.settings,
-          onClose: widget.applicationShutdownController?.close ?? appData.close,
+          onClose:
+              widget.applicationShutdownController?.close ?? _closeForShutdown,
         );
     _initializeDatabaseBackedServices(appData);
+    widget.applicationShutdownController?.replaceCloseApp(_closeForShutdown);
+  }
+
+  Future<void> _disposeSyncCoordinator() async {
+    final coordinator = _syncCoordinator;
+    _syncCoordinator = null;
+    await coordinator?.dispose();
+  }
+
+  Future<void> _closeForShutdown() async {
+    await _disposeSyncCoordinator();
+    await _appData.close();
   }
 
   void _resetAppPreferenceNotifiers() {
@@ -1022,10 +1048,40 @@ class _CompendiumAppState extends State<CompendiumApp> {
       );
     }
     await _loadPreferences();
+    await _configureSyncCoordinator();
     // Kick off the automatic background update check once per launch. It is a
     // no-op unless the user opted in (default off) and never blocks startup or
     // surfaces an error — fire-and-forget per the ADR-002 §5 privacy contract.
     unawaited(_updateController.maybeAutoCheck());
+  }
+
+  Future<void> _configureSyncCoordinator() async {
+    await _disposeSyncCoordinator();
+
+    final factory = widget.syncCoordinatorFactory;
+    if (factory == null || !mounted) return;
+    SyncCoordinator? coordinator;
+    try {
+      coordinator = await factory(_appData.repositories);
+    } on Object catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'main.sync-configure');
+      return;
+    }
+    if (!mounted) {
+      await coordinator?.dispose();
+      return;
+    }
+    _syncCoordinator = coordinator;
+    if (coordinator == null) return;
+    unawaited(_runSyncStart(coordinator));
+  }
+
+  Future<void> _runSyncStart(SyncCoordinator coordinator) async {
+    try {
+      await coordinator.onAppStart();
+    } on Object catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'main.sync-app-start');
+    }
   }
 
   /// Loads every persisted preference and app-local controller from the
@@ -1290,6 +1346,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
   void dispose() {
     unawaited(_incomingFileSub?.cancel());
     unawaited(_incomingUrlSub?.cancel());
+    unawaited(_disposeSyncCoordinator());
     widget.incomingFileChannel?.dispose();
     _dialectNotifier.dispose();
     _themeNotifier.dispose();
@@ -1485,6 +1542,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
   Future<void> _doReset(File dbFile, AppLocalizations l10n) async {
     // Close the database before deleting its file so the OS (particularly
     // Windows) does not hold a lock that prevents deletion.
+    await _disposeSyncCoordinator();
     await _appData.close();
     final result = await widget.databaseResetter(dbFile);
     if (result is ResetFailed) {

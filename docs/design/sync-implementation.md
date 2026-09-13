@@ -1088,10 +1088,10 @@ the programme and the only one that can block a release on its own.
   malformed date rejects one record without aborting the batch or escaping the
   isolate; **an interrupted pass leaves no partial apply**, which is §6.7's
   single apply transaction seen from outside — and, per §6.12, *not* that a
-  failed pass leaves local data untouched, since a failure between steps 7 and 8
+  failed pass leaves local data untouched, since a failure between steps 6 and 8
   keeps the applied content and leaves the baseline unadvanced; and **a blob
   `GET` returning `404` skips and reports the record and leaves the baseline
-  unadvanced** rather than deleting it (§6.3 step 6), **and a blob whose
+  unadvanced** rather than deleting it (§6.3 step 5), **and a blob whose
   envelope declares a different `(kind, id)` than the manifest entry it was
   fetched under is skipped and reported rather than applied under either
   identity** — the hash still verifies in that case, so no content-addressing

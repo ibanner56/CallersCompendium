@@ -40,10 +40,35 @@ class SyncLocalRepository {
   Future<List<BaselineEntryRow>> listBaselineEntries() =>
       _db.select(_db.baselineEntries).get();
 
+  Future<Map<SyncRecordAddress, SyncBaselineEntry>> snapshotBaseline() async {
+    final rows = await listBaselineEntries();
+    return {
+      for (final row in rows)
+        (kind: row.kind, recordId: row.recordId): SyncBaselineEntry(
+          kind: row.kind,
+          recordId: row.recordId,
+          wireHash: row.wireHash,
+          bodyHash: row.bodyHash,
+        ),
+    };
+  }
+
   Future<void> replaceBaseline({
     required String epoch,
     Iterable<SyncBaselineEntry> entries = const [],
   }) => transaction((tx) => tx.replaceBaseline(epoch: epoch, entries: entries));
+
+  /// Advances only entries justified by an observed peer manifest.
+  ///
+  /// Entries not named by [entries] or [drop] are retained so an unresolved
+  /// blob or malformed record remains retryable on the next pass.
+  Future<void> advanceBaseline({
+    required String epoch,
+    Iterable<SyncBaselineEntry> entries = const [],
+    Iterable<SyncRecordAddress> drop = const [],
+  }) => transaction(
+    (tx) => tx.advanceBaseline(epoch: epoch, entries: entries, drop: drop),
+  );
 
   Future<void> resetEpoch({
     required String epoch,
@@ -133,6 +158,9 @@ class SyncLocalRepository {
     required String recordId,
   }) => transaction((tx) => tx.markPublished(kind: kind, recordId: recordId));
 
+  Future<void> markPublishedAll(Iterable<SyncRecordAddress> records) =>
+      transaction((tx) => tx.markPublishedAll(records));
+
   Future<void> remapIdentity({
     required SyncRecordKind kind,
     required String losingId,
@@ -166,6 +194,37 @@ class SyncLocalTransaction {
         .insertOnConflictUpdate(
           BaselineStateCompanion.insert(id: const Value(1), epoch: epoch),
         );
+    for (final entry in entries) {
+      await _db
+          .into(_db.baselineEntries)
+          .insertOnConflictUpdate(
+            BaselineEntriesCompanion.insert(
+              kind: entry.kind,
+              recordId: entry.recordId,
+              wireHash: entry.wireHash,
+              bodyHash: Value(entry.bodyHash),
+            ),
+          );
+    }
+  }
+
+  Future<void> advanceBaseline({
+    required String epoch,
+    Iterable<SyncBaselineEntry> entries = const [],
+    Iterable<SyncRecordAddress> drop = const [],
+  }) async {
+    final state = await _db.select(_db.baselineState).getSingleOrNull();
+    if (state == null || state.epoch != epoch) {
+      throw StateError('cannot advance a baseline from a different epoch');
+    }
+    for (final address in drop) {
+      await (_db.delete(_db.baselineEntries)..where(
+            (row) =>
+                row.kind.equals(address.kind.name) &
+                row.recordId.equals(address.recordId),
+          ))
+          .go();
+    }
     for (final entry in entries) {
       await _db
           .into(_db.baselineEntries)
@@ -288,6 +347,24 @@ class SyncLocalTransaction {
       .insertOnConflictUpdate(
         PublishedRecordsCompanion.insert(kind: kind, recordId: recordId),
       );
+
+  Future<void> markPublishedAll(Iterable<SyncRecordAddress> records) async {
+    final rows = [
+      for (final record in records)
+        PublishedRecordsCompanion.insert(
+          kind: record.kind,
+          recordId: record.recordId,
+        ),
+    ];
+    if (rows.isEmpty) return;
+    await _db.batch((batch) {
+      batch.insertAll(
+        _db.publishedRecords,
+        rows,
+        mode: InsertMode.insertOrIgnore,
+      );
+    });
+  }
 
   Future<void> remapIdentity({
     required SyncRecordKind kind,

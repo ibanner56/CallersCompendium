@@ -39,10 +39,12 @@
     "Background isolate boundary",
     "Coalesced replacement-required event for a missing previously used collection"
   ],
-  "pullRequests": [],
+  "pullRequests": [
+    1273
+  ],
   "hold": null,
   "completion": {
-    "complete": false,
+    "complete": true,
     "conditions": [
       "Three or more devices converge under interleaved changes.",
       "Equal-timestamp ties and malformed records are reported without corrupting the baseline.",
@@ -50,7 +52,33 @@
       "A previously used missing collection stops the pass, preserves local state and baseline, emits one decision event, and performs no POST.",
       "The automatic-recreation mutation makes the guard test fail."
     ],
-    "summary": null,
-    "evidence": []
+    "summary": "Steady-state merge, transactional inbound apply, and isolated single-flight publication are implemented and guarded.",
+    "evidence": [
+      "packages/compendium_core/test/sync/sync_merge_test.dart covers three-device manifest and baseline convergence across interleaved passes, all four both-present baseline rows, the total baseline table, and independent existence/body maxima.",
+      "packages/compendium_core/test/sync/sync_merge_test.dart reports equal-time ties, while app/test/sync/sync_coordinator_test.dart verifies tie, malformed, and unresolved peer records do not advance rejected addresses in the baseline.",
+      "packages/compendium_core/test/sync/sync_apply_test.dart covers classification filtering, receive-only credentials, read-modify-write privacy, and transaction rollback; tools/ci/test_check_sync_invariants.py covers I1/I2.",
+      "app/test/sync/sync_coordinator_test.dart covers previously-used missing-store stop, preserved state, one coalesced event, zero pre-confirmation POSTs, idempotent confirmation, and configured pause on decline.",
+      "The replacement test was run against the automatic-createStore mutation and turned red before the final implementation was restored and the full preflight passed.",
+      "packages/compendium_core/test/storage/sync_storage_test.dart covers forward and cyclic live references, rejects tombstoned inbound parents, rejects links or slots targeting locally tombstoned dances, isolates dependent-ID collisions to their conflicting inbound owners, preserves per-record state when an inbound tombstone invalidates a join, and preserves a parent when a stored custom-field definition is corrupt; the reference, dependent-ID isolation, and partial-apply mutations were run red before restoration.",
+      "packages/compendium_core/test/storage/sync_storage_test.dart covers dependent-parent pruning after an inbound parent write fails; in `cd packages/compendium_core && fvm dart test test/storage/sync_storage_test.dart --plain-name 'skips dependent parents when an inbound parent write fails'`, restoring the prior single parent-write loop made the guard red with a foreign-key constraint failure while inserting the dependent program slot, before restoring the grouped validation and rerunning it green.",
+      "packages/compendium_core/test/storage/sync_storage_test.dart covers the same-kind D->dance->dance cascade; restoring the fixed-point group validation to one pass made `cd packages/compendium_core && fvm dart test test/storage/sync_storage_test.dart --plain-name 'prunes same-kind dependents after an inbound parent write fails'` red with a foreign-key constraint failure while inserting `dependent-link`, before restoring the fixed-point implementation and rerunning it green.",
+      "packages/compendium_core/test/storage/sync_storage_test.dart rejects inbound non-shareable custom-field definitions and dance values for existing local and same-batch definitions before parent writes; in `cd packages/compendium_core && fvm dart test test/storage/sync_storage_test.dart --plain-name 'rejects non-shareable custom-field definitions and inbound values'`, replacing the storage classification result with `null` made the test red with an expected empty applied list but three applied addresses, before restoring the implementation and rerunning it green.",
+      "app/test/sync/sync_coordinator_test.dart proves a configured device with no local baseline epoch stops at the fresh-attach boundary without manifest, blob, POST, or publication work.",
+      "app/test/sync/sync_coordinator_test.dart proves a newer local wire hash is not overwritten by an inbound winner, reports concurrentLocalChange, and publishes a fresh post-apply snapshot; in `cd app && fvm flutter test test/sync/sync_coordinator_test.dart --plain-name 'skips a remote winner when its local address changed mid-pass'`, setting expectedWireHashes to const {} made the test red with Bad state: No element before restoration.",
+      "app/test/sync/sync_coordinator_test.dart proves missing-blob negotiation runs only for hashes in the final manifest after merge, and keeps the protocol-limit batching at 10,000 hashes; in `cd app && fvm flutter test test/sync/sync_coordinator_test.dart --plain-name 'uploads only blobs retained by the final manifest'`, restoring the pre-merge upload made the test red with expected completed but actual failed before restoration.",
+      "app/test/sync/sync_isolate_test.dart requires an interrupted apply to remain entirely pre-apply rather than accepting a non-transactional all-after state; in `cd app && fvm flutter test test/sync/sync_isolate_test.dart --plain-name 'terminating during apply leaves an atomic database state'`, replacing the real transaction with direct action made the test red because the persisted values were not the required wholly pre-apply state before restoration.",
+      "app/lib/main.dart routes shutdown and database replacement through awaited coordinator disposal, and settings_keys.dart documents the persisted salted, slow identity-verifier set rather than a single last identity.",
+      "The tombstone classification guard was mutation-proven red and restored: restricting the definition check to live records made `rejects tombstoned non-shareable custom-field definitions and values` apply the inbound private definition; bypassing classification for tombstoned dances made the same guard apply the local tombstoned dance. Restoring from `0f1c8e534` made both runs green.",
+      "On `5a2b435af`, restoring the prior raw SHA-256 marker implementation made `cd packages/compendium_core && fvm dart test test/storage/sync_storage_test.dart --plain-name 'stores salted slow verifiers and migrates legacy fast markers'` fail because the no-ID snapshot retained the raw hash (`Expected: []`, `Actual: ['fa79dd1ee8fe25d601870c1b05bb634a8086134bfbe57f870549e2ddaca444e2']`) at `sync_storage_test.dart:106`; restoring `5a2b435af` made the guard green.",
+      "At implementation head `237cafd19`, removing the per-record decode report from `CompendiumSyncStorage.writeWithReport` made `isolates wrong-typed inbound entity fields from valid records` fail with the malformed figure `FormatException`; restoring the report path made the guard green.",
+      "At implementation head `237cafd19`, removing the duplicate author, tag, and source guards made `rejects duplicate and foreign dependent row ids before parent writes` report four malformed records instead of seven; restoring the guards made the guard green.",
+      "At implementation head `307b35d0e`, retaining a failed replacement confirmation future made `cd app && fvm flutter test test/sync/sync_coordinator_test.dart --plain-name 'failed replacement confirmation can be retried'` fail with `Expected: SyncPassStatus.freshAttachRequired` and `Actual: SyncPassStatus.failed` on the retry; clearing only failed or thrown confirmation attempts made the guard green at `96a489689`.",
+      "At implementation head `307b35d0e`, retaining the per-record publication loop made `cd packages/compendium_core && fvm dart test test/storage/sync_local_repository_test.dart --plain-name 'marks publication records with one database batch'` fail with `Expected: [1]` and `Actual: []` for batched SQL; restoring the single `INSERT OR IGNORE` batch made the guard green at `2be3595b1`.",
+      "In the current repair round, mutating the independent-winner merge to use `existenceWinner.blob.body` made `cd packages/compendium_core && fvm dart test test/sync/sync_merge_test.dart --plain-name 'resolves body content among candidates in the winning state'` fail with `Expected: newest body` and `Actual: stale body`; restoring `contentWinner.blob.body` made the strengthened tombstone fixture green.",
+      "At the pre-repair head `d7e5c28ac`, requiring the previously-used marker before a failed manifest PUT made `cd app && fvm flutter test test/sync/sync_coordinator_test.dart --plain-name 'marks published records before a failed manifest publication'` fail because the callback observed lifecycle `['transaction', 'markPublished']` without `markSyncUsed`; recording publication intent and the verifier in `markPublicationAttempt` before the PUT made the guard green.",
+      "CompendiumSyncStorage now builds one cached inbound dependent-owner index per validation map, so dance-link and program-slot collision checks do not decode every peer record for every candidate; malformed peer bodies are excluded from the index while the current record retains its normal malformed-input report.",
+      "This repair tree was validated with `python3 tools/preflight.py`, which completed with 30 steps passed and 0 skipped.",
+      "The preceding implementation head `96a489689` was validated with `python3 tools/preflight.py`, which completed with 30 steps passed and 0 skipped."
+    ]
   }
 }

@@ -15,12 +15,14 @@
 > If the ADR and this document disagree, the ADR wins. If the specification and
 > this document disagree, that is a defect in one of them.
 
-**Status: design rationale. ADR-004 is `Accepted`; the protocol itself is
-unbuilt** — no client, no server, no network code. What is built is the
-groundwork this design filed as repair issues and `main` has since closed: the
-v25 schema migration (shipped early so its soft-delete columns hydrate across
-devices before sync code depends on them), the privacy-policy amendment
-(#1115), the standing-invariant ratchets (#1118), and shareable-text
+**Status: design rationale. ADR-004 is `Accepted`; the protocol is partially
+implemented.** W6 now supplies the client-side steady-state pass, transactional
+inbound apply, isolated worker boundary, and endpoint transport; the Athenaeum
+server is implemented for loopback/client development, while public deployment
+and the remaining roadmap units are not yet complete. Earlier groundwork
+includes the v25 schema migration (shipped early so its soft-delete columns
+hydrate across devices before sync code depends on them), the privacy-policy
+amendment (#1115), the standing-invariant ratchets (#1118), and shareable-text
 normalisation on every write path at schema v29 (#1119). ADR-004's
 *Implementation status* is the authoritative list; if this line and that section
 disagree, that section wins.
@@ -32,7 +34,7 @@ disagree, that section wins.
 | **Device Sync** | The user-facing feature. |
 | **Athenaeum** | The store Device Sync talks to. Default `https://athenaeum.callerscompendium.com/`; user-editable. |
 | **sync ID** | Diceware passphrase identifying one store. A bearer credential. |
-| **device ID** | Random v4 UUID minted per installation, on opt-in. Classified `protocolIdentifier`: it travels in manifest envelopes and request paths as an opaque routing key, and is **never adopted from a peer**. Not `deviceScoped`, which means never transmitted by any route. See "what `EgressClass` actually governs". |
+| **device ID** | Random opaque base64url identifier minted per installation, on opt-in. Classified `protocolIdentifier`: it travels in manifest envelopes and request paths as an opaque routing key, and is **never adopted from a peer**. Not `deviceScoped`, which means never transmitted by any route. See "what `EgressClass` actually governs". |
 | **epoch** | Opaque 128-bit random value the server stamps on a sync ID at creation. |
 | **record** | One syncable row — a dance, program, tag, choreographer, published source, custom field def, difficulty level, venue, or a settings key. |
 | **blob** | One record, serialised and content-addressed. |
@@ -563,6 +565,7 @@ transmitting it *is* the authorisation for the request carrying it:
 | `sync_wifi_only` | A per-device network policy; a laptop and a phone want different answers. |
 | `sync_exclude_imports` | Governs what *this* device uploads. |
 | `sync_last_synced_at` | Local state. |
+| `sync_last_used_fingerprint` | Salted, slow credential verifiers used only to distinguish a previously used sync ID after detach. They are credential-derived, device-scoped, never transmitted or adopted, and excluded from backups. |
 
 The rule is simple enough to state as one: **sync configuration is never itself
 synced** — `sync_device_id` included, which travels as a routing key without
@@ -2965,9 +2968,11 @@ sync ID entirely, so re-enabling is a fresh attach.
    prior success can explain disappearance and offer replacement, but it still
    cannot create without confirmation.
 3. **Fresh attach**, always, on first attach for this ID, on re-attach after
-   detach, and on `409`. Detaching **forgets the sync ID entirely**: no list of
-   previously-attached IDs is kept, so re-attaching cannot resurrect a stale
-   baseline.
+   detach, and on `409`. Detaching **forgets the sync ID entirely**: no
+   recoverable list of previously-attached IDs is kept. A salted, slow local
+   verifier set remains only to distinguish prior use of an ID from a first
+   attach when the collection has disappeared; it cannot reconstruct the
+   credential and is not backed up or transmitted.
 4. Upload every local record; download every remote record. **Inbound rejection
    applies here as in steady state** — a blob whose `existenceAt` or `updatedAt`
    is out of window is refused and reported, rather than admitted because this is
@@ -3369,12 +3374,12 @@ would break repair silently and without resembling a sync change at the point it
 was added. Any new write is checked against this the way new write paths are
 checked against the discriminator rule above.
 
-5. `POST /v1/blobs/missing` with the hashes to upload; `PUT` only what is
-   missing.
-6. `GET /v1/blobs/{hash}` for each needed hash. **Verify the hash before
+5. `GET /v1/blobs/{hash}` for each needed hash. **Verify the hash before
    applying.**
-7. Apply in one transaction, **read-modify-write** (below). Rebuild derived
+6. Apply in one transaction, **read-modify-write** (below). Rebuild derived
    indexes.
+7. Recompute the local manifest from the post-apply state. `POST
+   /v1/blobs/missing`; `PUT` only what is missing from that final manifest.
 8. `PUT /v1/manifests/{self}`.
 9. Store the new baseline. A record's entry advances only where a peer's
    manifest was observed to carry **this device's current content hash** — an
@@ -3570,8 +3575,12 @@ implementable.
 
 ### Failure and offline
 
-Device Sync is best-effort and never blocks the UI. Any failure leaves local data
-untouched and the baseline unchanged, so the next attempt retries cleanly.
+Device Sync is best-effort and never blocks the UI. A failure before apply
+leaves local data untouched. The inbound apply itself is one transaction, so it
+either commits whole or not at all; it never leaves a partial local apply. A
+failure after that transaction commits can therefore leave local data changed
+while the published manifest and baseline remain old, so the next attempt
+republishes and converges.
 
 - Network unreachable, DNS failure, TLS failure, `5xx` → retry with exponential
   backoff and jitter, cap 6 hours.
@@ -3583,10 +3592,12 @@ untouched and the baseline unchanged, so the next attempt retries cleanly.
   dances* toggle offered inline, since imports are usually the bulk and that
   setting is the lever.
 - Partial upload → harmless. Blobs are content-addressed and immutable; the
-  manifest is written last, so a half-finished sync publishes nothing.
+  manifest is written last, so a half-finished sync publishes no new manifest
+  or baseline, while any already-committed local apply remains.
 
 **The manifest is written last, always.** That single ordering rule is what
-makes an interrupted sync a no-op instead of a corruption.
+makes an interrupted sync publish no partial state. It does not roll back a
+transaction that already committed locally.
 
 ### Triggers
 
@@ -3710,8 +3721,9 @@ manifest `PUT`, and during the sweep, unreferenced blobs for that store are
 deleted. Mark-and-sweep scoped to one store is cheap; no global scan.
 
 **Reachability alone is not a safe collection rule, and the first draft of this
-section used it as one.** The client uploads blobs at step 5 and publishes its
-manifest at step 8, with a full download-and-apply in between, so every upload
+section used it as one.** The client downloads records at step 5, applies them
+in one transaction at step 6, uploads blobs missing from the post-apply final
+manifest at step 7, and publishes its manifest at step 8, so every upload
 spends a window referenced by no manifest at all. A concurrent peer's manifest
 `PUT` during that window triggers store-scoped GC and deletes a blob that is
 about to be published; the hourly sweep does the same thing with one device.
@@ -4117,8 +4129,10 @@ must say this plainly rather than implying sync is opaque to us.
   every field classified `deviceLocal`, a record carrying a value there produces
   a blob not containing it. This is the test that must never be allowed to
   become vacuous.
-- **Interrupted sync is a no-op** — kill after blob upload, before manifest
-  `PUT`; assert peers see nothing.
+- **Interrupted sync has no partial apply or publication** — kill after blob
+  upload, before manifest `PUT`; assert peers see no new manifest, the baseline
+  remains old, and the next pass republishes. Local state is wholly pre-apply
+  or post-apply, never a partial apply; a committed post-apply state remains.
 - **Fresh-attach union and silent merge** — `{B,C}` joining `{A,B}` yields
   `{A,B,C}`; identical-choreography duplicates merge without a prompt;
   same-title-same-author-different-figures reaches the review queue.
