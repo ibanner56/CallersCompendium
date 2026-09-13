@@ -15,6 +15,7 @@ void main() {
       final repositories = openTestRepositories();
       final store = CompendiumSyncCoordinatorStore(repositories);
       final stamp = DateTime.utc(2025, 1, 2, 12);
+      // ignore: unused_result
       await repositories.choreographers.upsert(
         Choreographer(id: 'z-local', name: 'Shared author'),
         at: stamp,
