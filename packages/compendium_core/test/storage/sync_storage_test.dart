@@ -603,6 +603,73 @@ void main() {
   );
 
   test(
+    'canonical difficulty aliases a noncanonical inbound ID before dependents',
+    () async {
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+      final inboundDifficulty = DifficultyLevel(
+        id: 'a-inbound-beginner',
+        label: DifficultyLevel.beginner.label,
+        position: DifficultyLevel.beginner.position,
+      );
+      final dance = Dance(
+        id: 'canonical-dependent-dance',
+        title: 'Canonical dependent dance',
+        difficultyLevelId: inboundDifficulty.id,
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.difficultyLevel,
+              id: inboundDifficulty.id,
+              updatedAt: stamp.add(const Duration(minutes: 1)),
+              deletedAt: null,
+              existenceAt: stamp.add(const Duration(minutes: 1)),
+              body: syncBodyForEntity(
+                SyncRecordKind.difficultyLevel,
+                inboundDifficulty,
+              ),
+            ),
+          ),
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.dance,
+              id: dance.id,
+              updatedAt: stamp.add(const Duration(minutes: 1)),
+              deletedAt: null,
+              existenceAt: stamp.add(const Duration(minutes: 1)),
+              body: syncBodyForEntity(SyncRecordKind.dance, dance),
+            ),
+          ),
+        ],
+        storage: storage,
+      );
+
+      expect(result.reports, isEmpty);
+      expect(
+        result.applied,
+        contains((kind: SyncRecordKind.dance, recordId: dance.id)),
+      );
+      expect(
+        (await repositories.dances.getById(dance.id))!.difficultyLevelId,
+        DifficultyLevel.beginner.id,
+      );
+      final aliases = await repositories.syncLocal.listAliases();
+      expect(
+        aliases.any(
+          (alias) =>
+              alias.kind == SyncRecordKind.difficultyLevel &&
+              alias.losingId == inboundDifficulty.id &&
+              alias.survivingId == DifficultyLevel.beginner.id,
+        ),
+        isTrue,
+      );
+    },
+  );
+
+  test(
     'canonical difficulty keeps newer local existence over stale inbound tombstone',
     () async {
       final localStamp = DateTime.utc(2025, 1, 2, 12);
@@ -637,12 +704,17 @@ void main() {
       );
 
       expect(result.reports, isEmpty);
-      final stored = await repositories.difficultyLevels.getById(
-        DifficultyLevel.beginner.id,
+      expect(
+        await repositories.difficultyLevels.getById(
+          DifficultyLevel.beginner.id,
+        ),
+        isNull,
       );
-      expect(stored, isNotNull);
-      expect(stored!.position, custom.position);
-      expect(await repositories.difficultyLevels.getById(custom.id), isNull);
+      expect(
+        (await repositories.difficultyLevels.getById(custom.id))!.position,
+        custom.position,
+      );
+      expect(await repositories.syncLocal.listReviewQueue(), isNotEmpty);
     },
   );
 
@@ -1948,6 +2020,9 @@ void main() {
       final choreographer = Choreographer(
         id: 'cited-choreographer',
         name: 'Cited choreographer',
+        email: 'local@example.com',
+        location: 'Local hall',
+        deceased: true,
       );
       // ignore: unused_result
       await repositories.choreographers.upsert(choreographer, at: stamp);
@@ -2021,6 +2096,65 @@ void main() {
       expect(
         finalSnapshot.local[tombstone.address]!.blob.deletedAt,
         tombstoneStamp,
+      );
+      expect(
+        await repositories.choreographers.getById(choreographer.id),
+        isNull,
+      );
+      final retainedTombstone = await (db.select(
+        db.choreographers,
+      )..where((table) => table.id.equals(choreographer.id))).getSingle();
+      expect(retainedTombstone.email, choreographer.email);
+      expect(retainedTombstone.location, choreographer.location);
+      expect(retainedTombstone.deceased, choreographer.deceased);
+    },
+  );
+
+  test(
+    'soft-deleted citation owners do not keep a pending tombstone alive',
+    () async {
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+      final choreographer = Choreographer(
+        id: 'soft-deleted-owner-choreographer',
+        name: 'Soft deleted owner choreographer',
+      );
+      // ignore: unused_result
+      await repositories.choreographers.upsert(choreographer, at: stamp);
+      final dance = Dance(
+        id: 'soft-deleted-owner-dance',
+        title: 'Soft deleted owner dance',
+        authorIds: [choreographer.id],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      await repositories.dances.create(dance);
+      await repositories.dances.softDelete(
+        dance.id,
+        at: stamp.add(const Duration(minutes: 1)),
+      );
+
+      final tombstone = SyncMergeCandidate(
+        blob: SyncRecordBlob(
+          kind: SyncRecordKind.choreographer,
+          id: choreographer.id,
+          updatedAt: stamp.add(const Duration(minutes: 2)),
+          deletedAt: stamp.add(const Duration(minutes: 2)),
+          existenceAt: stamp.add(const Duration(minutes: 2)),
+          body: syncBodyForEntity(SyncRecordKind.choreographer, choreographer),
+        ),
+      );
+      final result = await const SyncApplyEngine().apply(
+        candidates: [tombstone],
+        storage: storage,
+      );
+
+      expect(result.reports, isEmpty);
+      expect(
+        await repositories.syncLocal.getPendingDeletion(
+          kind: SyncRecordKind.choreographer,
+          recordId: choreographer.id,
+        ),
+        isNull,
       );
       expect(
         await repositories.choreographers.getById(choreographer.id),
@@ -2171,6 +2305,58 @@ void main() {
       );
     },
   );
+
+  test('natural-key reconciliation rejects a changed local survivor', () async {
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    final local = Choreographer(
+      id: 'z-concurrent-local-author',
+      name: 'Concurrent author',
+      notes: 'before',
+    );
+    // ignore: unused_result
+    await repositories.choreographers.upsert(local, at: stamp);
+    final before = (await storage.snapshot())
+        .local[(kind: SyncRecordKind.choreographer, recordId: local.id)]!;
+
+    // The coordinator's merge snapshot is now stale, but the inbound
+    // address is new, so the ordinary candidate-address guard cannot catch
+    // this mutation.
+    // ignore: unused_result
+    await repositories.choreographers.upsert(
+      local.copyWith(notes: 'changed locally'),
+      at: stamp.add(const Duration(minutes: 1)),
+    );
+    final incoming = Choreographer(
+      id: 'a-concurrent-remote-author',
+      name: local.name,
+      notes: 'remote',
+    );
+
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.choreographer,
+            id: incoming.id,
+            updatedAt: stamp.add(const Duration(minutes: 2)),
+            deletedAt: null,
+            existenceAt: stamp.add(const Duration(minutes: 2)),
+            body: syncBodyForEntity(SyncRecordKind.choreographer, incoming),
+          ),
+        ),
+      ],
+      storage: storage,
+      expectedWireHashes: {before.address: before.wireHash},
+    );
+
+    expect(result.reports.single.code, SyncReportCode.concurrentLocalChange);
+    expect(result.applied, isEmpty);
+    expect(
+      (await repositories.choreographers.getById(local.id))!.notes,
+      'changed locally',
+    );
+    expect(await repositories.choreographers.getById(incoming.id), isNull);
+  });
 
   test(
     'natural-key reconciliation rewrites tag and custom-field references',
@@ -2737,15 +2923,14 @@ void main() {
       final local = Choreographer(id: 'z-author', name: 'Shared author');
       // ignore: unused_result
       await repositories.choreographers.upsert(local, at: stamp);
-      await repositories.dances.create(
-        Dance(
-          id: 'cited-dance',
-          title: 'Cited dance',
-          authorIds: [local.id],
-          createdAt: stamp,
-          updatedAt: stamp,
-        ),
+      final dance = Dance(
+        id: 'cited-dance',
+        title: 'Cited dance',
+        authorIds: [local.id],
+        createdAt: stamp,
+        updatedAt: stamp,
       );
+      await repositories.dances.create(dance);
 
       final tombstoneStamp = stamp.add(const Duration(minutes: 1));
       final tombstone = syncRecordBlobForEntity(
@@ -2762,6 +2947,21 @@ void main() {
         tombstonedAt: tombstoneStamp,
         tombstoneHash: sha256Hex(utf8.encode(tombstoneJson)),
         tombstoneBlob: tombstoneJson,
+      );
+      final danceTombstone = syncRecordBlobForEntity(
+        SyncRecordKind.dance,
+        dance,
+        updatedAt: tombstoneStamp,
+        deletedAt: tombstoneStamp,
+        existenceAt: tombstoneStamp,
+      )!;
+      final danceTombstoneJson = encodeSyncRecordBlob(danceTombstone);
+      await repositories.syncLocal.upsertPendingDeletion(
+        kind: SyncRecordKind.dance,
+        recordId: dance.id,
+        tombstonedAt: tombstoneStamp,
+        tombstoneHash: sha256Hex(utf8.encode(danceTombstoneJson)),
+        tombstoneBlob: danceTombstoneJson,
       );
 
       final inbound = Choreographer(id: 'a-author', name: 'Shared author');
@@ -2782,7 +2982,6 @@ void main() {
       );
 
       expect(result.reports, isEmpty);
-      await storage.snapshot();
       expect(
         await repositories.syncLocal.getPendingDeletion(
           kind: SyncRecordKind.choreographer,
@@ -2796,6 +2995,15 @@ void main() {
           recordId: inbound.id,
         ),
         isNotNull,
+      );
+      final remappedDance = await repositories.syncLocal.getPendingDeletion(
+        kind: SyncRecordKind.dance,
+        recordId: dance.id,
+      );
+      expect(remappedDance, isNotNull);
+      expect(
+        decodeSyncRecordBlob(remappedDance!.tombstoneBlob).body['authorIds'],
+        [inbound.id],
       );
     },
   );

@@ -201,7 +201,7 @@ class ChoreographerRepository {
     String id, {
     required DateTime at,
     bool clearPending = true,
-  }) async {
+  }) => _db.transaction(() async {
     await stampExistenceTransition(
       _db,
       table: _db.choreographers,
@@ -217,7 +217,7 @@ class ChoreographerRepository {
         recordId: id,
       );
     }
-  }
+  });
 
   Choreographer _toModel(ChoreographerRow row) => Choreographer(
     id: row.id,

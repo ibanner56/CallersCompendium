@@ -32,7 +32,9 @@
     "Natural-key reconciliation and ID aliases",
     "Reference rewrites with timestamp updates"
   ],
-  "pullRequests": [],
+  "pullRequests": [
+    1277
+  ],
   "hold": null,
   "completion": {
     "complete": true,

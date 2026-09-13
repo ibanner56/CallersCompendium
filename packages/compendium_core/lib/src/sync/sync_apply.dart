@@ -111,8 +111,16 @@ class SyncApplyPreparation {
 abstract interface class SyncApplyReconciliationStorage
     implements SyncApplyBatchStorage {
   Future<SyncApplyPreparation> reconcileInbound(
-    List<SyncMergeCandidate> candidates,
-  );
+    List<SyncMergeCandidate> candidates, {
+    Map<SyncRecordAddress, String?>? expectedWireHashes,
+  });
+
+  /// Clears batch-only reconciliation context after the transaction ends.
+  ///
+  /// The default keeps lightweight adapters source-compatible; database
+  /// adapters use it to prevent one inbound batch's tombstones from affecting
+  /// a later batch.
+  Future<void> clearReconciliationContext() async {}
 }
 
 /// Result of applying a batch. A report for one record does not reject the
@@ -144,163 +152,174 @@ class SyncApplyEngine {
     final reports = <SyncReport>[];
     final ordered = candidates.toList()..sort(_compareCandidates);
 
-    await storage.transaction(() async {
-      final guarded = await _guardConcurrentCandidates(
-        candidates: ordered,
-        storage: storage,
-        expectedWireHashes: expectedWireHashes,
-        reports: reports,
-      );
-      if (storage is SyncApplyBatchStorage) {
-        await _applyInPhases(
-          candidates: guarded,
+    try {
+      await storage.transaction(() async {
+        final guarded = await _guardConcurrentCandidates(
+          candidates: ordered,
           storage: storage,
-          applied: applied,
+          expectedWireHashes: expectedWireHashes,
           reports: reports,
         );
-      } else {
-        for (final candidate in guarded) {
-          final validation = validateShareableRecordBody(
-            candidate.blob.kind,
-            candidate.blob.body,
-            settingsKey: candidate.blob.kind == SyncRecordKind.setting
-                ? candidate.blob.id
-                : null,
+        if (storage is SyncApplyBatchStorage) {
+          await _applyInPhases(
+            candidates: guarded,
+            storage: storage,
+            expectedWireHashes: expectedWireHashes,
+            applied: applied,
+            reports: reports,
           );
-          if (!validation.isValid) {
-            reports.add(
-              SyncReport(
-                code: SyncReportCode.invalidClassification,
-                kind: candidate.blob.kind,
-                recordId: candidate.blob.id,
-                message:
-                    'Inbound body contains a non-shareable wire path '
-                    '${validation.invalidPath}.',
-              ),
+        } else {
+          for (final candidate in guarded) {
+            final validation = validateShareableRecordBody(
+              candidate.blob.kind,
+              candidate.blob.body,
+              settingsKey: candidate.blob.kind == SyncRecordKind.setting
+                  ? candidate.blob.id
+                  : null,
             );
-            continue;
-          }
-          if (_isReceiveOnlySetting(candidate)) {
-            reports.add(
-              SyncReport(
-                code: SyncReportCode.invalidClassification,
-                kind: candidate.blob.kind,
-                recordId: candidate.blob.id,
-                message:
-                    'Inbound sync credentials are receive-only and were not '
-                    'adopted.',
-              ),
-            );
-            continue;
-          }
-
-          final current = await storage.read(candidate.address) ?? const {};
-          final Object? normalized;
-          try {
-            normalized = normalizeShareableJson(candidate.blob.body);
-          } on ArgumentError catch (error) {
-            reports.add(
-              SyncReport(
-                code: SyncReportCode.malformedRecord,
-                kind: candidate.blob.kind,
-                recordId: candidate.blob.id,
-                message: 'Inbound record body could not be normalized: $error.',
-              ),
-            );
-            continue;
-          } on ShareableJsonKeyCollision catch (error) {
-            reports.add(
-              SyncReport(
-                code: SyncReportCode.malformedRecord,
-                kind: candidate.blob.kind,
-                recordId: candidate.blob.id,
-                message:
-                    'Inbound record body has a normalized key collision: '
-                    '${error.normalizedKey}.',
-              ),
-            );
-            continue;
-          }
-          if (normalized is! Map) {
-            reports.add(
-              SyncReport(
-                code: SyncReportCode.malformedRecord,
-                kind: candidate.blob.kind,
-                recordId: candidate.blob.id,
-                message: 'Inbound record body is not an object.',
-              ),
-            );
-            continue;
-          }
-          final merged = _overlay(
-            Map<String, Object?>.from(current),
-            Map<String, Object?>.from(normalized),
-          );
-          try {
-            final applyRecord = SyncApplyRecord(
-              address: candidate.address,
-              body: merged,
-              updatedAt: candidate.updatedAt,
-              deletedAt: candidate.blob.deletedAt,
-              existenceAt: candidate.existenceAt,
-              sourceBlob: candidate.blob,
-            );
-            final reportingStorage = storage is SyncApplyReportingStorage
-                ? storage
-                : null;
-            final referenceReport = reportingStorage == null
-                ? null
-                : await reportingStorage.validateInboundReferences(applyRecord);
-            if (referenceReport != null) {
-              reports.add(referenceReport);
+            if (!validation.isValid) {
+              reports.add(
+                SyncReport(
+                  code: SyncReportCode.invalidClassification,
+                  kind: candidate.blob.kind,
+                  recordId: candidate.blob.id,
+                  message:
+                      'Inbound body contains a non-shareable wire path '
+                      '${validation.invalidPath}.',
+                ),
+              );
               continue;
             }
-            final writeReport = reportingStorage == null
-                ? await _writeWithoutReport(storage, applyRecord)
-                : await reportingStorage.writeWithReport(applyRecord);
-            if (writeReport != null) reports.add(writeReport);
-            final afterWrite = onAfterWrite;
-            if (afterWrite != null) await afterWrite(applyRecord);
-          } on FormatException catch (error) {
-            reports.add(
-              SyncReport(
-                code: SyncReportCode.malformedRecord,
-                kind: candidate.blob.kind,
-                recordId: candidate.blob.id,
-                message:
-                    'Inbound record could not be decoded: ${error.message}.',
-              ),
-            );
-            continue;
-          } on ArgumentError catch (error) {
-            reports.add(
-              SyncReport(
-                code: SyncReportCode.malformedRecord,
-                kind: candidate.blob.kind,
-                recordId: candidate.blob.id,
-                message: 'Inbound record was invalid: $error.',
-              ),
-            );
-            continue;
-          } on StateError catch (error) {
-            reports.add(
-              SyncReport(
-                code: SyncReportCode.unresolvedReference,
-                kind: candidate.blob.kind,
-                recordId: candidate.blob.id,
-                message: 'Inbound record referenced unavailable data: $error.',
-              ),
-            );
-            continue;
-          }
+            if (_isReceiveOnlySetting(candidate)) {
+              reports.add(
+                SyncReport(
+                  code: SyncReportCode.invalidClassification,
+                  kind: candidate.blob.kind,
+                  recordId: candidate.blob.id,
+                  message:
+                      'Inbound sync credentials are receive-only and were not '
+                      'adopted.',
+                ),
+              );
+              continue;
+            }
 
-          applied.add(candidate.address);
+            final current = await storage.read(candidate.address) ?? const {};
+            final Object? normalized;
+            try {
+              normalized = normalizeShareableJson(candidate.blob.body);
+            } on ArgumentError catch (error) {
+              reports.add(
+                SyncReport(
+                  code: SyncReportCode.malformedRecord,
+                  kind: candidate.blob.kind,
+                  recordId: candidate.blob.id,
+                  message:
+                      'Inbound record body could not be normalized: $error.',
+                ),
+              );
+              continue;
+            } on ShareableJsonKeyCollision catch (error) {
+              reports.add(
+                SyncReport(
+                  code: SyncReportCode.malformedRecord,
+                  kind: candidate.blob.kind,
+                  recordId: candidate.blob.id,
+                  message:
+                      'Inbound record body has a normalized key collision: '
+                      '${error.normalizedKey}.',
+                ),
+              );
+              continue;
+            }
+            if (normalized is! Map) {
+              reports.add(
+                SyncReport(
+                  code: SyncReportCode.malformedRecord,
+                  kind: candidate.blob.kind,
+                  recordId: candidate.blob.id,
+                  message: 'Inbound record body is not an object.',
+                ),
+              );
+              continue;
+            }
+            final merged = _overlay(
+              Map<String, Object?>.from(current),
+              Map<String, Object?>.from(normalized),
+            );
+            try {
+              final applyRecord = SyncApplyRecord(
+                address: candidate.address,
+                body: merged,
+                updatedAt: candidate.updatedAt,
+                deletedAt: candidate.blob.deletedAt,
+                existenceAt: candidate.existenceAt,
+                sourceBlob: candidate.blob,
+              );
+              final reportingStorage = storage is SyncApplyReportingStorage
+                  ? storage
+                  : null;
+              final referenceReport = reportingStorage == null
+                  ? null
+                  : await reportingStorage.validateInboundReferences(
+                      applyRecord,
+                    );
+              if (referenceReport != null) {
+                reports.add(referenceReport);
+                continue;
+              }
+              final writeReport = reportingStorage == null
+                  ? await _writeWithoutReport(storage, applyRecord)
+                  : await reportingStorage.writeWithReport(applyRecord);
+              if (writeReport != null) reports.add(writeReport);
+              final afterWrite = onAfterWrite;
+              if (afterWrite != null) await afterWrite(applyRecord);
+            } on FormatException catch (error) {
+              reports.add(
+                SyncReport(
+                  code: SyncReportCode.malformedRecord,
+                  kind: candidate.blob.kind,
+                  recordId: candidate.blob.id,
+                  message:
+                      'Inbound record could not be decoded: ${error.message}.',
+                ),
+              );
+              continue;
+            } on ArgumentError catch (error) {
+              reports.add(
+                SyncReport(
+                  code: SyncReportCode.malformedRecord,
+                  kind: candidate.blob.kind,
+                  recordId: candidate.blob.id,
+                  message: 'Inbound record was invalid: $error.',
+                ),
+              );
+              continue;
+            } on StateError catch (error) {
+              reports.add(
+                SyncReport(
+                  code: SyncReportCode.unresolvedReference,
+                  kind: candidate.blob.kind,
+                  recordId: candidate.blob.id,
+                  message:
+                      'Inbound record referenced unavailable data: $error.',
+                ),
+              );
+              continue;
+            }
+
+            applied.add(candidate.address);
+          }
         }
+        if (applied.isNotEmpty) {
+          await storage.rebuildDerivedIndexes();
+        }
+      });
+    } finally {
+      if (storage is SyncApplyReconciliationStorage) {
+        await storage.clearReconciliationContext();
       }
-      if (applied.isNotEmpty) {
-        await storage.rebuildDerivedIndexes();
-      }
-    });
+    }
 
     return SyncApplyResult(
       applied: List.unmodifiable(applied),
@@ -351,12 +370,16 @@ class SyncApplyEngine {
   Future<void> _applyInPhases({
     required List<SyncMergeCandidate> candidates,
     required SyncApplyBatchStorage storage,
+    required Map<SyncRecordAddress, String?>? expectedWireHashes,
     required List<SyncRecordAddress> applied,
     required List<SyncReport> reports,
   }) async {
     var reconciledCandidates = candidates;
     if (storage is SyncApplyReconciliationStorage) {
-      final preparation = await storage.reconcileInbound(candidates);
+      final preparation = await storage.reconcileInbound(
+        candidates,
+        expectedWireHashes: expectedWireHashes,
+      );
       reports.addAll(preparation.reports);
       reconciledCandidates = preparation.candidates;
     }

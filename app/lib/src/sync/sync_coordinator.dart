@@ -121,8 +121,16 @@ final class CompendiumSyncCoordinatorStore
 
   @override
   Future<SyncApplyPreparation> reconcileInbound(
-    List<SyncMergeCandidate> candidates,
-  ) => storage.reconcileInbound(candidates);
+    List<SyncMergeCandidate> candidates, {
+    Map<SyncRecordAddress, String?>? expectedWireHashes,
+  }) => storage.reconcileInbound(
+    candidates,
+    expectedWireHashes: expectedWireHashes,
+  );
+
+  @override
+  Future<void> clearReconciliationContext() =>
+      storage.clearReconciliationContext();
 
   @override
   Future<void> markSyncUsed(String syncId) => storage.markSyncUsed(syncId);
@@ -756,6 +764,8 @@ class SyncCoordinator {
         if (decision.winner != null) decision.winner!,
     ];
     final expectedWireHashes = <SyncRecordAddress, String?>{
+      for (final entry in snapshot.local.entries)
+        entry.key: entry.value?.wireHash,
       for (final decision in plan.downloads)
         if (decision.winner != null)
           decision.address: snapshot.local[decision.address]?.wireHash,

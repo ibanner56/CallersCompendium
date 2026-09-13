@@ -269,6 +269,56 @@ void main() {
       },
     );
 
+    test('archive restore clears stale sync conclusions and aliases', () async {
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      final candidate = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: SyncRecordKind.tag,
+          id: 'review-tag',
+          updatedAt: DateTime.utc(2026, 7, 15),
+          deletedAt: null,
+          existenceAt: DateTime.utc(2026, 7, 15),
+          body: const {'id': 'review-tag', 'name': 'Review tag'},
+        ),
+      );
+      await repos.syncLocal.replaceBaseline(
+        epoch: 'archive-restore-epoch',
+        entries: [
+          SyncBaselineEntry(
+            kind: candidate.blob.kind,
+            recordId: candidate.blob.id,
+            wireHash: candidate.wireHash,
+          ),
+        ],
+      );
+      await repos.syncLocal.upsertAlias(
+        kind: SyncRecordKind.tag,
+        losingId: 'loser',
+        survivingId: 'survivor',
+      );
+      await repos.syncLocal.enqueueReview(
+        kind: candidate.blob.kind,
+        recordId: candidate.blob.id,
+        counterpartId: 'other-tag',
+        reason: 'test',
+        candidateBlob: encodeSyncRecordBlob(candidate.blob),
+        candidateHash: candidate.wireHash,
+        queuedAt: DateTime.utc(2026, 7, 15),
+      );
+
+      final result = await ArchiveRestorer(
+        repos,
+      ).restore(CompendiumArchive(exportedAt: DateTime.utc(2026, 7, 15)));
+
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+      expect(await repos.syncLocal.getBaselineState(), isNull);
+      expect(await repos.syncLocal.listBaselineEntries(), isEmpty);
+      expect(await repos.syncLocal.listAliases(), isEmpty);
+      expect(await repos.syncLocal.listReviewQueue(), isEmpty);
+    });
+
     test(
       'replace overwrites pre-existing rows rather than duplicating',
       () async {

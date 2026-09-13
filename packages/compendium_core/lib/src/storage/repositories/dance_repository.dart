@@ -1199,7 +1199,7 @@ class DanceRepository {
     String id, {
     required DateTime at,
     bool clearPending = true,
-  }) async {
+  }) => _db.transaction(() async {
     await _stampExistence(id, at: at, deleted: false);
     if (clearPending) {
       await clearPendingSyncDeletion(
@@ -1208,7 +1208,7 @@ class DanceRepository {
         recordId: id,
       );
     }
-  }
+  });
 
   /// Shared live<->deleted transition: one statement that writes
   /// `max(at, current + 1 tick)` while reading the pre-update

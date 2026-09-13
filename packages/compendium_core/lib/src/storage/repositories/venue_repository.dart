@@ -254,28 +254,25 @@ class VenueRepository {
 
   /// Restores a tombstoned venue without changing its fields. Exact archive
   /// re-imports use this when the provenance row survives a prior deletion.
-  Future<void> restore(
-    String id, {
-    DateTime? at,
-    bool clearPending = true,
-  }) async {
-    final now = resolveStamp(at);
-    await stampExistenceTransition(
-      _db,
-      table: _db.venues,
-      keyColumn: 'id',
-      key: id,
-      at: now,
-      deleted: false,
-    );
-    if (clearPending) {
-      await clearPendingSyncDeletion(
-        _db,
-        kind: SyncRecordKind.venue,
-        recordId: id,
-      );
-    }
-  }
+  Future<void> restore(String id, {DateTime? at, bool clearPending = true}) =>
+      _db.transaction(() async {
+        final now = resolveStamp(at);
+        await stampExistenceTransition(
+          _db,
+          table: _db.venues,
+          keyColumn: 'id',
+          key: id,
+          at: now,
+          deleted: false,
+        );
+        if (clearPending) {
+          await clearPendingSyncDeletion(
+            _db,
+            kind: SyncRecordKind.venue,
+            recordId: id,
+          );
+        }
+      });
 
   /// Removes unpublished venues [ids] in a single transaction, skipping the
   /// reference guard; published venues become tombstones so peers retain

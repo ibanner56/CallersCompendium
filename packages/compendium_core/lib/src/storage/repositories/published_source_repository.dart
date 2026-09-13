@@ -142,7 +142,7 @@ class PublishedSourceRepository {
     String id, {
     required DateTime at,
     bool clearPending = true,
-  }) async {
+  }) => _db.transaction(() async {
     await stampExistenceTransition(
       _db,
       table: _db.publishedSources,
@@ -158,7 +158,7 @@ class PublishedSourceRepository {
         recordId: id,
       );
     }
-  }
+  });
 
   Future<void> hardDelete(Iterable<String> ids) async {
     for (final id in ids) {

@@ -41,6 +41,35 @@ Iterable<List<T>> _chunked<T>(Iterable<T> values, int size) sync* {
   }
 }
 
+typedef _NaturalKeyAddress = ({SyncRecordKind kind, String key});
+typedef _NaturalKeyValue = ({String id, String? type, bool deleted});
+
+final class _NaturalKeyIndex {
+  _NaturalKeyIndex(this._rows);
+
+  final Map<_NaturalKeyAddress, _NaturalKeyValue> _rows;
+
+  _NaturalKeyValue? lookup(SyncRecordKind kind, String key) =>
+      _rows[(kind: kind, key: key)];
+
+  void removeId(SyncRecordKind kind, String id) {
+    _rows.removeWhere(
+      (address, value) => address.kind == kind && value.id == id,
+    );
+  }
+
+  void replace({
+    required SyncRecordKind kind,
+    required String id,
+    required String key,
+    required String? type,
+    required bool deleted,
+  }) {
+    removeId(kind, id);
+    _rows[(kind: kind, key: key)] = (id: id, type: type, deleted: deleted);
+  }
+}
+
 /// A complete local sync snapshot owned by the repository/database boundary.
 class SyncStorageSnapshot {
   const SyncStorageSnapshot({
@@ -85,6 +114,7 @@ final class CompendiumSyncStorage
   final Map<SyncRecordAddress, Object> _deferredEntities = {};
   final Set<SyncRecordAddress> _pendingParentWrites = {};
   Set<SyncRecordAddress> _inboundTombstonedAddresses = {};
+  _NaturalKeyIndex? _naturalKeyIndex;
   final Expando<_InboundDependentIndex> _dependentIndexCache =
       Expando<_InboundDependentIndex>();
 
@@ -356,9 +386,14 @@ final class CompendiumSyncStorage
           'pending tombstone does not match its stored identity or hash',
         );
       }
+      final current = await read((kind: blob.kind, recordId: blob.id));
+      final body = _overlay(
+        Map<String, Object?>.from(current ?? const {}),
+        blob.body,
+      );
       final record = SyncApplyRecord(
         address: (kind: blob.kind, recordId: blob.id),
-        body: blob.body,
+        body: body,
         updatedAt: blob.updatedAt,
         deletedAt: blob.deletedAt,
         existenceAt: blob.existenceAt,
@@ -372,76 +407,142 @@ final class CompendiumSyncStorage
     }
   }
 
+  Map<String, Object?> _overlay(
+    Map<String, Object?> current,
+    Map<String, Object?> incoming,
+  ) {
+    for (final entry in incoming.entries) {
+      final value = entry.value;
+      final previous = current[entry.key];
+      if (value is Map && previous is Map) {
+        current[entry.key] = _overlay(
+          Map<String, Object?>.from(previous),
+          Map<String, Object?>.from(value),
+        );
+      } else {
+        current[entry.key] = value;
+      }
+    }
+    return current;
+  }
+
   Future<bool> _hasCitation(
     SyncRecordKind kind,
     String recordId, {
     bool ignoreInboundTombstones = false,
   }) async {
-    bool ownerRemainsLive(SyncRecordKind ownerKind, String ownerId) =>
-        !ignoreInboundTombstones ||
-        !_inboundTombstonedAddresses.contains((
-          kind: ownerKind,
-          recordId: ownerId,
-        ));
+    Future<bool> ownerRemainsLive(
+      SyncRecordKind ownerKind,
+      String ownerId,
+    ) async {
+      if (ignoreInboundTombstones &&
+          _inboundTombstonedAddresses.contains((
+            kind: ownerKind,
+            recordId: ownerId,
+          ))) {
+        return false;
+      }
+      switch (ownerKind) {
+        case SyncRecordKind.dance:
+          final row = await (_db.select(
+            _db.dances,
+          )..where((table) => table.id.equals(ownerId))).getSingleOrNull();
+          return row != null && row.deletedAt == null;
+        case SyncRecordKind.program:
+          final row = await (_db.select(
+            _db.programs,
+          )..where((table) => table.id.equals(ownerId))).getSingleOrNull();
+          return row != null && row.deletedAt == null;
+        case SyncRecordKind.choreographer:
+        case SyncRecordKind.tag:
+        case SyncRecordKind.publishedSource:
+        case SyncRecordKind.customFieldDef:
+        case SyncRecordKind.difficultyLevel:
+        case SyncRecordKind.venue:
+        case SyncRecordKind.setting:
+          return false;
+      }
+    }
 
     switch (kind) {
       case SyncRecordKind.choreographer:
         final rows = await (_db.select(
           _db.danceAuthors,
         )..where((row) => row.choreographerId.equals(recordId))).get();
-        return rows.any(
-          (row) => ownerRemainsLive(SyncRecordKind.dance, row.danceId),
-        );
+        for (final row in rows) {
+          if (await ownerRemainsLive(SyncRecordKind.dance, row.danceId)) {
+            return true;
+          }
+        }
+        return false;
       case SyncRecordKind.tag:
         final rows = await (_db.select(
           _db.danceTags,
         )..where((row) => row.tagId.equals(recordId))).get();
-        return rows.any(
-          (row) => ownerRemainsLive(SyncRecordKind.dance, row.danceId),
-        );
+        for (final row in rows) {
+          if (await ownerRemainsLive(SyncRecordKind.dance, row.danceId)) {
+            return true;
+          }
+        }
+        return false;
       case SyncRecordKind.publishedSource:
         final rows = await (_db.select(
           _db.danceSources,
         )..where((row) => row.sourceId.equals(recordId))).get();
-        return rows.any(
-          (row) => ownerRemainsLive(SyncRecordKind.dance, row.danceId),
-        );
+        for (final row in rows) {
+          if (await ownerRemainsLive(SyncRecordKind.dance, row.danceId)) {
+            return true;
+          }
+        }
+        return false;
       case SyncRecordKind.customFieldDef:
         final rows = await (_db.select(
           _db.customFieldValues,
         )..where((row) => row.fieldId.equals(recordId))).get();
-        return rows.any(
-          (row) => ownerRemainsLive(SyncRecordKind.dance, row.danceId),
-        );
+        for (final row in rows) {
+          if (await ownerRemainsLive(SyncRecordKind.dance, row.danceId)) {
+            return true;
+          }
+        }
+        return false;
       case SyncRecordKind.difficultyLevel:
         final rows = await (_db.select(
           _db.dances,
         )..where((row) => row.levelId.equals(recordId))).get();
-        return rows.any(
-          (row) => ownerRemainsLive(SyncRecordKind.dance, row.id),
-        );
+        for (final row in rows) {
+          if (await ownerRemainsLive(SyncRecordKind.dance, row.id)) {
+            return true;
+          }
+        }
+        return false;
       case SyncRecordKind.venue:
         final rows = await (_db.select(
           _db.programs,
         )..where((row) => row.venueId.equals(recordId))).get();
-        return rows.any(
-          (row) => ownerRemainsLive(SyncRecordKind.program, row.id),
-        );
+        for (final row in rows) {
+          if (await ownerRemainsLive(SyncRecordKind.program, row.id)) {
+            return true;
+          }
+        }
+        return false;
       case SyncRecordKind.dance:
         final slots = await (_db.select(
           _db.programSlots,
         )..where((row) => row.danceId.equals(recordId))).get();
-        if (slots.any(
-          (row) => ownerRemainsLive(SyncRecordKind.program, row.programId),
-        )) {
-          return true;
+        for (final row in slots) {
+          if (await ownerRemainsLive(SyncRecordKind.program, row.programId)) {
+            return true;
+          }
         }
         final links = await (_db.select(
           _db.danceLinks,
         )..where((row) => row.targetDanceId.equals(recordId))).get();
-        return links.any(
-          (row) => ownerRemainsLive(SyncRecordKind.dance, row.danceId),
-        );
+        for (final row in links) {
+          if (await ownerRemainsLive(SyncRecordKind.dance, row.danceId)) {
+            return true;
+          }
+        }
+        return false;
       case SyncRecordKind.program:
       case SyncRecordKind.setting:
         return false;
@@ -534,10 +635,77 @@ final class CompendiumSyncStorage
   Future<Map<SyncRecordAddress, SyncMergeCandidate?>>
   snapshotCandidates() async => (await snapshot()).local;
 
+  Future<_NaturalKeyIndex> _loadNaturalKeyIndex() async {
+    final rows = <_NaturalKeyAddress, _NaturalKeyValue>{};
+    final choreographers = await _db.select(_db.choreographers).get();
+    for (final row in choreographers) {
+      rows[(
+        kind: SyncRecordKind.choreographer,
+        key: normalizeShareableText(row.name).toLowerCase(),
+      )] = (
+        id: row.id,
+        type: null,
+        deleted: row.deletedAt != null,
+      );
+    }
+    final tags = await _db.select(_db.tags).get();
+    for (final row in tags) {
+      rows[(
+        kind: SyncRecordKind.tag,
+        key: normalizeShareableText(row.name).toLowerCase(),
+      )] = (
+        id: row.id,
+        type: null,
+        deleted: row.deletedAt != null,
+      );
+    }
+    final customFields = await _db.select(_db.customFieldDefs).get();
+    for (final row in customFields) {
+      rows[(
+        kind: SyncRecordKind.customFieldDef,
+        key: normalizeShareableText(row.key).toLowerCase(),
+      )] = (
+        id: row.id,
+        type: row.type.name,
+        deleted: row.deletedAt != null,
+      );
+    }
+    final difficultyLevels = await _db.select(_db.difficultyLevels).get();
+    for (final row in difficultyLevels) {
+      rows[(
+        kind: SyncRecordKind.difficultyLevel,
+        key: normalizeShareableText(row.label).toLowerCase(),
+      )] = (
+        id: row.id,
+        type: null,
+        deleted: row.deletedAt != null,
+      );
+    }
+    return _NaturalKeyIndex(rows);
+  }
+
   @override
   Future<SyncApplyPreparation> reconcileInbound(
-    List<SyncMergeCandidate> candidates,
-  ) async {
+    List<SyncMergeCandidate> candidates, {
+    Map<SyncRecordAddress, String?>? expectedWireHashes,
+  }) async {
+    final previousNaturalKeyIndex = _naturalKeyIndex;
+    _naturalKeyIndex = await _loadNaturalKeyIndex();
+    _inboundTombstonedAddresses = {};
+    try {
+      return await _reconcileInbound(
+        candidates,
+        expectedWireHashes: expectedWireHashes,
+      );
+    } finally {
+      _naturalKeyIndex = previousNaturalKeyIndex;
+    }
+  }
+
+  Future<SyncApplyPreparation> _reconcileInbound(
+    List<SyncMergeCandidate> candidates, {
+    Map<SyncRecordAddress, String?>? expectedWireHashes,
+  }) async {
     final aliases = await _aliasMap();
     final baseline = await repositories.syncLocal.snapshotBaseline();
     final prepared = <SyncMergeCandidate>[];
@@ -552,6 +720,7 @@ final class CompendiumSyncStorage
       final kind = candidate.blob.kind;
       if (syncNaturalKeyKinds.contains(kind)) {
         candidate = _rewriteCandidate(candidate, aliases);
+        final inboundCandidateId = candidate.blob.id;
         final naturalKey = syncNaturalKeyForBody(kind, candidate.blob.body);
         if (naturalKey != null) {
           final byId = await _recordIdentity(kind, candidate.blob.id);
@@ -564,6 +733,27 @@ final class CompendiumSyncStorage
               : null;
           if (canonicalDifficultyId != null) {
             if (incumbent != null) {
+              if (candidate.blob.deletedAt != null &&
+                  !incumbent.deleted &&
+                  !baseline.containsKey((kind: kind, recordId: incumbent.id))) {
+                await _enqueueCollisionReview(
+                  candidate,
+                  incumbent.id,
+                  recordId: incumbent.id,
+                  reason:
+                      'a tombstone would remove a locally-created '
+                      'natural-key row before a peer observed it',
+                );
+                continue;
+              }
+              if (!await _guardReconciliationTarget(
+                kind: kind,
+                recordId: incumbent.id,
+                expectedWireHashes: expectedWireHashes,
+                reports: reports,
+              )) {
+                continue;
+              }
               final localCandidate = await _localNaturalCandidate(
                 kind: kind,
                 id: incumbent.id,
@@ -578,6 +768,14 @@ final class CompendiumSyncStorage
               candidate = reconciled;
             }
             if (incumbent != null && incumbent.id != canonicalDifficultyId) {
+              if (!await _guardReconciliationTarget(
+                kind: kind,
+                recordId: canonicalDifficultyId,
+                expectedWireHashes: expectedWireHashes,
+                reports: reports,
+              )) {
+                continue;
+              }
               await _adoptCollision(
                 kind: kind,
                 losingId: incumbent.id,
@@ -586,10 +784,19 @@ final class CompendiumSyncStorage
                 localIdentity: incumbent,
               );
             }
-            if (candidate.blob.id != canonicalDifficultyId) {
+            if (inboundCandidateId != canonicalDifficultyId &&
+                inboundCandidateId != incumbent?.id) {
+              if (!await _guardReconciliationTarget(
+                kind: kind,
+                recordId: inboundCandidateId,
+                expectedWireHashes: expectedWireHashes,
+                reports: reports,
+              )) {
+                continue;
+              }
               await _adoptCollision(
                 kind: kind,
-                losingId: candidate.blob.id,
+                losingId: inboundCandidateId,
                 survivingId: canonicalDifficultyId,
                 aliases: aliases,
                 localIdentity: byId,
@@ -625,6 +832,14 @@ final class CompendiumSyncStorage
               );
               continue;
             }
+            if (!await _guardReconciliationTarget(
+              kind: kind,
+              recordId: incumbent.id,
+              expectedWireHashes: expectedWireHashes,
+              reports: reports,
+            )) {
+              continue;
+            }
 
             if (kind == SyncRecordKind.customFieldDef &&
                 incumbent.type != _customFieldType(candidate.blob.body)) {
@@ -651,6 +866,14 @@ final class CompendiumSyncStorage
                 survivorId: survivingId,
               );
               if (reconciled == null) continue;
+              if (!await _guardReconciliationTarget(
+                kind: kind,
+                recordId: survivingId,
+                expectedWireHashes: expectedWireHashes,
+                reports: reports,
+              )) {
+                continue;
+              }
               await _adoptCollision(
                 kind: kind,
                 losingId: survivingId == candidate.blob.id
@@ -785,6 +1008,12 @@ final class CompendiumSyncStorage
         if (candidate.blob.deletedAt != null) candidate.address,
     };
     return SyncApplyPreparation(candidates: prepared, reports: reports);
+  }
+
+  @override
+  Future<void> clearReconciliationContext() async {
+    _inboundTombstonedAddresses = {};
+    _naturalKeyIndex = null;
   }
 
   SyncReport? _preflightInboundCandidate(SyncMergeCandidate candidate) {
@@ -982,12 +1211,14 @@ final class CompendiumSyncStorage
       kind: kind,
       losingId: losingId,
       survivingId: target,
+      aliases: aliases,
     );
     await repositories.syncLocal.remapIdentity(
       kind: kind,
       losingId: losingId,
       survivingId: target,
     );
+    _naturalKeyIndex?.removeId(kind, losingId);
     final byKind = aliases.putIfAbsent(kind, () => <String, String>{});
     for (final entry in byKind.entries.toList()) {
       if (entry.value == losingId) byKind[entry.key] = target;
@@ -999,14 +1230,15 @@ final class CompendiumSyncStorage
     required SyncRecordKind kind,
     required String losingId,
     required String survivingId,
+    required Map<SyncRecordKind, Map<String, String>> aliases,
   }) async {
     if (losingId == survivingId) return;
-    final aliases = await repositories.syncLocal.listAliases();
+    final persistedAliases = await repositories.syncLocal.listAliases();
     final remappedIds = <String>{losingId};
     var changed = true;
     while (changed) {
       changed = false;
-      for (final alias in aliases) {
+      for (final alias in persistedAliases) {
         if (alias.kind == kind &&
             remappedIds.contains(alias.survivingId) &&
             remappedIds.add(alias.losingId)) {
@@ -1015,22 +1247,27 @@ final class CompendiumSyncStorage
       }
     }
     final pendingIds = {...remappedIds, survivingId};
-    final rows = <PendingDeletionRow>[];
-    for (final chunk in _chunked(pendingIds, 500)) {
-      rows.addAll(
-        await (_db.select(_db.pendingDeletions)..where(
-              (row) => row.kind.equals(kind.name) & row.recordId.isIn(chunk),
-            ))
-            .get(),
-      );
-    }
+    final rows = await _db.select(_db.pendingDeletions).get();
     if (rows.isEmpty) return;
+
+    final rewriteAliases = <SyncRecordKind, Map<String, String>>{
+      for (final entry in aliases.entries)
+        entry.key: Map<String, String>.from(entry.value),
+    };
+    for (final alias in persistedAliases) {
+      rewriteAliases.putIfAbsent(
+        alias.kind,
+        () => <String, String>{},
+      )[alias.losingId] = alias.survivingId;
+    }
+    rewriteAliases.putIfAbsent(kind, () => <String, String>{})[losingId] =
+        survivingId;
 
     final candidates =
         <({SyncRecordBlob blob, DateTime tombstonedAt, String hash})>[];
     for (final row in rows) {
       final blob = decodeSyncRecordBlob(row.tombstoneBlob);
-      if (blob.kind != kind ||
+      if (blob.kind != row.kind ||
           blob.id != row.recordId ||
           blob.deletedAt == null ||
           sha256Hex(encodeSyncRecordBlobUtf8(blob)) != row.tombstoneHash) {
@@ -1038,23 +1275,43 @@ final class CompendiumSyncStorage
           'pending tombstone does not match its stored identity or hash',
         );
       }
+      final remapOwnIdentity =
+          row.kind == kind && pendingIds.contains(row.recordId);
       final body = Map<String, Object?>.from(blob.body);
-      if (kind != SyncRecordKind.setting) body['id'] = survivingId;
+      if (remapOwnIdentity && kind != SyncRecordKind.setting) {
+        body['id'] = survivingId;
+      }
+      final rewrittenBody = rewriteSyncInboundReferences(body, rewriteAliases);
+      final remappedId = remapOwnIdentity && kind != SyncRecordKind.setting
+          ? survivingId
+          : blob.id;
       final remapped = SyncRecordBlob(
         v: blob.v,
         kind: blob.kind,
-        id: survivingId,
+        id: remappedId,
         updatedAt: blob.updatedAt,
         deletedAt: blob.deletedAt,
         existenceAt: blob.existenceAt,
-        body: body,
+        body: rewrittenBody,
       );
-      candidates.add((
-        blob: remapped,
-        tombstonedAt: row.tombstonedAt,
-        hash: sha256Hex(encodeSyncRecordBlobUtf8(remapped)),
-      ));
+      final remappedHash = sha256Hex(encodeSyncRecordBlobUtf8(remapped));
+      if (remapOwnIdentity) {
+        candidates.add((
+          blob: remapped,
+          tombstonedAt: row.tombstonedAt,
+          hash: remappedHash,
+        ));
+      } else if (remappedHash != row.tombstoneHash) {
+        await repositories.syncLocal.upsertPendingDeletion(
+          kind: row.kind,
+          recordId: row.recordId,
+          tombstonedAt: row.tombstonedAt,
+          tombstoneHash: remappedHash,
+          tombstoneBlob: encodeSyncRecordBlob(remapped),
+        );
+      }
     }
+    if (candidates.isEmpty) return;
     candidates.sort((a, b) {
       final existence = a.blob.existenceAt.compareTo(b.blob.existenceAt);
       if (existence != 0) return existence;
@@ -1130,6 +1387,8 @@ final class CompendiumSyncStorage
     SyncRecordKind kind,
     String key,
   ) async {
+    final indexed = _naturalKeyIndex?.lookup(kind, key);
+    if (_naturalKeyIndex != null) return indexed;
     switch (kind) {
       case SyncRecordKind.choreographer:
         final rows = await _db.select(_db.choreographers).get();
@@ -1397,6 +1656,33 @@ final class CompendiumSyncStorage
     queuedAt: DateTime.now().toUtc(),
   );
 
+  Future<bool> _guardReconciliationTarget({
+    required SyncRecordKind kind,
+    required String recordId,
+    required Map<SyncRecordAddress, String?>? expectedWireHashes,
+    required List<SyncReport> reports,
+  }) async {
+    final address = (kind: kind, recordId: recordId);
+    if (expectedWireHashes == null ||
+        !expectedWireHashes.containsKey(address)) {
+      return true;
+    }
+    final expected = expectedWireHashes[address];
+    final current = await _localNaturalCandidate(kind: kind, id: recordId);
+    if (current?.wireHash == expected) return true;
+    reports.add(
+      SyncReport(
+        code: SyncReportCode.concurrentLocalChange,
+        kind: kind,
+        recordId: recordId,
+        message:
+            'Local reconciliation target changed while sync was preparing '
+            'its inbound update.',
+      ),
+    );
+    return false;
+  }
+
   Future<void> _renameLocalCustomField(String id, String newKey) async {
     final row = await (_db.select(
       _db.customFieldDefs,
@@ -1411,6 +1697,32 @@ final class CompendiumSyncStorage
     )..where((table) => table.id.equals(id))).write(
       CustomFieldDefsCompanion(key: Value(newKey), updatedAt: Value(stamp)),
     );
+    _naturalKeyIndex?.replace(
+      kind: SyncRecordKind.customFieldDef,
+      id: id,
+      key: normalizeShareableText(newKey).toLowerCase(),
+      type: row.type.name,
+      deleted: row.deletedAt != null,
+    );
+  }
+
+  Future<String> _temporaryNaturalKey(
+    SyncRecordKind kind,
+    String losingId,
+    String survivingId,
+  ) async {
+    final base = '__sync_${losingId}_$survivingId';
+    var candidate = base;
+    var suffix = 2;
+    while (await _naturalKeyRow(
+          kind,
+          normalizeShareableText(candidate).toLowerCase(),
+        ) !=
+        null) {
+      candidate = '${base}_$suffix';
+      suffix++;
+    }
+    return candidate;
   }
 
   /// Moves a local losing row onto the deterministic survivor identity before
@@ -1422,18 +1734,22 @@ final class CompendiumSyncStorage
     String survivingId,
   ) async {
     if (losingId == survivingId) return;
+    final temporaryNaturalKey = await _temporaryNaturalKey(
+      kind,
+      losingId,
+      survivingId,
+    );
     switch (kind) {
       case SyncRecordKind.choreographer:
         final row = await (_db.select(
           _db.choreographers,
         )..where((table) => table.id.equals(losingId))).getSingleOrNull();
         if (row == null) return;
-        final temporaryName = '__sync_${losingId}_$survivingId';
         await (_db.update(
           _db.choreographers,
         )..where((table) => table.id.equals(losingId))).write(
           ChoreographersCompanion(
-            name: Value(temporaryName),
+            name: Value(temporaryNaturalKey),
             updatedAt: Value(row.updatedAt),
           ),
         );
@@ -1453,17 +1769,23 @@ final class CompendiumSyncStorage
                 existenceAt: Value(row.existenceAt),
               ),
             );
+        _naturalKeyIndex?.replace(
+          kind: kind,
+          id: survivingId,
+          key: normalizeShareableText(row.name).toLowerCase(),
+          type: null,
+          deleted: row.deletedAt != null,
+        );
       case SyncRecordKind.tag:
         final row = await (_db.select(
           _db.tags,
         )..where((table) => table.id.equals(losingId))).getSingleOrNull();
         if (row == null) return;
-        final temporaryName = '__sync_${losingId}_$survivingId';
         await (_db.update(
           _db.tags,
         )..where((table) => table.id.equals(losingId))).write(
           TagsCompanion(
-            name: Value(temporaryName),
+            name: Value(temporaryNaturalKey),
             updatedAt: Value(row.updatedAt),
           ),
         );
@@ -1479,17 +1801,23 @@ final class CompendiumSyncStorage
                 existenceAt: Value(row.existenceAt),
               ),
             );
+        _naturalKeyIndex?.replace(
+          kind: kind,
+          id: survivingId,
+          key: normalizeShareableText(row.name).toLowerCase(),
+          type: null,
+          deleted: row.deletedAt != null,
+        );
       case SyncRecordKind.customFieldDef:
         final row = await (_db.select(
           _db.customFieldDefs,
         )..where((table) => table.id.equals(losingId))).getSingleOrNull();
         if (row == null) return;
-        final temporaryKey = '__sync_${losingId}_$survivingId';
         await (_db.update(
           _db.customFieldDefs,
         )..where((table) => table.id.equals(losingId))).write(
           CustomFieldDefsCompanion(
-            key: Value(temporaryKey),
+            key: Value(temporaryNaturalKey),
             updatedAt: Value(row.updatedAt),
           ),
         );
@@ -1510,17 +1838,23 @@ final class CompendiumSyncStorage
                 existenceAt: Value(row.existenceAt),
               ),
             );
+        _naturalKeyIndex?.replace(
+          kind: kind,
+          id: survivingId,
+          key: normalizeShareableText(row.key).toLowerCase(),
+          type: row.type.name,
+          deleted: row.deletedAt != null,
+        );
       case SyncRecordKind.difficultyLevel:
         final row = await (_db.select(
           _db.difficultyLevels,
         )..where((table) => table.id.equals(losingId))).getSingleOrNull();
         if (row == null) return;
-        final temporaryLabel = '__sync_${losingId}_$survivingId';
         await (_db.update(
           _db.difficultyLevels,
         )..where((table) => table.id.equals(losingId))).write(
           DifficultyLevelsCompanion(
-            label: Value(temporaryLabel),
+            label: Value(temporaryNaturalKey),
             updatedAt: Value(row.updatedAt),
           ),
         );
@@ -1536,6 +1870,13 @@ final class CompendiumSyncStorage
                 existenceAt: Value(row.existenceAt),
               ),
             );
+        _naturalKeyIndex?.replace(
+          kind: kind,
+          id: survivingId,
+          key: normalizeShareableText(row.label).toLowerCase(),
+          type: null,
+          deleted: row.deletedAt != null,
+        );
       case SyncRecordKind.dance:
       case SyncRecordKind.program:
       case SyncRecordKind.publishedSource:
@@ -1545,6 +1886,7 @@ final class CompendiumSyncStorage
     }
     await _rewriteLocalReferences(kind, losingId, survivingId);
     await _deleteIdentityRow(kind, losingId);
+    _naturalKeyIndex?.removeId(kind, losingId);
   }
 
   Future<void> _deleteIdentityRow(SyncRecordKind kind, String id) async {

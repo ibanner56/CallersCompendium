@@ -177,7 +177,7 @@ class DifficultyLevelRepository {
     String id, {
     required DateTime at,
     bool clearPending = true,
-  }) async {
+  }) => _db.transaction(() async {
     await stampExistenceTransition(
       _db,
       table: _db.difficultyLevels,
@@ -193,9 +193,9 @@ class DifficultyLevelRepository {
         recordId: id,
       );
     }
-  }
+  });
 
-  Future<void> hardDelete(Iterable<String> ids) async {
+  Future<void> hardDelete(Iterable<String> ids) => _db.transaction(() async {
     for (final id in ids) {
       if (await isPublishedSyncRecord(
         _db,
@@ -216,7 +216,7 @@ class DifficultyLevelRepository {
         )..where((t) => t.id.equals(id))).go();
       }
     }
-  }
+  });
 
   DifficultyLevel _toModel(DifficultyLevelRow row) =>
       DifficultyLevel(id: row.id, label: row.label, position: row.position);

@@ -226,7 +226,7 @@ class CustomFieldDefRepository {
     String id, {
     required DateTime at,
     bool clearPending = true,
-  }) async {
+  }) => _db.transaction(() async {
     await stampExistenceTransition(
       _db,
       table: _db.customFieldDefs,
@@ -242,7 +242,7 @@ class CustomFieldDefRepository {
         recordId: id,
       );
     }
-  }
+  });
 
   Future<void> hardDelete(Iterable<String> ids) async {
     for (final id in ids) {
