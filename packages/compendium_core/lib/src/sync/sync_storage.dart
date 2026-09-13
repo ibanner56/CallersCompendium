@@ -45,6 +45,11 @@ class SyncStorageSnapshot {
   final Map<SyncRecordAddress, SyncBaselineEntry> baseline;
 }
 
+final class _InboundDependentIndex {
+  final Map<String, List<SyncRecordAddress>> danceLinkOwners = {};
+  final Map<String, List<SyncRecordAddress>> programSlotOwners = {};
+}
+
 /// The production storage adapter for the core sync engine.
 ///
 /// Reads use full-fidelity models so a shareable inbound overlay cannot erase
@@ -57,6 +62,8 @@ final class CompendiumSyncStorage
 
   final CompendiumRepositories repositories;
   final Map<SyncRecordAddress, Object> _deferredEntities = {};
+  final Expando<_InboundDependentIndex> _dependentIndexCache =
+      Expando<_InboundDependentIndex>();
 
   CompendiumDatabase get _db => repositories.db;
 
@@ -298,6 +305,19 @@ final class CompendiumSyncStorage
     await repositories.settings.set(syncLastUsedFingerprintKey, encoded);
   }
 
+  /// Atomically records publication intent before the manifest request.
+  ///
+  /// The verifier is deliberately conservative: once a manifest is prepared,
+  /// a later crash or network failure must still require replacement
+  /// confirmation if the server accepted that publication.
+  Future<void> markPublicationAttempt({
+    required String syncId,
+    required Iterable<SyncRecordAddress> records,
+  }) => repositories.transaction(() async {
+    await repositories.syncLocal.markPublishedAll(records);
+    await markSyncUsed(syncId);
+  });
+
   Future<List<_StoredSyncIdentityVerifier>> _loadUsedIdentityVerifiers(
     String? syncId,
   ) async {
@@ -402,15 +422,16 @@ final class CompendiumSyncStorage
     final referenceInboundLiveAddresses = allowTombstonedReferences
         ? inboundAddresses
         : inboundLiveAddresses;
+    final dependentIndex = _dependentIndexFor(inboundRecords);
 
     final dependentRowIssue = switch (record.address.kind) {
       SyncRecordKind.dance => await _invalidDanceDependentRows(
         entity as Dance,
-        inboundRecords: inboundRecords,
+        dependentIndex: dependentIndex,
       ),
       SyncRecordKind.program => await _invalidProgramDependentRows(
         entity as Program,
-        inboundRecords: inboundRecords,
+        dependentIndex: dependentIndex,
       ),
       _ => null,
     };
@@ -930,7 +951,7 @@ final class CompendiumSyncStorage
 
   Future<String?> _invalidDanceDependentRows(
     Dance dance, {
-    required Map<SyncRecordAddress, SyncApplyRecord> inboundRecords,
+    required _InboundDependentIndex dependentIndex,
   }) async {
     final duplicateAuthorId = _firstDuplicate(dance.authorIds);
     if (duplicateAuthorId != null) {
@@ -955,21 +976,13 @@ final class CompendiumSyncStorage
     }
     if (linkIds.isEmpty) return null;
 
-    for (final entry in inboundRecords.entries) {
-      if (entry.key.kind != SyncRecordKind.dance ||
-          entry.key.recordId == dance.id) {
-        continue;
-      }
-      final Dance other;
-      try {
-        other = _decodeEntity(SyncRecordKind.dance, entry.value.body) as Dance;
-      } on Object {
-        continue;
-      }
-      for (final link in other.links) {
-        if (!linkIds.contains(link.id)) continue;
-        return 'Dance link id "${link.id}" is also owned by '
-            '"${entry.key.recordId}".';
+    for (final linkId in linkIds) {
+      for (final owner
+          in dependentIndex.danceLinkOwners[linkId] ??
+              const <SyncRecordAddress>[]) {
+        if (owner.recordId == dance.id) continue;
+        return 'Dance link id "$linkId" is also owned by '
+            '"${owner.recordId}".';
       }
     }
 
@@ -987,7 +1000,7 @@ final class CompendiumSyncStorage
 
   Future<String?> _invalidProgramDependentRows(
     Program program, {
-    required Map<SyncRecordAddress, SyncApplyRecord> inboundRecords,
+    required _InboundDependentIndex dependentIndex,
   }) async {
     final slotIds = program.slots.map((slot) => slot.id).toList();
     final duplicateId = _firstDuplicate(slotIds);
@@ -996,22 +1009,13 @@ final class CompendiumSyncStorage
     }
     if (slotIds.isEmpty) return null;
 
-    for (final entry in inboundRecords.entries) {
-      if (entry.key.kind != SyncRecordKind.program ||
-          entry.key.recordId == program.id) {
-        continue;
-      }
-      final Program other;
-      try {
-        other =
-            _decodeEntity(SyncRecordKind.program, entry.value.body) as Program;
-      } on Object {
-        continue;
-      }
-      for (final slot in other.slots) {
-        if (!slotIds.contains(slot.id)) continue;
-        return 'Program slot id "${slot.id}" is also owned by '
-            '"${entry.key.recordId}".';
+    for (final slotId in slotIds) {
+      for (final owner
+          in dependentIndex.programSlotOwners[slotId] ??
+              const <SyncRecordAddress>[]) {
+        if (owner.recordId == program.id) continue;
+        return 'Program slot id "$slotId" is also owned by '
+            '"${owner.recordId}".';
       }
     }
 
@@ -1025,6 +1029,45 @@ final class CompendiumSyncStorage
       }
     }
     return null;
+  }
+
+  _InboundDependentIndex _dependentIndexFor(
+    Map<SyncRecordAddress, SyncApplyRecord> inboundRecords,
+  ) {
+    final cached = _dependentIndexCache[inboundRecords];
+    if (cached != null) return cached;
+
+    final index = _InboundDependentIndex();
+    for (final entry in inboundRecords.entries) {
+      try {
+        switch (entry.key.kind) {
+          case SyncRecordKind.dance:
+            final dance =
+                _decodeEntity(SyncRecordKind.dance, entry.value.body) as Dance;
+            for (final link in dance.links) {
+              index.danceLinkOwners
+                  .putIfAbsent(link.id, () => <SyncRecordAddress>[])
+                  .add(entry.key);
+            }
+          case SyncRecordKind.program:
+            final program =
+                _decodeEntity(SyncRecordKind.program, entry.value.body)
+                    as Program;
+            for (final slot in program.slots) {
+              index.programSlotOwners
+                  .putIfAbsent(slot.id, () => <SyncRecordAddress>[])
+                  .add(entry.key);
+            }
+          default:
+            continue;
+        }
+      } on Object {
+        // The current record's decode result reports malformed input; an
+        // invalid peer body cannot own a dependent row for another record.
+      }
+    }
+    _dependentIndexCache[inboundRecords] = index;
+    return index;
   }
 
   String? _firstDuplicate(Iterable<String> ids) {

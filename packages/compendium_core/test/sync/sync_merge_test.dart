@@ -416,7 +416,8 @@ void main() {
       'custom_dialects',
       'newest body',
       updatedSeconds: 3,
-      existenceSeconds: 1,
+      existenceSeconds: 4,
+      deleted: true,
     );
     final newestExistence = _settingAt(
       'custom_dialects',
@@ -450,8 +451,8 @@ void main() {
 
     final winner = plan.decisions.single.winner!;
     expect(plan.decisions.single.action, SyncMergeAction.download);
-    expect(winner.blob.body['value'], 'stale body');
-    expect(winner.updatedAt, newestExistence.updatedAt);
+    expect(winner.blob.body['value'], 'newest body');
+    expect(winner.updatedAt, newestBody.updatedAt);
     expect(winner.existenceAt, newestExistence.existenceAt);
     expect(winner.isDeleted, isTrue);
   });

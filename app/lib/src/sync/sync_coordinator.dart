@@ -62,6 +62,13 @@ abstract interface class SyncCoordinatorStore
 
   Future<void> markPublished(Iterable<SyncRecordAddress> records);
 
+  /// Records publication intent before the network PUT, so a crash after the
+  /// server accepts the manifest cannot lose the previously-used marker.
+  Future<void> markPublicationAttempt({
+    required String syncId,
+    required Iterable<SyncRecordAddress> records,
+  });
+
   Future<void> advanceBaseline({
     required String epoch,
     required Iterable<SyncBaselineEntry> entries,
@@ -105,6 +112,12 @@ final class CompendiumSyncCoordinatorStore
   @override
   Future<void> markPublished(Iterable<SyncRecordAddress> records) =>
       storage.repositories.syncLocal.markPublishedAll(records);
+
+  @override
+  Future<void> markPublicationAttempt({
+    required String syncId,
+    required Iterable<SyncRecordAddress> records,
+  }) => storage.markPublicationAttempt(syncId: syncId, records: records);
 
   @override
   Future<void> advanceBaseline({
@@ -746,7 +759,7 @@ class SyncCoordinator {
         for (final recordId in kindEntry.value.keys)
           (kind: kindEntry.key, recordId: recordId),
     ];
-    await store.markPublished(addresses);
+    await store.markPublicationAttempt(syncId: syncId!, records: addresses);
     final published = await transport.putManifest(deviceId, manifestBody);
     if (published.kind == SyncResponseKind.conflict) {
       return SyncPassResult(
@@ -764,8 +777,6 @@ class SyncCoordinator {
             'manifest publication returned ${published.statusCode}', // i18n-ignore: internal status
       );
     }
-    await store.markSyncUsed(syncId!);
-
     final observed = <SyncBaselineEntry>[];
     for (final entry in current.entries) {
       if (unresolved.contains(entry.key)) continue;

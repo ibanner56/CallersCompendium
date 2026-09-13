@@ -18,7 +18,8 @@
 **Status: design rationale. ADR-004 is `Accepted`; the protocol is partially
 implemented.** W6 now supplies the client-side steady-state pass, transactional
 inbound apply, isolated worker boundary, and endpoint transport; the Athenaeum
-server and the remaining roadmap units are not yet built. Earlier groundwork
+server is implemented for loopback/client development, while public deployment
+and the remaining roadmap units are not yet complete. Earlier groundwork
 includes the v25 schema migration (shipped early so its soft-delete columns
 hydrate across devices before sync code depends on them), the privacy-policy
 amendment (#1115), the standing-invariant ratchets (#1118), and shareable-text

@@ -407,6 +407,7 @@ void main() {
         putManifestStatus: 500,
         onManifestPut: (_) {
           expect(store.lifecycle, contains('markPublished'));
+          expect(store.lifecycle, contains('markSyncUsed'));
         },
       );
       final coordinator = SyncCoordinator(
@@ -928,7 +929,9 @@ final class _FakeStore implements SyncCoordinatorStore {
   }
 
   @override
-  Future<void> markSyncUsed(String syncId) async {}
+  Future<void> markSyncUsed(String syncId) async {
+    lifecycle.add('markSyncUsed');
+  }
 
   @override
   Future<Map<String, Object?>?> read(SyncRecordAddress address) async {
@@ -950,6 +953,15 @@ final class _FakeStore implements SyncCoordinatorStore {
   Future<void> markPublished(Iterable<SyncRecordAddress> records) async {
     lifecycle.add('markPublished');
     publishedRecords.addAll(records);
+  }
+
+  @override
+  Future<void> markPublicationAttempt({
+    required String syncId,
+    required Iterable<SyncRecordAddress> records,
+  }) async {
+    await markPublished(records);
+    await markSyncUsed(syncId);
   }
 
   @override
