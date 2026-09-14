@@ -405,6 +405,68 @@ void main() {
     });
 
     test(
+      'merge restore revalidates pending tombstones against untouched rows',
+      () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        final stamp = DateTime.utc(2026, 7, 15);
+        final dance = Dance(
+          id: 'pending-dance',
+          title: 'Pending dance',
+          createdAt: stamp,
+          updatedAt: stamp,
+        );
+        await repos.dances.create(dance);
+        await repos.programs.create(
+          Program(
+            id: 'citing-program',
+            title: 'Citing program',
+            slots: [
+              ProgramSlot(id: 'citing-slot', position: 0, danceId: dance.id),
+            ],
+            createdAt: stamp,
+            updatedAt: stamp,
+          ),
+        );
+        final tombstone = SyncRecordBlob(
+          kind: SyncRecordKind.dance,
+          id: dance.id,
+          updatedAt: stamp.add(const Duration(minutes: 1)),
+          deletedAt: stamp.add(const Duration(minutes: 1)),
+          existenceAt: stamp.add(const Duration(minutes: 1)),
+          body: syncBodyForEntity(SyncRecordKind.dance, dance),
+        );
+        await repos.syncLocal.upsertPendingDeletion(
+          kind: tombstone.kind,
+          recordId: tombstone.id,
+          tombstonedAt: tombstone.deletedAt!,
+          tombstoneHash: SyncMergeCandidate.fromBlob(tombstone).wireHash,
+          tombstoneBlob: encodeSyncRecordBlob(tombstone),
+        );
+
+        final result = await ArchiveRestorer(repos).restore(
+          CompendiumArchive(
+            exportedAt: stamp,
+            tags: [Tag(id: 'unrelated-tag', name: 'Unrelated')],
+          ),
+          mode: RestoreMode.merge,
+        );
+
+        expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+        expect(
+          await repos.syncLocal.getPendingDeletion(
+            kind: SyncRecordKind.dance,
+            recordId: dance.id,
+          ),
+          isNotNull,
+        );
+        expect(await repos.dances.getById(dance.id), isNotNull);
+        expect(await repos.programs.getById('citing-program'), isNotNull);
+      },
+    );
+
+    test(
       'replace and merge preserve ordered difficulty levels and assignments',
       () async {
         final sourceDb = openTestDatabase();

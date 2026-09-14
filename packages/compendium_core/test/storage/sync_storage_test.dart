@@ -2904,6 +2904,57 @@ void main() {
   );
 
   test(
+    'rejects a non-shareable definition before natural-key reconciliation',
+    () async {
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+      final local = CustomFieldDef(
+        id: 'z-local-shareable-field',
+        key: 'shared_key',
+        label: 'Shared key',
+        type: CustomFieldType.text,
+      );
+      final inbound = CustomFieldDef(
+        id: 'a-inbound-private-field',
+        key: local.key,
+        label: local.label,
+        type: local.type,
+        shareable: false,
+      );
+      // ignore: unused_result
+      await repositories.customFieldDefs.upsert(local, at: stamp);
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.customFieldDef,
+              id: inbound.id,
+              updatedAt: stamp.add(const Duration(minutes: 1)),
+              deletedAt: null,
+              existenceAt: stamp.add(const Duration(minutes: 1)),
+              body: archiveCustomFieldDefToJson(
+                inbound,
+                includeShareable: true,
+                includeOptionalFields: true,
+              ),
+            ),
+          ),
+        ],
+        storage: storage,
+      );
+
+      expect(result.applied, isEmpty);
+      expect(result.reports.single.code, SyncReportCode.invalidClassification);
+      final storedLocal = await repositories.customFieldDefs.getById(local.id);
+      expect(storedLocal, isNotNull);
+      expect(storedLocal!.key, local.key);
+      expect(storedLocal.shareable, isTrue);
+      expect(await repositories.customFieldDefs.getById(inbound.id), isNull);
+      expect(await repositories.syncLocal.listAliases(), isEmpty);
+    },
+  );
+
+  test(
     'malformed natural-key collisions do not mutate local identity state',
     () async {
       final stamp = DateTime.utc(2025, 1, 2, 12);

@@ -398,12 +398,21 @@ final class CompendiumSyncStorage
     );
   });
 
+  /// Revalidates pending tombstones against the complete current library.
+  ///
+  /// Archive merge restores must not use only the archive's written records:
+  /// untouched local rows can still cite a pending record.
+  Future<void> revalidatePendingDeletions({bool dropMissing = false}) =>
+      repositories.transaction(
+        () => _revalidatePendingDeletions(dropMissing: dropMissing),
+      );
+
   /// Applies pending tombstones whose final local citation disappeared.
   ///
   /// This runs before every snapshot so a citation removed by an ordinary
   /// repository transaction is observed by the next pass without requiring a
   /// separate sync trigger.
-  Future<void> _revalidatePendingDeletions() async {
+  Future<void> _revalidatePendingDeletions({bool dropMissing = false}) async {
     final rows = await repositories.syncLocal.listPendingDeletions();
     for (final row in rows) {
       if (await _hasCitation(row.kind, row.recordId)) continue;
@@ -417,6 +426,13 @@ final class CompendiumSyncStorage
         );
       }
       final current = await read((kind: blob.kind, recordId: blob.id));
+      if (current == null && dropMissing) {
+        await repositories.syncLocal.deletePendingDeletion(
+          kind: row.kind,
+          recordId: row.recordId,
+        );
+        continue;
+      }
       final body = _overlay(
         Map<String, Object?>.from(current ?? const {}),
         blob.body,
@@ -752,7 +768,16 @@ final class CompendiumSyncStorage
     for (var candidate in candidates) {
       final preflightReport = _preflightInboundCandidate(candidate);
       if (preflightReport != null) {
-        reports.add(preflightReport);
+        if (candidate.blob.kind == SyncRecordKind.customFieldDef &&
+            candidate.blob.body['shareable'] == false) {
+          // Keep the rejected definition in the validation context so
+          // dependent inbound dances receive the same classification report.
+          // It must not enter natural-key reconciliation, which can migrate
+          // local identities before the final semantic validation.
+          prepared.add(candidate);
+        } else {
+          reports.add(preflightReport);
+        }
         continue;
       }
       final kind = candidate.blob.kind;
@@ -1118,6 +1143,17 @@ final class CompendiumSyncStorage
         message:
             'Inbound body contains a non-shareable wire path '
             '${validation.invalidPath}.',
+      );
+    }
+    if (candidate.blob.kind == SyncRecordKind.customFieldDef &&
+        candidate.blob.body['shareable'] == false) {
+      return SyncReport(
+        code: SyncReportCode.invalidClassification,
+        kind: candidate.blob.kind,
+        recordId: candidate.blob.id,
+        message:
+            'Inbound custom-field definition '
+            '"${candidate.blob.id}" is not shareable.',
       );
     }
     if (candidate.blob.kind == SyncRecordKind.setting &&

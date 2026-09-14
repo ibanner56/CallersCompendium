@@ -89,8 +89,13 @@ class SyncLocalRepository {
 
   Future<void> clearForRestore({
     required Iterable<SyncRecordAddress> restoredRecords,
-  }) =>
-      transaction((tx) => tx.clearForRestore(restoredRecords: restoredRecords));
+    bool revalidatePending = true,
+  }) => transaction(
+    (tx) => tx.clearForRestore(
+      restoredRecords: restoredRecords,
+      revalidatePending: revalidatePending,
+    ),
+  );
 
   Future<List<IdAliasRow>> listAliases() => _db.select(_db.idAliases).get();
 
@@ -297,9 +302,12 @@ class SyncLocalTransaction {
 
   Future<void> clearForRestore({
     required Iterable<SyncRecordAddress> restoredRecords,
+    bool revalidatePending = true,
   }) async {
     await clearBaseline();
-    await revalidatePendingDeletions(restoredRecords: restoredRecords);
+    if (revalidatePending) {
+      await revalidatePendingDeletions(restoredRecords: restoredRecords);
+    }
   }
 
   Future<void> revalidatePendingDeletions({

@@ -8,6 +8,7 @@ import '../storage/repositories/sync_local_repository.dart';
 import '../storage/repositories/venue_repository.dart';
 import '../storage/database.dart';
 import '../sync/sync_record_kind.dart';
+import '../sync/sync_storage.dart';
 import 'compendium_archive.dart';
 
 /// Reads the entire core-persisted collection into a [CompendiumArchive] for
@@ -124,6 +125,7 @@ class ArchiveRestorer {
           }
           await _repos.syncLocal.clearForRestore(
             restoredRecords: restoredRecords,
+            revalidatePending: true,
           );
         } else {
           final restoredRecords = await _load(
@@ -133,9 +135,13 @@ class ArchiveRestorer {
           );
           await _repos.syncLocal.clearForRestore(
             restoredRecords: restoredRecords,
+            revalidatePending: false,
           );
         }
       });
+      await CompendiumSyncStorage(
+        _repos,
+      ).revalidatePendingDeletions(dropMissing: true);
     } on Exception catch (e) {
       if (!abortedForRollback) {
         // Deferred foreign-key checks and other integrity constraints only fire
