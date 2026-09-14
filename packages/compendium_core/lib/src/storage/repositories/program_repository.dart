@@ -6,12 +6,14 @@ import '../../model/enums.dart';
 import '../../model/program.dart';
 import '../../model/provenance.dart' as model;
 import '../../model/stored_timestamp.dart';
+import '../../sync/sync_record_kind.dart';
 import '../database.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
 import '../utc_datetime.dart';
 import '../calling_history_scope.dart';
 import 'venue_repository.dart';
+import 'sync_local_repository.dart';
 
 /// One entry in a dance's calling history: a program that includes the dance
 /// (a slot referencing it), produced by
@@ -1206,8 +1208,20 @@ class ProgramRepository {
   /// #898). A revival is an existence transition, so it must advance
   /// `existence_at` or a peer holding the tombstone would win the comparison
   /// and delete it straight back.
-  Future<void> restore(String id, {required DateTime at}) =>
-      _stampExistence(id, at: at, deleted: false);
+  Future<void> restore(
+    String id, {
+    required DateTime at,
+    bool clearPending = true,
+  }) => _db.transaction(() async {
+    await _stampExistence(id, at: at, deleted: false);
+    if (clearPending) {
+      await clearPendingSyncDeletion(
+        _db,
+        kind: SyncRecordKind.program,
+        recordId: id,
+      );
+    }
+  });
 
   /// Shared live<->deleted transition: one statement that writes
   /// `max(at, current + 1 tick)` while reading the pre-update
@@ -1227,10 +1241,11 @@ class ProgramRepository {
     deleted: deleted,
   );
 
-  /// Hard-deletes the programs identified by [ids] outright (ignoring their
-  /// soft-delete state), removing each program's slots via the
-  /// `program_slots.program_id` cascade. Unknown ids are ignored; an empty
-  /// [ids] is a no-op. Runs in a single transaction.
+  /// Removes the programs identified by [ids] regardless of soft-delete state:
+  /// unpublished programs are hard-deleted, while published programs become
+  /// tombstones so peers retain deletion evidence. Physical deletes remove
+  /// each program's slots via the `program_slots.program_id` cascade. Unknown
+  /// ids are ignored; an empty [ids] is a no-op. Runs in a single transaction.
   ///
   /// Intended for reverting a just-committed import batch (import-session undo,
   /// e.g. [CallersCompanionUsrImporter.undo]); ordinary user deletes should go
@@ -1239,24 +1254,63 @@ class ProgramRepository {
     final list = ids.toList();
     if (list.isEmpty) return Future.value();
     return _db.transaction(() async {
-      for (final chunk in _chunkIds(list)) {
+      final publishedIds = await publishedSyncRecordIds(
+        _db,
+        kind: SyncRecordKind.program,
+        recordIds: list,
+      );
+      for (final id in publishedIds) {
+        await stampExistenceTransition(
+          _db,
+          table: _db.programs,
+          keyColumn: 'id',
+          key: id,
+          at: DateTime.now().toUtc(),
+          deleted: true,
+        );
+      }
+      final erasableIds = list
+          .where((id) => !publishedIds.contains(id))
+          .toList(growable: false);
+      for (final chunk in _chunkIds(erasableIds)) {
         await (_db.delete(_db.programs)..where((t) => t.id.isIn(chunk))).go();
       }
     });
   }
 
-  /// Hard-deletes soft-deleted programs whose `deletedAt` is older than
-  /// [retention] (default 30 days per `docs/design/storage.md`). Slots
-  /// cascade automatically (FK).
+  /// Hard-deletes unpublished soft-deleted programs whose `deletedAt` is older
+  /// than [retention] (default 30 days per `docs/design/storage.md`). Published
+  /// programs remain as tombstones so peers retain deletion evidence. Physical
+  /// deletes cascade slots automatically (FK).
   Future<int> purgeDeleted({
     required DateTime now,
     Duration retention = const Duration(days: 30),
   }) {
     assertUtc(now, 'now');
     final cutoff = now.subtract(retention);
-    return (_db.delete(
-      _db.programs,
-    )..where((t) => t.deletedAt.isSmallerOrEqualValue(cutoff))).go();
+    return _db.transaction(() async {
+      final rows = await (_db.select(
+        _db.programs,
+      )..where((t) => t.deletedAt.isSmallerOrEqualValue(cutoff))).get();
+      if (rows.isEmpty) return 0;
+      final publishedIds = await publishedSyncRecordIds(
+        _db,
+        kind: SyncRecordKind.program,
+        recordIds: rows.map((row) => row.id),
+      );
+      final erasableIds = [
+        for (final row in rows)
+          if (!publishedIds.contains(row.id)) row.id,
+      ];
+      if (erasableIds.isEmpty) return 0;
+      var deleted = 0;
+      for (final chunk in _chunkIds(erasableIds)) {
+        deleted += await (_db.delete(
+          _db.programs,
+        )..where((t) => t.id.isIn(chunk))).go();
+      }
+      return deleted;
+    });
   }
 
   Program _toModel(

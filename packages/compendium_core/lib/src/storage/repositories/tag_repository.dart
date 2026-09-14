@@ -2,10 +2,12 @@ import 'package:drift/drift.dart';
 import 'package:meta/meta.dart';
 
 import '../../model/tag.dart';
+import '../../sync/sync_record_kind.dart';
 import '../../util/argb.dart';
 import '../database.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
+import 'sync_local_repository.dart';
 
 /// CRUD for flat [Tag] rows.
 ///
@@ -248,36 +250,64 @@ class TagRepository {
   /// would mean a revived tag came back untagged, silently losing every
   /// association. Reads filter the tag out instead, so the dances stop showing
   /// it either way.
-  Future<void> delete(String id, {DateTime? at, bool permanent = false}) async {
-    if (permanent) {
-      await (_db.delete(_db.tags)..where((t) => t.id.equals(id))).go();
-      return;
-    }
+  Future<void> delete(String id, {DateTime? at, bool permanent = false}) =>
+      _db.transaction(() async {
+        if (permanent) {
+          if (await isPublishedSyncRecord(
+            _db,
+            kind: SyncRecordKind.tag,
+            recordId: id,
+          )) {
+            await stampExistenceTransition(
+              _db,
+              table: _db.tags,
+              keyColumn: 'id',
+              key: id,
+              at: resolveStamp(at),
+              deleted: true,
+            );
+            return;
+          }
+          await (_db.delete(_db.tags)..where((t) => t.id.equals(id))).go();
+          return;
+        }
+        await stampExistenceTransition(
+          _db,
+          table: _db.tags,
+          keyColumn: 'id',
+          key: id,
+          at: resolveStamp(at),
+          deleted: true,
+        );
+      });
+
+  Future<void> restore(
+    String id, {
+    required DateTime at,
+    bool clearPending = true,
+  }) => _db.transaction(() async {
     await stampExistenceTransition(
       _db,
       table: _db.tags,
       keyColumn: 'id',
       key: id,
-      at: resolveStamp(at),
-      deleted: true,
+      at: at,
+      deleted: false,
     );
-  }
-
-  Future<void> restore(String id, {required DateTime at}) =>
-      stampExistenceTransition(
+    if (clearPending) {
+      await clearPendingSyncDeletion(
         _db,
-        table: _db.tags,
-        keyColumn: 'id',
-        key: id,
-        at: at,
-        deleted: false,
+        kind: SyncRecordKind.tag,
+        recordId: id,
       );
+    }
+  });
 
-  Future<void> hardDelete(Iterable<String> ids) async {
+  Future<void> hardDelete(Iterable<String> ids) => _db.transaction(() async {
     for (final id in ids) {
       await delete(id, permanent: true);
     }
-  }
+  });
 
   /// Reads a row back, re-normalizing the stored colour so a row written by an
   /// older build or a corrupted file cannot paint an invisible chip.

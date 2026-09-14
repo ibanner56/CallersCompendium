@@ -22,6 +22,7 @@ import '../../search/filter_compiler.dart';
 import '../../search/search_enrichment.dart';
 import '../../search/fts_query.dart';
 import '../../serialization/figure_codec.dart';
+import '../../sync/sync_record_kind.dart';
 import '../../taxonomy/param_types.dart';
 import '../../taxonomy/taxonomy.dart';
 import '../database.dart';
@@ -30,6 +31,7 @@ import '../shareable_text.dart';
 import '../tables.dart';
 import '../utc_datetime.dart';
 import 'custom_field_repository.dart';
+import 'sync_local_repository.dart';
 
 /// Progress of a [DanceRepository.rebuildAllDerived] pass: [completed] of
 /// [total] dances have had their derived `dance_figures`/`dance_fts` rows
@@ -1193,8 +1195,20 @@ class DanceRepository {
   /// `existence_at`: leaving it at the tombstone's value would tie, and a tie
   /// resolves in favour of the tombstone, so a peer would delete the restored
   /// dance straight back.
-  Future<void> restore(String id, {required DateTime at}) =>
-      _stampExistence(id, at: at, deleted: false);
+  Future<void> restore(
+    String id, {
+    required DateTime at,
+    bool clearPending = true,
+  }) => _db.transaction(() async {
+    await _stampExistence(id, at: at, deleted: false);
+    if (clearPending) {
+      await clearPendingSyncDeletion(
+        _db,
+        kind: SyncRecordKind.dance,
+        recordId: id,
+      );
+    }
+  });
 
   /// Shared live<->deleted transition: one statement that writes
   /// `max(at, current + 1 tick)` while reading the pre-update
@@ -1214,14 +1228,15 @@ class DanceRepository {
     deleted: deleted,
   );
 
-  /// Hard-deletes soft-deleted dances whose `deletedAt` is older than
-  /// [retention] (default 30 days). Cascades to child rows (authors, tags,
-  /// links, custom values, provenance, derived figures) via FK; any
-  /// `program_slots.dance_id` pointing at a purged dance is set to `NULL`
-  /// (the slot's `text`, if any, survives as a tombstone caption). Reusable
-  /// `choreographers` / `published_sources` / `tags` rows left unreferenced
-  /// after the cascade are garbage-collected in the same transaction
-  /// (#462, #1199).
+  /// Hard-deletes unpublished soft-deleted dances whose `deletedAt` is older
+  /// than [retention] (default 30 days). Published dances remain as
+  /// tombstones so peers can still learn about their deletion. Physical
+  /// purges cascade to child rows (authors, tags, links, custom values,
+  /// provenance, derived figures) via FK; any `program_slots.dance_id`
+  /// pointing at a purged dance is set to `NULL` (the slot's `text`, if any,
+  /// survives as a tombstone caption). Reusable `choreographers` /
+  /// `published_sources` / `tags` rows left unreferenced after the cascade
+  /// are garbage-collected in the same transaction (#462, #1199).
   Future<int> purgeDeleted({
     required DateTime now,
     Duration retention = const Duration(days: 30),
@@ -1239,13 +1254,23 @@ class DanceRepository {
         _db.dances,
       )..where((t) => t.deletedAt.isSmallerOrEqualValue(cutoff))).get();
       if (toPurge.isEmpty) return 0;
-      final ids = [for (final r in toPurge) r.id];
+      final publishedIds = await publishedSyncRecordIds(
+        _db,
+        kind: SyncRecordKind.dance,
+        recordIds: toPurge.map((row) => row.id),
+      );
+      final erasable = [
+        for (final row in toPurge)
+          if (!publishedIds.contains(row.id)) row,
+      ];
+      if (erasable.isEmpty) return 0;
+      final ids = [for (final r in erasable) r.id];
       // Snapshot the orphan-ref candidates from the SAME in-txn snapshot,
       // before _cleanupDanglingReferences / the DELETE cascade the purged
       // dances' dance_authors / dance_sources join rows away (#462).
       final orphanCandidates = await _referencedRefIds(ids);
       await _cleanupDanglingReferences([
-        for (final r in toPurge) (id: r.id, title: r.title),
+        for (final r in erasable) (id: r.id, title: r.title),
       ]);
       for (final id in ids) {
         await _deleteFtsRows(id);
@@ -1480,7 +1505,15 @@ class DanceRepository {
     ({Set<String> choreographerIds, Set<String> sourceIds, Set<String> tagIds})
     candidates,
   ) async {
-    for (final chunk in _chunkIds(candidates.choreographerIds.toList())) {
+    final publishedChoreographers = await publishedSyncRecordIds(
+      _db,
+      kind: SyncRecordKind.choreographer,
+      recordIds: candidates.choreographerIds,
+    );
+    final erasableChoreographers = candidates.choreographerIds
+        .difference(publishedChoreographers)
+        .toList();
+    for (final chunk in _chunkIds(erasableChoreographers)) {
       final placeholders = List.filled(chunk.length, '?').join(', ');
       await _db.customUpdate(
         'DELETE FROM ${_db.choreographers.actualTableName} '
@@ -1491,7 +1524,15 @@ class DanceRepository {
         updateKind: UpdateKind.delete,
       );
     }
-    for (final chunk in _chunkIds(candidates.sourceIds.toList())) {
+    final publishedSources = await publishedSyncRecordIds(
+      _db,
+      kind: SyncRecordKind.publishedSource,
+      recordIds: candidates.sourceIds,
+    );
+    final erasableSources = candidates.sourceIds
+        .difference(publishedSources)
+        .toList();
+    for (final chunk in _chunkIds(erasableSources)) {
       final placeholders = List.filled(chunk.length, '?').join(', ');
       await _db.customUpdate(
         'DELETE FROM ${_db.publishedSources.actualTableName} '
@@ -1502,7 +1543,14 @@ class DanceRepository {
         updateKind: UpdateKind.delete,
       );
     }
-    await _garbageCollectOrphanedTags(candidates.tagIds);
+    final publishedTags = await publishedSyncRecordIds(
+      _db,
+      kind: SyncRecordKind.tag,
+      recordIds: candidates.tagIds,
+    );
+    await _garbageCollectOrphanedTags(
+      candidates.tagIds.difference(publishedTags),
+    );
   }
 
   Future<void> _garbageCollectOrphanedTags(
@@ -1521,10 +1569,11 @@ class DanceRepository {
     }
   }
 
-  /// Immediately and permanently removes the dances identified by [ids]
-  /// (bypassing the soft-delete/retention path). Cascades to child rows
+  /// Immediately removes unpublished dances identified by [ids] (bypassing the
+  /// soft-delete/retention path). Published dances are tombstoned instead so
+  /// peers retain deletion evidence. Physical deletes cascade to child rows
   /// (authors, tags, links, custom values, provenance, derived figures) via
-  /// FK, and clears each dance's `dance_fts` row (that virtual table is not
+  /// FK, and clear each dance's `dance_fts` row (that virtual table is not
   /// FK-linked). Any `program_slots.dance_id` pointing at a removed dance is
   /// set to `NULL` (the slot's `text`, if any, survives as a tombstone
   /// caption). Unknown ids are ignored. Runs in a single transaction.
@@ -1548,16 +1597,37 @@ class DanceRepository {
       final rows = await (_db.select(
         _db.dances,
       )..where((t) => t.id.isIn(list))).get();
+      final publishedIds = await publishedSyncRecordIds(
+        _db,
+        kind: SyncRecordKind.dance,
+        recordIds: rows.map((row) => row.id),
+      );
+      for (final id in publishedIds) {
+        await stampExistenceTransition(
+          _db,
+          table: _db.dances,
+          keyColumn: 'id',
+          key: id,
+          at: DateTime.now().toUtc(),
+          deleted: true,
+        );
+      }
+      final erasableRows = [
+        for (final row in rows)
+          if (!publishedIds.contains(row.id)) row,
+      ];
+      if (erasableRows.isEmpty) return;
+      final erasableIds = [for (final row in erasableRows) row.id];
       final orphanCandidates = gcOrphanedRefs
-          ? await _referencedRefIds([for (final r in rows) r.id])
+          ? await _referencedRefIds(erasableIds)
           : null;
       await _cleanupDanglingReferences([
-        for (final r in rows) (id: r.id, title: r.title),
+        for (final r in erasableRows) (id: r.id, title: r.title),
       ]);
-      for (final id in list) {
+      for (final id in erasableIds) {
         await _deleteFtsRows(id);
       }
-      await (_db.delete(_db.dances)..where((t) => t.id.isIn(list))).go();
+      await (_db.delete(_db.dances)..where((t) => t.id.isIn(erasableIds))).go();
       if (orphanCandidates != null) {
         await _garbageCollectOrphanedRefs(orphanCandidates);
       }
