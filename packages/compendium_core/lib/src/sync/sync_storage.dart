@@ -31,6 +31,7 @@ import 'sync_merge.dart';
 import 'sync_record_kind.dart';
 import 'sync_reconciliation.dart';
 import 'sync_report.dart';
+import 'sync_review.dart';
 import 'wire_mapping.dart';
 
 Iterable<List<T>> _chunked<T>(Iterable<T> values, int size) sync* {
@@ -659,6 +660,228 @@ final class CompendiumSyncStorage
   @override
   Future<T> transaction<T>(Future<T> Function() action) =>
       repositories.transaction(action);
+
+  /// Resolves the one review reason whose user decision is normative in W14.
+  ///
+  /// The queue row is re-read inside the transaction so a stale screen cannot
+  /// clear a replacement candidate. The inherited queue has no historical
+  /// local hash, so this deliberately validates the current natural-key target
+  /// rather than claiming to detect every edit made after enqueue.
+  Future<void> resolveReviewQueue({
+    required ReviewQueueRow expectedRow,
+    required SyncReviewAction action,
+    String? newNaturalKey,
+  }) => repositories.transaction(() async {
+    final currentRow = await repositories.syncLocal.getReviewQueue(
+      kind: expectedRow.kind,
+      recordId: expectedRow.recordId,
+      counterpartId: expectedRow.counterpartId,
+    );
+    if (currentRow == null || !_sameReviewQueueRow(currentRow, expectedRow)) {
+      throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
+    }
+    final SyncRecordBlob candidate;
+    try {
+      candidate = decodeSyncRecordBlob(currentRow.candidateBlob);
+    } on Object {
+      throw const SyncReviewException(SyncReviewFailureCode.candidateInvalid);
+    }
+    if (currentRow.candidateHash !=
+            sha256Hex(encodeSyncRecordBlobUtf8(candidate)) ||
+        currentRow.candidateHash != expectedRow.candidateHash ||
+        candidate.kind != currentRow.kind ||
+        candidate.id != currentRow.counterpartId ||
+        candidate.body['id'] != candidate.id ||
+        candidate.deletedAt == null ||
+        currentRow.recordId == candidate.id ||
+        !syncNaturalKeyKinds.contains(candidate.kind) ||
+        syncNaturalKeyForBody(candidate.kind, candidate.body) == null) {
+      throw const SyncReviewException(SyncReviewFailureCode.candidateInvalid);
+    }
+    if (currentRow.reason != syncBaselineAbsenceTombstoneReason) {
+      throw const SyncReviewException(SyncReviewFailureCode.unsupportedReason);
+    }
+
+    final localAddress = (kind: currentRow.kind, recordId: currentRow.recordId);
+    final localBody = await read(localAddress);
+    final localMetadata = await _naturalRecordMetadata(
+      currentRow.kind,
+      currentRow.recordId,
+    );
+    if (localBody == null ||
+        localMetadata == null ||
+        localMetadata.deletedAt != null) {
+      throw const SyncReviewException(SyncReviewFailureCode.targetMissing);
+    }
+    final candidateAddress = (kind: candidate.kind, recordId: candidate.id);
+    if (await repositories.syncLocal.resolveAlias(
+          kind: candidate.kind,
+          recordId: candidate.id,
+        ) !=
+        candidate.id) {
+      throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
+    }
+    if (await read(candidateAddress) != null) {
+      throw const SyncReviewException(
+        SyncReviewFailureCode.candidateAlreadyPresent,
+      );
+    }
+    final candidateKey = syncNaturalKeyForBody(candidate.kind, candidate.body)!;
+    final localKey = syncNaturalKeyForBody(currentRow.kind, localBody);
+    if (localKey == null || localKey != candidateKey) {
+      throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
+    }
+
+    switch (action) {
+      case SyncReviewAction.merge:
+        final localIdentity = await _recordIdentity(
+          currentRow.kind,
+          currentRow.recordId,
+        );
+        if (localIdentity == null) {
+          throw const SyncReviewException(SyncReviewFailureCode.targetMissing);
+        }
+        await _adoptCollision(
+          kind: currentRow.kind,
+          losingId: currentRow.recordId,
+          survivingId: candidate.id,
+          aliases: <SyncRecordKind, Map<String, String>>{},
+          localIdentity: localIdentity,
+        );
+        break;
+      case SyncReviewAction.keepBoth:
+        final renamedKey = _validatedReviewName(
+          newNaturalKey,
+          currentKey: localKey,
+        );
+        final occupied = await _naturalKeyRow(
+          currentRow.kind,
+          normalizeShareableText(renamedKey).toLowerCase(),
+        );
+        if (occupied != null) {
+          throw const SyncReviewException(
+            SyncReviewFailureCode.nameNotDistinct,
+          );
+        }
+        await _renameLocalNaturalKey(
+          currentRow.kind,
+          currentRow.recordId,
+          renamedKey,
+        );
+    }
+
+    final currentCandidateBody = Map<String, Object?>.from(
+      await read(candidateAddress) ?? const {},
+    );
+    final report = await writeWithReport(
+      SyncApplyRecord(
+        address: candidateAddress,
+        body: _overlay(currentCandidateBody, candidate.body),
+        updatedAt: candidate.updatedAt,
+        deletedAt: candidate.deletedAt,
+        existenceAt: candidate.existenceAt,
+        sourceBlob: candidate,
+      ),
+    );
+    if (report != null) {
+      throw StateError(report.message);
+    }
+    await rebuildDerivedIndexes();
+    await repositories.syncLocal.deleteReview(
+      kind: currentRow.kind,
+      recordId: currentRow.recordId,
+      counterpartId: currentRow.counterpartId,
+    );
+  });
+
+  bool _sameReviewQueueRow(ReviewQueueRow left, ReviewQueueRow right) =>
+      left.kind == right.kind &&
+      left.recordId == right.recordId &&
+      left.counterpartId == right.counterpartId &&
+      left.reason == right.reason &&
+      left.candidateBlob == right.candidateBlob &&
+      left.candidateHash == right.candidateHash &&
+      left.queuedAt == right.queuedAt;
+
+  String _validatedReviewName(String? raw, {required String currentKey}) {
+    if (raw == null) {
+      throw const SyncReviewException(SyncReviewFailureCode.nameRequired);
+    }
+    final normalized = normalizeShareableText(raw);
+    if (normalized.trim().isEmpty) {
+      throw const SyncReviewException(SyncReviewFailureCode.nameRequired);
+    }
+    if (normalizeShareableText(normalized).toLowerCase() == currentKey) {
+      throw const SyncReviewException(SyncReviewFailureCode.nameNotDistinct);
+    }
+    return normalized;
+  }
+
+  Future<void> _renameLocalNaturalKey(
+    SyncRecordKind kind,
+    String id,
+    String value,
+  ) async {
+    final normalized = normalizeShareableText(value);
+    final stamp = nextExistenceStamp(
+      now: DateTime.now().toUtc(),
+      current: (await _naturalRecordMetadata(kind, id))?.updatedAt,
+    );
+    switch (kind) {
+      case SyncRecordKind.choreographer:
+        await (_db.update(
+          _db.choreographers,
+        )..where((row) => row.id.equals(id))).write(
+          ChoreographersCompanion(
+            name: Value(normalized),
+            updatedAt: Value(stamp),
+          ),
+        );
+      case SyncRecordKind.tag:
+        await (_db.update(_db.tags)..where((row) => row.id.equals(id))).write(
+          TagsCompanion(name: Value(normalized), updatedAt: Value(stamp)),
+        );
+      case SyncRecordKind.customFieldDef:
+        await (_db.update(
+          _db.customFieldDefs,
+        )..where((row) => row.id.equals(id))).write(
+          CustomFieldDefsCompanion(
+            key: Value(normalized),
+            updatedAt: Value(stamp),
+          ),
+        );
+      case SyncRecordKind.difficultyLevel:
+        await (_db.update(
+          _db.difficultyLevels,
+        )..where((row) => row.id.equals(id))).write(
+          DifficultyLevelsCompanion(
+            label: Value(normalized),
+            updatedAt: Value(stamp),
+          ),
+        );
+      case SyncRecordKind.dance:
+      case SyncRecordKind.program:
+      case SyncRecordKind.publishedSource:
+      case SyncRecordKind.venue:
+      case SyncRecordKind.setting:
+        throw const SyncReviewException(
+          SyncReviewFailureCode.unsupportedReason,
+        );
+    }
+    if (_naturalKeyIndex != null) {
+      final identity = await _recordIdentity(kind, id);
+      if (identity != null) {
+        _naturalKeyIndex!.replace(
+          kind: kind,
+          id: id,
+          key: normalized.toLowerCase(),
+          type: identity.type,
+          deleted: identity.deleted,
+          shareable: identity.shareable,
+        );
+      }
+    }
+  }
 
   @override
   Future<Map<String, Object?>?> read(SyncRecordAddress address) async {

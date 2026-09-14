@@ -149,6 +149,19 @@ class SyncLocalRepository {
   Future<List<ReviewQueueRow>> listReviewQueue() =>
       _db.select(_db.reviewQueue).get();
 
+  Future<ReviewQueueRow?> getReviewQueue({
+    required SyncRecordKind kind,
+    required String recordId,
+    required String counterpartId,
+  }) =>
+      (_db.select(_db.reviewQueue)..where(
+            (row) =>
+                row.kind.equals(kind.name) &
+                row.recordId.equals(recordId) &
+                row.counterpartId.equals(counterpartId),
+          ))
+          .getSingleOrNull();
+
   Future<void> enqueueReview({
     required SyncRecordKind kind,
     required String recordId,
@@ -166,6 +179,18 @@ class SyncLocalRepository {
       candidateBlob: candidateBlob,
       candidateHash: candidateHash,
       queuedAt: queuedAt,
+    ),
+  );
+
+  Future<void> deleteReview({
+    required SyncRecordKind kind,
+    required String recordId,
+    required String counterpartId,
+  }) => transaction(
+    (tx) => tx.deleteReview(
+      kind: kind,
+      recordId: recordId,
+      counterpartId: counterpartId,
     ),
   );
 
@@ -391,6 +416,20 @@ class SyncLocalTransaction {
         ),
         mode: InsertMode.insertOrIgnore,
       );
+
+  Future<void> deleteReview({
+    required SyncRecordKind kind,
+    required String recordId,
+    required String counterpartId,
+  }) async {
+    await (_db.delete(_db.reviewQueue)..where(
+          (row) =>
+              row.kind.equals(kind.name) &
+              row.recordId.equals(recordId) &
+              row.counterpartId.equals(counterpartId),
+        ))
+        .go();
+  }
 
   Future<void> markPublished({
     required SyncRecordKind kind,

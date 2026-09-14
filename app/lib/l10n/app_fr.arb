@@ -1292,6 +1292,138 @@
   "@settingsGeneralSoftDeleteRetentionNever": {
     "x-sourceSha256": "6300ef800bb884295b0b4b35682b75cecd7cc550d202db56d04a0643b8fb873f"
   },
+  "syncReviewSettingsTitle": "Décisions de synchronisation",
+  "@syncReviewSettingsTitle": {
+    "x-sourceSha256": "691b69af17f63a161f53c0d188d596093053776abfd6d2fa0b4ffd91794382c3"
+  },
+  "syncReviewSettingsSubtitle": "Examinez les suppressions du pair qui entrent en conflit avec des éléments créés sur cet appareil.",
+  "@syncReviewSettingsSubtitle": {
+    "x-sourceSha256": "4884c7e38dbe512d28f75048575a092b8656535e484b82694f09361c20d693cb"
+  },
+  "syncReviewTitle": "Décisions de synchronisation",
+  "@syncReviewTitle": {
+    "x-sourceSha256": "691b69af17f63a161f53c0d188d596093053776abfd6d2fa0b4ffd91794382c3"
+  },
+  "syncReviewLoading": "Chargement des décisions de synchronisation",
+  "@syncReviewLoading": {
+    "x-sourceSha256": "a75e85502761cff17f593d98f0e30d4a09d8097b948967ac73773a8dbc96a5b7"
+  },
+  "syncReviewEmpty": "Aucune décision de synchronisation ne vous attend.",
+  "@syncReviewEmpty": {
+    "x-sourceSha256": "4832be6fe93f4bc3ef78e59480b67e620112a8fca34cd96e5e4a954f4b8f6db9"
+  },
+  "syncReviewIntro": "Ces éléments nécessitent une décision avant l’application de la modification du pair.",
+  "@syncReviewIntro": {
+    "x-sourceSha256": "e98bdbc672a6a7f21b51bcec4ebb6f89761dba6affc0c6a33afc16a8f7db065a"
+  },
+  "syncReviewLoadFailed": "Impossible de charger les décisions de synchronisation.",
+  "@syncReviewLoadFailed": {
+    "x-sourceSha256": "65076ae7ea797def156751ec03321d8121fa0c46bbdcb85b3628048b6b691d05"
+  },
+  "syncReviewResolved": "Décision de synchronisation appliquée.",
+  "@syncReviewResolved": {
+    "x-sourceSha256": "2c569f48af76d70d3237d846ef6e83a5a81680803d4231e8181a73c0ad22a749"
+  },
+  "syncReviewActionFailed": "Cette décision de synchronisation n’a pas pu être appliquée. L’élément a été conservé pour une nouvelle tentative.",
+  "@syncReviewActionFailed": {
+    "x-sourceSha256": "3269895158663634cd088a78965e620e9c739924805f54f19d846b70da1e5159"
+  },
+  "syncReviewKindChoreographer": "Chorégraphe",
+  "@syncReviewKindChoreographer": {
+    "x-sourceSha256": "2e0a2bf36a174c77b69ee695c205417a09b55d006b0bbc7d65eeae6d27d6fbb2"
+  },
+  "syncReviewKindTag": "Étiquette",
+  "@syncReviewKindTag": {
+    "x-sourceSha256": "1503916a2ab2b0fd6768d3455fd8f2d9aa3b31333a8507dadcad983704a975d7"
+  },
+  "syncReviewKindCustomField": "Champ personnalisé",
+  "@syncReviewKindCustomField": {
+    "x-sourceSha256": "6163a41c0e5ee07f7b48353c1e415aa43e1c9db00c729f27b45aa3883f70724d"
+  },
+  "syncReviewKindDifficulty": "Niveau de difficulté",
+  "@syncReviewKindDifficulty": {
+    "x-sourceSha256": "10e77bdeb9eb9ce8e6b9a64b174e096a6657bb8b0e240853988b5068bd8a41be"
+  },
+  "syncReviewKindDance": "Danse",
+  "@syncReviewKindDance": {
+    "x-sourceSha256": "23d2d73543f9d7d92ac704296e5ee744037f5f4c938e21abf2c17002c4e9ba71"
+  },
+  "syncReviewKindProgram": "Programme",
+  "@syncReviewKindProgram": {
+    "x-sourceSha256": "90920d93e2c7e6323a947c6edb0e31a9702002e329af32a67fea53f221983cb0"
+  },
+  "syncReviewKindPublishedSource": "Source publiée",
+  "@syncReviewKindPublishedSource": {
+    "x-sourceSha256": "c2b0d962fedb8343cdd2f8eaa5810d6a3b199ad85c1eb54a8a482a9b5c803dd6"
+  },
+  "syncReviewKindVenue": "Lieu",
+  "@syncReviewKindVenue": {
+    "x-sourceSha256": "aea1b15df626f337de5eb359dd6f7651b9f25a39ddb515b6ab765e1167456d87"
+  },
+  "syncReviewKindSetting": "Paramètre",
+  "@syncReviewKindSetting": {
+    "x-sourceSha256": "818cd8d91aea3a1689455f009f49e87fe7fa647fa2c4b9f09072dd1c33d52ca5"
+  },
+  "syncReviewLocalRecord": "Élément local : {id}",
+  "@syncReviewLocalRecord": {
+    "x-sourceSha256": "487c85b7e0023045582a0a723cdcfa96169b944fb4b33f311b167ec57e2b9731"
+  },
+  "syncReviewPeerRecord": "Élément du pair : {identity}",
+  "@syncReviewPeerRecord": {
+    "x-sourceSha256": "ab724df1f6a66da1e8ceebf61123a2a38f96452ade782477eaec06248d6983cd"
+  },
+  "syncReviewTombstoneReason": "Un pair a supprimé un élément correspondant créé sur cet appareil.",
+  "@syncReviewTombstoneReason": {
+    "x-sourceSha256": "ac87524ab23e20de4fcf3ac40762448894682b47a7857256547cd309e9bd33be"
+  },
+  "syncReviewUnsupportedReason": "Ce conflit de synchronisation est conservé pour le moment ; aucune action sûre n’est disponible ici.",
+  "@syncReviewUnsupportedReason": {
+    "x-sourceSha256": "ff23640ff27c44ed369dfadd363b690079e5b87a56f3aac19f9bec8c5bdbf2e3"
+  },
+  "syncReviewUnsupportedAction": "Conservez cet élément jusqu’à ce qu’une synchronisation ultérieure ou un flux de vérification pris en charge puisse le traiter.",
+  "@syncReviewUnsupportedAction": {
+    "x-sourceSha256": "e6a39ae290b341186aadb8951b93035876c95fcc7f0cb0148fd3805dd886158c"
+  },
+  "syncReviewMergeAction": "Fusionner",
+  "@syncReviewMergeAction": {
+    "x-sourceSha256": "8851aaa7d08ca1ae7e5d63278037532f3222a8b746e7abdd8af3fb06d6d4f993"
+  },
+  "syncReviewKeepBothAction": "Conserver les deux",
+  "@syncReviewKeepBothAction": {
+    "x-sourceSha256": "93672212b4c25a8942a3d6f21e2d798404c83c0719625cc8805dcd05cc71c404"
+  },
+  "syncReviewKeepBothTitle": "Choisissez un nouveau nom local",
+  "@syncReviewKeepBothTitle": {
+    "x-sourceSha256": "4bac58f4c09c88f25b24506a90b7d41edc630301be81a047851253b74c88f73f"
+  },
+  "syncReviewNewNameLabel": "Nouveau nom local",
+  "@syncReviewNewNameLabel": {
+    "x-sourceSha256": "2a3b3f9ccc73f335e38cb06bdbdd85150ab97ae56d2264191abaf7ce606aab06"
+  },
+  "syncReviewNameRequired": "Saisissez un nom.",
+  "@syncReviewNameRequired": {
+    "x-sourceSha256": "099f9079ba79b8510abcdea657446ad66f86a8df82d8d26f14c289c7af25f600"
+  },
+  "syncReviewNameNotDistinct": "Choisissez un autre nom.",
+  "@syncReviewNameNotDistinct": {
+    "x-sourceSha256": "4f06af701050ef15f0a8f0c291a53772ed3da3651d7d8c9d602e10440f61e9e1"
+  },
+  "syncReviewCandidateInvalid": "La modification enregistrée du pair n’est pas valide ; elle a donc été conservée.",
+  "@syncReviewCandidateInvalid": {
+    "x-sourceSha256": "4f98277ea00e74a6b0f8a29f4394825ffbd8693b709cfc64aaa9759e113b1b38"
+  },
+  "syncReviewCandidateChanged": "La modification enregistrée du pair n’est plus actuelle ; elle a donc été conservée.",
+  "@syncReviewCandidateChanged": {
+    "x-sourceSha256": "8c3228746fa3583107e0e7f636c6e4780034c36336afed564437f8556117b715"
+  },
+  "syncReviewTargetMissing": "L’élément local n’est plus disponible ; la décision a été conservée.",
+  "@syncReviewTargetMissing": {
+    "x-sourceSha256": "fb096aaa02c9d5faee68bfe176228795da1edcdd01516d9eacaa5f26e41a6b5e"
+  },
+  "syncReviewCandidateAlreadyPresent": "L’élément du pair est déjà présent ; la décision a été conservée.",
+  "@syncReviewCandidateAlreadyPresent": {
+    "x-sourceSha256": "bba646806a3431dcd23e81c94983ccdc672cdacb2f23b620c8857c56a243ee89"
+  },
   "settingsGeneralImportHeader": "Importation",
   "@settingsGeneralImportHeader": {
     "x-sourceSha256": "2cff9baabf56ca002610e113bc94deb6ededddfc3c130365b6e88ed5195bf774"

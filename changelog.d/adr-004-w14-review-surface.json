@@ -1,0 +1,14 @@
+{
+  "id": "adr-004-w14-review-surface",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "You can review saved sync decisions in Settings and either merge a supported peer deletion or keep both records with a distinct local name."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add the persisted sync review queue resolver and transactional tombstone decision operations."
+    ]
+  }
+}
