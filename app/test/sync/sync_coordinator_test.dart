@@ -1048,6 +1048,49 @@ void main() {
     expect(store.writes, isEmpty);
     expect(store.advancedEntries, isEmpty);
   });
+
+  test('a cached aliased blob with the wrong envelope is rejected', () async {
+    final cached = SyncMergeCandidate.fromBlob(
+      _tag('canonical-cached', 'Shared tag'),
+    );
+    final manifestAddress = (
+      kind: SyncRecordKind.tag,
+      recordId: 'legacy-cached',
+    );
+    final store = _FakeStore(
+      local: {cached.address: cached},
+      baseline: {
+        cached.address: SyncBaselineEntry(
+          kind: cached.address.kind,
+          recordId: cached.address.recordId,
+          wireHash: cached.wireHash,
+        ),
+      },
+      aliases: {manifestAddress: cached.address},
+    );
+    final transport = _FakeTransport(
+      devices: ['peer'],
+      peerManifest: _manifest(
+        deviceId: 'peer',
+        records: {
+          SyncRecordKind.tag: {manifestAddress.recordId: cached.wireHash},
+        },
+      ),
+    );
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: store,
+      transport: transport,
+    );
+
+    final result = await coordinator.syncNow();
+
+    expect(result.reports.single.code, SyncReportCode.blobIdentityMismatch);
+    expect(store.writes, isEmpty);
+    expect(store.advancedEntries, isEmpty);
+    expect(transport.blobCalls, 0);
+  });
 }
 
 final class _FakeStore implements SyncCoordinatorStore {

@@ -980,8 +980,7 @@ class SyncCoordinator {
         final address = (kind: kindEntry.key, recordId: recordEntry.key);
         final cachedCandidate = candidateByHash[recordEntry.value];
         if (cachedCandidate != null) {
-          if (await store.resolveAlias(cachedCandidate.address) !=
-              await store.resolveAlias(address)) {
+          if (cachedCandidate.address != address) {
             unresolved.add(address);
             reports.add(
               SyncReport(

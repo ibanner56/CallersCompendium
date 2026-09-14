@@ -2420,6 +2420,62 @@ void main() {
   });
 
   test(
+    'aliased natural-key reconciliation rejects a changed local survivor',
+    () async {
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+      final local = Choreographer(
+        id: 'a-aliased-local-author',
+        name: 'Aliased concurrent author',
+        notes: 'before',
+      );
+      // ignore: unused_result
+      await repositories.choreographers.upsert(local, at: stamp);
+      final before = (await storage.snapshot())
+          .local[(kind: SyncRecordKind.choreographer, recordId: local.id)]!;
+      final incoming = Choreographer(
+        id: 'z-aliased-remote-author',
+        name: local.name,
+        notes: 'remote',
+      );
+      await repositories.syncLocal.upsertAlias(
+        kind: SyncRecordKind.choreographer,
+        losingId: incoming.id,
+        survivingId: local.id,
+      );
+      // ignore: unused_result
+      await repositories.choreographers.upsert(
+        local.copyWith(notes: 'changed locally'),
+        at: stamp.add(const Duration(minutes: 1)),
+      );
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.choreographer,
+              id: incoming.id,
+              updatedAt: stamp.add(const Duration(minutes: 2)),
+              deletedAt: null,
+              existenceAt: stamp.add(const Duration(minutes: 2)),
+              body: syncBodyForEntity(SyncRecordKind.choreographer, incoming),
+            ),
+          ),
+        ],
+        storage: storage,
+        expectedWireHashes: {before.address: before.wireHash},
+      );
+
+      expect(result.reports.single.code, SyncReportCode.concurrentLocalChange);
+      expect(result.applied, isEmpty);
+      expect(
+        (await repositories.choreographers.getById(local.id))!.notes,
+        'changed locally',
+      );
+      expect(await repositories.choreographers.getById(incoming.id), isNull);
+    },
+  );
+
+  test(
     'natural-key reconciliation rewrites tag and custom-field references',
     () async {
       final stamp = DateTime.utc(2025, 1, 2, 12);
