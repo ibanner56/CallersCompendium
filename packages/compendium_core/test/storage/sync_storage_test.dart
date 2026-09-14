@@ -3822,6 +3822,80 @@ void main() {
       },
     );
 
+    test(
+      'reconciliation-produced tombstone rows use local and peer identities',
+      () async {
+        const kind = SyncRecordKind.choreographer;
+        const localId = 'reconciled-local';
+        const remoteId = 'reconciled-remote';
+        const key = 'Reconciled author';
+        await seedLocal(kind, localId, key);
+        final candidate = tombstoneFor(kind, remoteId, key);
+
+        final result = await const SyncApplyEngine().apply(
+          candidates: [SyncMergeCandidate(blob: candidate)],
+          storage: storage,
+        );
+
+        expect(result.applied, isEmpty);
+        expect(result.reports, isEmpty);
+        final item = SyncReviewQueueItem.fromRow(
+          (await repositories.syncLocal.listReviewQueue()).single,
+        );
+        expect(item.row.recordId, localId);
+        expect(item.row.counterpartId, remoteId);
+        expect(item.isActionable, isTrue);
+
+        await storage.resolveReviewQueue(
+          expectedRow: item.row,
+          action: SyncReviewAction.keepBoth,
+          newNaturalKey: 'Reconciled author (local)',
+        );
+
+        await expectLiveKey(kind, localId, 'Reconciled author (local)');
+        await expectTombstone(kind, remoteId);
+        expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+      },
+    );
+
+    test(
+      'canonical difficulty tombstone rows use local and peer identities',
+      () async {
+        await (db.delete(
+          db.difficultyLevels,
+        )..where((row) => row.id.equals(DifficultyLevel.beginner.id))).go();
+        const kind = SyncRecordKind.difficultyLevel;
+        const localId = 'reconciled-local-difficulty';
+        const remoteId = 'reconciled-remote-difficulty';
+        final key = DifficultyLevel.beginner.label;
+        await seedLocal(kind, localId, key);
+        final candidate = tombstoneFor(kind, remoteId, key);
+
+        final result = await const SyncApplyEngine().apply(
+          candidates: [SyncMergeCandidate(blob: candidate)],
+          storage: storage,
+        );
+
+        expect(result.applied, isEmpty);
+        expect(result.reports, isEmpty);
+        final item = SyncReviewQueueItem.fromRow(
+          (await repositories.syncLocal.listReviewQueue()).single,
+        );
+        expect(item.row.recordId, localId);
+        expect(item.row.counterpartId, remoteId);
+        expect(item.isActionable, isTrue);
+
+        await storage.resolveReviewQueue(
+          expectedRow: item.row,
+          action: SyncReviewAction.keepBoth,
+          newNaturalKey: '$key (local)',
+        );
+        await expectLiveKey(kind, localId, '$key (local)');
+        await expectTombstone(kind, remoteId);
+        expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+      },
+    );
+
     test('survives a file-backed close and reopen before resolution', () async {
       final directory = await Directory.systemTemp.createTemp(
         'compendium-w14-',
@@ -3952,7 +4026,7 @@ void main() {
     );
 
     test(
-      'merge adopts the remote identity and applies its tombstone',
+      'merge chooses the lexicographically smaller local identity',
       () async {
         const kind = SyncRecordKind.choreographer;
         const localId = 'merge-local';
@@ -3974,17 +4048,75 @@ void main() {
         expect(
           await repositories.syncLocal.resolveAlias(
             kind: kind,
-            recordId: localId,
+            recordId: remoteId,
           ),
-          remoteId,
+          localId,
         );
-        final remote = await (db.select(
-          db.choreographers,
-        )..where((row) => row.id.equals(remoteId))).getSingle();
-        expect(remote.deletedAt, isNotNull);
+        await expectTombstone(kind, localId);
+        expect(await repositories.choreographers.getById(remoteId), isNull);
         expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
       },
     );
+
+    test('merge chooses the lexicographically smaller peer identity', () async {
+      const kind = SyncRecordKind.choreographer;
+      const localId = 'z-merge-local';
+      const remoteId = 'a-merge-remote';
+      const key = 'Merge peer author';
+      await seedLocal(kind, localId, key);
+      final item = await enqueue(
+        kind,
+        localId,
+        tombstoneFor(kind, remoteId, key),
+      );
+
+      await storage.resolveReviewQueue(
+        expectedRow: item.row,
+        action: SyncReviewAction.merge,
+      );
+
+      expect(await repositories.choreographers.getById(localId), isNull);
+      expect(
+        await repositories.syncLocal.resolveAlias(
+          kind: kind,
+          recordId: localId,
+        ),
+        remoteId,
+      );
+      await expectTombstone(kind, remoteId);
+      expect(await repositories.choreographers.getById(remoteId), isNull);
+      expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+    });
+
+    test('merge applies the tombstone to the deterministic survivor', () async {
+      const kind = SyncRecordKind.choreographer;
+      const localId = 'merge-check-local';
+      const remoteId = 'merge-check-remote';
+      const key = 'Merge check author';
+      await seedLocal(kind, localId, key);
+      final item = await enqueue(
+        kind,
+        localId,
+        tombstoneFor(kind, remoteId, key),
+      );
+
+      await storage.resolveReviewQueue(
+        expectedRow: item.row,
+        action: SyncReviewAction.merge,
+      );
+
+      final survivor = localId.compareTo(remoteId) < 0 ? localId : remoteId;
+      final loser = survivor == localId ? remoteId : localId;
+      expect(
+        await repositories.syncLocal.resolveAlias(kind: kind, recordId: loser),
+        survivor,
+      );
+      final row = await (db.select(
+        db.choreographers,
+      )..where((row) => row.id.equals(survivor))).getSingle();
+      expect(row.deletedAt, isNotNull);
+      expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+    });
 
     test(
       'rejects invalid names without changing or consuming the row',

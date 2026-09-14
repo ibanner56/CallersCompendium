@@ -713,7 +713,10 @@ final class CompendiumSyncStorage
         localMetadata.deletedAt != null) {
       throw const SyncReviewException(SyncReviewFailureCode.targetMissing);
     }
-    final candidateAddress = (kind: candidate.kind, recordId: candidate.id);
+    final queuedCandidateAddress = (
+      kind: candidate.kind,
+      recordId: candidate.id,
+    );
     if (await repositories.syncLocal.resolveAlias(
           kind: candidate.kind,
           recordId: candidate.id,
@@ -721,7 +724,7 @@ final class CompendiumSyncStorage
         candidate.id) {
       throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
     }
-    if (await read(candidateAddress) != null) {
+    if (await read(queuedCandidateAddress) != null) {
       throw const SyncReviewException(
         SyncReviewFailureCode.candidateAlreadyPresent,
       );
@@ -732,6 +735,7 @@ final class CompendiumSyncStorage
       throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
     }
 
+    var candidateForApply = candidate;
     switch (action) {
       case SyncReviewAction.merge:
         final localIdentity = await _recordIdentity(
@@ -741,13 +745,29 @@ final class CompendiumSyncStorage
         if (localIdentity == null) {
           throw const SyncReviewException(SyncReviewFailureCode.targetMissing);
         }
+        final survivorId = currentRow.recordId.compareTo(candidate.id) <= 0
+            ? currentRow.recordId
+            : candidate.id;
+        final losingId = survivorId == currentRow.recordId
+            ? candidate.id
+            : currentRow.recordId;
+        final aliases = <SyncRecordKind, Map<String, String>>{};
         await _adoptCollision(
           kind: currentRow.kind,
-          losingId: currentRow.recordId,
-          survivingId: candidate.id,
-          aliases: <SyncRecordKind, Map<String, String>>{},
-          localIdentity: localIdentity,
+          losingId: losingId,
+          survivingId: survivorId,
+          aliases: aliases,
+          localIdentity: survivorId == currentRow.recordId
+              ? null
+              : localIdentity,
         );
+        if (candidate.id != survivorId) {
+          candidateForApply = _rewriteCandidateIdentity(
+            SyncMergeCandidate(blob: candidate),
+            survivorId,
+            aliases,
+          ).blob;
+        }
         break;
       case SyncReviewAction.keepBoth:
         final renamedKey = _validatedReviewName(
@@ -770,17 +790,21 @@ final class CompendiumSyncStorage
         );
     }
 
+    final candidateAddress = (
+      kind: candidateForApply.kind,
+      recordId: candidateForApply.id,
+    );
     final currentCandidateBody = Map<String, Object?>.from(
       await read(candidateAddress) ?? const {},
     );
     final report = await writeWithReport(
       SyncApplyRecord(
         address: candidateAddress,
-        body: _overlay(currentCandidateBody, candidate.body),
-        updatedAt: candidate.updatedAt,
-        deletedAt: candidate.deletedAt,
-        existenceAt: candidate.existenceAt,
-        sourceBlob: candidate,
+        body: _overlay(currentCandidateBody, candidateForApply.body),
+        updatedAt: candidateForApply.updatedAt,
+        deletedAt: candidateForApply.deletedAt,
+        existenceAt: candidateForApply.existenceAt,
+        sourceBlob: candidateForApply,
       ),
     );
     if (report != null) {
@@ -1076,7 +1100,7 @@ final class CompendiumSyncStorage
                   !baseline.containsKey((kind: kind, recordId: incumbent.id))) {
                 await _enqueueCollisionReview(
                   candidate,
-                  incumbent.id,
+                  candidate.blob.id,
                   recordId: incumbent.id,
                   reason:
                       'a tombstone would remove a locally-created '
@@ -1185,7 +1209,7 @@ final class CompendiumSyncStorage
                 !baseline.containsKey((kind: kind, recordId: incumbent.id))) {
               await _enqueueCollisionReview(
                 candidate,
-                incumbent.id,
+                candidate.blob.id,
                 recordId: incumbent.id,
                 reason:
                     'a tombstone would remove a locally-created '
