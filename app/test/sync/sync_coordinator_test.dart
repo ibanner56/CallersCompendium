@@ -813,6 +813,106 @@ void main() {
   );
 
   test(
+    'guards an aliased download against a pending survivor change',
+    () async {
+      final repositories = openTestRepositories();
+      final stamp = DateTime.utc(2026, 7, 15, 12);
+      const survivorId = 'canonical-pending-tag';
+      const losingId = 'legacy-pending-tag';
+      final survivor = Tag(id: survivorId, name: 'Shared tag');
+      // ignore: unused_result
+      await repositories.tags.upsert(survivor, at: stamp);
+      await repositories.dances.create(
+        Dance(
+          id: 'pending-tag-owner',
+          title: 'Pending tag owner',
+          tagIds: [survivorId],
+          createdAt: stamp,
+          updatedAt: stamp,
+        ),
+      );
+      final tombstone = SyncRecordBlob(
+        kind: SyncRecordKind.tag,
+        id: survivorId,
+        updatedAt: stamp.add(const Duration(minutes: 1)),
+        deletedAt: stamp.add(const Duration(minutes: 1)),
+        existenceAt: stamp.add(const Duration(minutes: 1)),
+        body: syncBodyForEntity(SyncRecordKind.tag, survivor),
+      );
+      await repositories.syncLocal.upsertPendingDeletion(
+        kind: tombstone.kind,
+        recordId: tombstone.id,
+        tombstonedAt: tombstone.deletedAt!,
+        tombstoneHash: SyncMergeCandidate.fromBlob(tombstone).wireHash,
+        tombstoneBlob: encodeSyncRecordBlob(tombstone),
+      );
+      await repositories.syncLocal.resetEpoch(epoch: 'epoch-1');
+      await repositories.syncLocal.upsertAlias(
+        kind: SyncRecordKind.tag,
+        losingId: losingId,
+        survivingId: survivorId,
+      );
+      final beforePass = await CompendiumSyncCoordinatorStore(
+        repositories,
+      ).snapshot();
+      expect(
+        beforePass.pending,
+        contains((kind: SyncRecordKind.tag, recordId: survivorId)),
+      );
+      expect(
+        beforePass.pendingLive[(
+          kind: SyncRecordKind.tag,
+          recordId: survivorId,
+        )],
+        isNotNull,
+      );
+
+      final inbound = SyncMergeCandidate.fromBlob(
+        _tag(losingId, 'Shared tag', seconds: 1),
+      );
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        peerManifest: _manifest(
+          deviceId: 'peer',
+          records: {
+            SyncRecordKind.tag: {losingId: inbound.wireHash},
+          },
+        ),
+        blobResponses: {
+          inbound.wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(inbound.blob)),
+          ),
+        },
+        onManifestGet: (_) async {
+          // ignore: unused_result
+          await repositories.tags.upsert(
+            Tag(id: survivorId, name: 'Changed locally'),
+            at: stamp.add(const Duration(minutes: 2)),
+          );
+        },
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: CompendiumSyncCoordinatorStore(repositories),
+        transport: transport,
+      );
+
+      final result = await coordinator.syncNow();
+
+      expect(
+        result.reports.map((report) => report.code),
+        contains(SyncReportCode.concurrentLocalChange),
+      );
+      expect(
+        (await repositories.tags.getById(survivorId))!.name,
+        'Changed locally',
+      );
+    },
+  );
+
+  test(
     'chunks final-manifest missing-blob negotiation at the protocol limit',
     () async {
       final initial = <SyncRecordAddress, SyncMergeCandidate?>{};
@@ -1230,6 +1330,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
     List<List<String>>? missingResponses,
     this.putManifestStatus = 200,
     this.onManifestPut,
+    this.onManifestGet,
   }) : createResponses = [...createResponses ?? const []],
        missingResponses = [
          for (final response in missingResponses ?? const <List<String>>[[]])
@@ -1253,6 +1354,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   final List<List<String>> missingResponses;
   final int putManifestStatus;
   final void Function(List<int> body)? onManifestPut;
+  final Future<void> Function(String deviceId)? onManifestGet;
   final firstStoreStarted = Completer<void>();
   final requestLog = <String>[];
   final manifestBodies = <List<int>>[];
@@ -1303,6 +1405,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
     manifestCalls++;
     requestLog.add('manifest');
     manifestEtags.add(etag);
+    await onManifestGet?.call(deviceId);
     final scripted = manifestResponses[deviceId];
     if (scripted != null && scripted.isNotEmpty) {
       return scripted.removeAt(0);

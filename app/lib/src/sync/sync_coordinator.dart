@@ -38,10 +38,12 @@ class SyncCoordinatorSnapshot {
     required Map<SyncRecordAddress, SyncMergeCandidate?> local,
     required Map<SyncRecordAddress, SyncBaselineEntry> baseline,
     Map<SyncRecordAddress, SyncMergeCandidate?>? publication,
+    Map<SyncRecordAddress, SyncMergeCandidate?>? pendingLive,
     Set<SyncRecordAddress> pending = const {},
   }) : local = Map.unmodifiable(local),
        baseline = Map.unmodifiable(baseline),
        publication = Map.unmodifiable(publication ?? local),
+       pendingLive = Map.unmodifiable(pendingLive ?? const {}),
        pending = Set.unmodifiable(pending);
 
   final String? epoch;
@@ -49,6 +51,7 @@ class SyncCoordinatorSnapshot {
   final Map<SyncRecordAddress, SyncMergeCandidate?> local;
   final Map<SyncRecordAddress, SyncBaselineEntry> baseline;
   final Map<SyncRecordAddress, SyncMergeCandidate?> publication;
+  final Map<SyncRecordAddress, SyncMergeCandidate?> pendingLive;
   final Set<SyncRecordAddress> pending;
 }
 
@@ -113,6 +116,7 @@ final class CompendiumSyncCoordinatorStore
       local: snapshot.local,
       baseline: snapshot.baseline,
       publication: snapshot.publication,
+      pendingLive: snapshot.pendingLive,
       pending: snapshot.pending,
     );
   }
@@ -670,6 +674,9 @@ class SyncCoordinator {
     }
 
     final normalizedLocal = await _normalizeCandidates(snapshot.local);
+    final normalizedPendingLive = await _normalizeCandidates(
+      snapshot.pendingLive,
+    );
     final normalizedBaseline = await _normalizeBaseline(snapshot.baseline);
     final normalizedPending = await _normalizeAddresses(snapshot.pending);
     final reports = SyncReportSink();
@@ -788,9 +795,20 @@ class SyncCoordinator {
     final expectedWireHashes = <SyncRecordAddress, String?>{
       for (final entry in normalizedLocal.entries)
         entry.key: entry.value?.wireHash,
+      for (final entry in normalizedPendingLive.entries)
+        entry.key: entry.value?.wireHash,
       for (final decision in plan.downloads)
         if (decision.winner != null)
-          decision.address: normalizedLocal[decision.address]?.wireHash,
+          decision.address:
+              (normalizedLocal[decision.address] ??
+                      normalizedPendingLive[decision.address])
+                  ?.wireHash,
+      for (final decision in plan.downloads)
+        if (decision.winner != null)
+          decision.winner!.address:
+              (normalizedLocal[decision.address] ??
+                      normalizedPendingLive[decision.address])
+                  ?.wireHash,
     };
     final applyResult = await _applyEngine.apply(
       candidates: downloads,

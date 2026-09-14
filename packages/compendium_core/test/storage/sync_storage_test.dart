@@ -731,6 +731,107 @@ void main() {
   );
 
   test(
+    'renamed shipped difficulty IDs remain canonical for same-label inbound IDs',
+    () async {
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+      final renamed = DifficultyLevel(
+        id: DifficultyLevel.beginnerId,
+        label: 'Easy',
+        position: DifficultyLevel.beginner.position,
+      );
+      await repositories.difficultyLevels.upsert(renamed, at: stamp);
+      final inbound = DifficultyLevel(
+        id: 'a-inbound-easy',
+        label: renamed.label,
+        position: 7,
+      );
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.difficultyLevel,
+              id: inbound.id,
+              updatedAt: stamp.add(const Duration(minutes: 1)),
+              deletedAt: null,
+              existenceAt: stamp.add(const Duration(minutes: 1)),
+              body: syncBodyForEntity(SyncRecordKind.difficultyLevel, inbound),
+            ),
+          ),
+        ],
+        storage: storage,
+      );
+
+      expect(result.reports, isEmpty);
+      expect(await repositories.difficultyLevels.getById(inbound.id), isNull);
+      final stored = await repositories.difficultyLevels.getById(
+        DifficultyLevel.beginnerId,
+      );
+      expect(stored, isNotNull);
+      expect(stored!.label, renamed.label);
+      expect(stored.position, inbound.position);
+      expect(
+        (await repositories.syncLocal.listAliases()).any(
+          (alias) =>
+              alias.kind == SyncRecordKind.difficultyLevel &&
+              alias.losingId == inbound.id &&
+              alias.survivingId == DifficultyLevel.beginnerId,
+        ),
+        isTrue,
+      );
+    },
+  );
+
+  test(
+    'distinct shipped difficulty IDs with one natural key enter review',
+    () async {
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+      await repositories.difficultyLevels.upsert(
+        DifficultyLevel(
+          id: DifficultyLevel.advancedId,
+          label: DifficultyLevel.advanced.label,
+          position: DifficultyLevel.advanced.position,
+        ),
+        at: stamp,
+      );
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.difficultyLevel,
+              id: DifficultyLevel.beginnerId,
+              updatedAt: stamp.add(const Duration(minutes: 1)),
+              deletedAt: null,
+              existenceAt: stamp.add(const Duration(minutes: 1)),
+              body: syncBodyForEntity(
+                SyncRecordKind.difficultyLevel,
+                DifficultyLevel(
+                  id: DifficultyLevel.beginnerId,
+                  label: DifficultyLevel.advanced.label,
+                  position: DifficultyLevel.beginner.position,
+                ),
+              ),
+            ),
+          ),
+        ],
+        storage: storage,
+      );
+
+      expect(result.applied, isEmpty);
+      expect(await repositories.syncLocal.listReviewQueue(), isNotEmpty);
+      expect(
+        await repositories.difficultyLevels.getById(DifficultyLevel.beginnerId),
+        isNotNull,
+      );
+      expect(
+        await repositories.difficultyLevels.getById(DifficultyLevel.advancedId),
+        isNotNull,
+      );
+    },
+  );
+
+  test(
     'canonical difficulty keeps newer local existence over stale inbound tombstone',
     () async {
       final localStamp = DateTime.utc(2025, 1, 2, 12);

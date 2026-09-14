@@ -108,8 +108,10 @@ class SyncStorageSnapshot {
     required this.local,
     required this.baseline,
     Map<SyncRecordAddress, SyncMergeCandidate?>? publication,
+    Map<SyncRecordAddress, SyncMergeCandidate?>? pendingLive,
     this.pending = const {},
-  }) : publication = publication ?? local;
+  }) : publication = publication ?? local,
+       pendingLive = pendingLive ?? const {};
 
   final String? epoch;
   final bool previouslyUsed;
@@ -119,6 +121,10 @@ class SyncStorageSnapshot {
   /// The manifest view. Pending tombstones overlay live rows here without
   /// changing the live merge view until their citation is gone.
   final Map<SyncRecordAddress, SyncMergeCandidate?> publication;
+
+  /// The captured live rows underneath pending tombstones. These rows stay out
+  /// of [local] but still participate in optimistic-concurrency checks.
+  final Map<SyncRecordAddress, SyncMergeCandidate?> pendingLive;
 
   /// Addresses held in [pendingDeletions], excluded from merge and baseline
   /// advancement while their local citations still exist.
@@ -367,6 +373,7 @@ final class CompendiumSyncStorage
     }
 
     final publication = <SyncRecordAddress, SyncMergeCandidate?>{...local};
+    final pendingLive = <SyncRecordAddress, SyncMergeCandidate?>{};
     final pendingAddresses = <SyncRecordAddress>{};
     final pendingRows = await repositories.syncLocal.listPendingDeletions();
     for (final row in pendingRows) {
@@ -381,6 +388,7 @@ final class CompendiumSyncStorage
         );
       }
       final address = (kind: row.kind, recordId: row.recordId);
+      pendingLive[address] = local[address];
       local.remove(address);
       publication[address] = SyncMergeCandidate(blob: blob, wireHash: hash);
       pendingAddresses.add(address);
@@ -394,6 +402,7 @@ final class CompendiumSyncStorage
       local: local,
       baseline: baseline,
       publication: publication,
+      pendingLive: pendingLive,
       pending: pendingAddresses,
     );
   });
@@ -805,10 +814,27 @@ final class CompendiumSyncStorage
           final byId = await _recordIdentity(kind, candidate.blob.id);
           final incumbent = await _naturalKeyRow(kind, naturalKey);
 
+          if (kind == SyncRecordKind.difficultyLevel &&
+              incumbent != null &&
+              candidate.blob.id != incumbent.id &&
+              DifficultyLevel.shippedIds.contains(candidate.blob.id) &&
+              DifficultyLevel.shippedIds.contains(incumbent.id)) {
+            await _enqueueCollisionReview(
+              candidate,
+              incumbent.id,
+              reason: 'two distinct shipped difficulty IDs share a natural key',
+            );
+            continue;
+          }
+
           // Shipped difficulty IDs are part of the persisted relationship
           // contract and outrank a same-label custom ID.
           final canonicalDifficultyId = kind == SyncRecordKind.difficultyLevel
-              ? _canonicalDifficultyId(naturalKey)
+              ? _canonicalDifficultyId(
+                  naturalKey,
+                  candidateId: candidate.blob.id,
+                  incumbentId: incumbent?.id,
+                )
               : null;
           if (canonicalDifficultyId != null) {
             if (byId != null && incumbent != null && byId.id != incumbent.id) {
@@ -1751,7 +1777,15 @@ final class CompendiumSyncStorage
         : null;
   }
 
-  String? _canonicalDifficultyId(String key) {
+  String? _canonicalDifficultyId(
+    String key, {
+    required String candidateId,
+    String? incumbentId,
+  }) {
+    final incumbent = DifficultyLevel.knownForId(incumbentId);
+    if (incumbent != null) return incumbent.id;
+    final candidate = DifficultyLevel.knownForId(candidateId);
+    if (candidate != null) return candidate.id;
     for (final level in DifficultyLevel.shipped) {
       if (normalizeShareableText(level.label).toLowerCase() == key) {
         return level.id;
