@@ -803,12 +803,6 @@ class SyncCoordinator {
               (normalizedLocal[decision.address] ??
                       normalizedPendingLive[decision.address])
                   ?.wireHash,
-      for (final decision in plan.downloads)
-        if (decision.winner != null)
-          decision.winner!.address:
-              (normalizedLocal[decision.address] ??
-                      normalizedPendingLive[decision.address])
-                  ?.wireHash,
     };
     final applyResult = await _applyEngine.apply(
       candidates: downloads,

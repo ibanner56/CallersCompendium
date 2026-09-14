@@ -812,10 +812,9 @@ void main() {
     },
   );
 
-  test(
-    'guards an aliased download against a pending survivor change',
-    () async {
-      final repositories = openTestRepositories();
+  test('guards aliased downloads against pending survivor changes', () async {
+    for (final changeSurvivor in [true, false]) {
+      final repositories = openTestRepositories(closeOnTearDown: false);
       final stamp = DateTime.utc(2026, 7, 15, 12);
       const survivorId = 'canonical-pending-tag';
       const losingId = 'legacy-pending-tag';
@@ -884,13 +883,15 @@ void main() {
             body: utf8.encode(encodeSyncRecordBlob(inbound.blob)),
           ),
         },
-        onManifestGet: (_) async {
-          // ignore: unused_result
-          await repositories.tags.upsert(
-            Tag(id: survivorId, name: 'Changed locally'),
-            at: stamp.add(const Duration(minutes: 2)),
-          );
-        },
+        onManifestGet: changeSurvivor
+            ? (_) async {
+                // ignore: unused_result
+                await repositories.tags.upsert(
+                  Tag(id: survivorId, name: 'Changed locally'),
+                  at: stamp.add(const Duration(minutes: 2)),
+                );
+              }
+            : null,
       );
       final coordinator = SyncCoordinator(
         syncId: 'configured',
@@ -900,17 +901,23 @@ void main() {
       );
 
       final result = await coordinator.syncNow();
+      final reportCodes = result.reports.map((report) => report.code);
 
-      expect(
-        result.reports.map((report) => report.code),
-        contains(SyncReportCode.concurrentLocalChange),
-      );
-      expect(
-        (await repositories.tags.getById(survivorId))!.name,
-        'Changed locally',
-      );
-    },
-  );
+      if (changeSurvivor) {
+        expect(reportCodes, contains(SyncReportCode.concurrentLocalChange));
+        expect(
+          (await repositories.tags.getById(survivorId))!.name,
+          'Changed locally',
+        );
+      } else {
+        expect(
+          reportCodes,
+          isNot(contains(SyncReportCode.concurrentLocalChange)),
+        );
+      }
+      await repositories.db.close();
+    }
+  });
 
   test(
     'chunks final-manifest missing-blob negotiation at the protocol limit',
