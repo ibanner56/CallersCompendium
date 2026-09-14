@@ -3839,6 +3839,7 @@ void main() {
         const localId = 'restart-local';
         const remoteId = 'restart-remote';
         const key = 'Restart author';
+        // ignore: unused_result
         await fileRepositories.choreographers.upsert(
           Choreographer(id: localId, name: key),
           at: stamp,
@@ -3905,6 +3906,7 @@ void main() {
         const localId = 'rollback-local';
         const remoteId = 'rollback-remote';
         const key = 'Rollback author';
+        // ignore: unused_result
         await injectedRepositories.choreographers.upsert(
           Choreographer(id: localId, name: key),
           at: stamp,
