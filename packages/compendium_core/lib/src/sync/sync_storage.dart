@@ -757,7 +757,17 @@ final class CompendiumSyncStorage
       }
       final kind = candidate.blob.kind;
       if (syncNaturalKeyKinds.contains(kind)) {
+        final originalAddress = candidate.address;
         candidate = _rewriteCandidate(candidate, aliases);
+        if (candidate.address != originalAddress &&
+            !await _guardReconciliationTarget(
+              kind: candidate.blob.kind,
+              recordId: candidate.blob.id,
+              expectedWireHashes: expectedWireHashes,
+              reports: reports,
+            )) {
+          continue;
+        }
         final inboundCandidateId = candidate.blob.id;
         final naturalKey = syncNaturalKeyForBody(kind, candidate.blob.body);
         if (naturalKey != null) {
