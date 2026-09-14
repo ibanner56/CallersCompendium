@@ -745,27 +745,41 @@ final class CompendiumSyncStorage
         if (localIdentity == null) {
           throw const SyncReviewException(SyncReviewFailureCode.targetMissing);
         }
-        final survivorId = currentRow.recordId.compareTo(candidate.id) <= 0
-            ? currentRow.recordId
-            : candidate.id;
-        final losingId = survivorId == currentRow.recordId
-            ? candidate.id
-            : currentRow.recordId;
+        final canonicalDifficultyId =
+            currentRow.kind == SyncRecordKind.difficultyLevel
+            ? _canonicalDifficultyId(
+                candidateKey,
+                candidateId: candidate.id,
+                incumbentId: currentRow.recordId,
+              )
+            : null;
+        final survivorId =
+            canonicalDifficultyId ??
+            (currentRow.recordId.compareTo(candidate.id) <= 0
+                ? currentRow.recordId
+                : candidate.id);
         final aliases = <SyncRecordKind, Map<String, String>>{};
-        await _adoptCollision(
-          kind: currentRow.kind,
-          losingId: losingId,
-          survivingId: survivorId,
-          aliases: aliases,
-          localIdentity: survivorId == currentRow.recordId
-              ? null
-              : localIdentity,
-        );
+        if (currentRow.recordId != survivorId) {
+          await _adoptCollision(
+            kind: currentRow.kind,
+            losingId: currentRow.recordId,
+            survivingId: survivorId,
+            aliases: aliases,
+            localIdentity: localIdentity,
+          );
+        }
         if (candidate.id != survivorId) {
+          await _adoptCollision(
+            kind: currentRow.kind,
+            losingId: candidate.id,
+            survivingId: survivorId,
+            aliases: aliases,
+          );
           candidateForApply = _rewriteCandidateIdentity(
             SyncMergeCandidate(blob: candidate),
             survivorId,
             aliases,
+            preserveUpdatedAt: true,
           ).blob;
         }
         break;
@@ -1539,15 +1553,18 @@ final class CompendiumSyncStorage
   SyncMergeCandidate _rewriteCandidateIdentity(
     SyncMergeCandidate candidate,
     String id,
-    Map<SyncRecordKind, Map<String, String>> aliases,
-  ) {
+    Map<SyncRecordKind, Map<String, String>> aliases, {
+    bool preserveUpdatedAt = false,
+  }) {
     final body = rewriteSyncInboundReferences(candidate.blob.body, aliases);
     if (candidate.blob.kind != SyncRecordKind.setting) body['id'] = id;
     return _candidateWithBody(
       candidate,
       id,
       body,
-      updatedAt: contentHash(candidate.blob.body) == contentHash(body)
+      updatedAt: preserveUpdatedAt
+          ? candidate.blob.updatedAt
+          : contentHash(candidate.blob.body) == contentHash(body)
           ? null
           : nextExistenceStamp(
               now: DateTime.now().toUtc(),

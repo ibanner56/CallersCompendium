@@ -4033,11 +4033,8 @@ void main() {
         const remoteId = 'merge-remote';
         const key = 'Merge author';
         await seedLocal(kind, localId, key);
-        final item = await enqueue(
-          kind,
-          localId,
-          tombstoneFor(kind, remoteId, key),
-        );
+        final candidate = tombstoneFor(kind, remoteId, key);
+        final item = await enqueue(kind, localId, candidate);
 
         await storage.resolveReviewQueue(
           expectedRow: item.row,
@@ -4054,9 +4051,55 @@ void main() {
         );
         await expectTombstone(kind, localId);
         expect(await repositories.choreographers.getById(remoteId), isNull);
+        final local = await (db.select(
+          db.choreographers,
+        )..where((row) => row.id.equals(localId))).getSingle();
+        expect(local.updatedAt?.toUtc(), candidate.updatedAt);
         expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
       },
     );
+
+    test('merge keeps a shipped difficulty ID canonical', () async {
+      const kind = SyncRecordKind.difficultyLevel;
+      const localId = DifficultyLevel.beginnerId;
+      const remoteId = 'a-merge-remote-difficulty';
+      final key = DifficultyLevel.beginner.label;
+      await seedLocal(kind, localId, key);
+      final candidate = tombstoneFor(kind, remoteId, key);
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [SyncMergeCandidate(blob: candidate)],
+        storage: storage,
+      );
+
+      expect(result.applied, isEmpty);
+      expect(result.reports, isEmpty);
+      final item = SyncReviewQueueItem.fromRow(
+        (await repositories.syncLocal.listReviewQueue()).single,
+      );
+      expect(item.row.recordId, localId);
+      expect(item.row.counterpartId, remoteId);
+
+      await storage.resolveReviewQueue(
+        expectedRow: item.row,
+        action: SyncReviewAction.merge,
+      );
+
+      expect(
+        await repositories.syncLocal.resolveAlias(
+          kind: kind,
+          recordId: remoteId,
+        ),
+        localId,
+      );
+      await expectTombstone(kind, localId);
+      expect(await repositories.difficultyLevels.getById(remoteId), isNull);
+      final local = await (db.select(
+        db.difficultyLevels,
+      )..where((row) => row.id.equals(localId))).getSingle();
+      expect(local.updatedAt?.toUtc(), candidate.updatedAt);
+      expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+    });
 
     test('merge chooses the lexicographically smaller peer identity', () async {
       const kind = SyncRecordKind.choreographer;
