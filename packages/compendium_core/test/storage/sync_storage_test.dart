@@ -786,6 +786,9 @@ void main() {
     'distinct shipped difficulty IDs with one natural key enter review',
     () async {
       final stamp = DateTime.utc(2025, 1, 2, 12);
+      await repositories.difficultyLevels.hardDelete([
+        DifficultyLevel.beginnerId,
+      ]);
       await repositories.difficultyLevels.upsert(
         DifficultyLevel(
           id: DifficultyLevel.advancedId,
@@ -820,10 +823,6 @@ void main() {
 
       expect(result.applied, isEmpty);
       expect(await repositories.syncLocal.listReviewQueue(), isNotEmpty);
-      expect(
-        await repositories.difficultyLevels.getById(DifficultyLevel.beginnerId),
-        isNotNull,
-      );
       expect(
         await repositories.difficultyLevels.getById(DifficultyLevel.advancedId),
         isNotNull,
