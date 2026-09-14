@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/src/serialization/archive_entity_codec.dart';
 import 'package:compendium_core/src/storage/database.dart';
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart' hide isNotNull, isNull;
+import 'package:drift/native.dart';
 import 'package:test/test.dart';
 
 import 'test_database.dart';
@@ -3820,6 +3822,133 @@ void main() {
       },
     );
 
+    test('survives a file-backed close and reopen before resolution', () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'compendium-w14-',
+      );
+      final path = '${directory.path}/compendium.sqlite';
+      CompendiumDatabase? fileDb;
+      try {
+        final initialDb = CompendiumDatabase(NativeDatabase(File(path)));
+        fileDb = initialDb;
+        final fileRepositories = CompendiumRepositories(
+          initialDb,
+          contraTaxonomy,
+        );
+        const kind = SyncRecordKind.choreographer;
+        const localId = 'restart-local';
+        const remoteId = 'restart-remote';
+        const key = 'Restart author';
+        await fileRepositories.choreographers.upsert(
+          Choreographer(id: localId, name: key),
+          at: stamp,
+        );
+        final candidate = tombstoneFor(kind, remoteId, key);
+        await fileRepositories.syncLocal.enqueueReview(
+          kind: kind,
+          recordId: localId,
+          counterpartId: remoteId,
+          reason: syncBaselineAbsenceTombstoneReason,
+          candidateBlob: encodeSyncRecordBlob(candidate),
+          candidateHash: sha256Hex(encodeSyncRecordBlobUtf8(candidate)),
+          queuedAt: stamp.add(const Duration(minutes: 2)),
+        );
+        await initialDb.close();
+        final reopenedDb = CompendiumDatabase(NativeDatabase(File(path)));
+        fileDb = reopenedDb;
+        final reopenedRepositories = CompendiumRepositories(
+          reopenedDb,
+          contraTaxonomy,
+        );
+        final reopenedStorage = CompendiumSyncStorage(reopenedRepositories);
+        final row =
+            (await reopenedRepositories.syncLocal.listReviewQueue()).single;
+
+        await reopenedStorage.resolveReviewQueue(
+          expectedRow: row,
+          action: SyncReviewAction.keepBoth,
+          newNaturalKey: 'Restart author (local)',
+        );
+
+        expect(
+          (await reopenedRepositories.choreographers.getById(localId))!.name,
+          'Restart author (local)',
+        );
+        expect(
+          await reopenedRepositories.choreographers.getById(remoteId),
+          isNull,
+        );
+        final remoteRow = await (reopenedDb.select(
+          reopenedDb.choreographers,
+        )..where((table) => table.id.equals(remoteId))).getSingle();
+        expect(remoteRow.deletedAt, isNotNull);
+        expect(await reopenedRepositories.syncLocal.listReviewQueue(), isEmpty);
+      } finally {
+        await fileDb?.close();
+        await directory.delete(recursive: true);
+      }
+    });
+
+    test(
+      'rolls back a keep-both rename when the production write seam fails',
+      () async {
+        final interceptor = _FailAfterNaturalKeyRenameInterceptor();
+        final injectedDb = CompendiumDatabase(
+          NativeDatabase.memory().interceptWith(interceptor),
+        );
+        addTearDown(injectedDb.close);
+        final injectedRepositories = CompendiumRepositories(
+          injectedDb,
+          contraTaxonomy,
+        );
+        const kind = SyncRecordKind.choreographer;
+        const localId = 'rollback-local';
+        const remoteId = 'rollback-remote';
+        const key = 'Rollback author';
+        await injectedRepositories.choreographers.upsert(
+          Choreographer(id: localId, name: key),
+          at: stamp,
+        );
+        final candidate = tombstoneFor(kind, remoteId, key);
+        await injectedRepositories.syncLocal.enqueueReview(
+          kind: kind,
+          recordId: localId,
+          counterpartId: remoteId,
+          reason: syncBaselineAbsenceTombstoneReason,
+          candidateBlob: encodeSyncRecordBlob(candidate),
+          candidateHash: sha256Hex(encodeSyncRecordBlobUtf8(candidate)),
+          queuedAt: stamp.add(const Duration(minutes: 2)),
+        );
+        final item = SyncReviewQueueItem.fromRow(
+          (await injectedRepositories.syncLocal.listReviewQueue()).single,
+        );
+        interceptor.arm();
+
+        await expectLater(
+          CompendiumSyncStorage(injectedRepositories).resolveReviewQueue(
+            expectedRow: item.row,
+            action: SyncReviewAction.keepBoth,
+            newNaturalKey: 'Rollback author (local)',
+          ),
+          throwsA(isA<StateError>()),
+        );
+
+        expect(
+          (await injectedRepositories.choreographers.getById(localId))!.name,
+          key,
+        );
+        expect(
+          await injectedRepositories.choreographers.getById(remoteId),
+          isNull,
+        );
+        expect(await injectedRepositories.syncLocal.listAliases(), isEmpty);
+        expect(
+          await injectedRepositories.syncLocal.listReviewQueue(),
+          hasLength(1),
+        );
+      },
+    );
+
     test(
       'merge adopts the remote identity and applies its tombstone',
       () async {
@@ -3957,4 +4086,59 @@ void main() {
       );
     });
   });
+}
+
+final class _FailAfterNaturalKeyRenameInterceptor extends QueryInterceptor {
+  var _armed = false;
+  var _renameSeen = false;
+  var _writesAfterRename = 0;
+
+  void arm() {
+    _armed = true;
+  }
+
+  void _observeWrite(String statement) {
+    if (!_armed) return;
+    final normalized = statement.toLowerCase();
+    if (!_renameSeen &&
+        normalized.startsWith('update') &&
+        normalized.contains('choreographers')) {
+      _renameSeen = true;
+      _writesAfterRename = 1;
+      return;
+    }
+    if (_renameSeen && ++_writesAfterRename == 2) {
+      throw StateError('injected post-rename write failure');
+    }
+  }
+
+  @override
+  Future<int> runInsert(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    _observeWrite(statement);
+    return super.runInsert(executor, statement, args);
+  }
+
+  @override
+  Future<int> runUpdate(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    _observeWrite(statement);
+    return super.runUpdate(executor, statement, args);
+  }
+
+  @override
+  Future<int> runDelete(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    _observeWrite(statement);
+    return super.runDelete(executor, statement, args);
+  }
 }

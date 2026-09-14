@@ -891,9 +891,10 @@ backup taken on a syncing device leaves sync off and makes no network call.
 The existing `import_review_screen.dart` reviews **dances only**, and is driven
 by `ImportSession`, whose own doc comment says it is deliberately not persisted.
 Sync runs non-interactively with nobody watching, so there is no in-progress
-import to attach a decision to. This is new storage plus a new surface, not a
-reuse of proven machinery — the ADR corrects an earlier draft that implied
-otherwise.
+import to attach a decision to. This is a new resolver and surface over the
+existing persisted queue, not a new storage path and not a reuse of
+`ImportSession`/`ImportReviewScreen` — the ADR corrects an earlier draft that
+implied otherwise.
 
 #### W17 · Standing-invariant ratchets
 
