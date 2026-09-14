@@ -404,8 +404,14 @@ final class CompendiumSyncStorage
   /// untouched local rows can still cite a pending record.
   Future<void> revalidatePendingDeletions({bool dropMissing = false}) =>
       repositories.transaction(
-        () => _revalidatePendingDeletions(dropMissing: dropMissing),
+        () => revalidatePendingDeletionsInTransaction(dropMissing: dropMissing),
       );
+
+  /// Revalidates pending tombstones within an already-open repository
+  /// transaction. The caller owns the transaction boundary.
+  Future<void> revalidatePendingDeletionsInTransaction({
+    bool dropMissing = false,
+  }) => _revalidatePendingDeletions(dropMissing: dropMissing);
 
   /// Applies pending tombstones whose final local citation disappeared.
   ///

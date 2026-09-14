@@ -138,10 +138,10 @@ class ArchiveRestorer {
             revalidatePending: false,
           );
         }
+        await CompendiumSyncStorage(
+          _repos,
+        ).revalidatePendingDeletionsInTransaction(dropMissing: true);
       });
-      await CompendiumSyncStorage(
-        _repos,
-      ).revalidatePendingDeletions(dropMissing: true);
     } on Exception catch (e) {
       if (!abortedForRollback) {
         // Deferred foreign-key checks and other integrity constraints only fire

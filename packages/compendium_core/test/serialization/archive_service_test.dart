@@ -467,6 +467,57 @@ void main() {
     );
 
     test(
+      'replace restore rolls back when pending tombstone revalidation fails',
+      () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        final stamp = DateTime.utc(2026, 7, 15);
+        const danceId = 'restore-target';
+        await repos.dances.create(
+          Dance(
+            id: danceId,
+            title: 'Original',
+            createdAt: stamp,
+            updatedAt: stamp,
+          ),
+        );
+        await repos.syncLocal.upsertPendingDeletion(
+          kind: SyncRecordKind.dance,
+          recordId: danceId,
+          tombstonedAt: stamp.add(const Duration(minutes: 1)),
+          tombstoneHash: 'corrupt-hash',
+          tombstoneBlob: 'corrupt-blob',
+        );
+
+        final result = await ArchiveRestorer(repos).restore(
+          CompendiumArchive(
+            exportedAt: stamp,
+            dances: [
+              Dance(
+                id: danceId,
+                title: 'Replacement',
+                createdAt: stamp,
+                updatedAt: stamp,
+              ),
+            ],
+          ),
+          mode: RestoreMode.replace,
+        );
+
+        expect(result.hasErrors, isTrue);
+        expect((await repos.dances.getById(danceId))!.title, 'Original');
+        expect(
+          await repos.syncLocal.getPendingDeletion(
+            kind: SyncRecordKind.dance,
+            recordId: danceId,
+          ),
+          isNotNull,
+        );
+      },
+    );
+
+    test(
       'replace and merge preserve ordered difficulty levels and assignments',
       () async {
         final sourceDb = openTestDatabase();
