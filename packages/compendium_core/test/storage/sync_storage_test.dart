@@ -535,12 +535,18 @@ void main() {
       final held = Dance(
         id: 'a-held',
         title: 'Shared dance',
+        figures: [
+          testFigure(move: 'balance', params: const {'hand': 'left'}),
+        ],
         createdAt: stamp,
         updatedAt: stamp,
       );
       final independent = Dance(
         id: 'z-independent',
         title: 'The Shared Dance',
+        figures: [
+          testFigure(move: 'balance', params: const {'hand': 'right'}),
+        ],
         createdAt: stamp,
         updatedAt: stamp,
       );
@@ -554,6 +560,8 @@ void main() {
         updatedAt: stamp,
       );
       await repositories.programs.create(program);
+      await storage.deduplicateFreshAttach();
+      expect(await repositories.syncLocal.listReviewQueue(), hasLength(1));
 
       final tombstoneStamp = stamp.add(const Duration(minutes: 1));
       final tombstone = SyncRecordBlob(
@@ -576,6 +584,8 @@ void main() {
         ),
         isNotNull,
       );
+      await storage.refreshDanceAmbiguityReviews();
+      expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
       final dedupe = await storage.deduplicateFreshAttach();
       expect(dedupe.duplicateCount, 0);
       expect(await repositories.dances.getById(held.id), isNotNull);
@@ -803,9 +813,7 @@ void main() {
         Dance(
           id: 'c-left',
           title: 'Shared dance',
-          figures: [
-            testFigure(move: 'balance', params: const {'hand': 'left'}),
-          ],
+          figures: [testFigure(move: 'swing')],
           createdAt: stamp,
           updatedAt: stamp,
         ),
@@ -815,7 +823,7 @@ void main() {
           id: 'd-right',
           title: 'The shared dance',
           figures: [
-            testFigure(move: 'balance', params: const {'hand': 'right'}),
+            testFigure(move: 'balance', params: const {'hand': 'left'}),
           ],
           createdAt: stamp,
           updatedAt: stamp,

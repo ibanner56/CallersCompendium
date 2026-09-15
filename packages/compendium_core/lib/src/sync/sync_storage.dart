@@ -461,11 +461,19 @@ final class CompendiumSyncStorage
                   row.kind == SyncRecordKind.dance &&
                   row.reason == syncDanceChoreographyAmbiguityReason,
             );
+        final pendingDanceIds = {
+          for (final pending
+              in await repositories.syncLocal.listPendingDeletions())
+            if (pending.kind == SyncRecordKind.dance) pending.recordId,
+        };
         final ambiguities = <SyncDanceDedupeAmbiguity>[];
         final seenPairs = <String>{};
         for (final row in queuedRows) {
           final pairKey = _danceReviewPairKey(row.recordId, row.counterpartId);
-          if (!seenPairs.add(pairKey) || row.recordId == row.counterpartId) {
+          if (!seenPairs.add(pairKey) ||
+              row.recordId == row.counterpartId ||
+              pendingDanceIds.contains(row.recordId) ||
+              pendingDanceIds.contains(row.counterpartId)) {
             continue;
           }
           final left = await _danceCandidate(row.recordId);
