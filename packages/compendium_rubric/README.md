@@ -7,6 +7,7 @@ matrix and verifies the resulting state against a named **success criterion**
 
 - **Domain model:** [`docs/fundamentals.md`](docs/fundamentals.md)
 - **Execution model / architecture:** [`docs/architecture.md`](docs/architecture.md)
+- **Current implementation status:** [`docs/status.md`](docs/status.md)
 
 ## Status
 

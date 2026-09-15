@@ -1,10 +1,11 @@
 # ContraCompiler — Implementation Guide
 
-> **What this doc is for.** The other three docs say *what is true*:
+> **What this doc is for.** The other four docs say *what is true*:
 > `fundamentals.md` is the domain state-model (the hall, the matrix, dancers,
 > progression), `architecture.md` is the execution model (the pipeline and its
 > resolved design decisions), and `taxonomy.md` is the figure catalogue (one
-> entry per move, with its params and rulings).
+> entry per move, with its params and rulings). `status.md` is the dated corpus
+> and implementation snapshot.
 >
 > **This doc says where that lives in the code and how to change it safely.**
 > It is the orientation an incoming session needs before touching anything: the
@@ -747,12 +748,15 @@ rest cannot pass for the wrong reason.
 - `FormLongWaves.hand` **without** `whom` currently asserts nothing falsifiable.
   Deliberate and documented in its test; revisit if a record turns up that means
   something by it.
-- **A `give_and_take` crash is open.** Three corpus dances throw
-  `StateError: Cell collision at (r0,c0)` out of `Formation.withUpdates`, from
-  the closure in `ops/figures/give_and_take.dart`. The `crashed` outcome keeps a
-  sweep alive through it, but the figure still needs a ruling: whether the
-  collision is a geometry the figure should **refuse** with an `OpError`, or
-  evidence that the permutation is wrong.
+- **Two `give_and_take` crashes are open.** *The Digital Divide* and *Road to
+  Rochester* throw a cell collision at `r0,c0`, consistent with the closure in
+  `ops/figures/give_and_take.dart`. A third crash, *Gypsy for Chris & Sara*,
+  collides separately at `r0,c2` in centre-line choreography and has not yet
+  been isolated to an operation. The `crashed` outcome keeps a sweep alive
+  through all three. The two give-and-take cases still need a ruling: whether
+  the collision is geometry the figure should **refuse** with an `OpError`, or
+  evidence that the permutation is wrong. See `status.md` for the measured
+  records.
 - **A hey may open on the side, and now does.** `pass1` names the first pass,
   which is not always the centre one. Which it is gets read off the floor: a
   pair standing one on each side of the set can only meet in the middle, and two
