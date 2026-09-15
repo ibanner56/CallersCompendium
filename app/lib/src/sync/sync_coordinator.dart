@@ -100,7 +100,11 @@ abstract interface class SyncCoordinatorStore
     required Iterable<SyncBaselineEntry> entries,
   });
 
-  Future<void> resetEpoch({required String epoch});
+  /// Clears old epoch-scoped conclusions without persisting the new epoch.
+  ///
+  /// A fresh attach persists its epoch only with [replaceBaseline] after the
+  /// union, dedupe, blob publication, and resulting manifest are complete.
+  Future<void> clearEpochState();
 
   Future<void> advanceBaseline({
     required String epoch,
@@ -203,8 +207,8 @@ final class CompendiumSyncCoordinatorStore
   );
 
   @override
-  Future<void> resetEpoch({required String epoch}) =>
-      storage.repositories.syncLocal.resetEpoch(epoch: epoch);
+  Future<void> clearEpochState() =>
+      storage.repositories.syncLocal.clearBaseline();
 
   @override
   Future<void> advanceBaseline({
@@ -744,7 +748,7 @@ class SyncCoordinator {
       return const SyncPassResult(SyncPassStatus.staleEpoch);
     }
     if (freshAttach) {
-      await store.resetEpoch(epoch: metadata.epoch);
+      await store.clearEpochState();
       snapshot = await store.snapshot();
     }
 

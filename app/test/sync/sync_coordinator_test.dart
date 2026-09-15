@@ -734,7 +734,29 @@ void main() {
       expect(transport.manifestPuts, 1);
       expect(store.baselineReplacements, 1);
       expect(store.baselineAdvances, 1);
-      expect(store.epochResets, 1);
+      expect(store.epochStateClears, 1);
+    },
+  );
+
+  test(
+    'failed fresh attach retries after its epoch state is cleared',
+    () async {
+      final store = _FakeStore(epoch: null, failFreshAttachDedupeOnce: true);
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: _FakeTransport(),
+      );
+
+      await expectLater(coordinator.syncNow(), throwsA(isA<StateError>()));
+      expect(store.baselineReplacements, 0);
+
+      final retried = await coordinator.syncNow();
+
+      expect(retried.status, SyncPassStatus.completed);
+      expect(store.epochStateClears, 2);
+      expect(store.baselineReplacements, 1);
     },
   );
 
@@ -1454,28 +1476,31 @@ void main() {
 final class _FakeStore implements SyncCoordinatorStore {
   _FakeStore({
     this.previouslyUsed = false,
-    this.epoch = 'epoch-1',
+    String? epoch = 'epoch-1',
     Map<SyncRecordAddress, SyncMergeCandidate?>? local,
     Map<SyncRecordAddress, SyncBaselineEntry>? baseline,
     Map<SyncRecordAddress, SyncRecordAddress>? aliases,
     List<String?>? snapshotEpochs,
     this.freshAttachDedupeResult,
+    this.failFreshAttachDedupeOnce = false,
     this.snapshotBuilder,
     this.currentCandidatesBuilder,
     List<String>? lifecycle,
-  }) : local = local ?? const {},
+  }) : _storedEpoch = epoch,
+       local = local ?? const {},
        baseline = baseline ?? const {},
        aliases = aliases ?? const {},
        snapshotEpochs = [...?snapshotEpochs],
        lifecycle = lifecycle ?? <String>[];
 
   final bool previouslyUsed;
-  final String? epoch;
+  String? _storedEpoch;
   final Map<SyncRecordAddress, SyncMergeCandidate?> local;
   final Map<SyncRecordAddress, SyncBaselineEntry> baseline;
   final Map<SyncRecordAddress, SyncRecordAddress> aliases;
   final List<String?> snapshotEpochs;
   final SyncFreshAttachDedupeResult? freshAttachDedupeResult;
+  bool failFreshAttachDedupeOnce;
   final SyncCoordinatorSnapshot Function(int snapshotNumber)? snapshotBuilder;
   final Map<SyncRecordAddress, SyncMergeCandidate?> Function()?
   currentCandidatesBuilder;
@@ -1488,7 +1513,7 @@ final class _FakeStore implements SyncCoordinatorStore {
   int snapshotCalls = 0;
   int baselineAdvances = 0;
   int baselineReplacements = 0;
-  int epochResets = 0;
+  int epochStateClears = 0;
   final List<SyncRecordAddress> replacedEntries = [];
 
   @override
@@ -1496,7 +1521,7 @@ final class _FakeStore implements SyncCoordinatorStore {
     snapshotCalls++;
     final snapshotIndex = snapshotCalls - 1;
     final epoch = snapshotEpochs.isEmpty
-        ? this.epoch
+        ? _storedEpoch
         : snapshotEpochs[snapshotIndex < snapshotEpochs.length
               ? snapshotIndex
               : snapshotEpochs.length - 1];
@@ -1578,16 +1603,23 @@ final class _FakeStore implements SyncCoordinatorStore {
   @override
   Future<SyncFreshAttachDedupeResult> deduplicateFreshAttach({
     required bool apply,
-  }) async => apply
-      ? freshAttachDedupeResult ??
-            const SyncFreshAttachDedupeResult(duplicateCount: 0, reports: [])
-      : const SyncFreshAttachDedupeResult(duplicateCount: 0, reports: []);
+  }) async {
+    if (apply && failFreshAttachDedupeOnce) {
+      failFreshAttachDedupeOnce = false;
+      throw StateError('scripted fresh-attach failure');
+    }
+    return apply
+        ? freshAttachDedupeResult ??
+              const SyncFreshAttachDedupeResult(duplicateCount: 0, reports: [])
+        : const SyncFreshAttachDedupeResult(duplicateCount: 0, reports: []);
+  }
 
   @override
   Future<void> replaceBaseline({
     required String epoch,
     required Iterable<SyncBaselineEntry> entries,
   }) async {
+    _storedEpoch = epoch;
     baselineReplacements++;
     final addresses = entries.map(
       (entry) => (kind: entry.kind, recordId: entry.recordId),
@@ -1597,9 +1629,10 @@ final class _FakeStore implements SyncCoordinatorStore {
   }
 
   @override
-  Future<void> resetEpoch({required String epoch}) async {
-    epochResets++;
-    lifecycle.add('resetEpoch');
+  Future<void> clearEpochState() async {
+    _storedEpoch = null;
+    epochStateClears++;
+    lifecycle.add('clearEpochState');
   }
 
   @override
