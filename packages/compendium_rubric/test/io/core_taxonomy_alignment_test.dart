@@ -171,6 +171,10 @@ void main() {
         buildFigure('pull_by_direction', const {'where': 'across'}),
         const PullByDirection(dir: Direction.across),
       );
+      expect(
+        buildFigure('pull_by_direction', const {'dir': 'across'}),
+        const PullByDirection(dir: Direction.across),
+      );
     });
   });
 }

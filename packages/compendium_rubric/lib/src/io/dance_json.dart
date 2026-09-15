@@ -1,6 +1,7 @@
 import 'dart:convert';
 
-import 'package:compendium_core/compendium_core.dart' show contraTaxonomy;
+import 'package:compendium_core/compendium_core.dart'
+    show Taxonomy, contraTaxonomy;
 import 'package:meta/meta.dart';
 
 import '../domain/formation_type.dart';
@@ -804,23 +805,20 @@ OperationInvocation _parseFigure(Object? raw, int index) {
     );
   }
 
-  final figureParams = <String, Object?>{
-    ...(params as Map<String, Object?>?) ?? const {},
-  };
-  if (alias != null) {
-    if (move == 'pull_by_dancers' || move == 'pull_by_direction') {
-      // These are v35 migration aliases, not semantic aliases. Their pins
-      // supply what the old move id implied only when the stored record did
-      // not state something more specific (`nextNeighbors`, `across`, ...).
-      // This matches Taxonomy.normalizeV35Params.
-      for (final pin in alias.pinnedParams.entries) {
-        figureParams.putIfAbsent(pin.key, () => pin.value);
-      }
-    } else {
-      // For semantic aliases the pins *are* the alias: a `see_saw` whose
-      // record also said `shoulder:right` is still a see saw.
-      figureParams.addAll(alias.pinnedParams);
-    }
+  final sourceParams = (params as Map<String, Object?>?) ?? const {};
+  // These two v35 migration aliases must rename persisted parameter keys
+  // before their defaults are applied. Other moves retain the source keys so
+  // parse errors name the spelling the author actually supplied.
+  final figureParams = move == 'pull_by_dancers' || move == 'pull_by_direction'
+      ? Taxonomy.normalizeV35Params(move, sourceParams)
+      : <String, Object?>{...sourceParams};
+  if (alias != null &&
+      move != 'pull_by_dancers' &&
+      move != 'pull_by_direction') {
+    // For semantic aliases the pins *are* the alias: a `see_saw` whose record
+    // also said `shoulder:right` is still a see saw. Pull-by migration pins
+    // were already applied by normalizeV35Params using fill-if-absent rules.
+    figureParams.addAll(alias.pinnedParams);
   }
 
   return OperationInvocation(
