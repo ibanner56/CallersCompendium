@@ -4212,6 +4212,32 @@ void main() {
     );
 
     test(
+      'keep-both trims surrounding whitespace from renamed natural keys',
+      () async {
+        const kind = SyncRecordKind.choreographer;
+        const localId = 'trimmed-name-local';
+        const remoteId = 'trimmed-name-remote';
+        const key = 'Trim target author';
+        await seedLocal(kind, localId, key);
+        final item = await enqueue(
+          kind,
+          localId,
+          tombstoneFor(kind, remoteId, key),
+        );
+
+        await storage.resolveReviewQueue(
+          expectedRow: item.row,
+          action: SyncReviewAction.keepBoth,
+          newNaturalKey: '  Trimmed rename  ',
+        );
+
+        await expectLiveKey(kind, localId, 'Trimmed rename');
+        await expectTombstone(kind, remoteId);
+        expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+      },
+    );
+
+    test(
       'rejects a tombstone when the local existence stamp is newer',
       () async {
         for (final action in SyncReviewAction.values) {

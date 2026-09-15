@@ -860,8 +860,8 @@ final class CompendiumSyncStorage
     if (raw == null) {
       throw const SyncReviewException(SyncReviewFailureCode.nameRequired);
     }
-    final normalized = normalizeShareableText(raw);
-    if (normalized.trim().isEmpty) {
+    final normalized = normalizeShareableText(raw).trim();
+    if (normalized.isEmpty) {
       throw const SyncReviewException(SyncReviewFailureCode.nameRequired);
     }
     if (normalizeShareableText(normalized).toLowerCase() == currentKey) {
