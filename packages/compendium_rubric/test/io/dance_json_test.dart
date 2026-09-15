@@ -448,6 +448,45 @@ void main() {
       );
     });
 
+    test('a canonical unspecified value suppresses a legacy spelling', () {
+      final dance = _parseOk(
+        _record(
+          '{"move": "gate", "params": '
+          '{"travel": "unspecified", "turn": 0.5}}',
+        ),
+      );
+
+      expect((dance.figures.single.operation as Gate).turn, isNull);
+    });
+
+    test('a legacy pull-by refusal names dir, not its v35 replacement', () {
+      expect(
+        _parseErr(
+          _record(
+            '{"move": "pull_by_direction", '
+            '"params": {"dir": "sideways"}}',
+          ),
+        ).path,
+        'figures[0].params.dir',
+      );
+    });
+
+    test('a bare canonical pull-by is deferred rather than guessed', () {
+      final error = _parseErr(_record('{"move": "pull_by", "params": {}}'));
+
+      expect(error.deferred, isTrue);
+      expect(error.message, contains('who or where'));
+    });
+
+    test('an ambiguous pull-by refusal names its authored selector', () {
+      final error = _parseErr(
+        _record('{"move": "pull_by", "params": {"where": "unspecified"}}'),
+      );
+
+      expect(error.deferred, isTrue);
+      expect(error.path, 'figures[0].params.where');
+    });
+
     test('a key that is absent falls back to the spelling we document', () {
       // Nothing is written under either alias, so there is no authored
       // spelling to name and the parameter simply takes its default.

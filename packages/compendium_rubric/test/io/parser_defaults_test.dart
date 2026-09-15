@@ -63,7 +63,6 @@ const Map<String, Operation> defaults = {
   'pass_through': PassThrough(),
   'petronella': Petronella(),
   'poussette': Poussette(),
-  'pull_by': PullByDirection(),
   'right_left_through': RightLeftThrough(),
   'roll_away': RollAway(),
   'rory_o_more': RoryOMore(),
@@ -96,7 +95,7 @@ void main() {
     test('the table covers the registry exactly', () {
       // The guard that keeps this file honest: registering a new figure
       // without pinning its defaults fails here rather than shipping unproven.
-      expect(defaults.keys.toList()..sort(), supportedMoves);
+      expect([...defaults.keys, 'pull_by']..sort(), supportedMoves);
     });
 
     defaults.forEach((move, expected) {
@@ -231,7 +230,6 @@ void main() {
       'allemande': Allemande(hand: Hand.left),
       'box_circulate': BoxCirculate(who: WhoSet.role2s, hand: Hand.left),
       'box_the_gnat': BoxTheGnat(hand: Hand.left),
-      'pull_by': PullByDirection(hand: Hand.left),
       'pull_by_dancers': PullByDancers(hand: Hand.left),
       'pull_by_direction': PullByDirection(hand: Hand.left),
     };
@@ -239,6 +237,13 @@ void main() {
       test('$move reads hand:left', () {
         expect(parseFigure(move, const {'hand': 'left'}), expected);
       });
+    });
+
+    test('canonical pull_by reads hand:left with a stated selector', () {
+      expect(
+        parseFigure('pull_by', const {'where': 'along', 'hand': 'left'}),
+        const PullByDirection(hand: Hand.left),
+      );
     });
 
     const shoulders = <String, Operation>{

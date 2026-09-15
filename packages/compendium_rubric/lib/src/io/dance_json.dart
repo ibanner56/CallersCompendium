@@ -1,7 +1,6 @@
 import 'dart:convert';
 
-import 'package:compendium_core/compendium_core.dart'
-    show Taxonomy, contraTaxonomy;
+import 'package:compendium_core/compendium_core.dart' show contraTaxonomy;
 import 'package:meta/meta.dart';
 
 import '../domain/formation_type.dart';
@@ -92,8 +91,8 @@ class _Params {
   /// admitting it is a moving target, so enumerating them here would drift.
   static const String _unspecified = 'unspecified';
 
-  /// The first of [keys] carrying a stated value, so a wire spelling and our
-  /// own name can both be accepted (`turn` / `circling`, `endFacing` / `face`).
+  /// The value under the first authored key, so canonical spellings win even
+  /// when they explicitly state `unspecified`.
   Object? _first(List<String> keys) {
     final value = _raw[_blameKey(keys)];
     return value == _unspecified ? null : value;
@@ -109,10 +108,7 @@ class _Params {
   /// one the taxonomy documents.
   String _blameKey(List<String> keys) {
     for (final key in keys) {
-      if (!_raw.containsKey(key)) continue;
-      final value = _raw[key];
-      if (value == null || value == _unspecified) continue;
-      return key;
+      if (_raw.containsKey(key)) return key;
     }
     return keys.first;
   }
@@ -447,16 +443,18 @@ Operation _buildPullBy(_Params p) {
   final hand = p.enumOr(['hand'], Hand.fromKey, Hand.right);
 
   // v35 unified the two wire moves. A named dancer set is the more specific
-  // reading when both axes are present; otherwise the move is spatial. A bare
-  // canonical move falls back to the old direction form's along-set default.
+  // reading when both axes are present; otherwise the move is spatial.
   if (who != null) {
     return PullByDancers(who: who, balance: balance, hand: hand);
   }
-  return PullByDirection(
-    balance: balance,
-    dir: where ?? Direction.along,
-    hand: hand,
-  );
+  if (where == null) {
+    p._fail(
+      p._blameKey(['who', 'where', 'dir']),
+      'pull_by requires a stated who or where',
+      deferred: true,
+    );
+  }
+  return PullByDirection(balance: balance, dir: where, hand: hand);
 }
 
 Operation _buildPassBy(_Params p) => PassBy(
@@ -805,20 +803,28 @@ OperationInvocation _parseFigure(Object? raw, int index) {
     );
   }
 
-  final sourceParams = (params as Map<String, Object?>?) ?? const {};
-  // These two v35 migration aliases must rename persisted parameter keys
-  // before their defaults are applied. Other moves retain the source keys so
-  // parse errors name the spelling the author actually supplied.
-  final figureParams = move == 'pull_by_dancers' || move == 'pull_by_direction'
-      ? Taxonomy.normalizeV35Params(move, sourceParams)
-      : <String, Object?>{...sourceParams};
-  if (alias != null &&
-      move != 'pull_by_dancers' &&
-      move != 'pull_by_direction') {
-    // For semantic aliases the pins *are* the alias: a `see_saw` whose record
-    // also said `shoulder:right` is still a see saw. Pull-by migration pins
-    // were already applied by normalizeV35Params using fill-if-absent rules.
-    figureParams.addAll(alias.pinnedParams);
+  final figureParams = <String, Object?>{
+    ...(params as Map<String, Object?>?) ?? const {},
+  };
+  if (alias != null) {
+    if (move == 'pull_by_dancers' || move == 'pull_by_direction') {
+      // Migration pins fill only values the v34 record did not state. `dir`
+      // is the legacy spelling of `where`, so either key suppresses the
+      // direction alias's default while preserving source-key diagnostics.
+      for (final pin in alias.pinnedParams.entries) {
+        if (move == 'pull_by_direction' &&
+            pin.key == 'where' &&
+            (figureParams.containsKey('where') ||
+                figureParams.containsKey('dir'))) {
+          continue;
+        }
+        figureParams.putIfAbsent(pin.key, () => pin.value);
+      }
+    } else {
+      // For semantic aliases the pins *are* the alias: a `see_saw` whose
+      // record also said `shoulder:right` is still a see saw.
+      figureParams.addAll(alias.pinnedParams);
+    }
   }
 
   return OperationInvocation(

@@ -55,7 +55,10 @@ void main() {
     test('supportedMoves reports exactly what the parser can build', () {
       for (final move in supportedMoves) {
         expect(
-          buildFigure(move, const {}),
+          buildFigure(
+            move,
+            move == 'pull_by' ? const {'where': 'along'} : const {},
+          ),
           isNotNull,
           reason: '$move is advertised as supported but does not parse',
         );
@@ -65,6 +68,7 @@ void main() {
 
   group('parameter defaults match the taxonomy', () {
     for (final move in supportedMoves) {
+      if (move == 'pull_by') continue;
       test('$move assumes the same values the taxonomy does', () {
         final def = core.contraTaxonomy.resolve(move);
         expect(def, isNotNull, reason: '$move is not in the core taxonomy');
@@ -97,6 +101,10 @@ void main() {
         );
       });
     }
+
+    test('bare canonical pull_by preserves the taxonomy ambiguity', () {
+      expect(buildFigure('pull_by', const {}), isNull);
+    });
   });
 
   group('aliases are resolved, not reinvented', () {
@@ -109,7 +117,8 @@ void main() {
     test('every core alias for a move we build is advertised', () {
       final missing = [
         for (final entry in core.contraTaxonomy.aliases.entries)
-          if (buildFigure(entry.value.targetMove, const {}) != null &&
+          if (buildFigure(entry.value.targetMove, entry.value.pinnedParams) !=
+                  null &&
               !supportedMoves.contains(entry.key))
             '${entry.key} -> ${entry.value.targetMove}',
       ];
