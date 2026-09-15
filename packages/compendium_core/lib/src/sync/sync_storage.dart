@@ -15,7 +15,6 @@ import '../model/tag.dart';
 import '../model/venue.dart';
 import '../privacy/data_classification.dart';
 import '../privacy/settings_registry.dart';
-import '../serialization/archive_codec.dart';
 import '../serialization/archive_entity_codec.dart';
 import '../sync/canonical_json.dart';
 import '../storage/database.dart';
