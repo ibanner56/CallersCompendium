@@ -142,6 +142,10 @@ void main() {
       // The pins *are* the alias: a see saw whose record also said
       // `shoulder: right` would not be a see saw.
       for (final entry in core.contraTaxonomy.aliases.entries) {
+        if (entry.key == 'pull_by_dancers' ||
+            entry.key == 'pull_by_direction') {
+          continue;
+        }
         final pins = entry.value.pinnedParams;
         if (pins.isEmpty) continue;
         if (buildFigure(entry.value.targetMove, const {}) == null) continue;
@@ -156,6 +160,17 @@ void main() {
           reason: '${entry.key} let a record override its pinned $pins',
         );
       }
+    });
+
+    test('the v35 pull-by migration aliases preserve explicit values', () {
+      expect(
+        buildFigure('pull_by_dancers', const {'who': 'nextNeighbors'}),
+        const PullByDancers(who: WhoSet.nextNeighbors),
+      );
+      expect(
+        buildFigure('pull_by_direction', const {'where': 'across'}),
+        const PullByDirection(dir: Direction.across),
+      );
     });
   });
 }

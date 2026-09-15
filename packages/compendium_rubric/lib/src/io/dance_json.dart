@@ -227,8 +227,7 @@ const Map<String, _FigureBuilder> _registry = {
   'pass_through': _buildPassThrough,
   'petronella': _buildPetronella,
   'poussette': _buildPoussette,
-  'pull_by_dancers': _buildPullByDancers,
-  'pull_by_direction': _buildPullByDirection,
+  'pull_by': _buildPullBy,
   'right_left_through': _buildRightLeftThrough,
   'roll_away': _buildRollAway,
   'rory_o_more': _buildRoryOMore,
@@ -261,7 +260,11 @@ List<String> get supportedMoves => <String>{
 
 Operation _buildCircle(_Params p) => Circle(
   // `turn` here is a **direction** — one of its three taxonomy meanings.
-  turn: p.enumOr(['turn'], CircleDirection.fromKey, CircleDirection.left),
+  turn: p.enumOr(
+    ['direction', 'turn'],
+    CircleDirection.fromKey,
+    CircleDirection.left,
+  ),
   places: p.intOr(['places'], 4),
   singleFile: p.boolOr(['singleFile'], false),
 );
@@ -298,15 +301,13 @@ Operation _buildSwing(_Params p) => Swing(
 
 Operation _buildDoSiDo(_Params p) => DoSiDo(
   who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.neighbors),
-  // `turn` here is a **rotation amount**, and is the wire spelling of what the
-  // taxonomy calls `circling`. Resolving it per move is mandatory: the same key
-  // on a `circle` is a direction.
-  circling: p.numberOr(['turn', 'circling'], 1),
+  // `travel` is the v35 spelling; both earlier spellings remain readable.
+  circling: p.numberOr(['travel', 'turn', 'circling'], 1),
   shoulder: p.enumOr(['shoulder'], Hand.fromKey, Hand.right),
 );
 
 Operation _buildRightLeftThrough(_Params p) =>
-    RightLeftThrough(dir: p.optionalString(['dir']) ?? 'across');
+    RightLeftThrough(dir: p.optionalString(['where', 'dir']) ?? 'across');
 
 Operation _buildChain(_Params p) => Chain(
   who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.role2s),
@@ -314,7 +315,11 @@ Operation _buildChain(_Params p) => Chain(
   // role-implied side, so it very often arrives unstated. Harmless here: the
   // pull-by hand is recorded for fidelity and has no end-state effect.
   hand: p.enumOr(['hand'], Hand.fromKey, Hand.right),
-  dir: p.enumOr(['dir'], ChainDirection.fromKey, ChainDirection.across),
+  dir: p.enumOr(
+    ['where', 'dir'],
+    ChainDirection.fromKey,
+    ChainDirection.across,
+  ),
 );
 
 Operation _buildStandStill(_Params p) =>
@@ -330,7 +335,7 @@ Operation _buildHey(_Params p) => HeyForFour(
   pass2: p.optionalEnum(['pass2'], WhoSet.fromKey),
   meetTarget: p.optionalEnum(['meetTarget'], WhoSet.fromKey),
   shoulder: p.enumOr(['shoulder'], Hand.fromKey, Hand.right),
-  dir: p.enumOr(['dir'], Direction.fromKey, Direction.across),
+  dir: p.enumOr(['where', 'dir'], Direction.fromKey, Direction.across),
   rico1: p.boolOr(['rico1'], false),
   rico2: p.boolOr(['rico2'], false),
   rico3: p.boolOr(['rico3'], false),
@@ -342,51 +347,57 @@ Operation _buildHey(_Params p) => HeyForFour(
 Operation _buildAllemande(_Params p) => Allemande(
   who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.neighbors),
   hand: p.enumOr(['hand'], Hand.fromKey, Hand.right),
-  // A **rotation amount** here, unlike `circle`'s direction-valued `turn`.
-  turn: p.numberOr(['turn'], 1),
+  turn: p.numberOr(['travel', 'turn'], 1),
 );
 
 Operation _buildTwoHandTurn(_Params p) => TwoHandTurn(
   who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.partners),
-  turn: p.numberOr(['turn'], 1),
+  turn: p.numberOr(['travel', 'turn'], 1),
 );
 
 Operation _buildShoulderRound(_Params p) => ShoulderRound(
   who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.neighbors),
   shoulder: p.enumOr(['shoulder'], Hand.fromKey, Hand.right),
-  turn: p.numberOr(['turn'], 1),
+  turn: p.numberOr(['travel', 'turn'], 1),
 );
 
 Operation _buildMadRobin(_Params p) => MadRobin(
-  who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.ones),
-  turn: p.numberOr(['turn'], 1),
+  who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.role2s),
+  turn: p.numberOr(['travel', 'turn'], 1),
   direction: p.optionalEnum(['direction'], SpinDirection.fromKey),
   whom: p.optionalEnum(['whom'], WhoSet.fromKey),
 );
 
 Operation _buildOrbit(_Params p) => Orbit(
   who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.ones),
-  // A **spin direction** here; the amount lives on `amount`.
-  turn: p.enumOr(['turn'], SpinDirection.fromKey, SpinDirection.clockwise),
-  amount: p.numberOr(['amount'], 0.5),
+  turn: p.enumOr(
+    ['direction', 'turn'],
+    SpinDirection.fromKey,
+    SpinDirection.clockwise,
+  ),
+  amount: p.numberOr(['travel', 'amount'], 0.5),
 );
 
 Operation _buildStarPromenade(_Params p) => StarPromenade(
   who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.role1s),
-  turn: p.numberOr(['turn'], 0.5),
+  turn: p.numberOr(['travel', 'turn'], 0.5),
 );
 
 // --- Rings -----------------------------------------------------------------
 
 Operation _buildBoxCirculate(_Params p) => BoxCirculate(
-  who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.partners),
+  who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.role2s),
   hand: p.enumOr(['hand'], Hand.fromKey, Hand.right),
   balance: p.boolOr(['balance'], false),
 );
 
 Operation _buildFacingStar(_Params p) => FacingStar(
   who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.ones),
-  turn: p.enumOr(['turn'], SpinDirection.fromKey, SpinDirection.clockwise),
+  turn: p.enumOr(
+    ['direction', 'turn'],
+    SpinDirection.fromKey,
+    SpinDirection.clockwise,
+  ),
   places: p.intOr(['places'], 3),
 );
 
@@ -428,11 +439,24 @@ Operation _buildRollAway(_Params p) => RollAway(
   halfSashay: p.boolOr(['halfSashay'], false),
 );
 
-Operation _buildPullByDancers(_Params p) => PullByDancers(
-  who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.neighbors),
-  balance: p.boolOr(['balance'], false),
-  hand: p.enumOr(['hand'], Hand.fromKey, Hand.right),
-);
+Operation _buildPullBy(_Params p) {
+  final who = p.optionalEnum(['who'], WhoSet.fromKey);
+  final where = p.optionalEnum(['where', 'dir'], Direction.fromKey);
+  final balance = p.boolOr(['balance'], false);
+  final hand = p.enumOr(['hand'], Hand.fromKey, Hand.right);
+
+  // v35 unified the two wire moves. A named dancer set is the more specific
+  // reading when both axes are present; otherwise the move is spatial. A bare
+  // canonical move falls back to the old direction form's along-set default.
+  if (who != null) {
+    return PullByDancers(who: who, balance: balance, hand: hand);
+  }
+  return PullByDirection(
+    balance: balance,
+    dir: where ?? Direction.along,
+    hand: hand,
+  );
+}
 
 Operation _buildPassBy(_Params p) => PassBy(
   who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.neighbors),
@@ -448,34 +472,30 @@ Operation _buildBoxTheGnat(_Params p) => BoxTheGnat(
 // --- Axis swaps ------------------------------------------------------------
 
 Operation _buildPassThrough(_Params p) => PassThrough(
-  dir: p.enumOr(['dir'], Direction.fromKey, Direction.along),
+  dir: p.enumOr(['where', 'dir'], Direction.fromKey, Direction.along),
   shoulder: p.enumOr(['shoulder'], Hand.fromKey, Hand.right),
-);
-
-Operation _buildPullByDirection(_Params p) => PullByDirection(
-  balance: p.boolOr(['balance'], false),
-  dir: p.enumOr(['dir'], Direction.fromKey, Direction.along),
-  hand: p.enumOr(['hand'], Hand.fromKey, Hand.right),
 );
 
 Operation _buildZigZag(_Params p) => ZigZag(
   who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.partners),
-  // `turn` here is a left/right **shoulder** token - neither an amount nor a
-  // spin - which is why it resolves through [Hand].
-  turn: p.enumOr(['turn'], Hand.fromKey, Hand.left),
+  turn: p.enumOr(['slide', 'turn'], Hand.fromKey, Hand.left),
   ender: p.enumOr(['ender'], ZigZagEnder.fromKey, ZigZagEnder.none),
 );
 
 Operation _buildPoussette(_Params p) => Poussette(
   who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.ones),
   whom: p.enumOr(['whom'], WhoSet.fromKey, WhoSet.neighbors),
-  half: p.enumOr(['half'], TurnFraction.fromKey, TurnFraction.half),
-  turn: p.enumOr(['turn'], SpinDirection.fromKey, SpinDirection.clockwise),
+  half: p.enumOr(['fraction', 'half'], TurnFraction.fromKey, TurnFraction.half),
+  turn: p.enumOr(
+    ['direction', 'turn'],
+    SpinDirection.fromKey,
+    SpinDirection.clockwise,
+  ),
 );
 
 Operation _buildCrossTrails(_Params p) => CrossTrails(
   who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.partners),
-  dir: p.enumOr(['dir'], Direction.fromKey, Direction.across),
+  dir: p.enumOr(['where', 'dir'], Direction.fromKey, Direction.across),
   shoulder: p.enumOr(['shoulder'], Hand.fromKey, Hand.right),
   who2: p.enumOr(['who2'], WhoSet.fromKey, WhoSet.neighbors),
 );
@@ -510,7 +530,7 @@ Operation _buildTurnAlone(_Params p) => TurnAlone(
 // --- Waves -----------------------------------------------------------------
 
 Operation _buildFormShortWaves(_Params p) => FormShortWaves(
-  dir: p.enumOr(['dir'], Direction.fromKey, Direction.across),
+  dir: p.enumOr(['axis', 'dir'], Direction.fromKey, Direction.across),
   balance: p.boolOr(['balance'], false),
   center: p.enumOr(['center'], WhoSet.fromKey, WhoSet.role2s),
   // Core's stated default, which is now the canonical duple-improper wave.
@@ -524,10 +544,10 @@ Operation _buildFormShortWaves(_Params p) => FormShortWaves(
 /// Shares `form_short_waves`' whole wave signature, because the wave it lands
 /// in is that figure — the pass across the hall is what this one adds.
 Operation _buildPassTheOcean(_Params p) => PassTheOcean(
-  dir: p.enumOr(['dir'], Direction.fromKey, Direction.across),
+  dir: p.enumOr(['where', 'dir'], Direction.fromKey, Direction.across),
   balance: p.boolOr(['balance'], false),
   center: p.enumOr(['center'], WhoSet.fromKey, WhoSet.role2s),
-  centerHand: p.enumOr(['centerHand'], Hand.fromKey, Hand.right),
+  centerHand: p.enumOr(['centerHand'], Hand.fromKey, Hand.left),
   sides: p.enumOr(['sides'], WhoSet.fromKey, WhoSet.neighbors),
 );
 
@@ -537,7 +557,7 @@ Operation _buildFormLongWaves(_Params p) => FormLongWaves(
   // parsed from core's schema never reaches it.
   who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.role1s),
   whom: p.optionalEnum(['whom'], WhoSet.fromKey),
-  hand: p.optionalEnum(['hand'], Hand.fromKey),
+  hand: p.optionalEnum(['whomHand', 'hand'], Hand.fromKey),
   balance: p.boolOr(['balance'], false),
 );
 
@@ -559,13 +579,13 @@ Operation _buildGiveAndTake(_Params p) => GiveAndTake(
 
 Operation _buildFigureEight(_Params p) => FigureEight(
   who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.ones),
-  dir: p.enumOr(['dir'], FigureEightDir.fromKey, FigureEightDir.none),
+  dir: p.enumOr(['where', 'dir'], FigureEightDir.fromKey, FigureEightDir.none),
   // `lead` names a single dancer (`onesRole2`), which is outside our `who`
   // vocabulary, so it is carried verbatim rather than resolved. It is
   // descriptive only -- no net effect on the landing -- but the taxonomy gives
   // it a stated default, so an unstated lead takes that rather than nothing.
   lead: p.optionalString(['lead']) ?? 'onesRole2',
-  half: p.enumOr(['half'], TurnFraction.fromKey, TurnFraction.half),
+  half: p.enumOr(['fraction', 'half'], TurnFraction.fromKey, TurnFraction.half),
 );
 
 Operation _buildGate(_Params p) => Gate(
@@ -574,8 +594,8 @@ Operation _buildGate(_Params p) => Gate(
   // `pair` is the axis that actually selects the gating pairs.
   pair: p.optionalEnum(['pair'], WhoSet.fromKey),
   direction: p.optionalEnum(['direction'], GateDirection.fromKey),
-  turn: p.optionalNumber(['turn']),
-  face: p.optionalEnum(['face'], GateFace.fromKey),
+  turn: p.optionalNumber(['travel', 'turn']),
+  face: p.optionalEnum(['endFacing', 'face'], GateFace.fromKey),
 );
 
 Operation _buildSlideAlongSet(_Params p) => SlideAlongSet(
@@ -784,13 +804,24 @@ OperationInvocation _parseFigure(Object? raw, int index) {
     );
   }
 
-  // The pinned params *are* the alias -- a `see_saw` whose record also said
-  // `shoulder: right` would not be a see saw -- so they overwrite rather than
-  // fill in behind.
   final figureParams = <String, Object?>{
     ...(params as Map<String, Object?>?) ?? const {},
-    ...?alias?.pinnedParams,
   };
+  if (alias != null) {
+    if (move == 'pull_by_dancers' || move == 'pull_by_direction') {
+      // These are v35 migration aliases, not semantic aliases. Their pins
+      // supply what the old move id implied only when the stored record did
+      // not state something more specific (`nextNeighbors`, `across`, ...).
+      // This matches Taxonomy.normalizeV35Params.
+      for (final pin in alias.pinnedParams.entries) {
+        figureParams.putIfAbsent(pin.key, () => pin.value);
+      }
+    } else {
+      // For semantic aliases the pins *are* the alias: a `see_saw` whose
+      // record also said `shoulder:right` is still a see saw.
+      figureParams.addAll(alias.pinnedParams);
+    }
+  }
 
   return OperationInvocation(
     build(_Params(figureParams, '$path.params')),

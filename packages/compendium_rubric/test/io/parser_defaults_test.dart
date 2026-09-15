@@ -38,7 +38,7 @@ const Map<String, Operation> defaults = {
   'allemande': Allemande(),
   'balance': Balance(),
   'balance_the_ring': BalanceTheRing(),
-  'box_circulate': BoxCirculate(),
+  'box_circulate': BoxCirculate(who: WhoSet.role2s),
   'box_the_gnat': BoxTheGnat(),
   'california_twirl': CaliforniaTwirl(),
   'chain': Chain(who: WhoSet.role2s),
@@ -56,15 +56,14 @@ const Map<String, Operation> defaults = {
   'give_and_take': GiveAndTake(),
   'hey': HeyForFour(pass1: WhoSet.role2s, length: HeyLength.half),
   'long_lines': LongLines(),
-  'mad_robin': MadRobin(),
+  'mad_robin': MadRobin(who: WhoSet.role2s),
   'orbit': Orbit(),
   'pass_by': PassBy(),
-  'pass_the_ocean': PassTheOcean(centerHand: Hand.right),
+  'pass_the_ocean': PassTheOcean(centerHand: Hand.left),
   'pass_through': PassThrough(),
   'petronella': Petronella(),
   'poussette': Poussette(),
-  'pull_by_dancers': PullByDancers(),
-  'pull_by_direction': PullByDirection(),
+  'pull_by': PullByDirection(),
   'right_left_through': RightLeftThrough(),
   'roll_away': RollAway(),
   'rory_o_more': RoryOMore(),
@@ -86,6 +85,8 @@ const Map<String, Operation> defaults = {
   // are parseable, so they are pinned here on the same footing as the rest --
   // each expectation is the target's own defaults with the pin applied.
   'meltdown_swing': Swing(who: WhoSet.partners, prefix: 'meltdown'),
+  'pull_by_dancers': PullByDancers(),
+  'pull_by_direction': PullByDirection(),
   'see_saw': DoSiDo(who: WhoSet.neighbors, shoulder: Hand.left),
   'swat_the_flea': BoxTheGnat(hand: Hand.left),
 };
@@ -228,8 +229,9 @@ void main() {
     // would look correct until a left-handed record arrived.
     const lefties = <String, Operation>{
       'allemande': Allemande(hand: Hand.left),
-      'box_circulate': BoxCirculate(hand: Hand.left),
+      'box_circulate': BoxCirculate(who: WhoSet.role2s, hand: Hand.left),
       'box_the_gnat': BoxTheGnat(hand: Hand.left),
+      'pull_by': PullByDirection(hand: Hand.left),
       'pull_by_dancers': PullByDancers(hand: Hand.left),
       'pull_by_direction': PullByDirection(hand: Hand.left),
     };

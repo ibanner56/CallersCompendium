@@ -1275,51 +1275,38 @@ To be defined later with worked examples.
   to giver's side — modeled as an overlap we resolve to the free-row rule, FigureSimulator.cs:2377);
   CallersCompendium taxonomy `give_and_take` MoveDef.
 
-### `pull_by_dancers`
+### `pull_by`
 
-- **summary:** A hand pass — the `who` pair take hands and **pull past each other, swapping
-  positions**. Same swap-family as `box_the_gnat`/`roll_away`.
-- **params** (meets CallersCompendium baseline `{who, balance, hand, beats}`):
-  - `who` — dancer set, default `neighbors`. **The pair that pulls by** (swaps).
-  - `balance` — flag, default `false`. Styling (a balance before the pull); **no end-state effect**.
-  - `hand` — handedness, default `right`. Which hand you pass by; **styling**, no position effect.
-  - `beats` — int, default 2 (baseline good=[2, 4]).
-- **preconditions:** the `who` pair must be resolvable and able to pass (facing along their axis).
-- **effect:** **swap each `who` pair** (default neighbors). Role/number/couple-identity travel with
-  each dancer.
-- **normalization:** none.
-- **facing (output):** **preserved** (you walk forward past the other dancer).
-- **interaction scope:** within the hands four.
-- **h4 contribution** (D7): 0.
-- **progression-eligible:** no by itself — a pull-by is a within-h4 swap; progression only when the
-  op carries our explicit `progression` flag (**not** baked in, same stance as `pass_through`).
-- **sources:** ContraDanceVerifier `TryPullBy` (every case → who-pair `SwapPos`,
-  FigureSimulator.cs:3575); user (swap the who-pair; hand/balance styling; facing preserved;
-  progression via explicit flag); CallersCompendium taxonomy `pull_by_dancers` MoveDef.
-
-### `pull_by_direction`
-
-- **summary:** A hand pass named by **axis** rather than by dancer — everyone pulls past along the
-  given direction, swapping along that axis. Positionally identical to `pass_through`.
-- **params** (meets CallersCompendium baseline `{balance, dir, hand, beats}`):
+- **summary:** A hand pass selected either by dancer relationship (`who`) or by
+  axis (`where`). The selected dancers pull past each other and **swap
+  positions**. Taxonomy v35 consolidated the former `pull_by_dancers` and
+  `pull_by_direction` moves into this canonical move; both old ids remain
+  accepted as migration aliases.
+- **params** (meets CallersCompendium baseline
+  `{who, where, balance, hand, beats}`):
+  - `who` — dancer set, default `unspecified`. When stated, the pair that pulls
+    by and swaps.
+  - `where` — direction, default `unspecified`. Used when `who` is absent:
+    `along` swaps rows and `across` swaps columns.
   - `balance` — flag, default `false`. Styling; **no end-state effect**.
-  - `dir` — direction, default `along`. The pass axis: `along` → row swap `(r0,c)↔(r1,c)`;
-    `across` → column swap `(r,c0)↔(r,c4)`.
-  - `hand` — handedness, default `right`. **Styling**, no position effect.
+  - `hand` — handedness, default `right`. Styling; no position effect.
   - `beats` — int, default 2 (baseline good=[2, 4]).
-- **preconditions:** dancers present along the `dir` axis to pass (always true in a full h4).
-- **effect:** swap along the `dir` axis — `along` = row swap `(r0,c)↔(r1,c)` for each column;
-  `across` = column swap `(r,c0)↔(r,c4)` for each row (= `pass_through`). Role/number/couple-identity
-  travel with each dancer.
+- **preconditions:** a stated `who` must resolve to adjacent dancers able to
+  pass; a direction-selected pull-by requires an along/across axis.
+- **effect:** with `who`, swap each selected pair. Otherwise swap along
+  `where`: `along` = `(r0,c)↔(r1,c)` and `across` =
+  `(r,c0)↔(r,c4)`. A bare canonical move retains the former direction form's
+  `along` behavior for compatibility.
 - **normalization:** none.
 - **facing (output):** **preserved**.
 - **interaction scope:** within the hands four.
 - **h4 contribution** (D7): 0.
-- **progression-eligible:** no by itself — progression only via our explicit `progression` flag
-  (not baked in, same stance as `pass_through`).
-- **sources:** ContraDanceVerifier `TryPullBy` (pull by → position swap, FigureSimulator.cs:3575);
-  user (swap along the dir axis: along=row swap, across=column swap; hand/balance styling; facing
-  preserved; progression via explicit flag); CallersCompendium taxonomy `pull_by_direction` MoveDef.
+- **progression-eligible:** no by itself — progression only via the explicit
+  `progression` flag.
+- **sources:** ContraDanceVerifier `TryPullBy` (pair or axis swap,
+  FigureSimulator.cs:3575); user (swap the selected pair or axis; hand/balance
+  styling; facing preserved); CallersCompendium taxonomy v35 `pull_by` MoveDef
+  and migration aliases.
 
 ### `cross_trails`
 
@@ -1556,7 +1543,7 @@ To be defined later with worked examples.
 ### `pass_by`
 
 - **summary:** A shoulder pass — the `who` pair walk forward and **pass by (given shoulder),
-  swapping positions**. The shoulder-named twin of `pull_by_dancers` (hand-named).
+  swapping positions**. The shoulder-named twin of `pull_by` (hand-named).
 - **params** (meets CallersCompendium baseline `{who, shoulder, beats}`):
   - `who` — dancer set, default `neighbors`. **The pair that passes by** (swaps).
   - `shoulder` — enum {`left`, `right`}, default `right`. Which shoulder passes; **styling**, no
@@ -1569,12 +1556,12 @@ To be defined later with worked examples.
 - **normalization:** none — dancers pass through to a back-to-back / passed arrangement.
 - **facing (output):** **preserved** (you walk forward past the other dancer).
 - **interaction scope:** within the hands four. **Progression is not baked in** — only via our
-  explicit `progression` flag (same stance as `pass_through` / `pull_by_dancers`).
+  explicit `progression` flag (same stance as `pass_through` / `pull_by`).
 - **h4 contribution** (D7): 0.
 - **progression-eligible:** yes (per D5; the along pass + `progression:true`).
 - **sources:** ContraDanceVerifier `TryPass` (named pair → `SwapPos`: `ones`→M1/W1, `women`→W1/W2,
   `partner`→partner swap, FigureSimulator.cs:3634 — no dedicated `pass_by` handler); user (implement
-  as the shoulder-pass twin of `pull_by_dancers`: swap the `who` pair, `shoulder` styling, facing
+  as the shoulder-pass twin of `pull_by`: swap the `who` pair, `shoulder` styling, facing
   preserved); CallersCompendium taxonomy `pass_by` MoveDef.
 
 ### `gate`

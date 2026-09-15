@@ -788,7 +788,9 @@ rest cannot pass for the wrong reason.
 ### 15.1 What the corpus says
 
 Measured over the full 24,107-file Caller's Box mirror (not in this repository;
-see §12). Numbers move as figures land — re-measure rather than cite these.
+see §12) at commit `9fcef5b`. This subsection preserves the evidence and
+attribution from that measurement; [`status.md`](status.md) holds the current
+post-taxonomy-v35 snapshot.
 
 - **Fewer than half the files are dances.** 9,017 are empty and 3,591 contain a
   bare `NaN`, which is the Caller's Box API's answer for a dance it will not
