@@ -871,24 +871,30 @@ backup taken on a syncing device leaves sync off and makes no network call.
 #### W14 · A kind-agnostic review surface
 
 - **Serves** the review-queue surface required by §3.2.
-- **Inherits** W4 (`review_queue` is the storage this reviews).
-- **Produces** a generic keep-both-or-merge list. **No per-kind editors are
-  required**, which is the scope control on this unit. The one thing that is
-  not generic: for the four `UNIQUE` natural-key kinds, resolving **keep
-  both** MUST rename the surviving live row before the counterpart tombstone is
-  applied (§6.6 step 2). The index is not filtered on `deleted_at`, so without
-  the rename the resolution simply fails to write. That is a name prompt on an
-  otherwise kind-agnostic surface, not a per-kind editor.
+- **Inherits** W4 (`review_queue` is the storage this reviews) and W7 (the
+  production queue and collision machinery).
+- **Produces** a generic queue list. **No per-kind editors are required**, which
+  is the scope control on this unit. W14 v1 exposes mutating **merge** and
+  **keep both** actions only for the §6.6 baseline-absence tombstone reason.
+  Other current or future reasons remain visible as retained/unsupported rows
+  with no mutating action. For the four `UNIQUE` natural-key kinds, resolving
+  **keep both** MUST rename the surviving live row before the counterpart
+  tombstone is applied (§6.6 step 2). The index is not filtered on
+  `deleted_at`, so without the rename the resolution simply fails to write.
+  That is a name prompt on an otherwise kind-agnostic surface, not a per-kind
+  editor.
 - **Unblocks** W8.
-- **Done when** a queued pair survives an app restart and can be resolved, and
-  a "keep both" resolution on a name collision leaves both rows stored.
+- **Done when** a queued supported pair survives an app restart and can be
+  resolved, unsupported reasons remain retained without mutation, and a "keep
+  both" resolution on a name collision leaves both rows stored.
 
 The existing `import_review_screen.dart` reviews **dances only**, and is driven
 by `ImportSession`, whose own doc comment says it is deliberately not persisted.
 Sync runs non-interactively with nobody watching, so there is no in-progress
-import to attach a decision to. This is new storage plus a new surface, not a
-reuse of proven machinery — the ADR corrects an earlier draft that implied
-otherwise.
+import to attach a decision to. This is a new resolver and surface over the
+existing persisted queue, not a new storage path and not a reuse of
+`ImportSession`/`ImportReviewScreen` — the ADR corrects an earlier draft that
+implied otherwise.
 
 #### W17 · Standing-invariant ratchets
 
@@ -1332,6 +1338,7 @@ graph LR
   W7 --> W8[W8 attach + dedupe]
   W6 --> W9[W9 quarantine + restore]
   W4 --> W14[W14 review surface]
+  W7 --> W14
   W14 --> W8
   W8 -.attach report.-> W13
   W5 --> W13[W13 settings + pairing]
@@ -1371,8 +1378,10 @@ Everything else has slack, and the slack is worth spending deliberately:
 - **W10 runs beside W4 and W5**, from C1. It is off the *nominal* critical path
   and on the *practical* one, because W6 is far cheaper to build and far safer
   to trust against a real server than a mock.
-- **W13 and W14 run from C1** against fakes. They are leaves; W14 rejoins at W8,
-  and W13 rejoins at W6 + W9 for the `sync_exclude_imports` filter only.
+- **W13 runs from C1** against fakes and rejoins at W6 + W9 for the
+  `sync_exclude_imports` filter only. W14's production resolver and persisted
+  review surface begin after W7 and rejoin at W8; UI wiring may use fakes
+  during development but is not an independently scheduled deliverable.
 - **W15 runs whenever.** It should be done first, being the cheapest thing that
   can block a release — and under S7 it blocks the beta, not just the release.
 - **W17 runs first, or as near to first as anything does.** It is independent of

@@ -1456,6 +1456,150 @@
   "@settingsGeneralSoftDeleteRetentionNever": {
     "description": "Deleted-dance retention dropdown option meaning never automatically purge deleted dances."
   },
+  "syncReviewSettingsTitle": "Sync decisions",
+  "@syncReviewSettingsTitle": {
+    "description": "General settings row title that opens persisted sync conflict decisions."
+  },
+  "syncReviewSettingsSubtitle": "Review peer deletions that conflict with records created on this device.",
+  "@syncReviewSettingsSubtitle": {
+    "description": "General settings row subtitle explaining the persisted sync decision queue."
+  },
+  "syncReviewTitle": "Sync decisions",
+  "@syncReviewTitle": {
+    "description": "App-bar title for the persisted sync decision screen."
+  },
+  "syncReviewLoading": "Loading sync decisions",
+  "@syncReviewLoading": {
+    "description": "Semantics label for the sync decision screen loading indicator."
+  },
+  "syncReviewEmpty": "There are no sync decisions waiting for you.",
+  "@syncReviewEmpty": {
+    "description": "Empty state shown when the persisted sync decision queue has no rows."
+  },
+  "syncReviewIntro": "These records need a decision before the peer change can be applied.",
+  "@syncReviewIntro": {
+    "description": "Introductory copy above persisted sync decision rows."
+  },
+  "syncReviewLoadFailed": "Sync decisions could not be loaded.",
+  "@syncReviewLoadFailed": {
+    "description": "Error state shown when loading the persisted sync decision queue fails."
+  },
+  "syncReviewResolved": "Sync decision applied.",
+  "@syncReviewResolved": {
+    "description": "Snackbar shown after a sync decision is applied successfully."
+  },
+  "syncReviewActionFailed": "That sync decision could not be applied. The item was kept for another attempt.",
+  "@syncReviewActionFailed": {
+    "description": "Generic snackbar shown when a sync decision fails for an unexpected reason."
+  },
+  "syncReviewKindChoreographer": "Choreographer",
+  "@syncReviewKindChoreographer": {
+    "description": "Kind label for a choreographer sync decision."
+  },
+  "syncReviewKindTag": "Tag",
+  "@syncReviewKindTag": {
+    "description": "Kind label for a tag sync decision."
+  },
+  "syncReviewKindCustomField": "Custom field",
+  "@syncReviewKindCustomField": {
+    "description": "Kind label for a custom-field sync decision."
+  },
+  "syncReviewKindDifficulty": "Difficulty level",
+  "@syncReviewKindDifficulty": {
+    "description": "Kind label for a difficulty-level sync decision."
+  },
+  "syncReviewKindDance": "Dance",
+  "@syncReviewKindDance": {
+    "description": "Kind label for a dance sync decision."
+  },
+  "syncReviewKindProgram": "Program",
+  "@syncReviewKindProgram": {
+    "description": "Kind label for a program sync decision."
+  },
+  "syncReviewKindPublishedSource": "Published source",
+  "@syncReviewKindPublishedSource": {
+    "description": "Kind label for a published-source sync decision."
+  },
+  "syncReviewKindVenue": "Venue",
+  "@syncReviewKindVenue": {
+    "description": "Kind label for a venue sync decision."
+  },
+  "syncReviewKindSetting": "Setting",
+  "@syncReviewKindSetting": {
+    "description": "Kind label for a setting sync decision."
+  },
+  "syncReviewLocalRecord": "Local record: {id}",
+  "@syncReviewLocalRecord": {
+    "description": "Safe identity line for the local record in a sync decision.",
+    "placeholders": {
+      "id": {
+        "type": "String",
+        "example": "local-record-id"
+      }
+    }
+  },
+  "syncReviewPeerRecord": "Peer record: {identity}",
+  "@syncReviewPeerRecord": {
+    "description": "Safe identity line for the peer candidate in a sync decision.",
+    "placeholders": {
+      "identity": {
+        "type": "String",
+        "example": "Shared name (peer-record-id)"
+      }
+    }
+  },
+  "syncReviewTombstoneReason": "A peer deleted a matching record that this device created.",
+  "@syncReviewTombstoneReason": {
+    "description": "Reason shown for the W14-supported baseline-absence tombstone decision."
+  },
+  "syncReviewUnsupportedReason": "This sync conflict is retained for now; no safe action is available here.",
+  "@syncReviewUnsupportedReason": {
+    "description": "Reason/status shown for persisted sync conflicts outside the W14 action contract."
+  },
+  "syncReviewUnsupportedAction": "Keep this item until a later sync pass or a supported review flow can handle it.",
+  "@syncReviewUnsupportedAction": {
+    "description": "Explanation shown instead of mutating actions for unsupported persisted sync conflicts."
+  },
+  "syncReviewMergeAction": "Merge",
+  "@syncReviewMergeAction": {
+    "description": "Button that applies the peer tombstone to a supported sync decision."
+  },
+  "syncReviewKeepBothAction": "Keep both",
+  "@syncReviewKeepBothAction": {
+    "description": "Button that keeps both records by renaming the local record before applying the peer tombstone."
+  },
+  "syncReviewKeepBothTitle": "Choose a new local name",
+  "@syncReviewKeepBothTitle": {
+    "description": "Dialog title shown before the keep-both sync decision."
+  },
+  "syncReviewNewNameLabel": "New local name",
+  "@syncReviewNewNameLabel": {
+    "description": "Text-field label for the distinct natural-key value required by keep-both."
+  },
+  "syncReviewNameRequired": "Enter a name.",
+  "@syncReviewNameRequired": {
+    "description": "Validation message shown when keep-both receives an empty name."
+  },
+  "syncReviewNameNotDistinct": "Choose a different name.",
+  "@syncReviewNameNotDistinct": {
+    "description": "Validation or action error shown when the keep-both name is unchanged or occupied."
+  },
+  "syncReviewCandidateInvalid": "The saved peer change is not valid, so it was kept.",
+  "@syncReviewCandidateInvalid": {
+    "description": "Action error shown when a persisted sync candidate fails integrity validation."
+  },
+  "syncReviewCandidateChanged": "The saved peer change is no longer current, so it was kept.",
+  "@syncReviewCandidateChanged": {
+    "description": "Action error shown when a persisted sync candidate or target changed."
+  },
+  "syncReviewTargetMissing": "The local record is no longer available, so the decision was kept.",
+  "@syncReviewTargetMissing": {
+    "description": "Action error shown when a supported sync decision's local target disappeared."
+  },
+  "syncReviewCandidateAlreadyPresent": "The peer record is already present, so the decision was kept.",
+  "@syncReviewCandidateAlreadyPresent": {
+    "description": "Action error shown when a persisted sync decision would duplicate an existing target."
+  },
   "settingsGeneralImportHeader": "Import",
   "@settingsGeneralImportHeader": {
     "description": "General settings section header for import actions."

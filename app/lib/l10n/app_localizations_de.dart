@@ -1186,6 +1186,122 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsGeneralSoftDeleteRetentionNever => 'Nie';
 
   @override
+  String get syncReviewSettingsTitle => 'Synchronisierungsentscheidungen';
+
+  @override
+  String get syncReviewSettingsSubtitle =>
+      'Prüfe Löschungen auf dem Peer-Gerät, die mit auf diesem Gerät erstellten Datensätzen kollidieren.';
+
+  @override
+  String get syncReviewTitle => 'Synchronisierungsentscheidungen';
+
+  @override
+  String get syncReviewLoading =>
+      'Synchronisierungsentscheidungen werden geladen';
+
+  @override
+  String get syncReviewEmpty =>
+      'Es stehen keine Synchronisierungsentscheidungen aus.';
+
+  @override
+  String get syncReviewIntro =>
+      'Für diese Datensätze ist eine Entscheidung nötig, bevor die Änderung des Peer-Geräts angewendet werden kann.';
+
+  @override
+  String get syncReviewLoadFailed =>
+      'Synchronisierungsentscheidungen konnten nicht geladen werden.';
+
+  @override
+  String get syncReviewResolved => 'Synchronisierungsentscheidung angewendet.';
+
+  @override
+  String get syncReviewActionFailed =>
+      'Diese Synchronisierungsentscheidung konnte nicht angewendet werden. Der Eintrag wurde für einen weiteren Versuch behalten.';
+
+  @override
+  String get syncReviewKindChoreographer => 'Choreograf';
+
+  @override
+  String get syncReviewKindTag => 'Tag';
+
+  @override
+  String get syncReviewKindCustomField => 'Benutzerdefiniertes Feld';
+
+  @override
+  String get syncReviewKindDifficulty => 'Schwierigkeitsgrad';
+
+  @override
+  String get syncReviewKindDance => 'Tanz';
+
+  @override
+  String get syncReviewKindProgram => 'Programm';
+
+  @override
+  String get syncReviewKindPublishedSource => 'Veröffentlichte Quelle';
+
+  @override
+  String get syncReviewKindVenue => 'Veranstaltungsort';
+
+  @override
+  String get syncReviewKindSetting => 'Einstellung';
+
+  @override
+  String syncReviewLocalRecord(String id) {
+    return 'Lokaler Datensatz: $id';
+  }
+
+  @override
+  String syncReviewPeerRecord(String identity) {
+    return 'Peer-Datensatz: $identity';
+  }
+
+  @override
+  String get syncReviewTombstoneReason =>
+      'Ein Peer-Gerät hat einen passenden Datensatz gelöscht, den dieses Gerät erstellt hat.';
+
+  @override
+  String get syncReviewUnsupportedReason =>
+      'Dieser Synchronisierungskonflikt bleibt vorerst erhalten; hier ist keine sichere Aktion verfügbar.';
+
+  @override
+  String get syncReviewUnsupportedAction =>
+      'Behalte diesen Eintrag, bis ein späterer Synchronisierungslauf oder eine unterstützte Prüfung ihn verarbeiten kann.';
+
+  @override
+  String get syncReviewMergeAction => 'Zusammenführen';
+
+  @override
+  String get syncReviewKeepBothAction => 'Beide behalten';
+
+  @override
+  String get syncReviewKeepBothTitle => 'Neuen lokalen Namen wählen';
+
+  @override
+  String get syncReviewNewNameLabel => 'Neuer lokaler Name';
+
+  @override
+  String get syncReviewNameRequired => 'Gib einen Namen ein.';
+
+  @override
+  String get syncReviewNameNotDistinct => 'Wähle einen anderen Namen.';
+
+  @override
+  String get syncReviewCandidateInvalid =>
+      'Die gespeicherte Änderung des Peer-Geräts ist ungültig und wurde daher behalten.';
+
+  @override
+  String get syncReviewCandidateChanged =>
+      'Die gespeicherte Änderung des Peer-Geräts ist nicht mehr aktuell und wurde daher behalten.';
+
+  @override
+  String get syncReviewTargetMissing =>
+      'Der lokale Datensatz ist nicht mehr verfügbar; die Entscheidung wurde behalten.';
+
+  @override
+  String get syncReviewCandidateAlreadyPresent =>
+      'Der Peer-Datensatz ist bereits vorhanden; die Entscheidung wurde behalten.';
+
+  @override
   String get settingsGeneralImportHeader => 'Import';
 
   @override

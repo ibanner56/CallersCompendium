@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/src/serialization/archive_entity_codec.dart';
 import 'package:compendium_core/src/storage/database.dart';
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart' hide isNotNull, isNull;
+import 'package:drift/native.dart';
 import 'package:test/test.dart';
 
 import 'test_database.dart';
@@ -3606,4 +3608,847 @@ void main() {
       ]);
     },
   );
+
+  group('persisted sync review resolution', () {
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+
+    Future<void> seedLocal(SyncRecordKind kind, String id, String key) async {
+      switch (kind) {
+        case SyncRecordKind.choreographer:
+          // ignore: unused_result
+          await repositories.choreographers.upsert(
+            Choreographer(id: id, name: key),
+            at: stamp,
+          );
+        case SyncRecordKind.tag:
+          // ignore: unused_result
+          await repositories.tags.upsert(
+            Tag(id: id, name: key),
+            at: stamp,
+          );
+        case SyncRecordKind.customFieldDef:
+          // ignore: unused_result
+          await repositories.customFieldDefs.upsert(
+            CustomFieldDef(
+              id: id,
+              key: key,
+              label: 'Local field',
+              type: CustomFieldType.text,
+            ),
+            at: stamp,
+          );
+        case SyncRecordKind.difficultyLevel:
+          // ignore: unused_result
+          await repositories.difficultyLevels.upsert(
+            DifficultyLevel(id: id, label: key, position: 99),
+            at: stamp,
+          );
+        case SyncRecordKind.dance:
+        case SyncRecordKind.program:
+        case SyncRecordKind.publishedSource:
+        case SyncRecordKind.venue:
+        case SyncRecordKind.setting:
+          throw StateError('unsupported test kind: $kind');
+      }
+    }
+
+    SyncRecordBlob tombstoneFor(
+      SyncRecordKind kind,
+      String id,
+      String key, {
+      String? customFieldType,
+    }) {
+      final body = switch (kind) {
+        SyncRecordKind.choreographer => syncBodyForEntity(
+          kind,
+          Choreographer(id: id, name: key),
+        ),
+        SyncRecordKind.tag => syncBodyForEntity(kind, Tag(id: id, name: key)),
+        SyncRecordKind.customFieldDef =>
+          customFieldType == null
+              ? syncBodyForEntity(
+                  kind,
+                  CustomFieldDef(
+                    id: id,
+                    key: key,
+                    label: 'Remote field',
+                    type: CustomFieldType.text,
+                  ),
+                )
+              : <String, Object?>{
+                  'id': id,
+                  'key': key,
+                  'label': 'Remote field',
+                  'type': customFieldType,
+                  'showInList': false,
+                  'searchable': false,
+                  'shareable': true,
+                },
+        SyncRecordKind.difficultyLevel => syncBodyForEntity(
+          kind,
+          DifficultyLevel(id: id, label: key, position: 100),
+        ),
+        SyncRecordKind.dance ||
+        SyncRecordKind.program ||
+        SyncRecordKind.publishedSource ||
+        SyncRecordKind.venue ||
+        SyncRecordKind.setting => throw StateError('unsupported test kind'),
+      };
+      return SyncRecordBlob(
+        kind: kind,
+        id: id,
+        updatedAt: stamp.add(const Duration(minutes: 1)),
+        deletedAt: stamp.add(const Duration(minutes: 1)),
+        existenceAt: stamp.add(const Duration(minutes: 1)),
+        body: body,
+      );
+    }
+
+    Future<SyncReviewQueueItem> enqueue(
+      SyncRecordKind kind,
+      String localId,
+      SyncRecordBlob candidate, {
+      String reason = syncBaselineAbsenceTombstoneReason,
+    }) async {
+      final candidateBlob = encodeSyncRecordBlob(candidate);
+      await repositories.syncLocal.enqueueReview(
+        kind: kind,
+        recordId: localId,
+        counterpartId: candidate.id,
+        reason: reason,
+        candidateBlob: candidateBlob,
+        candidateHash: sha256Hex(encodeSyncRecordBlobUtf8(candidate)),
+        queuedAt: stamp.add(const Duration(minutes: 2)),
+      );
+      return SyncReviewQueueItem.fromRow(
+        (await repositories.syncLocal.listReviewQueue()).single,
+      );
+    }
+
+    Future<void> expectLiveKey(
+      SyncRecordKind kind,
+      String id,
+      String key,
+    ) async {
+      switch (kind) {
+        case SyncRecordKind.choreographer:
+          expect((await repositories.choreographers.getById(id))!.name, key);
+        case SyncRecordKind.tag:
+          expect((await repositories.tags.getById(id))!.name, key);
+        case SyncRecordKind.customFieldDef:
+          expect((await repositories.customFieldDefs.getById(id))!.key, key);
+        case SyncRecordKind.difficultyLevel:
+          expect((await repositories.difficultyLevels.getById(id))!.label, key);
+        case SyncRecordKind.dance:
+        case SyncRecordKind.program:
+        case SyncRecordKind.publishedSource:
+        case SyncRecordKind.venue:
+        case SyncRecordKind.setting:
+          throw StateError('unsupported test kind: $kind');
+      }
+    }
+
+    Future<void> expectTombstone(SyncRecordKind kind, String id) async {
+      switch (kind) {
+        case SyncRecordKind.choreographer:
+          expect(
+            (await (db.select(
+              db.choreographers,
+            )..where((row) => row.id.equals(id))).getSingle()).deletedAt,
+            isNotNull,
+          );
+        case SyncRecordKind.tag:
+          expect(
+            (await (db.select(
+              db.tags,
+            )..where((row) => row.id.equals(id))).getSingle()).deletedAt,
+            isNotNull,
+          );
+        case SyncRecordKind.customFieldDef:
+          expect(
+            (await (db.select(
+              db.customFieldDefs,
+            )..where((row) => row.id.equals(id))).getSingle()).deletedAt,
+            isNotNull,
+          );
+        case SyncRecordKind.difficultyLevel:
+          expect(
+            (await (db.select(
+              db.difficultyLevels,
+            )..where((row) => row.id.equals(id))).getSingle()).deletedAt,
+            isNotNull,
+          );
+        case SyncRecordKind.dance:
+        case SyncRecordKind.program:
+        case SyncRecordKind.publishedSource:
+        case SyncRecordKind.venue:
+        case SyncRecordKind.setting:
+          throw StateError('unsupported test kind: $kind');
+      }
+    }
+
+    test(
+      'keeps both for every supported natural-key kind and consumes the row',
+      () async {
+        for (final kind in syncNaturalKeyKinds) {
+          final localId = 'local-${kind.name}';
+          final remoteId = 'remote-${kind.name}';
+          final localKey = 'Local ${kind.name}';
+          final renamedKey = kind == SyncRecordKind.customFieldDef
+              ? 'renamed_${kind.name}'
+              : 'Renamed ${kind.name}';
+          await seedLocal(kind, localId, localKey);
+          final item = await enqueue(
+            kind,
+            localId,
+            tombstoneFor(kind, remoteId, localKey),
+          );
+
+          await storage.resolveReviewQueue(
+            expectedRow: item.row,
+            action: SyncReviewAction.keepBoth,
+            newNaturalKey: renamedKey,
+          );
+
+          await expectLiveKey(kind, localId, renamedKey);
+          expect(
+            await repositories.syncLocal.getReviewQueue(
+              kind: kind,
+              recordId: localId,
+              counterpartId: remoteId,
+            ),
+            isNull,
+          );
+          await expectTombstone(kind, remoteId);
+        }
+      },
+    );
+
+    test(
+      'reconciliation-produced tombstone rows use local and peer identities',
+      () async {
+        const kind = SyncRecordKind.choreographer;
+        const localId = 'reconciled-local';
+        const remoteId = 'reconciled-remote';
+        const key = 'Reconciled author';
+        await seedLocal(kind, localId, key);
+        final candidate = tombstoneFor(kind, remoteId, key);
+
+        final result = await const SyncApplyEngine().apply(
+          candidates: [SyncMergeCandidate(blob: candidate)],
+          storage: storage,
+        );
+
+        expect(result.applied, isEmpty);
+        expect(result.reports, isEmpty);
+        final item = SyncReviewQueueItem.fromRow(
+          (await repositories.syncLocal.listReviewQueue()).single,
+        );
+        expect(item.row.recordId, localId);
+        expect(item.row.counterpartId, remoteId);
+        expect(item.isActionable, isTrue);
+
+        await storage.resolveReviewQueue(
+          expectedRow: item.row,
+          action: SyncReviewAction.keepBoth,
+          newNaturalKey: 'Reconciled author (local)',
+        );
+
+        await expectLiveKey(kind, localId, 'Reconciled author (local)');
+        await expectTombstone(kind, remoteId);
+        expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+      },
+    );
+
+    test(
+      'canonical difficulty tombstone rows use local and peer identities',
+      () async {
+        await (db.delete(
+          db.difficultyLevels,
+        )..where((row) => row.id.equals(DifficultyLevel.beginner.id))).go();
+        const kind = SyncRecordKind.difficultyLevel;
+        const localId = 'reconciled-local-difficulty';
+        const remoteId = 'reconciled-remote-difficulty';
+        final key = DifficultyLevel.beginner.label;
+        await seedLocal(kind, localId, key);
+        final candidate = tombstoneFor(kind, remoteId, key);
+
+        final result = await const SyncApplyEngine().apply(
+          candidates: [SyncMergeCandidate(blob: candidate)],
+          storage: storage,
+        );
+
+        expect(result.applied, isEmpty);
+        expect(result.reports, isEmpty);
+        final item = SyncReviewQueueItem.fromRow(
+          (await repositories.syncLocal.listReviewQueue()).single,
+        );
+        expect(item.row.recordId, localId);
+        expect(item.row.counterpartId, remoteId);
+        expect(item.isActionable, isTrue);
+
+        await storage.resolveReviewQueue(
+          expectedRow: item.row,
+          action: SyncReviewAction.keepBoth,
+          newNaturalKey: '$key (local)',
+        );
+        await expectLiveKey(kind, localId, '$key (local)');
+        await expectTombstone(kind, remoteId);
+        expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+      },
+    );
+
+    test('survives a file-backed close and reopen before resolution', () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'compendium-w14-',
+      );
+      final path = '${directory.path}/compendium.sqlite';
+      CompendiumDatabase? fileDb;
+      try {
+        final initialDb = CompendiumDatabase(NativeDatabase(File(path)));
+        fileDb = initialDb;
+        final fileRepositories = CompendiumRepositories(
+          initialDb,
+          contraTaxonomy,
+        );
+        const kind = SyncRecordKind.choreographer;
+        const localId = 'restart-local';
+        const remoteId = 'restart-remote';
+        const key = 'Restart author';
+        // ignore: unused_result
+        await fileRepositories.choreographers.upsert(
+          Choreographer(id: localId, name: key),
+          at: stamp,
+        );
+        final candidate = tombstoneFor(kind, remoteId, key);
+        await fileRepositories.syncLocal.enqueueReview(
+          kind: kind,
+          recordId: localId,
+          counterpartId: remoteId,
+          reason: syncBaselineAbsenceTombstoneReason,
+          candidateBlob: encodeSyncRecordBlob(candidate),
+          candidateHash: sha256Hex(encodeSyncRecordBlobUtf8(candidate)),
+          queuedAt: stamp.add(const Duration(minutes: 2)),
+        );
+        await initialDb.close();
+        final reopenedDb = CompendiumDatabase(NativeDatabase(File(path)));
+        fileDb = reopenedDb;
+        final reopenedRepositories = CompendiumRepositories(
+          reopenedDb,
+          contraTaxonomy,
+        );
+        final reopenedStorage = CompendiumSyncStorage(reopenedRepositories);
+        final row =
+            (await reopenedRepositories.syncLocal.listReviewQueue()).single;
+
+        await reopenedStorage.resolveReviewQueue(
+          expectedRow: row,
+          action: SyncReviewAction.keepBoth,
+          newNaturalKey: 'Restart author (local)',
+        );
+
+        expect(
+          (await reopenedRepositories.choreographers.getById(localId))!.name,
+          'Restart author (local)',
+        );
+        expect(
+          await reopenedRepositories.choreographers.getById(remoteId),
+          isNull,
+        );
+        final remoteRow = await (reopenedDb.select(
+          reopenedDb.choreographers,
+        )..where((table) => table.id.equals(remoteId))).getSingle();
+        expect(remoteRow.deletedAt, isNotNull);
+        expect(await reopenedRepositories.syncLocal.listReviewQueue(), isEmpty);
+      } finally {
+        await fileDb?.close();
+        await directory.delete(recursive: true);
+      }
+    });
+
+    test(
+      'rolls back a keep-both rename when the production write seam fails',
+      () async {
+        final interceptor = _FailAfterNaturalKeyRenameInterceptor();
+        final injectedDb = CompendiumDatabase(
+          NativeDatabase.memory().interceptWith(interceptor),
+        );
+        addTearDown(injectedDb.close);
+        final injectedRepositories = CompendiumRepositories(
+          injectedDb,
+          contraTaxonomy,
+        );
+        const kind = SyncRecordKind.choreographer;
+        const localId = 'rollback-local';
+        const remoteId = 'rollback-remote';
+        const key = 'Rollback author';
+        // ignore: unused_result
+        await injectedRepositories.choreographers.upsert(
+          Choreographer(id: localId, name: key),
+          at: stamp,
+        );
+        final candidate = tombstoneFor(kind, remoteId, key);
+        await injectedRepositories.syncLocal.enqueueReview(
+          kind: kind,
+          recordId: localId,
+          counterpartId: remoteId,
+          reason: syncBaselineAbsenceTombstoneReason,
+          candidateBlob: encodeSyncRecordBlob(candidate),
+          candidateHash: sha256Hex(encodeSyncRecordBlobUtf8(candidate)),
+          queuedAt: stamp.add(const Duration(minutes: 2)),
+        );
+        final item = SyncReviewQueueItem.fromRow(
+          (await injectedRepositories.syncLocal.listReviewQueue()).single,
+        );
+        interceptor.arm();
+
+        await expectLater(
+          CompendiumSyncStorage(injectedRepositories).resolveReviewQueue(
+            expectedRow: item.row,
+            action: SyncReviewAction.keepBoth,
+            newNaturalKey: 'Rollback author (local)',
+          ),
+          throwsA(isA<StateError>()),
+        );
+
+        expect(
+          (await injectedRepositories.choreographers.getById(localId))!.name,
+          key,
+        );
+        expect(
+          await injectedRepositories.choreographers.getById(remoteId),
+          isNull,
+        );
+        expect(await injectedRepositories.syncLocal.listAliases(), isEmpty);
+        expect(
+          await injectedRepositories.syncLocal.listReviewQueue(),
+          hasLength(1),
+        );
+      },
+    );
+
+    test(
+      'merge chooses the lexicographically smaller local identity',
+      () async {
+        const kind = SyncRecordKind.choreographer;
+        const localId = 'merge-local';
+        const remoteId = 'merge-remote';
+        const key = 'Merge author';
+        await seedLocal(kind, localId, key);
+        final candidate = tombstoneFor(kind, remoteId, key);
+        final item = await enqueue(kind, localId, candidate);
+
+        await storage.resolveReviewQueue(
+          expectedRow: item.row,
+          action: SyncReviewAction.merge,
+        );
+
+        expect(await repositories.choreographers.getById(localId), isNull);
+        expect(
+          await repositories.syncLocal.resolveAlias(
+            kind: kind,
+            recordId: remoteId,
+          ),
+          localId,
+        );
+        await expectTombstone(kind, localId);
+        expect(await repositories.choreographers.getById(remoteId), isNull);
+        final local = await (db.select(
+          db.choreographers,
+        )..where((row) => row.id.equals(localId))).getSingle();
+        expect(local.updatedAt?.toUtc(), candidate.updatedAt);
+        expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+      },
+    );
+
+    test('merge keeps a shipped difficulty ID canonical', () async {
+      const kind = SyncRecordKind.difficultyLevel;
+      const localId = DifficultyLevel.beginnerId;
+      const remoteId = 'a-merge-remote-difficulty';
+      final key = DifficultyLevel.beginner.label;
+      await seedLocal(kind, localId, key);
+      final localRow = await (db.select(
+        db.difficultyLevels,
+      )..where((row) => row.id.equals(localId))).getSingle();
+      final candidateStamp = localRow.existenceAt!.toUtc().add(
+        const Duration(minutes: 1),
+      );
+      final baseCandidate = tombstoneFor(kind, remoteId, key);
+      final candidate = SyncRecordBlob(
+        v: baseCandidate.v,
+        kind: baseCandidate.kind,
+        id: baseCandidate.id,
+        updatedAt: candidateStamp,
+        deletedAt: candidateStamp,
+        existenceAt: candidateStamp,
+        body: baseCandidate.body,
+      );
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [SyncMergeCandidate(blob: candidate)],
+        storage: storage,
+      );
+
+      expect(result.applied, isEmpty);
+      expect(result.reports, isEmpty);
+      final item = SyncReviewQueueItem.fromRow(
+        (await repositories.syncLocal.listReviewQueue()).single,
+      );
+      expect(item.row.recordId, localId);
+      expect(item.row.counterpartId, remoteId);
+
+      await storage.resolveReviewQueue(
+        expectedRow: item.row,
+        action: SyncReviewAction.merge,
+      );
+
+      expect(
+        await repositories.syncLocal.resolveAlias(
+          kind: kind,
+          recordId: remoteId,
+        ),
+        localId,
+      );
+      await expectTombstone(kind, localId);
+      expect(await repositories.difficultyLevels.getById(remoteId), isNull);
+      final local = await (db.select(
+        db.difficultyLevels,
+      )..where((row) => row.id.equals(localId))).getSingle();
+      expect(local.updatedAt?.toUtc(), candidate.updatedAt);
+      expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+    });
+
+    test('merge chooses the lexicographically smaller peer identity', () async {
+      const kind = SyncRecordKind.choreographer;
+      const localId = 'z-merge-local';
+      const remoteId = 'a-merge-remote';
+      const key = 'Merge peer author';
+      await seedLocal(kind, localId, key);
+      final item = await enqueue(
+        kind,
+        localId,
+        tombstoneFor(kind, remoteId, key),
+      );
+
+      await storage.resolveReviewQueue(
+        expectedRow: item.row,
+        action: SyncReviewAction.merge,
+      );
+
+      expect(await repositories.choreographers.getById(localId), isNull);
+      expect(
+        await repositories.syncLocal.resolveAlias(
+          kind: kind,
+          recordId: localId,
+        ),
+        remoteId,
+      );
+      await expectTombstone(kind, remoteId);
+      expect(await repositories.choreographers.getById(remoteId), isNull);
+      expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+    });
+
+    test('merge applies the tombstone to the deterministic survivor', () async {
+      const kind = SyncRecordKind.choreographer;
+      const localId = 'merge-check-local';
+      const remoteId = 'merge-check-remote';
+      const key = 'Merge check author';
+      await seedLocal(kind, localId, key);
+      final item = await enqueue(
+        kind,
+        localId,
+        tombstoneFor(kind, remoteId, key),
+      );
+
+      await storage.resolveReviewQueue(
+        expectedRow: item.row,
+        action: SyncReviewAction.merge,
+      );
+
+      final survivor = localId.compareTo(remoteId) < 0 ? localId : remoteId;
+      final loser = survivor == localId ? remoteId : localId;
+      expect(
+        await repositories.syncLocal.resolveAlias(kind: kind, recordId: loser),
+        survivor,
+      );
+      final row = await (db.select(
+        db.choreographers,
+      )..where((row) => row.id.equals(survivor))).getSingle();
+      expect(row.deletedAt, isNotNull);
+      expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+    });
+
+    test(
+      'rejects invalid names without changing or consuming the row',
+      () async {
+        const kind = SyncRecordKind.choreographer;
+        const localId = 'invalid-name-local';
+        const remoteId = 'invalid-name-remote';
+        const key = 'Invalid name author';
+        await seedLocal(kind, localId, key);
+        final item = await enqueue(
+          kind,
+          localId,
+          tombstoneFor(kind, remoteId, key),
+        );
+
+        await expectLater(
+          storage.resolveReviewQueue(
+            expectedRow: item.row,
+            action: SyncReviewAction.keepBoth,
+            newNaturalKey: '   ',
+          ),
+          throwsA(
+            isA<SyncReviewException>().having(
+              (error) => error.code,
+              'code',
+              SyncReviewFailureCode.nameRequired,
+            ),
+          ),
+        );
+        await expectLiveKey(kind, localId, key);
+        expect(await repositories.syncLocal.listReviewQueue(), hasLength(1));
+      },
+    );
+
+    test(
+      'keep-both trims surrounding whitespace from renamed natural keys',
+      () async {
+        const kind = SyncRecordKind.choreographer;
+        const localId = 'trimmed-name-local';
+        const remoteId = 'trimmed-name-remote';
+        const key = 'Trim target author';
+        await seedLocal(kind, localId, key);
+        final item = await enqueue(
+          kind,
+          localId,
+          tombstoneFor(kind, remoteId, key),
+        );
+
+        await storage.resolveReviewQueue(
+          expectedRow: item.row,
+          action: SyncReviewAction.keepBoth,
+          newNaturalKey: '  Trimmed rename  ',
+        );
+
+        await expectLiveKey(kind, localId, 'Trimmed rename');
+        await expectTombstone(kind, remoteId);
+        expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+      },
+    );
+
+    test(
+      'rejects a tombstone when the local existence stamp is newer',
+      () async {
+        for (final action in SyncReviewAction.values) {
+          final localId = 'stale-local-${action.name}';
+          final remoteId = 'stale-remote-${action.name}';
+          final key = 'Stale author ${action.name}';
+          await seedLocal(SyncRecordKind.choreographer, localId, key);
+          final item = await enqueue(
+            SyncRecordKind.choreographer,
+            localId,
+            tombstoneFor(SyncRecordKind.choreographer, remoteId, key),
+          );
+          await repositories.choreographers.delete(
+            localId,
+            at: stamp.add(const Duration(minutes: 2)),
+          );
+          await repositories.choreographers.restore(
+            localId,
+            at: stamp.add(const Duration(minutes: 3)),
+          );
+
+          await expectLater(
+            storage.resolveReviewQueue(
+              expectedRow: item.row,
+              action: action,
+              newNaturalKey: action == SyncReviewAction.keepBoth
+                  ? 'Restored author ${action.name}'
+                  : null,
+            ),
+            throwsA(
+              isA<SyncReviewException>().having(
+                (error) => error.code,
+                'code',
+                SyncReviewFailureCode.candidateChanged,
+              ),
+            ),
+          );
+          await expectLiveKey(SyncRecordKind.choreographer, localId, key);
+          expect(await repositories.syncLocal.listReviewQueue(), hasLength(1));
+          await repositories.syncLocal.deleteReview(
+            kind: SyncRecordKind.choreographer,
+            recordId: localId,
+            counterpartId: remoteId,
+          );
+        }
+      },
+    );
+
+    test(
+      'rejects invalid custom-field keep-both keys without changing the row',
+      () async {
+        const kind = SyncRecordKind.customFieldDef;
+        const localId = 'invalid-custom-key-local';
+        const remoteId = 'invalid-custom-key-remote';
+        const key = 'invalid_custom_key';
+        await seedLocal(kind, localId, key);
+        final item = await enqueue(
+          kind,
+          localId,
+          tombstoneFor(kind, remoteId, key),
+        );
+
+        await expectLater(
+          storage.resolveReviewQueue(
+            expectedRow: item.row,
+            action: SyncReviewAction.keepBoth,
+            newNaturalKey: 'invalid custom key',
+          ),
+          throwsA(
+            isA<SyncReviewException>().having(
+              (error) => error.code,
+              'code',
+              SyncReviewFailureCode.invalidCustomFieldKey,
+            ),
+          ),
+        );
+        await expectLiveKey(kind, localId, key);
+        expect(await repositories.syncLocal.listReviewQueue(), hasLength(1));
+        expect(await repositories.customFieldDefs.getById(remoteId), isNull);
+      },
+    );
+
+    test('retains unsupported reasons and malformed candidates', () async {
+      const kind = SyncRecordKind.choreographer;
+      const localId = 'retained-local';
+      const remoteId = 'retained-remote';
+      const key = 'Retained author';
+      await seedLocal(kind, localId, key);
+      final unsupported = await enqueue(
+        kind,
+        localId,
+        tombstoneFor(kind, remoteId, key),
+        reason: 'known UUID natural-key rename collides with another local row',
+      );
+
+      expect(unsupported.isActionable, isFalse);
+      await expectLater(
+        storage.resolveReviewQueue(
+          expectedRow: unsupported.row,
+          action: SyncReviewAction.merge,
+        ),
+        throwsA(
+          isA<SyncReviewException>().having(
+            (error) => error.code,
+            'code',
+            SyncReviewFailureCode.unsupportedReason,
+          ),
+        ),
+      );
+      expect(await repositories.syncLocal.listReviewQueue(), hasLength(1));
+
+      await repositories.syncLocal.deleteReview(
+        kind: kind,
+        recordId: localId,
+        counterpartId: remoteId,
+      );
+      final malformed = await enqueue(
+        SyncRecordKind.customFieldDef,
+        'malformed-local',
+        tombstoneFor(
+          SyncRecordKind.customFieldDef,
+          'malformed-remote',
+          'malformed_field',
+          customFieldType: 'not-a-type',
+        ),
+      );
+      expect(malformed.isActionable, isFalse);
+      await seedLocal(
+        SyncRecordKind.customFieldDef,
+        'malformed-local',
+        'malformed_field',
+      );
+      await expectLater(
+        storage.resolveReviewQueue(
+          expectedRow: malformed.row,
+          action: SyncReviewAction.keepBoth,
+          newNaturalKey: 'renamed_malformed_field',
+        ),
+        throwsA(
+          isA<SyncReviewException>().having(
+            (error) => error.code,
+            'code',
+            SyncReviewFailureCode.candidateInvalid,
+          ),
+        ),
+      );
+      await expectLiveKey(
+        SyncRecordKind.customFieldDef,
+        'malformed-local',
+        'malformed_field',
+      );
+      expect(await repositories.syncLocal.listReviewQueue(), hasLength(1));
+      expect(
+        await repositories.customFieldDefs.getById('malformed-remote'),
+        isNull,
+      );
+    });
+  });
+}
+
+final class _FailAfterNaturalKeyRenameInterceptor extends QueryInterceptor {
+  var _armed = false;
+  var _renameSeen = false;
+  var _writesAfterRename = 0;
+
+  void arm() {
+    _armed = true;
+  }
+
+  void _observeWrite(String statement) {
+    if (!_armed) return;
+    final normalized = statement.toLowerCase();
+    if (!_renameSeen &&
+        normalized.startsWith('update') &&
+        normalized.contains('choreographers')) {
+      _renameSeen = true;
+      _writesAfterRename = 1;
+      return;
+    }
+    if (_renameSeen && ++_writesAfterRename == 2) {
+      throw StateError('injected post-rename write failure');
+    }
+  }
+
+  @override
+  Future<int> runInsert(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    _observeWrite(statement);
+    return super.runInsert(executor, statement, args);
+  }
+
+  @override
+  Future<int> runUpdate(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    _observeWrite(statement);
+    return super.runUpdate(executor, statement, args);
+  }
+
+  @override
+  Future<int> runDelete(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    _observeWrite(statement);
+    return super.runDelete(executor, statement, args);
+  }
 }

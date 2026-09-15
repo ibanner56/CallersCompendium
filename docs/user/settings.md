@@ -71,6 +71,18 @@ the full picture.
   then purged. For how soft-delete and restore work, see
   [Collection & search](./collection.md).
 
+### Sync decisions
+
+- **Sync decisions** — review conflicts that synchronization could not settle
+  without your choice. In W14, the supported decision is a peer tombstone
+  colliding with a natural-key record this device created that no peer has yet
+  observed.
+- **Merge** — accept the peer deletion. The app keeps the natural-key record
+  with the deterministic identity and applies the tombstone.
+- **Keep both** — give the local record a distinct natural key, then keep it
+  alongside the peer tombstone. Other conflict reasons remain visible as
+  retained decisions until a future version defines their actions.
+
 ### Import
 
 - **Import dances** — the entry point for bringing dances in from other sources.

@@ -16,7 +16,8 @@
     }
   ],
   "dependsOn": [
-    "ADR-004/W4"
+    "ADR-004/W4",
+    "ADR-004/W7"
   ],
   "completionDependsOn": [],
   "checkpoints": [
@@ -24,10 +25,10 @@
   ],
   "produces": [
     "Persistent cross-record-kind review queue",
-    "Keep-both and merge decisions",
+    "Keep-both and merge decisions for baseline-absence tombstone conflicts",
     "Rename prompt for natural-key keep-both collisions"
   ],
-  "pullRequests": [],
+  "pullRequests": [1279],
   "hold": null,
   "completion": {
     "complete": false,

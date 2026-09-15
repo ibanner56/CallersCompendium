@@ -2049,6 +2049,204 @@ abstract class AppLocalizations {
   /// **'Never'**
   String get settingsGeneralSoftDeleteRetentionNever;
 
+  /// General settings row title that opens persisted sync conflict decisions.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync decisions'**
+  String get syncReviewSettingsTitle;
+
+  /// General settings row subtitle explaining the persisted sync decision queue.
+  ///
+  /// In en, this message translates to:
+  /// **'Review peer deletions that conflict with records created on this device.'**
+  String get syncReviewSettingsSubtitle;
+
+  /// App-bar title for the persisted sync decision screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync decisions'**
+  String get syncReviewTitle;
+
+  /// Semantics label for the sync decision screen loading indicator.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading sync decisions'**
+  String get syncReviewLoading;
+
+  /// Empty state shown when the persisted sync decision queue has no rows.
+  ///
+  /// In en, this message translates to:
+  /// **'There are no sync decisions waiting for you.'**
+  String get syncReviewEmpty;
+
+  /// Introductory copy above persisted sync decision rows.
+  ///
+  /// In en, this message translates to:
+  /// **'These records need a decision before the peer change can be applied.'**
+  String get syncReviewIntro;
+
+  /// Error state shown when loading the persisted sync decision queue fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync decisions could not be loaded.'**
+  String get syncReviewLoadFailed;
+
+  /// Snackbar shown after a sync decision is applied successfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync decision applied.'**
+  String get syncReviewResolved;
+
+  /// Generic snackbar shown when a sync decision fails for an unexpected reason.
+  ///
+  /// In en, this message translates to:
+  /// **'That sync decision could not be applied. The item was kept for another attempt.'**
+  String get syncReviewActionFailed;
+
+  /// Kind label for a choreographer sync decision.
+  ///
+  /// In en, this message translates to:
+  /// **'Choreographer'**
+  String get syncReviewKindChoreographer;
+
+  /// Kind label for a tag sync decision.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag'**
+  String get syncReviewKindTag;
+
+  /// Kind label for a custom-field sync decision.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom field'**
+  String get syncReviewKindCustomField;
+
+  /// Kind label for a difficulty-level sync decision.
+  ///
+  /// In en, this message translates to:
+  /// **'Difficulty level'**
+  String get syncReviewKindDifficulty;
+
+  /// Kind label for a dance sync decision.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance'**
+  String get syncReviewKindDance;
+
+  /// Kind label for a program sync decision.
+  ///
+  /// In en, this message translates to:
+  /// **'Program'**
+  String get syncReviewKindProgram;
+
+  /// Kind label for a published-source sync decision.
+  ///
+  /// In en, this message translates to:
+  /// **'Published source'**
+  String get syncReviewKindPublishedSource;
+
+  /// Kind label for a venue sync decision.
+  ///
+  /// In en, this message translates to:
+  /// **'Venue'**
+  String get syncReviewKindVenue;
+
+  /// Kind label for a setting sync decision.
+  ///
+  /// In en, this message translates to:
+  /// **'Setting'**
+  String get syncReviewKindSetting;
+
+  /// Safe identity line for the local record in a sync decision.
+  ///
+  /// In en, this message translates to:
+  /// **'Local record: {id}'**
+  String syncReviewLocalRecord(String id);
+
+  /// Safe identity line for the peer candidate in a sync decision.
+  ///
+  /// In en, this message translates to:
+  /// **'Peer record: {identity}'**
+  String syncReviewPeerRecord(String identity);
+
+  /// Reason shown for the W14-supported baseline-absence tombstone decision.
+  ///
+  /// In en, this message translates to:
+  /// **'A peer deleted a matching record that this device created.'**
+  String get syncReviewTombstoneReason;
+
+  /// Reason/status shown for persisted sync conflicts outside the W14 action contract.
+  ///
+  /// In en, this message translates to:
+  /// **'This sync conflict is retained for now; no safe action is available here.'**
+  String get syncReviewUnsupportedReason;
+
+  /// Explanation shown instead of mutating actions for unsupported persisted sync conflicts.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep this item until a later sync pass or a supported review flow can handle it.'**
+  String get syncReviewUnsupportedAction;
+
+  /// Button that applies the peer tombstone to a supported sync decision.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge'**
+  String get syncReviewMergeAction;
+
+  /// Button that keeps both records by renaming the local record before applying the peer tombstone.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep both'**
+  String get syncReviewKeepBothAction;
+
+  /// Dialog title shown before the keep-both sync decision.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a new local name'**
+  String get syncReviewKeepBothTitle;
+
+  /// Text-field label for the distinct natural-key value required by keep-both.
+  ///
+  /// In en, this message translates to:
+  /// **'New local name'**
+  String get syncReviewNewNameLabel;
+
+  /// Validation message shown when keep-both receives an empty name.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a name.'**
+  String get syncReviewNameRequired;
+
+  /// Validation or action error shown when the keep-both name is unchanged or occupied.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a different name.'**
+  String get syncReviewNameNotDistinct;
+
+  /// Action error shown when a persisted sync candidate fails integrity validation.
+  ///
+  /// In en, this message translates to:
+  /// **'The saved peer change is not valid, so it was kept.'**
+  String get syncReviewCandidateInvalid;
+
+  /// Action error shown when a persisted sync candidate or target changed.
+  ///
+  /// In en, this message translates to:
+  /// **'The saved peer change is no longer current, so it was kept.'**
+  String get syncReviewCandidateChanged;
+
+  /// Action error shown when a supported sync decision's local target disappeared.
+  ///
+  /// In en, this message translates to:
+  /// **'The local record is no longer available, so the decision was kept.'**
+  String get syncReviewTargetMissing;
+
+  /// Action error shown when a persisted sync decision would duplicate an existing target.
+  ///
+  /// In en, this message translates to:
+  /// **'The peer record is already present, so the decision was kept.'**
+  String get syncReviewCandidateAlreadyPresent;
+
   /// General settings section header for import actions.
   ///
   /// In en, this message translates to:

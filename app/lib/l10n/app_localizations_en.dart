@@ -1156,6 +1156,119 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsGeneralSoftDeleteRetentionNever => 'Never';
 
   @override
+  String get syncReviewSettingsTitle => 'Sync decisions';
+
+  @override
+  String get syncReviewSettingsSubtitle =>
+      'Review peer deletions that conflict with records created on this device.';
+
+  @override
+  String get syncReviewTitle => 'Sync decisions';
+
+  @override
+  String get syncReviewLoading => 'Loading sync decisions';
+
+  @override
+  String get syncReviewEmpty => 'There are no sync decisions waiting for you.';
+
+  @override
+  String get syncReviewIntro =>
+      'These records need a decision before the peer change can be applied.';
+
+  @override
+  String get syncReviewLoadFailed => 'Sync decisions could not be loaded.';
+
+  @override
+  String get syncReviewResolved => 'Sync decision applied.';
+
+  @override
+  String get syncReviewActionFailed =>
+      'That sync decision could not be applied. The item was kept for another attempt.';
+
+  @override
+  String get syncReviewKindChoreographer => 'Choreographer';
+
+  @override
+  String get syncReviewKindTag => 'Tag';
+
+  @override
+  String get syncReviewKindCustomField => 'Custom field';
+
+  @override
+  String get syncReviewKindDifficulty => 'Difficulty level';
+
+  @override
+  String get syncReviewKindDance => 'Dance';
+
+  @override
+  String get syncReviewKindProgram => 'Program';
+
+  @override
+  String get syncReviewKindPublishedSource => 'Published source';
+
+  @override
+  String get syncReviewKindVenue => 'Venue';
+
+  @override
+  String get syncReviewKindSetting => 'Setting';
+
+  @override
+  String syncReviewLocalRecord(String id) {
+    return 'Local record: $id';
+  }
+
+  @override
+  String syncReviewPeerRecord(String identity) {
+    return 'Peer record: $identity';
+  }
+
+  @override
+  String get syncReviewTombstoneReason =>
+      'A peer deleted a matching record that this device created.';
+
+  @override
+  String get syncReviewUnsupportedReason =>
+      'This sync conflict is retained for now; no safe action is available here.';
+
+  @override
+  String get syncReviewUnsupportedAction =>
+      'Keep this item until a later sync pass or a supported review flow can handle it.';
+
+  @override
+  String get syncReviewMergeAction => 'Merge';
+
+  @override
+  String get syncReviewKeepBothAction => 'Keep both';
+
+  @override
+  String get syncReviewKeepBothTitle => 'Choose a new local name';
+
+  @override
+  String get syncReviewNewNameLabel => 'New local name';
+
+  @override
+  String get syncReviewNameRequired => 'Enter a name.';
+
+  @override
+  String get syncReviewNameNotDistinct => 'Choose a different name.';
+
+  @override
+  String get syncReviewCandidateInvalid =>
+      'The saved peer change is not valid, so it was kept.';
+
+  @override
+  String get syncReviewCandidateChanged =>
+      'The saved peer change is no longer current, so it was kept.';
+
+  @override
+  String get syncReviewTargetMissing =>
+      'The local record is no longer available, so the decision was kept.';
+
+  @override
+  String get syncReviewCandidateAlreadyPresent =>
+      'The peer record is already present, so the decision was kept.';
+
+  @override
   String get settingsGeneralImportHeader => 'Import';
 
   @override
