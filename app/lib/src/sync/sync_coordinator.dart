@@ -1103,6 +1103,8 @@ class SyncCoordinator {
     if (result.status == SyncPassStatus.completed) {
       _replacementCreated = false;
       _paused = false;
+    } else if (result.status == SyncPassStatus.replacementRequired) {
+      _replacementCreated = false;
     }
     return result;
   }
