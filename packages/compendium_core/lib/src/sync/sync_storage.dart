@@ -570,7 +570,7 @@ final class CompendiumSyncStorage
   String _danceReviewPairKey(String left, String right) {
     final first = left.compareTo(right) <= 0 ? left : right;
     final second = first == left ? right : left;
-    return '$first:$second';
+    return canonicalJson([first, second]);
   }
 
   Future<SyncFreshAttachDedupePlan> _danceDedupePlan() async {
@@ -712,7 +712,7 @@ final class CompendiumSyncStorage
           ? recordId
           : counterpartId;
       final rightId = leftId == recordId ? counterpartId : recordId;
-      final pairKey = '$leftId:$rightId';
+      final pairKey = _danceReviewPairKey(leftId, rightId);
       if (retainedPairs.contains(pairKey)) continue;
 
       final left = await _danceCandidate(leftId);

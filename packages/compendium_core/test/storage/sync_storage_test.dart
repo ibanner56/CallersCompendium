@@ -318,6 +318,68 @@ void main() {
   );
 
   test(
+    'keeps ambiguity pairs distinct when dance IDs contain colons',
+    () async {
+      final stamp = DateTime.utc(2026, 7, 15, 12);
+      for (final entry in [
+        (
+          id: 'a',
+          figure: testFigure(move: 'balance', params: const {'hand': 'left'}),
+        ),
+        (
+          id: 'a:b',
+          figure: testFigure(move: 'balance', params: const {'hand': 'right'}),
+        ),
+        (id: 'b:c', figure: testFigure(move: 'swing')),
+        (id: 'c', figure: testFigure(move: 'star')),
+      ]) {
+        await repositories.dances.create(
+          Dance(
+            id: entry.id,
+            title: 'Shared dance',
+            figures: [entry.figure],
+            createdAt: stamp,
+            updatedAt: stamp,
+          ),
+        );
+      }
+
+      await storage.deduplicateFreshAttach();
+      final expectedPairs = {
+        ('a', 'a:b'),
+        ('a', 'b:c'),
+        ('a', 'c'),
+        ('a:b', 'b:c'),
+        ('a:b', 'c'),
+        ('b:c', 'c'),
+      };
+      Future<Set<(String, String)>> queuedPairs() async =>
+          (await repositories.syncLocal.listReviewQueue())
+              .map((row) => (row.recordId, row.counterpartId))
+              .toSet();
+
+      expect(await queuedPairs(), expectedPairs);
+
+      await storage.refreshDanceAmbiguityReviews();
+      expect(await queuedPairs(), expectedPairs);
+
+      final first = SyncReviewQueueItem.fromRow(
+        (await repositories.syncLocal.getReviewQueue(
+          kind: SyncRecordKind.dance,
+          recordId: 'a',
+          counterpartId: 'a:b',
+        ))!,
+      );
+      await storage.resolveReviewQueue(
+        expectedRow: first.row,
+        action: SyncReviewAction.merge,
+      );
+
+      expect(await queuedPairs(), {('a', 'b:c'), ('a', 'c'), ('b:c', 'c')});
+    },
+  );
+
+  test(
     'resolves a live dance ambiguity by merging the chosen records',
     () async {
       final stamp = DateTime.utc(2026, 7, 15, 12);
