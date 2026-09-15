@@ -38,6 +38,7 @@ Future<Uint8List> buildDancePdf(
   FigureRenderer? renderer,
   DanceExportLabels labels = const DanceExportLabels(),
   pw.ThemeData? theme,
+  bool canonicalizeDiscouragedTerms = false,
 }) async {
   final fig = renderer ?? FigureRenderer(contraTaxonomy);
   final resolvedTheme = theme ?? await loadProgramPdfTheme();
@@ -79,7 +80,13 @@ Future<Uint8List> buildDancePdf(
             style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
           ),
           pw.SizedBox(height: 4),
-          ...buildFigureWidgets(dance, fig, dialect, labels),
+          ...buildFigureWidgets(
+            dance,
+            fig,
+            dialect,
+            labels,
+            canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+          ),
         ],
         if (_has(dance.callingNotes)) ...[
           pw.SizedBox(height: 12),
@@ -89,7 +96,12 @@ Future<Uint8List> buildDancePdf(
           ),
           pw.SizedBox(height: 4),
           pw.Text(
-            fig.renderFreeText(dance.callingNotes.trim(), dialect),
+            canonicalizeDiscouragedTerms
+                ? fig.renderFreeTextWithCanonicalDiscouragedTerms(
+                    dance.callingNotes.trim(),
+                    dialect,
+                  )
+                : fig.renderFreeText(dance.callingNotes.trim(), dialect),
             style: const pw.TextStyle(fontSize: 12),
           ),
         ],
@@ -101,7 +113,12 @@ Future<Uint8List> buildDancePdf(
           ),
           pw.SizedBox(height: 4),
           pw.Text(
-            fig.renderFreeText(dance.walkthrough.trim(), dialect),
+            canonicalizeDiscouragedTerms
+                ? fig.renderFreeTextWithCanonicalDiscouragedTerms(
+                    dance.walkthrough.trim(),
+                    dialect,
+                  )
+                : fig.renderFreeText(dance.walkthrough.trim(), dialect),
             style: const pw.TextStyle(fontSize: 12),
           ),
         ],

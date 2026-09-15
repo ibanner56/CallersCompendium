@@ -1,0 +1,23 @@
+#!/bin/sh
+set -eu
+
+if [ "$#" -ne 1 ]; then
+  printf '%s\n' 'usage: athenaeum-error-log <output-file>' >&2
+  exit 2
+fi
+
+# Keep only Apache-generated timestamp, module, level, and pid fields. The
+# message itself can contain a request target, so never write it to disk.
+output=$1
+exec >>"$output"
+while IFS= read -r line; do
+  prefix=$(
+    printf '%s\n' "$line" |
+      sed -n 's/^\(\[[^]]*\] \[[^]]*\] \[pid [0-9][0-9]*\]\).*/\1/p'
+  )
+  if [ -n "$prefix" ]; then
+    printf '%s [message redacted]\n' "$prefix"
+  else
+    printf '%s\n' '[redacted Apache error]'
+  fi
+done

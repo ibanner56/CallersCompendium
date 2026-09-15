@@ -146,12 +146,15 @@ A program is made of three kinds of slots:
   with an icon and text (never color alone), so it is always clear which dance is
   the backup.
 
-Each slot can also carry a **note**, a **guest caller**, and a **planned length**
-in minutes — useful both for pacing the evening and for the timing display in
-[Perform mode](./perform.md#keep-time-through-the-evening). A dance slot's
+Each slot can also carry a **note**, a **guest caller**, and optional
+**walkthrough** and **dance** lengths in minutes — useful both for pacing the
+evening and for the timing display in [Perform mode](./perform.md#keep-time-through-the-evening).
+The two lengths are shown separately while their combined total is used for
+the final overrun cue. A dance slot's
 **…** menu also offers **Edit slot**, whose dialog includes a **Replace…**
 button for swapping the dance in place — keeping the note, guest caller,
-planned length, and mark-performed status exactly as they were — instead of
+walkthrough and dance lengths, and mark-performed status exactly as they were —
+instead of
 adding the new dance, dragging it into position, and deleting the old one.
 Dance slots also have **View details** for an inspection-only preview; it cannot
 change the program or the dance.
@@ -160,6 +163,13 @@ To reorder slots, use the **drag handle** or the **move up / move down** buttons
 Both do the same job, so you are never forced to drag.
 
 ### Event details
+
+When you choose **New** from the Programs list, the editor starts with the
+configured **Starting program** template from Settings. It creates fresh slots
+and keeps the template's order and notes; missing dances are omitted. The
+template does not affect imported programs, duplicated programs, an existing
+program being edited, or the direct “create a new program with this dance”
+action.
 
 A program carries the details of its event:
 
@@ -183,6 +193,12 @@ Defaults** and new programs will prefill them — see
 The **Matrix** tab turns your program into a grid worked out from the
 choreography, so you can see the shape of the evening at a glance.
 
+Break slots divide the grid into numbered sections. Dances before the first
+break are in the **1st** section, dances between breaks are in the **2nd**,
+**3rd**, and later sections, and break slots themselves are unnumbered. These
+labels describe the matrix only; calling-history summaries continue to group
+the 2nd and later sections together as the second half.
+
 *The program matrix with moves as columns, dances as rows, pinned headers, and
 markers that explain how figures are introduced and reused.*
 
@@ -192,7 +208,7 @@ Here is how to read it:
 
 - **Dances are rows; moves are columns.**
 - **A pinned Formation column** next to each dance title shows its formation
-  (duple improper, Becket, triple minor, and so on), so you can spot too many
+  (Improper, Becket, triple minor, and so on), so you can spot too many
   non-improper formations stacking up in a row without losing your place
   while scrolling through moves.
 - **Four cell markers** say what is happening at each intersection. Each is an
@@ -216,6 +232,12 @@ Here is how to read it:
   (A1, A2, B1, B2…) — even when the beats themselves don't overlap, which is how
   the matrix used to behave — turn off **Flag exact beat overlap only** in
   **Settings ▸ Program**.
+- **Show phrase labels** with the text-fields icon above the matrix. This
+  replaces comparable move markers with every phrase where that move starts,
+  in order (A1, A2, B1, B2…). Custom and compound columns keep their markers.
+  It is a screen-only view, stays active while you switch between Matrix and
+  Build or resize the window, resets when you close the program editor, and
+  does not change the PDF.
 - **Headers stay pinned** as you scroll, so you never lose track of which row or
   column you are looking at.
 - **Hide a column you do not need** using the eye icon in its header. The icon is
@@ -226,6 +248,12 @@ Here is how to read it:
   beside the PDF button — it is available only while something is hidden. The
   pinned **Formation** column cannot be hidden, since it is part of each dance's
   identity rather than a move.
+- **Hide alternate rows temporarily** with the alternate-route icon above the
+  matrix. This view-only filter resets when you close the program editor, stays
+  active while you switch tabs or resize the window, and does not change the
+  saved program or any PDF/set-list export. It is separate from the persisted
+  **Hide alternates** option in the program's details, which controls set-list
+  output.
 - **Reorder, rename, or remove columns for good** in
   **Settings ▸ Program ▸ Matrix columns**. Unlike the per-session eye icon above,
   changes there are saved and apply to **every** program, on screen and in the
@@ -315,8 +343,11 @@ menu:
 - **Share (program + dances)** — writes one file holding the program *and* every
   dance it uses, so another caller gets the dances too, not just a list of titles.
 - **Copy set list** — puts the same text on your clipboard.
-- **Export as JSON file** — the same file as **Share (program + dances)**, named
-  `.json` so a device without the app can still open it.
+- **Export as JSON file** — opens a choice to **Save**, **Copy raw JSON**,
+  **Share**, or **Cancel**. The file is the same as **Share (program + dances)**,
+  named `.json` so a device without the app can still open it. **Save** uses a
+  native file destination on desktop and the platform document-save flow on
+  Android and iOS; cancelling either dialog produces no output.
 - **Export / print PDF** — builds a PDF and opens your system's print dialog.
 
 A set list is titles, event details, and slot notes by default. When you share,
@@ -324,10 +355,11 @@ copy, or export as PDF the app asks **"Include figures?"** — choose **Set list
 only** to keep titles and notes, or **Set list and figures** to append a full
 figure card for each dance after the set list. If none of the program's dances
 have structured figures the question is skipped automatically. If your program is
-linked to a [venue](./glossary.md#venue) with contact people recorded, the PDF
-and the two file exports ask before including any of those personal details, and
-leave them out unless you say otherwise. A venue's street address is never
-included in any export, with or without a prompt.
+linked to a [venue](./glossary.md#venue) with contact people recorded, the PDF,
+JSON, and `.ccshare` file exports ask before including any of those personal
+details, before any JSON delivery choice, and leave them out unless you say
+otherwise. A venue's street address is never included in any export, with or
+without a prompt.
 
 [Share, print & export](./sharing.md#share-a-program) covers all of this in
 detail, including what a shared bundle contains and what never leaves your
@@ -344,9 +376,11 @@ There are two ways to think about "called," and a setting lets you choose:
 - **Any program that contains the dance** counts (the default), or
 - **only slots you marked performed** count.
 
-You mark a slot performed from within [Perform mode](./perform.md), during the
-event. The [Settings](./settings.md) toggle decides which of the two
-rules a dance's calling history follows.
+You can mark every unperformed dance slot at once from the **Program Editor**
+or a saved program's summary. Both actions offer a one-tap **Undo**; marking
+an individual slot is also available from [Perform mode](./perform.md). The
+[Settings](./settings.md) toggle decides which of the two rules a dance's
+calling history follows.
 
 ## Where to go next
 

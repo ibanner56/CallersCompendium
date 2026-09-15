@@ -70,6 +70,15 @@ class DerivedRebuildProgress {
 typedef DerivedRebuildProgressCallback =
     void Function(DerivedRebuildProgress progress);
 
+const Set<String> _legacyCallersBoxRollAwayRelationships = {
+  'neighbors',
+  'partners',
+};
+
+final RegExp _legacyCallersBoxRollAwayClauseRe = RegExp(
+  r'^(role1s|role2s) (roll|side-step|step aside)(?: (left|right))?$',
+);
+
 /// CRUD + search for [Dance]s.
 ///
 /// Every write rebuilds the derived indexes ([DanceFigures] rows,
@@ -108,7 +117,8 @@ class DanceRepository {
   Dance normaliseMoveIdsPublic(Dance dance) => _normaliseMoveIds(dance);
 
   /// Returns [dance] with the retired `star_promenade.hand` param stripped from
-  /// every figure that still carries it, recursing into `meanwhile` sides.
+  /// every figure that still carries it, recursing into structural-container
+  /// sub-figures.
   /// Returns the original [dance] unchanged when nothing carries it (avoiding
   /// an allocation, and letting the caller skip the write entirely).
   ///
@@ -131,11 +141,124 @@ class DanceRepository {
     return stripped != null ? dance.copyWith(figures: stripped) : dance;
   }
 
+  /// Removes the legacy explicit `partners` subject from imported bare
+  /// `box_circulate` figures, retaining the taxonomy default as authoritative.
+  /// Explicitly authored `partners` figures are preserved.
+  Dance normaliseTaxonomyV33Public(Dance dance) {
+    List<Figure>? normalised;
+    final figures = dance.figures;
+    for (var i = 0; i < figures.length; i++) {
+      final figure = figures[i];
+      final result = _normaliseTaxonomyV33Figure(figure);
+      if (!identical(result, figure) && normalised == null) {
+        normalised = figures.sublist(0, i);
+      }
+      normalised?.add(result);
+    }
+    return normalised != null ? dance.copyWith(figures: normalised) : dance;
+  }
+
+  /// Normalizes legacy assumed TCB `mad_robin` subjects, recursing into
+  /// structural-container sub-figures. Only figures with an assumed subject and
+  /// no explicit `who` are changed; explicit values remain user/source-authored
+  /// facts.
+  Dance normaliseTaxonomyV34Public(Dance dance) {
+    List<Figure>? normalised;
+    final figures = dance.figures;
+    for (var i = 0; i < figures.length; i++) {
+      final figure = figures[i];
+      final result = _normaliseTaxonomyV34Figure(figure);
+      if (!identical(result, figure) && normalised == null) {
+        normalised = figures.sublist(0, i);
+      }
+
+      normalised?.add(result);
+    }
+    return normalised != null ? dance.copyWith(figures: normalised) : dance;
+  }
+
+  /// Normalizes legacy v34 figure ids and parameter keys recursively.
+  List<Figure> normaliseTaxonomyV35FiguresPublic(List<Figure> figures) {
+    List<Figure>? normalised;
+    for (var i = 0; i < figures.length; i++) {
+      final figure = figures[i];
+      final result = _taxonomy.normalizeFigureV35(figure);
+      if (!identical(result, figure) && normalised == null) {
+        normalised = figures.sublist(0, i);
+      }
+      normalised?.add(result);
+    }
+    return normalised ?? figures;
+  }
+
+  Dance normaliseTaxonomyV35Public(Dance dance) {
+    final figures = normaliseTaxonomyV35FiguresPublic(dance.figures);
+    return identical(figures, dance.figures)
+        ? dance
+        : dance.copyWith(figures: figures);
+  }
+
+  Figure _normaliseTaxonomyV34Figure(Figure figure) {
+    if (figure.isContainer) {
+      List<Figure>? subs;
+      final origSubs = figure.subFigures;
+      for (var i = 0; i < origSubs.length; i++) {
+        final sub = origSubs[i];
+        final result = _normaliseTaxonomyV34Figure(sub);
+        if (!identical(result, sub) && subs == null) {
+          subs = origSubs.sublist(0, i);
+        }
+        subs?.add(result);
+      }
+      if (subs == null) return figure;
+      return figure.copyWith(
+        params: {...figure.params, 'figures': List<Figure>.unmodifiable(subs)},
+      );
+    }
+    if (figure.move != 'mad_robin' ||
+        !figure.assumedSubject ||
+        figure.params.containsKey('who')) {
+      return figure;
+    }
+    return figure.copyWith(
+      params: {...figure.params, 'who': ParamVocab.unspecified},
+      assumedSubject: false,
+    );
+  }
+
+  Figure _normaliseTaxonomyV33Figure(Figure figure) {
+    if (figure.isContainer) {
+      List<Figure>? subs;
+      final origSubs = figure.subFigures;
+      for (var i = 0; i < origSubs.length; i++) {
+        final sub = origSubs[i];
+        final result = _normaliseTaxonomyV33Figure(sub);
+        if (!identical(result, sub) && subs == null) {
+          subs = origSubs.sublist(0, i);
+        }
+        subs?.add(result);
+      }
+      if (subs == null) return figure;
+      return figure.copyWith(
+        params: {...figure.params, 'figures': List<Figure>.unmodifiable(subs)},
+      );
+    }
+    if (figure.move != 'box_circulate' ||
+        !figure.assumedSubject ||
+        figure.params['who'] != 'partners') {
+      return figure;
+    }
+    return figure.copyWith(
+      params: {...figure.params}..remove('who'),
+      assumedSubject: false,
+    );
+  }
+
   /// Strips a single figure's retired `star_promenade.hand`, recursing into
-  /// `meanwhile` sub-figures. Returns the original [figure] unchanged when
-  /// nothing needs stripping.
+  /// structural-container sub-figures. Returns the original [figure] unchanged
+  /// when nothing needs stripping.
   Figure _stripStarPromenadeHand(Figure figure) {
-    if (figure.isMeanwhile) {
+    if (figure.isContainer) {
       List<Figure>? subs;
       final origSubs = figure.subFigures;
       for (var i = 0; i < origSubs.length; i++) {
@@ -162,9 +285,9 @@ class DanceRepository {
 
   /// Returns [dance] with the role-implied `hand` written into every `chain`
   /// figure that names a `who` of `role1s`/`role2s` but stores no `hand` yet,
-  /// recursing into `meanwhile` sides. Returns the original [dance] unchanged
-  /// when nothing needs backfilling (avoiding an allocation, and letting the
-  /// caller skip the write entirely).
+  /// recursing into structural-container sub-figures. Returns the original
+  /// [dance] unchanged when nothing needs backfilling (avoiding an allocation,
+  /// and letting the caller skip the write entirely).
   ///
   /// Used by the one-time pass in
   /// [CompendiumRepositories._backfillChainHandIfNeeded] (#976, taxonomy v28).
@@ -184,11 +307,98 @@ class DanceRepository {
     return backfilled != null ? dance.copyWith(figures: backfilled) : dance;
   }
 
-  /// Backfills a single figure's `chain.hand`, recursing into `meanwhile`
-  /// sub-figures. Returns the original [figure] unchanged when nothing needs
-  /// backfilling.
+  /// Repairs the legacy CallersBox `roll_away` subject/relationship assignment
+  /// (#1192), recursing into structural-container sub-figures. The caller must
+  /// scope this pass to CallersBox provenance; this transformer only recognizes
+  /// the exact persisted figure shape emitted by the buggy parser.
+  Dance repairLegacyCallersBoxRollAwayPublic(Dance dance) {
+    final repaired = repairLegacyCallersBoxRollAwayFiguresPublic(dance.figures);
+    if (identical(repaired, dance.figures)) return dance;
+    return dance.copyWith(figures: repaired);
+  }
+
+  /// Repairs the figures in a dance without requiring the caller to hydrate
+  /// unrelated dance metadata or child relations.
+  List<Figure> repairLegacyCallersBoxRollAwayFiguresPublic(
+    List<Figure> figures,
+  ) {
+    List<Figure>? repaired;
+    for (var i = 0; i < figures.length; i++) {
+      final figure = figures[i];
+      final result = _repairLegacyCallersBoxRollAway(figure);
+      if (!identical(result, figure) && repaired == null) {
+        repaired = figures.sublist(0, i);
+      }
+      repaired?.add(result);
+    }
+    return repaired ?? figures;
+  }
+
+  Figure _repairLegacyCallersBoxRollAway(Figure figure) {
+    if (figure.isContainer) {
+      List<Figure>? repaired;
+      final subFigures = figure.subFigures;
+      for (var i = 0; i < subFigures.length; i++) {
+        final subFigure = subFigures[i];
+        final result = _repairLegacyCallersBoxRollAway(subFigure);
+        if (!identical(result, subFigure) && repaired == null) {
+          repaired = subFigures.sublist(0, i);
+        }
+        repaired?.add(result);
+      }
+      if (repaired == null) return figure;
+      return figure.copyWith(
+        params: {
+          ...figure.params,
+          'figures': List<Figure>.unmodifiable(repaired),
+        },
+      );
+    }
+
+    if (figure.move != 'roll_away' ||
+        figure.assumedSubject ||
+        figure.params.containsKey('whom') ||
+        !_legacyCallersBoxRollAwayRelationships.contains(
+          figure.params['who'],
+        )) {
+      return figure;
+    }
+
+    final clauses = _legacyCallersBoxRollAwayClauses(figure.note);
+    if (clauses == null) return figure;
+    final rolling = clauses.where((clause) => clause.$2 == 'roll').toList();
+    final nonRolling = clauses.where((clause) => clause.$2 != 'roll').toList();
+    if (rolling.length != 1 || nonRolling.length != 1) return figure;
+
+    return figure.copyWith(
+      params: {
+        ...figure.params,
+        'who': nonRolling.single.$1,
+        'whom': figure.params['who'],
+      },
+      assumedSubject: false,
+    );
+  }
+
+  List<(String, String)>? _legacyCallersBoxRollAwayClauses(String? note) {
+    if (note == null) return null;
+    final clauses = note.split(', ');
+    if (clauses.length != 2) return null;
+    final parsed = <(String, String)>[];
+    for (final clause in clauses) {
+      final match = _legacyCallersBoxRollAwayClauseRe.firstMatch(clause);
+      if (match == null) return null;
+      parsed.add((match.group(1)!, match.group(2)!));
+    }
+    if (parsed[0].$1 == parsed[1].$1) return null;
+    return parsed;
+  }
+
+  /// Backfills a single figure's `chain.hand`, recursing into
+  /// structural-container sub-figures. Returns the original [figure] unchanged
+  /// when nothing needs backfilling.
   Figure _backfillChainHand(Figure figure) {
-    if (figure.isMeanwhile) {
+    if (figure.isContainer) {
       List<Figure>? subs;
       final origSubs = figure.subFigures;
       for (var i = 0; i < origSubs.length; i++) {
@@ -220,7 +430,7 @@ class DanceRepository {
   /// sub-figures. Returns the original [figure] unchanged if no sub-figures
   /// need re-routing (avoids an allocation when nothing moves).
   Figure _normaliseFigure(Figure figure) {
-    if (figure.isMeanwhile) {
+    if (figure.isContainer) {
       List<Figure>? subs;
       final origSubs = figure.subFigures;
       for (var i = 0; i < origSubs.length; i++) {
@@ -260,7 +470,25 @@ class DanceRepository {
     );
     // v25 (#870): normalise move ids for inverse-pair aliases before
     // persisting. This is the single convergence point for all figure writers.
-    final normalisedDance = _normaliseMoveIds(dance);
+    // v34-v35: normalize legacy figures here as well as in one-time sweeps, so
+    // restores and later imports cannot reintroduce old taxonomy keys.
+    final normalisedDance = normaliseTaxonomyV34Public(
+      _normaliseTaxonomyV35Dance(_normaliseMoveIds(dance)),
+    );
+    final difficultyLevelId = normalisedDance.difficultyLevelId;
+    if (difficultyLevelId != null) {
+      final level =
+          await (_db.select(_db.difficultyLevels)..where(
+                (t) => t.id.equals(difficultyLevelId) & t.deletedAt.isNull(),
+              ))
+              .getSingleOrNull();
+      if (level == null) {
+        throw StateError(
+          'dance "${dance.id}" has an unknown difficulty level '
+          '"$difficultyLevelId"',
+        );
+      }
+    }
     await _db
         .into(_db.dances)
         .insertOnConflictUpdate(
@@ -289,7 +517,7 @@ class DanceRepository {
               normalizeShareableText(normalisedDance.walkthrough),
             ),
             status: normalisedDance.status,
-            level: Value(dance.level),
+            levelId: Value(dance.difficultyLevelId),
             mixedLevel: Value(dance.mixedLevel),
             mixer: Value(dance.mixer),
             rating: Value(dance.rating),
@@ -457,6 +685,19 @@ class DanceRepository {
     await _rebuildDerived(normalisedDance);
   });
 
+  Dance _normaliseTaxonomyV35Dance(Dance dance) {
+    List<Figure>? normalised;
+    for (var i = 0; i < dance.figures.length; i++) {
+      final figure = dance.figures[i];
+      final result = _taxonomy.normalizeFigureV35(figure);
+      if (!identical(result, figure) && normalised == null) {
+        normalised = dance.figures.sublist(0, i);
+      }
+      normalised?.add(result);
+    }
+    return normalised == null ? dance : dance.copyWith(figures: normalised);
+  }
+
   /// Rewrites the derived `dance_figures`/`dance_fts`/`dance_substring_fts` rows
   /// for a single dance:
   /// drops this dance's existing derived rows, then re-inserts them. Used by the
@@ -502,33 +743,28 @@ class DanceRepository {
     for (var i = 0; i < dance.figures.length; i++) {
       final figure = dance.figures[i];
       final section = sectioned[i].label;
-      // Flatten a meanwhile container (#590) so each concurrent side is indexed
-      // as its own `dance_figures` row: `filterByMove` then matches each
-      // constituent and each side's canonical text feeds FTS. The container is
-      // not itself a searchable move — its children are what get move-indexed;
-      // it only supplies their shared section placement. `idx` runs over the
-      // FLATTENED constituent stream (the `dance_figures` PK is `{danceId, idx}`
-      // so each row needs a distinct idx), so sides occupy consecutive slots in
-      // order.
+      // Flatten a structural container recursively to leaf rows so
+      // `filterByMove` matches each constituent without trying to JSON-encode
+      // in-memory nested Figure values. The top-level container remains in FTS
+      // as one canonical structural render, while leaves supply searchable
+      // moves and params. `idx` runs over the flattened leaf stream (the
+      // `dance_figures` PK is `{danceId, idx}` so each row needs a distinct
+      // idx), preserving child order.
       //
       // `groupIdx` is the correlation group used by the `Then` operator (#748):
-      // every row flattened from this one top-level figure — all concurrent
-      // sides of a meanwhile included — shares `groupIdx = i`, which is monotonic
-      // across top-level figures. Because concurrent sides share a group, the
-      // `a.group_idx < b.group_idx` correlation never treats two simultaneous
-      // sides as one-before-the-other, while a genuine sequence of top-level
-      // figures (distinct, increasing groups) still matches. This is what makes
-      // the sides per-constituent matchable WITHOUT the false before/after
-      // adjacency that consecutive `idx` alone would imply.
+      // every leaf flattened from this one top-level figure — including leaves
+      // below an opposite nested container — shares `groupIdx = i`, which is
+      // monotonic across top-level figures. Because simultaneous leaves share a
+      // group, the `a.group_idx < b.group_idx` correlation never treats them as
+      // one-before-the-other, while a genuine sequence of top-level figures
+      // (distinct, increasing groups) still matches.
       //
-      // Empty-container fallback (#590): a legacy/partial `{move:"meanwhile"}`
-      // that decodes to zero sub-figures must NOT vanish from the index
-      // ("nothing dropped"). When there are no constituents to flatten, index
-      // the container itself (move=meanwhile, its own canonical text/section/
-      // beats) so the dance stays searchable by that figure.
       final subFigures = figure.subFigures;
-      final constituents = figure.isMeanwhile && subFigures.isNotEmpty
-          ? subFigures
+      if (figure.isContainer && subFigures.isNotEmpty) {
+        canonicalTexts.add(_renderer.renderCanonical(figure));
+      }
+      final constituents = figure.isContainer && subFigures.isNotEmpty
+          ? _leafFigures(figure)
           : <Figure>[figure];
       for (final part in constituents) {
         final canonicalText = _renderer.renderCanonical(part);
@@ -576,6 +812,11 @@ class DanceRepository {
         values,
       );
     }
+  }
+
+  List<Figure> _leafFigures(Figure figure) {
+    if (!figure.isContainer || figure.subFigures.isEmpty) return [figure];
+    return [for (final child in figure.subFigures) ..._leafFigures(child)];
   }
 
   /// Author display names for [dance]'s `authorIds`, in position order. Uses
@@ -898,8 +1139,9 @@ class DanceRepository {
   /// links, custom values, provenance, derived figures) via FK; any
   /// `program_slots.dance_id` pointing at a purged dance is set to `NULL`
   /// (the slot's `text`, if any, survives as a tombstone caption). Reusable
-  /// `choreographers` / `published_sources` rows left unreferenced by the purge
-  /// are garbage-collected in the same transaction (#462).
+  /// `choreographers` / `published_sources` / `tags` rows left unreferenced
+  /// after the cascade are garbage-collected in the same transaction
+  /// (#462, #1199).
   Future<int> purgeDeleted({
     required DateTime now,
     Duration retention = const Duration(days: 30),
@@ -1019,7 +1261,8 @@ class DanceRepository {
       // dance title into a tombstone slot, rather than accepting new input.
       await _db.customUpdate(
         // sync-invariant-exclusion: maintenance-cleanup is idempotent; not a sync record edit.
-        'UPDATE ${_db.programSlots.actualTableName} SET text = ? '
+        'UPDATE ${_db.programSlots.actualTableName} '
+        'SET text = ?, is_purged_dance = 1 '
         'WHERE dance_id = ? AND text IS NULL',
         variables: [
           Variable<String>(normalizeShareableText(d.title)),
@@ -1046,20 +1289,28 @@ class DanceRepository {
   }
 
   /// Snapshots the reusable reference rows — `choreographers` (via
-  /// `dance_authors`) and `published_sources` (via `dance_sources`) — cited by
-  /// [danceIds] **before** those dances are hard-deleted, so
+  /// `dance_authors`), `published_sources` (via `dance_sources`), and tags (via
+  /// `dance_tags`) — cited by [danceIds] **before** those dances are
+  /// hard-deleted, so
   /// [_garbageCollectOrphanedRefs] knows exactly which rows might have just
   /// lost their last citation. Scoping to this snapshot keeps the sweep precise:
   /// pre-existing unreferenced rows (e.g. reusable "Traditional"/"Unknown"
   /// choreographers) that this purge did not touch are never candidates for
   /// removal. Called inside the delete transaction of [purgeDeleted] /
   /// [hardDelete] before the `DELETE FROM dances` cascades the join rows away.
-  Future<({Set<String> choreographerIds, Set<String> sourceIds})>
+  Future<
+    ({Set<String> choreographerIds, Set<String> sourceIds, Set<String> tagIds})
+  >
   _referencedRefIds(List<String> danceIds) async {
     final choreographerIds = <String>{};
     final sourceIds = <String>{};
+    final tagIds = <String>{};
     if (danceIds.isEmpty) {
-      return (choreographerIds: choreographerIds, sourceIds: sourceIds);
+      return (
+        choreographerIds: choreographerIds,
+        sourceIds: sourceIds,
+        tagIds: tagIds,
+      );
     }
     for (final chunk in _chunkIds(danceIds)) {
       final authors = await (_db.select(
@@ -1074,13 +1325,24 @@ class DanceRepository {
       for (final r in sources) {
         sourceIds.add(r.sourceId);
       }
+      final tags = await (_db.select(
+        _db.danceTags,
+      )..where((t) => t.danceId.isIn(chunk))).get();
+      for (final r in tags) {
+        tagIds.add(r.tagId);
+      }
     }
-    return (choreographerIds: choreographerIds, sourceIds: sourceIds);
+    return (
+      choreographerIds: choreographerIds,
+      sourceIds: sourceIds,
+      tagIds: tagIds,
+    );
   }
 
   /// Garbage-collects the reusable reference rows in [candidates] (gathered by
   /// [_referencedRefIds]) that, **after** the owning dances were hard-deleted
-  /// and their `dance_authors` / `dance_sources` join rows cascaded away, are
+  /// and their `dance_authors` / `dance_sources` / `dance_tags` join rows
+  /// cascaded away, are
   /// now referenced by ZERO remaining dances (#462). Runs inside the same
   /// delete transaction as [purgeDeleted] / [hardDelete], after the
   /// `DELETE FROM dances`.
@@ -1100,26 +1362,28 @@ class DanceRepository {
   /// owning dances outright with no tombstone of their own, so a tombstone here
   /// would outlive the records that explain it; and nobody *deleted* these rows
   /// — they were collected as a side effect of a retention purge, so
-  /// advertising a deletion the user never performed would be wrong. Giving the
-  /// six new kinds their own retention/purge policy belongs with the sync
+  /// advertising a deletion the user never performed would be wrong. Giving
+  /// tags their own sync retention/purge policy belongs with the sync
   /// implementation, which owns retention; this migration ships none.
-  /// ## Both deletes announce themselves to drift, and here nothing else would
+  /// ## These raw deletes announce themselves to drift, and here nothing else
+  /// would
   ///
-  /// Raw SQL is opaque to drift, so each delete names the table it writes via
+  /// Raw SQL is opaque to drift, so each delete names its target table via
   /// `updates:`. [_cleanupDanglingReferences] explains the mechanism and why
   /// omitting it is silent; this site is the **worse** half of that pair and is
   /// worth separating rather than covering with one shared sentence.
   ///
   /// There, an omission would be masked by a `WritePropagation` rule that fires
   /// on the native `delete(_db.dances)` sharing the transaction. **No such rule
-  /// exists for these two tables.** Every generated rule targeting
-  /// `choreographers` or `published_sources` runs in the opposite direction —
-  /// `choreographers (delete) -> dance_authors`, `published_sources (delete) ->
-  /// dance_sources` — i.e. they are *sources* of propagation, never results of
-  /// it. Nothing in the schema notifies them.
+  /// exists for these three tables.** Every generated rule targeting
+  /// `choreographers`, `published_sources`, or `tags` runs in the opposite
+  /// direction — `choreographers (delete) -> dance_authors`,
+  /// `published_sources (delete) -> dance_sources`, and
+  /// `tags (delete) -> dance_tags` — i.e. they are *sources* of propagation,
+  /// never results of it. Nothing in the schema notifies them.
   ///
-  /// So a `.watch()` over either table would simply never see a row this method
-  /// removes. Demonstrated before the fix, by attaching a watcher to
+  /// So a `.watch()` over any of these three tables would simply never see a
+  /// row this method removes. Demonstrated before the fix, by attaching a watcher to
   /// `choreographers` and purging a dance whose sole author was thereby
   /// orphaned:
   ///
@@ -1129,11 +1393,12 @@ class DanceRepository {
   /// ```
   ///
   /// Nothing watched these tables when the omission was found, so it was
-  /// unobservable rather than harmless — and both are watched now, so the
+  /// unobservable rather than harmless — and all three are watched now, so the
   /// `updates:` sets below are load-bearing today rather than prospectively.
   /// See `dance_hard_delete_test.dart`, which holds that scenario as a guard.
   Future<void> _garbageCollectOrphanedRefs(
-    ({Set<String> choreographerIds, Set<String> sourceIds}) candidates,
+    ({Set<String> choreographerIds, Set<String> sourceIds, Set<String> tagIds})
+    candidates,
   ) async {
     for (final chunk in _chunkIds(candidates.choreographerIds.toList())) {
       final placeholders = List.filled(chunk.length, '?').join(', ');
@@ -1157,6 +1422,23 @@ class DanceRepository {
         updateKind: UpdateKind.delete,
       );
     }
+    await _garbageCollectOrphanedTags(candidates.tagIds);
+  }
+
+  Future<void> _garbageCollectOrphanedTags(
+    Iterable<String> candidateIds,
+  ) async {
+    for (final chunk in _chunkIds(candidateIds.toList())) {
+      final placeholders = List.filled(chunk.length, '?').join(', ');
+      await _db.customUpdate(
+        'DELETE FROM ${_db.tags.actualTableName} '
+        'WHERE id IN ($placeholders) '
+        'AND id NOT IN (SELECT tag_id FROM ${_db.danceTags.actualTableName})',
+        variables: [for (final id in chunk) Variable<String>(id)],
+        updates: {_db.tags},
+        updateKind: UpdateKind.delete,
+      );
+    }
   }
 
   /// Immediately and permanently removes the dances identified by [ids]
@@ -1168,8 +1450,10 @@ class DanceRepository {
   /// caption). Unknown ids are ignored. Runs in a single transaction.
   ///
   /// When [gcOrphanedRefs] is `true` (the default), reusable `choreographers` /
-  /// `published_sources` rows this delete leaves referenced by ZERO remaining
-  /// dances are garbage-collected in the same transaction (#462). The
+  /// `published_sources` / `tags` rows this delete leaves referenced by ZERO
+  /// remaining dances are garbage-collected in the same transaction (#462,
+  /// #1199). Tag GC includes rows retained by soft-deleted dances in its
+  /// reference check. The
   /// import-session **undo** path passes `false`: undo is a faithful rollback
   /// to the pre-import state, so it must leave pre-existing reference rows in
   /// place and do its own targeted cleanup of only the rows that import
@@ -1200,15 +1484,18 @@ class DanceRepository {
     });
   }
 
-  /// Sets the difficulty [level] on many dances at once, in a single
+  /// Sets the difficulty-level ID [difficultyLevelId] on many dances at once, in
+  /// a single
   /// transaction, for the Collection multi-select "batch set level" flow.
   ///
-  /// Contract: to *set* a level pass a non-null [level]; to *unset* it pass
-  /// [clearLevel] `true`. These are mutually exclusive — calling with neither
+  /// Contract: to *set* a level pass a non-null [difficultyLevelId]; to *unset*
+  /// it pass [clearDifficultyLevel] `true`. These are mutually exclusive —
+  /// calling with neither
   /// throws an [ArgumentError] (and trips a debug assert) to prevent the
   /// footgun of accidentally clearing every dance by omitting [level] (which
   /// would otherwise diverge from [Dance.copyWith], where a null value without
-  /// a clear flag keeps the existing value). A set [clearLevel] wins over any [level] value, matching
+  /// a clear flag keeps the existing value). A set [clearDifficultyLevel] wins
+  /// over any [difficultyLevelId] value, matching
   /// [Dance.copyWith]. Each affected dance is rewritten through the same upsert
   /// path as [update], so the derived figure/FTS indexes stay consistent.
   ///
@@ -1219,25 +1506,29 @@ class DanceRepository {
   /// collection untouched rather than half-updated.
   Future<int> setLevelForMany(
     Iterable<String> ids, {
-    DanceLevel? level,
-    bool clearLevel = false,
+    String? difficultyLevelId,
+    bool clearDifficultyLevel = false,
     required DateTime now,
   }) {
     // Release-safe guard (asserts are stripped in release): a caller must pass
-    // a concrete level, or opt in to clearing via clearLevel. This is checked
+    // a concrete level, or opt in to clearing via clearDifficultyLevel. This is
+    // checked
     // before the debug-only assert so the thrown ArgumentError is deterministic
-    // across build modes. clearLevel still takes precedence when both are set.
-    if (!clearLevel && level == null) {
+    // across build modes. clearDifficultyLevel still takes precedence when both
+    // are set.
+    if (!clearDifficultyLevel && difficultyLevelId == null) {
       throw ArgumentError(
-        'setLevelForMany requires a non-null level unless clearLevel is true',
+        'setLevelForMany requires a non-null difficultyLevelId unless '
+        'clearDifficultyLevel is true',
       );
     }
     assert(
-      clearLevel || level != null,
-      'setLevelForMany: pass a non-null level, or clearLevel: true to unset',
+      clearDifficultyLevel || difficultyLevelId != null,
+      'setLevelForMany: pass a non-null difficultyLevelId, or '
+      'clearDifficultyLevel: true to unset',
     );
     assertUtc(now, 'now');
-    final target = clearLevel ? null : level;
+    final target = clearDifficultyLevel ? null : difficultyLevelId;
     final list = ids.toList();
     if (list.isEmpty) return Future.value(0);
     return _db.transaction(() async {
@@ -1245,11 +1536,11 @@ class DanceRepository {
       for (final id in list) {
         final dance = await getById(id);
         if (dance == null) continue;
-        if (dance.level == target) continue;
+        if (dance.difficultyLevelId == target) continue;
         await _upsert(
           dance.copyWith(
-            level: target,
-            clearLevel: target == null,
+            difficultyLevelId: target,
+            clearDifficultyLevel: target == null,
             updatedAt: now,
           ),
         );
@@ -1932,7 +2223,7 @@ class DanceRepository {
       callingNotes: row.callingNotes,
       walkthrough: row.walkthrough,
       status: row.status,
-      level: row.level,
+      difficultyLevelId: row.levelId,
       mixedLevel: row.mixedLevel,
       mixer: row.mixer,
       rating: row.rating,

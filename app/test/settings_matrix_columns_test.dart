@@ -17,6 +17,7 @@ final _smallTaxonomy = Taxonomy(
   moves: [
     contraTaxonomy.moves['do_si_do']!,
     contraTaxonomy.moves['balance']!,
+    contraTaxonomy.moves['facing_star']!,
     contraTaxonomy.moves['petronella']!,
   ],
 );
@@ -26,6 +27,7 @@ final _parameterizedTaxonomy = Taxonomy(
   form: contraTaxonomy.form,
   moves: [
     contraTaxonomy.moves['swing']!,
+    contraTaxonomy.moves['facing_star']!,
     contraTaxonomy.moves['do_si_do']!,
     contraTaxonomy.moves['balance']!,
     contraTaxonomy.moves['petronella']!,
@@ -268,6 +270,28 @@ void main() {
       },
     );
 
+    testWidgets('parameterized facing star labels who backing up', (
+      tester,
+    ) async {
+      await _pumpEditor(tester, taxonomy: _parameterizedTaxonomy);
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-add-parameterized')),
+      );
+      await tester.pumpAndSettle();
+
+      final moveSelector = tester.widget<DropdownButtonFormField<String>>(
+        find.byKey(const ValueKey('matrix-parameterized-move')),
+      );
+      moveSelector.onChanged!('facing_star');
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-parameterized-constraint-who')),
+      );
+      await tester.pump();
+
+      expect(find.text('backing up'), findsNWidgets(2));
+    });
+
     testWidgets('requires a non-empty parameterized column name', (
       tester,
     ) async {
@@ -377,6 +401,26 @@ void main() {
         'balance',
         'do_si_do',
       ]);
+    });
+
+    testWidgets('compound facing star labels who backing up', (tester) async {
+      await _pumpEditor(tester, taxonomy: _smallTaxonomy);
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-add-compound')),
+      );
+      await tester.pumpAndSettle();
+
+      final moveSelector = tester.widget<DropdownButtonFormField<String>>(
+        find.byKey(const ValueKey('matrix-compound-step-move-0')),
+      );
+      moveSelector.onChanged!('facing_star');
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-compound-step-0-constraint-who')),
+      );
+      await tester.pump();
+
+      expect(find.text('backing up'), findsNWidgets(2));
     });
 
     testWidgets('does not save an empty or one-step compound sequence', (

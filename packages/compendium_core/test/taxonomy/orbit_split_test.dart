@@ -31,8 +31,8 @@ void main() {
             move: 'orbit',
             params: const {
               'who': 'role2s',
-              'turn': 'counterclockwise',
-              'amount': 0.75,
+              'direction': 'counterclockwise',
+              'travel': 0.75,
               'beats': 8,
             },
           ),
@@ -77,7 +77,11 @@ void main() {
       'ones orbit clockwise ½': Figure(move: 'orbit'),
       'role1s orbit counterclockwise ¾': Figure(
         move: 'orbit',
-        params: {'who': 'role1s', 'turn': 'counterclockwise', 'amount': 0.75},
+        params: {
+          'who': 'role1s',
+          'direction': 'counterclockwise',
+          'travel': 0.75,
+        },
       ),
     };
     cases.forEach((expected, figure) {
@@ -98,16 +102,16 @@ void main() {
       final f = parse('Men orbit clockwise 1/2');
       expect(f.move, 'orbit');
       expect(f.params['who'], 'role1s');
-      expect(f.params['turn'], 'clockwise');
-      expect(f.params['amount'], 0.5);
+      expect(f.params['direction'], 'clockwise');
+      expect(f.params['travel'], 0.5);
     });
 
     test('Women orbit counterclockwise 1/2', () {
       final f = parse('Women orbit counterclockwise 1/2');
       expect(f.move, 'orbit');
       expect(f.params['who'], 'role2s');
-      expect(f.params['turn'], 'counterclockwise');
-      expect(f.params['amount'], 0.5);
+      expect(f.params['direction'], 'counterclockwise');
+      expect(f.params['travel'], 0.5);
     });
 
     test('an omitted subject is flagged as assumed, not fabricated', () {
@@ -143,10 +147,10 @@ void main() {
       expect(sides.map((s) => s.move), ['allemande', 'orbit']);
       expect(sides[0].params['who'], 'role2s');
       expect(sides[0].params['hand'], 'left');
-      expect(sides[0].params['turn'], 1.0);
+      expect(sides[0].params['travel'], 1.0);
       expect(sides[1].params['who'], 'role1s');
-      expect(sides[1].params['turn'], 'clockwise');
-      expect(sides[1].params['amount'], 0.5);
+      expect(sides[1].params['direction'], 'clockwise');
+      expect(sides[1].params['travel'], 0.5);
     });
 
     test('ContraDB combined "while the" line fans into the container', () {
@@ -161,10 +165,10 @@ void main() {
       expect(sides.map((s) => s.move), ['allemande', 'orbit']);
       expect(sides[0].params['who'], 'role2s');
       expect(sides[0].params['hand'], 'left');
-      expect(sides[0].params['turn'], 1.5);
+      expect(sides[0].params['travel'], 1.5);
       expect(sides[1].params['who'], 'role1s');
-      expect(sides[1].params['turn'], 'clockwise');
-      expect(sides[1].params['amount'], 0.5);
+      expect(sides[1].params['direction'], 'clockwise');
+      expect(sides[1].params['travel'], 0.5);
     });
   });
 }

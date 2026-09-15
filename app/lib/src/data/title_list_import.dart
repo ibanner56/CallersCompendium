@@ -461,6 +461,7 @@ Future<TitleListResolution> resolveTitleList(
       : await ImportPipeline(
           repos.dances,
           repos.choreographers,
+          difficultyLevels: repos.difficultyLevels,
         ).buildDedupeIndex();
 
   var done = 0;

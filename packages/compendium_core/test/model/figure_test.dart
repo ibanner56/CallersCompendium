@@ -60,7 +60,7 @@ void main() {
     test('value equality is deep over params', () {
       Figure make() => Figure(
         move: 'allemande',
-        params: {'who': 'neighbors', 'hand': 'right', 'turn': 1.5},
+        params: {'who': 'neighbors', 'hand': 'right', 'travel': 1.5},
       );
       expect(make(), equals(make()));
       expect(make().hashCode, make().hashCode);

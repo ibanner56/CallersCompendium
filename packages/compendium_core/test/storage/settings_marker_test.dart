@@ -20,6 +20,8 @@
 // and the idempotent repair simply re-ran. The `deleted_at IS NULL` filters on
 // those raw reads are what keep it harmless now.
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/src/storage/database.dart'
+    show modifierContainerCanonicalRebuildDoneKey;
 import 'package:drift/drift.dart' show Variable;
 import 'package:test/test.dart';
 
@@ -31,10 +33,22 @@ void main() {
   setUp(() async {
     db = openTestDatabase();
     // Keep unrelated migration tests focused on their marker. The compact-name
-    // test below removes this marker to exercise the new sweep.
+    // test below removes its marker to exercise that sweep.
     await SettingsRepository(
       db,
     ).set(compactDosidoSeesawCanonicalRebuildDoneKey, 'done');
+    await SettingsRepository(
+      db,
+    ).set(taxonomyV33CanonicalRebuildDoneKey, 'done');
+    await SettingsRepository(
+      db,
+    ).set(taxonomyV34CanonicalRebuildDoneKey, 'done');
+    await SettingsRepository(
+      db,
+    ).set(modifierContainerCanonicalRebuildDoneKey, 'done');
+    await SettingsRepository(
+      db,
+    ).set(taxonomyV35FigureNormalizationDoneKey, true);
   });
   tearDown(() => db.close());
 

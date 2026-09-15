@@ -86,6 +86,7 @@ String buildProgramShareBundle(
   required Dance? Function(String danceId) danceFor,
   required Choreographer? Function(String id) choreographerFor,
   required Venue? Function(String venueId) venueFor,
+  DifficultyLevel? Function(String id)? difficultyLevelFor,
   Set<VenueContactField> includeVenueContact = const {},
   DateTime? now,
 }) {
@@ -123,6 +124,24 @@ String buildProgramShareBundle(
     }
   }
 
+  final difficultyLevels = <DifficultyLevel>[];
+  final seenLevels = <String>{};
+  for (final dance in dances) {
+    final difficultyLevelId = dance.difficultyLevelId;
+    if (difficultyLevelId == null || !seenLevels.add(difficultyLevelId)) {
+      continue;
+    }
+    final level =
+        difficultyLevelFor?.call(difficultyLevelId) ??
+        DifficultyLevel.knownForId(difficultyLevelId);
+    if (level == null) {
+      throw StateError(
+        'dance references missing difficulty level "$difficultyLevelId"',
+      );
+    }
+    difficultyLevels.add(level);
+  }
+
   return encodeArchive(
     CompendiumArchive(
       exportedAt: (now ?? DateTime.now()).toUtc(),
@@ -130,6 +149,7 @@ String buildProgramShareBundle(
       dances: dances,
       choreographers: choreographers,
       venues: venues,
+      difficultyLevels: difficultyLevels,
     ),
     mode: ArchiveSerializationMode.share,
   );

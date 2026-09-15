@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -12,6 +14,8 @@ EditorSnapshot _minimalSnapshot({
   List<LinkSnapshot> links = const [],
   List<SourceCitation> sourceCitations = const [],
   List<FigureDraftSnapshot> figureDrafts = const [],
+  List<Tag> stagedTags = const [],
+  FormationShape formationShape = FormationShape.dupleImproper,
 }) => EditorSnapshot(
   title: 'Test',
   hook: '',
@@ -19,7 +23,7 @@ EditorSnapshot _minimalSnapshot({
   phrase: '',
   formationDetail: '',
   form: DanceForm.contra,
-  formationShape: FormationShape.dupleImproper,
+  formationShape: formationShape,
   progression: Progression.single,
   status: DanceStatus.active,
   authorIds: const [],
@@ -29,6 +33,7 @@ EditorSnapshot _minimalSnapshot({
   sourceCitations: sourceCitations,
   customValues: const {},
   figureDrafts: figureDrafts,
+  stagedTags: stagedTags,
 );
 
 // ---------------------------------------------------------------------------
@@ -37,6 +42,174 @@ EditorSnapshot _minimalSnapshot({
 
 void main() {
   group('draft codec v6 —', () {
+    test('rejects same-kind nested containers in autosave drafts', () {
+      final raw =
+          jsonDecode(
+                encodeDraft(
+                  _minimalSnapshot(
+                    figureDrafts: [
+                      FigureDraftSnapshot(
+                        id: 'root',
+                        move: null,
+                        params: const {},
+                        note: '',
+                        progression: false,
+                        schemaVersion: figureSchemaVersion,
+                        modifierFigures: [
+                          FigureDraftSnapshot(
+                            id: 'child',
+                            move: null,
+                            params: const {},
+                            note: '',
+                            progression: false,
+                            schemaVersion: figureSchemaVersion,
+                            modifierFigures: const [],
+                          ),
+                          FigureDraftSnapshot(
+                            id: 'plain',
+                            move: 'swing',
+                            params: const {},
+                            note: '',
+                            progression: false,
+                            schemaVersion: figureSchemaVersion,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              as Map<String, Object?>;
+
+      expect(() => decodeDraft(raw), throwsA(isA<FormatException>()));
+    });
+
+    test('rejects container nesting deeper than two levels', () {
+      final raw =
+          jsonDecode(
+                encodeDraft(
+                  _minimalSnapshot(
+                    figureDrafts: [
+                      FigureDraftSnapshot(
+                        id: 'root',
+                        move: null,
+                        params: const {},
+                        note: '',
+                        progression: false,
+                        schemaVersion: figureSchemaVersion,
+                        modifierFigures: [
+                          FigureDraftSnapshot(
+                            id: 'middle',
+                            move: null,
+                            params: const {},
+                            note: '',
+                            progression: false,
+                            schemaVersion: figureSchemaVersion,
+                            meanwhileSides: [
+                              FigureDraftSnapshot(
+                                id: 'deep',
+                                move: null,
+                                params: const {},
+                                note: '',
+                                progression: false,
+                                schemaVersion: figureSchemaVersion,
+                                modifierFigures: const [],
+                              ),
+                              FigureDraftSnapshot(
+                                id: 'plain',
+                                move: 'swing',
+                                params: const {},
+                                note: '',
+                                progression: false,
+                                schemaVersion: figureSchemaVersion,
+                              ),
+                            ],
+                          ),
+                          FigureDraftSnapshot(
+                            id: 'plain',
+                            move: 'swing',
+                            params: const {},
+                            note: '',
+                            progression: false,
+                            schemaVersion: figureSchemaVersion,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              as Map<String, Object?>;
+
+      expect(() => decodeDraft(raw), throwsA(isA<FormatException>()));
+    });
+
+    test('rejects structural containers with more than six children', () {
+      final raw =
+          jsonDecode(
+                encodeDraft(
+                  _minimalSnapshot(
+                    figureDrafts: [
+                      FigureDraftSnapshot(
+                        id: 'root',
+                        move: null,
+                        params: const {},
+                        note: '',
+                        progression: false,
+                        schemaVersion: figureSchemaVersion,
+                        modifierFigures: [
+                          for (var i = 0; i < kMaxMeanwhileSides + 1; i++)
+                            FigureDraftSnapshot(
+                              id: 'child-$i',
+                              move: 'swing',
+                              params: const {},
+                              note: '',
+                              progression: false,
+                              schemaVersion: figureSchemaVersion,
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              as Map<String, Object?>;
+
+      expect(() => decodeDraft(raw), throwsA(isA<FormatException>()));
+    });
+
+    test('preserves figures params on non-structural drafts', () {
+      const snapshot = FigureDraftSnapshot(
+        id: 'future',
+        move: 'future_move',
+        params: {
+          'figures': ['opaque-child'],
+          'futureFlag': true,
+        },
+        note: '',
+        progression: false,
+        schemaVersion: figureSchemaVersion,
+      );
+
+      final encoded = encodeDraft(_minimalSnapshot(figureDrafts: [snapshot]));
+      final raw = jsonDecode(encoded) as Map<String, Object?>;
+      final figure = (raw['figureDrafts'] as List).single as Map;
+      final params = figure['params'] as Map;
+
+      expect(params['figures'], ['opaque-child']);
+      expect(params['futureFlag'], isTrue);
+    });
+
+    test('encodes and decodes reverse progression improper formation', () {
+      final reverse = _minimalSnapshot(
+        formationShape: FormationShape.reverseProgressionImproper,
+      );
+
+      final decoded = decodeDraft(encodeDraft(reverse));
+
+      expect(decoded.formationShape, FormationShape.reverseProgressionImproper);
+    });
+
     test('encodes and decodes a URL-kind link', () {
       final snapshot = _minimalSnapshot(
         links: [
@@ -143,6 +316,22 @@ void main() {
       expect(decoded.links, isEmpty);
     });
 
+    test('staged tags round-trip through autosave drafts', () {
+      final snapshot = _minimalSnapshot(
+        stagedTags: [
+          Tag(id: 'provisional', name: 'New tag', color: 0xFFFF0000),
+        ],
+      );
+
+      final encoded = encodeDraft(snapshot);
+      expect(encoded, contains('"stagedTags"'));
+
+      final decoded = decodeDraft(encoded);
+      expect(decoded.stagedTags, [
+        Tag(id: 'provisional', name: 'New tag', color: 0xFFFF0000),
+      ]);
+    });
+
     test('figure draft assumedSubject round-trips (#460)', () {
       final snapshot = _minimalSnapshot();
       final withDrafts = EditorSnapshot(
@@ -193,6 +382,27 @@ void main() {
       final stated = decoded.figureDrafts.firstWhere((d) => d.id == 'f-stated');
       expect(assumed.assumedSubject, isTrue);
       expect(stated.assumedSubject, isFalse);
+    });
+
+    test('decoding a draft normalizes legacy figure identifiers', () {
+      final snapshot = _minimalSnapshot(
+        figureDrafts: const [
+          FigureDraftSnapshot(
+            id: 'f-legacy',
+            move: 'circle',
+            params: {'turn': 'right', 'places': 3},
+            note: '',
+            progression: false,
+            schemaVersion: figureSchemaVersion,
+          ),
+        ],
+      );
+
+      final decoded = decodeDraft(encodeDraft(snapshot));
+      final figure = decoded.figureDrafts.single;
+      expect(figure.move, 'circle');
+      expect(figure.params['direction'], 'right');
+      expect(figure.params, isNot(contains('turn')));
     });
 
     test('figure draft customOrigin round-trips (#419)', () {

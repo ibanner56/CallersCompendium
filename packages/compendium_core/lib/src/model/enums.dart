@@ -1,3 +1,5 @@
+import 'difficulty_level.dart';
+
 /// Dance form discriminator. Figure taxonomies are per-form, so `ecd` and
 /// `square` can be populated later without schema surgery.
 enum DanceForm { contra, ecd, square }
@@ -8,27 +10,21 @@ enum Progression { none, single, double, triple, quadruple, other }
 /// Lifecycle status of a dance (mirrors The Caller's Box vocabulary).
 enum DanceStatus { active, deprecated, broken, draft, variation }
 
-/// Difficulty of a dance, as an **ordered** scale (mirrors CC's `Level`;
-/// enum index is the ordinal, encoding CC's `LevelNum` without a separate
-/// column). A future `Level(level, op)` search leaf (docs/design/search.md)
-/// relies on this ordering for `lte`/`gte` comparisons.
+/// Backward-compatible source alias for the shipped difficulty values.
 ///
-/// A "mixed level" event spans the scale rather than sitting at a single
-/// point, so it is modelled as a separate `Dance.mixedLevel` flag rather than
-/// an enum member — keeping this scale total keeps ordered comparisons clean.
-/// Persisted by name (like [DanceStatus]/[Progression]); reordering members is
-/// a migration concern.
-enum DanceLevel { beginner, intermediate, advanced }
+/// New code should use [DifficultyLevel] and persist its `id`. This alias keeps
+/// existing integrations source-compatible while they migrate from the former
+/// enum API.
+typedef DanceLevel = DifficultyLevel;
 
 /// Lifecycle status of a program (set list).
 enum ProgramStatus { draft, finalized, performed }
 
-/// Which half of a program a slot falls in, DERIVED from the first break slot
-/// (see [Program.halfAtIndex]): everything before the first break is the
-/// [first] half, everything after is the [second]. There is no persisted
-/// half/section marker — the half is computed from the ordered slot list, so
-/// this carries no migration concern. A program with no break has no derived
-/// halves at all (every slot classifies as `null`).
+/// The legacy first/second projection used by calling-history statistics.
+///
+/// Matrix/editor consumers use numbered sections derived from every break.
+/// Section 1 projects to [first], sections 2 and later project to [second];
+/// break and break-less slots project to `null`.
 enum ProgramHalf { first, second }
 
 /// What a [DanceLink] points at.

@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../data/canonical_discouraged_terms_scope.dart';
 import '../../data/validation_issue_labels.dart';
 import '../../data/walkthrough_snippet_library_controller.dart';
 import '../../data/walkthrough_snippet_library_scope.dart';
@@ -273,15 +274,24 @@ class DanceEditorForm extends StatelessWidget {
                   moveParamDefaults: moveParamDefaults,
                   onChanged: controller.onFiguresChanged,
                   onAdd: controller.addFigure,
+                  onAddMeanwhile: controller.addMeanwhile,
+                  onAddModifier: controller.addModifier,
                   freeTextEntry: freeTextEntry,
                   shorthandMappings: shorthandMappings,
+                  canonicalizeDiscouragedTerms:
+                      CanonicalDiscouragedTermsScope.of(context),
                   onAddFreeText: controller.insertFreeTextFigures,
                   onDelete: controller.deleteFigure,
                   onDuplicate: controller.duplicateFigure,
                   onReorder: controller.reorderFigure,
                   showWordingOverride: true,
                   onGroupWithNext: controller.groupFigureWithNext,
+                  onGroupWithNextAsModifier:
+                      controller.groupFigureWithNextAsModifier,
                   onCollapseMeanwhileGroup: controller.collapseMeanwhileGroup,
+                  onConvertToMeanwhile: controller.convertContainerToMeanwhile,
+                  onConvertToModifier: controller.convertContainerToModifier,
+                  onUngroupContainer: controller.ungroupContainer,
                   snippetLibraryDefaultFor: snippetLib == null
                       ? null
                       : (draft) {
@@ -442,7 +452,11 @@ class DanceEditorForm extends StatelessWidget {
           onChanged: controller.setStatus,
         ),
         const SizedBox(height: AppSpacing.md),
-        LevelDropdown(value: controller.level, onChanged: controller.setLevel),
+        LevelDropdown(
+          value: controller.level,
+          levels: controller.difficultyLevels,
+          onChanged: controller.setLevel,
+        ),
         const SizedBox(height: AppSpacing.xs),
         CheckboxListTile(
           key: const ValueKey('mixed-level-field'),

@@ -45,37 +45,34 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  since the last tag, a migration + migration test exists for every step.
  (Reminder: never bump schema in a patch release.)
 - [ ] If `kCompendiumSchemaVersion` or `contraTaxonomyVersion` moved since the
- versioned CHANGELOG section was last written, that section has a **Data /
+ versioned CHANGELOG section was last compiled, that section has a **Data /
  Migrations** entry stating old → new and what the migration does. Each moved
  constant needs its own labelled range (`schema … 20 → 25`,
  `taxonomy … 23 → 27`); the gate checks them separately.
-- [ ] Exactly one `## [x.y.z]` heading for the release's core version
- (`grep -c '^## \[0\.1\.0\]' app/CHANGELOG.md` → `1`). Promotion merges into the
- existing section; a second heading renders fine and orphans the older one.
+- [ ] Every pending `changelog.d/*.json` fragment validates, has the required
+ app/core audience entries, and is included in the reviewed compiler diff.
 - [ ] The required shared `## [X.Y.Z]` section exists for **both** beta and stable.
- The beta establishes it from `Unreleased`; beta-to-stable fixes are added to
- that same section.
-- [ ] `app/CHANGELOG.md`'s `## [Unreleased]` covers every user-visible outcome,
- including an outcome caused by a `packages/compendium_core` change. The core
- CHANGELOG records the core package version; it does **not** feed published
- release notes and never substitutes for the app entry.
-- [ ] `packages/compendium_core/CHANGELOG.md`'s `## [Unreleased]` has been read,
- and the outcome recorded either way. **Empty → the core pubspec and core
- CHANGELOG are untouched by this release** (mark this row N/A with that
- reason). Non-empty → the rows below apply. The section as written is the
- trigger; do not substitute a diff of `packages/compendium_core` or a judgement
- call.
-- [ ] If it was non-empty: the new core version came from **asking the
+ The compiler establishes it from pending fragments; beta-to-stable fixes are
+ added to that same section from later pending fragments.
+- [ ] Every user-visible outcome has an `app` fragment entry, including an
+ outcome caused by a `packages/compendium_core` change. The core changelog does
+ **not** feed published release notes and never substitutes for the app entry.
+- [ ] Pending `core` fragment entries have been read. **None → the core pubspec
+ and core CHANGELOG are untouched by this release** (mark this row N/A with
+ that reason). Core entries → the rows below apply. Fragment content, not a
+ diff of `packages/compendium_core`, is the trigger.
+- [ ] If core entries exist: the new core version came from **asking the
  maintainer**, with the current `packages/compendium_core/pubspec.yaml`
  `version:` presented for context. It is not derived from the tag, from the app
  version, or from the shape of the changes.
-- [ ] If it was non-empty: `packages/compendium_core/pubspec.yaml` `version:` is
- that exact bare `X.Y.Z` — no `v`, no prerelease suffix, no build metadata —
- and a new `## [X.Y.Z] - YYYY-MM-DD` section dated the release date holds the
- drained entries, with a fresh empty `## [Unreleased]` above it. Unlike the
+- [ ] If core entries exist: `packages/compendium_core/pubspec.yaml` `version:`
+ is that exact bare `X.Y.Z` — no `v`, no prerelease suffix, no build metadata —
+ and the compiler creates the dated core section from those entries. Unlike the
  app's shared section, a core section is **always new**: the core version is
  not the tag's core, so a beta and a later stable that both carry core changes
  get two sections.
+- [ ] The compiler consumed every pending fragment, `changelog.d/` has no
+ `*.json` files, and exactly one `## [X.Y.Z]` app section remains for the tag.
 - [ ] Both CHANGELOGs pass the structure gate — version sections strictly
  descending by SemVer precedence and
  no repeated `###` subheading inside one `##` section:
@@ -211,17 +208,37 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  screen-reader passes remain tracked as aspirational in
  [`accessibility-baseline.md`](../research/accessibility-baseline.md) but are
  **not** part of this release-blocking gate yet; note any known issues found
- informally in the known-issues list (§9) rather than blocking on them.
+ informally in the known-issues list (§10) rather than blocking on them.
 
-## 8. Tag & publish
+## 8. Device Sync operational readiness (W16 - Gate)
+- [ ] The compatible Athenaeum server was deployed and smoke-tested before any
+  beta or public client distribution. Record the image digest and deployment
+  timestamp.
+- [ ] Follow [`athenaeum-operations.md`](athenaeum-operations.md) and attach
+  evidence for the no-redirect plaintext `:80 /v1` refusal, successful HTTPS
+  request with HSTS, proxy header/body/address checks, and every documented
+  rate-limit budget. Include the labeled output from
+  `server/deploy/smoke_test.sh`, which runs these checks through the
+  host-network Apache vhost.
+- [ ] Attach live staging evidence for quota and sweep alerts reaching a human,
+  30-day retention removal with log-content absence, one authorized break-glass
+  access with exactly one separate audit row, and the lost-ID "not recoverable"
+  support response.
+
+## 9. Tag & publish
 - [ ] Release notes drafted (see the [first-beta](release-notes-first-beta.md) / [recurring &amp; stable](release-notes-recurring.md) guide) and reviewed.
-- [ ] Annotated tag created on the exact reviewed commit: `vX.Y.Z-beta` or
-  `vX.Y.Z`.
+- [ ] Starting with the next minor release, the codename choice is recorded:
+  carry forward the prior codename or choose a new one. The annotated tag
+  contains exactly one `Release codename: <name>` line (80 characters or fewer,
+  no control characters), and is on the exact reviewed commit: `vX.Y.Z-beta` or
+  `vX.Y.Z`. Legacy tags without this line are recovered with the tag as their
+  title.
 - [ ] GitHub Release created from the tag, marked "Pre-release", artifacts attached.
+- [ ] GitHub Release title matches the codename carried by the tag.
 - [ ] Post-publish: download each artifact FROM the release and re-launch once
  (catches broken uploads).
 
-## 9. Post-release
+## 10. Post-release
 - [ ] Roadmap updated (what shipped, what's still open).
 - [ ] Known-issues list published with the release.
 - [ ] Feedback channel for testers is stated in the release notes.

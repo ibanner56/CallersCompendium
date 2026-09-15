@@ -2,7 +2,8 @@ import 'package:compendium_app/src/data/backup_service.dart'
     show
         isBackupEligibleSettingKey,
         kBackupSettingsDenylist,
-        kBackupSettingsDenylistPrefixes;
+        kBackupSettingsDenylistPrefixes,
+        kModifierContainerCanonicalRebuildDoneKey;
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -58,8 +59,35 @@ void main() {
         if (entry.value.egress == EgressClass.deviceScoped) entry.key,
     };
 
-    expect(exactDeviceScopedKeys, {'window_frame', 'last_backup_at'});
+    expect(exactDeviceScopedKeys, {
+      'window_frame',
+      'last_backup_at',
+      taxonomyV33CanonicalRebuildDoneKey,
+      taxonomyV34CanonicalRebuildDoneKey,
+      kModifierContainerCanonicalRebuildDoneKey,
+      taxonomyV35FigureNormalizationDoneKey,
+      callersBoxRollAwayRoleRepairDoneKey,
+    });
     expect(kBackupSettingsDenylist, containsAll(exactDeviceScopedKeys));
+    expect(kBackupSettingsDenylist, containsAll({'sync_id', 'sync_device_id'}));
+    expect(isBackupEligibleSettingKey('sync_id'), isFalse);
+    expect(isBackupEligibleSettingKey('sync_device_id'), isFalse);
+    expect(
+      isBackupEligibleSettingKey(taxonomyV33CanonicalRebuildDoneKey),
+      isFalse,
+    );
+    expect(
+      isBackupEligibleSettingKey(taxonomyV34CanonicalRebuildDoneKey),
+      isFalse,
+    );
+    expect(
+      isBackupEligibleSettingKey(taxonomyV35FigureNormalizationDoneKey),
+      isFalse,
+    );
+    expect(
+      isBackupEligibleSettingKey(callersBoxRollAwayRoleRepairDoneKey),
+      isFalse,
+    );
 
     for (final key in backupLocalKeys) {
       expect(

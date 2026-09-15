@@ -4,14 +4,15 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../search/facet_labels.dart';
 
-/// The level chosen in the batch-level dialog: either a concrete [DanceLevel]
+/// The level chosen in the batch-level dialog: either a concrete
+/// [DifficultyLevel]
 /// to set across the selection, or "clear" ([level] `null`, [clear] `true`) to
 /// unset the level. Cancelling the dialog returns `null` instead of this.
 class BatchLevelChoice {
   const BatchLevelChoice({this.level, this.clear = false});
 
   /// The level to set; `null` together with [clear] means "unset".
-  final DanceLevel? level;
+  final DifficultyLevel? level;
 
   /// Whether the user picked the explicit "Unspecified (clear)" option.
   final bool clear;
@@ -26,15 +27,20 @@ class BatchLevelChoice {
 /// Returns the [BatchLevelChoice], or `null` if the user cancelled. Choices use
 /// [RadioListTile] so state is exposed to assistive tech (radio role + selected
 /// state) paired with a text label — never color alone.
-Future<BatchLevelChoice?> showBatchLevelDialog(BuildContext context) {
+Future<BatchLevelChoice?> showBatchLevelDialog(
+  BuildContext context, {
+  List<DifficultyLevel>? levels,
+}) {
   return showDialog<BatchLevelChoice>(
     context: context,
-    builder: (_) => const _BatchLevelDialog(),
+    builder: (_) => _BatchLevelDialog(levels: levels),
   );
 }
 
 class _BatchLevelDialog extends StatefulWidget {
-  const _BatchLevelDialog();
+  const _BatchLevelDialog({required this.levels});
+
+  final List<DifficultyLevel>? levels;
 
   @override
   State<_BatchLevelDialog> createState() => _BatchLevelDialogState();
@@ -68,7 +74,7 @@ class _BatchLevelDialogState extends State<_BatchLevelDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              for (final v in DanceLevel.values)
+              for (final v in widget.levels ?? DifficultyLevel.shipped)
                 RadioListTile<Object>(
                   key: ValueKey('batch-level-option-${v.name}'),
                   dense: true,
@@ -102,7 +108,7 @@ class _BatchLevelDialogState extends State<_BatchLevelDialog> {
               : () {
                   final selected = _selected;
                   Navigator.of(context).pop(
-                    selected is DanceLevel
+                    selected is DifficultyLevel
                         ? BatchLevelChoice(level: selected)
                         : const BatchLevelChoice(clear: true),
                   );

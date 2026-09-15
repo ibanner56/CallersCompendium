@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart';
 
 import '../model/dance.dart';
+import '../model/difficulty_level.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
@@ -159,6 +160,7 @@ class CcDanceMapping {
     required this.dance,
     List<ImportIssue> issues = const [],
     List<String> authorNames = const [],
+    this.difficultyLevelLabel,
   }) : issues = List.unmodifiable(issues),
        authorNames = List.unmodifiable(authorNames);
 
@@ -169,6 +171,8 @@ class CcDanceMapping {
   /// [ImportPipeline] resolves these to [Choreographer] associations at commit;
   /// this mapping never fabricates ids.
   final List<String> authorNames;
+
+  final String? difficultyLevelLabel;
 }
 
 /// Placeholder title used when a CC record supplies no name. Parsing never
@@ -224,8 +228,8 @@ CcDanceMapping mapCallersCompanionDance(
   // fabricates ids; blank/duplicate names are dropped.
   final authorNames = splitAuthorNames(record.authors, issues: issues);
 
-  // Level → DanceLevel (+ mixedLevel), best-effort.
-  final (level, mixedLevel) = _mapLevel(record.level, issues);
+  // Level → shipped difficulty-level id (+ mixedLevel), best-effort.
+  final (difficultyLevelId, mixedLevel) = _mapLevel(record.level, issues);
 
   // Type → DanceForm, best-effort; unknown types are preserved as a note.
   final (form, typeNote) = _mapForm(record.type, issues);
@@ -291,7 +295,7 @@ CcDanceMapping mapCallersCompanionDance(
     progression: progression,
     figures: figures,
     callingNotes: notes,
-    level: level,
+    difficultyLevelId: difficultyLevelId,
     mixedLevel: mixedLevel,
     rating: rating,
     composedOn: composedOn,
@@ -300,7 +304,12 @@ CcDanceMapping mapCallersCompanionDance(
     updatedAt: now,
   );
 
-  return CcDanceMapping(dance: dance, issues: issues, authorNames: authorNames);
+  return CcDanceMapping(
+    dance: dance,
+    issues: issues,
+    authorNames: authorNames,
+    difficultyLevelLabel: record.level?.trim(),
+  );
 }
 
 /// The parsed result of peeling a body line's leading beats prefix: the [beats]
@@ -394,16 +403,18 @@ Figure _withBeats(Figure figure, int beats) {
   return figure.copyWith(params: params);
 }
 
-(DanceLevel?, bool) _mapLevel(String? raw, List<ImportIssue> issues) {
+(String?, bool) _mapLevel(String? raw, List<ImportIssue> issues) {
   final value = raw?.trim().toLowerCase() ?? '';
   if (value.isEmpty) return (null, false);
   if (value.contains('mix')) return (null, true);
   const beginner = {'beginner', 'easy', 'novice', 'basic'};
   const intermediate = {'intermediate', 'medium', 'moderate'};
   const advanced = {'advanced', 'hard', 'challenging', 'difficult', 'expert'};
-  if (beginner.contains(value)) return (DanceLevel.beginner, false);
-  if (intermediate.contains(value)) return (DanceLevel.intermediate, false);
-  if (advanced.contains(value)) return (DanceLevel.advanced, false);
+  if (beginner.contains(value)) return (DifficultyLevel.beginnerId, false);
+  if (intermediate.contains(value)) {
+    return (DifficultyLevel.intermediateId, false);
+  }
+  if (advanced.contains(value)) return (DifficultyLevel.advancedId, false);
   issues.add(
     ImportIssue(
       severity: ImportIssueSeverity.warning,
@@ -412,6 +423,45 @@ Figure _withBeats(Figure figure, int beats) {
     ),
   );
   return (null, false);
+}
+
+/// Returns whether [raw] still names [level] in the receiver's active
+/// vocabulary. Legacy aliases are accepted only while a shipped entry retains
+/// its shipped label; a renamed shipped entry must not silently absorb the old
+/// meaning.
+bool callersCompanionDifficultyLabelMatches(
+  String? raw,
+  DifficultyLevel level,
+) {
+  final value = raw?.trim().toLowerCase() ?? '';
+  if (value.isEmpty) return false;
+  if (value == level.label.trim().toLowerCase()) return true;
+  final shipped = DifficultyLevel.knownForId(level.id);
+  if (shipped == null ||
+      level.label.trim().toLowerCase() != shipped.label.toLowerCase()) {
+    return false;
+  }
+  return switch (level.id) {
+    DifficultyLevel.beginnerId => {
+      'beginner',
+      'easy',
+      'novice',
+      'basic',
+    }.contains(value),
+    DifficultyLevel.intermediateId => {
+      'intermediate',
+      'medium',
+      'moderate',
+    }.contains(value),
+    DifficultyLevel.advancedId => {
+      'advanced',
+      'hard',
+      'challenging',
+      'difficult',
+      'expert',
+    }.contains(value),
+    _ => false,
+  };
 }
 
 (DanceForm, String?) _mapForm(String? raw, List<ImportIssue> issues) {

@@ -19,7 +19,7 @@ import 'preview_hold_listener.dart';
 ///
 /// All mutations flow through callbacks so the parent builder owns the slot
 /// list and its dirty/undo state. Positions are the parent's responsibility to
-/// renumber contiguously after each [onReorder].
+/// renumber contiguously after each [onReorder] or [onPromoteAlternate].
 class ProgramSlotListEditor extends StatefulWidget {
   const ProgramSlotListEditor({
     super.key,
@@ -29,8 +29,12 @@ class ProgramSlotListEditor extends StatefulWidget {
     required this.mixerFor,
     required this.onReorder,
     required this.onSlotChanged,
+    required this.onPromoteAlternate,
     required this.onRemove,
     required this.onCreateDance,
+    this.reservedPerformedAt,
+    this.dialect,
+    this.canonicalizeDiscouragedTerms = false,
     this.onPickReplacementDance,
     this.onPreviewDanceStarted,
     this.onPreviewDanceEnded,
@@ -62,6 +66,15 @@ class ProgramSlotListEditor extends StatefulWidget {
   /// Replace the slot at [index] with [updated] (same id).
   final void Function(int index, ProgramSlot updated) onSlotChanged;
 
+  /// Atomically promote an alternate at [index] using the fully edited
+  /// [updated] slot. The parent swaps it with the nearest preceding primary,
+  /// preserving the promoted slot's edits and its own dirty/undo state.
+  final void Function(int index, ProgramSlot updated) onPromoteAlternate;
+
+  /// A performed timestamp reserved by an active bulk Undo action. A manual
+  /// re-mark must not reuse it while the inverse can still run.
+  final DateTime? reservedPerformedAt;
+
   /// Remove the slot at [index].
   final void Function(int index) onRemove;
 
@@ -70,6 +83,14 @@ class ProgramSlotListEditor extends StatefulWidget {
   /// for a note slot (no `danceId`) that isn't the structural break and whose
   /// text isn't blank — see [_SlotTile.build]'s gating.
   final void Function(int index) onCreateDance;
+
+  /// Dialect used for read-only slot and formation previews. The edit dialog
+  /// remains lossless and never uses this value.
+  final Dialect? dialect;
+
+  /// Whether read-only slot and formation previews should use canonical
+  /// discouraged-term wording.
+  final bool canonicalizeDiscouragedTerms;
 
   /// Opens the host's dance picker and resolves to the id of the dance the
   /// user picked, or `null` if they dismissed it without picking one
@@ -152,9 +173,30 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
       return title ?? l10n.programsDeletedDanceFallback;
     }
     final text = slot.text;
-    return (text == null || text.trim().isEmpty)
-        ? l10n.programsSlotNoteFallback
-        : text;
+    if (text == null || text.trim().isEmpty) {
+      return l10n.programsSlotNoteFallback;
+    }
+    if (!widget.canonicalizeDiscouragedTerms ||
+        widget.dialect == null ||
+        (slot.danceId == null && slot.isPurgedDance != false)) {
+      return text;
+    }
+    return FigureRenderer(
+      contraTaxonomy,
+    ).renderFreeTextWithCanonicalDiscouragedTerms(text, widget.dialect!);
+  }
+
+  String? _slotNote(ProgramSlot slot) {
+    final text = slot.text?.trim();
+    if (text == null || text.isEmpty) return null;
+    if (!widget.canonicalizeDiscouragedTerms ||
+        widget.dialect == null ||
+        (slot.danceId == null && slot.isPurgedDance != false)) {
+      return text;
+    }
+    return FigureRenderer(
+      contraTaxonomy,
+    ).renderFreeTextWithCanonicalDiscouragedTerms(text, widget.dialect!);
   }
 
   /// Resolves a slot's dance formation, or null for free-text slots and
@@ -232,6 +274,10 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
                   index: i,
                   slot: slots[i],
                   title: _slotTitle(l10n, slots[i]),
+                  note: _slotNote(slots[i]),
+                  dialect: widget.dialect,
+                  canonicalizeDiscouragedTerms:
+                      widget.canonicalizeDiscouragedTerms,
                   formation: _slotFormation(slots[i]),
                   mixer: _slotMixer(slots[i]),
                   ordinal: _ordinalAtIndex(i),
@@ -282,6 +328,10 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
                   index: i,
                   slot: slots[i],
                   title: _slotTitle(l10n, slots[i]),
+                  note: _slotNote(slots[i]),
+                  dialect: widget.dialect,
+                  canonicalizeDiscouragedTerms:
+                      widget.canonicalizeDiscouragedTerms,
                   formation: _slotFormation(slots[i]),
                   mixer: _slotMixer(slots[i]),
                   ordinal: _ordinalAtIndex(i),
@@ -341,7 +391,11 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
   void _toggleAlt(int i) {
     final slot = widget.slots[i];
     final l10n = AppLocalizations.of(context);
-    widget.onSlotChanged(i, slot.copyWith(isAlt: !slot.isAlt));
+    if (slot.isAlt) {
+      widget.onPromoteAlternate(i, slot.copyWith(isAlt: false));
+    } else {
+      widget.onSlotChanged(i, slot.copyWith(isAlt: true));
+    }
     SemanticsService.sendAnnouncement(
       View.of(context),
       slot.isAlt ? l10n.programsMarkedPrimary : l10n.programsMarkedAlternate,
@@ -355,7 +409,15 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
     if (slot.performedAt == null) {
       widget.onSlotChanged(
         i,
-        slot.copyWith(performedAt: DateTime.now().toUtc()),
+        slot.copyWith(
+          performedAt: nextStoredTimestamp(
+            now: DateTime.now().toUtc(),
+            current: [
+              ...widget.slots.map((s) => s.performedAt),
+              widget.reservedPerformedAt,
+            ],
+          ),
+        ),
       );
       SemanticsService.sendAnnouncement(
         View.of(context),
@@ -371,9 +433,11 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
           position: slot.position,
           danceId: slot.danceId,
           text: slot.text,
+          isPurgedDance: slot.isPurgedDance,
           isAlt: slot.isAlt,
           guestCaller: slot.guestCaller,
-          plannedMinutes: slot.plannedMinutes,
+          walkthroughMinutes: slot.walkthroughMinutes,
+          danceMinutes: slot.danceMinutes,
         ),
       );
       SemanticsService.sendAnnouncement(
@@ -405,7 +469,13 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
         onPickReplacementDance: widget.onPickReplacementDance,
       ),
     );
-    if (result != null && mounted) widget.onSlotChanged(index, result);
+    if (result != null && mounted) {
+      if (slot.isAlt && !result.isAlt) {
+        widget.onPromoteAlternate(index, result);
+      } else {
+        widget.onSlotChanged(index, result);
+      }
+    }
   }
 }
 
@@ -416,6 +486,9 @@ class _SlotTile extends StatelessWidget {
     required this.index,
     required this.slot,
     required this.title,
+    required this.note,
+    required this.dialect,
+    required this.canonicalizeDiscouragedTerms,
     required this.formation,
     required this.mixer,
     required this.ordinal,
@@ -440,6 +513,9 @@ class _SlotTile extends StatelessWidget {
   final int index;
   final ProgramSlot slot;
   final String title;
+  final String? note;
+  final Dialect? dialect;
+  final bool canonicalizeDiscouragedTerms;
 
   /// The resolved dance formation for a dance slot, or null for free-text
   /// slots / unavailable dances. Drives the redundant accent + formation text.
@@ -506,15 +582,22 @@ class _SlotTile extends StatelessWidget {
         : null;
 
     final subtitleParts = <String>[
-      if (formation != null) formationLabel(l10n, formation!),
+      if (formation != null)
+        formationDisplayLabel(
+          l10n,
+          formation!,
+          FigureRenderer(contraTaxonomy),
+          dialect ?? Dialect.larksRobins,
+          canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+        ),
       if (mixer) l10n.commonMixer,
       if (isDanceSlot && (slot.text?.trim().isNotEmpty ?? false))
-        l10n.programsSummaryNote(slot.text!.trim()),
+        l10n.programsSummaryNote(note ?? slot.text!.trim()),
       if (!isDanceSlot && (slot.text?.trim().isNotEmpty ?? false)) '',
       if (slot.guestCaller != null)
         l10n.programsSummaryGuest(slot.guestCaller!),
-      if (slot.plannedMinutes != null)
-        l10n.programsPlannedMinutes(slot.plannedMinutes!),
+      if (slot.plannedTotalMinutes != null)
+        l10n.programsPlannedMinutes(slot.plannedTotalMinutes!),
     ]..removeWhere((s) => s.isEmpty);
 
     return Opacity(
@@ -790,7 +873,7 @@ class _PasteButton extends StatelessWidget {
 }
 
 /// Dialog to edit a slot's dance (via in-place replacement, issue #964), and
-/// its per-slot note, guest caller, planned minutes, and alt flag. Returns the
+/// its per-slot note, guest caller, split planned timing, and alt flag. Returns the
 /// updated [ProgramSlot] (or null if cancelled).
 class _SlotEditDialog extends StatefulWidget {
   const _SlotEditDialog({
@@ -823,8 +906,11 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
   late final TextEditingController _guest = TextEditingController(
     text: widget.slot.guestCaller ?? '',
   );
-  late final TextEditingController _minutes = TextEditingController(
-    text: widget.slot.plannedMinutes?.toString() ?? '',
+  late final TextEditingController _walkthroughMinutes = TextEditingController(
+    text: widget.slot.walkthroughMinutes?.toString() ?? '',
+  );
+  late final TextEditingController _danceMinutes = TextEditingController(
+    text: widget.slot.danceMinutes?.toString() ?? '',
   );
   late bool _isAlt = widget.slot.isAlt;
 
@@ -832,7 +918,8 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
   /// local state (not committed to the caller) until [_save] — cancelling the
   /// dialog discards a pick exactly like every other edit here.
   late String? _danceId = widget.slot.danceId;
-  String? _minutesError;
+  String? _walkthroughMinutesError;
+  String? _danceMinutesError;
   String? _noteError;
 
   bool get _isDanceSlot => _danceId != null;
@@ -845,7 +932,8 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
   void dispose() {
     _note.dispose();
     _guest.dispose();
-    _minutes.dispose();
+    _walkthroughMinutes.dispose();
+    _danceMinutes.dispose();
     super.dispose();
   }
 
@@ -870,7 +958,8 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
     final l10n = AppLocalizations.of(context);
     final noteText = _note.text.trim();
     final guestText = _guest.text.trim();
-    final minutesText = _minutes.text.trim();
+    final walkthroughMinutesText = _walkthroughMinutes.text.trim();
+    final danceMinutesText = _danceMinutes.text.trim();
 
     // A free-text slot must keep some text (its danceId is null); a dance slot
     // may clear its optional caller note entirely.
@@ -879,24 +968,45 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
       return;
     }
 
-    int? minutes;
-    if (minutesText.isNotEmpty) {
-      final parsed = int.tryParse(minutesText);
+    int? parseMinutes(String text, void Function(String?) setError) {
+      if (text.isEmpty) return null;
+      final parsed = int.tryParse(text);
       if (parsed == null || parsed < 0) {
-        setState(() => _minutesError = l10n.programsWholeNumberError);
-        return;
+        setError(l10n.programsWholeNumberError);
+        return null;
       }
-      minutes = parsed;
+      return parsed;
     }
+
+    var valid = true;
+    final walkthroughMinutes = parseMinutes(
+      walkthroughMinutesText,
+      (error) => setState(() {
+        _walkthroughMinutesError = error;
+        valid = false;
+      }),
+    );
+    final danceMinutes = parseMinutes(
+      danceMinutesText,
+      (error) => setState(() {
+        _danceMinutesError = error;
+        valid = false;
+      }),
+    );
+    if (!valid) return;
 
     final updated = ProgramSlot(
       id: widget.slot.id,
       position: widget.slot.position,
       danceId: _danceId,
       text: noteText.isEmpty ? null : noteText,
+      isPurgedDance: _danceId == null && noteText == widget.slot.text
+          ? widget.slot.isPurgedDance
+          : false,
       isAlt: _isAlt,
       guestCaller: guestText.isEmpty ? null : guestText,
-      plannedMinutes: minutes,
+      walkthroughMinutes: walkthroughMinutes,
+      danceMinutes: danceMinutes,
       performedAt: widget.slot.performedAt,
     );
     if (_danceId != widget.slot.danceId && _danceId != null) {
@@ -982,16 +1092,39 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
               ),
             ),
             const SizedBox(height: 12),
+            Text(
+              l10n.programsPlannedTimingHeader,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 8),
             TextField(
-              key: const ValueKey('slot-edit-minutes'),
-              controller: _minutes,
+              key: const ValueKey('slot-edit-walkthrough-minutes'),
+              controller: _walkthroughMinutes,
               keyboardType: TextInputType.number,
               onChanged: (_) {
-                if (_minutesError != null) setState(() => _minutesError = null);
+                if (_walkthroughMinutesError != null) {
+                  setState(() => _walkthroughMinutesError = null);
+                }
               },
               decoration: InputDecoration(
-                labelText: l10n.programsPlannedMinutesLabel,
-                errorText: _minutesError,
+                labelText: l10n.programsWalkthroughMinutesLabel,
+                errorText: _walkthroughMinutesError,
+                border: const OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              key: const ValueKey('slot-edit-dance-minutes'),
+              controller: _danceMinutes,
+              keyboardType: TextInputType.number,
+              onChanged: (_) {
+                if (_danceMinutesError != null) {
+                  setState(() => _danceMinutesError = null);
+                }
+              },
+              decoration: InputDecoration(
+                labelText: l10n.programsDanceMinutesLabel,
+                errorText: _danceMinutesError,
                 border: const OutlineInputBorder(),
               ),
             ),

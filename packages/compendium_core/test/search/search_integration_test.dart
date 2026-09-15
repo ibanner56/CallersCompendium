@@ -17,7 +17,7 @@ Dance _dance({
   FormationShape formation = FormationShape.dupleImproper,
   Progression progression = Progression.single,
   DanceStatus status = DanceStatus.active,
-  DanceLevel? level,
+  String? difficultyLevelId,
   bool mixedLevel = false,
   int? rating,
   PartialDate? composedOn,
@@ -36,7 +36,7 @@ Dance _dance({
     formation: Formation(formation),
     progression: progression,
     status: status,
-    level: level,
+    difficultyLevelId: difficultyLevelId,
     mixedLevel: mixedLevel,
     rating: rating,
     composedOn: composedOn,
@@ -123,29 +123,42 @@ void main() {
 
     test('Level: eq matches exactly, ordered ops respect the scale', () async {
       await dances.create(
-        _dance(id: 'beg', title: 'Beg', level: DanceLevel.beginner),
+        _dance(
+          id: 'beg',
+          title: 'Beg',
+          difficultyLevelId: DifficultyLevel.beginnerId,
+        ),
       );
       await dances.create(
-        _dance(id: 'int', title: 'Int', level: DanceLevel.intermediate),
+        _dance(
+          id: 'int',
+          title: 'Int',
+          difficultyLevelId: DifficultyLevel.intermediateId,
+        ),
       );
       await dances.create(
-        _dance(id: 'adv', title: 'Adv', level: DanceLevel.advanced),
+        _dance(
+          id: 'adv',
+          title: 'Adv',
+          difficultyLevelId: DifficultyLevel.advancedId,
+        ),
       );
       // Unspecified level: never matches any Level leaf.
       await dances.create(_dance(id: 'non', title: 'None'));
 
-      expect(await dances.search(const LevelFilter(DanceLevel.intermediate)), [
-        'int',
-      ]);
+      expect(
+        await dances.search(const LevelFilter(DifficultyLevel.intermediateId)),
+        ['int'],
+      );
       expect(
         await dances.search(
-          const LevelFilter(DanceLevel.intermediate, LevelOp.lte),
+          const LevelFilter(DifficultyLevel.intermediateId, LevelOp.lte),
         ),
         ['beg', 'int'],
       );
       expect(
         await dances.search(
-          const LevelFilter(DanceLevel.intermediate, LevelOp.gte),
+          const LevelFilter(DifficultyLevel.intermediateId, LevelOp.gte),
         ),
         ['adv', 'int'],
       );
@@ -232,6 +245,75 @@ void main() {
             const FullTextFilter('swing', scope: FullTextScope.figure),
           ),
           ['figure-only'],
+        );
+      },
+    );
+
+    test(
+      'author scope searches only the author column for prefix and substring',
+      () async {
+        // ignore: unused_result
+        await choreographers.upsert(
+          Choreographer(id: 'c1', name: 'Alice Smith'),
+        );
+        await dances.create(
+          _dance(id: 'author', title: 'Plain', authorIds: ['c1']),
+        );
+        await dances.create(
+          _dance(
+            id: 'title',
+            title: 'Alice Smith Special',
+            figures: [
+              Figure(move: 'balance', params: const {'beats': 16}),
+            ],
+          ),
+        );
+        await dances.create(
+          _dance(
+            id: 'figure',
+            title: 'Plain',
+            figures: [
+              // invalid-fixture: synthetic unknown move verifies figure-only
+              // text cannot satisfy an author-scoped search
+              Figure(move: 'alice_smith', params: const {'beats': 16}),
+            ],
+          ),
+        );
+
+        expect(
+          await dances.search(
+            const FullTextFilter('Al', scope: FullTextScope.author),
+          ),
+          ['author'],
+        );
+        expect(
+          await dances.search(
+            const FullTextFilter('Smith', scope: FullTextScope.author),
+          ),
+          ['author'],
+        );
+
+        // A choreographer rename must refresh both denormalized author indexes;
+        // otherwise the new name is invisible until a full derived rebuild.
+        // ignore: unused_result
+        await choreographers.upsert(Choreographer(id: 'c1', name: 'Bob Jones'));
+        expect(
+          await dances.search(
+            const FullTextFilter('Bo', scope: FullTextScope.author),
+          ),
+          ['author'],
+        );
+        expect(
+          await dances.search(
+            const FullTextFilter('Jones', scope: FullTextScope.author),
+          ),
+          ['author'],
+        );
+        expect(
+          await dances.search(
+            const FullTextFilter('Alice', scope: FullTextScope.author),
+          ),
+          isEmpty,
         );
       },
     );
@@ -915,6 +997,42 @@ void main() {
         isEmpty,
       );
     });
+
+    test(
+      'nested modifier leaves remain concurrent in either Then direction',
+      () async {
+        final nested = Figure.meanwhile(
+          figures: [
+            Figure(move: 'do_si_do'),
+            Figure(move: 'petronella'),
+          ],
+          beats: 8,
+        );
+        final container = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            nested,
+          ],
+          beats: 8,
+        );
+        await dances.create(
+          _dance(id: 'nested-modifier', title: 'Nested', figures: [container]),
+        );
+
+        for (final filter in [
+          ThenFilter(FigureLeaf('swing'), FigureLeaf('petronella')),
+          ThenFilter(FigureLeaf('petronella'), FigureLeaf('swing')),
+        ]) {
+          expect(await dances.search(filter), isEmpty);
+        }
+        expect(await dances.search(FigureFilter.leaf('petronella')), [
+          'nested-modifier',
+        ]);
+        expect(await dances.search(FigureFilter.leaf('swing')), [
+          'nested-modifier',
+        ]);
+      },
+    );
 
     test('a genuine sequence still matches, and only it', () async {
       // Concurrent container: petronella while swing.

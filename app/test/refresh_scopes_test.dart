@@ -35,22 +35,26 @@ import 'support/test_repositories.dart';
 void main() {
   final now = DateTime.utc(2026, 1, 1);
 
-  Dance dance({required String id, required String title, DanceLevel? level}) =>
-      Dance(
-        id: id,
-        title: title,
-        authorIds: const [],
-        tagIds: const [],
-        form: DanceForm.contra,
-        formation: const Formation(FormationShape.dupleImproper),
-        status: DanceStatus.active,
-        level: level,
-        figures: const [],
-        customFields: const [],
-        hook: '',
-        createdAt: now,
-        updatedAt: now,
-      );
+  Dance dance({
+    required String id,
+    required String title,
+    DanceLevel? level,
+    List<String> tagIds = const [],
+  }) => Dance(
+    id: id,
+    title: title,
+    authorIds: const [],
+    tagIds: tagIds,
+    form: DanceForm.contra,
+    formation: const Formation(FormationShape.dupleImproper),
+    status: DanceStatus.active,
+    level: level,
+    figures: const [],
+    customFields: const [],
+    hook: '',
+    createdAt: now,
+    updatedAt: now,
+  );
 
   Program program({
     required String id,
@@ -292,6 +296,40 @@ void main() {
     },
   );
 
+  testWidgets('renaming a choreographer refreshes an Omni search', (
+    tester,
+  ) async {
+    final counter = _SearchCounter();
+    final db = openWidgetTestDatabase(
+      executor: NativeDatabase.memory().interceptWith(counter),
+    );
+    final repos = CompendiumRepositories(db, contraTaxonomy);
+    // ignore: unused_result
+    await repos.choreographers.upsert(Choreographer(id: 'c1', name: 'Adams'));
+    await repos.dances.create(
+      dance(id: 'd1', title: 'Alpha').copyWith(authorIds: const ['c1']),
+    );
+    await pump(tester, repos, const DanceListScreen());
+
+    await tester.enterText(
+      find.byKey(const ValueKey('collection-search-field')),
+      'Adams',
+    );
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+    expect(find.text('Alpha'), findsOne);
+    final searchesBeforeRename = counter.count;
+
+    // The dance row is unchanged, but Omni also searches the denormalized
+    // author column, so the rename must invalidate the result set.
+    // ignore: unused_result
+    await repos.choreographers.upsert(Choreographer(id: 'c1', name: 'Zulu'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Alpha'), findsNothing);
+    expect(counter.count, greaterThan(searchesBeforeRename));
+  });
+
   testWidgets(
     'renaming a choreographer re-sorts the list when sorted by author',
     (tester) async {
@@ -433,8 +471,7 @@ void main() {
   // same replace path reachable and is covered there.
 
   testWidgets(
-    'gap 3: mark-all-performed in a program summary updates a live Collection '
-    "row's called-count badge",
+    'mark-all-performed Undo updates a live Collection row called-count badge',
     (tester) async {
       final repos = openTestRepos();
       await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
@@ -469,8 +506,57 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const ValueKey('called-count-d1')), findsOne);
+
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('called-count-d1')), findsNothing);
     },
   );
+
+  testWidgets('summary Undo shows rollback failures immediately', (
+    tester,
+  ) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(dance(id: 'd1', title: 'Alpha'));
+    await delayed.repos.programs.create(
+      program(
+        id: 'p1',
+        title: 'Friday Night',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+      ),
+    );
+    await pump(
+      tester,
+      delayed.repos,
+      panes(
+        const DanceListScreen(),
+        ProgramSummaryPane(
+          programId: 'p1',
+          onOpenBuilder: () {},
+          onDeleted: () {},
+          onNavigateTo: (_) {},
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pumpAndSettle();
+    delayed.programs.failConditionalRollback = true;
+    await tester.tap(find.text('Undo'));
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump();
+
+    expect(delayed.programs.conditionalRollbackCalls, 1);
+    expect(find.byType(SnackBar), findsOneWidget);
+    final snackBar = tester.widget<SnackBar>(find.byType(SnackBar));
+    expect((snackBar.content as Text).data, contains('undo'));
+    expect(
+      find.text('Could not undo marking; performed marks remain saved.'),
+      findsOneWidget,
+    );
+    expect(find.byType(SnackBarAction), findsNothing);
+  });
 
   testWidgets(
     "gap 4: deleting a program updates a live dance detail's calling history",
@@ -513,6 +599,16 @@ void main() {
       await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
       // ignore: unused_result
       await repos.tags.upsert(Tag(id: 't1', name: 'Gentle'));
+      // Batch picker options intentionally contain only tags referenced by a
+      // live dance; keep the selected dance untagged so the refresh assertion
+      // still observes the batch write.
+      await repos.dances.create(
+        dance(id: 'tag-owner', title: 'Tag owner', tagIds: ['t1']),
+      );
+      expect(
+        (await repos.tags.listReferencedByLiveDances()).map((tag) => tag.id),
+        contains('t1'),
+      );
       // CollectionShell splits at 900 and AppShell puts an 80 px rail beside
       // it, so a real split needs >= 980; 1400 is comfortably past that. No
       // iPhone can reach it, which is why this gap is iPad/desktop only.
@@ -538,9 +634,9 @@ void main() {
       );
       expect(paneTag(), findsNothing);
 
-      await tester.tap(find.byKey(const ValueKey('batch-select')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('batch-checkbox-d1')));
+      // A live tag makes the compact-actions toolbar active, so enter batch
+      // mode through the row's long-press affordance instead.
+      await tester.longPress(find.text('Alpha').first);
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('batch-add-tags')));
       await tester.pumpAndSettle();
@@ -590,7 +686,7 @@ void main() {
       // already-mounted summary directly from the watched tables.
       await repos.dances.update(
         (await repos.dances.getById('d1'))!.copyWith(
-          level: DanceLevel.intermediate,
+          difficultyLevelId: DifficultyLevel.intermediateId,
           updatedAt: now.add(const Duration(days: 1)),
         ),
       );
@@ -670,8 +766,8 @@ void main() {
   );
 
   testWidgets(
-    'deleting a dance opened through a related-dance link refreshes the row '
-    'that opened it — the delete path broadcasts nothing',
+    'deleting a dance opened through a related-dance link hides the row '
+    'that opened it',
     (tester) async {
       final repos = openTestRepos();
       await repos.dances.create(dance(id: 'd2', title: 'Bravo'));
@@ -687,13 +783,11 @@ void main() {
         ),
       );
       // Mounted WITH both scopes — production-like, and the point of the test.
-      // `_delete` soft-deletes and pops `true` without bumping either channel
-      // (the list screen reloads from the popped result instead), so the
-      // subscription cannot rescue this one the way it does an edit.
+      // The target's soft-delete updates the dances table observed by
+      // DanceDetailData.watch, so the owner detail rehydrates and hides it.
       await pump(tester, repos, const DanceDetailScreen(danceId: 'd1'));
 
-      // Fixture check: the link resolves to a real dance, so "(missing dance)"
-      // below is a change of state rather than the starting condition.
+      // Fixture check: the link resolves to a real dance before deletion.
       expect(find.text('Bravo'), findsOne);
       expect(find.text('(missing dance)'), findsNothing);
 
@@ -702,7 +796,8 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('delete-dance')).last);
       await tester.pumpAndSettle();
 
-      expect(find.text('(missing dance)'), findsOne);
+      expect(find.byKey(const ValueKey('link-row-l1')), findsNothing);
+      expect(find.text('(missing dance)'), findsNothing);
       expect(find.text('Bravo'), findsNothing);
     },
   );
@@ -918,6 +1013,11 @@ void main() {
       // plausibly happen per item.
       // ignore: unused_result
       await counted.repos.tags.upsert(Tag(id: 't1', name: 'Gentle'));
+      // Batch picker options intentionally contain only tags referenced by a
+      // live dance.
+      await counted.repos.dances.create(
+        dance(id: 'tag-owner', title: 'Tag owner', tagIds: ['t1']),
+      );
       await pump(
         tester,
         counted.repos,
@@ -930,9 +1030,11 @@ void main() {
       final before = counted.dances.loads;
       expect(before, greaterThan(0), reason: 'the pane loaded at all');
 
-      await tester.tap(find.byKey(const ValueKey('batch-select')));
+      // A live tag makes the compact-actions toolbar active, so enter batch
+      // mode through the row's long-press affordance instead.
+      await tester.longPress(find.text('Dance 0').first);
       await tester.pumpAndSettle();
-      for (var i = 0; i < 5; i++) {
+      for (var i = 1; i < 5; i++) {
         await tester.tap(find.byKey(ValueKey('batch-checkbox-d$i')));
         await tester.pumpAndSettle();
       }
@@ -943,20 +1045,13 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('batch-tag-confirm')));
       await tester.pumpAndSettle();
 
-      // Five dances written in five transactions, so five wakes reach the
-      // stream. The bound is a *rate*, not a total: the coalescing window emits
-      // on the leading edge and flushes at most once per window thereafter, so
-      // a burst this size settles in two. Asserting exactly one would be
-      // asserting the trailing flush away, and the trailing flush is what
-      // guarantees the last write is not dropped.
-      //
-      // The claim being defended is the gap between 2 and 5 — one reload per
-      // dance written, for a pane showing one of them.
+      // The five dance updates share the outer batch transaction, so the
+      // stream receives one commit and the pane reloads once.
       expect(
         counted.dances.loads - before,
-        lessThanOrEqualTo(2),
+        1,
         reason:
-            'a 5-dance batch must not reload this pane once per dance; '
+            'a 5-dance batch must commit once and reload this pane once; '
             'saw ${counted.dances.loads - before}',
       );
     },

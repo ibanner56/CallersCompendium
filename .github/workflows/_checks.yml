@@ -24,6 +24,11 @@ on:
         required: false
         default: true
         type: boolean
+      run_server_tests:
+        description: Run the Athenaeum server suite.
+        required: false
+        default: true
+        type: boolean
 
 # Least privilege: these checks only read the checked-out code. The effective
 # token permissions of a called workflow are the intersection of the caller's
@@ -208,6 +213,7 @@ jobs:
           python3 tools/release/test_gen_release_notes.py
           python3 tools/release/test_gen_recovery_provenance.py
           python3 tools/release/test_release_workflow_recovery.py
+          python3 tools/release/test_resolve_release_codename.py
           python3 tools/release/test_publish_pages_manifest.py
           python3 tools/release/test_publish_pages_site.py
           python3 tools/release/test_check_pages_signature_files.py
@@ -315,10 +321,62 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .dart_tool/hooks_runner/shared/sqlite3
-          key: sqlite3-prebuilt-${{ runner.os }}-${{ runner.arch }}-${{ steps.sqlite3.outputs.version }}
+          key: sqlite3-prebuilt-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.sqlite3.outputs.version }}
       - name: Test app
         working-directory: app
         run: flutter test
+
+  server-tests:
+    name: Test server
+    if: inputs.run_server_tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Detect server package
+        id: server-package
+        shell: bash
+        run: |
+          if [[ -f server/pubspec.yaml ]]; then
+            echo 'present=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'present=false' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        if: steps.server-package.outputs.present == 'true'
+        with:
+          flutter-version-file: .fvmrc
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+        if: steps.server-package.outputs.present == 'true'
+      # package:sqlite3's build hook writes its prebuilt outside the pub cache.
+      # Restore it by version so a transient release-download failure cannot
+      # prevent the server suite from starting (issue #939).
+      - name: Resolve the pinned sqlite3 version (cache key input)
+        id: sqlite3
+        if: steps.server-package.outputs.present == 'true'
+        run: |
+          version="$(awk '/^  sqlite3:/{f=1} f&&/^    version:/{gsub(/[" ]/,"",$2); print $2; exit}' pubspec.lock)"
+          if [ -z "$version" ]; then
+            echo "::error::could not resolve the sqlite3 version from pubspec.lock"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Cache the sqlite3 prebuilt native library
+        id: sqlite3_cache
+        if: steps.server-package.outputs.present == 'true'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .dart_tool/hooks_runner/shared/sqlite3
+          key: sqlite3-prebuilt-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.sqlite3.outputs.version }}
+      - name: Analyze server
+        working-directory: server
+        run: dart analyze .
+        if: steps.server-package.outputs.present == 'true'
+      - name: Test server
+        working-directory: server
+        run: dart test test
+        if: steps.server-package.outputs.present == 'true'
       # Save the prebuilt only on a miss, and only once the build hook has
       # actually produced the library. The guard matters: a fetch failure — the
       # very flake #939 is about — leaves an empty download directory behind, and
@@ -333,4 +391,4 @@ jobs:
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .dart_tool/hooks_runner/shared/sqlite3
-          key: sqlite3-prebuilt-${{ runner.os }}-${{ runner.arch }}-${{ steps.sqlite3.outputs.version }}
+          key: sqlite3-prebuilt-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.sqlite3.outputs.version }}

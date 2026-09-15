@@ -79,7 +79,7 @@ Future<void> _seed(CompendiumRepositories repos) async {
       ],
       hook: 'zesty',
       callingNotes: 'teach it',
-      level: DanceLevel.intermediate,
+      difficultyLevelId: DifficultyLevel.intermediateId,
       rating: 4,
       tunes: const ['Reel'],
       customFields: [
@@ -126,7 +126,7 @@ Future<void> _seed(CompendiumRepositories repos) async {
           id: 'sl1',
           position: 0,
           danceId: 'd1',
-          plannedMinutes: 12,
+          danceMinutes: 12,
           performedAt: DateTime.utc(2026, 5, 1, 20),
         ),
         ProgramSlot(id: 'sl2', position: 1, text: 'break'),
@@ -229,6 +229,47 @@ void main() {
     );
 
     test(
+      'restoring a pre-v34 archive after the marker is set normalizes legacy '
+      'mad robins',
+      () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await repos.settings.set(taxonomyV34CanonicalRebuildDoneKey, 'done');
+
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          dances: [
+            Dance(
+              id: 'legacy-mad-robin',
+              title: 'Legacy mad robin',
+              figures: [
+                Figure(
+                  move: 'mad_robin',
+                  assumedSubject: true,
+                  params: const {'direction': 'clockwise'},
+                ),
+              ],
+              createdAt: DateTime.utc(2026, 1, 1),
+              updatedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ],
+        );
+
+        final result = await ArchiveRestorer(
+          repos,
+        ).restore(archive, mode: RestoreMode.merge);
+        expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+
+        final restored = await repos.dances.getById('legacy-mad-robin');
+        expect(restored, isNotNull);
+        final figure = restored!.figures.single;
+        expect(figure.params['who'], ParamVocab.unspecified);
+        expect(figure.assumedSubject, isFalse);
+      },
+    );
+
+    test(
       'replace overwrites pre-existing rows rather than duplicating',
       () async {
         final db = openTestDatabase();
@@ -312,6 +353,206 @@ void main() {
       final tagIds = (await repos.tags.listAll()).map((t) => t.id).toSet();
       expect(tagIds, containsAll(<String>['keep', 't1']));
     });
+
+    test(
+      'replace and merge preserve ordered difficulty levels and assignments',
+      () async {
+        final sourceDb = openTestDatabase();
+        addTearDown(sourceDb.close);
+        final sourceRepos = CompendiumRepositories(sourceDb, contraTaxonomy);
+        final custom = DifficultyLevel(
+          id: 'custom-workshop',
+          label: 'Workshop',
+          position: 3,
+        );
+        await sourceRepos.difficultyLevels.upsert(custom);
+        await sourceRepos.dances.create(
+          Dance(
+            id: 'd-level',
+            title: 'Levelled',
+            difficultyLevelId: custom.id,
+            createdAt: DateTime.utc(2026, 7, 15),
+            updatedAt: DateTime.utc(2026, 7, 15),
+          ),
+        );
+        final archive = await ArchiveExporter(
+          sourceRepos,
+        ).export(exportedAt: DateTime.utc(2026, 7, 15));
+
+        final targetDb = openTestDatabase();
+        addTearDown(targetDb.close);
+        final targetRepos = CompendiumRepositories(targetDb, contraTaxonomy);
+        final replaced = await ArchiveRestorer(targetRepos).restore(archive);
+        expect(replaced.errors, isEmpty);
+        expect(
+          await targetRepos.difficultyLevels.listAll(),
+          archive.difficultyLevels,
+        );
+        expect(
+          (await targetRepos.dances.getById('d-level'))!.difficultyLevelId,
+          custom.id,
+        );
+
+        final local = DifficultyLevel(
+          id: 'local',
+          label: 'Local only',
+          position: 3,
+        );
+        await targetRepos.difficultyLevels.upsert(local);
+        final merged = await ArchiveRestorer(targetRepos).restore(
+          CompendiumArchive(
+            exportedAt: DateTime.utc(2026, 7, 16),
+            schemaVersion: archiveSchemaVersionDifficultyLevels,
+            difficultyLevels: [
+              DifficultyLevel(id: 'incoming', label: 'Incoming', position: 4),
+            ],
+            dances: [
+              Dance(
+                id: 'd-incoming',
+                title: 'Incoming dance',
+                difficultyLevelId: 'incoming',
+                createdAt: DateTime.utc(2026, 7, 16),
+                updatedAt: DateTime.utc(2026, 7, 16),
+              ),
+            ],
+          ),
+          mode: RestoreMode.merge,
+        );
+        expect(merged.errors, isEmpty);
+        expect(
+          (await targetRepos.difficultyLevels.listAll()).map(
+            (level) => level.id,
+          ),
+          containsAll(['local', 'incoming']),
+        );
+        expect(
+          (await targetRepos.dances.getById('d-incoming'))!.difficultyLevelId,
+          'incoming',
+        );
+      },
+    );
+
+    test(
+      'full backup preserves an intentionally empty difficulty vocabulary',
+      () async {
+        final sourceDb = openTestDatabase();
+        addTearDown(sourceDb.close);
+        final sourceRepos = CompendiumRepositories(sourceDb, contraTaxonomy);
+        for (final level in await sourceRepos.difficultyLevels.listAll()) {
+          await sourceRepos.difficultyLevels.delete(level.id);
+        }
+
+        final exported = await ArchiveExporter(
+          sourceRepos,
+        ).export(exportedAt: DateTime.utc(2026, 7, 15));
+        final decoded = archiveFromJson(archiveToJson(exported));
+        expect(decoded.errors, isEmpty);
+        expect(
+          decoded.archive.schemaVersion,
+          archiveSchemaVersionDifficultyLevels,
+        );
+        expect(decoded.archive.difficultyLevels, isEmpty);
+
+        final targetDb = openTestDatabase();
+        addTearDown(targetDb.close);
+        final targetRepos = CompendiumRepositories(targetDb, contraTaxonomy);
+        final result = await ArchiveRestorer(
+          targetRepos,
+        ).restore(decoded.archive);
+
+        expect(result.errors, isEmpty);
+        expect(await targetRepos.difficultyLevels.listAll(), isEmpty);
+      },
+    );
+
+    test(
+      'legacy restore does not overwrite locally renamed shipped levels',
+      () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await repos.difficultyLevels.upsert(
+          DifficultyLevel(
+            id: DifficultyLevel.advancedId,
+            label: 'Expert',
+            position: 7,
+          ),
+        );
+
+        final decoded = archiveFromJson({
+          'schemaVersion': archiveSchemaVersionBase,
+          'exportedAt': '2026-07-15T00:00:00.000Z',
+          'dances': [
+            {
+              'id': 'legacy-level',
+              'title': 'Legacy level',
+              'level': 'advanced',
+              'createdAt': '2026-01-01T00:00:00.000Z',
+              'updatedAt': '2026-01-01T00:00:00.000Z',
+            },
+          ],
+        });
+        expect(decoded.errors, isEmpty);
+
+        final result = await ArchiveRestorer(
+          repos,
+        ).restore(decoded.archive, mode: RestoreMode.merge);
+        expect(result.errors, isEmpty, reason: result.errors.join('\n'));
+
+        final advanced = await repos.difficultyLevels.getById(
+          DifficultyLevel.advancedId,
+        );
+        expect(advanced?.label, 'Expert');
+        expect(advanced?.position, 7);
+        expect(
+          (await repos.dances.getById('legacy-level'))?.difficultyLevelId,
+          DifficultyLevel.advancedId,
+        );
+      },
+    );
+
+    test(
+      'restore repairs legacy CallersBox roll-away figures even after startup',
+      () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await repos.settings.set(callersBoxRollAwayRoleRepairDoneKey, '"done"');
+
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          dances: [
+            Dance(
+              id: 'legacy-callersbox',
+              title: 'Legacy',
+              figures: [
+                Figure(
+                  move: 'roll_away',
+                  params: {'who': 'neighbors', 'beats': 8},
+                  note: 'role2s roll right, role1s side-step left',
+                ),
+              ],
+              provenance: Provenance(
+                source: ProvenanceSource.callersbox,
+                externalId: 'legacy-callersbox',
+                importedAt: DateTime.utc(2024),
+              ),
+              createdAt: DateTime.utc(2026, 1, 1),
+              updatedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ],
+        );
+
+        final result = await ArchiveRestorer(
+          repos,
+        ).restore(archive, mode: RestoreMode.merge);
+        expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+
+        final restored = await repos.dances.getById('legacy-callersbox');
+        expect(restored?.figures.single.params['who'], 'role1s');
+        expect(restored?.figures.single.params['whom'], 'neighbors');
+      },
+    );
 
     test('merge revives a tombstoned program with a causal stamp', () async {
       final db = openTestDatabase();

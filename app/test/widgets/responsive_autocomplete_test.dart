@@ -89,11 +89,12 @@ class _TestPickerState extends State<_TestPicker> {
       displayStringForOption: (o) => o,
       optionsBuilder: _optionsFor,
       onSelected: _handleSelected,
-      fieldViewBuilder: (context, controller, focusNode, onSubmit) {
+      fieldViewBuilder: (context, controller, focusNode, onSubmit, autofocus) {
         return TextField(
           key: const ValueKey('test-input'),
           controller: controller,
           focusNode: focusNode,
+          autofocus: autofocus,
           decoration: const InputDecoration(labelText: 'Test field'),
           onSubmitted: (text) {
             final q = text.trim();
@@ -412,6 +413,24 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(BottomSheet), findsOneWidget);
+    });
+
+    testWidgets('autofocus dismissal leaves the compact sheet closed', (
+      tester,
+    ) async {
+      await pumpNarrow(
+        tester,
+        options: const ['stand still'],
+        onSelected: (_) {},
+        autofocus: true,
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsOneWidget);
+
+      await tester.tapAt(const Offset(180, 10));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(BottomSheet), findsNothing);
     });
 
     testWidgets('remains usable with an ambient RTL directionality', (

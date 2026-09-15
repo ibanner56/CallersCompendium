@@ -42,13 +42,21 @@ void main() {
 
   group('figureParamKeyLabel', () {
     test('splits camelCase so no internal identifier reaches the UI', () {
-      expect(figureParamKeyLabel('meetTarget'), 'meet target');
-      expect(figureParamKeyLabel('endFacing'), 'end facing');
+      expect(figureParamKeyLabel(l10n, 'meetTarget'), 'meet target');
+      expect(figureParamKeyLabel(l10n, 'endFacing'), 'end facing');
     });
 
     test('leaves a single-word key alone', () {
-      expect(figureParamKeyLabel('whom'), 'whom');
-      expect(figureParamKeyLabel('shoulder'), 'shoulder');
+      expect(figureParamKeyLabel(l10n, 'who'), 'who');
+      expect(figureParamKeyLabel(l10n, 'who', moveId: 'swing'), 'who');
+      expect(
+        figureParamKeyLabel(l10n, 'who', moveId: 'facing_star'),
+        'backing up',
+      );
+      expect(
+        figureParamKeyLabel(l10n, 'shoulder', moveId: 'facing_star'),
+        'shoulder',
+      );
     });
   });
 

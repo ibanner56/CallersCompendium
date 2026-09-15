@@ -144,7 +144,8 @@ void main() {
             danceId: 'dance-b',
             isAlt: true,
             guestCaller: 'Sam',
-            plannedMinutes: 12,
+            walkthroughMinutes: 3,
+            danceMinutes: 9,
             performedAt: DateTime.utc(2026, 9, 12, 20, 30),
           ),
         ],
@@ -170,7 +171,8 @@ void main() {
       expect(alt.danceId, 'dance-b');
       expect(alt.isAlt, isTrue);
       expect(alt.guestCaller, 'Sam');
-      expect(alt.plannedMinutes, 12);
+      expect(alt.walkthroughMinutes, 3);
+      expect(alt.danceMinutes, 9);
       expect(alt.performedAt, DateTime.utc(2026, 9, 12, 20, 30));
     });
 

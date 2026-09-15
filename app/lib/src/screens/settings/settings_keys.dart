@@ -26,9 +26,22 @@ const String kRequirePerformedForHistoryKey = 'require_performed_for_history';
 /// [kRequirePerformedForHistoryKey], never a replacement.
 const String kTrackHistoryForAllCallersKey = 'track_history_for_all_callers';
 
+/// Key used to persist the maximum number of repeated venues shown under a
+/// dance's calling history. Values range from 0 (summary hidden) through 10;
+/// absent or invalid values use the default of 3.
+const String kVenueCallCountKey = 'venue_call_count';
+
 /// Key used to persist and load the "auto-size Perform cards" preference
 /// (ROADMAP G.1). Defaults to `true` (on) when unset.
 const String kAutoSizePerformKey = 'auto_size_perform_cards';
+
+/// Key used to persist the default-on "show an elapsed timer for an individual
+/// dance in Perform" preference. Stored as a bool; absent/unset means on.
+const String kShowIndividualPerformTimerKey = 'show_individual_perform_timer';
+
+/// Key used to persist the default-on "show per-slot caller notes in program
+/// Perform" preference.
+const String kShowProgramSlotCallerNotesKey = 'show_program_slot_caller_notes';
 
 /// Key used to persist the opt-in "auto-commit program-editor changes"
 /// preference. Defaults to `false`, preserving explicit-save behavior until
@@ -109,3 +122,11 @@ const String kMatrixExactBeatCollisionKey = 'matrix_exact_beat_collision';
 /// **travels in local backups** — validated on restore against the codec (see
 /// `backup_settings_schema.dart`) so a malformed blob can never reach the app.
 const String kProgramMatrixColumnsKey = 'program_matrix_columns';
+
+/// Key used to persist the Device Sync bearer credential. It is generated or
+/// entered locally and is never included in backups or sync record content.
+const String kSyncIdKey = 'sync_id';
+
+/// Key used to persist this installation's Device Sync routing identifier. It
+/// is minted locally and is never adopted from a peer or included in backups.
+const String kSyncDeviceIdKey = 'sync_device_id';

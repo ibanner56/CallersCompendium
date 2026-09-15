@@ -137,9 +137,10 @@ final RegExp _whileConnective = RegExp(r'\bwhiles?\b', caseSensitive: false);
 ///   pre-#591 whole-custom line.
 /// - **Security bound.** [splitTopLevelOnWord] only ever splits on the FIRST
 ///   top-level connective, so this always yields exactly 2 sides — always
-///   within [kMaxMeanwhileSides]. Sides are ordinary (non-meanwhile) figures,
-///   so [Figure.meanwhile]'s flat-only precondition can never fail here — no
-///   `try`/`catch` is needed around the factory call.
+///   within [kMaxMeanwhileSides]. Sides are ordinary (non-container) figures
+///   from [parseFigureLine], so this importer path cannot create a nested
+///   container and the direct factory call is safe. The persisted model still
+///   permits one bounded opposite-kind nesting level.
 Figure? parseContraDbFigureLine(
   String rawText, {
   int beats = 0,
@@ -287,6 +288,8 @@ FigureMatch? _swing(String text) {
     // swing prefix — bail so the correct recognizer handles it.
     if (!s.eat('&')) return null;
     params['prefix'] = 'balance';
+  } else if (s.eat('meltdown')) {
+    params['prefix'] = 'meltdown';
   }
   if (s.peek() == 'long') {
     s.take();
@@ -349,7 +352,7 @@ FigureMatch? _doSiDo(String text) {
   final rot = _rotation(s.peek());
   if (rot != null) {
     s.take();
-    params['turn'] = rot;
+    params['travel'] = rot;
   }
   return FigureMatch('do_si_do', params: params, note: s.note());
 }
@@ -359,8 +362,9 @@ FigureMatch? _doSiDo(String text) {
 /// around" — is modeled as `meanwhile[allemande, orbit]` (the fused
 /// `allemande_orbit` move was RETIRED at taxonomy v19). The source states BOTH
 /// the orbit direction AND the orbiting pair, so the container is built with
-/// full fidelity (no derivation): `allemande{who, hand, turn: inner}` +
-/// `orbit{who: who2, turn: direction, amount: outer}`, both sides beats-absent
+/// full fidelity (no derivation): `allemande{who, hand, travel: inner}` +
+/// `orbit{who: who2, direction: direction, travel: outer}`, both sides
+/// beats-absent
 /// so the shared line total rides on the container's `beats` (keeping
 /// [deriveSections]' cumulative total byte-identical to the pre-split fused
 /// line). Returns null — declining to a plain allemande / custom — unless the
@@ -373,8 +377,9 @@ FigureMatch? _doSiDo(String text) {
 /// [Taxonomy] deliberately does not register, so the container is built
 /// DIRECTLY here — exactly like [parseContraDbFigureLine]'s `while` fan-out —
 /// bypassing [parseFigureLine]'s validate step. Sides are ordinary
-/// (non-meanwhile) figures, so [Figure.meanwhile]'s flat-only precondition
-/// cannot fail here.
+/// (non-container) figures, so this importer-specific path cannot create a
+/// nested container; the persisted model still permits bounded opposite-kind
+/// nesting elsewhere.
 Figure? _allemandeOrbitMeanwhile(
   String text, {
   required int beats,
@@ -404,11 +409,11 @@ Figure? _allemandeOrbitMeanwhile(
     // The direction word is always rendered; if absent this isn't an orbit.
     return null;
   }
-  final orbitParams = <String, Object?>{'who': who2, 'turn': direction};
+  final orbitParams = <String, Object?>{'who': who2, 'direction': direction};
   final outer = _rotation(s.peek());
   if (outer != null) {
     s.take();
-    orbitParams['amount'] = outer;
+    orbitParams['travel'] = outer;
   }
   s.eat('around');
   // Leftover after the template is trailing prose. If it still carries a
@@ -422,7 +427,7 @@ Figure? _allemandeOrbitMeanwhile(
     figures: [
       Figure(
         move: 'allemande',
-        params: {'who': who, 'hand': hand, 'turn': inner},
+        params: {'who': who, 'hand': hand, 'travel': inner},
       ),
       Figure(move: 'orbit', params: orbitParams),
     ],
@@ -445,7 +450,7 @@ FigureMatch? _allemande(String text) {
   final rot = _rotation(s.peek());
   if (rot != null) {
     s.take();
-    params['turn'] = rot;
+    params['travel'] = rot;
   }
   return FigureMatch('allemande', params: params, note: s.note());
 }
@@ -456,10 +461,10 @@ FigureMatch? _allemande(String text) {
 /// circulation around the ring as `promenade single file around the
 /// circle|ring {n} places` (real render: Travels with Rick and Kim #455) —
 /// a single-file CIRCLE, not the `promenade` move (this taxonomy has no
-/// separate `circle_left` id; `turn` already spans left/right). The owner
+/// separate `circle_left` id; `direction` already spans left/right). The owner
 /// flagged this as the more fragile of the two #634 mappings, so it is
 /// recognized ONLY as this exact, fully-anchored phrase — no partial match,
-/// no fallback — and always defaults `turn` to `left` (the phrasing never
+/// no fallback — and always defaults `direction` to `left` (the phrasing never
 /// states a direction).
 FigureMatch? _circle(String text) {
   final s = _Scan(text);
@@ -468,7 +473,7 @@ FigureMatch? _circle(String text) {
     final ringNoun = s.peek();
     if (ringNoun == 'circle' || ringNoun == 'ring') {
       s.take();
-      final params = <String, Object?>{'turn': 'left', 'singleFile': true};
+      final params = <String, Object?>{'direction': 'left', 'singleFile': true};
       _eatPlaces(s, params);
       return FigureMatch('circle', params: params, note: s.note());
     }
@@ -479,7 +484,7 @@ FigureMatch? _circle(String text) {
   final turn = _leftRight(s.peek());
   if (turn == null) return null;
   s.take();
-  final params = <String, Object?>{'turn': turn};
+  final params = <String, Object?>{'direction': turn};
   _eatPlaces(s, params);
   return FigureMatch('circle', params: params, note: s.note());
 }
@@ -513,7 +518,7 @@ FigureMatch? _slideAlongSet(String text) {
 /// chainWords: `[<left|right> diagonal]`, `<role1s|role2s>`,
 /// `[<left|right>-hand]`, `chain`. The leading diagonal qualifier renders only
 /// for non-default values (real render: The Judge — `left diagonal ladles
-/// chain to shadow`) and maps to the `dir` param; the ubiquitous form is a
+/// chain to shadow`) and maps to the `where` param; the ubiquitous form is a
 /// bare `ladles chain`. The hand slot (v28, #976) sits between the subject
 /// and `chain`, matching ContraDB's `chainWords` order (`words(sdiag, swho,
 /// thand, smove)`, `figure.js:266-278`) — hyphenated (`left-hand`) because
@@ -559,7 +564,7 @@ FigureMatch? _chain(String text) {
     'who': who,
     'hand': statedHand ?? chainHandForWho(who),
   };
-  if (dir != null) params['dir'] = dir;
+  if (dir != null) params['where'] = dir;
   return FigureMatch('chain', params: params, note: s.note());
 }
 
@@ -592,7 +597,7 @@ FigureMatch? _passTheOcean(String text) {
   return FigureMatch(
     'pass_the_ocean',
     params: {
-      'dir': 'across',
+      'where': 'across',
       if (balance) 'balance': true,
       'center': center,
       'centerHand': centerHand,
@@ -634,7 +639,7 @@ FigureMatch? _formAShortWave(String text) {
   return FigureMatch(
     'form_short_waves',
     params: {
-      'dir': 'across',
+      'axis': 'across',
       'center': center,
       'centerHand': centerHand,
       'sides': sides,
@@ -670,8 +675,8 @@ bool _eatBalanceAmp(_Scan s) {
 /// heyWords (common full/half form). Renders as: "PASS1 start a FULL|HALF hey -
 /// SH1 PLACE, SH2 PLACE". Extracts pass1, length, and the first shoulder; the
 /// shoulder/place clause is part of the render (consumed, not a note).
-/// `until`-length heys and ricochets are deferred (their extra tail, if any,
-/// survives verbatim as the note).
+/// `until`-length heys are deferred. Canonical ricochet clauses are consumed
+/// only when the complete comma-separated suffix is recognized.
 FigureMatch? _hey(String text) {
   final s = _Scan(text);
   final pass1 = _subject(s);
@@ -703,7 +708,126 @@ FigureMatch? _hey(String text) {
       s.reset(clauseSave); // not a shoulder clause — leave it as the note
     }
   }
+  final ricoSave = s.pos;
+  final ricoParams = <String, Object?>{};
+  if (length != null && _eatHeyRicochets(s, pass1, length, ricoParams)) {
+    params.addAll(ricoParams);
+  } else {
+    s.reset(ricoSave);
+  }
   return FigureMatch('hey', params: params, note: s.note());
+}
+
+/// Consumes the complete canonical ricochet suffix emitted by the renderer.
+/// If any comma-separated clause is malformed, the whole suffix is left for
+/// [FigureMatch.note] so the original tail remains intact.
+bool _eatHeyRicochets(
+  _Scan s,
+  String pass1,
+  String? length,
+  Map<String, Object?> params,
+) {
+  final save = s.pos;
+  if (!s.eat('-')) return false;
+  final slots = <int>[];
+  if (!_eatHeyRicochetClause(s, pass1, length, slots)) {
+    s.reset(save);
+    return false;
+  }
+  while (s.previousTokenEndsWith(',')) {
+    final clauseSave = s.pos;
+    if (!_looksLikeHeyRicochetClause(s)) {
+      s.reset(clauseSave);
+      s.includePreviousCommaInNote();
+      break;
+    }
+    if (!_eatHeyRicochetClause(s, pass1, length, slots)) {
+      s.reset(save);
+      return false;
+    }
+  }
+  for (final slot in slots) {
+    params['rico$slot'] = true;
+  }
+  return true;
+}
+
+bool _eatHeyRicochetClause(
+  _Scan s,
+  String pass1,
+  String? length,
+  List<int> slots,
+) {
+  final who = _subject(s);
+  if (who == null || !s.eat('ricochet')) return false;
+
+  var meetingOffset = 0;
+  if (length == 'half') {
+    if (s.peek() == 'first' || s.peek() == 'second') return false;
+  } else {
+    if (s.eat('first')) {
+      if (!s.eat('time')) return false;
+    } else if (s.eat('second')) {
+      if (!s.eat('time')) return false;
+      meetingOffset = 2;
+    } else {
+      return false;
+    }
+  }
+
+  final slot = _heyRicochetSlot(who, pass1, length, meetingOffset);
+  if (slot == null ||
+      slots.contains(slot) ||
+      (slots.isNotEmpty && slot <= slots.last)) {
+    return false;
+  }
+  slots.add(slot);
+  return true;
+}
+
+bool _looksLikeHeyRicochetClause(_Scan s) {
+  final save = s.pos;
+  if (_subject(s) == null) {
+    s.reset(save);
+    return false;
+  }
+  final result = s.peek() == 'ricochet' || s.peek() == 'maybe';
+  s.reset(save);
+  return result;
+}
+
+int? _heyRicochetSlot(
+  String who,
+  String pass1,
+  String? length,
+  int meetingOffset,
+) {
+  final center = pass1;
+  final inverted = switch (pass1) {
+    'role1s' => 'role2s',
+    'role2s' => 'role1s',
+    'ones' => 'twos',
+    'twos' => 'ones',
+    'firstCorners' => 'secondCorners',
+    'secondCorners' => 'firstCorners',
+    _ => null,
+  };
+  if (inverted == null) return null;
+  final subjectOffset = who == center
+      ? 0
+      : who == inverted
+      ? 1
+      : null;
+  if (subjectOffset == null) return null;
+  final slot = subjectOffset + meetingOffset + 1;
+  final maxSlot = switch (length) {
+    'lessThanHalf' => 1,
+    'half' => 2,
+    'betweenHalfAndFull' => 3,
+    'full' => 4,
+    _ => 4,
+  };
+  return slot <= maxSlot ? slot : null;
 }
 
 /// Terse hey shoulder word (`rights`/`lefts`) → `right`/`left`.
@@ -765,7 +889,7 @@ FigureMatch? _rightLeftThrough(String text) {
   final dir = _direction(s.peek());
   if (dir != null) {
     s.take();
-    params['dir'] = dir;
+    params['where'] = dir;
   }
   if (!s.eatPhrase('right left through')) return null;
   return FigureMatch('right_left_through', params: params, note: s.note());
@@ -827,7 +951,7 @@ String? _starGrip(_Scan s) {
 /// to new neightbors`.
 ///
 /// Issue #749: a bare `along`/`across` direction token immediately after
-/// `promenade` IS consumed in the single-file branch, so `dir` is captured
+/// `promenade` IS consumed in the single-file branch, so `where` is captured
 /// from the source text; the rest of the tail was left as the note.
 ///
 /// Issue #921 (taxonomy v29): the destination tail is now structured. After
@@ -852,11 +976,11 @@ FigureMatch? _promenade(String text) {
   if (singleFile) {
     params['singleFile'] = true;
     // Consume a bare direction token (`along` or `across`) immediately after
-    // `promenade` so `dir` is captured from the source text.
+    // `promenade` so `where` is captured from the source text.
     final dir = _direction(s.peek());
     if (dir != null) {
       s.take();
-      params['dir'] = dir;
+      params['where'] = dir;
     }
     // Consume the destination tail (issue #921):
     //   optional "major set" descriptor (e.g. "along major set to …")
@@ -873,10 +997,10 @@ FigureMatch? _promenade(String text) {
     final dir = _direction(s.peek());
     if (dir != null) {
       s.take();
-      params['dir'] = dir;
+      params['where'] = dir;
     }
     final turn = _promenadeTurn(s);
-    if (turn != null) params['turn'] = turn;
+    if (turn != null) params['direction'] = turn;
   }
   return FigureMatch('promenade', params: params, note: s.note());
 }
@@ -1007,7 +1131,7 @@ FigureMatch? _gyre(String text) {
   final rot = _rotation(s.peek());
   if (rot != null) {
     s.take();
-    params['turn'] = rot;
+    params['travel'] = rot;
   }
   return FigureMatch('shoulder_round', params: params, note: s.note());
 }
@@ -1090,7 +1214,7 @@ FigureMatch? _madRobin(String text) {
   if (rot != null) {
     s.take();
     if (s.eat('around')) {
-      params['turn'] = rot;
+      params['travel'] = rot;
     } else {
       s.reset(save);
     }
@@ -1192,8 +1316,8 @@ FigureMatch? _tradeBy(String text) {
 /// positional rather than a direction (`by the left`, `past partners`,
 /// `to next neighbors`, `to form an ocean wave with shadows`; real renders:
 /// Barack Me Obamadeus, In Cahoots, Ad Vielle, The Young Adult Rose). The
-/// recognised template is just `pass through` plus an optional shoulder/dir; any
-/// remaining qualifier survives verbatim as the note (`dir` then defaults to the
+/// recognised template is just `pass through` plus an optional shoulder/where; any
+/// remaining qualifier survives verbatim as the note (`where` then defaults to the
 /// taxonomy `along`).
 FigureMatch? _passThrough(String text) {
   final s = _Scan(text);
@@ -1204,7 +1328,7 @@ FigureMatch? _passThrough(String text) {
   final dir = _direction(s.peek());
   if (dir != null) {
     s.take();
-    params['dir'] = dir;
+    params['where'] = dir;
   }
   return FigureMatch('pass_through', params: params, note: s.note());
 }
@@ -1220,7 +1344,7 @@ FigureMatch? _pullByDancers(String text) {
   if (hand == null) return null;
   s.take();
   return FigureMatch(
-    'pull_by_dancers',
+    'pull_by',
     params: {'who': who, if (balance) 'balance': true, 'hand': hand},
     note: s.note(),
   );
@@ -1238,9 +1362,9 @@ FigureMatch? _pullByDirection(String text) {
   final dir = _direction(s.peek());
   if (dir != null) {
     s.take();
-    params['dir'] = dir;
+    params['where'] = dir;
   }
-  return FigureMatch('pull_by_direction', params: params, note: s.note());
+  return FigureMatch('pull_by', params: params, note: s.note());
 }
 
 /// gateWords: `<who> gate <whom> to face <direction>`.
@@ -1248,8 +1372,8 @@ FigureMatch? _pullByDirection(String text) {
 /// `who` is the side that extends a hand and BACKS UP; `whom` walks forward
 /// (libfigure `figure.js:844`). The trailing direction is the gate's ENDING
 /// FACING (`figure.js:841` emits the literal words "to face"), stored on the
-/// merged move's `face` param as of taxonomy v22 — the rotation sense and turn
-/// amount ContraDB does not model stay `unspecified`.
+/// merged move's `endFacing` param as of taxonomy v35 — the rotation sense and
+/// turn amount ContraDB does not model stay `unspecified`.
 FigureMatch? _gate(String text) {
   final s = _Scan(text);
   final who = _subject(s);
@@ -1260,7 +1384,7 @@ FigureMatch? _gate(String text) {
   if (!s.eatPhrase('to face')) return null;
   final face = _gateFace(s);
   final params = <String, Object?>{'who': who, 'whom': whom};
-  if (face != null) params['face'] = face;
+  if (face != null) params['endFacing'] = face;
   return FigureMatch('gate', params: params, note: s.note());
 }
 
@@ -1318,7 +1442,7 @@ FigureMatch? _zigZag(String text) {
   s.take();
   if (!s.eat('zag')) return null;
   if (_leftRight(s.peek()) != null) s.take(); // the (derived) return direction
-  final params = <String, Object?>{'turn': turn};
+  final params = <String, Object?>{'slide': turn};
   if (who != null) params['who'] = who;
   return FigureMatch('zig_zag', params: params, note: s.note());
 }
@@ -1466,7 +1590,7 @@ FigureMatch? _facingStar(String text) {
   if (!s.eatPhrase('facing star')) return null;
   final params = <String, Object?>{};
   final turn = _spinDir(s);
-  if (turn != null) params['turn'] = turn;
+  if (turn != null) params['direction'] = turn;
   final n = int.tryParse(s.peek() ?? '');
   if (n != null) {
     final save = s.pos;
@@ -1499,7 +1623,7 @@ FigureMatch? _poussette(String text) {
     half = 'full';
   }
   if (!s.eat('poussette')) return null;
-  final params = <String, Object?>{'half': ?half};
+  final params = <String, Object?>{'fraction': ?half};
   if (s.eat('-')) {
     final who = _subject(s);
     if (who != null && s.eat('pull')) {
@@ -1510,7 +1634,7 @@ FigureMatch? _poussette(String text) {
         final d = _leftRight(s.peek());
         if (d != null) {
           s.take();
-          params['turn'] = d == 'right' ? 'clockwise' : 'counterclockwise';
+          params['direction'] = d == 'right' ? 'clockwise' : 'counterclockwise';
         }
       }
     }
@@ -1532,7 +1656,7 @@ FigureMatch? _crossTrails(String text) {
       if (dir != null) {
         s.take();
         s.eatPhrase('the set');
-        params['dir'] = dir;
+        params['where'] = dir;
       }
       final sh = _shoulderPhrase(s);
       if (sh != null) params['shoulder'] = sh;
@@ -1574,6 +1698,7 @@ FigureMatch? _hall(String text, String dir, String moveId) {
   if (who != null) params['who'] = who;
   final facing = _hallFacing(s);
   if (facing != null) params['facing'] = facing;
+  params['ender'] = _hallEnder(s) ?? 'none';
   return FigureMatch(moveId, params: params, note: s.note());
 }
 
@@ -1589,11 +1714,11 @@ FigureMatch? _figure8(String text) {
     half = 'full';
   }
   if (!s.eatPhrase('figure 8')) return null;
-  final params = <String, Object?>{'who': who, 'half': ?half};
+  final params = <String, Object?>{'who': who, 'fraction': ?half};
   final d = s.peek();
   if (d == 'above' || d == 'below' || d == 'across') {
     s.take();
-    params['dir'] = d;
+    params['where'] = d;
   }
   return FigureMatch('figure_8', params: params, note: s.note());
 }
@@ -1745,6 +1870,31 @@ String? _hallFacing(_Scan s) {
   return null;
 }
 
+/// Consumes ContraDB's inline hall ender suffix, including its required
+/// connective. Unknown suffixes remain in the note rather than being
+/// interpreted as a structured ender.
+String? _hallEnder(_Scan s) {
+  final save = s.pos;
+  if (!s.eat('and')) return null;
+  if (s.eatPhrase('right hand high') && s.eatPhrase('left hand low')) {
+    return 'rightHandHigh';
+  }
+  const enders = <String, String>{
+    'turn as a couple': 'turnCouple',
+    'turn alone': 'turnAlone',
+    'bend into a ring': 'circle',
+    'form a cozy line': 'cozy',
+    'bend into a cloverleaf': 'cloverleaf',
+    'thread the needle': 'threadNeedle',
+    'slide doors': 'slidingDoors',
+  };
+  for (final entry in enders.entries) {
+    if (s.eatPhrase(entry.key)) return entry.value;
+  }
+  s.reset(save);
+  return null;
+}
+
 // --- Scanning + token helpers -----------------------------------------------
 
 /// A whitespace tokenizer over the (already-scrubbed) figure text that remembers
@@ -1762,6 +1912,7 @@ class _Scan {
   final List<String> _tokens = <String>[];
   final List<int> _starts = <int>[];
   int _i = 0;
+  int? _noteStartOverride;
 
   int get pos => _i;
   void reset(int p) => _i = p;
@@ -1800,11 +1951,24 @@ class _Scan {
   /// Advances one token and returns it (original casing), or null at end.
   String? take() => _i < _tokens.length ? _tokens[_i++] : null;
 
+  /// Whether the token immediately before the cursor ended with [suffix].
+  bool previousTokenEndsWith(String suffix) =>
+      _i > 0 && _tokens[_i - 1].endsWith(suffix);
+
+  /// Includes the comma ending the previous token in the remaining note.
+  void includePreviousCommaInNote() {
+    if (_i == 0) return;
+    final comma = _tokens[_i - 1].lastIndexOf(',');
+    if (comma >= 0) _noteStartOverride = _starts[_i - 1] + comma;
+  }
+
   /// The verbatim remaining text from the current token to the end, trimmed;
   /// null when the template consumed the whole line.
   String? note() {
-    if (_i >= _tokens.length) return null;
-    final tail = text.substring(_starts[_i]).trim();
+    final start =
+        _noteStartOverride ?? (_i < _tokens.length ? _starts[_i] : null);
+    if (start == null) return null;
+    final tail = text.substring(start).trim();
     return tail.isEmpty ? null : tail;
   }
 }

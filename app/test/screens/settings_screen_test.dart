@@ -7,12 +7,18 @@ import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/custom_theme.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
+import 'package:compendium_app/src/data/canonical_discouraged_terms_scope.dart';
 import 'package:compendium_app/src/data/dialect_library_controller.dart';
 import 'package:compendium_app/src/data/dialect_library_scope.dart';
+import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
+import 'package:compendium_app/src/data/shorthand_mappings_controller.dart';
+import 'package:compendium_app/src/data/shorthand_mappings_scope.dart';
 import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/data/track_history_for_all_callers_scope.dart';
+import 'package:compendium_app/src/data/walkthrough_snippet_library_controller.dart';
+import 'package:compendium_app/src/data/walkthrough_snippet_library_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
 import 'package:compendium_app/src/update/update_controller.dart';
 import 'package:compendium_app/src/update/update_scope.dart';
@@ -70,6 +76,12 @@ _pumpSettings(
   );
   final customThemes = CustomThemesController(repos.settings);
   await customThemes.load();
+  final shorthandMappings = ShorthandMappingsController(repos.settings);
+  await shorthandMappings.load();
+  final walkthroughSnippets = WalkthroughSnippetLibraryController(
+    repos.settings,
+  );
+  await walkthroughSnippets.load();
   final requirePerformedNotifier = ValueNotifier<bool>(initialRequirePerformed);
   final sortIgnoreArticlesNotifier = ValueNotifier<bool>(
     initialSortIgnoreArticles,
@@ -77,6 +89,7 @@ _pumpSettings(
   final trackHistoryForAllCallersNotifier = ValueNotifier<bool>(
     initialTrackHistoryForAllCallers,
   );
+  final canonicalDiscouragedTermsNotifier = ValueNotifier<bool>(true);
   final updateController = UpdateController(repos.settings);
   await updateController.load();
 
@@ -89,9 +102,12 @@ _pumpSettings(
   });
   addTearDown(themeNotifier.dispose);
   addTearDown(customThemes.dispose);
+  addTearDown(shorthandMappings.dispose);
+  addTearDown(walkthroughSnippets.dispose);
   addTearDown(requirePerformedNotifier.dispose);
   addTearDown(sortIgnoreArticlesNotifier.dispose);
   addTearDown(trackHistoryForAllCallersNotifier.dispose);
+  addTearDown(canonicalDiscouragedTermsNotifier.dispose);
   addTearDown(updateController.dispose);
 
   await tester.pumpWidget(
@@ -112,11 +128,20 @@ _pumpSettings(
                   notifier: requirePerformedNotifier,
                   child: TrackHistoryForAllCallersScope(
                     notifier: trackHistoryForAllCallersNotifier,
-                    child: SortIgnoreArticlesScope(
-                      notifier: sortIgnoreArticlesNotifier,
-                      child: UpdateScope(
-                        controller: updateController,
-                        child: child!,
+                    child: CanonicalDiscouragedTermsScope(
+                      notifier: canonicalDiscouragedTermsNotifier,
+                      child: SortIgnoreArticlesScope(
+                        notifier: sortIgnoreArticlesNotifier,
+                        child: UpdateScope(
+                          controller: updateController,
+                          child: ShorthandMappingsScope(
+                            controller: shorthandMappings,
+                            child: WalkthroughSnippetLibraryScope(
+                              controller: walkthroughSnippets,
+                              child: child!,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -363,6 +388,113 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('settings-nav-dialect')));
       await tester.pumpAndSettle();
     }
+
+    testWidgets('dance details gate is off and child default is disabled', (
+      tester,
+    ) async {
+      await _pumpSettings(tester);
+      await openDialect(tester);
+
+      final gate = find.byKey(const ValueKey('dialect-canonical-figure-text'));
+      final child = find.byKey(
+        const ValueKey('dialect-dance-detail-canonical'),
+      );
+      expect(gate, findsOneWidget);
+      expect(child, findsOneWidget);
+      expect(tester.widget<SwitchListTile>(gate).value, isFalse);
+      expect(tester.widget<SwitchListTile>(child).onChanged, isNull);
+      expect(
+        find.textContaining('When Canonical figure text is on'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('canonical discouraged-term display is on by default', (
+      tester,
+    ) async {
+      await _pumpSettings(tester);
+      await openDialect(tester);
+
+      final toggle = find.byKey(
+        const ValueKey('dialect-canonical-discouraged-terms'),
+      );
+      expect(toggle, findsOneWidget);
+      expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
+    });
+
+    testWidgets('canonical discouraged-term display toggles and persists', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      await openDialect(tester);
+
+      final toggle = find.byKey(
+        const ValueKey('dialect-canonical-discouraged-terms'),
+      );
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+
+      expect(
+        await ctx.repos.settings.get(kCanonicalDiscouragedTermsKey),
+        isFalse,
+      );
+      expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+    });
+
+    testWidgets('enabling the gate enables and persists the child default', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      await openDialect(tester);
+
+      final gate = find.byKey(const ValueKey('dialect-canonical-figure-text'));
+      final child = find.byKey(
+        const ValueKey('dialect-dance-detail-canonical'),
+      );
+      await tester.tap(gate);
+      await tester.pumpAndSettle();
+      expect(await ctx.repos.settings.get(kCanonicalFigureTextKey), isTrue);
+      expect(tester.widget<SwitchListTile>(child).onChanged, isNotNull);
+
+      await tester.tap(child);
+      await tester.pumpAndSettle();
+      expect(
+        await ctx.repos.settings.get(kDefaultDanceDetailRenderingKey),
+        DanceDetailRendering.canonical.name,
+      );
+    });
+
+    testWidgets('free-text, shorthands, and walkthroughs stay independent', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      await openDialect(tester);
+
+      final freeText = find.byKey(const ValueKey('dialect-free-text-entry'));
+      final shorthands = find.byKey(
+        const ValueKey('dialect-figure-shorthands'),
+      );
+      final walkthroughs = find.byKey(
+        const ValueKey('dialect-walkthrough-snippets'),
+      );
+      expect(freeText, findsOneWidget);
+      expect(shorthands, findsOneWidget);
+      expect(walkthroughs, findsOneWidget);
+      expect(tester.widget<ListTile>(shorthands).enabled, isFalse);
+
+      await tester.tap(freeText);
+      await tester.pumpAndSettle();
+      expect(await ctx.repos.settings.get(kFreeTextEntryKey), isTrue);
+      expect(tester.widget<ListTile>(shorthands).enabled, isTrue);
+
+      await tester.tap(
+        find.byKey(const ValueKey('dialect-canonical-figure-text')),
+      );
+      await tester.pumpAndSettle();
+      expect(await ctx.repos.settings.get(kCanonicalFigureTextKey), isTrue);
+      expect(tester.widget<SwitchListTile>(freeText).value, isTrue);
+      expect(tester.widget<ListTile>(walkthroughs).enabled, isTrue);
+    });
 
     testWidgets('renders every preset as a read-only row with a badge', (
       tester,

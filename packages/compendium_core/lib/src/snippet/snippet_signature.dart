@@ -10,7 +10,65 @@ import '../taxonomy/taxonomy.dart';
 /// library stores per-figure step descriptions. Any change to how signatures are
 /// derived changes those keys, so it is an explicit, versioned migration — bump
 /// this and migrate stored keys, never change the rules silently.
-const int kFigureSnippetSignatureVersion = 1;
+const int kFigureSnippetSignatureVersion = 2;
+
+/// Migrates a v1 signature without needing to reconstruct a [Figure].
+String migrateFigureSnippetSignature(String signature) {
+  final open = signature.indexOf('(');
+  final move = open < 0 ? signature : signature.substring(0, open);
+  final legacyMove = move;
+  final migratedMove = switch (move) {
+    'pull_by_dancers' || 'pull_by_direction' => 'pull_by',
+    _ => move,
+  };
+  final renames = <String, String>{
+    'turn': switch (migratedMove) {
+      'circle' ||
+      'facing_star' ||
+      'promenade' ||
+      'orbit' ||
+      'poussette' => 'direction',
+      'zig_zag' => 'slide',
+      _ => 'travel',
+    },
+    'dir': 'where',
+    'half': 'fraction',
+    'amount': 'travel',
+    'face': 'endFacing',
+    'hand': migratedMove == 'form_long_waves' ? 'whomHand' : 'hand',
+  };
+  if (open < 0) return migratedMove;
+
+  final close = signature.lastIndexOf(')');
+  if (close < open) return migratedMove;
+  final body = signature.substring(open + 1, close);
+  final params = <String, String>{};
+  if (body.isNotEmpty) {
+    for (final part in body.split(',')) {
+      final separator = part.indexOf('=');
+      if (separator <= 0) continue;
+      final key = part.substring(0, separator).trim();
+      final value = part.substring(separator + 1).trim();
+      if (key.isEmpty) continue;
+      params[renames[key] ?? key] = value;
+    }
+  }
+  final missing = switch (legacyMove) {
+    'pull_by_dancers' => 'where=unspecified',
+    'pull_by_direction' => 'who=unspecified',
+    _ => null,
+  };
+  if (missing != null) {
+    final separator = missing.indexOf('=');
+    params.putIfAbsent(
+      missing.substring(0, separator),
+      () => missing.substring(separator + 1),
+    );
+  }
+  final migratedBody = params.entries.toList()
+    ..sort((a, b) => a.key.compareTo(b.key));
+  return '$migratedMove(${migratedBody.map((e) => '${e.key}=${e.value}').join(',')})';
+}
 
 /// Derives the **normalized figure signature** used as the global
 /// walkthrough-snippet library key for [figure] (#411, owner-locked design).

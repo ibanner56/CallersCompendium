@@ -12,6 +12,7 @@ class DanceListEntry {
     required this.listCustomFields,
     required this.callCounts,
     this.lastCalled,
+    this.difficultyLevel,
   });
 
   final Dance dance;
@@ -25,15 +26,17 @@ class DanceListEntry {
   /// is `null` for a tag with no colour assigned.
   final List<({String id, String name, int? color})> tags;
 
-  /// `showInList` custom field values as `label: display value` pairs, in
-  /// [CustomFieldDef] declaration order.
-  final List<String> listCustomFields;
+  /// `showInList` custom field labels and values, in [CustomFieldDef]
+  /// declaration order. Keeping the parts separate prevents display
+  /// canonicalization from rewriting a label that happens to contain `: `.
+  final List<({String label, String value})> listCustomFields;
 
   /// How many times this dance has been called (all vs. performed-only),
   /// loaded once for the whole list. Drives the "called ×N" chip; the tile
   /// picks the tally matching the active "Require mark-performed" setting.
   final DanceCallCounts callCounts;
   final DateTime? lastCalled;
+  final DifficultyLevel? difficultyLevel;
 
   String get title => dance.title;
 }

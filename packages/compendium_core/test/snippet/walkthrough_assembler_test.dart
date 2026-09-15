@@ -57,7 +57,7 @@ void main() {
 
   group('assembleWalkthrough', () {
     test('joins per-figure snippets in order, skipping empty ones', () {
-      final circle = Figure(move: 'circle', params: {'turn': 'left'});
+      final circle = Figure(move: 'circle', params: {'direction': 'left'});
       final lib = WalkthroughSnippetLibrary.empty.withSnippet(
         figureSnippetSignature(circle, tax)!,
         'Circle left.',
@@ -104,12 +104,12 @@ void main() {
         ),
         Figure(
           move: 'circle',
-          params: {'turn': 'left'},
+          params: {'direction': 'left'},
           walkthroughOverride: big,
         ),
         Figure(
           move: 'circle',
-          params: {'turn': 'right'},
+          params: {'direction': 'right'},
           walkthroughOverride: big,
         ),
         Figure(

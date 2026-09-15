@@ -109,6 +109,14 @@ void main() {
       EgressClass.deviceScoped,
     );
     expect(classifySettingsKey('theme_mode')?.egress, EgressClass.shareable);
+    expect(
+      classifySettingsKey('sync_id')?.egress,
+      EgressClass.accessControlData,
+    );
+    expect(
+      classifySettingsKey('sync_device_id')?.egress,
+      EgressClass.protocolIdentifier,
+    );
     expect(classifySettingsKey('no_such_key'), isNull);
   });
 }

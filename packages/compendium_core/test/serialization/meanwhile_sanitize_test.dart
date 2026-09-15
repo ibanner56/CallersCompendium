@@ -60,6 +60,64 @@ void main() {
     }
   });
 
+  test('recurses sanitization into modifier sub-figures', () {
+    final archive = archiveWith({
+      'move': modifierMove,
+      'params': {
+        'beats': 16,
+        'figures': [
+          {'move': 'swing', 'note': 'core\u0007note'},
+          {
+            'move': customMove,
+            'params': {'text': 'turn \u202Eand swing'},
+            'note': 'nested\u200Bnote',
+          },
+        ],
+      },
+    });
+
+    final result = decodeArchive(jsonEncode(archive));
+    expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+
+    final container = result.archive.dances.single.figures.single;
+    expect(container.isModifier, isTrue);
+    expect(container.subFigures[0].note, 'corenote');
+    expect(container.subFigures[1].params['text'], 'turn and swing');
+    expect(container.subFigures[1].note, 'nestednote');
+    for (final child in container.subFigures) {
+      expect(containsDisallowedText(child.note ?? ''), isFalse);
+      final text = child.params['text'];
+      if (text is String) expect(containsDisallowedText(text), isFalse);
+    }
+  });
+
+  test('drops malformed nested children without dropping the dance', () {
+    final archive = archiveWith({
+      'move': modifierMove,
+      'params': {
+        'beats': 16,
+        'figures': [
+          {'move': 'swing'},
+          {'move': 'swing', 'params': <Object?>[]},
+          {
+            'move': customMove,
+            'params': {'text': 'turn'},
+          },
+        ],
+      },
+    });
+
+    final result = decodeArchive(jsonEncode(archive));
+    expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+    expect(result.archive.dances, hasLength(1));
+    expect(
+      result.archive.dances.single.figures.single.subFigures.map(
+        (figure) => figure.move,
+      ),
+      ['swing', customMove],
+    );
+  });
+
   test('clamps a hostile oversized side count without failing the import', () {
     final sides = [
       for (var i = 0; i < kMaxMeanwhileSides + 20; i++)

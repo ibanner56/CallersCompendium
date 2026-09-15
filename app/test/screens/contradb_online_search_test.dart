@@ -15,8 +15,9 @@ import '../support/test_repositories.dart';
 import '../support/l10n_harness.dart';
 
 /// Widget tests for the ContraDB online-search source: it is reachable via the
-/// source selector, renders results, hides the by-phrase panel (ContraDB search
-/// is title-only), and imports through the existing ContraDB HTML adapter.
+/// source selector, renders results, hides the by-phrase panel (ContraDB does
+/// not support by-phrase filtering), and imports through the existing ContraDB
+/// HTML adapter.
 
 String _searchJson({String id = '1', String title = 'The Rendezvous'}) =>
     jsonEncode({
@@ -57,7 +58,7 @@ const String _danceHtml = '''
 ''';
 
 ContraDbOnline _contraDb({
-  Future<String> Function(String)? search,
+  Future<String> Function(ContraDbSearchRequest)? search,
   Future<String> Function(String)? html,
 }) => ContraDbOnline(
   searchFetcher: search ?? (_) async => _searchJson(),
@@ -133,7 +134,7 @@ void main() {
     expect(find.text('ContraDB'), findsOneWidget);
   });
 
-  testWidgets('selecting ContraDB hides the by-phrase panel (title-only)', (
+  testWidgets('selecting ContraDB hides the unsupported by-phrase panel', (
     tester,
   ) async {
     final repos = openTestRepositories();
@@ -150,7 +151,7 @@ void main() {
     await _pumpShell(tester, repos, _contraDb());
     await _enableContraDb(tester);
 
-    // With ContraDB (title-only) the By-phrase panel is dropped and the
+    // With ContraDB the unsupported By-phrase panel is dropped and the
     // Advanced panel is the first visible panel, so it must not carry a
     // leading inter-panel divider (the "white line" nit from #302).
     expect(find.byKey(const ValueKey('advanced-panel')), findsOneWidget);

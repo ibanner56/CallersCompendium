@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_app/src/theme/app_theme_extension.dart';
 import 'package:compendium_app/src/data/aggressive_beats_update_scope.dart';
 import 'package:compendium_app/src/editor/figure_draft.dart';
@@ -47,10 +49,19 @@ class _Host extends StatefulWidget {
     Taxonomy? taxonomy,
     this.phrase = PhraseStructure.standard,
     this.wireDuplicate = true,
+    this.wireReorder = true,
     this.moveParamDefaults,
     this.mixer = false,
     this.freeTextEntry = false,
     this.wireMeanwhile = true,
+    this.wireAddMeanwhile = false,
+    this.wireAddModifier = false,
+    this.meanwhileAdder,
+    this.freeTextAdder,
+    this.allowAdding = true,
+    this.allowDuplicating = true,
+    this.allowModifierSelection = true,
+    this.showPhraseStructure = true,
     this.aggressiveBeatsUpdate = false,
     this.showWordingOverride = false,
   }) : taxonomy = taxonomy ?? contraTaxonomy;
@@ -59,10 +70,19 @@ class _Host extends StatefulWidget {
   final Taxonomy taxonomy;
   final PhraseStructure phrase;
   final bool wireDuplicate;
+  final bool wireReorder;
   final Map<String, Map<String, Object?>>? moveParamDefaults;
   final bool mixer;
   final bool freeTextEntry;
   final bool wireMeanwhile;
+  final bool wireAddMeanwhile;
+  final bool wireAddModifier;
+  final Future<String?> Function(List<FigureDraft> drafts)? meanwhileAdder;
+  final int Function(List<Figure> figures)? freeTextAdder;
+  final bool allowAdding;
+  final bool allowDuplicating;
+  final bool allowModifierSelection;
+  final bool showPhraseStructure;
 
   /// Wraps the editor in an [AggressiveBeatsUpdateScope] set to this value
   /// (issue #689). Defaults to `false` so existing tests exercise today's
@@ -113,14 +133,45 @@ class _HostState extends State<_Host> {
               mixer: widget.mixer,
               freeTextEntry: widget.freeTextEntry,
               showWordingOverride: widget.showWordingOverride,
+              allowAdding: widget.allowAdding,
+              allowDuplicating: widget.allowDuplicating,
+              allowModifierSelection: widget.allowModifierSelection,
+              showPhraseStructure: widget.showPhraseStructure,
               onChanged: () => setState(() {}),
               onAdd: () => setState(() => widget.drafts.add(FigureDraft())),
+              onAddMeanwhile: widget.wireAddMeanwhile
+                  ? () {
+                      final draft = FigureDraft(
+                        meanwhileSides: [FigureDraft(), FigureDraft()],
+                      );
+                      if (widget.meanwhileAdder != null) {
+                        return widget.meanwhileAdder!(widget.drafts);
+                      }
+                      setState(() => widget.drafts.add(draft));
+                      return Future.value(draft.id);
+                    }
+                  : null,
+              onAddModifier: widget.wireAddModifier
+                  ? () {
+                      final draft = FigureDraft(
+                        modifierFigures: [FigureDraft(), FigureDraft()],
+                      );
+                      setState(() => widget.drafts.add(draft));
+                      return Future.value(draft.id);
+                    }
+                  : null,
               onAddFreeText: widget.freeTextEntry
-                  ? (figures) => setState(
-                      () => widget.drafts.addAll(
-                        figures.map(FigureDraft.fromFigure),
-                      ),
-                    )
+                  ? (figures) {
+                      if (widget.freeTextAdder != null) {
+                        return widget.freeTextAdder!(figures);
+                      }
+                      setState(
+                        () => widget.drafts.addAll(
+                          figures.map(FigureDraft.fromFigure),
+                        ),
+                      );
+                      return figures.length;
+                    }
                   : null,
               onDelete: (d) => setState(() => widget.drafts.remove(d)),
               onDuplicate: widget.wireDuplicate
@@ -139,10 +190,12 @@ class _HostState extends State<_Host> {
                       );
                     })
                   : null,
-              onReorder: (oldIndex, newIndex) => setState(() {
-                final draft = widget.drafts.removeAt(oldIndex);
-                widget.drafts.insert(newIndex, draft);
-              }),
+              onReorder: widget.wireReorder
+                  ? (oldIndex, newIndex) => setState(() {
+                      final draft = widget.drafts.removeAt(oldIndex);
+                      widget.drafts.insert(newIndex, draft);
+                    })
+                  : null,
               onGroupWithNext: widget.wireMeanwhile
                   ? (draft) => setState(() {
                       final index = widget.drafts.indexOf(draft);
@@ -182,26 +235,49 @@ Future<void> _pump(
   List<FigureDraft> drafts, {
   PhraseStructure phrase = PhraseStructure.standard,
   bool wireDuplicate = true,
+  bool wireReorder = true,
   Map<String, Map<String, Object?>>? moveParamDefaults,
   bool mixer = false,
   bool freeTextEntry = false,
   bool wireMeanwhile = true,
+  bool wireAddMeanwhile = false,
+  bool wireAddModifier = false,
+  Future<String?> Function(List<FigureDraft> drafts)? meanwhileAdder,
+  int Function(List<Figure> figures)? freeTextAdder,
+  bool allowAdding = true,
+  bool allowDuplicating = true,
+  bool allowModifierSelection = true,
+  bool showPhraseStructure = true,
   bool aggressiveBeatsUpdate = false,
   bool showWordingOverride = false,
   Taxonomy? taxonomy,
+  Size surfaceSize = const Size(1200, 2400),
 }) async {
-  await tester.binding.setSurfaceSize(const Size(1200, 2400));
-  addTearDown(() => tester.binding.setSurfaceSize(null));
+  await tester.binding.setSurfaceSize(surfaceSize);
+  tester.view.physicalSize = surfaceSize * tester.view.devicePixelRatio;
+  addTearDown(() {
+    tester.view.resetPhysicalSize();
+    return tester.binding.setSurfaceSize(null);
+  });
   await tester.pumpWidget(
     _Host(
       drafts: drafts,
       taxonomy: taxonomy,
       phrase: phrase,
       wireDuplicate: wireDuplicate,
+      wireReorder: wireReorder,
       moveParamDefaults: moveParamDefaults,
       mixer: mixer,
       freeTextEntry: freeTextEntry,
       wireMeanwhile: wireMeanwhile,
+      wireAddMeanwhile: wireAddMeanwhile,
+      wireAddModifier: wireAddModifier,
+      meanwhileAdder: meanwhileAdder,
+      freeTextAdder: freeTextAdder,
+      allowAdding: allowAdding,
+      allowDuplicating: allowDuplicating,
+      allowModifierSelection: allowModifierSelection,
+      showPhraseStructure: showPhraseStructure,
       aggressiveBeatsUpdate: aggressiveBeatsUpdate,
       showWordingOverride: showWordingOverride,
     ),
@@ -282,6 +358,46 @@ void main() {
     expect(find.byKey(const ValueKey('figure-add')), findsOneWidget);
   });
 
+  testWidgets('facing star names its who parameter backing up', (tester) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(tester, drafts);
+    await _selectMove(tester, 0, 'fac', 'facing_star');
+
+    expect(find.text('backing up'), findsOneWidget);
+  });
+
+  testWidgets('move selector initializes modifier children', (tester) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(tester, drafts);
+    await _selectMove(tester, 0, 'modifier', modifierMove);
+
+    final modifier = drafts.single;
+    expect(modifier.isModifierGroup, isTrue);
+    expect(modifier.modifierFigures, hasLength(2));
+    expect(
+      modifier.modifierFigures!.every((child) => child.move == null),
+      isTrue,
+    );
+  });
+
+  testWidgets('ordinary-only editors hide the modifier selector option', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(tester, drafts, allowModifierSelection: false);
+    await _openFigure(tester, 0);
+    await tester.enterText(
+      find.byKey(const ValueKey('figure-0-move-input')),
+      'modifier',
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('figure-0-move-option-modifier')),
+      findsNothing,
+    );
+  });
+
   testWidgets('wording override is opt-in, previews, trims, and resets', (
     tester,
   ) async {
@@ -324,6 +440,24 @@ void main() {
     );
   });
 
+  testWidgets('fresh containers offer a wording override', (tester) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(
+        modifierFigures: [
+          FigureDraft(move: 'swing'),
+          FigureDraft(move: 'roll_away'),
+        ],
+      )..params['beats'] = 8,
+    ];
+    await _pump(tester, drafts, showWordingOverride: true);
+    await _openFigure(tester, 0);
+
+    expect(
+      find.byKey(const ValueKey('figure-0-add-wording-override')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('add creates an empty figure row', (tester) async {
     final drafts = <FigureDraft>[];
     await _pump(tester, drafts);
@@ -331,6 +465,100 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('figure-0-move-input')), findsOneWidget);
     expect(drafts, hasLength(1));
+  });
+
+  testWidgets('Add menu inserts an empty meanwhile container', (tester) async {
+    final drafts = <FigureDraft>[];
+    await _pump(tester, drafts, wireAddMeanwhile: true);
+
+    await tester.tap(find.byKey(const ValueKey('figure-add')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('figure-add-meanwhile')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('figure-add-meanwhile')));
+    await tester.pumpAndSettle();
+
+    expect(drafts, hasLength(1));
+    expect(drafts.single.isMeanwhileGroup, isTrue);
+    expect(drafts.single.meanwhileSides, hasLength(2));
+    expect(find.byKey(const ValueKey('figure-0-add-side')), findsOneWidget);
+  });
+
+  testWidgets('Add menu hides unavailable container actions', (tester) async {
+    final drafts = <FigureDraft>[];
+    await _pump(tester, drafts, wireAddModifier: true);
+
+    await tester.tap(find.byKey(const ValueKey('figure-add')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('figure-add-meanwhile')), findsNothing);
+    expect(find.byKey(const ValueKey('figure-add-modifier')), findsOneWidget);
+  });
+
+  testWidgets('async meanwhile insertion opens the returned draft', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[];
+    final pending = Completer<String?>();
+    final meanwhile = FigureDraft(
+      meanwhileSides: [FigureDraft(), FigureDraft()],
+    );
+    await _pump(
+      tester,
+      drafts,
+      wireAddMeanwhile: true,
+      meanwhileAdder: (_) => pending.future,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('figure-add')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-add-meanwhile')));
+    await tester.pump();
+
+    drafts.add(FigureDraft());
+    await tester.pumpWidget(
+      _Host(
+        drafts: drafts,
+        wireAddMeanwhile: true,
+        meanwhileAdder: (_) => pending.future,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('figure-0-move-input')), findsNothing);
+
+    drafts.add(meanwhile);
+    pending.complete(meanwhile.id);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('figure-0-move-input')), findsNothing);
+    expect(find.byKey(const ValueKey('figure-1-add-side')), findsOneWidget);
+  });
+
+  testWidgets('can suppress phrase labels and beat summary', (tester) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'who': 'partners'}),
+    ];
+    await _pump(tester, drafts, showPhraseStructure: false);
+
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('figure-0-label'))).data,
+      isEmpty,
+    );
+    expect(find.byKey(const ValueKey('figure-beats-total')), findsNothing);
+  });
+
+  testWidgets('hides insertion and duplicate actions when capped', (
+    tester,
+  ) async {
+    final drafts = List<FigureDraft>.generate(
+      6,
+      (_) => FigureDraft(move: 'swing', params: {'who': 'partners'}),
+    );
+    await _pump(tester, drafts, allowAdding: false, allowDuplicating: false);
+
+    expect(find.byKey(const ValueKey('figure-add')), findsNothing);
+    await _openMenu(tester, 0);
+    expect(find.byKey(const ValueKey('figure-0-duplicate')), findsNothing);
   });
 
   testWidgets('selecting a move seeds the taxonomy default params', (
@@ -640,17 +868,17 @@ void main() {
     });
   });
 
-  group('promenade turn/destination visibility & reset (#989, v30)', () {
-    testWidgets('turn is hidden and reset to unspecified once dir leaves the '
-        'across/along plane; destination is hidden (but not cleared) at the '
-        'across default', (tester) async {
+  group('promenade direction/destination visibility & reset (#989, v30)', () {
+    testWidgets('direction resets outside the across/along plane', (
+      tester,
+    ) async {
       final drafts = <FigureDraft>[
         FigureDraft.fromFigure(
           Figure(
             move: 'promenade',
             params: const {
-              'dir': 'along',
-              'turn': 'clockwise',
+              'where': 'along',
+              'direction': 'clockwise',
               'destination': 'nextNeighbors',
               'beats': 8,
             },
@@ -662,39 +890,41 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
       await tester.pumpAndSettle();
 
-      // dir=='along': turn is visible (a rotation is meaningful travelling
-      // along the set) and destination is visible (dir != 'across').
-      expect(find.byKey(const ValueKey('figure-0-turn')), findsOneWidget);
+      // where=='along': direction is visible (a rotation is meaningful
+      // travelling along the set) and destination is visible
+      // (where != 'across').
+      expect(find.byKey(const ValueKey('figure-0-direction')), findsOneWidget);
       expect(
         find.byKey(const ValueKey('figure-0-destination')),
         findsOneWidget,
       );
 
-      // Switching dir to 'in' (rotationless): turn disappears AND is reset
-      // to the sentinel — not merely removed, since `turn`'s spec default
-      // is the concrete 'counterclockwise' and removal would fall back to
-      // it. destination stays visible: the render gate is `dir != 'across'`
+      // Switching where to 'in' (rotationless): direction disappears AND is
+      // reset to the sentinel — not merely removed, since `direction`'s
+      // spec default is the concrete 'counterclockwise' and removal would
+      // fall back to it. destination stays visible: the render gate is
+      // `where != 'across'`
       // (Q3), and 'in' satisfies that just as much as 'along' did — only
       // `across` (the default) hides it.
-      await _selectDropdownOption(tester, 'figure-0-dir', 'in');
-      expect(find.byKey(const ValueKey('figure-0-turn')), findsNothing);
+      await _selectDropdownOption(tester, 'figure-0-where', 'in');
+      expect(find.byKey(const ValueKey('figure-0-direction')), findsNothing);
       expect(
         find.byKey(const ValueKey('figure-0-destination')),
         findsOneWidget,
       );
-      expect(drafts.single.params['turn'], ParamVocab.unspecified);
+      expect(drafts.single.params['direction'], ParamVocab.unspecified);
       expect(drafts.single.params['destination'], 'nextNeighbors');
 
       // Switching to 'across' (the default): destination disappears (its
       // render gate no longer holds) but its stored value survives
       // untouched — Q3's "keeps the param, loses the clause" ruling, not a
-      // migration. turn reappears (rotation is meaningful again at
+      // migration. direction reappears (rotation is meaningful again at
       // across) and stays at the sentinel it was reset to, never
       // fabricated back to the concrete default.
-      await _selectDropdownOption(tester, 'figure-0-dir', 'across');
-      expect(find.byKey(const ValueKey('figure-0-turn')), findsOneWidget);
+      await _selectDropdownOption(tester, 'figure-0-where', 'across');
+      expect(find.byKey(const ValueKey('figure-0-direction')), findsOneWidget);
       expect(find.byKey(const ValueKey('figure-0-destination')), findsNothing);
-      expect(drafts.single.params['turn'], ParamVocab.unspecified);
+      expect(drafts.single.params['direction'], ParamVocab.unspecified);
       expect(drafts.single.params['destination'], 'nextNeighbors');
     });
   });
@@ -708,14 +938,14 @@ void main() {
         tester,
         drafts,
         moveParamDefaults: {
-          'circle': {'turn': 'right'},
+          'circle': {'direction': 'right'},
         },
       );
       await _selectMove(tester, 0, 'circle', 'circle');
 
       expect(drafts.single.move, 'circle');
       // Overridden param takes the configured value...
-      expect(drafts.single.params['turn'], 'right');
+      expect(drafts.single.params['direction'], 'right');
       // ...while non-overridden params keep their taxonomy defaults.
       expect(drafts.single.params['places'], 4);
       expect(drafts.single.params['beats'], 8);
@@ -734,11 +964,11 @@ void main() {
       );
       await _selectMove(tester, 0, 'circle', 'circle');
 
-      expect(drafts.single.params['turn'], 'left');
+      expect(drafts.single.params['direction'], 'left');
       expect(drafts.single.params['places'], 4);
     });
 
-    testWidgets('stale override key not in the move schema is ignored', (
+    testWidgets('stale v34 override key not in the move schema is ignored', (
       tester,
     ) async {
       final drafts = <FigureDraft>[FigureDraft()];
@@ -751,7 +981,7 @@ void main() {
       );
       await _selectMove(tester, 0, 'circle', 'circle');
 
-      expect(drafts.single.params['turn'], 'right');
+      expect(drafts.single.params['direction'], 'left');
       expect(drafts.single.params.containsKey('not_a_param'), isFalse);
     });
 
@@ -762,7 +992,7 @@ void main() {
       await _pump(tester, drafts);
       await _selectMove(tester, 0, 'circle', 'circle');
 
-      expect(drafts.single.params['turn'], 'left');
+      expect(drafts.single.params['direction'], 'left');
       expect(drafts.single.params['places'], 4);
     });
   });
@@ -788,7 +1018,7 @@ void main() {
         params: {
           'who': 'neighbors',
           'shoulder': 'right',
-          'turn': 1.0,
+          'travel': 1.0,
           'beats': 8,
         },
       ),
@@ -880,7 +1110,7 @@ void main() {
             params: {
               'who': 'neighbors',
               'shoulder': 'right',
-              'turn': 1.0,
+              'travel': 1.0,
               'beats': 8,
             },
           ),
@@ -1009,6 +1239,237 @@ void main() {
     );
   });
 
+  testWidgets(
+    'modifier drafts count toward phrase beats before materialization',
+    (tester) async {
+      final modifier = FigureDraft(
+        modifierFigures: [
+          FigureDraft(move: 'swing'),
+          FigureDraft(move: 'roll'),
+        ],
+      )..params['beats'] = 16;
+      final drafts = <FigureDraft>[
+        modifier,
+        FigureDraft(move: 'swing', params: {'beats': 16}),
+      ];
+
+      await _pump(tester, drafts);
+
+      expect(find.text('Total: 32 / 64 beats'), findsOneWidget);
+      expect(
+        tester.widget<Text>(find.byKey(const ValueKey('figure-0-label'))).data,
+        'A1',
+      );
+    },
+  );
+
+  testWidgets('nested container children have parent reorder controls', (
+    tester,
+  ) async {
+    FigureDraft nested(String move) => FigureDraft(
+      meanwhileSides: [
+        FigureDraft(move: move),
+        FigureDraft(move: 'roll_away'),
+      ],
+    )..params['beats'] = 8;
+
+    final core = nested('swing');
+    final modifier = FigureDraft(modifierFigures: [core, nested('orbit')])
+      ..params['beats'] = 16;
+    final drafts = <FigureDraft>[modifier];
+
+    await _pump(tester, drafts);
+    await _openFigure(tester, 0);
+
+    final moveDown = find.byKey(const ValueKey('figure-0-nested-0-move-down'));
+    expect(moveDown, findsOneWidget);
+    expect(
+      tester
+          .widget<IconButton>(
+            find.byKey(const ValueKey('figure-0-nested-0-remove')),
+          )
+          .tooltip,
+      'Remove core figure',
+    );
+
+    await tester.tap(moveDown);
+    await tester.pumpAndSettle();
+
+    expect(modifier.modifierFigures!.first, isNot(same(core)));
+    expect(modifier.modifierFigures!.first.meanwhileSides!.first.move, 'orbit');
+  });
+
+  testWidgets('nested collapse keeps the surviving child schema version', (
+    tester,
+  ) async {
+    final surviving = FigureDraft(
+      move: 'swing',
+      schemaVersion: 99,
+      params: {'beats': 8},
+    );
+    final nested = FigureDraft(
+      meanwhileSides: [
+        surviving,
+        FigureDraft(move: 'roll_away', params: {'beats': 8}),
+      ],
+    )..params['beats'] = 8;
+    final modifier = FigureDraft(
+      modifierFigures: [
+        nested,
+        FigureDraft(move: 'orbit', params: {'beats': 8}),
+      ],
+    )..params['beats'] = 16;
+
+    await _pump(tester, [modifier]);
+    await _openFigure(tester, 0);
+    await tester.tap(find.byKey(const ValueKey('figure-0-nested-0-0-summary')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('figure-0-nested-0-0-side-1-remove')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(modifier.modifierFigures, hasLength(2));
+    expect(modifier.modifierFigures!.first, same(surviving));
+    expect(modifier.modifierFigures!.first.schemaVersion, 99);
+    expect(modifier.modifierFigures!.first.isContainerDraft, isFalse);
+  });
+
+  testWidgets('nested collapse rejects an illegal alternating-kind promotion', (
+    tester,
+  ) async {
+    final nestedMeanwhile = FigureDraft(
+      meanwhileSides: [
+        FigureDraft(),
+        FigureDraft(move: 'swing'),
+      ],
+    )..params['beats'] = 8;
+    final nestedModifier = FigureDraft(
+      modifierFigures: [
+        FigureDraft(move: 'orbit'),
+        nestedMeanwhile,
+      ],
+    )..params['beats'] = 16;
+    final outerMeanwhile = FigureDraft(
+      meanwhileSides: [
+        nestedModifier,
+        FigureDraft(move: 'swing'),
+      ],
+    )..params['beats'] = 24;
+
+    await _pump(tester, [outerMeanwhile]);
+    await _openFigure(tester, 0);
+    await tester.tap(find.byKey(const ValueKey('figure-0-nested-0-0-summary')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('figure-0-nested-0-0-side-0-remove')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(outerMeanwhile.meanwhileSides!.first, same(nestedModifier));
+    expect(nestedModifier.isModifierGroup, isTrue);
+    expect(nestedModifier.modifierFigures, hasLength(2));
+    expect(() => outerMeanwhile.toFigure(), returnsNormally);
+  });
+
+  testWidgets('nested container menu can ungroup within the parent cap', (
+    tester,
+  ) async {
+    final nested = FigureDraft(
+      meanwhileSides: [
+        FigureDraft(move: 'swing'),
+        FigureDraft(move: 'roll_away'),
+      ],
+    )..params['beats'] = 8;
+    final modifier = FigureDraft(
+      modifierFigures: [
+        nested,
+        FigureDraft(move: 'orbit'),
+      ],
+    )..params['beats'] = 16;
+    final drafts = <FigureDraft>[modifier];
+
+    await _pump(tester, drafts);
+    await _openFigure(tester, 0);
+    await tester.tap(find.byKey(const ValueKey('figure-0-nested-0-0-summary')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-0-nested-0-0-menu')));
+    await tester.pumpAndSettle();
+
+    final ungroup = find.byKey(
+      const ValueKey('figure-0-nested-0-0-ungroup-container'),
+    );
+    expect(ungroup, findsOneWidget);
+    await tester.tap(ungroup);
+    await tester.pumpAndSettle();
+
+    expect(modifier.modifierFigures, hasLength(3));
+    expect(modifier.modifierFigures![0].move, 'swing');
+    expect(modifier.modifierFigures![1].move, 'roll_away');
+    expect(modifier.modifierFigures![2].move, 'orbit');
+  });
+
+  testWidgets('nested container ungroup is hidden when it would exceed cap', (
+    tester,
+  ) async {
+    final nested = FigureDraft(
+      meanwhileSides: [
+        FigureDraft(move: 'swing'),
+        FigureDraft(move: 'roll_away'),
+      ],
+    )..params['beats'] = 8;
+    final modifier = FigureDraft(
+      modifierFigures: [
+        nested,
+        for (var i = 0; i < kMaxMeanwhileSides - 1; i++)
+          FigureDraft(move: 'orbit'),
+      ],
+    )..params['beats'] = 16;
+
+    await _pump(tester, [modifier]);
+    await _openFigure(tester, 0);
+    await tester.tap(find.byKey(const ValueKey('figure-0-nested-0-0-summary')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-0-nested-0-0-menu')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('figure-0-nested-0-0-ungroup-container')),
+      findsNothing,
+    );
+    expect(modifier.modifierFigures, hasLength(kMaxMeanwhileSides));
+  });
+
+  testWidgets('modifier child editors expose role-specific removal text', (
+    tester,
+  ) async {
+    final modifier = FigureDraft(
+      modifierFigures: [
+        FigureDraft(move: 'swing'),
+        FigureDraft(move: 'roll_away'),
+      ],
+    )..params['beats'] = 16;
+    await _pump(tester, [modifier]);
+    await _openFigure(tester, 0);
+
+    expect(
+      tester
+          .widget<IconButton>(
+            find.byKey(const ValueKey('figure-0-side-0-remove')),
+          )
+          .tooltip,
+      'Remove core figure',
+    );
+    expect(
+      tester
+          .widget<IconButton>(
+            find.byKey(const ValueKey('figure-0-side-1-remove')),
+          )
+          .tooltip,
+      'Remove modifier figure',
+    );
+  });
+
   testWidgets('progression toggle flips the draft flag', (tester) async {
     final drafts = <FigureDraft>[FigureDraft()];
     await _pump(tester, drafts);
@@ -1093,14 +1554,19 @@ void main() {
     final drafts = <FigureDraft>[
       FigureDraft(
         move: 'allemande',
-        params: {'who': 'neighbors', 'hand': 'right', 'turn': 1.0, 'beats': 8},
+        params: {
+          'who': 'neighbors',
+          'hand': 'right',
+          'travel': 1.0,
+          'beats': 8,
+        },
       ),
     ];
     await _pump(tester, drafts);
     await _openFigure(tester, 0);
 
     expect(find.byKey(const ValueKey('figure-0-hand')), findsOneWidget);
-    expect(find.byKey(const ValueKey('figure-0-turn-value')), findsOneWidget);
+    expect(find.byKey(const ValueKey('figure-0-travel-value')), findsOneWidget);
     // toFigure preserves the seeded values.
     final figure = drafts.single.toFigure()!;
     expect(figure.move, 'allemande');
@@ -1330,10 +1796,12 @@ void main() {
   });
 
   testWidgets('lingo: updateDialect triggers redraw', (tester) async {
-    // Start with canonical (no discouraged terms).
+    // Start with an explicit clean dialect. The canonical dialect intentionally
+    // flags the shipped discouraged vocabulary for editor guidance.
+    final cleanDialect = Dialect(name: 'Clean');
     final ctrl = LingoTextEditingController(
       text: 'gents cross',
-      dialect: Dialect.canonical,
+      dialect: cleanDialect,
     );
     TextSpan? firstSpan;
     TextSpan? secondSpan;
@@ -1660,6 +2128,34 @@ void main() {
       find.byKey(const ValueKey('figure-0-move-down')),
     );
     expect(downBtn0.onPressed, isNotNull);
+  });
+
+  testWidgets('move actions are disabled when reordering is not wired', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'beats': 8}),
+      FigureDraft(move: 'balance', params: {'beats': 4}),
+    ];
+    await _pump(tester, drafts, wireReorder: false);
+
+    await _openMenu(tester, 1);
+    expect(
+      tester
+          .widget<MenuItemButton>(
+            find.byKey(const ValueKey('figure-1-move-up')),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<MenuItemButton>(
+            find.byKey(const ValueKey('figure-1-move-down')),
+          )
+          .onPressed,
+      isNull,
+    );
   });
 
   testWidgets('move-up menu item reorders the draft list', (tester) async {
@@ -2250,6 +2746,52 @@ void main() {
     },
   );
 
+  testWidgets(
+    'dismissing a compact stand_still picker retains the stored figure',
+    (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft(move: 'stand_still', params: {'beats': 8}),
+      ];
+      await _pump(tester, drafts, surfaceSize: const Size(360, 720));
+
+      await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsOneWidget);
+
+      await tester.tapAt(const Offset(180, 10));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(BottomSheet), findsNothing);
+      expect(drafts.single.move, 'stand_still');
+      expect(drafts.single.params['beats'], 8);
+    },
+  );
+
+  testWidgets(
+    'selecting stand_still in a compact picker closes without reopening',
+    (tester) async {
+      final drafts = <FigureDraft>[];
+      await _pump(tester, drafts, surfaceSize: const Size(360, 720));
+
+      await tester.tap(find.byKey(const ValueKey('figure-add')));
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsOneWidget);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-0-move-input')),
+        'stand still',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('figure-0-move-option-stand_still')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(drafts.single.move, 'stand_still');
+      expect(find.byType(BottomSheet), findsNothing);
+    },
+  );
+
   testWidgets('activating a real figure keeps its Move field text', (
     tester,
   ) async {
@@ -2333,12 +2875,17 @@ void main() {
   testWidgets('more than 3 params hide extras behind "More options"', (
     tester,
   ) async {
-    // allemande has 4 params (who, hand, turn, beats): first 3 inline, the
+    // allemande has 4 params (who, hand, travel, beats): first 3 inline, the
     // 4th (beats) behind the disclosure.
     final drafts = <FigureDraft>[
       FigureDraft(
         move: 'allemande',
-        params: {'who': 'neighbors', 'hand': 'right', 'turn': 1.0, 'beats': 8},
+        params: {
+          'who': 'neighbors',
+          'hand': 'right',
+          'travel': 1.0,
+          'beats': 8,
+        },
       ),
     ];
     await _pump(tester, drafts);
@@ -2348,7 +2895,7 @@ void main() {
 
     expect(find.byKey(const ValueKey('figure-0-who')), findsOneWidget);
     expect(find.byKey(const ValueKey('figure-0-hand')), findsOneWidget);
-    expect(find.byKey(const ValueKey('figure-0-turn-value')), findsOneWidget);
+    expect(find.byKey(const ValueKey('figure-0-travel-value')), findsOneWidget);
     // 4th param hidden until the disclosure is expanded.
     expect(find.byKey(const ValueKey('figure-0-beats')), findsNothing);
     expect(find.byKey(const ValueKey('figure-0-more-options')), findsOneWidget);
@@ -2361,13 +2908,13 @@ void main() {
   testWidgets('3 or fewer params render inline with no disclosure', (
     tester,
   ) async {
-    // star_promenade has 3 params (who, turn, beats) — all inline, no
+    // star_promenade has 3 params (who, travel, beats) — all inline, no
     // disclosure. (chain gained a 4th param, `hand`, in #976, so it no
     // longer demonstrates the ≤3 case this test is about.)
     final drafts = <FigureDraft>[
       FigureDraft(
         move: 'star_promenade',
-        params: {'who': 'role1s', 'turn': 0.5, 'beats': 4},
+        params: {'who': 'role1s', 'travel': 0.5, 'beats': 4},
       ),
     ];
     await _pump(tester, drafts);
@@ -2597,20 +3144,20 @@ void main() {
       },
     );
 
-    testWidgets('no-snap branch: a circle turn change leaves beats untouched', (
+    testWidgets('no-snap: a circle direction change leaves beats untouched', (
       tester,
     ) async {
       final drafts = <FigureDraft>[FigureDraft()];
       await _pump(tester, drafts);
       await _selectMove(tester, 0, 'circle', 'circle');
-      expect(drafts.single.params['turn'], 'left');
+      expect(drafts.single.params['direction'], 'left');
       expect(drafts.single.beats, 8);
       expect(drafts.single.beatsTouched, isFalse);
 
       // Circle has no paramBeats: the default stays 8 regardless of the
       // direction, so beats must not be re-snapped.
-      await _selectDropdownOption(tester, 'figure-0-turn', 'right');
-      expect(drafts.single.params['turn'], 'right');
+      await _selectDropdownOption(tester, 'figure-0-direction', 'right');
+      expect(drafts.single.params['direction'], 'right');
       expect(drafts.single.beats, 8);
       expect(drafts.single.beatsTouched, isFalse);
     });
@@ -2647,7 +3194,7 @@ void main() {
         // and reads back as 0 until it's seeded.
         final drafts = <FigureDraft>[
           FigureDraft.fromFigure(
-            Figure(move: 'circle', params: const {'turn': 'left'}),
+            Figure(move: 'circle', params: const {'direction': 'left'}),
           ),
         ];
         expect(drafts.single.beatsTouched, isFalse);
@@ -2656,11 +3203,11 @@ void main() {
         await _pump(tester, drafts);
         await _openFigure(tester, 0);
 
-        // Changing turn doesn't move circle's (paramBeats-free) default, but a
+        // Changing direction doesn't move circle's (paramBeats-free) default, but a
         // missing count is still seeded to the canonical 8 rather than left at
         // 0.
-        await _selectDropdownOption(tester, 'figure-0-turn', 'right');
-        expect(drafts.single.params['turn'], 'right');
+        await _selectDropdownOption(tester, 'figure-0-direction', 'right');
+        expect(drafts.single.params['direction'], 'right');
         expect(drafts.single.beats, 8);
         expect(drafts.single.beatsTouched, isFalse);
       },
@@ -2711,13 +3258,13 @@ void main() {
       expect(drafts.single.beats, 12);
       expect(drafts.single.beatsTouched, isTrue);
 
-      // Circle's turn direction carries no paramBeats, so the canonical
+      // Circle's direction carries no paramBeats, so the canonical
       // default doesn't move (still 8). Aggressive mode only overrides a
       // manual override when the param change actually shifts the derived
       // default — matching the "a param that affects timing" UI copy — so
       // the manual 12 survives this change untouched.
-      await _selectDropdownOption(tester, 'figure-0-turn', 'right');
-      expect(drafts.single.params['turn'], 'right');
+      await _selectDropdownOption(tester, 'figure-0-direction', 'right');
+      expect(drafts.single.params['direction'], 'right');
       expect(drafts.single.beats, 12);
     });
 
@@ -2880,6 +3427,25 @@ void main() {
       // No inline beats → no explicit beats key (taxonomy default derives).
       expect(figure.params.containsKey('beats'), isFalse);
       expect(drafts.single.customOrigin, CustomOrigin.userEntered);
+    });
+
+    testWidgets('keeps input when the callback accepts no figures', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[];
+      await _pump(tester, drafts, freeTextEntry: true, freeTextAdder: (_) => 0);
+
+      await tester.tap(find.byKey(addKey));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(fieldKey), 'meanwhile-only shorthand');
+      await tester.tap(find.byKey(submitKey));
+      await tester.pumpAndSettle();
+
+      expect(drafts, isEmpty);
+      expect(
+        tester.widget<TextField>(find.byKey(fieldKey)).controller?.text,
+        'meanwhile-only shorthand',
+      );
     });
 
     testWidgets('a `;`-compound line inserts multiple rows', (tester) async {
@@ -3047,6 +3613,20 @@ void main() {
   });
 
   group('meanwhile authoring (#590/#593)', () {
+    testWidgets('facing star side names its who parameter backing up', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[
+        FigureDraft(move: 'facing_star', params: {'who': 'partners'}),
+        FigureDraft(move: 'balance', params: {'beats': 16}),
+      ];
+      await _pump(tester, drafts);
+      await _tapMenuItem(tester, 0, 'group-with-next');
+      await _openFigure(tester, 0);
+
+      expect(find.text('backing up'), findsOneWidget);
+    });
+
     testWidgets('group with next merges two figures into a meanwhile group '
         'and the shared beats field edits the container beats', (tester) async {
       final drafts = <FigureDraft>[
@@ -3214,6 +3794,29 @@ void main() {
       // Defensive: toFigure() never throws even if state somehow exceeded
       // the cap — the model boundary is a last resort, not the primary guard.
       expect(drafts.single.toFigure()!.subFigures, hasLength(6));
+    });
+
+    testWidgets('modifier cap uses ordered-child wording', (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft(
+          modifierFigures: [
+            for (var i = 0; i < kMaxMeanwhileSides; i++)
+              FigureDraft(move: 'swing', params: {'beats': 8}),
+          ],
+        )..params['beats'] = 8,
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+
+      expect(find.byKey(const ValueKey('figure-0-add-side')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('figure-0-modifier-cap')),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Maximum of 6 ordered modifier figures.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets(

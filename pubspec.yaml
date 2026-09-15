@@ -6,3 +6,4 @@ workspace:
   - packages/compendium_core
   - packages/compendium_rubric
   - app
+  - server

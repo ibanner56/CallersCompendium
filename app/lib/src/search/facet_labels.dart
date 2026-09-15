@@ -57,19 +57,30 @@ String danceStatusLabel(AppLocalizations l10n, DanceStatus s) => switch (s) {
   DanceStatus.variation => l10n.commonDanceStatusVariation,
 };
 
-/// Human-readable label for a difficulty [DanceLevel] (app UI string, not a
-/// dialect term).
-String danceLevelLabel(AppLocalizations l10n, DanceLevel level) =>
-    switch (level) {
-      DanceLevel.beginner => l10n.commonDanceLevelBeginner,
-      DanceLevel.intermediate => l10n.commonDanceLevelIntermediate,
-      DanceLevel.advanced => l10n.commonDanceLevelAdvanced,
-    };
+/// Human-readable label for a difficulty level (app UI string, not a dialect
+/// term). Shipped levels retain localization; custom labels are user data.
+String danceLevelLabel(AppLocalizations l10n, DifficultyLevel level) {
+  if (level.id == DifficultyLevel.beginnerId &&
+      level.label == DifficultyLevel.beginner.label) {
+    return l10n.commonDanceLevelBeginner;
+  }
+  if (level.id == DifficultyLevel.intermediateId &&
+      level.label == DifficultyLevel.intermediate.label) {
+    return l10n.commonDanceLevelIntermediate;
+  }
+  if (level.id == DifficultyLevel.advancedId &&
+      level.label == DifficultyLevel.advanced.label) {
+    return l10n.commonDanceLevelAdvanced;
+  }
+  return level.label;
+}
 
 /// Localized label for a [FormationShape], for chips and filters.
 String formationShapeLabel(AppLocalizations l10n, FormationShape shape) =>
     switch (shape) {
       FormationShape.dupleImproper => l10n.commonFormationDupleImproper,
+      FormationShape.reverseProgressionImproper =>
+        l10n.commonFormationReverseProgressionImproper,
       FormationShape.becketCw => l10n.commonFormationBecketCw,
       FormationShape.becketCcw => l10n.commonFormationBecketCcw,
       FormationShape.dupleProper => l10n.commonFormationDupleProper,
@@ -96,6 +107,23 @@ String formationLabel(AppLocalizations l10n, Formation formation) {
   return (detail == null || detail.isEmpty)
       ? base
       : l10n.commonFormationWithDetail(base, detail);
+}
+
+/// Full formation label with the detail rendered through the active dialect.
+String formationDisplayLabel(
+  AppLocalizations l10n,
+  Formation formation,
+  FigureRenderer renderer,
+  Dialect dialect, {
+  required bool canonicalizeDiscouragedTerms,
+}) {
+  final base = formationShapeLabel(l10n, formation.shape);
+  final detail = formation.detail?.trim();
+  if (detail == null || detail.isEmpty) return base;
+  final renderedDetail = canonicalizeDiscouragedTerms
+      ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(detail, dialect)
+      : renderer.renderFreeText(detail, dialect);
+  return l10n.commonFormationWithDetail(base, renderedDetail);
 }
 
 /// Turns `role1s` → `role1s`, `rightDiagonal` → `right diagonal`,
@@ -196,13 +224,20 @@ List<String> figureParamSelectableChoices(List<String> domain) => [
 /// target"), for field labels and the facet's "Any <param>" option.
 ///
 /// The taxonomy carries no display name for a param key ([ParamSpec] has no
-/// `label`), and it declares dozens of them, so per-key localized strings would
-/// be a large, silently-degrading table — a param added to the taxonomy would
-/// fall back to the raw identifier. Humanizing is what the dance editor already
-/// does for the very same keys, so this keeps the two surfaces identical. Named
-/// separately from [humanizeToken] so a future localized table has exactly one
-/// call site to replace.
-String figureParamKeyLabel(String paramKey) => humanizeToken(paramKey);
+/// `label`), and it declares dozens of them. Canonical keys are therefore
+/// humanized by default, while context-specific localized overrides can be
+/// defined here when a UI label differs for a particular move. Keeping both
+/// paths centralized ensures the dance editor and search surfaces stay aligned.
+String figureParamKeyLabel(
+  AppLocalizations l10n,
+  String paramKey, {
+  String? moveId,
+}) {
+  if (moveId == 'facing_star' && paramKey == 'who') {
+    return l10n.figureParamFacingStarBackingUp;
+  }
+  return humanizeToken(paramKey);
+}
 
 /// Display label for a single figure-param [choice].
 ///

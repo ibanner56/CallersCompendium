@@ -60,6 +60,7 @@ export 'src/model/choreographer.dart';
 export 'src/model/collection_import_event.dart';
 export 'src/model/custom_field.dart';
 export 'src/model/dance.dart';
+export 'src/model/difficulty_level.dart';
 export 'src/model/dance_link.dart';
 export 'src/model/enums.dart';
 export 'src/model/figure.dart';
@@ -91,6 +92,22 @@ export 'src/serialization/figure_codec.dart';
 export 'src/sync/canonical_json.dart';
 export 'src/sync/sync_record_kind.dart';
 export 'src/sync/sync_codec.dart';
+export 'src/sync/sync_id.dart'
+    show
+        SyncId,
+        deriveSyncIdKey,
+        decodeSyncCredential,
+        encodeSyncCredential,
+        estimateSyncIdStrengthBits,
+        generateSyncId,
+        isValidSyncId,
+        normalizeSyncId,
+        syncIdMaxCodePoints,
+        syncIdMaxWordCodePoints,
+        syncIdStrengthWarningBits,
+        syncIdWordCount,
+        validateSyncId;
+export 'src/sync/server/sync_id_server.dart';
 export 'src/sync/wire_mapping.dart';
 export 'src/snippet/snippet_library.dart';
 export 'src/snippet/snippet_signature.dart';
@@ -107,13 +124,17 @@ export 'src/storage/database.dart'
         chainHandBackfillDoneKey,
         promenadeTurnCircleWordingCanonicalRebuildDoneKey,
         compactDosidoSeesawCanonicalRebuildDoneKey,
+        taxonomyV33CanonicalRebuildDoneKey,
+        taxonomyV34CanonicalRebuildDoneKey,
+        taxonomyV35FigureNormalizationDoneKey,
+        callersBoxRollAwayRoleRepairDoneKey,
         shareableTextNormalisationScopeKey,
         kSectionRuleVersion,
         kCompendiumSchemaVersion,
         kMinSupportedSchemaVersion;
-// Only the pure pieces of `existence.dart` are public: the rule itself, the
-// tick it is pinned to, and the unix-seconds conversion, all of which the tests
-// exercise directly.
+// Only the pure pieces of the timestamp and existence modules are public: the
+// timestamp rules, the ticks they are pinned to, and the unix-seconds
+// conversion, all of which the tests exercise directly.
 //
 // The SQL writers (`applyUpsertExistence`, `stampExistenceTransition`,
 // `adoptTombstonedNaturalKey`, `seedExistenceIfMissing`) are deliberately NOT
@@ -123,8 +144,9 @@ export 'src/storage/database.dart'
 // (docs/design/storage.md), not a convention. Every existence stamp has to go
 // through the repository that also maintains the row's other invariants, so
 // keep these internal to `lib/src/storage/`.
-export 'src/storage/existence.dart'
-    show existenceStampTick, nextExistenceStamp, unixSeconds;
+export 'src/storage/existence.dart' show existenceStampTick, nextExistenceStamp;
+export 'src/model/stored_timestamp.dart'
+    show nextStoredTimestamp, storedTimestampTick, unixSeconds;
 export 'src/storage/repositories/choreographer_repository.dart';
 export 'src/storage/repositories/collection_import_event_repository.dart';
 export 'src/storage/repositories/custom_field_repository.dart'
@@ -133,6 +155,7 @@ export 'src/storage/repositories/custom_field_repository.dart'
         decodeCustomFieldValue,
         encodeCustomFieldValue;
 export 'src/storage/repositories/dance_repository.dart';
+export 'src/storage/repositories/difficulty_level_repository.dart';
 export 'src/storage/repositories/program_repository.dart';
 export 'src/storage/repositories/published_source_repository.dart';
 export 'src/storage/repositories/repositories.dart';

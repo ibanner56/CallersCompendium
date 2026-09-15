@@ -3,6 +3,7 @@ import 'package:meta/meta.dart';
 /// Canonical formation shapes, seeded from The Caller's Box vocabulary.
 enum FormationShape {
   dupleImproper,
+  reverseProgressionImproper,
   becketCw,
   becketCcw,
   dupleProper,

@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../model/enums.dart';
+import '../model/difficulty_level.dart';
 import '../model/formation.dart';
 import '../sync/sync_record_kind.dart';
 import 'tables.dart';
@@ -92,6 +93,10 @@ const String danceLinksDanceIdIndexSql =
 const String danceLinksTargetTransitiveIndexSql =
     'CREATE INDEX IF NOT EXISTS dance_links_target_transitive '
     'ON dance_links(target_dance_id, transitive, kind, dance_id)';
+
+/// Lookup index for the in-use guard on a configurable difficulty level.
+const String dancesDifficultyLevelIdIndexSql =
+    'CREATE INDEX IF NOT EXISTS dances_level_id ON dances(level_id)';
 
 /// Lookup index for `dance_id` on `program_slots` (schema v16).
 ///
@@ -234,6 +239,38 @@ const String promenadeTurnCircleWordingCanonicalRebuildDoneKey =
 const String compactDosidoSeesawCanonicalRebuildDoneKey =
     '__compact_dosido_seesaw_canonical_rebuild_done__';
 
+/// Settings key for the one-time canonical/FTS rebuild owed by taxonomy v33.
+/// The v33 defaults and figure-eight canonical template change effective
+/// canonical text for existing figures without rewriting their source JSON.
+const String taxonomyV33CanonicalRebuildDoneKey =
+    '__taxonomy_v33_canonical_rebuild_done__';
+
+/// Settings key for the one-time canonical/FTS rebuild and source normalization
+/// owed by taxonomy v34. Existing Callers Box mad robins that assumed an
+/// unstated in-front role are rewritten with an explicit `unspecified` subject.
+const String taxonomyV34CanonicalRebuildDoneKey =
+    '__taxonomy_v34_canonical_rebuild_done__';
+
+/// Settings key for the one-time canonical/FTS rebuild owed by the modifier
+/// container structural tokens. Existing figures gain searchable canonical
+/// container text without changing their source JSON.
+const String modifierContainerCanonicalRebuildDoneKey =
+    '__modifier_container_canonical_rebuild_done__';
+
+/// Settings key marking that persisted figures have been normalized to the
+/// taxonomy v35 parameter names and move ids.
+const String taxonomyV35FigureNormalizationDoneKey =
+    '__taxonomy_v35_figure_normalization_done__';
+
+/// Settings key for the one-time repair of legacy CallersBox `roll_away`
+/// figures whose per-role annotation was stored only as a note (#1192).
+///
+/// The pass is provenance-scoped and rewrites only the exact old parser shape;
+/// the marker is written after the source rewrite and derived-index rebuild
+/// succeed.
+const String callersBoxRollAwayRoleRepairDoneKey =
+    '__callersbox_roll_away_role_repair_done__';
+
 /// Settings marker containing the shareable-text normalization algorithm and
 /// exact scope that has been backfilled successfully.
 const String shareableTextNormalisationScopeKey =
@@ -258,7 +295,7 @@ Future<void> recordNormalisationSkip(
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 32;
+const int kCompendiumSchemaVersion = 35;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
@@ -276,8 +313,8 @@ const int kCompendiumSchemaVersion = 32;
 /// basis that every tester is on beta.6 or later.
 ///
 /// Raising this is a user-visible change: databases below the new floor stop
-/// opening. It belongs in `app/CHANGELOG.md`, stated in user-facing terms, with
-/// the release whose schema version is being adopted named as the reason.
+/// opening. It needs an app `changelog.d/` fragment, stated in user-facing
+/// terms, with the release whose schema version is being adopted named as the reason.
 const int kMinSupportedSchemaVersion = 20;
 
 /// The Caller's Compendium local database.
@@ -288,6 +325,17 @@ const int kMinSupportedSchemaVersion = 20;
 /// PR**; `tools/ci/check_version_history.py` fails the build otherwise. It is
 /// kept there because it is a ledger of decisions already shipped, and it grew
 /// on every bump; what constrains this declaration stays below.
+///
+/// - v35 (issues #1104 and #1233): normalizes persisted figure parameter keys
+///   and consolidates the two legacy pull-by move ids; replaces
+///   `program_slots.planned_minutes` with nullable `walkthrough_minutes` and
+///   `dance_minutes`, copying every existing value to dance minutes. The
+///   taxonomy source JSON is rewritten recursively, including nested
+///   `meanwhile` figures; derived figure/search rows are rebuilt after the
+///   rewrite.
+///
+/// - v34 (issue #1200): adds the Device Sync timestamp triple to the
+///   difficulty-level vocabulary, converting level deletion into a tombstone.
 ///
 /// - v26 (issue #899): provenance-based venue dedupe for shared bundles.
 ///   Adds one brand-new table, `venue_provenance` (one row per imported venue,
@@ -323,6 +371,7 @@ const int kMinSupportedSchemaVersion = 20;
 @DriftDatabase(
   tables: [
     Dances,
+    DifficultyLevels,
     Choreographers,
     DanceAuthors,
     DanceFigures,
@@ -384,6 +433,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
+      await _seedDifficultyLevels();
       await customStatement(createDanceFtsSql);
       await customStatement(createDanceSubstringFtsSql);
       for (final sql in searchIndexSql) {
@@ -391,6 +441,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       }
       await customStatement(danceLinksDanceIdIndexSql);
       await customStatement(danceLinksTargetTransitiveIndexSql);
+      await customStatement(dancesDifficultyLevelIdIndexSql);
       for (final sql in venueLookupIndexSql) {
         await customStatement(sql);
       }
@@ -749,6 +800,111 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         await m.createTable(reviewQueue);
         await m.createTable(publishedRecords);
       }
+      if (from < 34) {
+        final difficultyTableExists = (await customSelect(
+          "SELECT name FROM sqlite_master WHERE type = 'table' "
+          "AND name = 'difficulty_levels'",
+        ).get()).isNotEmpty;
+        if (!difficultyTableExists) {
+          final danceColumns = await customSelect(
+            "SELECT name FROM pragma_table_info('dances')",
+          ).get();
+          final hasLegacyLevel = danceColumns.any(
+            (row) => row.read<String>('name') == 'level',
+          );
+          await m.createTable(difficultyLevels);
+          await _seedDifficultyLevels();
+          if (hasLegacyLevel) {
+            final unsupported = await customSelect(
+              "SELECT DISTINCT level FROM dances WHERE level IS NOT NULL "
+              "AND level NOT IN ('beginner', 'intermediate', 'advanced')",
+            ).get();
+            if (unsupported.isNotEmpty) {
+              final values = [
+                for (final row in unsupported) row.read<String>('level'),
+              ];
+              throw StateError(
+                'Cannot migrate dances with unsupported difficulty level '
+                'name(s): ${values.join(', ')}.',
+              );
+            }
+            await m.alterTable(
+              TableMigration(
+                dances,
+                columnTransformer: {
+                  dances.levelId: const CustomExpression<String>(
+                    "CASE level "
+                    "WHEN 'beginner' THEN 'difficulty-beginner' "
+                    "WHEN 'intermediate' THEN 'difficulty-intermediate' "
+                    "WHEN 'advanced' THEN 'difficulty-advanced' "
+                    'ELSE NULL END',
+                  ),
+                },
+              ),
+            );
+            await customStatement(dancesDifficultyLevelIdIndexSql);
+          }
+        }
+        Future<void> addColumnIfMissing(GeneratedColumn<Object> column) async {
+          final existing = await customSelect(
+            "SELECT name FROM pragma_table_info('difficulty_levels')",
+          ).get();
+          final present = {
+            for (final row in existing) row.read<String>('name'),
+          };
+          if (!present.contains(column.name)) {
+            await m.addColumn(difficultyLevels, column);
+          }
+        }
+
+        await addColumnIfMissing(difficultyLevels.updatedAt);
+        await addColumnIfMissing(difficultyLevels.deletedAt);
+        await addColumnIfMissing(difficultyLevels.existenceAt);
+        final now = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
+        await customStatement(
+          // sync-invariant-exclusion: migration-backfill is idempotent; not a sync record edit.
+          'UPDATE difficulty_levels '
+          'SET updated_at = ?, existence_at = ? '
+          'WHERE deleted_at IS NULL',
+          [now, now],
+        );
+        // Issue #1196: distinguish purge captions from ordinary text-only
+        // program slots so display-only conversion never rewrites a tombstone.
+        // Existing rows remain null: pre-v33 text-only rows are ambiguous and
+        // must stay literal until an explicit edit establishes their kind.
+        final programSlotColumns = await customSelect(
+          "SELECT name FROM pragma_table_info('program_slots')",
+        ).get();
+        final hasPurgeMarker = programSlotColumns.any(
+          (row) => row.read<String>('name') == programSlots.isPurgedDance.name,
+        );
+        if (!hasPurgeMarker) {
+          await m.addColumn(programSlots, programSlots.isPurgedDance);
+        }
+      }
+      if (from < 35) {
+        await m.alterTable(
+          TableMigration(
+            programSlots,
+            columnTransformer: {
+              programSlots.walkthroughMinutes: const CustomExpression<int>(
+                'NULL',
+              ),
+              programSlots.danceMinutes: const CustomExpression<int>(
+                'planned_minutes',
+              ),
+            },
+          ),
+        );
+        // Issue #1104: taxonomy v35 renamed persisted parameter keys and
+        // consolidated pull_by_dancers/pull_by_direction. The taxonomy and
+        // renderer are unavailable from MigrationStrategy, so record a
+        // durable post-open sweep for CompendiumRepositories.ensureMigrated.
+        await customStatement(
+          'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
+          [taxonomyV35FigureNormalizationDoneKey, 'false'],
+        );
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
@@ -784,6 +940,18 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       }
     },
   );
+
+  Future<void> _seedDifficultyLevels() async {
+    final now = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
+    for (final level in DifficultyLevel.shipped) {
+      await customStatement(
+        'INSERT INTO difficulty_levels '
+        '(id, label, position, updated_at, existence_at) '
+        'VALUES (?, ?, ?, ?, ?)',
+        [level.id, level.label, level.position, now, now],
+      );
+    }
+  }
 
   /// Runs SQLite's `PRAGMA quick_check`, returning `true` when the database
   /// reports `ok`. Wired into app startup (`_CompendiumAppState._startupSequence`

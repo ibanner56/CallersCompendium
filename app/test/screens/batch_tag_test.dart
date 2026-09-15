@@ -126,6 +126,9 @@ void main() {
     await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
     await repos.dances.create(_dance(id: 'd2', title: 'Bravo'));
     await repos.dances.create(_dance(id: 'd3', title: 'Charlie'));
+    await repos.dances.create(
+      _dance(id: 'd4', title: 'Tag seed', tagIds: ['t1']),
+    );
     await _pumpScreen(tester, repos);
 
     await _enterSelectionMode(tester);
@@ -155,6 +158,7 @@ void main() {
     // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't2', name: 'Smooth'));
     await repos.dances.create(_dance(id: 'd1', title: 'Alpha', tagIds: ['t1']));
+    await repos.dances.create(_dance(id: 'd2', title: 'Bravo', tagIds: ['t2']));
     await _pumpScreen(tester, repos);
 
     await _enterSelectionMode(tester);
@@ -246,6 +250,117 @@ void main() {
     expect(_tagIdsOf((await repos.dances.getById('d1'))!), {newTagId});
   });
 
+  testWidgets('deduplicates staged tags that normalize to one natural key', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+    await _pumpScreen(tester, repos);
+
+    await _enterSelectionMode(tester);
+    await _toggle(tester, 'd1');
+    await tester.tap(find.byKey(const ValueKey('batch-add-tags')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('batch-new-tag-field')),
+      'Caf\u00E9',
+    );
+    await tester.tap(find.byKey(const ValueKey('batch-create-tag')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('batch-new-tag-field')),
+      'Cafe\u0301',
+    );
+    await tester.tap(find.byKey(const ValueKey('batch-create-tag')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('batch-tag-confirm')));
+    await tester.pumpAndSettle();
+
+    final tags = await repos.tags.listAll();
+    expect(tags, hasLength(1));
+    expect((await repos.dances.getById('d1'))!.tagIds, [tags.single.id]);
+  });
+
+  testWidgets('cancelling inline tag creation does not persist the tag', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+    await _pumpScreen(tester, repos);
+
+    await _enterSelectionMode(tester);
+    await _toggle(tester, 'd1');
+    await tester.tap(find.byKey(const ValueKey('batch-add-tags')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('batch-new-tag-field')),
+      'Cancelled Tag',
+    );
+    await tester.tap(find.byKey(const ValueKey('batch-create-tag')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('batch-tag-cancel')));
+    await tester.pumpAndSettle();
+
+    expect(
+      (await repos.tags.listAll()).map((tag) => tag.name),
+      isNot(contains('Cancelled Tag')),
+    );
+    expect((await repos.dances.getById('d1'))!.tagIds, isEmpty);
+  });
+
+  testWidgets('inline tag creation adopts a tombstoned natural key', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    // ignore: unused_result
+    await repos.tags.upsert(Tag(id: 'old', name: 'Easy'));
+    await repos.tags.delete('old');
+    await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+    await _pumpScreen(tester, repos);
+
+    await _enterSelectionMode(tester);
+    await _toggle(tester, 'd1');
+    await tester.tap(find.byKey(const ValueKey('batch-add-tags')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('batch-new-tag-field')),
+      'Easy',
+    );
+    await tester.tap(find.byKey(const ValueKey('batch-create-tag')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('batch-tag-confirm')));
+    await tester.pumpAndSettle();
+
+    expect((await repos.dances.getById('d1'))!.tagIds, ['old']);
+    expect(await repos.tags.getById('old'), isNotNull);
+    expect((await repos.tags.listAll()).map((tag) => tag.id), ['old']);
+  });
+
+  testWidgets('does not persist a staged tag when its dance is deleted', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+    await _pumpScreen(tester, repos);
+
+    await _enterSelectionMode(tester);
+    await _toggle(tester, 'd1');
+    await tester.tap(find.byKey(const ValueKey('batch-add-tags')));
+    await tester.pumpAndSettle();
+    await repos.dances.softDelete('d1', at: DateTime.utc(2026, 2, 1));
+    await tester.enterText(
+      find.byKey(const ValueKey('batch-new-tag-field')),
+      'No Owner',
+    );
+    await tester.tap(find.byKey(const ValueKey('batch-create-tag')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('batch-tag-confirm')));
+    await tester.pumpAndSettle();
+
+    expect((await repos.tags.listAll()).map((tag) => tag.name), isEmpty);
+  });
+
   testWidgets('undo restores the prior tag sets', (tester) async {
     final repos = openTestRepositories();
     // ignore: unused_result
@@ -273,6 +388,35 @@ void main() {
     // d2 (the only changed dance) is restored to no tags; d1 stays as it was.
     expect(_tagIdsOf((await repos.dances.getById('d1'))!), {'t1'});
     expect(_tagIdsOf((await repos.dances.getById('d2'))!), isEmpty);
+  });
+
+  testWidgets('undo tombstones an inline-created tag left unreferenced', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+    await _pumpScreen(tester, repos);
+
+    await _enterSelectionMode(tester);
+    await _toggle(tester, 'd1');
+    await tester.tap(find.byKey(const ValueKey('batch-add-tags')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('batch-new-tag-field')),
+      'Undoable',
+    );
+    await tester.tap(find.byKey(const ValueKey('batch-create-tag')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('batch-tag-confirm')));
+    await tester.pumpAndSettle();
+    final tag = (await repos.tags.listAll()).single;
+
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+
+    expect((await repos.dances.getById('d1'))!.tagIds, isEmpty);
+    expect(await repos.tags.getById(tag.id), isNull);
+    expect((await repos.tags.listAllWithDeleted()).single.deleted, isTrue);
   });
 
   testWidgets('selection checkbox and batch actions are AT-reachable', (

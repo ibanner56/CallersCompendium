@@ -36,7 +36,7 @@ void main() {
       expect(
         def.params.keys,
         containsAll(<String>[
-          'dir',
+          'axis',
           'balance',
           'center',
           'centerHand',
@@ -57,16 +57,19 @@ void main() {
   });
 
   group('taxonomy v21 form_long_waves params', () {
-    test('gains whom / hand / balance, all defaulting to "states nothing"', () {
-      final def = tax.resolve('form_long_waves')!;
-      expect(def.params['whom']!.defaultValue, ParamVocab.unspecified);
-      expect(def.params['hand']!.defaultValue, ParamVocab.unspecified);
-      expect(def.params['balance']!.defaultValue, isFalse);
-      // `who` keeps its ContraDB meaning (the pair that faces IN).
-      expect(def.params['who']!.defaultValue, 'role1s');
-    });
+    test(
+      'gains whom / whomHand / balance, all defaulting to "states nothing"',
+      () {
+        final def = tax.resolve('form_long_waves')!;
+        expect(def.params['whom']!.defaultValue, ParamVocab.unspecified);
+        expect(def.params['whomHand']!.defaultValue, ParamVocab.unspecified);
+        expect(def.params['balance']!.defaultValue, isFalse);
+        // `who` keeps its ContraDB meaning (the pair that faces IN).
+        expect(def.params['who']!.defaultValue, 'role1s');
+      },
+    );
 
-    // Issue #739. `hand` wore `ParamKind.choice` from v21 until #726/#736
+    // Issue #739. `whomHand` wore `ParamKind.choice` from v21 until #726/#736
     // (editor + validator) and #746 (search facet) taught all three consumers
     // of the kind + `choices` contract to read `spec.choices ?? <fixed
     // vocabulary>`; the workaround existed ONLY to smuggle the sentinel past
@@ -75,8 +78,8 @@ void main() {
     // stops being admitted somewhere: a spec the editor or the facet offers
     // `unspecified` for, but whose validator then rejects it, would fail
     // `validateFigure` the moment a user picks "not stated".
-    test('hand is a handedness that still admits the sentinel (#739)', () {
-      final spec = tax.resolve('form_long_waves')!.params['hand']!;
+    test('whomHand is a handedness that still admits the sentinel (#739)', () {
+      final spec = tax.resolve('form_long_waves')!.params['whomHand']!;
       expect(spec.kind, ParamKind.handedness);
       // Domain-content pin, so every token is spelled out — including the
       // sentinel. The purpose of this assertion is to NOTICE when the
@@ -95,7 +98,7 @@ void main() {
         tax.validateFigure(
           testFigure(
             move: 'form_long_waves',
-            params: const {'hand': ParamVocab.unspecified},
+            params: const {'whomHand': ParamVocab.unspecified},
           ),
         ),
         isEmpty,
@@ -110,7 +113,7 @@ void main() {
             params: const {
               'who': 'role2s',
               'whom': 'nextNeighbors',
-              'hand': 'left',
+              'whomHand': 'left',
               'balance': true,
               'beats': 4,
             },
@@ -169,7 +172,10 @@ void main() {
       expect(
         tax.validateFigure(
           // invalid-fixture: value is deliberately out of domain — rejects a hand outside right/left/unspecified
-          Figure(move: 'form_long_waves', params: const {'hand': 'sideways'}),
+          Figure(
+            move: 'form_long_waves',
+            params: const {'whomHand': 'sideways'},
+          ),
         ),
         isNotEmpty,
       );
@@ -188,7 +194,7 @@ void main() {
   group('canonical text is byte-stable (renderCanonical)', () {
     test('form_short_waves canonical ignores every param', () {
       const params = {
-        'dir': 'rightDiagonal',
+        'axis': 'rightDiagonal',
         'balance': true,
         'center': 'role1s',
         'centerHand': 'left',
@@ -216,7 +222,7 @@ void main() {
             move: 'form_long_waves',
             params: const {
               'whom': 'neighbors',
-              'hand': 'right',
+              'whomHand': 'right',
               'balance': true,
             },
           ),
@@ -242,7 +248,7 @@ void main() {
             params: const {
               'who': 'role2s',
               'whom': 'neighbors',
-              'hand': 'right',
+              'whomHand': 'right',
             },
           ),
           d,
@@ -270,7 +276,7 @@ void main() {
             params: const {
               'who': 'role2s',
               'whom': 'neighbors',
-              'hand': 'left',
+              'whomHand': 'left',
               'balance': true,
             },
           ),

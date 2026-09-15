@@ -1,6 +1,9 @@
 // Part of the Settings screen, split by section (Stage-7 item 7.2).
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+
 import '../../../l10n/app_localizations.dart';
 import '../../data/active_dialect_scope.dart';
 import '../../data/aggressive_beats_update_scope.dart';
@@ -8,10 +11,11 @@ import '../../data/collection_tile_fields_scope.dart';
 import '../../data/display_defaults.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/shorthand_mappings_scope.dart';
-import '../../data/walkthrough_snippet_library_scope.dart';
+import '../../diagnostics/error_log.dart';
 import '../../editor/figure_draft.dart';
 import '../../search/collection_query.dart';
 import '../../search/collection_query_labels.dart';
+import '../../search/collection_data.dart';
 import '../../search/facet_labels.dart';
 import '../../search/program_sort.dart';
 import '../../search/program_sort_labels.dart';
@@ -20,9 +24,8 @@ import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/figure_list_editor.dart';
 import '../../widgets/figure_param_editors.dart';
 import '../../widgets/move_autocomplete.dart';
+import '../../widgets/collection_picker.dart';
 import '../../widgets/section_header.dart';
-import '../shorthand_mappings_screen.dart';
-import '../walkthrough_snippets_screen.dart';
 import 'settings_keys.dart';
 
 /// The Defaults settings section: owns all Display/Program/Dance-authoring
@@ -46,15 +49,11 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   /// `null` = not yet loaded, shown as `title` until the read resolves.
   SortDefaultSetting<ProgramSort>? _defaultProgramSort;
 
-  /// Default dance-detail rendering (ROADMAP G.6b). `null` = not yet loaded;
-  /// the view shows active-dialect (today's default) until the read resolves.
-  DanceDetailRendering? _defaultDanceDetailRendering;
   bool _defaultsRequested = false;
   // Separate per-setting guards: a user changing one default before its read
   // resolves must not suppress seeding the *other* default from storage.
   bool _defaultSortUserSet = false;
   bool _defaultProgramSortUserSet = false;
-  bool _defaultRenderingUserSet = false;
 
   /// Default caller/band for new programs (ROADMAP G.3). Free text seeded once
   /// from storage into these controllers; a late read must not clobber text the
@@ -88,6 +87,20 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   ];
   bool _defaultDanceFiguresUserSet = false;
 
+  /// Default ordinary side figures for a newly inserted meanwhile container
+  /// (issue #1197). Unlike the starting-figures template, an empty list is a
+  /// deliberate setting and is therefore preserved as empty.
+  final List<FigureDraft> _defaultMeanwhileSideDrafts = [
+    for (final figure in defaultMeanwhileSideFigures())
+      FigureDraft.fromFigure(figure),
+  ];
+  bool _defaultMeanwhileSidesUserSet = false;
+  final List<FigureDraft> _defaultModifierDrafts = [
+    for (final figure in defaultModifierFigures())
+      FigureDraft.fromFigure(figure),
+  ];
+  bool _defaultModifierUserSet = false;
+
   /// Per-move insert-time parameter overrides (ROADMAP DD.3), keyed by move id
   /// then param key, holding only the params the user overrode (diffs vs the
   /// taxonomy defaults). `_ensureDefaultsLoaded` seeds it from storage unless
@@ -101,12 +114,16 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   final List<String> _moveDefaultsShown = [];
   bool _defaultMoveParamOverridesUserSet = false;
 
+  final List<StartingProgramTemplateEntry> _startingProgramTemplate = [];
+  bool _startingProgramTemplateUserSet = false;
+  CollectionData? _collectionData;
+  Future<CollectionData?>? _collectionDataLoad;
+
   /// The opt-in "Free-text entry" dance-authoring toggle (issue #419). Defaults
   /// to `false` (off) until the read resolves and on any read failure, so the
-  /// feature is strictly opt-in. A late storage read must not clobber a toggle
-  /// the user flipped first, hence its own user-set guard.
+  /// feature is strictly opt-in. This value is used only by the starting-figures
+  /// editor, which remains in Defaults.
   bool _freeTextEntry = false;
-  bool _freeTextEntryUserSet = false;
 
   /// Lazily loads the persisted Display defaults the first time the Defaults
   /// section is built. Mirrors [_ensureAutoSizeLoaded]: a late read must not
@@ -157,25 +174,6 @@ class _DefaultsSectionState extends State<DefaultsSection> {
             () => _defaultProgramSort = const SortDefaultSetting.concrete(
               ProgramSort.title,
             ),
-          );
-        });
-    repos.settings
-        .get(kDefaultDanceDetailRenderingKey)
-        .then((stored) {
-          if (!mounted || _defaultRenderingUserSet) return;
-          setState(() {
-            _defaultDanceDetailRendering = danceDetailRenderingFromStored(
-              stored,
-            );
-          });
-        })
-        .catchError((_) {
-          // diagnostics: silent — default-rendering read failed; falls back
-          // to the active-dialect default.
-          if (!mounted || _defaultRenderingUserSet) return;
-          setState(
-            () => _defaultDanceDetailRendering =
-                DanceDetailRendering.activeDialect,
           );
         });
     repos.settings
@@ -275,6 +273,38 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           /* diagnostics: silent — keep the pre-seeded default `stand_still × 8` template */
         });
     repos.settings
+        .get(kDefaultMeanwhileSideFiguresKey)
+        .then((stored) {
+          if (!mounted || _defaultMeanwhileSidesUserSet) return;
+          setState(() {
+            _defaultMeanwhileSideDrafts
+              ..clear()
+              ..addAll(
+                meanwhileSideFiguresFromStored(
+                  stored,
+                ).map(FigureDraft.fromFigure),
+              );
+          });
+        })
+        .catchError((_) {
+          /* diagnostics: silent — keep the safe two-side stand-still default */
+        });
+    repos.settings
+        .get(kDefaultModifierFiguresKey)
+        .then((stored) {
+          if (!mounted || _defaultModifierUserSet) return;
+          setState(() {
+            _defaultModifierDrafts
+              ..clear()
+              ..addAll(
+                modifierFiguresFromStored(stored).map(FigureDraft.fromFigure),
+              );
+          });
+        })
+        .catchError((_) {
+          /* diagnostics: silent — keep the safe two-figure modifier default */
+        });
+    repos.settings
         .get(kDefaultMoveParamOverridesKey)
         .then((stored) {
           if (!mounted || _defaultMoveParamOverridesUserSet) return;
@@ -295,15 +325,109 @@ class _DefaultsSectionState extends State<DefaultsSection> {
     repos.settings
         .get(kFreeTextEntryKey)
         .then((stored) {
-          if (!mounted || _freeTextEntryUserSet) return;
+          if (!mounted) return;
           setState(() => _freeTextEntry = stored is bool ? stored : false);
         })
         .catchError((_) {
           // diagnostics: silent — free-text-entry read failed; falls back to
           // the built-in off default.
-          if (!mounted || _freeTextEntryUserSet) return;
+          if (!mounted) return;
           setState(() => _freeTextEntry = false);
         });
+    repos.settings
+        .get(kDefaultStartingProgramKey)
+        .then((stored) {
+          if (!mounted || _startingProgramTemplateUserSet) return;
+          setState(() {
+            _startingProgramTemplate
+              ..clear()
+              ..addAll(startingProgramTemplateFromStored(stored));
+          });
+        })
+        .catchError((_) {
+          /* diagnostics: silent — keep the empty starting-program template */
+        });
+  }
+
+  Future<void> _persistStartingProgramTemplate() async {
+    _startingProgramTemplateUserSet = true;
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(
+      kDefaultStartingProgramKey,
+      encodeStartingProgramTemplate(_startingProgramTemplate),
+    );
+  }
+
+  Future<CollectionData?> _ensureCollectionDataLoaded(
+    BuildContext context,
+  ) async {
+    if (_collectionData != null) return _collectionData;
+    final inFlight = _collectionDataLoad;
+    if (inFlight != null) return inFlight;
+    final repos = RepositoriesScope.of(context);
+    final load = () async {
+      try {
+        final data = await CollectionData.load(repos);
+        if (mounted) setState(() => _collectionData = data);
+        return data;
+      } catch (error, stackTrace) {
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'defaults_section.starting_program_picker',
+        );
+        return null;
+      } finally {
+        _collectionDataLoad = null;
+      }
+    }();
+    _collectionDataLoad = load;
+    return load;
+  }
+
+  Future<void> _addStartingProgramDance() async {
+    final data = await _ensureCollectionDataLoaded(context);
+    if (!mounted || data == null) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.85,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) => Column(
+          children: [
+            ListTile(
+              title: Text(
+                AppLocalizations.of(
+                  context,
+                ).settingsDefaultsStartingProgramPickerTitle,
+              ),
+              trailing: IconButton(
+                tooltip: AppLocalizations.of(context).commonClose,
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.of(sheetContext).pop(),
+              ),
+            ),
+            Expanded(
+              child: CollectionPicker(
+                data: data,
+                dialect: ActiveDialectScope.of(context),
+                enrichment: SearchEnrichment.empty,
+                scrollController: scrollController,
+                onAddDance: (danceId) {
+                  _startingProgramTemplate.add(
+                    StartingProgramTemplateEntry(danceId: danceId),
+                  );
+                  setState(() {});
+                  _persistStartingProgramTemplate();
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _onDefaultProgramCallerChanged(String value) async {
@@ -353,17 +477,6 @@ class _DefaultsSectionState extends State<DefaultsSection> {
     await repos.settings.set(kDefaultDancePhraseStructureKey, value.trim());
   }
 
-  /// Persists the "Free-text entry" toggle (#419). Marks it user-set so a late
-  /// storage read can't clobber the flip.
-  Future<void> _onFreeTextEntryChanged(bool value) async {
-    setState(() {
-      _freeTextEntryUserSet = true;
-      _freeTextEntry = value;
-    });
-    final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kFreeTextEntryKey, value);
-  }
-
   /// Persists the current starting-figures template as a `figures_json` string
   /// (ROADMAP DD.2). Marks the setting user-set so a late storage read can't
   /// clobber the in-progress edit. Blank/moveless drafts are filtered out, so
@@ -378,6 +491,62 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       kDefaultDanceFiguresTemplateKey,
       encodeFigures(figures),
     );
+  }
+
+  /// Persists the ordinary side template used by newly inserted meanwhile
+  /// containers. A blank list is intentional and therefore encodes as `[]`.
+  Future<void> _persistMeanwhileSideDefaults() async {
+    _defaultMeanwhileSidesUserSet = true;
+    final figures = [
+      for (final draft in _defaultMeanwhileSideDrafts) ?draft.toFigure(),
+    ];
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(
+      kDefaultMeanwhileSideFiguresKey,
+      encodeMeanwhileSideFigures(figures),
+    );
+  }
+
+  Future<void> _persistModifierDefaults() async {
+    _defaultModifierUserSet = true;
+    if (_defaultModifierDrafts.isNotEmpty &&
+        _defaultModifierDrafts.first.toFigure() == null) {
+      return;
+    }
+    final figures = [
+      for (final draft in _defaultModifierDrafts) ?draft.toFigure(),
+    ];
+    await RepositoriesScope.of(
+      context,
+    ).settings.set(kDefaultModifierFiguresKey, encodeModifierFigures(figures));
+  }
+
+  void _groupDefaultDanceFigures(FigureDraft draft) {
+    final index = _defaultDanceFigureDrafts.indexOf(draft);
+    if (index == -1 || index >= _defaultDanceFigureDrafts.length - 1) return;
+    final first = _defaultDanceFigureDrafts[index];
+    final second = _defaultDanceFigureDrafts[index + 1];
+    if (first.isMeanwhileGroup || second.isMeanwhileGroup) return;
+    final group = FigureDraft(meanwhileSides: [first, second]);
+    group.params['beats'] = first.beats;
+    group.beatsTouched = first.beatsTouched;
+    setState(() {
+      _defaultDanceFigureDrafts
+        ..removeAt(index + 1)
+        ..removeAt(index)
+        ..insert(index, group);
+    });
+    _persistDanceFiguresTemplate();
+  }
+
+  void _collapseDefaultDanceFigures(
+    FigureDraft group,
+    FigureDraft remainingSide,
+  ) {
+    final index = _defaultDanceFigureDrafts.indexOf(group);
+    if (index == -1) return;
+    setState(() => _defaultDanceFigureDrafts[index] = remainingSide);
+    _persistDanceFiguresTemplate();
   }
 
   /// Persists the current per-move param overrides as a JSON string (ROADMAP
@@ -473,20 +642,10 @@ class _DefaultsSectionState extends State<DefaultsSection> {
     );
   }
 
-  Future<void> _onDefaultDanceDetailRenderingChanged(
-    DanceDetailRendering value,
-  ) async {
-    setState(() {
-      _defaultRenderingUserSet = true;
-      _defaultDanceDetailRendering = value;
-    });
-    final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kDefaultDanceDetailRenderingKey, value.name);
-  }
-
   @override
   Widget build(BuildContext context) {
     _ensureDefaultsLoaded(context);
+    unawaited(_ensureCollectionDataLoaded(context));
     return _DefaultsView(
       programCallerController: _defaultProgramCaller,
       onDefaultProgramCallerChanged: _onDefaultProgramCallerChanged,
@@ -500,10 +659,42 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           _defaultProgramSort ??
           const SortDefaultSetting.concrete(ProgramSort.title),
       onDefaultProgramSortChanged: _onDefaultProgramSortChanged,
-      defaultDanceDetailRendering:
-          _defaultDanceDetailRendering ?? DanceDetailRendering.activeDialect,
-      onDefaultDanceDetailRenderingChanged:
-          _onDefaultDanceDetailRenderingChanged,
+      startingProgramTemplate: _startingProgramTemplate,
+      startingProgramDances: _collectionData?.dancesById ?? const {},
+      onAddStartingProgramDance: _addStartingProgramDance,
+      onAddStartingProgramText: (text) {
+        _startingProgramTemplate.add(StartingProgramTemplateEntry(text: text));
+        setState(() {});
+        _persistStartingProgramTemplate();
+      },
+      onUpdateStartingProgramText: (index, text) {
+        final entry = _startingProgramTemplate[index];
+        setState(() {
+          _startingProgramTemplate[index] = StartingProgramTemplateEntry(
+            danceId: entry.danceId,
+            text: text.trim().isEmpty ? null : text.trim(),
+          );
+        });
+        _persistStartingProgramTemplate();
+      },
+      onRemoveStartingProgramEntry: (index) {
+        setState(() => _startingProgramTemplate.removeAt(index));
+        _persistStartingProgramTemplate();
+      },
+      onReorderStartingProgramEntry: (oldIndex, newIndex) {
+        setState(() {
+          final entry = _startingProgramTemplate.removeAt(oldIndex);
+          _startingProgramTemplate.insert(newIndex, entry);
+        });
+        _persistStartingProgramTemplate();
+      },
+      onAddStartingProgramBreak: () {
+        _startingProgramTemplate.add(
+          const StartingProgramTemplateEntry(text: Program.breakSlotText),
+        );
+        setState(() {});
+        _persistStartingProgramTemplate();
+      },
       defaultDanceForm: _defaultDanceForm ?? DanceForm.contra,
       onDefaultDanceFormChanged: _onDefaultDanceFormChanged,
       defaultDanceFormationShape:
@@ -514,7 +705,6 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       dancePhraseController: _defaultDancePhrase,
       onDefaultDancePhraseChanged: _onDefaultDancePhraseChanged,
       freeTextEntry: _freeTextEntry,
-      onFreeTextEntryChanged: _onFreeTextEntryChanged,
       danceFigureTemplateDrafts: _defaultDanceFigureDrafts,
       onDanceFigureTemplateChanged: () {
         setState(() {});
@@ -524,14 +714,23 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         setState(() => _defaultDanceFigureDrafts.add(FigureDraft()));
         _persistDanceFiguresTemplate();
       },
+      onDanceFigureTemplateAddMeanwhile: () {
+        final draft = FigureDraft(
+          meanwhileSides: [FigureDraft(), FigureDraft()],
+        );
+        setState(() => _defaultDanceFigureDrafts.add(draft));
+        _persistDanceFiguresTemplate();
+        return Future.value(draft.id);
+      },
       onDanceFigureTemplateAddFreeText: (figures) {
-        if (figures.isEmpty) return;
+        if (figures.isEmpty) return 0;
         setState(
           () => _defaultDanceFigureDrafts.addAll(
             figures.map(FigureDraft.fromFigure),
           ),
         );
         _persistDanceFiguresTemplate();
+        return figures.length;
       },
       onDanceFigureTemplateDelete: (draft) {
         setState(() => _defaultDanceFigureDrafts.remove(draft));
@@ -552,11 +751,333 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         });
         _persistDanceFiguresTemplate();
       },
+      onDanceFigureTemplateGroup: _groupDefaultDanceFigures,
+      onDanceFigureTemplateCollapse: _collapseDefaultDanceFigures,
+      meanwhileSideDrafts: _defaultMeanwhileSideDrafts,
+      onMeanwhileSideChanged: () {
+        setState(() {});
+        _persistMeanwhileSideDefaults();
+      },
+      onMeanwhileSideAdd: () {
+        if (_defaultMeanwhileSideDrafts.length >= kMaxMeanwhileSides) return;
+        setState(() => _defaultMeanwhileSideDrafts.add(FigureDraft()));
+        _persistMeanwhileSideDefaults();
+      },
+      onMeanwhileSideAddFreeText: (figures) {
+        final ordinaryFigures = figures
+            .where((figure) => !figure.isContainer)
+            .toList();
+        if (ordinaryFigures.isEmpty) return 0;
+        final remaining =
+            kMaxMeanwhileSides - _defaultMeanwhileSideDrafts.length;
+        if (remaining <= 0) return 0;
+        final accepted = ordinaryFigures.take(remaining).toList();
+        setState(
+          () => _defaultMeanwhileSideDrafts.addAll(
+            accepted.map(FigureDraft.fromFigure),
+          ),
+        );
+        _persistMeanwhileSideDefaults();
+        return accepted.length;
+      },
+      onMeanwhileSideDelete: (draft) {
+        setState(() => _defaultMeanwhileSideDrafts.remove(draft));
+        _persistMeanwhileSideDefaults();
+      },
+      onMeanwhileSideDuplicate: (draft) {
+        if (_defaultMeanwhileSideDrafts.length >= kMaxMeanwhileSides) return;
+        setState(() {
+          final index = _defaultMeanwhileSideDrafts.indexOf(draft);
+          if (index == -1) return;
+          _defaultMeanwhileSideDrafts.insert(index + 1, draft.clone());
+        });
+        _persistMeanwhileSideDefaults();
+      },
+      onMeanwhileSideReorder: (oldIndex, newIndex) {
+        setState(() {
+          final draft = _defaultMeanwhileSideDrafts.removeAt(oldIndex);
+          _defaultMeanwhileSideDrafts.insert(newIndex, draft);
+        });
+        _persistMeanwhileSideDefaults();
+      },
+      modifierDrafts: _defaultModifierDrafts,
+      onModifierChanged: () {
+        setState(() {});
+        _persistModifierDefaults();
+      },
+      onModifierAdd: () {
+        if (_defaultModifierDrafts.length >= kMaxModifierFigures) return;
+        setState(() => _defaultModifierDrafts.add(FigureDraft()));
+        _persistModifierDefaults();
+      },
+      onModifierAddFreeText: (figures) {
+        final ordinaryFigures = figures
+            .where((figure) => !figure.isContainer)
+            .toList();
+        if (ordinaryFigures.isEmpty) return 0;
+        final remaining = kMaxModifierFigures - _defaultModifierDrafts.length;
+        if (remaining <= 0) return 0;
+        final accepted = ordinaryFigures.take(remaining).toList();
+        setState(
+          () => _defaultModifierDrafts.addAll(
+            accepted.map(FigureDraft.fromFigure),
+          ),
+        );
+        _persistModifierDefaults();
+        return accepted.length;
+      },
+      onModifierDelete: (draft) {
+        setState(() => _defaultModifierDrafts.remove(draft));
+        _persistModifierDefaults();
+      },
+      onModifierDuplicate: (draft) {
+        if (_defaultModifierDrafts.length >= kMaxModifierFigures) return;
+        setState(() {
+          final index = _defaultModifierDrafts.indexOf(draft);
+          if (index != -1) {
+            _defaultModifierDrafts.insert(index + 1, draft.clone());
+          }
+        });
+        _persistModifierDefaults();
+      },
+      onModifierReorder: (oldIndex, newIndex) {
+        setState(() {
+          final draft = _defaultModifierDrafts.removeAt(oldIndex);
+          _defaultModifierDrafts.insert(newIndex, draft);
+        });
+        _persistModifierDefaults();
+      },
       moveParamOverrides: _defaultMoveParamOverrides,
       shownMoveDefaults: _moveDefaultsShown,
       onAddMoveDefault: _onAddMoveDefault,
       onRemoveMoveDefault: _onRemoveMoveDefault,
       onMoveParamOverrideChanged: _onMoveParamOverrideChanged,
+    );
+  }
+}
+
+/// Edits the ordered vocabulary used by dance difficulty assignments.
+class DifficultyLevelsEditor extends StatefulWidget {
+  const DifficultyLevelsEditor({super.key});
+
+  @override
+  State<DifficultyLevelsEditor> createState() => _DifficultyLevelsEditorState();
+}
+
+class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
+  List<DifficultyLevel> _levels = const [];
+  final Map<String, String> _pendingLabels = {};
+  final Map<String, TextEditingController> _labelControllers = {};
+  bool _loading = true;
+  bool _requested = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_requested) {
+      _requested = true;
+      _reload();
+    }
+  }
+
+  Future<void> _reload() async {
+    final levels = await RepositoriesScope.of(
+      context,
+    ).difficultyLevels.listAll();
+    if (!mounted) return;
+    final levelIds = {for (final level in levels) level.id};
+    for (final entry in _labelControllers.entries.toList()) {
+      if (!levelIds.contains(entry.key)) {
+        entry.value.dispose();
+        _labelControllers.remove(entry.key);
+      }
+    }
+    for (final level in levels) {
+      _labelControllers[level.id]?.text = level.label;
+    }
+    setState(() {
+      _levels = levels;
+      _loading = false;
+    });
+  }
+
+  void _report(Object error) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(error.toString())));
+  }
+
+  Future<void> _add() async {
+    final controller = TextEditingController();
+    final label = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(AppLocalizations.of(context).commonAdd),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(
+            labelText: AppLocalizations.of(context).danceEditorLevelLabel,
+          ),
+          onSubmitted: (value) => Navigator.of(context).pop(value),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(AppLocalizations.of(context).commonCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(controller.text),
+            child: Text(AppLocalizations.of(context).commonSave),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    final normalized = label?.trim() ?? '';
+    if (!mounted || normalized.isEmpty) return;
+    try {
+      final created = await RepositoriesScope.of(context).difficultyLevels
+          .createCustom(
+            label: normalized,
+            position:
+                _levels.fold(
+                  -1,
+                  (maximum, level) =>
+                      level.position > maximum ? level.position : maximum,
+                ) +
+                1,
+          );
+      if (!mounted) return;
+      setState(() => _levels = [..._levels, created]);
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'defaults_section._add');
+      _report(error);
+    }
+  }
+
+  Future<void> _rename(DifficultyLevel level, String value) async {
+    _pendingLabels.remove(level.id);
+    final label = value.trim();
+    if (label.isEmpty) {
+      _labelControllers[level.id]?.text = level.label;
+      _report(ArgumentError('difficulty level label must not be empty'));
+      return;
+    }
+    if (label == level.label) return;
+    try {
+      await RepositoriesScope.of(
+        context,
+      ).difficultyLevels.upsert(level.copyWith(label: label));
+      await _reload();
+    } catch (error, stackTrace) {
+      _labelControllers[level.id]?.text = level.label;
+      logCaughtError(error, stackTrace, source: 'defaults_section._rename');
+      _report(error);
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _labelControllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _delete(DifficultyLevel level) async {
+    try {
+      await RepositoriesScope.of(context).difficultyLevels.delete(level.id);
+      await _reload();
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'defaults_section._delete');
+      _report(error);
+    }
+  }
+
+  Future<void> _reorder(int oldIndex, int newIndex) async {
+    final updated = List<DifficultyLevel>.of(_levels);
+    final level = updated.removeAt(oldIndex);
+    updated.insert(newIndex, level);
+    setState(() => _levels = updated);
+    try {
+      await RepositoriesScope.of(
+        context,
+      ).difficultyLevels.reorder(updated.map((level) => level.id).toList());
+      await _reload();
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'defaults_section._reorder');
+      _report(error);
+      await _reload();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Padding(
+        padding: EdgeInsets.all(AppSpacing.md),
+        child: LinearProgressIndicator(),
+      );
+    }
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ListTile(
+          title: Text(l10n.danceEditorLevelLabel),
+          trailing: IconButton(
+            key: const ValueKey('difficulty-level-add'),
+            tooltip: l10n.commonAdd,
+            icon: const Icon(Icons.add),
+            onPressed: _add,
+          ),
+        ),
+        ReorderableListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          buildDefaultDragHandles: false,
+          itemCount: _levels.length,
+          onReorderItem: _reorder,
+          itemBuilder: (context, index) {
+            final level = _levels[index];
+            final labelController = _labelControllers.putIfAbsent(
+              level.id,
+              () => TextEditingController(text: level.label),
+            );
+            return ListTile(
+              key: ValueKey(level.id),
+              leading: ReorderableDragStartListener(
+                index: index,
+                child: const Icon(Icons.drag_handle),
+              ),
+              title: Focus(
+                onFocusChange: (focused) {
+                  if (!focused) {
+                    _rename(level, _pendingLabels[level.id] ?? level.label);
+                  }
+                },
+                child: TextFormField(
+                  key: ValueKey('difficulty-level-label-${level.id}'),
+                  controller: labelController,
+                  onChanged: (value) => _pendingLabels[level.id] = value,
+                  onFieldSubmitted: (value) => _rename(level, value),
+                  decoration: const InputDecoration(
+                    border: UnderlineInputBorder(),
+                  ),
+                ),
+              ),
+              trailing: IconButton(
+                key: ValueKey('difficulty-level-delete-${level.id}'),
+                tooltip: l10n.commonDelete,
+                icon: const Icon(Icons.delete_outline),
+                onPressed: () => _delete(level),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 }
@@ -577,8 +1098,14 @@ class _DefaultsView extends StatelessWidget {
     required this.onDefaultCollectionSortChanged,
     required this.defaultProgramSort,
     required this.onDefaultProgramSortChanged,
-    required this.defaultDanceDetailRendering,
-    required this.onDefaultDanceDetailRenderingChanged,
+    required this.startingProgramTemplate,
+    required this.startingProgramDances,
+    required this.onAddStartingProgramDance,
+    required this.onAddStartingProgramText,
+    required this.onUpdateStartingProgramText,
+    required this.onRemoveStartingProgramEntry,
+    required this.onReorderStartingProgramEntry,
+    required this.onAddStartingProgramBreak,
     required this.defaultDanceForm,
     required this.onDefaultDanceFormChanged,
     required this.defaultDanceFormationShape,
@@ -588,14 +1115,30 @@ class _DefaultsView extends StatelessWidget {
     required this.dancePhraseController,
     required this.onDefaultDancePhraseChanged,
     required this.freeTextEntry,
-    required this.onFreeTextEntryChanged,
     required this.danceFigureTemplateDrafts,
     required this.onDanceFigureTemplateChanged,
     required this.onDanceFigureTemplateAdd,
+    required this.onDanceFigureTemplateAddMeanwhile,
     required this.onDanceFigureTemplateAddFreeText,
     required this.onDanceFigureTemplateDelete,
     required this.onDanceFigureTemplateDuplicate,
     required this.onDanceFigureTemplateReorder,
+    required this.onDanceFigureTemplateGroup,
+    required this.onDanceFigureTemplateCollapse,
+    required this.meanwhileSideDrafts,
+    required this.onMeanwhileSideChanged,
+    required this.onMeanwhileSideAdd,
+    required this.onMeanwhileSideAddFreeText,
+    required this.onMeanwhileSideDelete,
+    required this.onMeanwhileSideDuplicate,
+    required this.onMeanwhileSideReorder,
+    required this.modifierDrafts,
+    required this.onModifierChanged,
+    required this.onModifierAdd,
+    required this.onModifierAddFreeText,
+    required this.onModifierDelete,
+    required this.onModifierDuplicate,
+    required this.onModifierReorder,
     required this.moveParamOverrides,
     required this.shownMoveDefaults,
     required this.onAddMoveDefault,
@@ -613,8 +1156,14 @@ class _DefaultsView extends StatelessWidget {
   final SortDefaultSetting<ProgramSort> defaultProgramSort;
   final ValueChanged<SortDefaultSetting<ProgramSort>>
   onDefaultProgramSortChanged;
-  final DanceDetailRendering defaultDanceDetailRendering;
-  final ValueChanged<DanceDetailRendering> onDefaultDanceDetailRenderingChanged;
+  final List<StartingProgramTemplateEntry> startingProgramTemplate;
+  final Map<String, Dance> startingProgramDances;
+  final VoidCallback onAddStartingProgramDance;
+  final ValueChanged<String> onAddStartingProgramText;
+  final void Function(int index, String text) onUpdateStartingProgramText;
+  final ValueChanged<int> onRemoveStartingProgramEntry;
+  final void Function(int oldIndex, int newIndex) onReorderStartingProgramEntry;
+  final VoidCallback onAddStartingProgramBreak;
   final DanceForm defaultDanceForm;
   final ValueChanged<DanceForm> onDefaultDanceFormChanged;
   final FormationShape defaultDanceFormationShape;
@@ -629,7 +1178,6 @@ class _DefaultsView extends StatelessWidget {
   /// governs the Settings starting-figures editor, keeping the toggle's effect
   /// consistent with the dance editor it sits above.
   final bool freeTextEntry;
-  final ValueChanged<bool> onFreeTextEntryChanged;
 
   /// The live draft list backing the starting-figures template editor (ROADMAP
   /// DD.2), plus callbacks mirroring the dance editor's [FigureListEditor]
@@ -637,13 +1185,33 @@ class _DefaultsView extends StatelessWidget {
   final List<FigureDraft> danceFigureTemplateDrafts;
   final VoidCallback onDanceFigureTemplateChanged;
   final VoidCallback onDanceFigureTemplateAdd;
+  final Future<String?> Function() onDanceFigureTemplateAddMeanwhile;
 
   /// Inserts the figure(s) parsed from one free-text line into the template
   /// (#419); only used when [freeTextEntry] is on.
-  final ValueChanged<List<Figure>> onDanceFigureTemplateAddFreeText;
+  final int Function(List<Figure>) onDanceFigureTemplateAddFreeText;
   final ValueChanged<FigureDraft> onDanceFigureTemplateDelete;
   final ValueChanged<FigureDraft> onDanceFigureTemplateDuplicate;
   final void Function(int oldIndex, int newIndex) onDanceFigureTemplateReorder;
+  final ValueChanged<FigureDraft> onDanceFigureTemplateGroup;
+  final void Function(FigureDraft, FigureDraft) onDanceFigureTemplateCollapse;
+
+  /// Ordinary side defaults for newly inserted meanwhile containers. This
+  /// editor intentionally has no container-insertion callback.
+  final List<FigureDraft> meanwhileSideDrafts;
+  final VoidCallback onMeanwhileSideChanged;
+  final VoidCallback onMeanwhileSideAdd;
+  final int Function(List<Figure>) onMeanwhileSideAddFreeText;
+  final ValueChanged<FigureDraft> onMeanwhileSideDelete;
+  final ValueChanged<FigureDraft> onMeanwhileSideDuplicate;
+  final void Function(int oldIndex, int newIndex) onMeanwhileSideReorder;
+  final List<FigureDraft> modifierDrafts;
+  final VoidCallback onModifierChanged;
+  final VoidCallback onModifierAdd;
+  final int Function(List<Figure>) onModifierAddFreeText;
+  final ValueChanged<FigureDraft> onModifierDelete;
+  final ValueChanged<FigureDraft> onModifierDuplicate;
+  final void Function(int oldIndex, int newIndex) onModifierReorder;
 
   /// The per-move param overrides (ROADMAP DD.3), keyed by move id then param
   /// key. Owned by [_DefaultsSectionState]; read-only here.
@@ -681,48 +1249,13 @@ class _DefaultsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final sectionTitleStyle = theme.textTheme.labelLarge?.copyWith(
+      color: theme.colorScheme.primary,
+    );
     return ListView(
       keyboardDismissBehavior: kTextEntryKeyboardDismiss,
       children: [
-        SectionHeader(title: l10n.settingsDefaultsProgramHeader),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.md,
-            AppSpacing.xxs,
-            AppSpacing.md,
-            AppSpacing.xs,
-          ),
-          child: TextField(
-            key: const ValueKey('defaults-program-caller'),
-            controller: programCallerController,
-            onChanged: onDefaultProgramCallerChanged,
-            textCapitalization: TextCapitalization.words,
-            decoration: InputDecoration(
-              labelText: l10n.settingsDefaultsCallerLabel,
-              helperText: l10n.settingsDefaultsPrefilledHelper,
-              border: const OutlineInputBorder(),
-            ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.md,
-            AppSpacing.xxs,
-            AppSpacing.md,
-            AppSpacing.xs,
-          ),
-          child: TextField(
-            key: const ValueKey('defaults-program-band'),
-            controller: programBandController,
-            onChanged: onDefaultProgramBandChanged,
-            textCapitalization: TextCapitalization.words,
-            decoration: InputDecoration(
-              labelText: l10n.settingsDefaultsBandLabel,
-              helperText: l10n.settingsDefaultsPrefilledHelper,
-              border: const OutlineInputBorder(),
-            ),
-          ),
-        ),
         SectionHeader(title: l10n.settingsDefaultsDisplayHeader),
         ListTile(
           title: Text(l10n.settingsDefaultsSortTitle),
@@ -767,18 +1300,6 @@ class _DefaultsView extends StatelessWidget {
               ),
             ],
           ),
-        ),
-        SwitchListTile(
-          key: const ValueKey('defaults-dance-detail-canonical'),
-          value: defaultDanceDetailRendering == DanceDetailRendering.canonical,
-          onChanged: (value) => onDefaultDanceDetailRenderingChanged(
-            value
-                ? DanceDetailRendering.canonical
-                : DanceDetailRendering.activeDialect,
-          ),
-          title: Text(l10n.settingsDefaultsCanonicalTitle),
-          subtitle: Text(l10n.settingsDefaultsCanonicalSubtitle),
-          isThreeLine: true,
         ),
         SectionHeader(title: l10n.settingsDefaultsCollectionCardHeader),
         Padding(
@@ -885,226 +1406,531 @@ class _DefaultsView extends StatelessWidget {
             );
           },
         ),
-        SectionHeader(title: l10n.settingsDefaultsAuthoringHeader),
-        SwitchListTile(
-          key: const ValueKey('defaults-free-text-entry'),
-          value: freeTextEntry,
-          onChanged: onFreeTextEntryChanged,
-          title: Text(l10n.settingsDefaultsFreeTextEntryTitle),
-          subtitle: Text(l10n.settingsDefaultsFreeTextEntrySubtitle),
-        ),
-        Builder(
-          builder: (context) {
-            final controller = ShorthandMappingsScope.maybeOf(context);
-            if (controller == null) return const SizedBox.shrink();
-            final count = controller.mappings.length;
-            return ListTile(
-              key: const ValueKey('defaults-figure-shorthands'),
-              enabled: freeTextEntry,
-              title: Text(l10n.settingsDefaultsFigureShorthandsTitle),
-              subtitle: Text(
-                count == 0
-                    ? l10n.settingsDefaultsFigureShorthandsEmptySubtitle
-                    : l10n.settingsDefaultsFigureShorthandsCountSubtitle(count),
+        ExpansionTile(
+          key: const ValueKey('defaults-program-group'),
+          title: Text(
+            l10n.settingsDefaultsProgramHeader,
+            style: sectionTitleStyle,
+          ),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.xxs,
+                AppSpacing.md,
+                AppSpacing.xs,
               ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: freeTextEntry
-                  ? () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const ShorthandMappingsScreen(),
-                      ),
-                    )
-                  : null,
-            );
-          },
-        ),
-        ListTile(
-          title: Text(l10n.settingsDefaultsFormTitle),
-          subtitle: Text(l10n.settingsDefaultsFormSubtitle),
-          trailing: DropdownButton<DanceForm>(
-            key: const ValueKey('defaults-dance-form'),
-            value: defaultDanceForm,
-            onChanged: (value) {
-              if (value != null) onDefaultDanceFormChanged(value);
-            },
-            items: [
-              for (final form in DanceForm.values)
-                DropdownMenuItem(
-                  value: form,
-                  child: Text(danceFormLabel(l10n, form)),
+              child: TextField(
+                key: const ValueKey('defaults-program-caller'),
+                controller: programCallerController,
+                onChanged: onDefaultProgramCallerChanged,
+                textCapitalization: TextCapitalization.words,
+                decoration: InputDecoration(
+                  labelText: l10n.settingsDefaultsCallerLabel,
+                  helperText: l10n.settingsDefaultsPrefilledHelper,
+                  border: const OutlineInputBorder(),
                 ),
-            ],
-          ),
-        ),
-        ListTile(
-          title: Text(l10n.settingsDefaultsFormationTitle),
-          subtitle: Text(l10n.settingsDefaultsFormationSubtitle),
-          trailing: DropdownButton<FormationShape>(
-            key: const ValueKey('defaults-dance-formation'),
-            value: defaultDanceFormationShape,
-            onChanged: (value) {
-              if (value != null) onDefaultDanceFormationShapeChanged(value);
-            },
-            items: [
-              for (final shape in FormationShape.values)
-                DropdownMenuItem(
-                  value: shape,
-                  child: Text(formationShapeLabel(l10n, shape)),
-                ),
-            ],
-          ),
-        ),
-        ListTile(
-          title: Text(l10n.settingsDefaultsProgressionTitle),
-          subtitle: Text(l10n.settingsDefaultsProgressionSubtitle),
-          trailing: DropdownButton<Progression>(
-            key: const ValueKey('defaults-dance-progression'),
-            value: defaultDanceProgression,
-            onChanged: (value) {
-              if (value != null) onDefaultDanceProgressionChanged(value);
-            },
-            items: [
-              for (final progression in Progression.values)
-                DropdownMenuItem(
-                  value: progression,
-                  child: Text(progressionLabel(l10n, progression)),
-                ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.md,
-            AppSpacing.xs,
-            AppSpacing.md,
-            AppSpacing.xs,
-          ),
-          child: TextField(
-            key: const ValueKey('defaults-dance-phrase'),
-            controller: dancePhraseController,
-            onChanged: onDefaultDancePhraseChanged,
-            decoration: InputDecoration(
-              labelText: l10n.settingsDefaultsPhraseLabel,
-              helperText: l10n.settingsDefaultsPhraseHelper,
-              border: const OutlineInputBorder(),
+              ),
             ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.md,
-            AppSpacing.xs,
-            AppSpacing.md,
-            AppSpacing.xxs,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l10n.settingsDefaultsStartingFiguresTitle,
-                style: Theme.of(context).textTheme.titleSmall,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.xxs,
+                AppSpacing.md,
+                AppSpacing.xs,
               ),
-              const SizedBox(height: AppSpacing.xxs),
-              Text(
-                l10n.settingsDefaultsStartingFiguresSubtitle,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          child: FigureListEditor(
-            drafts: danceFigureTemplateDrafts,
-            taxonomy: contraTaxonomy,
-            phraseStructure: PhraseStructure.standard,
-            dialect: ActiveDialectScope.of(context),
-            freeTextEntry: freeTextEntry,
-            shorthandMappings: ShorthandMappingsScope.maybeOf(context)?.store,
-            onChanged: onDanceFigureTemplateChanged,
-            onAdd: onDanceFigureTemplateAdd,
-            onAddFreeText: onDanceFigureTemplateAddFreeText,
-            onDelete: onDanceFigureTemplateDelete,
-            onDuplicate: onDanceFigureTemplateDuplicate,
-            onReorder: onDanceFigureTemplateReorder,
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.md,
-            AppSpacing.md,
-            AppSpacing.md,
-            AppSpacing.xxs,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l10n.settingsDefaultsMoveDefaultsTitle,
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              const SizedBox(height: AppSpacing.xxs),
-              Text(
-                l10n.settingsDefaultsMoveDefaultsSubtitle,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          child: _MoveDefaultsEditor(
-            overrides: moveParamOverrides,
-            shownMoveIds: shownMoveDefaults,
-            onAddMoveDefault: onAddMoveDefault,
-            onRemoveMoveDefault: onRemoveMoveDefault,
-            onMoveParamOverrideChanged: onMoveParamOverrideChanged,
-          ),
-        ),
-        Builder(
-          builder: (context) {
-            final aggressiveBeatsUpdate = AggressiveBeatsUpdateScope.of(
-              context,
-            );
-            return SwitchListTile(
-              key: const ValueKey('defaults-aggressive-beats-update'),
-              value: aggressiveBeatsUpdate,
-              onChanged: (value) async {
-                AggressiveBeatsUpdateScope.notifierOf(context).value = value;
-                final repos = RepositoriesScope.of(context);
-                await repos.settings.set(kAggressiveBeatsUpdateKey, value);
-              },
-              title: Text(l10n.settingsDefaultsAggressiveBeatsUpdateTitle),
-              subtitle: Text(
-                l10n.settingsDefaultsAggressiveBeatsUpdateSubtitle,
-              ),
-              isThreeLine: true,
-            );
-          },
-        ),
-        Builder(
-          builder: (context) {
-            final controller = WalkthroughSnippetLibraryScope.maybeOf(context);
-            if (controller == null) return const SizedBox.shrink();
-            final count = controller.library.length;
-            return ListTile(
-              key: const ValueKey('defaults-walkthrough-snippets'),
-              title: Text(l10n.settingsWalkthroughSnippetsTitle),
-              subtitle: Text(
-                count == 0
-                    ? l10n.settingsWalkthroughSnippetsSubtitle
-                    : l10n.settingsWalkthroughSnippetsCount(count),
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const WalkthroughSnippetsScreen(),
+              child: TextField(
+                key: const ValueKey('defaults-program-band'),
+                controller: programBandController,
+                onChanged: onDefaultProgramBandChanged,
+                textCapitalization: TextCapitalization.words,
+                decoration: InputDecoration(
+                  labelText: l10n.settingsDefaultsBandLabel,
+                  helperText: l10n.settingsDefaultsPrefilledHelper,
+                  border: const OutlineInputBorder(),
                 ),
               ),
-            );
-          },
+            ),
+            _StartingProgramTemplateEditor(
+              entries: startingProgramTemplate,
+              dancesById: startingProgramDances,
+              onAddDance: onAddStartingProgramDance,
+              onAddText: onAddStartingProgramText,
+              onUpdateText: onUpdateStartingProgramText,
+              onAddBreak: onAddStartingProgramBreak,
+              onRemove: onRemoveStartingProgramEntry,
+              onReorder: onReorderStartingProgramEntry,
+            ),
+          ],
+        ),
+        ExpansionTile(
+          key: const ValueKey('defaults-authoring-group'),
+          title: Text(
+            l10n.settingsDefaultsAuthoringHeader,
+            style: sectionTitleStyle,
+          ),
+          children: [
+            ExpansionTile(
+              key: const ValueKey('defaults-difficulty-levels-section'),
+              title: Text(l10n.danceEditorLevelLabel),
+              initiallyExpanded: false,
+              children: const [DifficultyLevelsEditor()],
+            ),
+            ListTile(
+              title: Text(l10n.settingsDefaultsFormTitle),
+              subtitle: Text(l10n.settingsDefaultsFormSubtitle),
+              trailing: DropdownButton<DanceForm>(
+                key: const ValueKey('defaults-dance-form'),
+                value: defaultDanceForm,
+                onChanged: (value) {
+                  if (value != null) onDefaultDanceFormChanged(value);
+                },
+                items: [
+                  for (final form in DanceForm.values)
+                    DropdownMenuItem(
+                      value: form,
+                      child: Text(danceFormLabel(l10n, form)),
+                    ),
+                ],
+              ),
+            ),
+            ListTile(
+              title: Text(l10n.settingsDefaultsFormationTitle),
+              subtitle: Text(l10n.settingsDefaultsFormationSubtitle),
+              trailing: DropdownButton<FormationShape>(
+                key: const ValueKey('defaults-dance-formation'),
+                value: defaultDanceFormationShape,
+                onChanged: (value) {
+                  if (value != null) onDefaultDanceFormationShapeChanged(value);
+                },
+                items: [
+                  for (final shape in FormationShape.values)
+                    DropdownMenuItem(
+                      value: shape,
+                      child: Text(formationShapeLabel(l10n, shape)),
+                    ),
+                ],
+              ),
+            ),
+            ListTile(
+              title: Text(l10n.settingsDefaultsProgressionTitle),
+              subtitle: Text(l10n.settingsDefaultsProgressionSubtitle),
+              trailing: DropdownButton<Progression>(
+                key: const ValueKey('defaults-dance-progression'),
+                value: defaultDanceProgression,
+                onChanged: (value) {
+                  if (value != null) onDefaultDanceProgressionChanged(value);
+                },
+                items: [
+                  for (final progression in Progression.values)
+                    DropdownMenuItem(
+                      value: progression,
+                      child: Text(progressionLabel(l10n, progression)),
+                    ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.xs,
+                AppSpacing.md,
+                AppSpacing.xs,
+              ),
+              child: TextField(
+                key: const ValueKey('defaults-dance-phrase'),
+                controller: dancePhraseController,
+                onChanged: onDefaultDancePhraseChanged,
+                decoration: InputDecoration(
+                  labelText: l10n.settingsDefaultsPhraseLabel,
+                  helperText: l10n.settingsDefaultsPhraseHelper,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.xs,
+                AppSpacing.md,
+                AppSpacing.xxs,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.settingsDefaultsStartingFiguresTitle,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(
+                    l10n.settingsDefaultsStartingFiguresSubtitle,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              child: FigureListEditor(
+                drafts: danceFigureTemplateDrafts,
+                taxonomy: contraTaxonomy,
+                phraseStructure: PhraseStructure.standard,
+                dialect: ActiveDialectScope.of(context),
+                freeTextEntry: freeTextEntry,
+                shorthandMappings: ShorthandMappingsScope.maybeOf(
+                  context,
+                )?.store,
+                onChanged: onDanceFigureTemplateChanged,
+                onAdd: onDanceFigureTemplateAdd,
+                onAddFreeText: onDanceFigureTemplateAddFreeText,
+                onDelete: onDanceFigureTemplateDelete,
+                onDuplicate: onDanceFigureTemplateDuplicate,
+                onReorder: onDanceFigureTemplateReorder,
+                onAddMeanwhile: onDanceFigureTemplateAddMeanwhile,
+                onGroupWithNext: onDanceFigureTemplateGroup,
+                onCollapseMeanwhileGroup: onDanceFigureTemplateCollapse,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.xxs,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.settingsDefaultsMeanwhileTitle,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(
+                    l10n.settingsDefaultsMeanwhileSubtitle,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              child: FigureListEditor(
+                drafts: meanwhileSideDrafts,
+                taxonomy: contraTaxonomy,
+                phraseStructure: PhraseStructure.standard,
+                dialect: ActiveDialectScope.of(context),
+                freeTextEntry: freeTextEntry,
+                shorthandMappings: ShorthandMappingsScope.maybeOf(
+                  context,
+                )?.store,
+                onChanged: onMeanwhileSideChanged,
+                onAdd: onMeanwhileSideAdd,
+                onAddFreeText: onMeanwhileSideAddFreeText,
+                onDelete: onMeanwhileSideDelete,
+                onDuplicate: onMeanwhileSideDuplicate,
+                onReorder: onMeanwhileSideReorder,
+                allowAdding: meanwhileSideDrafts.length < kMaxMeanwhileSides,
+                allowDuplicating:
+                    meanwhileSideDrafts.length < kMaxMeanwhileSides,
+                allowModifierSelection: false,
+                showPhraseStructure: false,
+                keyPrefix: 'meanwhile-side',
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.xxs,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.settingsDefaultsModifierTitle,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(
+                    l10n.settingsDefaultsModifierSubtitle,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              child: FigureListEditor(
+                drafts: modifierDrafts,
+                taxonomy: contraTaxonomy,
+                phraseStructure: PhraseStructure.standard,
+                dialect: ActiveDialectScope.of(context),
+                freeTextEntry: freeTextEntry,
+                shorthandMappings: ShorthandMappingsScope.maybeOf(
+                  context,
+                )?.store,
+                onChanged: onModifierChanged,
+                onAdd: onModifierAdd,
+                onAddFreeText: onModifierAddFreeText,
+                onDelete: onModifierDelete,
+                onDuplicate: onModifierDuplicate,
+                onReorder: onModifierReorder,
+                allowAdding: modifierDrafts.length < kMaxModifierFigures,
+                allowDuplicating: modifierDrafts.length < kMaxModifierFigures,
+                allowModifierSelection: false,
+                showPhraseStructure: false,
+                keyPrefix: 'modifier-default',
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.xxs,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.settingsDefaultsMoveDefaultsTitle,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(
+                    l10n.settingsDefaultsMoveDefaultsSubtitle,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              child: _MoveDefaultsEditor(
+                overrides: moveParamOverrides,
+                shownMoveIds: shownMoveDefaults,
+                onAddMoveDefault: onAddMoveDefault,
+                onRemoveMoveDefault: onRemoveMoveDefault,
+                onMoveParamOverrideChanged: onMoveParamOverrideChanged,
+              ),
+            ),
+            Builder(
+              builder: (context) {
+                final aggressiveBeatsUpdate = AggressiveBeatsUpdateScope.of(
+                  context,
+                );
+                return SwitchListTile(
+                  key: const ValueKey('defaults-aggressive-beats-update'),
+                  value: aggressiveBeatsUpdate,
+                  onChanged: (value) async {
+                    AggressiveBeatsUpdateScope.notifierOf(context).value =
+                        value;
+                    final repos = RepositoriesScope.of(context);
+                    await repos.settings.set(kAggressiveBeatsUpdateKey, value);
+                  },
+                  title: Text(l10n.settingsDefaultsAggressiveBeatsUpdateTitle),
+                  subtitle: Text(
+                    l10n.settingsDefaultsAggressiveBeatsUpdateSubtitle,
+                  ),
+                  isThreeLine: true,
+                );
+              },
+            ),
+          ],
         ),
       ],
+    );
+  }
+}
+
+class _StartingProgramTemplateEditor extends StatefulWidget {
+  const _StartingProgramTemplateEditor({
+    required this.entries,
+    required this.dancesById,
+    required this.onAddDance,
+    required this.onAddText,
+    required this.onUpdateText,
+    required this.onAddBreak,
+    required this.onRemove,
+    required this.onReorder,
+  });
+
+  final List<StartingProgramTemplateEntry> entries;
+  final Map<String, Dance> dancesById;
+  final VoidCallback onAddDance;
+  final ValueChanged<String> onAddText;
+  final void Function(int index, String text) onUpdateText;
+  final VoidCallback onAddBreak;
+  final ValueChanged<int> onRemove;
+  final void Function(int oldIndex, int newIndex) onReorder;
+
+  @override
+  State<_StartingProgramTemplateEditor> createState() =>
+      _StartingProgramTemplateEditorState();
+}
+
+class _StartingProgramTemplateEditorState
+    extends State<_StartingProgramTemplateEditor> {
+  final _textController = TextEditingController();
+  late List<Object> _entryKeys;
+
+  @override
+  void initState() {
+    super.initState();
+    _entryKeys = List<Object>.generate(widget.entries.length, (_) => Object());
+  }
+
+  @override
+  void didUpdateWidget(covariant _StartingProgramTemplateEditor oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_entryKeys.length < widget.entries.length) {
+      _entryKeys.addAll(
+        List<Object>.generate(
+          widget.entries.length - _entryKeys.length,
+          (_) => Object(),
+        ),
+      );
+    } else if (_entryKeys.length > widget.entries.length) {
+      _entryKeys = _entryKeys.sublist(0, widget.entries.length);
+    }
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.xs,
+        AppSpacing.md,
+        AppSpacing.xs,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.settingsDefaultsStartingProgramTitle),
+          const SizedBox(height: AppSpacing.xxs),
+          Text(
+            l10n.settingsDefaultsStartingProgramSubtitle,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          for (var index = 0; index < widget.entries.length; index++)
+            Builder(
+              builder: (context) {
+                final entry = widget.entries[index];
+                return ListTile(
+                  key: ValueKey(
+                    'starting-program-note-${identityHashCode(_entryKeys[index])}',
+                  ),
+                  dense: true,
+                  title: Text(
+                    entry.danceId == null
+                        ? entry.text ?? ''
+                        : widget.dancesById[entry.danceId]?.title ??
+                              l10n.settingsDefaultsStartingProgramUnavailableDance(
+                                entry.danceId!,
+                              ),
+                  ),
+                  subtitle: entry.danceId == null
+                      ? null
+                      : TextFormField(
+                          key: ValueKey(_entryKeys[index]),
+                          initialValue: entry.text ?? '',
+                          decoration: InputDecoration(
+                            labelText:
+                                l10n.settingsDefaultsStartingProgramNoteLabel,
+                          ),
+                          onChanged: (value) =>
+                              widget.onUpdateText(index, value.trim()),
+                        ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: l10n.settingsDefaultsStartingProgramMoveUp,
+                        icon: const Icon(Icons.arrow_upward),
+                        onPressed: index == 0
+                            ? null
+                            : () {
+                                setState(() {
+                                  final key = _entryKeys.removeAt(index);
+                                  _entryKeys.insert(index - 1, key);
+                                });
+                                widget.onReorder(index, index - 1);
+                              },
+                      ),
+                      IconButton(
+                        tooltip: l10n.settingsDefaultsStartingProgramMoveDown,
+                        icon: const Icon(Icons.arrow_downward),
+                        onPressed: index == widget.entries.length - 1
+                            ? null
+                            : () {
+                                setState(() {
+                                  final key = _entryKeys.removeAt(index);
+                                  _entryKeys.insert(index + 1, key);
+                                });
+                                widget.onReorder(index, index + 1);
+                              },
+                      ),
+                      IconButton(
+                        tooltip: l10n.commonDelete,
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () {
+                          setState(() => _entryKeys.removeAt(index));
+                          widget.onRemove(index);
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              OutlinedButton.icon(
+                key: const ValueKey('starting-program-add-dance'),
+                onPressed: widget.onAddDance,
+                icon: const Icon(Icons.library_music_outlined),
+                label: Text(l10n.programsAddDanceButton),
+              ),
+              OutlinedButton.icon(
+                key: const ValueKey('starting-program-add-text'),
+                onPressed: () {
+                  final text = _textController.text.trim();
+                  if (text.isEmpty) return;
+                  widget.onAddText(text);
+                  _textController.clear();
+                },
+                icon: const Icon(Icons.notes_outlined),
+                label: Text(l10n.programsAddNoteBreakButton),
+              ),
+              OutlinedButton.icon(
+                key: const ValueKey('starting-program-insert-break'),
+                onPressed: widget.onAddBreak,
+                icon: const Icon(Icons.free_breakfast_outlined),
+                label: Text(l10n.programsInsertBreakButton),
+              ),
+            ],
+          ),
+          TextField(
+            controller: _textController,
+            decoration: InputDecoration(
+              labelText: l10n.settingsDefaultsStartingProgramTextLabel,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1233,6 +2059,7 @@ class _MoveDefaultsEditor extends StatelessWidget {
                       onChanged: (v) =>
                           onMoveParamOverrideChanged(moveId, entry.key, v),
                       dialect: dialect,
+                      moveId: moveId,
                     ),
                 ],
               ),

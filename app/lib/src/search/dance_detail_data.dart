@@ -26,6 +26,7 @@ typedef CustomFieldDisplay = ({String label, String value});
 class DanceDetailData {
   DanceDetailData({
     required this.dance,
+    this.difficultyLevel,
     required this.authorNames,
     required this.tagNames,
     this.tags = const [],
@@ -34,11 +35,13 @@ class DanceDetailData {
     this.customFieldsById = const {},
     required this.customFields,
     required this.relatedDanceTitles,
+    this.tombstonedRelatedDanceIds = const {},
     required this.sourcesById,
     required this.crossRefLinker,
   });
 
   final Dance dance;
+  final DifficultyLevel? difficultyLevel;
   final List<String> authorNames;
   final List<String> tagNames;
 
@@ -56,8 +59,15 @@ class DanceDetailData {
   final List<CustomFieldDisplay> customFields;
 
   /// Maps targetDanceId → title for relatedDance links whose target exists.
-  /// Missing entries indicate the target dance has been deleted/purged.
+  /// Missing entries indicate the target row no longer exists; soft-deleted
+  /// targets are listed separately in [tombstonedRelatedDanceIds].
   final Map<String, String> relatedDanceTitles;
+
+  /// Target IDs for relatedDance links whose dances are soft-deleted.
+  ///
+  /// These links remain persisted so restoring the target can reveal them
+  /// again, but the detail screen omits them while the target is tombstoned.
+  final Set<String> tombstonedRelatedDanceIds;
 
   /// Maps sourceId → the cited [PublishedSource] for each of the dance's
   /// [SourceCitation]s (missing entries indicate a purged source).
@@ -74,20 +84,14 @@ class DanceDetailData {
   /// rather than being an optimisation.
   ///
   /// The burst here is **not** a batch of edits to the dance being shown; it is
-  /// a batch of edits to *other* dances. Batch tagging in the Collection writes
-  /// one dance per transaction in a loop, so tagging 50 dances is 50 commits on
-  /// `dances`, and every one of them wakes this stream even though at most one
-  /// touched the record on screen. Uncoalesced that is 50 full [load] runs — a
-  /// fan-out across five repositories each time — behind a screen whose visible
-  /// content changed at most once.
+  /// a batch of edits to *other* dances. Collection batch tagging writes all
+  /// affected dances in one transaction, but other multi-row operations can
+  /// still produce several source-table notifications. Coalescing prevents
+  /// those notifications from triggering a full [load] for each write.
   ///
-  /// 24 ms, matching the figure measured for the same 50-write batch shape on
-  /// the Collection's own snapshot: inter-commit gaps of median 1.46 ms, p90
-  /// 1.66 ms, max 2.36 ms on in-memory sqlite in a debug build, so the window
-  /// is about 10x the widest observed gap. The measurement is of the *writer*,
-  /// which is the same writer for both consumers; it is quoted rather than
-  /// cited because a number that lives in another file is one this file cannot
-  /// keep true.
+  /// 24 ms remains the shared window for this reference-data stream. It is
+  /// intentionally kept in one place so the editor and detail consumers use
+  /// the same debounce contract.
   ///
   /// ## It is not the only thing bounding reloads, and that was measured
   ///
@@ -96,19 +100,18 @@ class DanceDetailData {
   /// the pause into a single re-run on resume. So backpressure supplies a bound
   /// of its own, before this constant does anything.
   ///
-  /// The figures, for a 10-write burst on in-memory sqlite in a debug build,
-  /// stated as numbers so that deleting this window is a decision about a known
-  /// cost rather than about a description:
+  /// The figures below describe a 10-write burst on in-memory sqlite in a
+  /// debug build, stated as numbers so deleting this window is a decision about
+  /// a known cost rather than about a description:
   ///
   /// | burst shape | window | no window |
   /// |---|---|---|
-  /// | writes awaited one at a time — the batch-tag loop's shape | **1** | **2** |
+  /// | writes awaited one at a time | **1** | **2** |
   /// | writes issued together (`Future.wait`) | 1 | 1 |
   ///
-  /// So what this constant buys, on the shape the app actually produces, is the
-  /// difference between one re-read and two — not between one and ten. Ten was
-  /// the intuition it was nearly justified with, and it is wrong: backpressure
-  /// had already collapsed the burst to two before the window saw it.
+  /// So what this constant buys on a sequential burst is the difference between
+  /// one re-read and two — not between one and ten. Backpressure already
+  /// collapses the burst to two before the window sees it.
   ///
   /// The second row is the reason the first is not stated more strongly.
   /// Concurrent writes commit close enough together that drift dispatches them
@@ -187,16 +190,21 @@ class DanceDetailData {
     final choreographers = await repos.choreographers.listAll();
     final tags = await repos.tags.listAll();
     final fieldDefs = await repos.customFieldDefs.listAll();
+    final difficultyLevel = dance.difficultyLevelId == null
+        ? null
+        : await repos.difficultyLevels.getById(dance.difficultyLevelId!);
     final choreographerNames = {for (final c in choreographers) c.id: c.name};
     final tagNames = {for (final t in tags) t.id: t.name};
     final tagsById = {for (final t in tags) t.id: t};
     final defsById = {for (final d in fieldDefs) d.id: d};
 
-    // Resolve titles for relatedDance links in parallel. Deduplicate via a
-    // set, then materialize to a list so the id↔result association is an
+    // Resolve live titles for relatedDance links in parallel. Deduplicate via
+    // a set, then materialize to a list so the id↔result association is an
     // explicit, O(1) positional index (rather than relying on set iteration
-    // order and O(n) elementAt).
+    // order and O(n) elementAt). Deleted or absent targets are classified
+    // separately below without hydrating their child collections.
     final relatedDanceTitles = <String, String>{};
+    final tombstonedRelatedDanceIds = <String>{};
     final targetIds = dance.links
         .where(
           (l) => l.kind == LinkKind.relatedDance && l.targetDanceId != null,
@@ -208,9 +216,20 @@ class DanceDetailData {
       final fetched = await Future.wait(
         targetIds.map((id) => repos.dances.getById(id)),
       );
+      final unresolvedIds = <String>[];
       for (final (i, related) in fetched.indexed) {
         if (related != null) {
           relatedDanceTitles[targetIds[i]] = related.title;
+        } else {
+          unresolvedIds.add(targetIds[i]);
+        }
+      }
+      final deletedStates = await Future.wait(
+        unresolvedIds.map(repos.dances.isDeletedById),
+      );
+      for (final (i, isDeleted) in deletedStates.indexed) {
+        if (isDeleted == true) {
+          tombstonedRelatedDanceIds.add(unresolvedIds[i]);
         }
       }
     }
@@ -237,6 +256,7 @@ class DanceDetailData {
 
     return DanceDetailData(
       dance: dance,
+      difficultyLevel: difficultyLevel,
       authorNames: [
         for (final id in dance.authorIds)
           if (choreographerNames[id] != null) choreographerNames[id]!,
@@ -259,6 +279,7 @@ class DanceDetailData {
             (label: def.label, value: _formatFieldValue(value.value)),
       ],
       relatedDanceTitles: relatedDanceTitles,
+      tombstonedRelatedDanceIds: tombstonedRelatedDanceIds,
       sourcesById: sourcesById,
       crossRefLinker: crossRefLinker,
     );

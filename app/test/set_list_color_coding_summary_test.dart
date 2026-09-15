@@ -196,7 +196,7 @@ void main() {
     expect(find.byKey(const ValueKey('summary-slot-s1-accent')), findsNothing);
     // Formation text is still shown, so the row's type/form is fully readable
     // without any colour.
-    expect(find.textContaining('Duple improper'), findsOneWidget);
+    expect(find.textContaining('Improper'), findsOneWidget);
     expect(find.textContaining('Sicilian circle'), findsOneWidget);
   });
 
@@ -212,7 +212,7 @@ void main() {
     // The row's accessible name includes both the title and the formation, so
     // a screen-reader user gets the type/form without relying on the accent.
     expect(
-      find.bySemanticsLabel(RegExp(r'Chase the Squirrel\. Duple improper')),
+      find.bySemanticsLabel(RegExp(r'Chase the Squirrel\. Improper')),
       findsOneWidget,
     );
     expect(

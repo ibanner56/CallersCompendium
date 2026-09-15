@@ -21,6 +21,7 @@ class FigureDraftSnapshot {
     this.walkthroughOverride,
     this.wordingOverride,
     this.meanwhileSides,
+    this.modifierFigures,
   });
 
   factory FigureDraftSnapshot.fromDraft(FigureDraft draft) =>
@@ -39,6 +40,11 @@ class FigureDraftSnapshot {
             ? null
             : List.unmodifiable(
                 draft.meanwhileSides!.map(FigureDraftSnapshot.fromDraft),
+              ),
+        modifierFigures: draft.modifierFigures == null
+            ? null
+            : List.unmodifiable(
+                draft.modifierFigures!.map(FigureDraftSnapshot.fromDraft),
               ),
       );
 
@@ -73,6 +79,9 @@ class FigureDraftSnapshot {
   /// [FigureDraft.meanwhileSides].
   final List<FigureDraftSnapshot>? meanwhileSides;
 
+  /// Non-null when this snapshot is a modifier group.
+  final List<FigureDraftSnapshot>? modifierFigures;
+
   FigureDraft toDraft() => FigureDraft(
     id: id,
     move: move,
@@ -85,6 +94,9 @@ class FigureDraftSnapshot {
     walkthroughOverride: walkthroughOverride,
     wordingOverride: wordingOverride,
     meanwhileSides: meanwhileSides
+        ?.map((s) => s.toDraft())
+        .toList(growable: true),
+    modifierFigures: modifierFigures
         ?.map((s) => s.toDraft())
         .toList(growable: true),
   );
@@ -156,6 +168,7 @@ class EditorSnapshot {
     required this.sourceCitations,
     required this.customValues,
     required this.figureDrafts,
+    this.stagedTags = const [],
   });
 
   // ---- Text fields ----
@@ -210,6 +223,11 @@ class EditorSnapshot {
   /// themselves are shared entities edited out-of-band; only the citation
   /// (sourceId + page + number) is part of the editor working state.
   final List<SourceCitation> sourceCitations;
+
+  /// Inline tags that exist only in the unsaved editor draft. These payloads
+  /// travel with the provisional IDs in [tagIds] so autosave restoration can
+  /// commit them later.
+  final List<Tag> stagedTags;
 
   // ---- Custom fields ----
   final Map<String, Object?> customValues;

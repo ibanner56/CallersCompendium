@@ -17,8 +17,9 @@ List<pw.Widget> buildFigureWidgets(
   Dance dance,
   FigureRenderer renderer,
   Dialect dialect,
-  DanceExportLabels labels,
-) {
+  DanceExportLabels labels, {
+  bool canonicalizeDiscouragedTerms = false,
+}) {
   final widgets = <pw.Widget>[];
   final sectioned = deriveSections(dance.figures, dance.phraseStructure);
   String? lastLabel;
@@ -39,6 +40,12 @@ List<pw.Widget> buildFigureWidgets(
       );
       lastLabel = sf.label;
     }
+    final text = canonicalizeDiscouragedTerms
+        ? renderer.renderSummaryWithCanonicalDiscouragedTerms(
+            sf.figure,
+            dialect,
+          )
+        : renderer.renderSummary(sf.figure, dialect);
     final beatsLabel = labels.beats(sf.figure.beats);
     final marker = sf.figure.progression ? ' ¶' : '';
     widgets.add(
@@ -49,7 +56,7 @@ List<pw.Widget> buildFigureWidgets(
           children: [
             pw.Expanded(
               child: pw.Text(
-                '${renderer.renderSummary(sf.figure, dialect)}$marker',
+                '$text$marker',
                 style: const pw.TextStyle(fontSize: 12),
               ),
             ),
@@ -68,7 +75,12 @@ List<pw.Widget> buildFigureWidgets(
         pw.Padding(
           padding: const pw.EdgeInsets.only(left: 24, bottom: 1),
           child: pw.Text(
-            renderer.renderFreeText(note, dialect),
+            canonicalizeDiscouragedTerms
+                ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                    note,
+                    dialect,
+                  )
+                : renderer.renderFreeText(note, dialect),
             style: pw.TextStyle(
               fontSize: 10,
               fontStyle: pw.FontStyle.italic,

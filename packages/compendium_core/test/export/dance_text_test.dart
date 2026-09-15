@@ -13,7 +13,7 @@ void main() {
     List<Figure> figures = const [],
     String callingNotes = '',
     DanceStatus status = DanceStatus.active,
-    DanceLevel? level,
+    String? difficultyLevelId,
     bool mixer = false,
   }) => Dance(
     id: 'd1',
@@ -24,7 +24,7 @@ void main() {
     figures: figures,
     callingNotes: callingNotes,
     status: status,
-    level: level,
+    difficultyLevelId: difficultyLevelId,
     mixer: mixer,
     createdAt: now,
     updatedAt: now,
@@ -71,7 +71,10 @@ void main() {
 
     test('renders formation, level, and status labels', () {
       final text = render(
-        dance(status: DanceStatus.broken, level: DanceLevel.intermediate),
+        dance(
+          status: DanceStatus.broken,
+          difficultyLevelId: DifficultyLevel.intermediateId,
+        ),
         formationLabel: 'Becket',
         levelLabel: 'Intermediate',
         statusLabel: 'Broken',

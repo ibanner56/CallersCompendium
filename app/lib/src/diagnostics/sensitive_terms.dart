@@ -30,6 +30,16 @@ Future<Set<String>> collectSensitiveTerms(
     if (text.length >= 3) terms.add(text);
   }
 
+  void addFigureContent(Figure figure) {
+    add(figure.note);
+    // A custom (free-text) figure keeps the caller's verbatim text in
+    // params['text'] (taxonomy `customMove`), not in `note`.
+    add(figure.params['text']);
+    for (final child in figure.subFigures) {
+      addFigureContent(child);
+    }
+  }
+
   for (final dance in await repositories.dances.listAll(includeDeleted: true)) {
     add(dance.title);
     add(dance.hook);
@@ -38,10 +48,7 @@ Future<Set<String>> collectSensitiveTerms(
       add(tune);
     }
     for (final figure in dance.figures) {
-      add(figure.note);
-      // A custom (free-text) figure keeps the caller's verbatim text in
-      // params['text'] (taxonomy `customMove`), not in `note`.
-      add(figure.params['text']);
+      addFigureContent(figure);
     }
     for (final field in dance.customFields) {
       add(field.value);

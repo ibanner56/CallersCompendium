@@ -41,7 +41,7 @@ void main() {
       'partners California twirl': Figure(move: 'california_twirl'),
       'stand still': Figure(move: 'stand_still'),
       'slide along set left': Figure(move: 'slide_along_set'),
-      'ones mad robin once': Figure(move: 'mad_robin'),
+      'role2s mad robin once': Figure(move: 'mad_robin'),
       'role2s revolving door right partners': Figure(move: 'revolving_door'),
       // v26 (#843): `hand` was REMOVED from star_promenade — it described the
       // center pair while rendering as though it qualified the subject.
@@ -139,7 +139,7 @@ void main() {
         tax
             .validateFigure(
               // invalid-fixture: value is deliberately out of domain — star_promenade rejects a non-quarter rotation
-              Figure(move: 'star_promenade', params: {'turn': 0.3}),
+              Figure(move: 'star_promenade', params: {'travel': 0.3}),
             )
             .any((i) => i.code == 'invalid_param_value'),
         isTrue,

@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:compendium_app/src/export/dance_pdf.dart';
+import 'package:compendium_app/src/export/json_export.dart';
 import 'package:compendium_app/src/widgets/dance_export_menu.dart';
 
 import 'support/l10n_harness.dart';
@@ -197,6 +198,9 @@ void main() {
                     return XFile('/tmp/$fileName');
                   },
                   shareInvoker: (params) async => shared.add(params),
+                  jsonExportDelivery: JsonExportDelivery(
+                    choicePicker: (_) async => JsonExportChoice.share,
+                  ),
                 ),
               ],
             ),
@@ -240,6 +244,53 @@ void main() {
       expect(shared[1].fileNameOverrides, ['A_dance___with_unsafe_name.json']);
       expect(shared[0].sharePositionOrigin, isNotNull);
       expect(shared[1].sharePositionOrigin, isNotNull);
+    });
+
+    testWidgets('wide dance export embeds a custom difficulty level', (
+      tester,
+    ) async {
+      final custom = DifficultyLevel(
+        id: 'custom-level',
+        label: 'Workshop',
+        position: 3,
+      );
+      final staged = <String, String>{};
+      final dance = _dance().copyWith(difficultyLevelId: custom.id);
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            appBar: AppBar(
+              actions: [
+                DanceExportMenu(
+                  dance: dance,
+                  dialect: Dialect.canonical,
+                  authorNames: const [],
+                  formationLabel: 'Duple improper',
+                  statusLabel: 'Active',
+                  difficultyLevelFor: (_) => custom,
+                  bundleFileWriter: (json, fileName) async {
+                    staged[fileName] = json;
+                    return XFile('/tmp/$fileName');
+                  },
+                  shareInvoker: (_) async {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Share dance file'));
+      await tester.pumpAndSettle();
+
+      final payload = jsonDecode(staged.values.single) as Map<String, dynamic>;
+      expect(payload['difficultyLevels'], [
+        {'id': 'custom-level', 'label': 'Workshop', 'position': 3},
+      ]);
     });
 
     testWidgets('Copy dance puts the rendered card on the clipboard', (
@@ -356,6 +407,41 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text("Couldn't share this dance"), findsOneWidget);
+    });
+
+    testWidgets('guards JSON export when a referenced tag is missing', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            appBar: AppBar(
+              actions: [
+                DanceExportMenu(
+                  dance: _dance().copyWith(tagIds: const ['missing-tag']),
+                  dialect: Dialect.canonical,
+                  authorNames: const [],
+                  formationLabel: 'Duple improper',
+                  statusLabel: 'Active',
+                  jsonExportDelivery: JsonExportDelivery(
+                    choicePicker: (_) async => JsonExportChoice.copy,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Export dance as JSON'));
+      await tester.pumpAndSettle();
+
+      expect(find.text("Couldn't share this JSON file."), findsOneWidget);
     });
 
     testWidgets('share receives a non-null sharePositionOrigin', (
@@ -680,7 +766,7 @@ void main() {
           figures: [
             Figure(
               move: 'allemande',
-              params: {'who': 'role2s', 'turn': 1.0},
+              params: {'who': 'role2s', 'travel': 1.0},
               note: 'role2s scoop them up',
             ),
           ],

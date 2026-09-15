@@ -1,0 +1,9 @@
+{
+  "id": "defaults-section-headings",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "You can more easily distinguish the Program defaults and Dance-authoring defaults sections in the Defaults pane."
+    ]
+  }
+}

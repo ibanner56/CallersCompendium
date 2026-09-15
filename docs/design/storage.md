@@ -21,8 +21,11 @@ lives in the core package; all access through repositories.*
 
 ```sql
 dances(id PK, title, form, formation_base, formation_detail, progression,
-       phrase_structure, figures_json, hook, calling_notes, status, tunes_json,
+       phrase_structure, figures_json, hook, calling_notes, status, level_id NULL,
+       tunes_json,
        created_at, updated_at, deleted_at, existence_at)
+difficulty_levels(id PK, label UNIQUE, position,
+                  updated_at, deleted_at, existence_at)
 choreographers(id PK, name UNIQUE, website, notes,
                updated_at, deleted_at, existence_at)
 dance_authors(dance_id, choreographer_id, position,
@@ -128,11 +131,21 @@ for it. `onUpgrade` therefore refuses such a file outright, and
 refused and left untouched, at-floor still migrates to head.
 
 Raising the floor is **user-visible** — databases below it stop opening — so it
-belongs in `app/CHANGELOG.md` in user-facing terms, naming the release whose
-schema version is being adopted. `tools/ci/check_schema_migration.py` fails any
+needs an app entry in a `changelog.d/` fragment, naming the release whose schema
+version is being adopted. `tools/ci/check_schema_migration.py` fails any
 PR that reintroduces a per-version artefact below the floor.
 
 ## Schema version history
+
+- v35 (issues #1104 and #1233): replaces nullable
+  `program_slots.planned_minutes` with nullable `walkthrough_minutes` and
+  `dance_minutes`, copying every legacy value, including explicit zero, to
+  `dance_minutes`; existing walkthrough values are NULL. It also rewrites
+  persisted figure parameter keys and consolidates the legacy
+  `pull_by_dancers`/`pull_by_direction` move IDs. The recursive taxonomy
+  normalization covers nested `meanwhile` figures and rebuilds the derived
+  figure and search indexes; program-slot timing is structured metadata and
+  does not feed those indexes.
 
 `CompendiumDatabase.schemaVersion` (in
 [`database.dart`](../../packages/compendium_core/lib/src/storage/database.dart))
@@ -453,13 +466,35 @@ can still fire.
   history. Baseline metadata uses an enforced singleton row so an empty
   manifest retains its epoch; all six tables are device-scoped except the
   retransmitted pending tombstone blob.
+- v33 (issue #1196): adds `program_slots.is_purged_dance`, an explicit marker
+  for text captions left behind when a dance is purged. New slots use `false`
+  for ordinary text-only announcements, while pre-v33
+  rows remain `NULL` because their text-only meaning is ambiguous. New purge
+  captions are marked so ordinary text-only announcements can receive
+  display-only discouraged-term conversion without rewriting tombstone titles.
+- v34 (issue #1200): replaces `dances.level`'s fixed enum-name storage with
+  the `difficulty_levels` vocabulary and nullable `dances.level_id` reference,
+  including Device Sync timestamps. The migration seeds immutable IDs for
+  Beginner, Intermediate, and Advanced, then maps every valid legacy enum name
+  to that ID. Invalid legacy names abort the migration rather than being
+  discarded. The foreign key and repository write guard reject dangling IDs;
+  repository deletion is transactional and refuses a level used by any dance,
+  including a tombstoned dance that could be restored later.
+- v35 (issues #1104 and #1233): rewrites persisted figure parameter keys and
+  consolidates the legacy `pull_by_dancers`/`pull_by_direction` move IDs to
+  the v35 taxonomy representation, and replaces nullable
+  `program_slots.planned_minutes` with nullable `walkthrough_minutes` and
+  `dance_minutes`. The migration recursively normalizes nested `meanwhile`
+  figures, copies legacy slot timing to `dance_minutes`, and rebuilds the
+  derived figure and search indexes.
 
 ## The delete model
 
 Every syncable kind — dances, programs, choreographers, tags, published
-sources, custom field definitions, venues and settings keys — carries three
-timestamps as of schema v25 (issue #898). They answer three different questions
-and are deliberately not collapsed into fewer columns:
+sources, custom field definitions, difficulty levels, venues and settings keys —
+carries three timestamps. Most kinds gained this shape in schema v25 (issue
+#898); difficulty levels gained the same triple in v34. They answer three
+different questions and are deliberately not collapsed into fewer columns:
 
 | Column | Question it answers |
 | --- | --- |

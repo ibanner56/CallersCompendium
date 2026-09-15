@@ -44,7 +44,7 @@ void main() {
       'slice left couple straight': Figure(move: 'slice'),
       'ones contra corners': Figure(move: 'contra_corners'),
       'everyone turn alone': Figure(move: 'turn_alone'),
-      'ones figure 8 half': Figure(move: 'figure_8'),
+      'ones half figure 8': Figure(move: 'figure_8'),
       'ones poussette neighbors half clockwise': Figure(move: 'poussette'),
       "everyone Rory O'More right": Figure(move: 'rory_o_more'),
     };
@@ -70,9 +70,9 @@ void main() {
     test('figure_8 renders the full variant', () {
       expect(
         renderer.renderCanonical(
-          Figure(move: 'figure_8', params: {'half': 'full'}),
+          Figure(move: 'figure_8', params: {'fraction': 'full'}),
         ),
-        'ones figure 8 full',
+        'ones full figure 8',
       );
     });
   });
@@ -188,10 +188,10 @@ void main() {
       );
     });
 
-    test('poussette turn accepts a spin direction', () {
+    test('poussette direction accepts a spin direction', () {
       expect(
         tax.validateFigure(
-          Figure(move: 'poussette', params: {'turn': 'counterclockwise'}),
+          Figure(move: 'poussette', params: {'direction': 'counterclockwise'}),
         ),
         isEmpty,
       );

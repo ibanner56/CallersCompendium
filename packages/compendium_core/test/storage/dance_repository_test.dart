@@ -45,6 +45,20 @@ void main() {
       expect(loaded, dance);
     });
 
+    test('round-trips reverse progression improper formation', () async {
+      final dance = sampleDance().copyWith(
+        formation: const Formation(FormationShape.reverseProgressionImproper),
+      );
+      await dances.create(dance);
+
+      final loaded = await dances.getById(dance.id);
+
+      expect(
+        loaded?.formation.shape,
+        FormationShape.reverseProgressionImproper,
+      );
+    });
+
     test(
       'losslessly round-trips a figure whose move is unknown (#358)',
       () async {

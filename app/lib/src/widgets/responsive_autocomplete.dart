@@ -18,6 +18,18 @@ typedef AutocompleteOptionTileBuilder<T extends Object> =
 typedef PickerOptionsBuilder<T extends Object> =
     Iterable<T> Function(TextEditingValue textEditingValue);
 
+/// Builds the autocomplete field for a specific layout role. [autofocus] is
+/// true for the wide field or the compact sheet field when requested, and
+/// false for the compact launcher so it cannot reopen the sheet on remount.
+typedef ResponsiveAutocompleteFieldViewBuilder =
+    Widget Function(
+      BuildContext context,
+      TextEditingController controller,
+      FocusNode focusNode,
+      VoidCallback onFieldSubmitted,
+      bool autofocus,
+    );
+
 /// A drop-in replacement for [Autocomplete] that fixes issue #716: on a phone,
 /// the software keyboard covers a field-anchored options overlay, and the
 /// overlay dismisses if a drag starts outside it (because `Autocomplete` ties
@@ -41,8 +53,8 @@ typedef PickerOptionsBuilder<T extends Object> =
 /// Both layouts share the same [optionsBuilder], [fieldViewBuilder], and
 /// [optionTileBuilder], so option filtering, free-text/"create new" handling,
 /// and every [ValueKey] a call site (or its widget tests) depends on are
-/// identical between the two — only the *container* around the options
-/// differs.
+/// identical between the two — only the *container* around the options and
+/// the field's layout-specific autofocus differ.
 class ResponsiveAutocomplete<T extends Object> extends StatefulWidget {
   const ResponsiveAutocomplete({
     super.key,
@@ -100,11 +112,11 @@ class ResponsiveAutocomplete<T extends Object> extends StatefulWidget {
   /// Called when the user picks an option, in either layout.
   final AutocompleteOnSelected<T> onSelected;
 
-  /// Same contract as [RawAutocomplete.fieldViewBuilder]: builds the
-  /// interactive text field. Reused verbatim for the wide inline field *and*
-  /// for the real field inside the narrow-layout sheet, so `onChanged`/
-  /// `onSubmitted` free-text handling behaves identically in both.
-  final AutocompleteFieldViewBuilder fieldViewBuilder;
+  /// Builds the interactive text field. Reused for the wide inline field, the
+  /// compact launcher, and the real field inside the compact sheet, with an
+  /// explicit autofocus value for each layout role. `onChanged`/`onSubmitted`
+  /// free-text handling remains identical in all three.
+  final ResponsiveAutocompleteFieldViewBuilder fieldViewBuilder;
 
   /// Builds one option row. Used both inside the wide overlay's `ListView`
   /// and the narrow sheet's `ListView.builder`.
@@ -270,6 +282,7 @@ class _ResponsiveAutocompleteState<T extends Object>
               return _AutocompleteSheetContent<T>(
                 initialText: _controller.text,
                 sourceController: _controller,
+                autofocus: widget.autofocus,
                 optionsBuilder: widget.optionsBuilder,
                 fieldViewBuilder: widget.fieldViewBuilder,
                 optionTileBuilder: widget.optionTileBuilder,
@@ -347,7 +360,14 @@ class _ResponsiveAutocompleteState<T extends Object>
         displayStringForOption: widget.displayStringForOption,
         optionsBuilder: widget.optionsBuilder,
         onSelected: widget.onSelected,
-        fieldViewBuilder: widget.fieldViewBuilder,
+        fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) =>
+            widget.fieldViewBuilder(
+              context,
+              controller,
+              focusNode,
+              onFieldSubmitted,
+              widget.autofocus,
+            ),
         optionsViewBuilder: (context, onSelected, options) {
           return Align(
             alignment: AlignmentDirectional.topStart,
@@ -406,6 +426,7 @@ class _ResponsiveAutocompleteState<T extends Object>
                   _controller,
                   _focusNode,
                   () {},
+                  false,
                 ),
               ),
       ),
@@ -417,6 +438,7 @@ class _AutocompleteSheetContent<T extends Object> extends StatefulWidget {
   const _AutocompleteSheetContent({
     required this.initialText,
     required this.sourceController,
+    required this.autofocus,
     required this.optionsBuilder,
     required this.fieldViewBuilder,
     required this.optionTileBuilder,
@@ -426,8 +448,9 @@ class _AutocompleteSheetContent<T extends Object> extends StatefulWidget {
 
   final String initialText;
   final TextEditingController sourceController;
+  final bool autofocus;
   final PickerOptionsBuilder<T> optionsBuilder;
-  final AutocompleteFieldViewBuilder fieldViewBuilder;
+  final ResponsiveAutocompleteFieldViewBuilder fieldViewBuilder;
   final AutocompleteOptionTileBuilder<T> optionTileBuilder;
   final ScrollController scrollController;
   final String? semanticLabel;
@@ -504,6 +527,7 @@ class _AutocompleteSheetContentState<T extends Object>
           child: _SheetField(
             controller: _controller,
             focusNode: _focusNode,
+            autofocus: widget.autofocus,
             fieldViewBuilder: widget.fieldViewBuilder,
             onChanged: _recompute,
             onSubmit: () => Navigator.of(context).maybePop(),
@@ -547,6 +571,7 @@ class _SheetField extends StatefulWidget {
   const _SheetField({
     required this.controller,
     required this.focusNode,
+    required this.autofocus,
     required this.fieldViewBuilder,
     required this.onChanged,
     required this.onSubmit,
@@ -554,7 +579,8 @@ class _SheetField extends StatefulWidget {
 
   final TextEditingController controller;
   final FocusNode focusNode;
-  final AutocompleteFieldViewBuilder fieldViewBuilder;
+  final bool autofocus;
+  final ResponsiveAutocompleteFieldViewBuilder fieldViewBuilder;
   final VoidCallback onChanged;
   final VoidCallback onSubmit;
 
@@ -582,6 +608,7 @@ class _SheetFieldState extends State<_SheetField> {
       widget.controller,
       widget.focusNode,
       widget.onSubmit,
+      widget.autofocus,
     );
   }
 }

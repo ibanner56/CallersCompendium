@@ -63,6 +63,11 @@ Future<void> _pumpDefaultsWithShorthands(
 
   await tester.tap(find.byKey(const ValueKey('settings-nav-defaults')));
   await tester.pumpAndSettle();
+  await tester.ensureVisible(
+    find.byKey(const ValueKey('defaults-authoring-group')),
+  );
+  await tester.tap(find.byKey(const ValueKey('defaults-authoring-group')));
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -82,6 +87,8 @@ void main() {
     await _pumpDefaultsWithShorthands(tester, repos, shorthands);
 
     await tester.tap(find.byKey(const ValueKey('figure-add')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-add-figure')));
     await tester.pumpAndSettle();
 
     // Typing the shorthand token (any casing) expands to the mapped figure,
@@ -117,6 +124,8 @@ void main() {
       await _pumpDefaultsWithShorthands(tester, repos, shorthands);
 
       await tester.tap(find.byKey(const ValueKey('figure-add')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('figure-add-figure')));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const ValueKey('figure-free-text-field')),

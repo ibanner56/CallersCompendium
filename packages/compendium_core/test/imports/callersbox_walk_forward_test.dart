@@ -123,10 +123,10 @@ void main() {
       expect(figures[1].params['sides'], 'nextNeighbors');
     });
 
-    // `pass_through` declares `dir: along` and `shoulder: right` as its own
+    // `pass_through` declares `where: along` and `shoulder: right` as its own
     // taxonomy defaults. Writing either here would assert a direction and a
     // shoulder the source never stated.
-    test('never writes dir or shoulder', () {
+    test('never writes where or shoulder', () {
       for (final wording in const [
         'Walk forward; form wave of four with N2',
         'Walk forward; form wave of four with shadow',
@@ -134,7 +134,7 @@ void main() {
       ]) {
         final pass = _parse(wording, beats: 4).first;
         expect(pass.move, 'pass_through');
-        expect(pass.params.containsKey('dir'), isFalse, reason: wording);
+        expect(pass.params.containsKey('where'), isFalse, reason: wording);
         expect(pass.params.containsKey('shoulder'), isFalse, reason: wording);
       }
     });
@@ -276,7 +276,7 @@ void main() {
       // existing TCB pass-through keeps its annotation-stripped reading.
       final figure = _parse('Pass through across (PR)', beats: 2).single;
       expect(figure.move, 'pass_through');
-      expect(figure.params['dir'], 'across');
+      expect(figure.params['where'], 'across');
       expect(figure.note, isNull);
     });
   });
@@ -407,7 +407,7 @@ void main() {
         beats: 4,
       );
       expect(figures.map((f) => f.move), ['pass_through', 'pass_through']);
-      expect(figures[0].params['dir'], 'across');
+      expect(figures[0].params['where'], 'across');
       expect(figures[0].note, 'face partner'); // note-ified by #734
       expect(figures[1].note, 'to partner'); // destination, by #733
       expect(_totalBeats(figures), 4);

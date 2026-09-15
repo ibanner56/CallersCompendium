@@ -20,3 +20,9 @@
 ## Docs
 
 - [ ] Design docs / ADRs updated if this changes documented behavior
+
+## Changelog
+
+- [ ] Added or updated this PR's `changelog.d/<id>.json` fragment, including its
+  explicit `user_visible` decision
+- [ ] No changelog entry is needed (no user-visible or core-package change)

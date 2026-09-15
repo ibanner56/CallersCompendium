@@ -2324,6 +2324,43 @@ void main() {
     );
 
     testWidgets(
+      'share-target custom difficulty survives planning before bulk commit',
+      (tester) async {
+        final repos = openTestRepositories();
+        final level = DifficultyLevel(
+          id: 'share-target-workshop',
+          label: 'Workshop',
+          position: 3,
+        );
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          schemaVersion: archiveSchemaVersionDifficultyLevels,
+          difficultyLevels: [level],
+          dances: [
+            Dance(
+              id: 'share-target-dance',
+              title: 'Share Target Workshop Dance',
+              difficultyLevelId: level.id,
+              createdAt: DateTime.utc(2026, 1, 1),
+              updatedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ],
+        );
+
+        await pumpShared(tester, repos, bundleFor(archive));
+        expect(find.byKey(const ValueKey('import-row-0-edit')), findsNothing);
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
+
+        expect(
+          (await repos.dances.listAll()).single.difficultyLevelId,
+          level.id,
+        );
+        expect(await repos.difficultyLevels.getById(level.id), level);
+      },
+    );
+
+    testWidgets(
       'a program-only bundle (no dances) can still be imported with consent',
       (tester) async {
         final repos = openTestRepositories();
@@ -2736,6 +2773,48 @@ void main() {
         expect(
           find.byKey(const ValueKey('shared-import-undo-snackbar')),
           findsNothing,
+        );
+      },
+    );
+
+    testWidgets(
+      'picking a bundle with only a custom difficulty uses the archive importer',
+      (tester) async {
+        final repos = openTestRepositories();
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          schemaVersion: archiveSchemaVersionDifficultyLevels,
+          difficultyLevels: [
+            DifficultyLevel(
+              id: 'custom-workshop',
+              label: 'Workshop',
+              position: 3,
+            ),
+          ],
+          dances: [
+            Dance(
+              id: 'custom-dance',
+              title: 'Custom Workshop Dance',
+              difficultyLevelId: 'custom-workshop',
+              createdAt: DateTime.utc(2026, 1, 1),
+              updatedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ],
+        );
+
+        final payload = encodeArchive(archive);
+        expect(decodeArchive(payload).archive.difficultyLevels, hasLength(1));
+        await pumpWithPicker(tester, repos, payload);
+        await _toReview(tester);
+        expect(find.byKey(const ValueKey('import-row-0-edit')), findsNothing);
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
+
+        final dances = await repos.dances.listAll();
+        expect(dances.single.difficultyLevelId, 'custom-workshop');
+        expect(
+          (await repos.difficultyLevels.getById('custom-workshop'))?.label,
+          'Workshop',
         );
       },
     );

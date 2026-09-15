@@ -8,6 +8,7 @@ import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/section_header.dart';
 import '../dialect_editor_screen.dart';
+import 'dance_details_section.dart';
 
 /// The Dialect settings section: reads the live dialect library controller
 /// from [DialectLibraryScope] and renders the library manager.
@@ -16,7 +17,14 @@ class DialectSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _DialectLibrarySection(controller: DialectLibraryScope.of(context));
+    return ListView(
+      keyboardDismissBehavior: kTextEntryKeyboardDismiss,
+      children: [
+        _DialectLibrarySection(controller: DialectLibraryScope.of(context)),
+        const SizedBox(height: AppSpacing.lg),
+        const DanceDetailsAndShorthandsSection(),
+      ],
+    );
   }
 }
 
@@ -159,8 +167,7 @@ class _DialectLibrarySection extends StatelessWidget {
     // The resolved active dialect's name — falls back to the app default, so a
     // preset row is selected by default when nothing has been chosen.
     final activeName = controller.active.name;
-    return ListView(
-      keyboardDismissBehavior: kTextEntryKeyboardDismiss,
+    return Column(
       children: [
         SectionHeader(title: l10n.settingsDialectHeader),
         Padding(
@@ -206,7 +213,6 @@ class _DialectLibrarySection extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: AppSpacing.lg),
       ],
     );
   }

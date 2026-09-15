@@ -168,6 +168,14 @@ void main() {
       );
     });
 
+    test('sends a trimmed author criterion', () {
+      final params = Uri.parse(
+        buildCallersBoxSearchUrl('', author: '  Alice Smith  '),
+      ).queryParameters;
+      expect(params, containsPair('author', 'Alice Smith'));
+      expect(params.containsKey('title'), isFalse);
+    });
+
     test('an explicit host is honoured (e.g. the ibiblio mirror)', () {
       final uri = Uri.parse(
         buildCallersBoxSearchUrl('x', host: 'www.ibiblio.org'),
@@ -204,6 +212,13 @@ void main() {
           phrases: const CallersBoxPhraseQuery(),
         ),
         throwsA(isA<UrlFetchException>()),
+      );
+    });
+
+    test('title and author cannot both be specified', () {
+      expect(
+        () => buildCallersBoxSearchUrl('Title', author: 'Author'),
+        throwsArgumentError,
       );
     });
 
@@ -277,6 +292,15 @@ void main() {
       // Verified live: TCB treats `show_all=` identically to the bare flag, so
       // this stays inside Uri.https rather than concatenating a query string.
       expect(all.queryParameters['show_all'], '');
+    });
+
+    test('preserves an author criterion on show_all retry URLs', () {
+      final params = Uri.parse(
+        buildCallersBoxSearchUrl('', author: 'Alice', showAll: true),
+      ).queryParameters;
+      expect(params['author'], 'Alice');
+      expect(params.containsKey('title'), isFalse);
+      expect(params.containsKey('show_all'), isTrue);
     });
 
     test('show_all combines with by-phrase criteria', () {
@@ -429,6 +453,60 @@ void main() {
       expect(results.single.name, 'Money Musk');
       expect(results.single.author, 'Traditional');
       expect(results.single.formation, 'Triple Minor - Proper');
+    });
+
+    test(
+      'maps Figure text to global positives without replacing phrases',
+      () async {
+        String? capturedUrl;
+        final online = CallersBoxOnline(
+          searchFetcher: (url) async {
+            capturedUrl = url;
+            return _resultsHtml;
+          },
+        );
+        const phrases = CallersBoxPhraseQuery(
+          globalPos: ['balance'],
+          globalNeg: ['hey'],
+          phrasePos: {
+            1: ['swing'],
+          },
+          phraseNeg: {
+            2: ['allemande'],
+          },
+        );
+
+        await online.search(
+          const OnlineSearchQuery(
+            figure: '  box circulate  ',
+            phrases: phrases,
+          ),
+        );
+
+        final params = Uri.parse(capturedUrl!).queryParameters;
+        expect(params['pos_lines'], 'balance\nbox circulate');
+        expect(params['pos_mode'], 'all_any');
+        expect(params['neg_lines'], 'hey');
+        expect(params['neg_mode'], 'any_any');
+        expect(params['phr1_pos_lines'], 'swing');
+        expect(params['phr1_pos_mode'], 'all_any');
+        expect(params['phr2_neg_lines'], 'allemande');
+        expect(params['phr2_neg_mode'], 'any_any');
+      },
+    );
+
+    test('rejects a query that supplies two text criteria', () async {
+      final online = CallersBoxOnline(searchFetcher: (_) async => _resultsHtml);
+      expect(
+        online.search(const OnlineSearchQuery(title: 'Title', figure: 'swing')),
+        throwsArgumentError,
+      );
+      expect(
+        online.search(
+          const OnlineSearchQuery(author: 'Author', figure: 'swing'),
+        ),
+        throwsArgumentError,
+      );
     });
 
     test('propagates a UrlFetchException from the fetch seam', () async {
@@ -782,6 +860,23 @@ void main() {
       // capped 50 would have yielded 25.
       expect(results, hasLength(30));
       expect(results.every((x) => x.figuresAvailable), isTrue);
+    });
+
+    test('preserves an author criterion through the show_all retry', () async {
+      final r = recording(
+        (url) => url.contains('show_all')
+            ? page(total: 68, rows: 68)
+            : page(total: 68, rows: 50),
+      );
+      await r.online.search(const OnlineSearchQuery(author: 'Alice'));
+
+      expect(r.urls, hasLength(2));
+      final first = Uri.parse(r.urls.first).queryParameters;
+      final second = {...Uri.parse(r.urls.last).queryParameters};
+      expect(first['author'], 'Alice');
+      expect(second['author'], 'Alice');
+      expect(second['show_all'], '');
+      expect(second..remove('show_all'), first);
     });
   });
 

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/collection_tile_fields_scope.dart';
+import '../data/active_dialect_scope.dart';
+import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/formation_colors_scope.dart';
 import '../models/dance_list_entry.dart';
@@ -32,6 +34,7 @@ class DanceListTile extends StatelessWidget {
     this.onLongPress,
     this.selected = false,
     this.selectionMode = false,
+    this.showChevron = true,
     this.selectedForBatch = false,
     this.onDelete,
     this.onDuplicate,
@@ -60,6 +63,10 @@ class DanceListTile extends StatelessWidget {
   /// Whether the list is in batch multi-select mode. When true the leading
   /// widget is a [Checkbox] and the trailing chevron is hidden.
   final bool selectionMode;
+
+  /// Whether to show the normal drill-in chevron. Defaults to true so callers
+  /// that override [onTap] retain the existing affordance unless they opt out.
+  final bool showChevron;
 
   /// Whether this row is currently checked in batch multi-select mode.
   final bool selectedForBatch;
@@ -115,6 +122,11 @@ class DanceListTile extends StatelessWidget {
     final formationFg = formationColor == null
         ? null
         : readableForegroundOn(formationColor);
+    final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
+      context,
+    );
+    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    final renderer = FigureRenderer(contraTaxonomy);
     return ListTile(
       selected: selected,
       visualDensity: VisualDensity.compact,
@@ -169,7 +181,14 @@ class DanceListTile extends StatelessWidget {
               Chip(
                 avatar: Icon(formationIcon, size: 16, color: formationFg),
                 label: Text(
-                  formationLabel(l10n, dance.formation),
+                  formationDisplayLabel(
+                    l10n,
+                    dance.formation,
+                    FigureRenderer(contraTaxonomy),
+                    ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+                    canonicalizeDiscouragedTerms:
+                        CanonicalDiscouragedTermsScope.of(context),
+                  ),
                   style: formationFg == null
                       ? null
                       : TextStyle(color: formationFg),
@@ -182,13 +201,21 @@ class DanceListTile extends StatelessWidget {
                 dance.status != DanceStatus.active)
               DanceStatusChip(status: dance.status),
             if (effectiveFields.contains(CollectionTileField.level) &&
-                dance.level != null)
+                (entry.difficultyLevel ??
+                        DifficultyLevel.knownForId(dance.difficultyLevelId)) !=
+                    null)
               Chip(
                 avatar: const Icon(
                   Icons.signal_cellular_alt_outlined,
                   size: 16,
                 ),
-                label: Text(danceLevelLabel(l10n, dance.level!)),
+                label: Text(
+                  danceLevelLabel(
+                    l10n,
+                    entry.difficultyLevel ??
+                        DifficultyLevel.knownForId(dance.difficultyLevelId)!,
+                  ),
+                ),
                 visualDensity: VisualDensity.compact,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
@@ -237,7 +264,14 @@ class DanceListTile extends StatelessWidget {
             if (effectiveFields.contains(CollectionTileField.customFields))
               for (final field in entry.listCustomFields)
                 Chip(
-                  label: Text(field),
+                  label: Text(
+                    _renderCustomField(
+                      field,
+                      renderer: renderer,
+                      dialect: dialect,
+                      canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
+                    ),
+                  ),
                   visualDensity: VisualDensity.compact,
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
@@ -257,13 +291,31 @@ class DanceListTile extends StatelessWidget {
     );
   }
 
+  String _renderCustomField(
+    ({String label, String value}) field, {
+    required FigureRenderer renderer,
+    required Dialect dialect,
+    required bool canonicalizeDiscouragedTerms,
+  }) {
+    final value = canonicalizeDiscouragedTerms
+        ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+            field.value,
+            dialect,
+          )
+        : field.value;
+    return '${field.label}: $value';
+  }
+
   /// Trailing content for a normal (non-selection) row: the row action overflow
-  /// (⋮) menu when any action callback is wired, followed by the drill-in
-  /// chevron. Falls back to the chevron alone when no actions are provided.
-  Widget _buildTrailing(AppLocalizations l10n) {
+  /// (⋮) menu when any action callback is wired, followed by the optional
+  /// drill-in chevron. Returns null when neither is needed.
+  Widget? _buildTrailing(AppLocalizations l10n) {
     final hasActions =
         onDelete != null || onDuplicate != null || onAddToProgram != null;
-    if (!hasActions) return const Icon(Icons.chevron_right);
+    if (!hasActions) {
+      return showChevron ? const Icon(Icons.chevron_right) : null;
+    }
+    if (!showChevron) return _actionsMenu(l10n);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [_actionsMenu(l10n), const Icon(Icons.chevron_right)],

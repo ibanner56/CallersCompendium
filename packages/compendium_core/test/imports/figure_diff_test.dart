@@ -24,7 +24,7 @@ void main() {
       final defaulted = Figure(move: 'allemande');
       final explicit = Figure(
         move: 'allemande',
-        params: {'who': 'neighbors', 'hand': 'right', 'turn': 1.0},
+        params: {'who': 'neighbors', 'hand': 'right', 'travel': 1.0},
       );
       expect(
         figureCanonicalKey(defaulted, tax),
@@ -144,6 +144,19 @@ void main() {
         ],
       );
       expect(figureCanonicalKey(a, tax), figureCanonicalKey(b, tax));
+    });
+
+    test('modifier child keys are collision-safe for custom text', () {
+      final a = Figure.modifier(
+        beats: 8,
+        figures: [customFigure('a'), customFigure('b|custom:c')],
+      );
+      final b = Figure.modifier(
+        beats: 8,
+        figures: [customFigure('a|custom:b'), customFigure('c')],
+      );
+
+      expect(figureCanonicalKey(a, tax), isNot(figureCanonicalKey(b, tax)));
     });
 
     test('unknown move still gets a comparable key (never throws/null)', () {

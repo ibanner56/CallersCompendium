@@ -34,7 +34,7 @@ disagree, that section wins.
 | **sync ID** | Diceware passphrase identifying one store. A bearer credential. |
 | **device ID** | Random v4 UUID minted per installation, on opt-in. Classified `protocolIdentifier`: it travels in manifest envelopes and request paths as an opaque routing key, and is **never adopted from a peer**. Not `deviceScoped`, which means never transmitted by any route. See "what `EgressClass` actually governs". |
 | **epoch** | Opaque 128-bit random value the server stamps on a sync ID at creation. |
-| **record** | One syncable row — a dance, program, tag, choreographer, published source, custom field def, venue, or a settings key. |
+| **record** | One syncable row — a dance, program, tag, choreographer, published source, custom field def, difficulty level, venue, or a settings key. |
 | **blob** | One record, serialised and content-addressed. |
 | **manifest** | One device's map of kind → record id → content hash. |
 | **baseline** | The manifest a device last successfully synced, held locally. The merge base. |
@@ -94,10 +94,10 @@ fields are `shareable`.
 
 ### Record kinds
 
-Eight kinds produce blobs:
+Nine kinds produce blobs:
 
 `dance` · `program` · `choreographer` · `tag` · `publishedSource` ·
-`customFieldDef` · `venue` · `setting`
+`customFieldDef` · `difficultyLevel` · `venue` · `setting`
 
 Join rows are **not** separate records. They ride inline with their parent
 exactly as the archive codec already models them — a dance carries its
@@ -113,8 +113,9 @@ as **top-level arrays**, siblings of `dances`.
 Records sync under their existing UUID, so identity survives a rename — the name
 is a field, not the key.
 
-Three kinds carry `UNIQUE` natural keys — `choreographers.name`, `tags.name`,
-`custom_field_defs.key` — so two devices that independently created "Bob Smith"
+Four kinds carry `UNIQUE` natural keys — `choreographers.name`, `tags.name`,
+`custom_field_defs.key`, `difficulty_levels.label` — so two devices that
+independently created "Bob Smith"
 hold one entity under two UUIDs. Inserting the second violates the constraint and
 fails the entire apply transaction. Applying a record of those kinds therefore:
 
@@ -128,6 +129,11 @@ fails the entire apply transaction. Applying a record of those kinds therefore:
    tie-break, merge field values by recency, coalesce `deviceLocal` fields, remap
    every reference, drop the loser.
 3. **Neither** → insert.
+
+Difficulty levels use fixed IDs for the three shipped entries. A shipped ID is
+the canonical identity when present, even if its label was renamed locally;
+unknown custom IDs with the same normalized label reconcile to the existing
+entry, and all affected dance references follow the surviving ID.
 
 Step 2 is **silent** — no prompt, no review queue. At beta scale the collision is
 routine and per-entity prompts would be noise.
@@ -487,7 +493,7 @@ a sixth, `accessControlData`, for the sync ID itself — recorded below the tabl
 | In a request path or envelope | Never | Yes, to the configured endpoint only | Yes, in `Authorization`, to that origin only |
 | Adopted from a peer | N/A | Never — each installation mints its own | Never — entered or generated locally |
 | Content | Any local value | Opaque random bytes, derived from nothing | May be user-chosen, so may carry personal content |
-| Retention | Local only | Stated, bounded, and disclosed | Never retained recoverably; never logged |
+| Retention | Local only | Stated, bounded, and disclosed | By server/proxy: never retained recoverably; never logged. Local persistence follows the settings classification. |
 
 A later Copilot round found that `sync_id` had the same defect the device ID
 had, one row down in the same table: it was `deviceScoped` while being the
@@ -552,7 +558,7 @@ transmitting it *is* the authorisation for the request carrying it:
 | --- | --- |
 | `sync_enabled` | Each installation opts in for itself. |
 | `sync_endpoint` | Syncing it would let one device silently redirect another. |
-| `sync_id` (`accessControlData`) | The bearer credential. It travels in an `Authorization` header on every request, but is never stored recoverably, never logged, never adopted, and never sent to any origin but the configured endpoint's — including across a redirect, which §8 permits only within that origin. |
+| `sync_id` (`accessControlData`) | The bearer credential. It travels in an `Authorization` header on every request, but the server/proxy never stores it recoverably, logs it, or adopts it. Local persistence follows the settings classification, and it is never sent to any origin but the configured endpoint's — including across a redirect, which §8 permits only within that origin. |
 | `sync_device_id` (`protocolIdentifier`) | Travels as a routing key, but is never *adopted*: two devices sharing an ID collide in the manifest namespace. |
 | `sync_wifi_only` | A per-device network policy; a laptop and a phone want different answers. |
 | `sync_exclude_imports` | Governs what *this* device uploads. |
@@ -1658,7 +1664,7 @@ every device is the failure this whole mechanism exists to prevent, and it is
 also the harder of the two to notice.
 
 `existenceAt` is `shareable`: it is a bare timestamp with no subject, it must
-travel for the rule to work, and it is stored per record on all eight syncable
+travel for the rule to work, and it is stored per record on all nine syncable
 kinds (see the sync-migration scope).
 
 Because nothing has shipped, this lands in envelope `v: 1` rather than bumping
@@ -1722,7 +1728,7 @@ and tables this design does not migrate.
 
 An earlier draft also called it "one column on `settings`". Under first-class
 records, and with the provenance gate needing `existence_at` on every kind that can
-be tombstoned, it is **eight tables and twenty columns**:
+be tombstoned, it is **nine tables and twenty-three columns**:
 
 | Table | Adds |
 | --- | --- |
@@ -1732,6 +1738,7 @@ be tombstoned, it is **eight tables and twenty columns**:
 | `published_sources` | `updated_at`, `deleted_at`, `existence_at` |
 | `custom_field_defs` | `updated_at`, `deleted_at`, `existence_at` |
 | `venues` | `updated_at`, `deleted_at`, `existence_at` |
+| `difficulty_levels` | `updated_at`, `deleted_at`, `existence_at` |
 | `dances` | `existence_at` |
 | `programs` | `existence_at` |
 
@@ -2201,7 +2208,7 @@ had to be written as one.
 **A skip recorded as final is a defect with two faces.** Nothing re-ran the pass
 after the completion marker was written, so a skipped row stayed un-normalised
 permanently — and separately, tombstones occupy their natural keys, because soft
-delete is an `UPDATE` and none of the three `UNIQUE` indexes filters on
+delete is an `UPDATE` and none of the four `UNIQUE` indexes filters on
 `deleted_at`. Compose those and a **live** row is blocked forever by a **dead**
 one the user cannot see, cannot list and cannot act on. I had reached for a
 special case for tombstones. The better fix was one rule that dissolves both:
@@ -2296,7 +2303,7 @@ condition invites acting on the snapshot**; storing an address forces the
 re-derivation that was correct anyway.
 
 **Scoping a rule to "the target value" forgot which table the value lives in.**
-Three `UNIQUE` indexes on three tables, and grouping by target alone treats a
+Four `UNIQUE` indexes on four tables, and grouping by target alone treats a
 tag and a choreographer sharing a name as a collision — skipping both
 *permanently*, because a cross-table collision never stops colliding and the
 retry can never clear it. The bug is worse than the one it emerges from: the
@@ -3295,8 +3302,8 @@ The user is told the count afterwards ("merged 412 duplicates"), not asked.
    is otherwise undefined.
 
    This rule is only universally applicable because of the record model: all
-   eight syncable kinds carry `updatedAt` — the five that lacked it, plus
-   `settings`, gain it in the sync migration. A kind without a modification timestamp
+   nine syncable kinds carry `updatedAt` — the five that lacked it, plus
+   `settings` and `difficultyLevel`, gain it in the sync migration. A kind without a modification timestamp
    cannot participate in this rule at all, which is why the migration is a prerequisite
    rather than a convenience.
 
@@ -3612,6 +3619,10 @@ registry as the client, so the allow-list is generated from one definition.
 ```
 data/
   athenaeum.sqlite      stores, devices, blob refcounts, quota, activity
+  athenaeum-break-glass.sqlite
+                        separately retained break-glass access records
+  athenaeum-diagnostics.sqlite
+                        bounded operational diagnostic events
   blobs/<id_key>/<epoch>/<aa>/<bb>/<hash>
 ```
 
@@ -3633,6 +3644,11 @@ body is hashed. Everywhere else the hash is attacker-controlled path input
 fanned into `blobs/<id_key>/<epoch>/<aa>/<bb>/<hash>` with nothing checking
 it. The
 guard belongs on every path, not on the one that happens to compute a hash.
+
+At startup, the server reconciles final files that lack a matching `blob_refs`
+row and temporary upload artifacts in this layout into the durable blob-deletion
+queue before retrying cleanup. This covers crashes before or after a blob rename,
+so an orphan cannot escape later TTL or store-wipe cleanup.
 
 **Stating that as a list of methods got it wrong twice**, which is the argument
 for stating it as a property. The draft said "on `GET` and `DELETE` as well as
@@ -3802,24 +3818,24 @@ not the store's, holding exactly two things:
 
 | Column | |
 | --- | --- |
-| `id_key` | `HMAC-SHA256(pepper, syncID)` — **the same derivation the store uses**, never the plaintext. **Nulled after 30 days.** |
+| `id_key` | Derived sync storage path: `HMAC-SHA256(pepper, syncID)` — **the same derivation the store uses**, never the plaintext. **Nulled after 30 days.** |
 | `accessed_at` | Timestamp. Retained. |
 
-Derived rather than plaintext for a specific reason: the sync ID is a bearer
-credential, and the store already avoids holding it in the clear so that a stolen
-copy yields nothing usable. A plaintext access log would undo exactly that, and
-would be worse than the store, because the log is meant to outlive the stores it
-describes. Correlation is unaffected — to find entries for a store under
-investigation, derive its key and match.
+The derived storage path is recorded rather than the plaintext for a specific
+reason: the sync ID is a bearer credential, and the store already avoids holding
+it in the clear so that a stolen copy yields nothing usable. A plaintext access
+log would undo exactly that, and would be worse than the store, because the log
+is meant to outlive the stores it describes. Correlation is unaffected — to find
+entries for a store under investigation, derive its path and match.
 
-**The identifier expires; the fact of access does not.** Even a peppered
-identifier is a linkable pseudonymous identifier, so it cannot be held
-indefinitely under the same reasoning that bounds everything else here. After 30
-days `id_key` is nulled, leaving a timestamp-only row.
+**The storage path expires; the fact of access does not.** Even a peppered path
+can link entries for one store, so it cannot be held indefinitely under the same
+reasoning that bounds everything else here. After 30 days `id_key` is nulled,
+leaving a timestamp-only row.
 
 The split is deliberate, because the audit value is two different things:
 
-- *"Did the operator open store X?"* — linkable, and expires on schedule.
+- *"Did the operator open store X?"* — store-linked, and expires on schedule.
 - *"How often is break-glass used at all?"* — an aggregate about our own conduct,
   with no data subject, which survives.
 
@@ -3845,7 +3861,7 @@ On `PUT /v1/blobs/{hash}` the server:
 3. streams and hashes, aborting if the running total exceeds the cap;
 4. rejects with `400` if the computed hash differs from the path;
 5. parses as JSON with a depth cap (a server-side bound — the codec's
-   `kMaxMeanwhileDepth` guards figure nesting, not parse depth);
+   `kMaxContainerDepth` (2) guards structural figure nesting, not parse depth);
 6. **validates every key against a per-kind allow-list, rejecting anything not
    on it** with `422`.
 
@@ -4016,7 +4032,7 @@ Every limit is enforced **before** allocation, streaming-abort style, following
 | Blobs per store | 100,000 | ~8x the largest known corpus. |
 | Bytes per store | 250 MB | ~15x a full Caller's Box import. |
 | Devices per store | 32 | Generous for a person; bounds manifest fan-out. |
-| JSON parse depth | 32 | **New bound.** The codec has no general depth cap; `kMaxMeanwhileDepth` (4) bounds *figure* nesting only, so the server needs its own guard against deeply-nested JSON. |
+| JSON parse depth | 32 | **New bound.** The codec has no general depth cap; `kMaxContainerDepth` (2) bounds *figure* nesting only, so the server needs its own guard against deeply-nested JSON. |
 | Decompressed size | 10x compressed, cap 32 MB | Decompression bomb. |
 | Request rate | per-IP and per-store | Brute force. |
 
@@ -4819,7 +4835,7 @@ Recorded so the reasoning is not re-litigated.
 | Default state | **Off on every installation.** Opt-in only; an unconfigured app makes no sync network call at all. Device Sync gets its own top-level Settings blade. |
 | Access log | **Separate database**, holding a derived sync-ID key and a timestamp. Separate so reaping a store cannot destroy evidence of access to it. |
 | Identifier derivation | **`HMAC-SHA256(pepper, syncID)`**, server-side only — a bare hash is brute-forceable at ~2⁴⁰, and a chosen ID may sit below it. No client-side change; the app's cryptography is unchanged. |
-| Access-log retention | Identifier **nulled at 30 days**, timestamp retained — the linkable part expires, the non-linkable aggregate survives. |
+| Access-log retention | Derived storage path **nulled at 30 days**, timestamp retained — the store-linked part expires, the aggregate survives. |
 
 ### The settings migration has a one-time ordering effect
 

@@ -20,10 +20,15 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    through `canonicalize()` at the compiler boundary, mirroring how data was
    canonicalized on the way in — so a dialect user's "robins allemande"
    query matches stored `role2s`/`allemande` (see [dialect.md](dialect.md)).
-   Collection text search may explicitly scope to raw title text or canonical
-   figure text; Omni is the OR of the canonical cross-field query and a
-   raw-title fallback. Long queries keep the complete input as one literal
-   substring.
+   Collection text search may explicitly scope to raw title text, derived
+   author names, or canonical figure text; Omni is the OR of the canonical
+   cross-field query and a raw-title fallback. Long queries keep the complete
+   input as one literal substring. Online collection search exposes the title,
+   author, and figure criteria to Caller's Box and ContraDB, while by-phrase
+   criteria remain available only to sources that support them. Caller's Box
+   maps the free-text Figure criterion to global positive figure lines;
+   ContraDB resolves Figure input against its exact canonical vocabulary and
+   selects its fixed `figure` filter.
 4. **Injection-safe by construction.** Every user value is a bind variable;
    only a fixed vocabulary of column names, operators, and JSON key paths is
    ever interpolated, and each is validated against an allow-list.
@@ -54,7 +59,7 @@ sealed DanceFilter
   FormationFilter(FormationShape shape)      // shape only; free-text detail via FullTextFilter
   ProgressionFilter(Progression progression)
   StatusFilter(DanceStatus status)
-  LevelFilter(DanceLevel level, [LevelOp op = eq])  // ordered scale; see LevelOp below
+  LevelFilter(String difficultyLevelId, [LevelOp op = eq]) // ordered scale; see LevelOp below
   MixedLevelFilter(bool mixed)               // → dances.mixed_level
   MixerFilter(bool mixer)                    // → dances.mixer (issue #732)
   CalledFilter(bool called, {String? callerFilter, bool performedOnly = false})
@@ -81,7 +86,9 @@ leaf is built against the field def, and again — defensively — at compile):
 | `choice`  | `is`, `in(List<String>)` | `value_text` |
 
 `LevelOp` is the ordered comparison for a `LevelFilter` leaf (`eq` / `lte` / `gte`
-against the `DanceLevel` scale). An unspecified level (`dances.level IS NULL`)
+against the configured `DifficultyLevel.position` scale, with the stable level ID
+as a deterministic tie-breaker). An unspecified level
+(`dances.level_id IS NULL`)
 never matches `lte` or `gte` — an unspecified difficulty is not a point on the
 scale. `MixedLevelFilter` is a separate boolean axis orthogonal to `LevelFilter`.
 
@@ -139,8 +146,8 @@ compiles to the literal `1` (TRUE); `OrFilter([])` to `0` (FALSE); the outer
 | `FormationFilter(s)` | `formation_shape = ?` (enum `.name`) |
 | `ProgressionFilter(p)` | `progression = ?` (enum `.name`) |
 | `StatusFilter(s)` | `status = ?` (enum `.name`) |
-| `LevelFilter(l, eq)` | `level = ?` (enum `.name`) |
-| `LevelFilter(l, lte/gte)` | `level IS NOT NULL AND (CASE level … END) ≤/≥ ?` (ordinal comparison over the `DanceLevel` scale; see `FilterCompiler._level`) |
+| `LevelFilter(l, eq)` | `level_id = ?` |
+| `LevelFilter(l, lte/gte)` | `level_id IN (SELECT candidate.id FROM difficulty_levels candidate CROSS JOIN (SELECT position, id FROM difficulty_levels WHERE id = ?) target WHERE (candidate.position, candidate.id) <=/>= (target.position, target.id))` |
 | `MixedLevelFilter(b)` | `mixed_level = ?` (bind `1`/`0`) |
 | `MixerFilter(b)` | `mixer = ?` (bind `1`/`0`) |
 | `CalledFilter(true, scope)` | `EXISTS` over `program_slots` joined to non-deleted `programs`; an optional caller scope includes matching, NULL, and blank host callers, and `performedOnly` adds `performed_at IS NOT NULL` |
@@ -224,22 +231,27 @@ distinct paths, because `FigureNot` lives in `FigureQuery`, not `DanceFilter`:
 Dance-level boolean negation of any *other* predicate stays `NotFilter(<child>)` →
 `NOT (<child>)` (see Combinators below).
 
-#### `meanwhile` containers are flattened per constituent (#590)
+#### Structural containers are flattened per leaf constituent (#590/#1198)
 
-A `meanwhile` container figure holds ≥2 concurrent sub-figures. The indexer
-(`_insertDerivedRows`) does **not** index the container as a `meanwhile` move;
-instead it **flattens** it, emitting one `dance_figures` row per concurrent side
-(each side's `move`, `params_json`, `canonicalText`) and appending each side's
-canonical text to `dance_fts.figures_text`. So every constituent stays
-individually matchable — a `FigureLeaf` matches either side, and FTS matches
-either side's text. `idx` runs over the **flattened** constituent stream (the
-`{dance_id, idx}` primary key requires distinct idx per row), so the container's
-sides occupy consecutive slots in order; the container itself supplies their
-shared section/beat placement. A second column, `group_idx`, is **shared** by
-every row flattened from one top-level figure (all concurrent sides of a
-container included) and is monotonic across top-level figures; it is what the
-`ThenFilter` operator correlates on (see below), so simultaneous sides — which share a
-group — are never read as sequential.
+A structural container figure holds ≥2 children. The indexer
+(`_insertDerivedRows`) emits one `dance_figures` row per **leaf** child, so
+every constituent stays individually matchable — a `FigureLeaf` matches either
+side of a `meanwhile` or any leaf in a `modifier`, and FTS matches each leaf's
+canonical text. `idx` runs over this flattened constituent stream (the
+`{dance_id, idx}` primary key requires distinct idx per row), preserving child
+order; the top-level container supplies shared section/beat placement.
+
+The outer container's structural canonical render is also appended once to
+`dance_fts.figures_text` and `dance_substring_fts.figures_text`. This preserves
+searchability of structural tokens such as `meanwhile` and `modifier` without
+trying to JSON-encode in-memory nested `Figure` values. A second column,
+`group_idx`, is **shared** by every leaf flattened from one top-level figure
+(including leaves below an opposite nested container) and is monotonic across
+top-level figures; it is what the `ThenFilter` operator correlates on (see
+below), so simultaneous leaves — which share a group — are never read as
+sequential. Ordered modifier children likewise remain one group for `Then`
+purposes; their order is represented by child order within the structural
+canonical text, not by sequential top-level groups.
 
 **Concurrency vs. sequence in `ThenFilter` (#748, was a #590 limitation).** Because a
 container's concurrent sides get consecutive `idx` values, a positional

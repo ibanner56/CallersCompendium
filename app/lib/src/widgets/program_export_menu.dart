@@ -9,10 +9,12 @@ export '../export/share_file.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
+import '../data/canonical_discouraged_terms_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../export/export_labels_l10n.dart';
 import '../export/program_pdf.dart';
 import '../export/program_share_bundle.dart';
+import '../export/json_export.dart';
 import '../export/share_sanitization.dart';
 import '../export/share_file.dart';
 import '../search/facet_labels.dart';
@@ -62,9 +64,11 @@ class ProgramExportMenu extends StatelessWidget {
     this.venuesById = const {},
     this.danceFor,
     this.choreographerFor,
+    this.difficultyLevelFor,
     this.shareInvoker,
     this.bundleFileWriter,
     this.pdfLayouter,
+    this.jsonExportDelivery,
   });
 
   final Program program;
@@ -87,6 +91,7 @@ class ProgramExportMenu extends StatelessWidget {
   /// reference and author attribution survives the round-trip. Optional and
   /// best-effort: an unresolved id is simply omitted from the bundle.
   final Choreographer? Function(String id)? choreographerFor;
+  final DifficultyLevel? Function(String danceId)? difficultyLevelFor;
 
   /// Test seam for the share call; defaults to [SharePlus.instance.share].
   final ShareInvoker? shareInvoker;
@@ -97,6 +102,10 @@ class ProgramExportMenu extends StatelessWidget {
 
   /// Test seam for the print/save call; defaults to [Printing.layoutPdf].
   final PdfLayouter? pdfLayouter;
+
+  /// Shared JSON delivery seam. When absent, the legacy share/file seams above
+  /// are used for Share while Save, Copy, and the choice dialog use defaults.
+  final JsonExportDelivery? jsonExportDelivery;
 
   String _formatDate(BuildContext context, DateTime date) =>
       MaterialLocalizations.of(context).formatMediumDate(date);
@@ -124,6 +133,9 @@ class ProgramExportMenu extends StatelessWidget {
     venueNameFor: _venueNameFor,
     formatDate: (d) => _formatDate(context, d),
     labels: programExportLabels(AppLocalizations.of(context)),
+    renderer: FigureRenderer(contraTaxonomy),
+    dialect: ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+    canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(context),
   );
 
   /// Walks [program.outputGrouped] and yields every primary and alternate dance
@@ -204,8 +216,11 @@ class ProgramExportMenu extends StatelessWidget {
       ];
       // Level label mirrors the dance_detail_screen pattern.
       final String? levelLabel;
-      if (dance.level != null) {
-        final base = danceLevelLabel(l10n, dance.level!);
+      final difficultyLevel =
+          difficultyLevelFor?.call(dance.id) ??
+          DifficultyLevel.knownForId(dance.difficultyLevelId);
+      if (difficultyLevel != null) {
+        final base = danceLevelLabel(l10n, difficultyLevel);
         levelLabel = dance.mixedLevel ? l10n.exportLevelWithMixed(base) : base;
       } else {
         levelLabel = dance.mixedLevel ? l10n.exportLevelMixedOnly : null;
@@ -214,10 +229,21 @@ class ProgramExportMenu extends StatelessWidget {
         danceToPlainText(
           dance,
           authorNames: authorNames,
-          formationLabel: formationLabel(l10n, dance.formation),
+          formationLabel: formationDisplayLabel(
+            l10n,
+            dance.formation,
+            renderer,
+            dialect,
+            canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
+              context,
+            ),
+          ),
           levelLabel: levelLabel,
           statusLabel: danceStatusLabel(l10n, dance.status),
           dialect: dialect,
+          canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
+            context,
+          ),
           renderer: renderer,
           labels: danceLabels,
         ),
@@ -281,40 +307,123 @@ class ProgramExportMenu extends StatelessWidget {
     Rect? origin, {
     String extension = programShareBundleExtension,
   }) async {
+    final bundle = await _buildBundle(context, extension: extension);
+    if (bundle == null) return;
+
+    final writeFile = bundleFileWriter ?? writeBundleTempFile;
+    final xfile = await writeFile(bundle.json, bundle.fileName);
+
+    final share = shareInvoker ?? SharePlus.instance.share;
+    await share(
+      ShareParams(
+        files: [xfile],
+        fileNameOverrides: [bundle.fileName],
+        subject: program.title,
+        sharePositionOrigin: origin,
+      ),
+    );
+  }
+
+  Future<({String json, String fileName})?> _buildBundle(
+    BuildContext context, {
+    required String extension,
+  }) async {
     final resolveDance = danceFor;
-    if (resolveDance == null) return;
+    if (resolveDance == null) return null;
 
     // Gather the linked venue's contact-PII consent before building the bundle.
     // Contact fields are omit-by-default; a cancelled/dismissed dialog aborts
     // the share entirely (nothing leaves the device).
     final includeVenueContact = await _venueContactConsent(context);
-    if (includeVenueContact == null) return;
-    if (!context.mounted) return;
+    if (includeVenueContact == null) return null;
+    if (!context.mounted) return null;
 
     final json = buildProgramShareBundle(
       program,
       danceFor: resolveDance,
       choreographerFor: choreographerFor ?? (_) => null,
       venueFor: (id) => venuesById[id],
+      difficultyLevelFor: (id) {
+        for (final dance in _orderedExportDances().map(
+          (entry) => entry.dance,
+        )) {
+          if (dance.difficultyLevelId == id) {
+            return difficultyLevelFor?.call(dance.id) ??
+                DifficultyLevel.knownForId(id);
+          }
+        }
+        return DifficultyLevel.knownForId(id);
+      },
       includeVenueContact: includeVenueContact,
     );
     final fileName = programShareBundleFileName(
       program.title,
       extension: extension,
     );
+    return (json: json, fileName: fileName);
+  }
 
-    final writeFile = bundleFileWriter ?? writeBundleTempFile;
-    final xfile = await writeFile(json, fileName);
-
-    final share = shareInvoker ?? SharePlus.instance.share;
-    await share(
-      ShareParams(
-        files: [xfile],
-        fileNameOverrides: [fileName],
-        subject: program.title,
-        sharePositionOrigin: origin,
-      ),
+  JsonExportDelivery get _jsonDelivery {
+    final delivery = jsonExportDelivery;
+    if (delivery == null) {
+      return JsonExportDelivery(
+        shareInvoker: shareInvoker,
+        bundleFileWriter: bundleFileWriter,
+      );
+    }
+    return JsonExportDelivery(
+      choicePicker: delivery.choicePicker,
+      saveInvoker: delivery.saveInvoker,
+      clipboardWriter: delivery.clipboardWriter,
+      shareInvoker: delivery.shareInvoker ?? shareInvoker,
+      bundleFileWriter: delivery.bundleFileWriter ?? bundleFileWriter,
     );
+  }
+
+  Future<void> _exportJson(BuildContext context, Rect? origin) async {
+    final bundle = await _buildBundle(
+      context,
+      extension: programShareJsonExtension,
+    );
+    if (bundle == null || !context.mounted) return;
+
+    final delivery = _jsonDelivery;
+    final choice = await delivery.choose(context);
+    if (choice == null || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+
+    switch (choice) {
+      case JsonExportChoice.save:
+        await _guard(messenger, l10n.exportJsonSaveError, () async {
+          final result = await delivery.save(bundle.json, bundle.fileName);
+          if (result == null || !context.mounted) return;
+          final message = result.fileName == null
+              ? l10n.exportJsonSavedGeneric
+              : result.path.isEmpty
+              ? l10n.exportJsonSaved(result.fileName!)
+              : l10n.exportJsonSavedTo(result.fileName!, result.path);
+          messenger.showSnackBar(SnackBar(content: Text(message)));
+        });
+      case JsonExportChoice.copy:
+        await _guard(messenger, l10n.exportJsonCopyError, () async {
+          await delivery.copy(bundle.json);
+          if (context.mounted) {
+            messenger.showSnackBar(
+              SnackBar(content: Text(l10n.exportJsonCopied)),
+            );
+          }
+        });
+      case JsonExportChoice.share:
+        await _guard(messenger, l10n.exportJsonShareError, () {
+          return delivery.share(
+            json: bundle.json,
+            fileName: bundle.fileName,
+            subject: program.title,
+            sharePositionOrigin: origin,
+          );
+        });
+    }
   }
 
   Future<void> _copyText(BuildContext context) async {
@@ -360,13 +469,12 @@ class ProgramExportMenu extends StatelessWidget {
     );
 
     final List<({Dance dance, bool isAlternate})>? appendDances;
-    final Dialect? dialect;
+    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    final renderer = FigureRenderer(contraTaxonomy);
     if (includeFigures) {
       appendDances = _orderedExportDances();
-      dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
     } else {
       appendDances = null;
-      dialect = null;
     }
 
     final layoutPdf = pdfLayouter ?? Printing.layoutPdf;
@@ -381,6 +489,10 @@ class ProgramExportMenu extends StatelessWidget {
         appendDances: appendDances,
         danceLabels: includeFigures ? danceExportLabels(l10n) : null,
         dialect: dialect,
+        renderer: renderer,
+        canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
+          context,
+        ),
       ),
     );
   }
@@ -415,12 +527,8 @@ class ProgramExportMenu extends StatelessWidget {
       case _ExportAction.shareJson:
         await _guard(
           messenger,
-          l10n.exportShareProgramError,
-          () => _shareBundle(
-            context,
-            origin,
-            extension: programShareJsonExtension,
-          ),
+          l10n.exportJsonShareError,
+          () => _exportJson(context, origin),
         );
       case _ExportAction.pdf:
         await _guard(

@@ -12,7 +12,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'Caller\'s Compendium';
 
   @override
+  String get danceEditorAddedMeanwhileAnnouncement =>
+      'Added a meanwhile container.';
+
+  @override
+  String get danceEditorAddedModifierAnnouncement =>
+      'Added a modifier container.';
+
+  @override
   String get navCollection => 'Collection';
+
+  @override
+  String get settingsDefaultsMeanwhileTitle => 'Meanwhile defaults';
+
+  @override
+  String get settingsDefaultsMeanwhileSubtitle =>
+      'The side figures seeded when you add a meanwhile container. Clear it for two blank sides; one configured side gets one blank companion. You can edit the container after insertion.';
+
+  @override
+  String get settingsDefaultsModifierTitle => 'Modifier defaults';
+
+  @override
+  String get settingsDefaultsModifierSubtitle =>
+      'The figures seeded when you add a modifier container. Clear it for two blank figures; one configured figure gets one blank companion.';
 
   @override
   String get navPrograms => 'Programs';
@@ -314,17 +336,18 @@ class AppLocalizationsEn extends AppLocalizations {
       '© The Caller’s Compendium contributors. Licensed under AGPL-3.0.';
 
   @override
-  String settingsAboutVersion(String version) {
-    return 'Version $version';
+  String settingsAboutVersion(String version, String codename) {
+    return 'Version $version, “$codename”';
   }
 
   @override
   String settingsAboutVersionLine(
     String appName,
     String version,
+    String codename,
     String license,
   ) {
-    return '$appName · Version $version · $license';
+    return '$appName · Version $version, “$codename” · $license';
   }
 
   @override
@@ -432,6 +455,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsDialectHeader => 'Dialects';
+
+  @override
+  String get settingsDialectDanceDetailsHeader => 'Dance details & shorthands';
+
+  @override
+  String get settingsDialectCanonicalFigureTextTitle => 'Canonical figure text';
+
+  @override
+  String get settingsDialectCanonicalFigureTextSubtitle =>
+      'When on, dance details can show canonical role and move names, and the Canonical switch is available on non-canonical dialects. Off by default.';
+
+  @override
+  String get settingsDialectCanonicalDiscouragedTermsTitle =>
+      'Auto-convert all discouraged terms';
+
+  @override
+  String get settingsDialectCanonicalDiscouragedTermsSubtitle =>
+      'When on, dance details, notes, and exports use canonical wording for supported discouraged terms. Saved text and entry fields are unchanged. On by default.';
 
   @override
   String get settingsDialectNewButton => 'New dialect';
@@ -558,6 +599,43 @@ class AppLocalizationsEn extends AppLocalizations {
       'Prefilled into new programs; editable per program.';
 
   @override
+  String get settingsDefaultsStartingProgramTitle => 'Starting program';
+
+  @override
+  String get settingsDefaultsStartingProgramSubtitle =>
+      'Dance and note entries added to manually created programs.';
+
+  @override
+  String get settingsDefaultsStartingProgramPickerTitle => 'Add a dance';
+
+  @override
+  String get settingsDefaultsStartingProgramAddDance => 'Dance';
+
+  @override
+  String get settingsDefaultsStartingProgramAddText => 'Note';
+
+  @override
+  String get settingsDefaultsStartingProgramAddBreak => 'Add break';
+
+  @override
+  String get settingsDefaultsStartingProgramTextLabel => 'Note text';
+
+  @override
+  String get settingsDefaultsStartingProgramNoteLabel =>
+      'Caller note (optional)';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveUp => 'Move up';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveDown => 'Move down';
+
+  @override
+  String settingsDefaultsStartingProgramUnavailableDance(String id) {
+    return 'Unavailable dance ($id)';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'Default band';
 
   @override
@@ -586,7 +664,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsDefaultsCanonicalSubtitle =>
-      'When on, a dance opens showing canonical role and move names instead of your active dialect. You can still switch views on the dance while it is open.';
+      'When Canonical figure text is on, a dance opens showing canonical role and move names instead of your active dialect. When it is off, details open in your active dialect and this preference is retained.';
 
   @override
   String get settingsDefaultsCollectionCardHeader => 'Collection card fields';
@@ -972,6 +1050,22 @@ class AppLocalizationsEn extends AppLocalizations {
       'Scale each card so the full dance or slot fits the screen without scrolling. Turn off to set the size yourself with A- / A+.';
 
   @override
+  String get settingsShowIndividualPerformTimerTitle =>
+      'Show timer for individual Perform';
+
+  @override
+  String get settingsShowIndividualPerformTimerSubtitle =>
+      'Show elapsed time while performing a single dance. The timer starts when it appears and can be paused.';
+
+  @override
+  String get settingsShowProgramSlotCallerNotesTitle =>
+      'Show caller notes in program Perform';
+
+  @override
+  String get settingsShowProgramSlotCallerNotesSubtitle =>
+      'Show non-empty per-slot caller notes above the dance title in program Perform.';
+
+  @override
   String get settingsGeneralCallingHistoryHeader => 'Calling history';
 
   @override
@@ -989,6 +1083,26 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsGeneralTrackHistoryForAllCallersSubtitle =>
       'When off and a default caller is set, calling history and counts include programs led by that caller plus any programs with no caller recorded (treated as your own). When on — or when no default caller is set — every program that contains the dance is tracked.';
+
+  @override
+  String get settingsProgramVenueCallCountTitle =>
+      'Repeated venues in calling history';
+
+  @override
+  String get settingsProgramVenueCallCountSubtitle =>
+      'Show the top venues where a dance was called more than once. Set to 0 to hide this summary.';
+
+  @override
+  String settingsProgramVenueCallCountOption(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count venues',
+      one: '1 venue',
+      zero: 'Don\'t show',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Accessibility';
@@ -1349,7 +1463,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonDanceLevelAdvanced => 'Advanced';
 
   @override
-  String get commonFormationDupleImproper => 'Duple improper';
+  String get commonFormationDupleImproper => 'Improper';
+
+  @override
+  String get commonFormationReverseProgressionImproper =>
+      'Reverse progression improper';
 
   @override
   String get commonFormationBecketCw => 'Becket (CW)';
@@ -1358,10 +1476,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonFormationBecketCcw => 'Becket (CCW)';
 
   @override
-  String get commonFormationDupleProper => 'Duple proper';
+  String get commonFormationDupleProper => 'Proper';
 
   @override
-  String get commonFormationDupleIndecent => 'Duple indecent';
+  String get commonFormationDupleIndecent => 'Indecent';
 
   @override
   String get commonFormationTripleMinor => 'Triple minor';
@@ -1526,6 +1644,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Search titles, authors, figures, notes…';
 
   @override
+  String get collectionPickerSearchFieldHint =>
+      'Search titles, figures, notes…';
+
+  @override
+  String get collectionPickerOnlineSearchFieldHint =>
+      'Search online dances by title…';
+
+  @override
   String get collectionSearchScopeLabel => 'Search in';
 
   @override
@@ -1533,6 +1659,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get collectionSearchScopeTitle => 'Title';
+
+  @override
+  String get collectionSearchScopeAuthor => 'Author';
 
   @override
   String get collectionSearchScopeFigure => 'Figure';
@@ -1993,6 +2122,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get collectionCreateTagError => 'Could not create tag. Try again.';
 
   @override
+  String get collectionBatchApplyError =>
+      'Could not apply batch changes. Try again.';
+
+  @override
   String get collectionBatchTagAddConfirm => 'Add';
 
   @override
@@ -2131,6 +2264,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceCallingHistoryError => 'Could not load the calling history.';
+
+  @override
+  String danceVenueCallCount(int count, String venue) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Called $count times at $venue',
+      one: 'Called 1 time at $venue',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get danceShowCanonicalTerms => 'Show canonical terms';
@@ -2332,6 +2476,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsSaveError => 'Could not save the program.';
 
   @override
+  String get programsUndoPerformedError =>
+      'Could not undo marking; performed marks remain saved.';
+
+  @override
+  String get programsUndoRefreshError =>
+      'Undo was saved, but the editor could not refresh.';
+
+  @override
   String programsDuplicatedSnack(String title) {
     return 'Duplicated as \"$title\".';
   }
@@ -2403,7 +2555,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsAddDanceButton => 'Add dance';
 
   @override
-  String get programsAddNoteBreakButton => 'Add note / break';
+  String get programsAddNoteBreakButton => 'Add note / waltz';
 
   @override
   String get programsInsertBreakButton => 'Insert break';
@@ -2766,7 +2918,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsGuestCallerLabel => 'Guest caller (optional)';
 
   @override
-  String get programsPlannedMinutesLabel => 'Planned minutes (optional)';
+  String get programsPlannedTimingHeader => 'Planned timing';
+
+  @override
+  String get programsWalkthroughMinutesLabel =>
+      'Walkthrough minutes (optional)';
+
+  @override
+  String get programsDanceMinutesLabel => 'Dance minutes (optional)';
 
   @override
   String get programsAlternateDanceTitle => 'Alternate dance';
@@ -2814,6 +2973,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsMatrixShowAllColumnsSemantic => 'Show all columns';
 
   @override
+  String get programsMatrixHideAlternatesSemantic => 'Hide alternate rows';
+
+  @override
+  String get programsMatrixShowAlternatesSemantic => 'Show alternate rows';
+
+  @override
+  String get programsMatrixShowPhrasesSemantic => 'Show phrase labels';
+
+  @override
+  String get programsMatrixHidePhrasesSemantic => 'Show presence glyphs';
+
+  @override
   String programsMatrixRowHeaderSemantic(
     String title,
     String alt,
@@ -2846,6 +3017,65 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String programsMatrixSectionShort(String sectionKey, String sectionNumber) {
+    String _temp0 = intl.Intl.selectLogic(sectionKey, {
+      's1': '1st',
+      's2': '2nd',
+      's3': '3rd',
+      's4': '4th',
+      's5': '5th',
+      's6': '6th',
+      's7': '7th',
+      's8': '8th',
+      's9': '9th',
+      'other': '$sectionNumber',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String programsMatrixSectionRowHeaderSemantic(
+    String title,
+    String alt,
+    String section,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(section, {
+      'none': 'Alternate dance: $title',
+      'other': 'Alternate dance: $title, section $section',
+    });
+    String _temp1 = intl.Intl.selectLogic(section, {
+      'none': 'Dance: $title',
+      'other': 'Dance: $title, section $section',
+    });
+    String _temp2 = intl.Intl.selectLogic(alt, {
+      'yes': '$_temp0',
+      'other': '$_temp1',
+    });
+    return '$_temp2';
+  }
+
+  @override
+  String programsMatrixSectionChipQualifiedTitle(
+    String title,
+    String alt,
+    String section,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(section, {
+      'none': '$title (alternate dance)',
+      'other': '$title (alternate dance, section $section)',
+    });
+    String _temp1 = intl.Intl.selectLogic(section, {
+      'none': '$title',
+      'other': '$title (section $section)',
+    });
+    String _temp2 = intl.Intl.selectLogic(alt, {
+      'yes': '$_temp0',
+      'other': '$_temp1',
+    });
+    return '$_temp2';
+  }
+
+  @override
   String get programsMatrixFormationColumnHeader => 'Formation';
 
   @override
@@ -2858,6 +3088,7 @@ class AppLocalizationsEn extends AppLocalizations {
     String dance,
     String move,
     String present,
+    String phrases,
     String collision,
     String debut,
     String first,
@@ -2879,7 +3110,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'no': 'not present',
       'other': 'present$_temp0$_temp1$_temp2',
     });
-    return '$dance, $move: $_temp3';
+    String _temp4 = intl.Intl.selectLogic(phrases, {
+      'none': '',
+      'other': ', phrase(s): $phrases',
+    });
+    return '$dance, $move: $_temp3$_temp4';
   }
 
   @override
@@ -3132,6 +3367,9 @@ class AppLocalizationsEn extends AppLocalizations {
     String slotTime,
     String hasPlanned,
     int planned,
+    int walkthrough,
+    int dance,
+    String walkthroughComplete,
     String over,
     String paused,
   ) {
@@ -3142,27 +3380,46 @@ class AppLocalizationsEn extends AppLocalizations {
       one: '1 minute',
     );
     String _temp1 = intl.Intl.selectLogic(hasPlanned, {
-      'yes': ', planned $_temp0',
+      'yes': ', planned $_temp0: $walkthrough walkthrough and $dance dance',
       'other': '',
     });
-    String _temp2 = intl.Intl.selectLogic(over, {
+    String _temp2 = intl.Intl.selectLogic(walkthroughComplete, {
+      'yes': ', walkthrough complete',
+      'other': '',
+    });
+    String _temp3 = intl.Intl.selectLogic(over, {
       'yes': ', over planned',
       'other': '',
     });
-    String _temp3 = intl.Intl.selectLogic(paused, {
+    String _temp4 = intl.Intl.selectLogic(paused, {
       'yes': ', paused',
       'other': '',
     });
-    return 'Program time $programTime, slot time $slotTime$_temp1$_temp2$_temp3';
+    return 'Program time $programTime, slot time $slotTime$_temp1$_temp2$_temp3$_temp4';
   }
 
   @override
-  String performPlannedMin(int planned) {
-    return 'planned $planned min';
+  String performIndividualTimingSemantic(String elapsedTime, String paused) {
+    String _temp0 = intl.Intl.selectLogic(paused, {
+      'yes': ', paused',
+      'other': '',
+    });
+    return 'Elapsed time $elapsedTime$_temp0';
   }
+
+  @override
+  String performPlannedSplit(int planned, int walkthrough, int dance) {
+    return 'planned $planned min ($walkthrough:$dance)';
+  }
+
+  @override
+  String get performWalkthroughCompleteSuffix => ' walkthrough complete';
 
   @override
   String get performOverSuffix => ' over';
+
+  @override
+  String get performSlotCallerNote => 'Caller note';
 
   @override
   String get performCallingNotes => 'Calling notes';
@@ -3301,6 +3558,49 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exportShareProgramJson => 'Export as JSON file';
+
+  @override
+  String get exportJsonDialogTitle => 'Export JSON';
+
+  @override
+  String get exportJsonDialogMessage => 'Choose how to deliver this JSON file.';
+
+  @override
+  String get exportJsonSave => 'Save';
+
+  @override
+  String get exportJsonCopy => 'Copy raw JSON';
+
+  @override
+  String get exportJsonShare => 'Share';
+
+  @override
+  String get exportJsonCancel => 'Cancel';
+
+  @override
+  String get exportJsonCopied => 'JSON copied to clipboard.';
+
+  @override
+  String exportJsonSaved(String fileName) {
+    return '\"$fileName\" saved.';
+  }
+
+  @override
+  String get exportJsonSavedGeneric => 'JSON file saved.';
+
+  @override
+  String exportJsonSavedTo(String fileName, String destination) {
+    return '\"$fileName\" saved to $destination.';
+  }
+
+  @override
+  String get exportJsonSaveError => 'Couldn\'t save this JSON file.';
+
+  @override
+  String get exportJsonCopyError => 'Couldn\'t copy this JSON.';
+
+  @override
+  String get exportJsonShareError => 'Couldn\'t share this JSON file.';
 
   @override
   String get exportShareSetListError => 'Couldn\'t share this set list';
@@ -3494,7 +3794,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get onlineSearchFieldHint => 'Search online dances by title…';
+  String get onlineSearchFieldHint =>
+      'Search online dances by title or author…';
+
+  @override
+  String get collectionOnlineSearchFieldHint =>
+      'Search online dances by title, author, or figure…';
 
   @override
   String onlineResultCount(int count) {
@@ -3509,12 +3814,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String onlineSearchHintByPhrase(String source) {
-    return 'Type a title or add by-phrase figures to search $source.';
+    return 'Type a title or author, or add by-phrase figures to search $source.';
   }
 
   @override
   String onlineSearchHintTitle(String source) {
-    return 'Type a title to search $source.';
+    return 'Type a title or author to search $source.';
+  }
+
+  @override
+  String collectionOnlineSearchHintByPhrase(String source) {
+    return 'Type a title, author, or figure, or add by-phrase figures to search $source.';
+  }
+
+  @override
+  String collectionOnlineSearchHintTitle(String source) {
+    return 'Type a title, author, or figure to search $source.';
   }
 
   @override
@@ -4150,7 +4465,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importErrorContraDbEmptyTitle =>
-      'Enter a title to search ContraDB.';
+      'Enter a title or author to search ContraDB.';
+
+  @override
+  String get importErrorContraDbUnsupportedFigure =>
+      'ContraDB Figure searches use a complete move name, such as \"box circulate\".';
 
   @override
   String get importErrorContraDbEmptyDanceInput =>
@@ -5243,6 +5562,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorAddFigure => 'Add figure';
 
   @override
+  String get danceEditorAddMeanwhile => 'Add meanwhile';
+
+  @override
+  String get danceEditorAddModifier => 'Add modifier';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList => 'Paste at end of figure list';
 
   @override
@@ -5337,6 +5662,73 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorGroupWithNext => 'Group with next as meanwhile';
 
   @override
+  String get danceEditorGroupWithNextAsModifier =>
+      'Group with next as modifier';
+
+  @override
+  String get danceEditorConvertToMeanwhile => 'Convert to meanwhile';
+
+  @override
+  String get danceEditorConvertToModifier => 'Convert to modifier';
+
+  @override
+  String get danceEditorUngroupMeanwhile => 'Ungroup meanwhile';
+
+  @override
+  String get danceEditorUngroupModifier => 'Ungroup modifier';
+
+  @override
+  String danceEditorModifierGroupLabel(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Modifier ($count figures)',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorModifierGroupSemantic(num beats, num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figures',
+      one: '1 figure',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats beats',
+      one: '1 beat',
+    );
+    return 'Modifier group, $_temp0, $_temp1.';
+  }
+
+  @override
+  String get danceEditorAddModifierChild => 'Add modifier';
+
+  @override
+  String get danceEditorModifierCoreLabel => 'Core';
+
+  @override
+  String get danceEditorModifierChildLabel => 'Modifier';
+
+  @override
+  String get danceEditorModifierCoreSemantic =>
+      'Core figure in modifier group.';
+
+  @override
+  String danceEditorModifierChildSemantic(int number, int total) {
+    return 'Modifier figure $number of $total.';
+  }
+
+  @override
+  String get danceEditorRemoveModifierCore => 'Remove core figure';
+
+  @override
+  String get danceEditorRemoveModifierChild => 'Remove modifier figure';
+
+  @override
   String danceEditorMeanwhileGroupLabel(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -5382,6 +5774,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String danceEditorMeanwhileSidesCapReached(int max) {
     return 'Maximum of $max concurrent figures.';
+  }
+
+  @override
+  String danceEditorModifierChildrenCapReached(int max) {
+    return 'Maximum of $max ordered modifier figures.';
   }
 
   @override
@@ -5433,6 +5830,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceEditorParamNotStated => 'not stated';
+
+  @override
+  String get figureParamFacingStarBackingUp => 'backing up';
 
   @override
   String get danceEditorParamClearTooltip => 'Clear (not stated)';

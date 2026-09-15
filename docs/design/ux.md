@@ -108,7 +108,11 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   (phone-width) view surfaces it on each dance chip instead, visually only for
   non-default formations to avoid clutter, always via semantics for screen
   readers. The programming-matrix PDF export mirrors the same pinned
-  formation column.
+  formation column. A transient **Show phrase labels** control can replace
+  comparable cell markers with ordered phrase labels (A1, A2, B1, B2…);
+  custom and compound columns retain their markers. The control is editor-owned,
+  survives Matrix/Build switches and window resizing, resets when the editor
+  closes, and does not affect PDF output or the legend.
 - Header: event date/venue/notes; duplicate program; print/export (PDF, text);
   "mark performed" stamps performedAt on called slots (feeds calling history).
 

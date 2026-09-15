@@ -63,7 +63,7 @@ void main() {
     expect(program.slots, hasLength(2));
     expect(program.slots[0].danceId, 'dance-uuid-7');
     expect(program.slots[0].position, 0);
-    expect(program.slots[0].plannedMinutes, 8);
+    expect(program.slots[0].danceMinutes, 8);
     expect(program.slots[1].text, 'Waltz break');
     expect(program.slots[1].position, 1);
     expect(program.slots[1].danceId, isNull);

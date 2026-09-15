@@ -155,6 +155,12 @@ details are handled when you export.
   [Perform mode](./glossary.md#perform-mode). Turn it off when you'd rather size
   the text yourself using the **A−** and **A+** buttons while performing. See
   [Perform mode](./perform.md) for more.
+- **Show timer for individual Perform** (on) — shows an elapsed timer and
+  pause/resume control while performing a single dance. Turn it off when you
+  want individual Perform to stay timer-free.
+- **Show caller notes in program Perform** (on) — shows each non-empty
+  per-slot caller note above the dance title while performing a program. Turn it
+  off when you want the program card to show only the dance's own details.
 
 ### Calling history
 
@@ -169,6 +175,9 @@ details are handled when you export.
   or leave the default caller blank — to track every program that contains the
   dance. Matching ignores surrounding spaces and letter case, and applies on top
   of the *Require "mark performed"* setting (both must pass).
+- **Repeated venues in calling history** (3) — shows the top venues where a
+  dance was called more than once. Set this to 0 to hide the summary, or choose
+  up to 10 venues.
 
 ## Appearance
 
@@ -203,7 +212,7 @@ There's a **High Contrast** theme for maximum legibility — see the
   [formation](./glossary.md#formation) family — contras, triplets, mixers,
   circles, and squares each get their own accent, so you can read the *shape* of a program at a
   glance. Dances marked as [mixers](./glossary.md#mixer) always get the mixer
-  accent regardless of their formation, so a mixer-flagged Duple Improper reads as
+  accent regardless of their formation, so a mixer-flagged Improper reads as
   a mixer rather than a contra. The formation (and "Mixer" when applicable) is
   always shown as text on the row too, so rows stay fully readable without relying
   on colour, and the accents adapt to the High Contrast theme. On by default; turn
@@ -234,6 +243,30 @@ role names and wording the app uses when it describes dances.
   your own version.
 - Custom dialects can be edited, renamed, or deleted.
 - One dialect is active at a time.
+
+### Dance details & shorthands
+
+- **Canonical figure text** (off by default) — allow dance details to show
+  canonical role and move names. When it is off, dance details open in your
+  active dialect and do not show the in-detail **Canonical** switch.
+- **Auto-convert all discouraged terms** (on by default) — show supported
+  discouraged terms in canonical wording across read-only dance details,
+  shorthands, notes, Perform mode, and exports. Saved text and entry fields are
+  unchanged.
+- **Open dance details in canonical terms** — when enabled, and canonical figure
+  text is enabled, dance details open in canonical wording. When canonical
+  figure text is disabled, this preference is retained but ignored until the
+  gate is enabled again. On an existing installation, the first detail open
+  initializes the new gate off and converts an older canonical default to the
+  active-dialect default; later changes to the gate never overwrite this
+  preference.
+- **Free-text entry** — when on, adding a figure lets you type a whole line
+  (for example "neighbor balance & swing") instead of building it field by field.
+- **Figure shorthands** — map short tokens to one or more figures you can insert
+  during free-text entry. See
+  [Figure shorthands](./authoring.md#figure-shorthands).
+- **Walkthrough snippets** — manage your personal, per-figure walkthrough
+  wording. These settings are independent of canonical figure text.
 
 This is just the entry point — see [Dialect](./dialects.md) for the full story on
 choosing and customizing wording.
@@ -286,31 +319,47 @@ setup.
 
 - **Default caller** and **Default band** — prefilled into each new program, and
   editable per program.
+- **Starting program** — configure an ordered template of dances, caller notes,
+  breaks, and free-text entries for manually created programs. Dance references
+  that are no longer in your collection are skipped. This applies only to the
+  normal manual editor flow; imports, duplicates, and “create with this dance”
+  keep their own source slots.
 
 ### Display defaults
 
 - **Collection sort order** — the default order for your library when you open it.
   You can still change the sort while browsing.
-- **Open dance details in canonical terms** — when on, dances open showing their
-  canonical role and move names instead of your active dialect. You can still
-  switch views on the dance while it is open.
 
 ### Dance-authoring defaults
 
 These help if you write your own dances. Keep in mind you can override any of them
 per dance. [Write & edit dances](./authoring.md) covers them in context.
 
-- **Free-text entry** — when on, adding a figure lets you type a whole line
-  (for example "neighbor balance & swing") instead of building it field by field.
-- **Figure shorthands** — map short tokens to one or more figures you can insert
-  during free-text entry. See
-  [Figure shorthands](./authoring.md#figure-shorthands).
 - **Form**, **Formation**, and **Progression** — the starting choices for a new
   dance.
 - **Default phrase structure** — leave blank for the standard 4×16 A1 A2 B1 B2, or
   set your own.
 - **Starting figures** — the figures a new dance begins with; defaults to a single
   stand still of eight beats. Clear it for a blank new dance.
+### Difficulty levels
+
+- **Manage difficulty levels** — define the ordered vocabulary used by dance
+  editors, collection filters, and batch actions. Add a level, rename it, or
+  drag it into a different position; renaming keeps existing dance assignments
+  attached to that level.
+- A level cannot be removed while any dance uses it. Once its assignments are
+  cleared or changed, you can remove it, including one of the levels that ships
+  with the app.
+
+- **Meanwhile defaults** — the ordinary side figures used when you choose **Add
+  meanwhile** while authoring a dance. Leave this list empty to start with two
+  blank sides, or configure up to six ordinary sides. If only one side is
+  configured, the app adds a blank second side so the container can be completed.
+  Invalid or unavailable saved defaults use two stand-still sides.
+- **Modifier defaults** — the core and modifier figures used when you choose
+  **Add modifier** while authoring a dance. Leave this list empty to start with
+  two blank figures, or configure up to six figures. Invalid or unavailable
+  saved defaults use two stand-still figures.
 - **Move defaults** — preferred parameter values applied automatically when you
   insert a [move](./glossary.md#move) while writing. These override that move's
   built-in defaults, and you can still change any parameter afterwards.
@@ -318,12 +367,6 @@ per dance. [Write & edit dances](./authoring.md) covers them in context.
   figure's move or a parameter that affects timing recalculates its beat count
   immediately, even overwriting a beat count you typed in by hand. When off, a
   beat count you've edited is never changed automatically.
-- **Walkthrough snippets** — a personal, per-figure library of your own
-  walkthrough wording. The app saves the text you write for a figure and offers it
-  again wherever that figure appears. Manage the whole library from here: review
-  it, **Edit snippet**, or delete one. Deleting removes the saved default only —
-  dances keep any walkthrough text you already wrote. See
-  [Walkthrough](./authoring.md#walkthrough).
 
 ## Updates
 

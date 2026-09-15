@@ -3,6 +3,424 @@
 part of 'database.dart';
 
 // ignore_for_file: type=lint
+class $DifficultyLevelsTable extends DifficultyLevels
+    with TableInfo<$DifficultyLevelsTable, DifficultyLevelRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DifficultyLevelsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+    'label',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _existenceAtMeta = const VerificationMeta(
+    'existenceAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> existenceAt = GeneratedColumn<DateTime>(
+    'existence_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    label,
+    position,
+    updatedAt,
+    deletedAt,
+    existenceAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'difficulty_levels';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DifficultyLevelRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('label')) {
+      context.handle(
+        _labelMeta,
+        label.isAcceptableOrUnknown(data['label']!, _labelMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_labelMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('existence_at')) {
+      context.handle(
+        _existenceAtMeta,
+        existenceAt.isAcceptableOrUnknown(
+          data['existence_at']!,
+          _existenceAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DifficultyLevelRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DifficultyLevelRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      label: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}label'],
+      )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      existenceAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}existence_at'],
+      ),
+    );
+  }
+
+  @override
+  $DifficultyLevelsTable createAlias(String alias) {
+    return $DifficultyLevelsTable(attachedDatabase, alias);
+  }
+}
+
+class DifficultyLevelRow extends DataClass
+    implements Insertable<DifficultyLevelRow> {
+  final String id;
+  final String label;
+  final int position;
+  final DateTime? updatedAt;
+  final DateTime? deletedAt;
+  final DateTime? existenceAt;
+  const DifficultyLevelRow({
+    required this.id,
+    required this.label,
+    required this.position,
+    this.updatedAt,
+    this.deletedAt,
+    this.existenceAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['label'] = Variable<String>(label);
+    map['position'] = Variable<int>(position);
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    if (!nullToAbsent || existenceAt != null) {
+      map['existence_at'] = Variable<DateTime>(existenceAt);
+    }
+    return map;
+  }
+
+  DifficultyLevelsCompanion toCompanion(bool nullToAbsent) {
+    return DifficultyLevelsCompanion(
+      id: Value(id),
+      label: Value(label),
+      position: Value(position),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      existenceAt: existenceAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(existenceAt),
+    );
+  }
+
+  factory DifficultyLevelRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DifficultyLevelRow(
+      id: serializer.fromJson<String>(json['id']),
+      label: serializer.fromJson<String>(json['label']),
+      position: serializer.fromJson<int>(json['position']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      existenceAt: serializer.fromJson<DateTime?>(json['existenceAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'label': serializer.toJson<String>(label),
+      'position': serializer.toJson<int>(position),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'existenceAt': serializer.toJson<DateTime?>(existenceAt),
+    };
+  }
+
+  DifficultyLevelRow copyWith({
+    String? id,
+    String? label,
+    int? position,
+    Value<DateTime?> updatedAt = const Value.absent(),
+    Value<DateTime?> deletedAt = const Value.absent(),
+    Value<DateTime?> existenceAt = const Value.absent(),
+  }) => DifficultyLevelRow(
+    id: id ?? this.id,
+    label: label ?? this.label,
+    position: position ?? this.position,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    existenceAt: existenceAt.present ? existenceAt.value : this.existenceAt,
+  );
+  DifficultyLevelRow copyWithCompanion(DifficultyLevelsCompanion data) {
+    return DifficultyLevelRow(
+      id: data.id.present ? data.id.value : this.id,
+      label: data.label.present ? data.label.value : this.label,
+      position: data.position.present ? data.position.value : this.position,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      existenceAt: data.existenceAt.present
+          ? data.existenceAt.value
+          : this.existenceAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DifficultyLevelRow(')
+          ..write('id: $id, ')
+          ..write('label: $label, ')
+          ..write('position: $position, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('existenceAt: $existenceAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, label, position, updatedAt, deletedAt, existenceAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DifficultyLevelRow &&
+          other.id == this.id &&
+          other.label == this.label &&
+          other.position == this.position &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.existenceAt == this.existenceAt);
+}
+
+class DifficultyLevelsCompanion extends UpdateCompanion<DifficultyLevelRow> {
+  final Value<String> id;
+  final Value<String> label;
+  final Value<int> position;
+  final Value<DateTime?> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<DateTime?> existenceAt;
+  final Value<int> rowid;
+  const DifficultyLevelsCompanion({
+    this.id = const Value.absent(),
+    this.label = const Value.absent(),
+    this.position = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.existenceAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DifficultyLevelsCompanion.insert({
+    required String id,
+    required String label,
+    required int position,
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.existenceAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       label = Value(label),
+       position = Value(position);
+  static Insertable<DifficultyLevelRow> custom({
+    Expression<String>? id,
+    Expression<String>? label,
+    Expression<int>? position,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<DateTime>? existenceAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (label != null) 'label': label,
+      if (position != null) 'position': position,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (existenceAt != null) 'existence_at': existenceAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DifficultyLevelsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? label,
+    Value<int>? position,
+    Value<DateTime?>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<DateTime?>? existenceAt,
+    Value<int>? rowid,
+  }) {
+    return DifficultyLevelsCompanion(
+      id: id ?? this.id,
+      label: label ?? this.label,
+      position: position ?? this.position,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      existenceAt: existenceAt ?? this.existenceAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (existenceAt.present) {
+      map['existence_at'] = Variable<DateTime>(existenceAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DifficultyLevelsCompanion(')
+          ..write('id: $id, ')
+          ..write('label: $label, ')
+          ..write('position: $position, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('existenceAt: $existenceAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -131,15 +549,20 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
         type: DriftSqlType.string,
         requiredDuringInsert: true,
       ).withConverter<DanceStatus>($DancesTable.$converterstatus);
+  static const VerificationMeta _levelIdMeta = const VerificationMeta(
+    'levelId',
+  );
   @override
-  late final GeneratedColumnWithTypeConverter<DanceLevel?, String> level =
-      GeneratedColumn<String>(
-        'level',
-        aliasedName,
-        true,
-        type: DriftSqlType.string,
-        requiredDuringInsert: false,
-      ).withConverter<DanceLevel?>($DancesTable.$converterleveln);
+  late final GeneratedColumn<String> levelId = GeneratedColumn<String>(
+    'level_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES difficulty_levels (id)',
+    ),
+  );
   static const VerificationMeta _mixedLevelMeta = const VerificationMeta(
     'mixedLevel',
   );
@@ -269,7 +692,7 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
     callingNotes,
     walkthrough,
     status,
-    level,
+    levelId,
     mixedLevel,
     mixer,
     rating,
@@ -355,6 +778,12 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
           data['walkthrough']!,
           _walkthroughMeta,
         ),
+      );
+    }
+    if (data.containsKey('level_id')) {
+      context.handle(
+        _levelIdMeta,
+        levelId.isAcceptableOrUnknown(data['level_id']!, _levelIdMeta),
       );
     }
     if (data.containsKey('mixed_level')) {
@@ -489,11 +918,9 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
           data['${effectivePrefix}status'],
         )!,
       ),
-      level: $DancesTable.$converterleveln.fromSql(
-        attachedDatabase.typeMapping.read(
-          DriftSqlType.string,
-          data['${effectivePrefix}level'],
-        ),
+      levelId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}level_id'],
       ),
       mixedLevel: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
@@ -551,10 +978,6 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
       const EnumNameConverter(Progression.values);
   static JsonTypeConverter2<DanceStatus, String, String> $converterstatus =
       const EnumNameConverter(DanceStatus.values);
-  static JsonTypeConverter2<DanceLevel, String, String> $converterlevel =
-      const EnumNameConverter(DanceLevel.values);
-  static JsonTypeConverter2<DanceLevel?, String?, String?> $converterleveln =
-      JsonTypeConverter2.asNullable($converterlevel);
 }
 
 class DanceRow extends DataClass implements Insertable<DanceRow> {
@@ -580,12 +1003,13 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
   final String walkthrough;
   final DanceStatus status;
 
-  /// Difficulty on the ordered [DanceLevel] scale, persisted by enum name;
-  /// nullable (`null` = unspecified). Added in schema v4 (CC-parity `Level`).
-  final DanceLevel? level;
+  /// Selected [DifficultyLevels] row, nullable when unspecified. Added in
+  /// schema v34; the migration maps v4's enum-name `level` column to stable
+  /// vocabulary IDs.
+  final String? levelId;
 
-  /// Marks a dance that spans the difficulty scale; kept separate from [level]
-  /// so the ordered scale stays total. Added in schema v4 (CC `Mixed Level`).
+  /// Marks a dance that spans the difficulty scale; kept separate from
+  /// [levelId]. Added in schema v4 (CC `Mixed Level`).
   final bool mixedLevel;
 
   /// Whether the dance is a **mixer** (dancers change partners each time
@@ -634,7 +1058,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     required this.callingNotes,
     required this.walkthrough,
     required this.status,
-    this.level,
+    this.levelId,
     required this.mixedLevel,
     required this.mixer,
     this.rating,
@@ -677,10 +1101,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
         $DancesTable.$converterstatus.toSql(status),
       );
     }
-    if (!nullToAbsent || level != null) {
-      map['level'] = Variable<String>(
-        $DancesTable.$converterleveln.toSql(level),
-      );
+    if (!nullToAbsent || levelId != null) {
+      map['level_id'] = Variable<String>(levelId);
     }
     map['mixed_level'] = Variable<bool>(mixedLevel);
     map['mixer'] = Variable<bool>(mixer);
@@ -721,9 +1143,9 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       callingNotes: Value(callingNotes),
       walkthrough: Value(walkthrough),
       status: Value(status),
-      level: level == null && nullToAbsent
+      levelId: levelId == null && nullToAbsent
           ? const Value.absent()
-          : Value(level),
+          : Value(levelId),
       mixedLevel: Value(mixedLevel),
       mixer: Value(mixer),
       rating: rating == null && nullToAbsent
@@ -773,9 +1195,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       status: $DancesTable.$converterstatus.fromJson(
         serializer.fromJson<String>(json['status']),
       ),
-      level: $DancesTable.$converterleveln.fromJson(
-        serializer.fromJson<String?>(json['level']),
-      ),
+      levelId: serializer.fromJson<String?>(json['levelId']),
       mixedLevel: serializer.fromJson<bool>(json['mixedLevel']),
       mixer: serializer.fromJson<bool>(json['mixer']),
       rating: serializer.fromJson<int?>(json['rating']),
@@ -812,9 +1232,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       'status': serializer.toJson<String>(
         $DancesTable.$converterstatus.toJson(status),
       ),
-      'level': serializer.toJson<String?>(
-        $DancesTable.$converterleveln.toJson(level),
-      ),
+      'levelId': serializer.toJson<String?>(levelId),
       'mixedLevel': serializer.toJson<bool>(mixedLevel),
       'mixer': serializer.toJson<bool>(mixer),
       'rating': serializer.toJson<int?>(rating),
@@ -841,7 +1259,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     String? callingNotes,
     String? walkthrough,
     DanceStatus? status,
-    Value<DanceLevel?> level = const Value.absent(),
+    Value<String?> levelId = const Value.absent(),
     bool? mixedLevel,
     bool? mixer,
     Value<int?> rating = const Value.absent(),
@@ -867,7 +1285,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     callingNotes: callingNotes ?? this.callingNotes,
     walkthrough: walkthrough ?? this.walkthrough,
     status: status ?? this.status,
-    level: level.present ? level.value : this.level,
+    levelId: levelId.present ? levelId.value : this.levelId,
     mixedLevel: mixedLevel ?? this.mixedLevel,
     mixer: mixer ?? this.mixer,
     rating: rating.present ? rating.value : this.rating,
@@ -907,7 +1325,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           ? data.walkthrough.value
           : this.walkthrough,
       status: data.status.present ? data.status.value : this.status,
-      level: data.level.present ? data.level.value : this.level,
+      levelId: data.levelId.present ? data.levelId.value : this.levelId,
       mixedLevel: data.mixedLevel.present
           ? data.mixedLevel.value
           : this.mixedLevel,
@@ -942,7 +1360,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           ..write('callingNotes: $callingNotes, ')
           ..write('walkthrough: $walkthrough, ')
           ..write('status: $status, ')
-          ..write('level: $level, ')
+          ..write('levelId: $levelId, ')
           ..write('mixedLevel: $mixedLevel, ')
           ..write('mixer: $mixer, ')
           ..write('rating: $rating, ')
@@ -971,7 +1389,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     callingNotes,
     walkthrough,
     status,
-    level,
+    levelId,
     mixedLevel,
     mixer,
     rating,
@@ -999,7 +1417,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           other.callingNotes == this.callingNotes &&
           other.walkthrough == this.walkthrough &&
           other.status == this.status &&
-          other.level == this.level &&
+          other.levelId == this.levelId &&
           other.mixedLevel == this.mixedLevel &&
           other.mixer == this.mixer &&
           other.rating == this.rating &&
@@ -1025,7 +1443,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
   final Value<String> callingNotes;
   final Value<String> walkthrough;
   final Value<DanceStatus> status;
-  final Value<DanceLevel?> level;
+  final Value<String?> levelId;
   final Value<bool> mixedLevel;
   final Value<bool> mixer;
   final Value<int?> rating;
@@ -1050,7 +1468,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     this.callingNotes = const Value.absent(),
     this.walkthrough = const Value.absent(),
     this.status = const Value.absent(),
-    this.level = const Value.absent(),
+    this.levelId = const Value.absent(),
     this.mixedLevel = const Value.absent(),
     this.mixer = const Value.absent(),
     this.rating = const Value.absent(),
@@ -1076,7 +1494,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     this.callingNotes = const Value.absent(),
     this.walkthrough = const Value.absent(),
     required DanceStatus status,
-    this.level = const Value.absent(),
+    this.levelId = const Value.absent(),
     this.mixedLevel = const Value.absent(),
     this.mixer = const Value.absent(),
     this.rating = const Value.absent(),
@@ -1109,7 +1527,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     Expression<String>? callingNotes,
     Expression<String>? walkthrough,
     Expression<String>? status,
-    Expression<String>? level,
+    Expression<String>? levelId,
     Expression<bool>? mixedLevel,
     Expression<bool>? mixer,
     Expression<int>? rating,
@@ -1135,7 +1553,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
       if (callingNotes != null) 'calling_notes': callingNotes,
       if (walkthrough != null) 'walkthrough': walkthrough,
       if (status != null) 'status': status,
-      if (level != null) 'level': level,
+      if (levelId != null) 'level_id': levelId,
       if (mixedLevel != null) 'mixed_level': mixedLevel,
       if (mixer != null) 'mixer': mixer,
       if (rating != null) 'rating': rating,
@@ -1163,7 +1581,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     Value<String>? callingNotes,
     Value<String>? walkthrough,
     Value<DanceStatus>? status,
-    Value<DanceLevel?>? level,
+    Value<String?>? levelId,
     Value<bool>? mixedLevel,
     Value<bool>? mixer,
     Value<int?>? rating,
@@ -1189,7 +1607,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
       callingNotes: callingNotes ?? this.callingNotes,
       walkthrough: walkthrough ?? this.walkthrough,
       status: status ?? this.status,
-      level: level ?? this.level,
+      levelId: levelId ?? this.levelId,
       mixedLevel: mixedLevel ?? this.mixedLevel,
       mixer: mixer ?? this.mixer,
       rating: rating ?? this.rating,
@@ -1251,10 +1669,8 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
         $DancesTable.$converterstatus.toSql(status.value),
       );
     }
-    if (level.present) {
-      map['level'] = Variable<String>(
-        $DancesTable.$converterleveln.toSql(level.value),
-      );
+    if (levelId.present) {
+      map['level_id'] = Variable<String>(levelId.value);
     }
     if (mixedLevel.present) {
       map['mixed_level'] = Variable<bool>(mixedLevel.value);
@@ -1307,7 +1723,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
           ..write('callingNotes: $callingNotes, ')
           ..write('walkthrough: $walkthrough, ')
           ..write('status: $status, ')
-          ..write('level: $level, ')
+          ..write('levelId: $levelId, ')
           ..write('mixedLevel: $mixedLevel, ')
           ..write('mixer: $mixer, ')
           ..write('rating: $rating, ')
@@ -3763,6 +4179,20 @@ class $ProgramSlotsTable extends ProgramSlots
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _isPurgedDanceMeta = const VerificationMeta(
+    'isPurgedDance',
+  );
+  @override
+  late final GeneratedColumn<bool> isPurgedDance = GeneratedColumn<bool>(
+    'is_purged_dance',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_purged_dance" IN (0, 1))',
+    ),
+  );
   static const VerificationMeta _isAltMeta = const VerificationMeta('isAlt');
   @override
   late final GeneratedColumn<bool> isAlt = GeneratedColumn<bool>(
@@ -3787,12 +4217,22 @@ class $ProgramSlotsTable extends ProgramSlots
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _plannedMinutesMeta = const VerificationMeta(
-    'plannedMinutes',
+  static const VerificationMeta _walkthroughMinutesMeta =
+      const VerificationMeta('walkthroughMinutes');
+  @override
+  late final GeneratedColumn<int> walkthroughMinutes = GeneratedColumn<int>(
+    'walkthrough_minutes',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _danceMinutesMeta = const VerificationMeta(
+    'danceMinutes',
   );
   @override
-  late final GeneratedColumn<int> plannedMinutes = GeneratedColumn<int>(
-    'planned_minutes',
+  late final GeneratedColumn<int> danceMinutes = GeneratedColumn<int>(
+    'dance_minutes',
     aliasedName,
     true,
     type: DriftSqlType.int,
@@ -3816,9 +4256,11 @@ class $ProgramSlotsTable extends ProgramSlots
     position,
     danceId,
     text_,
+    isPurgedDance,
     isAlt,
     guestCaller,
-    plannedMinutes,
+    walkthroughMinutes,
+    danceMinutes,
     performedAt,
   ];
   @override
@@ -3866,6 +4308,15 @@ class $ProgramSlotsTable extends ProgramSlots
         text_.isAcceptableOrUnknown(data['text']!, _text_Meta),
       );
     }
+    if (data.containsKey('is_purged_dance')) {
+      context.handle(
+        _isPurgedDanceMeta,
+        isPurgedDance.isAcceptableOrUnknown(
+          data['is_purged_dance']!,
+          _isPurgedDanceMeta,
+        ),
+      );
+    }
     if (data.containsKey('is_alt')) {
       context.handle(
         _isAltMeta,
@@ -3881,12 +4332,21 @@ class $ProgramSlotsTable extends ProgramSlots
         ),
       );
     }
-    if (data.containsKey('planned_minutes')) {
+    if (data.containsKey('walkthrough_minutes')) {
       context.handle(
-        _plannedMinutesMeta,
-        plannedMinutes.isAcceptableOrUnknown(
-          data['planned_minutes']!,
-          _plannedMinutesMeta,
+        _walkthroughMinutesMeta,
+        walkthroughMinutes.isAcceptableOrUnknown(
+          data['walkthrough_minutes']!,
+          _walkthroughMinutesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('dance_minutes')) {
+      context.handle(
+        _danceMinutesMeta,
+        danceMinutes.isAcceptableOrUnknown(
+          data['dance_minutes']!,
+          _danceMinutesMeta,
         ),
       );
     }
@@ -3928,6 +4388,10 @@ class $ProgramSlotsTable extends ProgramSlots
         DriftSqlType.string,
         data['${effectivePrefix}text'],
       ),
+      isPurgedDance: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_purged_dance'],
+      ),
       isAlt: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_alt'],
@@ -3936,9 +4400,13 @@ class $ProgramSlotsTable extends ProgramSlots
         DriftSqlType.string,
         data['${effectivePrefix}guest_caller'],
       ),
-      plannedMinutes: attachedDatabase.typeMapping.read(
+      walkthroughMinutes: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
-        data['${effectivePrefix}planned_minutes'],
+        data['${effectivePrefix}walkthrough_minutes'],
+      ),
+      danceMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}dance_minutes'],
       ),
       performedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
@@ -3959,9 +4427,11 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
   final int position;
   final String? danceId;
   final String? text_;
+  final bool? isPurgedDance;
   final bool isAlt;
   final String? guestCaller;
-  final int? plannedMinutes;
+  final int? walkthroughMinutes;
+  final int? danceMinutes;
   final DateTime? performedAt;
   const ProgramSlotRow({
     required this.id,
@@ -3969,9 +4439,11 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
     required this.position,
     this.danceId,
     this.text_,
+    this.isPurgedDance,
     required this.isAlt,
     this.guestCaller,
-    this.plannedMinutes,
+    this.walkthroughMinutes,
+    this.danceMinutes,
     this.performedAt,
   });
   @override
@@ -3986,12 +4458,18 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
     if (!nullToAbsent || text_ != null) {
       map['text'] = Variable<String>(text_);
     }
+    if (!nullToAbsent || isPurgedDance != null) {
+      map['is_purged_dance'] = Variable<bool>(isPurgedDance);
+    }
     map['is_alt'] = Variable<bool>(isAlt);
     if (!nullToAbsent || guestCaller != null) {
       map['guest_caller'] = Variable<String>(guestCaller);
     }
-    if (!nullToAbsent || plannedMinutes != null) {
-      map['planned_minutes'] = Variable<int>(plannedMinutes);
+    if (!nullToAbsent || walkthroughMinutes != null) {
+      map['walkthrough_minutes'] = Variable<int>(walkthroughMinutes);
+    }
+    if (!nullToAbsent || danceMinutes != null) {
+      map['dance_minutes'] = Variable<int>(danceMinutes);
     }
     if (!nullToAbsent || performedAt != null) {
       map['performed_at'] = Variable<DateTime>(performedAt);
@@ -4010,13 +4488,19 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
       text_: text_ == null && nullToAbsent
           ? const Value.absent()
           : Value(text_),
+      isPurgedDance: isPurgedDance == null && nullToAbsent
+          ? const Value.absent()
+          : Value(isPurgedDance),
       isAlt: Value(isAlt),
       guestCaller: guestCaller == null && nullToAbsent
           ? const Value.absent()
           : Value(guestCaller),
-      plannedMinutes: plannedMinutes == null && nullToAbsent
+      walkthroughMinutes: walkthroughMinutes == null && nullToAbsent
           ? const Value.absent()
-          : Value(plannedMinutes),
+          : Value(walkthroughMinutes),
+      danceMinutes: danceMinutes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(danceMinutes),
       performedAt: performedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(performedAt),
@@ -4034,9 +4518,11 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
       position: serializer.fromJson<int>(json['position']),
       danceId: serializer.fromJson<String?>(json['danceId']),
       text_: serializer.fromJson<String?>(json['text_']),
+      isPurgedDance: serializer.fromJson<bool?>(json['isPurgedDance']),
       isAlt: serializer.fromJson<bool>(json['isAlt']),
       guestCaller: serializer.fromJson<String?>(json['guestCaller']),
-      plannedMinutes: serializer.fromJson<int?>(json['plannedMinutes']),
+      walkthroughMinutes: serializer.fromJson<int?>(json['walkthroughMinutes']),
+      danceMinutes: serializer.fromJson<int?>(json['danceMinutes']),
       performedAt: serializer.fromJson<DateTime?>(json['performedAt']),
     );
   }
@@ -4049,9 +4535,11 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
       'position': serializer.toJson<int>(position),
       'danceId': serializer.toJson<String?>(danceId),
       'text_': serializer.toJson<String?>(text_),
+      'isPurgedDance': serializer.toJson<bool?>(isPurgedDance),
       'isAlt': serializer.toJson<bool>(isAlt),
       'guestCaller': serializer.toJson<String?>(guestCaller),
-      'plannedMinutes': serializer.toJson<int?>(plannedMinutes),
+      'walkthroughMinutes': serializer.toJson<int?>(walkthroughMinutes),
+      'danceMinutes': serializer.toJson<int?>(danceMinutes),
       'performedAt': serializer.toJson<DateTime?>(performedAt),
     };
   }
@@ -4062,9 +4550,11 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
     int? position,
     Value<String?> danceId = const Value.absent(),
     Value<String?> text_ = const Value.absent(),
+    Value<bool?> isPurgedDance = const Value.absent(),
     bool? isAlt,
     Value<String?> guestCaller = const Value.absent(),
-    Value<int?> plannedMinutes = const Value.absent(),
+    Value<int?> walkthroughMinutes = const Value.absent(),
+    Value<int?> danceMinutes = const Value.absent(),
     Value<DateTime?> performedAt = const Value.absent(),
   }) => ProgramSlotRow(
     id: id ?? this.id,
@@ -4072,11 +4562,15 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
     position: position ?? this.position,
     danceId: danceId.present ? danceId.value : this.danceId,
     text_: text_.present ? text_.value : this.text_,
+    isPurgedDance: isPurgedDance.present
+        ? isPurgedDance.value
+        : this.isPurgedDance,
     isAlt: isAlt ?? this.isAlt,
     guestCaller: guestCaller.present ? guestCaller.value : this.guestCaller,
-    plannedMinutes: plannedMinutes.present
-        ? plannedMinutes.value
-        : this.plannedMinutes,
+    walkthroughMinutes: walkthroughMinutes.present
+        ? walkthroughMinutes.value
+        : this.walkthroughMinutes,
+    danceMinutes: danceMinutes.present ? danceMinutes.value : this.danceMinutes,
     performedAt: performedAt.present ? performedAt.value : this.performedAt,
   );
   ProgramSlotRow copyWithCompanion(ProgramSlotsCompanion data) {
@@ -4086,13 +4580,19 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
       position: data.position.present ? data.position.value : this.position,
       danceId: data.danceId.present ? data.danceId.value : this.danceId,
       text_: data.text_.present ? data.text_.value : this.text_,
+      isPurgedDance: data.isPurgedDance.present
+          ? data.isPurgedDance.value
+          : this.isPurgedDance,
       isAlt: data.isAlt.present ? data.isAlt.value : this.isAlt,
       guestCaller: data.guestCaller.present
           ? data.guestCaller.value
           : this.guestCaller,
-      plannedMinutes: data.plannedMinutes.present
-          ? data.plannedMinutes.value
-          : this.plannedMinutes,
+      walkthroughMinutes: data.walkthroughMinutes.present
+          ? data.walkthroughMinutes.value
+          : this.walkthroughMinutes,
+      danceMinutes: data.danceMinutes.present
+          ? data.danceMinutes.value
+          : this.danceMinutes,
       performedAt: data.performedAt.present
           ? data.performedAt.value
           : this.performedAt,
@@ -4107,9 +4607,11 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
           ..write('position: $position, ')
           ..write('danceId: $danceId, ')
           ..write('text_: $text_, ')
+          ..write('isPurgedDance: $isPurgedDance, ')
           ..write('isAlt: $isAlt, ')
           ..write('guestCaller: $guestCaller, ')
-          ..write('plannedMinutes: $plannedMinutes, ')
+          ..write('walkthroughMinutes: $walkthroughMinutes, ')
+          ..write('danceMinutes: $danceMinutes, ')
           ..write('performedAt: $performedAt')
           ..write(')'))
         .toString();
@@ -4122,9 +4624,11 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
     position,
     danceId,
     text_,
+    isPurgedDance,
     isAlt,
     guestCaller,
-    plannedMinutes,
+    walkthroughMinutes,
+    danceMinutes,
     performedAt,
   );
   @override
@@ -4136,9 +4640,11 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
           other.position == this.position &&
           other.danceId == this.danceId &&
           other.text_ == this.text_ &&
+          other.isPurgedDance == this.isPurgedDance &&
           other.isAlt == this.isAlt &&
           other.guestCaller == this.guestCaller &&
-          other.plannedMinutes == this.plannedMinutes &&
+          other.walkthroughMinutes == this.walkthroughMinutes &&
+          other.danceMinutes == this.danceMinutes &&
           other.performedAt == this.performedAt);
 }
 
@@ -4148,9 +4654,11 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
   final Value<int> position;
   final Value<String?> danceId;
   final Value<String?> text_;
+  final Value<bool?> isPurgedDance;
   final Value<bool> isAlt;
   final Value<String?> guestCaller;
-  final Value<int?> plannedMinutes;
+  final Value<int?> walkthroughMinutes;
+  final Value<int?> danceMinutes;
   final Value<DateTime?> performedAt;
   final Value<int> rowid;
   const ProgramSlotsCompanion({
@@ -4159,9 +4667,11 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
     this.position = const Value.absent(),
     this.danceId = const Value.absent(),
     this.text_ = const Value.absent(),
+    this.isPurgedDance = const Value.absent(),
     this.isAlt = const Value.absent(),
     this.guestCaller = const Value.absent(),
-    this.plannedMinutes = const Value.absent(),
+    this.walkthroughMinutes = const Value.absent(),
+    this.danceMinutes = const Value.absent(),
     this.performedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -4171,9 +4681,11 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
     required int position,
     this.danceId = const Value.absent(),
     this.text_ = const Value.absent(),
+    this.isPurgedDance = const Value.absent(),
     this.isAlt = const Value.absent(),
     this.guestCaller = const Value.absent(),
-    this.plannedMinutes = const Value.absent(),
+    this.walkthroughMinutes = const Value.absent(),
+    this.danceMinutes = const Value.absent(),
     this.performedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -4185,9 +4697,11 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
     Expression<int>? position,
     Expression<String>? danceId,
     Expression<String>? text_,
+    Expression<bool>? isPurgedDance,
     Expression<bool>? isAlt,
     Expression<String>? guestCaller,
-    Expression<int>? plannedMinutes,
+    Expression<int>? walkthroughMinutes,
+    Expression<int>? danceMinutes,
     Expression<DateTime>? performedAt,
     Expression<int>? rowid,
   }) {
@@ -4197,9 +4711,11 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
       if (position != null) 'position': position,
       if (danceId != null) 'dance_id': danceId,
       if (text_ != null) 'text': text_,
+      if (isPurgedDance != null) 'is_purged_dance': isPurgedDance,
       if (isAlt != null) 'is_alt': isAlt,
       if (guestCaller != null) 'guest_caller': guestCaller,
-      if (plannedMinutes != null) 'planned_minutes': plannedMinutes,
+      if (walkthroughMinutes != null) 'walkthrough_minutes': walkthroughMinutes,
+      if (danceMinutes != null) 'dance_minutes': danceMinutes,
       if (performedAt != null) 'performed_at': performedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -4211,9 +4727,11 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
     Value<int>? position,
     Value<String?>? danceId,
     Value<String?>? text_,
+    Value<bool?>? isPurgedDance,
     Value<bool>? isAlt,
     Value<String?>? guestCaller,
-    Value<int?>? plannedMinutes,
+    Value<int?>? walkthroughMinutes,
+    Value<int?>? danceMinutes,
     Value<DateTime?>? performedAt,
     Value<int>? rowid,
   }) {
@@ -4223,9 +4741,11 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
       position: position ?? this.position,
       danceId: danceId ?? this.danceId,
       text_: text_ ?? this.text_,
+      isPurgedDance: isPurgedDance ?? this.isPurgedDance,
       isAlt: isAlt ?? this.isAlt,
       guestCaller: guestCaller ?? this.guestCaller,
-      plannedMinutes: plannedMinutes ?? this.plannedMinutes,
+      walkthroughMinutes: walkthroughMinutes ?? this.walkthroughMinutes,
+      danceMinutes: danceMinutes ?? this.danceMinutes,
       performedAt: performedAt ?? this.performedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -4249,14 +4769,20 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
     if (text_.present) {
       map['text'] = Variable<String>(text_.value);
     }
+    if (isPurgedDance.present) {
+      map['is_purged_dance'] = Variable<bool>(isPurgedDance.value);
+    }
     if (isAlt.present) {
       map['is_alt'] = Variable<bool>(isAlt.value);
     }
     if (guestCaller.present) {
       map['guest_caller'] = Variable<String>(guestCaller.value);
     }
-    if (plannedMinutes.present) {
-      map['planned_minutes'] = Variable<int>(plannedMinutes.value);
+    if (walkthroughMinutes.present) {
+      map['walkthrough_minutes'] = Variable<int>(walkthroughMinutes.value);
+    }
+    if (danceMinutes.present) {
+      map['dance_minutes'] = Variable<int>(danceMinutes.value);
     }
     if (performedAt.present) {
       map['performed_at'] = Variable<DateTime>(performedAt.value);
@@ -4275,9 +4801,11 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
           ..write('position: $position, ')
           ..write('danceId: $danceId, ')
           ..write('text_: $text_, ')
+          ..write('isPurgedDance: $isPurgedDance, ')
           ..write('isAlt: $isAlt, ')
           ..write('guestCaller: $guestCaller, ')
-          ..write('plannedMinutes: $plannedMinutes, ')
+          ..write('walkthroughMinutes: $walkthroughMinutes, ')
+          ..write('danceMinutes: $danceMinutes, ')
           ..write('performedAt: $performedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -13147,6 +13675,9 @@ class PublishedRecordsCompanion extends UpdateCompanion<PublishedRecordRow> {
 abstract class _$CompendiumDatabase extends GeneratedDatabase {
   _$CompendiumDatabase(QueryExecutor e) : super(e);
   $CompendiumDatabaseManager get managers => $CompendiumDatabaseManager(this);
+  late final $DifficultyLevelsTable difficultyLevels = $DifficultyLevelsTable(
+    this,
+  );
   late final $DancesTable dances = $DancesTable(this);
   late final $ChoreographersTable choreographers = $ChoreographersTable(this);
   late final $DanceAuthorsTable danceAuthors = $DanceAuthorsTable(this);
@@ -13194,6 +13725,7 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
+    difficultyLevels,
     dances,
     choreographers,
     danceAuthors,
@@ -13338,6 +13870,340 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
   ]);
 }
 
+typedef $$DifficultyLevelsTableCreateCompanionBuilder =
+    DifficultyLevelsCompanion Function({
+      required String id,
+      required String label,
+      required int position,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<DateTime?> existenceAt,
+      Value<int> rowid,
+    });
+typedef $$DifficultyLevelsTableUpdateCompanionBuilder =
+    DifficultyLevelsCompanion Function({
+      Value<String> id,
+      Value<String> label,
+      Value<int> position,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<DateTime?> existenceAt,
+      Value<int> rowid,
+    });
+
+final class $$DifficultyLevelsTableReferences
+    extends
+        BaseReferences<
+          _$CompendiumDatabase,
+          $DifficultyLevelsTable,
+          DifficultyLevelRow
+        > {
+  $$DifficultyLevelsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static MultiTypedResultKey<$DancesTable, List<DanceRow>> _dancesRefsTable(
+    _$CompendiumDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.dances,
+    aliasName: 'difficulty_levels__id__dances__level_id',
+  );
+
+  $$DancesTableProcessedTableManager get dancesRefs {
+    final manager = $$DancesTableTableManager(
+      $_db,
+      $_db.dances,
+    ).filter((f) => f.levelId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_dancesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$DifficultyLevelsTableFilterComposer
+    extends Composer<_$CompendiumDatabase, $DifficultyLevelsTable> {
+  $$DifficultyLevelsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get existenceAt => $composableBuilder(
+    column: $table.existenceAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> dancesRefs(
+    Expression<bool> Function($$DancesTableFilterComposer f) f,
+  ) {
+    final $$DancesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.dances,
+      getReferencedColumn: (t) => t.levelId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DancesTableFilterComposer(
+            $db: $db,
+            $table: $db.dances,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$DifficultyLevelsTableOrderingComposer
+    extends Composer<_$CompendiumDatabase, $DifficultyLevelsTable> {
+  $$DifficultyLevelsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get existenceAt => $composableBuilder(
+    column: $table.existenceAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DifficultyLevelsTableAnnotationComposer
+    extends Composer<_$CompendiumDatabase, $DifficultyLevelsTable> {
+  $$DifficultyLevelsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => column);
+
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get existenceAt => $composableBuilder(
+    column: $table.existenceAt,
+    builder: (column) => column,
+  );
+
+  Expression<T> dancesRefs<T extends Object>(
+    Expression<T> Function($$DancesTableAnnotationComposer a) f,
+  ) {
+    final $$DancesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.dances,
+      getReferencedColumn: (t) => t.levelId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DancesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.dances,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$DifficultyLevelsTableTableManager
+    extends
+        RootTableManager<
+          _$CompendiumDatabase,
+          $DifficultyLevelsTable,
+          DifficultyLevelRow,
+          $$DifficultyLevelsTableFilterComposer,
+          $$DifficultyLevelsTableOrderingComposer,
+          $$DifficultyLevelsTableAnnotationComposer,
+          $$DifficultyLevelsTableCreateCompanionBuilder,
+          $$DifficultyLevelsTableUpdateCompanionBuilder,
+          (DifficultyLevelRow, $$DifficultyLevelsTableReferences),
+          DifficultyLevelRow,
+          PrefetchHooks Function({bool dancesRefs})
+        > {
+  $$DifficultyLevelsTableTableManager(
+    _$CompendiumDatabase db,
+    $DifficultyLevelsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DifficultyLevelsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DifficultyLevelsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DifficultyLevelsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> label = const Value.absent(),
+                Value<int> position = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<DateTime?> existenceAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DifficultyLevelsCompanion(
+                id: id,
+                label: label,
+                position: position,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                existenceAt: existenceAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String label,
+                required int position,
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<DateTime?> existenceAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DifficultyLevelsCompanion.insert(
+                id: id,
+                label: label,
+                position: position,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                existenceAt: existenceAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$DifficultyLevelsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({dancesRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (dancesRefs) db.dances],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (dancesRefs)
+                    await $_getPrefetchedData<
+                      DifficultyLevelRow,
+                      $DifficultyLevelsTable,
+                      DanceRow
+                    >(
+                      currentTable: table,
+                      referencedTable: $$DifficultyLevelsTableReferences
+                          ._dancesRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$DifficultyLevelsTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).dancesRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.levelId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$DifficultyLevelsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$CompendiumDatabase,
+      $DifficultyLevelsTable,
+      DifficultyLevelRow,
+      $$DifficultyLevelsTableFilterComposer,
+      $$DifficultyLevelsTableOrderingComposer,
+      $$DifficultyLevelsTableAnnotationComposer,
+      $$DifficultyLevelsTableCreateCompanionBuilder,
+      $$DifficultyLevelsTableUpdateCompanionBuilder,
+      (DifficultyLevelRow, $$DifficultyLevelsTableReferences),
+      DifficultyLevelRow,
+      PrefetchHooks Function({bool dancesRefs})
+    >;
 typedef $$DancesTableCreateCompanionBuilder =
     DancesCompanion Function({
       required String id,
@@ -13352,7 +14218,7 @@ typedef $$DancesTableCreateCompanionBuilder =
       Value<String> callingNotes,
       Value<String> walkthrough,
       required DanceStatus status,
-      Value<DanceLevel?> level,
+      Value<String?> levelId,
       Value<bool> mixedLevel,
       Value<bool> mixer,
       Value<int?> rating,
@@ -13379,7 +14245,7 @@ typedef $$DancesTableUpdateCompanionBuilder =
       Value<String> callingNotes,
       Value<String> walkthrough,
       Value<DanceStatus> status,
-      Value<DanceLevel?> level,
+      Value<String?> levelId,
       Value<bool> mixedLevel,
       Value<bool> mixer,
       Value<int?> rating,
@@ -13396,6 +14262,24 @@ typedef $$DancesTableUpdateCompanionBuilder =
 final class $$DancesTableReferences
     extends BaseReferences<_$CompendiumDatabase, $DancesTable, DanceRow> {
   $$DancesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $DifficultyLevelsTable _levelIdTable(_$CompendiumDatabase db) => db
+      .difficultyLevels
+      .createAlias('dances__level_id__difficulty_levels__id');
+
+  $$DifficultyLevelsTableProcessedTableManager? get levelId {
+    final $_column = $_itemColumn<String>('level_id');
+    if ($_column == null) return null;
+    final manager = $$DifficultyLevelsTableTableManager(
+      $_db,
+      $_db.difficultyLevels,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_levelIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
 
   static MultiTypedResultKey<$DanceAuthorsTable, List<DanceAuthorRow>>
   _danceAuthorsRefsTable(_$CompendiumDatabase db) =>
@@ -13643,12 +14527,6 @@ class $$DancesTableFilterComposer
         builder: (column) => ColumnWithTypeConverterFilters(column),
       );
 
-  ColumnWithTypeConverterFilters<DanceLevel?, DanceLevel, String> get level =>
-      $composableBuilder(
-        column: $table.level,
-        builder: (column) => ColumnWithTypeConverterFilters(column),
-      );
-
   ColumnFilters<bool> get mixedLevel => $composableBuilder(
     column: $table.mixedLevel,
     builder: (column) => ColumnFilters(column),
@@ -13698,6 +14576,29 @@ class $$DancesTableFilterComposer
     column: $table.existenceAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  $$DifficultyLevelsTableFilterComposer get levelId {
+    final $$DifficultyLevelsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.levelId,
+      referencedTable: $db.difficultyLevels,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DifficultyLevelsTableFilterComposer(
+            $db: $db,
+            $table: $db.difficultyLevels,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   Expression<bool> danceAuthorsRefs(
     Expression<bool> Function($$DanceAuthorsTableFilterComposer f) f,
@@ -13994,11 +14895,6 @@ class $$DancesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get level => $composableBuilder(
-    column: $table.level,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<bool> get mixedLevel => $composableBuilder(
     column: $table.mixedLevel,
     builder: (column) => ColumnOrderings(column),
@@ -14048,6 +14944,29 @@ class $$DancesTableOrderingComposer
     column: $table.existenceAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  $$DifficultyLevelsTableOrderingComposer get levelId {
+    final $$DifficultyLevelsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.levelId,
+      referencedTable: $db.difficultyLevels,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DifficultyLevelsTableOrderingComposer(
+            $db: $db,
+            $table: $db.difficultyLevels,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$DancesTableAnnotationComposer
@@ -14111,9 +15030,6 @@ class $$DancesTableAnnotationComposer
   GeneratedColumnWithTypeConverter<DanceStatus, String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
 
-  GeneratedColumnWithTypeConverter<DanceLevel?, String> get level =>
-      $composableBuilder(column: $table.level, builder: (column) => column);
-
   GeneratedColumn<bool> get mixedLevel => $composableBuilder(
     column: $table.mixedLevel,
     builder: (column) => column,
@@ -14149,6 +15065,29 @@ class $$DancesTableAnnotationComposer
     column: $table.existenceAt,
     builder: (column) => column,
   );
+
+  $$DifficultyLevelsTableAnnotationComposer get levelId {
+    final $$DifficultyLevelsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.levelId,
+      referencedTable: $db.difficultyLevels,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DifficultyLevelsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.difficultyLevels,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   Expression<T> danceAuthorsRefs<T extends Object>(
     Expression<T> Function($$DanceAuthorsTableAnnotationComposer a) f,
@@ -14391,6 +15330,7 @@ class $$DancesTableTableManager
           (DanceRow, $$DancesTableReferences),
           DanceRow,
           PrefetchHooks Function({
+            bool levelId,
             bool danceAuthorsRefs,
             bool danceFiguresRefs,
             bool programSlotsRefs,
@@ -14427,7 +15367,7 @@ class $$DancesTableTableManager
                 Value<String> callingNotes = const Value.absent(),
                 Value<String> walkthrough = const Value.absent(),
                 Value<DanceStatus> status = const Value.absent(),
-                Value<DanceLevel?> level = const Value.absent(),
+                Value<String?> levelId = const Value.absent(),
                 Value<bool> mixedLevel = const Value.absent(),
                 Value<bool> mixer = const Value.absent(),
                 Value<int?> rating = const Value.absent(),
@@ -14452,7 +15392,7 @@ class $$DancesTableTableManager
                 callingNotes: callingNotes,
                 walkthrough: walkthrough,
                 status: status,
-                level: level,
+                levelId: levelId,
                 mixedLevel: mixedLevel,
                 mixer: mixer,
                 rating: rating,
@@ -14479,7 +15419,7 @@ class $$DancesTableTableManager
                 Value<String> callingNotes = const Value.absent(),
                 Value<String> walkthrough = const Value.absent(),
                 required DanceStatus status,
-                Value<DanceLevel?> level = const Value.absent(),
+                Value<String?> levelId = const Value.absent(),
                 Value<bool> mixedLevel = const Value.absent(),
                 Value<bool> mixer = const Value.absent(),
                 Value<int?> rating = const Value.absent(),
@@ -14504,7 +15444,7 @@ class $$DancesTableTableManager
                 callingNotes: callingNotes,
                 walkthrough: walkthrough,
                 status: status,
-                level: level,
+                levelId: levelId,
                 mixedLevel: mixedLevel,
                 mixer: mixer,
                 rating: rating,
@@ -14525,6 +15465,7 @@ class $$DancesTableTableManager
               .toList(),
           prefetchHooksCallback:
               ({
+                levelId = false,
                 danceAuthorsRefs = false,
                 danceFiguresRefs = false,
                 programSlotsRefs = false,
@@ -14548,7 +15489,38 @@ class $$DancesTableTableManager
                     if (provenanceRefs) db.provenance,
                     if (danceSourcesRefs) db.danceSources,
                   ],
-                  addJoins: null,
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (levelId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.levelId,
+                                    referencedTable: $$DancesTableReferences
+                                        ._levelIdTable(db),
+                                    referencedColumn: $$DancesTableReferences
+                                        ._levelIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
                   getPrefetchedDataCallback: (items) async {
                     return [
                       if (danceAuthorsRefs)
@@ -14761,6 +15733,7 @@ typedef $$DancesTableProcessedTableManager =
       (DanceRow, $$DancesTableReferences),
       DanceRow,
       PrefetchHooks Function({
+        bool levelId,
         bool danceAuthorsRefs,
         bool danceFiguresRefs,
         bool programSlotsRefs,
@@ -16578,9 +17551,11 @@ typedef $$ProgramSlotsTableCreateCompanionBuilder =
       required int position,
       Value<String?> danceId,
       Value<String?> text_,
+      Value<bool?> isPurgedDance,
       Value<bool> isAlt,
       Value<String?> guestCaller,
-      Value<int?> plannedMinutes,
+      Value<int?> walkthroughMinutes,
+      Value<int?> danceMinutes,
       Value<DateTime?> performedAt,
       Value<int> rowid,
     });
@@ -16591,9 +17566,11 @@ typedef $$ProgramSlotsTableUpdateCompanionBuilder =
       Value<int> position,
       Value<String?> danceId,
       Value<String?> text_,
+      Value<bool?> isPurgedDance,
       Value<bool> isAlt,
       Value<String?> guestCaller,
-      Value<int?> plannedMinutes,
+      Value<int?> walkthroughMinutes,
+      Value<int?> danceMinutes,
       Value<DateTime?> performedAt,
       Value<int> rowid,
     });
@@ -16666,6 +17643,11 @@ class $$ProgramSlotsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get isPurgedDance => $composableBuilder(
+    column: $table.isPurgedDance,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<bool> get isAlt => $composableBuilder(
     column: $table.isAlt,
     builder: (column) => ColumnFilters(column),
@@ -16676,8 +17658,13 @@ class $$ProgramSlotsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<int> get plannedMinutes => $composableBuilder(
-    column: $table.plannedMinutes,
+  ColumnFilters<int> get walkthroughMinutes => $composableBuilder(
+    column: $table.walkthroughMinutes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get danceMinutes => $composableBuilder(
+    column: $table.danceMinutes,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -16757,6 +17744,11 @@ class $$ProgramSlotsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isPurgedDance => $composableBuilder(
+    column: $table.isPurgedDance,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isAlt => $composableBuilder(
     column: $table.isAlt,
     builder: (column) => ColumnOrderings(column),
@@ -16767,8 +17759,13 @@ class $$ProgramSlotsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get plannedMinutes => $composableBuilder(
-    column: $table.plannedMinutes,
+  ColumnOrderings<int> get walkthroughMinutes => $composableBuilder(
+    column: $table.walkthroughMinutes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get danceMinutes => $composableBuilder(
+    column: $table.danceMinutes,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -16842,6 +17839,11 @@ class $$ProgramSlotsTableAnnotationComposer
   GeneratedColumn<String> get text_ =>
       $composableBuilder(column: $table.text_, builder: (column) => column);
 
+  GeneratedColumn<bool> get isPurgedDance => $composableBuilder(
+    column: $table.isPurgedDance,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<bool> get isAlt =>
       $composableBuilder(column: $table.isAlt, builder: (column) => column);
 
@@ -16850,8 +17852,13 @@ class $$ProgramSlotsTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<int> get plannedMinutes => $composableBuilder(
-    column: $table.plannedMinutes,
+  GeneratedColumn<int> get walkthroughMinutes => $composableBuilder(
+    column: $table.walkthroughMinutes,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get danceMinutes => $composableBuilder(
+    column: $table.danceMinutes,
     builder: (column) => column,
   );
 
@@ -16942,9 +17949,11 @@ class $$ProgramSlotsTableTableManager
                 Value<int> position = const Value.absent(),
                 Value<String?> danceId = const Value.absent(),
                 Value<String?> text_ = const Value.absent(),
+                Value<bool?> isPurgedDance = const Value.absent(),
                 Value<bool> isAlt = const Value.absent(),
                 Value<String?> guestCaller = const Value.absent(),
-                Value<int?> plannedMinutes = const Value.absent(),
+                Value<int?> walkthroughMinutes = const Value.absent(),
+                Value<int?> danceMinutes = const Value.absent(),
                 Value<DateTime?> performedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProgramSlotsCompanion(
@@ -16953,9 +17962,11 @@ class $$ProgramSlotsTableTableManager
                 position: position,
                 danceId: danceId,
                 text_: text_,
+                isPurgedDance: isPurgedDance,
                 isAlt: isAlt,
                 guestCaller: guestCaller,
-                plannedMinutes: plannedMinutes,
+                walkthroughMinutes: walkthroughMinutes,
+                danceMinutes: danceMinutes,
                 performedAt: performedAt,
                 rowid: rowid,
               ),
@@ -16966,9 +17977,11 @@ class $$ProgramSlotsTableTableManager
                 required int position,
                 Value<String?> danceId = const Value.absent(),
                 Value<String?> text_ = const Value.absent(),
+                Value<bool?> isPurgedDance = const Value.absent(),
                 Value<bool> isAlt = const Value.absent(),
                 Value<String?> guestCaller = const Value.absent(),
-                Value<int?> plannedMinutes = const Value.absent(),
+                Value<int?> walkthroughMinutes = const Value.absent(),
+                Value<int?> danceMinutes = const Value.absent(),
                 Value<DateTime?> performedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProgramSlotsCompanion.insert(
@@ -16977,9 +17990,11 @@ class $$ProgramSlotsTableTableManager
                 position: position,
                 danceId: danceId,
                 text_: text_,
+                isPurgedDance: isPurgedDance,
                 isAlt: isAlt,
                 guestCaller: guestCaller,
-                plannedMinutes: plannedMinutes,
+                walkthroughMinutes: walkthroughMinutes,
+                danceMinutes: danceMinutes,
                 performedAt: performedAt,
                 rowid: rowid,
               ),
@@ -23338,6 +24353,8 @@ typedef $$PublishedRecordsTableProcessedTableManager =
 class $CompendiumDatabaseManager {
   final _$CompendiumDatabase _db;
   $CompendiumDatabaseManager(this._db);
+  $$DifficultyLevelsTableTableManager get difficultyLevels =>
+      $$DifficultyLevelsTableTableManager(_db, _db.difficultyLevels);
   $$DancesTableTableManager get dances =>
       $$DancesTableTableManager(_db, _db.dances);
   $$ChoreographersTableTableManager get choreographers =>

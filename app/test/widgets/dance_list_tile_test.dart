@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/data/collection_tile_fields_scope.dart';
 import 'package:compendium_app/src/data/formation_colors_controller.dart';
 import 'package:compendium_app/src/data/formation_colors_scope.dart';
+import 'package:compendium_app/src/data/canonical_discouraged_terms_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/models/dance_list_entry.dart';
 import 'package:compendium_app/src/theme/set_list_accents.dart';
@@ -96,11 +97,58 @@ DanceListEntry _richEntry() => DanceListEntry(
   authorNames: const ['Alice'],
   tagNames: const ['tag-one'],
   tags: const [(id: 't1', name: 'tag-one', color: null)],
-  listCustomFields: const ['custom-val'],
+  listCustomFields: const [(label: 'Custom', value: 'custom-val')],
   callCounts: const DanceCallCounts(all: 7, performed: 7),
 );
 
 void main() {
+  testWidgets('shows the drill-in chevron by default', (tester) async {
+    await _pump(tester, _entry());
+
+    expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+  });
+
+  testWidgets('can hide the drill-in chevron without a trailing placeholder', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: DanceListTile(
+            entry: _entry(),
+            onTap: () {},
+            showChevron: false,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byIcon(Icons.chevron_right), findsNothing);
+    expect(tester.widget<ListTile>(find.byType(ListTile)).trailing, isNull);
+  });
+
+  testWidgets('hiding the chevron preserves row actions', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: DanceListTile(
+            entry: _entry(),
+            onTap: () {},
+            onDuplicate: () {},
+            showChevron: false,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byKey(const ValueKey('dance-actions-d1')), findsOneWidget);
+    expect(find.byIcon(Icons.chevron_right), findsNothing);
+  });
+
   testWidgets('rating indicator shows the value with a semantic label', (
     tester,
   ) async {
@@ -439,7 +487,7 @@ void main() {
         );
 
         // The formation label text is absent when the chip is hidden.
-        expect(find.text('Duple improper'), findsNothing);
+        expect(find.text('Improper'), findsNothing);
         expect(find.text('Rich Dance'), findsOneWidget);
       },
     );
@@ -476,7 +524,7 @@ void main() {
         expect(find.text('tag-one'), findsOneWidget);
         expect(find.text('Rich Dance'), findsOneWidget);
         expect(find.text('Alice'), findsOneWidget);
-        expect(find.text('Duple improper'), findsOneWidget);
+        expect(find.text('Improper'), findsOneWidget);
       },
     );
 
@@ -550,7 +598,7 @@ void main() {
       expect(find.text('tag-one'), findsNothing); // tags hidden
       expect(find.text('Alice'), findsNothing); // authors hidden
       // Spot-check a second chip group to confirm it's not just tags.
-      expect(find.text('Duple improper'), findsNothing); // formation hidden
+      expect(find.text('Improper'), findsNothing); // formation hidden
     });
   });
 
@@ -590,5 +638,39 @@ void main() {
       );
       expect(find.byKey(const ValueKey('mixer-chip')), findsNothing);
     });
+  });
+
+  testWidgets('canonicalizes custom-field values without rewriting labels', (
+    tester,
+  ) async {
+    final entry = DanceListEntry(
+      dance: Dance(
+        id: 'custom-field',
+        title: 'Custom Field Dance',
+        form: DanceForm.contra,
+        formation: const Formation(FormationShape.dupleImproper),
+        createdAt: _now,
+        updatedAt: _now,
+      ),
+      authorNames: const [],
+      tagNames: const [],
+      listCustomFields: const [(label: 'Group: Ladies', value: 'Gypsy')],
+      callCounts: const DanceCallCounts(all: 0, performed: 0),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: CanonicalDiscouragedTermsScope(
+            notifier: ValueNotifier<bool>(true),
+            child: DanceListTile(entry: entry, onTap: () {}),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Group: Ladies: Shoulder round'), findsOneWidget);
   });
 }

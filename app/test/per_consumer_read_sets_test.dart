@@ -229,7 +229,10 @@ void main() {
         program(
           venue: 'ignored free text',
           venueId: 'v1',
-          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          slots: [
+            ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+            ProgramSlot(id: 's2', position: 1, danceId: 'd1'),
+          ],
         ),
       );
 
@@ -248,12 +251,12 @@ void main() {
           ),
         ),
       );
-      expect(find.textContaining('Grange Hall'), findsOneWidget);
+      expect(find.text('Called 2 times at Grange Hall'), findsOneWidget);
 
       await renameVenue(tester, repos, 'The Grange');
 
-      expect(find.textContaining('The Grange'), findsOneWidget);
-      expect(find.textContaining('Grange Hall'), findsNothing);
+      expect(find.text('Called 2 times at The Grange'), findsOneWidget);
+      expect(find.text('Called 2 times at Grange Hall'), findsNothing);
     });
   });
 

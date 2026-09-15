@@ -58,8 +58,8 @@ Enter. Press Escape when you are done.
 
 ### Free-text entry
 
-Turn on **Free-text entry** in [Settings](./settings.md) ▸ **Defaults** ▸
-**Dance-authoring defaults** and the same box accepts a whole line at a time
+Turn on **Free-text entry** in [Settings](./settings.md) ▸ **Dialect** ▸
+**Dance details & shorthands** and the same box accepts a whole line at a time
 instead of one move at a time. Type `neighbor balance & swing` and you get both
 figures; type `16 circle left 3/4` and you get a sixteen-beat circle left
 three-quarters. The app tells you how many figures it added and invites you to
@@ -71,8 +71,8 @@ dropped.
 ### Figure shorthands
 
 If you type the same run of figures over and over, teach it to the app once.
-Choose **Figure shorthands** in **Settings** ▸ **Defaults** ▸ **Dance-authoring
-defaults**, then **New shorthand**:
+Choose **Figure shorthands** in **Settings** ▸ **Dialect** ▸ **Dance details &
+shorthands**, then **New shorthand**:
 
 - **Shorthand** is the exact line you will type during free-text entry. It is
   matched without regard to capitals, so `NBS` and `nbs` are the same shorthand.
@@ -128,6 +128,7 @@ Each figure row has a drag handle and an actions menu:
 | **Cut** | Lifts the figure out, ready to place elsewhere |
 | **Duplicate** | Adds an identical figure |
 | **Group with next as meanwhile** | Joins it to the next figure as simultaneous action |
+| **Group with next as modifier** | Makes the first figure the core and the next figure a modifier |
 | **Mark progression** / **Clear progression** | Sets or clears the progression |
 | **Delete** | Removes the figure |
 
@@ -144,9 +145,25 @@ thing while the middles do another. Choose **Group with next as meanwhile** and
 the two figures become a **meanwhile** group, labelled with how many **sides** it
 has and sharing one set of beats.
 
+You can also choose **Add meanwhile** from the list's **Add** menu to create the
+container first. The new container starts with the configured meanwhile defaults
+from [Settings](./settings.md#dance-authoring-defaults), or two stand-still sides
+when no valid defaults are available. Clear those defaults for two blank sides;
+one configured side gets one additional blank side. The container remains an
+editor draft until at least two sides contain enough information to save.
+
 Inside the group, each side is labelled **Side 1**, **Side 2**, and so on, and has
 its own controls to move up, move down, or **Remove this side**. **Add side** adds
 another concurrent figure, up to a maximum the app states when you reach it.
+
+### Modifier figures
+
+Use **Group with next as modifier** when one figure describes the main action
+and the next describes how it is performed. The first figure is the core and
+later figures are ordered modifiers. **Add modifier** creates an editable
+modifier container seeded from the modifier defaults in [Settings](./settings.md#dance-authoring-defaults).
+Modifier and meanwhile containers can alternate once for nested structure; the
+app rejects deeper or same-kind nesting.
 
 ### Keep an eye on the beats
 
@@ -196,9 +213,9 @@ Two things follow from that:
   **Update your saved snippet?** — choose **Use everywhere** to update the default,
   or **Just this dance** to keep the change local.
 
-Your whole library of snippets lives at **Settings** ▸ **Defaults** ▸
-**Walkthrough snippets**, where you can review and edit them. Editing one there
-updates the default used everywhere.
+Your whole library of snippets lives at **Settings** ▸ **Dialect** ▸ **Dance
+details & shorthands** ▸ **Walkthrough snippets**, where you can review and edit
+them. Editing one there updates the default used everywhere.
 
 ### More details
 

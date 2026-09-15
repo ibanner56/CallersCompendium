@@ -251,7 +251,8 @@ void main() {
             position: 0,
             danceId: 'd1',
             guestCaller: 'Bob',
-            plannedMinutes: 12,
+            walkthroughMinutes: 3,
+            danceMinutes: 9,
           ),
         ],
         createdAt: DateTime.utc(2026, 1, 1),
@@ -264,7 +265,8 @@ void main() {
       expect(loaded.caller, 'Alice');
       expect(loaded.dancerLevel, 'intermediate');
       expect(loaded.slots.single.guestCaller, 'Bob');
-      expect(loaded.slots.single.plannedMinutes, 12);
+      expect(loaded.slots.single.walkthroughMinutes, 3);
+      expect(loaded.slots.single.danceMinutes, 9);
     });
 
     test('round-trips the hideAlternates flag', () async {
@@ -310,6 +312,172 @@ void main() {
       await repo.update(updated);
       final loaded = await repo.getById(program.id);
       expect(loaded!.slots.map((s) => s.id), ['s2']);
+    });
+
+    test('conditionally clears only matching performed stamps', () async {
+      final actionAt = DateTime.utc(2026, 1, 1, 20);
+      final later = DateTime.utc(2026, 1, 1, 21);
+      final undoneAt = DateTime.utc(2026, 1, 1, 22);
+      final program = sampleProgram(
+        slots: [
+          ProgramSlot(
+            id: 's1',
+            position: 0,
+            text: 'Later edit',
+            performedAt: actionAt,
+          ),
+          ProgramSlot(
+            id: 's2',
+            position: 1,
+            text: 'Undo me',
+            performedAt: actionAt,
+          ),
+          ProgramSlot(
+            id: 's3',
+            position: 2,
+            text: 'Not part of action',
+            performedAt: actionAt,
+          ),
+          ProgramSlot(
+            id: 's4',
+            position: 3,
+            text: 'Prior history',
+            performedAt: DateTime.utc(2025, 12, 31, 20),
+          ),
+        ],
+      );
+      await repo.create(program);
+
+      await repo.update(
+        program.copyWith(
+          title: 'Edited while Undo was available',
+          slots: [
+            program.slots[0].copyWith(performedAt: later),
+            program.slots[1],
+            program.slots[2],
+            program.slots[3],
+          ],
+          updatedAt: later,
+        ),
+      );
+
+      expect(
+        await repo.clearPerformedAtIfMatches(
+          programId: program.id,
+          slotIds: ['s1', 's2'],
+          performedAt: actionAt,
+          updatedAt: undoneAt,
+        ),
+        1,
+      );
+
+      final loaded = await repo.getById(program.id);
+      expect(loaded!.title, 'Edited while Undo was available');
+      expect(loaded.updatedAt, undoneAt);
+      expect(loaded.slots[0].performedAt, later);
+      expect(loaded.slots[1].performedAt, isNull);
+      expect(loaded.slots[2].performedAt, actionAt);
+      expect(loaded.slots[3].performedAt, DateTime.utc(2025, 12, 31, 20));
+    });
+
+    test('stamps rollback strictly after the live program timestamp', () async {
+      final actionAt = DateTime.utc(2026, 1, 1, 20);
+      final current = DateTime.utc(2026, 1, 1, 21);
+      final program = sampleProgram(
+        updatedAt: current,
+        slots: [
+          ProgramSlot(
+            id: 's1',
+            position: 0,
+            text: 'Undo me',
+            performedAt: actionAt,
+          ),
+        ],
+      );
+      await repo.create(program);
+
+      expect(
+        await repo.clearPerformedAtIfMatches(
+          programId: program.id,
+          slotIds: ['s1'],
+          performedAt: actionAt,
+          updatedAt: current,
+        ),
+        1,
+      );
+
+      expect(
+        (await repo.getById(program.id))!.updatedAt,
+        current.add(storedTimestampTick),
+      );
+    });
+
+    test(
+      'conditionally clears large slot batches within one transaction',
+      () async {
+        final actionAt = DateTime.utc(2026, 1, 1, 20);
+        final program = sampleProgram(
+          slots: [
+            for (var i = 0; i < 1001; i++)
+              ProgramSlot(
+                id: 's$i',
+                position: i,
+                text: 'Slot $i',
+                performedAt: actionAt,
+              ),
+          ],
+        );
+        await repo.create(program);
+
+        expect(
+          await repo.clearPerformedAtIfMatches(
+            programId: program.id,
+            slotIds: program.slots.map((slot) => slot.id),
+            performedAt: actionAt,
+            updatedAt: DateTime.utc(2026, 1, 1, 21),
+          ),
+          1001,
+        );
+
+        final loaded = await repo.getById(program.id);
+        expect(loaded!.slots.every((slot) => slot.performedAt == null), isTrue);
+      },
+    );
+
+    test('does not roll back a soft-deleted program', () async {
+      final actionAt = DateTime.utc(2026, 1, 1, 20);
+      final deletedAt = DateTime.utc(2026, 1, 1, 21);
+      final program = sampleProgram(
+        slots: [
+          ProgramSlot(
+            id: 's1',
+            position: 0,
+            text: 'Keep history',
+            performedAt: actionAt,
+          ),
+        ],
+      );
+      await repo.create(program);
+      await repo.softDelete(program.id, at: deletedAt);
+      final beforeRollback = await repo.getById(
+        program.id,
+        includeDeleted: true,
+      );
+
+      expect(
+        await repo.clearPerformedAtIfMatches(
+          programId: program.id,
+          slotIds: ['s1'],
+          performedAt: actionAt,
+          updatedAt: DateTime.utc(2026, 1, 1, 22),
+        ),
+        0,
+      );
+
+      final loaded = await repo.getById(program.id, includeDeleted: true);
+      expect(loaded!.deletedAt, beforeRollback!.deletedAt);
+      expect(loaded.updatedAt, beforeRollback.updatedAt);
+      expect(loaded.slots.single.performedAt, actionAt);
     });
   });
 

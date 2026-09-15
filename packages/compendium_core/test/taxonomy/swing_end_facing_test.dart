@@ -129,28 +129,28 @@ void main() {
           swing(who: 'partners', endFacing: 'up'),
           Dialect.canonical,
         ),
-        'partner swing facing up the hall',
+        'partner swing, end facing up the hall',
       );
       expect(
         renderer.render(
           swing(who: 'partners', endFacing: 'down'),
           Dialect.canonical,
         ),
-        'partner swing facing down the hall',
+        'partner swing, end facing down the hall',
       );
       expect(
         renderer.render(
           swing(who: 'partners', endFacing: 'out'),
           Dialect.canonical,
         ),
-        'partner swing facing out of the set',
+        'partner swing, end facing out of the set',
       );
       expect(
         renderer.render(
           swing(who: 'partners', endFacing: 'along'),
           Dialect.canonical,
         ),
-        'partner swing facing along the set',
+        'partner swing, end facing along the set',
       );
     });
 
@@ -158,11 +158,11 @@ void main() {
       final f = swing(who: 'partners', endFacing: 'up');
       expect(
         renderer.renderVerbose(f, Dialect.canonical),
-        'partner swing facing up the hall',
+        'partner swing, end facing up the hall',
       );
       expect(
         renderer.renderSummary(f, Dialect.canonical),
-        'partner swing facing up the hall',
+        'partner swing, end facing up the hall',
       );
     });
 
@@ -172,7 +172,7 @@ void main() {
           swing(who: 'neighbors', prefix: 'balance', endFacing: 'down'),
           Dialect.canonical,
         ),
-        'neighbor balance & swing facing down the hall',
+        'neighbor balance & swing, end facing down the hall',
       );
     });
 
@@ -182,7 +182,7 @@ void main() {
           swing(who: 'role1s', endFacing: 'up'),
           Dialect.larksRobins,
         ),
-        'larks swing facing up the hall',
+        'larks swing, end facing up the hall',
       );
     });
 
@@ -220,7 +220,7 @@ void main() {
           ),
           Dialect.canonical,
         );
-        expect(line, 'partner (assumed) swing facing up the hall');
+        expect(line, 'partner (assumed) swing, end facing up the hall');
       },
     );
   });

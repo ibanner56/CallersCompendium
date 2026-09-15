@@ -73,7 +73,7 @@ void main() {
       final dance = drafts.single.dance;
 
       expect(dance.title, 'Simplicity Swing');
-      expect(dance.level, DanceLevel.intermediate);
+      expect(dance.difficultyLevelId, DifficultyLevel.intermediateId);
       expect(dance.mixedLevel, isFalse);
       expect(dance.formation.shape, FormationShape.dupleImproper);
       expect(dance.progression, Progression.single);
@@ -107,6 +107,20 @@ void main() {
       // Most lines now structure, so the dance is no longer fully custom.
       expect(draft.quality.isFullyCustom, isFalse);
       expect(draft.quality.score, greaterThan(0.0));
+    });
+
+    test('maps shipped external difficulty labels to their fixed IDs', () {
+      for (final (label, id) in [
+        ('Beginner', DifficultyLevel.beginnerId),
+        ('Intermediate', DifficultyLevel.intermediateId),
+        ('Advanced', DifficultyLevel.advancedId),
+      ]) {
+        final mapped = mapCallersCompanionDance(
+          CcDanceRecord(name: 'Mapped $label', level: label),
+        );
+        expect(mapped.dance.difficultyLevelId, id, reason: label);
+        expect(mapped.issues, isEmpty, reason: label);
+      }
     });
 
     test('author name surfaces on the draft authorNames', () async {
@@ -184,7 +198,7 @@ A1 (16) Circle left and right
         expect(drafts, hasLength(2));
         expect(drafts[0].dance.title, 'Simplicity Swing');
         expect(drafts[1].dance.title, 'Other Dance');
-        expect(drafts[1].dance.level, DanceLevel.advanced);
+        expect(drafts[1].dance.difficultyLevelId, DifficultyLevel.advancedId);
       },
     );
 
@@ -197,7 +211,7 @@ Formation: Hexagon
 A1 (8) Do the thing
 ''';
       final draft = (await _importAll(adapter, text)).single;
-      expect(draft.dance.level, isNull);
+      expect(draft.dance.difficultyLevelId, isNull);
       expect(draft.dance.formation.shape, FormationShape.other);
       expect(draft.dance.formation.detail, 'Hexagon');
       expect(
@@ -214,7 +228,7 @@ Level: Mixed
 A1 (8) Do the thing
 ''';
       final draft = (await _importAll(adapter, text)).single;
-      expect(draft.dance.level, isNull);
+      expect(draft.dance.difficultyLevelId, isNull);
       expect(draft.dance.mixedLevel, isTrue);
     });
 
