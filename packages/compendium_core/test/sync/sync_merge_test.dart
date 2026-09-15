@@ -359,6 +359,30 @@ void main() {
     },
   );
 
+  test('fresh attach deduplicates citations by published source', () {
+    final older = _danceCandidate(
+      'a-older',
+      'Shared dance',
+      sourceCitations: const [
+        {'sourceId': 'source-1', 'page': '1'},
+      ],
+    );
+    final newer = _danceCandidate(
+      'z-newer',
+      'The shared dance',
+      sourceCitations: const [
+        {'sourceId': 'source-1', 'page': '2'},
+      ],
+      updatedSeconds: 1,
+    );
+
+    final plan = planFreshAttachDedupe([older, newer]);
+
+    expect(plan.merges.single.winner.blob.body['sourceCitations'], [
+      {'sourceId': 'source-1', 'page': '2'},
+    ]);
+  });
+
   test('keeps an unresolved baseline entry retryable', () {
     final address = _setting('custom_dialects', 'local').address;
     final plan = engine.plan(
@@ -763,6 +787,7 @@ SyncMergeCandidate _danceCandidate(
   int? rating,
   List<String> authors = const [],
   List<String> tags = const [],
+  List<Object?> sourceCitations = const [],
   int updatedSeconds = 0,
   bool deleted = false,
 }) {
@@ -795,7 +820,7 @@ SyncMergeCandidate _danceCandidate(
         'customFields': const [],
         'tagIds': tags,
         'links': const [],
-        'sourceCitations': const [],
+        'sourceCitations': sourceCitations,
         'provenance': null,
         'composedOn': null,
         'revisedOn': null,

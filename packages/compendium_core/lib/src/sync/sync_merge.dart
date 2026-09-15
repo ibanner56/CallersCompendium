@@ -291,7 +291,9 @@ Map<String, Object?> _mergeDanceBodies(
   body['sourceCitations'] = _unionObjects(
     candidates,
     'sourceCitations',
-    keyOf: canonicalJson,
+    keyOf: (value) => value is Map && value['sourceId'] is String
+        ? value['sourceId']! as String
+        : canonicalJson(value),
   );
   return body;
 }

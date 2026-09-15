@@ -734,6 +734,52 @@ void main() {
       expect(transport.manifestPuts, 1);
       expect(store.baselineReplacements, 1);
       expect(store.baselineAdvances, 1);
+      expect(store.epochResets, 1);
+    },
+  );
+
+  test(
+    'fresh attach excludes pending live rows from the replacement baseline',
+    () async {
+      final live = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'live'),
+      );
+      final tombstoneBlob = SyncRecordBlob(
+        kind: SyncRecordKind.setting,
+        id: live.blob.id,
+        updatedAt: live.blob.updatedAt.add(const Duration(minutes: 1)),
+        deletedAt: live.blob.updatedAt.add(const Duration(minutes: 1)),
+        existenceAt: live.blob.existenceAt,
+        body: live.blob.body,
+      );
+      final store = _FakeStore(
+        snapshotBuilder: (snapshotNumber) {
+          final epoch = snapshotNumber >= 3 ? 'epoch-1' : null;
+          return SyncCoordinatorSnapshot(
+            epoch: epoch,
+            previouslyUsed: false,
+            local: snapshotNumber >= 3 ? const {} : {live.address: live},
+            baseline: const {},
+            publication: snapshotNumber >= 3
+                ? {live.address: SyncMergeCandidate.fromBlob(tombstoneBlob)}
+                : {live.address: live},
+            pendingLive: snapshotNumber >= 3 ? {live.address: live} : const {},
+            pending: snapshotNumber >= 3 ? {live.address} : const {},
+          );
+        },
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: _FakeTransport(),
+      );
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(store.baselineReplacements, 1);
+      expect(store.replacedEntries, isEmpty);
     },
   );
 
@@ -1442,6 +1488,8 @@ final class _FakeStore implements SyncCoordinatorStore {
   int snapshotCalls = 0;
   int baselineAdvances = 0;
   int baselineReplacements = 0;
+  int epochResets = 0;
+  final List<SyncRecordAddress> replacedEntries = [];
 
   @override
   Future<SyncCoordinatorSnapshot> snapshot() async {
@@ -1541,9 +1589,17 @@ final class _FakeStore implements SyncCoordinatorStore {
     required Iterable<SyncBaselineEntry> entries,
   }) async {
     baselineReplacements++;
-    advancedEntries.addAll(
-      entries.map((entry) => (kind: entry.kind, recordId: entry.recordId)),
+    final addresses = entries.map(
+      (entry) => (kind: entry.kind, recordId: entry.recordId),
     );
+    replacedEntries.addAll(addresses);
+    advancedEntries.addAll(addresses);
+  }
+
+  @override
+  Future<void> resetEpoch({required String epoch}) async {
+    epochResets++;
+    lifecycle.add('resetEpoch');
   }
 
   @override

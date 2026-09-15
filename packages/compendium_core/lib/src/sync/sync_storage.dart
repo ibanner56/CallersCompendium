@@ -522,10 +522,6 @@ final class CompendiumSyncStorage
       existenceAt: merge.winner.blob.existenceAt,
       sourceBlob: merge.winner.blob,
     );
-    final report = await writeWithReport(record);
-    if (report != null) {
-      throw StateError(report.message);
-    }
     for (final losingId in merge.losingIds) {
       await _rewriteLocalReferences(
         SyncRecordKind.dance,
@@ -544,6 +540,10 @@ final class CompendiumSyncStorage
         survivingId: merge.winner.blob.id,
       );
       await _deleteIdentityRow(SyncRecordKind.dance, losingId);
+    }
+    final report = await writeWithReport(record);
+    if (report != null) {
+      throw StateError(report.message);
     }
     await _reconcileDanceReviewQueue(
       survivorId: merge.winner.blob.id,

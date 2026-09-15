@@ -93,6 +93,13 @@ void main() {
         title: 'The Shared Dance',
         walkthrough: 'newer loser',
         rating: 5,
+        links: [
+          DanceLink(
+            id: 'loser-owned-link',
+            kind: LinkKind.relatedDance,
+            targetDanceId: survivor.id,
+          ),
+        ],
         createdAt: stamp,
         updatedAt: stamp.add(const Duration(minutes: 1)),
       );
@@ -133,6 +140,7 @@ void main() {
       final merged = await repositories.dances.getById(survivor.id);
       expect(merged!.walkthrough, 'newer loser');
       expect(merged.rating, 5);
+      expect(merged.links.map((link) => link.id), ['loser-owned-link']);
       expect(
         await repositories.syncLocal.resolveAlias(
           kind: SyncRecordKind.dance,

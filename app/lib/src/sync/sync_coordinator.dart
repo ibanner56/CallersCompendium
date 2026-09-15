@@ -100,6 +100,8 @@ abstract interface class SyncCoordinatorStore
     required Iterable<SyncBaselineEntry> entries,
   });
 
+  Future<void> resetEpoch({required String epoch});
+
   Future<void> advanceBaseline({
     required String epoch,
     required Iterable<SyncBaselineEntry> entries,
@@ -199,6 +201,10 @@ final class CompendiumSyncCoordinatorStore
     epoch: epoch,
     entries: entries,
   );
+
+  @override
+  Future<void> resetEpoch({required String epoch}) =>
+      storage.repositories.syncLocal.resetEpoch(epoch: epoch);
 
   @override
   Future<void> advanceBaseline({
@@ -706,7 +712,7 @@ class SyncCoordinator {
     SyncStoreResult? initialStore,
     bool continuation = false,
   }) async {
-    final snapshot = await store.snapshot();
+    var snapshot = await store.snapshot();
     final storeResult =
         initialStore ??
         await transport.getStore(previouslyUsed: snapshot.previouslyUsed);
@@ -736,6 +742,10 @@ class SyncCoordinator {
         snapshot.epoch == null || snapshot.epoch != metadata.epoch;
     if (continuation && freshAttach) {
       return const SyncPassResult(SyncPassStatus.staleEpoch);
+    }
+    if (freshAttach) {
+      await store.resetEpoch(epoch: metadata.epoch);
+      snapshot = await store.snapshot();
     }
 
     final normalizedLocal = await _normalizeCandidates(
@@ -886,11 +896,8 @@ class SyncCoordinator {
     if (freshAttach) {
       final attachedSnapshot = await store.snapshot();
       final attachedLocal = await _normalizeCandidates(attachedSnapshot.local);
-      final attachedPendingLive = await _normalizeCandidates(
-        attachedSnapshot.pendingLive,
-      );
       final baselineEntries = <SyncBaselineEntry>[
-        for (final entry in {...attachedLocal, ...attachedPendingLive}.entries)
+        for (final entry in attachedLocal.entries)
           if (entry.value != null)
             SyncBaselineEntry(
               kind: entry.key.kind,
