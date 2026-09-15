@@ -523,6 +523,10 @@ class SyncCoordinator {
     }
     final existing = _confirmation;
     if (existing != null) return existing;
+    final inFlight = _inFlight;
+    if (inFlight != null) {
+      return inFlight.then((_) => confirmReplacement());
+    }
     if (!_replacementPending && !_replacementCreated) {
       return Future.value(
         const SyncPassResult(
@@ -534,6 +538,8 @@ class SyncCoordinator {
     }
     final confirmation = _confirmReplacement();
     _confirmation = confirmation;
+    _inFlight = confirmation;
+    _watch(confirmation);
     confirmation.then<void>(
       (result) {
         if (result.status != SyncPassStatus.freshAttachRequired &&
@@ -618,8 +624,12 @@ class SyncCoordinator {
     );
   }
 
-  Future<SyncPassResult> _runStartedPass() async {
-    final result = await (passOperation?.call() ?? passRunner.run(_runPass));
+  Future<SyncPassResult> _runStartedPass({
+    SyncStoreResult? initialStore,
+  }) async {
+    final result =
+        await (passOperation?.call() ??
+            passRunner.run(() => _runPass(initialStore: initialStore)));
     if (result.status == SyncPassStatus.replacementRequired) {
       _emitReplacementRequired();
     }
@@ -1066,7 +1076,7 @@ class SyncCoordinator {
       if (onFreshAttach != null) await onFreshAttach!(attached.response);
     }
     _replacementPending = false;
-    final result = await _runPass(initialStore: attached);
+    final result = await _runStartedPass(initialStore: attached);
     if (result.status == SyncPassStatus.completed) {
       _replacementCreated = false;
       _paused = false;

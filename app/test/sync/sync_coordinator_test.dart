@@ -222,6 +222,65 @@ void main() {
     expect(transport.storeCalls, 3);
   });
 
+  test(
+    'replacement confirmation keeps the isolated pass single-flight gate',
+    () async {
+      final release = Completer<void>();
+      final passStarted = Completer<void>();
+      var operationCalls = 0;
+      var activeOperations = 0;
+      var maximumActiveOperations = 0;
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(),
+        transport: _FakeTransport(),
+        passOperation: () async {
+          operationCalls++;
+          activeOperations++;
+          maximumActiveOperations = maximumActiveOperations < activeOperations
+              ? activeOperations
+              : maximumActiveOperations;
+          try {
+            if (operationCalls == 1) {
+              return const SyncPassResult(SyncPassStatus.replacementRequired);
+            }
+            if (operationCalls == 2) {
+              passStarted.complete();
+              await release.future;
+            }
+            return const SyncPassResult(SyncPassStatus.completed);
+          } finally {
+            activeOperations--;
+          }
+        },
+      );
+      addTearDown(() async {
+        if (!release.isCompleted) release.complete();
+        await coordinator.dispose();
+      });
+
+      expect(
+        (await coordinator.onAppStart()).status,
+        SyncPassStatus.replacementRequired,
+      );
+      final confirmation = coordinator.confirmReplacement();
+      await passStarted.future;
+
+      var queuedFinished = false;
+      final queued = coordinator.syncNow();
+      queued.then((_) => queuedFinished = true);
+      await Future<void>.delayed(Duration.zero);
+      expect(queuedFinished, isFalse);
+
+      release.complete();
+      expect((await confirmation).status, SyncPassStatus.completed);
+      expect((await queued).status, SyncPassStatus.completed);
+      expect(operationCalls, 3);
+      expect(maximumActiveOperations, 1);
+    },
+  );
+
   test('create conflict reports and stops without fresh attach', () async {
     final transport = _FakeTransport(
       missingKind: SyncStoreMissingKind.replacementRequired,

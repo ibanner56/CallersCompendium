@@ -192,7 +192,7 @@ void main() {
     final pairs = [
       (
         _danceCandidate('z-nfc', 'The Résumé'),
-        _danceCandidate('a-nfd', normalizeShareableText('re\u0301sume\u0301')),
+        _danceCandidate('a-nfd', 're\u0301sume\u0301'),
       ),
       (
         _danceCandidate('z-case', 'NICE COMBINATION'),
