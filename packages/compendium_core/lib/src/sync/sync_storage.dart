@@ -466,6 +466,7 @@ final class CompendiumSyncStorage
     for (final merge in plan.merges) {
       await _applyDanceDedupeMerge(merge, plan.aliases);
     }
+    await rebuildDerivedIndexes();
     return SyncFreshAttachDedupeResult(
       duplicateCount: plan.merges.fold<int>(
         0,
@@ -513,6 +514,12 @@ final class CompendiumSyncStorage
     SyncDanceDedupeMerge merge,
     Map<String, String> aliases,
   ) async {
+    final loserDeviceLocalCustomFields = <CustomFieldValue>[];
+    for (final losingId in merge.losingIds) {
+      loserDeviceLocalCustomFields.addAll(
+        await repositories.dances.readDeviceLocalCustomFields(losingId),
+      );
+    }
     final body = _rewriteDanceReferences(merge.winner.blob.body, aliases);
     final record = SyncApplyRecord(
       address: merge.winner.address,
@@ -540,16 +547,24 @@ final class CompendiumSyncStorage
         survivingId: merge.winner.blob.id,
       );
     }
-    await _deleteDanceFtsRows(merge.losingIds);
     for (final losingId in merge.losingIds) {
       await (_db.delete(
         _db.dances,
       )..where((table) => table.id.equals(losingId))).go();
     }
-    final report = await writeWithReport(record);
-    if (report != null) {
-      throw StateError(report.message);
-    }
+    final entity = _decodeEntity(record.address.kind, record.body) as Dance;
+    await repositories.dances.writeFromSync(
+      entity,
+      rebuildDerived: false,
+      additionalDeviceLocalCustomFields: loserDeviceLocalCustomFields,
+    );
+    await _restoreTimestamps(
+      kind: record.address.kind,
+      id: record.address.recordId,
+      updatedAt: record.updatedAt,
+      deletedAt: record.deletedAt,
+      existenceAt: record.existenceAt,
+    );
     await _reconcileDanceReviewQueue(
       survivorId: merge.winner.blob.id,
       losingIds: merge.losingIds.toSet(),
@@ -659,32 +674,6 @@ final class CompendiumSyncStorage
       current = aliases[current]!;
     }
     return current;
-  }
-
-  Future<void> _deleteDanceFtsRows(Iterable<String> danceIds) async {
-    final ids = danceIds.toSet();
-    if (ids.isEmpty) return;
-    const tempTable = '_sync_dedupe_losing_dances';
-    await _db.customStatement(
-      'CREATE TEMP TABLE IF NOT EXISTS $tempTable '
-      '(id TEXT PRIMARY KEY)',
-    );
-    try {
-      await _db.customStatement('DELETE FROM $tempTable');
-      for (final id in ids) {
-        await _db.customStatement('INSERT INTO $tempTable (id) VALUES (?)', [
-          id,
-        ]);
-      }
-      for (final table in const ['dance_fts', 'dance_substring_fts']) {
-        await _db.customStatement(
-          'DELETE FROM $table '
-          'WHERE dance_id IN (SELECT id FROM $tempTable)',
-        );
-      }
-    } finally {
-      await _db.customStatement('DROP TABLE IF EXISTS $tempTable');
-    }
   }
 
   /// Revalidates pending tombstones against the complete current library.

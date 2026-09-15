@@ -144,7 +144,9 @@ final class CompendiumSyncCoordinatorStore
 
   @override
   Future<Map<SyncRecordAddress, SyncMergeCandidate?>> snapshotCandidates() =>
-      storage.snapshot().then((snapshot) => snapshot.local);
+      storage.snapshot().then(
+        (snapshot) => {...snapshot.local, ...snapshot.pendingLive},
+      );
 
   @override
   Future<SyncRecordAddress> resolveAlias(SyncRecordAddress address) async {
@@ -891,17 +893,16 @@ class SyncCoordinator {
       for (final decision in plan.downloads)
         if (decision.winner != null) decision.winner!,
     ];
+    final expectedCandidates = <SyncRecordAddress, SyncMergeCandidate?>{
+      ...normalizedLocal,
+      ...normalizedPendingLive,
+    };
     final expectedWireHashes = <SyncRecordAddress, String?>{
-      for (final entry in normalizedLocal.entries)
-        entry.key: entry.value?.wireHash,
-      for (final entry in normalizedPendingLive.entries)
+      for (final entry in expectedCandidates.entries)
         entry.key: entry.value?.wireHash,
       for (final decision in plan.downloads)
         if (decision.winner != null)
-          decision.address:
-              (normalizedLocal[decision.address] ??
-                      normalizedPendingLive[decision.address])
-                  ?.wireHash,
+          decision.address: expectedCandidates[decision.address]?.wireHash,
     };
     final applyResult = await _applyEngine.apply(
       candidates: downloads,

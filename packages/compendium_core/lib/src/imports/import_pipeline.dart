@@ -7,7 +7,6 @@ import '../model/dance.dart';
 import '../model/dance_link.dart';
 import '../model/difficulty_level.dart';
 import '../model/enums.dart';
-import '../model/figure.dart';
 import '../model/provenance.dart';
 import '../storage/repositories/choreographer_repository.dart';
 import '../storage/repositories/dance_repository.dart';
@@ -18,12 +17,6 @@ import 'import_error.dart';
 import 'raw_record.dart';
 import 'source_adapter.dart';
 import 'structured_draft.dart';
-
-/// Value-equality for the choreography-body comparison in
-/// [ImportPipeline.autoResolveAmbiguous]. [Figure] and `String` both carry
-/// structural equality, so element-wise list comparison is exact.
-const ListEquality<Figure> _figureListEquality = ListEquality<Figure>();
-const ListEquality<String> _stringListEquality = ListEquality<String>();
 
 /// The commit action chosen (or defaulted) for one record of a batch.
 enum CommitAction {
@@ -915,17 +908,10 @@ class ImportPipeline {
   /// (authorIds, tags, custom fields, links, citations) so a bundle received
   /// on another device still matches by its intrinsic content.
   bool _choreographyEquals(Dance a, Dance b) =>
-      a.form == b.form &&
-      a.formation == b.formation &&
-      a.progression == b.progression &&
-      a.phraseStructure == b.phraseStructure &&
-      _figureListEquality.equals(a.figures, b.figures) &&
-      a.hook == b.hook &&
-      a.callingNotes == b.callingNotes &&
-      a.difficultyLevelId == b.difficultyLevelId &&
-      a.mixedLevel == b.mixedLevel &&
-      a.mixer == b.mixer &&
-      _stringListEquality.equals(a.tunes, b.tunes);
+      const DeepCollectionEquality().equals(
+        choreographyFingerprintForDance(a),
+        choreographyFingerprintForDance(b),
+      );
 
   Provenance _provenanceFrom(StructuredDraft draft, DateTime now) {
     final raw = draft.raw;

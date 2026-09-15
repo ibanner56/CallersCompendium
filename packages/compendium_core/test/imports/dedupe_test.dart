@@ -2,6 +2,24 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test(
+    'import and sync choreography fingerprints share one field contract',
+    () {
+      final dance = Dance(
+        id: 'fingerprint-dance',
+        title: 'Fingerprint dance',
+        createdAt: DateTime.utc(2026, 7, 15, 12),
+        updatedAt: DateTime.utc(2026, 7, 15, 12),
+      );
+      final body = syncBodyForEntity(SyncRecordKind.dance, dance);
+
+      expect(
+        choreographyFingerprintForDance(dance),
+        choreographyFingerprint(body),
+      );
+    },
+  );
+
   group('normalization', () {
     test('title folds case, punctuation, diacritics, articles', () {
       expect(normalizeTitle('The Nice Combination!'), 'nice combination');

@@ -180,36 +180,84 @@ void main() {
     },
   );
 
-  test('fresh attach dedupe batches FTS cleanup for losing dances', () async {
-    final counter = FtsDeleteByDanceCounter();
-    await db.close();
-    final countingDb = openCountingTestDatabase(counter);
-    db = countingDb;
-    final countingRepositories = CompendiumRepositories(
-      countingDb,
-      contraTaxonomy,
-    );
-    final countingStorage = CompendiumSyncStorage(countingRepositories);
-    final stamp = DateTime.utc(2026, 7, 15, 12);
-    for (var i = 0; i < 4; i++) {
-      await countingRepositories.dances.create(
-        Dance(
-          id: i == 0 ? 'a-survivor' : 'z-loser-$i',
-          title: 'Shared dance',
-          createdAt: stamp,
-          updatedAt: stamp.add(Duration(seconds: i)),
-        ),
+  test(
+    'fresh attach dedupe rebuilds FTS once across duplicate groups',
+    () async {
+      final counter = FtsDeleteByDanceCounter();
+      await db.close();
+      final countingDb = openCountingTestDatabase(counter);
+      db = countingDb;
+      final countingRepositories = CompendiumRepositories(
+        countingDb,
+        contraTaxonomy,
       );
-    }
-    counter.count = 0;
+      final countingStorage = CompendiumSyncStorage(countingRepositories);
+      final stamp = DateTime.utc(2026, 7, 15, 12);
+      for (var i = 0; i < 6; i++) {
+        final group = i ~/ 2;
+        await countingRepositories.dances.create(
+          Dance(
+            id: i.isEven ? 'a-survivor-$group' : 'z-loser-$i',
+            title: 'Shared dance $group',
+            createdAt: stamp,
+            updatedAt: stamp.add(Duration(seconds: i)),
+          ),
+        );
+      }
+      counter.count = 0;
 
-    final result = await countingStorage.deduplicateFreshAttach();
+      final result = await countingStorage.deduplicateFreshAttach();
 
-    expect(result.duplicateCount, 3);
-    // The surviving row is rewritten once; losing rows must use the batched
-    // cleanup path instead of issuing one unindexed delete each.
-    expect(counter.count, 1);
-  });
+      expect(result.duplicateCount, 3);
+      // All survivor writes defer derived maintenance; the complete pass uses
+      // one bulk rebuild rather than one unindexed FTS delete per group.
+      expect(counter.count, 0);
+    },
+  );
+
+  test(
+    'fresh attach preserves loser-owned private custom-field values',
+    () async {
+      final stamp = DateTime.utc(2026, 7, 15, 12);
+      final privateField = CustomFieldDef(
+        id: 'private-dedupe-field',
+        key: 'private_dedupe_field',
+        label: 'Private dedupe field',
+        type: CustomFieldType.text,
+        shareable: false,
+      );
+      // ignore: unused_result
+      await repositories.customFieldDefs.upsert(privateField, at: stamp);
+      final survivor = Dance(
+        id: 'a-survivor',
+        title: 'Shared dance',
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final loser = Dance(
+        id: 'z-loser',
+        title: 'The Shared Dance',
+        customFields: [
+          CustomFieldValue(fieldId: privateField.id, value: 'keep locally'),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp.add(const Duration(minutes: 1)),
+      );
+      await repositories.dances.create(survivor);
+      await repositories.dances.create(loser);
+
+      final result = await storage.deduplicateFreshAttach();
+
+      expect(result.duplicateCount, 1);
+      expect((await repositories.dances.getById(survivor.id))!.customFields, [
+        CustomFieldValue(fieldId: privateField.id, value: 'keep locally'),
+      ]);
+      expect(await repositories.dances.getById(loser.id), isNull);
+      final wire = (await storage.snapshot())
+          .local[(kind: SyncRecordKind.dance, recordId: survivor.id)]!;
+      expect(wire.blob.body['customFields'], isEmpty);
+    },
+  );
 
   test(
     'fresh attach ambiguity is immutable and review-queue insertion is idempotent',

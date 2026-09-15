@@ -467,10 +467,16 @@ class DanceRepository {
   /// Sync records already passed wire admission and must retain their exact
   /// serialized content; ordinary editor/import writes may normalize legacy
   /// taxonomy IDs before persistence.
-  Future<void> writeFromSync(Dance dance) => _upsert(
+  Future<void> writeFromSync(
+    Dance dance, {
+    bool rebuildDerived = true,
+    Iterable<CustomFieldValue> additionalDeviceLocalCustomFields = const [],
+  }) => _upsert(
     dance,
     normalizeTaxonomy: false,
     preserveDeviceLocalCustomFields: true,
+    additionalDeviceLocalCustomFields: additionalDeviceLocalCustomFields,
+    rebuildDerived: rebuildDerived,
   );
 
   /// Persists only the dance row for a two-phase inbound sync write.
@@ -494,6 +500,7 @@ class DanceRepository {
     Dance dance, {
     bool normalizeTaxonomy = true,
     bool preserveDeviceLocalCustomFields = false,
+    Iterable<CustomFieldValue> additionalDeviceLocalCustomFields = const [],
     bool writeParent = true,
     bool writeRelations = true,
     bool rebuildDerived = true,
@@ -658,13 +665,20 @@ class DanceRepository {
       final deviceLocalCustomFields = preserveDeviceLocalCustomFields
           ? await _deviceLocalCustomFields(dance.id)
           : const <CustomFieldValue>[];
+      final preservedDeviceLocalCustomFields = <String, CustomFieldValue>{
+        for (final value in deviceLocalCustomFields) value.fieldId: value,
+      };
+      for (final value in additionalDeviceLocalCustomFields) {
+        preservedDeviceLocalCustomFields.putIfAbsent(
+          value.fieldId,
+          () => value,
+        );
+      }
       final incomingCustomFields = <String, CustomFieldValue>{
         for (final value in dance.customFields)
-          if (!deviceLocalCustomFields.any(
-            (localValue) => localValue.fieldId == value.fieldId,
-          ))
+          if (!preservedDeviceLocalCustomFields.containsKey(value.fieldId))
             value.fieldId: value,
-        for (final value in deviceLocalCustomFields) value.fieldId: value,
+        ...preservedDeviceLocalCustomFields,
       };
 
       await (_db.delete(
@@ -766,6 +780,11 @@ class DanceRepository {
         ),
     ];
   }
+
+  /// Reads active non-shareable values so a local-only value can survive a
+  /// sync-side identity merge without entering the shareable wire body.
+  Future<List<CustomFieldValue>> readDeviceLocalCustomFields(String danceId) =>
+      _deviceLocalCustomFields(danceId);
 
   Dance _normaliseTaxonomyV35Dance(Dance dance) {
     List<Figure>? normalised;

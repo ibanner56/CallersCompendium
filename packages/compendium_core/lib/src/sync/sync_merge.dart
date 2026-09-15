@@ -232,22 +232,8 @@ SyncFreshAttachDedupePlan planFreshAttachDedupe(
   );
 }
 
-String _syncChoreographyKey(Map<String, Object?> body) => contentHash({
-  for (final key in const [
-    'form',
-    'formation',
-    'progression',
-    'phraseStructure',
-    'figures',
-    'hook',
-    'callingNotes',
-    'difficultyLevelId',
-    'mixedLevel',
-    'mixer',
-    'tunes',
-  ])
-    key: body[key],
-});
+String _syncChoreographyKey(Map<String, Object?> body) =>
+    contentHash(choreographyFingerprint(body));
 
 Map<String, Object?> _mergeDanceBodies(
   List<SyncMergeCandidate> candidates,

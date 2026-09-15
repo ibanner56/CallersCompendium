@@ -830,6 +830,81 @@ void main() {
   );
 
   test(
+    'fresh attach compares pending live downloads with the concurrency view',
+    () async {
+      final live = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'live'),
+      );
+      final tombstoneStamp = live.blob.updatedAt.add(
+        const Duration(minutes: 1),
+      );
+      final tombstone = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: live.blob.kind,
+          id: live.blob.id,
+          updatedAt: tombstoneStamp,
+          deletedAt: tombstoneStamp,
+          existenceAt: live.blob.existenceAt,
+          body: live.blob.body,
+        ),
+      );
+      final address = live.address;
+      var candidateChecks = 0;
+      final store = _FakeStore(
+        epoch: null,
+        snapshotBuilder: (snapshotNumber) {
+          final pending = snapshotNumber == 2;
+          return SyncCoordinatorSnapshot(
+            epoch: snapshotNumber >= 3 ? 'epoch-1' : null,
+            previouslyUsed: false,
+            local: const {},
+            baseline: const {},
+            publication: pending ? {address: tombstone} : const {},
+            pendingLive: pending ? {address: live} : const {},
+            pending: pending ? {address} : const {},
+          );
+        },
+        currentCandidatesBuilder: () {
+          candidateChecks++;
+          return candidateChecks == 1 ? {address: live} : const {};
+        },
+      );
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        peerManifest: _manifest(
+          deviceId: 'peer',
+          records: {
+            SyncRecordKind.setting: {live.blob.id: live.wireHash},
+          },
+        ),
+        blobResponses: {
+          live.wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(live.blob)),
+          ),
+        },
+        missingResponses: [
+          [live.wireHash],
+        ],
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+      );
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(
+        result.reports.map((report) => report.code),
+        isNot(contains(SyncReportCode.concurrentLocalChange)),
+      );
+    },
+  );
+
+  test(
     'continuation stops without publishing when the epoch changes and retries fresh attach',
     () async {
       final candidate = SyncMergeCandidate.fromBlob(
@@ -1162,6 +1237,16 @@ void main() {
           recordId: survivorId,
         )],
         isNotNull,
+      );
+      final concurrencyCandidates = await CompendiumSyncCoordinatorStore(
+        repositories,
+      ).snapshotCandidates();
+      expect(
+        concurrencyCandidates[(kind: SyncRecordKind.tag, recordId: survivorId)]!
+            .wireHash,
+        beforePass
+            .pendingLive[(kind: SyncRecordKind.tag, recordId: survivorId)]!
+            .wireHash,
       );
 
       final inbound = SyncMergeCandidate.fromBlob(
