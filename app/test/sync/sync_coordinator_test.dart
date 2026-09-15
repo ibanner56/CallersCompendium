@@ -733,7 +733,7 @@ void main() {
       expect(transport.postMissingCalls, 2);
       expect(transport.manifestPuts, 1);
       expect(store.baselineReplacements, 1);
-      expect(store.baselineAdvances, 1);
+      expect(store.baselineAdvances, 0);
       expect(store.epochStateClears, 1);
     },
   );
@@ -759,6 +759,30 @@ void main() {
       expect(store.baselineReplacements, 1);
     },
   );
+
+  test('failed fresh-attach publication retries the complete attach', () async {
+    final store = _FakeStore(epoch: null);
+    final transport = _FakeTransport(putManifestStatuses: [500, 200]);
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: store,
+      transport: transport,
+    );
+
+    final failed = await coordinator.syncNow();
+
+    expect(failed.status, SyncPassStatus.failed);
+    expect(store.epochStateClears, 1);
+    expect(store.baselineReplacements, 0);
+
+    final retried = await coordinator.syncNow();
+
+    expect(retried.status, SyncPassStatus.completed);
+    expect(store.epochStateClears, 2);
+    expect(store.baselineReplacements, 1);
+    expect(transport.manifestPuts, 2);
+  });
 
   test(
     'fresh attach excludes pending live rows from the replacement baseline',
@@ -835,11 +859,12 @@ void main() {
       final staleContinuation = await coordinator.syncNow();
       expect(staleContinuation.status, SyncPassStatus.staleEpoch);
       expect(transport.manifestPuts, 0);
+      expect(store.baselineReplacements, 0);
 
       final retried = await coordinator.syncNow();
       expect(retried.status, SyncPassStatus.completed);
       expect(transport.manifestPuts, 1);
-      expect(store.baselineReplacements, 2);
+      expect(store.baselineReplacements, 1);
     },
   );
 

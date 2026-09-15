@@ -715,6 +715,8 @@ class SyncCoordinator {
   Future<SyncPassResult> _runPass({
     SyncStoreResult? initialStore,
     bool continuation = false,
+    String? continuationEpoch,
+    List<SyncBaselineEntry>? deferredBaseline,
   }) async {
     var snapshot = await store.snapshot();
     final storeResult =
@@ -742,11 +744,17 @@ class SyncCoordinator {
         message: 'store metadata was malformed', // i18n-ignore: internal status
       );
     }
-    final freshAttach =
-        snapshot.epoch == null || snapshot.epoch != metadata.epoch;
-    if (continuation && freshAttach) {
+    final attachContinuation =
+        continuation && continuationEpoch != null && deferredBaseline != null;
+    if (attachContinuation && metadata.epoch != continuationEpoch) {
       return const SyncPassResult(SyncPassStatus.staleEpoch);
     }
+    final epochMismatch =
+        snapshot.epoch == null || snapshot.epoch != metadata.epoch;
+    if (continuation && epochMismatch && !attachContinuation) {
+      return const SyncPassResult(SyncPassStatus.staleEpoch);
+    }
+    final freshAttach = epochMismatch && !attachContinuation;
     if (freshAttach) {
       await store.clearEpochState();
       snapshot = await store.snapshot();
@@ -758,7 +766,14 @@ class SyncCoordinator {
     final normalizedPendingLive = await _normalizeCandidates(
       snapshot.pendingLive,
     );
-    final normalizedBaseline = await _normalizeBaseline(snapshot.baseline);
+    final normalizedBaseline = await _normalizeBaseline(
+      deferredBaseline == null
+          ? snapshot.baseline
+          : {
+              for (final entry in deferredBaseline)
+                (kind: entry.kind, recordId: entry.recordId): entry,
+            },
+    );
     final normalizedPending = await _normalizeAddresses(snapshot.pending);
     final reports = SyncReportSink();
     final peerMaps = <Map<SyncRecordAddress, SyncMergeCandidate?>>[];
@@ -923,12 +938,14 @@ class SyncCoordinator {
           duplicateCount: dedupe.duplicateCount,
         );
       }
-      await store.replaceBaseline(
-        epoch: metadata.epoch,
-        entries: baselineEntries,
+      final continuationResult = await _runPass(
+        continuation: true,
+        continuationEpoch: metadata.epoch,
+        deferredBaseline: baselineEntries,
       );
-      await store.markSyncUsed(syncId!);
-      final continuationResult = await _runPass(continuation: true);
+      if (continuationResult.status == SyncPassStatus.completed) {
+        await store.markSyncUsed(syncId!);
+      }
       return SyncPassResult(
         continuationResult.status,
         reports: [...reports.reports, ...continuationResult.reports],
@@ -1007,14 +1024,29 @@ class SyncCoordinator {
         ),
       );
     }
-    await store.advanceBaseline(
-      epoch: metadata.epoch,
-      entries: observed,
-      drop: [
-        for (final decision in plan.decisions)
-          if (decision.action == SyncMergeAction.dropBaseline) decision.address,
-      ],
-    );
+    final dropped = {
+      for (final decision in plan.decisions)
+        if (decision.action == SyncMergeAction.dropBaseline) decision.address,
+    };
+    if (deferredBaseline == null) {
+      await store.advanceBaseline(
+        epoch: metadata.epoch,
+        entries: observed,
+        drop: dropped,
+      );
+    } else {
+      final completedBaseline = <SyncRecordAddress, SyncBaselineEntry>{
+        for (final entry in deferredBaseline)
+          (kind: entry.kind, recordId: entry.recordId): entry,
+      }..removeWhere((address, _) => dropped.contains(address));
+      for (final entry in observed) {
+        completedBaseline[(kind: entry.kind, recordId: entry.recordId)] = entry;
+      }
+      await store.replaceBaseline(
+        epoch: metadata.epoch,
+        entries: completedBaseline.values,
+      );
+    }
 
     return SyncPassResult(
       SyncPassStatus.completed,
