@@ -4238,6 +4238,7 @@ void main() {
           customFieldType: 'not-a-type',
         ),
       );
+      expect(malformed.isActionable, isFalse);
       await seedLocal(
         SyncRecordKind.customFieldDef,
         'malformed-local',
@@ -4249,7 +4250,13 @@ void main() {
           action: SyncReviewAction.keepBoth,
           newNaturalKey: 'renamed_malformed_field',
         ),
-        throwsA(isA<StateError>()),
+        throwsA(
+          isA<SyncReviewException>().having(
+            (error) => error.code,
+            'code',
+            SyncReviewFailureCode.candidateInvalid,
+          ),
+        ),
       );
       await expectLiveKey(
         SyncRecordKind.customFieldDef,

@@ -80,7 +80,17 @@ class SyncReviewQueueItem {
         value.deletedAt != null &&
         syncNaturalKeyKinds.contains(row.kind) &&
         naturalKey != null &&
+        _hasValidEntityBody(value) &&
         sha256Hex(encodeSyncRecordBlobUtf8(value)) == row.candidateHash &&
         row.recordId != value.id;
+  }
+}
+
+bool _hasValidEntityBody(SyncRecordBlob candidate) {
+  try {
+    validateSyncReviewCandidateBody(candidate.kind, candidate.body);
+    return true;
+  } on Object {
+    return false;
   }
 }

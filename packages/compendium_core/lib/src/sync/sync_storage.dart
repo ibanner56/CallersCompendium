@@ -698,6 +698,11 @@ final class CompendiumSyncStorage
         syncNaturalKeyForBody(candidate.kind, candidate.body) == null) {
       throw const SyncReviewException(SyncReviewFailureCode.candidateInvalid);
     }
+    try {
+      validateSyncReviewCandidateBody(candidate.kind, candidate.body);
+    } on Object {
+      throw const SyncReviewException(SyncReviewFailureCode.candidateInvalid);
+    }
     if (currentRow.reason != syncBaselineAbsenceTombstoneReason) {
       throw const SyncReviewException(SyncReviewFailureCode.unsupportedReason);
     }
@@ -3612,59 +3617,8 @@ final class CompendiumSyncStorage
   }
 
   Object _decodeEntity(SyncRecordKind kind, Map<String, Object?> body) {
-    final key = switch (kind) {
-      SyncRecordKind.dance => 'dances',
-      SyncRecordKind.program => 'programs',
-      SyncRecordKind.choreographer => 'choreographers',
-      SyncRecordKind.tag => 'tags',
-      SyncRecordKind.publishedSource => 'publishedSources',
-      SyncRecordKind.customFieldDef => 'customFields',
-      SyncRecordKind.difficultyLevel => 'difficultyLevels',
-      SyncRecordKind.venue => 'venues',
-      SyncRecordKind.setting => throw StateError(
-        'settings have no archive entity',
-      ),
-    };
-    final result = archiveFromJson({
-      'schemaVersion': 4,
-      'exportedAt': DateTime.now().toUtc().toIso8601String(),
-      key: [body],
-    });
-    final errors = result.errors
-        .where((error) => !_isUnknownDifficultyReference(error.message))
-        .toList(growable: false);
-    if (errors.isNotEmpty || result.droppedEntities.isNotEmpty) {
-      throw FormatException(
-        errors.isEmpty
-            ? 'decoded entity was dropped'
-            : errors.map((error) => error.message).join('; '),
-      );
-    }
-    final archive = result.archive;
-    return switch (kind) {
-      SyncRecordKind.dance => _one(archive.dances, kind),
-      SyncRecordKind.program => _one(archive.programs, kind),
-      SyncRecordKind.choreographer => _one(archive.choreographers, kind),
-      SyncRecordKind.tag => _one(archive.tags, kind),
-      SyncRecordKind.publishedSource => _one(archive.publishedSources, kind),
-      SyncRecordKind.customFieldDef => _one(archive.customFields, kind),
-      SyncRecordKind.difficultyLevel => _one(archive.difficultyLevels, kind),
-      SyncRecordKind.venue => _one(archive.venues, kind),
-      SyncRecordKind.setting => throw StateError(
-        'settings have no archive entity',
-      ),
-    };
+    return decodeSyncRecordEntity(kind, body);
   }
-
-  T _one<T>(List<T> values, SyncRecordKind kind) {
-    if (values.length != 1) {
-      throw FormatException('expected one ${kind.name} entity');
-    }
-    return values.single;
-  }
-
-  bool _isUnknownDifficultyReference(String message) =>
-      message.startsWith('references unknown difficulty level "');
 
   Future<bool> _isLiveVenue(String id) async =>
       (await (_db.select(_db.venues)
