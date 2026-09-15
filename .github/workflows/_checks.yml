@@ -2,7 +2,7 @@
 #
 # This callable workflow separates validation from the core and app suites. The
 # PR caller selects only suites whose inputs changed; release callers retain the
-# safe default of running both. It deliberately does NOT contain the PR-only
+# safe default of running every suite. It deliberately does NOT contain the PR-only
 # schema-guard (which needs the pull_request base ref) or the build matrix (the
 # release path builds/packages its own artifacts).
 #
@@ -16,6 +16,11 @@ on:
     inputs:
       run_core_tests:
         description: Run compendium_core's suite and coverage checks.
+        required: false
+        default: true
+        type: boolean
+      run_rubric_tests:
+        description: Run the compendium_rubric analyzer and suite.
         required: false
         default: true
         type: boolean
@@ -291,6 +296,25 @@ jobs:
       - name: Benchmark compendium_core search (20k dances)
         working-directory: packages/compendium_core
         run: dart run benchmark/search_benchmark.dart
+
+  rubric-tests:
+    name: Test compendium_rubric
+    if: inputs.run_rubric_tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version-file: .fvmrc
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - name: Analyze compendium_rubric
+        working-directory: packages/compendium_rubric
+        run: dart analyze
+      - name: Test compendium_rubric
+        working-directory: packages/compendium_rubric
+        run: dart test
 
   app-tests:
     name: Test app

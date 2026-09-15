@@ -278,6 +278,17 @@ STEPS: tuple[Step, ...] = (
         needs_binary="fvm",
     ),
     Step(
+        "rubric-tests",
+        "compendium_rubric analyzer and suite",
+        (
+            fvm("dart", "analyze"),
+            fvm("dart", "test"),
+        ),
+        cwd=ROOT / "packages" / "compendium_rubric",
+        fast=False,
+        needs_binary="fvm",
+    ),
+    Step(
         "benchmark",
         "compendium_core search benchmark",
         (fvm("dart", "run", "benchmark/search_benchmark.dart"),),
