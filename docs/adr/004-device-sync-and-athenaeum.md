@@ -437,9 +437,10 @@ The silent-merge test reuses the rule already in the import pipeline:
 1. **Exact normalized-title match** (the `normalizeTitle` gate in `autoResolveAmbiguous`). A
    fuzzy-but-inexact title is never confident; that is the "two different dances
    share a title" trap.
-2. **`_choreographyEquals`** — form, formation, progression, phrase structure,
-   **figures including their params**, hook, calling notes, level, mixed level
-   and tunes. It deliberately ignores identity, provenance, timestamps and
+2. **the shared `choreographyFingerprint` contract** — form, formation,
+   progression, phrase structure, **figures including their params**, hook,
+   calling notes, level, mixed level and tunes. It deliberately ignores
+   identity, provenance, timestamps and
    device-local id collections, so, in the words of its own doc comment, "a
    bundle received on another device still matches by its intrinsic content".
 
@@ -492,10 +493,10 @@ pointing at the losing duplicate are rewired to the survivor; the column is
 `onDelete: setNull`, so leaving them would silently strip a caller's program of a
 dance that still exists.
 
-`_choreographyEquals` is currently private to `ImportPipeline`; exposing it (or
-lifting it somewhere shared) is an implementation detail for the sync issue, but
-sync must call *that* function rather than reimplement the comparison, or the
-two definitions of "the same dance" will drift.
+The comparison contract is shared in the imports dedupe layer: import compares
+model fingerprints and sync hashes the same ordered wire fingerprint. Keeping
+that field list in one place prevents the two definitions of "the same dance"
+from drifting.
 
 **Three distinct events produce a fresh attach, and all three use the same
 union, dedupe and baseline algorithm once any required user decision has been
@@ -1438,6 +1439,6 @@ blocking defect in a published document.
 - **Venue and published-source duplication becomes a nuisance** rather than a
   curiosity, justifying fuzzy dedupe for the two kinds with no natural key.
 - **Silent merge is observed collapsing dances users considered distinct** — for
-  instance two arrangements that differ only in fields `_choreographyEquals`
-  ignores. That would mean the equality test is too loose for sync even though it
-  is right for import, and the two should stop sharing one definition.
+  instance two arrangements that differ only in fields the shared choreography
+  contract ignores. That would mean the equality test is too loose for sync even
+  though it is right for import, and the two should stop sharing one definition.
