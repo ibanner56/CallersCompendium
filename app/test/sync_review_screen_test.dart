@@ -61,6 +61,7 @@ Future<void> _enqueue(
 Future<void> _seedActionable(CompendiumRepositories repos) async {
   final _ = await repos.choreographers.upsert(
     Choreographer(id: 'local-author', name: 'Shared author'),
+    at: _stamp,
   );
   await _enqueue(
     repos,

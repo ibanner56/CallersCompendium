@@ -543,7 +543,7 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
                 validator: (v) {
                   final trimmed = v?.trim() ?? '';
                   if (trimmed.isEmpty) return l10n.customFieldsKeyRequired;
-                  if (!RegExp(r'^[a-zA-Z_][a-zA-Z0-9_]*$').hasMatch(trimmed)) {
+                  if (!isValidCustomFieldKey(trimmed)) {
                     return l10n.customFieldsKeyInvalid;
                   }
                   return null;

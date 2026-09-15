@@ -717,6 +717,9 @@ final class CompendiumSyncStorage
         localMetadata.deletedAt != null) {
       throw const SyncReviewException(SyncReviewFailureCode.targetMissing);
     }
+    if (localMetadata.existenceAt.isAfter(candidate.existenceAt)) {
+      throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
+    }
     final queuedCandidateAddress = (
       kind: candidate.kind,
       recordId: candidate.id,
@@ -788,10 +791,18 @@ final class CompendiumSyncStorage
         }
         break;
       case SyncReviewAction.keepBoth:
-        final renamedKey = _validatedReviewName(
+        var renamedKey = _validatedReviewName(
           newNaturalKey,
           currentKey: localKey,
         );
+        if (currentRow.kind == SyncRecordKind.customFieldDef) {
+          renamedKey = renamedKey.trim();
+          if (!isValidCustomFieldKey(renamedKey)) {
+            throw const SyncReviewException(
+              SyncReviewFailureCode.invalidCustomFieldKey,
+            );
+          }
+        }
         final occupied = await _naturalKeyRow(
           currentRow.kind,
           normalizeShareableText(renamedKey).toLowerCase(),

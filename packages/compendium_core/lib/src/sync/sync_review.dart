@@ -21,6 +21,7 @@ enum SyncReviewFailureCode {
   candidateAlreadyPresent,
   nameRequired,
   nameNotDistinct,
+  invalidCustomFieldKey,
 }
 
 /// A failed review decision that left the queue row untouched.

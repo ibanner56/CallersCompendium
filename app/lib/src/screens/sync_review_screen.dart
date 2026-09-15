@@ -131,6 +131,7 @@ class _SyncReviewScreenState extends State<SyncReviewScreen> {
       l10n.syncReviewCandidateAlreadyPresent,
     SyncReviewFailureCode.nameRequired => l10n.syncReviewNameRequired,
     SyncReviewFailureCode.nameNotDistinct => l10n.syncReviewNameNotDistinct,
+    SyncReviewFailureCode.invalidCustomFieldKey => l10n.customFieldsKeyInvalid,
   };
 
   Widget _buildItem(BuildContext context, SyncReviewQueueItem item) {

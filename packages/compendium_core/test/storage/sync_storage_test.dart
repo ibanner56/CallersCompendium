@@ -3794,7 +3794,9 @@ void main() {
           final localId = 'local-${kind.name}';
           final remoteId = 'remote-${kind.name}';
           final localKey = 'Local ${kind.name}';
-          final renamedKey = 'Renamed ${kind.name}';
+          final renamedKey = kind == SyncRecordKind.customFieldDef
+              ? 'renamed_${kind.name}'
+              : 'Renamed ${kind.name}';
           await seedLocal(kind, localId, localKey);
           final item = await enqueue(
             kind,
@@ -4065,7 +4067,22 @@ void main() {
       const remoteId = 'a-merge-remote-difficulty';
       final key = DifficultyLevel.beginner.label;
       await seedLocal(kind, localId, key);
-      final candidate = tombstoneFor(kind, remoteId, key);
+      final localRow = await (db.select(
+        db.difficultyLevels,
+      )..where((row) => row.id.equals(localId))).getSingle();
+      final candidateStamp = localRow.existenceAt!.toUtc().add(
+        const Duration(minutes: 1),
+      );
+      final baseCandidate = tombstoneFor(kind, remoteId, key);
+      final candidate = SyncRecordBlob(
+        v: baseCandidate.v,
+        kind: baseCandidate.kind,
+        id: baseCandidate.id,
+        updatedAt: candidateStamp,
+        deletedAt: candidateStamp,
+        existenceAt: candidateStamp,
+        body: baseCandidate.body,
+      );
 
       final result = await const SyncApplyEngine().apply(
         candidates: [SyncMergeCandidate(blob: candidate)],
@@ -4191,6 +4208,89 @@ void main() {
         );
         await expectLiveKey(kind, localId, key);
         expect(await repositories.syncLocal.listReviewQueue(), hasLength(1));
+      },
+    );
+
+    test(
+      'rejects a tombstone when the local existence stamp is newer',
+      () async {
+        for (final action in SyncReviewAction.values) {
+          final localId = 'stale-local-${action.name}';
+          final remoteId = 'stale-remote-${action.name}';
+          final key = 'Stale author ${action.name}';
+          await seedLocal(SyncRecordKind.choreographer, localId, key);
+          final item = await enqueue(
+            SyncRecordKind.choreographer,
+            localId,
+            tombstoneFor(SyncRecordKind.choreographer, remoteId, key),
+          );
+          await repositories.choreographers.delete(
+            localId,
+            at: stamp.add(const Duration(minutes: 2)),
+          );
+          await repositories.choreographers.restore(
+            localId,
+            at: stamp.add(const Duration(minutes: 3)),
+          );
+
+          await expectLater(
+            storage.resolveReviewQueue(
+              expectedRow: item.row,
+              action: action,
+              newNaturalKey: action == SyncReviewAction.keepBoth
+                  ? 'Restored author ${action.name}'
+                  : null,
+            ),
+            throwsA(
+              isA<SyncReviewException>().having(
+                (error) => error.code,
+                'code',
+                SyncReviewFailureCode.candidateChanged,
+              ),
+            ),
+          );
+          await expectLiveKey(SyncRecordKind.choreographer, localId, key);
+          expect(await repositories.syncLocal.listReviewQueue(), hasLength(1));
+          await repositories.syncLocal.deleteReview(
+            kind: SyncRecordKind.choreographer,
+            recordId: localId,
+            counterpartId: remoteId,
+          );
+        }
+      },
+    );
+
+    test(
+      'rejects invalid custom-field keep-both keys without changing the row',
+      () async {
+        const kind = SyncRecordKind.customFieldDef;
+        const localId = 'invalid-custom-key-local';
+        const remoteId = 'invalid-custom-key-remote';
+        const key = 'invalid_custom_key';
+        await seedLocal(kind, localId, key);
+        final item = await enqueue(
+          kind,
+          localId,
+          tombstoneFor(kind, remoteId, key),
+        );
+
+        await expectLater(
+          storage.resolveReviewQueue(
+            expectedRow: item.row,
+            action: SyncReviewAction.keepBoth,
+            newNaturalKey: 'invalid custom key',
+          ),
+          throwsA(
+            isA<SyncReviewException>().having(
+              (error) => error.code,
+              'code',
+              SyncReviewFailureCode.invalidCustomFieldKey,
+            ),
+          ),
+        );
+        await expectLiveKey(kind, localId, key);
+        expect(await repositories.syncLocal.listReviewQueue(), hasLength(1));
+        expect(await repositories.customFieldDefs.getById(remoteId), isNull);
       },
     );
 
