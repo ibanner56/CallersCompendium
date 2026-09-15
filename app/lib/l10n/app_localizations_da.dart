@@ -1241,7 +1241,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get syncReviewDanceAmbiguityReason =>
-      'Live dances have the same title but different choreography.';
+      'Levende danse har samme titel, men forskellig koreografi.';
 
   @override
   String get syncReviewUnsupportedReason =>

@@ -268,6 +268,68 @@ void main() {
     },
   );
 
+  test(
+    'reconciles sibling dance ambiguities after merging one of three groups',
+    () async {
+      final stamp = DateTime.utc(2026, 7, 15, 12);
+      for (final entry in [
+        (id: 'a-left', hand: 'left'),
+        (id: 'b-right', hand: 'right'),
+        (id: 'c-swing', hand: 'swing'),
+      ]) {
+        await repositories.dances.create(
+          Dance(
+            id: entry.id,
+            title: 'Shared dance',
+            figures: [
+              entry.hand == 'swing'
+                  ? testFigure(move: 'swing')
+                  : testFigure(move: 'balance', params: {'hand': entry.hand}),
+            ],
+            createdAt: stamp,
+            updatedAt: stamp,
+          ),
+        );
+      }
+
+      await storage.deduplicateFreshAttach();
+      expect(
+        (await repositories.syncLocal.listReviewQueue()).map(
+          (row) => (row.recordId, row.counterpartId),
+        ),
+        [('a-left', 'b-right'), ('a-left', 'c-swing'), ('b-right', 'c-swing')],
+      );
+
+      final first = SyncReviewQueueItem.fromRow(
+        (await repositories.syncLocal.getReviewQueue(
+          kind: SyncRecordKind.dance,
+          recordId: 'a-left',
+          counterpartId: 'b-right',
+        ))!,
+      );
+      await storage.resolveReviewQueue(
+        expectedRow: first.row,
+        action: SyncReviewAction.merge,
+      );
+
+      final remaining = await repositories.syncLocal.listReviewQueue();
+      expect(remaining.map((row) => (row.recordId, row.counterpartId)), [
+        ('a-left', 'c-swing'),
+      ]);
+      expect(await repositories.dances.getById('b-right'), isNull);
+      expect(
+        SyncReviewQueueItem.fromRow(remaining.single).isActionable,
+        isTrue,
+      );
+
+      await storage.resolveReviewQueue(
+        expectedRow: remaining.single,
+        action: SyncReviewAction.merge,
+      );
+      expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+    },
+  );
+
   test('resolves a live dance ambiguity by renaming the local dance', () async {
     final stamp = DateTime.utc(2026, 7, 15, 12);
     await repositories.dances.create(

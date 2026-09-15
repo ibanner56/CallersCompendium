@@ -545,6 +545,81 @@ final class CompendiumSyncStorage
       );
       await _deleteIdentityRow(SyncRecordKind.dance, losingId);
     }
+    await _reconcileDanceReviewQueue(
+      survivorId: merge.winner.blob.id,
+      losingIds: merge.losingIds.toSet(),
+    );
+  }
+
+  Future<void> _reconcileDanceReviewQueue({
+    required String survivorId,
+    required Set<String> losingIds,
+  }) async {
+    final affectedIds = {...losingIds, survivorId};
+    final rows =
+        (await repositories.syncLocal.listReviewQueue())
+            .where(
+              (row) =>
+                  row.kind == SyncRecordKind.dance &&
+                  row.reason == syncDanceChoreographyAmbiguityReason &&
+                  (affectedIds.contains(row.recordId) ||
+                      affectedIds.contains(row.counterpartId)),
+            )
+            .toList()
+          ..sort((left, right) {
+            final queued = left.queuedAt.compareTo(right.queuedAt);
+            if (queued != 0) return queued;
+            final record = left.recordId.compareTo(right.recordId);
+            if (record != 0) return record;
+            return left.counterpartId.compareTo(right.counterpartId);
+          });
+    final retainedPairs = <String>{};
+    for (final row in rows) {
+      final mappedRecordId = row.recordId;
+      final mappedCounterpartId = row.counterpartId;
+      final recordId = losingIds.contains(mappedRecordId)
+          ? survivorId
+          : mappedRecordId;
+      final counterpartId = losingIds.contains(mappedCounterpartId)
+          ? survivorId
+          : mappedCounterpartId;
+
+      await repositories.syncLocal.deleteReview(
+        kind: row.kind,
+        recordId: row.recordId,
+        counterpartId: row.counterpartId,
+      );
+      if (recordId == counterpartId) continue;
+
+      final leftId = recordId.compareTo(counterpartId) < 0
+          ? recordId
+          : counterpartId;
+      final rightId = leftId == recordId ? counterpartId : recordId;
+      final pairKey = '$leftId:$rightId';
+      if (retainedPairs.contains(pairKey)) continue;
+
+      final left = await _danceCandidate(leftId);
+      final right = await _danceCandidate(rightId);
+      if (left == null ||
+          right == null ||
+          left.blob.deletedAt != null ||
+          right.blob.deletedAt != null) {
+        continue;
+      }
+      final plan = planFreshAttachDedupe([left, right]);
+      if (plan.ambiguities.length != 1) continue;
+
+      retainedPairs.add(pairKey);
+      await repositories.syncLocal.enqueueReview(
+        kind: SyncRecordKind.dance,
+        recordId: leftId,
+        counterpartId: rightId,
+        reason: syncDanceChoreographyAmbiguityReason,
+        candidateBlob: encodeSyncRecordBlob(right.blob),
+        candidateHash: right.wireHash,
+        queuedAt: row.queuedAt,
+      );
+    }
   }
 
   Map<String, Object?> _rewriteDanceReferences(
