@@ -1185,6 +1185,10 @@ final class CompendiumSyncStorage
           );
         }
         await _renameLocalDanceTitle(local.blob.id, renamedTitle);
+        await _reconcileDanceReviewQueue(
+          survivorId: local.blob.id,
+          losingIds: const {},
+        );
     }
     await rebuildDerivedIndexes();
     await repositories.syncLocal.deleteReview(

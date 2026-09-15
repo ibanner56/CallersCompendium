@@ -330,6 +330,59 @@ void main() {
     },
   );
 
+  test(
+    'drops sibling dance ambiguities after keeping one of three groups',
+    () async {
+      final stamp = DateTime.utc(2026, 7, 15, 12);
+      for (final entry in [
+        (id: 'a-left', hand: 'left'),
+        (id: 'b-right', hand: 'right'),
+        (id: 'c-swing', hand: 'swing'),
+      ]) {
+        await repositories.dances.create(
+          Dance(
+            id: entry.id,
+            title: 'Shared dance',
+            figures: [
+              entry.hand == 'swing'
+                  ? testFigure(move: 'swing')
+                  : testFigure(move: 'balance', params: {'hand': entry.hand}),
+            ],
+            createdAt: stamp,
+            updatedAt: stamp,
+          ),
+        );
+      }
+
+      await storage.deduplicateFreshAttach();
+      final first = SyncReviewQueueItem.fromRow(
+        (await repositories.syncLocal.getReviewQueue(
+          kind: SyncRecordKind.dance,
+          recordId: 'a-left',
+          counterpartId: 'b-right',
+        ))!,
+      );
+      await storage.resolveReviewQueue(
+        expectedRow: first.row,
+        action: SyncReviewAction.keepBoth,
+        newNaturalKey: 'Renamed dance',
+      );
+
+      final remaining = await repositories.syncLocal.listReviewQueue();
+      expect(remaining.map((row) => (row.recordId, row.counterpartId)), [
+        ('b-right', 'c-swing'),
+      ]);
+      expect(
+        (await repositories.dances.getById('a-left'))!.title,
+        'Renamed dance',
+      );
+      expect(
+        SyncReviewQueueItem.fromRow(remaining.single).isActionable,
+        isTrue,
+      );
+    },
+  );
+
   test('resolves a live dance ambiguity by renaming the local dance', () async {
     final stamp = DateTime.utc(2026, 7, 15, 12);
     await repositories.dances.create(
