@@ -836,7 +836,7 @@ void main() {
         _setting('custom_dialects', 'live'),
       );
       final tombstoneStamp = live.blob.updatedAt.add(
-        const Duration(minutes: 1),
+        const Duration(minutes: -1),
       );
       final tombstone = SyncMergeCandidate.fromBlob(
         SyncRecordBlob(
@@ -844,16 +844,17 @@ void main() {
           id: live.blob.id,
           updatedAt: tombstoneStamp,
           deletedAt: tombstoneStamp,
-          existenceAt: live.blob.existenceAt,
+          existenceAt: live.blob.existenceAt.subtract(
+            const Duration(minutes: 1),
+          ),
           body: live.blob.body,
         ),
       );
       final address = live.address;
-      var candidateChecks = 0;
       final store = _FakeStore(
         epoch: null,
         snapshotBuilder: (snapshotNumber) {
-          final pending = snapshotNumber == 2;
+          final pending = snapshotNumber >= 2;
           return SyncCoordinatorSnapshot(
             epoch: snapshotNumber >= 3 ? 'epoch-1' : null,
             previouslyUsed: false,
@@ -864,10 +865,7 @@ void main() {
             pending: pending ? {address} : const {},
           );
         },
-        currentCandidatesBuilder: () {
-          candidateChecks++;
-          return candidateChecks == 1 ? {address: live} : const {};
-        },
+        currentCandidatesBuilder: () => {address: live},
       );
       final transport = _FakeTransport(
         devices: ['peer'],
@@ -884,7 +882,8 @@ void main() {
           ),
         },
         missingResponses: [
-          [live.wireHash],
+          const [],
+          const [],
         ],
       );
       final coordinator = SyncCoordinator(

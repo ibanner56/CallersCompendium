@@ -20,6 +20,43 @@ void main() {
     },
   );
 
+  test(
+    'fresh attach treats every intrinsic choreography field as significant',
+    () {
+      final stamp = DateTime.utc(2026, 7, 15, 12);
+      final left = Dance(
+        id: 'a-left',
+        title: 'Shared dance',
+        tunes: const ['Reel'],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final right = Dance(
+        id: 'b-right',
+        title: 'The Shared Dance',
+        tunes: const ['Jig'],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      SyncRecordBlob blobFor(Dance dance) => SyncRecordBlob(
+        kind: SyncRecordKind.dance,
+        id: dance.id,
+        updatedAt: stamp,
+        deletedAt: null,
+        existenceAt: stamp,
+        body: syncBodyForEntity(SyncRecordKind.dance, dance),
+      );
+
+      final plan = planFreshAttachDedupe([
+        SyncMergeCandidate.fromBlob(blobFor(left)),
+        SyncMergeCandidate.fromBlob(blobFor(right)),
+      ]);
+
+      expect(plan.merges, isEmpty);
+      expect(plan.ambiguities, hasLength(1));
+    },
+  );
+
   group('normalization', () {
     test('title folds case, punctuation, diacritics, articles', () {
       expect(normalizeTitle('The Nice Combination!'), 'nice combination');
