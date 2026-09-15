@@ -1,10 +1,13 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/dance_reimport.dart';
 import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
 import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/data/dialect_library_controller.dart';
@@ -12,6 +15,9 @@ import 'package:compendium_app/src/data/dialect_library_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
+import 'package:compendium_app/src/export/dance_share_bundle.dart';
+import 'package:compendium_app/src/export/json_export.dart';
+import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/program_summary_screen.dart';
@@ -57,10 +63,17 @@ Future<ValueNotifier<bool>> _pumpDetail(
   CompendiumRepositories repos,
   String danceId, {
   Dialect? activeDialect,
+  bool? canonicalFigureText = true,
   bool requirePerformedForHistory = false,
   Size surfaceSize = const Size(1200, 2400),
   DialectLibraryController? dialectLibrary,
+  JsonExportDelivery? jsonExportDelivery,
+  bool readOnly = false,
+  Future<void> Function(DanceDetailData detail)? onReimport,
 }) async {
+  if (canonicalFigureText != null) {
+    await repos.settings.set(kCanonicalFigureTextKey, canonicalFigureText);
+  }
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final notifier = ValueNotifier<Dialect>(activeDialect ?? Dialect.larksRobins);
@@ -88,7 +101,12 @@ Future<ValueNotifier<bool>> _pumpDetail(
           ),
         ),
       ),
-      home: DanceDetailScreen(danceId: danceId),
+      home: DanceDetailScreen(
+        danceId: danceId,
+        jsonExportDelivery: jsonExportDelivery,
+        readOnly: readOnly,
+        onReimport: onReimport,
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -122,6 +140,76 @@ void main() {
     expect(find.text('Gene Hubert'), findsOneWidget);
     expect(find.text('a lovely hook'), findsOneWidget);
     expect(find.text('smooth'), findsOneWidget);
+  });
+
+  testWidgets('persisted read-only detail exposes only re-import', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Saved Dance'));
+    var reimported = false;
+
+    await _pumpDetail(
+      tester,
+      repos,
+      'd1',
+      readOnly: true,
+      onReimport: (_) async => reimported = true,
+    );
+
+    expect(find.byKey(const ValueKey('reimport-dance')), findsOneWidget);
+    expect(find.byKey(const ValueKey('edit-dance')), findsNothing);
+    expect(find.byKey(const ValueKey('duplicate-dance')), findsNothing);
+    expect(find.byKey(const ValueKey('delete-dance')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('reimport-dance')));
+    expect(reimported, isTrue);
+  });
+
+  testWidgets('online read-only preview has no re-import action', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+    addTearDown(notifier.dispose);
+    await tester.binding.setSurfaceSize(const Size(360, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => RepositoriesScope(
+          repositories: repos,
+          child: ActiveDialectScope(notifier: notifier, child: child!),
+        ),
+        home: DanceDetailScreen.readOnlyPreview(
+          data: reimportPreviewData(_dance(id: 'online')),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('reimport-dance')), findsNothing);
+  });
+
+  testWidgets('persisted read-only detail exposes re-import at phone width', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1'));
+
+    await _pumpDetail(
+      tester,
+      repos,
+      'd1',
+      surfaceSize: const Size(360, 800),
+      readOnly: true,
+      onReimport: (_) async {},
+    );
+
+    expect(find.byKey(const ValueKey('reimport-dance')), findsOneWidget);
+    expect(find.byKey(const ValueKey('dance-actions-overflow')), findsNothing);
   });
 
   testWidgets('shows the mixer indicator when the dance is a mixer '
@@ -373,6 +461,136 @@ void main() {
       expect(clipboardText, contains('Narrow Dance'));
     });
 
+    testWidgets('overflow JSON Save writes the canonical payload only', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final dance = _dance(id: 'd1', title: 'Narrow Dance');
+      await repos.dances.create(dance);
+      final library = await buildLibrary(repos);
+      String? savedJson;
+      String? savedName;
+      var copies = 0;
+      var shares = 0;
+
+      await _pumpDetail(
+        tester,
+        repos,
+        'd1',
+        surfaceSize: const Size(360, 800),
+        dialectLibrary: library,
+        jsonExportDelivery: JsonExportDelivery(
+          choicePicker: (_) async => JsonExportChoice.save,
+          saveInvoker: (json, fileName) async {
+            savedJson = json;
+            savedName = fileName;
+            return JsonSaveResult(
+              path: '/Documents/$fileName',
+              fileName: fileName,
+            );
+          },
+          clipboardWriter: (_) async => copies++,
+          shareInvoker: (_) async => shares++,
+        ),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('overflow-share-dance-json')));
+      await tester.pumpAndSettle();
+
+      expect(savedName, 'Narrow_Dance.json');
+      final actual = jsonDecode(savedJson!) as Map<String, dynamic>;
+      final expected =
+          jsonDecode(
+                buildDanceShareBundle(
+                  dance,
+                  choreographerFor: (_) => null,
+                  tagFor: (_) => null,
+                  publishedSourceFor: (_) => null,
+                  customFieldFor: (_) => null,
+                ),
+              )
+              as Map<String, dynamic>;
+      actual.remove('exportedAt');
+      expected.remove('exportedAt');
+      expect(actual, expected);
+      expect(copies, 0);
+      expect(shares, 0);
+      expect(
+        find.text('"Narrow_Dance.json" saved to /Documents/Narrow_Dance.json.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('overflow JSON Share preserves the share contract', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Narrow Dance'));
+      final library = await buildLibrary(repos);
+      ShareParams? shared;
+      String? stagedJson;
+      String? stagedName;
+
+      await _pumpDetail(
+        tester,
+        repos,
+        'd1',
+        surfaceSize: const Size(360, 800),
+        dialectLibrary: library,
+        jsonExportDelivery: JsonExportDelivery(
+          choicePicker: (_) async => JsonExportChoice.share,
+          bundleFileWriter: (json, fileName) async {
+            stagedJson = json;
+            stagedName = fileName;
+            return XFile('/tmp/$fileName', mimeType: 'application/json');
+          },
+          shareInvoker: (params) async => shared = params,
+        ),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('overflow-share-dance-json')));
+      await tester.pumpAndSettle();
+
+      expect(stagedJson, isNotNull);
+      expect(stagedName, 'Narrow_Dance.json');
+      expect(shared, isNotNull);
+      expect(shared!.files!.single.mimeType, 'application/json');
+      expect(shared!.fileNameOverrides, ['Narrow_Dance.json']);
+      expect(shared!.subject, 'Narrow Dance');
+      expect(shared!.sharePositionOrigin, isNotNull);
+    });
+
+    testWidgets('overflow JSON opens a real choice dialog after popup closes', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Narrow Dance'));
+      final library = await buildLibrary(repos);
+
+      await _pumpDetail(
+        tester,
+        repos,
+        'd1',
+        surfaceSize: const Size(360, 800),
+        dialectLibrary: library,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('overflow-share-dance-json')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Export JSON'), findsOneWidget);
+      expect(find.text('Copy raw JSON'), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(find.text('Export JSON'), findsNothing);
+    });
+
     testWidgets('overflow dialect switch still changes the active dialect', (
       tester,
     ) async {
@@ -446,7 +664,7 @@ void main() {
       ),
     );
 
-    await _pumpDetail(tester, repos, 'd1');
+    await _pumpDetail(tester, repos, 'd1', canonicalFigureText: true);
 
     // No toggle interaction: the detail opens showing canonical tokens
     // instead of the active Larks/Robins dialect.
@@ -469,14 +687,14 @@ void main() {
         figures: [
           Figure(
             move: 'allemande',
-            params: {'hand': 'left', 'turn': 1.5, 'beats': 8},
+            params: {'hand': 'left', 'travel': 1.5, 'beats': 8},
           ),
         ],
       ),
     );
     final handle = tester.ensureSemantics();
 
-    await _pumpDetail(tester, repos, 'd1');
+    await _pumpDetail(tester, repos, 'd1', canonicalFigureText: true);
 
     // Sighted users still see the terse, glyph-bearing display text.
     expect(find.text('neighbor allemande left 1½'), findsOneWidget);
@@ -498,7 +716,7 @@ void main() {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'd1', status: DanceStatus.broken));
 
-    await _pumpDetail(tester, repos, 'd1');
+    await _pumpDetail(tester, repos, 'd1', canonicalFigureText: true);
 
     expect(find.text('Broken'), findsOneWidget);
   });
@@ -813,7 +1031,13 @@ void main() {
       ),
     );
 
-    await _pumpDetail(tester, repos, 'd1', activeDialect: Dialect.larksRobins);
+    await _pumpDetail(
+      tester,
+      repos,
+      'd1',
+      activeDialect: Dialect.larksRobins,
+      canonicalFigureText: true,
+    );
 
     // Active dialect = Larks/Robins: role2s → robins.
     expect(find.text('robins chain'), findsOneWidget);
@@ -847,6 +1071,7 @@ void main() {
         name: 'Gents/Ladies',
         roles: const {'role1': RoleTerm('Gent'), 'role2': RoleTerm('Lady')},
       ),
+      canonicalFigureText: true,
     );
 
     // role2s → Ladies in Gents/Ladies dialect.
@@ -868,12 +1093,91 @@ void main() {
       ),
     );
 
-    await _pumpDetail(tester, repos, 'd1', activeDialect: Dialect.canonical);
+    await _pumpDetail(
+      tester,
+      repos,
+      'd1',
+      activeDialect: Dialect.canonical,
+      canonicalFigureText: true,
+    );
 
     // Toggle is hidden when active dialect is already canonical.
     expect(find.byKey(const ValueKey('dialect-toggle')), findsNothing);
     // Canonical role tokens shown.
     expect(find.text('role2s chain'), findsOneWidget);
+  });
+
+  testWidgets('canonical figure text gate off opens in the active dialect', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        figures: [
+          Figure(move: 'chain', params: {'who': 'role2s', 'beats': 16}),
+        ],
+      ),
+    );
+
+    await _pumpDetail(tester, repos, 'd1', canonicalFigureText: false);
+
+    expect(find.text('robins chain'), findsOneWidget);
+    expect(find.text('role2s chain'), findsNothing);
+    expect(find.byKey(const ValueKey('dialect-toggle')), findsNothing);
+  });
+
+  testWidgets('opening a detail migrates the legacy canonical default', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.settings.set(
+      kDefaultDanceDetailRenderingKey,
+      DanceDetailRendering.canonical.name,
+    );
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        figures: [
+          Figure(move: 'chain', params: {'who': 'role2s', 'beats': 16}),
+        ],
+      ),
+    );
+
+    await _pumpDetail(tester, repos, 'd1', canonicalFigureText: null);
+
+    expect(await repos.settings.get(kCanonicalFigureTextKey), isFalse);
+    expect(
+      await repos.settings.get(kDefaultDanceDetailRenderingKey),
+      DanceDetailRendering.activeDialect.name,
+    );
+    expect(find.text('robins chain'), findsOneWidget);
+    expect(find.text('role2s chain'), findsNothing);
+  });
+
+  testWidgets('changing the gate does not update an already-open detail', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        figures: [
+          Figure(move: 'chain', params: {'who': 'role2s', 'beats': 16}),
+        ],
+      ),
+    );
+    await repos.settings.set(kDefaultDanceDetailRenderingKey, 'canonical');
+
+    await _pumpDetail(tester, repos, 'd1', canonicalFigureText: true);
+    expect(find.text('role2s chain'), findsOneWidget);
+    expect(find.byKey(const ValueKey('dialect-toggle')), findsOneWidget);
+
+    await repos.settings.set(kCanonicalFigureTextKey, false);
+    await tester.pumpAndSettle();
+
+    expect(find.text('role2s chain'), findsOneWidget);
+    expect(find.byKey(const ValueKey('dialect-toggle')), findsOneWidget);
   });
 
   // ── relatedDance links ─────────────────────────────────────────────────────
@@ -929,34 +1233,67 @@ void main() {
     expect(find.text('See this one'), findsOneWidget);
   });
 
-  testWidgets(
-    'relatedDance link with dangling targetDanceId shows placeholder',
-    (tester) async {
-      final repos = openTestRepositories();
-      // Create the target dance and then soft-delete it to simulate a link
-      // whose target has been removed from the visible collection.
-      await repos.dances.create(_dance(id: 'gone-target', title: 'Was Here'));
-      await repos.dances.create(
-        _dance(
-          id: 'd1',
-          links: [
-            DanceLink(
-              id: 'l1',
-              kind: LinkKind.relatedDance,
-              targetDanceId: 'gone-target',
-              label: '',
-            ),
-          ],
-        ),
-      );
-      await repos.dances.softDelete('gone-target', at: DateTime.now().toUtc());
+  testWidgets('relatedDance link to a soft-deleted target is hidden', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    // Create the target dance and then soft-delete it to simulate a link
+    // whose target has been removed from the visible collection.
+    await repos.dances.create(_dance(id: 'gone-target', title: 'Was Here'));
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        links: [
+          DanceLink(
+            id: 'l1',
+            kind: LinkKind.relatedDance,
+            targetDanceId: 'gone-target',
+            label: '',
+            transitive: true,
+          ),
+        ],
+      ),
+    );
+    await repos.dances.softDelete('gone-target', at: DateTime.now().toUtc());
 
-      await _pumpDetail(tester, repos, 'd1');
+    await _pumpDetail(tester, repos, 'd1');
 
-      // Falls back to placeholder text because getById returns null.
-      expect(find.text('(missing dance)'), findsOneWidget);
-    },
-  );
+    // Soft deletion preserves the link for restoration, but it is not shown
+    // while the target is tombstoned.
+    expect(find.byKey(const ValueKey('link-row-l1')), findsNothing);
+    expect(find.text('(missing dance)'), findsNothing);
+    expect(find.text('Links'), findsNothing);
+
+    await repos.dances.restore(
+      'gone-target',
+      at: DateTime.now().toUtc().add(const Duration(seconds: 1)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('link-row-l1')), findsOneWidget);
+    expect(find.text('Was Here'), findsOneWidget);
+  });
+
+  testWidgets('relatedDance link to an absent target remains a missing link', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1'));
+    // Preserve a legacy/corrupt dangling row so the display projection's
+    // missing-vs-tombstoned distinction is exercised directly.
+    await repos.db.customStatement('PRAGMA foreign_keys = OFF');
+    await repos.db.customStatement(
+      "INSERT INTO dance_links "
+      "(id, dance_id, kind, target_dance_id, transitive) "
+      "VALUES ('l1', 'd1', 'relatedDance', 'absent-target', 0)",
+    );
+    await repos.db.customStatement('PRAGMA foreign_keys = ON');
+
+    await _pumpDetail(tester, repos, 'd1');
+
+    expect(find.byKey(const ValueKey('link-row-l1')), findsOneWidget);
+    expect(find.text('(missing dance)'), findsOneWidget);
+  });
 
   testWidgets('relatedDance link is tappable when target exists', (
     tester,

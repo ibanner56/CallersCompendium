@@ -15,13 +15,16 @@ import 'choreographer_repository.dart';
 import 'collection_import_event_repository.dart';
 import 'custom_field_repository.dart';
 import 'dance_repository.dart';
+import 'difficulty_level_repository.dart';
 import 'program_repository.dart';
 import 'published_source_repository.dart';
 import 'settings_repository.dart';
+import 'sync_local_repository.dart';
 import 'tag_repository.dart';
 import 'venue_repository.dart';
 
 const _shareableTextNormalisationAlgorithmVersion = 2;
+const _taxonomyV35MigrationPageSize = 128;
 
 String _normaliseStoredColumn(String column, String raw) {
   const jsonColumns = {'figures_json', 'tunes_json', 'choices_json'};
@@ -60,7 +63,7 @@ Future<void> _retireMissingNormalisationSkips(CompendiumDatabase db) async {
 /// wires up storage once (`CompendiumRepositories(db, taxonomy)`) instead of
 /// constructing each repository individually.
 class CompendiumRepositories {
-  /// [settings] and [dances] exist as **test seams**, and only as that: each
+  /// [settings], [dances], and [venues] exist as **test seams**, and only as that: each
   /// defaults to the real repository, so no production call site passes either.
   ///
   /// A test that needs to count how many times a screen re-read its data
@@ -77,27 +80,39 @@ class CompendiumRepositories {
     DanceRepository? dances,
     CollectionImportEventRepository? collectionImports,
     ProgramRepository? programs,
+    VenueRepository? venues,
   }) : dances = dances ?? DanceRepository(db, taxonomy),
        choreographers = ChoreographerRepository(db),
        tags = TagRepository(db),
+       difficultyLevels = DifficultyLevelRepository(db),
        customFieldDefs = CustomFieldDefRepository(db),
        programs = programs ?? ProgramRepository(db),
        publishedSources = PublishedSourceRepository(db),
-       venues = VenueRepository(db),
+       venues = venues ?? VenueRepository(db),
        collectionImports =
            collectionImports ?? CollectionImportEventRepository(db),
-       settings = settings ?? SettingsRepository(db);
+       settings = settings ?? SettingsRepository(db),
+       syncLocal = SyncLocalRepository(db);
 
   final CompendiumDatabase db;
   final DanceRepository dances;
   final ChoreographerRepository choreographers;
   final TagRepository tags;
+  final DifficultyLevelRepository difficultyLevels;
   final CustomFieldDefRepository customFieldDefs;
   final ProgramRepository programs;
   final PublishedSourceRepository publishedSources;
   final VenueRepository venues;
   final CollectionImportEventRepository collectionImports;
   final SettingsRepository settings;
+  final SyncLocalRepository syncLocal;
+
+  /// Runs a cross-repository write as one database transaction.
+  ///
+  /// Repository methods may open nested transactions, but the outer boundary
+  /// keeps related records such as staged tags and their owning dances atomic.
+  Future<T> transaction<T>(Future<T> Function() action) =>
+      db.transaction(action);
 
   /// The scope is derived from the live Drift schema and privacy registry, so
   /// adding a shareable text column cannot be missed by the repair sweep.
@@ -129,6 +144,7 @@ class CompendiumRepositories {
   static const _naturalKeys = <(String, String)>[
     ('choreographers', 'name'),
     ('tags', 'name'),
+    ('difficulty_levels', 'label'),
     ('custom_field_defs', 'key'),
   ];
 
@@ -137,7 +153,7 @@ class CompendiumRepositories {
   /// snapshot (issue #768).
   ///
   /// A **change signal**, not the data: it carries no payload, because the
-  /// snapshot is assembled app-side from a fan-out of queries across six
+  /// snapshot is assembled app-side from a fan-out of queries across seven
   /// repositories and there is no single row set to hand back. Callers pair it
   /// with their own loader (see `CollectionData.watch`).
   ///
@@ -149,10 +165,11 @@ class CompendiumRepositories {
   /// set is the union of what `CollectionData.load` reads:
   ///
   /// * `dances` — the collection itself, and every facet vocabulary derived
-  ///   from it (forms, formations, progressions, statuses, levels, and the
+  ///   from it (forms, formations, progressions, statuses, and the
   ///   mixed-level / mixer / rating flags).
   /// * `choreographers` — author names, and the author facet.
   /// * `tags` — tag names and colours, and the tag facet.
+  /// * `difficulty_levels` — the configurable difficulty vocabulary.
   /// * `custom_field_defs` — the list/searchable field definitions.
   /// * `published_sources` — the cited-source facet.
   /// * `program_slots` and `programs` — the per-dance call tallies and
@@ -343,6 +360,7 @@ class CompendiumRepositories {
           db.dances,
           db.choreographers,
           db.tags,
+          db.difficultyLevels,
           db.customFieldDefs,
           db.publishedSources,
           db.programSlots,
@@ -396,6 +414,7 @@ class CompendiumRepositories {
   ///   related-dance links and cross-reference candidates.
   /// * `choreographers` — resolved author names.
   /// * `tags` — tag names and colours.
+  /// * `difficulty_levels` — the selected difficulty label.
   /// * `custom_field_defs` — the labels custom-field values are displayed under.
   /// * `published_sources` — the cited sources a record expands its citations
   ///   into.
@@ -452,6 +471,7 @@ class CompendiumRepositories {
           db.dances,
           db.choreographers,
           db.tags,
+          db.difficultyLevels,
           db.customFieldDefs,
           db.publishedSources,
         },
@@ -594,10 +614,27 @@ class CompendiumRepositories {
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
       );
-      // The last sweep's result is deliberately not assigned: nothing
-      // follows it today. It still REPORTS, so that adding a sweep after it
-      // is a one-line change rather than a change to the contract above.
-      await _backfillChainHandIfNeeded(
+      rebuiltThisCall = await _emitTaxonomyV33CanonicalTextIfNeeded(
+        alreadyRebuilt: rebuiltThisCall,
+        onProgress: onDerivedRebuildProgress,
+      );
+      rebuiltThisCall = await _emitTaxonomyV34CanonicalTextIfNeeded(
+        alreadyRebuilt: rebuiltThisCall,
+        onProgress: onDerivedRebuildProgress,
+      );
+      rebuiltThisCall = await _normaliseTaxonomyV35FiguresIfNeeded(
+        alreadyRebuilt: rebuiltThisCall,
+        onProgress: onDerivedRebuildProgress,
+      );
+      rebuiltThisCall = await _emitModifierContainerCanonicalTextIfNeeded(
+        alreadyRebuilt: rebuiltThisCall,
+        onProgress: onDerivedRebuildProgress,
+      );
+      rebuiltThisCall = await _backfillChainHandIfNeeded(
+        alreadyRebuilt: rebuiltThisCall,
+        onProgress: onDerivedRebuildProgress,
+      );
+      rebuiltThisCall = await _repairCallersBoxRollAwayIfNeeded(
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
       );
@@ -985,9 +1022,7 @@ class CompendiumRepositories {
   ///
   /// Returns whether a derived rebuild has happened during this call — i.e.
   /// [alreadyRebuilt] OR this pass ran one — matching the other sweeps, so the
-  /// caller can thread the flag onward. This pass is currently LAST in the
-  /// chain and its caller discards the value; it is returned anyway because the
-  /// point of the contract is the sweep that gets added after it.
+  /// caller can thread the flag onward to later sweeps.
   Future<bool> _stripStarPromenadeHandIfNeeded({
     bool alreadyRebuilt = false,
     DerivedRebuildProgressCallback? onProgress,
@@ -1153,6 +1188,223 @@ class CompendiumRepositories {
     return true;
   }
 
+  /// Rebuilds canonical/FTS text after taxonomy v33 changed seeded defaults
+  /// and the figure-eight canonical template. It also removes the old parser's
+  /// explicit `partners` value from assumed bare `box_circulate` figures so the
+  /// new taxonomy default can take effect without touching explicit subjects.
+  Future<bool> _emitTaxonomyV33CanonicalTextIfNeeded({
+    bool alreadyRebuilt = false,
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    final done = await db
+        .customSelect(
+          'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+          variables: [Variable.withString(taxonomyV33CanonicalRebuildDoneKey)],
+        )
+        .get();
+    if (done.isNotEmpty) return alreadyRebuilt;
+
+    final allDances = await dances.listAll(includeDeleted: true);
+    for (final dance in allDances) {
+      final normalised = dances.normaliseTaxonomyV33Public(dance);
+      if (identical(normalised, dance)) continue;
+      // Rewrite only figures_json; the bulk rebuild below refreshes all derived
+      // rows after the source normalization completes.
+      // normalization-structure-exempt: derived maintenance writes encoded
+      // figures already produced from the canonical dance model.
+      await db.customUpdate(
+        // sync-invariant-exclusion: maintenance-backfill is idempotent; not a sync record edit.
+        'UPDATE ${db.dances.actualTableName} SET figures_json = ? WHERE id = ?',
+        variables: [
+          Variable<String>(encodeFigures(normalised.figures)),
+          Variable<String>(dance.id),
+        ],
+        updates: {db.dances},
+        updateKind: UpdateKind.update,
+      );
+    }
+
+    if (!alreadyRebuilt) await runDerivedRebuild(onProgress: onProgress);
+    await _writeSweepMarker(taxonomyV33CanonicalRebuildDoneKey, '"done"');
+    return true;
+  }
+
+  /// Rebuilds canonical/FTS text after taxonomy v34 changed the mad robin
+  /// default and normalizes legacy assumed TCB subjects.
+  Future<bool> _emitTaxonomyV34CanonicalTextIfNeeded({
+    bool alreadyRebuilt = false,
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    final done = await db
+        .customSelect(
+          'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+          variables: [Variable.withString(taxonomyV34CanonicalRebuildDoneKey)],
+        )
+        .get();
+    if (done.isNotEmpty) return alreadyRebuilt;
+
+    final allDances = await dances.listAll(includeDeleted: true);
+    final rewrites = <(String, String)>[];
+    for (final dance in allDances) {
+      final normalised = dances.normaliseTaxonomyV34Public(dance);
+      if (identical(normalised, dance)) continue;
+      rewrites.add((dance.id, encodeFigures(normalised.figures)));
+    }
+
+    final rebuildOwed = !alreadyRebuilt || rewrites.isNotEmpty;
+    if (rewrites.isNotEmpty || rebuildOwed) {
+      await db.transaction(() async {
+        for (final (danceId, figuresJson) in rewrites) {
+          // normalization-structure-exempt: derived maintenance writes encoded
+          // figures already produced from the canonical dance model.
+          await db.customUpdate(
+            // sync-invariant-exclusion: maintenance-backfill is idempotent; not a sync record edit.
+            'UPDATE ${db.dances.actualTableName} SET figures_json = ? '
+            'WHERE id = ?',
+            variables: [
+              Variable<String>(figuresJson),
+              Variable<String>(danceId),
+            ],
+            updates: {db.dances},
+            updateKind: UpdateKind.update,
+          );
+        }
+        if (rebuildOwed) {
+          await _writeSweepMarker(derivedRebuildRequiredKey, '"true"');
+        }
+      });
+    }
+
+    if (rebuildOwed) {
+      await runDerivedRebuild(onProgress: onProgress);
+      await db.customUpdate(
+        'DELETE FROM ${db.settings.actualTableName} WHERE key = ?',
+        variables: [Variable<String>(derivedRebuildRequiredKey)],
+        updates: {db.settings},
+        updateKind: UpdateKind.delete,
+      );
+    }
+    await _writeSweepMarker(taxonomyV34CanonicalRebuildDoneKey, '"done"');
+    return true;
+  }
+
+  /// Rewrites legacy v34 figure ids and parameter keys, including nested
+  /// structural-container children, then rebuilds the derived figure/search
+  /// indexes.
+  Future<bool> _normaliseTaxonomyV35FiguresIfNeeded({
+    required bool alreadyRebuilt,
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    final marker = await db
+        .customSelect(
+          'SELECT value_json FROM settings WHERE key = ? '
+          'AND deleted_at IS NULL',
+          variables: [
+            Variable.withString(taxonomyV35FigureNormalizationDoneKey),
+          ],
+        )
+        .get();
+    final pending =
+        marker.isEmpty || marker.first.read<String>('value_json') != 'true';
+    if (!pending) return alreadyRebuilt;
+
+    var rewroteAny = false;
+    String? afterId;
+    while (true) {
+      final rows = afterId == null
+          ? await db
+                .customSelect(
+                  'SELECT id, figures_json FROM ${db.dances.actualTableName} '
+                  'ORDER BY id LIMIT ?',
+                  variables: [Variable<int>(_taxonomyV35MigrationPageSize)],
+                )
+                .get()
+          : await db
+                .customSelect(
+                  'SELECT id, figures_json FROM ${db.dances.actualTableName} '
+                  'WHERE id > ? ORDER BY id LIMIT ?',
+                  variables: [
+                    Variable<String>(afterId),
+                    Variable<int>(_taxonomyV35MigrationPageSize),
+                  ],
+                )
+                .get();
+      if (rows.isEmpty) break;
+      afterId = rows.last.read<String>('id');
+
+      final rewrites = <(String, String)>[];
+      for (final row in rows) {
+        final figures = decodeFigures(row.read<String>('figures_json'));
+        final normalized = dances.normaliseTaxonomyV35FiguresPublic(figures);
+        if (!identical(normalized, figures)) {
+          rewrites.add((row.read<String>('id'), encodeFigures(normalized)));
+        }
+      }
+      if (rewrites.isEmpty) continue;
+
+      rewroteAny = true;
+      await db.transaction(() async {
+        for (final (danceId, figuresJson) in rewrites) {
+          // normalization-structure-exempt: maintenance writes encoded figures
+          // produced by the canonical taxonomy normalizer.
+          await db.customUpdate(
+            // sync-invariant-exclusion: maintenance-backfill is idempotent; not a sync record edit.
+            'UPDATE ${db.dances.actualTableName} SET figures_json = ? '
+            'WHERE id = ?',
+            variables: [
+              Variable<String>(figuresJson),
+              Variable<String>(danceId),
+            ],
+            updates: {db.dances},
+            updateKind: UpdateKind.update,
+          );
+        }
+        // Keep the rebuild owed if the process stops between pages.
+        await _writeSweepMarker(derivedRebuildRequiredKey, '"true"');
+      });
+    }
+
+    final rebuildOwed = !alreadyRebuilt || rewroteAny;
+    if (rebuildOwed && !rewroteAny) {
+      await db.transaction(() async {
+        await _writeSweepMarker(derivedRebuildRequiredKey, '"true"');
+      });
+    }
+
+    if (rebuildOwed) {
+      await runDerivedRebuild(onProgress: onProgress);
+      await db.customUpdate(
+        'DELETE FROM ${db.settings.actualTableName} WHERE key = ?',
+        variables: [Variable<String>(derivedRebuildRequiredKey)],
+        updates: {db.settings},
+        updateKind: UpdateKind.delete,
+      );
+    }
+    await _writeSweepMarker(taxonomyV35FigureNormalizationDoneKey, 'true');
+    return alreadyRebuilt || rebuildOwed;
+  }
+
+  Future<bool> _emitModifierContainerCanonicalTextIfNeeded({
+    bool alreadyRebuilt = false,
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    final done = await db
+        .customSelect(
+          'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+          variables: [
+            Variable.withString(modifierContainerCanonicalRebuildDoneKey),
+          ],
+        )
+        .get();
+    if (done.isNotEmpty) return alreadyRebuilt;
+
+    if (!alreadyRebuilt) {
+      await runDerivedRebuild(onProgress: onProgress);
+    }
+    await _writeSweepMarker(modifierContainerCanonicalRebuildDoneKey, '"done"');
+    return true;
+  }
+
   /// One-time backfill of `chain.hand` from the role-implied side (#976,
   /// taxonomy v28). See [chainHandBackfillDoneKey]'s doc comment for the full
   /// rationale; this pass mirrors
@@ -1269,5 +1521,82 @@ class CompendiumRepositories {
     // not written and the next startup retries.
     await _writeSweepMarker(chainHandBackfillDoneKey, '"done"');
     return alreadyRebuilt || rebuilt;
+  }
+
+  /// Repairs legacy CallersBox `roll_away` figures whose per-role annotation
+  /// was previously retained only as a note (#1192). The source provenance is
+  /// part of the predicate because raw CallersBox payloads were removed in
+  /// schema v21 and an identical figure may have been authored elsewhere.
+  ///
+  /// Row rewrites and the durable derived-rebuild marker are committed
+  /// together. If the rebuild fails after that transaction, the next startup
+  /// rebuilds from the already-repaired source rows before this sweep retries;
+  /// this closes the gap where an idempotent rescan would otherwise find no
+  /// rewrites and incorrectly skip the rebuild.
+  Future<bool> _repairCallersBoxRollAwayIfNeeded({
+    required bool alreadyRebuilt,
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    final done = await db
+        .customSelect(
+          'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+          variables: [Variable.withString(callersBoxRollAwayRoleRepairDoneKey)],
+        )
+        .get();
+    if (done.isNotEmpty) return alreadyRebuilt;
+
+    final legacyRows = await db
+        .customSelect(
+          'SELECT dances.id, dances.figures_json, provenance.source '
+          'FROM dances LEFT JOIN provenance '
+          'ON provenance.dance_id = dances.id',
+          readsFrom: {db.dances, db.provenance},
+        )
+        .get();
+    var rewroteAny = false;
+    await db.transaction(() async {
+      for (final row in legacyRows) {
+        if (row.read<String?>('source') != ProvenanceSource.callersbox.name) {
+          continue;
+        }
+        final figures = decodeFigures(row.read<String>('figures_json'));
+        final repaired = dances.repairLegacyCallersBoxRollAwayFiguresPublic(
+          figures,
+        );
+        if (identical(repaired, figures)) continue;
+        rewroteAny = true;
+        // Rewrite only figures_json; the bulk rebuild below refreshes all
+        // derived rows after every source rewrite has committed.
+        // normalization-structure-exempt: derived maintenance writes encoded
+        // figures already produced from the canonical dance model.
+        await db.customUpdate(
+          // sync-invariant-exclusion: maintenance-backfill is idempotent; not a sync record edit.
+          'UPDATE ${db.dances.actualTableName} SET figures_json = ? '
+          'WHERE id = ?',
+          variables: [
+            Variable<String>(encodeFigures(repaired)),
+            Variable<String>(row.read<String>('id')),
+          ],
+          updates: {db.dances},
+          updateKind: UpdateKind.update,
+        );
+      }
+      if (rewroteAny) {
+        await _writeSweepMarker(derivedRebuildRequiredKey, 'true');
+      }
+    });
+
+    if (rewroteAny) {
+      await runDerivedRebuild(onProgress: onProgress);
+      await db.customUpdate(
+        'DELETE FROM ${db.settings.actualTableName} WHERE key = ?',
+        variables: [Variable<String>(derivedRebuildRequiredKey)],
+        updates: {db.settings},
+        updateKind: UpdateKind.delete,
+      );
+    }
+
+    await _writeSweepMarker(callersBoxRollAwayRoleRepairDoneKey, '"done"');
+    return alreadyRebuilt || rewroteAny;
   }
 }

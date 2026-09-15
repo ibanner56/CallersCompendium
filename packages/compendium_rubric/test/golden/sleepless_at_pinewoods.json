@@ -1,0 +1,139 @@
+{
+  "id": "ed0a33df-8788-4bd7-b0c8-cc1f87e9078a",
+  "title": "Sleepless at Pinewoods",
+  "authorIds": [
+    "b837af47-93eb-4c89-b8d2-1ca97c8fb69d"
+  ],
+  "form": "contra",
+  "formation": {
+    "shape": "dupleImproper",
+    "detail": "Duple Minor - Improper"
+  },
+  "progression": "single",
+  "phraseStructure": "",
+  "figures": [
+    {
+      "schemaVersion": 1,
+      "move": "pull_by_dancers",
+      "params": {
+        "who": "neighbors",
+        "hand": "right",
+        "beats": 2
+      },
+      "note": "grand right and left"
+    },
+    {
+      "schemaVersion": 1,
+      "move": "pull_by_dancers",
+      "params": {
+        "who": "nextNeighbors",
+        "hand": "left",
+        "beats": 2
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "pull_by_dancers",
+      "params": {
+        "who": "thirdNeighbors",
+        "hand": "right",
+        "beats": 2
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "allemande",
+      "params": {
+        "who": "fourthNeighbors",
+        "hand": "left",
+        "turn": 1,
+        "beats": 6
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "pull_by_dancers",
+      "params": {
+        "who": "thirdNeighbors",
+        "hand": "right",
+        "beats": 2
+      },
+      "note": "grand right and left"
+    },
+    {
+      "schemaVersion": 1,
+      "move": "pull_by_dancers",
+      "params": {
+        "who": "nextNeighbors",
+        "hand": "left",
+        "beats": 2
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "swing",
+      "params": {
+        "who": "neighbors",
+        "beats": 16,
+        "prefix": "balance"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "circle",
+      "params": {
+        "turn": "left",
+        "places": 3,
+        "beats": 6
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "swing",
+      "params": {
+        "who": "partners",
+        "beats": 10
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "chain",
+      "params": {
+        "who": "role2s",
+        "hand": "right",
+        "beats": 8
+      },
+      "note": "to neighbor n1"
+    },
+    {
+      "schemaVersion": 1,
+      "move": "star",
+      "params": {
+        "hand": "left",
+        "places": 4,
+        "beats": 8
+      },
+      "progression": true
+    }
+  ],
+  "hook": "",
+  "callingNotes": "Appears in: website Fontana; website King\\n\\nImported from The Caller's Box.",
+  "walkthrough": "",
+  "status": "active",
+  "mixedLevel": false,
+  "mixer": false,
+  "tunes": [],
+  "customFields": [],
+  "tagIds": [],
+  "links": [],
+  "sourceCitations": [],
+  "provenance": {
+    "source": "callersbox",
+    "externalId": "10736",
+    "importedAt": "2026-08-27T19:53:03.000Z",
+    "permission": "full",
+    "sourceVersion": "2026-08-27T19:52:58+00:00"
+  },
+  "createdAt": "2026-08-27T19:53:03.000Z",
+  "updatedAt": "2026-08-27T19:53:03.000Z"
+}

@@ -24,22 +24,32 @@ void main() {
 
     final changed = await dances.setLevelForMany(
       ['a', 'b'],
-      level: DanceLevel.intermediate,
+      difficultyLevelId: DifficultyLevel.intermediateId,
       now: now,
     );
 
     expect(changed, 2);
-    expect((await dances.getById('a'))!.level, DanceLevel.intermediate);
-    expect((await dances.getById('b'))!.level, DanceLevel.intermediate);
+    expect(
+      (await dances.getById('a'))!.difficultyLevelId,
+      DifficultyLevel.intermediateId,
+    );
+    expect(
+      (await dances.getById('b'))!.difficultyLevelId,
+      DifficultyLevel.intermediateId,
+    );
     // The un-listed dance is untouched.
-    expect((await dances.getById('c'))!.level, isNull);
+    expect((await dances.getById('c'))!.difficultyLevelId, isNull);
   });
 
   test('setLevelForMany stamps updatedAt only on changed dances', () async {
     await dances.create(sampleDance(id: 'a', title: 'Alpha'));
     final before = (await dances.getById('a'))!.updatedAt;
 
-    await dances.setLevelForMany(['a'], level: DanceLevel.advanced, now: now);
+    await dances.setLevelForMany(
+      ['a'],
+      difficultyLevelId: DifficultyLevel.advancedId,
+      now: now,
+    );
 
     expect((await dances.getById('a'))!.updatedAt, now);
     expect(now, isNot(before));
@@ -52,52 +62,67 @@ void main() {
         sampleDance(
           id: 'a',
           title: 'Alpha',
-        ).copyWith(level: DanceLevel.beginner),
+        ).copyWith(difficultyLevelId: DifficultyLevel.beginnerId),
       );
       await dances.create(sampleDance(id: 'b', title: 'Bravo'));
 
       final changed = await dances.setLevelForMany(
         ['a', 'b'],
-        level: DanceLevel.beginner,
+        difficultyLevelId: DifficultyLevel.beginnerId,
         now: now,
       );
 
       // Only b changes; a is already beginner.
       expect(changed, 1);
-      expect((await dances.getById('a'))!.level, DanceLevel.beginner);
-      expect((await dances.getById('b'))!.level, DanceLevel.beginner);
+      expect(
+        (await dances.getById('a'))!.difficultyLevelId,
+        DifficultyLevel.beginnerId,
+      );
+      expect(
+        (await dances.getById('b'))!.difficultyLevelId,
+        DifficultyLevel.beginnerId,
+      );
     },
   );
 
-  test('setLevelForMany with clearLevel unsets the level', () async {
+  test('setLevelForMany with clearDifficultyLevel unsets the level', () async {
     await dances.create(
-      sampleDance(id: 'a', title: 'Alpha').copyWith(level: DanceLevel.advanced),
+      sampleDance(
+        id: 'a',
+        title: 'Alpha',
+      ).copyWith(difficultyLevelId: DifficultyLevel.advancedId),
     );
 
     final changed = await dances.setLevelForMany(
       ['a'],
-      clearLevel: true,
+      clearDifficultyLevel: true,
       now: now,
     );
 
     expect(changed, 1);
-    expect((await dances.getById('a'))!.level, isNull);
+    expect((await dances.getById('a'))!.difficultyLevelId, isNull);
   });
 
-  test('setLevelForMany clearLevel wins over a passed level value', () async {
-    await dances.create(
-      sampleDance(id: 'a', title: 'Alpha').copyWith(level: DanceLevel.advanced),
-    );
+  test(
+    'setLevelForMany clearDifficultyLevel wins over a passed level value',
+    () async {
+      await dances.create(
+        sampleDance(
+          id: 'a',
+          title: 'Alpha',
+        ).copyWith(difficultyLevelId: DifficultyLevel.advancedId),
+      );
 
-    await dances.setLevelForMany(
-      ['a'],
-      level: DanceLevel.beginner,
-      clearLevel: true,
-      now: now,
-    );
+      await dances.setLevelForMany(
+        ['a'],
+        difficultyLevelId: DifficultyLevel.beginnerId,
+        clearDifficultyLevel: true,
+        now: now,
+      );
 
-    expect((await dances.getById('a'))!.level, isNull);
-  });
+      expect((await dances.getById('a'))!.difficultyLevelId, isNull);
+    },
+  );
 
   test('setLevelForMany ignores unknown ids and an empty list', () async {
     await dances.create(sampleDance(id: 'a', title: 'Alpha'));
@@ -105,7 +130,7 @@ void main() {
     expect(
       await dances.setLevelForMany(
         const [],
-        level: DanceLevel.intermediate,
+        difficultyLevelId: DifficultyLevel.intermediateId,
         now: now,
       ),
       0,
@@ -113,12 +138,12 @@ void main() {
     expect(
       await dances.setLevelForMany(
         ['does-not-exist'],
-        level: DanceLevel.intermediate,
+        difficultyLevelId: DifficultyLevel.intermediateId,
         now: now,
       ),
       0,
     );
-    expect((await dances.getById('a'))!.level, isNull);
+    expect((await dances.getById('a'))!.difficultyLevelId, isNull);
   });
 
   test('setLevelForMany throws (and does not wipe) when given neither level '
@@ -127,7 +152,7 @@ void main() {
       sampleDance(
         id: 'a',
         title: 'Alpha',
-      ).copyWith(level: DanceLevel.intermediate),
+      ).copyWith(difficultyLevelId: DifficultyLevel.intermediateId),
     );
 
     // Release-safe guard: must throw ArgumentError, not silently clear.
@@ -136,6 +161,9 @@ void main() {
       throwsA(isA<ArgumentError>()),
     );
     // The existing level survives the rejected call.
-    expect((await dances.getById('a'))!.level, DanceLevel.intermediate);
+    expect(
+      (await dances.getById('a'))!.difficultyLevelId,
+      DifficultyLevel.intermediateId,
+    );
   });
 }

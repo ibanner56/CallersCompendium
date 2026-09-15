@@ -96,10 +96,16 @@ void main() {
     await _toggle(tester, 'd2');
     await _setLevel(tester, 'intermediate');
 
-    expect((await repos.dances.getById('d1'))!.level, DanceLevel.intermediate);
-    expect((await repos.dances.getById('d2'))!.level, DanceLevel.intermediate);
+    expect(
+      (await repos.dances.getById('d1'))!.difficultyLevelId,
+      DifficultyLevel.intermediateId,
+    );
+    expect(
+      (await repos.dances.getById('d2'))!.difficultyLevelId,
+      DifficultyLevel.intermediateId,
+    );
     // The un-selected dance is untouched.
-    expect((await repos.dances.getById('d3'))!.level, isNull);
+    expect((await repos.dances.getById('d3'))!.difficultyLevelId, isNull);
     // Selection mode ends after applying.
     expect(find.byKey(const ValueKey('batch-select')), findsOneWidget);
   });
@@ -119,8 +125,14 @@ void main() {
     await _toggle(tester, 'd2');
     await _setLevel(tester, 'beginner');
 
-    expect((await repos.dances.getById('d1'))!.level, DanceLevel.beginner);
-    expect((await repos.dances.getById('d2'))!.level, DanceLevel.beginner);
+    expect(
+      (await repos.dances.getById('d1'))!.difficultyLevelId,
+      DifficultyLevel.beginnerId,
+    );
+    expect(
+      (await repos.dances.getById('d2'))!.difficultyLevelId,
+      DifficultyLevel.beginnerId,
+    );
     // Only one dance actually changed.
     expect(find.text('Set level on 1 dance'), findsOneWidget);
   });
@@ -138,7 +150,7 @@ void main() {
     await _toggle(tester, 'd1');
     await _setLevel(tester, 'unspecified');
 
-    expect((await repos.dances.getById('d1'))!.level, isNull);
+    expect((await repos.dances.getById('d1'))!.difficultyLevelId, isNull);
     expect(find.text('Cleared level on 1 dance'), findsOneWidget);
   });
 
@@ -155,15 +167,24 @@ void main() {
     await _toggle(tester, 'd2');
     await _setLevel(tester, 'advanced');
 
-    expect((await repos.dances.getById('d1'))!.level, DanceLevel.advanced);
-    expect((await repos.dances.getById('d2'))!.level, DanceLevel.advanced);
+    expect(
+      (await repos.dances.getById('d1'))!.difficultyLevelId,
+      DifficultyLevel.advancedId,
+    );
+    expect(
+      (await repos.dances.getById('d2'))!.difficultyLevelId,
+      DifficultyLevel.advancedId,
+    );
 
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
 
     // Each dance is restored to its own prior level.
-    expect((await repos.dances.getById('d1'))!.level, DanceLevel.beginner);
-    expect((await repos.dances.getById('d2'))!.level, isNull);
+    expect(
+      (await repos.dances.getById('d1'))!.difficultyLevelId,
+      DifficultyLevel.beginnerId,
+    );
+    expect((await repos.dances.getById('d2'))!.difficultyLevelId, isNull);
   });
 
   testWidgets('set-level is a no-op when nothing actually changes', (
@@ -180,7 +201,10 @@ void main() {
     await _setLevel(tester, 'intermediate');
 
     expect(find.text('No changes'), findsOneWidget);
-    expect((await repos.dances.getById('d1'))!.level, DanceLevel.intermediate);
+    expect(
+      (await repos.dances.getById('d1'))!.difficultyLevelId,
+      DifficultyLevel.intermediateId,
+    );
   });
 
   testWidgets('set-level button is disabled with an empty selection', (

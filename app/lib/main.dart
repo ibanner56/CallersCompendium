@@ -56,7 +56,10 @@ import 'src/data/soft_delete_retention.dart';
 import 'src/data/sort_ignore_articles_scope.dart';
 import 'src/data/verbose_figure_rendering_scope.dart';
 import 'src/data/decimal_turns_scope.dart';
+import 'src/data/canonical_discouraged_terms_scope.dart';
+import 'src/data/display_defaults.dart' show kCanonicalDiscouragedTermsKey;
 import 'src/data/venue_entity_mode_scope.dart';
+import 'src/data/venue_call_count_scope.dart';
 import 'src/data/walkthrough_snippet_library_controller.dart';
 import 'src/data/walkthrough_snippet_library_scope.dart';
 import 'src/data/window_service.dart';
@@ -64,9 +67,11 @@ import 'src/diagnostics/crash_log_store.dart';
 import 'src/diagnostics/crash_reporter.dart';
 import 'src/diagnostics/error_log.dart';
 import 'src/licenses.dart';
+import 'src/search/dance_detail_data.dart';
 import 'src/screens/app_shell.dart';
 import 'src/screens/contradb_program_import_screen.dart';
 import 'src/screens/dance_detail_screen.dart';
+import 'src/screens/dance_reimport_flow.dart';
 import 'src/screens/import_review_screen.dart';
 import 'src/screens/online_import_variation_dialog.dart';
 import 'src/screens/settings_screen.dart'
@@ -80,6 +85,7 @@ import 'src/screens/settings_screen.dart'
         kRequirePerformedForHistoryKey,
         kSortIgnoreArticlesKey,
         kTrackHistoryForAllCallersKey,
+        kVenueCallCountKey,
         kVenueEntityModeKey;
 import 'src/theme/app_theme.dart';
 import 'src/app_metadata.dart';
@@ -349,6 +355,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
   final ValueNotifier<bool> _trackHistoryForAllCallersNotifier = ValueNotifier(
     false,
   );
+  final ValueNotifier<int> _venueCallCountNotifier = ValueNotifier(
+    kVenueCallCountDefault,
+  );
   final ValueNotifier<bool> _sortIgnoreArticlesNotifier = ValueNotifier(true);
   // Tri-state (issue #447): null = unset → follow the OS-level Reduce Motion
   // preference (MediaQuery.disableAnimations); true/false = explicit in-app
@@ -356,6 +365,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
   final ValueNotifier<bool?> _reduceMotionNotifier = ValueNotifier<bool?>(null);
   final ValueNotifier<bool> _verboseFigureRenderingNotifier = ValueNotifier(
     false,
+  );
+  final ValueNotifier<bool> _canonicalDiscouragedTermsNotifier = ValueNotifier(
+    true,
   );
   final ValueNotifier<bool> _decimalTurnsNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _aggressiveBeatsUpdateNotifier = ValueNotifier(
@@ -514,6 +526,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _requirePerformedForHistoryNotifier.value = false;
     _collectionTileFieldsNotifier.value = CollectionTileField.all;
     _trackHistoryForAllCallersNotifier.value = false;
+    _venueCallCountNotifier.value = kVenueCallCountDefault;
     _sortIgnoreArticlesNotifier.value = true;
     _reduceMotionNotifier.value = null;
     _verboseFigureRenderingNotifier.value = false;
@@ -666,6 +679,16 @@ class _CompendiumAppState extends State<CompendiumApp> {
     );
   }
 
+  Future<void> _beginIncomingReimport(DanceDetailData detail) async {
+    final context = _navigatorKey.currentContext;
+    if (context == null || !context.mounted) return;
+    await DanceReimportCoordinator(
+      repos: _appData.repositories,
+      callersBox: CallersBoxOnline(jsonFetcher: widget.incomingUrlFetcher),
+      contraDb: ContraDbOnline(htmlFetcher: widget.incomingUrlFetcher),
+    ).open(context, detail);
+  }
+
   Future<void> _openIncomingDancePreview(SharedDanceLink link) async {
     final navigator = _navigatorKey.currentState;
     final navContext = _navigatorKey.currentContext;
@@ -756,7 +779,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (imported.danceCount == 1 && danceId != null) {
       await navigator.push<void>(
         MaterialPageRoute<void>(
-          builder: (_) => DanceDetailScreen(danceId: danceId),
+          builder: (_) => DanceDetailScreen(
+            danceId: danceId,
+            onReimport: _beginIncomingReimport,
+          ),
         ),
       );
     }
@@ -1042,6 +1068,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (trackAllCallers is bool) {
       _trackHistoryForAllCallersNotifier.value = trackAllCallers;
     }
+    final venueCallCount = await _appData.repositories.settings.get(
+      kVenueCallCountKey,
+    );
+    _venueCallCountNotifier.value = venueCallCountFromStored(venueCallCount);
     // Load the "ignore leading articles when sorting" setting, defaulting to
     // on (true) when unset.
     final sortIgnoreArticles = await _appData.repositories.settings.get(
@@ -1072,6 +1102,13 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (verboseFigures is bool) {
       _verboseFigureRenderingNotifier.value = verboseFigures;
     }
+    final canonicalDiscouragedTerms = await _appData.repositories.settings
+        .get(kCanonicalDiscouragedTermsKey)
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
+    _canonicalDiscouragedTermsNotifier.value =
+        canonicalDiscouragedTerms is! bool || canonicalDiscouragedTerms;
     // Load the "show turns as decimals" display toggle (#368), off by default
     // when unset. Opt-in, so a read failure or missing key stays off (keeps the
     // fraction-glyph default). Coerced through `is bool` so a garbage stored
@@ -1259,9 +1296,11 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _requirePerformedForHistoryNotifier.dispose();
     _collectionTileFieldsNotifier.dispose();
     _trackHistoryForAllCallersNotifier.dispose();
+    _venueCallCountNotifier.dispose();
     _sortIgnoreArticlesNotifier.dispose();
     _reduceMotionNotifier.dispose();
     _verboseFigureRenderingNotifier.dispose();
+    _canonicalDiscouragedTermsNotifier.dispose();
     _decimalTurnsNotifier.dispose();
     _aggressiveBeatsUpdateNotifier.dispose();
     _confirmBeforeDeleteNotifier.dispose();
@@ -1619,56 +1658,63 @@ class _CompendiumAppState extends State<CompendiumApp> {
                                 notifier: _collectionTileFieldsNotifier,
                                 child: TrackHistoryForAllCallersScope(
                                   notifier: _trackHistoryForAllCallersNotifier,
-                                  child: SortIgnoreArticlesScope(
-                                    notifier: _sortIgnoreArticlesNotifier,
-                                    child: ReduceMotionScope(
-                                      notifier: _reduceMotionNotifier,
-                                      child: VerboseFigureRenderingScope(
-                                        notifier:
-                                            _verboseFigureRenderingNotifier,
-                                        child: DecimalTurnsScope(
-                                          notifier: _decimalTurnsNotifier,
-                                          child: AggressiveBeatsUpdateScope(
+                                  child: VenueCallCountScope(
+                                    notifier: _venueCallCountNotifier,
+                                    child: SortIgnoreArticlesScope(
+                                      notifier: _sortIgnoreArticlesNotifier,
+                                      child: ReduceMotionScope(
+                                        notifier: _reduceMotionNotifier,
+                                        child: VerboseFigureRenderingScope(
+                                          notifier:
+                                              _verboseFigureRenderingNotifier,
+                                          child: CanonicalDiscouragedTermsScope(
                                             notifier:
-                                                _aggressiveBeatsUpdateNotifier,
-                                            child: ConfirmBeforeDeleteScope(
-                                              notifier:
-                                                  _confirmBeforeDeleteNotifier,
-                                              child: ColourDanceThemeScope(
+                                                _canonicalDiscouragedTermsNotifier,
+                                            child: DecimalTurnsScope(
+                                              notifier: _decimalTurnsNotifier,
+                                              child: AggressiveBeatsUpdateScope(
                                                 notifier:
-                                                    _colourDanceThemeNotifier,
-                                                child: SetListColorCodingScope(
+                                                    _aggressiveBeatsUpdateNotifier,
+                                                child: ConfirmBeforeDeleteScope(
                                                   notifier:
-                                                      _setListColorCodingNotifier,
-                                                  child: MatrixCollisionModeScope(
+                                                      _confirmBeforeDeleteNotifier,
+                                                  child: ColourDanceThemeScope(
                                                     notifier:
-                                                        _matrixExactBeatCollisionNotifier,
-                                                    child: ProgramMatrixColumnConfigScope(
+                                                        _colourDanceThemeNotifier,
+                                                    child: SetListColorCodingScope(
                                                       notifier:
-                                                          _programMatrixColumnsNotifier,
-                                                      child: DateFormatScope(
+                                                          _setListColorCodingNotifier,
+                                                      child: MatrixCollisionModeScope(
                                                         notifier:
-                                                            _dateFormatNotifier,
-                                                        child: FirstDayOfWeekScope(
+                                                            _matrixExactBeatCollisionNotifier,
+                                                        child: ProgramMatrixColumnConfigScope(
                                                           notifier:
-                                                              _firstDayOfWeekNotifier,
-                                                          child: LocaleScope(
+                                                              _programMatrixColumnsNotifier,
+                                                          child: DateFormatScope(
                                                             notifier:
-                                                                _localeNotifier,
-                                                            child: BackupControllerScope(
-                                                              onRestored:
-                                                                  reloadFromSettings,
-                                                              child: CollectionFilterScope(
-                                                                controller:
-                                                                    _collectionFilterController,
-                                                                child: VenueEntityModeScope(
-                                                                  notifier:
-                                                                      _venueEntityModeNotifier,
-                                                                  child: ProgramAutoCommitScope(
-                                                                    notifier:
-                                                                        _autoCommitProgramChangesNotifier,
-                                                                    child:
-                                                                        child!,
+                                                                _dateFormatNotifier,
+                                                            child: FirstDayOfWeekScope(
+                                                              notifier:
+                                                                  _firstDayOfWeekNotifier,
+                                                              child: LocaleScope(
+                                                                notifier:
+                                                                    _localeNotifier,
+                                                                child: BackupControllerScope(
+                                                                  onRestored:
+                                                                      reloadFromSettings,
+                                                                  child: CollectionFilterScope(
+                                                                    controller:
+                                                                        _collectionFilterController,
+                                                                    child: VenueEntityModeScope(
+                                                                      notifier:
+                                                                          _venueEntityModeNotifier,
+                                                                      child: ProgramAutoCommitScope(
+                                                                        notifier:
+                                                                            _autoCommitProgramChangesNotifier,
+                                                                        child:
+                                                                            child!,
+                                                                      ),
+                                                                    ),
                                                                   ),
                                                                 ),
                                                               ),

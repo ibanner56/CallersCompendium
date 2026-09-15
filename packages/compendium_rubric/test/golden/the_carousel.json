@@ -1,0 +1,91 @@
+{
+  "id": "002680e5-110f-4595-99c3-91ad27098add",
+  "title": "The Carousel",
+  "authorIds": [
+    "d7270be0-b173-4840-88f6-acd42546f6d1"
+  ],
+  "form": "contra",
+  "formation": {
+    "shape": "dupleImproper",
+    "detail": "Duple Minor - Improper"
+  },
+  "progression": "single",
+  "phraseStructure": "",
+  "figures": [
+    {
+      "schemaVersion": 1,
+      "move": "long_lines",
+      "params": {
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "allemande",
+      "params": {
+        "who": "role2s",
+        "hand": "left",
+        "turn": 1.5,
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "hey",
+      "params": {
+        "length": "full",
+        "pass1": "partners",
+        "shoulder": "right",
+        "pass2": "role1s",
+        "beats": 16
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "swing",
+      "params": {
+        "who": "partners",
+        "beats": 16,
+        "prefix": "balance"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "circle",
+      "params": {
+        "turn": "left",
+        "places": 3,
+        "beats": 6
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "swing",
+      "params": {
+        "who": "neighbors",
+        "beats": 10
+      },
+      "progression": true
+    }
+  ],
+  "hook": "",
+  "callingNotes": "Appears in: Dance All Night II (p. 15); Contra Dance Programming (p. 12); Contra Dance Programming (p. 39); Give-and-Take (p. 96); website CDNY Repertoire (p. 10); website contradb.com; website Dance Video Archives; website Kaufman; website Kaufman; website King; website Tepfer2; American Square Dance (p. 34); 1998 RPDLW syllabus (p. 12); 2001 RPDLW syllabus (p. 41); 2006 RPDLW syllabus (p. 7); 2018 RPDLW syllabus (p. 25)\n\nImported from The Caller's Box.",
+  "walkthrough": "",
+  "status": "active",
+  "mixedLevel": false,
+  "mixer": false,
+  "tunes": [],
+  "customFields": [],
+  "tagIds": [],
+  "links": [],
+  "sourceCitations": [],
+  "provenance": {
+    "source": "callersbox",
+    "externalId": "10324",
+    "importedAt": "2026-09-03T00:10:10.000Z",
+    "permission": "full",
+    "sourceVersion": "2026-09-03T00:09:48+00:00"
+  },
+  "createdAt": "2026-09-03T00:10:10.000Z",
+  "updatedAt": "2026-09-03T00:10:30.000Z"
+}

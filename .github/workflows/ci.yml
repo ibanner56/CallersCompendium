@@ -42,7 +42,9 @@ jobs:
     outputs:
       validation_changed: ${{ steps.classify.outputs.validation_changed }}
       core_tests_changed: ${{ steps.classify.outputs.core_tests_changed }}
+      rubric_tests_changed: ${{ steps.classify.outputs.rubric_tests_changed }}
       app_tests_changed: ${{ steps.classify.outputs.app_tests_changed }}
+      server_tests_changed: ${{ steps.classify.outputs.server_tests_changed }}
       builds_changed: ${{ steps.classify.outputs.builds_changed }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -62,7 +64,9 @@ jobs:
             {
               echo 'validation_changed=true'
               echo 'core_tests_changed=true'
+              echo 'rubric_tests_changed=true'
               echo 'app_tests_changed=true'
+              echo 'server_tests_changed=true'
               echo 'builds_changed=true'
             } >> "$GITHUB_OUTPUT"
             exit 0
@@ -193,9 +197,20 @@ jobs:
               or path in core_test_driver_paths
               for path in paths
           )
+          rubric_tests_changed = validation_changed and any(
+              path.startswith(b'packages/compendium_rubric/')
+              or path.startswith(b'packages/compendium_core/')
+              or path in shared_runtime_paths
+              for path in paths
+          )
           app_tests_changed = validation_changed and any(
               path.startswith(b'app/')
               or path.startswith(b'packages/compendium_core/')
+              or path in shared_runtime_paths
+              for path in paths
+          )
+          server_tests_changed = validation_changed and any(
+              path.startswith(b'server/')
               or path in shared_runtime_paths
               for path in paths
           )
@@ -204,7 +219,9 @@ jobs:
               for name, value in (
                   ('validation_changed', validation_changed),
                   ('core_tests_changed', core_tests_changed),
+                  ('rubric_tests_changed', rubric_tests_changed),
                   ('app_tests_changed', app_tests_changed),
+                  ('server_tests_changed', server_tests_changed),
                   ('builds_changed', builds_changed),
               ):
                   output.write(f'{name}={str(value).lower()}\n')
@@ -221,7 +238,9 @@ jobs:
     uses: ./.github/workflows/_checks.yml
     with:
       run_core_tests: ${{ needs.classify.outputs.core_tests_changed == 'true' }}
+      run_rubric_tests: ${{ needs.classify.outputs.rubric_tests_changed == 'true' }}
       run_app_tests: ${{ needs.classify.outputs.app_tests_changed == 'true' }}
+      run_server_tests: ${{ needs.classify.outputs.server_tests_changed == 'true' }}
 
   build:
     name: Build (${{ matrix.target }})

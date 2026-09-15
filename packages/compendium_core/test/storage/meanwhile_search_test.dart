@@ -98,6 +98,39 @@ void main() {
   });
 
   test(
+    'recursively indexes modifier leaves and preserves one outer group',
+    () async {
+      final nested = Figure.meanwhile(
+        figures: [
+          Figure(move: 'do_si_do'),
+          Figure(move: 'petronella'),
+        ],
+        beats: 8,
+      );
+      final container = Figure.modifier(
+        figures: [
+          Figure(move: 'swing'),
+          nested,
+        ],
+        beats: 8,
+      );
+      final dance = sampleDance(id: 'modifier', figures: [container]);
+      await dances.create(dance);
+
+      final rows = await (db.select(
+        db.danceFigures,
+      )..where((t) => t.danceId.equals(dance.id))).get();
+      rows.sort((a, b) => a.idx.compareTo(b.idx));
+      expect(rows.map((r) => r.move), ['swing', 'do_si_do', 'petronella']);
+      expect(rows.map((r) => r.groupIdx), [0, 0, 0]);
+      expect(await dances.search(FigureFilter.leaf('petronella')), [
+        'modifier',
+      ]);
+      expect(await dances.searchText('modifier'), contains('modifier'));
+    },
+  );
+
+  test(
     'empty meanwhile container is not dropped — indexes a fallback row',
     () async {
       // A legacy/partial `{move:"meanwhile"}` decodes to zero sub-figures. The

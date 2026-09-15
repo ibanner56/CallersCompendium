@@ -29,6 +29,7 @@ Dance _dance({
   String title = 'Original',
   List<Figure> figures = const [],
   List<String> authorIds = const [],
+  List<String> tagIds = const [],
   List<DanceLink> links = const [],
   List<CustomFieldValue> customFields = const [],
   DanceLevel? level,
@@ -40,6 +41,7 @@ Dance _dance({
   title: title,
   figures: figures,
   authorIds: authorIds,
+  tagIds: tagIds,
   links: links,
   customFields: customFields,
   level: level,
@@ -257,7 +259,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final saved = await repos.dances.getById('d1');
-    expect(saved!.level, DanceLevel.intermediate);
+    expect(saved!.difficultyLevelId, DifficultyLevel.intermediateId);
     expect(saved.mixedLevel, isTrue);
   });
 
@@ -298,7 +300,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final saved = await repos.dances.getById('d1');
-    expect(saved!.level, isNull);
+    expect(saved!.difficultyLevelId, isNull);
   });
 
   testWidgets('rating: setting a star round-trips on save', (tester) async {
@@ -621,6 +623,9 @@ void main() {
     final repos = openTestRepositories();
     // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'flowy'));
+    await repos.dances.create(
+      _dance(id: 'd-tag-seed', title: 'Tagged seed', tagIds: ['t1']),
+    );
     await _pumpEditor(tester, repos);
 
     await _expandMoreDetails(tester);
@@ -646,6 +651,9 @@ void main() {
       await repos.tags.upsert(Tag(id: 't1', name: 'flowy'));
       // ignore: unused_result
       await repos.tags.upsert(Tag(id: 't2', name: 'smooth'));
+      await repos.dances.create(
+        _dance(id: 'd-tag-seed', title: 'Tagged seed', tagIds: ['t1', 't2']),
+      );
       await _pumpEditor(tester, repos);
 
       await _expandMoreDetails(tester);
@@ -693,6 +701,61 @@ void main() {
       find.byKey(const ValueKey('tag-input')),
     );
     expect(field.controller!.text, isEmpty);
+    expect(await repos.tags.listAll(), isEmpty);
+  });
+
+  testWidgets('saving a new dance commits its staged inline tag atomically', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpEditor(tester, repos);
+    await tester.enterText(
+      find.byKey(const ValueKey('title-field')),
+      'Tagged dance',
+    );
+    await _expandMoreDetails(tester);
+    await tester.enterText(find.byKey(const ValueKey('tag-input')), 'sparkly');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('tag-option-create:sparkly')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final savedDance = (await repos.dances.listAll()).single;
+    final savedTag = (await repos.tags.listAll()).single;
+    expect(savedDance.title, 'Tagged dance');
+    expect(savedDance.tagIds, [savedTag.id]);
+    expect(savedTag.name, 'sparkly');
+  });
+
+  testWidgets('failed dance save rolls back its staged inline tag', (
+    tester,
+  ) async {
+    final db = openWidgetTestDatabase();
+    final failingDances = _FailingDanceCreateRepository(db, contraTaxonomy);
+    final repos = CompendiumRepositories(
+      db,
+      contraTaxonomy,
+      dances: failingDances,
+    );
+    await _pumpEditor(tester, repos);
+    await tester.enterText(
+      find.byKey(const ValueKey('title-field')),
+      'Rejected dance',
+    );
+    await _expandMoreDetails(tester);
+    await tester.enterText(find.byKey(const ValueKey('tag-input')), 'sparkly');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('tag-option-create:sparkly')));
+    await tester.pumpAndSettle();
+
+    failingDances.failNextCreate = true;
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    expect(failingDances.fired, isTrue);
+    expect(await repos.dances.listAll(), isEmpty);
+    expect(await repos.tags.listAll(), isEmpty);
   });
 
   testWidgets('an empty tag entry does not add a chip or corrupt state', (
@@ -701,6 +764,9 @@ void main() {
     final repos = openTestRepositories();
     // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'flowy'));
+    await repos.dances.create(
+      _dance(id: 'd-tag-seed', title: 'Tagged seed', tagIds: ['t1']),
+    );
     await _pumpEditor(tester, repos);
 
     await _expandMoreDetails(tester);
@@ -1155,6 +1221,8 @@ void main() {
     await tester.enterText(find.byKey(const ValueKey('title-field')), 'Swung');
     await tester.tap(find.byKey(const ValueKey('figure-add')));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-add-figure')));
+    await tester.pumpAndSettle();
     await _selectMoveInEditor(tester, 0, 'sw', 'swing');
 
     // Progression + note round-trip alongside the params.
@@ -1194,6 +1262,8 @@ void main() {
 
     await tester.enterText(find.byKey(const ValueKey('title-field')), 'Custom');
     await tester.tap(find.byKey(const ValueKey('figure-add')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-add-figure')));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('figure-0-move-input')),
@@ -2064,6 +2134,55 @@ void main() {
       expect(saved.figures, isEmpty);
     });
 
+    testWidgets(
+      'deduplicates staged and live tags that resolve to one natural key',
+      (tester) async {
+        final repos = openTestRepositories();
+        // ignore: unused_result
+        await repos.tags.upsert(Tag(id: 't-live', name: 'Easy'));
+        await repos.dances.create(
+          _dance(id: 'd-reference', title: 'Reference', tagIds: ['t-live']),
+        );
+        const stagedId = 'provisional-easy';
+        final draft = EditorSnapshot(
+          title: 'Drafted Dance',
+          hook: '',
+          notes: '',
+          phrase: '',
+          formationDetail: '',
+          form: DanceForm.contra,
+          formationShape: FormationShape.dupleImproper,
+          progression: Progression.single,
+          status: DanceStatus.active,
+          authorIds: [],
+          tagIds: [stagedId],
+          tunes: [],
+          links: [],
+          sourceCitations: [],
+          customValues: {},
+          figureDrafts: [],
+          stagedTags: [Tag(id: stagedId, name: 'easy')],
+        );
+        await repos.settings.set('editor_draft:new', encodeDraft(draft));
+
+        await _pumpEditor(tester, repos);
+        await tester.tap(find.byKey(const ValueKey('draft-restore')));
+        await tester.pumpAndSettle();
+        await _expandMoreDetails(tester);
+        await tester.enterText(find.byKey(const ValueKey('tag-input')), 'easy');
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('tag-option-t-live')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('save-dance')));
+        await tester.pumpAndSettle();
+
+        final saved = (await repos.dances.listAll()).singleWhere(
+          (dance) => dance.title == 'Drafted Dance',
+        );
+        expect(saved.tagIds, ['t-live']);
+      },
+    );
+
     testWidgets('new dance with no template seeds the default stand_still x8', (
       tester,
     ) async {
@@ -2186,11 +2305,11 @@ void main() {
         kDefaultDanceFiguresTemplateKey,
         encodeFigures([]),
       );
-      // Configure a per-move default: circle turns right (default is left).
+      // Configure a per-move default: circle goes right (default is left).
       await repos.settings.set(
         kDefaultMoveParamOverridesKey,
         encodeMoveParamOverrides({
-          'circle': {'turn': 'right'},
+          'circle': {'direction': 'right'},
         }),
       );
       await _pumpEditor(tester, repos);
@@ -2201,6 +2320,8 @@ void main() {
       );
       await tester.tap(find.byKey(const ValueKey('figure-add')));
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('figure-add-figure')));
+      await tester.pumpAndSettle();
       await _selectMoveInEditor(tester, 0, 'circle', 'circle');
 
       await tester.tap(find.byKey(const ValueKey('save-dance')));
@@ -2209,7 +2330,7 @@ void main() {
       final figure = (await repos.dances.listAll()).single.figures.single;
       expect(figure.move, 'circle');
       // Overridden param takes the configured value...
-      expect(figure.params['turn'], 'right');
+      expect(figure.params['direction'], 'right');
       // ...while non-overridden params keep the taxonomy defaults.
       expect(figure.params['places'], 4);
       expect(figure.params['beats'], 8);
@@ -2444,7 +2565,7 @@ void main() {
           PublishedSource(id: 's1', title: 'Zesty Contras'),
         );
         await repos.dances.create(
-          _dance(id: 'd-other', title: 'Petronella Twirl'),
+          _dance(id: 'd-other', title: 'Petronella Twirl', tagIds: ['t1']),
         );
         await tester.pumpAndSettle();
 
@@ -2503,6 +2624,13 @@ void main() {
         // must not route into the draft.
         // ignore: unused_result
         await repos.tags.upsert(Tag(id: 't-unrelated', name: 'unrelated-tag'));
+        await repos.dances.create(
+          _dance(
+            id: 'd-unrelated-tag',
+            title: 'Unrelated tag seed',
+            tagIds: ['t-unrelated'],
+          ),
+        );
         await tester.pumpAndSettle();
 
         // Negative: the draft is untouched. Re-running `_load()` from a
@@ -2693,6 +2821,24 @@ class _CountingDanceRepository extends DanceRepository {
   Future<List<Dance>> listAll({bool includeDeleted = false}) {
     listAllCalls++;
     return super.listAll(includeDeleted: includeDeleted);
+  }
+}
+
+/// Fails one new-dance write after the editor has staged its tags.
+class _FailingDanceCreateRepository extends DanceRepository {
+  _FailingDanceCreateRepository(super.db, super.taxonomy);
+
+  bool failNextCreate = false;
+  bool fired = false;
+
+  @override
+  Future<void> create(Dance dance) {
+    if (failNextCreate) {
+      failNextCreate = false;
+      fired = true;
+      return Future.error(StateError('injected dance create failure'));
+    }
+    return super.create(dance);
   }
 }
 

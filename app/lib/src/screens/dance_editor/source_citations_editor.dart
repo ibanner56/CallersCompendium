@@ -183,7 +183,7 @@ class _AddSourceAutocomplete extends StatelessWidget {
           onAttach(choice.id!);
         }
       },
-      fieldViewBuilder: (context, controller, focusNode, onSubmit) {
+      fieldViewBuilder: (context, controller, focusNode, onSubmit, _) {
         return TextField(
           key: const ValueKey('source-input'),
           controller: controller,

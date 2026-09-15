@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 3,
   "exportedAt": "2020-01-01T00:00:00.000Z",
   "choreographers": [
     {
@@ -20,8 +20,7 @@
       ],
       "form": "contra",
       "formation": {
-        "shape": "dupleImproper",
-        "detail": "improper"
+        "shape": "dupleImproper"
       },
       "progression": "single",
       "phraseStructure": "",
@@ -39,7 +38,7 @@
           "schemaVersion": 1,
           "move": "circle",
           "params": {
-            "turn": "left",
+            "direction": "left",
             "places": 3,
             "beats": 8
           }
@@ -49,7 +48,7 @@
           "move": "do_si_do",
           "params": {
             "who": "partners",
-            "turn": 1.0,
+            "travel": 1.0,
             "beats": 8
           }
         },

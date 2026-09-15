@@ -58,6 +58,8 @@ final Map<String, DataClassification> settingsClassifications = {
   'formation_color_overrides': _preference,
   'default_move_param_overrides': _preference,
   'default_dance_figures_template': _preference,
+  'default_meanwhile_side_figures': _preference,
+  'default_modifier_figures': _preference,
 
   // -- Appearance and accessibility ----------------------------------------
   'active_custom_theme': _preference,
@@ -73,6 +75,8 @@ final Map<String, DataClassification> settingsClassifications = {
   'decimal_turns': _preference,
   'free_text_entry': _preference,
   'aggressive_beats_update': _preference,
+  'canonical_figure_text': _preference,
+  'canonical_discouraged_terms': _preference,
 
   // -- Regional -------------------------------------------------------------
   'app_locale': _preference,
@@ -114,6 +118,29 @@ final Map<String, DataClassification> settingsClassifications = {
   // restore by backup_settings_schema.dart).
   'program_matrix_columns': _preference,
 
+  // Device Sync transport values are not ordinary preferences. The ID is a
+  // user-entered bearer credential and may contain personal information; the
+  // device ID is an opaque per-installation routing identifier.
+  'sync_id': const DataClassification(
+    term: DpvTerm.unclassifiedPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.accessControlData,
+    note:
+        'User-entered bearer credential. It may contain personal information, '
+        'travels only in Authorization to the configured sync origin, and is '
+        'never recoverably retained or logged by the server or a proxy; local '
+        'persistence is governed by this settings classification.',
+  ),
+  'sync_device_id': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.protocolIdentifier,
+    note:
+        'Opaque per-installation routing identifier. It must travel in '
+        'protocol metadata but must never be adopted from another device or '
+        'restored from a backup.',
+  ),
+
   // -- Programs and performance --------------------------------------------
   'default_program_band': const DataClassification(
     term: DpvTerm.name,
@@ -133,7 +160,18 @@ final Map<String, DataClassification> settingsClassifications = {
         'themselves. Personal data, shareable for the same reason as '
         'programs.caller.',
   ),
+  'default_starting_program': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'User-authored semantic slot template for manually created programs. '
+        'It contains selected dance references and caller notes, so it travels '
+        'with the user preference in local backups.',
+  ),
   'auto_size_perform_cards': _preference,
+  'show_individual_perform_timer': _preference,
+  'show_program_slot_caller_notes': _preference,
   'auto_commit_program_changes': _preference,
   'perform_canonical_view': _preference,
   'perform_stage_mode': _preference,
@@ -148,6 +186,7 @@ final Map<String, DataClassification> settingsClassifications = {
   ),
   'require_performed_for_history': _preference,
   'track_history_for_all_callers': _preference,
+  'venue_call_count': _preference,
 
   // -- Installation state ---------------------------------------------------
   'window_frame': _installState,
@@ -161,6 +200,11 @@ final Map<String, DataClassification> settingsClassifications = {
   'update_dismissed_version': _backupLocalState,
   'backup_reminder_cadence': _preference,
   '__shareable_text_normalisation_scope__': _backupLocalState,
+  '__taxonomy_v33_canonical_rebuild_done__': _installState,
+  '__taxonomy_v34_canonical_rebuild_done__': _installState,
+  '__modifier_container_canonical_rebuild_done__': _installState,
+  '__taxonomy_v35_figure_normalization_done__': _installState,
+  '__callersbox_roll_away_role_repair_done__': _installState,
 };
 
 /// Classification for settings keys that are *built at runtime* from a known

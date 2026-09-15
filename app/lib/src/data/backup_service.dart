@@ -10,19 +10,54 @@ import 'backup_settings_schema.dart';
 import 'custom_theme.dart';
 import 'custom_themes_controller.dart';
 import 'dialect_library_controller.dart';
+import '../screens/settings/settings_keys.dart'
+    show kSyncDeviceIdKey, kSyncIdKey;
 import 'window_service.dart' show kWindowFrameKey;
+
+/// App-side declaration used by the settings classification ratchet. The
+/// storage-owned constant has the same value and remains the migration source
+/// of truth.
+const String kTaxonomyV33CanonicalRebuildDoneKey =
+    '__taxonomy_v33_canonical_rebuild_done__';
+const String kTaxonomyV34CanonicalRebuildDoneKey =
+    '__taxonomy_v34_canonical_rebuild_done__';
+const String kTaxonomyV35FigureNormalizationDoneKey =
+    '__taxonomy_v35_figure_normalization_done__';
+
+/// App-side declaration for the one-shot modifier-container canonical/FTS
+/// rebuild marker. The storage-owned constant remains the migration source of
+/// truth.
+const String kModifierContainerCanonicalRebuildDoneKey =
+    '__modifier_container_canonical_rebuild_done__';
+
+/// App-side declaration for the storage-owned one-shot repair marker. The
+/// duplicate literal keeps the settings classification ratchet aware of this
+/// app-level backup policy, while the core constant remains the migration
+/// source of truth.
+const String kCallersBoxRollAwayRoleRepairDoneKey =
+    '__callersbox_roll_away_role_repair_done__';
 
 /// Settings keys that are NOT carried in a backup's `app.settings` map.
 ///
-/// Two reasons a key is excluded:
+/// Four reasons a key is excluded:
 /// - **structurally represented** — the dialect library and custom themes travel
 ///   in their own typed sections of the [BackupDocument], so their raw settings
 ///   blobs would be redundant (and could disagree with the typed sections):
 ///   [kCustomDialectsKey], [kActiveDialectRefKey], [kActiveDialectKey],
 ///   [kCustomThemesKey], [kActiveCustomThemeKey].
-/// - **device-local / backup metadata** — geometry and backup bookkeeping that
+/// - **installation state / backup metadata** — geometry and backup bookkeeping
+///   that
 ///   must not travel between machines or be rewritten by restoring an old file:
-///   [kWindowFrameKey], [kLastBackupAtKey], [kBackupReminderCadenceKey].
+///   [kWindowFrameKey], [kLastBackupAtKey], [kBackupReminderCadenceKey],
+///   [kTaxonomyV33CanonicalRebuildDoneKey],
+///   [kTaxonomyV34CanonicalRebuildDoneKey],
+///   [kModifierContainerCanonicalRebuildDoneKey],
+///   [kTaxonomyV35FigureNormalizationDoneKey],
+///   [kCallersBoxRollAwayRoleRepairDoneKey].
+/// - **sync security state** — credentials and per-installation routing state
+///   must never be copied through a backup, even though their transport-specific
+///   privacy classes are not [EgressClass.deviceLocal]:
+///   [kSyncIdKey], [kSyncDeviceIdKey].
 const Set<String> kBackupSettingsDenylist = {
   kCustomDialectsKey,
   kActiveDialectRefKey,
@@ -32,6 +67,13 @@ const Set<String> kBackupSettingsDenylist = {
   kWindowFrameKey,
   kLastBackupAtKey,
   kBackupReminderCadenceKey,
+  kTaxonomyV33CanonicalRebuildDoneKey,
+  kTaxonomyV34CanonicalRebuildDoneKey,
+  kModifierContainerCanonicalRebuildDoneKey,
+  kTaxonomyV35FigureNormalizationDoneKey,
+  kCallersBoxRollAwayRoleRepairDoneKey,
+  kSyncIdKey,
+  kSyncDeviceIdKey,
 };
 
 /// Key *prefixes* excluded from backups. Some settings-table keys are dynamic
@@ -50,9 +92,9 @@ const Set<String> kBackupSettingsDenylistPrefixes = {
 /// `app.settings` map (and thus be fully replaced on restore).
 ///
 /// The denylist ([kBackupSettingsDenylist] + [kBackupSettingsDenylistPrefixes])
-/// is the single source of truth for "device-local / structurally-represented /
-/// don't touch". Everything else is by definition backup-eligible content that a
-/// restore replaces.
+/// is the single source of truth for settings that are structurally represented,
+/// device-local, backup metadata, or sync security state. Everything else is by
+/// definition backup-eligible content that a restore replaces.
 bool isBackupEligibleSettingKey(String key) {
   if (kBackupSettingsDenylist.contains(key)) return false;
   for (final prefix in kBackupSettingsDenylistPrefixes) {

@@ -14,8 +14,10 @@ import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
+import 'package:compendium_app/src/screens/perform_program_screen.dart';
 import 'package:compendium_app/src/widgets/collection_picker.dart';
 import 'package:compendium_app/src/widgets/online_result_tile.dart';
+import 'package:compendium_app/src/widgets/program_slot_list_editor.dart';
 
 import 'support/test_repositories.dart';
 import 'support/fake_wakelock.dart';
@@ -326,6 +328,7 @@ Program _program({
   String title = 'Existing',
   DateTime? eventDate,
   String? venue,
+  String? venueId,
   String? band,
   String? caller,
   String notes = '',
@@ -336,6 +339,7 @@ Program _program({
   title: title,
   eventDate: eventDate,
   venue: venue,
+  venueId: venueId,
   band: band,
   caller: caller,
   notes: notes,
@@ -346,9 +350,10 @@ Program _program({
 );
 
 class _EditorHost extends StatefulWidget {
-  const _EditorHost({required this.onResult});
+  const _EditorHost({required this.onResult, this.programId});
 
   final ValueChanged<Object?> onResult;
+  final String? programId;
 
   @override
   State<_EditorHost> createState() => _EditorHostState();
@@ -361,14 +366,17 @@ class _EditorHostState extends State<_EditorHost> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final result = await Navigator.of(context).push<Object?>(
-        MaterialPageRoute<Object?>(builder: (_) => const ProgramEditorScreen()),
+        MaterialPageRoute<Object?>(
+          builder: (_) => ProgramEditorScreen(programId: widget.programId),
+        ),
       );
       if (mounted) widget.onResult(result);
     });
   }
 
   @override
-  Widget build(BuildContext context) => const SizedBox.shrink();
+  Widget build(BuildContext context) =>
+      const SizedBox(key: ValueKey('editor-sentinel'));
 }
 
 void main() {
@@ -431,14 +439,12 @@ void main() {
 
   testWidgets('create requires a title', (tester) async {
     final repos = openTestRepositories();
-    String? savedId;
-    await _pump(tester, repos, onSaved: (id) => savedId = id);
+    await _pump(tester, repos);
 
     await tester.tap(find.byKey(const ValueKey('save-program')));
     await tester.pumpAndSettle();
 
     expect(find.text('A title is required.'), findsOneWidget);
-    expect(savedId, isNull);
     expect(await repos.programs.listAll(), isEmpty);
   });
 
@@ -668,9 +674,9 @@ void main() {
 
   testWidgets('adds a dance slot from the inline picker', (tester) async {
     final repos = openTestRepositories();
+    String? savedId;
     await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
     await repos.programs.create(_program(id: 'p1', title: 'Night'));
-    String? savedId;
     await _pumpBuilder(
       tester,
       repos,
@@ -739,6 +745,53 @@ void main() {
     },
   );
 
+  testWidgets('closing a wide dance preview stays in the program editor', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+      ),
+    );
+    final results = <Object?>[];
+    final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
+    addTearDown(dialect.dispose);
+    await tester.binding.setSurfaceSize(const Size(1200, 2000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => RepositoriesScope(
+          repositories: repos,
+          child: ActiveDialectScope(notifier: dialect, child: child!),
+        ),
+        home: _EditorHost(onResult: results.add, programId: 'p1'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('slot-0-view-details')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('program-preview-d1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('program-preview-close')), findsNothing);
+    expect(find.byKey(const ValueKey('dance-detail-close')), findsOneWidget);
+    expect(find.byKey(const ValueKey('reimport-dance')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('dance-detail-close')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('program-preview-d1')), findsNothing);
+    expect(find.byKey(const ValueKey('program-title')), findsOneWidget);
+    expect(find.byKey(const ValueKey('editor-sentinel')), findsNothing);
+    expect(results, isEmpty);
+  });
+
   testWidgets(
     'holding a dance slot in compact layout opens read-only details',
     (tester) async {
@@ -766,6 +819,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.byKey(const ValueKey('edit-dance')), findsNothing);
+      expect(find.byKey(const ValueKey('reimport-dance')), findsOneWidget);
     },
   );
 
@@ -835,6 +889,55 @@ void main() {
       await second.up();
     },
   );
+
+  testWidgets('persistent online preview stays dismissible while loading', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(_program(id: 'p1', title: 'Night'));
+    final online = _PreviewQueuedProgramOnlineService();
+    await _pumpBuilder(
+      tester,
+      repos,
+      programId: 'p1',
+      callersBoxOnline: online,
+      size: const Size(1200, 2000),
+    );
+
+    final picker = find.byKey(const ValueKey('inline-picker'));
+    await tester.tap(
+      find.descendant(
+        of: picker,
+        matching: find.byKey(const ValueKey('picker-advanced-panel')),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: picker,
+        matching: find.byKey(const ValueKey('picker-online-search-enable')),
+      ),
+    );
+    await tester.enterText(
+      find.descendant(
+        of: picker,
+        matching: find.byKey(const ValueKey('picker-search')),
+      ),
+      'Imported Dance',
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('picker-online-details-callersBox-remote')),
+    );
+    await online.previewStarted.future;
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('program-preview-close')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('program-preview-close')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('inline-picker')), findsOneWidget);
+  });
 
   testWidgets('adds a free-text slot', (tester) async {
     final repos = openTestRepositories();
@@ -1011,6 +1114,272 @@ void main() {
     expect(saved!.slots[1].isAlt, isTrue);
   });
 
+  testWidgets('promoting a middle alternate swaps with its nearest primary', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [
+          ProgramSlot(
+            id: 'primary',
+            position: 0,
+            text: 'Primary',
+            guestCaller: 'Original guest',
+            danceMinutes: 8,
+            performedAt: DateTime.utc(2026, 1, 1, 19),
+          ),
+          ProgramSlot(
+            id: 'alternate-1',
+            position: 1,
+            text: 'Alternate 1',
+            isAlt: true,
+          ),
+          ProgramSlot(
+            id: 'alternate-2',
+            position: 2,
+            text: 'Alternate 2',
+            isAlt: true,
+          ),
+          ProgramSlot(
+            id: 'alternate-3',
+            position: 3,
+            text: 'Alternate 3',
+            isAlt: true,
+          ),
+          ProgramSlot(id: 'next', position: 4, text: 'Next'),
+        ],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    await tester.tap(find.byKey(const ValueKey('slot-2-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Make primary'));
+    await tester.pumpAndSettle();
+
+    final slots = tester
+        .widget<ProgramSlotListEditor>(find.byType(ProgramSlotListEditor))
+        .slots;
+    expect(slots.map((slot) => slot.text).toList(), [
+      'Alternate 2',
+      'Alternate 1',
+      'Primary',
+      'Alternate 3',
+      'Next',
+    ]);
+    expect(slots.map((slot) => slot.isAlt).toList(), [
+      false,
+      true,
+      true,
+      true,
+      false,
+    ]);
+    expect(slots.map((slot) => slot.position).toList(), [0, 1, 2, 3, 4]);
+
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.programs.getById('p1');
+    expect(saved!.slots.map((slot) => slot.text).toList(), [
+      'Alternate 2',
+      'Alternate 1',
+      'Primary',
+      'Alternate 3',
+      'Next',
+    ]);
+    expect(saved.slots.map((slot) => slot.isAlt).toList(), [
+      false,
+      true,
+      true,
+      true,
+      false,
+    ]);
+    expect(saved.slots[2].guestCaller, 'Original guest');
+    expect(saved.slots[2].danceMinutes, 8);
+    expect(saved.slots[2].performedAt, DateTime.utc(2026, 1, 1, 19));
+    expect(saved.slots.map((slot) => slot.position).toList(), [0, 1, 2, 3, 4]);
+  });
+
+  testWidgets('promotion selects the nearest preceding primary', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [
+          ProgramSlot(id: 'primary-1', position: 0, text: 'Primary 1'),
+          ProgramSlot(
+            id: 'alternate-1',
+            position: 1,
+            text: 'Alternate 1',
+            isAlt: true,
+          ),
+          ProgramSlot(id: 'primary-2', position: 2, text: 'Primary 2'),
+          ProgramSlot(
+            id: 'alternate-2',
+            position: 3,
+            text: 'Alternate 2',
+            isAlt: true,
+          ),
+          ProgramSlot(
+            id: 'alternate-3',
+            position: 4,
+            text: 'Alternate 3',
+            isAlt: true,
+          ),
+        ],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    await tester.tap(find.byKey(const ValueKey('slot-3-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Make primary'));
+    await tester.pumpAndSettle();
+
+    final slots = tester
+        .widget<ProgramSlotListEditor>(find.byType(ProgramSlotListEditor))
+        .slots;
+    expect(slots.map((slot) => slot.text).toList(), [
+      'Primary 1',
+      'Alternate 1',
+      'Alternate 2',
+      'Primary 2',
+      'Alternate 3',
+    ]);
+    expect(slots.map((slot) => slot.isAlt).toList(), [
+      false,
+      true,
+      false,
+      true,
+      true,
+    ]);
+  });
+
+  testWidgets('dialog promotion preserves all edited slot fields', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [
+          ProgramSlot(id: 'primary-1', position: 0, text: 'Primary 1'),
+          ProgramSlot(
+            id: 'alternate-1',
+            position: 1,
+            text: 'Alternate 1',
+            isAlt: true,
+          ),
+          ProgramSlot(id: 'primary-2', position: 2, text: 'Primary 2'),
+          ProgramSlot(
+            id: 'alternate-2',
+            position: 3,
+            text: 'Alternate 2',
+            isAlt: true,
+          ),
+          ProgramSlot(
+            id: 'alternate-3',
+            position: 4,
+            text: 'Alternate 3',
+            isAlt: true,
+          ),
+        ],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    await tester.tap(find.byKey(const ValueKey('slot-3-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit slot'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('slot-edit-note')),
+      'Promoted note',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('slot-edit-guest')),
+      'Guest caller',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('slot-edit-dance-minutes')),
+      '12',
+    );
+    await tester.tap(find.byKey(const ValueKey('slot-edit-alt')));
+    await tester.tap(find.byKey(const ValueKey('slot-edit-save')));
+    await tester.pumpAndSettle();
+
+    final slots = tester
+        .widget<ProgramSlotListEditor>(find.byType(ProgramSlotListEditor))
+        .slots;
+    expect(slots.map((slot) => slot.text).toList(), [
+      'Primary 1',
+      'Alternate 1',
+      'Promoted note',
+      'Primary 2',
+      'Alternate 3',
+    ]);
+    expect(slots.map((slot) => slot.isAlt).toList(), [
+      false,
+      true,
+      false,
+      true,
+      true,
+    ]);
+    expect(slots[2].guestCaller, 'Guest caller');
+    expect(slots[2].danceMinutes, 12);
+
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await tester.pumpAndSettle();
+    final saved = await repos.programs.getById('p1');
+    expect(saved!.slots[2].text, 'Promoted note');
+    expect(saved.slots[2].guestCaller, 'Guest caller');
+    expect(saved.slots[2].danceMinutes, 12);
+    expect(saved.slots[2].isAlt, isFalse);
+    expect(saved.slots[3].text, 'Primary 2');
+    expect(saved.slots[3].isAlt, isTrue);
+  });
+
+  testWidgets('promoting an orphaned alternate clears its flag in place', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [
+          ProgramSlot(id: 'orphan', position: 0, text: 'Orphan', isAlt: true),
+          ProgramSlot(id: 'next', position: 1, text: 'Next'),
+        ],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Make primary'));
+    await tester.pumpAndSettle();
+
+    final slots = tester
+        .widget<ProgramSlotListEditor>(find.byType(ProgramSlotListEditor))
+        .slots;
+    expect(slots.map((slot) => slot.text).toList(), ['Orphan', 'Next']);
+    expect(slots.map((slot) => slot.isAlt).toList(), [false, false]);
+
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await tester.pumpAndSettle();
+    final saved = await repos.programs.getById('p1');
+    expect(saved!.slots.map((slot) => slot.text).toList(), ['Orphan', 'Next']);
+    expect(saved.slots.map((slot) => slot.isAlt).toList(), [false, false]);
+  });
+
   testWidgets('a leading alternate surfaces an orphaned_alt warning', (
     tester,
   ) async {
@@ -1081,7 +1450,11 @@ void main() {
       'Guest Caller',
     );
     await tester.enterText(
-      find.byKey(const ValueKey('slot-edit-minutes')),
+      find.byKey(const ValueKey('slot-edit-walkthrough-minutes')),
+      '3',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('slot-edit-dance-minutes')),
       '12',
     );
     await tester.tap(find.byKey(const ValueKey('slot-edit-save')));
@@ -1092,7 +1465,8 @@ void main() {
 
     final saved = await repos.programs.getById('p1');
     expect(saved!.slots.single.guestCaller, 'Guest Caller');
-    expect(saved.slots.single.plannedMinutes, 12);
+    expect(saved.slots.single.walkthroughMinutes, 3);
+    expect(saved.slots.single.danceMinutes, 12);
   });
 
   // M1 (issue #964): the replacement must rebuild the slot preserving
@@ -1117,7 +1491,8 @@ void main() {
               position: 0,
               danceId: 'd1',
               guestCaller: 'Guest Caller',
-              plannedMinutes: 12,
+              walkthroughMinutes: 3,
+              danceMinutes: 9,
               isAlt: true,
               performedAt: performedAt,
             ),
@@ -1173,7 +1548,8 @@ void main() {
       final slot = saved!.slots.single;
       expect(slot.danceId, 'd2');
       expect(slot.guestCaller, 'Guest Caller');
-      expect(slot.plannedMinutes, 12);
+      expect(slot.walkthroughMinutes, 3);
+      expect(slot.danceMinutes, 9);
       expect(slot.isAlt, isTrue);
       expect(slot.performedAt, performedAt);
     },
@@ -1208,7 +1584,7 @@ void main() {
         'Guest Caller',
       );
       await tester.enterText(
-        find.byKey(const ValueKey('slot-edit-minutes')),
+        find.byKey(const ValueKey('slot-edit-dance-minutes')),
         '12',
       );
 
@@ -1235,7 +1611,7 @@ void main() {
       final slot = saved!.slots.single;
       expect(slot.danceId, 'd2');
       expect(slot.guestCaller, 'Guest Caller');
-      expect(slot.plannedMinutes, 12);
+      expect(slot.danceMinutes, 12);
     },
   );
 
@@ -1496,6 +1872,1465 @@ void main() {
     expect(saved.slots[1].performedAt, isNull);
   });
 
+  testWidgets('entering Perform invalidates the bulk Undo action', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1', autoCommit: true);
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('perform-program')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PerformProgramScreen), findsOneWidget);
+    expect(find.text('Undo', skipOffstage: false), findsNothing);
+  });
+
+  testWidgets(
+    'mark all performed offers Undo without clearing prior or free-text slots',
+    (tester) async {
+      final repos = openTestRepositories();
+      final prior = DateTime.utc(2025, 12, 31, 20);
+      await repos.dances.create(_dance(id: 'd1', title: 'Already Called'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Newly Called'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [
+            ProgramSlot(
+              id: 's0',
+              position: 0,
+              danceId: 'd1',
+              performedAt: prior,
+            ),
+            ProgramSlot(id: 's1', position: 1, danceId: 'd2'),
+            ProgramSlot(id: 's2', position: 2, text: 'Break'),
+          ],
+        ),
+      );
+      await _pumpBuilder(tester, repos, programId: 'p1');
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+      expect(
+        await repos.settings.contains('program_editor_draft:p1'),
+        isFalse,
+        reason: 'Undo with no intervening edit restores the clean draft state',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.programs.getById('p1');
+      expect(saved!.slots[0].performedAt, prior);
+      expect(saved.slots[1].performedAt, isNull);
+      expect(saved.slots[2].performedAt, isNull);
+    },
+  );
+
+  testWidgets('bulk Undo reserves its timestamp from a manual re-mark', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1', autoCommit: true);
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    final firstStamp = tester
+        .widget<ProgramSlotListEditor>(find.byType(ProgramSlotListEditor))
+        .slots
+        .single
+        .performedAt;
+
+    await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Clear performed'));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mark performed'));
+    await tester.pump();
+    final reMarkedStamp = tester
+        .widget<ProgramSlotListEditor>(find.byType(ProgramSlotListEditor))
+        .slots
+        .single
+        .performedAt;
+    expect(reMarkedStamp, isNot(firstStamp));
+
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    final saved = await repos.programs.getById('p1');
+    expect(saved!.slots.single.performedAt, reMarkedStamp);
+  });
+
+  testWidgets('Undo corrects a marked auto-commit that is already in flight', (
+    tester,
+  ) async {
+    final delayed = openTestRepositoriesWithDelayedProgramsAndVenues();
+    await delayed.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await delayed.repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(
+      tester,
+      delayed.repos,
+      programId: 'p1',
+      autoCommit: true,
+    );
+
+    delayed.programs.holdNextWrite();
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await delayed.programs.writeStarted;
+
+    tester.widget<SnackBarAction>(find.byType(SnackBarAction)).onPressed.call();
+    await tester.pump();
+    delayed.programs.releaseWrite();
+    await tester.pumpAndSettle();
+
+    final saved = await delayed.repos.programs.getById('p1');
+    expect(saved!.slots.single.performedAt, isNull);
+    expect(
+      await delayed.repos.settings.contains('program_editor_draft:p1'),
+      isFalse,
+    );
+  });
+
+  testWidgets(
+    'Undo cancels a replacement auto-commit while rollback is in flight',
+    (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      await delayed.repos.dances.create(
+        _dance(id: 'd1', title: 'Newly Called'),
+      );
+      await delayed.repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        delayed.repos,
+        programId: 'p1',
+        autoCommit: true,
+      );
+
+      delayed.programs.holdNextWrite();
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await delayed.programs.writeStarted;
+      delayed.programs.holdNextConditionalRollback();
+      tester
+          .widget<SnackBarAction>(find.byType(SnackBarAction))
+          .onPressed
+          .call();
+      await tester.pump();
+      delayed.programs.releaseWrite();
+      await delayed.programs.conditionalRollbackStarted;
+
+      final remote = await delayed.repos.programs.getById('p1');
+      await delayed.repos.programs.update(
+        remote!.copyWith(
+          title: 'Remote edit',
+          updatedAt: DateTime.now().toUtc(),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      delayed.programs.releaseConditionalRollback();
+      await tester.pumpAndSettle();
+
+      final saved = await delayed.repos.programs.getById('p1');
+      expect(saved!.title, 'Remote edit');
+      expect(saved.slots.single.performedAt, isNull);
+    },
+  );
+
+  testWidgets('Undo tracks a marked write with a later edit generation', (
+    tester,
+  ) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await delayed.repos.programs.create(
+      _program(
+        id: 'p1',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(
+      tester,
+      delayed.repos,
+      programId: 'p1',
+      autoCommit: true,
+    );
+
+    delayed.programs.holdNextWrite();
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump(const Duration(milliseconds: 100));
+    final titleField = tester.widget<TextFormField>(
+      find.byKey(const ValueKey('program-title')),
+    );
+    titleField.controller!.text = 'Later edit';
+    titleField.onChanged!('Later edit');
+    await tester.pump(const Duration(milliseconds: 600));
+    await delayed.programs.writeStarted;
+    tester.widget<SnackBarAction>(find.byType(SnackBarAction)).onPressed.call();
+    delayed.programs.releaseWrite();
+    await tester.pumpAndSettle();
+
+    final saved = await delayed.repos.programs.getById('p1');
+    expect(saved!.title, 'Later edit');
+    expect(saved.slots.single.performedAt, isNull);
+    expect(delayed.programs.conditionalRollbackCalls, 1);
+  });
+
+  testWidgets('failed marked auto-commit does not leave an inverse draft', (
+    tester,
+  ) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await delayed.repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(
+      tester,
+      delayed.repos,
+      programId: 'p1',
+      autoCommit: true,
+    );
+
+    delayed.programs.failWrites = true;
+    delayed.programs.holdNextWrite();
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await delayed.programs.writeStarted;
+
+    tester.widget<SnackBarAction>(find.byType(SnackBarAction)).onPressed.call();
+    await tester.pump();
+    delayed.programs.releaseWrite();
+    await tester.pumpAndSettle();
+
+    final saved = await delayed.repos.programs.getById('p1');
+    expect(saved!.slots.single.performedAt, isNull);
+    expect(
+      await delayed.repos.settings.contains('program_editor_draft:p1'),
+      isFalse,
+    );
+  });
+
+  testWidgets('failed auto-commit reports immediately beside Undo', (
+    tester,
+  ) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await delayed.repos.programs.create(
+      _program(
+        id: 'p1',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(
+      tester,
+      delayed.repos,
+      programId: 'p1',
+      autoCommit: true,
+    );
+
+    delayed.programs.failWrites = true;
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump();
+
+    expect(find.text('Could not save the program.'), findsOneWidget);
+    expect(find.byType(SnackBarAction), findsOneWidget);
+    tester
+        .state<ScaffoldMessengerState>(find.byType(ScaffoldMessenger))
+        .clearSnackBars();
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('expired bulk Undo is not restored after a failed Save', (
+    tester,
+  ) async {
+    final failing = openTestRepositoriesWithFailingPrograms();
+    failing.programs.failWrites = false;
+    await failing.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await failing.repos.programs.create(
+      _program(
+        id: 'p1',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(tester, failing.repos, programId: 'p1');
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(seconds: 7));
+    await tester.pumpAndSettle();
+    expect(find.byType(SnackBarAction), findsNothing);
+
+    failing.programs.failWrites = true;
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await tester.pumpAndSettle();
+    expect(find.text('Could not save the program.'), findsOneWidget);
+    expect(find.byType(SnackBarAction), findsNothing);
+  });
+
+  testWidgets('explicit Save invalidates bulk performed Undo', (tester) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await delayed.repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(tester, delayed.repos, programId: 'p1');
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pumpAndSettle();
+    delayed.programs.holdNextWrite();
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await delayed.programs.writeStarted;
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SnackBarAction), findsNothing);
+    delayed.programs.releaseWrite();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SnackBarAction), findsNothing);
+    final saved = await delayed.repos.programs.getById('p1');
+    expect(saved!.slots.single.performedAt, isNotNull);
+  });
+
+  testWidgets('mark all performed is disabled during explicit Save', (
+    tester,
+  ) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await delayed.repos.programs.create(
+      _program(
+        id: 'p1',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(tester, delayed.repos, programId: 'p1');
+
+    delayed.programs.holdNextWrite();
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await delayed.programs.writeStarted;
+    await tester.pump();
+
+    expect(
+      tester
+          .widget<IconButton>(find.byKey(const ValueKey('mark-all-performed')))
+          .onPressed,
+      isNull,
+    );
+    delayed.programs.releaseWrite();
+    await tester.pumpAndSettle();
+
+    final saved = await delayed.repos.programs.getById('p1');
+    expect(saved!.slots.single.performedAt, isNull);
+  });
+
+  testWidgets('failed explicit Save preserves bulk performed Undo', (
+    tester,
+  ) async {
+    final failing = openTestRepositoriesWithFailingPrograms();
+    failing.programs.failWrites = false;
+    await failing.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await failing.repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(tester, failing.repos, programId: 'p1');
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pumpAndSettle();
+    failing.programs.failWrites = true;
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SnackBarAction), findsOneWidget);
+    expect(find.text('Could not save the program.'), findsOneWidget);
+    failing.programs.failWrites = false;
+    await tester.tap(find.byType(SnackBarAction));
+    await tester.pumpAndSettle();
+
+    final saved = await failing.repos.programs.getById('p1');
+    expect(saved!.slots.single.performedAt, isNull);
+    expect(
+      await failing.repos.settings.contains('program_editor_draft:p1'),
+      isFalse,
+      reason: 'Undo after a failed clean Save restores the clean draft state',
+    );
+  });
+
+  testWidgets(
+    'failed explicit Save after auto-commit uses conditional performed Undo',
+    (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      await delayed.repos.dances.create(
+        _dance(id: 'd1', title: 'Newly Called'),
+      );
+      await delayed.repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        delayed.repos,
+        programId: 'p1',
+        autoCommit: true,
+      );
+
+      delayed.programs.failOnWrite = delayed.programs.writesStarted + 2;
+      delayed.programs.holdNextWrite();
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await delayed.programs.writeStarted;
+
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      delayed.programs.releaseWrite();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SnackBarAction), findsOneWidget);
+      await tester.tap(find.byType(SnackBarAction));
+      await tester.pumpAndSettle();
+
+      final saved = await delayed.repos.programs.getById('p1');
+      expect(saved!.slots.single.performedAt, isNull);
+      expect(
+        await delayed.repos.settings.contains('program_editor_draft:p1'),
+        isFalse,
+      );
+    },
+  );
+
+  testWidgets(
+    'auto-commit failure during explicit Save does not recreate Undo',
+    (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      await delayed.repos.dances.create(
+        _dance(id: 'd1', title: 'Newly Called'),
+      );
+      await delayed.repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        delayed.repos,
+        programId: 'p1',
+        autoCommit: true,
+      );
+
+      delayed.programs.failOnWrite = delayed.programs.writesStarted + 1;
+      delayed.programs.holdNextWrite();
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await delayed.programs.writeStarted;
+
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      delayed.programs.holdNextWrite();
+      delayed.programs.releaseWrite();
+      await delayed.programs.writeStarted;
+      await tester.pump();
+
+      expect(find.byType(SnackBarAction), findsNothing);
+      delayed.programs.releaseWrite();
+      await tester.pumpAndSettle();
+      expect(
+        (await delayed.repos.programs.getById('p1'))!.slots.single.performedAt,
+        isNotNull,
+      );
+    },
+  );
+
+  testWidgets('persisted Undo refreshes form fields before a later save', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1', autoCommit: true);
+    await _expandMoreDetails(tester);
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    final remote = await repos.programs.getById('p1');
+    await repos.programs.update(
+      remote!.copyWith(notes: 'Remote note', updatedAt: DateTime.now().toUtc()),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(SnackBarAction));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('program-title')),
+      'Local title',
+    );
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.programs.getById('p1');
+    expect(saved!.title, 'Local title');
+    expect(saved.notes, 'Remote note');
+    expect(saved.slots.single.performedAt, isNull);
+  });
+
+  testWidgets(
+    'persisted Undo reports refresh failure after rollback succeeds',
+    (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      await delayed.repos.dances.create(
+        _dance(id: 'd1', title: 'Newly Called'),
+      );
+      await delayed.repos.programs.create(
+        _program(
+          id: 'p1',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        delayed.repos,
+        programId: 'p1',
+        autoCommit: true,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      delayed.programs.failNextRead = true;
+      await tester.tap(find.byType(SnackBarAction));
+      await tester.pumpAndSettle();
+
+      expect(
+        (await delayed.repos.programs.getById('p1'))!.slots.single.performedAt,
+        isNull,
+        reason: 'The conditional rollback committed before the refresh failed',
+      );
+      expect(
+        find.text('Undo was saved, but the editor could not refresh.'),
+        findsOneWidget,
+      );
+      expect(find.byType(SnackBarAction), findsNothing);
+      expect(find.byKey(const ValueKey('save-program')), findsNothing);
+      expect(find.byKey(const ValueKey('mark-all-performed')), findsNothing);
+      expect(find.byKey(const ValueKey('duplicate-program')), findsNothing);
+      expect(find.byKey(const ValueKey('delete-program')), findsNothing);
+    },
+  );
+
+  testWidgets('Undo uses conditional rollback after a later auto-commit', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1', autoCommit: true);
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('program-title')),
+      'Edited',
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(SnackBarAction));
+    await tester.pump(const Duration(milliseconds: 600));
+
+    final saved = await repos.programs.getById('p1');
+    expect(saved!.title, 'Edited');
+    expect(saved.slots.single.performedAt, isNull);
+    expect(
+      await repos.settings.contains('program_editor_draft:p1'),
+      isFalse,
+      reason: 'Undo after a clean later auto-commit must not create a draft',
+    );
+  });
+
+  testWidgets(
+    'persisted Undo preserves a slot edit made after the marked write started',
+    (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      await delayed.repos.dances.create(
+        _dance(id: 'd1', title: 'Newly Called'),
+      );
+      await delayed.repos.programs.create(
+        _program(
+          id: 'p1',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        delayed.repos,
+        programId: 'p1',
+        autoCommit: true,
+      );
+
+      delayed.programs.holdNextWrite();
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await delayed.programs.writeStarted;
+
+      final slotEditor = tester.widget<ProgramSlotListEditor>(
+        find.byType(ProgramSlotListEditor),
+      );
+      slotEditor.onSlotChanged(
+        0,
+        slotEditor.slots.single.copyWith(isAlt: true),
+      );
+      await tester.pump();
+      tester
+          .widget<SnackBarAction>(find.byType(SnackBarAction))
+          .onPressed
+          .call();
+      delayed.programs.releaseWrite();
+      await tester.pumpAndSettle();
+
+      final saved = await delayed.repos.programs.getById('p1');
+      expect(saved!.slots.single.isAlt, isTrue);
+      expect(saved.slots.single.performedAt, isNull);
+    },
+  );
+
+  testWidgets(
+    'persisted Undo refreshes the linked venue before later editing',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.venues.upsert(Venue(id: 'v1', name: 'Old Hall'));
+      await repos.venues.upsert(Venue(id: 'v2', name: 'New Hall'));
+      await repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          venueId: 'v1',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(tester, repos, programId: 'p1', autoCommit: true);
+      await _expandMoreDetails(tester);
+      expect(find.textContaining('Old Hall'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      final remote = await repos.programs.getById('p1');
+      await repos.programs.update(
+        remote!.copyWith(venueId: 'v2', updatedAt: DateTime.now().toUtc()),
+      );
+      expect((await repos.programs.getById('p1'))!.venueId, 'v2');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(SnackBarAction));
+      await tester.pumpAndSettle();
+      await _expandMoreDetails(tester);
+
+      expect(find.textContaining('New Hall'), findsOneWidget);
+      expect(find.textContaining('Old Hall'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'failed persisted Undo enters a safe state when recovery read fails',
+    (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      await delayed.repos.dances.create(
+        _dance(id: 'd1', title: 'Newly Called'),
+      );
+      await delayed.repos.programs.create(
+        _program(
+          id: 'p1',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        delayed.repos,
+        programId: 'p1',
+        autoCommit: true,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      delayed.programs.failConditionalRollback = true;
+      delayed.programs.failNextRead = true;
+      await tester.tap(find.byType(SnackBarAction));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Could not load the program.'), findsOneWidget);
+      expect(find.byKey(const ValueKey('save-program')), findsNothing);
+      expect(find.byKey(const ValueKey('mark-all-performed')), findsNothing);
+      expect(find.byKey(const ValueKey('duplicate-program')), findsNothing);
+      expect(find.byKey(const ValueKey('delete-program')), findsNothing);
+      expect(
+        (await delayed.repos.programs.getById('p1'))!.slots.single.performedAt,
+        isNotNull,
+      );
+    },
+  );
+
+  testWidgets(
+    'failed persisted Undo restores marked slots before a later save',
+    (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      await delayed.repos.dances.create(
+        _dance(id: 'd1', title: 'Newly Called'),
+      );
+      await delayed.repos.programs.create(
+        _program(
+          id: 'p1',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        delayed.repos,
+        programId: 'p1',
+        autoCommit: true,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      delayed.programs.failConditionalRollback = true;
+      await tester.tap(find.byType(SnackBarAction));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Could not undo marking; performed marks remain saved.'),
+        findsOneWidget,
+      );
+      expect(find.byType(SnackBarAction), findsNothing);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Saved',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+
+      final saved = await delayed.repos.programs.getById('p1');
+      expect(saved!.title, 'Saved');
+      expect(saved.slots.single.performedAt, isNotNull);
+    },
+  );
+
+  testWidgets('persisted Undo keeps edits made while rollback is in flight', (
+    tester,
+  ) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await delayed.repos.programs.create(
+      _program(
+        id: 'p1',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(
+      tester,
+      delayed.repos,
+      programId: 'p1',
+      autoCommit: true,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    delayed.programs.holdNextConditionalRollback();
+    await tester.tap(find.byType(SnackBarAction));
+    await delayed.programs.conditionalRollbackStarted;
+    final titleField = tester.widget<TextFormField>(
+      find.byKey(const ValueKey('program-title')),
+    );
+    titleField.controller!.text = 'During Undo';
+    titleField.onChanged!('During Undo');
+    expect(titleField.controller!.text, 'During Undo');
+    delayed.programs.releaseConditionalRollback();
+    await tester.pumpAndSettle();
+
+    final saved = await delayed.repos.programs.getById('p1');
+    expect(saved!.title, 'During Undo');
+    expect(saved.slots.single.performedAt, isNull);
+  });
+
+  testWidgets('persisted Undo preserves a later remote performed stamp', (
+    tester,
+  ) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await delayed.repos.programs.create(
+      _program(
+        id: 'p1',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(
+      tester,
+      delayed.repos,
+      programId: 'p1',
+      autoCommit: true,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump();
+    delayed.programs.holdNextConditionalRollback();
+    await tester.tap(find.byType(SnackBarAction));
+    await delayed.programs.conditionalRollbackStarted;
+    final titleField = tester.widget<TextFormField>(
+      find.byKey(const ValueKey('program-title')),
+    );
+    titleField.controller!.text = 'Keep this title';
+    titleField.onChanged!('Keep this title');
+    final live = await delayed.repos.programs.getById('p1');
+    final laterPerformedAt = DateTime.utc(2030, 1, 1, 0, 0, 1);
+    delayed.programs.holdNextRead();
+    delayed.programs.releaseConditionalRollback();
+    await delayed.programs.readStarted;
+    await delayed.repos.programs.update(
+      live!.copyWith(
+        slots: [live.slots.single.copyWith(performedAt: laterPerformedAt)],
+        updatedAt: DateTime.now().toUtc(),
+      ),
+    );
+    delayed.programs.releaseRead();
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    final saved = await delayed.repos.programs.getById('p1');
+    expect(saved!.title, 'Keep this title');
+    expect(saved.slots.single.performedAt, laterPerformedAt);
+  });
+
+  testWidgets('persisted Undo preserves a local re-mark during live read', (
+    tester,
+  ) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await delayed.repos.programs.create(
+      _program(
+        id: 'p1',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(
+      tester,
+      delayed.repos,
+      programId: 'p1',
+      autoCommit: true,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('program-title')),
+      'Before Undo',
+    );
+    delayed.programs.holdNextConditionalRollback();
+    await tester.tap(find.byType(SnackBarAction));
+    await delayed.programs.conditionalRollbackStarted;
+    delayed.programs.holdNextRead();
+    delayed.programs.releaseConditionalRollback();
+    await delayed.programs.readStarted;
+
+    final localPerformedAt = DateTime.utc(2030, 1, 1, 0, 0, 2);
+    final slotEditor = tester.widget<ProgramSlotListEditor>(
+      find.byType(ProgramSlotListEditor),
+    );
+    slotEditor.onSlotChanged(
+      0,
+      slotEditor.slots.single.copyWith(performedAt: localPerformedAt),
+    );
+    await tester.pump();
+    delayed.programs.releaseRead();
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    final saved = await delayed.repos.programs.getById('p1');
+    expect(saved!.title, 'Before Undo');
+    expect(saved.slots.single.performedAt, localPerformedAt);
+  });
+
+  testWidgets(
+    'persisted Undo merges remote stamp with local slot edit during live read',
+    (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      await delayed.repos.dances.create(
+        _dance(id: 'd1', title: 'Newly Called'),
+      );
+      await delayed.repos.programs.create(
+        _program(
+          id: 'p1',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        delayed.repos,
+        programId: 'p1',
+        autoCommit: true,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Before Undo',
+      );
+      delayed.programs.holdNextConditionalRollback();
+      await tester.tap(find.byType(SnackBarAction));
+      await delayed.programs.conditionalRollbackStarted;
+      final laterPerformedAt = DateTime.utc(2030, 1, 1, 0, 0, 3);
+      delayed.programs.holdNextRead();
+      delayed.programs.releaseConditionalRollback();
+      await delayed.programs.readStarted;
+      await delayed.repos.programs.update(
+        _program(
+          id: 'p1',
+          title: 'Remote update',
+          slots: [
+            ProgramSlot(
+              id: 's0',
+              position: 0,
+              danceId: 'd1',
+              performedAt: laterPerformedAt,
+            ),
+          ],
+        ),
+      );
+
+      final slotEditor = tester.widget<ProgramSlotListEditor>(
+        find.byType(ProgramSlotListEditor),
+      );
+      slotEditor.onSlotChanged(
+        0,
+        slotEditor.slots.single.copyWith(isAlt: true, clearPerformedAt: true),
+      );
+      await tester.pump();
+      delayed.programs.releaseRead();
+      await tester.pumpAndSettle();
+      final refreshedEditor = tester.widget<ProgramSlotListEditor>(
+        find.byType(ProgramSlotListEditor),
+      );
+      expect(refreshedEditor.slots.single.performedAt, laterPerformedAt);
+      final beforeSave = await delayed.repos.programs.getById('p1');
+      expect(beforeSave!.slots.single.performedAt, laterPerformedAt);
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      final saved = await delayed.repos.programs.getById('p1');
+      expect(saved!.title, 'Before Undo');
+      expect(saved.slots.single.isAlt, isTrue);
+      expect(saved.slots.single.performedAt, laterPerformedAt);
+    },
+  );
+
+  testWidgets(
+    'persisted Undo merges remote program fields with a local edit during live read',
+    (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      await delayed.repos.dances.create(
+        _dance(id: 'd1', title: 'Newly Called'),
+      );
+      await delayed.repos.programs.create(
+        _program(
+          id: 'p1',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        delayed.repos,
+        programId: 'p1',
+        autoCommit: true,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      delayed.programs.holdNextRead();
+      await tester.tap(find.byType(SnackBarAction));
+      await delayed.programs.readStarted;
+      await tester.pump();
+
+      final remote = await delayed.repos.programs.getById('p1');
+      await delayed.repos.programs.update(
+        remote!.copyWith(
+          title: 'Remote update',
+          updatedAt: DateTime.now().toUtc(),
+        ),
+      );
+      final slotEditor = tester.widget<ProgramSlotListEditor>(
+        find.byType(ProgramSlotListEditor),
+      );
+      slotEditor.onSlotChanged(
+        0,
+        slotEditor.slots.single.copyWith(isAlt: true),
+      );
+      await tester.pump();
+      delayed.programs.releaseRead();
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      final saved = await delayed.repos.programs.getById('p1');
+      expect(saved!.title, 'Remote update');
+      expect(saved.slots.single.isAlt, isTrue);
+      expect(saved.slots.single.performedAt, isNull);
+    },
+  );
+
+  testWidgets('failed persisted Undo keeps edits made during live recovery', (
+    tester,
+  ) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await delayed.repos.programs.create(
+      _program(
+        id: 'p1',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(
+      tester,
+      delayed.repos,
+      programId: 'p1',
+      autoCommit: true,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    delayed.programs.failConditionalRollback = true;
+    delayed.programs.holdNextRead();
+    await tester.tap(find.byType(SnackBarAction));
+    await delayed.programs.readStarted;
+    final titleField = tester.widget<TextFormField>(
+      find.byKey(const ValueKey('program-title')),
+    );
+    titleField.controller!.text = 'During Failure';
+    titleField.onChanged!('During Failure');
+    delayed.programs.releaseRead();
+    await tester.pumpAndSettle();
+
+    final saved = await delayed.repos.programs.getById('p1');
+    expect(saved!.title, 'During Failure');
+    expect(saved.slots.single.performedAt, isNotNull);
+  });
+
+  testWidgets('failed persisted Undo reschedules an edit made before Undo', (
+    tester,
+  ) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await delayed.repos.programs.create(
+      _program(
+        id: 'p1',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(
+      tester,
+      delayed.repos,
+      programId: 'p1',
+      autoCommit: true,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('program-title')),
+      'Before Undo',
+    );
+    final remote = await delayed.repos.programs.getById('p1');
+    await delayed.repos.programs.update(
+      remote!.copyWith(notes: 'Remote note', updatedAt: DateTime.now().toUtc()),
+    );
+    delayed.programs.failConditionalRollback = true;
+    await tester.tap(find.byType(SnackBarAction));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    final saved = await delayed.repos.programs.getById('p1');
+    expect(saved!.title, 'Before Undo');
+    expect(saved.notes, 'Remote note');
+    expect(saved.slots.single.performedAt, isNotNull);
+  });
+
+  testWidgets(
+    'persisted Undo shows missing state after deletion during clean live refresh',
+    (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      await delayed.repos.dances.create(
+        _dance(id: 'd1', title: 'Newly Called'),
+      );
+      await delayed.repos.programs.create(
+        _program(
+          id: 'p1',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        delayed.repos,
+        programId: 'p1',
+        autoCommit: true,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      delayed.programs.holdNextRead();
+      await tester.tap(find.byType(SnackBarAction));
+      await delayed.programs.readStarted;
+      await delayed.repos.programs.softDelete(
+        'p1',
+        at: DateTime.utc(2030, 1, 1),
+      );
+      delayed.programs.releaseRead();
+      await tester.pumpAndSettle();
+
+      expect(find.text('This program no longer exists.'), findsOneWidget);
+      expect(find.byKey(const ValueKey('save-program')), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'persisted Undo does not resurrect a program deleted during live refresh',
+    (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      await delayed.repos.dances.create(
+        _dance(id: 'd1', title: 'Newly Called'),
+      );
+      await delayed.repos.programs.create(
+        _program(
+          id: 'p1',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        delayed.repos,
+        programId: 'p1',
+        autoCommit: true,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Local edit',
+      );
+      delayed.programs.holdNextRead();
+      await tester.tap(find.byType(SnackBarAction));
+      await delayed.programs.readStarted;
+      await delayed.repos.programs.softDelete(
+        'p1',
+        at: DateTime.utc(2030, 1, 1),
+      );
+      delayed.programs.releaseRead();
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      expect(find.text('This program no longer exists.'), findsOneWidget);
+      expect(await delayed.repos.programs.getById('p1'), isNull);
+      expect(
+        (await delayed.repos.programs.getById(
+          'p1',
+          includeDeleted: true,
+        ))!.deletedAt,
+        isNotNull,
+      );
+    },
+  );
+
+  testWidgets(
+    'failed persisted Undo preserves a slot edit during venue recovery',
+    (tester) async {
+      final delayed = openTestRepositoriesWithDelayedProgramsAndVenues();
+      await delayed.repos.venues.upsert(Venue(id: 'v1', name: 'Old Hall'));
+      await delayed.repos.dances.create(
+        _dance(id: 'd1', title: 'Newly Called'),
+      );
+      await delayed.repos.programs.create(
+        _program(
+          id: 'p1',
+          venueId: 'v1',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        delayed.repos,
+        programId: 'p1',
+        autoCommit: true,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      delayed.programs.failConditionalRollback = true;
+      delayed.venues.holdNextRead();
+      await tester.tap(find.byType(SnackBarAction));
+      await delayed.venues.readStarted;
+
+      final slotEditor = tester.widget<ProgramSlotListEditor>(
+        find.byType(ProgramSlotListEditor),
+      );
+      slotEditor.onSlotChanged(
+        0,
+        slotEditor.slots.single.copyWith(isAlt: true),
+      );
+      await tester.pump();
+      delayed.venues.releaseRead();
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      final saved = await delayed.repos.programs.getById('p1');
+      expect(saved!.slots.single.isAlt, isTrue);
+      expect(saved.slots.single.performedAt, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'persisted Undo merges concurrent slot membership before a local save',
+    (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      await delayed.repos.dances.create(_dance(id: 'd1', title: 'First Dance'));
+      await delayed.repos.dances.create(
+        _dance(id: 'd2', title: 'Second Dance'),
+      );
+      await delayed.repos.dances.create(
+        _dance(id: 'd3', title: 'Remote Dance'),
+      );
+      await delayed.repos.programs.create(
+        _program(
+          id: 'p1',
+          slots: [
+            ProgramSlot(id: 's0', position: 0, danceId: 'd1'),
+            ProgramSlot(id: 's1', position: 1, danceId: 'd2'),
+          ],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        delayed.repos,
+        programId: 'p1',
+        autoCommit: true,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Local edit',
+      );
+      delayed.programs.holdNextRead();
+      await tester.tap(find.byType(SnackBarAction));
+      await delayed.programs.readStarted;
+      await delayed.repos.programs.update(
+        _program(
+          id: 'p1',
+          title: 'Remote edit',
+          notes: 'Remote note',
+          slots: [
+            ProgramSlot(id: 's0', position: 0, danceId: 'd1'),
+            ProgramSlot(id: 's2', position: 1, danceId: 'd3'),
+          ],
+        ),
+      );
+      delayed.programs.releaseRead();
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      final saved = await delayed.repos.programs.getById('p1');
+      expect(saved!.title, 'Local edit');
+      expect(saved.notes, 'Remote note');
+      expect(saved.slots.map((slot) => slot.id), ['s0', 's2']);
+    },
+  );
+
+  testWidgets(
+    'persisted Undo refreshes a remotely changed venue during a local edit',
+    (tester) async {
+      final delayed = openTestRepositoriesWithDelayedProgramsAndVenues();
+      await delayed.repos.venues.upsert(Venue(id: 'v1', name: 'Old Hall'));
+      await delayed.repos.venues.upsert(Venue(id: 'v2', name: 'New Hall'));
+      await delayed.repos.dances.create(_dance(id: 'd1', title: 'First Dance'));
+      await delayed.repos.programs.create(
+        _program(
+          id: 'p1',
+          venueId: 'v1',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        delayed.repos,
+        programId: 'p1',
+        autoCommit: true,
+      );
+      await _expandMoreDetails(tester);
+      expect(find.textContaining('Old Hall'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Local edit',
+      );
+      delayed.programs.holdNextRead();
+      delayed.venues.holdNextRead();
+      await tester.tap(find.byType(SnackBarAction));
+      await delayed.programs.readStarted;
+      final remote = await delayed.repos.programs.getById('p1');
+      await delayed.repos.programs.update(
+        remote!.copyWith(venueId: 'v2', updatedAt: DateTime.now().toUtc()),
+      );
+      await tester.pump();
+      delayed.venues.holdNextRead();
+      delayed.programs.releaseRead();
+      await delayed.venues.readStarted;
+      delayed.venues.releaseRead();
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('New Hall'), findsOneWidget);
+      expect(find.textContaining('Old Hall'), findsNothing);
+      final saved = await delayed.repos.programs.getById('p1');
+      expect(saved!.title, 'Local edit');
+      expect(saved.venueId, 'v2');
+    },
+  );
+
+  testWidgets(
+    'persisted Undo preserves the order of a concurrent slot insertion',
+    (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      await delayed.repos.dances.create(_dance(id: 'd1', title: 'First Dance'));
+      await delayed.repos.dances.create(
+        _dance(id: 'd2', title: 'Second Dance'),
+      );
+      await delayed.repos.dances.create(
+        _dance(id: 'd3', title: 'Inserted Dance'),
+      );
+      await delayed.repos.programs.create(
+        _program(
+          id: 'p1',
+          slots: [
+            ProgramSlot(id: 's0', position: 0, danceId: 'd1'),
+            ProgramSlot(id: 's1', position: 1, danceId: 'd2'),
+          ],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        delayed.repos,
+        programId: 'p1',
+        autoCommit: true,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Local edit',
+      );
+      delayed.programs.holdNextRead();
+      await tester.tap(find.byType(SnackBarAction));
+      await delayed.programs.readStarted;
+      await delayed.repos.programs.update(
+        _program(
+          id: 'p1',
+          title: 'Remote edit',
+          slots: [
+            ProgramSlot(id: 's0', position: 0, danceId: 'd1'),
+            ProgramSlot(id: 's2', position: 1, danceId: 'd3'),
+            ProgramSlot(id: 's1', position: 2, danceId: 'd2'),
+          ],
+        ),
+      );
+      delayed.programs.releaseRead();
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      final saved = await delayed.repos.programs.getById('p1');
+      expect(saved!.title, 'Local edit');
+      expect(saved.slots.map((slot) => slot.id), ['s0', 's2', 's1']);
+    },
+  );
+
   testWidgets(
     'persists a mark-performed made via the builder-routed Perform path',
     (tester) async {
@@ -1694,6 +3529,147 @@ void main() {
     expect(find.text('balance'), findsOneWidget);
     // The save FAB hides on the read-only Matrix tab.
     expect(find.byKey(const ValueKey('save-program')), findsNothing);
+  });
+
+  testWidgets(
+    'Matrix alternate toggle is transient across tabs and responsive layouts',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Primary',
+          figures: [Figure(move: 'swing')],
+        ),
+      );
+      await repos.dances.create(
+        _dance(
+          id: 'd2',
+          title: 'Alternate',
+          figures: [Figure(move: 'balance')],
+        ),
+      );
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [
+            ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+            ProgramSlot(id: 's2', position: 1, danceId: 'd2', isAlt: true),
+          ],
+        ),
+      );
+      await _pumpBuilder(tester, repos, programId: 'p1');
+
+      await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
+      await tester.pumpAndSettle();
+      expect(find.text('Primary'), findsOneWidget);
+      expect(find.text('Alternate'), findsOneWidget);
+      expect(find.byTooltip('Hide alternate rows'), findsOneWidget);
+      expect(find.byTooltip('Show phrase labels'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey('program-matrix-toggle-alternates')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Primary'), findsOneWidget);
+      expect(find.text('Alternate'), findsNothing);
+      expect(find.byTooltip('Show alternate rows'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey('program-matrix-toggle-phrases')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('Show presence glyphs'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('program-build-tab')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
+      await tester.pumpAndSettle();
+      expect(find.text('Alternate'), findsNothing);
+      expect(find.byTooltip('Show presence glyphs'), findsOneWidget);
+
+      await tester.binding.setSurfaceSize(const Size(360, 720));
+      await tester.pumpAndSettle();
+      expect(find.text('Alternate'), findsNothing);
+      expect(find.byTooltip('Show presence glyphs'), findsOneWidget);
+
+      expect((await repos.programs.getById('p1'))!.hideAlternates, isFalse);
+    },
+  );
+
+  testWidgets('Matrix alternate toggle resets when the editor route closes', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        title: 'Primary',
+        figures: [Figure(move: 'swing')],
+      ),
+    );
+    await repos.dances.create(
+      _dance(
+        id: 'd2',
+        title: 'Alternate',
+        figures: [Figure(move: 'balance')],
+      ),
+    );
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [
+          ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 's2', position: 1, danceId: 'd2', isAlt: true),
+        ],
+      ),
+    );
+
+    final navigatorKey = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(
+      MaterialApp(
+        navigatorKey: navigatorKey,
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) =>
+            RepositoriesScope(repositories: repos, child: child!),
+        home: const SizedBox(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    Future<void> openEditor() async {
+      navigatorKey.currentState!.push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => const ProgramEditorScreen(programId: 'p1'),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await openEditor();
+    await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('program-matrix-toggle-alternates')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Alternate'), findsNothing);
+    await tester.tap(
+      find.byKey(const ValueKey('program-matrix-toggle-phrases')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Show presence glyphs'), findsOneWidget);
+
+    navigatorKey.currentState!.pop();
+    await tester.pumpAndSettle();
+    await openEditor();
+    await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
+    await tester.pumpAndSettle();
+    expect(find.text('Alternate'), findsOneWidget);
+    expect(find.byTooltip('Show phrase labels'), findsOneWidget);
   });
 
   testWidgets('Matrix tab exposes an enabled export/print PDF control', (
@@ -2002,6 +3978,47 @@ void main() {
       isEmpty,
     );
   });
+
+  testWidgets(
+    'starting program template seeds valid entries with fresh slots',
+    (tester) async {
+      final repos = openTestRepositories();
+      String? savedId;
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.settings.set(
+        kDefaultStartingProgramKey,
+        encodeStartingProgramTemplate([
+          const StartingProgramTemplateEntry(
+            danceId: 'd1',
+            text: 'Guest caller',
+          ),
+          const StartingProgramTemplateEntry(danceId: 'missing'),
+          const StartingProgramTemplateEntry(text: Program.breakSlotText),
+        ]),
+      );
+
+      await _pump(tester, repos, onSaved: (id) => savedId = id);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Chase the Squirrel'), findsOneWidget);
+      expect(find.text(Program.breakSlotText), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Template test',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+      expect(savedId, isNotNull);
+      final saved = await repos.programs.getById(savedId!);
+      expect(saved, isNotNull);
+      expect(saved!.slots, hasLength(2));
+      expect(saved.slots.map((slot) => slot.position), [0, 1]);
+      expect(saved.slots.map((slot) => slot.id).toSet(), hasLength(2));
+      expect(saved.slots.first.danceId, 'd1');
+      expect(saved.slots.first.text, 'Guest caller');
+      expect(saved.slots.last.text, Program.breakSlotText);
+    },
+  );
 
   // Pins the two feedback channels #796 must not disturb. The picker's new
   // row-level confirmation exists because the modal *sheet* covers the

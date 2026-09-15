@@ -14,9 +14,10 @@ pure-Dart core package (no Flutter imports) per ADR-001.*
    schema surgery.
 4. **Provenance everywhere.** Imported data keeps its raw source payload,
    external ID, permission/license, and import time.
-5. **Soft delete over hard delete** for user-visible entities. As of schema
-   v25 (#898) this holds for all eight syncable kinds, not just dances and
-   programs; see the delete model in [storage.md](storage.md).
+5. **Soft delete over hard delete** for user-visible entities. The current
+   contract covers all nine syncable kinds: schema v25 (#898) introduced
+   tombstones for the original eight, and schema v34 added them for difficulty
+   levels; see the delete model in [storage.md](storage.md).
 
 ## Entity overview
 
@@ -28,6 +29,7 @@ erDiagram
     Dance ||--o{ CustomFieldValue : has
     CustomFieldDef ||--o{ CustomFieldValue : defines
     Dance }o--o{ Tag : tagged
+    Dance }o--o| DifficultyLevel : "classified as"
     Dance ||--o| Provenance : "imported from"
     Program ||--|{ ProgramSlot : "ordered slots"
     ProgramSlot }o--o| Dance : "references (nullable)"
@@ -51,6 +53,7 @@ erDiagram
 | hook | string | one-line "why call this" description |
 | callingNotes | text | teaching/history notes, dialect-aware free text |
 | status | enum | `active` / `deprecated` / `broken` (mirrors TCB) |
+| difficultyLevelId | UUID-like stable ref → DifficultyLevel, nullable | `null` = unspecified; separate from `mixedLevel` |
 | tunes | string[] | suggested music |
 | customFields, tags, links, provenance | | see below |
 | createdAt / updatedAt / deletedAt | timestamps | deletedAt = soft delete |
@@ -87,16 +90,29 @@ caller matches that default caller (trim + case-insensitive; issue #583).
   orbits" figure is now modeled as exactly such a `meanwhile[allemande,
   orbit]` container (with `orbit` promoted to a first-class move), so the
   simultaneity is recorded structurally rather than as one synthesized move.
-  Structural caps: **flat only** (a `meanwhile` may not
-  contain a `meanwhile`) and at most `kMaxMeanwhileSides` (**6**) sides. Rides
+  Structural caps: at most `kMaxMeanwhileSides` (**6**) children; a container
+  may contain only one legal opposite-kind container level. Same-kind and
+  deeper nesting is rejected. Rides
   `figures_json` **additively** (like `customOrigin` / `assumedSubject` /
   `walkthroughOverride`) — **no `figureSchemaVersion` bump**. Because it is one
   flat list element, `deriveSections` counts its shared beats exactly **once**,
   and the search indexer **flattens** it so each concurrent side stays
   individually matchable (`filterByMove` + FTS). Untrusted on the import path:
   the archive/.ccshare sanitizer recurses into every nested side (scrubbing
-  free text) and enforces the depth + side-count caps defensively (clamp/flatten,
-  never throw).
+  free text) and enforces the alternating-container depth + child-count caps
+  defensively (drop invalid nesting, never throw).
+- `modifier` container (#1198): `{move: "modifier", params: {beats: n,
+  figures: [<core>, <modifier>, …]}}` — an ordered **composition** figure. The
+  first child is the core action and each later child is a modifier rendered
+  gerundively; the container's shared `beats` is authoritative for section
+  math. Its children use the same recursive codec and remain structurally
+  distinct from the concurrent sides of `meanwhile`.
+- Containers accept 2–6 children and may alternate exactly once:
+  `meanwhile → modifier` or `modifier → meanwhile`. Same-kind nesting and
+  deeper container nesting are rejected by the model and dropped by tolerant
+  decoders; ordinary leaf figures may appear at either level. This bounded
+  rule applies consistently to persistence, archive sanitization, editing, and
+  derived indexing.
 - **Display convention** (#594): every human-facing render
   (`FigureRenderer.render`/`renderVerbose`/`renderSummary` — the dance detail
   table, Perform, plain-text export, and PDF export all use these) joins a
@@ -110,11 +126,11 @@ caller matches that default caller (trim + case-insensitive; issue #583).
   phraseStructure, not stored — keeps reordering/beat edits consistent.
 
 ### Formation
-Canonical enum seeded from the TCB vocabulary (duple improper/becket(cw|ccw)/
-proper/indecent…, triple minor, 3-face-3, 4-face-4, circle mixer, Sicilian
-circle, scatter mixer, longways, triplet, grid, other) **plus** an optional
-free-text `detail`. Enum-with-detail avoids ContraDB's regex-over-free-text
-weakness while never losing information.
+Canonical enum seeded from the TCB vocabulary (duple improper/reverse progression
+improper/becket(cw|ccw)/proper/indecent…, triple minor, 3-face-3, 4-face-4,
+circle mixer, Sicilian circle, scatter mixer, longways, triplet, grid, quadruplet,
+other) **plus** an optional free-text `detail`. Enum-with-detail avoids ContraDB's
+regex-over-free-text weakness while never losing information.
 
 ### Mixer
 A `bool` flag (default `false`) marking a dance in which dancers change
@@ -128,6 +144,14 @@ of Threesomes, …); conversely **628 dances in a mixer-named formation are NOT
 mixers — 589 of them Sicilian Circles**. Adding a `mixer` value to the formation
 enum would therefore be wrong in both directions, so mixer is a separate boolean,
 exactly as The Caller's Box models it (schema v24, issue #732).
+
+### DifficultyLevel
+`id, label, position`. A collection-owned vocabulary for dance difficulty
+(schema v34, issue #1200), replacing the fixed enum. New collections seed
+immutable IDs for Beginner, Intermediate, and Advanced; custom entries receive
+generated UUIDv4 IDs. A dance stores only its selected `difficultyLevelId`, so
+renaming or reordering a vocabulary entry does not rewrite dances. A level
+cannot be deleted while any dance, including a soft-deleted dance, refers to it.
 
 ### Choreographer
 `id, name (unique), website?, notes?`. Merge tool needed eventually (imports
@@ -153,15 +177,17 @@ entry mode only (free-text field vs. picker); it never rewrites either column.
 | eventDate?, venue?, venueId?, notes | danceId? (nullable → free-text slot: break, waltz, announcement) |
 | band?, caller?, dancerLevel? | text? (used when danceId null, or per-slot caller note) |
 | status: draft/final/performed | isAlt: bool (alternate dance, decided at event time) |
-| createdAt/updatedAt/deletedAt | guestCaller?, plannedMinutes? (structured, not folded into `text`) |
+| createdAt/updatedAt/deletedAt | guestCaller?, walkthroughMinutes?, danceMinutes? (structured, not folded into `text`) |
 | | performedAt? (set when actually called → feeds dance calling history) |
 
 `band`, `caller` (primary/host caller), and `dancerLevel` are the CC-parity
 event-metadata fields (schema v3). `dancerLevel` is nullable free-text for now;
 a first-class dance-level enum is separate (ROADMAP 4b.1) and a different
 concept. Per-slot, `guestCaller` names a caller other than the host and
-`plannedMinutes` is the planned length (CC `SetItem.Time`), kept structured
-rather than buried in the free-text `text` note (`plannedMinutes >= 0`).
+`walkthroughMinutes` and `danceMinutes` are optional planned lengths, kept
+structured rather than buried in the free-text `text` note (each is `>= 0`).
+Callers' Companion's legacy `SetItem.Time` total maps to `danceMinutes`; the
+combined planned length is the sum of non-null values.
 
 `venueId` (schema v14) optionally links a program to a reusable [Venue](#venue)
 alongside the free-text `venue` label; the two persist independently (see Venue
@@ -211,8 +237,8 @@ URLs. (Every settings key is classified in
 - ProgramSlot requires at least one of `danceId` or `text` to be non-null;
   both may be set simultaneously (`text` is a per-slot caller note when a
   dance is attached, or the full slot content for free-text slots like breaks).
-- `ProgramSlot.plannedMinutes`, when present, is `>= 0` (structural, enforced
-  at construction).
+- `ProgramSlot.walkthroughMinutes` and `ProgramSlot.danceMinutes`, when
+  present, are each `>= 0` (structural, enforced at construction).
 - **ALT association** (intended invariant, *warning* not error): an `isAlt`
   slot alternates for the nearest preceding non-alt slot in position order;
   `Program.grouped` renders that structure (alts under their primary, per

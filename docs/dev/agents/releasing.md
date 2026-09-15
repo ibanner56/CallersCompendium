@@ -4,27 +4,30 @@ Load this chapter when cutting a release. The step-by-step lives in
 [../releasing.md](../releasing.md); these are the failure modes that
 step-by-step does not prevent on its own.
 
-- **Promoting `## [Unreleased]` into the version section is a manual step, and
-  it is the release's highest-risk moment.** Contributors write under
-  `## [Unreleased]`; nothing promotes it for them. The notes generator resolves
-  the section by SemVer *core*, so the one permitted bare beta and its stable
-  release render the same heading — which means a section left over from the previous release is found,
-  is valid, and renders happily under the new version's banner.
-  [`tools/ci/check_changelog_promoted.py`](../../../tools/ci/check_changelog_promoted.py)
-  gates the common case.
-- **A passing check is not evidence the notes are current.** The gate tests that
-  a section *exists*; what matters is that it is *fresh*, and no exit code
-  distinguishes those. Render the notes, read them, and confirm they describe
-  this release — then read the rendered draft on the release page before
-  publishing. (A CI gate now covers the common case; the read is still the
-  backstop.)
+- **Compiling fragments is the release's highest-risk moment.** Contributors add
+  independent JSON records under `changelog.d/`; release preparation validates,
+  compiles, and then consumes them. Give the compiler an explicit app
+  version, date, and (when core entries exist) maintainer-chosen core version.
+  Review the generated diff before merging the release PR.
+- **A passing compiler is not evidence the notes are true.** It proves input and
+  structure, not prose accuracy. Render the notes, read them, and confirm they
+  describe this release — then read the rendered draft on the release page before
+  publishing.
 - **The core CHANGELOG is not a second source of published release notes.**
   `tools/release/gen_release_notes.py` reads `app/CHANGELOG.md` only. A
   user-visible outcome of a `packages/compendium_core` change must therefore be
-  recorded in both `## [Unreleased]` sections: the core entry is the package
-  version record, and the app entry is what users receive. The release-prep
+  recorded in both audience objects of the same fragment: the core entry is the
+  package version record, and the app entry is what users receive. The release-prep
   session cannot reliably reconstruct that context, so catch the missing app
   entry in the behavioral-change PR.
+- **Release-preparation identity is part of the process.** Use
+  `docs(release): prepare vX.Y.Z` for stable releases and
+  `docs(release): prepare vX.Y.Z-beta` for beta releases in both the
+  preparation commit subject and pull request title; #937 is the in-repo
+  precedent (`docs(release): prepare v0.1.0-beta.7`). Do not substitute
+  `chore(release)` unless a maintainer explicitly overrides the convention,
+  including when the preparation changes version literals, issue-template
+  metadata, or generated changelogs.
 - **Re-derive the schema and taxonomy versions from source at tag time.** They
   move while a release is being prepared, so a number quoted in a status report
   an hour old may already be wrong. The Data/Migrations section is where users
@@ -44,6 +47,10 @@ step-by-step does not prevent on its own.
   only `vX.Y.Z-beta` and `vX.Y.Z` are valid. A beta establishes the shared
   section, and stable refreshes both signed update channels while beta refreshes
   beta only.
+- **Release codenames live on annotated tags.** Starting with the next minor
+  release, carry the prior codename forward or choose a new one by adding one
+  `Release codename: <name>` line to the tag message. The workflow uses it as
+  the GitHub Release title; legacy tags without the line fall back to the tag.
 - **Guard concurrency mechanically, not by agreement.** Two agents able to tag
   is a real hazard, but deference between them fails silently the moment one
   stops existing. Compare the candidate commit against the newest release tag,

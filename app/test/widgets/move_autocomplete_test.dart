@@ -15,6 +15,7 @@ Future<void> _pump(
   Dialect? dialect,
   ValueChanged<MoveOption>? onSelected,
   ValueChanged<String>? onCustomSubmitted,
+  bool includeModifier = false,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -26,6 +27,7 @@ Future<void> _pump(
           fieldKey: 'move',
           onSelected: onSelected ?? (_) {},
           onCustomSubmitted: onCustomSubmitted,
+          includeModifier: includeModifier,
         ),
       ),
     ),
@@ -55,6 +57,31 @@ void main() {
     expect(find.text('swing'), findsWidgets);
     // The dialect term isn't shown when the active dialect is canonical.
     expect(find.text('buzz'), findsNothing);
+  });
+
+  testWidgets('offers a structural modifier option when enabled', (
+    tester,
+  ) async {
+    MoveOption? picked;
+    await _pump(
+      tester,
+      includeModifier: true,
+      onSelected: (option) => picked = option,
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('move-input')),
+      'modifier',
+    );
+    await tester.pumpAndSettle();
+
+    final option = find.byKey(const ValueKey('move-option-modifier'));
+    expect(option, findsOneWidget);
+    await tester.tap(option);
+    await tester.pumpAndSettle();
+
+    expect(picked?.id, modifierMove);
+    expect(picked?.kind, MoveOptionKind.modifier);
   });
 
   group('narrow layout (issue #716)', () {

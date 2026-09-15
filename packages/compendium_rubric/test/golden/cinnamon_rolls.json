@@ -1,0 +1,102 @@
+{
+  "id": "427986c6-bba3-4c85-b90f-7bf135fe11d6",
+  "title": "Cinnamon Rolls",
+  "authorIds": [
+    "655d090d-6356-4647-b2c8-36fa5e211fb4"
+  ],
+  "form": "contra",
+  "formation": {
+    "shape": "becketCw",
+    "detail": "Becket"
+  },
+  "progression": "single",
+  "phraseStructure": "",
+  "figures": [
+    {
+      "schemaVersion": 1,
+      "move": "circle",
+      "params": {
+        "turn": "left",
+        "places": 3,
+        "beats": 6
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "roll_away",
+      "params": {
+        "who": "role1s",
+        "whom": "neighbors",
+        "beats": 4
+      },
+      "note": "with a half sashay"
+    },
+    {
+      "schemaVersion": 1,
+      "move": "allemande",
+      "params": {
+        "who": "role1s",
+        "hand": "left",
+        "turn": 1,
+        "beats": 6
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "swing",
+      "params": {
+        "who": "neighbors",
+        "prefix": "balance",
+        "beats": 16
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "long_lines",
+      "params": {
+        "goBack": true,
+        "beats": 8
+      },
+      "note": "role2s roll a new neighbor away",
+      "progression": true
+    },
+    {
+      "schemaVersion": 1,
+      "move": "allemande",
+      "params": {
+        "who": "role2s",
+        "hand": "right",
+        "turn": 1.5,
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "swing",
+      "params": {
+        "who": "partners",
+        "prefix": "balance",
+        "beats": 16
+      }
+    }
+  ],
+  "hook": "",
+  "callingNotes": "Imported from ContraDB.",
+  "walkthrough": "",
+  "status": "active",
+  "mixedLevel": false,
+  "mixer": false,
+  "tunes": [],
+  "customFields": [],
+  "tagIds": [],
+  "links": [],
+  "sourceCitations": [],
+  "provenance": {
+    "source": "contradb",
+    "externalId": "3247",
+    "importedAt": "2026-08-25T21:36:07.000Z",
+    "sourceVersion": "contradb-html"
+  },
+  "createdAt": "2026-08-25T21:36:07.000Z",
+  "updatedAt": "2026-08-25T21:36:07.000Z"
+}

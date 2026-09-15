@@ -112,7 +112,7 @@ void main() {
         expect(figures[1].move, 'form_long_waves');
         expect(figures[1].params['balance'], isTrue);
         expect(figures[1].params['whom'], 'neighbors');
-        expect(figures[1].params['hand'], 'left');
+        expect(figures[1].params['whomHand'], 'left');
         // `who` is the facing-IN role, matching ContraDB's own subject.
         expect(figures[1].params['who'], 'role2s');
         expect(figures[1].params['beats'], 4);
@@ -130,7 +130,7 @@ void main() {
       expect(figures[1].params['sides'], 'nextNeighbors');
       expect(figures[3].move, 'form_long_waves');
       expect(figures[3].params['whom'], 'shadows');
-      expect(figures[3].params['hand'], 'right');
+      expect(figures[3].params['whomHand'], 'right');
       expect(figures[3].params['who'], 'role1s');
     });
 
@@ -143,6 +143,35 @@ void main() {
       expect(figures[1].params['balance'], isTrue);
       expect(figures[1].params.containsKey('center'), isFalse);
     });
+
+    test('a bracketed relation is retained as a canonical note', () async {
+      final figures = await _figuresFor([
+        '(4) Balance wave of four (PR,WL) [with N2]',
+      ]);
+      expect(figures, hasLength(1));
+      final figure = figures.single;
+      expect(figure.move, 'form_short_waves');
+      expect(figure.params['balance'], isTrue);
+      expect(figure.params['sides'], 'partners');
+      expect(figure.params['center'], 'role2s');
+      expect(figure.params['centerHand'], 'left');
+      expect(figure.params['beats'], 4);
+      expect(figure.note, 'with nextNeighbors');
+    });
+
+    for (final line in const [
+      '(4) Balance wave of four (PR,WL) [with phantom]',
+      '(4) Balance wave of four (PR,WL) [with N2] trailing',
+      '(4) Balance wave of four (PR,WL) [with N2] [with N3] [with N4]',
+      '(4) Balance wave of four (PR,WL) [[with N2]',
+      '(4) Balance wave of four (PR,WL) [with N2]]',
+    ]) {
+      test('"$line" remains custom', () async {
+        final figures = await _figuresFor([line]);
+        expect(figures, hasLength(1));
+        expect(figures.single.isCustom, isTrue);
+      });
+    }
   });
 
   group('explicit prior forming — exactly ONE form figure results', () {
@@ -293,6 +322,35 @@ void main() {
         // No wave-formation figure was fabricated in its place.
         expect(figures.single.move, isNot(startsWith('form_')));
       });
+    });
+
+    test(
+      'a balanced circulate retains decoded params, note, and beats',
+      () async {
+        final figures = await _figuresFor([
+          '(4) Balance wave of four (NR,WL)',
+          '(4) Circulate: women cross, men loop right',
+        ]);
+        final figure = figures.single;
+        expect(figure.move, 'box_circulate');
+        expect(figure.params['who'], 'role2s');
+        expect(figure.params['hand'], 'right');
+        expect(figure.params['balance'], isTrue);
+        expect(figure.params['beats'], 8);
+        expect(figure.note, 'role2s cross, role1s loop right');
+      },
+    );
+
+    test('a circulate hand overrides the preceding balance hand', () async {
+      final figures = await _figuresFor([
+        '(4) Women balance (LH)',
+        '(4) Circulate: women cross, men loop right',
+      ]);
+      final figure = figures.single;
+      expect(figure.move, 'box_circulate');
+      expect(figure.params['hand'], 'right');
+      expect(figure.params['balance'], isTrue);
+      expect(figure.params['beats'], 8);
     });
 
     test('a long-wave balance also folds forward', () async {

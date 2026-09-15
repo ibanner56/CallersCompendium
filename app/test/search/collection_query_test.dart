@@ -180,7 +180,7 @@ void main() {
 
     test('fts + facets compose into a flat AndFilter', () {
       final facets = FacetSelections()
-        ..formations.add(FormationShape.becketCw)
+        ..formations.add(FormationShape.reverseProgressionImproper)
         ..tagIds.addAll(['t1', 't2']);
       final f = buildCollectionFilter(
         ftsText: 'swing',
@@ -190,7 +190,12 @@ void main() {
       expect(f, isA<AndFilter>());
       final children = (f as AndFilter).children;
       expect(children.whereType<FullTextFilter>(), hasLength(1));
-      expect(children.whereType<FormationFilter>(), hasLength(1));
+      final formationFilters = children.whereType<FormationFilter>().toList();
+      expect(formationFilters, hasLength(1));
+      expect(
+        formationFilters.single.shape,
+        FormationShape.reverseProgressionImproper,
+      );
       // The two tags collapse into one OR branch.
       expect(children.whereType<OrFilter>(), hasLength(1));
     });
@@ -214,23 +219,27 @@ void main() {
     });
 
     test('a single level facet yields a LevelFilter(eq) leaf', () {
-      final facets = FacetSelections()..levels.add(DanceLevel.intermediate);
+      final facets = FacetSelections()
+        ..levels.add(DifficultyLevel.intermediateId);
       final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
       expect(f, isA<LevelFilter>());
       final l = f as LevelFilter;
-      expect(l.level, DanceLevel.intermediate);
+      expect(l.difficultyLevelId, DifficultyLevel.intermediateId);
       expect(l.op, LevelOp.eq);
     });
 
     test('multiple levels OR within the level facet', () {
       final facets = FacetSelections()
-        ..levels.addAll({DanceLevel.beginner, DanceLevel.advanced});
+        ..levels.addAll({
+          DifficultyLevel.beginnerId,
+          DifficultyLevel.advancedId,
+        });
       final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
       expect(f, isA<OrFilter>());
       final levels = (f as OrFilter).children.whereType<LevelFilter>().toList();
-      expect(levels.map((l) => l.level).toSet(), {
-        DanceLevel.beginner,
-        DanceLevel.advanced,
+      expect(levels.map((l) => l.difficultyLevelId).toSet(), {
+        DifficultyLevel.beginnerId,
+        DifficultyLevel.advancedId,
       });
       expect(levels.every((l) => l.op == LevelOp.eq), isTrue);
     });
@@ -606,7 +615,8 @@ void main() {
     });
 
     test('level and mixedLevel facets count toward isEmpty', () {
-      final withLevel = FacetSelections()..levels.add(DanceLevel.beginner);
+      final withLevel = FacetSelections()
+        ..levels.add(DifficultyLevel.beginnerId);
       expect(withLevel.isEmpty, isFalse);
       final withMixed = FacetSelections()..mixedLevel = true;
       expect(withMixed.isEmpty, isFalse);
@@ -627,7 +637,7 @@ void main() {
 
     test('clear() resets level and mixedLevel facets', () {
       final facets = FacetSelections()
-        ..levels.add(DanceLevel.advanced)
+        ..levels.add(DifficultyLevel.advancedId)
         ..mixedLevel = false;
       expect(facets.isEmpty, isFalse);
       facets.clear();

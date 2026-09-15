@@ -203,11 +203,11 @@ void main() {
         final allemande = _figureFor(draft, 'allemande');
         expect(allemande.params['who'], 'neighbors');
         expect(allemande.params['hand'], 'right');
-        expect(allemande.params['turn'], 1.0); // 360° → 1 turn
+        expect(allemande.params['travel'], 1.0); // 360° → 1 turn
         expect(allemande.params['beats'], 8);
 
         final circle = _figureFor(draft, 'circle');
-        expect(circle.params['turn'], 'left');
+        expect(circle.params['direction'], 'left');
         expect(circle.params['places'], 4);
 
         // Nothing fell back to custom.
@@ -322,7 +322,7 @@ void main() {
         final sr = _figureFor(draft, 'shoulder_round');
         expect(sr.params['who'], 'neighbors');
         expect(sr.params['shoulder'], 'right');
-        expect(sr.params['turn'], 1.0);
+        expect(sr.params['travel'], 1.0);
         expect(draft.quality.customFigures, 0);
       });
 
@@ -620,37 +620,56 @@ void main() {
         );
       });
 
-      test('an odd string → other with a warning, detail preserved', () async {
-        final draft = await _importOne(
-          jsonEncode(_dance(startType: 'spiral galaxy')),
-        );
-        expect(draft.dance.formation.shape, FormationShape.other);
-        expect(draft.dance.formation.detail, 'spiral galaxy');
-        expect(
-          draft.issues.any((i) => i.code == 'contradb_formation_unclassified'),
-          isTrue,
-        );
-      });
-    });
-
-    group('metadata', () {
       test(
-        'hook maps to hook; preamble/notes/choreographer fold into notes',
+        'an odd string plus preamble preserves normalized detail with a warning',
         () async {
           final draft = await _importOne(
             jsonEncode(
               _dance(
+                startType: 'spiral galaxy',
+                preamble: 'Ladies\u200B gypsy\nvariant',
+              ),
+            ),
+          );
+          expect(draft.dance.formation.shape, FormationShape.other);
+          expect(
+            draft.dance.formation.detail,
+            'role2s shoulder round variant\n\nspiral galaxy',
+          );
+          expect(
+            draft.issues.any(
+              (i) => i.code == 'contradb_formation_unclassified',
+            ),
+            isTrue,
+          );
+        },
+      );
+    });
+
+    group('metadata', () {
+      test(
+        'hook maps to hook; preamble is formation detail and notes stay notes',
+        () async {
+          final draft = await _importOne(
+            jsonEncode(
+              _dance(
+                startType: 'improper',
                 hook: 'A joyful chestnut',
-                preamble: 'Careful of the ends.',
+                preamble: 'Careful of the ladies\u200B gypsy.',
                 notes: 'First published 1990.',
                 choreographer: 'Cary Ravitz',
               ),
             ),
           );
           expect(draft.dance.hook, 'A joyful chestnut');
+          expect(draft.dance.formation.shape, FormationShape.dupleImproper);
+          expect(
+            draft.dance.formation.detail,
+            'Careful of the role2s shoulder round.',
+          );
           expect(draft.dance.callingNotes, isNot(contains('Cary Ravitz')));
-          expect(draft.dance.callingNotes, contains('Careful of the ends.'));
-          expect(draft.dance.callingNotes, contains('First published 1990.'));
+          expect(draft.dance.callingNotes, 'First published 1990.');
+          expect(draft.dance.callingNotes, isNot(contains('Careful of the')));
           expect(draft.dance.authorIds, isEmpty);
           expect(draft.authorNames, ['Cary Ravitz']);
           expect(

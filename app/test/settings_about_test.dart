@@ -92,7 +92,13 @@ void main() {
       find.descendant(of: brandHeader, matching: find.text(kAppName)),
       findsOneWidget,
     );
-    expect(find.text('Version $kAppVersion'), findsOneWidget);
+    expect(find.text('Version $kAppVersion, “$kAppCodename”'), findsOneWidget);
+    expect(
+      find.text(
+        '$kAppName · Version $kAppVersion, “$kAppCodename” · $kAppLicenseSpdx',
+      ),
+      findsOneWidget,
+    );
     expect(find.text(kAppTagline), findsOneWidget);
 
     // AGPL-3.0 license notice + source offer and link.
@@ -132,7 +138,7 @@ void main() {
       find.descendant(of: brandHeader, matching: find.byType(BrandMark)),
       findsOneWidget,
     );
-    expect(find.text('Version $kAppVersion'), findsOneWidget);
+    expect(find.text('Version $kAppVersion, “$kAppCodename”'), findsOneWidget);
     expect(find.text(kAppTagline), findsOneWidget);
 
     // The detail route shows the same compliance content.

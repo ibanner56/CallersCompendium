@@ -64,9 +64,9 @@ the site. GitHub Pages stays on **Deploy from a branch → `gh-pages` → `/ (ro
 
 The download cards are populated **at page load** by `app.js`, which fetches
 `beta.json` from this same origin — the very manifest the release pipeline
-refreshes on every tagged release. So version, links, sizes, and checksums track
-each release automatically, with no edits to this page. If the fetch fails, the
-section falls back to a link to the Releases page.
+refreshes on every tagged release. So version, codename, links, sizes, and
+checksums track each release automatically, with no edits to this page. If the
+fetch fails, the section falls back to a link to the Releases page.
 
 What is **not** automatic is the editorial copy (status blurb, roadmap phase,
 feature list, screenshots). Keep that aligned each release — see the

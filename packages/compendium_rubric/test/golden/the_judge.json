@@ -1,0 +1,45 @@
+{
+  "title": "The Judge",
+  "form": "contra",
+  "description": "Golden end-to-end compile test for the Becket CW dance 'The Judge'. Verifies the corrected progression model: a progression-flagged figure runs the default DI-style end-normalization (even for Becket), and the remaining figures place dancers back onto their Becket sides to land on the Becket CW single-progression oracle. Hand-traced against docs/taxonomy.md + docs/fundamentals.md 10.6.",
+  "formation": { "shape": "becketCw", "detail": "becket clockwise" },
+  "progression": "single",
+  "figures": [
+    {"schemaVersion":1,"move":"circle","params":{"turn":"left","places":3,"beats":8}},
+    {"schemaVersion":1,"move":"swing","params":{"who":"neighbors","prefix":"none","beats":8}},
+    {"schemaVersion":1,"move":"right_left_through","params":{"dir":"across","beats":8}},
+    {"schemaVersion":1,"move":"chain","params":{"who":"role2s","hand":"right","dir":"leftDiagonal","beats":8}},
+    {"schemaVersion":1,"move":"petronella","params":{"balance":true,"beats":8}},
+    {"schemaVersion":1,"move":"petronella","params":{"balance":true,"beats":8},"progression":true},
+    {"schemaVersion":1,"move":"swing","params":{"who":"partners","prefix":"balance","beats":16}}
+  ],
+  "expectedResult": "Compiled",
+  "handsFour": 3,
+  "expected": {
+    "note": "Final == Becket CW single-progression oracle (equality over position + role + number + couple-identity; facing excluded).",
+    "rolesNotation": [
+      "R1-B . . . L1-B",
+      "L2-D . . . R1-A",
+      "R2-D . . . L1-A",
+      "L2-F . . . R1-C",
+      "R2-F . . . L1-C",
+      "L2-E . . . R2-E"
+    ]
+  },
+  "trace": {
+    "note": "Per-op state, role notation, c0 . . . c4. 3 hands four (chain left_diagonal contributes +1).",
+    "start_becket_cw": ["L2-B...R1-A","R2-B...L1-A","L2-D...R1-C","R2-D...L1-C","L2-F...R1-E","R2-F...L1-E"],
+    "after_1_circle_left_3": ["R1-A...L1-A","L2-B...R2-B","R1-C...L1-C","L2-D...R2-D","R1-E...L1-E","L2-F...R2-F"],
+    "after_2_swing_neighbor": ["L2-B...R2-B","R1-A...L1-A","L2-D...R2-D","R1-C...L1-C","L2-F...R2-F","R1-E...L1-E"],
+    "after_3_right_left_through": ["L1-A...R1-A","R2-B...L2-B","L1-C...R1-C","R2-D...L2-D","L1-E...R1-E","R2-F...L2-F"],
+    "after_4_chain_robins_left_diagonal": ["L1-A...R2-D","R2-B...L2-B","L1-C...R2-F","R1-A...L2-D","L1-E...R1-E","R1-C...L2-F"],
+    "after_5_petronella": ["R2-D...L2-B","L1-A...R2-B","R2-F...L2-D","L1-C...R1-A","R1-E...L2-F","L1-E...R1-C"],
+    "after_6_petronella_progression": ["R1-B...L1-B","R2-D...L1-A","L2-D...R1-A","R2-F...L1-C","L2-F...R1-C","L2-E...R2-E"],
+    "after_7_swing_partner": ["R1-B...L1-B","L2-D...R1-A","R2-D...L1-A","L2-F...R1-C","R2-F...L1-C","L2-E...R2-E"]
+  },
+  "modelNotes": [
+    "Progression at op 6 is DEFAULT DI-style end-normalization (top couple B 2s->1s face down; bottom couple E 1s->2s face up); middle couples left un-normalized.",
+    "Op 7 (swing partner) is the 'remaining figure' that normalizes the middle couples onto their Becket sides -> matches the oracle.",
+    "petronella carries progression here: our model allows any figure to carry the per-invocation progression flag (D5), despite CallersCompendium marking petronella progressionCapable:false."
+  ]
+}

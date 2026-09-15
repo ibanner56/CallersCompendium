@@ -1,0 +1,103 @@
+{
+  "id": "65f2fb4d-b20b-4490-bfcf-b1054d1e0a46",
+  "title": "Heartbeat Contra",
+  "authorIds": [
+    "d83a6cd7-af94-4c11-b73c-f799c203ce2f"
+  ],
+  "form": "contra",
+  "formation": {
+    "shape": "dupleImproper",
+    "detail": "improper"
+  },
+  "progression": "single",
+  "phraseStructure": "",
+  "figures": [
+    {
+      "schemaVersion": 1,
+      "move": "petronella",
+      "params": {
+        "balance": true,
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "petronella",
+      "params": {
+        "balance": true,
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "swing",
+      "params": {
+        "who": "neighbors",
+        "beats": 16,
+        "prefix": "balance"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "allemande",
+      "params": {
+        "who": "role2s",
+        "hand": "right",
+        "turn": 1.5,
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "swing",
+      "params": {
+        "who": "partners",
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "circle",
+      "params": {
+        "turn": "left",
+        "places": 3,
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "balance_the_ring",
+      "params": {
+        "beats": 4
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "california_twirl",
+      "params": {
+        "who": "partners",
+        "beats": 4
+      },
+      "progression": true
+    }
+  ],
+  "hook": "",
+  "callingNotes": "Imported from ContraDB.",
+  "walkthrough": "",
+  "status": "active",
+  "mixedLevel": false,
+  "mixer": false,
+  "tunes": [],
+  "customFields": [],
+  "tagIds": [],
+  "links": [],
+  "sourceCitations": [],
+  "provenance": {
+    "source": "contradb",
+    "externalId": "159",
+    "importedAt": "2026-08-25T21:39:20.000Z",
+    "sourceVersion": "contradb-html"
+  },
+  "createdAt": "2026-08-25T21:39:20.000Z",
+  "updatedAt": "2026-08-25T21:40:09.000Z"
+}

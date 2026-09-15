@@ -34,6 +34,11 @@ class ChoreographerRepository {
       )..where((t) => t.id.equals(c.id))).getSingleOrNull();
       final collidingEdit =
           current != null && incumbent != null && incumbent.id != c.id;
+      final authorIndexChanged =
+          (!collidingEdit &&
+              current != null &&
+              (current.name != name || current.deletedAt != null)) ||
+          (current == null && incumbent?.deletedAt != null);
       final id = collidingEdit
           ? c.id
           : await adoptTombstonedNaturalKey(
@@ -82,8 +87,34 @@ class ChoreographerRepository {
         key: id,
         at: now,
       );
+      if (authorIndexChanged) {
+        await _refreshAuthorIndex(id);
+      }
       return id;
     });
+  }
+
+  /// Keeps the denormalized author text in both FTS tables aligned with a
+  /// choreographer rename without rebuilding unrelated dance-derived rows.
+  Future<void> _refreshAuthorIndex(String choreographerId) async {
+    for (final table in const ['dance_fts', 'dance_substring_fts']) {
+      await _db.customStatement(
+        'UPDATE $table '
+        'SET authors = ('
+        '  SELECT group_concat(name, \' \') FROM ('
+        '    SELECT c.name FROM dance_authors da '
+        '    JOIN choreographers c ON c.id = da.choreographer_id '
+        '    WHERE da.dance_id = $table.dance_id '
+        '      AND c.deleted_at IS NULL '
+        '    ORDER BY da.position'
+        '  )'
+        ') '
+        'WHERE dance_id IN ('
+        '  SELECT dance_id FROM dance_authors WHERE choreographer_id = ?'
+        ')',
+        [choreographerId],
+      );
+    }
   }
 
   Future<Choreographer?> getById(String id) async {

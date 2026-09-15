@@ -6,6 +6,7 @@ enum SyncRecordKind {
   tag,
   publishedSource,
   customFieldDef,
+  difficultyLevel,
   venue,
   setting,
 }

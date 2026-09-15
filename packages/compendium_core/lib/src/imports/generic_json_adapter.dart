@@ -1,5 +1,6 @@
 import '../model/choreographer.dart';
 import '../model/dance.dart';
+import '../model/difficulty_level.dart';
 import '../model/enums.dart';
 import '../serialization/archive_codec.dart';
 import '../serialization/compendium_archive.dart';
@@ -61,6 +62,10 @@ class GenericJsonAdapter implements SourceAdapter {
   /// failing the `dance_authors` foreign key and dropping the dance (#412).
   final Map<String, Choreographer> _choreographersById = {};
 
+  /// Difficulty definitions seen during [discover], keyed by id so a
+  /// per-dance payload remains self-contained for custom-level references.
+  final Map<String, DifficultyLevel> _difficultyLevelsById = {};
+
   /// The archive schema version seen during [discover], echoed onto each
   /// [RawRecord.sourceVersion] and used to re-serialize single-dance archives.
   int _schemaVersion = archiveSchemaVersion;
@@ -71,6 +76,7 @@ class GenericJsonAdapter implements SourceAdapter {
     // records fetchable from a prior successful discover on this instance.
     _dancesById.clear();
     _choreographersById.clear();
+    _difficultyLevelsById.clear();
     _schemaVersion = archiveSchemaVersion;
 
     final payload = request.payload;
@@ -99,6 +105,9 @@ class GenericJsonAdapter implements SourceAdapter {
     _dancesById.addEntries(result.archive.dances.map((d) => MapEntry(d.id, d)));
     _choreographersById.addEntries(
       result.archive.choreographers.map((c) => MapEntry(c.id, c)),
+    );
+    _difficultyLevelsById.addEntries(
+      result.archive.difficultyLevels.map((l) => MapEntry(l.id, l)),
     );
     _schemaVersion = result.archive.schemaVersion;
 
@@ -139,6 +148,7 @@ class GenericJsonAdapter implements SourceAdapter {
       payload: _encodeSingleDance(
         dance,
         _referencedChoreographers(dance),
+        _referencedDifficultyLevels(dance),
         _schemaVersion,
       ),
       contentType: 'application/json',
@@ -161,6 +171,12 @@ class GenericJsonAdapter implements SourceAdapter {
       if (choreographer != null) referenced.add(choreographer);
     }
     return referenced;
+  }
+
+  List<DifficultyLevel> _referencedDifficultyLevels(Dance dance) {
+    final id = dance.difficultyLevelId;
+    final level = id == null ? null : _difficultyLevelsById[id];
+    return level == null ? const [] : [level];
   }
 
   @override
@@ -225,6 +241,13 @@ class GenericJsonAdapter implements SourceAdapter {
       final name = nameById[id]?.trim();
       if (name != null && name.isNotEmpty) authorNames.add(name);
     }
+    DifficultyLevel? difficultyLevel;
+    for (final level in result.archive.difficultyLevels) {
+      if (level.id == dance.difficultyLevelId) {
+        difficultyLevel = level;
+        break;
+      }
+    }
 
     // The draft carries no provenance — the pipeline attaches it at commit,
     // derived from `raw` (including the externalId that keys exact dedupe).
@@ -233,6 +256,8 @@ class GenericJsonAdapter implements SourceAdapter {
       raw: raw,
       issues: issues,
       authorNames: authorNames,
+      difficultyLevelLabel: difficultyLevel?.label,
+      difficultyLevelIdIsCanonical: difficultyLevel != null,
     );
   }
 
@@ -254,6 +279,7 @@ class GenericJsonAdapter implements SourceAdapter {
   static String _encodeSingleDance(
     Dance dance,
     List<Choreographer> choreographers,
+    List<DifficultyLevel> difficultyLevels,
     int schemaVersion,
   ) => encodeArchive(
     CompendiumArchive(
@@ -261,6 +287,7 @@ class GenericJsonAdapter implements SourceAdapter {
       exportedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
       dances: [dance],
       choreographers: choreographers,
+      difficultyLevels: difficultyLevels,
     ),
     mode: ArchiveSerializationMode.share,
   );

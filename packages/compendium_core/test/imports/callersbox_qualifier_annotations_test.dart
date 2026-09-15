@@ -120,8 +120,8 @@ void main() {
     test('explicit rotation is structured by the TCB front-end', () {
       final f = _single('Partner promenade across clockwise', beats: 8);
       expect(f.move, 'promenade');
-      expect(f.params['dir'], 'across');
-      expect(f.params['turn'], 'clockwise');
+      expect(f.params['where'], 'across');
+      expect(f.params['direction'], 'clockwise');
       expect(f.note, isNull);
     });
 
@@ -199,13 +199,13 @@ void main() {
       expect(f.note, 'NR');
     });
 
-    test('dir params are not disturbed by an added annotation', () {
+    test('where params are not disturbed by an added annotation', () {
       final f = _single(
         'Right and left through across (along the set)',
         beats: 8,
       );
       expect(f.move, 'right_left_through');
-      expect(f.params['dir'], 'across');
+      expect(f.params['where'], 'across');
       expect(f.note, 'along the set');
     });
   });

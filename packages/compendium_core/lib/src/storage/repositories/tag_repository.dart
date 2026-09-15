@@ -97,6 +97,66 @@ class TagRepository {
     });
   }
 
+  /// Commits a tag staged by a dance editor or batch operation.
+  ///
+  /// A live natural-key match is reused without changing its identity. A
+  /// tombstoned match is passed to [upsert], which revives it and returns the
+  /// adopted id. This keeps provisional ids out of dance-tag joins in both
+  /// cases.
+  @useResult
+  Future<String> upsertStaged(Tag tag, {DateTime? at}) async {
+    final live = await idByName(tag.name);
+    if (live != null) return live;
+
+    final existingId = await idByName(tag.name, includeDeleted: true);
+    if (existingId == null) return upsert(tag, at: at);
+
+    // Preserve the incumbent's spelling so a legacy case-only duplicate is
+    // adopted through the existing exact-key path. A different staged ID is
+    // a new entity, so adoption must clear the tombstone's retained joins;
+    // retrying the incumbent ID remains a revival and keeps them.
+    final existing = await (_db.select(
+      _db.tags,
+    )..where((t) => t.id.equals(existingId))).getSingle();
+    if (tag.id == existing.id) {
+      return upsert(
+        Tag(id: existing.id, name: existing.name, color: tag.color),
+        at: at,
+      );
+    }
+    return upsert(
+      Tag(id: tag.id, name: existing.name, color: tag.color),
+      at: at,
+    );
+  }
+
+  /// Returns the existing id for [name], including tombstoned rows when
+  /// [includeDeleted] is true. Matching is case-insensitive for compatibility
+  /// with legacy case-only duplicates; live rows win, then the smallest id.
+  Future<String?> idByName(String name, {bool includeDeleted = false}) async {
+    final normalized = normalizeShareableText(name);
+    final rows =
+        await (_db.select(_db.tags)..where(
+              (t) =>
+                  includeDeleted ? const Constant(true) : t.deletedAt.isNull(),
+            ))
+            .get();
+    final matches =
+        rows
+            .where((row) => row.name.toLowerCase() == normalized.toLowerCase())
+            .toList()
+          ..sort((a, b) {
+            if (includeDeleted) {
+              final deletedOrder = (a.deletedAt != null ? 1 : 0).compareTo(
+                b.deletedAt != null ? 1 : 0,
+              );
+              if (deletedOrder != 0) return deletedOrder;
+            }
+            return a.id.compareTo(b.id);
+          });
+    return matches.isEmpty ? null : matches.first.id;
+  }
+
   Future<Tag?> getById(String id) async {
     final row = await (_db.select(
       _db.tags,
@@ -111,6 +171,38 @@ class TagRepository {
               ..orderBy([(t) => OrderingTerm(expression: t.name)]))
             .get();
     return rows.map(_toModel).toList();
+  }
+
+  /// Returns live tags that are attached to at least one non-deleted dance.
+  ///
+  /// This is intentionally narrower than [listAll]: standalone tags remain
+  /// available to administrative surfaces, while pickers that attach tags to
+  /// dances should not offer rows that have no live dance reference.
+  Future<List<Tag>> listReferencedByLiveDances() async {
+    final rows =
+        await (_db.select(_db.tags).join([
+                innerJoin(
+                  _db.danceTags,
+                  _db.danceTags.tagId.equalsExp(_db.tags.id),
+                ),
+                innerJoin(
+                  _db.dances,
+                  _db.dances.id.equalsExp(_db.danceTags.danceId) &
+                      _db.dances.deletedAt.isNull(),
+                ),
+              ])
+              ..where(_db.tags.deletedAt.isNull())
+              ..orderBy([
+                OrderingTerm(expression: _db.tags.name),
+                OrderingTerm(expression: _db.tags.id),
+              ]))
+            .get();
+    final unique = <String, Tag>{};
+    for (final row in rows) {
+      final tag = _toModel(row.readTable(_db.tags));
+      unique[tag.id] = tag;
+    }
+    return unique.values.toList();
   }
 
   Future<List<({Tag tag, bool deleted})>> listAllWithDeleted() async {

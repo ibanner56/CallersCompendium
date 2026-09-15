@@ -10,7 +10,7 @@ final _stamp = DateTime.utc(2026, 7, 15, 12);
 
 void main() {
   group('record blobs', () {
-    test('encode canonicalizes bytes and decodes all eight kinds', () {
+    test('encode canonicalizes bytes and decodes all nine kinds', () {
       final blobs = <SyncRecordBlob>[
         syncRecordBlobForEntity(
           SyncRecordKind.dance,
@@ -46,6 +46,12 @@ void main() {
         syncRecordBlobForEntity(
           SyncRecordKind.customFieldDef,
           _customField(),
+          updatedAt: _stamp,
+          existenceAt: _stamp,
+        )!,
+        syncRecordBlobForEntity(
+          SyncRecordKind.difficultyLevel,
+          _difficultyLevel(),
           updatedAt: _stamp,
           existenceAt: _stamp,
         )!,
@@ -90,9 +96,18 @@ void main() {
         allowedCustomFieldIds: {'cf'},
       );
 
-      expect(body, containsPair('level', isNull));
+      expect(body, containsPair('difficultyLevelId', isNull));
       expect(body, containsPair('rating', isNull));
-      expect(body, containsPair('formation', containsPair('detail', isNull)));
+      expect(
+        body,
+        containsPair(
+          'formation',
+          allOf(
+            containsPair('shape', 'reverseProgressionImproper'),
+            containsPair('detail', isNull),
+          ),
+        ),
+      );
       expect(body, containsPair('authorIds', ['c1', 'c2']));
       expect(body, containsPair('tagIds', ['t1', 't2']));
       final venueBody = syncBodyForEntity(SyncRecordKind.venue, _venue());
@@ -182,6 +197,27 @@ void main() {
           (archiveToJson(archive)['dances']! as List<Object?>).single
               as Map<String, Object?>;
       expect(archiveBody, archiveDanceToJson(_dance(), const {}));
+    });
+
+    test('difficulty-level blobs retain tombstone envelope fields', () {
+      final blob = syncRecordBlobForEntity(
+        SyncRecordKind.difficultyLevel,
+        _difficultyLevel(),
+        updatedAt: _stamp,
+        deletedAt: _stamp,
+        existenceAt: _stamp,
+      )!;
+
+      expect(blob.deletedAt, _stamp);
+      expect(blob.body, {
+        'id': DifficultyLevel.intermediateId,
+        'label': 'Intermediate',
+        'position': 1,
+      });
+      expect(
+        decodeSyncRecordBlob(encodeSyncRecordBlob(blob)).deletedAt,
+        _stamp,
+      );
     });
 
     group('entity admission', () {
@@ -408,7 +444,7 @@ Dance _dance() => Dance(
   id: 'd1',
   title: 'Shared Dance',
   authorIds: const ['c1', 'c2'],
-  formation: const Formation(FormationShape.becketCw),
+  formation: const Formation(FormationShape.reverseProgressionImproper),
   tagIds: const ['t1', 't2'],
   customFields: [CustomFieldValue(fieldId: 'cf', value: 1.25)],
   createdAt: _stamp,
@@ -437,5 +473,7 @@ CustomFieldDef _customField({bool shareable = true}) => CustomFieldDef(
   type: CustomFieldType.number,
   shareable: shareable,
 );
+
+DifficultyLevel _difficultyLevel() => DifficultyLevel.intermediate;
 
 Venue _venue() => Venue(id: 'v1', name: 'Hall', address1: 'private address');

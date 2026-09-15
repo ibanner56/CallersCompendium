@@ -4,4 +4,6 @@ environment:
   sdk: ^3.12.0
 workspace:
   - packages/compendium_core
+  - packages/compendium_rubric
   - app
+  - server

@@ -7,6 +7,7 @@ import '../model/formation.dart';
 import '../taxonomy/param_types.dart';
 import '../util/text_sanitizer.dart';
 import 'author_tokenizer.dart';
+import 'figure_text_scrub.dart';
 import 'import_error.dart';
 import 'raw_record.dart';
 import 'source_adapter.dart';
@@ -60,11 +61,12 @@ import 'structured_draft.dart';
 /// The ContraDB choreographer name is carried on the draft's `authorNames`; the
 /// import pipeline resolves it to a real [Choreographer] association
 /// ([Dance.authorIds]) at commit (match-or-create). It is no longer folded into
-/// [Dance.callingNotes]. ContraDB `hook` → [Dance.hook]; `preamble` +
-/// `notes` → [Dance.callingNotes]. `start_type` free text is classified to a
-/// [FormationShape] best-effort (its original text preserved in
-/// [Formation.detail]); an unclassifiable string yields a warning and
-/// [FormationShape.other].
+/// [Dance.callingNotes]. ContraDB `hook` → [Dance.hook]; `notes` →
+/// [Dance.callingNotes]; normalized `preamble` → [Formation.detail].
+/// `start_type` free text is classified to a [FormationShape] best-effort;
+/// recognized text is shape-only, while an unclassifiable string yields a
+/// warning and [FormationShape.other]. If both an unclassifiable `start_type`
+/// and a preamble are present, both normalized values are retained in detail.
 ///
 /// ## Deprecated — use [ContraDbHtmlAdapter] instead
 /// This JSON adapter is **not wired into any live import path**: ContraDB serves
@@ -190,7 +192,11 @@ class ContraDbAdapter implements SourceAdapter {
 
     final issues = <ImportIssue>[];
     final figures = _parseFigures(dance['figures_json'], issues);
-    final formation = _parseFormation(dance['start_type'], issues);
+    final formation = _parseFormation(
+      dance['start_type'],
+      dance['preamble'],
+      issues,
+    );
     final choreographer = _sanitizeLine(_choreographerName(dance));
 
     return StructuredDraft(
@@ -482,11 +488,11 @@ class ContraDbAdapter implements SourceAdapter {
       figures: [
         Figure(
           move: 'allemande',
-          params: {'who': who, 'hand': hand, 'turn': inner},
+          params: {'who': who, 'hand': hand, 'travel': inner},
         ),
         Figure(
           move: 'orbit',
-          params: {'who': orbitWho, 'turn': direction, 'amount': outer},
+          params: {'who': orbitWho, 'direction': direction, 'travel': outer},
         ),
       ],
       beats: beats,
@@ -495,13 +501,26 @@ class ContraDbAdapter implements SourceAdapter {
     );
   }
 
-  Formation _parseFormation(Object? startType, List<ImportIssue> issues) {
-    final text = _sanitizeLine(_asString(startType));
-    if (text == null || text.isEmpty) {
-      return const Formation(FormationShape.dupleImproper);
+  Formation _parseFormation(
+    Object? startType,
+    Object? preamble,
+    List<ImportIssue> issues,
+  ) {
+    final text = scrubFigureText(_asString(startType) ?? '');
+    final detail = scrubFigureText(_asString(preamble) ?? '');
+    String? detailForUnknown(String source) {
+      final parts = [detail, source].where((part) => part.isNotEmpty);
+      final combined = parts.join('\n\n');
+      return combined.isEmpty ? null : combined;
+    }
+
+    if (text.isEmpty) {
+      return Formation(
+        FormationShape.dupleImproper,
+        detail: detail.isEmpty ? null : detail,
+      );
     }
     final lower = text.toLowerCase();
-    final detail = text;
 
     FormationShape? shape;
     if (lower.contains('becket')) {
@@ -538,9 +557,9 @@ class ContraDbAdapter implements SourceAdapter {
               'formation; kept as detail on "other".',
         ),
       );
-      return Formation(FormationShape.other, detail: detail);
+      return Formation(FormationShape.other, detail: detailForUnknown(text));
     }
-    return Formation(shape, detail: detail);
+    return Formation(shape, detail: detail.isEmpty ? null : detail);
   }
 
   // --- Notes -----------------------------------------------------------------
@@ -550,10 +569,6 @@ class ContraDbAdapter implements SourceAdapter {
     // The choreographer name is resolved to a Choreographer association by the
     // import pipeline (Dance.authorIds) via the draft's authorNames, so it is
     // no longer folded into the notes.
-    final preamble = _asString(dance['preamble'])?.trim();
-    if (preamble != null && preamble.isNotEmpty) {
-      parts.add('Preamble: $preamble');
-    }
     final notes = _asString(dance['notes'])?.trim();
     if (notes != null && notes.isNotEmpty) {
       parts.add(notes);
@@ -886,7 +901,7 @@ final Map<String, _MoveMap> _moveMappings = {
   'allemande': _MoveMap('allemande', [
     _PosParam('who', _dancers),
     _PosParam('hand', _hand),
-    _PosParam('turn', _turns),
+    _PosParam('travel', _turns),
     _PosParam('beats', _beatsConv()),
   ]),
   'allemande orbit': _MoveMap('allemande_orbit', [
@@ -898,14 +913,14 @@ final Map<String, _MoveMap> _moveMappings = {
   ]),
   'do si do': _MoveMap('do_si_do', [
     _PosParam('who', _dancers),
-    _PosParam('turn', _turns),
+    _PosParam('travel', _turns),
     _PosParam('beats', _beatsConv()),
   ]),
   'see saw': _MoveMap(
     'do_si_do',
     [
       _PosParam('who', _dancers),
-      _PosParam('turn', _turns),
+      _PosParam('travel', _turns),
       _PosParam('beats', _beatsConv()),
     ],
     pinned: {'shoulder': 'left'},
@@ -924,13 +939,13 @@ final Map<String, _MoveMap> _moveMappings = {
   'gyre': _MoveMap('shoulder_round', [
     _PosParam('who', _dancers),
     _PosParam('shoulder', _shoulder),
-    _PosParam('turn', _turns),
+    _PosParam('travel', _turns),
     _PosParam('beats', _beatsConv()),
   ]),
   'gypsy': _MoveMap('shoulder_round', [
     _PosParam('who', _dancers),
     _PosParam('shoulder', _shoulder),
-    _PosParam('turn', _turns),
+    _PosParam('travel', _turns),
     _PosParam('beats', _beatsConv()),
   ]),
   'petronella': _MoveMap('petronella', [
@@ -942,7 +957,7 @@ final Map<String, _MoveMap> _moveMappings = {
     _PosParam('beats', _beatsConv()),
   ]),
   'pass through': _MoveMap('pass_through', [
-    _PosParam('dir', _direction),
+    _PosParam('where', _direction),
     _PosParam('shoulder', _shoulder),
     _PosParam('beats', _beatsConv()),
   ]),
@@ -952,17 +967,17 @@ final Map<String, _MoveMap> _moveMappings = {
     _PosParam('beats', _beatsConv()),
   ]),
   'right left through': _MoveMap('right_left_through', [
-    _PosParam('dir', _direction),
+    _PosParam('where', _direction),
     _PosParam('beats', _beatsConv()),
   ]),
   'chain': _MoveMap('chain', [
     _PosParam('who', _dancers),
-    _PosParam('dir', _direction),
+    _PosParam('where', _direction),
     _PosParam('beats', _beatsConv()),
   ]),
   'promenade': _MoveMap('promenade', [
     _PosParam('who', _dancers),
-    _PosParam('dir', _direction),
+    _PosParam('where', _direction),
     _PosParam('beats', _beatsConv()),
   ]),
   // v26 (#843): `star promenade` is DELIBERATELY ABSENT. ContraDB's
@@ -995,7 +1010,7 @@ final Map<String, _MoveMap> _moveMappings = {
   ]),
   'mad robin': _MoveMap('mad_robin', [
     _PosParam('who', _dancers),
-    _PosParam('turn', _turns),
+    _PosParam('travel', _turns),
     _PosParam('beats', _beatsConv()),
   ]),
   'revolving door': _MoveMap('revolving_door', [
@@ -1016,7 +1031,7 @@ final Map<String, _MoveMap> _moveMappings = {
   'gate': _MoveMap('gate', [
     _PosParam('who', _dancers),
     _PosParam('whom', _dancers),
-    _PosParam('face', _choice({'up', 'down', 'in', 'out'})),
+    _PosParam('endFacing', _choice({'up', 'down', 'in', 'out'})),
     _PosParam('beats', _beatsConv()),
   ]),
   'give and take': _MoveMap('give_and_take', [
@@ -1025,7 +1040,7 @@ final Map<String, _MoveMap> _moveMappings = {
     _PosParam('give', _flag()),
     _PosParam('beats', _beatsConv()),
   ]),
-  'pull by': _MoveMap('pull_by_dancers', [
+  'pull by': _MoveMap('pull_by', [
     _PosParam('who', _dancers),
     _PosParam('balance', _flag()),
     _PosParam('hand', _hand),
@@ -1033,7 +1048,7 @@ final Map<String, _MoveMap> _moveMappings = {
   ]),
   'cross trails': _MoveMap('cross_trails', [
     _PosParam('who', _dancers),
-    _PosParam('dir', _direction),
+    _PosParam('where', _direction),
     _PosParam('who2', _dancers),
     _PosParam('beats', _beatsConv()),
   ]),
@@ -1063,7 +1078,7 @@ final Map<String, _MoveMap> _moveMappings = {
   ]),
   'zig zag': _MoveMap('zig_zag', [
     _PosParam('who', _dancers),
-    _PosParam('turn', _choice({'left', 'right'})),
+    _PosParam('slide', _choice({'left', 'right'})),
     _PosParam('ender', _choice({'none', 'ring', 'allemande'})),
     _PosParam('beats', _beatsConv()),
   ]),
@@ -1085,7 +1100,7 @@ final Map<String, _MoveMap> _moveMappings = {
   ]),
   'figure 8': _MoveMap('figure_8', [
     _PosParam('who', _dancers),
-    _PosParam('half', _fraction),
+    _PosParam('fraction', _fraction),
     _PosParam('beats', _beatsConv()),
   ]),
   'rory o more': _MoveMap('rory_o_more', [
@@ -1097,12 +1112,12 @@ final Map<String, _MoveMap> _moveMappings = {
   'poussette': _MoveMap('poussette', [
     _PosParam('who', _dancers),
     _PosParam('whom', _dancers),
-    _PosParam('half', _fraction),
-    _PosParam('turn', _spin),
+    _PosParam('fraction', _fraction),
+    _PosParam('direction', _spin),
     _PosParam('beats', _beatsConv()),
   ]),
   'circle': _MoveMap('circle', [
-    _PosParam('turn', _choice({'left', 'right'})),
+    _PosParam('direction', _choice({'left', 'right'})),
     _PosParam('places', _places),
     _PosParam('beats', _beatsConv()),
   ]),
@@ -1113,7 +1128,7 @@ final Map<String, _MoveMap> _moveMappings = {
   ]),
   'facing star': _MoveMap('facing_star', [
     _PosParam('who', _dancers),
-    _PosParam('turn', _spin),
+    _PosParam('direction', _spin),
     _PosParam('places', _places),
     _PosParam('beats', _beatsConv()),
   ]),
@@ -1136,7 +1151,7 @@ final Map<String, _MoveMap> _moveMappings = {
         },
       ),
     ),
-    _PosParam('dir', _direction),
+    _PosParam('where', _direction),
     _PosParam('beats', _beatsConv()),
   ]),
   'dolphin hey': _MoveMap('dolphin_hey', [

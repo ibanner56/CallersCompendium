@@ -102,6 +102,45 @@ void main() {
         expect(q.customFigures, 1);
       });
     });
+
+    group('modifier and nested recursion', () {
+      test('modifier with a direct custom child is counted as custom', () {
+        final q = ParseQuality.ofFigures([
+          Figure.modifier(
+            figures: [
+              Figure(move: 'swing'),
+              customFigure('something custom', beats: 8),
+            ],
+            beats: 16,
+          ),
+        ]);
+
+        expect(q.totalFigures, 1);
+        expect(q.customFigures, 1);
+        expect(q.score, 0.0);
+      });
+
+      test('custom descendants through alternating containers are counted', () {
+        final q = ParseQuality.ofFigures([
+          Figure.modifier(
+            figures: [
+              Figure.meanwhile(
+                figures: [
+                  Figure(move: 'swing'),
+                  customFigure('nested custom', beats: 8),
+                ],
+                beats: 16,
+              ),
+              Figure(move: 'roll_away'),
+            ],
+            beats: 16,
+          ),
+        ]);
+
+        expect(q.customFigures, 1);
+        expect(q.isFullyCustom, isTrue);
+      });
+    });
   });
 
   group('customFigure fallback', () {

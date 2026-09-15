@@ -45,6 +45,21 @@ void main() {
       expect(lib.contains('000000'), isTrue);
     });
 
+    test('caps conflict keys and values on ingest', () {
+      final lib = WalkthroughSnippetLibrary.fromJson({
+        'snippets': {'a': 'selected'},
+        'conflicts': {
+          for (var i = 0; i < kMaxSnippetLibraryEntries + 10; i++)
+            'key-$i': [
+              for (var j = 0; j < kMaxSnippetConflictValues + 10; j++)
+                'value-$j',
+            ],
+        },
+      });
+      expect(lib.conflicts.length, kMaxSnippetLibraryEntries);
+      expect(lib.conflicts['key-0']!.length, kMaxSnippetConflictValues);
+    });
+
     test('withSnippet ignores a new key past the cap but allows updates', () {
       final raw = <String, String>{
         for (var i = 0; i < kMaxSnippetLibraryEntries; i++)
@@ -64,6 +79,25 @@ void main() {
           .withSnippet('allemande(hand=left,turn=1.5,who=neighbors)', 'Alle.');
       final restored = WalkthroughSnippetLibrary.fromJson(lib.toJson());
       expect(restored, lib);
+    });
+
+    test('v1 signature collisions retain the selected and losing values', () {
+      final lib = WalkthroughSnippetLibrary.fromJson({
+        'version': 1,
+        'snippets': {
+          'allemande(hand=left,turn=1)': 'Zed wording',
+          'allemande(hand=left,travel=1)': 'Alpha wording',
+        },
+      });
+      expect(lib.resolve('allemande(hand=left,travel=1)'), 'Alpha wording');
+      expect(
+        lib.conflicts['allemande(hand=left,travel=1)'],
+        containsAll(<String>['Zed wording', 'Alpha wording']),
+      );
+      expect(
+        WalkthroughSnippetLibrary.fromJson(lib.toJson()).conflicts,
+        lib.conflicts,
+      );
     });
 
     test('fromJson is tolerant of malformed input', () {

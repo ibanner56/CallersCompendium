@@ -37,10 +37,14 @@ Dance _dance(
   updatedAt: _now,
 );
 
-CompendiumArchive _archive(List<Dance> dances) => CompendiumArchive(
+CompendiumArchive _archive(
+  List<Dance> dances, {
+  List<DifficultyLevel> difficultyLevels = const [],
+}) => CompendiumArchive(
   schemaVersion: archiveSchemaVersion,
   exportedAt: _now,
   dances: dances,
+  difficultyLevels: difficultyLevels,
   choreographers: [Choreographer(id: 'c1', name: 'Cary Ravitz')],
   publishedSources: [PublishedSource(id: 's1', title: 'Give-and-Take')],
   customFields: [
@@ -125,6 +129,78 @@ void main() {
       expect(byId['d2']!.quality.isFullyCustom, isTrue);
     });
 
+    test('preserves the referenced difficulty definition per dance', () async {
+      final level = DifficultyLevel(
+        id: 'custom-workshop',
+        label: 'Workshop',
+        position: 3,
+      );
+      final dance = _dance(
+        'custom-level',
+        'Custom Level',
+      ).copyWith(difficultyLevelId: level.id);
+      final adapter = GenericJsonAdapter();
+      final records = await adapter.discover(
+        ImportRequest(
+          payload: encodeArchive(_archive([dance], difficultyLevels: [level])),
+        ),
+      );
+      final raw = await adapter.fetch(records.single);
+      final decoded = decodeArchive(raw.payload).archive;
+
+      expect(decoded.dances.single.difficultyLevelId, level.id);
+      expect(decoded.difficultyLevels, [level]);
+    });
+
+    test('clears an archive custom level absent from the receiver', () async {
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final dances = DanceRepository(db, contraTaxonomy);
+      final pipeline = ImportPipeline(
+        dances,
+        ChoreographerRepository(db),
+        difficultyLevels: DifficultyLevelRepository(db),
+      );
+      final level = DifficultyLevel(
+        id: 'custom-workshop',
+        label: 'Workshop',
+        position: 3,
+      );
+      final batch = await pipeline.plan(
+        GenericJsonAdapter(),
+        ImportRequest(
+          payload: encodeArchive(
+            _archive(
+              [
+                _dance(
+                  'custom-level',
+                  'Custom Level',
+                ).copyWith(difficultyLevelId: level.id),
+              ],
+              difficultyLevels: [level],
+            ),
+          ),
+        ),
+      );
+
+      expect(batch.records.single.draft.difficultyLevelLabel, 'Workshop');
+      expect(batch.records.single.draft.dance.difficultyLevelId, isNull);
+      expect(
+        batch.records.single.draft.issues.any(
+          (issue) => issue.code == 'cc_inactive_level',
+        ),
+        isTrue,
+      );
+
+      final session = await pipeline.commit(
+        batch,
+        now: _now,
+        newId: sequentialIds('generic'),
+      );
+      expect(session.records.single.succeeded, isTrue);
+      expect((await dances.listAll()).single.difficultyLevelId, isNull);
+    });
+
     test('pipeline preserves every archive dance content field', () async {
       final source = Dance(
         id: 'parity',
@@ -140,7 +216,7 @@ void main() {
         callingNotes: 'Keep the transitions crisp.',
         walkthrough: 'Walk forward, turn, and return.',
         status: DanceStatus.deprecated,
-        level: DanceLevel.advanced,
+        difficultyLevelId: DifficultyLevel.advancedId,
         mixedLevel: true,
         mixer: true,
         rating: 4,

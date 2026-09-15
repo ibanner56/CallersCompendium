@@ -18,6 +18,31 @@ void main() {
       expect(figure.note, isNull);
     });
 
+    test(
+      'a resolved leading dancer fills an explicit unspecified who slot',
+      () {
+        final figure = _single(
+          '[Men] Mad robin clockwise around neighbor',
+          beats: 8,
+        );
+
+        expect(figure.isCustom, isFalse);
+        expect(figure.move, 'mad_robin');
+        expect(figure.params['who'], 'role1s');
+        expect(figure.note, isNull);
+      },
+    );
+
+    test('an unresolved leading dancer keeps mad robin custom', () {
+      final figure = _single(
+        '[Heads] Mad robin clockwise around neighbor',
+        beats: 8,
+      );
+
+      expect(figure.isCustom, isTrue);
+      expect(figure.params['text'], contains('Heads'));
+    });
+
     test('a resolved bracket never overwrites an explicit grammar subject', () {
       final figure = _single('[women] Men do si do', beats: 8);
 

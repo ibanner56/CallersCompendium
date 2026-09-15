@@ -130,4 +130,17 @@ void main() {
     expect(mapping!.token, 'BnS');
     expect(mapping.figures.single.move, 'swing');
   });
+
+  testWidgets('offers meanwhile and modifier targets', (tester) async {
+    await _pumpEditor(
+      tester,
+      initial: ShorthandMapping(token: 'combo', figures: [_swing()]),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('figure-add')));
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('figure-add-meanwhile')), findsOneWidget);
+    expect(find.byKey(const ValueKey('figure-add-modifier')), findsOneWidget);
+  });
 }

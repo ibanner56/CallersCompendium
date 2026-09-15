@@ -36,8 +36,7 @@ void main() {
       // Setting every structured param to a non-default must NOT perturb the
       // canonical text (otherwise dedupe/FTS for these moves would shift — the
       // thing PR4 Part A explicitly must not do).
-      const params = {
-        'dir': 'rightDiagonal',
+      const commonParams = {
         'balance': true,
         'center': 'role1s',
         'centerHand': 'left',
@@ -46,13 +45,19 @@ void main() {
       };
       expect(
         renderer.renderCanonical(
-          testFigure(move: 'form_short_waves', params: params),
+          testFigure(
+            move: 'form_short_waves',
+            params: {...commonParams, 'axis': 'rightDiagonal'},
+          ),
         ),
         'form short waves',
       );
       expect(
         renderer.renderCanonical(
-          testFigure(move: 'pass_the_ocean', params: params),
+          testFigure(
+            move: 'pass_the_ocean',
+            params: {...commonParams, 'where': 'rightDiagonal'},
+          ),
         ),
         'pass the ocean',
       );
@@ -73,11 +78,11 @@ void main() {
   });
 
   group('form_short_waves display', () {
-    test('default (centerHand right -> side left)', () {
+    test('default (centerHand left -> side right)', () {
       expect(
         renderer.render(Figure(move: 'form_short_waves'), d),
-        'form short waves - role2s by the right in the center, '
-        'neighbor by the left on the sides',
+        'form short waves - role2s by the left in the center, '
+        'neighbor by the right on the sides',
       );
     });
 
@@ -115,18 +120,18 @@ void main() {
         ),
         d,
       );
-      expect(out, startsWith('form short waves - by the right in the center'));
+      expect(out, startsWith('form short waves - by the left in the center'));
       expect(out, isNot(contains('  ')));
       expect(out, isNot(contains('- ,')));
     });
   });
 
   group('pass_the_ocean display', () {
-    test('default (centerHand right -> side left)', () {
+    test('default (centerHand left -> side right)', () {
       expect(
         renderer.render(Figure(move: 'pass_the_ocean'), d),
-        'pass through to an ocean wave - role2s catch right hands in the '
-        'center, neighbor take left hands on the sides',
+        'pass through to an ocean wave - role2s catch left hands in the '
+        'center, neighbor take right hands on the sides',
       );
     });
 
@@ -136,40 +141,43 @@ void main() {
           Figure(move: 'pass_the_ocean', params: {'balance': true}),
           d,
         ),
-        'pass through to an ocean wave - role2s catch right hands in the '
-        'center, neighbor take left hands on the sides and balance',
+        'pass through to an ocean wave - role2s catch left hands in the '
+        'center, neighbor take right hands on the sides and balance',
       );
     });
 
-    test('non-default dir surfaces the diagonal word + indefinite article', () {
-      expect(
-        renderer.render(
-          Figure(move: 'pass_the_ocean', params: {'dir': 'rightDiagonal'}),
-          d,
-        ),
-        'pass through to a right diagonal ocean wave - role2s catch right '
-        'hands in the center, neighbor take left hands on the sides',
-      );
-    });
+    test(
+      'non-default where surfaces the diagonal word + indefinite article',
+      () {
+        expect(
+          renderer.render(
+            Figure(move: 'pass_the_ocean', params: {'where': 'rightDiagonal'}),
+            d,
+          ),
+          'pass through to a right diagonal ocean wave - role2s catch left '
+          'hands in the center, neighbor take right hands on the sides',
+        );
+      },
+    );
 
-    test('the "across" dir default is silent (no diagonal word)', () {
+    test('the "across" where default is silent (no diagonal word)', () {
       expect(
         renderer.render(
-          Figure(move: 'pass_the_ocean', params: {'dir': 'across'}),
+          Figure(move: 'pass_the_ocean', params: {'where': 'across'}),
           d,
         ),
         renderer.render(Figure(move: 'pass_the_ocean'), d),
       );
     });
 
-    test('centerHand left flips the derived side hand to right', () {
+    test('centerHand right flips the derived side hand to left', () {
       expect(
         renderer.render(
-          Figure(move: 'pass_the_ocean', params: {'centerHand': 'left'}),
+          Figure(move: 'pass_the_ocean', params: {'centerHand': 'right'}),
           d,
         ),
-        'pass through to an ocean wave - role2s catch left hands in the '
-        'center, neighbor take right hands on the sides',
+        'pass through to an ocean wave - role2s catch right hands in the '
+        'center, neighbor take left hands on the sides',
       );
     });
 
@@ -190,7 +198,7 @@ void main() {
           Figure(
             move: 'pass_the_ocean',
             params: const {
-              'dir': 'rightDiagonal',
+              'where': 'rightDiagonal',
               'balance': true,
               'center': 'role1s',
               'centerHand': 'left',

@@ -873,6 +873,7 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
                       decoration: InputDecoration(
                         labelText: _moveLabel(id),
                         hintText: l10n.dialectEditorMoveSubHint,
+                        hintMaxLines: 4,
                       ),
                       onChanged: (_) => onEdited(),
                     ),
@@ -1468,7 +1469,7 @@ class _DialectPreview extends StatelessWidget {
   static final List<Figure> _sampleFigures = [
     Figure(
       move: 'allemande',
-      params: const {'who': 'role1s', 'hand': 'left', 'turn': 1.5},
+      params: const {'who': 'role1s', 'hand': 'left', 'travel': 1.5},
     ),
     Figure(move: 'swing', params: const {'who': 'partners'}),
     Figure(move: 'do_si_do', params: const {'who': 'neighbors'}),

@@ -104,6 +104,7 @@ void main() {
       'cc_date_assumed_mdy',
       'cc_date_reduced_precision',
       'cc_missing_title',
+      'cc_inactive_level',
       'cc_program_empty_slot',
       'cc_program_unparsed_date',
       'cc_program_unresolved_dance',
@@ -151,6 +152,15 @@ void main() {
         expect(msg, isNotEmpty, reason: code);
         expect(msg, isNot(equals(l10n.importIssueGeneric)), reason: code);
       }
+    });
+
+    test('inactive levels use the localized unmapped-level message', () {
+      final issue = ImportIssue(
+        severity: ImportIssueSeverity.warning,
+        code: 'cc_inactive_level',
+        message: 'diagnostic english',
+      );
+      expect(importIssueMessage(l10n, issue), l10n.importIssueUnmappedLevel);
     });
   });
 

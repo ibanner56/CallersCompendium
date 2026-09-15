@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import contextlib
+import io
 import sys
 import tempfile
 from pathlib import Path
@@ -34,7 +36,12 @@ def test_generated_sources_do_not_count_toward_floor() -> None:
 def test_below_floor_fails() -> None:
     with tempfile.TemporaryDirectory() as temporary:
         lcov = write_lcov(Path(temporary), "SF:lib/real.dart\nLF:10\nLH:7\n")
-        assert run(lcov) == 1
+        with contextlib.redirect_stdout(io.StringIO()) as output:
+            assert run(lcov) == 1
+        assert (
+            "::error::core coverage 70.00% is below the 80% floor"
+            in output.getvalue()
+        )
 
 
 def test_missing_report_matches_ci_skip() -> None:

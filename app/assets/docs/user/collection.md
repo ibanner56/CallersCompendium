@@ -92,6 +92,14 @@ written down.
 
 Clear the search bar to return to your whole collection.
 
+Use **Search in** to choose the indexed fields: **All fields**, **Title**,
+**Author**, or **Figure**. When **Online search** is enabled in the Advanced
+panel, the same control offers **Title**, **Author**, and **Figure**; choose
+**Author** to search author names on Caller's Box or choreographer names on
+ContraDB, or **Figure** to search dance-movement text on either source. ContraDB
+Figure searches use complete canonical move names such as **box circulate**;
+case and extra spaces are normalized, but partial or unknown names are rejected.
+
 ## Narrow things down with filters
 
 When you want to slice your library by its properties rather than by words, open
@@ -109,7 +117,7 @@ the **Filters** panel with one tap. It lets you narrow by:
 Two simple rules govern how filters combine, and knowing them makes the panel
 predictable:
 
-- **Within one filter, choices are "any."** Ticking *duple improper* and *becket*
+- **Within one filter, choices are "any."** Ticking *Improper* and *Becket*
   under Formation finds dances in **either** formation.
 - **Across different filters, choices are "all."** Adding an author on top of
   those formations finds dances that match one of the formations **and** are by
@@ -183,8 +191,9 @@ The detail view brings together:
   to tweak for this dance.
 - **Links** — to the source, a video, and related dances.
 - **Calling history** — which of your [programs](./programs.md) include this
-  dance. (A [Settings](./settings.md) toggle decides whether this counts
-  only slots you marked performed or any program that contains the dance.)
+  dance. (Settings decide whether this counts only slots you marked performed
+  or any program that contains the dance, and how many venues called more than
+  once appear in the repeated-venue summary.)
 - **Custom fields** you have filled in.
 - **Published-source citation** — the book and page a dance came from, when you
   have recorded it.
@@ -197,6 +206,9 @@ becomes a link you can select to jump straight to it.
 From the detail view you can:
 
 - **Edit** the dance.
+- **Re-import choreography** from Caller's Box, ContraDB, or a single-dance
+  Caller's Compendium JSON file. This is also available from saved dance details
+  opened through Programs, search, post-import results, and the Program Editor.
 - **Duplicate** it as a starting point for a variation.
 - **Add to program** — drop it into a [program](./programs.md) you are building.
 - **Print/Share** it as a PDF or as plain text. The export follows your active

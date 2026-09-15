@@ -190,8 +190,19 @@ class DelayedProgramRepository extends ProgramRepository {
   Completer<void>? _armedGate;
   Completer<void>? _activeGate;
   Completer<void>? _writeStarted;
+  Completer<void>? _armedConditionalRollbackGate;
+  Completer<void>? _activeConditionalRollbackGate;
+  Completer<void>? _conditionalRollbackStarted;
+  Completer<void>? _armedReadGate;
+  Completer<void>? _activeReadGate;
+  Completer<void>? _readStarted;
 
+  bool failWrites = false;
+  bool failConditionalRollback = false;
+  bool failNextRead = false;
+  int? failOnWrite;
   int writesStarted = 0;
+  int conditionalRollbackCalls = 0;
 
   void holdNextWrite() {
     _armedGate = Completer<void>();
@@ -206,6 +217,31 @@ class DelayedProgramRepository extends ProgramRepository {
     if (gate != null && !gate.isCompleted) gate.complete();
   }
 
+  void holdNextConditionalRollback() {
+    _armedConditionalRollbackGate = Completer<void>();
+    _conditionalRollbackStarted = Completer<void>();
+  }
+
+  Future<void> get conditionalRollbackStarted =>
+      _conditionalRollbackStarted?.future ?? Future<void>.value();
+
+  void releaseConditionalRollback() {
+    final gate = _activeConditionalRollbackGate;
+    if (gate != null && !gate.isCompleted) gate.complete();
+  }
+
+  void holdNextRead() {
+    _armedReadGate = Completer<void>();
+    _readStarted = Completer<void>();
+  }
+
+  Future<void> get readStarted => _readStarted?.future ?? Future<void>.value();
+
+  void releaseRead() {
+    final gate = _activeReadGate;
+    if (gate != null && !gate.isCompleted) gate.complete();
+  }
+
   Future<void> _beforeWrite() async {
     writesStarted++;
     final gate = _armedGate;
@@ -213,21 +249,107 @@ class DelayedProgramRepository extends ProgramRepository {
     _armedGate = null;
     _activeGate = gate;
     _writeStarted?.complete();
-    _writeStarted = null;
     await gate.future;
     _activeGate = null;
   }
 
+  bool get _shouldFailWrite => failWrites || failOnWrite == writesStarted;
+
   @override
   Future<void> create(Program program, {LiveVenueIds? knownVenueIds}) async {
     await _beforeWrite();
+    if (_shouldFailWrite) throw const InjectedProgramFailure();
     await super.create(program, knownVenueIds: knownVenueIds);
   }
 
   @override
   Future<void> update(Program program, {LiveVenueIds? knownVenueIds}) async {
     await _beforeWrite();
+    if (_shouldFailWrite) throw const InjectedProgramFailure();
     await super.update(program, knownVenueIds: knownVenueIds);
+  }
+
+  @override
+  Future<int> clearPerformedAtIfMatches({
+    required String programId,
+    required Iterable<String> slotIds,
+    required DateTime performedAt,
+    required DateTime updatedAt,
+  }) {
+    conditionalRollbackCalls++;
+    if (failConditionalRollback) {
+      throw const InjectedProgramFailure();
+    }
+    final gate = _armedConditionalRollbackGate;
+    if (gate != null) {
+      _armedConditionalRollbackGate = null;
+      _activeConditionalRollbackGate = gate;
+      _conditionalRollbackStarted?.complete();
+      return gate.future.then(
+        (_) => super.clearPerformedAtIfMatches(
+          programId: programId,
+          slotIds: slotIds,
+          performedAt: performedAt,
+          updatedAt: updatedAt,
+        ),
+      );
+    }
+    return super.clearPerformedAtIfMatches(
+      programId: programId,
+      slotIds: slotIds,
+      performedAt: performedAt,
+      updatedAt: updatedAt,
+    );
+  }
+
+  @override
+  Future<Program?> getById(String id, {bool includeDeleted = false}) async {
+    final gate = _armedReadGate;
+    if (gate != null) {
+      _armedReadGate = null;
+      _activeReadGate = gate;
+      _readStarted?.complete();
+      await gate.future;
+      _activeReadGate = null;
+    }
+    if (failNextRead) {
+      failNextRead = false;
+      throw const InjectedProgramFailure();
+    }
+    return super.getById(id, includeDeleted: includeDeleted);
+  }
+}
+
+class DelayedVenueRepository extends VenueRepository {
+  DelayedVenueRepository(super.db);
+
+  Completer<void>? _armedReadGate;
+  Completer<void>? _activeReadGate;
+  Completer<void>? _readStarted;
+
+  void holdNextRead() {
+    _armedReadGate = Completer<void>();
+    _readStarted = Completer<void>();
+  }
+
+  Future<void> get readStarted => _readStarted?.future ?? Future<void>.value();
+
+  void releaseRead() {
+    final gate = _activeReadGate;
+    if (gate != null && !gate.isCompleted) gate.complete();
+  }
+
+  @override
+  Future<Venue?> getById(String id) async {
+    final gate = _armedReadGate;
+    if (gate != null) {
+      _armedReadGate = null;
+      _activeReadGate = gate;
+      _readStarted?.complete();
+      await gate.future;
+      _activeReadGate = null;
+    }
+    return super.getById(id);
   }
 }
 
@@ -276,6 +398,26 @@ openTestRepositoriesWithDelayedPrograms({bool closeOnTearDown = true}) {
   final programs = DelayedProgramRepository(db);
   final repos = CompendiumRepositories(db, contraTaxonomy, programs: programs);
   return (repos: repos, programs: programs);
+}
+
+({
+  CompendiumRepositories repos,
+  DelayedProgramRepository programs,
+  DelayedVenueRepository venues,
+})
+openTestRepositoriesWithDelayedProgramsAndVenues({
+  bool closeOnTearDown = true,
+}) {
+  final db = openWidgetTestDatabase(closeOnTearDown: closeOnTearDown);
+  final programs = DelayedProgramRepository(db);
+  final venues = DelayedVenueRepository(db);
+  final repos = CompendiumRepositories(
+    db,
+    contraTaxonomy,
+    programs: programs,
+    venues: venues,
+  );
+  return (repos: repos, programs: programs, venues: venues);
 }
 
 /// Opens in-memory repositories backed by a [DelayedSettingsRepository], so

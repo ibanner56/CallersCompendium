@@ -80,23 +80,17 @@ class ParseQuality {
   /// True when every figure fell back to custom (and there is at least one).
   bool get isFullyCustom => totalFigures > 0 && customFigures == totalFigures;
 
-  /// Computes the quality of an already-built figure list using the **recursive**
-  /// definition: a figure counts as custom if it is directly custom, or if it is
-  /// a [Figure.isMeanwhile] container that has at least one custom side.
-  ///
-  /// One level of recursion is sufficient and provably terminating: the
-  /// `meanwhile` codec flattens nested containers on decode (flat by
-  /// construction), so `subFigures` are always leaves.
+  /// Computes the quality of an already-built figure list recursively: a
+  /// top-level figure counts as custom if it is directly custom, or if any
+  /// descendant of either structural container kind is custom.
   factory ParseQuality.ofFigures(List<Figure> figures) => ParseQuality(
     totalFigures: figures.length,
-    customFigures: figures
-        .where(
-          (f) =>
-              f.isCustom ||
-              (f.isMeanwhile && f.subFigures.any((s) => s.isCustom)),
-        )
-        .length,
+    customFigures: figures.where((f) => _containsCustomFigure(f)).length,
   );
+
+  static bool _containsCustomFigure(Figure figure) =>
+      figure.isCustom ||
+      (figure.isContainer && figure.subFigures.any(_containsCustomFigure));
 
   @override
   bool operator ==(Object other) =>
@@ -128,6 +122,8 @@ class StructuredDraft {
     ParseQuality? quality,
     List<ImportIssue> issues = const [],
     List<String> authorNames = const [],
+    this.difficultyLevelLabel,
+    this.difficultyLevelIdIsCanonical = false,
   }) : quality = quality ?? ParseQuality.ofFigures(dance.figures),
        issues = List.unmodifiable(issues),
        authorNames = List.unmodifiable(authorNames);
@@ -147,6 +143,33 @@ class StructuredDraft {
   /// then writes the resulting ids to [Dance.authorIds]. Names are data, not a
   /// parse failure — the draft is valid whether or not any resolve.
   final List<String> authorNames;
+
+  /// Source label used to resolve legacy difficulty vocabulary against the
+  /// receiver's live configuration, when an adapter provides one.
+  final String? difficultyLevelLabel;
+
+  /// Whether [Dance.difficultyLevelId] is a stable archive identity rather
+  /// than an adapter-derived mapping from an external label.
+  final bool difficultyLevelIdIsCanonical;
+
+  StructuredDraft copyWith({
+    Dance? dance,
+    RawRecord? raw,
+    ParseQuality? quality,
+    List<ImportIssue>? issues,
+    List<String>? authorNames,
+    String? difficultyLevelLabel,
+    bool? difficultyLevelIdIsCanonical,
+  }) => StructuredDraft(
+    dance: dance ?? this.dance,
+    raw: raw ?? this.raw,
+    quality: quality ?? this.quality,
+    issues: issues ?? this.issues,
+    authorNames: authorNames ?? this.authorNames,
+    difficultyLevelLabel: difficultyLevelLabel ?? this.difficultyLevelLabel,
+    difficultyLevelIdIsCanonical:
+        difficultyLevelIdIsCanonical ?? this.difficultyLevelIdIsCanonical,
+  );
 
   @override
   String toString() =>

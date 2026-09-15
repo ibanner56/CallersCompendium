@@ -4,6 +4,7 @@ import 'package:meta/meta.dart';
 import '../validation/validation.dart';
 import 'custom_field.dart';
 import 'dance_link.dart';
+import 'difficulty_level.dart';
 import 'enums.dart';
 import 'figure.dart';
 import 'formation.dart';
@@ -47,7 +48,8 @@ class Dance {
     this.callingNotes = '',
     this.walkthrough = '',
     this.status = DanceStatus.active,
-    this.level,
+    String? difficultyLevelId,
+    DifficultyLevel? level,
     this.mixedLevel = false,
     this.mixer = false,
     this.rating,
@@ -62,7 +64,8 @@ class Dance {
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
-  }) : authorIds = List.unmodifiable(authorIds),
+  }) : difficultyLevelId = difficultyLevelId ?? level?.id,
+       authorIds = List.unmodifiable(authorIds),
        // Parse eagerly so an invalid structure fails at construction.
        phraseStructure = PhraseStructure.parse(phraseStructure),
        figures = List.unmodifiable(figures),
@@ -116,13 +119,28 @@ class Dance {
   final String walkthrough;
   final DanceStatus status;
 
-  /// Difficulty on the ordered [DanceLevel] scale; `null` when unspecified
-  /// (existing/imported dances stay valid). Distinct from [mixedLevel].
-  final DanceLevel? level;
+  /// ID of the selected [DifficultyLevel], or `null` when unspecified.
+  ///
+  /// The vocabulary lives in `difficulty_levels`, so renaming or reordering a
+  /// level never changes the dance's persisted reference. Distinct from
+  /// [mixedLevel].
+  final String? difficultyLevelId;
+
+  /// Compatibility projection for the former enum API.
+  ///
+  /// Custom IDs are intentionally not synthesized into a label-bearing value;
+  /// callers that need the configured vocabulary must read
+  /// [CompendiumRepositories.difficultyLevels].
+  @Deprecated('Use difficultyLevelId and DifficultyLevelRepository.')
+  DifficultyLevel? get level => switch (difficultyLevelId) {
+    DifficultyLevel.beginnerId => DifficultyLevel.beginner,
+    DifficultyLevel.intermediateId => DifficultyLevel.intermediate,
+    DifficultyLevel.advancedId => DifficultyLevel.advanced,
+    _ => null,
+  };
 
   /// Marks an event/dance that spans the difficulty scale rather than sitting
-  /// at a single [level]. Kept separate from [level] so the ordered scale
-  /// stays total for `lte`/`gte` search comparisons.
+  /// at a single [difficultyLevelId]. Kept separate from the selected level.
   final bool mixedLevel;
 
   /// Whether this is a **mixer**: a dance in which you change partners each
@@ -130,8 +148,8 @@ class Dance {
   ///
   /// Modelled as a boolean **orthogonal to [formation]**, not as a
   /// [FormationShape] value, because mixer-ness and formation are genuinely
-  /// independent — the same argument the [DanceLevel] doc makes for
-  /// [mixedLevel]. This was measured, not assumed. Over The Caller's Box mirror
+  /// independent — the same argument as [mixedLevel] being a separate flag.
+  /// This was measured, not assumed. Over The Caller's Box mirror
   /// (24,107 files), 830 dances have `Mixer? = Yes`, yet only 654 of them are in
   /// a mixer-named formation and 176 are in some other formation (Duple Minor –
   /// Improper, Becket, Triplet, Three Facing Three, Circle of Threesomes, …).
@@ -211,9 +229,11 @@ class Dance {
   /// Returns a copy with the given fields replaced.
   ///
   /// Nullable fields use the clear-flag pattern (precedent: [clearDeletedAt]):
-  /// pass `clearLevel: true` to set [level] back to `null`. A set clear flag
+  /// pass `clearDifficultyLevel: true` to set [difficultyLevelId] back to
+  /// `null`. A set clear flag
   /// **wins** over any value passed for the same field, so
-  /// `copyWith(level: DanceLevel.advanced, clearLevel: true)` clears it. The
+  /// `copyWith(difficultyLevelId: 'difficulty-advanced',
+  /// clearDifficultyLevel: true)` clears it. The
   /// same holds for `clearComposedOn` / `clearRevisedOn` / `clearRating` /
   /// `clearProvenance`.
   Dance copyWith({
@@ -228,8 +248,9 @@ class Dance {
     String? callingNotes,
     String? walkthrough,
     DanceStatus? status,
-    DanceLevel? level,
-    bool clearLevel = false,
+    String? difficultyLevelId,
+    @Deprecated('Use difficultyLevelId.') DifficultyLevel? level,
+    bool clearDifficultyLevel = false,
     bool? mixedLevel,
     bool? mixer,
     int? rating,
@@ -261,7 +282,9 @@ class Dance {
     callingNotes: callingNotes ?? this.callingNotes,
     walkthrough: walkthrough ?? this.walkthrough,
     status: status ?? this.status,
-    level: clearLevel ? null : (level ?? this.level),
+    difficultyLevelId: clearDifficultyLevel
+        ? null
+        : (difficultyLevelId ?? level?.id ?? this.difficultyLevelId),
     mixedLevel: mixedLevel ?? this.mixedLevel,
     mixer: mixer ?? this.mixer,
     rating: clearRating ? null : (rating ?? this.rating),
@@ -309,7 +332,7 @@ class Dance {
       callingNotes: callingNotes,
       walkthrough: walkthrough,
       status: status,
-      level: level,
+      difficultyLevelId: difficultyLevelId,
       mixedLevel: mixedLevel,
       mixer: mixer,
       rating: rating,
@@ -349,7 +372,7 @@ class Dance {
       other.callingNotes == callingNotes &&
       other.walkthrough == walkthrough &&
       other.status == status &&
-      other.level == level &&
+      other.difficultyLevelId == difficultyLevelId &&
       other.mixedLevel == mixedLevel &&
       other.mixer == mixer &&
       other.rating == rating &&

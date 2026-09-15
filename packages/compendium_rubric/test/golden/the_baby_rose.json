@@ -1,0 +1,40 @@
+{
+  "title": "The Baby Rose",
+  "form": "contra",
+  "description": "Golden end-to-end compile test: a valid single-progression Duple Improper dance. Hand-compiled against docs/taxonomy.md; every precondition passes and the sequence lands exactly on the independent Single-progression reference state.",
+  "formation": { "shape": "dupleImproper", "detail": "improper" },
+  "progression": "single",
+  "figures": [
+    {"schemaVersion":1,"move":"swing","params":{"who":"neighbors","prefix":"balance","beats":16}},
+    {"schemaVersion":1,"move":"circle","params":{"turn":"left","places":3,"beats":8}},
+    {"schemaVersion":1,"move":"do_si_do","params":{"who":"partners","shoulder":"right","turn":1,"beats":8}},
+    {"schemaVersion":1,"move":"swing","params":{"who":"partners","prefix":"balance","beats":16}},
+    {"schemaVersion":1,"move":"chain","params":{"who":"role2s","hand":"right","dir":"across","beats":8}},
+    {"schemaVersion":1,"move":"star","params":{"hand":"left","places":4,"grip":"wristGrip","beats":8},"progression":true}
+  ],
+  "expectedResult": "Compiled",
+  "expected": {
+    "note": "Final state (equality over position + role + number + couple-identity; facing excluded). Equals single-progression(duple_improper).",
+    "decimal": [[18,0,0,0,17],[10,0,0,0,9],[69,0,0,0,70],[37,0,0,0,38]],
+    "rolesNotation": [
+      "R1-B .  .  . L1-B",
+      "R1-A .  .  . L1-A",
+      "L2-D .  .  . R2-D",
+      "L2-C .  .  . R2-C"
+    ]
+  },
+  "trace": {
+    "note": "Per-op state in role notation for reference. Empty cells shown as '.'; DI start has 2 hands four (pre-scan: all figures contribute 0 h4).",
+    "start_duple_improper": ["R1-A...L1-A", "L2-B...R2-B", "R1-C...L1-C", "L2-D...R2-D"],
+    "after_1_swing":   ["L2-B...R2-B", "R1-A...L1-A", "L2-D...R2-D", "R1-C...L1-C"],
+    "after_2_circle":  ["R2-B...L1-A", "L2-B...R1-A", "R2-D...L1-C", "L2-D...R1-C"],
+    "after_3_dosido":  ["R2-B...L1-A", "L2-B...R1-A", "R2-D...L1-C", "L2-D...R1-C"],
+    "after_4_swing":   ["L2-B...R1-A", "R2-B...L1-A", "L2-D...R1-C", "R2-D...L1-C"],
+    "after_5_chain":   ["L2-B...R2-B", "R1-A...L1-A", "L2-D...R2-D", "R1-C...L1-C"],
+    "after_6_star_prog": ["R1-B...L1-B", "R1-A...L1-A", "L2-D...R2-D", "L2-C...R2-C"]
+  },
+  "sourceCorrections": [
+    "operations[2].move: \"do si do\" -> \"do_si_do\" (registry key is snake_case)",
+    "operations[2].params.beats: malformed \"8\\\"\" -> 8 (stray quote made the JSON invalid)"
+  ]
+}

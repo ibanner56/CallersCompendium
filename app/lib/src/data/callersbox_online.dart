@@ -53,11 +53,13 @@ class CallersBoxOnline implements OnlineSearchService {
   @override
   OnlineSource get source => OnlineSource.callersBox;
 
-  /// Searches The Caller's Box by [OnlineSearchQuery.title] and/or by-phrase
+  /// Searches The Caller's Box by [OnlineSearchQuery.title],
+  /// [OnlineSearchQuery.author], [OnlineSearchQuery.figure], or by-phrase
   /// figure [OnlineSearchQuery.phrases] and returns the parsed result rows.
-  /// Title and phrase criteria combine (TCB accepts both in one request). Throws
-  /// a typed [UrlFetchException] on any fetch failure, or when
-  /// there is nothing to search.
+  /// Text criteria are mutually exclusive; phrase criteria can be added to any
+  /// one. All criteria are serialized using TCB's fixed field names.
+  /// Throws a typed [UrlFetchException] on any fetch failure, or when there is
+  /// nothing to search.
   ///
   /// Rows whose figures TCB will not serve are excluded unless the caller sets
   /// [OnlineSearchQuery.requireFigures] to `false` (issue #845). TCB's
@@ -78,15 +80,32 @@ class CallersBoxOnline implements OnlineSearchService {
   /// `show_all`. A missing or unreadable total simply skips the second request.
   @override
   Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async {
-    final url = buildCallersBoxSearchUrl(query.title, phrases: query.phrases);
+    final title = query.title.trim();
+    final author = query.author.trim();
+    final figure = query.figure.trim();
+    final textCriteria = [
+      title,
+      author,
+      figure,
+    ].where((criterion) => criterion.isNotEmpty).length;
+    if (textCriteria > 1) {
+      throw ArgumentError('title, author, and figure cannot be combined');
+    }
+    final phrases = _withGlobalFigure(query.phrases, figure);
+    final url = buildCallersBoxSearchUrl(
+      title,
+      author: author,
+      phrases: phrases,
+    );
     var html = await _searchFetcher(url);
     var rows = parseCallersBoxSearchResults(html);
 
     final total = parseCallersBoxMatchCount(html);
     if (total != null && total > rows.length && total <= showAllMatchLimit) {
       final allUrl = buildCallersBoxSearchUrl(
-        query.title,
-        phrases: query.phrases,
+        title,
+        author: author,
+        phrases: phrases,
         showAll: true,
       );
       html = await _searchFetcher(allUrl);
@@ -107,6 +126,20 @@ class CallersBoxOnline implements OnlineSearchService {
     ];
   }
 
+  CallersBoxPhraseQuery? _withGlobalFigure(
+    CallersBoxPhraseQuery? phrases,
+    String figure,
+  ) {
+    if (figure.isEmpty) return phrases;
+    final base = phrases ?? const CallersBoxPhraseQuery();
+    return CallersBoxPhraseQuery(
+      globalPos: [...base.globalPos, figure],
+      globalNeg: base.globalNeg,
+      phrasePos: base.phrasePos,
+      phraseNeg: base.phraseNeg,
+    );
+  }
+
   /// Fetches the per-dance JSON for [result], parses it, and builds an
   /// [OnlinePreview] (detail data + dedupe plan). Throws a [UrlFetchException]
   /// on a fetch failure or when the dance can't be parsed. Pass [index] to plan
@@ -122,7 +155,11 @@ class CallersBoxOnline implements OnlineSearchService {
     final jsonUrl = buildCallersBoxJsonUrl(result.id);
     final payload = await _jsonFetcher(jsonUrl);
 
-    final pipeline = ImportPipeline(repos.dances, repos.choreographers);
+    final pipeline = ImportPipeline(
+      repos.dances,
+      repos.choreographers,
+      difficultyLevels: repos.difficultyLevels,
+    );
     final batch = await pipeline.plan(
       CallersBoxAdapter(),
       ImportRequest(payload: payload, uri: jsonUrl),
@@ -236,7 +273,11 @@ class CallersBoxOnline implements OnlineSearchService {
         ? {0: ambiguousResolution ?? DedupeResolution.duplicate()}
         : const <int, DedupeResolution>{};
 
-    final pipeline = ImportPipeline(repos.dances, repos.choreographers);
+    final pipeline = ImportPipeline(
+      repos.dances,
+      repos.choreographers,
+      difficultyLevels: repos.difficultyLevels,
+    );
     final session = await pipeline.commit(
       ImportBatchResult(records: [plan]),
       now: now ?? DateTime.now().toUtc(),

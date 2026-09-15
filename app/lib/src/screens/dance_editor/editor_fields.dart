@@ -147,26 +147,28 @@ class LevelDropdown extends StatelessWidget {
   const LevelDropdown({
     super.key,
     required this.value,
+    this.levels,
     required this.onChanged,
   });
 
-  final DanceLevel? value;
-  final ValueChanged<DanceLevel?> onChanged;
+  final DifficultyLevel? value;
+  final List<DifficultyLevel>? levels;
+  final ValueChanged<DifficultyLevel?> onChanged;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return DropdownButtonFormField<DanceLevel?>(
+    return DropdownButtonFormField<DifficultyLevel?>(
       key: const ValueKey('level-field'),
       initialValue: value,
       decoration: InputDecoration(labelText: l10n.danceEditorLevelLabel),
       items: [
-        DropdownMenuItem<DanceLevel?>(
+        DropdownMenuItem<DifficultyLevel?>(
           value: null,
           child: Text(l10n.danceEditorLevelUnspecified),
         ),
-        for (final v in DanceLevel.values)
-          DropdownMenuItem<DanceLevel?>(
+        for (final v in levels ?? DifficultyLevel.shipped)
+          DropdownMenuItem<DifficultyLevel?>(
             value: v,
             child: Text(danceLevelLabel(l10n, v)),
           ),

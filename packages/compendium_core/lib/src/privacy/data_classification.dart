@@ -176,6 +176,16 @@ enum EgressClass {
   /// Never transmitted at all. Rebuildable from other fields on arrival, so
   /// sending it would be redundant as well as risky.
   derived,
+
+  /// An opaque identifier the protocol must transmit for routing, but which
+  /// must never be adopted from a peer.
+  protocolIdentifier,
+
+  /// A bearer credential that authorizes the request carrying it. It may travel
+  /// only to the configured endpoint; the server and any proxy must never
+  /// retain it recoverably. Local persistence is governed by the field's
+  /// storage classification.
+  accessControlData,
 }
 
 /// The classification of one persisted field.

@@ -21,6 +21,7 @@ class FigureDraft {
     this.walkthroughOverride,
     this.wordingOverride,
     this.meanwhileSides,
+    this.modifierFigures,
   }) : id = id ?? uuidV4(),
        params = params ?? <String, Object?>{};
 
@@ -37,11 +38,8 @@ class FigureDraft {
   /// open/save round-trip; it is cleared the moment the user explicitly picks a
   /// move or edits the subject, which makes the subject a stated choice.
   ///
-  /// When [figure] `isMeanwhile` (#590/#593), the draft becomes a **meanwhile
-  /// group**: [meanwhileSides] is seeded from [Figure.subFigures] (each side
-  /// recursively seeded via this same factory — flat only, so a side's own
-  /// `meanwhileSides` is always `null`), and `params['beats']` carries the
-  /// container's single SHARED beat count rather than any per-side count.
+  /// When [figure] is a structural container, the draft is seeded from
+  /// [Figure.subFigures] while preserving its container kind.
   factory FigureDraft.fromFigure(Figure figure) => FigureDraft(
     move: figure.move,
     params: Map<String, Object?>.of(figure.params),
@@ -55,6 +53,9 @@ class FigureDraft {
     wordingOverride: figure.wordingOverride,
     meanwhileSides: figure.isMeanwhile
         ? [for (final side in figure.subFigures) FigureDraft.fromFigure(side)]
+        : null,
+    modifierFigures: figure.isModifier
+        ? [for (final child in figure.subFigures) FigureDraft.fromFigure(child)]
         : null,
   );
 
@@ -115,14 +116,40 @@ class FigureDraft {
   /// draft). `null` (the default) means an ordinary, non-grouped figure —
   /// today's ubiquitous case.
   ///
-  /// **Flat only**: a side's own [meanwhileSides] is always `null`. This is
-  /// enforced at the UI boundary (the editor never offers a "group" action on
-  /// a side's own row), not by this field alone, matching the core model's
-  /// flat-only invariant ([Figure.isMeanwhile] may not nest).
+  /// A child may itself carry the one legal opposite container kind.
   List<FigureDraft>? meanwhileSides;
+
+  /// Non-null when this draft is a modifier container. The first child is the
+  /// core figure; later children are modifiers.
+  List<FigureDraft>? modifierFigures;
 
   /// Whether this draft is a meanwhile group. Mirrors [Figure.isMeanwhile].
   bool get isMeanwhileGroup => meanwhileSides != null;
+
+  /// Whether this draft is a modifier group. Mirrors [Figure.isModifier].
+  bool get isModifierGroup => modifierFigures != null;
+
+  /// Whether this draft is either structural container kind.
+  bool get isContainerDraft => isMeanwhileGroup || isModifierGroup;
+
+  /// Whether any descendant of this draft is a structural container.
+  bool get hasNestedContainer {
+    final children = meanwhileSides ?? modifierFigures;
+    return children?.any(
+          (child) => child.isContainerDraft || child.hasNestedContainer,
+        ) ??
+        false;
+  }
+
+  /// Whether this draft can be a direct child of the requested container kind.
+  ///
+  /// Structural children must alternate kinds and may not introduce a third
+  /// container level.
+  bool canNestInContainer({required bool modifierParent}) {
+    if (!isContainerDraft) return true;
+    final oppositeKind = modifierParent ? isMeanwhileGroup : isModifierGroup;
+    return oppositeKind && !hasNestedContainer;
+  }
 
   int get beats => (params['beats'] as int?) ?? 0;
 
@@ -146,6 +173,9 @@ class FigureDraft {
     wordingOverride: wordingOverride,
     meanwhileSides: meanwhileSides
         ?.map((side) => side.clone())
+        .toList(growable: true),
+    modifierFigures: modifierFigures
+        ?.map((child) => child.clone())
         .toList(growable: true),
   );
 
@@ -187,9 +217,9 @@ class FigureDraft {
   }
 
   /// Builds the immutable figure, or `null` when no move is chosen yet (or,
-  /// for a meanwhile group, when fewer than 2 sides can be materialized —
-  /// an in-progress group never corrupts the saved dance; it simply isn't
-  /// written until it is ready).
+  /// for a structural container, when fewer than 2 children can be
+  /// materialized — an in-progress container never corrupts the saved dance; it
+  /// simply isn't written until it is ready).
   ///
   /// [canonicalizeNote] is applied to [note] (after trimming, if the default
   /// is used) before it is persisted onto the built [Figure]. This model is
@@ -200,36 +230,66 @@ class FigureDraft {
   /// `buildDance` boundary, issue #613/#715) while the default keeps today's
   /// plain-trim behavior for any other caller.
   Figure? toFigure({String Function(String) canonicalizeNote = _trimNote}) {
-    final sides = meanwhileSides;
-    if (sides != null) {
-      // Never silently drop a side that the user has started authoring
+    final children = meanwhileSides ?? modifierFigures;
+    if (children != null) {
+      // Never silently drop a child that the user has started authoring
       // (#679 review): only a genuinely untouched placeholder side (no move,
-      // no note/params/walkthrough override) is skipped — mirroring how an
-      // untouched top-level draft isn't persisted either. A side with no
-      // move but SOME content is preserved via a best-effort custom figure
-      // instead, so an in-progress group can never lose a side out from
-      // under the user on autosave/undo.
-      final readySides = [
-        for (final side in sides)
-          if (side.toFigure(canonicalizeNote: canonicalizeNote) case final fig?)
-            fig
-          else if (side._hasUnsavedContent)
-            side._bestEffortFigure(canonicalizeNote),
-      ];
-      if (readySides.length < 2) return null;
+      // no note/params/walkthrough override) is skipped. An incomplete nested
+      // container cannot be represented as a custom leaf without losing its
+      // structure, so it keeps the parent draft editor-only until complete.
+      final readyChildren = <Figure>[];
+      for (var index = 0; index < children.length; index++) {
+        final child = children[index];
+        final figure = child.toFigure(canonicalizeNote: canonicalizeNote);
+        if (figure != null) {
+          readyChildren.add(figure);
+        } else if (modifierFigures != null && index == 0) {
+          // The first modifier child is the core; skipping it would promote a
+          // later child into the core slot when the draft is saved.
+          return null;
+        } else if (child.isContainerDraft) {
+          return null;
+        } else if (child._hasUnsavedContent) {
+          readyChildren.add(child._bestEffortFigure(canonicalizeNote));
+        }
+      }
+      if (readyChildren.length < 2) return null;
       // Defensive clamp mirroring the codec's untrusted-input behavior: the
       // UI never lets the side count exceed the cap, but this keeps toFigure()
       // from ever throwing even if that invariant is somehow violated.
-      final cappedSides = readySides.length > kMaxMeanwhileSides
-          ? readySides.sublist(0, kMaxMeanwhileSides)
-          : readySides;
+      final cappedChildren = readyChildren.length > kMaxMeanwhileSides
+          ? readyChildren.sublist(0, kMaxMeanwhileSides)
+          : readyChildren;
       final trimmedNote = canonicalizeNote(note);
-      return Figure.meanwhile(
-        figures: cappedSides,
-        beats: beats,
-        note: trimmedNote.isEmpty ? null : trimmedNote,
-        progression: progression,
-        wordingOverride: _trimOptionalOverride(wordingOverride),
+      final extraParams = Map<String, Object?>.of(params)
+        ..remove('beats')
+        ..remove('figures');
+      final rebuilt = modifierFigures != null
+          ? Figure.modifier(
+              figures: cappedChildren,
+              beats: beats,
+              extraParams: extraParams,
+              note: trimmedNote.isEmpty ? null : trimmedNote,
+              progression: progression,
+              wordingOverride: _trimOptionalOverride(wordingOverride),
+            )
+          : Figure.meanwhile(
+              figures: cappedChildren,
+              beats: beats,
+              extraParams: extraParams,
+              note: trimmedNote.isEmpty ? null : trimmedNote,
+              progression: progression,
+              wordingOverride: _trimOptionalOverride(wordingOverride),
+            );
+      final trimmedWalkthrough = walkthroughOverride?.trim();
+      return rebuilt.copyWith(
+        schemaVersion: schemaVersion,
+        customOrigin: customOrigin,
+        assumedSubject: assumedSubject,
+        walkthroughOverride:
+            trimmedWalkthrough == null || trimmedWalkthrough.isEmpty
+            ? null
+            : trimmedWalkthrough,
       );
     }
     final id = move;

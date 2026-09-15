@@ -4,17 +4,24 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/active_dialect_scope.dart';
+import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/date_format_scope.dart';
 import '../data/refresh_coalescer.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../data/app_theme_scope.dart';
+import '../data/callersbox_online.dart';
+import '../data/contradb_online.dart';
+import '../data/import_io.dart';
+import '../data/online_search.dart';
 import '../data/set_list_color_coding_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
 import '../data/calling_history_caller_filter.dart';
 import '../data/venue_label.dart';
 import '../diagnostics/error_log.dart';
 import '../search/collection_data.dart';
+import '../search/dance_detail_data.dart';
 import '../search/facet_labels.dart';
 import '../theme/set_list_accents.dart';
 import '../utils/confirm_delete.dart';
@@ -22,6 +29,7 @@ import '../utils/undo_snack_bar.dart';
 import '../widgets/program_export_menu.dart';
 import '../widgets/program_status_chip.dart';
 import 'dance_detail_screen.dart';
+import 'dance_reimport_flow.dart';
 import 'perform_program_screen.dart';
 import 'program_editor_screen.dart';
 
@@ -41,9 +49,18 @@ import 'program_editor_screen.dart';
 /// in place, or popping if the builder deleted the program), **Delete** pops
 /// back to the list, and **Duplicate** re-targets this screen at the new copy.
 class ProgramSummaryScreen extends StatefulWidget {
-  const ProgramSummaryScreen({super.key, required this.programId});
+  const ProgramSummaryScreen({
+    super.key,
+    required this.programId,
+    this.callersBoxOnline,
+    this.contraDbOnline,
+    this.reimportPicker,
+  });
 
   final String programId;
+  final OnlineSearchService? callersBoxOnline;
+  final OnlineSearchService? contraDbOnline;
+  final ImportPicker? reimportPicker;
 
   @override
   State<ProgramSummaryScreen> createState() => _ProgramSummaryScreenState();
@@ -55,7 +72,12 @@ class _ProgramSummaryScreenState extends State<ProgramSummaryScreen> {
   Future<void> _openBuilder() async {
     final result = await Navigator.of(context).push<String>(
       MaterialPageRoute<String>(
-        builder: (_) => ProgramEditorScreen(programId: _programId),
+        builder: (_) => ProgramEditorScreen(
+          programId: _programId,
+          callersBoxOnline: widget.callersBoxOnline,
+          contraDbOnline: widget.contraDbOnline,
+          reimportPicker: widget.reimportPicker,
+        ),
       ),
     );
     if (!mounted) return;
@@ -83,6 +105,9 @@ class _ProgramSummaryScreenState extends State<ProgramSummaryScreen> {
       onOpenBuilder: _openBuilder,
       onDeleted: () => Navigator.of(context).pop(),
       onNavigateTo: (id) => setState(() => _programId = id),
+      callersBoxOnline: widget.callersBoxOnline,
+      contraDbOnline: widget.contraDbOnline,
+      reimportPicker: widget.reimportPicker,
     );
   }
 }
@@ -112,6 +137,9 @@ class ProgramSummaryPane extends StatefulWidget {
     required this.onNavigateTo,
     this.showAppBar = false,
     this.prominentPerform = false,
+    this.callersBoxOnline,
+    this.contraDbOnline,
+    this.reimportPicker,
   });
 
   final String programId;
@@ -127,6 +155,9 @@ class ProgramSummaryPane extends StatefulWidget {
   /// Renders a prominent full-width "Perform this program" button (Perform-first)
   /// in place of the compact perform icon button, for the narrow read view.
   final bool prominentPerform;
+  final OnlineSearchService? callersBoxOnline;
+  final OnlineSearchService? contraDbOnline;
+  final ImportPicker? reimportPicker;
 
   @override
   State<ProgramSummaryPane> createState() => _ProgramSummaryPaneState();
@@ -134,6 +165,7 @@ class ProgramSummaryPane extends StatefulWidget {
 
 class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   late CompendiumRepositories _repos;
+  late DanceReimportCoordinator _reimport;
   bool _started = false;
 
   /// Last-seen "track calling history for all callers" setting (issue #583),
@@ -144,6 +176,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   Map<String, Dance> _dances = const {};
   Map<String, Venue> _venuesById = const {};
   CollectionData? _collectionData;
+  List<DifficultyLevel> _difficultyLevels = const [];
   bool _loading = true;
   Object? _error;
 
@@ -157,6 +190,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// Shared renderer for the large-print Perform view (mirrors
   /// [ProgramEditorScreen]'s `_performRenderer`).
   static final FigureRenderer _performRenderer = FigureRenderer(contraTaxonomy);
+  ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _bulkUndoSnackBar;
 
   /// Collapses a burst of refresh requests into a single [_load].
   ///
@@ -185,8 +219,15 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     if (!_started) {
       _started = true;
       _repos = RepositoriesScope.of(context);
+      _reimport = DanceReimportCoordinator(
+        repos: _repos,
+        callersBox: widget.callersBoxOnline ?? CallersBoxOnline(),
+        contraDb: widget.contraDbOnline ?? ContraDbOnline(),
+        picker: widget.reimportPicker ?? pickImportFile,
+      );
       _load();
     }
+
     // This pane was the app's only BOTH-channels subscriber — it renders
     // program data *and* dance fields (`dance?.level`, the slot titles), so it
     // went stale from either side. Both subscriptions are gone: the watched
@@ -194,6 +235,21 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     // `programs`/`program_slots`, so one stream covers what two channels did.
     // Writes made here no longer broadcast either — `ProgramsRefreshScope` was
     // retired once its last reader became stream-driven (issue #768).
+  }
+
+  Future<void> _beginReimport(
+    BuildContext routeContext,
+    DanceDetailData detail,
+  ) => _reimport.open(routeContext, detail);
+
+  void _invalidateBulkUndo() {
+    _bulkUndoSnackBar?.close();
+    _bulkUndoSnackBar = null;
+  }
+
+  void _openBuilder() {
+    _invalidateBulkUndo();
+    widget.onOpenBuilder();
   }
 
   /// The live Collection reference data for this pane (issue #768).
@@ -400,6 +456,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         trackAllCallers: _trackHistoryForAllCallers,
       );
       final data = await _watchCollectionData(callerFilter);
+      final difficultyLevels = await _repos.difficultyLevels.listAll();
       final titles = <String, String>{};
       final dances = <String, Dance>{};
       final ids = {
@@ -430,6 +487,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         _dances = dances;
         _venuesById = venuesById;
         _collectionData = data;
+        _difficultyLevels = difficultyLevels;
         _loading = false;
         _error = null;
       });
@@ -506,11 +564,13 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     final program = _program;
     final data = _collectionData;
     if (program == null || data == null || program.slots.isEmpty) return;
+    _invalidateBulkUndo();
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => PerformProgramScreen(
           program: program,
           data: data,
+          difficultyLevels: _difficultyLevels,
           renderer: _performRenderer,
           // Resume where the caller left off (issue #434).
           initialGroup: _performResume?.groupIndex ?? 0,
@@ -549,7 +609,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           ? FloatingActionButton.extended(
               key: const ValueKey('open-builder'),
               heroTag: 'open-builder',
-              onPressed: widget.onOpenBuilder,
+              onPressed: _openBuilder,
               icon: const Icon(Icons.edit_note),
               label: Text(l10n.programsEditProgram),
             )
@@ -600,6 +660,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
               venuesById: _venuesById,
               danceFor: (id) => _dances[id],
               choreographerFor: (id) => _collectionData?.choreographersById[id],
+              difficultyLevelFor: (id) => _difficultyLevelFor(_dances[id]),
             ),
             if (program.slots.any((s) => s.danceId != null))
               IconButton(
@@ -645,13 +706,13 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         if (program.dancerLevel != null)
           _summaryRow(
             Icons.groups_outlined,
-            l10n.programsSummaryLevel(program.dancerLevel!),
+            l10n.programsSummaryLevel(_displayProse(program.dancerLevel!)),
           ),
         if (program.notes.trim().isNotEmpty) ...[
           const SizedBox(height: 16),
           Text(l10n.programsNotesLabel, style: theme.textTheme.titleSmall),
           const SizedBox(height: 4),
-          Text(program.notes),
+          Text(_displayProse(program.notes)),
         ],
         const SizedBox(height: 24),
         Text(
@@ -719,21 +780,39 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   Future<void> _markAllPerformed() async {
     final program = _program;
     if (program == null) return;
-    final now = DateTime.now().toUtc();
-    final updated = program.copyWith(
-      slots: [
-        for (final s in program.slots)
-          s.danceId != null && s.performedAt == null
-              ? s.copyWith(performedAt: now)
-              : s,
-      ],
-      updatedAt: now,
+    final now = nextStoredTimestamp(
+      now: DateTime.now().toUtc(),
+      current: program.slots.map((s) => s.performedAt),
     );
+    final markedSlotIds = <String>{};
+    final updatedSlots = <ProgramSlot>[];
+    for (final s in program.slots) {
+      if (s.danceId != null && s.performedAt == null) {
+        markedSlotIds.add(s.id);
+        updatedSlots.add(s.copyWith(performedAt: now));
+      } else {
+        updatedSlots.add(s);
+      }
+    }
+    if (markedSlotIds.isEmpty) return;
+    final updated = program.copyWith(slots: updatedSlots, updatedAt: now);
     await _repos.programs.update(updated);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(AppLocalizations.of(context).programsMarkedAllPerformed),
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    _bulkUndoSnackBar = showUndoSnackBar(
+      messenger,
+      message: l10n.programsMarkedAllPerformed,
+      undoLabel: l10n.commonUndo,
+      accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+      onUndo: () => unawaited(
+        _undoMarkAllPerformed(
+          programId: program.id,
+          markedSlotIds: markedSlotIds,
+          actionTimestamp: now,
+          messenger: messenger,
+          errorMessage: l10n.programsUndoPerformedError,
+        ),
       ),
     );
     // Mark-all-performed is exactly the write that made the Collection's
@@ -741,6 +820,36 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     // for that reason; the badge and the calling history watch `program_slots`
     // themselves now, so the write reaches them unaided and this pane's own
     // stream re-emits for it.
+  }
+
+  Future<void> _undoMarkAllPerformed({
+    required String programId,
+    required Set<String> markedSlotIds,
+    required DateTime actionTimestamp,
+    required ScaffoldMessengerState messenger,
+    required String errorMessage,
+  }) async {
+    try {
+      await _repos.programs.clearPerformedAtIfMatches(
+        programId: programId,
+        slotIds: markedSlotIds,
+        performedAt: actionTimestamp,
+        updatedAt: DateTime.now().toUtc(),
+      );
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'program_summary_screen._undoMarkAllPerformed',
+      );
+      messenger
+        ..clearSnackBars()
+        ..removeCurrentSnackBar();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!messenger.mounted) return;
+        messenger.showSnackBar(SnackBar(content: Text(errorMessage)));
+      });
+    }
   }
 
   /// Builds the read-only, ordered set list. Primaries are numbered 1..n and
@@ -774,6 +883,14 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       }
     }
     return rows;
+  }
+
+  String _displayProse(String text) {
+    if (!CanonicalDiscouragedTermsScope.of(context)) return text;
+    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    return FigureRenderer(
+      contraTaxonomy,
+    ).renderFreeTextWithCanonicalDiscouragedTerms(text, dialect);
   }
 
   Widget _slotRow(
@@ -810,8 +927,8 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     final extras = <String>[
       if (slot.guestCaller != null && slot.guestCaller!.trim().isNotEmpty)
         l10n.programsSummaryGuest(slot.guestCaller!.trim()),
-      if (slot.plannedMinutes != null)
-        l10n.programsPlannedMinutes(slot.plannedMinutes!),
+      if (slot.plannedTotalMinutes != null)
+        l10n.programsPlannedMinutes(slot.plannedTotalMinutes!),
     ];
 
     final altBadge = slot.isAlt
@@ -876,13 +993,24 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       }
 
       final secondaryParts = <String>[
-        if (dance != null) formationLabel(l10n, dance.formation),
-        if (dance?.level != null) danceLevelLabel(l10n, dance!.level!),
+        if (dance != null)
+          formationDisplayLabel(
+            l10n,
+            dance.formation,
+            _performRenderer,
+            ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+            canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
+              context,
+            ),
+          ),
+        if (dance != null)
+          if (_difficultyLevelFor(dance) case final level?)
+            danceLevelLabel(l10n, level),
         if (dance != null && dance.mixer) l10n.commonMixer,
         // A dance slot may also carry a per-slot caller note (per ProgramSlot
         // docs); surface it like the builder UI does.
         if (slot.text != null && slot.text!.trim().isNotEmpty)
-          l10n.programsSummaryNote(slot.text!.trim()),
+          l10n.programsSummaryNote(_displayProse(slot.text!.trim())),
         ...extras,
       ];
       final secondary = secondaryParts.join(' · ');
@@ -900,7 +1028,16 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       // mixer term to both the visible secondary text and the semantics label.
       final semanticsLabel = [
         slot.isAlt ? l10n.programsSummaryAlternateSemantic(title) : title,
-        if (dance != null) formationLabel(l10n, dance.formation),
+        if (dance != null)
+          formationDisplayLabel(
+            l10n,
+            dance.formation,
+            _performRenderer,
+            ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+            canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
+              context,
+            ),
+          ),
         if (dance != null && dance.mixer) l10n.commonMixer,
         if (performed) l10n.programsPerformed,
       ].join('. ');
@@ -915,7 +1052,11 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
               key: ValueKey('summary-slot-${slot.id}'),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
-                  builder: (_) => DanceDetailScreen(danceId: danceId),
+                  builder: (routeContext) => DanceDetailScreen(
+                    danceId: danceId,
+                    onReimport: (detail) =>
+                        _beginReimport(routeContext, detail),
+                  ),
                 ),
               ),
               child: ExcludeSemantics(
@@ -982,8 +1123,12 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         ),
       );
     }
+
     // Free-text slot (break / waltz / announcement): non-interactive text.
     final text = (slot.text ?? '').trim();
+    final displayText = slot.isPurgedDance != false
+        ? text
+        : _displayProse(text);
     return Padding(
       padding: EdgeInsets.only(left: indented ? 32 : 0, top: 6, bottom: 6),
       child: Row(
@@ -1002,7 +1147,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
               children: [
                 ?altBadge,
                 Text(
-                  text,
+                  displayText,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontStyle: FontStyle.italic,
                   ),
@@ -1020,6 +1165,17 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         ],
       ),
     );
+  }
+
+  DifficultyLevel? _difficultyLevelFor(Dance? dance) {
+    if (dance == null) return null;
+    for (final level in _difficultyLevels) {
+      if (level.id == dance.difficultyLevelId) return level;
+    }
+    for (final level in _collectionData?.levels ?? const <DifficultyLevel>[]) {
+      if (level.id == dance.difficultyLevelId) return level;
+    }
+    return DifficultyLevel.knownForId(dance.difficultyLevelId);
   }
 
   Widget _summaryRow(IconData icon, String text) {

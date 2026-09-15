@@ -17,7 +17,7 @@ const _normalisationExemptions = <String, String>{
   'dances.progression': 'enum value',
   'dances.phrase_structure': 'canonical phrase value',
   'dances.status': 'enum value',
-  'dances.level': 'enum value',
+  'dances.level_id': 'opaque key',
   'dances.composed_on': 'canonical partial date',
   'dances.revised_on': 'canonical partial date',
   'dance_links.kind': 'enum value',
@@ -28,6 +28,8 @@ const _normalisationExemptions = <String, String>{
   'custom_field_defs.type': 'enum value',
   'custom_field_defs.choices_json':
       'choice strings are normalized before JSON encoding',
+  'pending_deletions.tombstone_blob':
+      'opaque hash-addressed sync payload; bytes must remain unchanged',
 };
 
 typedef _ShareableFields = Map<String, Map<String, Set<String>>>;

@@ -123,6 +123,40 @@ void main() {
     expect(data.sourcesById['s1']?.title, 'Zesty Contras');
   });
 
+  test('load classifies soft-deleted related targets separately', () async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'live-target', title: 'Live Target'));
+    await repos.dances.create(
+      _dance(id: 'deleted-target', title: 'Deleted Target'),
+    );
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        links: [
+          DanceLink(
+            id: 'live-link',
+            kind: LinkKind.relatedDance,
+            targetDanceId: 'live-target',
+          ),
+          DanceLink(
+            id: 'deleted-link',
+            kind: LinkKind.relatedDance,
+            targetDanceId: 'deleted-target',
+          ),
+        ],
+      ),
+    );
+    await repos.dances.softDelete(
+      'deleted-target',
+      at: DateTime.utc(2026, 1, 2),
+    );
+
+    final data = await DanceDetailData.load(repos, 'd1');
+
+    expect(data!.relatedDanceTitles, {'live-target': 'Live Target'});
+    expect(data.tombstonedRelatedDanceIds, {'deleted-target'});
+  });
+
   test(
     'load builds a cross-reference linker over other dances\' titles',
     () async {

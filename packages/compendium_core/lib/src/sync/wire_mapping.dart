@@ -31,7 +31,7 @@ const _danceFields = [
   SyncWireField('callingNotes', ['dances.calling_notes']),
   SyncWireField('walkthrough', ['dances.walkthrough']),
   SyncWireField('status', ['dances.status']),
-  SyncWireField('level', ['dances.level']),
+  SyncWireField('difficultyLevelId', ['dances.level_id']),
   SyncWireField('mixedLevel', ['dances.mixed_level']),
   SyncWireField('mixer', ['dances.mixer']),
   SyncWireField('rating', ['dances.rating']),
@@ -85,9 +85,13 @@ const _programFields = [
   SyncWireField('slots.position', ['program_slots.position']),
   SyncWireField('slots.danceId', ['program_slots.dance_id']),
   SyncWireField('slots.text', ['program_slots.text']),
+  SyncWireField('slots.isPurgedDance', ['program_slots.is_purged_dance']),
   SyncWireField('slots.isAlt', ['program_slots.is_alt']),
   SyncWireField('slots.guestCaller', ['program_slots.guest_caller']),
-  SyncWireField('slots.plannedMinutes', ['program_slots.planned_minutes']),
+  SyncWireField('slots.walkthroughMinutes', [
+    'program_slots.walkthrough_minutes',
+  ]),
+  SyncWireField('slots.danceMinutes', ['program_slots.dance_minutes']),
   SyncWireField('slots.performedAt', ['program_slots.performed_at']),
   SyncWireField('provenance', []),
   SyncWireField('provenance.source', ['program_provenance.source']),
@@ -137,6 +141,12 @@ const _customFieldDefFields = [
   SyncWireField('showInList', ['custom_field_defs.show_in_list']),
   SyncWireField('searchable', ['custom_field_defs.searchable']),
   SyncWireField('shareable', ['custom_field_defs.shareable']),
+];
+
+const _difficultyLevelFields = [
+  SyncWireField('id', ['difficulty_levels.id']),
+  SyncWireField('label', ['difficulty_levels.label']),
+  SyncWireField('position', ['difficulty_levels.position']),
 ];
 
 const _venueFields = [
@@ -189,6 +199,7 @@ const Map<SyncRecordKind, List<SyncWireField>> syncWireFields = {
   SyncRecordKind.tag: _tagFields,
   SyncRecordKind.publishedSource: _publishedSourceFields,
   SyncRecordKind.customFieldDef: _customFieldDefFields,
+  SyncRecordKind.difficultyLevel: _difficultyLevelFields,
   SyncRecordKind.venue: _venueFields,
   SyncRecordKind.setting: _settingFields,
 };
@@ -218,10 +229,16 @@ const Set<String> syncWireMappingExceptions = {
   'custom_field_defs.updated_at',
   'custom_field_defs.deleted_at',
   'custom_field_defs.existence_at',
+  'difficulty_levels.updated_at',
+  'difficulty_levels.deleted_at',
+  'difficulty_levels.existence_at',
   'custom_field_values.dance_id',
   'provenance.dance_id',
   'program_provenance.program_id',
   'venue_provenance.venue_id',
+  // Tombstones are record content stored outside ordinary archive bodies and
+  // retransmitted verbatim.
+  'pending_deletions.tombstone_blob',
   'tags.updated_at',
   'tags.deleted_at',
   'tags.existence_at',
@@ -236,14 +253,7 @@ bool isShareableWirePath(
   SyncRecordKind kind,
   String path, {
   String? settingsKey,
-}) {
-  if (kind == SyncRecordKind.setting &&
-      path == 'value' &&
-      settingsKey != null) {
-    return classifySettingsKey(settingsKey)?.egress == EgressClass.shareable;
-  }
-  return generatedShareableWirePaths[kind]?.contains(path) ?? false;
-}
+}) => _isShareableWireSegments(kind, path.split('.'), settingsKey: settingsKey);
 
 /// Returns the registry fields represented by a wire path.
 List<String> sourceFieldsForWirePath(SyncRecordKind kind, String path) {
@@ -255,9 +265,7 @@ List<String> sourceFieldsForWirePath(SyncRecordKind kind, String path) {
 
 /// Returns whether [path] is a structural ancestor of an admitted path.
 bool hasShareableWireDescendant(SyncRecordKind kind, String path) =>
-    generatedShareableWirePaths[kind]!.any(
-      (candidate) => candidate.startsWith('$path.'),
-    );
+    _hasShareableWireDescendant(kind, path.split('.'));
 
 /// The result W11 can map to a `422` without accepting or rewriting input.
 class SyncBodyValidation {
@@ -356,7 +364,7 @@ SyncBodyValidation validateShareableRecordBody(
   Map<String, Object?> body, {
   String? settingsKey,
 }) {
-  final invalid = _firstInvalid(kind, '', body, settingsKey: settingsKey);
+  final invalid = _firstInvalid(kind, const [], body, settingsKey: settingsKey);
   return invalid == null
       ? const SyncBodyValidation.valid()
       : SyncBodyValidation.invalid(invalid);
@@ -364,14 +372,16 @@ SyncBodyValidation validateShareableRecordBody(
 
 String? _firstInvalid(
   SyncRecordKind kind,
-  String path,
+  List<String> segments,
   Object? value, {
   String? settingsKey,
 }) {
-  final hasPath = path.isNotEmpty;
+  final path = segments.join('.');
+  final hasPath = segments.isNotEmpty;
   final isShareable =
-      hasPath && isShareableWirePath(kind, path, settingsKey: settingsKey);
-  final hasDescendants = hasPath && hasShareableWireDescendant(kind, path);
+      hasPath &&
+      _isShareableWireSegments(kind, segments, settingsKey: settingsKey);
+  final hasDescendants = hasPath && _hasShareableWireDescendant(kind, segments);
   if (hasPath && !isShareable && !hasDescendants) {
     return path;
   }
@@ -379,12 +389,10 @@ String? _firstInvalid(
   if (value is Map) {
     for (final entry in value.entries) {
       if (entry.key is! String) return path;
-      final childPath = path.isEmpty
-          ? entry.key as String
-          : '$path.${entry.key}';
+      final childSegments = [...segments, entry.key as String];
       final invalid = _firstInvalid(
         kind,
-        childPath,
+        childSegments,
         entry.value,
         settingsKey: settingsKey,
       );
@@ -392,11 +400,56 @@ String? _firstInvalid(
     }
   } else if (value is List) {
     for (final item in value) {
-      final invalid = _firstInvalid(kind, path, item, settingsKey: settingsKey);
+      final invalid = _firstInvalid(
+        kind,
+        segments,
+        item,
+        settingsKey: settingsKey,
+      );
       if (invalid != null) return invalid;
     }
   }
   return null;
+}
+
+bool _isShareableWireSegments(
+  SyncRecordKind kind,
+  List<String> segments, {
+  String? settingsKey,
+}) {
+  if (kind == SyncRecordKind.setting &&
+      _sameSegments(segments, const ['value']) &&
+      settingsKey != null) {
+    return classifySettingsKey(settingsKey)?.egress == EgressClass.shareable;
+  }
+  return generatedShareableWirePaths[kind]?.any(
+        (candidate) => _sameSegments(candidate.split('.'), segments),
+      ) ??
+      false;
+}
+
+bool _hasShareableWireDescendant(SyncRecordKind kind, List<String> segments) =>
+    generatedShareableWirePaths[kind]?.any((candidate) {
+      final candidateSegments = candidate.split('.');
+      return candidateSegments.length > segments.length &&
+          _startsWithSegments(candidateSegments, segments);
+    }) ??
+    false;
+
+bool _sameSegments(List<String> left, List<String> right) {
+  if (left.length != right.length) return false;
+  for (var index = 0; index < left.length; index++) {
+    if (left[index] != right[index]) return false;
+  }
+  return true;
+}
+
+bool _startsWithSegments(List<String> value, List<String> prefix) {
+  if (prefix.length > value.length) return false;
+  for (var index = 0; index < prefix.length; index++) {
+    if (value[index] != prefix[index]) return false;
+  }
+  return true;
 }
 
 const _omitted = Object();

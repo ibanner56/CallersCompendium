@@ -1,8 +1,18 @@
 import 'package:compendium_app/src/data/aggressive_beats_update_scope.dart'
     show kAggressiveBeatsUpdateKey;
 import 'package:compendium_app/src/data/backup_settings_schema.dart';
+import 'package:compendium_app/src/data/display_defaults.dart'
+    show
+        encodeStartingProgramTemplate,
+        kCanonicalFigureTextKey,
+        kDefaultModifierFiguresKey,
+        kDefaultStartingProgramKey,
+        StartingProgramTemplateEntry;
 import 'package:compendium_app/src/screens/settings/settings_keys.dart'
-    show kProgramMatrixColumnsKey;
+    show
+        kProgramMatrixColumnsKey,
+        kShowIndividualPerformTimerKey,
+        kVenueCallCountKey;
 import 'package:compendium_core/compendium_core.dart' show MatrixColumnConfig;
 import 'package:compendium_app/src/data/soft_delete_retention.dart'
     show kSoftDeleteRetentionKey;
@@ -11,11 +21,66 @@ import 'package:compendium_app/src/data/walkthrough_snippet_library_controller.d
 import 'package:compendium_app/src/data/shorthand_mappings_controller.dart'
     show kShorthandMappingsKey;
 import 'package:compendium_app/src/screens/settings_screen.dart'
-    show kAppThemeKey, kSortIgnoreArticlesKey, kPerformTextScaleKey;
+    show
+        kAppThemeKey,
+        kSortIgnoreArticlesKey,
+        kPerformTextScaleKey,
+        kShowProgramSlotCallerNotesKey;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('validateBackupSettingValue (issue #609)', () {
+    test(
+      'starting program templates require the validated versioned shape',
+      () {
+        expect(
+          validateBackupSettingValue(
+            kDefaultStartingProgramKey,
+            encodeStartingProgramTemplate([
+              const StartingProgramTemplateEntry(
+                danceId: 'dance-1',
+                text: 'Caller note',
+              ),
+            ]),
+          ),
+          isTrue,
+        );
+        expect(
+          validateBackupSettingValue(
+            kDefaultStartingProgramKey,
+            '{"version":1,"slots":[{"id":"persisted"}]}',
+          ),
+          isFalse,
+        );
+        expect(
+          validateBackupSettingValue(
+            kDefaultStartingProgramKey,
+            '{"version":1,"slots":[{}]}',
+          ),
+          isFalse,
+        );
+      },
+    );
+
+    test('program caller-note visibility setting accepts only bools', () {
+      expect(
+        validateBackupSettingValue(kShowProgramSlotCallerNotesKey, true),
+        isTrue,
+      );
+      expect(
+        validateBackupSettingValue(kShowProgramSlotCallerNotesKey, false),
+        isTrue,
+      );
+      expect(
+        validateBackupSettingValue(kShowProgramSlotCallerNotesKey, 'true'),
+        isFalse,
+      );
+      expect(
+        validateBackupSettingValue(kShowProgramSlotCallerNotesKey, null),
+        isFalse,
+      );
+    });
+
     test('bool keys accept only bools', () {
       expect(validateBackupSettingValue(kSortIgnoreArticlesKey, true), isTrue);
       expect(validateBackupSettingValue(kSortIgnoreArticlesKey, false), isTrue);
@@ -25,6 +90,29 @@ void main() {
       );
       expect(validateBackupSettingValue(kSortIgnoreArticlesKey, 1), isFalse);
       expect(validateBackupSettingValue(kSortIgnoreArticlesKey, null), isFalse);
+    });
+
+    test('individual Perform timer setting accepts only bools', () {
+      expect(
+        validateBackupSettingValue(kShowIndividualPerformTimerKey, true),
+        isTrue,
+      );
+      expect(
+        validateBackupSettingValue(kShowIndividualPerformTimerKey, false),
+        isTrue,
+      );
+      expect(
+        validateBackupSettingValue(kShowIndividualPerformTimerKey, 'true'),
+        isFalse,
+      );
+      expect(
+        validateBackupSettingValue(kShowIndividualPerformTimerKey, 1),
+        isFalse,
+      );
+      expect(
+        validateBackupSettingValue(kShowIndividualPerformTimerKey, null),
+        isFalse,
+      );
     });
 
     test('aggressive beats update (#689) accepts only bools', () {
@@ -47,12 +135,51 @@ void main() {
       );
     });
 
+    test('canonical figure text gate accepts only bools', () {
+      expect(validateBackupSettingValue(kCanonicalFigureTextKey, true), isTrue);
+      expect(
+        validateBackupSettingValue(kCanonicalFigureTextKey, false),
+        isTrue,
+      );
+      expect(
+        validateBackupSettingValue(kCanonicalFigureTextKey, 'true'),
+        isFalse,
+      );
+      expect(validateBackupSettingValue(kCanonicalFigureTextKey, 1), isFalse);
+      expect(
+        validateBackupSettingValue(kCanonicalFigureTextKey, null),
+        isFalse,
+      );
+    });
+
     test('string keys accept only strings', () {
       expect(validateBackupSettingValue(kAppThemeKey, 'dark'), isTrue);
       expect(validateBackupSettingValue(kAppThemeKey, ''), isTrue);
       expect(validateBackupSettingValue(kAppThemeKey, 123), isFalse);
       expect(validateBackupSettingValue(kAppThemeKey, true), isFalse);
       expect(validateBackupSettingValue(kAppThemeKey, {'x': 1}), isFalse);
+    });
+
+    test('modifier defaults accept only encoded figure strings', () {
+      expect(
+        validateBackupSettingValue(kDefaultModifierFiguresKey, '[]'),
+        isTrue,
+      );
+      expect(
+        validateBackupSettingValue(
+          kDefaultModifierFiguresKey,
+          '[{"move":"swing"}]',
+        ),
+        isTrue,
+      );
+      expect(
+        validateBackupSettingValue(kDefaultModifierFiguresKey, []),
+        isFalse,
+      );
+      expect(
+        validateBackupSettingValue(kDefaultModifierFiguresKey, true),
+        isFalse,
+      );
     });
 
     test(
@@ -94,6 +221,15 @@ void main() {
         validateBackupSettingValue(kSoftDeleteRetentionKey, '30'),
         isFalse,
       );
+    });
+
+    test('venue call count accepts only bounded ints', () {
+      expect(validateBackupSettingValue(kVenueCallCountKey, 0), isTrue);
+      expect(validateBackupSettingValue(kVenueCallCountKey, 10), isTrue);
+      expect(validateBackupSettingValue(kVenueCallCountKey, -1), isFalse);
+      expect(validateBackupSettingValue(kVenueCallCountKey, 11), isFalse);
+      expect(validateBackupSettingValue(kVenueCallCountKey, 1.5), isFalse);
+      expect(validateBackupSettingValue(kVenueCallCountKey, '3'), isFalse);
     });
 
     test('map-blob keys accept only maps', () {

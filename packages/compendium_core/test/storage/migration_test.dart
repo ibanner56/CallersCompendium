@@ -21,7 +21,24 @@ import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/src/storage/database.dart'
-    show VenueProvenanceCompanion, VenuesCompanion;
+    show
+        callersBoxRollAwayRoleRepairDoneKey,
+        chainHandBackfillDoneKey,
+        compactDosidoSeesawCanonicalRebuildDoneKey,
+        gripSingleFileCanonicalInclusionDoneKey,
+        inversePairNormalisationDoneKey,
+        modifierContainerCanonicalRebuildDoneKey,
+        promenadeTurnCircleWordingCanonicalRebuildDoneKey,
+        purgeCorruptionRepairDoneKey,
+        sectionRuleVersionKey,
+        starPromenadeHandRemovalDoneKey,
+        taxonomyV33CanonicalRebuildDoneKey,
+        VenueProvenanceCompanion,
+        VenuesCompanion,
+        taxonomyV34CanonicalRebuildDoneKey,
+        taxonomyV35FigureNormalizationDoneKey,
+        shareableTextNormalisationScopeKey,
+        kSectionRuleVersion;
 import 'package:drift/drift.dart' show Value, Variable;
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
@@ -136,6 +153,569 @@ void main() {
       expect(key, isNotEmpty, reason: 'sectionRuleVersionKey must be written');
 
       await db.close();
+    });
+  });
+
+  group('taxonomy v33 canonical rebuild', () {
+    test(
+      'normalizes legacy assumed subjects and refreshes effective defaults',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase.memory());
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        addTearDown(db.close);
+
+        await repos.dances.create(
+          Dance(
+            id: 'v33-canonical',
+            title: 'v33 canonical',
+            figures: [
+              Figure(
+                move: 'box_circulate',
+                params: {'who': 'partners'},
+                assumedSubject: true,
+              ),
+              Figure(move: 'figure_8'),
+              Figure(move: 'box_circulate', params: {'who': 'partners'}),
+            ],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+
+        final beforeJson =
+            (await db
+                    .customSelect(
+                      'SELECT figures_json FROM dances WHERE id = ?',
+                      variables: [Variable.withString('v33-canonical')],
+                    )
+                    .getSingle())
+                .read<String>('figures_json');
+        expect(beforeJson, contains('"assumedSubject":true'));
+        expect(beforeJson, contains('"who":"partners"'));
+        for (final key in [
+          purgeCorruptionRepairDoneKey,
+          inversePairNormalisationDoneKey,
+          starPromenadeHandRemovalDoneKey,
+          gripSingleFileCanonicalInclusionDoneKey,
+          promenadeTurnCircleWordingCanonicalRebuildDoneKey,
+          compactDosidoSeesawCanonicalRebuildDoneKey,
+          modifierContainerCanonicalRebuildDoneKey,
+          chainHandBackfillDoneKey,
+        ]) {
+          await repos.settings.set(key, 'done');
+        }
+        await repos.settings.set(sectionRuleVersionKey, kSectionRuleVersion);
+        await db.customUpdate(
+          'UPDATE dance_figures SET canonical_text = CASE idx '
+          'WHEN 0 THEN ? WHEN 1 THEN ? WHEN 2 THEN ? END WHERE dance_id = ?',
+          variables: [
+            Variable.withString('partners box circulate'),
+            Variable.withString('ones figure 8 half'),
+            Variable.withString('partners box circulate'),
+            Variable.withString('v33-canonical'),
+          ],
+          updates: {db.danceFigures},
+        );
+        await db.customUpdate(
+          'UPDATE dance_fts SET figures_text = ? WHERE dance_id = ?',
+          variables: [
+            Variable.withString(
+              'partners box circulate ones figure 8 half partners box circulate',
+            ),
+            Variable.withString('v33-canonical'),
+          ],
+        );
+        final marker = await db
+            .customSelect(
+              'SELECT 1 FROM settings WHERE key = ?',
+              variables: [
+                Variable.withString(taxonomyV33CanonicalRebuildDoneKey),
+              ],
+            )
+            .get();
+        expect(marker, isEmpty);
+
+        await repos.ensureMigrated();
+
+        final rows = await db
+            .customSelect(
+              'SELECT idx, canonical_text FROM dance_figures '
+              'WHERE dance_id = ? ORDER BY idx',
+              variables: [Variable.withString('v33-canonical')],
+            )
+            .get();
+        expect(rows.map((row) => row.read<String>('canonical_text')).toList(), [
+          'role2s box circulate',
+          'ones half figure 8',
+          'partners box circulate',
+        ]);
+        final fts = await db
+            .customSelect(
+              'SELECT figures_text FROM dance_fts WHERE dance_id = ?',
+              variables: [Variable.withString('v33-canonical')],
+            )
+            .getSingle();
+        expect(
+          fts.read<String>('figures_text'),
+          'role2s box circulate ones half figure 8 partners box circulate',
+        );
+        final afterJson =
+            (await db
+                    .customSelect(
+                      'SELECT figures_json FROM dances WHERE id = ?',
+                      variables: [Variable.withString('v33-canonical')],
+                    )
+                    .getSingle())
+                .read<String>('figures_json');
+        expect(afterJson, isNot(beforeJson));
+        expect(afterJson, isNot(contains('"assumedSubject":true')));
+        expect(afterJson, contains('"who":"partners"'));
+
+        final completed = await db
+            .customSelect(
+              'SELECT value_json FROM settings WHERE key = ?',
+              variables: [
+                Variable.withString(taxonomyV33CanonicalRebuildDoneKey),
+              ],
+            )
+            .getSingle();
+        expect(completed.read<String>('value_json'), '"done"');
+      },
+    );
+  });
+
+  group('taxonomy v34 mad robin canonical rebuild', () {
+    test(
+      'normalizes assumed TCB subjects and retries safely after interruption',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase.memory());
+        final repos = _FailingOnceRepositories(db, contraTaxonomy);
+        addTearDown(db.close);
+
+        final legacyFigures = [
+          Figure(
+            move: 'mad_robin',
+            params: const {'direction': 'clockwise', 'whom': 'neighbors'},
+            assumedSubject: true,
+          ),
+          Figure.meanwhile(
+            figures: [
+              Figure(
+                move: 'mad_robin',
+                params: const {
+                  'direction': 'counterclockwise',
+                  'whom': 'partners',
+                },
+                assumedSubject: true,
+              ),
+              Figure(
+                move: 'swing',
+                params: const {'who': 'partners', 'beats': 16},
+              ),
+            ],
+            beats: 8,
+          ),
+          Figure(
+            move: 'mad_robin',
+            params: const {
+              'who': 'ones',
+              'direction': 'clockwise',
+              'whom': 'partners',
+            },
+            assumedSubject: true,
+          ),
+        ];
+        await repos.dances.create(
+          Dance(
+            id: 'v34-canonical',
+            title: 'v34 canonical',
+            figures: legacyFigures,
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+        // Seed the pre-v34 persisted shape below the repository write
+        // convergence point. This keeps the test focused on ensureMigrated's
+        // source rewrite and retry-safe rebuild rather than the later ingress
+        // guard.
+        await db.customUpdate(
+          'UPDATE dances SET figures_json = ? WHERE id = ?',
+          variables: [
+            Variable<String>(encodeFigures(legacyFigures)),
+            Variable<String>('v34-canonical'),
+          ],
+          updates: {db.dances},
+        );
+        final legacy = await db
+            .customSelect(
+              'SELECT figures_json FROM dances WHERE id = ?',
+              variables: [Variable<String>('v34-canonical')],
+            )
+            .getSingle();
+        final legacyFirst =
+            (jsonDecode(legacy.read<String>('figures_json')) as List<dynamic>)
+                    .first
+                as Map<String, dynamic>;
+        expect(
+          (legacyFirst['params'] as Map<String, dynamic>).containsKey('who'),
+          isFalse,
+        );
+        expect(legacyFirst['assumedSubject'], isTrue);
+
+        for (final key in [
+          purgeCorruptionRepairDoneKey,
+          inversePairNormalisationDoneKey,
+          starPromenadeHandRemovalDoneKey,
+          gripSingleFileCanonicalInclusionDoneKey,
+          promenadeTurnCircleWordingCanonicalRebuildDoneKey,
+          compactDosidoSeesawCanonicalRebuildDoneKey,
+          chainHandBackfillDoneKey,
+          taxonomyV33CanonicalRebuildDoneKey,
+        ]) {
+          await repos.settings.set(key, 'done');
+        }
+        await repos.settings.set(sectionRuleVersionKey, kSectionRuleVersion);
+
+        await db.customUpdate(
+          'UPDATE dance_figures SET canonical_text = ? WHERE dance_id = ?',
+          variables: [
+            Variable<String>('stale canonical'),
+            Variable<String>('v34-canonical'),
+          ],
+          updates: {db.danceFigures},
+        );
+        await db.customUpdate(
+          'UPDATE dance_fts SET figures_text = ? WHERE dance_id = ?',
+          variables: [
+            Variable<String>('stale figures'),
+            Variable<String>('v34-canonical'),
+          ],
+        );
+
+        await expectLater(repos.ensureMigrated(), throwsA(isA<StateError>()));
+        expect(repos.rebuildAttempts, 1);
+
+        final rewritten = await db
+            .customSelect(
+              'SELECT figures_json FROM dances WHERE id = ?',
+              variables: [Variable<String>('v34-canonical')],
+            )
+            .getSingle();
+        final rewrittenFigures =
+            jsonDecode(rewritten.read<String>('figures_json')) as List<dynamic>;
+        final rewrittenFirst = rewrittenFigures[0] as Map<String, dynamic>;
+        final rewrittenMeanwhile = rewrittenFigures[1] as Map<String, dynamic>;
+        final rewrittenMeanwhileParams =
+            rewrittenMeanwhile['params'] as Map<String, dynamic>;
+        final rewrittenNested =
+            (rewrittenMeanwhileParams['figures'] as List<dynamic>)[0]
+                as Map<String, dynamic>;
+        final rewrittenExplicit = rewrittenFigures[2] as Map<String, dynamic>;
+        expect(
+          (rewrittenFirst['params'] as Map<String, dynamic>)['who'],
+          ParamVocab.unspecified,
+        );
+        expect(rewrittenFirst.containsKey('assumedSubject'), isFalse);
+        expect(
+          (rewrittenNested['params'] as Map<String, dynamic>)['who'],
+          ParamVocab.unspecified,
+        );
+        expect(rewrittenNested.containsKey('assumedSubject'), isFalse);
+        expect(
+          (rewrittenExplicit['params'] as Map<String, dynamic>)['who'],
+          'ones',
+        );
+        expect(rewrittenExplicit['assumedSubject'], isTrue);
+        final pendingRebuild = await db
+            .customSelect(
+              'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+              variables: [Variable<String>(derivedRebuildRequiredKey)],
+            )
+            .get();
+        expect(pendingRebuild, isNotEmpty);
+        final incomplete = await db
+            .customSelect(
+              'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+              variables: [Variable<String>(taxonomyV34CanonicalRebuildDoneKey)],
+            )
+            .get();
+        expect(incomplete, isEmpty);
+
+        await repos.ensureMigrated();
+        expect(repos.rebuildAttempts, 2);
+
+        final dance = (await repos.dances.getById('v34-canonical'))!;
+        final expectedCanonical = [
+          'mad robin once clockwise neighbors',
+          'mad robin once counterclockwise partners',
+          'partners swing',
+          'ones mad robin once clockwise partners',
+        ];
+        final rows = await db
+            .customSelect(
+              'SELECT canonical_text FROM dance_figures '
+              'WHERE dance_id = ? ORDER BY idx',
+              variables: [Variable<String>('v34-canonical')],
+            )
+            .get();
+        expect(
+          rows.map((row) => row.read<String>('canonical_text')).toList(),
+          expectedCanonical,
+        );
+        final expectedFts = [
+          expectedCanonical[0],
+          'mad robin once counterclockwise partners meanwhile partners swing',
+          expectedCanonical[1],
+          expectedCanonical[2],
+          expectedCanonical[3],
+        ].join(' ');
+        final fts = await db
+            .customSelect(
+              'SELECT figures_text FROM dance_fts WHERE dance_id = ?',
+              variables: [Variable<String>('v34-canonical')],
+            )
+            .getSingle();
+        expect(fts.read<String>('figures_text'), expectedFts);
+        final pendingAfterRetry = await db
+            .customSelect(
+              'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+              variables: [Variable<String>(derivedRebuildRequiredKey)],
+            )
+            .get();
+        expect(pendingAfterRetry, isEmpty);
+        final completed = await db
+            .customSelect(
+              'SELECT value_json FROM settings WHERE key = ? AND deleted_at IS NULL',
+              variables: [Variable<String>(taxonomyV34CanonicalRebuildDoneKey)],
+            )
+            .getSingle();
+        expect(completed.read<String>('value_json'), '"done"');
+        expect(dance.figures.first.params['who'], ParamVocab.unspecified);
+        expect(
+          dance.figures[1].subFigures.first.params['who'],
+          ParamVocab.unspecified,
+        );
+        expect(dance.figures[2].params['who'], 'ones');
+        expect(dance.figures[2].assumedSubject, isTrue);
+      },
+    );
+  });
+
+  group('modifier container canonical rebuild', () {
+    test(
+      'refreshes structural canonical and FTS text once when marker is absent',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase.memory());
+        final repos = _CountingRepositories(db, contraTaxonomy);
+        addTearDown(db.close);
+
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure.meanwhile(
+              figures: [
+                Figure(move: 'petronella'),
+                Figure(move: 'circle'),
+              ],
+              beats: 8,
+            ),
+          ],
+          beats: 8,
+        );
+        await repos.dances.create(
+          Dance(
+            id: 'modifier-canonical-rebuild',
+            title: 'Modifier canonical rebuild',
+            figures: [figure],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+        await _markPre1192SweepsComplete(repos);
+        await repos.settings.remove(modifierContainerCanonicalRebuildDoneKey);
+        await db.customUpdate(
+          'UPDATE dance_figures SET canonical_text = ? WHERE dance_id = ?',
+          variables: [
+            Variable<String>('stale canonical'),
+            Variable<String>('modifier-canonical-rebuild'),
+          ],
+        );
+        await db.customUpdate(
+          'UPDATE dance_fts SET figures_text = ? WHERE dance_id = ?',
+          variables: [
+            Variable<String>('stale FTS'),
+            Variable<String>('modifier-canonical-rebuild'),
+          ],
+        );
+
+        final expected = FigureRenderer(contraTaxonomy).renderCanonical(figure);
+        await repos.ensureMigrated();
+
+        final indexed = await db
+            .customSelect(
+              'SELECT canonical_text FROM dance_figures WHERE dance_id = ?',
+              variables: [Variable<String>('modifier-canonical-rebuild')],
+            )
+            .get();
+        expect(
+          indexed.map((row) => row.read<String>('canonical_text')),
+          containsAll(['partners swing', 'petronella', 'circle left 4 places']),
+        );
+        final fts = await db
+            .customSelect(
+              'SELECT figures_text FROM dance_fts WHERE dance_id = ?',
+              variables: [Variable<String>('modifier-canonical-rebuild')],
+            )
+            .getSingle();
+        expect(fts.read<String>('figures_text'), contains(expected));
+
+        final marker = await db
+            .customSelect(
+              'SELECT value_json FROM settings WHERE key = ? '
+              'AND deleted_at IS NULL',
+              variables: [
+                Variable<String>(modifierContainerCanonicalRebuildDoneKey),
+              ],
+            )
+            .getSingle();
+        expect(marker.read<String>('value_json'), '"done"');
+
+        final rebuilds = repos.rebuildAttempts;
+        await repos.ensureMigrated();
+        expect(repos.rebuildAttempts, rebuilds);
+      },
+    );
+  });
+
+  group('taxonomy v35 figure normalization', () {
+    // invalid-fixture: these figures deliberately use the pre-v35 persisted vocabulary
+    test('rewrites legacy keys and nested structural figures', () async {
+      final db = CompendiumDatabase(NativeDatabase.memory());
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      addTearDown(db.close);
+
+      final legacyFigures = [
+        Figure(
+          move: 'pull_by_dancers',
+          params: const {'who': 'partners', 'hand': 'left'},
+        ),
+        Figure.meanwhile(
+          figures: [
+            Figure(move: 'circle', params: const {'turn': 'left', 'beats': 8}),
+            Figure(move: 'swing'),
+          ],
+          beats: 8,
+        ),
+        Figure.modifier(
+          figures: [
+            Figure(
+              move: 'pull_by_dancers',
+              params: const {'who': 'partners', 'hand': 'left'},
+            ),
+            Figure.meanwhile(
+              figures: [
+                Figure(
+                  move: 'circle',
+                  params: const {'turn': 'left', 'beats': 8},
+                ),
+                Figure(move: 'swing'),
+              ],
+              beats: 8,
+            ),
+          ],
+          beats: 8,
+        ),
+      ];
+      await repos.dances.create(
+        Dance(
+          id: 'v35-normalization',
+          title: 'v35 normalization',
+          figures: legacyFigures,
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await db.customUpdate(
+        'UPDATE dances SET figures_json = ? WHERE id = ?',
+        variables: [
+          Variable<String>(encodeFigures(legacyFigures)),
+          Variable<String>('v35-normalization'),
+        ],
+        updates: {db.dances},
+      );
+      await repos.settings.set(taxonomyV35FigureNormalizationDoneKey, 'false');
+
+      await repos.ensureMigrated();
+
+      final dance = (await repos.dances.getById('v35-normalization'))!;
+      expect(dance.figures[0].move, 'pull_by');
+      expect(dance.figures[0].params, {'who': 'partners', 'hand': 'left'});
+      final circle = dance.figures[1].subFigures.firstWhere(
+        (figure) => figure.move == 'circle',
+      );
+      expect(circle.params['direction'], 'left');
+      expect(circle.params.containsKey('turn'), isFalse);
+      final modifier = dance.figures[2];
+      expect(modifier.subFigures.first.move, 'pull_by');
+      final nestedCircle = modifier.subFigures[1].subFigures.first;
+      expect(nestedCircle.params['direction'], 'left');
+      expect(nestedCircle.params.containsKey('turn'), isFalse);
+      final marker = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [
+              Variable.withString(taxonomyV35FigureNormalizationDoneKey),
+            ],
+          )
+          .getSingle();
+      expect(marker.read<String>('value_json'), 'true');
+    });
+
+    // invalid-fixture: this exercises a v35 database that predates the taxonomy migration marker
+    test('runs when the taxonomy marker is absent', () async {
+      final db = CompendiumDatabase(NativeDatabase.memory());
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      addTearDown(db.close);
+
+      final legacyFigures = [
+        Figure(
+          move: 'pull_by_dancers',
+          params: const {'who': 'partners', 'hand': 'left'},
+        ),
+        Figure(move: 'circle', params: const {'turn': 'left'}),
+      ];
+      await repos.dances.create(
+        Dance(
+          id: 'v35-absent-marker',
+          title: 'v35 absent marker',
+          figures: legacyFigures,
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await db.customUpdate(
+        'UPDATE dances SET figures_json = ? WHERE id = ?',
+        variables: [
+          Variable<String>(encodeFigures(legacyFigures)),
+          Variable<String>('v35-absent-marker'),
+        ],
+        updates: {db.dances},
+      );
+
+      await repos.ensureMigrated();
+
+      final dance = (await repos.dances.getById('v35-absent-marker'))!;
+      expect(dance.figures.first.move, 'pull_by');
+      expect(dance.figures[1].params, {'direction': 'left'});
+      final marker = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ? AND deleted_at IS NULL',
+            variables: [
+              Variable.withString(taxonomyV35FigureNormalizationDoneKey),
+            ],
+          )
+          .getSingle();
+      expect(marker.read<String>('value_json'), 'true');
     });
   });
 
@@ -896,47 +1476,70 @@ void main() {
       }
     });
 
-    test(
-      'every live row shares ONE T0, across tables as well as rows',
-      () async {
-        // The normative rule is "a single constant T0, identical for every live
-        // row" — not "a plausible timestamp per row". The fixture's two live
-        // dances were written years apart (2020 and 2026), so a back-fill that
-        // copied each row's own `updated_at` would produce two different values
-        // here and fail. That is the mutation this test exists to catch.
-        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
-        addTearDown(db.close);
+    test('every live row shares ONE T0, across tables as well as rows', () async {
+      // The normative rule is "a single constant T0, identical for every live
+      // row" — not "a plausible timestamp per row". The fixture's two live
+      // dances were written years apart (2020 and 2026), so a back-fill that
+      // copied each row's own `updated_at` would produce two different values
+      // here and fail. That is the mutation this test exists to catch.
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      addTearDown(db.close);
 
-        final rows = await db
-            .customSelect(
-              'SELECT existence_at FROM dances WHERE deleted_at IS NULL '
-              'UNION SELECT existence_at FROM programs WHERE deleted_at IS NULL '
-              'UNION SELECT existence_at FROM tags '
-              'UNION SELECT existence_at FROM choreographers '
-              'UNION SELECT existence_at FROM published_sources '
-              'UNION SELECT existence_at FROM custom_field_defs '
-              'UNION SELECT existence_at FROM venues '
-              "UNION SELECT existence_at FROM settings "
-              "WHERE key != '$derivedRebuildRequiredKey'",
-            )
-            .get();
-        // UNION dedupes, so one row means one distinct value.
-        expect(
-          rows,
-          hasLength(1),
-          reason:
-              'every live row across all eight tables must carry the same T0; '
-              'got ${[for (final r in rows) r.data.values.first]}',
-        );
-        final t0 = rows.single.data.values.first as int?;
-        expect(t0, isNotNull, reason: 'T0 must not be left NULL');
-        expect(
-          t0,
-          greaterThanOrEqualTo(beforeMigration),
-          reason: 'T0 is sampled when the migration runs, not baked in',
-        );
-      },
-    );
+      // Internal migration markers intentionally have no existence_at. Exclude
+      // only those known non-syncable keys so a live setting whose back-fill is
+      // accidentally omitted still contributes NULL and fails this guard.
+      const internalSettingKeys = [
+        derivedRebuildRequiredKey,
+        purgeCorruptionRepairDoneKey,
+        sectionRuleVersionKey,
+        inversePairNormalisationDoneKey,
+        starPromenadeHandRemovalDoneKey,
+        gripSingleFileCanonicalInclusionDoneKey,
+        chainHandBackfillDoneKey,
+        promenadeTurnCircleWordingCanonicalRebuildDoneKey,
+        compactDosidoSeesawCanonicalRebuildDoneKey,
+        taxonomyV33CanonicalRebuildDoneKey,
+        taxonomyV34CanonicalRebuildDoneKey,
+        taxonomyV35FigureNormalizationDoneKey,
+        callersBoxRollAwayRoleRepairDoneKey,
+        shareableTextNormalisationScopeKey,
+      ];
+      final placeholders = List.filled(
+        internalSettingKeys.length,
+        '?',
+      ).join(', ');
+      final rows = await db
+          .customSelect(
+            'SELECT existence_at FROM dances WHERE deleted_at IS NULL '
+            'UNION SELECT existence_at FROM programs WHERE deleted_at IS NULL '
+            'UNION SELECT existence_at FROM tags '
+            'UNION SELECT existence_at FROM choreographers '
+            'UNION SELECT existence_at FROM published_sources '
+            'UNION SELECT existence_at FROM custom_field_defs '
+            'UNION SELECT existence_at FROM venues '
+            "UNION SELECT existence_at FROM settings "
+            'WHERE deleted_at IS NULL AND key NOT IN ($placeholders)',
+            variables: [
+              for (final key in internalSettingKeys) Variable.withString(key),
+            ],
+          )
+          .get();
+      // UNION dedupes, so one row means one distinct value.
+      expect(
+        rows,
+        hasLength(1),
+        reason:
+            'every live row across all eight tables must carry the same T0; '
+            'got ${[for (final r in rows) r.data.values.first]}',
+      );
+      final t0 = rows.single.data.values.first as int?;
+      expect(t0, isNotNull, reason: 'T0 must not be left NULL');
+      expect(
+        t0,
+        greaterThanOrEqualTo(beforeMigration),
+        reason: 'T0 is sampled when the migration runs, not baked in',
+      );
+    });
 
     test('an already-tombstoned row keeps its own deleted_at, not T0', () async {
       // The one case where a pre-existing column carries the right meaning.
@@ -1504,6 +2107,439 @@ void main() {
       expect(row.read<int>('transitive'), 0);
     });
   });
+
+  group('CallersBox roll-away role repair (#1192)', () {
+    test(
+      'repairs only exact legacy figures and preserves dance metadata',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase.memory());
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        addTearDown(db.close);
+
+        final meanwhile = Figure.meanwhile(
+          beats: 8,
+          extraParams: {'preserve': 'container metadata'},
+          figures: [
+            Figure(
+              move: 'roll_away',
+              params: {'who': 'neighbors', 'beats': 4},
+              note: 'role2s roll right, role1s side-step left',
+            ),
+            Figure(move: 'figure_8', note: 'untouched sibling'),
+          ],
+        );
+        final affected = _rollAwayDance(
+          id: 'callersbox-affected',
+          figures: [
+            Figure(
+              move: 'roll_away',
+              params: {'who': 'partners', 'beats': 4},
+              note: 'role1s roll left, role2s step aside right',
+            ),
+            meanwhile,
+          ],
+          provenance: Provenance(
+            source: ProvenanceSource.callersbox,
+            externalId: 'affected',
+            importedAt: DateTime.utc(2024),
+          ),
+        );
+        final nonCallersBox = _rollAwayDance(
+          id: 'other-source',
+          figures: [
+            Figure(
+              move: 'roll_away',
+              params: {'who': 'neighbors'},
+              note: 'role1s roll right, role2s side-step left',
+            ),
+          ],
+          provenance: Provenance(
+            source: ProvenanceSource.json,
+            importedAt: DateTime.utc(2024),
+          ),
+        );
+        final absentProvenance = _rollAwayDance(
+          id: 'no-provenance',
+          figures: [
+            Figure(
+              move: 'roll_away',
+              params: {'who': 'neighbors'},
+              note: 'role1s roll right, role2s side-step left',
+            ),
+          ],
+        );
+        final alreadyCorrect = _rollAwayDance(
+          id: 'already-correct',
+          figures: [
+            Figure(
+              move: 'roll_away',
+              params: {'who': 'role1s', 'whom': 'neighbors'},
+              note: 'role1s roll right, role2s side-step left',
+            ),
+          ],
+          provenance: _callersBoxProvenance('already-correct'),
+        );
+        final divergentNote = _rollAwayDance(
+          id: 'divergent-note',
+          figures: [
+            Figure(
+              move: 'roll_away',
+              params: {'who': 'neighbors'},
+              note: 'role1s roll right; role2s side-step left',
+            ),
+          ],
+          provenance: _callersBoxProvenance('divergent-note'),
+        );
+        final unsupportedRelationship = _rollAwayDance(
+          id: 'unsupported-relationship',
+          figures: [
+            Figure(
+              move: 'roll_away',
+              params: {'who': 'ones'},
+              note: 'role1s roll right, role2s side-step left',
+            ),
+          ],
+          provenance: _callersBoxProvenance('unsupported-relationship'),
+        );
+        final assumedSubject = _rollAwayDance(
+          id: 'assumed-subject',
+          figures: [
+            Figure(
+              move: 'roll_away',
+              params: {'who': 'neighbors'},
+              note: 'role1s roll right, role2s side-step left',
+              assumedSubject: true,
+            ),
+          ],
+          provenance: _callersBoxProvenance('assumed-subject'),
+        );
+        final softDeleted = _rollAwayDance(
+          id: 'soft-deleted',
+          figures: [
+            Figure(
+              move: 'roll_away',
+              params: {'who': 'neighbors'},
+              note: 'role1s roll right, role2s side-step left',
+            ),
+          ],
+          provenance: _callersBoxProvenance('soft-deleted'),
+          deletedAt: DateTime.utc(2024, 1, 2),
+        );
+
+        for (final dance in [
+          affected,
+          nonCallersBox,
+          absentProvenance,
+          alreadyCorrect,
+          divergentNote,
+          unsupportedRelationship,
+          assumedSubject,
+          softDeleted,
+        ]) {
+          await repos.dances.create(dance);
+        }
+        await _markPre1192SweepsComplete(repos);
+
+        await repos.ensureMigrated();
+
+        final repaired = await repos.dances.getById(affected.id);
+        expect(repaired!.callingNotes, affected.callingNotes);
+        expect(repaired.rating, affected.rating);
+        expect(repaired.figures[0].params, {
+          'who': 'role2s',
+          'whom': 'partners',
+          'beats': 4,
+        });
+        final repairedMeanwhile = repaired.figures[1];
+        expect(repairedMeanwhile.params['preserve'], 'container metadata');
+        expect(repairedMeanwhile.subFigures[0].params, {
+          'who': 'role1s',
+          'whom': 'neighbors',
+          'beats': 4,
+        });
+        expect(repairedMeanwhile.subFigures[1].note, 'untouched sibling');
+
+        for (final id in [
+          nonCallersBox.id,
+          absentProvenance.id,
+          alreadyCorrect.id,
+          divergentNote.id,
+          unsupportedRelationship.id,
+          assumedSubject.id,
+        ]) {
+          final unchanged = await repos.dances.getById(id);
+          expect(
+            unchanged!.figures,
+            ([
+              nonCallersBox,
+              absentProvenance,
+              alreadyCorrect,
+              divergentNote,
+              unsupportedRelationship,
+              assumedSubject,
+            ].firstWhere((dance) => dance.id == id)).figures,
+            reason: '$id must not match the legacy repair predicate',
+          );
+        }
+        final deleted = await repos.dances.getById(
+          softDeleted.id,
+          includeDeleted: true,
+        );
+        expect(deleted!.figures.single.params, {
+          'who': 'role2s',
+          'whom': 'neighbors',
+        });
+
+        for (final table in ['dance_fts', 'dance_substring_fts']) {
+          final indexed = await db
+              .customSelect(
+                'SELECT figures_text FROM $table WHERE dance_id = ?',
+                variables: [Variable.withString(affected.id)],
+              )
+              .getSingle();
+          expect(indexed.read<String>('figures_text'), contains('role1s'));
+          expect(indexed.read<String>('figures_text'), contains('partners'));
+        }
+
+        final marker = await db
+            .customSelect(
+              'SELECT 1 FROM settings WHERE key = ?',
+              variables: [
+                Variable.withString(callersBoxRollAwayRoleRepairDoneKey),
+              ],
+            )
+            .get();
+        expect(marker, isNotEmpty);
+      },
+    );
+
+    test(
+      'commits source rewrite and retries derived rebuild after failure',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase.memory());
+        final dance = _rollAwayDance(
+          id: 'callersbox-retry',
+          figures: [
+            Figure(
+              move: 'roll_away',
+              params: {'who': 'neighbors'},
+              note: 'role1s roll right, role2s side-step left',
+            ),
+          ],
+          provenance: _callersBoxProvenance('retry'),
+        );
+        final setup = CompendiumRepositories(db, contraTaxonomy);
+        await setup.dances.create(dance);
+        await _markPre1192SweepsComplete(setup);
+        final repos = _FailingOnceRepositories(db, contraTaxonomy);
+        addTearDown(db.close);
+
+        await expectLater(repos.ensureMigrated(), throwsA(isA<StateError>()));
+        expect(repos.rebuildAttempts, 1);
+        final failedSource = await db
+            .customSelect(
+              'SELECT figures_json FROM dances WHERE id = ?',
+              variables: [Variable.withString(dance.id)],
+            )
+            .getSingle();
+        expect(
+          failedSource.read<String>('figures_json'),
+          contains('"whom":"neighbors"'),
+        );
+        expect(
+          await db
+              .customSelect(
+                'SELECT 1 FROM settings WHERE key = ?',
+                variables: [Variable.withString(derivedRebuildRequiredKey)],
+              )
+              .get(),
+          isNotEmpty,
+        );
+        expect(
+          await db
+              .customSelect(
+                'SELECT 1 FROM settings WHERE key = ?',
+                variables: [
+                  Variable.withString(callersBoxRollAwayRoleRepairDoneKey),
+                ],
+              )
+              .get(),
+          isEmpty,
+        );
+
+        await repos.ensureMigrated();
+        expect(repos.rebuildAttempts, 2);
+        expect(
+          await db
+              .customSelect(
+                'SELECT 1 FROM settings WHERE key = ?',
+                variables: [Variable.withString(derivedRebuildRequiredKey)],
+              )
+              .get(),
+          isEmpty,
+        );
+        expect(
+          await db
+              .customSelect(
+                'SELECT 1 FROM settings WHERE key = ?',
+                variables: [
+                  Variable.withString(callersBoxRollAwayRoleRepairDoneKey),
+                ],
+              )
+              .get(),
+          isNotEmpty,
+        );
+      },
+    );
+  });
+
+  group('v32 -> v33 upgrade (issue #1196 purge-caption marker)', () {
+    test(
+      'preserves pre-v33 text-only rows as legacy ambiguous values',
+      () async {
+        final raw = sqlite3.sqlite3.openInMemory();
+        final historical = GeneratedHelper().databaseForVersion(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+          32,
+        );
+        await historical.customSelect('SELECT 1').get();
+        await historical.customStatement(
+          "INSERT INTO programs "
+          "(id, title, notes, status, hide_alternates, created_at, updated_at) "
+          "VALUES ('legacy-program', 'Legacy', '', 'draft', 0, 0, 0)",
+        );
+        await historical.customStatement(
+          "INSERT INTO program_slots "
+          "(id, program_id, position, text, is_alt) "
+          "VALUES ('legacy-slot', 'legacy-program', 0, 'Lady of the Lake', 0)",
+        );
+        await historical.close();
+
+        final db = CompendiumDatabase(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        );
+        addTearDown(() async {
+          await db.close();
+          raw.close();
+        });
+        await db.customSelect('SELECT 1').get();
+
+        final columns = await db
+            .customSelect("PRAGMA table_info('program_slots')")
+            .get();
+        final marker = columns.firstWhere(
+          (row) => row.read<String>('name') == 'is_purged_dance',
+        );
+        expect(marker.read<String?>('dflt_value'), isNull);
+
+        final rows = await db.select(db.programSlots).get();
+        expect(rows, hasLength(1));
+        expect(rows.single.isPurgedDance, isNull);
+      },
+    );
+  });
+
+  group('v34 -> v35 upgrade (issue #1233 split program-slot timing)', () {
+    test(
+      'copies null, zero, and positive legacy planned minutes to dance',
+      () async {
+        final raw = sqlite3.sqlite3.openInMemory();
+        final historical = GeneratedHelper().databaseForVersion(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+          34,
+        );
+        await historical.customSelect('SELECT 1').get();
+        await historical.customStatement(
+          "INSERT INTO programs "
+          "(id, title, notes, status, hide_alternates, created_at, updated_at) "
+          "VALUES ('legacy-program', 'Legacy', '', 'draft', 0, 0, 0)",
+        );
+        for (final row in const [
+          "('null', 'legacy-program', 0, 'Null', 0, NULL)",
+          "('zero', 'legacy-program', 1, 'Zero', 0, 0)",
+          "('positive', 'legacy-program', 2, 'Positive', 0, 8)",
+        ]) {
+          await historical.customStatement(
+            'INSERT INTO program_slots '
+            '(id, program_id, position, text, is_alt, planned_minutes) '
+            'VALUES $row',
+          );
+        }
+        await historical.close();
+
+        final db = CompendiumDatabase(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        );
+        addTearDown(() async {
+          await db.close();
+          raw.close();
+        });
+        await db.customSelect('SELECT 1').get();
+
+        final columns = await db
+            .customSelect("PRAGMA table_info('program_slots')")
+            .get();
+        final names = {for (final row in columns) row.read<String>('name')};
+        expect(names, containsAll(['walkthrough_minutes', 'dance_minutes']));
+        expect(names, isNot(contains('planned_minutes')));
+
+        final values = await db
+            .customSelect(
+              'SELECT id, walkthrough_minutes, dance_minutes FROM program_slots '
+              'ORDER BY position',
+            )
+            .get();
+        expect(values[0].read<int?>('walkthrough_minutes'), isNull);
+        expect(values[0].read<int?>('dance_minutes'), isNull);
+        expect(values[1].read<int?>('walkthrough_minutes'), isNull);
+        expect(values[1].read<int?>('dance_minutes'), 0);
+        expect(values[2].read<int?>('walkthrough_minutes'), isNull);
+        expect(values[2].read<int?>('dance_minutes'), 8);
+      },
+    );
+  });
+}
+
+Dance _rollAwayDance({
+  required String id,
+  required List<Figure> figures,
+  Provenance? provenance,
+  DateTime? deletedAt,
+}) => Dance(
+  id: id,
+  title: id,
+  figures: figures,
+  provenance: provenance,
+  callingNotes: 'preserve this dance metadata',
+  rating: 4,
+  createdAt: DateTime.utc(2024),
+  updatedAt: DateTime.utc(2024),
+  deletedAt: deletedAt,
+);
+
+Provenance _callersBoxProvenance(String externalId) => Provenance(
+  source: ProvenanceSource.callersbox,
+  externalId: externalId,
+  importedAt: DateTime.utc(2024),
+);
+
+Future<void> _markPre1192SweepsComplete(CompendiumRepositories repos) async {
+  for (final key in [
+    purgeCorruptionRepairDoneKey,
+    inversePairNormalisationDoneKey,
+    starPromenadeHandRemovalDoneKey,
+    gripSingleFileCanonicalInclusionDoneKey,
+    promenadeTurnCircleWordingCanonicalRebuildDoneKey,
+    compactDosidoSeesawCanonicalRebuildDoneKey,
+    taxonomyV33CanonicalRebuildDoneKey,
+    taxonomyV34CanonicalRebuildDoneKey,
+    modifierContainerCanonicalRebuildDoneKey,
+    chainHandBackfillDoneKey,
+  ]) {
+    await repos.settings.set(key, 'done');
+  }
+  await repos.settings.set(sectionRuleVersionKey, kSectionRuleVersion);
+  await repos.settings.set(taxonomyV35FigureNormalizationDoneKey, true);
 }
 
 /// A [CompendiumRepositories] whose derived-index rebuild throws on its first

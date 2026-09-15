@@ -5,6 +5,7 @@ import '../../analysis/half_calling_stats.dart';
 import '../../model/enums.dart';
 import '../../model/program.dart';
 import '../../model/provenance.dart' as model;
+import '../../model/stored_timestamp.dart';
 import '../database.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
@@ -94,6 +95,34 @@ class DanceCallingRecord {
   );
 }
 
+/// The number of matching calling-history records at one venue identity.
+///
+/// Linked venues remain keyed by [venueId], while free-text venues are keyed by
+/// normalized [venue]. The app resolves linked labels before displaying or
+/// ordering these values because the venue catalogue is app-side state.
+@immutable
+class VenueCallCount {
+  const VenueCallCount({
+    required this.venueId,
+    required this.venue,
+    required this.count,
+  });
+
+  final String? venueId;
+  final String? venue;
+  final int count;
+
+  @override
+  bool operator ==(Object other) =>
+      other is VenueCallCount &&
+      other.venueId == venueId &&
+      other.venue == venue &&
+      other.count == count;
+
+  @override
+  int get hashCode => Object.hash(venueId, venue, count);
+}
+
 /// How many times a dance has been called, aggregated across every non-deleted
 /// program, produced by [ProgramRepository.countByDance].
 ///
@@ -149,13 +178,18 @@ class DanceCallCounts {
 /// list and a stats summary that disagree.
 @immutable
 class DanceCallingHistory {
-  const DanceCallingHistory({required this.records, required this.halfStats});
+  const DanceCallingHistory({
+    required this.records,
+    required this.halfStats,
+    required this.venueCounts,
+  });
 
   /// Empty history with empty stats — what a dance that has never been called
   /// resolves to.
   static const empty = DanceCallingHistory(
     records: [],
     halfStats: HalfCallingStats.empty,
+    venueCounts: [],
   );
 
   /// Programs including the dance, most-recent first. Same value and ordering
@@ -165,6 +199,11 @@ class DanceCallingHistory {
   /// Same value as [ProgramRepository.halfCallingStatsForDance] for the same
   /// arguments.
   final HalfCallingStats halfStats;
+
+  /// Counts grouped by stable linked-venue identity or normalized free text.
+  /// Counts include every matching record, including duplicate slots in a
+  /// single program. The app filters, labels, orders, and limits this list.
+  final List<VenueCallCount> venueCounts;
 }
 
 /// The program-derived per-dance tallies the Collection list renders, delivered
@@ -235,6 +274,64 @@ class ProgramRepository {
   /// Updates an existing program. See [create] for [knownVenueIds].
   Future<void> update(Program program, {LiveVenueIds? knownVenueIds}) =>
       _upsert(program, knownVenueIds: knownVenueIds);
+
+  /// Clears performed stamps created by one bulk mark action.
+  ///
+  /// The slot id and timestamp predicates make this an atomic compare-and-clear
+  /// operation: a later edit to one of the slots, or an edit to another part of
+  /// the program, is preserved instead of being overwritten by a stale
+  /// [Program] snapshot.
+  Future<int> clearPerformedAtIfMatches({
+    required String programId,
+    required Iterable<String> slotIds,
+    required DateTime performedAt,
+    required DateTime updatedAt,
+  }) async {
+    assertUtc(performedAt, 'performedAt');
+    assertUtc(updatedAt, 'updatedAt');
+    final ids = slotIds.toSet();
+    if (ids.isEmpty) return 0;
+
+    return _db.transaction(() async {
+      var cleared = 0;
+      for (final chunk in _chunkIds(ids.toList())) {
+        cleared +=
+            await (_db.update(_db.programSlots)..where(
+                  (t) =>
+                      t.programId.equals(programId) &
+                      t.id.isIn(chunk) &
+                      t.performedAt.equals(performedAt) &
+                      existsQuery(
+                        _db.select(_db.programs)..where(
+                          (p) => p.id.equals(programId) & p.deletedAt.isNull(),
+                        ),
+                      ),
+                ))
+                .write(const ProgramSlotsCompanion(performedAt: Value(null)));
+      }
+      if (cleared == 0) return 0;
+      final liveProgram =
+          await (_db.select(_db.programs)
+                ..where((t) => t.id.equals(programId) & t.deletedAt.isNull()))
+              .getSingleOrNull();
+      if (liveProgram == null) return 0;
+      final rollbackUpdatedAt = nextStoredTimestamp(
+        now: updatedAt.isAfter(liveProgram.updatedAt)
+            ? updatedAt
+            : liveProgram.updatedAt.add(storedTimestampTick),
+        current: [liveProgram.updatedAt],
+      );
+      await (_db.update(
+        _db.programs,
+      )..where((t) => t.id.equals(programId) & t.deletedAt.isNull())).write(
+        ProgramsCompanion(
+          title: Value(normalizeShareableText(liveProgram.title)),
+          updatedAt: Value(rollbackUpdatedAt),
+        ),
+      );
+      return cleared;
+    });
+  }
 
   Future<void> _upsert(
     Program program, {
@@ -355,13 +452,15 @@ class ProgramRepository {
               text_: Value(
                 slot.text == null ? null : normalizeShareableText(slot.text!),
               ),
+              isPurgedDance: Value(slot.isPurgedDance),
               isAlt: Value(slot.isAlt),
               guestCaller: Value(
                 slot.guestCaller == null
                     ? null
                     : normalizeShareableText(slot.guestCaller!),
               ),
-              plannedMinutes: Value(slot.plannedMinutes),
+              walkthroughMinutes: Value(slot.walkthroughMinutes),
+              danceMinutes: Value(slot.danceMinutes),
               performedAt: Value(slot.performedAt),
             ),
           );
@@ -621,9 +720,11 @@ class ProgramRepository {
         position: r.position,
         danceId: r.danceId,
         text: r.text_,
+        isPurgedDance: r.isPurgedDance,
         isAlt: r.isAlt,
         guestCaller: r.guestCaller,
-        plannedMinutes: r.plannedMinutes,
+        walkthroughMinutes: r.walkthroughMinutes,
+        danceMinutes: r.danceMinutes,
         performedAt: asUtcOrNull(r.performedAt),
       );
     } on ArgumentError {
@@ -864,6 +965,40 @@ class ProgramRepository {
       ),
   ];
 
+  List<VenueCallCount> _venueCountsFromRecords(
+    List<DanceCallingRecord> records,
+  ) {
+    final counts = <String, VenueCallCount>{};
+    for (final record in records) {
+      final normalizedVenue = _normalizedVenueText(record.venue);
+      final key = record.venueId == null
+          ? normalizedVenue == null
+                ? null
+                : 'text:$normalizedVenue'
+          : 'id:${record.venueId}';
+      if (key == null) continue;
+      final current = counts[key];
+      counts[key] = VenueCallCount(
+        venueId: record.venueId,
+        venue: current?.venue ?? _displayVenueText(record.venue),
+        count: (current?.count ?? 0) + 1,
+      );
+    }
+    return counts.values.toList(growable: false);
+  }
+
+  String? _normalizedVenueText(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) return null;
+    return trimmed.replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
+  }
+
+  String? _displayVenueText(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) return null;
+    return trimmed.replaceAll(RegExp(r'\s+'), ' ');
+  }
+
   /// Reactive [callingHistoryForDance] + [halfCallingStatsForDance]: emits the
   /// current calling history immediately, then again whenever a write changes
   /// it. Arguments mean exactly what they do on the one-shot methods.
@@ -949,6 +1084,7 @@ class ProgramRepository {
           programIds: {for (final r in records) r.programId}.toList(),
           performedOnly: performedOnly,
         ),
+        venueCounts: _venueCountsFromRecords(records),
       );
     });
   }
@@ -957,7 +1093,7 @@ class ProgramRepository {
   /// [danceId] (issue #378), aggregated across every non-deleted program that
   /// includes it. A sibling of [callingHistoryForDance] — that method is left
   /// untouched — computed via the pure, Flutter-free [computeHalfCallingStats],
-  /// which reuses the derived-half helper [Program.halvesForSlots].
+  /// which reuses the derived-section helper [Program.sectionsForSlots].
   ///
   /// Bounded read: it loads full slot lists ONLY for the programs that actually
   /// contain the dance (found via one parameterized `dance_id = ?` query), not

@@ -15,7 +15,9 @@ const String kShorthandMappingsKey = 'shorthand_mappings';
 /// notifies listeners so the free-text entry path picks up changes without a
 /// relaunch. The persisted store is decoded defensively via
 /// [ShorthandMappings.decode] (bounded, never-throw, taxonomy-validated) so a
-/// corrupt or hostile payload degrades to "no mappings" rather than crashing.
+/// corrupt or hostile payload degrades to "no mappings" rather than crashing;
+/// structural `meanwhile` and `modifier` targets are validated against their
+/// bounded alternating-child model.
 ///
 /// Tokens are unique case-insensitively; the controller preserves the user's
 /// original casing for display and enforces uniqueness / bounded length /

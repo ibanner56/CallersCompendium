@@ -64,20 +64,51 @@ void main() {
       'Move: balance, used in 2 of 4 dances',
     );
 
-    // Compound perform timing line: optional planned / over / paused clauses
-    // fold in via ICU select, with a nested plural on the planned minutes.
+    // Compound perform timing line: optional split timing / walkthrough / over /
+    // paused clauses fold in via ICU select, with a nested planned-minute plural.
     expect(
-      l10n.performTimingSemantic('12:34', '3:05', 'no', 0, 'no', 'no'),
+      l10n.performTimingSemantic(
+        '12:34',
+        '3:05',
+        'no',
+        0,
+        0,
+        0,
+        'no',
+        'no',
+        'no',
+      ),
       'Program time 12:34, slot time 3:05',
     );
     expect(
-      l10n.performTimingSemantic('1:00', '0:30', 'yes', 1, 'no', 'no'),
-      'Program time 1:00, slot time 0:30, planned 1 minute',
+      l10n.performTimingSemantic(
+        '1:00',
+        '0:30',
+        'yes',
+        1,
+        0,
+        1,
+        'no',
+        'no',
+        'no',
+      ),
+      'Program time 1:00, slot time 0:30, planned 1 minute: 0 walkthrough '
+      'and 1 dance',
     );
     expect(
-      l10n.performTimingSemantic('12:34', '9:00', 'yes', 8, 'yes', 'yes'),
-      'Program time 12:34, slot time 9:00, planned 8 minutes, over planned, '
-      'paused',
+      l10n.performTimingSemantic(
+        '12:34',
+        '9:00',
+        'yes',
+        8,
+        3,
+        5,
+        'yes',
+        'yes',
+        'yes',
+      ),
+      'Program time 12:34, slot time 9:00, planned 8 minutes: 3 walkthrough '
+      'and 5 dance, walkthrough complete, over planned, paused',
     );
 
     // Compound figure a11y label: import-gap text and note flow through

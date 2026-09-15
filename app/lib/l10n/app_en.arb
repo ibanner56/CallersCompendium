@@ -4,9 +4,33 @@
   "@appTitle": {
     "description": "The application's name. Shown as the window/task-switcher title via MaterialApp.onGenerateTitle."
   },
+  "danceEditorAddedMeanwhileAnnouncement": "Added a meanwhile container.",
+  "@danceEditorAddedMeanwhileAnnouncement": {
+    "description": "Screen-reader announcement after adding a meanwhile container."
+  },
+  "danceEditorAddedModifierAnnouncement": "Added a modifier container.",
+  "@danceEditorAddedModifierAnnouncement": {
+    "description": "Screen-reader announcement after adding a modifier container."
+  },
   "navCollection": "Collection",
   "@navCollection": {
     "description": "Bottom/rail navigation label for the dance collection destination."
+  },
+  "settingsDefaultsMeanwhileTitle": "Meanwhile defaults",
+  "@settingsDefaultsMeanwhileTitle": {
+    "description": "Sub-heading for default meanwhile side figures."
+  },
+  "settingsDefaultsMeanwhileSubtitle": "The side figures seeded when you add a meanwhile container. Clear it for two blank sides; one configured side gets one blank companion. You can edit the container after insertion.",
+  "@settingsDefaultsMeanwhileSubtitle": {
+    "description": "Explanation for the default meanwhile side-figure editor."
+  },
+  "settingsDefaultsModifierTitle": "Modifier defaults",
+  "@settingsDefaultsModifierTitle": {
+    "description": "Sub-heading for default modifier figures."
+  },
+  "settingsDefaultsModifierSubtitle": "The figures seeded when you add a modifier container. Clear it for two blank figures; one configured figure gets one blank companion.",
+  "@settingsDefaultsModifierSubtitle": {
+    "description": "Explanation for the default modifier-figure editor."
   },
   "navPrograms": "Programs",
   "@navPrograms": {
@@ -406,19 +430,23 @@
   "@settingsAboutLegalese": {
     "description": "Legal notice shown on the license page. 'The Caller's Compendium' and 'AGPL-3.0' are proper nouns kept verbatim."
   },
-  "settingsAboutVersion": "Version {version}",
+  "settingsAboutVersion": "Version {version}, “{codename}”",
   "@settingsAboutVersion": {
-    "description": "Version line under the app wordmark in the About header.",
+    "description": "Version and release-codename line under the app wordmark in the About header. The codename is a proper noun kept verbatim.",
     "placeholders": {
       "version": {
         "type": "String",
         "example": "1.4.0"
+      },
+      "codename": {
+        "type": "String",
+        "example": "Allemande Left"
       }
     }
   },
-  "settingsAboutVersionLine": "{appName} · Version {version} · {license}",
+  "settingsAboutVersionLine": "{appName} · Version {version}, “{codename}” · {license}",
   "@settingsAboutVersionLine": {
-    "description": "One-line footer at the bottom of the About section combining the app name, version, and license identifier. All three values are proper nouns / identifiers kept verbatim; only the word 'Version' is translatable.",
+    "description": "One-line footer at the bottom of the About section combining the app name, version, release codename, and license identifier. The app name, version, codename, and license are proper nouns / identifiers kept verbatim; only the word 'Version' is translatable.",
     "placeholders": {
       "appName": {
         "type": "String",
@@ -427,6 +455,10 @@
       "version": {
         "type": "String",
         "example": "1.4.0"
+      },
+      "codename": {
+        "type": "String",
+        "example": "Allemande Left"
       },
       "license": {
         "type": "String",
@@ -579,6 +611,26 @@
   "settingsDialectHeader": "Dialects",
   "@settingsDialectHeader": {
     "description": "Dialect settings section header for the dialect library."
+  },
+  "settingsDialectDanceDetailsHeader": "Dance details & shorthands",
+  "@settingsDialectDanceDetailsHeader": {
+    "description": "Settings subsection header for canonical dance-detail text and figure-entry preferences."
+  },
+  "settingsDialectCanonicalFigureTextTitle": "Canonical figure text",
+  "@settingsDialectCanonicalFigureTextTitle": {
+    "description": "Opt-in gate controlling whether canonical figure text and the in-detail Canonical switch are available."
+  },
+  "settingsDialectCanonicalFigureTextSubtitle": "When on, dance details can show canonical role and move names, and the Canonical switch is available on non-canonical dialects. Off by default.",
+  "@settingsDialectCanonicalFigureTextSubtitle": {
+    "description": "Explanation of the canonical figure text availability gate; it must not imply that saved dance text or entry settings are changed."
+  },
+  "settingsDialectCanonicalDiscouragedTermsTitle": "Auto-convert all discouraged terms",
+  "@settingsDialectCanonicalDiscouragedTermsTitle": {
+    "description": "Setting title for display-only conversion of discouraged dance terms."
+  },
+  "settingsDialectCanonicalDiscouragedTermsSubtitle": "When on, dance details, notes, and exports use canonical wording for supported discouraged terms. Saved text and entry fields are unchanged. On by default.",
+  "@settingsDialectCanonicalDiscouragedTermsSubtitle": {
+    "description": "Explanation of the display-only canonical discouraged-term setting; it must not imply that saved dance text or entry settings are changed."
   },
   "settingsDialectNewButton": "New dialect",
   "@settingsDialectNewButton": {
@@ -746,6 +798,55 @@
   "@settingsDefaultsPrefilledHelper": {
     "description": "Helper text under the default caller and band fields."
   },
+  "settingsDefaultsStartingProgramTitle": "Starting program",
+  "@settingsDefaultsStartingProgramTitle": {
+    "description": "Title for the reusable program template in Program defaults."
+  },
+  "settingsDefaultsStartingProgramSubtitle": "Dance and note entries added to manually created programs.",
+  "@settingsDefaultsStartingProgramSubtitle": {
+    "description": "Explanation of the starting program template."
+  },
+  "settingsDefaultsStartingProgramPickerTitle": "Add a dance",
+  "@settingsDefaultsStartingProgramPickerTitle": {
+    "description": "Title for the dance picker used by the starting program template."
+  },
+  "settingsDefaultsStartingProgramAddDance": "Dance",
+  "@settingsDefaultsStartingProgramAddDance": {
+    "description": "Button to add a dance to the starting program template."
+  },
+  "settingsDefaultsStartingProgramAddText": "Note",
+  "@settingsDefaultsStartingProgramAddText": {
+    "description": "Button to add a text note to the starting program template."
+  },
+  "settingsDefaultsStartingProgramAddBreak": "Add break",
+  "@settingsDefaultsStartingProgramAddBreak": {
+    "description": "Tooltip for adding a break to the starting program template."
+  },
+  "settingsDefaultsStartingProgramTextLabel": "Note text",
+  "@settingsDefaultsStartingProgramTextLabel": {
+    "description": "Input label for a new text note in the starting program template."
+  },
+  "settingsDefaultsStartingProgramNoteLabel": "Caller note (optional)",
+  "@settingsDefaultsStartingProgramNoteLabel": {
+    "description": "Input label for an optional note attached to a dance entry."
+  },
+  "settingsDefaultsStartingProgramMoveUp": "Move up",
+  "@settingsDefaultsStartingProgramMoveUp": {
+    "description": "Tooltip for moving a starting-program entry up."
+  },
+  "settingsDefaultsStartingProgramMoveDown": "Move down",
+  "@settingsDefaultsStartingProgramMoveDown": {
+    "description": "Tooltip for moving a starting-program entry down."
+  },
+  "settingsDefaultsStartingProgramUnavailableDance": "Unavailable dance ({id})",
+  "@settingsDefaultsStartingProgramUnavailableDance": {
+    "description": "Fallback label for a starting-program dance reference no longer in the collection.",
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
   "settingsDefaultsBandLabel": "Default band",
   "@settingsDefaultsBandLabel": {
     "description": "Text-field label for the default band prefilled into new programs."
@@ -778,7 +879,7 @@
   "@settingsDefaultsCanonicalTitle": {
     "description": "Toggle title: open dances in canonical terms rather than the active dialect."
   },
-  "settingsDefaultsCanonicalSubtitle": "When on, a dance opens showing canonical role and move names instead of your active dialect. You can still switch views on the dance while it is open.",
+  "settingsDefaultsCanonicalSubtitle": "When Canonical figure text is on, a dance opens showing canonical role and move names instead of your active dialect. When it is off, details open in your active dialect and this preference is retained.",
   "@settingsDefaultsCanonicalSubtitle": {
     "description": "Explanation for the canonical-terms default toggle."
   },
@@ -1245,6 +1346,22 @@
   "@settingsGeneralAutoSizePerformSubtitle": {
     "description": "Subtitle explaining the auto-size Perform cards toggle. 'A-' and 'A+' refer to text-size controls."
   },
+  "settingsShowIndividualPerformTimerTitle": "Show timer for individual Perform",
+  "@settingsShowIndividualPerformTimerTitle": {
+    "description": "Title of the Program settings toggle that shows an elapsed timer while performing a single dance outside a program."
+  },
+  "settingsShowIndividualPerformTimerSubtitle": "Show elapsed time while performing a single dance. The timer starts when it appears and can be paused.",
+  "@settingsShowIndividualPerformTimerSubtitle": {
+    "description": "Subtitle explaining the default-on individual Perform elapsed-timer toggle."
+  },
+  "settingsShowProgramSlotCallerNotesTitle": "Show caller notes in program Perform",
+  "@settingsShowProgramSlotCallerNotesTitle": {
+    "description": "Title of the default-on Program settings toggle that shows non-empty per-slot caller notes above dance titles in program Perform."
+  },
+  "settingsShowProgramSlotCallerNotesSubtitle": "Show non-empty per-slot caller notes above the dance title in program Perform.",
+  "@settingsShowProgramSlotCallerNotesSubtitle": {
+    "description": "Subtitle explaining the program Perform caller-note display toggle."
+  },
   "settingsGeneralCallingHistoryHeader": "Calling history",
   "@settingsGeneralCallingHistoryHeader": {
     "description": "General settings section header for calling-history preferences."
@@ -1264,6 +1381,18 @@
   "settingsGeneralTrackHistoryForAllCallersSubtitle": "When off and a default caller is set, calling history and counts include programs led by that caller plus any programs with no caller recorded (treated as your own). When on — or when no default caller is set — every program that contains the dance is tracked.",
   "@settingsGeneralTrackHistoryForAllCallersSubtitle": {
     "description": "Subtitle explaining the track-calling-history-for-all-callers toggle."
+  },
+  "settingsProgramVenueCallCountTitle": "Repeated venues in calling history",
+  "@settingsProgramVenueCallCountTitle": {
+    "description": "Title of the Program setting controlling how many venues with repeated calls appear in a dance's calling-history summary."
+  },
+  "settingsProgramVenueCallCountSubtitle": "Show the top venues where a dance was called more than once. Set to 0 to hide this summary.",
+  "@settingsProgramVenueCallCountSubtitle": {
+    "description": "Subtitle explaining the repeated-venue calling-history setting."
+  },
+  "settingsProgramVenueCallCountOption": "{count, plural, =0{Don't show} =1{1 venue} other{{count} venues}}",
+  "@settingsProgramVenueCallCountOption": {
+    "description": "Dropdown option for the number of repeated venues shown in calling history."
   },
   "settingsGeneralAccessibilityHeader": "Accessibility",
   "@settingsGeneralAccessibilityHeader": {
@@ -1717,9 +1846,13 @@
   "@commonDanceLevelAdvanced": {
     "description": "Dance difficulty value: advanced level."
   },
-  "commonFormationDupleImproper": "Duple improper",
+  "commonFormationDupleImproper": "Improper",
   "@commonFormationDupleImproper": {
     "description": "Formation shape value: duple improper."
+  },
+  "commonFormationReverseProgressionImproper": "Reverse progression improper",
+  "@commonFormationReverseProgressionImproper": {
+    "description": "Formation shape value: improper formation with reverse progression."
   },
   "commonFormationBecketCw": "Becket (CW)",
   "@commonFormationBecketCw": {
@@ -1729,11 +1862,11 @@
   "@commonFormationBecketCcw": {
     "description": "Formation shape value: Becket, counter-clockwise progression (CCW)."
   },
-  "commonFormationDupleProper": "Duple proper",
+  "commonFormationDupleProper": "Proper",
   "@commonFormationDupleProper": {
     "description": "Formation shape value: duple proper."
   },
-  "commonFormationDupleIndecent": "Duple indecent",
+  "commonFormationDupleIndecent": "Indecent",
   "@commonFormationDupleIndecent": {
     "description": "Formation shape value: duple indecent."
   },
@@ -1969,6 +2102,14 @@
   "@collectionSearchFieldHint": {
     "description": "Hint text of the local collection search field, listing what is searched."
   },
+  "collectionPickerSearchFieldHint": "Search titles, figures, notes…",
+  "@collectionPickerSearchFieldHint": {
+    "description": "Hint text of the collection picker search field, listing what is searched."
+  },
+  "collectionPickerOnlineSearchFieldHint": "Search online dances by title…",
+  "@collectionPickerOnlineSearchFieldHint": {
+    "description": "Hint text of the collection picker when its online search is limited to titles."
+  },
   "collectionSearchScopeLabel": "Search in",
   "@collectionSearchScopeLabel": {
     "description": "Label for the local collection search scope selector."
@@ -1980,6 +2121,10 @@
   "collectionSearchScopeTitle": "Title",
   "@collectionSearchScopeTitle": {
     "description": "Local collection search scope restricted to dance titles."
+  },
+  "collectionSearchScopeAuthor": "Author",
+  "@collectionSearchScopeAuthor": {
+    "description": "Collection search scope restricted to dance authors, including the online author criterion."
   },
   "collectionSearchScopeFigure": "Figure",
   "@collectionSearchScopeFigure": {
@@ -2589,6 +2734,10 @@
   "@collectionCreateTagError": {
     "description": "Snackbar shown when creating a tag fails."
   },
+  "collectionBatchApplyError": "Could not apply batch changes. Try again.",
+  "@collectionBatchApplyError": {
+    "description": "Snackbar shown when applying a batch tag operation fails."
+  },
   "collectionBatchTagAddConfirm": "Add",
   "@collectionBatchTagAddConfirm": {
     "description": "Confirm button of the batch add-tags dialog."
@@ -2747,7 +2896,7 @@
   },
   "danceMissingRelated": "(missing dance)",
   "@danceMissingRelated": {
-    "description": "Placeholder for a related-dance link whose target has been deleted."
+    "description": "Placeholder for a related-dance link whose target row is absent; soft-deleted targets are hidden instead."
   },
   "danceSectionPublishedSources": "Published sources",
   "@danceSectionPublishedSources": {
@@ -2768,6 +2917,20 @@
   "danceCallingHistoryError": "Could not load the calling history.",
   "@danceCallingHistoryError": {
     "description": "Shown in the calling-history section when its query fails, instead of the empty state — which would otherwise claim the dance has never been called."
+  },
+  "danceVenueCallCount": "{count, plural, =1{Called 1 time at {venue}} other{Called {count} times at {venue}}}",
+  "@danceVenueCallCount": {
+    "description": "Repeated-venue calling-history summary item.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "venue": {
+        "type": "String",
+        "example": "Grange Hall"
+      }
+    }
   },
   "danceShowCanonicalTerms": "Show canonical terms",
   "@danceShowCanonicalTerms": {
@@ -3083,6 +3246,14 @@
   "@programsSaveError": {
     "description": "Snackbar shown when saving the program fails."
   },
+  "programsUndoPerformedError": "Could not undo marking; performed marks remain saved.",
+  "@programsUndoPerformedError": {
+    "description": "Snackbar shown when undoing a bulk performed marking fails; the performed marks remain saved."
+  },
+  "programsUndoRefreshError": "Undo was saved, but the editor could not refresh.",
+  "@programsUndoRefreshError": {
+    "description": "Snackbar shown when bulk performed Undo is saved but the editor cannot refresh afterward."
+  },
   "programsDuplicatedSnack": "Duplicated as \"{title}\".",
   "@programsDuplicatedSnack": {
     "description": "Snackbar confirming a program was duplicated, quoting the copy's title.",
@@ -3183,7 +3354,7 @@
   "@programsAddDanceButton": {
     "description": "Button that opens the dance picker to add a dance slot to the program."
   },
-  "programsAddNoteBreakButton": "Add note / break",
+  "programsAddNoteBreakButton": "Add note / waltz",
   "@programsAddNoteBreakButton": {
     "description": "Button that adds a free-text note or break slot to the program."
   },
@@ -3710,9 +3881,17 @@
   "@programsGuestCallerLabel": {
     "description": "Text field label for an optional guest caller on a program slot."
   },
-  "programsPlannedMinutesLabel": "Planned minutes (optional)",
-  "@programsPlannedMinutesLabel": {
-    "description": "Text field label for the optional planned minutes on a program slot."
+  "programsPlannedTimingHeader": "Planned timing",
+  "@programsPlannedTimingHeader": {
+    "description": "Heading above optional walkthrough and dance timing fields on a program slot."
+  },
+  "programsWalkthroughMinutesLabel": "Walkthrough minutes (optional)",
+  "@programsWalkthroughMinutesLabel": {
+    "description": "Text field label for the optional planned walkthrough duration on a program slot."
+  },
+  "programsDanceMinutesLabel": "Dance minutes (optional)",
+  "@programsDanceMinutesLabel": {
+    "description": "Text field label for the optional planned dance duration on a program slot."
   },
   "programsAlternateDanceTitle": "Alternate dance",
   "@programsAlternateDanceTitle": {
@@ -3774,6 +3953,22 @@
   "@programsMatrixShowAllColumnsSemantic": {
     "description": "Accessible label/tooltip for the control (next to the matrix PDF-export button) that restores every column hidden via the per-column hide glyph (#669)."
   },
+  "programsMatrixHideAlternatesSemantic": "Hide alternate rows",
+  "@programsMatrixHideAlternatesSemantic": {
+    "description": "Accessible label/tooltip for the matrix control that hides alternate dance rows from the transient on-screen view."
+  },
+  "programsMatrixShowAlternatesSemantic": "Show alternate rows",
+  "@programsMatrixShowAlternatesSemantic": {
+    "description": "Accessible label/tooltip for the matrix control that restores alternate dance rows in the transient on-screen view."
+  },
+  "programsMatrixShowPhrasesSemantic": "Show phrase labels",
+  "@programsMatrixShowPhrasesSemantic": {
+    "description": "Accessible label/tooltip for the matrix control that replaces comparable cell glyphs with phrase labels in the transient on-screen view."
+  },
+  "programsMatrixHidePhrasesSemantic": "Show presence glyphs",
+  "@programsMatrixHidePhrasesSemantic": {
+    "description": "Accessible label/tooltip for the matrix control that restores comparable cell presence glyphs in the transient on-screen view."
+  },
   "programsMatrixRowHeaderSemantic": "{alt, select, yes{{half, select, first{Alternate dance: {title}, first half} second{Alternate dance: {title}, second half} other{Alternate dance: {title}}}} other{{half, select, first{Dance: {title}, first half} second{Dance: {title}, second half} other{Dance: {title}}}}}",
   "@programsMatrixRowHeaderSemantic": {
     "description": "Screen-reader label for a matrix row header identifying a dance, whether it is an alternate, and which program half it belongs to.",
@@ -3802,6 +3997,56 @@
       }
     }
   },
+  "programsMatrixSectionShort": "{sectionKey, select, s1{1st} s2{2nd} s3{3rd} s4{4th} s5{5th} s6{6th} s7{7th} s8{8th} s9{9th} other{{sectionNumber}}}",
+  "@programsMatrixSectionShort": {
+    "description": "Short localized ordinal label for a numbered program section (for example, 1st, 2nd, or 3rd). sectionKey selects listed ordinals; sectionNumber is the raw number used above the listed ordinals.",
+    "placeholders": {
+      "sectionKey": {
+        "type": "String",
+        "example": "s3"
+      },
+      "sectionNumber": {
+        "type": "String",
+        "example": "10"
+      }
+    }
+  },
+  "programsMatrixSectionRowHeaderSemantic": "{alt, select, yes{{section, select, none{Alternate dance: {title}} other{Alternate dance: {title}, section {section}}}} other{{section, select, none{Dance: {title}} other{Dance: {title}, section {section}}}}}",
+  "@programsMatrixSectionRowHeaderSemantic": {
+    "description": "Screen-reader label for a matrix row header identifying a dance, whether it is an alternate, and its numbered program section.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Chorus Jig"
+      },
+      "alt": {
+        "type": "String",
+        "example": "yes"
+      },
+      "section": {
+        "type": "String",
+        "example": "3rd"
+      }
+    }
+  },
+  "programsMatrixSectionChipQualifiedTitle": "{alt, select, yes{{section, select, none{{title} (alternate dance)} other{{title} (alternate dance, section {section})}}} other{{section, select, none{{title}} other{{title} (section {section})}}}}",
+  "@programsMatrixSectionChipQualifiedTitle": {
+    "description": "Compact matrix dance-chip label with alternate-dance and numbered-section qualifiers.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Chorus Jig"
+      },
+      "alt": {
+        "type": "String",
+        "example": "no"
+      },
+      "section": {
+        "type": "String",
+        "example": "3rd"
+      }
+    }
+  },
   "programsMatrixFormationColumnHeader": "Formation",
   "@programsMatrixFormationColumnHeader": {
     "description": "Header label for the matrix's pinned formation column (#663), naming what the column shows."
@@ -3820,7 +4065,7 @@
       }
     }
   },
-  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{not present} other{present{collision, select, phrase{, repeats in the same phrase as an adjacent dance} beats{, shares beats with an adjacent dance} other{}}{debut, select, yes{, introduced here} other{}}{first, select, yes{, dance's first figure} other{}}}}",
+  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{not present} other{present{collision, select, phrase{, repeats in the same phrase as an adjacent dance} beats{, shares beats with an adjacent dance} other{}}{debut, select, yes{, introduced here} other{}}{first, select, yes{, dance's first figure} other{}}}}{phrases, select, none{} other{, phrase(s): {phrases}}}",
   "@programsMatrixCellSemantic": {
     "description": "Screen-reader label for a matrix cell: whether a dance uses a move, and whether that use collides with a strictly-adjacent dance, is the move's program debut, and/or the dance's opening figure. The collision placeholder is 'phrase' (starts in the same named phrase, issue #582's original rule), 'beats' (its beat span actually overlaps, issue #962's default), or 'other' (no collision) depending on the matrix's active collision-detection mode.",
     "placeholders": {
@@ -3835,6 +4080,10 @@
       "present": {
         "type": "String",
         "example": "yes"
+      },
+      "phrases": {
+        "type": "String",
+        "example": "A1, B1"
       },
       "collision": {
         "type": "String",
@@ -4204,9 +4453,9 @@
   "@performPauseTimers": {
     "description": "Tooltip for the button that pauses the running performance timers."
   },
-  "performTimingSemantic": "Program time {programTime}, slot time {slotTime}{hasPlanned, select, yes{, planned {planned, plural, =1{1 minute} other{{planned} minutes}}} other{}}{over, select, yes{, over planned} other{}}{paused, select, yes{, paused} other{}}",
+  "performTimingSemantic": "Program time {programTime}, slot time {slotTime}{hasPlanned, select, yes{, planned {planned, plural, =1{1 minute} other{{planned} minutes}}: {walkthrough} walkthrough and {dance} dance} other{}}{walkthroughComplete, select, yes{, walkthrough complete} other{}}{over, select, yes{, over planned} other{}}{paused, select, yes{, paused} other{}}",
   "@performTimingSemantic": {
-    "description": "Screen-reader label for the perform-mode timing line: elapsed program time, elapsed slot time, and optional planned length, over-plan cue, and paused state.",
+    "description": "Screen-reader label for the perform-mode timing line: elapsed program and slot times, optional split timing, walkthrough-transition and over-plan cues, and paused state.",
     "placeholders": {
       "programTime": {
         "type": "String",
@@ -4224,6 +4473,18 @@
         "type": "int",
         "example": "8"
       },
+      "walkthrough": {
+        "type": "int",
+        "example": "3"
+      },
+      "dance": {
+        "type": "int",
+        "example": "5"
+      },
+      "walkthroughComplete": {
+        "type": "String",
+        "example": "no"
+      },
       "over": {
         "type": "String",
         "example": "no"
@@ -4234,19 +4495,49 @@
       }
     }
   },
-  "performPlannedMin": "planned {planned} min",
-  "@performPlannedMin": {
-    "description": "Visible short label for a slot's planned length in minutes on the perform-mode timing line.",
+  "performIndividualTimingSemantic": "Elapsed time {elapsedTime}{paused, select, yes{, paused} other{}}",
+  "@performIndividualTimingSemantic": {
+    "description": "Screen-reader label for the individual Perform elapsed-timer line.",
+    "placeholders": {
+      "elapsedTime": {
+        "type": "String",
+        "example": "12:34"
+      },
+      "paused": {
+        "type": "String",
+        "example": "no"
+      }
+    }
+  },
+  "performPlannedSplit": "planned {planned} min ({walkthrough}:{dance})",
+  "@performPlannedSplit": {
+    "description": "Visible short label for a slot's combined planned duration and its walkthrough:dance split in minutes on the perform-mode timing line.",
     "placeholders": {
       "planned": {
         "type": "int",
         "example": "8"
+      },
+      "walkthrough": {
+        "type": "int",
+        "example": "3"
+      },
+      "dance": {
+        "type": "int",
+        "example": "5"
       }
     }
+  },
+  "performWalkthroughCompleteSuffix": " walkthrough complete",
+  "@performWalkthroughCompleteSuffix": {
+    "description": "Visible suffix, with a leading space, shown after the split planned-duration label once a positive walkthrough duration has elapsed."
   },
   "performOverSuffix": " over",
   "@performOverSuffix": {
     "description": "Visible suffix (with a leading space) shown after the planned-minutes label when the current slot has run over its planned length."
+  },
+  "performSlotCallerNote": "Caller note",
+  "@performSlotCallerNote": {
+    "description": "Label shown before a per-slot caller note above a dance title in program Perform."
   },
   "performCallingNotes": "Calling notes",
   "@performCallingNotes": {
@@ -4417,6 +4708,74 @@
   "exportShareProgramJson": "Export as JSON file",
   "@exportShareProgramJson": {
     "description": "Program export-menu item: share the program and its dances as a plain .json file, the same content as the .ccshare bundle but in a format any device can open."
+  },
+  "exportJsonDialogTitle": "Export JSON",
+  "@exportJsonDialogTitle": {
+    "description": "Title of the dialog shown before delivering a canonical dance or program JSON export."
+  },
+  "exportJsonDialogMessage": "Choose how to deliver this JSON file.",
+  "@exportJsonDialogMessage": {
+    "description": "Message in the JSON export delivery-choice dialog."
+  },
+  "exportJsonSave": "Save",
+  "@exportJsonSave": {
+    "description": "JSON export delivery-choice button that opens a native file-save flow."
+  },
+  "exportJsonCopy": "Copy raw JSON",
+  "@exportJsonCopy": {
+    "description": "JSON export delivery-choice button that copies the exact canonical JSON string."
+  },
+  "exportJsonShare": "Share",
+  "@exportJsonShare": {
+    "description": "JSON export delivery-choice button that invokes the existing OS share flow."
+  },
+  "exportJsonCancel": "Cancel",
+  "@exportJsonCancel": {
+    "description": "JSON export delivery-choice button that produces no output."
+  },
+  "exportJsonCopied": "JSON copied to clipboard.",
+  "@exportJsonCopied": {
+    "description": "Snackbar confirming that the exact JSON export string was copied."
+  },
+  "exportJsonSaved": "\"{fileName}\" saved.",
+  "@exportJsonSaved": {
+    "description": "Snackbar confirming a JSON export was saved when no destination is returned.",
+    "placeholders": {
+      "fileName": {
+        "type": "String",
+        "example": "dance.json"
+      }
+    }
+  },
+  "exportJsonSavedGeneric": "JSON file saved.",
+  "@exportJsonSavedGeneric": {
+    "description": "Snackbar confirming a JSON export was saved when the platform does not return a displayable filename."
+  },
+  "exportJsonSavedTo": "\"{fileName}\" saved to {destination}.",
+  "@exportJsonSavedTo": {
+    "description": "Snackbar confirming a JSON export and naming the destination returned by the platform save API.",
+    "placeholders": {
+      "fileName": {
+        "type": "String",
+        "example": "dance.json"
+      },
+      "destination": {
+        "type": "String",
+        "example": "/Users/example/Downloads/dance.json"
+      }
+    }
+  },
+  "exportJsonSaveError": "Couldn't save this JSON file.",
+  "@exportJsonSaveError": {
+    "description": "Snackbar shown when saving a JSON export fails."
+  },
+  "exportJsonCopyError": "Couldn't copy this JSON.",
+  "@exportJsonCopyError": {
+    "description": "Snackbar shown when copying a JSON export fails."
+  },
+  "exportJsonShareError": "Couldn't share this JSON file.",
+  "@exportJsonShareError": {
+    "description": "Snackbar shown when sharing a JSON export fails."
   },
   "exportShareSetListError": "Couldn't share this set list",
   "@exportShareSetListError": {
@@ -4660,9 +5019,13 @@
       }
     }
   },
-  "onlineSearchFieldHint": "Search online dances by title…",
+  "onlineSearchFieldHint": "Search online dances by title or author…",
   "@onlineSearchFieldHint": {
     "description": "Hint text for the online search field."
+  },
+  "collectionOnlineSearchFieldHint": "Search online dances by title, author, or figure…",
+  "@collectionOnlineSearchFieldHint": {
+    "description": "Hint text for the Collection screen online search field; the CollectionPicker remains title-oriented."
   },
   "onlineResultCount": "{count, plural, =1{1 online result} other{{count} online results}}",
   "@onlineResultCount": {
@@ -4673,7 +5036,7 @@
       }
     }
   },
-  "onlineSearchHintByPhrase": "Type a title or add by-phrase figures to search {source}.",
+  "onlineSearchHintByPhrase": "Type a title or author, or add by-phrase figures to search {source}.",
   "@onlineSearchHintByPhrase": {
     "description": "Empty-query hint for online sources that support by-phrase figure criteria.",
     "placeholders": {
@@ -4683,9 +5046,29 @@
       }
     }
   },
-  "onlineSearchHintTitle": "Type a title to search {source}.",
+  "onlineSearchHintTitle": "Type a title or author to search {source}.",
   "@onlineSearchHintTitle": {
-    "description": "Empty-query hint for online sources that only support title search.",
+    "description": "Empty-query hint for online sources without by-phrase support.",
+    "placeholders": {
+      "source": {
+        "type": "String",
+        "example": "ContraDB"
+      }
+    }
+  },
+  "collectionOnlineSearchHintByPhrase": "Type a title, author, or figure, or add by-phrase figures to search {source}.",
+  "@collectionOnlineSearchHintByPhrase": {
+    "description": "Empty-query hint for the Collection screen's online sources that support by-phrase figure criteria.",
+    "placeholders": {
+      "source": {
+        "type": "String",
+        "example": "Caller's Box"
+      }
+    }
+  },
+  "collectionOnlineSearchHintTitle": "Type a title, author, or figure to search {source}.",
+  "@collectionOnlineSearchHintTitle": {
+    "description": "Empty-query hint for the Collection screen's online sources without by-phrase support.",
     "placeholders": {
       "source": {
         "type": "String",
@@ -5469,9 +5852,13 @@
   "@importErrorCallersBoxImportFailed": {
     "description": "Error shown when committing a Caller's Box dance failed. Generic by design; underlying error detail is not shown."
   },
-  "importErrorContraDbEmptyTitle": "Enter a title to search ContraDB.",
+  "importErrorContraDbEmptyTitle": "Enter a title or author to search ContraDB.",
   "@importErrorContraDbEmptyTitle": {
-    "description": "Error shown when a ContraDB search is attempted with no title."
+    "description": "Error shown when a ContraDB search is attempted with no title or author."
+  },
+  "importErrorContraDbUnsupportedFigure": "ContraDB Figure searches use a complete move name, such as \"box circulate\".",
+  "@importErrorContraDbUnsupportedFigure": {
+    "description": "Error shown when a ContraDB Figure search is not an exact canonical move name."
   },
   "importErrorContraDbEmptyDanceInput": "Enter a ContraDB dance URL or id to import from.",
   "@importErrorContraDbEmptyDanceInput": {
@@ -6958,6 +7345,14 @@
   "@danceEditorAddFigure": {
     "description": "Button label for adding another figure row."
   },
+  "danceEditorAddMeanwhile": "Add meanwhile",
+  "@danceEditorAddMeanwhile": {
+    "description": "Menu item label for adding an empty meanwhile container."
+  },
+  "danceEditorAddModifier": "Add modifier",
+  "@danceEditorAddModifier": {
+    "description": "Menu item label for adding an empty modifier container."
+  },
   "danceEditorPasteAtEndOfFigureList": "Paste at end of figure list",
   "@danceEditorPasteAtEndOfFigureList": {
     "description": "Semantics label for pasting a cut figure at the end of the list."
@@ -7084,6 +7479,72 @@
   "@danceEditorGroupWithNext": {
     "description": "Menu item label that groups this figure row with the one immediately after it into a meanwhile (concurrent) group (#593). Hidden when there is no next row or either row is already a meanwhile group."
   },
+  "danceEditorGroupWithNextAsModifier": "Group with next as modifier",
+  "@danceEditorGroupWithNextAsModifier": {
+    "description": "Menu item label that groups this figure row with the one immediately after it into an ordered modifier group."
+  },
+  "danceEditorConvertToMeanwhile": "Convert to meanwhile",
+  "@danceEditorConvertToMeanwhile": {
+    "description": "Menu item label for converting a flat modifier group into a meanwhile group."
+  },
+  "danceEditorConvertToModifier": "Convert to modifier",
+  "@danceEditorConvertToModifier": {
+    "description": "Menu item label for converting a flat meanwhile group into a modifier group."
+  },
+  "danceEditorUngroupMeanwhile": "Ungroup meanwhile",
+  "@danceEditorUngroupMeanwhile": {
+    "description": "Menu item label for replacing a meanwhile group with its child figures."
+  },
+  "danceEditorUngroupModifier": "Ungroup modifier",
+  "@danceEditorUngroupModifier": {
+    "description": "Menu item label for replacing a modifier group with its child figures."
+  },
+  "danceEditorModifierGroupLabel": "{count, plural, other{Modifier ({count} figures)}}",
+  "@danceEditorModifierGroupLabel": {
+    "description": "Visible heading for a modifier group's expanded editor."
+  },
+  "danceEditorModifierGroupSemantic": "Modifier group, {count, plural, =1{1 figure} other{{count} figures}}, {beats, plural, =1{1 beat} other{{beats} beats}}.",
+  "@danceEditorModifierGroupSemantic": {
+    "description": "Accessibility label for a modifier group."
+  },
+  "danceEditorAddModifierChild": "Add modifier",
+  "@danceEditorAddModifierChild": {
+    "description": "Button label for adding another figure to a modifier group."
+  },
+  "danceEditorModifierCoreLabel": "Core",
+  "@danceEditorModifierCoreLabel": {
+    "description": "Visible label for the first figure in a modifier group."
+  },
+  "danceEditorModifierChildLabel": "Modifier",
+  "@danceEditorModifierChildLabel": {
+    "description": "Visible label for a non-core figure in a modifier group."
+  },
+  "danceEditorModifierCoreSemantic": "Core figure in modifier group.",
+  "@danceEditorModifierCoreSemantic": {
+    "description": "Accessibility label for the first figure in a modifier group."
+  },
+  "danceEditorModifierChildSemantic": "Modifier figure {number} of {total}.",
+  "@danceEditorModifierChildSemantic": {
+    "description": "Accessibility label for a non-core figure in a modifier group.",
+    "placeholders": {
+      "number": {
+        "type": "int",
+        "example": "2"
+      },
+      "total": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "danceEditorRemoveModifierCore": "Remove core figure",
+  "@danceEditorRemoveModifierCore": {
+    "description": "Removal tooltip for the core figure in a modifier group."
+  },
+  "danceEditorRemoveModifierChild": "Remove modifier figure",
+  "@danceEditorRemoveModifierChild": {
+    "description": "Removal tooltip for a non-core figure in a modifier group."
+  },
   "danceEditorMeanwhileGroupLabel": "{count, plural, other{Meanwhile ({count} sides)}}",
   "@danceEditorMeanwhileGroupLabel": {
     "description": "Visible heading for a meanwhile group's expanded editor and its display name elsewhere (drag handle, cut banner, duplicate announcement).",
@@ -7143,6 +7604,16 @@
   "danceEditorMeanwhileSidesCapReached": "Maximum of {max} concurrent figures.",
   "@danceEditorMeanwhileSidesCapReached": {
     "description": "Inline message shown in place of the add-side button once a meanwhile group has reached the maximum allowed number of concurrent sides.",
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "example": "6"
+      }
+    }
+  },
+  "danceEditorModifierChildrenCapReached": "Maximum of {max} ordered modifier figures.",
+  "@danceEditorModifierChildrenCapReached": {
+    "description": "Inline message shown in place of the add-child button once a modifier has reached the maximum allowed number of ordered children.",
     "placeholders": {
       "max": {
         "type": "int",
@@ -7235,6 +7706,10 @@
   "danceEditorParamNotStated": "not stated",
   "@danceEditorParamNotStated": {
     "description": "Shown in the figure parameter editor when the source never stated a value for this parameter, so none may be assumed. Used by the rotation stepper and by the choice dropdowns whose parameter admits the unstated state."
+  },
+  "figureParamFacingStarBackingUp": "backing up",
+  "@figureParamFacingStarBackingUp": {
+    "description": "Display-only label for the facing star move's `who` parameter in figure editors and search controls."
   },
   "danceEditorParamClearTooltip": "Clear (not stated)",
   "@danceEditorParamClearTooltip": {

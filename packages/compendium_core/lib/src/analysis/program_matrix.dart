@@ -40,7 +40,6 @@ import 'package:meta/meta.dart';
 import '../dialect/dialect.dart';
 import '../dialect/renderer.dart';
 import '../model/dance.dart';
-import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
 import '../model/phrase_structure.dart';
@@ -357,7 +356,7 @@ class MatrixRow {
     required Set<String> presentMoveIds,
     Map<String, Set<String>> phraseLabelsByMove = const {},
     Map<String, List<BeatSpan>> beatSpansByMove = const {},
-    this.half,
+    this.section,
     this.formation = const Formation(FormationShape.dupleImproper),
   }) : presentMoveIds = Set.unmodifiable(presentMoveIds),
        phraseLabelsByMove = Map.unmodifiable({
@@ -372,10 +371,11 @@ class MatrixRow {
   final String danceId;
   final String title;
 
-  /// The program half this dance's slot falls in (see [Program.halfAtIndex]),
-  /// or `null` when the program has no break to derive halves from. Drives the
-  /// "1st"/"2nd" half badge on the matrix row header.
-  final ProgramHalf? half;
+  /// The numbered program section this dance's slot falls in
+  /// (see [Program.sectionAtIndex]), or `null` when the program has no break
+  /// or the slot itself is a break. Drives the ordinal badge on the matrix row
+  /// header.
+  final int? section;
 
   /// Column key of the dance's FIRST figure (the first-figure highlight), or
   /// `null` when the dance has no figures. Custom first figures use
@@ -424,7 +424,7 @@ class MatrixRow {
       other.danceId == danceId &&
       other.title == title &&
       other.firstMoveId == firstMoveId &&
-      other.half == half &&
+      other.section == section &&
       other.formation == formation &&
       _setEq.equals(other.presentMoveIds, presentMoveIds) &&
       _phraseMapEq.equals(other.phraseLabelsByMove, phraseLabelsByMove) &&
@@ -435,7 +435,7 @@ class MatrixRow {
     danceId,
     title,
     firstMoveId,
-    half,
+    section,
     formation,
     _setEq.hash(presentMoveIds),
     _phraseMapEq.hash(phraseLabelsByMove),
@@ -693,13 +693,13 @@ MatrixColumn _splitColumn(String baseMoveId, String variant) => MatrixColumn(
 /// presence set) so the gap is visible; they contribute no columns of their own
 /// (but the swing baseline still appears while any dance exists).
 ///
-/// [halves], when provided, is a parallel list aligned to [dances] (same order
-/// and length) supplying each row's derived [ProgramHalf] (see
-/// [Program.halvesForSlots] / [Program.halfAtIndex]); a `null` entry means the
-/// dance has no half (the program has no break, or the slot is itself the
-/// break). It must be exactly the same length as [dances] — a mismatch throws
-/// [ArgumentError] (enforced at runtime, in release builds too). Omit it to
-/// leave every row's [MatrixRow.half] `null`.
+/// [sections], when provided, is a parallel list aligned to [dances] (same
+/// order and length) supplying each row's derived numbered section (see
+/// [Program.sectionsForSlots] / [Program.sectionAtIndex]); a `null` entry means
+/// the dance has no section (the program has no break, or the slot is itself
+/// the break). It must be exactly the same length as [dances] — a mismatch
+/// throws [ArgumentError] (enforced at runtime, in release builds too). Omit
+/// it to leave every row's [MatrixRow.section] `null`.
 ///
 /// [collisionMode] sets [ProgramMatrix.collisionMode] (issue #962), defaulting
 /// to [MatrixCollisionMode.exactBeats] — the callers deriving the on-screen
@@ -720,15 +720,15 @@ MatrixColumn _splitColumn(String baseMoveId, String variant) => MatrixColumn(
 ProgramMatrix buildProgramMatrix(
   List<Dance> dances, {
   Taxonomy? taxonomy,
-  List<ProgramHalf?>? halves,
+  List<int?>? sections,
   MatrixCollisionMode collisionMode = MatrixCollisionMode.exactBeats,
   MatrixColumnConfig config = MatrixColumnConfig.empty,
 }) {
   final tax = taxonomy ?? contraTaxonomy;
-  if (halves != null && halves.length != dances.length) {
+  if (sections != null && sections.length != dances.length) {
     throw ArgumentError.value(
-      halves.length,
-      'halves',
+      sections.length,
+      'sections',
       'must be aligned to dances (same length: ${dances.length})',
     );
   }
@@ -805,7 +805,7 @@ ProgramMatrix buildProgramMatrix(
         presentMoveIds: rowMoves,
         phraseLabelsByMove: phraseLabels,
         beatSpansByMove: beatSpans,
-        half: halves == null ? null : halves[i],
+        section: sections == null ? null : sections[i],
         formation: dance.formation,
       ),
     );

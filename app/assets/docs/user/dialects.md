@@ -154,6 +154,15 @@ these while writing a dance, the editor gently flags it (it shows the word struc
 through) so you can reconsider — but it never blocks you or changes your text. The
 list ships with some common examples and is yours to edit, add to, or clear.
 
+For read-only dance details, shorthand summaries, Perform mode, and dance/program
+exports, the app also converts supported discouraged terms to the active dialect's
+canonical wording by default. Turn off **Auto-convert all discouraged terms**
+under **Dance details & shorthands** if you prefer to see the stored wording.
+This is display-only: saved dances, notes, search data, archives, and stored
+metadata are never changed. Read-only dance details also apply the setting to
+formation details, tunes, and custom-field values; titles remain literal, and
+machine-readable archives remain lossless.
+
 > **The app watches for clashes.** If two different things would end up with the
 > exact same wording, the editor warns you right away, because that would make it
 > impossible to tell them apart later. Adjust one of the words and the warning
@@ -179,12 +188,14 @@ Sometimes you want to see a dance in the plain, shared wording — to compare no
 with another caller, or to double-check what a figure really is underneath your
 own phrasing.
 
-On the dance card and in Perform mode, the **Show canonical terms** control (shown
-as a **Canonical** switch on the dance card) flips the current view between your
-dialect and the shared canonical wording. It changes only what is on screen right
-then — it doesn't change your active dialect or touch the saved dance. When your
-active dialect is already **Canonical**, the toggle isn't shown, because there
-would be nothing to switch between.
+On the dance card, the **Show canonical terms** control (shown as a **Canonical**
+switch) flips the current view between your dialect and the shared canonical
+wording. Enable **Canonical figure text** in **Settings › Dialect › Dance details
+& shorthands** first; when it is off, dance details stay in your active dialect
+and the switch is hidden. The control changes only what is on screen right then —
+it doesn't change your active dialect or touch the saved dance. When your active
+dialect is already **Canonical**, the toggle isn't shown, because there would be
+nothing to switch between. Perform mode's own canonical view setting is separate.
 
 This pairs naturally with Perform mode: you can call from your own words and, if a
 dancer or another caller asks, flip to the canonical wording for a moment without
@@ -197,11 +208,19 @@ Two settings decide what you see before you touch anything:
 
 - **Your active dialect** (in **Settings › Dialect**) is the wording every screen
   uses by default.
-- **Open dance details in canonical terms** (in **Settings › Defaults**, under
-  *Display defaults*) decides whether a dance opens showing your dialect or the
-  shared canonical wording. Leave it off to always open in your own words; turn it
-  on if you prefer to start from the neutral wording. Either way, the on-screen
-  toggle still lets you switch a dance while it is open.
+- **Canonical figure text** (in **Settings › Dialect › Dance details &
+  shorthands**) controls whether dance details may show canonical wording. It is
+  off by default.
+- **Auto-convert all discouraged terms** (in **Settings › Dialect › Dance details
+  & shorthands**) controls whether supported discouraged terms are shown in
+  canonical wording. It is on by default.
+- **Open dance details in canonical terms** decides whether a dance opens showing
+  your dialect or the shared canonical wording, when canonical figure text is
+  enabled. If the gate is off, details open in your active dialect and the child
+  preference is retained for later. On an existing installation, the first
+  detail open initializes the new gate off and converts an older canonical
+  default to the active-dialect default; later changes to the gate never
+  overwrite this preference.
 
 For a full tour of everything under Settings, see the
 [Settings guide](./settings.md).

@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import '../model/enums.dart';
 import '../model/formation.dart';
+import '../sync/sync_record_kind.dart';
 
 // Design: docs/design/storage.md. `dance_figures` is a derived, rebuildable
 // index over `dances.figures_json` (the authoritative store); `dance_fts` is
@@ -83,13 +84,14 @@ class Dances extends Table {
   TextColumn get status =>
       text().map(const EnumNameConverter(DanceStatus.values))();
 
-  /// Difficulty on the ordered [DanceLevel] scale, persisted by enum name;
-  /// nullable (`null` = unspecified). Added in schema v4 (CC-parity `Level`).
-  TextColumn get level =>
-      text().nullable().map(const EnumNameConverter(DanceLevel.values))();
+  /// Selected [DifficultyLevels] row, nullable when unspecified. Added in
+  /// schema v34; the migration maps v4's enum-name `level` column to stable
+  /// vocabulary IDs.
+  TextColumn get levelId =>
+      text().nullable().references(DifficultyLevels, #id)();
 
-  /// Marks a dance that spans the difficulty scale; kept separate from [level]
-  /// so the ordered scale stays total. Added in schema v4 (CC `Mixed Level`).
+  /// Marks a dance that spans the difficulty scale; kept separate from
+  /// [levelId]. Added in schema v4 (CC `Mixed Level`).
   BoolColumn get mixedLevel => boolean().withDefault(const Constant(false))();
 
   /// Whether the dance is a **mixer** (dancers change partners each time
@@ -125,6 +127,21 @@ class Dances extends Table {
   /// Existence-transition stamp; see the sync-triple note at the top of this
   /// file. Added in schema v25 (issue #898); `dances` already carried the
   /// other two.
+  DateTimeColumn get existenceAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// User-configurable vocabulary for dance difficulty. The three shipped entries
+/// use fixed IDs; custom entries receive UUIDv4 IDs from the repository.
+@DataClassName('DifficultyLevelRow')
+class DifficultyLevels extends Table {
+  TextColumn get id => text()();
+  TextColumn get label => text().unique()();
+  IntColumn get position => integer()();
+  DateTimeColumn get updatedAt => dateTime().nullable()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
   DateTimeColumn get existenceAt => dateTime().nullable()();
 
   @override
@@ -270,9 +287,11 @@ class ProgramSlots extends Table {
   TextColumn get danceId =>
       text().nullable().references(Dances, #id, onDelete: KeyAction.setNull)();
   TextColumn get text_ => text().nullable().named('text')();
+  BoolColumn get isPurgedDance => boolean().nullable()();
   BoolColumn get isAlt => boolean().withDefault(const Constant(false))();
   TextColumn get guestCaller => text().nullable()();
-  IntColumn get plannedMinutes => integer().nullable()();
+  IntColumn get walkthroughMinutes => integer().nullable()();
+  IntColumn get danceMinutes => integer().nullable()();
   DateTimeColumn get performedAt => dateTime().nullable()();
 
   @override
@@ -599,6 +618,83 @@ class NormalisationSkips extends Table {
 
   @override
   Set<Column> get primaryKey => {tableNameValue, columnNameValue, recordId};
+}
+
+/// The persisted epoch for the sync baseline. The fixed key is enforced in
+/// SQLite so an empty baseline cannot have ambiguous metadata.
+@DataClassName('BaselineStateRow')
+class BaselineState extends Table {
+  IntColumn get id => integer().customConstraint('NOT NULL CHECK (id = 1)')();
+  TextColumn get epoch => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Last-agreed hashes for each syncable record in the current baseline.
+@DataClassName('BaselineEntryRow')
+class BaselineEntries extends Table {
+  TextColumn get kind =>
+      text().map(const EnumNameConverter(SyncRecordKind.values))();
+  TextColumn get recordId => text()();
+  TextColumn get wireHash => text()();
+  TextColumn get bodyHash => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {kind, recordId};
+}
+
+/// Durable aliases produced by collision reconciliation.
+@DataClassName('IdAliasRow')
+class IdAliases extends Table {
+  TextColumn get kind =>
+      text().map(const EnumNameConverter(SyncRecordKind.values))();
+  TextColumn get losingId => text().named('losing_id')();
+  TextColumn get survivingId => text().named('surviving_id')();
+
+  @override
+  Set<Column> get primaryKey => {kind, losingId};
+}
+
+/// Tombstones that still need to be carried by a local record.
+@DataClassName('PendingDeletionRow')
+class PendingDeletions extends Table {
+  TextColumn get kind =>
+      text().map(const EnumNameConverter(SyncRecordKind.values))();
+  TextColumn get recordId => text()();
+  DateTimeColumn get tombstonedAt => dateTime().named('tombstoned_at')();
+  TextColumn get tombstoneHash => text().named('tombstone_hash')();
+  TextColumn get tombstoneBlob => text().named('tombstone_blob')();
+
+  @override
+  Set<Column> get primaryKey => {kind, recordId};
+}
+
+/// Immutable candidates awaiting a user's conflict decision.
+@DataClassName('ReviewQueueRow')
+class ReviewQueue extends Table {
+  TextColumn get kind =>
+      text().map(const EnumNameConverter(SyncRecordKind.values))();
+  TextColumn get recordId => text()();
+  TextColumn get counterpartId => text().named('counterpart_id')();
+  TextColumn get reason => text()();
+  TextColumn get candidateBlob => text().named('candidate_blob')();
+  TextColumn get candidateHash => text().named('candidate_hash')();
+  DateTimeColumn get queuedAt => dateTime().named('queued_at')();
+
+  @override
+  Set<Column> get primaryKey => {kind, recordId, counterpartId};
+}
+
+/// Monotonic record-publication history used by hard-delete forfeiture.
+@DataClassName('PublishedRecordRow')
+class PublishedRecords extends Table {
+  TextColumn get kind =>
+      text().map(const EnumNameConverter(SyncRecordKind.values))();
+  TextColumn get recordId => text()();
+
+  @override
+  Set<Column> get primaryKey => {kind, recordId};
 }
 
 // A `snapshots` table lived here until schema v21. It recorded the

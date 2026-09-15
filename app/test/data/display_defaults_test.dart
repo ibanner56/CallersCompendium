@@ -1,8 +1,12 @@
+import 'dart:convert';
+
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_app/src/search/program_sort.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../support/test_repositories.dart';
 
 void main() {
   group('danceDetailRenderingFromStored', () {
@@ -10,6 +14,79 @@ void main() {
       for (final rendering in DanceDetailRendering.values) {
         expect(danceDetailRenderingFromStored(rendering.name), rendering);
       }
+    });
+
+    group('canonical figure text gate initialization', () {
+      test(
+        'initializes absent gate and resets a legacy canonical child',
+        () async {
+          final repos = openTestRepositories();
+          await repos.settings.set(
+            kDefaultDanceDetailRenderingKey,
+            DanceDetailRendering.canonical.name,
+          );
+
+          await initializeCanonicalFigureTextGate(repos.settings);
+
+          expect(await repos.settings.get(kCanonicalFigureTextKey), isFalse);
+          expect(
+            await repos.settings.get(kDefaultDanceDetailRenderingKey),
+            DanceDetailRendering.activeDialect.name,
+          );
+        },
+      );
+
+      test('does not reset the child when the gate is already false', () async {
+        final repos = openTestRepositories();
+        await repos.settings.set(kCanonicalFigureTextKey, false);
+        await repos.settings.set(
+          kDefaultDanceDetailRenderingKey,
+          DanceDetailRendering.canonical.name,
+        );
+
+        await initializeCanonicalFigureTextGate(repos.settings);
+
+        expect(
+          await repos.settings.get(kDefaultDanceDetailRenderingKey),
+          DanceDetailRendering.canonical.name,
+        );
+      });
+
+      test('preserves canonical child when the gate is enabled', () async {
+        final repos = openTestRepositories();
+        await repos.settings.set(kCanonicalFigureTextKey, true);
+        await repos.settings.set(
+          kDefaultDanceDetailRenderingKey,
+          DanceDetailRendering.canonical.name,
+        );
+
+        await initializeCanonicalFigureTextGate(repos.settings);
+
+        expect(
+          await repos.settings.get(kDefaultDanceDetailRenderingKey),
+          DanceDetailRendering.canonical.name,
+        );
+      });
+
+      test(
+        'malformed present gate is not treated as first initialization',
+        () async {
+          final repos = openTestRepositories();
+          await repos.settings.set(kCanonicalFigureTextKey, 'invalid');
+          await repos.settings.set(
+            kDefaultDanceDetailRenderingKey,
+            DanceDetailRendering.canonical.name,
+          );
+
+          await initializeCanonicalFigureTextGate(repos.settings);
+
+          expect(await repos.settings.get(kCanonicalFigureTextKey), 'invalid');
+          expect(
+            await repos.settings.get(kDefaultDanceDetailRenderingKey),
+            DanceDetailRendering.canonical.name,
+          );
+        },
+      );
     });
 
     test(
@@ -131,6 +208,27 @@ void main() {
       expect(restored[1].params['beats'], 12);
     });
 
+    // invalid-fixture: this exercises persisted v34 parameter names
+    test('normalizes legacy identifiers recursively', () {
+      final stored = encodeFigures([
+        Figure(move: 'circle', params: const {'turn': 'right', 'places': 3}),
+        Figure.meanwhile(
+          figures: [
+            Figure(move: 'promenade', params: const {'dir': 'along'}),
+            Figure(move: 'stand_still', params: const {'beats': 8}),
+          ],
+          beats: 8,
+        ),
+      ]);
+
+      final restored = danceFiguresTemplateFromStored(stored);
+      expect(restored[0].params['direction'], 'right');
+      expect(restored[0].params, isNot(contains('turn')));
+      final promenade = restored[1].subFigures.first;
+      expect(promenade.params['where'], 'along');
+      expect(promenade.params, isNot(contains('dir')));
+    });
+
     test('decodes "[]" to an intentional empty template', () {
       expect(danceFiguresTemplateFromStored('[]'), isEmpty);
     });
@@ -147,6 +245,99 @@ void main() {
     });
   });
 
+  group('meanwhile side defaults (#1197)', () {
+    test('missing and malformed values use two stand_still sides', () {
+      for (final stored in [null, 7, '', 'not json', '{"move":"x"}']) {
+        final sides = meanwhileSideFiguresFromStored(stored);
+        expect(sides, hasLength(2));
+        expect(sides.every((figure) => figure.move == 'stand_still'), isTrue);
+      }
+    });
+
+    test('an empty list requests a deliberately blank insertion', () {
+      expect(meanwhileSideFiguresFromStored('[]'), isEmpty);
+    });
+
+    test('ordinary side figures round-trip, but containers are rejected', () {
+      final sides = [
+        Figure(move: 'balance', params: const {'beats': 4}),
+        Figure(move: 'swing', params: const {'who': 'partners', 'beats': 8}),
+      ];
+      expect(
+        meanwhileSideFiguresFromStored(encodeMeanwhileSideFigures(sides)),
+        hasLength(2),
+      );
+
+      final nested = Figure.meanwhile(figures: sides, beats: 8);
+      final restored = meanwhileSideFiguresFromStored(encodeFigures([nested]));
+      expect(restored, hasLength(2));
+      expect(restored.every((figure) => figure.move == 'stand_still'), isTrue);
+
+      final modifier = Figure.modifier(figures: sides, beats: 8);
+      final modifierRestored = meanwhileSideFiguresFromStored(
+        encodeFigures([modifier]),
+      );
+      expect(modifierRestored, hasLength(2));
+      expect(
+        modifierRestored.every((figure) => figure.move == 'stand_still'),
+        isTrue,
+      );
+    });
+
+    test('the meanwhile encoder drops every structural figure', () {
+      final encoded = encodeMeanwhileSideFigures([
+        Figure.meanwhile(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'roll_away'),
+          ],
+          beats: 8,
+        ),
+        Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'roll_away'),
+          ],
+          beats: 8,
+        ),
+        Figure(move: 'swing'),
+      ]);
+
+      expect(jsonDecode(encoded), [
+        {'schemaVersion': 1, 'move': 'swing'},
+      ]);
+    });
+
+    test('normalizes legacy identifiers in ordinary side defaults', () {
+      final restored = meanwhileSideFiguresFromStored(
+        encodeFigures([
+          // invalid-fixture: this exercises a persisted v34 parameter name
+          Figure(move: 'circle', params: const {'turn': 'left'}),
+        ]),
+      );
+      expect(restored.single.params['direction'], 'left');
+      expect(restored.single.params, isNot(contains('turn')));
+    });
+  });
+
+  group('modifier defaults (#1198)', () {
+    test('normalize legacy identifiers in ordinary modifier defaults', () {
+      final restored = modifierFiguresFromStored(
+        encodeFigures([
+          // invalid-fixture: these exercise persisted v34 identifiers.
+          Figure(move: 'circle', params: const {'turn': 'left'}),
+          // invalid-fixture: this exercises a persisted v34 move identifier.
+          Figure(move: 'pull_by_dancers', params: const {'dir': 'across'}),
+        ]),
+      );
+
+      expect(restored[0].params['direction'], 'left');
+      expect(restored[0].params, isNot(contains('turn')));
+      expect(restored[1].move, 'pull_by');
+      expect(restored[1].params['where'], 'across');
+    });
+  });
+
   group('move param overrides (DD.3)', () {
     test('key uses its stable stored string', () {
       expect(kDefaultMoveParamOverridesKey, 'default_move_param_overrides');
@@ -154,7 +345,7 @@ void main() {
 
     test('encode/decode round-trips a realistic diff map', () {
       final map = <String, Map<String, Object?>>{
-        'circle': {'turn': 'right', 'places': 3},
+        'circle': {'direction': 'right', 'places': 3},
         'hey': {'length': 'half'},
         'swing': {'beats': 16},
       };
@@ -172,10 +363,10 @@ void main() {
 
     test('drops top-level entries whose value is not a JSON object', () {
       final restored = moveParamOverridesFromStored(
-        '{"circle":{"turn":"right"},"bad":5,"also_bad":[1]}',
+        '{"circle":{"direction":"right"},"bad":5,"also_bad":[1]}',
       );
       expect(restored.keys, ['circle']);
-      expect(restored['circle'], {'turn': 'right'});
+      expect(restored['circle'], {'direction': 'right'});
     });
 
     test('treats an empty inner map as absent (drops it on decode)', () {
@@ -197,11 +388,25 @@ void main() {
 
     test('returns mutable maps callers can edit in place', () {
       final restored = moveParamOverridesFromStored(
-        '{"circle":{"turn":"right"}}',
+        '{"circle":{"direction":"right"}}',
       );
       restored['circle']!['places'] = 3;
       restored['swing'] = {'beats': 16};
-      expect(restored['circle'], {'turn': 'right', 'places': 3});
+      expect(restored['circle'], {'direction': 'right', 'places': 3});
+    });
+
+    test('normalizes v34 move parameter identifiers', () {
+      final restored = moveParamOverridesFromStored(
+        '{"circle":{"turn":"right"},'
+        '"allemande":{"turn":1.5},'
+        '"promenade":{"dir":"along","turn":"clockwise"}}',
+      );
+
+      expect(restored, {
+        'circle': {'direction': 'right'},
+        'allemande': {'travel': 1.5},
+        'promenade': {'where': 'along', 'direction': 'clockwise'},
+      });
     });
   });
 

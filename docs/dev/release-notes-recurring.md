@@ -1,9 +1,9 @@
 # Release Notes Guide — Recurring Beta & Stable Releases
 
-> _Repo integration: keep the running [`app/CHANGELOG.md`](../../app/CHANGELOG.md)
-> `## [Unreleased]` section current as PRs merge. The first beta establishes its
-> shared version + date section by moving those items; the later stable release
-> merges its fixes into that same section rather than creating another heading.
+> _Repo integration: keep independent [`changelog.d/`](../../changelog.d/)
+> fragments current as PRs merge. Release preparation compiles their entries into
+> the shared app version + date section; the later stable release merges its
+> fixes into that same section rather than creating another heading.
 > The pipeline renders that section as the release body (see
 > [releasing.md → CHANGELOG-driven release notes](releasing.md#changelog-driven-release-notes)).
 > For bare `vX.Y.Z-beta` tags the **Beta / pre-release** banner is added automatically.
@@ -53,6 +53,9 @@ Rewrite each kept item from the user's POV. Example transform:
 - Version, date, and a 1–2 line theme ("This beta focuses on import fidelity and
  program planning").
 - For betas: keep the "pre-release / expect rough edges + feedback channel" banner.
+- Starting with the next minor release, select either the previous codename or a
+ new codename. The release workflow uses the codename from the annotated tag as
+ the GitHub Release title.
 
 ## EXTRA sections for STABLE (1.0.0+) releases
 - **Upgrade guide** — explicit steps if anything is non-automatic; back-up advice.
@@ -64,11 +67,11 @@ Rewrite each kept item from the user's POV. Example transform:
 - Drop the beta/pre-release banner; state stability expectations plainly.
 
 ## Consistency rules (all recurring releases)
-- Keep a persistent CHANGELOG in "Keep a Changelog" style with an "Unreleased"
- section you append to as PRs merge. The first tag for a core establishes its
- `## [X.Y.Z]` section; when that shared beta/stable section already exists, move
- Unreleased items into it instead of renaming the heading. This avoids both
- reconstructing from git and duplicate headings at tag time.
+- Keep a persistent compiled CHANGELOG in "Keep a Changelog" style with an empty
+  compatibility `Unreleased` section. As PRs merge, add independent fragments;
+  at release time compile them into the first tag's `## [X.Y.Z]` section. A
+  later shared beta/stable section is compiled into the existing heading. This
+  avoids both reconstruction from git and duplicate headings at tag time.
 - Release grammar is fixed: beta is `vX.Y.Z-beta`, stable is `vX.Y.Z`; do not
   use beta counters, RCs, or other prerelease identifiers.
 - Never claim a fix/feature you didn't verify on the tagged build.

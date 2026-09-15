@@ -353,7 +353,7 @@ class _VenueAutocompleteState extends State<_VenueAutocomplete> {
         _controller.clear();
         _focusNode.unfocus();
       },
-      fieldViewBuilder: (context, controller, focusNode, onSubmit) {
+      fieldViewBuilder: (context, controller, focusNode, onSubmit, _) {
         return TextField(
           key: const ValueKey('venue-picker-input'),
           controller: controller,

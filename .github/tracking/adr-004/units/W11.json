@@ -27,16 +27,22 @@
     "Server validation against the generated shareable-field mapping",
     "Version-tolerant envelope validation"
   ],
-  "pullRequests": [],
+  "pullRequests": [
+    1176
+  ],
   "hold": null,
   "completion": {
-    "complete": false,
+    "complete": true,
     "conditions": [
       "Non-shareable keys receive 422.",
       "Client and server consume the same generated mapping.",
       "An unknown envelope version is not rejected solely because its version is new."
     ],
-    "summary": null,
-    "evidence": []
+    "summary": "Athenaeum now enforces the shared generated privacy allow-list at blob upload while preserving opaque transport and tolerating newer envelope versions.",
+    "evidence": [
+      "PR #1176 and server/test/athenaeum_app_test.dart prove non-shareable record fields and unknown record kinds receive 422 and are not stored, while opaque non-envelope bytes remain byte-identical.",
+      "server/lib/src/athenaeum_app.dart directly calls compendium_core's validateShareableRecordBody; packages/compendium_core/test/sync/wire_mapping_test.dart proves the generated mapping is fresh and covers real archive paths.",
+      "server/test/athenaeum_app_test.dart proves a shareable v99 known-kind blob is accepted while v99 non-shareable and unknown-kind envelopes are rejected, so a new version is not rejected solely for being new."
+    ]
   }
 }

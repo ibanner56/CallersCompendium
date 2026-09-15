@@ -53,8 +53,7 @@ const _recordStamp = DataClassification(
       'devices.',
 );
 
-/// An existence-transition stamp (`existence_at`), added to every syncable kind
-/// in schema v25 (issue #898).
+/// An existence-transition stamp (`existence_at`) on every syncable kind.
 ///
 /// A bare timestamp with no data subject: it records *when* a record last
 /// crossed between existing and deleted, never who did it, from where, or on
@@ -75,7 +74,7 @@ const _existenceStamp = DataClassification(
   note:
       'Existence-transition stamp. A bare timestamp with no data subject; must '
       'travel or a receiver cannot decide which of two disagreeing copies is '
-      'the later existence decision, and deletions resurrect. Added in #898.',
+      'the later existence decision, and deletions resurrect.',
 );
 
 /// Local repair bookkeeping. It identifies rows whose shareable natural key
@@ -88,8 +87,37 @@ const _normalisationRepairState = DataClassification(
   note: 'Local collision-repair bookkeeping; never exported or synchronized.',
 );
 
-/// A soft-delete tombstone (`deleted_at`) on a kind that gained one in schema
-/// v25 (issue #898).
+/// Device Sync protocol bookkeeping. These fields identify local state and
+/// ordering, but carry no record content and have no meaning on another device.
+const _syncBookkeeping = DataClassification(
+  term: DpvTerm.nonPersonal,
+  subject: DataSubject.none,
+  egress: EgressClass.deviceScoped,
+  note: 'Device Sync bookkeeping; never exported or synchronized.',
+);
+
+/// An opaque pending sync candidate. Its serialized record may contain
+/// third-party data, but it is held locally until a user resolves the review.
+const _syncCandidatePayload = DataClassification(
+  term: DpvTerm.unclassifiedPersonal,
+  subject: DataSubject.thirdParty,
+  egress: EgressClass.deviceScoped,
+  note:
+      'Opaque serialized sync candidate may contain third-party record content; '
+      'held locally until review and never synchronized as queue state.',
+);
+
+/// An opaque tombstone payload that is intentionally retransmitted by sync.
+const _syncTombstonePayload = DataClassification(
+  term: DpvTerm.unclassifiedPersonal,
+  subject: DataSubject.thirdParty,
+  egress: EgressClass.shareable,
+  note:
+      'Opaque serialized tombstone may contain third-party record content; '
+      'shareable because pending deletion retransmits it to sync peers.',
+);
+
+/// A soft-delete tombstone (`deleted_at`) on a syncable kind.
 ///
 /// Same reasoning as `dances.deleted_at`, which has carried it since long
 /// before Device Sync: absence never means deletion, so the tombstone itself
@@ -103,7 +131,7 @@ const _tombstone = DataClassification(
   note:
       'Soft-delete tombstone; see dances.deleted_at. Must travel, or a peer '
       'that has not synced recently resurrects a deleted record. Added to this '
-      'kind in #898.',
+      'kind.',
 );
 
 /// A freeform note attached to a person, place or source record.
@@ -161,7 +189,7 @@ final Map<String, DataClassification> fieldClassifications = {
   'dances.calling_notes': _choreography,
   'dances.walkthrough': _choreography,
   'dances.status': _choreography,
-  'dances.level': _choreography,
+  'dances.level_id': _key,
   'dances.mixed_level': _choreography,
   'dances.mixer': _choreography,
   'dances.rating': _choreography,
@@ -179,6 +207,14 @@ final Map<String, DataClassification> fieldClassifications = {
         'recently will resurrect a dance the user deleted elsewhere.',
   ),
   'dances.existence_at': _existenceStamp,
+
+  // ------------------------------------------------------ difficulty_levels --
+  'difficulty_levels.id': _key,
+  'difficulty_levels.label': _choreography,
+  'difficulty_levels.position': _choreography,
+  'difficulty_levels.updated_at': _recordStamp,
+  'difficulty_levels.deleted_at': _tombstone,
+  'difficulty_levels.existence_at': _existenceStamp,
 
   // -------------------------------------------------------- choreographers --
   'choreographers.id': _key,
@@ -306,9 +342,11 @@ final Map<String, DataClassification> fieldClassifications = {
   'program_slots.position': _choreography,
   'program_slots.dance_id': _key,
   'program_slots.text': _choreography,
+  'program_slots.is_purged_dance': _choreography,
   'program_slots.is_alt': _choreography,
   'program_slots.guest_caller': _performerCredit,
-  'program_slots.planned_minutes': _choreography,
+  'program_slots.walkthrough_minutes': _choreography,
+  'program_slots.dance_minutes': _choreography,
   'program_slots.performed_at': _choreography,
 
   // ----------------------------------------------------- published_sources --
@@ -532,6 +570,29 @@ final Map<String, DataClassification> fieldClassifications = {
   'normalisation_skips.table_name': _normalisationRepairState,
   'normalisation_skips.column_name': _normalisationRepairState,
   'normalisation_skips.record_id': _normalisationRepairState,
+  'baseline_state.id': _syncBookkeeping,
+  'baseline_state.epoch': _syncBookkeeping,
+  'baseline_entries.kind': _syncBookkeeping,
+  'baseline_entries.record_id': _syncBookkeeping,
+  'baseline_entries.wire_hash': _syncBookkeeping,
+  'baseline_entries.body_hash': _syncBookkeeping,
+  'id_aliases.kind': _syncBookkeeping,
+  'id_aliases.losing_id': _syncBookkeeping,
+  'id_aliases.surviving_id': _syncBookkeeping,
+  'pending_deletions.kind': _syncBookkeeping,
+  'pending_deletions.record_id': _syncBookkeeping,
+  'pending_deletions.tombstoned_at': _syncBookkeeping,
+  'pending_deletions.tombstone_hash': _syncBookkeeping,
+  'pending_deletions.tombstone_blob': _syncTombstonePayload,
+  'review_queue.kind': _syncBookkeeping,
+  'review_queue.record_id': _syncBookkeeping,
+  'review_queue.counterpart_id': _syncBookkeeping,
+  'review_queue.reason': _syncBookkeeping,
+  'review_queue.candidate_blob': _syncCandidatePayload,
+  'review_queue.candidate_hash': _syncBookkeeping,
+  'review_queue.queued_at': _syncBookkeeping,
+  'published_records.kind': _syncBookkeeping,
+  'published_records.record_id': _syncBookkeeping,
 };
 
 const _contactStreet = DataClassification(

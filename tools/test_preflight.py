@@ -66,6 +66,46 @@ def test_require_available_fails_unavailable_gate() -> None:
     assert "not on PATH" in output
 
 
+def test_toolchain_steps_use_pinned_fvm_commands() -> None:
+    toolchain_steps = [step for step in preflight.STEPS if not step.fast]
+    assert len(toolchain_steps) == 12
+    for step in toolchain_steps:
+        assert step.needs_binary == "fvm", step.name
+        assert all(command[0] == "fvm" for command in step.commands), step.name
+
+
+def test_rubric_tests_are_wired_end_to_end() -> None:
+    rubric = next(step for step in preflight.STEPS if step.name == "rubric-tests")
+    assert rubric.cwd == preflight.ROOT / "packages" / "compendium_rubric"
+    assert rubric.commands == (
+        preflight.fvm("dart", "analyze"),
+        preflight.fvm("dart", "test"),
+    )
+
+    ci = (preflight.ROOT / ".github" / "workflows" / "ci.yml").read_text()
+    checks = (
+        preflight.ROOT / ".github" / "workflows" / "_checks.yml"
+    ).read_text()
+    assert "echo 'rubric_tests_changed=true'" in ci
+    classifier = ci.split("rubric_tests_changed = validation_changed and any(", 1)[1]
+    classifier = classifier.split("app_tests_changed =", 1)[0]
+    assert "path.startswith(b'packages/compendium_rubric/')" in classifier
+    assert "path.startswith(b'packages/compendium_core/')" in classifier
+    assert "path in shared_runtime_paths" in classifier
+    assert (
+        "run_rubric_tests: "
+        "${{ needs.classify.outputs.rubric_tests_changed == 'true' }}"
+    ) in ci
+
+    assert "run_rubric_tests:" in checks
+    rubric_job = checks.split("\n  rubric-tests:\n", 1)[1]
+    rubric_job = rubric_job.split("\n  app-tests:\n", 1)[0]
+    assert "if: inputs.run_rubric_tests" in rubric_job
+    assert "working-directory: packages/compendium_rubric" in rubric_job
+    assert "run: dart analyze" in rubric_job
+    assert "run: dart test" in rubric_job
+
+
 def main() -> int:
     tests = [value for name, value in sorted(globals().items()) if name.startswith("test_")]
     for test in tests:

@@ -145,8 +145,8 @@ void main() {
       expect(sides[1].move, 'orbit');
       expect(sides[1].isCustom, isFalse);
       expect(sides[1].params['who'], 'role1s');
-      expect(sides[1].params['turn'], 'clockwise');
-      expect(sides[1].params['amount'], 0.5);
+      expect(sides[1].params['direction'], 'clockwise');
+      expect(sides[1].params['travel'], 0.5);
     });
 
     test('a security bound: more than kMaxMeanwhileSides top-level `||` '
@@ -256,10 +256,10 @@ void main() {
     // "Single file promenade clockwise" is TCB's label for a circle-left in
     // single-file formation. In contra convention, "circle left" travels
     // clockwise. The recognizer maps:
-    //   clockwise → turn:'left'   (circle left = clockwise)
-    //   counterclockwise → turn:'right'  (circle right = counterclockwise)
+    //   clockwise → direction:'left'   (circle left = clockwise)
+    //   counterclockwise → direction:'right'  (circle right = counterclockwise)
     test(
-      'Single file promenade clockwise → circle, turn:left, singleFile:true',
+      'Single file promenade clockwise → circle, direction:left, singleFile:true',
       () {
         final f = parseFigureLine(
           'Single file promenade clockwise 4 places',
@@ -268,22 +268,25 @@ void main() {
         expect(f, isNotNull);
         expect(f!.isCustom, isFalse);
         expect(f.move, 'circle');
-        expect(f.params['turn'], 'left');
+        expect(f.params['direction'], 'left');
         expect(f.params['singleFile'], isTrue);
       },
     );
 
-    test('Single file promenade counterclockwise → circle, turn:right', () {
-      final f = parseFigureLine(
-        'Single file promenade counterclockwise 4 places',
-        frontEnd: tcbFigureFrontEnd,
-      );
-      expect(f, isNotNull);
-      expect(f!.isCustom, isFalse);
-      expect(f.move, 'circle');
-      expect(f.params['turn'], 'right');
-      expect(f.params['singleFile'], isTrue);
-    });
+    test(
+      'Single file promenade counterclockwise → circle, direction:right',
+      () {
+        final f = parseFigureLine(
+          'Single file promenade counterclockwise 4 places',
+          frontEnd: tcbFigureFrontEnd,
+        );
+        expect(f, isNotNull);
+        expect(f!.isCustom, isFalse);
+        expect(f.move, 'circle');
+        expect(f.params['direction'], 'right');
+        expect(f.params['singleFile'], isTrue);
+      },
+    );
 
     test('Single file promenade clockwise 3 places — places captured', () {
       final f = parseFigureLine(

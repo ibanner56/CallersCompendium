@@ -1,0 +1,105 @@
+{
+  "id": "97bdb382-2af7-4e25-b8bb-0cfbb4a9c198",
+  "title": "Mirror, Mirror",
+  "authorIds": [
+    "c1edc635-dbcd-4656-b9c4-ff46474743fd"
+  ],
+  "form": "contra",
+  "formation": {
+    "shape": "dupleImproper",
+    "detail": "improper"
+  },
+  "progression": "single",
+  "phraseStructure": "",
+  "figures": [
+    {
+      "schemaVersion": 1,
+      "move": "box_the_gnat",
+      "params": {
+        "who": "neighbors",
+        "hand": "right",
+        "balance": true,
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "mad_robin",
+      "params": {
+        "who": "role1s",
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "pass_by",
+      "params": {
+        "who": "role1s",
+        "shoulder": "left",
+        "beats": 2
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "swing",
+      "params": {
+        "who": "partners",
+        "prefix": "meltdown",
+        "beats": 14
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "circle",
+      "params": {
+        "turn": "left",
+        "places": 3,
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "swing",
+      "params": {
+        "who": "neighbors",
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "right_left_through",
+      "params": {
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "star",
+      "params": {
+        "hand": "left",
+        "places": 4,
+        "beats": 8
+      },
+      "progression": true
+    }
+  ],
+  "hook": "",
+  "callingNotes": "Imported from ContraDB.",
+  "walkthrough": "",
+  "status": "active",
+  "mixedLevel": false,
+  "mixer": false,
+  "tunes": [],
+  "customFields": [],
+  "tagIds": [],
+  "links": [],
+  "sourceCitations": [],
+  "provenance": {
+    "source": "contradb",
+    "externalId": "2206",
+    "importedAt": "2026-08-25T21:34:59.000Z",
+    "sourceVersion": "contradb-html"
+  },
+  "createdAt": "2026-08-25T21:34:59.000Z",
+  "updatedAt": "2026-08-25T21:34:59.000Z"
+}

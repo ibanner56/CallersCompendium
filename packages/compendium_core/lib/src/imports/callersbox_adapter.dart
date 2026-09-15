@@ -57,8 +57,9 @@ import '../taxonomy/contra_taxonomy.dart' show contraTaxonomy;
 /// Each TCB `Authors[]` name is carried on the draft's `authorNames`; the
 /// import pipeline resolves those to real [Choreographer] associations
 /// ([Dance.authorIds]) at commit (match-or-create). Author names are no longer
-/// folded into [Dance.callingNotes]. `FormationBase`/`FormationDetail` classify
-/// to a [FormationShape] best-effort (original kept as [Formation.detail]);
+/// folded into [Dance.callingNotes]. `FormationBase` classifies to a
+/// [FormationShape] best-effort; a separate `FormationDetail` is normalized
+/// into [Formation.detail], while unclassified source text remains there.
 /// `Progression` maps best-effort; `PhraseStructure` empty means the default.
 ///
 /// ## Contract
@@ -588,7 +589,11 @@ class CallersBoxAdapter implements SourceAdapter {
     // Route through the shared parser: recognised moves become structured
     // figures; the rest fall back to custom. Empty when the line is empty
     // after scrubbing.
-    return parseFigureLines(text, beats: beats, frontEnd: tcbFigureFrontEnd);
+    return parseFigureLines(
+      text,
+      beats: beats,
+      frontEnd: tcbFigureFrontEnd,
+    ).map(_preserveBalanceWaveBracketNote).toList();
   }
 
   // --- Cross-line merge (PR3b) -----------------------------------------------
@@ -678,6 +683,18 @@ class CallersBoxAdapter implements SourceAdapter {
       final current = figures[i];
       final next = i + 1 < figures.length ? figures[i + 1] : null;
       if (next != null) {
+        if (i + 2 < figures.length) {
+          final meltdown = _foldMeltdownSetupIntoSwing(
+            current,
+            next,
+            figures[i + 2],
+          );
+          if (meltdown != null) {
+            merged.add(meltdown);
+            i += 3;
+            continue;
+          }
+        }
         // Fold 1: balance line → following mergeable move.
         if (_isBalanceLine(current)) {
           final folded = _foldBalanceIntoMove(current, next);
@@ -687,9 +704,35 @@ class CallersBoxAdapter implements SourceAdapter {
             continue;
           }
         }
+        // TCB writes a meltdown swing as adjacent right shoulder-round and
+        // swing lines. This is a source-specific composition, not a generic
+        // shoulder-round/swing grammar.
+        final meltdown = _foldShoulderRoundIntoSwing(current, next);
+        if (meltdown != null) {
+          merged.add(meltdown);
+          i += 2;
+          continue;
+        }
+        // TCB's Rory O'More is a balance-wave line followed immediately by a
+        // slide. Promote the pair before the generic balance-wave promotion so
+        // the wave is not left as a separate formation figure.
+        final rory = _foldBalanceWaveIntoRory(current, next);
+        if (rory != null) {
+          merged.add(rory);
+          i += 2;
+          continue;
+        }
         // Fold 2: structured hall → following bend-the-line line.
         if (_isHall(current) && _isBendLine(next)) {
           merged.add(_foldEnderIntoHall(current, next, 'bendTheLine'));
+          i += 2;
+          continue;
+        }
+        // TCB writes the turn-alone hall ender as its own adjacent line.
+        if (_isHall(current) &&
+            next.move == 'turn_alone' &&
+            _sameEffectiveWho(current, next)) {
+          merged.add(_foldEnderIntoHall(current, next, 'turnAlone'));
           i += 2;
           continue;
         }
@@ -782,7 +825,9 @@ class CallersBoxAdapter implements SourceAdapter {
   /// and the promotion agree about exactly which wordings they are willing to
   /// represent.
   static bool _isBalanceWaveLine(Figure f) {
-    if (!f.isCustom) return false;
+    if (!f.isCustom) {
+      return f.move == 'form_short_waves' && f.params['balance'] == true;
+    }
     final words = _figureWords(f).map(_stripEdgePunctuation).toList();
     if (words.isEmpty) return false;
     // Accept an optional leading dancer-set word (e.g. "role1s balance long
@@ -854,14 +899,15 @@ class CallersBoxAdapter implements SourceAdapter {
     if (balanceWho != null && moveWho != null && balanceWho != moveWho) {
       return null;
     }
+
     final beats = _sumBeats(balance, move);
     final note = combineFigureNotes(move.note, balance.note);
     // v25 (#870): thread the balance line's `hand` into the merged figure when
-    // the balance states one and the move accepts a `hand` param. A balance
-    // with `(RH)` folded into `box_the_gnat` sets `hand: right`; with `(LH)`
-    // it sets `hand: left`. The convergence-point normalisation
-    // (DanceRepository._normaliseMoveIds) then re-routes the move id if the
-    // hand contradicts the alias pin.
+    // the balance states one, the move accepts a handedness param, and the move
+    // did not already state one. A balance with `(RH)` folded into
+    // `box_the_gnat` sets `hand: right`; with `(LH)` it sets `hand: left`. The
+    // convergence-point normalisation (DanceRepository._normaliseMoveIds) then
+    // re-routes the move id if the hand contradicts the alias pin.
     final balanceHand = balance.params['hand'];
     if (move.move == 'swing') {
       final prefix = move.params['prefix'];
@@ -871,25 +917,118 @@ class CallersBoxAdapter implements SourceAdapter {
         note: note,
       );
     }
+
     if (move.params['balance'] == true) return null;
     // v25 (#870): thread the balance's hand only when the resolved merge
-    // target actually declares a `hand` param. Querying the taxonomy (one
-    // source of truth) rather than maintaining a hardcoded move list that
-    // would drift every time a move gains or loses a hand slot.
+    // target actually declares the appropriate handedness param. Querying the
+    // taxonomy (one source of truth) rather than maintaining a hardcoded move
+    // list that would drift every time a move gains or loses a hand slot.
     final mergeTargetDef = contraTaxonomy.resolve(move.move);
+    final handParam = move.move == 'form_long_waves' ? 'whomHand' : 'hand';
     final targetAcceptsHand =
-        mergeTargetDef != null && mergeTargetDef.params.containsKey('hand');
+        mergeTargetDef != null && mergeTargetDef.params.containsKey(handParam);
     return move.copyWith(
       params: {
         ...move.params,
         'balance': true,
         'beats': ?beats,
-        if (balanceHand != null &&
+        if (!move.params.containsKey(handParam) &&
+            balanceHand != null &&
             balanceHand != 'unspecified' &&
             targetAcceptsHand)
-          'hand': balanceHand,
+          handParam: balanceHand,
       },
       note: note,
+    );
+  }
+
+  static Figure? _foldShoulderRoundIntoSwing(
+    Figure shoulderRound,
+    Figure swing,
+  ) {
+    if (shoulderRound.move != 'shoulder_round' || swing.move != 'swing') {
+      return null;
+    }
+    if (shoulderRound.params['shoulder'] != 'right' &&
+        shoulderRound.params['shoulder'] != null) {
+      return null;
+    }
+    final shoulderWho = _effectiveWho(shoulderRound);
+    final swingWho = _effectiveWho(swing);
+    if (shoulderWho != null && swingWho != null && shoulderWho != swingWho) {
+      return null;
+    }
+    final prefix = swing.params['prefix'];
+    if (prefix != null && prefix != 'none') return null;
+    return swing.copyWith(
+      params: {
+        ...swing.params,
+        'prefix': 'meltdown',
+        'beats': ?_sumBeats(shoulderRound, swing),
+      },
+      note: combineFigureNotes(swing.note, shoulderRound.note),
+    );
+  }
+
+  /// TCB dance 19800 includes a two-beat simultaneous setup immediately before
+  /// the six-beat shoulder round and eight-beat swing. Consume that setup with
+  /// the pair so the resulting meltdown keeps the source phrase at 16 beats.
+  static Figure? _foldMeltdownSetupIntoSwing(
+    Figure setup,
+    Figure shoulderRound,
+    Figure swing,
+  ) {
+    if (!_isMeltdownSetup(setup)) return null;
+    final folded = _foldShoulderRoundIntoSwing(shoulderRound, swing);
+    if (folded == null) return null;
+    final beats = setup.beats + shoulderRound.beats + swing.beats;
+    return folded.copyWith(
+      params: {...folded.params, 'beats': beats > 0 ? beats : null},
+      note: combineFigureNotes(folded.note, setup.note),
+    );
+  }
+
+  static bool _isMeltdownSetup(Figure figure) {
+    if (figure.beats != 2) return false;
+    final words = figure.isMeanwhile
+        ? figure.subFigures.expand(_figureWords).toList()
+        : figure.isCustom
+        ? _figureWords(figure)
+        : const <String>[];
+    return words.contains('cast') &&
+        words.contains('back') &&
+        words.contains('go') &&
+        words.contains('forward');
+  }
+
+  static Object? _effectiveWho(Figure figure) {
+    final explicit = figure.params['who'];
+    if (explicit != null) return explicit;
+    return contraTaxonomy.resolve(figure.move)?.params['who']?.defaultValue;
+  }
+
+  static bool _sameEffectiveWho(Figure first, Figure second) {
+    final firstWho = _effectiveWho(first);
+    final secondWho = _effectiveWho(second);
+    return firstWho == null || secondWho == null || firstWho == secondWho;
+  }
+
+  static Figure? _foldBalanceWaveIntoRory(Figure balanceWave, Figure slide) {
+    if (!_isBalanceWaveLine(balanceWave)) {
+      return null;
+    }
+    final form = _balanceWaveAsFormMove(balanceWave);
+    if (form == null || form.move != 'form_short_waves') return null;
+    final slideDirection = _slideAlongSetDirection(slide);
+    if (slideDirection == null) return null;
+    return slide.copyWith(
+      move: 'rory_o_more',
+      params: {
+        'balance': true,
+        'slide': slideDirection,
+        'beats': ?_sumBeats(balanceWave, slide),
+      },
+      note: combineFigureNotes(slide.note, form.note),
     );
   }
 
@@ -930,6 +1069,7 @@ class CallersBoxAdapter implements SourceAdapter {
     final extra = decoded == null
         ? const <String, Object?>{}
         : _compatibleFormParams(wave.move, decoded);
+    final balanceNote = decoded?.note ?? balance.note;
     return wave.copyWith(
       params: {
         ...wave.params,
@@ -938,7 +1078,7 @@ class CallersBoxAdapter implements SourceAdapter {
         'balance': true,
         'beats': ?beats,
       },
-      note: combineFigureNotes(wave.note, balance.note),
+      note: combineFigureNotes(wave.note, balanceNote),
     );
   }
 
@@ -947,7 +1087,7 @@ class CallersBoxAdapter implements SourceAdapter {
   ///
   /// `form_short_waves` and `pass_the_ocean` share one param schema
   /// (`center`/`centerHand`/`sides`), so a short-wave decode transfers to
-  /// either. A long-wave decode (`whom`/`hand`/`who`) transfers only to
+  /// either. A long-wave decode (`whom`/`whomHand`/`who`) transfers only to
   /// `form_long_waves`; `form_a_long_wave`'s `who` means something different
   /// (which pair dances IN to the centre), so nothing is transferred there.
   static Map<String, Object?> _compatibleFormParams(
@@ -955,7 +1095,7 @@ class CallersBoxAdapter implements SourceAdapter {
     Figure decoded,
   ) {
     const shortWaveKeys = {'center', 'centerHand', 'sides'};
-    const longWaveKeys = {'who', 'whom', 'hand'};
+    const longWaveKeys = {'who', 'whom', 'whomHand'};
     final Set<String> keys;
     if (decoded.move == 'form_short_waves' &&
         (waveMove == 'form_short_waves' || waveMove == 'pass_the_ocean')) {
@@ -1101,18 +1241,26 @@ class CallersBoxAdapter implements SourceAdapter {
   /// sense — a line meaning that reaches it through Fold 4 from the preceding
   /// `form long wave in center` line, so it never needs guessing here.
   static Figure? _balanceWaveAsFormMove(Figure f) {
+    if (!f.isCustom &&
+        f.move == 'form_short_waves' &&
+        f.params['balance'] == true) {
+      return f;
+    }
     final text = f.params['text'];
     if (text is! String) return null;
     final lower = text.toLowerCase();
-    // `[…]` is TCB's "who does it" annotation — a different payload we do not
-    // model here, so a line carrying one stays custom.
-    if (lower.contains('[')) return null;
+    final hasSquareBrackets = text.contains('[') || text.contains(']');
+    final squareNote = _canonicalBalanceWaveBracketNote(text);
+    if (hasSquareBrackets && squareNote == null) {
+      return null;
+    }
+
     final annotations = RegExp(
       r'\(([^)]*)\)',
     ).allMatches(lower).map((m) => m.group(1)!.trim()).toList();
     if (annotations.length > 1) return null;
     final head = lower
-        .replaceAll(RegExp(r'\([^)]*\)'), ' ')
+        .replaceAll(RegExp(r'\([^)]*\)|\[[^\[\]]{0,120}\]'), ' ')
         .split(RegExp(r'[^a-z0-9]+'))
         .where((w) => w.isNotEmpty)
         .toList();
@@ -1122,7 +1270,7 @@ class CallersBoxAdapter implements SourceAdapter {
       if (annotation == null || annotation.isEmpty) {
         // No stated hands: the MoveDef defaults describe the wave, exactly as a
         // bare "Form a wave" line already does.
-        return _asFormFigure(f, 'form_short_waves', const {});
+        return _asFormFigure(f, 'form_short_waves', const {}, note: squareNote);
       }
       final parts = _splitAnnotation(annotation);
       if (parts.length != 2) return null;
@@ -1133,11 +1281,12 @@ class CallersBoxAdapter implements SourceAdapter {
       if (sides == null || center == null || sides.hand == center.hand) {
         return null;
       }
+
       return _asFormFigure(f, 'form_short_waves', {
         'sides': sides.who,
         'center': center.who,
         'centerHand': center.hand,
-      });
+      }, note: squareNote);
     }
 
     if (_sameWords(head, const ['balance', 'long', 'wave'])) {
@@ -1149,11 +1298,75 @@ class CallersBoxAdapter implements SourceAdapter {
       if (whom == null || facing == null) return null;
       return _asFormFigure(f, 'form_long_waves', {
         'whom': whom.who,
-        'hand': whom.hand,
+        'whomHand': whom.hand,
         'who': facing.group(1)!,
-      });
+      }, note: squareNote);
     }
     return null;
+  }
+
+  /// TCB's slide line is not a shared figure grammar, but its direction is
+  /// unambiguous when it is the immediate survivor of a balance-wave fold.
+  static String? _slideAlongSetDirection(Figure f) {
+    if (!f.isCustom && f.move == 'slide_along_set') {
+      final value = f.params['slide'];
+      return value is String && (value == 'left' || value == 'right')
+          ? value
+          : null;
+    }
+    if (!f.isCustom) return null;
+    final words = _figureWords(f).map(_stripEdgePunctuation).toList();
+    if (words.length != 4 && words.length != 5) return null;
+    if (words[0] != 'slide' ||
+        (words[1] != 'left' && words[1] != 'right') ||
+        words[2] != 'along' ||
+        (words.length == 4
+            ? words[3] != 'set'
+            : words[3] != 'the' || words[4] != 'set')) {
+      return null;
+    }
+    return words[1];
+  }
+
+  /// Adds a supported balance-wave bracket note before cross-line folds run.
+  /// Balance-wave promotion happens after those folds, so the note must already
+  /// be on the custom source figure for either fold direction to preserve it.
+  static Figure _preserveBalanceWaveBracketNote(Figure f) {
+    if (!f.isCustom || !_isBalanceWaveLine(f)) return f;
+    final text = f.params['text'];
+    if (text is! String) return f;
+    final note = _canonicalBalanceWaveBracketNote(text);
+    return note == null
+        ? f
+        : f.copyWith(note: combineFigureNotes(f.note, note));
+  }
+
+  /// Returns the canonical note for exactly one supported, clause-final square
+  /// annotation, or `null` for no annotation and every unsupported shape.
+  static String? _canonicalBalanceWaveBracketNote(String text) {
+    // Stop after the second match: one is supported, while more than one
+    // remains custom without allocating for every untrusted annotation.
+    final squareAnnotations = _balanceWaveSquareAnnotation
+        .allMatches(text)
+        .take(2)
+        .toList();
+    if (squareAnnotations.length != 1) return null;
+    final annotation = squareAnnotations.single;
+    final prefix = text.substring(0, annotation.start);
+    final suffix = text.substring(annotation.end);
+    if (prefix.contains('[') ||
+        prefix.contains(']') ||
+        suffix.contains('[') ||
+        suffix.contains(']') ||
+        suffix.trim().isNotEmpty) {
+      return null;
+    }
+    final body = annotation.group(1)!.trim();
+    final relation = _balanceWaveBracketRelation.firstMatch(body);
+    if (relation == null) return null;
+    final who = resolveDancerSetPhrase(relation.group(2)!);
+    if (who == null) return null;
+    return '${relation.group(1)!.toLowerCase()} $who';
   }
 
   /// The comma-separated fields of a TCB annotation, lowercased and trimmed.
@@ -1182,14 +1395,23 @@ class CallersBoxAdapter implements SourceAdapter {
   static Figure _asFormFigure(
     Figure f,
     String move,
-    Map<String, Object?> params,
-  ) => Figure(
+    Map<String, Object?> params, {
+    String? note,
+  }) => Figure(
     move: move,
     params: {...params, 'balance': true, 'beats': f.beats},
-    note: f.note,
+    note: combineFigureNotes(f.note, note),
     progression: f.progression,
     walkthroughOverride: f.walkthroughOverride,
     wordingOverride: f.wordingOverride,
+  );
+
+  static final RegExp _balanceWaveSquareAnnotation = RegExp(
+    r'\[([^\[\]]{0,120})\]',
+  );
+  static final RegExp _balanceWaveBracketRelation = RegExp(
+    r'^(with|around)\s+(.+)$',
+    caseSensitive: false,
   );
 
   static bool _sameWords(List<String> a, List<String> b) {
@@ -1226,19 +1448,24 @@ class CallersBoxAdapter implements SourceAdapter {
     Map<String, Object?> dance,
     List<ImportIssue> issues,
   ) {
-    final base = _sanitizeLine(_asString(dance['FormationBase'])) ?? '';
-    final extra = _sanitizeLine(_asString(dance['FormationDetail'])) ?? '';
+    final base = scrubFigureText(_asString(dance['FormationBase']) ?? '');
+    final extra = scrubFigureText(_asString(dance['FormationDetail']) ?? '');
     final combined = [base, extra].where((s) => s.isNotEmpty).join(' — ');
-    final detail = combined.isEmpty ? null : combined;
+    final sourceDetail = combined.isEmpty ? null : scrubFigureText(combined);
 
-    if (base.isEmpty && extra.isEmpty) {
-      return const Formation(FormationShape.dupleImproper);
+    if (base.isEmpty) {
+      return Formation(
+        FormationShape.dupleImproper,
+        detail: extra.isEmpty ? null : extra,
+      );
     }
 
-    final lower = '$base $extra'.toLowerCase();
+    final lower = base.toLowerCase();
     FormationShape? shape;
     if (lower.contains('becket')) {
       shape = _becketShape(dance['Direction'], lower, issues);
+    } else if (lower == 'duple minor - reverse progression improper') {
+      shape = FormationShape.reverseProgressionImproper;
     } else if (lower.contains('improper')) {
       shape = FormationShape.dupleImproper;
     } else if (lower.contains('indecent')) {
@@ -1275,13 +1502,13 @@ class CallersBoxAdapter implements SourceAdapter {
           severity: ImportIssueSeverity.warning,
           code: 'callersbox_formation_unclassified',
           message:
-              'Formation "${detail ?? base}" did not classify to a known '
+              'Formation "${sourceDetail ?? base}" did not classify to a known '
               'shape; kept as detail on "other".',
         ),
       );
-      return Formation(FormationShape.other, detail: detail);
+      return Formation(FormationShape.other, detail: sourceDetail);
     }
-    return Formation(shape, detail: detail);
+    return Formation(shape, detail: extra.isEmpty ? null : extra);
   }
 
   /// Whether a Caller's Box record is a **mixer** (dancers change partners each

@@ -12,7 +12,30 @@ class AppLocalizationsDa extends AppLocalizations {
   String get appTitle => 'Caller\'s Compendium';
 
   @override
+  String get danceEditorAddedMeanwhileAnnouncement =>
+      'Et meanwhile-element blev tilføjet.';
+
+  @override
+  String get danceEditorAddedModifierAnnouncement =>
+      'Et modifier-element blev tilføjet.';
+
+  @override
   String get navCollection => 'Samling';
+
+  @override
+  String get settingsDefaultsMeanwhileTitle => 'Meanwhile-standarder';
+
+  @override
+  String get settingsDefaultsMeanwhileSubtitle =>
+      'De sidefigurer, der indsættes, når du tilføjer et meanwhile-element. Ryd listen for to tomme sider; én konfigureret side får en tom ledsagerside. Du kan redigere elementet efter indsættelsen.';
+
+  @override
+  String get settingsDefaultsModifierTitle =>
+      'Standardindstillinger for modifikatorer';
+
+  @override
+  String get settingsDefaultsModifierSubtitle =>
+      'De figurer, der indsættes, når du tilføjer en modifikatorkontejner. Ryd den for to tomme figurer; én konfigureret figur får én tom ledsager.';
 
   @override
   String get navPrograms => 'Programmer';
@@ -317,17 +340,18 @@ class AppLocalizationsDa extends AppLocalizations {
       '© The Caller\'s Compendium contributors. Licenseret under AGPL-3.0.';
 
   @override
-  String settingsAboutVersion(String version) {
-    return 'Version $version';
+  String settingsAboutVersion(String version, String codename) {
+    return 'Version $version, “$codename”';
   }
 
   @override
   String settingsAboutVersionLine(
     String appName,
     String version,
+    String codename,
     String license,
   ) {
-    return '$appName · Version $version · $license';
+    return '$appName · Version $version, “$codename” · $license';
   }
 
   @override
@@ -435,6 +459,25 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsDialectHeader => 'Dialekter';
+
+  @override
+  String get settingsDialectDanceDetailsHeader =>
+      'Dansedetaljer og forkortelser';
+
+  @override
+  String get settingsDialectCanonicalFigureTextTitle => 'Kanonisk figurtekst';
+
+  @override
+  String get settingsDialectCanonicalFigureTextSubtitle =>
+      'Når funktionen er slået til, kan dansedetaljer vise kanoniske rolle- og bevægelsesnavne, og kontakten Kanonisk er tilgængelig for ikke-kanoniske dialekter. Slået fra som standard.';
+
+  @override
+  String get settingsDialectCanonicalDiscouragedTermsTitle =>
+      'Konvertér automatisk alle frarådede termer';
+
+  @override
+  String get settingsDialectCanonicalDiscouragedTermsSubtitle =>
+      'Når den er slået til, bruger dansedetaljer, noter og eksporter kanonisk formulering for understøttede frarådede termer. Gemt tekst og indtastningsfelter ændres ikke. Slået til som standard.';
 
   @override
   String get settingsDialectNewButton => 'Ny dialekt';
@@ -561,6 +604,43 @@ class AppLocalizationsDa extends AppLocalizations {
       'Udfyldes i nye programmer; kan redigeres per program.';
 
   @override
+  String get settingsDefaultsStartingProgramTitle => 'Startprogram';
+
+  @override
+  String get settingsDefaultsStartingProgramSubtitle =>
+      'Danse og noter, der føjes til manuelt oprettede programmer.';
+
+  @override
+  String get settingsDefaultsStartingProgramPickerTitle => 'Tilføj en dans';
+
+  @override
+  String get settingsDefaultsStartingProgramAddDance => 'Dans';
+
+  @override
+  String get settingsDefaultsStartingProgramAddText => 'Note';
+
+  @override
+  String get settingsDefaultsStartingProgramAddBreak => 'Tilføj pause';
+
+  @override
+  String get settingsDefaultsStartingProgramTextLabel => 'Notetekst';
+
+  @override
+  String get settingsDefaultsStartingProgramNoteLabel =>
+      'Caller-note (valgfri)';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveUp => 'Flyt op';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveDown => 'Flyt ned';
+
+  @override
+  String settingsDefaultsStartingProgramUnavailableDance(String id) {
+    return 'Utilgængelig dans ($id)';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'Standardband';
 
   @override
@@ -590,7 +670,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsDefaultsCanonicalSubtitle =>
-      'Når aktiveret åbner en dans med kanoniske rolle- og bevægelsesnavne i stedet for din aktive dialekt. Du kan stadig skifte visning, mens dansen er åben.';
+      'Når Kanonisk figurtekst er aktiveret, åbner en dans med kanoniske rolle- og bevægelsesnavne i stedet for din aktive dialekt. Når den er deaktiveret, åbnes detaljer i din aktive dialekt, og denne indstilling bevares.';
 
   @override
   String get settingsDefaultsCollectionCardHeader => 'Felter på samlingskort';
@@ -980,6 +1060,22 @@ class AppLocalizationsDa extends AppLocalizations {
       'Skalér hvert kort, så den fulde dans eller slot passer på skærmen uden at skulle rulle. Deaktiver for at angive størrelsen selv med A- / A+.';
 
   @override
+  String get settingsShowIndividualPerformTimerTitle =>
+      'Vis timer til individuel Perform';
+
+  @override
+  String get settingsShowIndividualPerformTimerSubtitle =>
+      'Vis den forløbne tid, mens du udfører en enkelt dans. Timeren starter, når den vises, og kan sættes på pause.';
+
+  @override
+  String get settingsShowProgramSlotCallerNotesTitle =>
+      'Vis callernoter i program-Perform';
+
+  @override
+  String get settingsShowProgramSlotCallerNotesSubtitle =>
+      'Vis ikke-tomme callernoter pr. slot over dansens titel i program-Perform.';
+
+  @override
   String get settingsGeneralCallingHistoryHeader => 'Kaldshistorik';
 
   @override
@@ -997,6 +1093,26 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get settingsGeneralTrackHistoryForAllCallersSubtitle =>
       'Når den er slået fra, og der er valgt en standardcaller, omfatter kaldshistorik og antal programmer ledet af den caller samt programmer uden registreret caller (behandlet som dine egne). Når den er slået til — eller når der ikke er valgt en standardcaller — spores alle programmer, der indeholder dansen.';
+
+  @override
+  String get settingsProgramVenueCallCountTitle =>
+      'Gentagne spillesteder i dansehistorikken';
+
+  @override
+  String get settingsProgramVenueCallCountSubtitle =>
+      'Vis de øverste spillesteder, hvor en dans blev kaldt mere end én gang. Sæt til 0 for at skjule denne oversigt.';
+
+  @override
+  String settingsProgramVenueCallCountOption(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count spillesteder',
+      one: '1 spillested',
+      zero: 'Vis ikke',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Tilgængelighed';
@@ -1360,7 +1476,11 @@ class AppLocalizationsDa extends AppLocalizations {
   String get commonDanceLevelAdvanced => 'Avanceret';
 
   @override
-  String get commonFormationDupleImproper => 'Duple improper';
+  String get commonFormationDupleImproper => 'Improper';
+
+  @override
+  String get commonFormationReverseProgressionImproper =>
+      'Improper med omvendt progression';
 
   @override
   String get commonFormationBecketCw => 'Becket (CW)';
@@ -1369,10 +1489,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get commonFormationBecketCcw => 'Becket (CCW)';
 
   @override
-  String get commonFormationDupleProper => 'Duple proper';
+  String get commonFormationDupleProper => 'Proper';
 
   @override
-  String get commonFormationDupleIndecent => 'Duple indecent';
+  String get commonFormationDupleIndecent => 'Indecent';
 
   @override
   String get commonFormationTripleMinor => 'Triple minor';
@@ -1537,6 +1657,13 @@ class AppLocalizationsDa extends AppLocalizations {
       'Søg titler, forfattere, figurer, noter…';
 
   @override
+  String get collectionPickerSearchFieldHint => 'Søg titler, figurer, noter…';
+
+  @override
+  String get collectionPickerOnlineSearchFieldHint =>
+      'Søg online efter danse efter titel…';
+
+  @override
   String get collectionSearchScopeLabel => 'Søg i';
 
   @override
@@ -1544,6 +1671,9 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get collectionSearchScopeTitle => 'Titel';
+
+  @override
+  String get collectionSearchScopeAuthor => 'Forfatter';
 
   @override
   String get collectionSearchScopeFigure => 'Figur';
@@ -2005,6 +2135,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get collectionCreateTagError => 'Kunne ikke oprette tag. Prøv igen.';
 
   @override
+  String get collectionBatchApplyError =>
+      'Kunne ikke anvende batchændringer. Prøv igen.';
+
+  @override
   String get collectionBatchTagAddConfirm => 'Tilføj';
 
   @override
@@ -2144,6 +2278,17 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceCallingHistoryError => 'Kunne ikke indlæse kaldehistorikken.';
+
+  @override
+  String danceVenueCallCount(int count, String venue) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Kaldt $count gange på $venue',
+      one: 'Kaldt 1 gang på $venue',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get danceShowCanonicalTerms => 'Vis kanoniske termer';
@@ -2345,6 +2490,14 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsSaveError => 'Kunne ikke gemme programmet.';
 
   @override
+  String get programsUndoPerformedError =>
+      'Markeringen kunne ikke fortrydes; markeringerne som udført forbliver gemt.';
+
+  @override
+  String get programsUndoRefreshError =>
+      'Fortrydelsen blev gemt, men editoren kunne ikke opdateres.';
+
+  @override
   String programsDuplicatedSnack(String title) {
     return 'Kopieret som „$title“.';
   }
@@ -2416,7 +2569,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsAddDanceButton => 'Tilføj dans';
 
   @override
-  String get programsAddNoteBreakButton => 'Tilføj note / pause';
+  String get programsAddNoteBreakButton => 'Tilføj note / vals';
 
   @override
   String get programsInsertBreakButton => 'Indsæt pause';
@@ -2780,7 +2933,14 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsGuestCallerLabel => 'Gæstecaller (valgfrit)';
 
   @override
-  String get programsPlannedMinutesLabel => 'Planlagte minutter (valgfrit)';
+  String get programsPlannedTimingHeader => 'Planlagt tid';
+
+  @override
+  String get programsWalkthroughMinutesLabel =>
+      'Gennemgangsminutter (valgfrit)';
+
+  @override
+  String get programsDanceMinutesLabel => 'Danseminutter (valgfrit)';
 
   @override
   String get programsAlternateDanceTitle => 'Alternativ dans';
@@ -2828,6 +2988,18 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsMatrixShowAllColumnsSemantic => 'Vis alle kolonner';
 
   @override
+  String get programsMatrixHideAlternatesSemantic => 'Skjul alternative rækker';
+
+  @override
+  String get programsMatrixShowAlternatesSemantic => 'Vis alternative rækker';
+
+  @override
+  String get programsMatrixShowPhrasesSemantic => 'Vis fraseetiketter';
+
+  @override
+  String get programsMatrixHidePhrasesSemantic => 'Vis tilstedeværelsesglyffer';
+
+  @override
   String programsMatrixRowHeaderSemantic(
     String title,
     String alt,
@@ -2857,6 +3029,65 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String programsMatrixSectionShort(String sectionKey, String sectionNumber) {
+    String _temp0 = intl.Intl.selectLogic(sectionKey, {
+      's1': '1.',
+      's2': '2.',
+      's3': '3.',
+      's4': '4.',
+      's5': '5.',
+      's6': '6.',
+      's7': '7.',
+      's8': '8.',
+      's9': '9.',
+      'other': '$sectionNumber',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String programsMatrixSectionRowHeaderSemantic(
+    String title,
+    String alt,
+    String section,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(section, {
+      'none': 'Alternativ dans: $title',
+      'other': 'Alternativ dans: $title, sektion $section',
+    });
+    String _temp1 = intl.Intl.selectLogic(section, {
+      'none': 'Dans: $title',
+      'other': 'Dans: $title, sektion $section',
+    });
+    String _temp2 = intl.Intl.selectLogic(alt, {
+      'yes': '$_temp0',
+      'other': '$_temp1',
+    });
+    return '$_temp2';
+  }
+
+  @override
+  String programsMatrixSectionChipQualifiedTitle(
+    String title,
+    String alt,
+    String section,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(section, {
+      'none': '$title (alternativ dans)',
+      'other': '$title (alternativ dans, sektion $section)',
+    });
+    String _temp1 = intl.Intl.selectLogic(section, {
+      'none': '$title',
+      'other': '$title (sektion $section)',
+    });
+    String _temp2 = intl.Intl.selectLogic(alt, {
+      'yes': '$_temp0',
+      'other': '$_temp1',
+    });
+    return '$_temp2';
+  }
+
+  @override
   String get programsMatrixFormationColumnHeader => 'Formation';
 
   @override
@@ -2869,13 +3100,14 @@ class AppLocalizationsDa extends AppLocalizations {
     String dance,
     String move,
     String present,
+    String phrases,
     String collision,
     String debut,
     String first,
   ) {
     String _temp0 = intl.Intl.selectLogic(collision, {
-      'phrase': ', gentages i samme frase som en nabodans',
-      'beats': ', deler slag med en nabodans',
+      'phrase': ', gentages i samme frase som en tilstødende dans',
+      'beats': ', deler taktslag med en tilstødende dans',
       'other': '',
     });
     String _temp1 = intl.Intl.selectLogic(debut, {
@@ -2890,7 +3122,11 @@ class AppLocalizationsDa extends AppLocalizations {
       'no': 'ikke til stede',
       'other': 'til stede$_temp0$_temp1$_temp2',
     });
-    return '$dance, $move: $_temp3';
+    String _temp4 = intl.Intl.selectLogic(phrases, {
+      'none': '',
+      'other': ', frase(r): $phrases',
+    });
+    return '$dance, $move: $_temp3$_temp4';
   }
 
   @override
@@ -3142,6 +3378,9 @@ class AppLocalizationsDa extends AppLocalizations {
     String slotTime,
     String hasPlanned,
     int planned,
+    int walkthrough,
+    int dance,
+    String walkthroughComplete,
     String over,
     String paused,
   ) {
@@ -3152,27 +3391,47 @@ class AppLocalizationsDa extends AppLocalizations {
       one: '1 minut',
     );
     String _temp1 = intl.Intl.selectLogic(hasPlanned, {
-      'yes': ', planlagt $_temp0',
+      'yes':
+          ', planlagt $_temp0: $walkthrough minutters gennemgang og $dance minutters dans',
       'other': '',
     });
-    String _temp2 = intl.Intl.selectLogic(over, {
-      'yes': ', over planlagt',
+    String _temp2 = intl.Intl.selectLogic(walkthroughComplete, {
+      'yes': ', gennemgang fuldført',
       'other': '',
     });
-    String _temp3 = intl.Intl.selectLogic(paused, {
+    String _temp3 = intl.Intl.selectLogic(over, {
+      'yes': ', over planlagt tid',
+      'other': '',
+    });
+    String _temp4 = intl.Intl.selectLogic(paused, {
       'yes': ', sat på pause',
       'other': '',
     });
-    return 'Programtid $programTime, slot-tid $slotTime$_temp1$_temp2$_temp3';
+    return 'Programtid $programTime, slottid $slotTime$_temp1$_temp2$_temp3$_temp4';
   }
 
   @override
-  String performPlannedMin(int planned) {
-    return 'planlagt $planned min';
+  String performIndividualTimingSemantic(String elapsedTime, String paused) {
+    String _temp0 = intl.Intl.selectLogic(paused, {
+      'yes': ', sat på pause',
+      'other': '',
+    });
+    return 'Forløbet tid $elapsedTime$_temp0';
   }
+
+  @override
+  String performPlannedSplit(int planned, int walkthrough, int dance) {
+    return 'planlagt $planned min. ($walkthrough:$dance)';
+  }
+
+  @override
+  String get performWalkthroughCompleteSuffix => ' gennemgang fuldført';
 
   @override
   String get performOverSuffix => ' over';
+
+  @override
+  String get performSlotCallerNote => 'Caller-note';
 
   @override
   String get performCallingNotes => 'Kaldsnotes';
@@ -3311,6 +3570,50 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get exportShareProgramJson => 'Eksportér som JSON-fil';
+
+  @override
+  String get exportJsonDialogTitle => 'Eksportér JSON';
+
+  @override
+  String get exportJsonDialogMessage =>
+      'Vælg, hvordan denne JSON-fil skal leveres.';
+
+  @override
+  String get exportJsonSave => 'Gem';
+
+  @override
+  String get exportJsonCopy => 'Kopiér rå JSON';
+
+  @override
+  String get exportJsonShare => 'Del';
+
+  @override
+  String get exportJsonCancel => 'Annuller';
+
+  @override
+  String get exportJsonCopied => 'JSON kopieret til udklipsholderen.';
+
+  @override
+  String exportJsonSaved(String fileName) {
+    return '\"$fileName\" gemt.';
+  }
+
+  @override
+  String get exportJsonSavedGeneric => 'JSON-fil gemt.';
+
+  @override
+  String exportJsonSavedTo(String fileName, String destination) {
+    return '\"$fileName\" gemt i $destination.';
+  }
+
+  @override
+  String get exportJsonSaveError => 'Denne JSON-fil kunne ikke gemmes.';
+
+  @override
+  String get exportJsonCopyError => 'Denne JSON kunne ikke kopieres.';
+
+  @override
+  String get exportJsonShareError => 'Denne JSON-fil kunne ikke deles.';
 
   @override
   String get exportShareSetListError => 'Kunne ikke dele denne sætliste';
@@ -3501,7 +3804,12 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get onlineSearchFieldHint => 'Søg online danse efter titel…';
+  String get onlineSearchFieldHint =>
+      'Søg online efter danse efter titel eller forfatter…';
+
+  @override
+  String get collectionOnlineSearchFieldHint =>
+      'Søg online efter danse efter titel, forfatter eller figur…';
 
   @override
   String onlineResultCount(int count) {
@@ -3516,12 +3824,22 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String onlineSearchHintByPhrase(String source) {
-    return 'Skriv en titel eller tilføj frase-figurer for at søge $source.';
+    return 'Skriv en titel eller forfatter, eller tilføj figurer efter frase for at søge $source.';
   }
 
   @override
   String onlineSearchHintTitle(String source) {
-    return 'Skriv en titel for at søge $source.';
+    return 'Skriv en titel eller forfatter for at søge $source.';
+  }
+
+  @override
+  String collectionOnlineSearchHintByPhrase(String source) {
+    return 'Skriv en titel, forfatter eller figur, eller tilføj figurer efter frase for at søge $source.';
+  }
+
+  @override
+  String collectionOnlineSearchHintTitle(String source) {
+    return 'Skriv en titel, forfatter eller figur for at søge $source.';
   }
 
   @override
@@ -4157,7 +4475,11 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importErrorContraDbEmptyTitle =>
-      'Indtast en titel for at søge ContraDB.';
+      'Angiv en titel eller forfatter for at søge i ContraDB.';
+
+  @override
+  String get importErrorContraDbUnsupportedFigure =>
+      'ContraDB-figursøgninger bruger et komplet figurnavn, f.eks. \"box circulate\".';
 
   @override
   String get importErrorContraDbEmptyDanceInput =>
@@ -5253,6 +5575,12 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorAddFigure => 'Tilføj figur';
 
   @override
+  String get danceEditorAddMeanwhile => 'Tilføj meanwhile';
+
+  @override
+  String get danceEditorAddModifier => 'Tilføj modifikator';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList =>
       'Indsæt i slutningen af figurlisten';
 
@@ -5348,6 +5676,72 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorGroupWithNext => 'Gruppér med næste som samtidig';
 
   @override
+  String get danceEditorGroupWithNextAsModifier =>
+      'Gruppér med næste som modifikator';
+
+  @override
+  String get danceEditorConvertToMeanwhile => 'Konvertér til meanwhile';
+
+  @override
+  String get danceEditorConvertToModifier => 'Konvertér til modifier';
+
+  @override
+  String get danceEditorUngroupMeanwhile => 'Ophæv meanwhile-gruppering';
+
+  @override
+  String get danceEditorUngroupModifier => 'Ophæv modifier-gruppering';
+
+  @override
+  String danceEditorModifierGroupLabel(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Modifikator ($count figurer)',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorModifierGroupSemantic(num beats, num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figurer',
+      one: '1 figur',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats slag',
+      one: '1 slag',
+    );
+    return 'Modifikatorgruppe, $_temp0, $_temp1.';
+  }
+
+  @override
+  String get danceEditorAddModifierChild => 'Tilføj modifikator';
+
+  @override
+  String get danceEditorModifierCoreLabel => 'Kerne';
+
+  @override
+  String get danceEditorModifierChildLabel => 'Modifier';
+
+  @override
+  String get danceEditorModifierCoreSemantic => 'Kernefigur i modifier-gruppe.';
+
+  @override
+  String danceEditorModifierChildSemantic(int number, int total) {
+    return 'Modifierfigur $number af $total.';
+  }
+
+  @override
+  String get danceEditorRemoveModifierCore => 'Fjern kernefigur';
+
+  @override
+  String get danceEditorRemoveModifierChild => 'Fjern modifierfigur';
+
+  @override
   String danceEditorMeanwhileGroupLabel(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -5393,6 +5787,11 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String danceEditorMeanwhileSidesCapReached(int max) {
     return 'Maksimalt $max samtidige figurer.';
+  }
+
+  @override
+  String danceEditorModifierChildrenCapReached(int max) {
+    return 'Maksimalt $max ordnede modifikatorfigurer.';
   }
 
   @override
@@ -5444,6 +5843,9 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceEditorParamNotStated => 'ikke angivet';
+
+  @override
+  String get figureParamFacingStarBackingUp => 'bakker baglæns';
 
   @override
   String get danceEditorParamClearTooltip => 'Ryd (ikke angivet)';

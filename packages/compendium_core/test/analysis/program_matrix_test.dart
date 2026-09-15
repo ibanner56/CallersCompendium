@@ -584,38 +584,42 @@ void main() {
     });
   });
 
-  group('buildProgramMatrix — half badge', () {
-    test('rows carry the aligned half; null when no halves passed', () {
+  group('buildProgramMatrix — section badge', () {
+    test('rows carry the aligned section; null when none passed', () {
       final matrix = buildProgramMatrix([
         dance('d1', 'A', [move('balance')]),
         dance('d2', 'B', [move('balance')]),
       ]);
-      expect(matrix.rows[0].half, isNull);
-      expect(matrix.rows[1].half, isNull);
+      expect(matrix.rows[0].section, isNull);
+      expect(matrix.rows[1].section, isNull);
     });
 
-    test('half is populated from the parallel halves list', () {
+    test('section is populated from the parallel sections list', () {
       final matrix = buildProgramMatrix(
         [
           dance('d1', 'A', [move('balance')]),
           dance('d2', 'B', [move('balance')]),
           dance('d3', 'C', [move('balance')]),
+          dance('d4', 'D', [move('balance')]),
+          dance('d5', 'E', [move('balance')]),
         ],
-        halves: const [ProgramHalf.first, null, ProgramHalf.second],
+        sections: const [1, null, 2, null, 3],
       );
-      expect(matrix.rows[0].half, ProgramHalf.first);
-      expect(matrix.rows[1].half, isNull);
-      expect(matrix.rows[2].half, ProgramHalf.second);
+      expect(matrix.rows[0].section, 1);
+      expect(matrix.rows[1].section, isNull);
+      expect(matrix.rows[2].section, 2);
+      expect(matrix.rows[3].section, isNull);
+      expect(matrix.rows[4].section, 3);
     });
 
-    test('throws when halves length does not match dances', () {
+    test('throws when sections length does not match dances', () {
       expect(
         () => buildProgramMatrix(
           [
             dance('d1', 'A', [move('balance')]),
             dance('d2', 'B', [move('balance')]),
           ],
-          halves: const [ProgramHalf.first],
+          sections: const [1],
         ),
         throwsArgumentError,
       );

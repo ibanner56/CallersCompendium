@@ -56,8 +56,9 @@ Documentation drift is this repository's most persistent defect class, across
 design docs, roadmap status, and code comments.
 
 - When a change alters documented behaviour, update the documentation **in the
-  same PR**, not a follow-up. `app/CHANGELOG.md` is user-facing release notes,
-  not a commit log: update it for user-visible changes under `## [Unreleased]`.
+  same PR**, not a follow-up. User-visible changes add their own
+  `changelog.d/<id>.json` fragment; `app/CHANGELOG.md` is a release-managed,
+  compiled historical record and is not edited in normal PRs.
 - **Never hand-edit a generated file.** Generated files carry a
   `<!-- generated-by: ... -->` marker on the first line naming the tool that
   writes them and the source they are written from. Read the source, not the

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/calling_history_caller_filter.dart';
 import '../../data/venue_label.dart';
+import '../../data/venue_call_count_scope.dart';
 import '../../theme/app_spacing.dart';
 
 /// The dance-detail screen's **Calling history** section: the programs that
@@ -65,6 +66,7 @@ class CallingHistorySection extends StatefulWidget {
     required this.danceId,
     required this.performedOnly,
     required this.trackAllCallers,
+    this.venueCallCount = kVenueCallCountDefault,
     required this.onOpenProgram,
   });
 
@@ -78,6 +80,9 @@ class CallingHistorySection extends StatefulWidget {
   /// "Track calling history for all callers" (issue #583). Resolves to the
   /// caller filter passed to the query, so a change rebuilds the stream.
   final bool trackAllCallers;
+
+  /// Maximum number of venues to show in the repeated-venue summary.
+  final int venueCallCount;
 
   /// Opens the program summary for a tapped history row.
   final ValueChanged<String> onOpenProgram;
@@ -273,6 +278,7 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
         // rather than a spinner: this section sits inside an already-loaded
         // screen, and the first emit is one local query away.
         final history = snapshot.data ?? DanceCallingHistory.empty;
+        final venueCounts = _visibleVenueCounts(history);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -318,6 +324,13 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
                   ),
                   onTap: () => widget.onOpenProgram(record.programId),
                 ),
+            if (venueCounts.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.xs),
+              VenueCallCountsSummary(
+                key: const ValueKey('venue-call-count-summary'),
+                counts: venueCounts,
+              ),
+            ],
             if (history.halfStats.hasAny) ...[
               const SizedBox(height: AppSpacing.xs),
               HalfStatsSummary(
@@ -329,6 +342,34 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
         );
       },
     );
+  }
+
+  List<VenueCallCount> _visibleVenueCounts(DanceCallingHistory history) {
+    if (widget.venueCallCount == 0) return const [];
+    final counts = <VenueCallCount>[];
+    for (final count in history.venueCounts) {
+      if (count.count <= 1) continue;
+      final label = resolveVenueLabelParts(
+        count.venueId,
+        count.venue,
+        _venuesById,
+      );
+      if (label == null || label.isEmpty) continue;
+      counts.add(
+        VenueCallCount(
+          venueId: count.venueId,
+          venue: label,
+          count: count.count,
+        ),
+      );
+    }
+    counts.sort((a, b) {
+      final byCount = b.count.compareTo(a.count);
+      if (byCount != 0) return byCount;
+      final byLower = a.venue!.toLowerCase().compareTo(b.venue!.toLowerCase());
+      return byLower != 0 ? byLower : a.venue!.compareTo(b.venue!);
+    });
+    return counts.take(widget.venueCallCount).toList(growable: false);
   }
 }
 
@@ -434,6 +475,7 @@ class HalfStatsSummary extends StatelessWidget {
     if (stats.openedFirstHalfCount > 0) {
       parts.add(l10n.danceHalfStatsOpened(stats.openedFirstHalfCount));
     }
+
     if (stats.closedSecondHalfCount > 0) {
       parts.add(l10n.danceHalfStatsClosed(stats.closedSecondHalfCount));
     }
@@ -468,6 +510,44 @@ class HalfStatsSummary extends StatelessWidget {
                   ),
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A compact summary of venues where the dance was called repeatedly.
+class VenueCallCountsSummary extends StatelessWidget {
+  const VenueCallCountsSummary({super.key, required this.counts});
+
+  final List<VenueCallCount> counts;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final description = counts
+        .map((count) => l10n.danceVenueCallCount(count.count, count.venue!))
+        .join('; ');
+    return Semantics(
+      label: description,
+      container: true,
+      child: ExcludeSemantics(
+        child: Padding(
+          key: const ValueKey('venue-call-count-summary-content'),
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final count in counts)
+                Text(
+                  l10n.danceVenueCallCount(count.count, count.venue!),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
             ],
           ),
         ),
