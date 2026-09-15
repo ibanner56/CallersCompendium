@@ -19,6 +19,7 @@ library;
 import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart' as core;
+import 'package:compendium_core/testing.dart' as core_test;
 import 'package:compendium_rubric/compendium_rubric.dart';
 import 'package:test/test.dart';
 
@@ -345,7 +346,7 @@ void main() {
     // are not golden dances and are never compiled: they exist to pin the
     // branch selection, which is positional by design.
     core.Figure figure(String move, [Map<String, Object?> params = const {}]) =>
-        core.Figure(move: move, params: params);
+        core_test.testFigure(move: move, params: params);
 
     test('the last figure, in the ordinary case', () {
       final dance = _shapedLike(
@@ -448,7 +449,7 @@ void main() {
 
   group('the nextNeighbors fallback placement', () {
     core.Figure figure(String move, [Map<String, Object?> params = const {}]) =>
-        core.Figure(move: move, params: params);
+        core_test.testFigure(move: move, params: params);
 
     test('lands on the figure before the first nextNeighbors reach', () {
       final dance = _shapedLike(
@@ -476,12 +477,17 @@ void main() {
       expect(nextNeighborsProgressionIndex(dance), 0);
     });
 
-    test('accepts the singular spelling upstream also allows', () {
+    test('accepts the singular spelling the source may emit', () {
       final dance = _shapedLike(
         shape: core.FormationShape.dupleImproper,
         figures: [
           figure('circle'),
-          figure('swing', {'who': 'nextNeighbor'}),
+          core_test.invalidTestFigure(
+            move: 'swing',
+            params: const {'who': 'nextNeighbor'},
+            reason:
+                'exercises the legacy singular source spelling before normalization',
+          ),
         ],
       );
       expect(nextNeighborsProgressionIndex(dance), 0);

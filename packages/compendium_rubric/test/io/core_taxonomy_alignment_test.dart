@@ -19,6 +19,7 @@
 // equal, the defaults agree; if they differ, they do not. Operation value
 // semantics do the comparison.
 import 'package:compendium_core/compendium_core.dart' as core;
+import 'package:compendium_core/testing.dart' as core_test;
 import 'package:compendium_rubric/compendium_rubric.dart';
 import 'package:test/test.dart';
 
@@ -79,7 +80,7 @@ void main() {
 
         // Every default the taxonomy applies, stated explicitly.
         final effective = core.contraTaxonomy.effectiveParams(
-          core.Figure(move: move),
+          core_test.testFigure(move: move),
         );
         final fromTaxonomyDefaults = buildFigure(move, effective);
 
