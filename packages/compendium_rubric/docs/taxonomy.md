@@ -48,18 +48,25 @@ Reusable params/enums accumulated across figures (filled in as figures are defin
 | Param | Type / values | Meaning |
 |---|---|---|
 | `beats` | int [0–16] | timing/duration; **carried by all figures**; no effect on end-state |
-| `turn` | ⚠️ **polymorphic — resolve per move** (see below) | three distinct meanings across the taxonomy; never assume which one applies |
+| `travel` | number [0.25–2.5], step 0.25 | v35 canonical rotation amount; 1 = once around = back to place |
+| `direction` | move-specific enum | v35 canonical direction; its vocabulary depends on the move |
 | `places` | int [1–10] | number of position-steps around a ring (effective = `places mod 4` for a 4-ring) |
 | `who` | figure-specific value set | which dancer(s) the figure acts on — a role (`chain`: `role1s`/`role2s`) or a rich relationship set (`swing`: `partners`, `neighbors`, `ones`/`twos`, the distance sets, …) |
 | `hand` | enum {`left`, `right`} | which hand is used (e.g. `chain` pull-by hand; `star` center hand); also sets rotation direction for `box_circulate` |
-| `dir` | enum {`across`, `along`, `rightDiagonal`, `leftDiagonal`, …} | direction of travel (figure-specific value set) |
+| `where` | enum {`across`, `along`, `rightDiagonal`, `leftDiagonal`, …} | v35 canonical travel axis/direction on pass, chain, pull-by, and related figures |
+| `axis` | enum {`across`, `along`} | v35 canonical axis for `form_short_waves` |
+| `endFacing` | move-specific enum | v35 canonical finishing facing; cardinal on `swing`/`gate`, dancer-relative on `courtesy_turn` |
+| `fraction` | enum {`half`, `full`} | v35 canonical fraction for `poussette` and `figure_8` |
 | `grip` | enum {`wrist_grip`, `hands_across`} | handhold style (e.g. `star`); no effect on end-state |
 | `prefix` | enum {`none`, `balance`, `meltdown`} | optional lead-in to a figure (e.g. `swing`) |
-| `face` | enum {`up`, `down`, `in`, `out`} | explicit finishing facing (e.g. `swing`); `in`/`out` are relative to the set per the dancer's side. **Ours**; upstream spells it `endFacing` |
-| `where` | enum {`center`, `sides`} | where in the h4 a figure resolves (e.g. `swing`); with `face`, fixes the finishing position. **Ours only** — no upstream counterpart, so no record carries it |
+| `face` | enum {`up`, `down`, `in`, `out`} | rubric's internal synonym for `swing.endFacing`; v34 `gate.face` is accepted as a legacy alias for `endFacing` |
+| `where` on `swing` | enum {`center`, `sides`} | rubric-only finishing location; this move-specific use is distinct from the canonical direction key above |
 | `shoulder` | enum {`left`, `right`} | which shoulder dancers pass (e.g. `do_si_do`); **right = clockwise, left = counter-clockwise** orbit |
-| `circling` | number [0.25–2.5], step 0.25 | how far around an orbit goes (e.g. `do_si_do`); 1 = once around = back to place. **Ours**; on the wire this is `turn` — see the polymorphism note below |
-| `amount` | number, rotation | rotation fraction — used **only** by `orbit`, which spends its `turn` slot on the direction |
+| `circling` | number [0.25–2.5], step 0.25 | rubric's internal name for `do_si_do.travel` |
+| `turn` | legacy v34 key | accepted as a compatibility alias for either v35 `travel` or `direction`, depending on the move |
+| `dir` | legacy v34 key | accepted as a compatibility alias for v35 `where` or `axis`, depending on the move |
+| `half` | legacy v34 key | accepted as a compatibility alias for v35 `fraction` |
+| `amount` | legacy v34 key | accepted as a compatibility alias for `orbit.travel` |
 | _(more added as figures are defined)_ | | |
 
 ### Spelling: this document's names vs what arrives on the wire
@@ -71,71 +78,75 @@ the canonical one. There are three kinds of divergence, and it is worth keeping 
 
 | Kind | Examples | How the parser treats it |
 |---|---|---|
-| **Legacy spelling** — the same param, spelled another way | `right_diagonal` → `rightDiagonal`, `larks` → `role1s`, `1s` → `ones`, `partner` → `partners`, `neighbor` → `neighbors` | both accepted on input, normalized to the canonical key |
-| **Our name for an upstream param** — a rename we made for clarity | `circling` (wire: `turn`), `face` (wire: `endFacing`) | canonical spelling read **first**, ours accepted as a synonym |
-| **Ours only** — no upstream counterpart at all | `where` | always takes its default in practice, since no record carries it |
+| **Legacy value spelling** — the same value, spelled another way | `right_diagonal` → `rightDiagonal`, `larks` → `role1s`, `1s` → `ones`, `partner` → `partners`, `neighbor` → `neighbors` | both accepted on input |
+| **Legacy v34 parameter key** | `turn` → `travel`/`direction`, `dir` → `where`/`axis`, `half` → `fraction`, `amount` → `travel`, `face` → `endFacing`, `form_long_waves.hand` → `whomHand` | v35 canonical key read first; legacy key accepted only when the canonical key is absent |
+| **Rubric's internal name for an upstream param** | `circling` (`do_si_do.travel`), `face` (`swing.endFacing`) | canonical spelling read first; internal name accepted as a final synonym |
+| **Rubric-only param** | `swing.where` (`center`/`sides`) | no upstream record carries it; hand-written fixtures may |
 
-Two consequences worth stating plainly. Where the divergence is a **key** rather than a value —
-`turn`/`circling`, `endFacing`/`face` — the parser takes the **first key present, canonical
-first**, so a record carrying both is resolved by precedence rather than refused. That case is
-unreachable from real data (the second spelling in each pair is ours, so no upstream record has
-one), but it is a rule and not an accident. And an **ours-only param cannot be relied on for
-fidelity** — `where` is readable so a hand-written fixture can set it, but a dance imported from
-upstream will never exercise it.
+Two consequences worth stating plainly. The parser takes the **first key
+present, canonical first**, so a record carrying both a v35 key and its v34
+alias is resolved by precedence rather than insertion order. A canonical
+`unspecified` still suppresses the legacy key: it says the current schema makes
+no claim, not that an older spelling may override it. And a rubric-only param
+cannot be relied on for import fidelity — `swing.where` is readable so a
+hand-written fixture can set it, but an upstream record never exercises it.
 
-The `unspecified` sentinel is handled once, centrally, rather than per figure: a key carrying it
-is treated as **absent**, which is what it means. Upstream is explicit that the set of params
-admitting the sentinel is a moving target, so enumerating them here would drift.
+The `unspecified` sentinel is handled once, centrally, rather than per figure:
+its value is read as **no stated value**, while the authored canonical key
+still wins precedence over legacy aliases. Upstream is explicit that the set
+of params admitting the sentinel is a moving target, so enumerating them here
+would drift.
 
 > Defaults are recorded per figure rather than here, because upstream's default and ours
 > occasionally differ and the difference is only meaningful next to the figure it belongs to. The
 > notable case is `chain.hand`, below.
 
-### ⚠️ Polymorphic keys — resolve them per move
+### ⚠️ Move-specific keys — resolve them per move
 
-**Three keys carry different meanings on different moves**: `turn`, `endFacing` and `face`. Each
-must be resolved from the move's own parameter kind; there is no global rule for any of them, and
-assuming one is a live source of bugs. `turn` is the worst of the three and gets its own table
-below; the other two are summarized here.
+The v35 names are more precise than v34, but `direction`, `endFacing`, and
+`where` still have move-specific domains. Resolve them from the move's own
+parameter kind rather than applying one global vocabulary.
 
 | Key | On | Means | Domain |
 |---|---|---|---|
+| `direction` | `circle`, `zig_zag` | rotation/slide direction | move-specific left/right choice |
+| `direction` | `orbit`, `poussette`, `facing_star` | spin direction | clockwise/counterclockwise |
 | `endFacing` | `swing` | the finishing **facing** | cardinal — {`up`, `down`, `in`, `out`} |
 | `endFacing` | `courtesy_turn` | the dancer you finish **facing** | a **dancer set**, not a cardinal |
-| `face` | `swing` | our name for the above | cardinal — {`up`, `down`, `in`, `out`} |
-| `face` | `gate` | the finishing facing | cardinal, but a **wider set** — the four above **plus `along`** |
+| `endFacing` | `gate` | the finishing facing | cardinal, including `along` |
+| `where` | pass/chain/pull-by figures | travel axis | across/along/diagonal as allowed by the move |
+| `where` | `swing` | rubric-only finishing location | center/sides |
 
 `endFacing` is the more dangerous of the two, because the two domains do not merely differ in
 size, they are unrelated: a swing's is a compass direction and a courtesy turn's is a person.
 There is no value that is valid for both, so a global rule would not silently mis-resolve — it
 would fail outright — but it also means the key tells you nothing until you know the move.
 
-`face` is the subtler one precisely because the domains *overlap*. `up`, `down`, `in` and `out`
-mean the same thing on `swing` and `gate`, so three of the four cases work by coincidence under a
-wrong global rule; only `face: "along"` distinguishes them, and it is valid on `gate` and an
-unrecognized value on `swing`. Note also that `swing.face` and `gate.face` were named apart
-upstream *deliberately*, to keep them separately addressable — which is why `swing` reads
-`endFacing` first and treats `face` as our synonym, while `gate` reads only `face`.
+The legacy/internal `face` synonym is subtler because its domains overlap.
+`up`, `down`, `in`, and `out` are valid for both `swing` and `gate`, while
+`along` distinguishes the gate domain. `swing` therefore reads canonical
+`endFacing` before its internal `face` synonym; `gate` reads canonical
+`endFacing` before legacy v34 `face`.
 
-#### `turn` — three meanings
+#### Legacy `turn` — three v35 destinations
 
-`turn` carries **three different meanings** depending on the figure.
+Persisted v34 `turn` carried three meanings. The parser accepts it for
+compatibility, but v35 records use the destination key below.
 
-| `turn` means | CallersCompendium `ParamKind` | Moves |
+| v34 `turn` means | v35 key | Moves |
 |---|---|---|
-| **Rotation amount** (how far) — number [0.25–2.5], step 0.25; 1 = once around = back to place | `rotation` | `allemande`, `do_si_do`, `gate`, `mad_robin`, `shoulder_round`, `star_promenade`, `two_hand_turn` |
-| **Spin direction** — {`clockwise`, `counterclockwise`} | `spinDirection` | `facing_star`, `orbit`, `poussette`, `promenade` |
-| **Direction** — {`left`, `right`}; `left` = clockwise, `right` = counter-clockwise | `choice` | `circle`, `zig_zag` |
+| **Rotation amount** (how far) | `travel` | `allemande`, `do_si_do`, `gate`, `mad_robin`, `shoulder_round`, `star_promenade`, `two_hand_turn` |
+| **Spin direction** | `direction` | `facing_star`, `orbit`, `poussette`, `promenade` |
+| **Direction/slide choice** | `direction` (`circle`) or `slide` (`zig_zag`) | `circle`, `zig_zag` |
 
 Notes:
 
-- The **amount** sense is CallersCompendium's baseline name for the concept our `do_si_do` calls
-  `circling`. That synonym is **`do_si_do`'s alone** — no other move accepts `circling`, because
-  no other move is documented here under that name.
-- Two moves carry **both** senses in separate slots: `mad_robin` and `gate` each pair a `turn`
-  *amount* with a separate `direction`. `orbit` is the mirror case — its `turn` is the direction
-  and its **`amount`** holds the fraction.
-- Where `turn` is a direction, it generally has **no net-position effect** for whole/half
+- Rubric's `circling` synonym is **`do_si_do`'s alone**; canonical input calls
+  the amount `travel`.
+- `mad_robin` and `gate` pair a `travel` amount with a separate `direction`.
+  `orbit` likewise uses `direction` plus `travel`; v34 called those `turn` and
+  `amount`.
+- Where legacy `turn` represented a direction, it generally has **no net-position effect** for whole/half
   rotations (180° lands the same either way); it matters for quarters, which land in a wave for
   `do_si_do` and `allemande` and are deferred elsewhere.
 
@@ -424,8 +435,8 @@ To be defined later with worked examples.
 
 - **summary:** A clockwise or counter-clockwise rotation of the four dancers in each hands
   four.
-- **params** (meets CallersCompendium baseline `{turn, places, singleFile, beats}`):
-  - `turn` — enum {`left`, `right`}. `left` = clockwise, `right` = counter-clockwise.
+- **params** (meets CallersCompendium baseline `{direction, places, singleFile, beats}`):
+  - `direction` — enum {`left`, `right`}. `left` = clockwise, `right` = counter-clockwise.
   - `places` — int [1–10], baseline default 4. Position-steps around the ring; effective rotation
     is `places mod 4` (4 = full turn = identity).
   - `singleFile` — flag, default `false`. Dancers circulate the ring **single-file** rather than
@@ -478,9 +489,9 @@ To be defined later with worked examples.
     recorded for fidelity and **has no end-state effect** — the chain trades the same dancers to
     the same cells either way. If a figure is ever added whose hand *does* move someone, this
     substitution stops being harmless and the sentinel has to be modelled properly.
-  - `dir` — enum {`across`, `along`, `rightDiagonal`, `leftDiagonal`}. Direction of the chain.
+  - `where` — enum {`across`, `along`, `rightDiagonal`, `leftDiagonal`}. Direction of the chain.
   - `beats` — int [0–16]. Timing (universal).
-- **preconditions (D12):** none that can refuse. `dir` describes the direction the chain
+- **preconditions (D12):** none that can refuse. `where` describes the direction the chain
   travels, and the input facing is expected to match it — `along` → facing **up** or **down**;
   `across`, `rightDiagonal`, `leftDiagonal` → facing **into the set** (toward the opposite line:
   `across→` from c0/west, `across←` from c4/east). *(interpretation — to confirm)* A mismatch is
@@ -657,8 +668,8 @@ To be defined later with worked examples.
 
 - **summary:** Facing someone, walk forward passing the given shoulder, step to the side, and
   fall back to place — the two dancers orbit each other; a full circle returns to place.
-- **params** (meets CallersCompendium baseline `{who, shoulder, turn, beats}`; the wire key is
-  `turn` and `circling` is our name for it — see "Spelling", above):
+- **params** (meets CallersCompendium baseline `{who, shoulder, travel, beats}`;
+  `circling` is our internal name for `travel` — see "Spelling", above):
   - `who` — **same value set as `swing`** (`partners`, `neighbors`, `ones`/`twos`,
     `role1s`/`role2s`, and the distance sets; shadows and corners deferred). Acts as a
     precondition.
@@ -716,14 +727,14 @@ To be defined later with worked examples.
 - **summary:** With the stated hand/forearm, the two dancers take hold and turn around each
   other by `turn` full-turns; the hand sets the direction. Like `do_si_do`, but the pair
   **turns** (rather than sliding), so facing rotates with the turn.
-- **params** (meets CallersCompendium baseline `{who, hand, turn, beats}`, progression-capable):
+- **params** (meets CallersCompendium baseline `{who, hand, travel, beats}`, progression-capable):
   - `who` — dancer set (our `who` vocabulary; baseline default `neighbors`). A **precondition**,
     like `do_si_do`.
   - `hand` — enum {`left`, `right`}. Which hand/arm is given; **right = clockwise, left =
     counter-clockwise**. (Doesn't change whole/half end positions; sets direction for the
     quarter/wave case.)
-  - `turn` — rotation number **[0.25 .. 2.5], step 0.25**, default `1.0`. (Same concept as
-    `do_si_do`'s `circling`; baseline names it `turn`.)
+  - `travel` — rotation number **[0.25 .. 2.5], step 0.25**, default `1.0`. (Same concept as
+    `do_si_do`'s `circling`.)
   - `beats` — int, default 8.
 - **preconditions:** `who` validated (relaxed like `do_si_do` — the `who` dancer may be in a
   different column); no rigid input-facing requirement.
@@ -780,8 +791,8 @@ To be defined later with worked examples.
 
 - **summary:** Two facing couples pass through and courtesy-turn, trading with the couple across
   — each dancer ends swapped with their **diagonally-opposite** dancer.
-- **params** (meets CallersCompendium baseline `{dir, beats}`):
-  - `dir` — direction, default `across`. (`along` / diagonals deferred — see note.)
+- **params** (meets CallersCompendium baseline `{where, beats}`):
+  - `where` — direction, default `across`. (`along` / diagonals deferred — see note.)
   - `beats` — int, default 8.
 - **preconditions:** the two couples must be set up facing across (the standard R&L-through
   formation). Precise checks _PENDING_ (a same-side variant like the `with partner` column
@@ -802,7 +813,7 @@ To be defined later with worked examples.
 - **interaction scope:** within the hands four (for `across`).
 - **h4 contribution** (D7): 0 for `across`.
 - **progression-eligible:** no (baseline `right_left_through` is not progression-capable).
-- **`along` / diagonals:** deferred — the baseline `dir` vocabulary allows them, but their
+- **`along` / diagonals:** deferred — the baseline `where` vocabulary allows them, but their
   effect (and any h4 contribution for diagonals) is not yet defined here.
 - **sources:** ContraDanceVerifier `TryRightAndLeftThrough` (same-role swaps + courtesy-turn
   normalize); CallersCompendium taxonomy `right_left_through` MoveDef.
@@ -969,14 +980,14 @@ To be defined later with worked examples.
 - **summary:** Two dancers walk around each other **facing** (eye contact, no hands) — a
   "gypsy"/"gyre". Positionally the **face-to-face twin of `do_si_do`** (whole turn returns to
   place, half turn swaps), but it **carries a determinate output facing** (unlike `do_si_do`).
-- **params** (meets CallersCompendium baseline `{who, shoulder, turn, beats}`; keywords
+- **params** (meets CallersCompendium baseline `{who, shoulder, travel, beats}`; keywords
   gypsy/gyre):
   - `who` — same value set as `do_si_do`/`swing`; default `neighbors`. Precondition (relaxed, as
     `do_si_do`).
   - `shoulder` — enum {`left`, `right`}, default `right`. Which shoulder passes = orbit direction
     **and the focus** that sets the output facing (below). Irrelevant to end *position* for
     whole/half turns.
-  - `turn` — rotation number (CallersCompendium's name for `do_si_do`'s `circling`), default
+  - `travel` — rotation number (CallersCompendium's name for `do_si_do`'s `circling`), default
     `1.0`. How far around (**1 = once around = back to place**).
   - `beats` — int, default 8 (baseline good=[8]).
 - **preconditions:** as `do_si_do` (relaxed; `who` may be a different column). Precise checks
@@ -1033,20 +1044,20 @@ To be defined later with worked examples.
 
 - **summary:** Facing dancers walk forward and **pass by** (given shoulder) to exchange places,
   continuing to face their walking direction (end back-to-back / passed through).
-- **params** (meets CallersCompendium baseline `{dir, shoulder, beats}`):
-  - `dir` — direction, default `along`. `across` = across the set; `along` = up/down the set.
+- **params** (meets CallersCompendium baseline `{where, shoulder, beats}`):
+  - `where` — direction, default `along`. `across` = across the set; `along` = up/down the set.
   - `shoulder` — enum {`left`, `right`}, default `right`. Which shoulder passes; **no end-position
     effect** (styling).
   - `beats` — int, default 2 (baseline good=[2]).
-- **preconditions:** the only refusal is on `dir` itself — `rightDiagonal` / `leftDiagonal` are
+- **preconditions:** the only refusal is on `where` itself — `rightDiagonal` / `leftDiagonal` are
   outside this family's along/across pair and raise `unsupportedParam`. Facing does **not**
-  refuse: dancers are expected to face the `dir` axis (`across` needs across-facing, `along`
+  refuse: dancers are expected to face the `where` axis (`across` needs across-facing, `along`
   needs along-facing), and if they do not, the figure runs as though they turned to it first and
   reports the **`facingPrecondition` warning**. A **Flexible** facing is skipped silently — this
   figure is what resolves it, which is exactly the contract `circle` and `star` rely on when
   they hand their dancers over mid-ring.
 - **effect:**
-  - `dir:across` → **column swap** within each row: `(r,c0) ↔ (r,c4)` for all dancers.
+  - `where:across` → **column swap** within each row: `(r,c0) ↔ (r,c4)` for all dancers.
   - `dir:along` → **row swap** within each side column: `(r0,c) ↔ (r1,c)` for all dancers.
   - Role/number/couple-identity travel with each dancer.
 - **normalization:** **none** — dancers pass through to a back-to-back / passed arrangement; they
@@ -1179,11 +1190,11 @@ To be defined later with worked examples.
 
 - **summary:** An orbit **along the set** — each dancer circles the person in their column (up/down)
   while facing across, of the `do_si_do`/`shoulder_round` family. Ends **facing across the set**.
-- **params** (meets CallersCompendium baseline `{who, turn, direction, whom, beats}`):
+- **params** (meets CallersCompendium baseline `{who, travel, direction, whom, beats}`):
   - `who` — dancer set, default `ones`. The pair that steps **in front first**. On a whole/half
     `turn` it has no distinct positional effect (see effect); descriptive context. *(Compendium
     warns: a different concept from `whom` — do not conflate them.)*
-  - `turn` — rotation, default `1.0`. Orbit amount (plays the role `circling` does for do_si_do).
+  - `travel` — rotation, default `1.0`. Orbit amount (plays the role `circling` does for do_si_do).
   - `direction` — spin direction {`clockwise`, `counterclockwise`}, default **`unspecified`**
     (Compendium v20/#295). A *clockwise* mad robin begins with the left-hand person going in front.
     **Styling** for whole/half turns (180° lands opposite either way).
@@ -1212,11 +1223,11 @@ To be defined later with worked examples.
 
 - **summary:** A **ring rotation** of all four dancers around a central star (couples travel as a
   unit). Same swap-family shape as the orbit figures, but a full-ring rotation.
-- **params** (meets CallersCompendium baseline `{who, turn, beats}`):
+- **params** (meets CallersCompendium baseline `{who, travel, beats}`):
   - `who` — dancer set, default `role1s`. **The dancer you pick up on the side** (Compendium
     v26/#843 owner ruling — *not* the pair with a hand in the center). **Styling** for the
     whole/half cases (no distinct positional effect).
-  - `turn` — rotation, default `0.5`. Rotation amount.
+  - `travel` — rotation, default `0.5`. Rotation amount.
   - *(no `hand`: the Compendium **removed** `star_promenade.hand` at v26/#843 — it described the
     center pair while rendering as though it qualified `who`. We accept `hand` only as an ignored
     legacy key, never as a determinant of the effect.)*
@@ -1295,8 +1306,8 @@ To be defined later with worked examples.
   pass; a direction-selected pull-by requires an along/across axis.
 - **effect:** with `who`, swap each selected pair. Otherwise swap along
   `where`: `along` = `(r0,c)↔(r1,c)` and `across` =
-  `(r,c0)↔(r,c4)`. A bare canonical move retains the former direction form's
-  `along` behavior for compatibility.
+  `(r,c0)↔(r,c4)`. A bare canonical move is deferred because v35 deliberately
+  leaves both selectors `unspecified`; only the legacy aliases imply defaults.
 - **normalization:** none.
 - **facing (output):** **preserved**.
 - **interaction scope:** within the hands four.
@@ -1310,12 +1321,12 @@ To be defined later with worked examples.
 
 ### `cross_trails`
 
-- **summary:** A compound pass — pass `who` in `dir` (across), then pass `who2` along — netting a
+- **summary:** A compound pass — pass `who` in `where` (across), then pass `who2` along — netting a
   **diagonal swap**. Ends facing along the set (out), per the final pass-along.
-- **params** (meets CallersCompendium baseline `{who, dir, shoulder, who2, beats}`):
+- **params** (meets CallersCompendium baseline `{who, where, shoulder, who2, beats}`):
   - `who` — dancer set, default `partners`. Who you pass on the first (across) pass. **Descriptive**
     (doesn't change the permutation).
-  - `dir` — direction, default `across`. Axis of the first pass. **Canonical/default `across`**;
+  - `where` — direction, default `across`. Axis of the first pass. **Canonical/default `across`**;
     other values (`along`) degenerate to a no-op and are **deferred / out-of-scope**.
   - `shoulder` — shoulder, default `right`. Dialect/styling; **not a render token, no effect**.
   - `who2` — dancer set, default `neighbors`. Who you pass on the second (along) pass. **Descriptive**.
@@ -1341,10 +1352,10 @@ To be defined later with worked examples.
 
 - **summary:** In a Becket-style line, dancers **weave along the set**, passing an oncoming couple
   by the given shoulder ("zig") — a single along-the-set pass. (Also called *weave the line*.)
-- **params** (meets CallersCompendium baseline `{who, turn, ender, beats}`):
+- **params** (meets CallersCompendium baseline `{who, slide, ender, beats}`):
   - `who` — dancer set, default `partners`. Descriptive/actor context (who weaves together);
     **no end-position effect**.
-  - `turn` — enum {`left`, `right`}, default `left`. Which shoulder starts the weave; **no
+  - `slide` — enum {`left`, `right`}, default `left`. Which shoulder starts the weave; **no
     end-position effect** (styling).
   - `ender` — enum {`none`, `ring`, `allemande`}, default `none`. Descriptive tag for what the
     weave leads into; **no end-position effect** in this baseline. A real `ring`/`allemande` ending
@@ -1411,14 +1422,14 @@ To be defined later with worked examples.
 
 - **summary:** The `who` couple weaves a figure‑eight path around the stationary other couple. A
   **full** 8 returns everyone home; a **half** ends the two actives swapped within their own row.
-- **params** (meets CallersCompendium baseline `{who, dir, lead, half, beats}`):
+- **params** (meets CallersCompendium baseline `{who, where, lead, fraction, beats}`):
   - `who` — dancer set, default `ones`. The active couple that weaves.
-  - `dir` — enum {`none`, `above`, `below`, `across`}, default `none`. Which way the loop is
+  - `where` — enum {`none`, `above`, `below`, `across`}, default `none`. Which way the loop is
     traced first; **path/styling only — no net effect** on the half's landing. `across` is
     **deferred** (degenerate/out of scope).
   - `lead` — dancer set, default `onesRole2` (choices onesRole1/onesRole2/twosRole1/twosRole2).
     Which single dancer leads the weave; **descriptive — no net effect**.
-  - `half` — fraction, default `half`. `half` (0.5) = one loop; `full` (1.0) = complete 8.
+  - `fraction` — default `half`. `half` (0.5) = one loop; `full` (1.0) = complete 8.
   - `beats` — int, default 8 (baseline: `half`→8, `full`→16).
 - **preconditions:** a completed h4 (the `who` couple weaves around the other, stationary couple).
 - **effect:**
@@ -1444,11 +1455,11 @@ To be defined later with worked examples.
 
 - **summary:** Two couples join hands and push/pull each other as units around a shared center. A
   **full** poussette returns home; a **half** trades the two couples' places.
-- **params** (meets CallersCompendium baseline `{who, whom, half, turn, beats}`):
+- **params** (meets CallersCompendium baseline `{who, whom, fraction, direction, beats}`):
   - `who` — dancer set, default `ones`. One of the two couples that poussette.
   - `whom` — dancer set, default `neighbors`. The other couple (the one `who` poussettes with).
-  - `half` — fraction, default `half`. `half` (0.5) = trade places; `full` (1.0) = full box home.
-  - `turn` — spin direction, default `clockwise`. **Irrelevant for a half** (180° lands the same
+  - `fraction` — default `half`. `half` (0.5) = trade places; `full` (1.0) = full box home.
+  - `direction` — spin direction, default `clockwise`. **Irrelevant for a half** (180° lands the same
     either way); would only matter for quarter turns (deferred).
   - `beats` — int, default 6 (baseline is a range: half→6–8, full→12–16; not list-encodable).
 - **preconditions:** the two couples (`who` + `whom`) resolvable within the h4 (DI: couple 1 = row 0,
@@ -1475,10 +1486,10 @@ To be defined later with worked examples.
 
 - **summary:** Two facing couples put a hand in and rotate as a four‑person star. Identical
   mechanics to `star`/`circle`, parameterized by `turn` + `places`.
-- **params** (meets CallersCompendium baseline `{who, turn, places, beats}`):
+- **params** (meets CallersCompendium baseline `{who, direction, places, beats}`):
   - `who` — dancer set, default `ones`. **Descriptive** — a star is always four hands; all four
     dancers rotate (matches the verifier ignoring `who`).
-  - `turn` — spin direction, default `clockwise`. Sets rotation direction:
+  - `direction` — spin direction, default `clockwise`. Sets rotation direction:
     `clockwise` = star `hand:right` / circle‑left; `counterclockwise` = star `hand:left` /
     circle‑right.
   - `places` — int [1–10], default 3. Position‑steps around the ring; effective = `places mod 4`.
@@ -1570,7 +1581,8 @@ To be defined later with worked examples.
   pair **orbits about their joined hands**. A half turn lands each gating pair swapped. (Unified
   figure as of CallersCompendium v22 — the former `rotation_gate` was folded into this move and is
   **not** modeled separately.)
-- **params** (meets CallersCompendium baseline `{who, whom, pair, direction, turn, face, beats}`):
+- **params** (meets CallersCompendium baseline
+  `{who, whom, pair, direction, travel, endFacing, beats}`):
   - `who` — dancer set. **The side that extends a hand and backs up** (the pivot / inside of the
     arc). **Descriptive** for net position (see effect).
   - `whom` — dancer set. **The side that walks forward** (the outside of the arc). **Descriptive**
@@ -1582,8 +1594,8 @@ To be defined later with worked examples.
   - `direction` — enum {`clockwise`, `counterclockwise`, `mirror`}. `mirror` = a two-couple gate in
     which the roles rotate in **opposite** senses (this is why it is not a plain spin direction).
     **No net-position effect** for whole or half turns (a 180° rotation lands the same either way).
-  - `turn` — amount of rotation. Drives the whole effect.
-  - `face` — enum {`up`, `down`, `in`, `out`}. **Stored data** as of v22 (see facing).
+  - `travel` — amount of rotation. Drives the whole effect.
+  - `endFacing` — enum {`up`, `down`, `in`, `out`, `along`}. **Stored data** (see facing).
   - `beats` — int, default 8.
 - **preconditions:** the gating pairs must be resolvable — every `who`-side dancer must have exactly
   one `whom`-side dancer under the operative pairing, and the two must be adjacent (share a row or a
@@ -1634,10 +1646,10 @@ To be defined later with worked examples.
 - **summary:** The two dancers take **both hands** and turn around each other by `turn`
   full-turns. The two-handed hold keeps them **face-to-face throughout**, which is what
   distinguishes it from `allemande` (one hand/forearm) on the facing axis.
-- **params** (meets CallersCompendium baseline `{who, turn, beats}`):
+- **params** (meets CallersCompendium baseline `{who, travel, beats}`):
   - `who` — dancer set (our `who` vocabulary; baseline default **`partners`**). A **precondition**,
     relaxed like `allemande` / `do_si_do`.
-  - `turn` — rotation number **[0.25 .. 2.5], step 0.25**, default `1.0`. (Same concept as
+  - `travel` — rotation number **[0.25 .. 2.5], step 0.25**, default `1.0`. (Same concept as
     `do_si_do`'s `circling`.)
   - `beats` — int, default 8 (baseline good=[8]).
   - *(no `hand`: a two-hand turn gives **both** hands, so the move carries **no direction token**
@@ -1783,17 +1795,14 @@ To be defined later with worked examples.
 - **summary:** The `who` dancers travel **around the outside of the hands four** — a rotation about
   the h4 centre — typically while the other dancers turn in the middle. First-class as of
   CallersCompendium v19.
-- **params** (meets CallersCompendium baseline `{who, turn, amount, beats}`):
+- **params** (meets CallersCompendium baseline `{who, direction, travel, beats}`):
   - `who` — dancer set, default `ones`. The orbiting dancers.
-  - `turn` — **spin direction** {`clockwise`, `counterclockwise`}, default `clockwise`. **Not an
-    amount here** — `turn` is polymorphic across the taxonomy (see *`turn` is polymorphic* in the
-    shared vocabulary); `orbit` is one of four moves that spend the slot on direction, alongside
-    `facing_star`, `poussette` and `promenade`. **No net-position effect** for whole/half amounts
+  - `direction` — **spin direction** {`clockwise`, `counterclockwise`}, default `clockwise`.
+    `orbit` is one of four moves that use this spin-direction domain, alongside
+    `facing_star`, `poussette`, and `promenade`. **No net-position effect** for whole/half amounts
     (180° lands the same either way).
-  - `amount` — **rotation fraction**, default `0.5`. Holds what `turn` holds in `allemande` /
-    `do_si_do` / `two_hand_turn`. `orbit` is the **only** move in the taxonomy using an `amount`
-    slot, precisely because its `turn` is taken by the direction. (The `0.5` default matches the
-    retired fused move's `outer` value.)
+  - `travel` — **rotation fraction**, default `0.5`. The `0.5` default matches the retired
+    fused move's `outer` value.
   - `beats` — int, default 8 (baseline good=[8]).
 - **preconditions:** the `who` pair must be resolvable within the h4.
 - **effect (by `amount`):**
@@ -1979,9 +1988,10 @@ To be defined later with worked examples.
 
 - **summary:** Each hands four steps into a **wave of four across the set** — see
   `fundamentals.md` §8.5.1 for the geometry this entry applies.
-- **params** (meets CallersCompendium baseline `{dir, balance, center, centerHand, sides,
+- **params** (meets CallersCompendium baseline `{axis, balance, center, centerHand, sides,
   beats}`):
-  - `dir` — direction, default `across`. `rightDiagonal` / `leftDiagonal` raise
+  - `axis` — direction, default `across`. Legacy `dir` values are accepted during migration;
+    `rightDiagonal` / `leftDiagonal` raise
     `unsupportedParam`: they build the wave across hands-four boundaries and have no worked
     example on record.
   - `balance` — flag, default `false`. **No end-state effect** (styling), as `petronella`'s.
@@ -2026,7 +2036,7 @@ To be defined later with worked examples.
   fails to discriminate). The parser never leaves it absent, because upstream owns what an
   omitted parameter means; that path is reached by constructing the figure directly.
 - **preconditions:**
-  - `dir` other than `across` → `unsupportedParam`.
+  - `axis` other than `across` → `unsupportedParam`.
   - No complete hands four → `unresolvableDancerSet`.
   - `sides` not matching the pairs actually standing face to face → `whoMismatch`.
   - `center` not matching the pair the chosen hand puts in the middle → `whoMismatch`.
@@ -2064,14 +2074,14 @@ To be defined later with worked examples.
 
 - **summary:** The two **side lines** become waves running **along** the set. **Nobody moves** —
   this figure is facing and nothing else.
-- **params** (meets CallersCompendium baseline `{who, whom, hand, balance, beats}`):
+- **params** (meets CallersCompendium baseline `{who, whom, whomHand, balance, beats}`):
   - `who` — dancer set, default `role1s` (the baseline's value). The pair who
     face **in**; everyone else faces out. The field stays nullable and the *anchors* below can
     still resolve it, but a parsed record never arrives absent, so from JSON the anchors only
     ever corroborate.
   - `whom` — dancer set, absent by default (the upstream `unspecified` sentinel). Whom you hold.
     An **anchor**: no end-state effect, but verified.
-  - `hand` — handedness, absent by default (same sentinel). The hand you hold `whom` by. An
+  - `whomHand` — handedness, absent by default (same sentinel). The hand you hold `whom` by. An
     anchor on the same footing; unlike a short wave's, it displaces nobody, because nobody steps
     anywhere to reach it.
   - `balance` — flag, default `false`. No end-state effect.
@@ -2210,10 +2220,8 @@ To be defined later with worked examples.
 ### `pass_the_ocean`
 
 - **summary:** Facing couples **pass across the set** and land in a **wave of four**.
-- **params** (mirror `form_short_waves`' names): `dir` (default `across`), `balance`, `center`
-  (default `role2s`), `centerHand` (default `right`, the baseline's value — and note this is the
-  *opposite* of `form_short_waves`' `left`, which is correct rather than a discrepancy: step 1
-  crosses everyone over before the wave forms), `sides` (default `neighbors`), `beats`
+- **params** (mirror `form_short_waves`' names): `where` (default `across`), `balance`, `center`
+  (default `role2s`), `centerHand` (default `left`), `sides` (default `neighbors`), `beats`
   (default 4).
 - **effect — three composed steps:**
   1. `reflectBands(columns: true)` — everyone crosses over. Each rank keeps its two dancers and
@@ -2235,7 +2243,7 @@ To be defined later with worked examples.
   `[[L2-B . . . R2-B], [R1-A . . . L1-A]]` with everyone facing across, `centerHand: left` gives
   `[[. R2-B . . L2-B], [L1-A . . R1-A .]]`.
 - **preconditions:** inherited wholesale from the delegate — including its `sides` / `center`
-  cross-checks and its `dir` restriction — because the delegation goes through the public `apply`
+  cross-checks and its axis restriction — because the delegation goes through the public `apply`
   rather than round the outside of it.
 - **interaction scope:** the whole set.
 - **h4 contribution** (D7): 0.
@@ -2260,7 +2268,7 @@ To be defined later with worked examples.
     way. Meaningful only for the deferred partial lengths; carried for record fidelity, no
     end-state effect.
   - `shoulder` — hand, default `right`. Which shoulder passes. **Styling only**, as for `pass_by`.
-  - `dir` — direction, default `across`. The axis the line of four lies along.
+  - `where` — direction, default `across`. The axis the line of four lies along.
   - `rico1`–`rico4` — flags, default `false`. Ricochets, numbered by centre meeting.
 
 - **⭐ the permutation, derived rather than ported.** A reel is **not** a sequence of pair
@@ -2367,7 +2375,7 @@ To be defined later with worked examples.
   | `rico2` (the Robins) | `[[R1-A . . . L1-A], [L2-B . . . R2-B]]` |
   | `rico1` + `rico3` | identity |
 - **preconditions:**
-  - `dir != across` → `unsupportedParam`. The diagonals lay the line of four across more than one
+  - `where != across` → `unsupportedParam`. The diagonals lay the line of four across more than one
     hands four, and are **deferred behind diagonal `right_left_through`**, which they would have to
     agree with and which is itself unimplemented.
   - `length` of `lessThanHalf` / `betweenHalfAndFull` → `unsupportedParam`. They stop the weave
