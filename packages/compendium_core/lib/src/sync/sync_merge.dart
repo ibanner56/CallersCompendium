@@ -1,5 +1,6 @@
 import '../storage/repositories/sync_local_repository.dart';
 import '../imports/dedupe.dart';
+import '../model/stored_timestamp.dart';
 import 'canonical_json.dart';
 import 'sync_codec.dart';
 import 'sync_record_kind.dart';
@@ -127,14 +128,15 @@ SyncDanceDedupeMerge mergeDanceCandidates(
     );
   }
   final survivor = group.first;
+  final latestUpdatedAt = group
+      .map((candidate) => candidate.blob.updatedAt)
+      .reduce((left, right) => left.isAfter(right) ? left : right);
   final merged = SyncMergeCandidate(
     blob: SyncRecordBlob(
       v: survivor.blob.v,
       kind: SyncRecordKind.dance,
       id: survivor.blob.id,
-      updatedAt: group
-          .map((candidate) => candidate.blob.updatedAt)
-          .reduce((left, right) => left.isAfter(right) ? left : right),
+      updatedAt: latestUpdatedAt.add(storedTimestampTick),
       deletedAt: null,
       existenceAt: group
           .map((candidate) => candidate.blob.existenceAt)

@@ -275,6 +275,48 @@ void main() {
   );
 
   test(
+    'fresh attach collection unions outrank an equal-time survivor peer',
+    () {
+      final survivor = _danceCandidate(
+        'a-survivor',
+        'Shared dance',
+        tags: ['tag-a'],
+      );
+      final duplicate = _danceCandidate(
+        'z-duplicate',
+        'The shared dance',
+        tags: ['tag-z'],
+      );
+
+      final merged = mergeDanceCandidates([survivor, duplicate]).winner;
+
+      expect(merged.blob.body['tagIds'], ['tag-a', 'tag-z']);
+      expect(merged.updatedAt, _baseTime.add(storedTimestampTick));
+
+      final peerPlan = engine.plan(
+        local: {survivor.address: survivor},
+        baseline: const {},
+        peers: [
+          {merged.address: merged},
+        ],
+      );
+
+      expect(peerPlan.decisions.single.action, SyncMergeAction.download);
+      expect(peerPlan.decisions.single.winner!.wireHash, merged.wireHash);
+
+      final mergedPeerPlan = engine.plan(
+        local: {merged.address: merged},
+        baseline: const {},
+        peers: [
+          {survivor.address: survivor},
+        ],
+      );
+      expect(mergedPeerPlan.decisions.single.action, SyncMergeAction.upload);
+      expect(mergedPeerPlan.decisions.single.winner!.wireHash, merged.wireHash);
+    },
+  );
+
+  test(
     'fresh attach queues ambiguity instead of merging different choreography',
     () {
       final left = _danceCandidate(
