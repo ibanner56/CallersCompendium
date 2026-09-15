@@ -876,6 +876,15 @@ class SyncCoordinator {
     }
 
     final normalizedUnresolved = await _normalizeAddresses(unresolved);
+    if (freshAttach &&
+        (!allPeerManifestsAvailable || normalizedUnresolved.isNotEmpty)) {
+      return SyncPassResult(
+        SyncPassStatus.failed,
+        reports: reports.reports,
+        message:
+            'fresh attach requires a complete peer union', // i18n-ignore: internal status
+      );
+    }
     final mergeBaseline =
         freshAttach
               ? <SyncRecordAddress, SyncBaselineEntry>{}

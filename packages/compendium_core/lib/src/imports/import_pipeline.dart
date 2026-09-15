@@ -710,7 +710,7 @@ class ImportPipeline {
         // any author lookup. Only when content differs AND the incoming dance
         // declares authors do we spend a choreographer read on the author
         // signal.
-        var confident = _choreographyEquals(incoming, existing);
+        var confident = _choreographyMatches(incoming, existing);
         if (!confident && incomingAuthors.isNotEmpty) {
           final existingAuthors = _normalizedAuthorSet(
             await _authorNamesFor(existing),
@@ -907,7 +907,7 @@ class ImportPipeline {
   /// identity, provenance, timestamps, and device-local id collections
   /// (authorIds, tags, custom fields, links, citations) so a bundle received
   /// on another device still matches by its intrinsic content.
-  bool _choreographyEquals(Dance a, Dance b) =>
+  bool _choreographyMatches(Dance a, Dance b) =>
       const DeepCollectionEquality().equals(
         choreographyFingerprintForDance(a),
         choreographyFingerprintForDance(b),

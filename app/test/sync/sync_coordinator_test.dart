@@ -739,6 +739,89 @@ void main() {
   );
 
   test(
+    'incomplete fresh attach retries before applying or publishing a partial union',
+    () async {
+      final local = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'local'),
+      );
+      final store = _FakeStore(epoch: null, local: {local.address: local});
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        peerManifest: _manifest(deviceId: 'peer', records: const {}),
+        manifestResponses: {
+          'peer': [_FakeTransport.response(500)],
+        },
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+      );
+
+      final first = await coordinator.syncNow();
+
+      expect(first.status, SyncPassStatus.failed);
+      expect(store.freshAttachDedupeCalls, 0);
+      expect(store.writes, isEmpty);
+      expect(store.baselineReplacements, 0);
+      expect(transport.manifestPuts, 0);
+
+      final second = await coordinator.syncNow();
+
+      expect(second.status, SyncPassStatus.completed);
+      expect(store.freshAttachDedupeCalls, 1);
+      expect(store.baselineReplacements, 1);
+      expect(transport.manifestPuts, 1);
+    },
+  );
+
+  test(
+    'incomplete fresh attach retries when a listed peer blob is unavailable',
+    () async {
+      final peer = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'remote'),
+      );
+      final store = _FakeStore(epoch: null);
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        peerManifest: _manifest(
+          deviceId: 'peer',
+          records: {
+            SyncRecordKind.setting: {peer.blob.id: peer.wireHash},
+          },
+        ),
+        blobResponses: {},
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+      );
+
+      final first = await coordinator.syncNow();
+
+      expect(first.status, SyncPassStatus.failed);
+      expect(first.reports.single.code, SyncReportCode.unresolvedBlob);
+      expect(store.freshAttachDedupeCalls, 0);
+      expect(store.baselineReplacements, 0);
+      expect(transport.manifestPuts, 0);
+
+      transport.blobResponses[peer.wireHash] = _FakeTransport.response(
+        200,
+        body: utf8.encode(encodeSyncRecordBlob(peer.blob)),
+      );
+      final second = await coordinator.syncNow();
+
+      expect(second.status, SyncPassStatus.completed);
+      expect(store.freshAttachDedupeCalls, 1);
+      expect(store.baselineReplacements, 1);
+      expect(transport.manifestPuts, 1);
+    },
+  );
+
+  test(
     'failed fresh attach retries after its epoch state is cleared',
     () async {
       final store = _FakeStore(epoch: null, failFreshAttachDedupeOnce: true);
@@ -1620,6 +1703,7 @@ final class _FakeStore implements SyncCoordinatorStore {
   int baselineAdvances = 0;
   int baselineReplacements = 0;
   int epochStateClears = 0;
+  int freshAttachDedupeCalls = 0;
   final List<SyncRecordAddress> replacedEntries = [];
 
   @override
@@ -1710,6 +1794,7 @@ final class _FakeStore implements SyncCoordinatorStore {
   Future<SyncFreshAttachDedupeResult> deduplicateFreshAttach({
     required bool apply,
   }) async {
+    if (apply) freshAttachDedupeCalls++;
     if (apply && failFreshAttachDedupeOnce) {
       failFreshAttachDedupeOnce = false;
       throw StateError('scripted fresh-attach failure');

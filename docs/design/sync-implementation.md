@@ -1152,10 +1152,11 @@ content conflict for W6's table rather than a reconciliation for this unit.
   surface).
 - **Produces** the union — **absence never deletes at attach, but an explicit
   tombstone with the greater `existenceAt` is applied** (§6.2 step 5, §6.4);
-  dedupe on `normalizeTitle` plus `_choreographyEquals`, with tombstones
-  excluded from candidacy entirely; `program_slots.dance_id` rewiring to the
-  survivor; epoch and baseline persistence; confirmed replacement attach after
-  W13 authorizes one successful `POST`; and the after-the-fact count
+  dedupe on `normalizeTitle` plus the shared `choreographyFingerprint`
+  contract, with tombstones excluded from candidacy entirely;
+  `program_slots.dance_id` rewiring to the survivor; epoch and baseline
+  persistence; confirmed replacement attach after W13 authorizes one
+  successful `POST`; and the after-the-fact count
   ("merged 412 duplicates"), which is the mitigation rather than a prompt.
 - **Unblocks** **W13's attach-completion report only**. The count is surfaced
   at the end of pairing, and pairing is W13's. This is the "what the user is

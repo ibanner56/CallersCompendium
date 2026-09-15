@@ -97,6 +97,11 @@ void main() {
           DanceLink(
             id: 'loser-owned-link',
             kind: LinkKind.relatedDance,
+            targetDanceId: 'c-related',
+          ),
+          DanceLink(
+            id: 'loser-self-link',
+            kind: LinkKind.relatedDance,
             targetDanceId: survivor.id,
           ),
         ],
@@ -104,6 +109,14 @@ void main() {
         updatedAt: stamp.add(const Duration(minutes: 1)),
       );
       await repositories.dances.create(survivor);
+      await repositories.dances.create(
+        Dance(
+          id: 'c-related',
+          title: 'Related dance',
+          createdAt: stamp,
+          updatedAt: stamp,
+        ),
+      );
       await repositories.dances.create(loser);
 
       final owner = Dance(
@@ -141,6 +154,7 @@ void main() {
       expect(merged!.walkthrough, 'newer loser');
       expect(merged.rating, 5);
       expect(merged.links.map((link) => link.id), ['loser-owned-link']);
+      expect(merged.links.single.targetDanceId, 'c-related');
       expect(
         await repositories.syncLocal.resolveAlias(
           kind: SyncRecordKind.dance,
@@ -757,6 +771,54 @@ void main() {
       isNotNull,
     );
   });
+
+  test(
+    'refreshes a live ambiguity review after its candidate is edited',
+    () async {
+      final stamp = DateTime.utc(2026, 7, 15, 12);
+      final left = Dance(
+        id: 'a-left',
+        title: 'Shared dance',
+        figures: [
+          testFigure(move: 'balance', params: const {'hand': 'left'}),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final right = Dance(
+        id: 'b-right',
+        title: 'The shared dance',
+        figures: [
+          testFigure(move: 'balance', params: const {'hand': 'right'}),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      await repositories.dances.create(left);
+      await repositories.dances.create(right);
+
+      await storage.deduplicateFreshAttach();
+      final firstRow = (await repositories.syncLocal.listReviewQueue()).single;
+      final editedRight = right.copyWith(
+        figures: [testFigure(move: 'swing')],
+        updatedAt: stamp.add(const Duration(minutes: 1)),
+      );
+      await repositories.dances.update(editedRight);
+
+      await storage.deduplicateFreshAttach();
+      final refreshedRow =
+          (await repositories.syncLocal.listReviewQueue()).single;
+
+      expect(refreshedRow.candidateHash, isNot(firstRow.candidateHash));
+      expect(refreshedRow.candidateBlob, isNot(firstRow.candidateBlob));
+      await storage.resolveReviewQueue(
+        expectedRow: refreshedRow,
+        action: SyncReviewAction.keepBoth,
+        newNaturalKey: 'A distinct dance',
+      );
+      expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+    },
+  );
 
   test(
     'reconciles same-label difficulty levels before applying dependents',

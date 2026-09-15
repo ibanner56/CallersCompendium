@@ -2467,8 +2467,9 @@ A solo install has no repair path. A never-corrected clock does not self-heal.
 ### 6.10 Fresh-attach dedupe
 
 Union matches on record id. Silent merge only where both hold an exact
-normalized-title match **and** `_choreographyEquals`. Tombstones MUST NOT be
-dedupe candidates.
+normalized-title match **and** the shared `choreographyFingerprint` contract
+from `packages/compendium_core/lib/src/imports/dedupe.dart`. Tombstones MUST
+NOT be dedupe candidates.
 
 **Normalized title** means the transformation implemented by `normalizeTitle`
 in `packages/compendium_core/lib/src/imports/dedupe.dart`, applied in this
@@ -2511,10 +2512,10 @@ Turkish-locale device lowercasing `I` to `ı` and declining a merge every peer
 performs.
 
 On silent merge the survivor is the lexicographically smaller UUID; id
-collections the equality test ignores are unioned; `program_slots.dance_id` MUST
-be rewired to the survivor; scalars `_choreographyEquals` does not compare
-(`walkthrough`, `rating`, `status`, `composedOn`, `revisedOn`) resolve by
-last-writer-wins. Dance merges write `id_aliases` entries.
+collections outside the choreography fingerprint are unioned;
+`program_slots.dance_id` MUST be rewired to the survivor; scalars outside the
+fingerprint (`walkthrough`, `rating`, `status`, `composedOn`, `revisedOn`)
+resolve by last-writer-wins. Dance merges write `id_aliases` entries.
 
 Where `updatedAt` is **equal** and such a scalar differs, the survivor's value
 MUST be taken. This is the one place the survivor's values win, and it does not

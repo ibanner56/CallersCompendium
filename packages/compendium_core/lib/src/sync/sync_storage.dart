@@ -431,17 +431,8 @@ final class CompendiumSyncStorage
   }) => repositories.transaction(() async {
     final plan = await _danceDedupePlan();
     final reports = <SyncReport>[];
+    await _refreshDanceAmbiguityReviews(plan.ambiguities);
     for (final ambiguity in plan.ambiguities) {
-      final candidate = ambiguity.candidate;
-      await repositories.syncLocal.enqueueReview(
-        kind: SyncRecordKind.dance,
-        recordId: ambiguity.firstId,
-        counterpartId: ambiguity.secondId,
-        reason: syncDanceChoreographyAmbiguityReason,
-        candidateBlob: encodeSyncRecordBlob(candidate.blob),
-        candidateHash: candidate.wireHash,
-        queuedAt: DateTime.now().toUtc(),
-      );
       if (ambiguity.left.blob.updatedAt == ambiguity.right.blob.updatedAt) {
         reports.add(
           SyncReport(
@@ -475,6 +466,72 @@ final class CompendiumSyncStorage
       reports: List.unmodifiable(reports),
     );
   });
+
+  Future<void> _refreshDanceAmbiguityReviews(
+    Iterable<SyncDanceDedupeAmbiguity> ambiguities,
+  ) async {
+    final expected = <String, SyncDanceDedupeAmbiguity>{
+      for (final ambiguity in ambiguities)
+        _danceReviewPairKey(ambiguity.firstId, ambiguity.secondId): ambiguity,
+    };
+    final existingRows = await repositories.syncLocal.listReviewQueue();
+    for (final row in existingRows) {
+      if (row.kind != SyncRecordKind.dance ||
+          row.reason != syncDanceChoreographyAmbiguityReason) {
+        continue;
+      }
+      final ambiguity =
+          expected[_danceReviewPairKey(row.recordId, row.counterpartId)];
+      if (ambiguity == null ||
+          row.recordId != ambiguity.firstId ||
+          row.counterpartId != ambiguity.secondId ||
+          row.candidateHash != ambiguity.candidate.wireHash) {
+        await repositories.syncLocal.deleteReview(
+          kind: row.kind,
+          recordId: row.recordId,
+          counterpartId: row.counterpartId,
+        );
+      }
+    }
+
+    final queuedAt = DateTime.now().toUtc();
+    for (final ambiguity in expected.values) {
+      final candidate = ambiguity.candidate;
+      final candidateBlob = encodeSyncRecordBlob(candidate.blob);
+      final existing = await repositories.syncLocal.getReviewQueue(
+        kind: SyncRecordKind.dance,
+        recordId: ambiguity.firstId,
+        counterpartId: ambiguity.secondId,
+      );
+      if (existing != null &&
+          existing.candidateHash == candidate.wireHash &&
+          existing.candidateBlob == candidateBlob) {
+        continue;
+      }
+      if (existing != null) {
+        await repositories.syncLocal.deleteReview(
+          kind: SyncRecordKind.dance,
+          recordId: ambiguity.firstId,
+          counterpartId: ambiguity.secondId,
+        );
+      }
+      await repositories.syncLocal.enqueueReview(
+        kind: SyncRecordKind.dance,
+        recordId: ambiguity.firstId,
+        counterpartId: ambiguity.secondId,
+        reason: syncDanceChoreographyAmbiguityReason,
+        candidateBlob: candidateBlob,
+        candidateHash: candidate.wireHash,
+        queuedAt: queuedAt,
+      );
+    }
+  }
+
+  String _danceReviewPairKey(String left, String right) {
+    final first = left.compareTo(right) <= 0 ? left : right;
+    final second = first == left ? right : left;
+    return '$first:$second';
+  }
 
   Future<SyncFreshAttachDedupePlan> _danceDedupePlan() async {
     final customFields = await repositories.customFieldDefs
@@ -650,6 +707,7 @@ final class CompendiumSyncStorage
     final links = copy['links'];
     if (links is List) {
       final rewritten = <Object?>[];
+      final survivorId = copy['id'];
       for (final value in links) {
         if (value is! Map) {
           rewritten.add(value);
@@ -658,7 +716,9 @@ final class CompendiumSyncStorage
         final item = Map<String, Object?>.from(value);
         final target = item['targetDanceId'];
         if (target is String) {
-          item['targetDanceId'] = _resolveDanceAlias(target, aliases);
+          final resolvedTarget = _resolveDanceAlias(target, aliases);
+          if (resolvedTarget == survivorId) continue;
+          item['targetDanceId'] = resolvedTarget;
         }
         rewritten.add(item);
       }
