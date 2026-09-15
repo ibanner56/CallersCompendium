@@ -265,7 +265,6 @@ Map<String, Object?> _mergeDanceBodies(
     'status',
     'composedOn',
     'revisedOn',
-    'provenance',
   ]) {
     if (latest.blob.body.containsKey(key)) {
       body[key] = latest.blob.body[key];

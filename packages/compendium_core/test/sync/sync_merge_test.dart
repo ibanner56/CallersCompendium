@@ -383,6 +383,29 @@ void main() {
     ]);
   });
 
+  test(
+    'fresh attach keeps survivor provenance when the duplicate is newer',
+    () {
+      final older = _danceCandidate(
+        'a-older',
+        'Shared dance',
+        provenance: const {'source': 'older'},
+      );
+      final newer = _danceCandidate(
+        'z-newer',
+        'The shared dance',
+        updatedSeconds: 1,
+        provenance: const {'source': 'newer'},
+      );
+
+      final plan = planFreshAttachDedupe([older, newer]);
+
+      expect(plan.merges.single.winner.blob.body['provenance'], {
+        'source': 'older',
+      });
+    },
+  );
+
   test('keeps an unresolved baseline entry retryable', () {
     final address = _setting('custom_dialects', 'local').address;
     final plan = engine.plan(
@@ -788,6 +811,7 @@ SyncMergeCandidate _danceCandidate(
   List<String> authors = const [],
   List<String> tags = const [],
   List<Object?> sourceCitations = const [],
+  Object? provenance,
   int updatedSeconds = 0,
   bool deleted = false,
 }) {
@@ -821,7 +845,7 @@ SyncMergeCandidate _danceCandidate(
         'tagIds': tags,
         'links': const [],
         'sourceCitations': sourceCitations,
-        'provenance': null,
+        'provenance': provenance,
         'composedOn': null,
         'revisedOn': null,
         'createdAt': _baseTime.toIso8601String(),

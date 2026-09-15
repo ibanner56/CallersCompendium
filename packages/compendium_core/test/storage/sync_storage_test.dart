@@ -180,6 +180,37 @@ void main() {
     },
   );
 
+  test('fresh attach dedupe batches FTS cleanup for losing dances', () async {
+    final counter = FtsDeleteByDanceCounter();
+    await db.close();
+    final countingDb = openCountingTestDatabase(counter);
+    db = countingDb;
+    final countingRepositories = CompendiumRepositories(
+      countingDb,
+      contraTaxonomy,
+    );
+    final countingStorage = CompendiumSyncStorage(countingRepositories);
+    final stamp = DateTime.utc(2026, 7, 15, 12);
+    for (var i = 0; i < 4; i++) {
+      await countingRepositories.dances.create(
+        Dance(
+          id: i == 0 ? 'a-survivor' : 'z-loser-$i',
+          title: 'Shared dance',
+          createdAt: stamp,
+          updatedAt: stamp.add(Duration(seconds: i)),
+        ),
+      );
+    }
+    counter.count = 0;
+
+    final result = await countingStorage.deduplicateFreshAttach();
+
+    expect(result.duplicateCount, 3);
+    // The surviving row is rewritten once; losing rows must use the batched
+    // cleanup path instead of issuing one unindexed delete each.
+    expect(counter.count, 1);
+  });
+
   test(
     'fresh attach ambiguity is immutable and review-queue insertion is idempotent',
     () async {
