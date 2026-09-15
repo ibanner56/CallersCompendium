@@ -1,0 +1,37 @@
+{
+  "id": "RUBRIC/W35",
+  "phase": 3,
+  "sequence": 360,
+  "summary": "Add mixer formation support",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Overall corpus state"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/fundamentals.md",
+      "heading": "2. Scope"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C3"
+  ],
+  "produces": [
+    "Define the first bounded mixer formation family and its success criterion from sourced dances, leaving other mixer shapes deferred until separately grounded."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "The enabled mixer shape has explicit start and partner-change semantics.",
+      "The success criterion does not reuse longways progression.",
+      "At least one sourced mixer dance compiles.",
+      "Other mixer shapes remain explicit formation deferrals."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

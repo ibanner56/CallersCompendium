@@ -1,0 +1,36 @@
+{
+  "id": "RUBRIC/W4",
+  "phase": 0,
+  "sequence": 50,
+  "summary": "Resolve direct Rory O'More refusals",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Failure hotspots"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/taxonomy.md",
+      "heading": "`rory_o_more`"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C1"
+  ],
+  "produces": [
+    "Reduce the direct rory_o_more failures to their shared precondition or geometry error, add representative regression dances, and correct the implementation without changing already passing wave cases."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Every directly refusing representative has a focused test.",
+      "The corrected cases preserve dancer identity, couple number, and progression semantics.",
+      "The refreshed corpus report accounts for the Rory O'More delta."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

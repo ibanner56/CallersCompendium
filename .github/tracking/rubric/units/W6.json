@@ -1,0 +1,32 @@
+{
+  "id": "RUBRIC/W6",
+  "phase": 0,
+  "sequence": 70,
+  "summary": "Close operation coverage blind spots with goldens",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Coverage blind spots"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C1"
+  ],
+  "produces": [
+    "Add sourced or explicitly worked golden dances that exercise orbit, stand_still, two_hand_turn, and turn_as_couples through the compiler rather than only unit-level transforms."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Each named operation appears in at least one compiler-attempted golden dance.",
+      "Each golden states the progression-carrying figure and independently derived final criterion.",
+      "No synthetic example is presented as sourced."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

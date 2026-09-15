@@ -1,0 +1,37 @@
+{
+  "id": "RUBRIC/W3",
+  "phase": 0,
+  "sequence": 40,
+  "summary": "Resolve the dominant swing who-mismatch hotspot",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Failure hotspots"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/taxonomy.md",
+      "heading": "`swing`"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C1"
+  ],
+  "produces": [
+    "Classify the 584 swing first refusals by authored who/where state, pin representative sourced cases, and implement only the dominant valid geometry that the current resolver misses."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "The dominant refusal classes are documented with counts and representative records.",
+      "Accepted cases compile with exact dancer identity and normalization assertions.",
+      "Unsupported or ambiguous swing forms remain explicit OpError results rather than guessed behavior.",
+      "The refreshed corpus report shows the resulting swing delta."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

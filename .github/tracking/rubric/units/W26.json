@@ -1,0 +1,36 @@
+{
+  "id": "RUBRIC/W26",
+  "phase": 2,
+  "sequence": 270,
+  "summary": "Implement selective hall movers",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Hall figures"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/taxonomy.md",
+      "heading": "Held figures (reviewed, deferred to a directed conversation)"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C2"
+  ],
+  "produces": [
+    "Model moving:center and moving:outsides for down_the_hall and up_the_hall while preserving the stationary dancers and the line-of-four orientation."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Both moving subsets have exact occupancy and facing tests.",
+      "Stationary dancers retain identity and position.",
+      "A resulting shape that cannot be represented returns OpError rather than colliding."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

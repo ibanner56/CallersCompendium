@@ -1,0 +1,36 @@
+{
+  "id": "RUBRIC/W10",
+  "phase": 1,
+  "sequence": 110,
+  "summary": "Implement slice",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/taxonomy.md",
+      "heading": "Held figures (reviewed, deferred to a directed conversation)"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Entirely deferred impact"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C2"
+  ],
+  "produces": [
+    "Implement slice as its own Becket shift/progression figure, covering the structured return and by parameters without baking an extra progression into the transform."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Couple and dancer slice paths are separately specified and tested.",
+      "Straight, diagonal, and no-return forms either compile with proven matrices or remain explicit deferrals.",
+      "A progression flag advances exactly once."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

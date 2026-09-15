@@ -1,0 +1,38 @@
+{
+  "id": "RUBRIC/W17",
+  "phase": 2,
+  "sequence": 180,
+  "summary": "Implement diagonal hey",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/taxonomy.md",
+      "heading": "`hey`"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Direction and axis"
+    }
+  ],
+  "dependsOn": [
+    "RUBRIC/W16"
+  ],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C2"
+  ],
+  "produces": [
+    "Implement diagonal hey geometry using the same diagonal lane and reach conventions established by non-across right_left_through."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "The diagonal line of four is selected deterministically.",
+      "Full hey pass order and final matrix are independently derived.",
+      "Boundary cases either allocate reach correctly or return OpError."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

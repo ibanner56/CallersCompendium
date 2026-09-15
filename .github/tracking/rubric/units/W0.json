@@ -1,0 +1,36 @@
+{
+  "id": "RUBRIC/W0",
+  "phase": 0,
+  "sequence": 10,
+  "summary": "Eliminate give-and-take projection crashes",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Known crashes"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/taxonomy.md",
+      "heading": "`give_and_take`"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C0"
+  ],
+  "produces": [
+    "Reproduce The Digital Divide and Road to Rochester as package-local regression cases, isolate the invalid give_and_take projection, and correct the operation without weakening collision detection."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Both named dances return a compiler result instead of throwing FormationProjectionError.",
+      "The fix preserves valid give_and_take permutations and rejects genuine collisions through OpError.",
+      "A mutation or reverted fix makes the regression test fail."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

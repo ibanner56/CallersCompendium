@@ -1,0 +1,38 @@
+{
+  "id": "RUBRIC/W22",
+  "phase": 2,
+  "sequence": 230,
+  "summary": "Implement diagonal short-wave formation",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Direction and axis"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/taxonomy.md",
+      "heading": "`form_short_waves`"
+    }
+  ],
+  "dependsOn": [
+    "RUBRIC/W16"
+  ],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C2"
+  ],
+  "produces": [
+    "Construct diagonal short waves using the diagonal lane and reach convention established by non-across right-left-through."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "The selected dancers and offset cells are deterministic.",
+      "Hand and facing derive from geometry rather than stored labels.",
+      "Boundary reach is covered by a sourced or worked compiler case."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

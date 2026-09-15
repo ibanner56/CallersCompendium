@@ -1,0 +1,36 @@
+{
+  "id": "RUBRIC/W32",
+  "phase": 3,
+  "sequence": 330,
+  "summary": "Add four-face-four formation support",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Overall corpus state"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/fundamentals.md",
+      "heading": "2. Scope"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C3"
+  ],
+  "produces": [
+    "Define the eight-dancer four-face-four state, grouping, progression, and success criteria needed by formation-specific figures such as chain along."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "The start and progression matrices are independently derived.",
+      "Operations cannot accidentally resolve across the wrong four-dancer subgroup.",
+      "At least one sourced four-face-four sequence compiles."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

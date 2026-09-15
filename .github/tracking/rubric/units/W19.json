@@ -1,0 +1,36 @@
+{
+  "id": "RUBRIC/W19",
+  "phase": 2,
+  "sequence": 200,
+  "summary": "Implement quarter-turn wave landings",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Rotation and wave landings"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/fundamentals.md",
+      "heading": "8.5.6 Entering a wave by a quarter turn"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C2"
+  ],
+  "produces": [
+    "Define the along-set and across-set quarter and three-quarter landing cells shared by allemande, do_si_do, and shoulder_round, then route all three operations through that geometry."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Quarter and three-quarter amounts produce valid, collision-free wave states.",
+      "Across and along pair orientations are covered separately.",
+      "Whole and half behavior remains unchanged."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

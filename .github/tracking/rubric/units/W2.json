@@ -1,0 +1,40 @@
+{
+  "id": "RUBRIC/W2",
+  "phase": 0,
+  "sequence": 30,
+  "summary": "Make compiler status metrics reproducible",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Implementation summary"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Corpus results by implemented figure"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/implementation.md",
+      "heading": "10.1 The Caller's Box import boundary"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C0"
+  ],
+  "produces": [
+    "Generate the headline corpus totals, refusal classes, first-blocker counts, per-figure outcomes, crashes, and coverage blind spots from one deterministic harness run so status.md can be refreshed without hand transcription."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "One command emits every metric currently maintained in docs/status.md.",
+      "The in-scope denominator excludes custom-figure parses and deliberate deferrals exactly as user-ruled.",
+      "A checked fixture or snapshot detects changes to metric classification."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

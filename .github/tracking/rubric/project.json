@@ -1,0 +1,211 @@
+{
+  "schemaVersion": 1,
+  "id": "RUBRIC",
+  "title": "Contra dance compiler remaining work",
+  "repository": "ibanner56/CallersCompendium",
+  "expectedWorkUnits": [
+    "RUBRIC/W0",
+    "RUBRIC/W1",
+    "RUBRIC/W2",
+    "RUBRIC/W3",
+    "RUBRIC/W4",
+    "RUBRIC/W5",
+    "RUBRIC/W6",
+    "RUBRIC/W7",
+    "RUBRIC/W8",
+    "RUBRIC/W9",
+    "RUBRIC/W10",
+    "RUBRIC/W11",
+    "RUBRIC/W12",
+    "RUBRIC/W13",
+    "RUBRIC/W14",
+    "RUBRIC/W15",
+    "RUBRIC/W16",
+    "RUBRIC/W17",
+    "RUBRIC/W18",
+    "RUBRIC/W19",
+    "RUBRIC/W20",
+    "RUBRIC/W21",
+    "RUBRIC/W22",
+    "RUBRIC/W23",
+    "RUBRIC/W24",
+    "RUBRIC/W25",
+    "RUBRIC/W26",
+    "RUBRIC/W27",
+    "RUBRIC/W28",
+    "RUBRIC/W29",
+    "RUBRIC/W30",
+    "RUBRIC/W31",
+    "RUBRIC/W32",
+    "RUBRIC/W33",
+    "RUBRIC/W34",
+    "RUBRIC/W35"
+  ],
+  "phases": [
+    {
+      "id": 0,
+      "name": "Phase 0 - Reliability and evidence"
+    },
+    {
+      "id": 1,
+      "name": "Phase 1 - Canonical vocabulary"
+    },
+    {
+      "id": 2,
+      "name": "Phase 2 - Deferred parameter surfaces"
+    },
+    {
+      "id": 3,
+      "name": "Phase 3 - Formation expansion"
+    }
+  ],
+  "checkpoints": [
+    {
+      "id": "C0",
+      "title": "Known compiler crashes eliminated and status reproducible",
+      "dependsOnUnits": [
+        "RUBRIC/W0",
+        "RUBRIC/W1",
+        "RUBRIC/W2"
+      ],
+      "dependsOnCheckpoints": [],
+      "criteria": [
+        "The known corpus records no longer escape through FormationProjectionError.",
+        "The current status report can be regenerated from one deterministic package-local command."
+      ],
+      "sourceReference": {
+        "path": "packages/compendium_rubric/docs/status.md",
+        "heading": "Known crashes"
+      }
+    },
+    {
+      "id": "C1",
+      "title": "Highest-impact current-scope gaps grounded and reduced",
+      "dependsOnUnits": [
+        "RUBRIC/W3",
+        "RUBRIC/W4",
+        "RUBRIC/W5",
+        "RUBRIC/W6",
+        "RUBRIC/W7",
+        "RUBRIC/W8"
+      ],
+      "dependsOnCheckpoints": [
+        "C0"
+      ],
+      "criteria": [
+        "The largest current refusal classes have representative evidence and targeted corrections.",
+        "Previously unexercised implemented operations have compiler-level golden coverage."
+      ],
+      "sourceReference": {
+        "path": "packages/compendium_rubric/docs/status.md",
+        "heading": "Failure hotspots"
+      }
+    },
+    {
+      "id": "C2",
+      "title": "Canonical duple vocabulary and documented parameter surfaces complete",
+      "dependsOnUnits": [
+        "RUBRIC/W8",
+        "RUBRIC/W9",
+        "RUBRIC/W10",
+        "RUBRIC/W11",
+        "RUBRIC/W12",
+        "RUBRIC/W13",
+        "RUBRIC/W14",
+        "RUBRIC/W15",
+        "RUBRIC/W16",
+        "RUBRIC/W17",
+        "RUBRIC/W18",
+        "RUBRIC/W19",
+        "RUBRIC/W20",
+        "RUBRIC/W21",
+        "RUBRIC/W22",
+        "RUBRIC/W23",
+        "RUBRIC/W24",
+        "RUBRIC/W25",
+        "RUBRIC/W26",
+        "RUBRIC/W27"
+      ],
+      "dependsOnCheckpoints": [
+        "C1"
+      ],
+      "criteria": [
+        "Every canonical figure has an implemented, evidence-backed subset.",
+        "Every currently documented duple parameter deferral is implemented or remains refused for a recorded missing semantic input."
+      ],
+      "sourceReference": {
+        "path": "packages/compendium_rubric/docs/status.md",
+        "heading": "Explicit deferrals inside implemented figures"
+      }
+    },
+    {
+      "id": "C3",
+      "title": "Additional formation families have independent semantics",
+      "dependsOnUnits": [
+        "RUBRIC/W28",
+        "RUBRIC/W29",
+        "RUBRIC/W30",
+        "RUBRIC/W31",
+        "RUBRIC/W32",
+        "RUBRIC/W33",
+        "RUBRIC/W34",
+        "RUBRIC/W35"
+      ],
+      "dependsOnCheckpoints": [
+        "C2"
+      ],
+      "criteria": [
+        "Each enabled formation defines its own start, grouping, progression, boundary behavior, and oracle.",
+        "Formation-specific figures run only after their formation geometry is available."
+      ],
+      "sourceReference": {
+        "path": "packages/compendium_rubric/docs/fundamentals.md",
+        "heading": "2. Scope"
+      }
+    }
+  ],
+  "decisions": [
+    {
+      "id": "taxonomy-read-only",
+      "decision": "compendium_rubric consumes compendium_core taxonomy read-only; alignment work changes the consumer, not compendium_core.",
+      "effect": "No unit may modify compendium_core to make a rubric operation easier to implement.",
+      "decidedBy": "ibanner56",
+      "decidedOn": "2026-09-15"
+    },
+    {
+      "id": "headline-denominator",
+      "decision": "Headline success uses only dances that parse without custom figures and contain no deliberately deferred figure or parameter.",
+      "effect": "W2 preserves this denominator and all later corpus deltas report against it.",
+      "decidedBy": "ibanner56",
+      "decidedOn": "2026-09-15"
+    },
+    {
+      "id": "evidence-before-geometry",
+      "decision": "Unsupported geometry remains an explicit refusal until a sourced or user-approved worked example determines the result.",
+      "effect": "Figure units add the worked example before accepting new parameter surfaces; ambiguous inputs keep returning OpError.",
+      "decidedBy": "ibanner56",
+      "decidedOn": "2026-09-15"
+    },
+    {
+      "id": "compiler-only-scope",
+      "decision": "This plan covers the standalone compiler package and excludes integration with the rest of the application.",
+      "effect": "Units may change package code, tests, docs, corpus harnesses, and package-local adapters, but not app UI, storage, or feature integration.",
+      "decidedBy": "ibanner56",
+      "decidedOn": "2026-09-15"
+    },
+    {
+      "id": "projection-errors-are-defects",
+      "decision": "Cell collisions and off-grid projections are compiler defects; valid dance refusals use OpError and never leak FormationProjectionError.",
+      "effect": "W0 and W1 fix the known crashes without weakening projection invariants.",
+      "decidedBy": "ibanner56",
+      "decidedOn": "2026-09-15"
+    },
+    {
+      "id": "formation-specific-semantics",
+      "decision": "Non-duple formations require their own start, grouping, progression, and oracle definitions.",
+      "effect": "Phase 3 reuses duple behavior only when a test proves the behavior is formation-neutral.",
+      "decidedBy": "ibanner56",
+      "decidedOn": "2026-09-15"
+    }
+  ]
+}

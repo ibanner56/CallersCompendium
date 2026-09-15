@@ -1,0 +1,40 @@
+{
+  "id": "RUBRIC/W23",
+  "phase": 2,
+  "sequence": 240,
+  "summary": "Complete fractional poussette and figure-eight paths",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Amounts and fractions"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/taxonomy.md",
+      "heading": "`poussette`"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/taxonomy.md",
+      "heading": "`figure_8`"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C2"
+  ],
+  "produces": [
+    "Implement the deferred quarter-family paths for poussette and figure_8 with explicit intermediate occupancy instead of reducing them to half or full permutations."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Quarter and three-quarter paths are collision-free and reversible where required.",
+      "figure_8 across is either proven as a real permutation or remains explicitly rejected as degenerate.",
+      "Existing half and full behavior remains unchanged."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "id": "RUBRIC/W20",
+  "phase": 2,
+  "sequence": 210,
+  "summary": "Complete quarter-rotation figure amounts",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Rotation and wave landings"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/taxonomy.md",
+      "heading": "`star_promenade`"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/taxonomy.md",
+      "heading": "`orbit`"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C2"
+  ],
+  "produces": [
+    "Implement the remaining quarter and three-quarter amounts for two_hand_turn, mad_robin, non-compound orbit, and star_promenade through one tested rotation model."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Each figure has operation-level tests for quarter and three-quarter travel.",
+      "The shared model preserves each figure's distinct dancer scope and normalization.",
+      "Compound couple-orbit behavior remains owned by W13."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

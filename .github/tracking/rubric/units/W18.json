@@ -1,0 +1,36 @@
+{
+  "id": "RUBRIC/W18",
+  "phase": 2,
+  "sequence": 190,
+  "summary": "Implement remaining hey lengths and side openings",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/taxonomy.md",
+      "heading": "`hey`"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Other boundaries"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C2"
+  ],
+  "produces": [
+    "Complete centre-opening partial heys and side-opening non-full heys with an explicit pass-state model rather than treating every length as a final-corner permutation."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Every accepted length stops after the documented pass count.",
+      "Side and centre openings have distinct tests.",
+      "Rico centre-pass numbering remains consistent with the user-ratified convention."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

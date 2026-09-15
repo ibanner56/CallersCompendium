@@ -1,0 +1,37 @@
+{
+  "id": "RUBRIC/W7",
+  "phase": 1,
+  "sequence": 80,
+  "summary": "Model shadow dancer relationships",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Failure hotspots"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/implementation.md",
+      "heading": "6. The `who` system"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C1"
+  ],
+  "produces": [
+    "Add an explicit shadow relationship to dancer-set resolution and compile the corpus cases currently blocked only because who:shadows is outside the rubric vocabulary."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Shadow selection is defined from stable dancer identity rather than current adjacency.",
+      "Top, middle, and bottom set positions resolve consistently through progression.",
+      "At least one sourced dance proves a shadow figure before and after progression.",
+      "Unknown shadow relationships fail explicitly."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

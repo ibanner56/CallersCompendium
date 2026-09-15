@@ -1,0 +1,38 @@
+{
+  "id": "RUBRIC/W28",
+  "phase": 3,
+  "sequence": 290,
+  "summary": "Implement chain along the set",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Direction and axis"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/taxonomy.md",
+      "heading": "`chain`"
+    }
+  ],
+  "dependsOn": [
+    "RUBRIC/W32"
+  ],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C3"
+  ],
+  "produces": [
+    "Implement chain dir:along only after four-face-four supplies the required formation geometry; do not map it onto the duple across-chain transform."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "The four-facing-four dancer sets and courtesy-turn destinations are explicit.",
+      "Across chain behavior remains unchanged.",
+      "A sourced four-facing-four dance compiles through the figure."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

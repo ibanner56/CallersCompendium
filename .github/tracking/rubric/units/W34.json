@@ -1,0 +1,36 @@
+{
+  "id": "RUBRIC/W34",
+  "phase": 3,
+  "sequence": 350,
+  "summary": "Add three-face-three formation support",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Overall corpus state"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/fundamentals.md",
+      "heading": "2. Scope"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C3"
+  ],
+  "produces": [
+    "Define three-face-three line geometry, subgroup selection, progression, and success criteria as a distinct six-dancer formation."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Starting lines and facing are explicit.",
+      "Figures resolve within the intended six-dancer group.",
+      "At least one sourced three-face-three dance compiles."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

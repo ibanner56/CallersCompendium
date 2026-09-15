@@ -1,0 +1,40 @@
+{
+  "id": "RUBRIC/W25",
+  "phase": 2,
+  "sequence": 260,
+  "summary": "Represent centre landings for swing and long lines",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Other boundaries"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/taxonomy.md",
+      "heading": "`swing`"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/taxonomy.md",
+      "heading": "`long_lines`"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C2"
+  ],
+  "produces": [
+    "Add the minimum state representation needed for swing where:center and long_lines goBack:false, then implement both without pretending displaced dancers occupy side-column cells."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Centre-displaced states project without collisions and remain distinguishable from normalized side positions.",
+      "A later normalization figure can consume each state.",
+      "Existing matrix equality rules remain explicit about any new positional state."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

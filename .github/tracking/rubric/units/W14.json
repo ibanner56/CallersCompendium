@@ -1,0 +1,36 @@
+{
+  "id": "RUBRIC/W14",
+  "phase": 1,
+  "sequence": 150,
+  "summary": "Implement arch and dive",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/taxonomy.md",
+      "heading": "Held figures (reviewed, deferred to a directed conversation)"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Entirely deferred impact"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C2"
+  ],
+  "produces": [
+    "Implement the user-confirmed row swap while defining who and progression handling from a worked example, preserving the compiler's explicit progression flag model."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "The row swap is covered for each accepted who value.",
+      "Progression occurs only when the invocation is flagged and exactly once.",
+      "Unsupported who forms return a targeted OpError."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

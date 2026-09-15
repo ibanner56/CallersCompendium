@@ -1,0 +1,37 @@
+{
+  "id": "RUBRIC/W8",
+  "phase": 1,
+  "sequence": 90,
+  "summary": "Implement promenade",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/taxonomy.md",
+      "heading": "Held figures (reviewed, deferred to a directed conversation)"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Entirely deferred impact"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C1",
+    "C2"
+  ],
+  "produces": [
+    "Define and implement the canonical promenade variants from worked examples, separating across, around, single-file, and home semantics instead of reusing right-left-through geometry."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Every accepted promenade mode has an independently derived permutation and facing contract.",
+      "Unsupported modes remain parameter-specific deferrals.",
+      "Sourced compiler tests cover every accepted mode and progression interaction."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

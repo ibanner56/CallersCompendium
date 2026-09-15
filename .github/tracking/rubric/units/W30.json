@@ -1,0 +1,36 @@
+{
+  "id": "RUBRIC/W30",
+  "phase": 3,
+  "sequence": 310,
+  "summary": "Add Duple Indecent formation support",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Overall corpus state"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/fundamentals.md",
+      "heading": "2. Scope"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C3"
+  ],
+  "produces": [
+    "Define Duple Indecent geometry and progression independently rather than aliasing Improper with renamed roles."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Starting occupancy and facing are grounded in a worked example.",
+      "Progression and end effects are tested for both couple numbers.",
+      "Unsupported figures fail explicitly by formation."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

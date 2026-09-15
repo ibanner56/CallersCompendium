@@ -1,0 +1,38 @@
+{
+  "id": "RUBRIC/W24",
+  "phase": 2,
+  "sequence": 250,
+  "summary": "Complete gate fractional travel and along facing",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Amounts and fractions"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/taxonomy.md",
+      "heading": "`gate`"
+    }
+  ],
+  "dependsOn": [
+    "RUBRIC/W19"
+  ],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C2"
+  ],
+  "produces": [
+    "Implement fractional gate travel into and out of lines of four and resolve endFacing:along from the actual travel and final side."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Quarter and three-quarter gate paths have exact occupancy tests.",
+      "Along facing is derived, not constant.",
+      "Unspecified travel continues to refuse before execution."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

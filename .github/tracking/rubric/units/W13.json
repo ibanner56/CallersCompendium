@@ -1,0 +1,37 @@
+{
+  "id": "RUBRIC/W13",
+  "phase": 1,
+  "sequence": 140,
+  "summary": "Implement meanwhile composition and compound orbit",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/taxonomy.md",
+      "heading": "Held figures (reviewed, deferred to a directed conversation)"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/architecture.md",
+      "heading": "6. Open / Deferred Decisions"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C2"
+  ],
+  "produces": [
+    "Add a structural meanwhile operation that evaluates compatible centre and outside figures as one simultaneous transition, then replace the caveated couple-orbit approximation with the compound result."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "The two child operations resolve disjoint or explicitly coordinated dancer sets.",
+      "Conflicting writes are rejected before projection.",
+      "Retired allemande_orbit records are represented as meanwhile[allemande, orbit].",
+      "Couple who values for orbit are validated through the compound result rather than an isolated swap."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

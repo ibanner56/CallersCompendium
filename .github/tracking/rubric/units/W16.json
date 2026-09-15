@@ -1,0 +1,36 @@
+{
+  "id": "RUBRIC/W16",
+  "phase": 2,
+  "sequence": 170,
+  "summary": "Implement non-across right-left-through",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/taxonomy.md",
+      "heading": "`right_left_through`"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Direction and axis"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C2"
+  ],
+  "produces": [
+    "Define along-set and diagonal right_left_through from worked examples, including reach and courtesy-turn normalization, without flattening them to the across permutation."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Across behavior remains unchanged.",
+      "Each newly accepted direction has a sourced matrix test.",
+      "Required hands-four contribution and boundary behavior are explicit."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

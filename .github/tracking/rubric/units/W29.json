@@ -1,0 +1,36 @@
+{
+  "id": "RUBRIC/W29",
+  "phase": 3,
+  "sequence": 300,
+  "summary": "Add Duple Proper formation support",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Overall corpus state"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/fundamentals.md",
+      "heading": "2. Scope"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C3"
+  ],
+  "produces": [
+    "Define Duple Proper starting state, hands-four grouping, progression direction, end normalization, and success oracle as a separate formation model."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "The starting matrix places roles and numbers correctly.",
+      "Single and double progression oracles are independently tested.",
+      "Shared figures are enabled only where their Proper semantics are proven."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

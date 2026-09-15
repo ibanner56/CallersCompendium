@@ -1,0 +1,36 @@
+{
+  "id": "RUBRIC/W11",
+  "phase": 1,
+  "sequence": 120,
+  "summary": "Implement revolving door",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/taxonomy.md",
+      "heading": "Held figures (reviewed, deferred to a directed conversation)"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Entirely deferred impact"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C2"
+  ],
+  "produces": [
+    "Choose the revolving-door permutation from a sourced worked example and implement it independently of whichever existing star transform looks similar."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "A worked example distinguishes the accepted permutation from the rejected alternative.",
+      "Role, couple, and facing state travel with the correct dancers.",
+      "Progression eligibility is tested explicitly."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

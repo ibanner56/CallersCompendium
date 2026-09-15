@@ -1,0 +1,36 @@
+{
+  "id": "RUBRIC/W15",
+  "phase": 1,
+  "sequence": 160,
+  "summary": "Implement dolphin hey",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/taxonomy.md",
+      "heading": "Held figures (reviewed, deferred to a directed conversation)"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Entirely deferred impact"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C2"
+  ],
+  "produces": [
+    "Extend the hey model with a dolphin pair that travels as one unit, using sourced examples to define leader changes and pair occupancy in the line of four."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Pair identity and leader are explicit through every pass.",
+      "A full sourced dolphin hey compiles to an independently derived matrix.",
+      "Partial or ambiguous forms remain deferred unless separately proven."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

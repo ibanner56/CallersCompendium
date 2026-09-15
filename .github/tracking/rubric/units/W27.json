@@ -1,0 +1,36 @@
+{
+  "id": "RUBRIC/W27",
+  "phase": 2,
+  "sequence": 280,
+  "summary": "Implement held hall enders",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Hall figures"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/taxonomy.md",
+      "heading": "Held figures (reviewed, deferred to a directed conversation)"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C2"
+  ],
+  "produces": [
+    "Implement cozy, cloverleaf, threadNeedle, and rightHandHigh one proven choreography at a time, retaining explicit refusals where the structured input lacks a required pivot dancer."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Each accepted ender has a worked example and exact final occupancy.",
+      "Enders with insufficient structured parameters remain targeted refusals.",
+      "Existing none, bend, turnAsCouples, slidingDoors, and circle enders remain unchanged."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

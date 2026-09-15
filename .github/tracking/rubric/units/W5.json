@@ -1,0 +1,37 @@
+{
+  "id": "RUBRIC/W5",
+  "phase": 0,
+  "sequence": 60,
+  "summary": "Prove non-zero Becket reach behavior",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/fundamentals.md",
+      "heading": "12. Open / Deferred Decisions"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Validation and refresh"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C1"
+  ],
+  "produces": [
+    "Add a worked Becket CW or CCW dance whose pre-progression figures reach beyond the base hands four, then verify or correct travelDirection and end normalization for the non-zero reach."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "A sourced or user-approved worked example requires extra Becket reach before progression.",
+      "The expected matrix is derived independently from the operation sequence.",
+      "CW and CCW symmetry or the intentional asymmetry is covered.",
+      "Any home-position versus current-position defect is fixed at its source."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

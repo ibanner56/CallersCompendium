@@ -1,0 +1,36 @@
+{
+  "id": "RUBRIC/W33",
+  "phase": 3,
+  "sequence": 340,
+  "summary": "Add triple-minor formation support",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Overall corpus state"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/fundamentals.md",
+      "heading": "2. Scope"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C3"
+  ],
+  "produces": [
+    "Define triple-minor starting state, active-minor grouping, progression, end effects, and oracle without reusing duple couple-number assumptions."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "The six-dancer minor set is represented without identity loss.",
+      "Progression and waiting-out behavior are independently derived.",
+      "At least one sourced triple-minor dance compiles."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

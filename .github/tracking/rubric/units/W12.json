@@ -1,0 +1,36 @@
+{
+  "id": "RUBRIC/W12",
+  "phase": 1,
+  "sequence": 130,
+  "summary": "Implement contra corners",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/taxonomy.md",
+      "heading": "Held figures (reviewed, deferred to a directed conversation)"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Entirely deferred impact"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C2"
+  ],
+  "produces": [
+    "Define a bounded structured subset of contra_corners from worked examples and implement that subset while continuing to reject free-text variants that do not determine one permutation."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "The accepted sequence has an explicit dancer and corner-resolution model.",
+      "At least one full 16-beat sourced example compiles.",
+      "Unstructured custom variants remain clearly deferred."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

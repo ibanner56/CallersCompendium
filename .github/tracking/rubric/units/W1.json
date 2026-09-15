@@ -1,0 +1,32 @@
+{
+  "id": "RUBRIC/W1",
+  "phase": 0,
+  "sequence": 20,
+  "summary": "Eliminate the remaining centre-cell projection crash",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Known crashes"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C0"
+  ],
+  "produces": [
+    "Reduce Gypsy for Chris & Sara to the first operation that creates the r0,c2 collision, add the smallest reproducer, and correct that operation's projection."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "The responsible operation is identified in a focused regression test.",
+      "The dance returns a compiler result instead of throwing FormationProjectionError.",
+      "The correction does not suppress unrelated projection defects."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

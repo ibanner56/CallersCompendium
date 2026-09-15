@@ -1,0 +1,36 @@
+{
+  "id": "RUBRIC/W31",
+  "phase": 3,
+  "sequence": 320,
+  "summary": "Add reverse-progression Improper support",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Overall corpus state"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/fundamentals.md",
+      "heading": "2. Scope"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C3"
+  ],
+  "produces": [
+    "Add the reverse-progression improper variant with its own progression sense and boundary normalization while reusing only formation-neutral duple machinery."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Forward and reverse improper oracles differ in the expected direction.",
+      "Waiting-out and re-entry numbering are tested at both ends.",
+      "The formation key maps without changing standard Duple Improper behavior."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

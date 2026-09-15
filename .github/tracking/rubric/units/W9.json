@@ -1,0 +1,36 @@
+{
+  "id": "RUBRIC/W9",
+  "phase": 1,
+  "sequence": 100,
+  "summary": "Implement butterfly whirl",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/taxonomy.md",
+      "heading": "Held figures (reviewed, deferred to a directed conversation)"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Entirely deferred impact"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C2"
+  ],
+  "produces": [
+    "Establish which couples whirl and how they normalize from worked examples, then implement butterfly_whirl without inferring scope from whichever dancers happen to be adjacent."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "The participating dancer set is explicit and validated.",
+      "Output position and facing are covered in both hall orientations that affect normalization.",
+      "Ambiguous records continue to refuse rather than broadening the figure silently."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "id": "RUBRIC/W21",
+  "phase": 2,
+  "sequence": 220,
+  "summary": "Complete diagonal axis-swap directions",
+  "specReferences": [
+    {
+      "path": "packages/compendium_rubric/docs/status.md",
+      "heading": "Direction and axis"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/taxonomy.md",
+      "heading": "`pass_through`"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/taxonomy.md",
+      "heading": "`pull_by`"
+    },
+    {
+      "path": "packages/compendium_rubric/docs/taxonomy.md",
+      "heading": "`cross_trails`"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C2"
+  ],
+  "produces": [
+    "Add deferred diagonal or non-across directions for pass_through, pull_by, and cross_trails using one coordinate convention and explicit reach accounting."
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Every accepted direction has a non-degenerate permutation.",
+      "A direction without a meaningful structured result remains deferred with its authored diagnostic path.",
+      "Boundary reach and collision behavior are tested."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}
