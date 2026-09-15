@@ -1189,6 +1189,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get syncReviewTombstoneReason => 'このデバイスで作成した一致するレコードが、ピア側で削除されました。';
 
   @override
+  String get syncReviewDanceAmbiguityReason =>
+      'Live dances have the same title but different choreography.';
+
+  @override
   String get syncReviewUnsupportedReason =>
       'この同期の競合は保留されています。ここでは安全な操作を利用できません。';
 

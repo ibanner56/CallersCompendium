@@ -13,6 +13,7 @@ import '../model/published_source.dart';
 import '../model/program.dart';
 import '../model/tag.dart';
 import '../model/venue.dart';
+import '../imports/dedupe.dart';
 import '../privacy/data_classification.dart';
 import '../privacy/settings_registry.dart';
 import '../serialization/archive_entity_codec.dart';
@@ -436,9 +437,7 @@ final class CompendiumSyncStorage
         kind: SyncRecordKind.dance,
         recordId: ambiguity.firstId,
         counterpartId: ambiguity.secondId,
-        reason:
-            'live dances share a normalized title but have different '
-            'choreography',
+        reason: syncDanceChoreographyAmbiguityReason,
         candidateBlob: encodeSyncRecordBlob(candidate.blob),
         candidateHash: candidate.wireHash,
         queuedAt: DateTime.now().toUtc(),
@@ -854,6 +853,17 @@ final class CompendiumSyncStorage
     if (currentRow == null || !_sameReviewQueueRow(currentRow, expectedRow)) {
       throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
     }
+    if (currentRow.reason == syncDanceChoreographyAmbiguityReason) {
+      await _resolveDanceAmbiguity(
+        currentRow: currentRow,
+        action: action,
+        newNaturalKey: newNaturalKey,
+      );
+      return;
+    }
+    if (currentRow.reason != syncBaselineAbsenceTombstoneReason) {
+      throw const SyncReviewException(SyncReviewFailureCode.unsupportedReason);
+    }
     final SyncRecordBlob candidate;
     try {
       candidate = decodeSyncRecordBlob(currentRow.candidateBlob);
@@ -877,10 +887,6 @@ final class CompendiumSyncStorage
     } on Object {
       throw const SyncReviewException(SyncReviewFailureCode.candidateInvalid);
     }
-    if (currentRow.reason != syncBaselineAbsenceTombstoneReason) {
-      throw const SyncReviewException(SyncReviewFailureCode.unsupportedReason);
-    }
-
     final localAddress = (kind: currentRow.kind, recordId: currentRow.recordId);
     final localBody = await read(localAddress);
     final localMetadata = await _naturalRecordMetadata(
@@ -1021,6 +1027,168 @@ final class CompendiumSyncStorage
       counterpartId: currentRow.counterpartId,
     );
   });
+
+  Future<void> _resolveDanceAmbiguity({
+    required ReviewQueueRow currentRow,
+    required SyncReviewAction action,
+    required String? newNaturalKey,
+  }) async {
+    final SyncRecordBlob queuedCandidate;
+    try {
+      queuedCandidate = decodeSyncRecordBlob(currentRow.candidateBlob);
+    } on Object {
+      throw const SyncReviewException(SyncReviewFailureCode.candidateInvalid);
+    }
+    if (currentRow.kind != SyncRecordKind.dance ||
+        queuedCandidate.kind != SyncRecordKind.dance ||
+        queuedCandidate.id != currentRow.counterpartId ||
+        queuedCandidate.body['id'] != queuedCandidate.id ||
+        queuedCandidate.deletedAt != null ||
+        currentRow.recordId == queuedCandidate.id ||
+        currentRow.candidateHash !=
+            sha256Hex(encodeSyncRecordBlobUtf8(queuedCandidate))) {
+      throw const SyncReviewException(SyncReviewFailureCode.candidateInvalid);
+    }
+    try {
+      validateSyncReviewCandidateBody(
+        SyncRecordKind.dance,
+        queuedCandidate.body,
+      );
+    } on Object {
+      throw const SyncReviewException(SyncReviewFailureCode.candidateInvalid);
+    }
+
+    final local = await _danceCandidate(currentRow.recordId);
+    final currentCandidate = await _danceCandidate(queuedCandidate.id);
+    if (local == null ||
+        local.blob.deletedAt != null ||
+        currentCandidate == null ||
+        currentCandidate.blob.deletedAt != null) {
+      throw const SyncReviewException(SyncReviewFailureCode.targetMissing);
+    }
+    if (currentCandidate.wireHash != currentRow.candidateHash ||
+        await repositories.syncLocal.resolveAlias(
+              kind: SyncRecordKind.dance,
+              recordId: local.blob.id,
+            ) !=
+            local.blob.id ||
+        await repositories.syncLocal.resolveAlias(
+              kind: SyncRecordKind.dance,
+              recordId: currentCandidate.blob.id,
+            ) !=
+            currentCandidate.blob.id) {
+      throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
+    }
+
+    final localTitle = local.blob.body['title'];
+    final candidateTitle = currentCandidate.blob.body['title'];
+    if (localTitle is! String ||
+        candidateTitle is! String ||
+        normalizeTitle(localTitle) != normalizeTitle(candidateTitle)) {
+      throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
+    }
+
+    switch (action) {
+      case SyncReviewAction.merge:
+        final merge = mergeDanceCandidates([local, currentCandidate]);
+        final aliases = <String, String>{
+          for (final losingId in merge.losingIds)
+            losingId: merge.winner.blob.id,
+        };
+        await _applyDanceDedupeMerge(merge, aliases);
+      case SyncReviewAction.keepBoth:
+        final renamedTitle = _validatedDanceTitle(
+          newNaturalKey,
+          currentKey: normalizeTitle(candidateTitle),
+        );
+        if (await _danceTitleOccupied(
+          normalizeTitle(renamedTitle),
+          excludingId: local.blob.id,
+        )) {
+          throw const SyncReviewException(
+            SyncReviewFailureCode.nameNotDistinct,
+          );
+        }
+        await _renameLocalDanceTitle(local.blob.id, renamedTitle);
+    }
+    await rebuildDerivedIndexes();
+    await repositories.syncLocal.deleteReview(
+      kind: currentRow.kind,
+      recordId: currentRow.recordId,
+      counterpartId: currentRow.counterpartId,
+    );
+  }
+
+  Future<SyncMergeCandidate?> _danceCandidate(String id) async {
+    final dance = await repositories.dances.getById(id, includeDeleted: true);
+    if (dance == null) return null;
+    final row = await (_db.select(
+      _db.dances,
+    )..where((table) => table.id.equals(id))).getSingleOrNull();
+    if (row == null) return null;
+    final customFields = await repositories.customFieldDefs
+        .listAllWithDeleted();
+    final allowedCustomFieldIds = {
+      for (final entry in customFields)
+        if (entry.field.shareable && !entry.deleted) entry.field.id,
+    };
+    final blob = syncRecordBlobForEntity(
+      SyncRecordKind.dance,
+      dance,
+      updatedAt: row.updatedAt,
+      deletedAt: row.deletedAt,
+      existenceAt: row.existenceAt ?? row.updatedAt,
+      allowedCustomFieldIds: allowedCustomFieldIds,
+    );
+    return blob == null ? null : SyncMergeCandidate(blob: blob);
+  }
+
+  String _validatedDanceTitle(String? raw, {required String currentKey}) {
+    if (raw == null) {
+      throw const SyncReviewException(SyncReviewFailureCode.nameRequired);
+    }
+    final normalized = normalizeShareableText(raw).trim();
+    if (normalized.isEmpty) {
+      throw const SyncReviewException(SyncReviewFailureCode.nameRequired);
+    }
+    if (normalizeTitle(normalized) == currentKey) {
+      throw const SyncReviewException(SyncReviewFailureCode.nameNotDistinct);
+    }
+    return normalized;
+  }
+
+  Future<bool> _danceTitleOccupied(
+    String normalizedTitle, {
+    required String excludingId,
+  }) async {
+    final rows = await _db.select(_db.dances).get();
+    return rows.any(
+      (row) =>
+          row.id != excludingId &&
+          row.deletedAt == null &&
+          normalizeTitle(row.title) == normalizedTitle,
+    );
+  }
+
+  Future<void> _renameLocalDanceTitle(String id, String title) async {
+    final row = await (_db.select(
+      _db.dances,
+    )..where((table) => table.id.equals(id))).getSingleOrNull();
+    if (row == null) {
+      throw const SyncReviewException(SyncReviewFailureCode.targetMissing);
+    }
+    await (_db.update(_db.dances)..where((table) => table.id.equals(id))).write(
+      DancesCompanion(
+        title: Value(normalizeShareableText(title)),
+        updatedAt: Value(
+          nextExistenceStamp(
+            now: DateTime.now().toUtc(),
+            current: row.updatedAt,
+          ),
+        ),
+      ),
+    );
+  }
 
   bool _sameReviewQueueRow(ReviewQueueRow left, ReviewQueueRow right) =>
       left.kind == right.kind &&

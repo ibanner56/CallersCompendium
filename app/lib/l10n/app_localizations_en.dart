@@ -1227,6 +1227,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'A peer deleted a matching record that this device created.';
 
   @override
+  String get syncReviewDanceAmbiguityReason =>
+      'Live dances have the same title but different choreography.';
+
+  @override
   String get syncReviewUnsupportedReason =>
       'This sync conflict is retained for now; no safe action is available here.';
 

@@ -309,6 +309,56 @@ void main() {
     },
   );
 
+  test(
+    'fresh attach queues ambiguity only between surviving choreography groups',
+    () {
+      final survivor = _danceCandidate(
+        'a-survivor',
+        'Shared dance',
+        figures: const [
+          {
+            'move': 'balance',
+            'params': {'hand': 'left'},
+          },
+        ],
+      );
+      final equalChoreography = _danceCandidate(
+        'c-duplicate',
+        'The SHARED DANCE',
+        figures: const [
+          {
+            'move': 'balance',
+            'params': {'hand': 'left'},
+          },
+        ],
+      );
+      final differentChoreography = _danceCandidate(
+        'b-different',
+        'shared dance',
+        figures: const [
+          {
+            'move': 'balance',
+            'params': {'hand': 'right'},
+          },
+        ],
+      );
+
+      final plan = planFreshAttachDedupe([
+        survivor,
+        equalChoreography,
+        differentChoreography,
+      ]);
+
+      expect(plan.merges.single.losingIds, ['c-duplicate']);
+      expect(
+        plan.ambiguities.map(
+          (ambiguity) => (ambiguity.firstId, ambiguity.secondId),
+        ),
+        [('a-survivor', 'b-different')],
+      );
+    },
+  );
+
   test('keeps an unresolved baseline entry retryable', () {
     final address = _setting('custom_dialects', 'local').address;
     final plan = engine.plan(

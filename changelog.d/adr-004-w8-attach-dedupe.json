@@ -3,12 +3,12 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "Device Sync now fresh-attaches by unioning both sides before applying deterministic dance deduplication, rewiring references and preserving review candidates for same-title dances with different choreography. Attaching to an empty store publishes through one guarded continuation, while stale manifest conflicts retry fresh attach on the next trigger and create conflicts stop without silently joining an existing store."
+      "Device Sync now fresh-attaches by unioning both sides before applying deterministic dance deduplication, rewiring references and preserving actionable review candidates for same-title dances with different choreography. Those ambiguities can be merged or kept distinct from the Sync decisions screen. Attaching to an empty store publishes through one guarded continuation, while stale manifest conflicts retry fresh attach on the next trigger and create conflicts stop without silently joining an existing store."
     ]
   },
   "core": {
     "changed": [
-      "Add transactional fresh-attach dance deduplication with shipped title normalization, deterministic survivor selection, last-writer-wins scalar merging, additive collection union, alias and reference rewrites, derived-index cleanup, and canonical immutable review-queue insertion for choreography ambiguities."
+      "Add transactional fresh-attach dance deduplication with shipped title normalization, deterministic survivor selection, last-writer-wins scalar merging, additive collection union, alias and reference rewrites, derived-index cleanup, and canonical immutable review-queue insertion and resolution for choreography ambiguities."
     ]
   }
 }

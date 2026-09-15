@@ -1240,6 +1240,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'En peer slettede en matchende post, som denne enhed oprettede.';
 
   @override
+  String get syncReviewDanceAmbiguityReason =>
+      'Live dances have the same title but different choreography.';
+
+  @override
   String get syncReviewUnsupportedReason =>
       'Denne synkroniseringskonflikt er bevaret indtil videre; ingen sikker handling er tilgængelig her.';
 

@@ -217,6 +217,102 @@ void main() {
   );
 
   test(
+    'resolves a live dance ambiguity by merging the chosen records',
+    () async {
+      final stamp = DateTime.utc(2026, 7, 15, 12);
+      await repositories.dances.create(
+        Dance(
+          id: 'a-left',
+          title: 'Shared dance',
+          figures: [
+            testFigure(move: 'balance', params: const {'hand': 'left'}),
+          ],
+          createdAt: stamp,
+          updatedAt: stamp,
+        ),
+      );
+      await repositories.dances.create(
+        Dance(
+          id: 'b-right',
+          title: 'The shared dance',
+          figures: [
+            testFigure(move: 'balance', params: const {'hand': 'right'}),
+          ],
+          createdAt: stamp,
+          updatedAt: stamp,
+        ),
+      );
+
+      await storage.deduplicateFreshAttach();
+      final item = SyncReviewQueueItem.fromRow(
+        (await repositories.syncLocal.listReviewQueue()).single,
+      );
+      expect(item.isActionable, isTrue);
+      expect(item.isDanceAmbiguity, isTrue);
+
+      await storage.resolveReviewQueue(
+        expectedRow: item.row,
+        action: SyncReviewAction.merge,
+      );
+
+      expect(await repositories.dances.getById('b-right'), isNull);
+      expect(await repositories.dances.getById('a-left'), isNotNull);
+      expect(
+        await repositories.syncLocal.resolveAlias(
+          kind: SyncRecordKind.dance,
+          recordId: 'b-right',
+        ),
+        'a-left',
+      );
+      expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+    },
+  );
+
+  test('resolves a live dance ambiguity by renaming the local dance', () async {
+    final stamp = DateTime.utc(2026, 7, 15, 12);
+    await repositories.dances.create(
+      Dance(
+        id: 'a-left',
+        title: 'Shared dance',
+        figures: [
+          testFigure(move: 'balance', params: const {'hand': 'left'}),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      ),
+    );
+    await repositories.dances.create(
+      Dance(
+        id: 'b-right',
+        title: 'The shared dance',
+        figures: [
+          testFigure(move: 'balance', params: const {'hand': 'right'}),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      ),
+    );
+
+    await storage.deduplicateFreshAttach();
+    final item = SyncReviewQueueItem.fromRow(
+      (await repositories.syncLocal.listReviewQueue()).single,
+    );
+
+    await storage.resolveReviewQueue(
+      expectedRow: item.row,
+      action: SyncReviewAction.keepBoth,
+      newNaturalKey: 'A different dance',
+    );
+
+    expect(
+      (await repositories.dances.getById('a-left'))!.title,
+      'A different dance',
+    );
+    expect(await repositories.dances.getById('b-right'), isNotNull);
+    expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+  });
+
+  test(
     'fresh attach does not dedupe a dance held by a pending tombstone',
     () async {
       final stamp = DateTime.utc(2026, 7, 15, 12);

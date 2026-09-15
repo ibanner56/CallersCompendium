@@ -107,6 +107,49 @@ class SyncFreshAttachDedupePlan {
   final Map<String, String> aliases;
 }
 
+/// Merges live dance candidates after an explicit dedupe decision.
+///
+/// The caller may use this for a choreography ambiguity only after the user
+/// chose Merge. Automatic fresh-attach planning calls the same helper only
+/// for candidates whose choreography already matches.
+SyncDanceDedupeMerge mergeDanceCandidates(
+  Iterable<SyncMergeCandidate> candidates,
+) {
+  final group = candidates.toList(growable: false)
+    ..sort((left, right) => left.blob.id.compareTo(right.blob.id));
+  if (group.length < 2 ||
+      group.any(
+        (candidate) =>
+            candidate.blob.kind != SyncRecordKind.dance || candidate.isDeleted,
+      )) {
+    throw ArgumentError(
+      'dance merge requires at least two live dance candidates',
+    );
+  }
+  final survivor = group.first;
+  final merged = SyncMergeCandidate(
+    blob: SyncRecordBlob(
+      v: survivor.blob.v,
+      kind: SyncRecordKind.dance,
+      id: survivor.blob.id,
+      updatedAt: group
+          .map((candidate) => candidate.blob.updatedAt)
+          .reduce((left, right) => left.isAfter(right) ? left : right),
+      deletedAt: null,
+      existenceAt: group
+          .map((candidate) => candidate.blob.existenceAt)
+          .reduce((left, right) => left.isAfter(right) ? left : right),
+      body: _mergeDanceBodies(group, survivor.blob.id),
+    ),
+  );
+  return SyncDanceDedupeMerge(
+    winner: merged,
+    losingIds: List.unmodifiable([
+      for (final candidate in group.skip(1)) candidate.blob.id,
+    ]),
+  );
+}
+
 /// Finds live dance duplicates without touching storage.
 ///
 /// Matching intentionally delegates title normalization to the shipped import
@@ -131,59 +174,45 @@ SyncFreshAttachDedupePlan planFreshAttachDedupe(
     byTitle.putIfAbsent(title, () => []).add(candidate);
   }
 
-  final byChoreography = <String, List<SyncMergeCandidate>>{};
+  final choreographyGroups = <List<SyncMergeCandidate>>[];
   final ambiguities = <SyncDanceDedupeAmbiguity>[];
   for (final titleCandidates in byTitle.values) {
-    for (var i = 0; i < titleCandidates.length; i++) {
-      final current = titleCandidates[i];
-      final choreographyKey = _syncChoreographyKey(current.blob.body);
+    final byChoreography = <String, List<SyncMergeCandidate>>{};
+    for (final candidate in titleCandidates) {
       byChoreography
-          .putIfAbsent(
-            '${normalizeTitle(current.blob.body['title']! as String)}|'
-            '$choreographyKey',
-            () => [],
-          )
-          .add(current);
-      for (var j = i + 1; j < titleCandidates.length; j++) {
-        final other = titleCandidates[j];
-        if (_syncChoreographyKey(other.blob.body) != choreographyKey) {
-          ambiguities.add(
-            SyncDanceDedupeAmbiguity(left: current, right: other),
-          );
-        }
+          .putIfAbsent(_syncChoreographyKey(candidate.blob.body), () => [])
+          .add(candidate);
+    }
+    final groups = byChoreography.values.toList()
+      ..forEach(
+        (group) =>
+            group.sort((left, right) => left.blob.id.compareTo(right.blob.id)),
+      )
+      ..sort(
+        (left, right) => left.first.blob.id.compareTo(right.first.blob.id),
+      );
+    choreographyGroups.addAll(groups);
+    for (var i = 0; i < groups.length; i++) {
+      for (var j = i + 1; j < groups.length; j++) {
+        ambiguities.add(
+          SyncDanceDedupeAmbiguity(
+            left: groups[i].first,
+            right: groups[j].first,
+          ),
+        );
       }
     }
   }
 
   final merges = <SyncDanceDedupeMerge>[];
   final aliases = <String, String>{};
-  for (final group in byChoreography.values) {
+  for (final group in choreographyGroups) {
     if (group.length < 2) continue;
-    group.sort((left, right) => left.blob.id.compareTo(right.blob.id));
-    final survivor = group.first;
-    final mergedBody = _mergeDanceBodies(group, survivor.blob.id);
-    final merged = SyncMergeCandidate(
-      blob: SyncRecordBlob(
-        v: survivor.blob.v,
-        kind: SyncRecordKind.dance,
-        id: survivor.blob.id,
-        updatedAt: group
-            .map((candidate) => candidate.blob.updatedAt)
-            .reduce((left, right) => left.isAfter(right) ? left : right),
-        deletedAt: null,
-        existenceAt: group
-            .map((candidate) => candidate.blob.existenceAt)
-            .reduce((left, right) => left.isAfter(right) ? left : right),
-        body: mergedBody,
-      ),
-    );
-    final losingIds = [
-      for (final candidate in group.skip(1)) candidate.blob.id,
-    ];
-    for (final losingId in losingIds) {
-      aliases[losingId] = survivor.blob.id;
+    final merge = mergeDanceCandidates(group);
+    for (final losingId in merge.losingIds) {
+      aliases[losingId] = merge.winner.blob.id;
     }
-    merges.add(SyncDanceDedupeMerge(winner: merged, losingIds: losingIds));
+    merges.add(merge);
   }
 
   ambiguities.sort((left, right) {

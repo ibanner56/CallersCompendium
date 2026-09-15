@@ -1260,6 +1260,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Ein Peer-Gerät hat einen passenden Datensatz gelöscht, den dieses Gerät erstellt hat.';
 
   @override
+  String get syncReviewDanceAmbiguityReason =>
+      'Live dances have the same title but different choreography.';
+
+  @override
   String get syncReviewUnsupportedReason =>
       'Dieser Synchronisierungskonflikt bleibt vorerst erhalten; hier ist keine sichere Aktion verfügbar.';
 

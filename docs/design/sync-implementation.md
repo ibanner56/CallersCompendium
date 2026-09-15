@@ -875,14 +875,16 @@ backup taken on a syncing device leaves sync off and makes no network call.
   production queue and collision machinery).
 - **Produces** a generic queue list. **No per-kind editors are required**, which
   is the scope control on this unit. W14 v1 exposes mutating **merge** and
-  **keep both** actions only for the §6.6 baseline-absence tombstone reason.
-  Other current or future reasons remain visible as retained/unsupported rows
-  with no mutating action. For the four `UNIQUE` natural-key kinds, resolving
-  **keep both** MUST rename the surviving live row before the counterpart
-  tombstone is applied (§6.6 step 2). The index is not filtered on
-  `deleted_at`, so without the rename the resolution simply fails to write.
-  That is a name prompt on an otherwise kind-agnostic surface, not a per-kind
-  editor.
+  **keep both** actions for the §6.6 baseline-absence tombstone reason and for
+  W8's live-dance choreography-ambiguity reason. Other current or future
+  reasons remain visible as retained/unsupported rows with no mutating action.
+  For the four `UNIQUE` natural-key kinds, resolving **keep both** MUST rename
+  the surviving live row before the counterpart tombstone is applied (§6.6
+  step 2). A W8 dance ambiguity's **keep both** action similarly renames the
+  local live dance before it is removed from the ambiguity set. The index is
+  not filtered on `deleted_at`, so without the rename the resolution simply
+  fails to write. These are name prompts on an otherwise kind-agnostic
+  surface, not per-kind editors.
 - **Unblocks** W8.
 - **Done when** a queued supported pair survives an app restart and can be
   resolved, unsupported reasons remain retained without mutation, and a "keep
