@@ -150,11 +150,15 @@ void main() {
     final transport = _FakeTransport(
       missingKind: SyncStoreMissingKind.replacementRequired,
     );
+    final store = _FakeStore(
+      previouslyUsed: true,
+      snapshotEpochs: [null, null, null, 'epoch-1'],
+    );
     final events = <SyncReplacementRequiredEvent>[];
     final coordinator = SyncCoordinator(
       syncId: 'configured',
       deviceId: 'device-a',
-      store: _FakeStore(previouslyUsed: true),
+      store: store,
       transport: transport,
     );
     final subscription = coordinator.replacementRequired.listen(events.add);
@@ -167,14 +171,22 @@ void main() {
     expect(transport.blobCalls, 0);
     expect(transport.createCalls, 0);
 
-    final first = await coordinator.confirmReplacement();
-    final second = await coordinator.confirmReplacement();
-    expect(first.status, SyncPassStatus.freshAttachRequired);
-    expect(second.status, SyncPassStatus.freshAttachRequired);
+    final firstFuture = coordinator.confirmReplacement();
+    final secondFuture = coordinator.confirmReplacement();
+    final first = await firstFuture;
+    final second = await secondFuture;
+    expect(first.status, SyncPassStatus.completed);
+    expect(second.status, SyncPassStatus.completed);
     expect(transport.createCalls, 1);
-    expect(transport.storeCalls, 2);
+    expect(transport.storeCalls, 3);
     expect(transport.postMissingCalls, 0);
-    expect(transport.requestLog, ['store', 'create', 'store']);
+    expect(transport.requestLog, [
+      'store',
+      'create',
+      'store',
+      'store',
+      'manifest-put',
+    ]);
   });
 
   test('failed replacement confirmation can be retried', () async {
@@ -188,7 +200,10 @@ void main() {
     final coordinator = SyncCoordinator(
       syncId: 'configured',
       deviceId: 'device-a',
-      store: _FakeStore(previouslyUsed: true),
+      store: _FakeStore(
+        previouslyUsed: true,
+        snapshotEpochs: [null, null, null, 'epoch-1'],
+      ),
       transport: transport,
     );
     addTearDown(coordinator.dispose);
@@ -201,10 +216,38 @@ void main() {
     );
     expect(
       (await coordinator.confirmReplacement()).status,
-      SyncPassStatus.freshAttachRequired,
+      SyncPassStatus.completed,
     );
     expect(transport.createCalls, 2);
-    expect(transport.storeCalls, 2);
+    expect(transport.storeCalls, 3);
+  });
+
+  test('create conflict reports and stops without fresh attach', () async {
+    final transport = _FakeTransport(
+      missingKind: SyncStoreMissingKind.replacementRequired,
+      createResponses: [_FakeTransport.response(409)],
+    );
+    final store = _FakeStore(
+      previouslyUsed: true,
+      snapshotEpochs: ['epoch-1', 'epoch-1'],
+    );
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: store,
+      transport: transport,
+    );
+
+    await coordinator.onAppStart();
+    final result = await coordinator.confirmReplacement();
+
+    expect(result.status, SyncPassStatus.failed);
+    expect(transport.createCalls, 1);
+    expect(transport.storeCalls, 1);
+    expect(transport.manifestCalls, 0);
+    expect(transport.postMissingCalls, 0);
+    expect(transport.manifestPuts, 0);
+    expect(store.baselineReplacements, 0);
   });
 
   test('declining replacement keeps configured sync paused', () async {
@@ -572,31 +615,134 @@ void main() {
     },
   );
 
-  test('stops at the fresh-attach boundary without a local epoch', () async {
-    final candidate = SyncMergeCandidate.fromBlob(
-      _setting('custom_dialects', 'local'),
-    );
-    final store = _FakeStore(
-      epoch: null,
-      local: {candidate.address: candidate},
-    );
-    final transport = _FakeTransport(devices: ['peer']);
-    final coordinator = SyncCoordinator(
-      syncId: 'configured',
-      deviceId: 'device-a',
-      store: store,
-      transport: transport,
-    );
+  test(
+    'a stale manifest conflict defers fresh attach to the next trigger',
+    () async {
+      final candidate = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'local'),
+      );
+      final store = _FakeStore(
+        local: {candidate.address: candidate},
+        snapshotEpochs: ['epoch-1', 'epoch-1', 'epoch-1', 'epoch-1', 'epoch-2'],
+      );
+      final transport = _FakeTransport(
+        storeEpochs: ['epoch-1', 'epoch-2', 'epoch-2'],
+        putManifestStatuses: [409, 200],
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+      );
 
-    final result = await coordinator.syncNow();
+      final first = await coordinator.syncNow();
+      expect(first.status, SyncPassStatus.staleEpoch);
+      expect(store.baselineReplacements, 0);
 
-    expect(result.status, SyncPassStatus.freshAttachRequired);
-    expect(transport.manifestCalls, 0);
-    expect(transport.blobCalls, 0);
-    expect(transport.postMissingCalls, 0);
-    expect(transport.manifestPuts, 0);
-    expect(store.baselineAdvances, 0);
-  });
+      final second = await coordinator.syncNow();
+      expect(second.status, SyncPassStatus.completed);
+      expect(store.baselineReplacements, 1);
+      expect(transport.manifestPuts, 2);
+    },
+  );
+
+  test(
+    'fresh attach replaces the baseline before one steady continuation',
+    () async {
+      final candidate = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'local'),
+      );
+      final store = _FakeStore(
+        epoch: null,
+        local: {candidate.address: candidate},
+        snapshotEpochs: [null, null, 'epoch-1'],
+      );
+      final transport = _FakeTransport();
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+      );
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(transport.manifestCalls, 0);
+      expect(transport.blobCalls, 0);
+      expect(transport.postMissingCalls, 2);
+      expect(transport.manifestPuts, 1);
+      expect(store.baselineReplacements, 1);
+      expect(store.baselineAdvances, 1);
+    },
+  );
+
+  test(
+    'continuation stops without publishing when the epoch changes and retries fresh attach',
+    () async {
+      final candidate = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'local'),
+      );
+      final store = _FakeStore(
+        local: {candidate.address: candidate},
+        snapshotEpochs: [
+          null,
+          null,
+          'epoch-1',
+          'epoch-1',
+          'epoch-1',
+          'epoch-2',
+        ],
+      );
+      final transport = _FakeTransport(
+        storeEpochs: ['epoch-1', 'epoch-2', 'epoch-2', 'epoch-2'],
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+      );
+
+      final staleContinuation = await coordinator.syncNow();
+      expect(staleContinuation.status, SyncPassStatus.staleEpoch);
+      expect(transport.manifestPuts, 0);
+
+      final retried = await coordinator.syncNow();
+      expect(retried.status, SyncPassStatus.completed);
+      expect(transport.manifestPuts, 1);
+      expect(store.baselineReplacements, 2);
+    },
+  );
+
+  test(
+    'propagates fresh-attach duplicate counts through the coordinator result',
+    () async {
+      final candidate = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'local'),
+      );
+      final store = _FakeStore(
+        local: {candidate.address: candidate},
+        snapshotEpochs: [null, null, 'epoch-1'],
+        freshAttachDedupeResult: const SyncFreshAttachDedupeResult(
+          duplicateCount: 2,
+          reports: [],
+        ),
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: _FakeTransport(),
+      );
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(result.duplicateCount, 2);
+    },
+  );
 
   test(
     'publishes the post-apply local snapshot after storage repair',
@@ -1207,12 +1353,15 @@ final class _FakeStore implements SyncCoordinatorStore {
     Map<SyncRecordAddress, SyncMergeCandidate?>? local,
     Map<SyncRecordAddress, SyncBaselineEntry>? baseline,
     Map<SyncRecordAddress, SyncRecordAddress>? aliases,
+    List<String?>? snapshotEpochs,
+    this.freshAttachDedupeResult,
     this.snapshotBuilder,
     this.currentCandidatesBuilder,
     List<String>? lifecycle,
   }) : local = local ?? const {},
        baseline = baseline ?? const {},
        aliases = aliases ?? const {},
+       snapshotEpochs = [...?snapshotEpochs],
        lifecycle = lifecycle ?? <String>[];
 
   final bool previouslyUsed;
@@ -1220,6 +1369,8 @@ final class _FakeStore implements SyncCoordinatorStore {
   final Map<SyncRecordAddress, SyncMergeCandidate?> local;
   final Map<SyncRecordAddress, SyncBaselineEntry> baseline;
   final Map<SyncRecordAddress, SyncRecordAddress> aliases;
+  final List<String?> snapshotEpochs;
+  final SyncFreshAttachDedupeResult? freshAttachDedupeResult;
   final SyncCoordinatorSnapshot Function(int snapshotNumber)? snapshotBuilder;
   final Map<SyncRecordAddress, SyncMergeCandidate?> Function()?
   currentCandidatesBuilder;
@@ -1231,10 +1382,17 @@ final class _FakeStore implements SyncCoordinatorStore {
   final List<Set<SyncRecordAddress>> retiredPeerAddresses = [];
   int snapshotCalls = 0;
   int baselineAdvances = 0;
+  int baselineReplacements = 0;
 
   @override
   Future<SyncCoordinatorSnapshot> snapshot() async {
     snapshotCalls++;
+    final snapshotIndex = snapshotCalls - 1;
+    final epoch = snapshotEpochs.isEmpty
+        ? this.epoch
+        : snapshotEpochs[snapshotIndex < snapshotEpochs.length
+              ? snapshotIndex
+              : snapshotEpochs.length - 1];
     return snapshotBuilder?.call(snapshotCalls) ??
         SyncCoordinatorSnapshot(
           epoch: epoch,
@@ -1311,6 +1469,25 @@ final class _FakeStore implements SyncCoordinatorStore {
   }
 
   @override
+  Future<SyncFreshAttachDedupeResult> deduplicateFreshAttach({
+    required bool apply,
+  }) async => apply
+      ? freshAttachDedupeResult ??
+            const SyncFreshAttachDedupeResult(duplicateCount: 0, reports: [])
+      : const SyncFreshAttachDedupeResult(duplicateCount: 0, reports: []);
+
+  @override
+  Future<void> replaceBaseline({
+    required String epoch,
+    required Iterable<SyncBaselineEntry> entries,
+  }) async {
+    baselineReplacements++;
+    advancedEntries.addAll(
+      entries.map((entry) => (kind: entry.kind, recordId: entry.recordId)),
+    );
+  }
+
+  @override
   Future<void> advanceBaseline({
     required String epoch,
     required Iterable<SyncBaselineEntry> entries,
@@ -1329,6 +1506,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
     this.missingKind,
     this._storeReadGate,
     this.devices = const [],
+    List<String>? storeEpochs,
     this.peerManifest,
     this.peerManifests = const {},
     List<SyncHttpResponse>? createResponses,
@@ -1336,13 +1514,18 @@ final class _FakeTransport implements SyncCoordinatorTransport {
     this.blobResponses = const {},
     List<List<String>>? missingResponses,
     this.putManifestStatus = 200,
+    List<int>? putManifestStatuses,
     this.onManifestPut,
     this.onManifestGet,
   }) : createResponses = [...createResponses ?? const []],
+       storeEpochs = [
+         ...storeEpochs ?? const ['epoch-1'],
+       ],
        missingResponses = [
          for (final response in missingResponses ?? const <List<String>>[[]])
            [...response],
        ],
+       putManifestStatuses = [...putManifestStatuses ?? const []],
        manifestResponses = {
          for (final entry
              in (manifestResponses ?? const <String, List<SyncHttpResponse>>{})
@@ -1353,6 +1536,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   final SyncStoreMissingKind? missingKind;
   final Completer<void>? _storeReadGate;
   final List<String> devices;
+  final List<String> storeEpochs;
   final SyncManifest? peerManifest;
   final Map<String, SyncManifest> peerManifests;
   final List<SyncHttpResponse> createResponses;
@@ -1360,6 +1544,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   final Map<String, SyncHttpResponse> blobResponses;
   final List<List<String>> missingResponses;
   final int putManifestStatus;
+  final List<int> putManifestStatuses;
   final void Function(List<int> body)? onManifestPut;
   final Future<void> Function(String deviceId)? onManifestGet;
   final firstStoreStarted = Completer<void>();
@@ -1389,9 +1574,13 @@ final class _FakeTransport implements SyncCoordinatorTransport {
     requestLog.add('store');
     if (!firstStoreStarted.isCompleted) firstStoreStarted.complete();
     if (_storeReadGate != null) await _storeReadGate.future;
+    final epoch =
+        storeEpochs[(storeCalls - 1) < storeEpochs.length
+            ? storeCalls - 1
+            : storeEpochs.length - 1];
     final response = _response(
       missingKind == null || storeCalls > 1 ? 200 : 404,
-      body: jsonEncode({'epoch': 'epoch-1', 'devices': devices}),
+      body: jsonEncode({'epoch': epoch, 'devices': devices}),
     );
     return SyncStoreResult(
       response: response,
@@ -1432,7 +1621,10 @@ final class _FakeTransport implements SyncCoordinatorTransport {
     requestLog.add('manifest-put');
     manifestBodies.add(body);
     onManifestPut?.call(body);
-    return _response(putManifestStatus);
+    final status = putManifestStatuses.isNotEmpty
+        ? putManifestStatuses.removeAt(0)
+        : putManifestStatus;
+    return _response(status);
   }
 
   @override

@@ -136,6 +136,17 @@ final class _InboundDependentIndex {
   final Map<String, List<SyncRecordAddress>> programSlotOwners = {};
 }
 
+/// The result of scanning or applying the W8 live-dance dedupe pass.
+class SyncFreshAttachDedupeResult {
+  const SyncFreshAttachDedupeResult({
+    required this.duplicateCount,
+    required this.reports,
+  });
+
+  final int duplicateCount;
+  final List<SyncReport> reports;
+}
+
 /// The production storage adapter for the core sync engine.
 ///
 /// Reads use full-fidelity models so a shareable inbound overlay cannot erase
@@ -406,6 +417,163 @@ final class CompendiumSyncStorage
       pending: pendingAddresses,
     );
   });
+
+  /// Scans the current live dance collection for W8 title/choreography
+  /// matches. When [apply] is true, the complete merge and identity rewrite
+  /// runs inside the same repository transaction as the resulting rows.
+  ///
+  /// The scan is also used after ordinary passes so an unresolved
+  /// same-title/different-choreography pair is reported again while its
+  /// immutable review candidate remains pending.
+  Future<SyncFreshAttachDedupeResult> deduplicateFreshAttach({
+    bool apply = true,
+  }) => repositories.transaction(() async {
+    final plan = await _danceDedupePlan();
+    final reports = <SyncReport>[];
+    for (final ambiguity in plan.ambiguities) {
+      final candidate = ambiguity.candidate;
+      await repositories.syncLocal.enqueueReview(
+        kind: SyncRecordKind.dance,
+        recordId: ambiguity.firstId,
+        counterpartId: ambiguity.secondId,
+        reason:
+            'live dances share a normalized title but have different '
+            'choreography',
+        candidateBlob: encodeSyncRecordBlob(candidate.blob),
+        candidateHash: candidate.wireHash,
+        queuedAt: DateTime.now().toUtc(),
+      );
+      if (ambiguity.left.blob.updatedAt == ambiguity.right.blob.updatedAt) {
+        reports.add(
+          SyncReport(
+            code: SyncReportCode.equalUpdatedAt,
+            kind: SyncRecordKind.dance,
+            recordId: ambiguity.firstId,
+            message:
+                'Dances with the same normalized title have different '
+                'choreography at the same updatedAt; no silent winner was '
+                'selected.',
+          ),
+        );
+      }
+    }
+    if (!apply || plan.merges.isEmpty) {
+      return SyncFreshAttachDedupeResult(
+        duplicateCount: 0,
+        reports: List.unmodifiable(reports),
+      );
+    }
+
+    for (final merge in plan.merges) {
+      await _applyDanceDedupeMerge(merge, plan.aliases);
+    }
+    return SyncFreshAttachDedupeResult(
+      duplicateCount: plan.merges.fold<int>(
+        0,
+        (count, merge) => count + merge.losingIds.length,
+      ),
+      reports: List.unmodifiable(reports),
+    );
+  });
+
+  Future<SyncFreshAttachDedupePlan> _danceDedupePlan() async {
+    final customFields = await repositories.customFieldDefs
+        .listAllWithDeleted();
+    final allowedCustomFieldIds = {
+      for (final entry in customFields)
+        if (entry.field.shareable && !entry.deleted) entry.field.id,
+    };
+    final dances = await repositories.dances.listAll(includeDeleted: true);
+    final rows = await _db.select(_db.dances).get();
+    final rowsById = {for (final row in rows) row.id: row};
+    final candidates = <SyncMergeCandidate>[];
+    for (final dance in dances) {
+      final row = rowsById[dance.id];
+      if (row == null) continue;
+      final blob = syncRecordBlobForEntity(
+        SyncRecordKind.dance,
+        dance,
+        updatedAt: row.updatedAt,
+        deletedAt: row.deletedAt,
+        existenceAt: row.existenceAt ?? row.updatedAt,
+        allowedCustomFieldIds: allowedCustomFieldIds,
+      );
+      if (blob != null) candidates.add(SyncMergeCandidate(blob: blob));
+    }
+    return planFreshAttachDedupe(candidates);
+  }
+
+  Future<void> _applyDanceDedupeMerge(
+    SyncDanceDedupeMerge merge,
+    Map<String, String> aliases,
+  ) async {
+    final body = _rewriteDanceReferences(merge.winner.blob.body, aliases);
+    final record = SyncApplyRecord(
+      address: merge.winner.address,
+      body: body,
+      updatedAt: merge.winner.blob.updatedAt,
+      deletedAt: null,
+      existenceAt: merge.winner.blob.existenceAt,
+      sourceBlob: merge.winner.blob,
+    );
+    final report = await writeWithReport(record);
+    if (report != null) {
+      throw StateError(report.message);
+    }
+    for (final losingId in merge.losingIds) {
+      await _rewriteLocalReferences(
+        SyncRecordKind.dance,
+        losingId,
+        merge.winner.blob.id,
+      );
+      await _remapPendingDeletions(
+        kind: SyncRecordKind.dance,
+        losingId: losingId,
+        survivingId: merge.winner.blob.id,
+        aliases: {SyncRecordKind.dance: aliases},
+      );
+      await repositories.syncLocal.remapIdentity(
+        kind: SyncRecordKind.dance,
+        losingId: losingId,
+        survivingId: merge.winner.blob.id,
+      );
+      await _deleteIdentityRow(SyncRecordKind.dance, losingId);
+    }
+  }
+
+  Map<String, Object?> _rewriteDanceReferences(
+    Map<String, Object?> body,
+    Map<String, String> aliases,
+  ) {
+    final copy = Map<String, Object?>.from(body);
+    final links = copy['links'];
+    if (links is List) {
+      final rewritten = <Object?>[];
+      for (final value in links) {
+        if (value is! Map) {
+          rewritten.add(value);
+          continue;
+        }
+        final item = Map<String, Object?>.from(value);
+        final target = item['targetDanceId'];
+        if (target is String) {
+          item['targetDanceId'] = _resolveDanceAlias(target, aliases);
+        }
+        rewritten.add(item);
+      }
+      copy['links'] = rewritten;
+    }
+    return copy;
+  }
+
+  String _resolveDanceAlias(String id, Map<String, String> aliases) {
+    var current = id;
+    final seen = <String>{id};
+    while (aliases[current] != null && seen.add(aliases[current]!)) {
+      current = aliases[current]!;
+    }
+    return current;
+  }
 
   /// Revalidates pending tombstones against the complete current library.
   ///
@@ -2437,6 +2605,14 @@ final class CompendiumSyncStorage
           _db.difficultyLevels,
         )..where((table) => table.id.equals(id))).go();
       case SyncRecordKind.dance:
+        for (final table in const ['dance_fts', 'dance_substring_fts']) {
+          await _db.customStatement('DELETE FROM $table WHERE dance_id = ?', [
+            id,
+          ]);
+        }
+        await (_db.delete(
+          _db.dances,
+        )..where((table) => table.id.equals(id))).go();
       case SyncRecordKind.program:
       case SyncRecordKind.publishedSource:
       case SyncRecordKind.venue:
@@ -2587,6 +2763,42 @@ final class CompendiumSyncStorage
           );
         }
       case SyncRecordKind.dance:
+        final slotRows = await (_db.select(
+          _db.programSlots,
+        )..where((row) => row.danceId.equals(losingId))).get();
+        final affectedPrograms = slotRows.map((row) => row.programId).toSet();
+        await (_db.update(_db.programSlots)
+              ..where((row) => row.danceId.equals(losingId)))
+            .write(ProgramSlotsCompanion(danceId: Value(survivingId)));
+
+        final linkOwners = await (_db.select(
+          _db.danceLinks,
+        )..where((row) => row.targetDanceId.equals(losingId))).get();
+        final linkOwnerIds = linkOwners
+            .map((row) => row.danceId)
+            .where((id) => id != losingId)
+            .toSet();
+        await (_db.update(_db.danceLinks)
+              ..where((row) => row.targetDanceId.equals(losingId)))
+            .write(DanceLinksCompanion(targetDanceId: Value(survivingId)));
+
+        final now = DateTime.now().toUtc();
+        for (final programId in affectedPrograms) {
+          final row = await (_db.select(
+            _db.programs,
+          )..where((table) => table.id.equals(programId))).getSingleOrNull();
+          if (row == null) continue;
+          await (_db.update(
+            _db.programs,
+          )..where((table) => table.id.equals(programId))).write(
+            ProgramsCompanion(
+              updatedAt: Value(
+                nextExistenceStamp(now: now, current: row.updatedAt),
+              ),
+            ),
+          );
+        }
+        affectedDances.addAll(linkOwnerIds);
       case SyncRecordKind.program:
       case SyncRecordKind.venue:
       case SyncRecordKind.setting:

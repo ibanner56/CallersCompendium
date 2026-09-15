@@ -23,11 +23,17 @@ enum SyncPassStatus {
 
 /// The result returned by a coordinator pass or explicit replacement action.
 class SyncPassResult {
-  const SyncPassResult(this.status, {this.reports = const [], this.message});
+  const SyncPassResult(
+    this.status, {
+    this.reports = const [],
+    this.message,
+    this.duplicateCount = 0,
+  });
 
   final SyncPassStatus status;
   final List<SyncReport> reports;
   final String? message;
+  final int duplicateCount;
 }
 
 /// The data needed to construct a local manifest and calculate a pass.
@@ -83,6 +89,15 @@ abstract interface class SyncCoordinatorStore
   Future<void> markPublicationAttempt({
     required String syncId,
     required Iterable<SyncRecordAddress> records,
+  });
+
+  Future<SyncFreshAttachDedupeResult> deduplicateFreshAttach({
+    required bool apply,
+  });
+
+  Future<void> replaceBaseline({
+    required String epoch,
+    required Iterable<SyncBaselineEntry> entries,
   });
 
   Future<void> advanceBaseline({
@@ -170,6 +185,20 @@ final class CompendiumSyncCoordinatorStore
     required String syncId,
     required Iterable<SyncRecordAddress> records,
   }) => storage.markPublicationAttempt(syncId: syncId, records: records);
+
+  @override
+  Future<SyncFreshAttachDedupeResult> deduplicateFreshAttach({
+    required bool apply,
+  }) => storage.deduplicateFreshAttach(apply: apply);
+
+  @override
+  Future<void> replaceBaseline({
+    required String epoch,
+    required Iterable<SyncBaselineEntry> entries,
+  }) => storage.repositories.syncLocal.replaceBaseline(
+    epoch: epoch,
+    entries: entries,
+  );
 
   @override
   Future<void> advanceBaseline({
@@ -421,6 +450,7 @@ class SyncCoordinator {
   var _replacementPending = false;
   var _paused = false;
   Future<SyncPassResult>? _confirmation;
+  var _replacementCreated = false;
   var _disposed = false;
 
   static const _maxMissingHashesPerRequest = 10000;
@@ -475,8 +505,8 @@ class SyncCoordinator {
 
   Future<SyncPassResult> syncNow() => trigger(SyncTrigger.manual);
 
-  /// Confirms replacement exactly once, then stops at the fresh-attach
-  /// boundary. Attach/dedupe orchestration remains owned by W8.
+  /// Confirms replacement exactly once, then runs the W8 fresh-attach
+  /// lifecycle, including its single steady-state continuation.
   Future<SyncPassResult> confirmReplacement() {
     if (_disposed) {
       return Future.value(
@@ -493,7 +523,7 @@ class SyncCoordinator {
     }
     final existing = _confirmation;
     if (existing != null) return existing;
-    if (!_replacementPending) {
+    if (!_replacementPending && !_replacementCreated) {
       return Future.value(
         const SyncPassResult(
           SyncPassStatus.failed,
@@ -639,11 +669,14 @@ class SyncCoordinator {
     next.then<void>(queuedResult.complete, onError: queuedResult.completeError);
   }
 
-  Future<SyncPassResult> _runPass() async {
+  Future<SyncPassResult> _runPass({
+    SyncStoreResult? initialStore,
+    bool continuation = false,
+  }) async {
     final snapshot = await store.snapshot();
-    final storeResult = await transport.getStore(
-      previouslyUsed: snapshot.previouslyUsed,
-    );
+    final storeResult =
+        initialStore ??
+        await transport.getStore(previouslyUsed: snapshot.previouslyUsed);
     if (storeResult.missingKind == SyncStoreMissingKind.replacementRequired) {
       _emitReplacementRequired();
       return const SyncPassResult(SyncPassStatus.replacementRequired);
@@ -666,14 +699,15 @@ class SyncCoordinator {
         message: 'store metadata was malformed', // i18n-ignore: internal status
       );
     }
-    if (snapshot.epoch == null) {
-      return const SyncPassResult(SyncPassStatus.freshAttachRequired);
-    }
-    if (snapshot.epoch != metadata.epoch) {
+    final freshAttach =
+        snapshot.epoch == null || snapshot.epoch != metadata.epoch;
+    if (continuation && freshAttach) {
       return const SyncPassResult(SyncPassStatus.staleEpoch);
     }
 
-    final normalizedLocal = await _normalizeCandidates(snapshot.local);
+    final normalizedLocal = await _normalizeCandidates(
+      freshAttach ? snapshot.publication : snapshot.local,
+    );
     final normalizedPendingLive = await _normalizeCandidates(
       snapshot.pendingLive,
     );
@@ -778,13 +812,16 @@ class SyncCoordinator {
     }
 
     final normalizedUnresolved = await _normalizeAddresses(unresolved);
-    final mergeBaseline = <SyncRecordAddress, SyncBaselineEntry>{
-      ...normalizedBaseline,
-    }..removeWhere((address, _) => normalizedPending.contains(address));
+    final mergeBaseline =
+        freshAttach
+              ? <SyncRecordAddress, SyncBaselineEntry>{}
+              : <SyncRecordAddress, SyncBaselineEntry>{...normalizedBaseline}
+          ..removeWhere((address, _) => normalizedPending.contains(address));
     final plan = _mergeEngine.plan(
       local: normalizedLocal,
       baseline: mergeBaseline,
       peers: peerMaps,
+      freshAttach: freshAttach,
       unresolved: normalizedUnresolved,
     );
     reports.addAll(plan.reports);
@@ -810,6 +847,52 @@ class SyncCoordinator {
       expectedWireHashes: expectedWireHashes,
     );
     reports.addAll(applyResult.reports);
+
+    final dedupe = await store.deduplicateFreshAttach(apply: freshAttach);
+    reports.addAll(dedupe.reports);
+    if (freshAttach) {
+      final attachedSnapshot = await store.snapshot();
+      final attachedLocal = await _normalizeCandidates(attachedSnapshot.local);
+      final attachedPendingLive = await _normalizeCandidates(
+        attachedSnapshot.pendingLive,
+      );
+      final baselineEntries = <SyncBaselineEntry>[
+        for (final entry in {...attachedLocal, ...attachedPendingLive}.entries)
+          if (entry.value != null)
+            SyncBaselineEntry(
+              kind: entry.key.kind,
+              recordId: entry.key.recordId,
+              wireHash: entry.value!.wireHash,
+              bodyHash: entry.value!.bodyHash,
+            ),
+      ];
+      final attachByHash = <String, SyncMergeCandidate>{};
+      for (final candidate in attachedSnapshot.publication.values) {
+        if (candidate != null) attachByHash[candidate.wireHash] = candidate;
+      }
+      if (!await _uploadMissingLocalBlobs(attachByHash, reports: reports)) {
+        return SyncPassResult(
+          SyncPassStatus.failed,
+          reports: reports.reports,
+          message:
+              'fresh-attach blob publication failed', // i18n-ignore: internal status
+          duplicateCount: dedupe.duplicateCount,
+        );
+      }
+      await store.replaceBaseline(
+        epoch: metadata.epoch,
+        entries: baselineEntries,
+      );
+      await store.markSyncUsed(syncId!);
+      final continuationResult = await _runPass(continuation: true);
+      return SyncPassResult(
+        continuationResult.status,
+        reports: [...reports.reports, ...continuationResult.reports],
+        message: continuationResult.message,
+        duplicateCount:
+            dedupe.duplicateCount + continuationResult.duplicateCount,
+      );
+    }
 
     final currentSnapshot = await store.snapshot();
     final current = await _normalizeCandidates(currentSnapshot.local);
@@ -889,7 +972,11 @@ class SyncCoordinator {
       ],
     );
 
-    return SyncPassResult(SyncPassStatus.completed, reports: reports.reports);
+    return SyncPassResult(
+      SyncPassStatus.completed,
+      reports: reports.reports,
+      duplicateCount: dedupe.duplicateCount,
+    );
   }
 
   Future<Set<SyncRecordAddress>> _normalizeAddresses(
@@ -957,26 +1044,34 @@ class SyncCoordinator {
   }
 
   Future<SyncPassResult> _confirmReplacement() async {
-    final created = await transport.createStore();
-    if (!created.isSuccess) {
-      return SyncPassResult(
-        SyncPassStatus.failed,
-        message:
-            'store creation returned ${created.statusCode}', // i18n-ignore: internal status
-      );
+    SyncStoreResult? attached;
+    if (!_replacementCreated) {
+      final created = await transport.createStore();
+      if (!created.isSuccess) {
+        return SyncPassResult(
+          SyncPassStatus.failed,
+          message:
+              'store creation returned ${created.statusCode}', // i18n-ignore: internal status
+        );
+      }
+      _replacementCreated = true;
+      attached = await transport.getStore(previouslyUsed: false);
+      if (attached.missingKind != null || !attached.response.isSuccess) {
+        return const SyncPassResult(
+          SyncPassStatus.failed,
+          message:
+              'fresh attach did not produce a store', // i18n-ignore: internal status
+        );
+      }
+      if (onFreshAttach != null) await onFreshAttach!(attached.response);
     }
-    final attached = await transport.getStore(previouslyUsed: false);
-    if (attached.missingKind != null || !attached.response.isSuccess) {
-      return const SyncPassResult(
-        SyncPassStatus.failed,
-        message:
-            'fresh attach did not produce a store', // i18n-ignore: internal status
-      );
-    }
-    if (onFreshAttach != null) await onFreshAttach!(attached.response);
     _replacementPending = false;
-    _paused = false;
-    return const SyncPassResult(SyncPassStatus.freshAttachRequired);
+    final result = await _runPass(initialStore: attached);
+    if (result.status == SyncPassStatus.completed) {
+      _replacementCreated = false;
+      _paused = false;
+    }
+    return result;
   }
 
   Future<Map<SyncRecordAddress, SyncMergeCandidate?>> _downloadPeerRecords(

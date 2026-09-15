@@ -329,6 +329,7 @@ Future<Map<String, Object?>> _runSyncPass({
 Map<String, Object?> _encodeResult(SyncPassResult result) => {
   'status': result.status.name,
   'message': result.message,
+  'duplicateCount': result.duplicateCount,
   'reports': [
     for (final report in result.reports)
       {
@@ -344,9 +345,11 @@ Map<String, Object?> _encodeResult(SyncPassResult result) => {
 SyncPassResult _decodeResult(Map<String, Object?> encoded) {
   final rawStatus = encoded['status'];
   final rawMessage = encoded['message'];
+  final rawDuplicateCount = encoded['duplicateCount'];
   final rawReports = encoded['reports'];
   if (rawStatus is! String ||
       (rawMessage != null && rawMessage is! String) ||
+      (rawDuplicateCount != null && rawDuplicateCount is! int) ||
       rawReports is! List<Object?>) {
     throw const FormatException('sync isolate returned a malformed result');
   }
@@ -387,5 +390,6 @@ SyncPassResult _decodeResult(Map<String, Object?> encoded) {
     status,
     reports: reports,
     message: rawMessage as String?,
+    duplicateCount: rawDuplicateCount as int? ?? 0,
   );
 }
