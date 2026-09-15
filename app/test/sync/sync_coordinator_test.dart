@@ -881,10 +881,7 @@ void main() {
             body: utf8.encode(encodeSyncRecordBlob(live.blob)),
           ),
         },
-        missingResponses: [
-          const [],
-          const [],
-        ],
+        missingResponses: [const [], const []],
       );
       final coordinator = SyncCoordinator(
         syncId: 'configured',
