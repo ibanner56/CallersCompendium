@@ -69,10 +69,10 @@ final class IsolatedSyncPassHandle {
 /// Runs a sync pass in a controllable isolate that owns its database and HTTP
 /// resources.
 ///
-/// The main isolate passes only strings across the boundary. The worker opens
-/// the same SQLite file independently, so the transaction enclosing inbound
-/// apply belongs to the isolate that the caller can terminate without leaving
-/// partially applied rows in the caller.
+/// The main isolate passes only serializable request data across the boundary.
+/// The worker opens the same SQLite file independently, so the transaction
+/// enclosing inbound apply belongs to the isolate that the caller can
+/// terminate without leaving partially applied rows in the caller.
 final class IsolatedSyncPassOperation {
   IsolatedSyncPassOperation({
     required this.databasePath,
@@ -90,13 +90,14 @@ final class IsolatedSyncPassOperation {
   final Future<void> Function()? beforeTerminalAcknowledgement;
   final SyncPeerManifestCache peerManifestCache;
 
-  Future<SyncPassResult> call() async {
-    final handle = await start();
+  Future<SyncPassResult> call({SyncStoreResult? initialStore}) async {
+    final handle = await start(initialStore: initialStore);
     return handle.result;
   }
 
   Future<IsolatedSyncPassHandle> start({
     SyncIsolateApplyControl? applyControl,
+    SyncStoreResult? initialStore,
   }) async {
     final resultPort = ReceivePort();
     final exitPort = ReceivePort();
@@ -209,6 +210,7 @@ final class IsolatedSyncPassOperation {
         resultPort: resultPort.sendPort,
         applyControlPort: applyControl?._eventPort,
         peerManifestCache: peerManifestCache.toMessage(),
+        initialStore: _encodeStoreResult(initialStore),
       ),
       onExit: exitPort.sendPort,
       onError: errorPort.sendPort,
@@ -230,6 +232,7 @@ final class _SyncPassRequest {
     required this.resultPort,
     required this.applyControlPort,
     required this.peerManifestCache,
+    required this.initialStore,
   });
 
   final String databasePath;
@@ -239,6 +242,7 @@ final class _SyncPassRequest {
   final SendPort resultPort;
   final SendPort? applyControlPort;
   final Map<String, Object?> peerManifestCache;
+  final Map<String, Object?>? initialStore;
 }
 
 Future<void> _runSyncPassWorker(_SyncPassRequest request) async {
@@ -260,6 +264,7 @@ Future<void> _runSyncPassWorker(_SyncPassRequest request) async {
       deviceId: request.deviceId,
       applyEngine: applyEngine,
       peerManifestCache: peerManifestCache,
+      initialStore: _decodeStoreResult(request.initialStore),
     );
     encoded['_peerManifestCache'] = peerManifestCache.toMessage();
     request.resultPort.send({
@@ -297,6 +302,7 @@ Future<Map<String, Object?>> _runSyncPass({
   required String deviceId,
   SyncApplyEngine? applyEngine,
   required SyncPeerManifestCache peerManifestCache,
+  SyncStoreResult? initialStore,
 }) async {
   final database = CompendiumDatabase(NativeDatabase(File(databasePath)));
   SyncHttpClient? client;
@@ -315,15 +321,80 @@ Future<Map<String, Object?>> _runSyncPass({
       applyEngine: applyEngine,
       peerManifestCache: peerManifestCache,
     );
-    return _encodeResult(await coordinator.onAppStart());
+    return _encodeResult(await coordinator.runPass(initialStore: initialStore));
   } finally {
     if (coordinator != null) {
       await coordinator.dispose();
     } else {
       client?.close();
     }
+
     await database.close();
   }
+}
+
+Map<String, Object?>? _encodeStoreResult(SyncStoreResult? result) {
+  if (result == null) return null;
+  return {
+    'statusCode': result.response.statusCode,
+    'kind': result.response.kind.name,
+    'headers': result.response.headers,
+    'body': result.response.body,
+    'retryAfterMs': result.response.retryAfter?.inMilliseconds,
+    'missingKind': result.missingKind?.name,
+  };
+}
+
+SyncStoreResult? _decodeStoreResult(Map<String, Object?>? encoded) {
+  if (encoded == null) return null;
+  final statusCode = encoded['statusCode'];
+  final kind = encoded['kind'];
+  final headers = encoded['headers'];
+  final body = encoded['body'];
+  final retryAfterMs = encoded['retryAfterMs'];
+  final missingKind = encoded['missingKind'];
+  if (statusCode is! int ||
+      kind is! String ||
+      headers is! Map<Object?, Object?> ||
+      body is! List<Object?> ||
+      (retryAfterMs != null && retryAfterMs is! int) ||
+      (missingKind != null && missingKind is! String)) {
+    throw const FormatException(
+      'sync isolate received a malformed store result',
+    );
+  }
+  final decodedHeaders = <String, String>{};
+  for (final entry in headers.entries) {
+    if (entry.key is! String || entry.value is! String) {
+      throw const FormatException(
+        'sync isolate received malformed store headers',
+      );
+    }
+    decodedHeaders[entry.key as String] = entry.value as String;
+  }
+  final decodedBody = <int>[];
+  for (final value in body) {
+    if (value is! int) {
+      throw const FormatException('sync isolate received malformed store body');
+    }
+    decodedBody.add(value);
+  }
+  final retryAfter = retryAfterMs == null ? null : retryAfterMs as int;
+  final missingKindName = missingKind == null ? null : missingKind as String;
+  return SyncStoreResult(
+    response: SyncHttpResponse(
+      statusCode: statusCode,
+      kind: SyncResponseKind.values.byName(kind),
+      headers: decodedHeaders,
+      body: decodedBody,
+      retryAfter: retryAfter == null
+          ? null
+          : Duration(milliseconds: retryAfter),
+    ),
+    missingKind: missingKindName == null
+        ? null
+        : SyncStoreMissingKind.values.byName(missingKindName),
+  );
 }
 
 Map<String, Object?> _encodeResult(SyncPassResult result) => {

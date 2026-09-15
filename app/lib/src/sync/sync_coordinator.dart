@@ -315,7 +315,8 @@ abstract interface class SyncPassRunner {
 /// Production uses this to open the database and transport inside a background
 /// isolate. Tests can inject a deterministic operation without depending on
 /// isolate or native-database setup.
-typedef SyncPassOperation = Future<SyncPassResult> Function();
+typedef SyncPassOperation =
+    Future<SyncPassResult> Function({SyncStoreResult? initialStore});
 
 /// Runs a pass against resources that are already owned by the calling
 /// isolate. The transaction-bound apply still provides atomic interruption
@@ -505,6 +506,27 @@ class SyncCoordinator {
 
   Future<SyncPassResult> syncNow() => trigger(SyncTrigger.manual);
 
+  /// Runs one pass with an optional already-validated store lookup.
+  ///
+  /// The isolate worker uses this entry point after a replacement decision so
+  /// the parent lookup is consumed rather than repeated inside the worker.
+  Future<SyncPassResult> runPass({SyncStoreResult? initialStore}) {
+    if (_disposed) {
+      return Future.value(
+        const SyncPassResult(
+          SyncPassStatus.failed,
+          message: 'sync coordinator is closed', // i18n-ignore: internal status
+        ),
+      );
+    }
+    final inFlight = _inFlight;
+    if (inFlight != null) return inFlight;
+    final pass = _startPass(initialStore: initialStore);
+    _inFlight = pass;
+    _watch(pass);
+    return pass;
+  }
+
   /// Confirms replacement exactly once, then runs the W8 fresh-attach
   /// lifecycle, including its single steady-state continuation.
   Future<SyncPassResult> confirmReplacement() {
@@ -612,7 +634,8 @@ class SyncCoordinator {
     await _replacementEvents.close();
   }
 
-  Future<SyncPassResult> _startPass() => _runStartedPass();
+  Future<SyncPassResult> _startPass({SyncStoreResult? initialStore}) =>
+      _runStartedPass(initialStore: initialStore);
 
   void _watch(Future<SyncPassResult> pass) {
     pass.then<void>(
@@ -628,7 +651,7 @@ class SyncCoordinator {
     SyncStoreResult? initialStore,
   }) async {
     final result =
-        await (passOperation?.call() ??
+        await (passOperation?.call(initialStore: initialStore) ??
             passRunner.run(() => _runPass(initialStore: initialStore)));
     if (result.status == SyncPassStatus.replacementRequired) {
       _emitReplacementRequired();

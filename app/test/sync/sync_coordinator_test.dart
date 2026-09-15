@@ -124,7 +124,7 @@ void main() {
       deviceId: 'device-a',
       store: _FakeStore(),
       transport: _FakeTransport(),
-      passOperation: () async =>
+      passOperation: ({SyncStoreResult? initialStore}) async =>
           const SyncPassResult(SyncPassStatus.replacementRequired),
     );
     final subscription = coordinator.replacementRequired.listen(events.add);
@@ -235,7 +235,7 @@ void main() {
         deviceId: 'device-a',
         store: _FakeStore(),
         transport: _FakeTransport(),
-        passOperation: () async {
+        passOperation: ({SyncStoreResult? initialStore}) async {
           operationCalls++;
           activeOperations++;
           maximumActiveOperations = maximumActiveOperations < activeOperations
@@ -367,7 +367,7 @@ void main() {
       deviceId: 'device-a',
       store: _FakeStore(),
       transport: _FakeTransport(),
-      passOperation: () async {
+      passOperation: ({SyncStoreResult? initialStore}) async {
         passRuns++;
         await passGate.future;
         return const SyncPassResult(SyncPassStatus.completed);

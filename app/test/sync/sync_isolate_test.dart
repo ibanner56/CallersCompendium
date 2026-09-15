@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
+import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_app/src/sync/sync_isolate.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/native.dart';
@@ -147,6 +148,99 @@ void main() {
     expect(result.status, SyncPassStatus.completed);
     expect(result.duplicateCount, 1);
   });
+
+  test(
+    'replacement consumes the validated store before the isolate continuation',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'compendium-sync-isolate-replacement-',
+      );
+      final databasePath = '${directory.path}/compendium.sqlite';
+      final database = CompendiumDatabase(NativeDatabase(File(databasePath)));
+      final repositories = CompendiumRepositories(database, contraTaxonomy);
+      await repositories.ensureMigrated();
+      const syncId = 'alpha-beta-gamma-delta';
+      await CompendiumSyncStorage(repositories).markSyncUsed(syncId);
+
+      final requests = <String>[];
+      var storeGets = 0;
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      server.listen((request) async {
+        requests.add('${request.method} ${request.uri.path}');
+        await request.drain<void>();
+        request.response.headers.contentType = ContentType.json;
+        if (request.method == 'GET' && request.uri.path == '/v1/store') {
+          storeGets++;
+          if (storeGets == 1) {
+            request.response
+              ..statusCode = HttpStatus.notFound
+              ..write('{}');
+          } else {
+            request.response.write(
+              jsonEncode({'epoch': 'epoch-1', 'devices': <String>[]}),
+            );
+          }
+        } else if (request.method == 'POST' &&
+            request.uri.path == '/v1/store') {
+          request.response
+            ..statusCode = HttpStatus.created
+            ..write('{}');
+        } else if (request.method == 'POST' &&
+            request.uri.path == '/v1/blobs/missing') {
+          request.response.write(jsonEncode({'missing': <String>[]}));
+        } else if (request.method == 'PUT' &&
+            request.uri.path == '/v1/manifests/device-a') {
+          request.response.write('{}');
+        } else {
+          request.response
+            ..statusCode = HttpStatus.notFound
+            ..write('{}');
+        }
+        await request.response.close();
+      });
+
+      final operation = IsolatedSyncPassOperation(
+        databasePath: databasePath,
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}'),
+        syncId: syncId,
+        deviceId: 'device-a',
+      );
+      final client = SyncHttpClient(
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}'),
+        syncId: syncId,
+      );
+      final coordinator = SyncCoordinator(
+        syncId: syncId,
+        deviceId: 'device-a',
+        store: CompendiumSyncCoordinatorStore(repositories, syncId: syncId),
+        transport: SyncHttpCoordinatorTransport(client),
+        passOperation: operation.call,
+      );
+      addTearDown(() async {
+        await coordinator.dispose();
+        await server.close(force: true);
+        await database.close();
+        await directory.delete(recursive: true);
+      });
+
+      expect(
+        (await coordinator.onAppStart()).status,
+        SyncPassStatus.replacementRequired,
+      );
+      final confirmation = await coordinator.confirmReplacement();
+      expect(confirmation.status, SyncPassStatus.completed);
+      expect(storeGets, 3);
+      expect(requests, [
+        'GET /v1/store',
+        'POST /v1/store',
+        'GET /v1/store',
+        'POST /v1/blobs/missing',
+        'GET /v1/store',
+        'POST /v1/blobs/missing',
+        'PUT /v1/manifests/device-a',
+      ]);
+    },
+  );
 
   test('preserves peer manifest cache across isolated passes', () async {
     final directory = await Directory.systemTemp.createTemp(

@@ -217,6 +217,73 @@ void main() {
   );
 
   test(
+    'fresh attach does not dedupe a dance held by a pending tombstone',
+    () async {
+      final stamp = DateTime.utc(2026, 7, 15, 12);
+      final held = Dance(
+        id: 'a-held',
+        title: 'Shared dance',
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final independent = Dance(
+        id: 'z-independent',
+        title: 'The Shared Dance',
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      await repositories.dances.create(held);
+      await repositories.dances.create(independent);
+      final program = Program(
+        id: 'holding-program',
+        title: 'Holding program',
+        slots: [ProgramSlot(id: 'holding-slot', position: 0, danceId: held.id)],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      await repositories.programs.create(program);
+
+      final tombstoneStamp = stamp.add(const Duration(minutes: 1));
+      final tombstone = SyncRecordBlob(
+        kind: SyncRecordKind.dance,
+        id: held.id,
+        updatedAt: tombstoneStamp,
+        deletedAt: tombstoneStamp,
+        existenceAt: stamp,
+        body: syncBodyForEntity(SyncRecordKind.dance, held),
+      );
+      await const SyncApplyEngine().apply(
+        candidates: [SyncMergeCandidate(blob: tombstone)],
+        storage: storage,
+      );
+
+      expect(
+        await repositories.syncLocal.getPendingDeletion(
+          kind: SyncRecordKind.dance,
+          recordId: held.id,
+        ),
+        isNotNull,
+      );
+      final dedupe = await storage.deduplicateFreshAttach();
+      expect(dedupe.duplicateCount, 0);
+      expect(await repositories.dances.getById(held.id), isNotNull);
+      expect(await repositories.dances.getById(independent.id), isNotNull);
+
+      final currentProgram = await repositories.programs.getById(program.id);
+      await repositories.programs.update(
+        currentProgram!.copyWith(
+          slots: const [],
+          updatedAt: tombstoneStamp.add(const Duration(minutes: 1)),
+        ),
+      );
+      await storage.revalidatePendingDeletions();
+
+      expect(await repositories.dances.getById(held.id), isNull);
+      expect(await repositories.dances.getById(independent.id), isNotNull);
+    },
+  );
+
+  test(
     'tracks prior use by sync identity even when the collection is empty',
     () async {
       expect(

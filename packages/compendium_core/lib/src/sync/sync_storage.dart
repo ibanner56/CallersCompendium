@@ -486,8 +486,15 @@ final class CompendiumSyncStorage
     final dances = await repositories.dances.listAll(includeDeleted: true);
     final rows = await _db.select(_db.dances).get();
     final rowsById = {for (final row in rows) row.id: row};
+    final pendingDanceIds = {
+      for (final pending in await repositories.syncLocal.listPendingDeletions())
+        if (pending.kind == SyncRecordKind.dance) pending.recordId,
+    };
     final candidates = <SyncMergeCandidate>[];
     for (final dance in dances) {
+      // The live row is only retained until its inbound tombstone can apply.
+      // It must not become a fresh-attach survivor or merge target.
+      if (pendingDanceIds.contains(dance.id)) continue;
       final row = rowsById[dance.id];
       if (row == null) continue;
       final blob = syncRecordBlobForEntity(
