@@ -37,7 +37,9 @@
     "Reference rewiring, epoch persistence, and after-merge report",
     "Post-confirmation replacement attach"
   ],
-  "pullRequests": [],
+  "pullRequests": [
+    1280
+  ],
   "hold": null,
   "completion": {
     "complete": false,
