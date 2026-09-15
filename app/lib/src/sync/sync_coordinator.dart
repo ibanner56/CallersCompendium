@@ -91,9 +91,14 @@ abstract interface class SyncCoordinatorStore
     required Iterable<SyncRecordAddress> records,
   });
 
-  Future<SyncFreshAttachDedupeResult> deduplicateFreshAttach({
-    required bool apply,
-  });
+  Future<SyncFreshAttachDedupeResult> deduplicateFreshAttach();
+
+  /// Refreshes only the already-queued dance ambiguity pairs.
+  ///
+  /// Ordinary passes must not scan the complete dance library. Fresh attach
+  /// owns discovery and merging; this path only revalidates pending review
+  /// candidates after inbound writes.
+  Future<SyncFreshAttachDedupeResult> refreshDanceAmbiguityReviews();
 
   Future<void> replaceBaseline({
     required String epoch,
@@ -195,9 +200,12 @@ final class CompendiumSyncCoordinatorStore
   }) => storage.markPublicationAttempt(syncId: syncId, records: records);
 
   @override
-  Future<SyncFreshAttachDedupeResult> deduplicateFreshAttach({
-    required bool apply,
-  }) => storage.deduplicateFreshAttach(apply: apply);
+  Future<SyncFreshAttachDedupeResult> deduplicateFreshAttach() =>
+      storage.deduplicateFreshAttach();
+
+  @override
+  Future<SyncFreshAttachDedupeResult> refreshDanceAmbiguityReviews() =>
+      storage.refreshDanceAmbiguityReviews();
 
   @override
   Future<void> replaceBaseline({
@@ -920,7 +928,9 @@ class SyncCoordinator {
     );
     reports.addAll(applyResult.reports);
 
-    final dedupe = await store.deduplicateFreshAttach(apply: freshAttach);
+    final dedupe = freshAttach
+        ? await store.deduplicateFreshAttach()
+        : await store.refreshDanceAmbiguityReviews();
     reports.addAll(dedupe.reports);
     if (freshAttach) {
       final attachedSnapshot = await store.snapshot();

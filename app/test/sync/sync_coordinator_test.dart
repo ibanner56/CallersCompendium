@@ -1572,6 +1572,8 @@ void main() {
       result.reports.map((report) => report.code),
       contains(SyncReportCode.equalUpdatedAt),
     );
+    expect(store.freshAttachDedupeCalls, 0);
+    expect(store.steadyStateReviewRefreshCalls, 1);
     expect(store.advancedEntries, isEmpty);
   });
 
@@ -1704,6 +1706,7 @@ final class _FakeStore implements SyncCoordinatorStore {
   int baselineReplacements = 0;
   int epochStateClears = 0;
   int freshAttachDedupeCalls = 0;
+  int steadyStateReviewRefreshCalls = 0;
   final List<SyncRecordAddress> replacedEntries = [];
 
   @override
@@ -1791,18 +1794,20 @@ final class _FakeStore implements SyncCoordinatorStore {
   }
 
   @override
-  Future<SyncFreshAttachDedupeResult> deduplicateFreshAttach({
-    required bool apply,
-  }) async {
-    if (apply) freshAttachDedupeCalls++;
-    if (apply && failFreshAttachDedupeOnce) {
+  Future<SyncFreshAttachDedupeResult> deduplicateFreshAttach() async {
+    freshAttachDedupeCalls++;
+    if (failFreshAttachDedupeOnce) {
       failFreshAttachDedupeOnce = false;
       throw StateError('scripted fresh-attach failure');
     }
-    return apply
-        ? freshAttachDedupeResult ??
-              const SyncFreshAttachDedupeResult(duplicateCount: 0, reports: [])
-        : const SyncFreshAttachDedupeResult(duplicateCount: 0, reports: []);
+    return freshAttachDedupeResult ??
+        const SyncFreshAttachDedupeResult(duplicateCount: 0, reports: []);
+  }
+
+  @override
+  Future<SyncFreshAttachDedupeResult> refreshDanceAmbiguityReviews() async {
+    steadyStateReviewRefreshCalls++;
+    return const SyncFreshAttachDedupeResult(duplicateCount: 0, reports: []);
   }
 
   @override

@@ -420,52 +420,84 @@ final class CompendiumSyncStorage
   });
 
   /// Scans the current live dance collection for W8 title/choreography
-  /// matches. When [apply] is true, the complete merge and identity rewrite
-  /// runs inside the same repository transaction as the resulting rows.
+  /// matches and applies the complete merge and identity rewrite inside the
+  /// same repository transaction as the resulting rows.
   ///
-  /// The scan is also used after ordinary passes so an unresolved
-  /// same-title/different-choreography pair is reported again while its
-  /// immutable review candidate remains pending.
-  Future<SyncFreshAttachDedupeResult> deduplicateFreshAttach({
-    bool apply = true,
-  }) => repositories.transaction(() async {
-    final plan = await _danceDedupePlan();
-    final reports = <SyncReport>[];
-    await _refreshDanceAmbiguityReviews(plan.ambiguities);
-    for (final ambiguity in plan.ambiguities) {
-      if (ambiguity.left.blob.updatedAt == ambiguity.right.blob.updatedAt) {
-        reports.add(
-          SyncReport(
-            code: SyncReportCode.equalUpdatedAt,
-            kind: SyncRecordKind.dance,
-            recordId: ambiguity.firstId,
-            message:
-                'Dances with the same normalized title have different '
-                'choreography at the same updatedAt; no silent winner was '
-                'selected.',
-          ),
-        );
-      }
-    }
-    if (!apply || plan.merges.isEmpty) {
-      return SyncFreshAttachDedupeResult(
-        duplicateCount: 0,
-        reports: List.unmodifiable(reports),
-      );
-    }
+  /// This full-library scan is a fresh-attach operation. Ordinary passes use
+  /// [refreshDanceAmbiguityReviews] so they do not rediscover or merge dances.
+  Future<SyncFreshAttachDedupeResult> deduplicateFreshAttach() =>
+      repositories.transaction(() async {
+        final plan = await _danceDedupePlan();
+        await _refreshDanceAmbiguityReviews(plan.ambiguities);
+        final reports = _reportsForDanceAmbiguities(plan.ambiguities);
 
-    for (final merge in plan.merges) {
-      await _applyDanceDedupeMerge(merge, plan.aliases);
-    }
-    await rebuildDerivedIndexes();
-    return SyncFreshAttachDedupeResult(
-      duplicateCount: plan.merges.fold<int>(
-        0,
-        (count, merge) => count + merge.losingIds.length,
-      ),
-      reports: List.unmodifiable(reports),
-    );
-  });
+        if (plan.merges.isEmpty) {
+          return SyncFreshAttachDedupeResult(
+            duplicateCount: 0,
+            reports: List.unmodifiable(reports),
+          );
+        }
+        for (final merge in plan.merges) {
+          await _applyDanceDedupeMerge(merge, plan.aliases);
+        }
+        await rebuildDerivedIndexes();
+        return SyncFreshAttachDedupeResult(
+          duplicateCount: plan.merges.fold<int>(
+            0,
+            (count, merge) => count + merge.losingIds.length,
+          ),
+          reports: List.unmodifiable(reports),
+        );
+      });
+
+  /// Revalidates only the dance ambiguity pairs already present in the review
+  /// queue. It deliberately does not scan the complete dance collection or
+  /// discover new same-title pairs during steady-state sync.
+  Future<SyncFreshAttachDedupeResult> refreshDanceAmbiguityReviews() =>
+      repositories.transaction(() async {
+        final queuedRows = (await repositories.syncLocal.listReviewQueue())
+            .where(
+              (row) =>
+                  row.kind == SyncRecordKind.dance &&
+                  row.reason == syncDanceChoreographyAmbiguityReason,
+            );
+        final ambiguities = <SyncDanceDedupeAmbiguity>[];
+        final seenPairs = <String>{};
+        for (final row in queuedRows) {
+          final pairKey = _danceReviewPairKey(row.recordId, row.counterpartId);
+          if (!seenPairs.add(pairKey) || row.recordId == row.counterpartId) {
+            continue;
+          }
+          final left = await _danceCandidate(row.recordId);
+          final right = await _danceCandidate(row.counterpartId);
+          if (left == null || right == null) continue;
+          final pairPlan = planFreshAttachDedupe([left, right]);
+          if (pairPlan.ambiguities.length == 1) {
+            ambiguities.add(pairPlan.ambiguities.single);
+          }
+        }
+        await _refreshDanceAmbiguityReviews(ambiguities);
+        return SyncFreshAttachDedupeResult(
+          duplicateCount: 0,
+          reports: List.unmodifiable(_reportsForDanceAmbiguities(ambiguities)),
+        );
+      });
+
+  List<SyncReport> _reportsForDanceAmbiguities(
+    Iterable<SyncDanceDedupeAmbiguity> ambiguities,
+  ) => [
+    for (final ambiguity in ambiguities)
+      if (ambiguity.left.blob.updatedAt == ambiguity.right.blob.updatedAt)
+        SyncReport(
+          code: SyncReportCode.equalUpdatedAt,
+          kind: SyncRecordKind.dance,
+          recordId: ambiguity.firstId,
+          message:
+              'Dances with the same normalized title have different '
+              'choreography at the same updatedAt; no silent winner was '
+              'selected.',
+        ),
+  ];
 
   Future<void> _refreshDanceAmbiguityReviews(
     Iterable<SyncDanceDedupeAmbiguity> ambiguities,

@@ -799,13 +799,41 @@ void main() {
 
       await storage.deduplicateFreshAttach();
       final firstRow = (await repositories.syncLocal.listReviewQueue()).single;
+      await repositories.dances.create(
+        Dance(
+          id: 'c-left',
+          title: 'Shared dance',
+          figures: [
+            testFigure(move: 'balance', params: const {'hand': 'left'}),
+          ],
+          createdAt: stamp,
+          updatedAt: stamp,
+        ),
+      );
+      await repositories.dances.create(
+        Dance(
+          id: 'd-right',
+          title: 'The shared dance',
+          figures: [
+            testFigure(move: 'balance', params: const {'hand': 'right'}),
+          ],
+          createdAt: stamp,
+          updatedAt: stamp,
+        ),
+      );
+      await storage.refreshDanceAmbiguityReviews();
+      final targetedRows = await repositories.syncLocal.listReviewQueue();
+      expect(targetedRows, hasLength(1));
+      expect(targetedRows.single.recordId, 'a-left');
+      expect(targetedRows.single.counterpartId, 'b-right');
+
       final editedRight = right.copyWith(
         figures: [testFigure(move: 'swing')],
         updatedAt: stamp.add(const Duration(minutes: 1)),
       );
       await repositories.dances.update(editedRight);
 
-      await storage.deduplicateFreshAttach();
+      await storage.refreshDanceAmbiguityReviews();
       final refreshedRow =
           (await repositories.syncLocal.listReviewQueue()).single;
 

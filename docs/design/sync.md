@@ -4875,9 +4875,11 @@ that had not been given.
 ### Dance dedupe runs only at fresh attach, so a dance can fork permanently
 
 Content-based dance dedupe is an attach-time pass. Steady-state sync has no
-per-record dedupe, so two dances that become identical *after* attach — or a
-device attaching later that merges a pair a third device already merged
-differently — stay forked with no mechanism to reconcile them afterwards.
+per-record dedupe: it only revalidates already-queued ambiguity pairs, so two
+dances that become identical *after* attach — or a device attaching later that
+merges a pair a third device already merged differently — stay forked with no
+mechanism to reconcile them afterwards. That targeted refresh does not discover
+new pairs or scan the full library.
 
 This is materially worse than the disclosed venue and published-source
 duplication, and the difference is worth stating: those two kinds never had an
