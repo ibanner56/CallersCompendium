@@ -188,6 +188,224 @@ void main() {
     },
   );
 
+  test('fresh attach reuses shipped title normalization across clients', () {
+    final pairs = [
+      (
+        _danceCandidate('z-nfc', 'The Résumé'),
+        _danceCandidate('a-nfd', 're\u0301sume\u0301'),
+      ),
+      (
+        _danceCandidate('z-case', 'NICE COMBINATION'),
+        _danceCandidate('a-case', 'nice combination'),
+      ),
+      (
+        _danceCandidate('z-space', 'Nice   Combination'),
+        _danceCandidate('a-space', 'nice combination'),
+      ),
+      (
+        _danceCandidate('z-punctuation', 'Nice-Combination'),
+        _danceCandidate('a-punctuation', 'nice combination'),
+      ),
+    ];
+
+    for (final pair in pairs) {
+      final plan = planFreshAttachDedupe([pair.$1, pair.$2]);
+
+      expect(plan.merges, hasLength(1));
+      expect(plan.merges.single.winner.blob.id, startsWith('a-'));
+      expect(plan.merges.single.losingIds, contains(startsWith('z-')));
+      expect(plan.ambiguities, isEmpty);
+    }
+  });
+
+  test(
+    'fresh attach excludes tombstones and preserves deterministic merge rules',
+    () {
+      final older = _danceCandidate(
+        'z-older',
+        'The Shared Dance',
+        walkthrough: 'older',
+        rating: 2,
+        authors: ['author-a'],
+        tags: ['tag-a'],
+        updatedSeconds: 1,
+      );
+      final survivor = _danceCandidate(
+        'a-survivor',
+        'shared dance',
+        walkthrough: 'survivor',
+        rating: 1,
+        authors: ['author-b'],
+        tags: ['tag-b'],
+        updatedSeconds: 1,
+      );
+      final newest = _danceCandidate(
+        'm-newest',
+        'SHARED DANCE',
+        walkthrough: 'newest',
+        rating: 5,
+        authors: ['author-c'],
+        tags: ['tag-c'],
+        updatedSeconds: 2,
+      );
+      final tombstone = _danceCandidate(
+        'b-tombstone',
+        'shared dance',
+        deleted: true,
+        updatedSeconds: 3,
+      );
+
+      final plan = planFreshAttachDedupe([older, survivor, newest, tombstone]);
+
+      expect(plan.ambiguities, isEmpty);
+      expect(plan.merges, hasLength(1));
+      final merge = plan.merges.single;
+      expect(merge.winner.blob.id, 'a-survivor');
+      expect(merge.losingIds, ['m-newest', 'z-older']);
+      expect(merge.winner.blob.body['walkthrough'], 'newest');
+      expect(merge.winner.blob.body['rating'], 5);
+      expect(merge.winner.blob.body['authorIds'], [
+        'author-b',
+        'author-c',
+        'author-a',
+      ]);
+      expect(merge.winner.blob.body['tagIds'], ['tag-b', 'tag-c', 'tag-a']);
+      expect(plan.aliases, {'m-newest': 'a-survivor', 'z-older': 'a-survivor'});
+    },
+  );
+
+  test(
+    'fresh attach queues ambiguity instead of merging different choreography',
+    () {
+      final left = _danceCandidate(
+        'a-left',
+        'Shared dance',
+        figures: const [
+          {
+            'move': 'balance',
+            'params': {'side': 'left'},
+          },
+        ],
+      );
+      final right = _danceCandidate(
+        'b-right',
+        'The SHARED DANCE',
+        figures: const [
+          {
+            'move': 'balance',
+            'params': {'side': 'right'},
+          },
+        ],
+      );
+
+      final plan = planFreshAttachDedupe([left, right]);
+
+      expect(plan.merges, isEmpty);
+      expect(plan.aliases, isEmpty);
+      expect(plan.ambiguities, hasLength(1));
+      expect(plan.ambiguities.single.firstId, 'a-left');
+      expect(plan.ambiguities.single.secondId, 'b-right');
+      expect(plan.ambiguities.single.candidate.blob.id, 'b-right');
+    },
+  );
+
+  test(
+    'fresh attach queues ambiguity only between surviving choreography groups',
+    () {
+      final survivor = _danceCandidate(
+        'a-survivor',
+        'Shared dance',
+        figures: const [
+          {
+            'move': 'balance',
+            'params': {'hand': 'left'},
+          },
+        ],
+      );
+      final equalChoreography = _danceCandidate(
+        'c-duplicate',
+        'The SHARED DANCE',
+        figures: const [
+          {
+            'move': 'balance',
+            'params': {'hand': 'left'},
+          },
+        ],
+      );
+      final differentChoreography = _danceCandidate(
+        'b-different',
+        'shared dance',
+        figures: const [
+          {
+            'move': 'balance',
+            'params': {'hand': 'right'},
+          },
+        ],
+      );
+
+      final plan = planFreshAttachDedupe([
+        survivor,
+        equalChoreography,
+        differentChoreography,
+      ]);
+
+      expect(plan.merges.single.losingIds, ['c-duplicate']);
+      expect(
+        plan.ambiguities.map(
+          (ambiguity) => (ambiguity.firstId, ambiguity.secondId),
+        ),
+        [('a-survivor', 'b-different')],
+      );
+    },
+  );
+
+  test('fresh attach deduplicates citations by published source', () {
+    final older = _danceCandidate(
+      'a-older',
+      'Shared dance',
+      sourceCitations: const [
+        {'sourceId': 'source-1', 'page': '1'},
+      ],
+    );
+    final newer = _danceCandidate(
+      'z-newer',
+      'The shared dance',
+      sourceCitations: const [
+        {'sourceId': 'source-1', 'page': '2'},
+      ],
+      updatedSeconds: 1,
+    );
+
+    final plan = planFreshAttachDedupe([older, newer]);
+
+    expect(plan.merges.single.winner.blob.body['sourceCitations'], [
+      {'sourceId': 'source-1', 'page': '2'},
+    ]);
+  });
+
+  test(
+    'fresh attach keeps survivor provenance when the duplicate is newer',
+    () {
+      final older = _danceCandidate(
+        'a-older',
+        'Shared dance',
+        provenance: const {'source': 'older'},
+      );
+      final newer = _danceCandidate(
+        'z-newer',
+        'The shared dance',
+        updatedSeconds: 1,
+        provenance: const {'source': 'newer'},
+      );
+
+      final plan = planFreshAttachDedupe([older, newer]);
+
+      expect(plan.merges.single.winner.blob.body['provenance'], {
+        'source': 'older',
+      });
+    },
+  );
+
   test('keeps an unresolved baseline entry retryable', () {
     final address = _setting('custom_dialects', 'local').address;
     final plan = engine.plan(
@@ -583,3 +801,55 @@ SyncRecordBlob _dance(String id, String title) => SyncRecordBlob(
   existenceAt: _baseTime,
   body: {'id': id, 'title': title},
 );
+
+SyncMergeCandidate _danceCandidate(
+  String id,
+  String title, {
+  List<Object?> figures = const [],
+  String walkthrough = '',
+  int? rating,
+  List<String> authors = const [],
+  List<String> tags = const [],
+  List<Object?> sourceCitations = const [],
+  Object? provenance,
+  int updatedSeconds = 0,
+  bool deleted = false,
+}) {
+  final updatedAt = _baseTime.add(Duration(seconds: updatedSeconds));
+  return SyncMergeCandidate(
+    blob: SyncRecordBlob(
+      kind: SyncRecordKind.dance,
+      id: id,
+      updatedAt: updatedAt,
+      deletedAt: deleted ? updatedAt : null,
+      existenceAt: updatedAt,
+      body: {
+        'id': id,
+        'title': title,
+        'form': 'contra',
+        'formation': {'shape': 'duple_improper'},
+        'progression': 'single',
+        'phraseStructure': '',
+        'figures': figures,
+        'hook': '',
+        'callingNotes': '',
+        'walkthrough': walkthrough,
+        'status': 'active',
+        'difficultyLevelId': null,
+        'mixedLevel': false,
+        'mixer': false,
+        'rating': rating,
+        'tunes': const [],
+        'authorIds': authors,
+        'customFields': const [],
+        'tagIds': tags,
+        'links': const [],
+        'sourceCitations': sourceCitations,
+        'provenance': provenance,
+        'composedOn': null,
+        'revisedOn': null,
+        'createdAt': _baseTime.toIso8601String(),
+      },
+    ),
+  );
+}

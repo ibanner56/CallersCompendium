@@ -1,7 +1,88 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test(
+    'import and sync choreography fingerprints share one field contract',
+    () {
+      final dance = Dance(
+        id: 'fingerprint-dance',
+        title: 'Fingerprint dance',
+        createdAt: DateTime.utc(2026, 7, 15, 12),
+        updatedAt: DateTime.utc(2026, 7, 15, 12),
+      );
+      final body = syncBodyForEntity(SyncRecordKind.dance, dance);
+
+      expect(
+        choreographyFingerprintForDance(dance),
+        choreographyFingerprint(body),
+      );
+    },
+  );
+
+  final choreographyCases = <({String name, Dance Function(Dance) mutate})>[
+    (name: 'form', mutate: (dance) => dance.copyWith(form: DanceForm.ecd)),
+    (
+      name: 'formation',
+      mutate: (dance) =>
+          dance.copyWith(formation: const Formation(FormationShape.becketCw)),
+    ),
+    (
+      name: 'progression',
+      mutate: (dance) => dance.copyWith(progression: Progression.double),
+    ),
+    (
+      name: 'phrase structure',
+      mutate: (dance) => dance.copyWith(phraseStructure: '2*8*2'),
+    ),
+    (
+      name: 'figures',
+      mutate: (dance) => dance.copyWith(figures: [testFigure(move: 'balance')]),
+    ),
+    (name: 'hook', mutate: (dance) => dance.copyWith(hook: 'A different hook')),
+    (
+      name: 'calling notes',
+      mutate: (dance) => dance.copyWith(callingNotes: 'Different notes'),
+    ),
+    (
+      name: 'difficulty level',
+      mutate: (dance) =>
+          dance.copyWith(difficultyLevelId: 'difficulty-advanced'),
+    ),
+    (name: 'mixed level', mutate: (dance) => dance.copyWith(mixedLevel: true)),
+    (name: 'mixer', mutate: (dance) => dance.copyWith(mixer: true)),
+    (name: 'tunes', mutate: (dance) => dance.copyWith(tunes: const ['Jig'])),
+  ];
+
+  for (final choreographyCase in choreographyCases) {
+    test('fresh attach treats ${choreographyCase.name} as significant', () {
+      final stamp = DateTime.utc(2026, 7, 15, 12);
+      Dance baseDance(String id, String title) =>
+          Dance(id: id, title: title, createdAt: stamp, updatedAt: stamp);
+      final left = baseDance('a-left', 'Shared dance');
+      final right = choreographyCase.mutate(
+        baseDance('b-right', 'The Shared Dance'),
+      );
+      SyncRecordBlob blobFor(Dance dance) => SyncRecordBlob(
+        kind: SyncRecordKind.dance,
+        id: dance.id,
+        updatedAt: stamp,
+        deletedAt: null,
+        existenceAt: stamp,
+        body: syncBodyForEntity(SyncRecordKind.dance, dance),
+      );
+
+      final plan = planFreshAttachDedupe([
+        SyncMergeCandidate.fromBlob(blobFor(left)),
+        SyncMergeCandidate.fromBlob(blobFor(right)),
+      ]);
+
+      expect(plan.merges, isEmpty);
+      expect(plan.ambiguities, hasLength(1));
+    });
+  }
+
   group('normalization', () {
     test('title folds case, punctuation, diacritics, articles', () {
       expect(normalizeTitle('The Nice Combination!'), 'nice combination');

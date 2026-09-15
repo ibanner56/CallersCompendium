@@ -99,7 +99,7 @@ class FtsDeleteByDanceCounter extends QueryInterceptor {
   bool _matches(String statement) => statement
       .toLowerCase()
       .replaceAll(RegExp(r'\s+'), ' ')
-      .contains('delete from dance_fts where dance_id');
+      .contains('delete from dance_fts where dance_id =');
 
   @override
   Future<void> runCustom(

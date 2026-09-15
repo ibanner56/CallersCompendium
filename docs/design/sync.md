@@ -3027,8 +3027,9 @@ hold different ids for it, so union alone yields duplicates.
 **Silent merge** where both hold:
 
 1. exact normalized-title match (`normalizeTitle`), and
-2. `_choreographyEquals` — form, formation, progression, phrase structure,
-   figures *including params*, hook, calling notes, level, mixed level, tunes.
+2. the shared `choreographyFingerprint` contract — form, formation,
+   progression, phrase structure, figures *including params*, hook, calling
+   notes, level, mixed level, tunes.
 
 **Tombstones do not participate.** A deleted dance is not a duplicate candidate.
 Merging a live copy with a tombstoned one would decide existence by title and
@@ -3040,7 +3041,7 @@ tombstone until its own purge.
 A draft of this paragraph also said such a pair is "settled by `existenceAt` and
 only then considered for dedupe". That step cannot run. Dedupe pairs records
 holding **different UUIDs**, and the only thing that pairs them is the title and
-`_choreographyEquals` match — so excluding tombstones from the match means no
+shared choreography match — so excluding tombstones from the match means no
 pair ever exists for `existenceAt` to settle. The claim was harmless in effect,
 since the safe reading is the implemented one, but it described a mechanism that
 does not exist.
@@ -3161,8 +3162,9 @@ not new work *caused* by Device Sync, though — the dance dedupe path has depen
 on it since the first draft, which no earlier round caught, and the same gap
 would have surfaced on the first fresh attach.
 
-Device Sync **calls** `_choreographyEquals` rather than reimplementing it. Two
-definitions of "the same dance" would drift, and the drift would be silent.
+Device Sync and import use the shared `choreographyFingerprint` contract rather
+than maintaining separate field lists. Two definitions of "the same dance"
+would drift, and the drift would be silent.
 
 Deliberately stricter than import: import treats title + author-overlap as
 confident even when choreography differs, which is right for re-importing a
@@ -3171,13 +3173,13 @@ device, and merging it silently would discard one side.
 
 On silent merge the surviving record is chosen by the **canonical tie-break** —
 the lexicographically smaller UUID, the same rule entity reconciliation uses, so
-both devices independently pick the same survivor. The id-collections
-`_choreographyEquals` ignores — tags, custom fields, links, citations — are
+both devices independently pick the same survivor. The id-collections the
+shared choreography contract ignores — tags, custom fields, links, citations — are
 **unioned**, since they are additive and neither side is more correct.
 
-**The scalars `_choreographyEquals` does not compare are resolved by recency, not
-taken from the survivor.** It compares form, formation, progression, phrase
-structure, figures, hook, calling notes, level, mixed-level and tunes — so
+**The scalars the shared choreography contract does not compare are resolved by
+recency, not taken from the survivor.** It compares form, formation, progression,
+phrase structure, figures, hook, calling notes, level, mixed-level and tunes — so
 `walkthrough`, `rating`, `status`, `composedOn` and `revisedOn` fall outside both
 the equality test and the union. Taking them from the tie-break survivor would
 discard a caller's own walkthrough notes and their rating on an arbitrary UUID
@@ -4873,9 +4875,11 @@ that had not been given.
 ### Dance dedupe runs only at fresh attach, so a dance can fork permanently
 
 Content-based dance dedupe is an attach-time pass. Steady-state sync has no
-per-record dedupe, so two dances that become identical *after* attach — or a
-device attaching later that merges a pair a third device already merged
-differently — stay forked with no mechanism to reconcile them afterwards.
+per-record dedupe: it only revalidates already-queued ambiguity pairs, so two
+dances that become identical *after* attach — or a device attaching later that
+merges a pair a third device already merged differently — stay forked with no
+mechanism to reconcile them afterwards. That targeted refresh does not discover
+new pairs or scan the full library.
 
 This is materially worse than the disclosed venue and published-source
 duplication, and the difference is worth stating: those two kinds never had an

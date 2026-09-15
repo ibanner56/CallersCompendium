@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/src/serialization/archive_entity_codec.dart';
 import 'package:compendium_core/src/storage/database.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:test/test.dart';
@@ -72,6 +73,535 @@ void main() {
       expect(row.updatedAt!.toUtc(), remoteStamp);
       expect(row.existenceAt!.toUtc(), localStamp);
       expect(row.deletedAt, isNull);
+    },
+  );
+
+  test(
+    'fresh attach dedupe rewires aliases, slots, links, indexes, and timestamps',
+    () async {
+      final stamp = DateTime.utc(2026, 7, 15, 12);
+      final survivor = Dance(
+        id: 'a-survivor',
+        title: 'shared dance',
+        walkthrough: 'survivor',
+        rating: 1,
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final loser = Dance(
+        id: 'z-loser',
+        title: 'The Shared Dance',
+        walkthrough: 'newer loser',
+        rating: 5,
+        links: [
+          DanceLink(
+            id: 'loser-owned-link',
+            kind: LinkKind.relatedDance,
+            targetDanceId: 'c-related',
+          ),
+          DanceLink(
+            id: 'loser-self-link',
+            kind: LinkKind.relatedDance,
+            targetDanceId: survivor.id,
+          ),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp.add(const Duration(minutes: 1)),
+      );
+      await repositories.dances.create(survivor);
+      await repositories.dances.create(
+        Dance(
+          id: 'c-related',
+          title: 'Related dance',
+          createdAt: stamp,
+          updatedAt: stamp,
+        ),
+      );
+      await repositories.dances.create(loser);
+
+      final owner = Dance(
+        id: 'c-owner',
+        title: 'Owner',
+        links: [
+          DanceLink(
+            id: 'owner-link',
+            kind: LinkKind.relatedDance,
+            targetDanceId: loser.id,
+          ),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      await repositories.dances.create(owner);
+
+      final program = Program(
+        id: 'program-with-loser',
+        title: 'Program',
+        slots: [ProgramSlot(id: 'loser-slot', position: 0, danceId: loser.id)],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      await repositories.programs.create(program);
+      final beforeProgram = await (db.select(
+        db.programs,
+      )..where((row) => row.id.equals(program.id))).getSingle();
+
+      final result = await storage.deduplicateFreshAttach();
+
+      expect(result.duplicateCount, 1);
+      expect(await repositories.dances.getById(loser.id), isNull);
+      final merged = await repositories.dances.getById(survivor.id);
+      expect(merged!.walkthrough, 'newer loser');
+      expect(merged.rating, 5);
+      expect(merged.links.map((link) => link.id), ['loser-owned-link']);
+      expect(merged.links.single.targetDanceId, 'c-related');
+      expect(
+        await repositories.syncLocal.resolveAlias(
+          kind: SyncRecordKind.dance,
+          recordId: loser.id,
+        ),
+        survivor.id,
+      );
+      expect(
+        (await repositories.programs.getById(program.id))!.slots.single.danceId,
+        survivor.id,
+      );
+      expect(
+        (await repositories.dances.getById(
+          owner.id,
+        ))!.links.single.targetDanceId,
+        survivor.id,
+      );
+
+      final afterProgram = await (db.select(
+        db.programs,
+      )..where((row) => row.id.equals(program.id))).getSingle();
+      expect(afterProgram.updatedAt, isNot(beforeProgram.updatedAt));
+
+      for (final table in [
+        'dance_figures',
+        'dance_fts',
+        'dance_substring_fts',
+      ]) {
+        final rows = await db
+            .customSelect(
+              'SELECT dance_id FROM $table WHERE dance_id = ?',
+              variables: [Variable.withString(loser.id)],
+            )
+            .get();
+        expect(rows, isEmpty, reason: table);
+      }
+    },
+  );
+
+  test(
+    'fresh attach dedupe rebuilds FTS once across duplicate groups',
+    () async {
+      final counter = FtsDeleteByDanceCounter();
+      await db.close();
+      final countingDb = openCountingTestDatabase(counter);
+      db = countingDb;
+      final countingRepositories = CompendiumRepositories(
+        countingDb,
+        contraTaxonomy,
+      );
+      final countingStorage = CompendiumSyncStorage(countingRepositories);
+      final stamp = DateTime.utc(2026, 7, 15, 12);
+      for (var i = 0; i < 6; i++) {
+        final group = i ~/ 2;
+        await countingRepositories.dances.create(
+          Dance(
+            id: i.isEven ? 'a-survivor-$group' : 'z-loser-$i',
+            title: 'Shared dance $group',
+            createdAt: stamp,
+            updatedAt: stamp.add(Duration(seconds: i)),
+          ),
+        );
+      }
+      counter.count = 0;
+
+      final result = await countingStorage.deduplicateFreshAttach();
+
+      expect(result.duplicateCount, 3);
+      // All survivor writes defer derived maintenance; the complete pass uses
+      // one bulk rebuild rather than one unindexed FTS delete per group.
+      expect(counter.count, 0);
+    },
+  );
+
+  test(
+    'fresh attach preserves loser-owned private custom-field values',
+    () async {
+      final stamp = DateTime.utc(2026, 7, 15, 12);
+      final privateField = CustomFieldDef(
+        id: 'private-dedupe-field',
+        key: 'private_dedupe_field',
+        label: 'Private dedupe field',
+        type: CustomFieldType.text,
+        shareable: false,
+      );
+      // ignore: unused_result
+      await repositories.customFieldDefs.upsert(privateField, at: stamp);
+      final survivor = Dance(
+        id: 'a-survivor',
+        title: 'Shared dance',
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final loser = Dance(
+        id: 'z-loser',
+        title: 'The Shared Dance',
+        customFields: [
+          CustomFieldValue(fieldId: privateField.id, value: 'keep locally'),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp.add(const Duration(minutes: 1)),
+      );
+      await repositories.dances.create(survivor);
+      await repositories.dances.create(loser);
+
+      final result = await storage.deduplicateFreshAttach();
+
+      expect(result.duplicateCount, 1);
+      expect((await repositories.dances.getById(survivor.id))!.customFields, [
+        CustomFieldValue(fieldId: privateField.id, value: 'keep locally'),
+      ]);
+      expect(await repositories.dances.getById(loser.id), isNull);
+      final wire = (await storage.snapshot())
+          .local[(kind: SyncRecordKind.dance, recordId: survivor.id)]!;
+      expect(wire.blob.body['customFields'], isEmpty);
+    },
+  );
+
+  test(
+    'fresh attach ambiguity is immutable and review-queue insertion is idempotent',
+    () async {
+      final stamp = DateTime.utc(2026, 7, 15, 12);
+      await repositories.dances.create(
+        Dance(
+          id: 'a-left',
+          title: 'The Shared Dance',
+          figures: [
+            testFigure(move: 'balance', params: const {'hand': 'left'}),
+          ],
+          createdAt: stamp,
+          updatedAt: stamp,
+        ),
+      );
+      await repositories.dances.create(
+        Dance(
+          id: 'b-right',
+          title: 'shared dance',
+          figures: [
+            testFigure(move: 'balance', params: const {'hand': 'right'}),
+          ],
+          createdAt: stamp,
+          updatedAt: stamp,
+        ),
+      );
+
+      final first = await storage.deduplicateFreshAttach();
+      final firstRow = (await repositories.syncLocal.listReviewQueue()).single;
+      final second = await storage.deduplicateFreshAttach();
+      final rows = await repositories.syncLocal.listReviewQueue();
+
+      expect(first.duplicateCount, 0);
+      expect(first.reports.single.code, SyncReportCode.equalUpdatedAt);
+      expect(second.duplicateCount, 0);
+      expect(second.reports.single.code, SyncReportCode.equalUpdatedAt);
+      expect(rows, hasLength(1));
+      expect(rows.single.candidateBlob, firstRow.candidateBlob);
+      expect(rows.single.candidateHash, firstRow.candidateHash);
+      expect(rows.single.recordId, 'a-left');
+      expect(rows.single.counterpartId, 'b-right');
+    },
+  );
+
+  test(
+    'resolves a live dance ambiguity by merging the chosen records',
+    () async {
+      final stamp = DateTime.utc(2026, 7, 15, 12);
+      await repositories.dances.create(
+        Dance(
+          id: 'a-left',
+          title: 'Shared dance',
+          figures: [
+            testFigure(move: 'balance', params: const {'hand': 'left'}),
+          ],
+          createdAt: stamp,
+          updatedAt: stamp,
+        ),
+      );
+      await repositories.dances.create(
+        Dance(
+          id: 'b-right',
+          title: 'The shared dance',
+          figures: [
+            testFigure(move: 'balance', params: const {'hand': 'right'}),
+          ],
+          createdAt: stamp,
+          updatedAt: stamp,
+        ),
+      );
+
+      await storage.deduplicateFreshAttach();
+      final item = SyncReviewQueueItem.fromRow(
+        (await repositories.syncLocal.listReviewQueue()).single,
+      );
+      expect(item.isActionable, isTrue);
+      expect(item.isDanceAmbiguity, isTrue);
+
+      await storage.resolveReviewQueue(
+        expectedRow: item.row,
+        action: SyncReviewAction.merge,
+      );
+
+      expect(await repositories.dances.getById('b-right'), isNull);
+      expect(await repositories.dances.getById('a-left'), isNotNull);
+      expect(
+        await repositories.syncLocal.resolveAlias(
+          kind: SyncRecordKind.dance,
+          recordId: 'b-right',
+        ),
+        'a-left',
+      );
+      expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+    },
+  );
+
+  test(
+    'reconciles sibling dance ambiguities after merging one of three groups',
+    () async {
+      final stamp = DateTime.utc(2026, 7, 15, 12);
+      for (final entry in [
+        (id: 'a-left', hand: 'left'),
+        (id: 'b-right', hand: 'right'),
+        (id: 'c-swing', hand: 'swing'),
+      ]) {
+        await repositories.dances.create(
+          Dance(
+            id: entry.id,
+            title: 'Shared dance',
+            figures: [
+              entry.hand == 'swing'
+                  ? testFigure(move: 'swing')
+                  : testFigure(move: 'balance', params: {'hand': entry.hand}),
+            ],
+            createdAt: stamp,
+            updatedAt: stamp,
+          ),
+        );
+      }
+
+      await storage.deduplicateFreshAttach();
+      expect(
+        (await repositories.syncLocal.listReviewQueue()).map(
+          (row) => (row.recordId, row.counterpartId),
+        ),
+        [('a-left', 'b-right'), ('a-left', 'c-swing'), ('b-right', 'c-swing')],
+      );
+
+      final first = SyncReviewQueueItem.fromRow(
+        (await repositories.syncLocal.getReviewQueue(
+          kind: SyncRecordKind.dance,
+          recordId: 'a-left',
+          counterpartId: 'b-right',
+        ))!,
+      );
+      await storage.resolveReviewQueue(
+        expectedRow: first.row,
+        action: SyncReviewAction.merge,
+      );
+
+      final remaining = await repositories.syncLocal.listReviewQueue();
+      expect(remaining.map((row) => (row.recordId, row.counterpartId)), [
+        ('a-left', 'c-swing'),
+      ]);
+      expect(await repositories.dances.getById('b-right'), isNull);
+      expect(
+        SyncReviewQueueItem.fromRow(remaining.single).isActionable,
+        isTrue,
+      );
+
+      await storage.resolveReviewQueue(
+        expectedRow: remaining.single,
+        action: SyncReviewAction.merge,
+      );
+      expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+    },
+  );
+
+  test(
+    'drops sibling dance ambiguities after keeping one of three groups',
+    () async {
+      final stamp = DateTime.utc(2026, 7, 15, 12);
+      for (final entry in [
+        (id: 'a-left', hand: 'left'),
+        (id: 'b-right', hand: 'right'),
+        (id: 'c-swing', hand: 'swing'),
+      ]) {
+        await repositories.dances.create(
+          Dance(
+            id: entry.id,
+            title: 'Shared dance',
+            figures: [
+              entry.hand == 'swing'
+                  ? testFigure(move: 'swing')
+                  : testFigure(move: 'balance', params: {'hand': entry.hand}),
+            ],
+            createdAt: stamp,
+            updatedAt: stamp,
+          ),
+        );
+      }
+
+      await storage.deduplicateFreshAttach();
+      final first = SyncReviewQueueItem.fromRow(
+        (await repositories.syncLocal.getReviewQueue(
+          kind: SyncRecordKind.dance,
+          recordId: 'a-left',
+          counterpartId: 'b-right',
+        ))!,
+      );
+      await storage.resolveReviewQueue(
+        expectedRow: first.row,
+        action: SyncReviewAction.keepBoth,
+        newNaturalKey: 'Renamed dance',
+      );
+
+      final remaining = await repositories.syncLocal.listReviewQueue();
+      expect(remaining.map((row) => (row.recordId, row.counterpartId)), [
+        ('b-right', 'c-swing'),
+      ]);
+      expect(
+        (await repositories.dances.getById('a-left'))!.title,
+        'Renamed dance',
+      );
+      expect(
+        SyncReviewQueueItem.fromRow(remaining.single).isActionable,
+        isTrue,
+      );
+    },
+  );
+
+  test('resolves a live dance ambiguity by renaming the local dance', () async {
+    final stamp = DateTime.utc(2026, 7, 15, 12);
+    await repositories.dances.create(
+      Dance(
+        id: 'a-left',
+        title: 'Shared dance',
+        figures: [
+          testFigure(move: 'balance', params: const {'hand': 'left'}),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      ),
+    );
+    await repositories.dances.create(
+      Dance(
+        id: 'b-right',
+        title: 'The shared dance',
+        figures: [
+          testFigure(move: 'balance', params: const {'hand': 'right'}),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      ),
+    );
+
+    await storage.deduplicateFreshAttach();
+    final item = SyncReviewQueueItem.fromRow(
+      (await repositories.syncLocal.listReviewQueue()).single,
+    );
+
+    await storage.resolveReviewQueue(
+      expectedRow: item.row,
+      action: SyncReviewAction.keepBoth,
+      newNaturalKey: 'A different dance',
+    );
+
+    expect(
+      (await repositories.dances.getById('a-left'))!.title,
+      'A different dance',
+    );
+    expect(await repositories.dances.getById('b-right'), isNotNull);
+    expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+  });
+
+  test(
+    'fresh attach does not dedupe a dance held by a pending tombstone',
+    () async {
+      final stamp = DateTime.utc(2026, 7, 15, 12);
+      final held = Dance(
+        id: 'a-held',
+        title: 'Shared dance',
+        figures: [
+          testFigure(move: 'balance', params: const {'hand': 'left'}),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final independent = Dance(
+        id: 'z-independent',
+        title: 'The Shared Dance',
+        figures: [
+          testFigure(move: 'balance', params: const {'hand': 'right'}),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      await repositories.dances.create(held);
+      await repositories.dances.create(independent);
+      final program = Program(
+        id: 'holding-program',
+        title: 'Holding program',
+        slots: [ProgramSlot(id: 'holding-slot', position: 0, danceId: held.id)],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      await repositories.programs.create(program);
+      await storage.deduplicateFreshAttach();
+      expect(await repositories.syncLocal.listReviewQueue(), hasLength(1));
+
+      final tombstoneStamp = stamp.add(const Duration(minutes: 1));
+      final tombstone = SyncRecordBlob(
+        kind: SyncRecordKind.dance,
+        id: held.id,
+        updatedAt: tombstoneStamp,
+        deletedAt: tombstoneStamp,
+        existenceAt: stamp,
+        body: syncBodyForEntity(SyncRecordKind.dance, held),
+      );
+      await const SyncApplyEngine().apply(
+        candidates: [SyncMergeCandidate(blob: tombstone)],
+        storage: storage,
+      );
+
+      expect(
+        await repositories.syncLocal.getPendingDeletion(
+          kind: SyncRecordKind.dance,
+          recordId: held.id,
+        ),
+        isNotNull,
+      );
+      await storage.refreshDanceAmbiguityReviews();
+      expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+      final dedupe = await storage.deduplicateFreshAttach();
+      expect(dedupe.duplicateCount, 0);
+      expect(await repositories.dances.getById(held.id), isNotNull);
+      expect(await repositories.dances.getById(independent.id), isNotNull);
+
+      final currentProgram = await repositories.programs.getById(program.id);
+      await repositories.programs.update(
+        currentProgram!.copyWith(
+          slots: const [],
+          updatedAt: tombstoneStamp.add(const Duration(minutes: 1)),
+        ),
+      );
+      await storage.revalidatePendingDeletions();
+
+      expect(await repositories.dances.getById(held.id), isNull);
+      expect(await repositories.dances.getById(independent.id), isNotNull);
     },
   );
 
@@ -251,6 +781,80 @@ void main() {
       isNotNull,
     );
   });
+
+  test(
+    'refreshes a live ambiguity review after its candidate is edited',
+    () async {
+      final stamp = DateTime.utc(2026, 7, 15, 12);
+      final left = Dance(
+        id: 'a-left',
+        title: 'Shared dance',
+        figures: [
+          testFigure(move: 'balance', params: const {'hand': 'left'}),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final right = Dance(
+        id: 'b-right',
+        title: 'The shared dance',
+        figures: [
+          testFigure(move: 'balance', params: const {'hand': 'right'}),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      await repositories.dances.create(left);
+      await repositories.dances.create(right);
+
+      await storage.deduplicateFreshAttach();
+      final firstRow = (await repositories.syncLocal.listReviewQueue()).single;
+      await repositories.dances.create(
+        Dance(
+          id: 'c-left',
+          title: 'Shared dance',
+          figures: [testFigure(move: 'swing')],
+          createdAt: stamp,
+          updatedAt: stamp,
+        ),
+      );
+      await repositories.dances.create(
+        Dance(
+          id: 'd-right',
+          title: 'The shared dance',
+          figures: [
+            testFigure(move: 'balance', params: const {'hand': 'left'}),
+          ],
+          createdAt: stamp,
+          updatedAt: stamp,
+        ),
+      );
+      await storage.refreshDanceAmbiguityReviews();
+      final targetedRows = await repositories.syncLocal.listReviewQueue();
+      expect(targetedRows, hasLength(1));
+      expect(targetedRows.single.recordId, 'a-left');
+      expect(targetedRows.single.counterpartId, 'b-right');
+
+      final editedRight = right.copyWith(
+        figures: [testFigure(move: 'swing')],
+        updatedAt: stamp.add(const Duration(minutes: 1)),
+      );
+      await repositories.dances.update(editedRight);
+
+      await storage.refreshDanceAmbiguityReviews();
+      final refreshedRow =
+          (await repositories.syncLocal.listReviewQueue()).single;
+
+      expect(refreshedRow.candidateHash, isNot(firstRow.candidateHash));
+      expect(refreshedRow.candidateBlob, isNot(firstRow.candidateBlob));
+      await storage.resolveReviewQueue(
+        expectedRow: refreshedRow,
+        action: SyncReviewAction.keepBoth,
+        newNaturalKey: 'A distinct dance',
+      );
+      expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+    },
+  );
 
   test(
     'reconciles same-label difficulty levels before applying dependents',

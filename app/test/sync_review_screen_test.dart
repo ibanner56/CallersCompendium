@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/sync_review_screen.dart';
+import 'package:compendium_core/testing.dart';
 
 import 'support/l10n_harness.dart';
 import 'support/test_repositories.dart';
@@ -68,6 +69,32 @@ Future<void> _seedActionable(CompendiumRepositories repos) async {
     localId: 'local-author',
     candidate: _tombstone(id: 'peer-author', name: 'Shared author'),
   );
+}
+
+Future<void> _seedDanceAmbiguity(CompendiumRepositories repos) async {
+  await repos.dances.create(
+    Dance(
+      id: 'a-left',
+      title: 'Shared dance',
+      figures: [
+        testFigure(move: 'balance', params: const {'hand': 'left'}),
+      ],
+      createdAt: _stamp,
+      updatedAt: _stamp,
+    ),
+  );
+  await repos.dances.create(
+    Dance(
+      id: 'b-right',
+      title: 'The shared dance',
+      figures: [
+        testFigure(move: 'balance', params: const {'hand': 'right'}),
+      ],
+      createdAt: _stamp,
+      updatedAt: _stamp,
+    ),
+  );
+  await CompendiumSyncStorage(repos).deduplicateFreshAttach();
 }
 
 Future<void> _pumpScreen(
@@ -151,6 +178,26 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('sync-review-empty')), findsOneWidget);
+  });
+
+  testWidgets('shows actions for a live dance ambiguity', (tester) async {
+    final repos = openTestRepositories();
+    await _seedDanceAmbiguity(repos);
+
+    await _pumpScreen(tester, repos);
+
+    expect(
+      find.text('Live dances have the same title but different choreography.'),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('sync-review-merge-dance:a-left:b-right')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('sync-review-keep-both-dance:a-left:b-right')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('retains unsupported rows without exposing actions', (

@@ -6,8 +6,8 @@ import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../theme/app_spacing.dart';
 
-/// Displays persisted sync decisions and exposes only the W14-supported
-/// tombstone resolution actions.
+/// Displays persisted sync decisions and exposes actions for supported
+/// tombstone and fresh-attach dance ambiguity decisions.
 class SyncReviewScreen extends StatefulWidget {
   const SyncReviewScreen({super.key});
 
@@ -73,7 +73,12 @@ class _SyncReviewScreenState extends State<SyncReviewScreen> {
     SyncReviewQueueItem item,
   ) => showDialog<String>(
     context: context,
-    builder: (_) => _DistinctNameDialog(currentNaturalKey: item.naturalKey),
+    builder: (_) => _DistinctNameDialog(
+      currentNaturalKey: item.naturalKey,
+      normalize: item.isDanceAmbiguity
+          ? normalizeTitle
+          : (value) => normalizeShareableText(value).toLowerCase(),
+    ),
   );
 
   Future<void> _resolve(
@@ -166,7 +171,9 @@ class _SyncReviewScreenState extends State<SyncReviewScreen> {
             const SizedBox(height: AppSpacing.xs),
             Text(
               actionable
-                  ? l10n.syncReviewTombstoneReason
+                  ? item.isDanceAmbiguity
+                        ? l10n.syncReviewDanceAmbiguityReason
+                        : l10n.syncReviewTombstoneReason
                   : l10n.syncReviewUnsupportedReason,
               style: Theme.of(context).textTheme.bodySmall,
             ),
@@ -283,9 +290,13 @@ class _SyncReviewScreenState extends State<SyncReviewScreen> {
 }
 
 class _DistinctNameDialog extends StatefulWidget {
-  const _DistinctNameDialog({required this.currentNaturalKey});
+  const _DistinctNameDialog({
+    required this.currentNaturalKey,
+    required this.normalize,
+  });
 
   final String? currentNaturalKey;
+  final String Function(String) normalize;
 
   @override
   State<_DistinctNameDialog> createState() => _DistinctNameDialogState();
@@ -316,8 +327,7 @@ class _DistinctNameDialogState extends State<_DistinctNameDialog> {
             final normalized = value == null ? '' : value.trim();
             if (normalized.isEmpty) return l10n.syncReviewNameRequired;
             final current = widget.currentNaturalKey;
-            if (current != null &&
-                normalizeShareableText(normalized).toLowerCase() == current) {
+            if (current != null && widget.normalize(normalized) == current) {
               return l10n.syncReviewNameNotDistinct;
             }
             return null;

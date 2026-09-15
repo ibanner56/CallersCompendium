@@ -2175,6 +2175,12 @@ abstract class AppLocalizations {
   /// **'A peer deleted a matching record that this device created.'**
   String get syncReviewTombstoneReason;
 
+  /// Reason shown when fresh attach finds live dances with matching titles but different choreography.
+  ///
+  /// In en, this message translates to:
+  /// **'Live dances have the same title but different choreography.'**
+  String get syncReviewDanceAmbiguityReason;
+
   /// Reason/status shown for persisted sync conflicts outside the W14 action contract.
   ///
   /// In en, this message translates to:

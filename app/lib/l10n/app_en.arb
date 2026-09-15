@@ -1552,6 +1552,10 @@
   "@syncReviewTombstoneReason": {
     "description": "Reason shown for the W14-supported baseline-absence tombstone decision."
   },
+  "syncReviewDanceAmbiguityReason": "Live dances have the same title but different choreography.",
+  "@syncReviewDanceAmbiguityReason": {
+    "description": "Reason shown when fresh attach finds live dances with matching titles but different choreography."
+  },
   "syncReviewUnsupportedReason": "This sync conflict is retained for now; no safe action is available here.",
   "@syncReviewUnsupportedReason": {
     "description": "Reason/status shown for persisted sync conflicts outside the W14 action contract."

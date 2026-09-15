@@ -1376,6 +1376,10 @@
   "@syncReviewTombstoneReason": {
     "x-sourceSha256": "ac87524ab23e20de4fcf3ac40762448894682b47a7857256547cd309e9bd33be"
   },
+  "syncReviewDanceAmbiguityReason": "Levende danse har samme titel, men forskellig koreografi.",
+  "@syncReviewDanceAmbiguityReason": {
+    "x-sourceSha256": "4adede982e807d2622c96688129b256f04f230f759b6b07585c0ea726a501730"
+  },
   "syncReviewUnsupportedReason": "Denne synkroniseringskonflikt er bevaret indtil videre; ingen sikker handling er tilgængelig her.",
   "@syncReviewUnsupportedReason": {
     "x-sourceSha256": "ff23640ff27c44ed369dfadd363b690079e5b87a56f3aac19f9bec8c5bdbf2e3"
