@@ -1255,11 +1255,15 @@ other copies actually hold:
   now", and only the first is what the rebuild needs to know.
 
   The comparison is **hash equality over the record's `body` alone**, against a
-  body-scoped hash stored alongside the wire hash in the baseline table, using
-  the same canonicalisation the wire hash uses so that `8` and `8.0`, or absent
-  and null, cannot read as a difference.
+  body-scoped comparison hash stored alongside the wire hash in the baseline
+  table. It uses the same canonicalisation as the wire hash so that `8` and
+  `8.0`, or absent and null, cannot read as a difference. For dances and
+  programs, the comparison removes only the body's redundant top-level
+  `updatedAt` and `deletedAt` projections; every other body field remains part
+  of the hash.
 
-  **It has to exclude the ordering fields, or it answers a different question.**
+  **It has to exclude redundant body timestamp projections, or it answers a
+  different question.**
   The wire hash covers the whole blob — `v`, `kind`, `id`, `updatedAt`,
   `deletedAt`, `existenceAt` and `body` — so comparing it asks "is my record
   byte-identical to my last synced snapshot", not "did I edit the content". Those
@@ -1267,32 +1271,35 @@ other copies actually hold:
   timestamp and nothing else, so a whole-blob comparison reports "differs"
   unconditionally, and the classifier degenerates to "I edited" for every
   quarantined record. A device that soft-deleted while its clock was broken —
-  `softDelete` writes `deletedAt` and `updatedAt`, never touching `body` — would
-  be classified as having edited, and would stamp its possibly-stale content
-  above the peers. That is the round-17 defect returning by another route, and it
-  is the same whole-blob comparator that caused it: there it could never report
-  *equal*, here it can never report *differs* falsely — the tell in both cases
-  being an answer that goes constant precisely where the classifier is needed.
+  `softDelete` writes `deletedAt` and `updatedAt`; archive-shaped dance and
+  program bodies repeat those timestamps. That record would be classified as
+  having edited, and would stamp its possibly-stale content above the peers.
+  That is the round-17 defect returning by another route, and it is the same
+  whole-blob comparator that caused it: there it could never report *equal*,
+  here it can never report *differs* falsely — the tell in both cases being an
+  answer that goes constant precisely where the classifier is needed.
 
   **The baseline entry must record agreement, not merely upload.** A record's
   baseline entry advances only once a peer's manifest is observed to carry that
-  hash; an upload this device has not yet seen reflected stays out of it.
+  record's current wire hash; an upload this device has not yet seen reflected
+  stays out of it. The stored body hash is the comparison hash described above.
 
   **Existing baselines cannot be migrated, and are dropped.** The baseline has
   only ever stored the wire hash, so a device already attached under the previous
-  scheme has no way to derive a body hash for its rows — the content those hashes
-  covered was never retained. Both obvious backfills reintroduce bugs this design
-  has already closed: taking the *current local content* records an unconfirmed
-  edit as agreed, which is the advance-on-upload defect applied to every record
-  with an edit in flight at upgrade; and inventing any other value is a guess
-  about content.
+  scheme has no way to derive a comparison hash for its rows — the content
+  those hashes covered was never retained. Both obvious backfills reintroduce
+  bugs this design has already closed: taking the *current local content*
+  records an unconfirmed edit as agreed, which is the advance-on-upload defect
+  applied to every record with an edit in flight at upgrade; and inventing any
+  other value is a guess about content.
 
-  So the body hash is **left null on upgrade and populated on the first pass that
-  observes agreement**. In the interval, such a record is *not* handed to the
-  never-agreed comparison — it was agreed, and the surviving wire hash proves
-  that much — and it stays quarantined if quarantined at all, since the wire hash
-  cannot stand in for the body hash it lacks. There is no safe backfill to write, which
-  is worth saying outright rather than leaving an implementer to discover it:
+  So the comparison body hash is **left null on upgrade and populated on the
+  first pass that observes agreement**. In the interval, such a record is *not*
+  handed to the never-agreed comparison — it was agreed, and the surviving wire
+  hash proves that much — and it stays quarantined if quarantined at all, since
+  the wire hash cannot stand in for the comparison hash it lacks. There is no
+  safe backfill to write, which is worth saying outright rather than leaving an
+  implementer to discover it:
   unlike the `existence_at` migration, where the wrong choice is available and
   tempting, here every choice that invents a value is wrong, and the only correct
   one is to admit the value is not recoverable.
@@ -4344,9 +4351,10 @@ must say this plainly rather than implying sync is opaque to us.
 - **A timestamp-only change is not read as an edit** — soft-delete a record on a
   clock-broken device without touching its content, then repair; assert the
   verbatim branch is taken. Mutation-proved by comparing the **whole-blob** hash
-  instead of the body hash: `softDelete` moves `deletedAt` and `updatedAt`, so
-  the blob hash always differs and every quarantined record is misclassified as
-  edited — the comparator answering constantly in the one case it exists for.
+  instead of the canonical comparison hash: `softDelete` moves `deletedAt` and
+  `updatedAt`, and archive-shaped dance/program bodies repeat them, so the blob
+  hash always differs and every quarantined record is misclassified as edited —
+  the comparator answering constantly in the one case it exists for.
 - **An unconfirmed upload is not agreement** — a device with a fast clock uploads
   a poisoned blob that every peer refuses; assert its baseline does **not**
   advance, so a later repair still classifies the record as locally edited.
