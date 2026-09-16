@@ -42,6 +42,17 @@ Iterable<List<T>> _chunked<T>(Iterable<T> values, int size) sync* {
   }
 }
 
+Future<List<T>> _queryInChunks<T>(
+  Iterable<String> ids,
+  Future<List<T>> Function(List<String> chunk) query,
+) async {
+  final rows = <T>[];
+  for (final chunk in _chunked(ids, 500)) {
+    rows.addAll(await query(chunk));
+  }
+  return rows;
+}
+
 typedef _NaturalKeyAddress = ({SyncRecordKind kind, String key});
 typedef _NaturalKeyValue = ({
   String id,
@@ -3627,15 +3638,18 @@ final class CompendiumSyncStorage
       inboundAddresses: inboundAddresses,
     );
     if (authorLookupIds.isNotEmpty) {
-      final rows =
-          await (_db.select(_db.choreographers)..where(
-                (row) =>
-                    row.id.isIn(authorLookupIds) &
-                    (allowTombstonedReferences
-                        ? const Constant(true)
-                        : row.deletedAt.isNull()),
-              ))
-              .get();
+      final rows = await _queryInChunks(
+        authorLookupIds,
+        (chunk) =>
+            (_db.select(_db.choreographers)..where(
+                  (row) =>
+                      row.id.isIn(chunk) &
+                      (allowTombstonedReferences
+                          ? const Constant(true)
+                          : row.deletedAt.isNull()),
+                ))
+                .get(),
+      );
       final missing = _missingReferenceIds(
         ids: authorIds,
         kind: SyncRecordKind.choreographer,
@@ -3669,15 +3683,18 @@ final class CompendiumSyncStorage
       inboundAddresses: inboundAddresses,
     );
     if (tagLookupIds.isNotEmpty) {
-      final rows =
-          await (_db.select(_db.tags)..where(
-                (row) =>
-                    row.id.isIn(tagLookupIds) &
-                    (allowTombstonedReferences
-                        ? const Constant(true)
-                        : row.deletedAt.isNull()),
-              ))
-              .get();
+      final rows = await _queryInChunks(
+        tagLookupIds,
+        (chunk) =>
+            (_db.select(_db.tags)..where(
+                  (row) =>
+                      row.id.isIn(chunk) &
+                      (allowTombstonedReferences
+                          ? const Constant(true)
+                          : row.deletedAt.isNull()),
+                ))
+                .get(),
+      );
       final missing = _missingReferenceIds(
         ids: tagIds,
         kind: SyncRecordKind.tag,
@@ -3713,15 +3730,18 @@ final class CompendiumSyncStorage
       inboundAddresses: inboundAddresses,
     );
     if (sourceLookupIds.isNotEmpty) {
-      final rows =
-          await (_db.select(_db.publishedSources)..where(
-                (row) =>
-                    row.id.isIn(sourceLookupIds) &
-                    (allowTombstonedReferences
-                        ? const Constant(true)
-                        : row.deletedAt.isNull()),
-              ))
-              .get();
+      final rows = await _queryInChunks(
+        sourceLookupIds,
+        (chunk) =>
+            (_db.select(_db.publishedSources)..where(
+                  (row) =>
+                      row.id.isIn(chunk) &
+                      (allowTombstonedReferences
+                          ? const Constant(true)
+                          : row.deletedAt.isNull()),
+                ))
+                .get(),
+      );
       final missing = _missingReferenceIds(
         ids: sourceIds,
         kind: SyncRecordKind.publishedSource,
@@ -3757,15 +3777,18 @@ final class CompendiumSyncStorage
       inboundAddresses: inboundAddresses,
     );
     if (customFieldLookupIds.isNotEmpty) {
-      final rows =
-          await (_db.select(_db.customFieldDefs)..where(
-                (row) =>
-                    row.id.isIn(customFieldLookupIds) &
-                    (allowTombstonedReferences
-                        ? const Constant(true)
-                        : row.deletedAt.isNull()),
-              ))
-              .get();
+      final rows = await _queryInChunks(
+        customFieldLookupIds,
+        (chunk) =>
+            (_db.select(_db.customFieldDefs)..where(
+                  (row) =>
+                      row.id.isIn(chunk) &
+                      (allowTombstonedReferences
+                          ? const Constant(true)
+                          : row.deletedAt.isNull()),
+                ))
+                .get(),
+      );
       final missing = _missingReferenceIds(
         ids: customFieldIds,
         kind: SyncRecordKind.customFieldDef,
@@ -3809,15 +3832,18 @@ final class CompendiumSyncStorage
       inboundAddresses: inboundAddresses,
     );
     if (targetDanceLookupIds.isNotEmpty) {
-      final rows =
-          await (_db.select(_db.dances)..where(
-                (row) =>
-                    row.id.isIn(targetDanceLookupIds) &
-                    (allowTombstonedReferences
-                        ? const Constant(true)
-                        : row.deletedAt.isNull()),
-              ))
-              .get();
+      final rows = await _queryInChunks(
+        targetDanceLookupIds,
+        (chunk) =>
+            (_db.select(_db.dances)..where(
+                  (row) =>
+                      row.id.isIn(chunk) &
+                      (allowTombstonedReferences
+                          ? const Constant(true)
+                          : row.deletedAt.isNull()),
+                ))
+                .get(),
+      );
       final missing = _missingReferenceIds(
         ids: targetDanceIds,
         kind: SyncRecordKind.dance,
@@ -3861,15 +3887,18 @@ final class CompendiumSyncStorage
       inboundLiveAddresses: inboundLiveAddresses,
       inboundAddresses: inboundAddresses,
     );
-    final rows =
-        await (_db.select(_db.dances)..where(
-              (row) =>
-                  row.id.isIn(lookupIds) &
-                  (allowTombstonedReferences
-                      ? const Constant(true)
-                      : row.deletedAt.isNull()),
-            ))
-            .get();
+    final rows = await _queryInChunks(
+      lookupIds,
+      (chunk) =>
+          (_db.select(_db.dances)..where(
+                (row) =>
+                    row.id.isIn(chunk) &
+                    (allowTombstonedReferences
+                        ? const Constant(true)
+                        : row.deletedAt.isNull()),
+              ))
+              .get(),
+    );
     final missing = _missingReferenceIds(
       ids: danceIds,
       kind: SyncRecordKind.dance,
@@ -3920,9 +3949,12 @@ final class CompendiumSyncStorage
       }
     }
 
-    final rows = await (_db.select(
-      _db.danceLinks,
-    )..where((row) => row.id.isIn(linkIds))).get();
+    final rows = await _queryInChunks(
+      linkIds,
+      (chunk) => (_db.select(
+        _db.danceLinks,
+      )..where((row) => row.id.isIn(chunk))).get(),
+    );
     for (final row in rows) {
       if (row.danceId != dance.id) {
         return 'Dance link id "${row.id}" is already owned by '
@@ -3953,9 +3985,12 @@ final class CompendiumSyncStorage
       }
     }
 
-    final rows = await (_db.select(
-      _db.programSlots,
-    )..where((row) => row.id.isIn(slotIds))).get();
+    final rows = await _queryInChunks(
+      slotIds,
+      (chunk) => (_db.select(
+        _db.programSlots,
+      )..where((row) => row.id.isIn(chunk))).get(),
+    );
     for (final row in rows) {
       if (row.programId != program.id) {
         return 'Program slot id "${row.id}" is already owned by '

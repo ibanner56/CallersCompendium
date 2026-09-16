@@ -11,6 +11,58 @@ import 'package:test/test.dart';
 
 import 'test_database.dart';
 
+final class _SqliteBindLimitGuard extends QueryInterceptor {
+  static const maxVariables = 999;
+
+  void _check(List<Object?> args) {
+    if (args.length > maxVariables) {
+      throw StateError(
+        'test SQLite bind limit exceeded: ${args.length} > $maxVariables',
+      );
+    }
+  }
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    _check(args);
+    return super.runSelect(executor, statement, args);
+  }
+
+  @override
+  Future<int> runInsert(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    _check(args);
+    return super.runInsert(executor, statement, args);
+  }
+
+  @override
+  Future<int> runUpdate(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    _check(args);
+    return super.runUpdate(executor, statement, args);
+  }
+
+  @override
+  Future<int> runDelete(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    _check(args);
+    return super.runDelete(executor, statement, args);
+  }
+}
+
 void main() {
   late CompendiumDatabase db;
   late CompendiumRepositories repositories;
@@ -2692,6 +2744,314 @@ void main() {
       );
     },
   );
+
+  test(
+    'batches high-cardinality inbound reference lookups and unions all rows',
+    () async {
+      final guardedDb = CompendiumDatabase(
+        NativeDatabase.memory().interceptWith(_SqliteBindLimitGuard()),
+      );
+      addTearDown(guardedDb.close);
+      final guardedRepositories = CompendiumRepositories(
+        guardedDb,
+        contraTaxonomy,
+      );
+      final guardedStorage = CompendiumSyncStorage(guardedRepositories);
+      const total = 1001;
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+
+      String id(String prefix, int index) =>
+          '$prefix-${index.toString().padLeft(4, '0')}';
+
+      final authorIds = [for (var i = 0; i < total; i++) id('author', i)];
+      final tagIds = [for (var i = 0; i < total; i++) id('tag', i)];
+      final sourceIds = [for (var i = 0; i < total; i++) id('source', i)];
+      final customFieldIds = [for (var i = 0; i < total; i++) id('field', i)];
+      final targetDanceIds = [for (var i = 0; i < total; i++) id('target', i)];
+
+      await guardedDb.batch((batch) {
+        batch.insertAll(guardedDb.choreographers, [
+          for (var i = 0; i < total; i++)
+            ChoreographersCompanion.insert(
+              id: authorIds[i],
+              name: 'Author $i',
+              updatedAt: Value(stamp),
+              existenceAt: Value(stamp),
+            ),
+        ]);
+        batch.insertAll(guardedDb.tags, [
+          for (var i = 0; i < total; i++)
+            TagsCompanion.insert(
+              id: tagIds[i],
+              name: 'Tag $i',
+              updatedAt: Value(stamp),
+              existenceAt: Value(stamp),
+            ),
+        ]);
+        batch.insertAll(guardedDb.publishedSources, [
+          for (var i = 0; i < total; i++)
+            PublishedSourcesCompanion.insert(
+              id: sourceIds[i],
+              title: 'Source $i',
+              updatedAt: Value(stamp),
+              existenceAt: Value(stamp),
+            ),
+        ]);
+        batch.insertAll(guardedDb.customFieldDefs, [
+          for (var i = 0; i < total; i++)
+            CustomFieldDefsCompanion.insert(
+              id: customFieldIds[i],
+              key: 'field_$i',
+              label: 'Field $i',
+              type: CustomFieldType.text,
+              updatedAt: Value(stamp),
+              existenceAt: Value(stamp),
+            ),
+        ]);
+        batch.insertAll(guardedDb.dances, [
+          for (var i = 0; i < total; i++)
+            DancesCompanion.insert(
+              id: targetDanceIds[i],
+              title: 'Target dance $i',
+              form: DanceForm.contra,
+              formationShape: FormationShape.dupleImproper,
+              progression: Progression.single,
+              status: DanceStatus.active,
+              createdAt: stamp,
+              updatedAt: stamp,
+              existenceAt: Value(stamp),
+            ),
+        ]);
+      });
+
+      final inboundDance = Dance(
+        id: 'high-cardinality-dance',
+        title: 'High-cardinality dance',
+        authorIds: authorIds,
+        tagIds: tagIds,
+        sourceCitations: [
+          for (final sourceId in sourceIds) SourceCitation(sourceId: sourceId),
+        ],
+        customFields: [
+          for (final fieldId in customFieldIds)
+            CustomFieldValue(fieldId: fieldId, value: 'value'),
+        ],
+        links: [
+          for (var i = 0; i < total; i++)
+            DanceLink(
+              id: id('link', i),
+              kind: LinkKind.relatedDance,
+              targetDanceId: targetDanceIds[i],
+            ),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final inboundProgram = Program(
+        id: 'high-cardinality-program',
+        title: 'High-cardinality program',
+        slots: [
+          for (var i = 0; i < total; i++)
+            ProgramSlot(
+              id: id('slot', i),
+              position: i,
+              danceId: targetDanceIds[i],
+            ),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+
+      final candidates = [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.dance,
+            id: inboundDance.id,
+            updatedAt: stamp.add(const Duration(minutes: 1)),
+            deletedAt: null,
+            existenceAt: stamp,
+            body: syncBodyForEntity(SyncRecordKind.dance, inboundDance),
+          ),
+        ),
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.program,
+            id: inboundProgram.id,
+            updatedAt: stamp.add(const Duration(minutes: 1)),
+            deletedAt: null,
+            existenceAt: stamp,
+            body: syncBodyForEntity(SyncRecordKind.program, inboundProgram),
+          ),
+        ),
+      ];
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: candidates,
+        storage: guardedStorage,
+      );
+
+      expect(result.applied, [
+        (kind: SyncRecordKind.dance, recordId: inboundDance.id),
+        (kind: SyncRecordKind.program, recordId: inboundProgram.id),
+      ]);
+      expect(result.reports, isEmpty);
+      expect(
+        (await guardedRepositories.dances.getById(inboundDance.id))!.authorIds,
+        authorIds,
+      );
+      expect(
+        (await guardedRepositories.dances.getById(inboundDance.id))!.links,
+        inboundDance.links,
+      );
+      expect(
+        (await guardedRepositories.programs.getById(inboundProgram.id))!.slots,
+        inboundProgram.slots,
+      );
+    },
+  );
+
+  test('detects a dance-link owner in the second bind-limit chunk', () async {
+    final guardedDb = CompendiumDatabase(
+      NativeDatabase.memory().interceptWith(_SqliteBindLimitGuard()),
+    );
+    addTearDown(guardedDb.close);
+    final guardedRepositories = CompendiumRepositories(
+      guardedDb,
+      contraTaxonomy,
+    );
+    final guardedStorage = CompendiumSyncStorage(guardedRepositories);
+    const total = 1001;
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    final conflictIndex = 500;
+    final conflictLinkId =
+        'inbound-link-${conflictIndex.toString().padLeft(4, '0')}';
+    final foreignOwner = Dance(
+      id: 'stored-link-owner',
+      title: 'Stored link owner',
+      links: [
+        DanceLink(
+          id: conflictLinkId,
+          kind: LinkKind.other,
+          url: 'https://stored.example/link',
+        ),
+      ],
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+    await guardedRepositories.dances.create(foreignOwner);
+
+    final inboundDance = Dance(
+      id: 'inbound-link-conflict',
+      title: 'Inbound link conflict',
+      links: [
+        for (var i = 0; i < total; i++)
+          DanceLink(
+            id: 'inbound-link-${i.toString().padLeft(4, '0')}',
+            kind: LinkKind.other,
+            url: 'https://inbound.example/$i',
+          ),
+      ],
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.dance,
+            id: inboundDance.id,
+            updatedAt: stamp.add(const Duration(minutes: 1)),
+            deletedAt: null,
+            existenceAt: stamp,
+            body: syncBodyForEntity(SyncRecordKind.dance, inboundDance),
+          ),
+        ),
+      ],
+      storage: guardedStorage,
+    );
+
+    expect(result.applied, isEmpty);
+    expect(result.reports, hasLength(1));
+    expect(result.reports.single.code, SyncReportCode.malformedRecord);
+    expect(
+      result.reports.single.message,
+      'Dance link id "$conflictLinkId" is already owned by '
+      '"${foreignOwner.id}".',
+    );
+    expect(await guardedRepositories.dances.getById(inboundDance.id), isNull);
+  });
+
+  test('detects a program-slot owner in the second bind-limit chunk', () async {
+    final guardedDb = CompendiumDatabase(
+      NativeDatabase.memory().interceptWith(_SqliteBindLimitGuard()),
+    );
+    addTearDown(guardedDb.close);
+    final guardedRepositories = CompendiumRepositories(
+      guardedDb,
+      contraTaxonomy,
+    );
+    final guardedStorage = CompendiumSyncStorage(guardedRepositories);
+    const total = 1001;
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    final conflictIndex = 500;
+    final conflictSlotId =
+        'inbound-slot-${conflictIndex.toString().padLeft(4, '0')}';
+    final foreignOwner = Program(
+      id: 'stored-slot-owner',
+      title: 'Stored slot owner',
+      slots: [
+        ProgramSlot(id: conflictSlotId, position: 0, text: 'Stored slot'),
+      ],
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+    await guardedRepositories.programs.create(foreignOwner);
+
+    final inboundProgram = Program(
+      id: 'inbound-slot-conflict',
+      title: 'Inbound slot conflict',
+      slots: [
+        for (var i = 0; i < total; i++)
+          ProgramSlot(
+            id: 'inbound-slot-${i.toString().padLeft(4, '0')}',
+            position: i,
+            text: 'Inbound slot $i',
+          ),
+      ],
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.program,
+            id: inboundProgram.id,
+            updatedAt: stamp.add(const Duration(minutes: 1)),
+            deletedAt: null,
+            existenceAt: stamp,
+            body: syncBodyForEntity(SyncRecordKind.program, inboundProgram),
+          ),
+        ),
+      ],
+      storage: guardedStorage,
+    );
+
+    expect(result.applied, isEmpty);
+    expect(result.reports, hasLength(1));
+    expect(result.reports.single.code, SyncReportCode.malformedRecord);
+    expect(
+      result.reports.single.message,
+      'Program slot id "$conflictSlotId" is already owned by '
+      '"${foreignOwner.id}".',
+    );
+    expect(
+      await guardedRepositories.programs.getById(inboundProgram.id),
+      isNull,
+    );
+  });
 
   test(
     'isolates dependent-id collisions to the conflicting inbound owners',
