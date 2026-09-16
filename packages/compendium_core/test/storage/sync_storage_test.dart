@@ -81,6 +81,7 @@ void main() {
     () async {
       final localStamp = DateTime.utc(2025, 1, 1, 12);
       final remoteStamp = DateTime.utc(2025, 1, 2, 12);
+      // ignore: unused_result
       await repositories.tags.upsert(
         Tag(id: 'local-tag', name: 'Café'),
         at: localStamp,

@@ -33,7 +33,6 @@ import 'sync_record_kind.dart';
 import 'sync_reconciliation.dart';
 import 'sync_report.dart';
 import 'sync_review.dart';
-import 'wire_mapping.dart';
 
 Iterable<List<T>> _chunked<T>(Iterable<T> values, int size) sync* {
   final list = values.toList(growable: false);
