@@ -2658,17 +2658,11 @@ void main() {
       String id(String prefix, int index) =>
           '$prefix-${index.toString().padLeft(4, '0')}';
 
-      final authorIds = [
-        for (var i = 0; i < total; i++) id('author', i),
-      ];
+      final authorIds = [for (var i = 0; i < total; i++) id('author', i)];
       final tagIds = [for (var i = 0; i < total; i++) id('tag', i)];
       final sourceIds = [for (var i = 0; i < total; i++) id('source', i)];
-      final customFieldIds = [
-        for (var i = 0; i < total; i++) id('field', i),
-      ];
-      final targetDanceIds = [
-        for (var i = 0; i < total; i++) id('target', i),
-      ];
+      final customFieldIds = [for (var i = 0; i < total; i++) id('field', i)];
+      final targetDanceIds = [for (var i = 0; i < total; i++) id('target', i)];
 
       await guardedDb.batch((batch) {
         batch.insertAll(guardedDb.choreographers, [
@@ -2731,8 +2725,7 @@ void main() {
         authorIds: authorIds,
         tagIds: tagIds,
         sourceCitations: [
-          for (final sourceId in sourceIds)
-            SourceCitation(sourceId: sourceId),
+          for (final sourceId in sourceIds) SourceCitation(sourceId: sourceId),
         ],
         customFields: [
           for (final fieldId in customFieldIds)
@@ -2812,157 +2805,148 @@ void main() {
     },
   );
 
-  test(
-    'detects a dance-link owner in the second bind-limit chunk',
-    () async {
-      final guardedDb = CompendiumDatabase(
-        NativeDatabase.memory().interceptWith(_SqliteBindLimitGuard()),
-      );
-      addTearDown(guardedDb.close);
-      final guardedRepositories = CompendiumRepositories(
-        guardedDb,
-        contraTaxonomy,
-      );
-      final guardedStorage = CompendiumSyncStorage(guardedRepositories);
-      const total = 1001;
-      final stamp = DateTime.utc(2025, 1, 2, 12);
-      final conflictIndex = 500;
-      final conflictLinkId =
-          'inbound-link-${conflictIndex.toString().padLeft(4, '0')}';
-      final foreignOwner = Dance(
-        id: 'stored-link-owner',
-        title: 'Stored link owner',
-        links: [
+  test('detects a dance-link owner in the second bind-limit chunk', () async {
+    final guardedDb = CompendiumDatabase(
+      NativeDatabase.memory().interceptWith(_SqliteBindLimitGuard()),
+    );
+    addTearDown(guardedDb.close);
+    final guardedRepositories = CompendiumRepositories(
+      guardedDb,
+      contraTaxonomy,
+    );
+    final guardedStorage = CompendiumSyncStorage(guardedRepositories);
+    const total = 1001;
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    final conflictIndex = 500;
+    final conflictLinkId =
+        'inbound-link-${conflictIndex.toString().padLeft(4, '0')}';
+    final foreignOwner = Dance(
+      id: 'stored-link-owner',
+      title: 'Stored link owner',
+      links: [
+        DanceLink(
+          id: conflictLinkId,
+          kind: LinkKind.other,
+          url: 'https://stored.example/link',
+        ),
+      ],
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+    await guardedRepositories.dances.create(foreignOwner);
+
+    final inboundDance = Dance(
+      id: 'inbound-link-conflict',
+      title: 'Inbound link conflict',
+      links: [
+        for (var i = 0; i < total; i++)
           DanceLink(
-            id: conflictLinkId,
+            id: 'inbound-link-${i.toString().padLeft(4, '0')}',
             kind: LinkKind.other,
-            url: 'https://stored.example/link',
+            url: 'https://inbound.example/$i',
           ),
-        ],
-        createdAt: stamp,
-        updatedAt: stamp,
-      );
-      await guardedRepositories.dances.create(foreignOwner);
+      ],
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
 
-      final inboundDance = Dance(
-        id: 'inbound-link-conflict',
-        title: 'Inbound link conflict',
-        links: [
-          for (var i = 0; i < total; i++)
-            DanceLink(
-              id: 'inbound-link-${i.toString().padLeft(4, '0')}',
-              kind: LinkKind.other,
-              url: 'https://inbound.example/$i',
-            ),
-        ],
-        createdAt: stamp,
-        updatedAt: stamp,
-      );
-
-      final result = await const SyncApplyEngine().apply(
-        candidates: [
-          SyncMergeCandidate(
-            blob: SyncRecordBlob(
-              kind: SyncRecordKind.dance,
-              id: inboundDance.id,
-              updatedAt: stamp.add(const Duration(minutes: 1)),
-              deletedAt: null,
-              existenceAt: stamp,
-              body: syncBodyForEntity(SyncRecordKind.dance, inboundDance),
-            ),
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.dance,
+            id: inboundDance.id,
+            updatedAt: stamp.add(const Duration(minutes: 1)),
+            deletedAt: null,
+            existenceAt: stamp,
+            body: syncBodyForEntity(SyncRecordKind.dance, inboundDance),
           ),
-        ],
-        storage: guardedStorage,
-      );
+        ),
+      ],
+      storage: guardedStorage,
+    );
 
-      expect(result.applied, isEmpty);
-      expect(result.reports, hasLength(1));
-      expect(result.reports.single.code, SyncReportCode.malformedRecord);
-      expect(
-        result.reports.single.message,
-        'Dance link id "$conflictLinkId" is already owned by '
-        '"${foreignOwner.id}".',
-      );
-      expect(
-        await guardedRepositories.dances.getById(inboundDance.id),
-        isNull,
-      );
-    },
-  );
+    expect(result.applied, isEmpty);
+    expect(result.reports, hasLength(1));
+    expect(result.reports.single.code, SyncReportCode.malformedRecord);
+    expect(
+      result.reports.single.message,
+      'Dance link id "$conflictLinkId" is already owned by '
+      '"${foreignOwner.id}".',
+    );
+    expect(await guardedRepositories.dances.getById(inboundDance.id), isNull);
+  });
 
-  test(
-    'detects a program-slot owner in the second bind-limit chunk',
-    () async {
-      final guardedDb = CompendiumDatabase(
-        NativeDatabase.memory().interceptWith(_SqliteBindLimitGuard()),
-      );
-      addTearDown(guardedDb.close);
-      final guardedRepositories = CompendiumRepositories(
-        guardedDb,
-        contraTaxonomy,
-      );
-      final guardedStorage = CompendiumSyncStorage(guardedRepositories);
-      const total = 1001;
-      final stamp = DateTime.utc(2025, 1, 2, 12);
-      final conflictIndex = 500;
-      final conflictSlotId =
-          'inbound-slot-${conflictIndex.toString().padLeft(4, '0')}';
-      final foreignOwner = Program(
-        id: 'stored-slot-owner',
-        title: 'Stored slot owner',
-        slots: [
-          ProgramSlot(id: conflictSlotId, position: 0, text: 'Stored slot'),
-        ],
-        createdAt: stamp,
-        updatedAt: stamp,
-      );
-      await guardedRepositories.programs.create(foreignOwner);
+  test('detects a program-slot owner in the second bind-limit chunk', () async {
+    final guardedDb = CompendiumDatabase(
+      NativeDatabase.memory().interceptWith(_SqliteBindLimitGuard()),
+    );
+    addTearDown(guardedDb.close);
+    final guardedRepositories = CompendiumRepositories(
+      guardedDb,
+      contraTaxonomy,
+    );
+    final guardedStorage = CompendiumSyncStorage(guardedRepositories);
+    const total = 1001;
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    final conflictIndex = 500;
+    final conflictSlotId =
+        'inbound-slot-${conflictIndex.toString().padLeft(4, '0')}';
+    final foreignOwner = Program(
+      id: 'stored-slot-owner',
+      title: 'Stored slot owner',
+      slots: [
+        ProgramSlot(id: conflictSlotId, position: 0, text: 'Stored slot'),
+      ],
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+    await guardedRepositories.programs.create(foreignOwner);
 
-      final inboundProgram = Program(
-        id: 'inbound-slot-conflict',
-        title: 'Inbound slot conflict',
-        slots: [
-          for (var i = 0; i < total; i++)
-            ProgramSlot(
-              id: 'inbound-slot-${i.toString().padLeft(4, '0')}',
-              position: i,
-              text: 'Inbound slot $i',
-            ),
-        ],
-        createdAt: stamp,
-        updatedAt: stamp,
-      );
-
-      final result = await const SyncApplyEngine().apply(
-        candidates: [
-          SyncMergeCandidate(
-            blob: SyncRecordBlob(
-              kind: SyncRecordKind.program,
-              id: inboundProgram.id,
-              updatedAt: stamp.add(const Duration(minutes: 1)),
-              deletedAt: null,
-              existenceAt: stamp,
-              body: syncBodyForEntity(SyncRecordKind.program, inboundProgram),
-            ),
+    final inboundProgram = Program(
+      id: 'inbound-slot-conflict',
+      title: 'Inbound slot conflict',
+      slots: [
+        for (var i = 0; i < total; i++)
+          ProgramSlot(
+            id: 'inbound-slot-${i.toString().padLeft(4, '0')}',
+            position: i,
+            text: 'Inbound slot $i',
           ),
-        ],
-        storage: guardedStorage,
-      );
+      ],
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
 
-      expect(result.applied, isEmpty);
-      expect(result.reports, hasLength(1));
-      expect(result.reports.single.code, SyncReportCode.malformedRecord);
-      expect(
-        result.reports.single.message,
-        'Program slot id "$conflictSlotId" is already owned by '
-        '"${foreignOwner.id}".',
-      );
-      expect(
-        await guardedRepositories.programs.getById(inboundProgram.id),
-        isNull,
-      );
-    },
-  );
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.program,
+            id: inboundProgram.id,
+            updatedAt: stamp.add(const Duration(minutes: 1)),
+            deletedAt: null,
+            existenceAt: stamp,
+            body: syncBodyForEntity(SyncRecordKind.program, inboundProgram),
+          ),
+        ),
+      ],
+      storage: guardedStorage,
+    );
+
+    expect(result.applied, isEmpty);
+    expect(result.reports, hasLength(1));
+    expect(result.reports.single.code, SyncReportCode.malformedRecord);
+    expect(
+      result.reports.single.message,
+      'Program slot id "$conflictSlotId" is already owned by '
+      '"${foreignOwner.id}".',
+    );
+    expect(
+      await guardedRepositories.programs.getById(inboundProgram.id),
+      isNull,
+    );
+  });
 
   test(
     'isolates dependent-id collisions to the conflicting inbound owners',
