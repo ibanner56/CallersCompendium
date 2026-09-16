@@ -320,6 +320,42 @@ void main() {
       expect(await repos.syncLocal.listReviewQueue(), isEmpty);
     });
 
+    test('replace and merge restore clear normalization state', () async {
+      for (final mode in [RestoreMode.replace, RestoreMode.merge]) {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await repos.settings.set(shareableTextNormalisationScopeKey, 'stale');
+        await db.customStatement(
+          'INSERT INTO normalisation_skips '
+          '(table_name, column_name, record_id) VALUES (?, ?, ?)',
+          ['tags', 'name', 'stale-tag'],
+        );
+
+        final result = await ArchiveRestorer(repos).restore(
+          CompendiumArchive(exportedAt: DateTime.utc(2026, 7, 15)),
+          mode: mode,
+        );
+
+        expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+        expect(
+          await repos.syncLocal.getBaselineState(),
+          isNull,
+          reason: '$mode should clear sync conclusions',
+        );
+        expect(
+          await repos.settings.contains(shareableTextNormalisationScopeKey),
+          isFalse,
+          reason: '$mode should clear the normalization marker',
+        );
+        expect(
+          await db.customSelect('SELECT 1 FROM normalisation_skips').get(),
+          isEmpty,
+          reason: '$mode should clear normalization skips',
+        );
+      }
+    });
+
     test(
       'replace overwrites pre-existing rows rather than duplicating',
       () async {
@@ -490,6 +526,12 @@ void main() {
           tombstoneHash: 'corrupt-hash',
           tombstoneBlob: 'corrupt-blob',
         );
+        await repos.settings.set(shareableTextNormalisationScopeKey, 'stale');
+        await db.customStatement(
+          'INSERT INTO normalisation_skips '
+          '(table_name, column_name, record_id) VALUES (?, ?, ?)',
+          ['tags', 'name', 'stale-tag'],
+        );
 
         final result = await ArchiveRestorer(repos).restore(
           CompendiumArchive(
@@ -514,6 +556,14 @@ void main() {
             recordId: danceId,
           ),
           isNotNull,
+        );
+        expect(
+          await repos.settings.contains(shareableTextNormalisationScopeKey),
+          isTrue,
+        );
+        expect(
+          await db.customSelect('SELECT 1 FROM normalisation_skips').get(),
+          isNotEmpty,
         );
       },
     );

@@ -13,9 +13,11 @@ import '../storage/repositories/custom_field_repository.dart';
 import '../storage/repositories/difficulty_level_repository.dart';
 import '../storage/repositories/program_repository.dart';
 import '../storage/repositories/published_source_repository.dart';
+import '../storage/repositories/repositories.dart';
 import '../storage/repositories/tag_repository.dart';
 import '../storage/repositories/venue_repository.dart';
 import '../storage/shareable_text.dart';
+import '../sync/sync_storage.dart';
 import '../util/uuid.dart';
 import 'dedupe.dart';
 import 'generic_json_adapter.dart';
@@ -344,10 +346,14 @@ class CompendiumArchiveImportResult {
 /// repositories) so it lives in the core and is trivially unit-testable; the
 /// app supplies the archive JSON.
 class CompendiumArchiveImporter {
+  /// [repositories] must own the same database as the repositories used by
+  /// [pipeline], [_programs], and [_venues], because the import invalidates
+  /// sync and normalization state for that database after it writes.
   CompendiumArchiveImporter(
     this._pipeline,
     this._programs,
     this._venues, {
+    required this.repositories,
     TagRepository? tags,
     PublishedSourceRepository? sources,
     CustomFieldDefRepository? customFields,
@@ -363,6 +369,7 @@ class CompendiumArchiveImporter {
   final ImportPipeline _pipeline;
   final ProgramRepository _programs;
   final VenueRepository _venues;
+  final CompendiumRepositories repositories;
   final ShareMetadataImporter? _metadata;
   final DifficultyLevelRepository? _difficultyLevels;
 
@@ -660,6 +667,19 @@ class CompendiumArchiveImporter {
           persisted[mappedId] = target;
         }
       }
+
+      // This writer is merge-like: it changes only the records carried by the
+      // bundle, so pending deletions for unrelated local records remain valid.
+      // Baselines, aliases, review decisions, and normalization bookkeeping
+      // are conclusions about the pre-import dataset and must not survive it.
+      await repositories.syncLocal.clearForRestore(
+        restoredRecords: const [],
+        revalidatePending: false,
+      );
+      await repositories.resetNormalisationStateForRestore();
+      await CompendiumSyncStorage(
+        repositories,
+      ).revalidatePendingDeletions(dropMissing: true);
 
       return CompendiumArchiveImportResult(
         danceSession: committedDanceSession,

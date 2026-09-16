@@ -6,7 +6,6 @@ import '../model/program.dart';
 import '../storage/repositories/repositories.dart';
 import '../storage/repositories/sync_local_repository.dart';
 import '../storage/repositories/venue_repository.dart';
-import '../storage/database.dart';
 import '../sync/sync_record_kind.dart';
 import '../sync/sync_storage.dart';
 import 'compendium_archive.dart';
@@ -138,6 +137,7 @@ class ArchiveRestorer {
             revalidatePending: false,
           );
         }
+        await _repos.resetNormalisationStateForRestore();
         await CompendiumSyncStorage(
           _repos,
         ).revalidatePendingDeletionsInTransaction(dropMissing: true);
@@ -481,10 +481,6 @@ class ArchiveRestorer {
     await db.delete(db.choreographers).go();
     await db.delete(db.publishedSources).go();
     await db.delete(db.venues).go();
-    await db.customStatement('DELETE FROM normalisation_skips');
-    await db.customStatement('DELETE FROM settings WHERE key = ?', [
-      shareableTextNormalisationScopeKey,
-    ]);
   }
 
   Future<void> _guard(

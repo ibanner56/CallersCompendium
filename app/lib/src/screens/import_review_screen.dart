@@ -1501,6 +1501,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       pipeline,
       _repos.programs,
       _repos.venues,
+      repositories: _repos,
       tags: _repos.tags,
       sources: _repos.publishedSources,
       customFields: _repos.customFieldDefs,

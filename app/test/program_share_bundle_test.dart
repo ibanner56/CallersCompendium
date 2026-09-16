@@ -526,6 +526,7 @@ void main() {
         ImportPipeline(repos.dances, repos.choreographers),
         repos.programs,
         repos.venues,
+        repositories: repos,
       );
       return importer.import(json, archive, now: DateTime.utc(2026, 7, 20));
     }
