@@ -1143,10 +1143,10 @@ class SyncCoordinator {
       final baselineEntries = <SyncBaselineEntry>[
         for (final entry in attachedLocal.entries)
           if (entry.value != null &&
-               attachPlan.manifestHashes[entry.key] == entry.value!.wireHash &&
-               peerMaps.any(
-                 (peer) => peer[entry.key]?.wireHash == entry.value!.wireHash,
-               ))
+              attachPlan.manifestHashes[entry.key] == entry.value!.wireHash &&
+              peerMaps.any(
+                (peer) => peer[entry.key]?.wireHash == entry.value!.wireHash,
+              ))
             SyncBaselineEntry(
               kind: entry.key.kind,
               recordId: entry.key.recordId,
