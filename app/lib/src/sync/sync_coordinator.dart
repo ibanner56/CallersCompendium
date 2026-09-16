@@ -849,10 +849,17 @@ class SyncCoordinator {
     if (continuation && epochMismatch && !attachContinuation) {
       return const SyncPassResult(SyncPassStatus.staleEpoch);
     }
-    final freshAttach = epochMismatch && !attachContinuation;
+    var freshAttach = epochMismatch && !attachContinuation;
     if (freshAttach) {
       await store.clearEpochState();
       snapshot = await store.snapshot();
+    }
+    if (!freshAttach &&
+        deferredBaseline == null &&
+        _hasLegacyBaselineBodyHashes(snapshot.baseline)) {
+      await store.clearEpochState();
+      snapshot = await store.snapshot();
+      freshAttach = true;
     }
 
     final localNow = now().toUtc();
@@ -1309,6 +1316,14 @@ class SyncCoordinator {
     return normalized;
   }
 
+  bool _hasLegacyBaselineBodyHashes(
+    Map<SyncRecordAddress, SyncBaselineEntry> baseline,
+  ) => baseline.values.any(
+    (entry) =>
+        entry.bodyHash != null &&
+        entry.bodyHashVersion == SyncBaselineBodyHashVersion.legacyFullBody,
+  );
+
   Future<Map<SyncRecordAddress, SyncBaselineEntry>> _normalizeBaseline(
     Map<SyncRecordAddress, SyncBaselineEntry> baseline,
   ) async {
@@ -1326,6 +1341,7 @@ class SyncCoordinator {
           recordId: address.recordId,
           wireHash: entry.value.wireHash,
           bodyHash: entry.value.bodyHash,
+          bodyHashVersion: entry.value.bodyHashVersion,
         );
         sources[address] = entry.key;
       }

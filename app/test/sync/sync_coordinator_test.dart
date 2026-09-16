@@ -312,6 +312,71 @@ void main() {
     },
   );
 
+  test('fresh-attaches before repairing a pre-W9 dance baseline', () async {
+    final now = DateTime.utc(2026, 7, 15, 12);
+    final local = SyncMergeCandidate.fromBlob(
+      _dance('dance-1', updatedAt: now.add(const Duration(hours: 25))),
+    );
+    final peer = SyncMergeCandidate.fromBlob(
+      _dance('dance-1', updatedAt: now.add(const Duration(hours: 1))),
+    );
+    late final _FakeStore store;
+    store = _FakeStore(
+      local: {local.address: local},
+      baseline: {
+        local.address: SyncBaselineEntry(
+          kind: local.address.kind,
+          recordId: local.address.recordId,
+          wireHash: local.wireHash,
+          bodyHash: local.bodyHash,
+          bodyHashVersion: SyncBaselineBodyHashVersion.legacyFullBody,
+        ),
+      },
+      snapshotBuilder: (snapshotNumber) {
+        final current = snapshotNumber >= 3 ? peer : local;
+        return SyncCoordinatorSnapshot(
+          epoch: snapshotNumber == 1 ? 'epoch-1' : null,
+          previouslyUsed: false,
+          local: {local.address: current},
+          publication: {local.address: current},
+          baseline: store.baseline,
+        );
+      },
+    );
+    final transport = _FakeTransport(
+      devices: ['peer'],
+      peerManifest: _manifest(
+        deviceId: 'peer',
+        records: {
+          SyncRecordKind.dance: {peer.blob.id: peer.wireHash},
+        },
+      ),
+      blobResponses: {
+        peer.wireHash: _FakeTransport.response(
+          200,
+          body: utf8.encode(encodeSyncRecordBlob(peer.blob)),
+        ),
+      },
+    );
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: store,
+      transport: transport,
+      now: () => now,
+    );
+    addTearDown(coordinator.dispose);
+
+    final result = await coordinator.syncNow();
+
+    expect(result.status, SyncPassStatus.completed);
+    expect(store.epochStateClears, 1);
+    expect(store.writes, hasLength(1));
+    expect(store.writes.single.address, local.address);
+    expect(store.writes.single.updatedAt, peer.updatedAt);
+    expect(store.baselineReplacements, 1);
+  });
+
   test(
     'withholds quarantined publication and its enforced dependents',
     () async {
@@ -2811,6 +2876,7 @@ final class _FakeStore implements SyncCoordinatorStore {
   @override
   Future<void> clearEpochState() async {
     _storedEpoch = null;
+    baseline.clear();
     epochStateClears++;
     lifecycle.add('clearEpochState');
   }
@@ -3038,6 +3104,21 @@ SyncRecordBlob _setting(String id, String value, {int seconds = 0}) {
     body: {'value': value},
   );
 }
+
+SyncRecordBlob _dance(String id, {required DateTime updatedAt}) =>
+    SyncRecordBlob(
+      kind: SyncRecordKind.dance,
+      id: id,
+      updatedAt: updatedAt,
+      deletedAt: null,
+      existenceAt: updatedAt,
+      body: {
+        'id': id,
+        'title': 'Dance',
+        'updatedAt': updatedAt.toIso8601String(),
+        'deletedAt': null,
+      },
+    );
 
 SyncRecordBlob _tag(String id, String name, {int seconds = 0}) {
   final stamp = DateTime.utc(2026, 7, 15, 12).add(Duration(seconds: seconds));

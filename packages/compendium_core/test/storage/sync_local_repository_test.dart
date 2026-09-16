@@ -1,6 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/src/storage/database.dart'
-    show BaselineStateCompanion;
+    show BaselineEntriesCompanion, BaselineStateCompanion;
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:test/test.dart';
@@ -116,6 +116,53 @@ void main() {
       },
     );
   });
+
+  test(
+    'distinguishes legacy full-body hashes from W9 comparison hashes',
+    () async {
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final repository = SyncLocalRepository(db);
+      final address = (kind: SyncRecordKind.dance, recordId: 'legacy');
+
+      await db
+          .into(db.baselineEntries)
+          .insert(
+            BaselineEntriesCompanion.insert(
+              kind: address.kind,
+              recordId: address.recordId,
+              wireHash: 'legacy-wire',
+              bodyHash: const Value('legacy-full-body'),
+            ),
+          );
+
+      final legacy = (await repository.snapshotBaseline()).values.single;
+      expect(legacy.bodyHash, 'legacy-full-body');
+      expect(
+        legacy.bodyHashVersion,
+        SyncBaselineBodyHashVersion.legacyFullBody,
+      );
+
+      await repository.replaceBaseline(
+        epoch: 'epoch-1',
+        entries: [
+          SyncBaselineEntry(
+            kind: address.kind,
+            recordId: address.recordId,
+            wireHash: 'comparison-wire',
+            bodyHash: 'comparison-body',
+          ),
+        ],
+      );
+
+      final comparison = (await repository.snapshotBaseline()).values.single;
+      expect(comparison.bodyHash, 'comparison-body');
+      expect(
+        comparison.bodyHashVersion,
+        SyncBaselineBodyHashVersion.comparison,
+      );
+    },
+  );
 
   test('fresh empty baseline retains its epoch', () async {
     final db = openTestDatabase();
