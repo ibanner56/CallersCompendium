@@ -589,6 +589,9 @@ final class CompendiumSyncStorage
           counterpartId: ambiguity.secondId,
         );
       }
+      final local = ambiguity.left.blob.id == ambiguity.firstId
+          ? ambiguity.left
+          : ambiguity.right;
       await repositories.syncLocal.enqueueReview(
         kind: SyncRecordKind.dance,
         recordId: ambiguity.firstId,
@@ -596,6 +599,7 @@ final class CompendiumSyncStorage
         reason: syncDanceChoreographyAmbiguityReason,
         candidateBlob: candidateBlob,
         candidateHash: candidate.wireHash,
+        localHash: local.wireHash,
         queuedAt: queuedAt,
       );
     }
@@ -768,6 +772,7 @@ final class CompendiumSyncStorage
         reason: syncDanceChoreographyAmbiguityReason,
         candidateBlob: encodeSyncRecordBlob(right.blob),
         candidateHash: right.wireHash,
+        localHash: left.wireHash,
         queuedAt: row.queuedAt,
       );
     }
@@ -1068,9 +1073,9 @@ final class CompendiumSyncStorage
   /// Resolves persisted W8 choreography and W14 tombstone review decisions.
   ///
   /// The queue row is re-read inside the transaction so a stale screen cannot
-  /// clear a replacement candidate. The inherited queue has no historical
-  /// local hash, so this deliberately validates the current natural-key target
-  /// rather than claiming to detect every edit made after enqueue.
+  /// clear a replacement candidate. New actionable rows carry the local
+  /// wire-hash captured at enqueue; legacy rows without that value fail closed
+  /// because their original local version is unknowable.
   Future<void> resolveReviewQueue({
     required ReviewQueueRow expectedRow,
     required SyncReviewAction action,
@@ -1117,6 +1122,17 @@ final class CompendiumSyncStorage
       validateSyncReviewCandidateBody(candidate.kind, candidate.body);
     } on Object {
       throw const SyncReviewException(SyncReviewFailureCode.candidateInvalid);
+    }
+    final localCandidate = await _localNaturalCandidate(
+      kind: currentRow.kind,
+      id: currentRow.recordId,
+    );
+    if (localCandidate == null) {
+      throw const SyncReviewException(SyncReviewFailureCode.targetMissing);
+    }
+    if (currentRow.localHash == null ||
+        localCandidate.wireHash != currentRow.localHash) {
+      throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
     }
     final localAddress = (kind: currentRow.kind, recordId: currentRow.recordId);
     final localBody = await read(localAddress);
@@ -1298,6 +1314,8 @@ final class CompendiumSyncStorage
       throw const SyncReviewException(SyncReviewFailureCode.targetMissing);
     }
     if (currentCandidate.wireHash != currentRow.candidateHash ||
+        currentRow.localHash == null ||
+        local.wireHash != currentRow.localHash ||
         await repositories.syncLocal.resolveAlias(
               kind: SyncRecordKind.dance,
               recordId: local.blob.id,
@@ -1432,6 +1450,7 @@ final class CompendiumSyncStorage
       left.reason == right.reason &&
       left.candidateBlob == right.candidateBlob &&
       left.candidateHash == right.candidateHash &&
+      left.localHash == right.localHash &&
       left.queuedAt == right.queuedAt;
 
   String _validatedReviewName(String? raw, {required String currentKey}) {
@@ -2774,15 +2793,25 @@ final class CompendiumSyncStorage
     String counterpartId, {
     String? recordId,
     required String reason,
-  }) => repositories.syncLocal.enqueueReview(
-    kind: candidate.blob.kind,
-    recordId: recordId ?? candidate.blob.id,
-    counterpartId: counterpartId,
-    reason: reason,
-    candidateBlob: encodeSyncRecordBlob(candidate.blob),
-    candidateHash: candidate.wireHash,
-    queuedAt: DateTime.now().toUtc(),
-  );
+  }) async {
+    final queuedRecordId = recordId ?? candidate.blob.id;
+    final localHash = reason == syncBaselineAbsenceTombstoneReason
+        ? (await _localNaturalCandidate(
+            kind: candidate.blob.kind,
+            id: queuedRecordId,
+          ))?.wireHash
+        : null;
+    await repositories.syncLocal.enqueueReview(
+      kind: candidate.blob.kind,
+      recordId: queuedRecordId,
+      counterpartId: counterpartId,
+      reason: reason,
+      candidateBlob: encodeSyncRecordBlob(candidate.blob),
+      candidateHash: candidate.wireHash,
+      localHash: localHash,
+      queuedAt: DateTime.now().toUtc(),
+    );
+  }
 
   Future<bool> _guardReconciliationTarget({
     required SyncRecordKind kind,

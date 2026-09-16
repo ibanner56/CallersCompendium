@@ -680,6 +680,7 @@ class ReviewQueue extends Table {
   TextColumn get reason => text()();
   TextColumn get candidateBlob => text().named('candidate_blob')();
   TextColumn get candidateHash => text().named('candidate_hash')();
+  TextColumn get localHash => text().named('local_hash').nullable()();
   DateTimeColumn get queuedAt => dateTime().named('queued_at')();
 
   @override

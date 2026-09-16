@@ -487,6 +487,9 @@ can still fire.
   `dance_minutes`. The migration recursively normalizes nested `meanwhile`
   figures, copies legacy slot timing to `dance_minutes`, and rebuilds the
   derived figure and search indexes.
+- v36: adds nullable `review_queue.local_hash`, the queue-time wire hash of
+  the affected local record. Actionable review resolution rejects a row whose
+  local record changed after enqueue; v35 rows retain NULL and fail closed.
 
 ## The delete model
 
