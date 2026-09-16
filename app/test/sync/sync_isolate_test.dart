@@ -18,6 +18,7 @@ CompendiumDatabase _openSharedTestDatabase({
     name: name,
     native: DriftNativeOptions(
       databasePath: () async => path,
+      tempDirectoryPath: () async => Directory(path).parent.path,
       shareAcrossIsolates: true,
     ),
   ),
