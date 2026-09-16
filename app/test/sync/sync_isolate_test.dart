@@ -24,6 +24,8 @@ CompendiumDatabase _openSharedTestDatabase({
 );
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test('opens the database and transport inside the pass isolate', () async {
     final directory = await Directory.systemTemp.createTemp(
       'compendium-sync-isolate-',
