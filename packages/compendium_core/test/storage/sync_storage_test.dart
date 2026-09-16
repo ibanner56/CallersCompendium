@@ -11,6 +11,58 @@ import 'package:test/test.dart';
 
 import 'test_database.dart';
 
+final class _SqliteBindLimitGuard extends QueryInterceptor {
+  static const maxVariables = 999;
+
+  void _check(List<Object?> args) {
+    if (args.length > maxVariables) {
+      throw StateError(
+        'test SQLite bind limit exceeded: ${args.length} > $maxVariables',
+      );
+    }
+  }
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    _check(args);
+    return super.runSelect(executor, statement, args);
+  }
+
+  @override
+  Future<int> runInsert(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    _check(args);
+    return super.runInsert(executor, statement, args);
+  }
+
+  @override
+  Future<int> runUpdate(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    _check(args);
+    return super.runUpdate(executor, statement, args);
+  }
+
+  @override
+  Future<int> runDelete(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    _check(args);
+    return super.runDelete(executor, statement, args);
+  }
+}
+
 void main() {
   late CompendiumDatabase db;
   late CompendiumRepositories repositories;
@@ -420,123 +472,114 @@ void main() {
     expect(replayed.blob.body['deletedAt'], tombstoneStamp.toIso8601String());
   });
 
-  test(
-    'fresh attach dedupe rewires aliases, slots, links, indexes, and timestamps',
-    () async {
-      final stamp = DateTime.utc(2026, 7, 15, 12);
-      final survivor = Dance(
-        id: 'a-survivor',
-        title: 'shared dance',
-        walkthrough: 'survivor',
-        rating: 1,
-        createdAt: stamp,
-        updatedAt: stamp,
-      );
-      final loser = Dance(
-        id: 'z-loser',
-        title: 'The Shared Dance',
-        walkthrough: 'newer loser',
-        rating: 5,
-        links: [
-          DanceLink(
-            id: 'loser-owned-link',
-            kind: LinkKind.relatedDance,
-            targetDanceId: 'c-related',
-          ),
-          DanceLink(
-            id: 'loser-self-link',
-            kind: LinkKind.relatedDance,
-            targetDanceId: survivor.id,
-          ),
-        ],
-        createdAt: stamp,
-        updatedAt: stamp.add(const Duration(minutes: 1)),
-      );
-      await repositories.dances.create(survivor);
-      await repositories.dances.create(
-        Dance(
-          id: 'c-related',
-          title: 'Related dance',
-          createdAt: stamp,
-          updatedAt: stamp,
+  test('fresh attach dedupe rewires aliases, slots, links, indexes, and timestamps', () async {
+    final stamp = DateTime.utc(2026, 7, 15, 12);
+    final survivor = Dance(
+      id: 'a-survivor',
+      title: 'shared dance',
+      walkthrough: 'survivor',
+      rating: 1,
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+    final loser = Dance(
+      id: 'z-loser',
+      title: 'The Shared Dance',
+      walkthrough: 'newer loser',
+      rating: 5,
+      links: [
+        DanceLink(
+          id: 'loser-owned-link',
+          kind: LinkKind.relatedDance,
+          targetDanceId: 'c-related',
         ),
-      );
-      await repositories.dances.create(loser);
-
-      final owner = Dance(
-        id: 'c-owner',
-        title: 'Owner',
-        links: [
-          DanceLink(
-            id: 'owner-link',
-            kind: LinkKind.relatedDance,
-            targetDanceId: loser.id,
-          ),
-        ],
-        createdAt: stamp,
-        updatedAt: stamp,
-      );
-      await repositories.dances.create(owner);
-
-      final program = Program(
-        id: 'program-with-loser',
-        title: 'Program',
-        slots: [ProgramSlot(id: 'loser-slot', position: 0, danceId: loser.id)],
-        createdAt: stamp,
-        updatedAt: stamp,
-      );
-      await repositories.programs.create(program);
-      final beforeProgram = await (db.select(
-        db.programs,
-      )..where((row) => row.id.equals(program.id))).getSingle();
-
-      final result = await storage.deduplicateFreshAttach();
-
-      expect(result.duplicateCount, 1);
-      expect(await repositories.dances.getById(loser.id), isNull);
-      final merged = await repositories.dances.getById(survivor.id);
-      expect(merged!.walkthrough, 'newer loser');
-      expect(merged.rating, 5);
-      expect(merged.links.map((link) => link.id), ['loser-owned-link']);
-      expect(merged.links.single.targetDanceId, 'c-related');
-      expect(
-        await repositories.syncLocal.resolveAlias(
-          kind: SyncRecordKind.dance,
-          recordId: loser.id,
+        DanceLink(
+          id: 'loser-self-link',
+          kind: LinkKind.relatedDance,
+          targetDanceId: survivor.id,
         ),
-        survivor.id,
-      );
-      expect(
-        (await repositories.programs.getById(program.id))!.slots.single.danceId,
-        survivor.id,
-      );
-      expect(
-        (await repositories.dances.getById(
-          owner.id,
-        ))!.links.single.targetDanceId,
-        survivor.id,
-      );
+      ],
+      createdAt: stamp,
+      updatedAt: stamp.add(const Duration(minutes: 1)),
+    );
+    await repositories.dances.create(survivor);
+    await repositories.dances.create(
+      Dance(
+        id: 'c-related',
+        title: 'Related dance',
+        createdAt: stamp,
+        updatedAt: stamp,
+      ),
+    );
+    await repositories.dances.create(loser);
 
-      final afterProgram = await (db.select(
-        db.programs,
-      )..where((row) => row.id.equals(program.id))).getSingle();
-      expect(afterProgram.updatedAt, isNot(beforeProgram.updatedAt));
+    final owner = Dance(
+      id: 'c-owner',
+      title: 'Owner',
+      links: [
+        DanceLink(
+          id: 'owner-link',
+          kind: LinkKind.relatedDance,
+          targetDanceId: loser.id,
+        ),
+      ],
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+    await repositories.dances.create(owner);
 
-      for (final table in [
-        'dance_figures',
-        'dance_fts',
-        'dance_substring_fts',
-      ]) {
-        final rows = await db
-            .customSelect(
-              'SELECT dance_id FROM $table WHERE dance_id = ?',
-              variables: [Variable.withString(loser.id)],
-            )
-            .get();
-        expect(rows, isEmpty, reason: table);
-      }
-    },
-  );
+    final program = Program(
+      id: 'program-with-loser',
+      title: 'Program',
+      slots: [ProgramSlot(id: 'loser-slot', position: 0, danceId: loser.id)],
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+    await repositories.programs.create(program);
+    final beforeProgram = await (db.select(
+      db.programs,
+    )..where((row) => row.id.equals(program.id))).getSingle();
+
+    final result = await storage.deduplicateFreshAttach();
+
+    expect(result.duplicateCount, 1);
+    expect(await repositories.dances.getById(loser.id), isNull);
+    final merged = await repositories.dances.getById(survivor.id);
+    expect(merged!.walkthrough, 'newer loser');
+    expect(merged.rating, 5);
+    expect(merged.links.map((link) => link.id), ['loser-owned-link']);
+    expect(merged.links.single.targetDanceId, 'c-related');
+    expect(
+      await repositories.syncLocal.resolveAlias(
+        kind: SyncRecordKind.dance,
+        recordId: loser.id,
+      ),
+      survivor.id,
+    );
+    expect(
+      (await repositories.programs.getById(program.id))!.slots.single.danceId,
+      survivor.id,
+    );
+    expect(
+      (await repositories.dances.getById(owner.id))!.links.single.targetDanceId,
+      survivor.id,
+    );
+
+    final afterProgram = await (db.select(
+      db.programs,
+    )..where((row) => row.id.equals(program.id))).getSingle();
+    expect(afterProgram.updatedAt, isNot(beforeProgram.updatedAt));
+
+    for (final table in ['dance_figures', 'dance_fts', 'dance_substring_fts']) {
+      final rows = await db
+          .customSelect(
+            'SELECT dance_id FROM $table WHERE dance_id = ?',
+            variables: [Variable.withString(loser.id)],
+          )
+          .get();
+      expect(rows, isEmpty, reason: table);
+    }
+  });
 
   test(
     'fresh attach dedupe rebuilds FTS once across duplicate groups',
@@ -617,51 +660,48 @@ void main() {
     },
   );
 
-  test(
-    'fresh attach ambiguity is immutable and review-queue insertion is idempotent',
-    () async {
-      final stamp = DateTime.utc(2026, 7, 15, 12);
-      await repositories.dances.create(
-        Dance(
-          id: 'a-left',
-          title: 'The Shared Dance',
-          figures: [
-            testFigure(move: 'balance', params: const {'hand': 'left'}),
-          ],
-          createdAt: stamp,
-          updatedAt: stamp,
-        ),
-      );
-      await repositories.dances.create(
-        Dance(
-          id: 'b-right',
-          title: 'shared dance',
-          figures: [
-            testFigure(move: 'balance', params: const {'hand': 'right'}),
-          ],
-          createdAt: stamp,
-          updatedAt: stamp,
-        ),
-      );
+  test('fresh attach ambiguity is immutable and review-queue insertion is idempotent', () async {
+    final stamp = DateTime.utc(2026, 7, 15, 12);
+    await repositories.dances.create(
+      Dance(
+        id: 'a-left',
+        title: 'The Shared Dance',
+        figures: [
+          testFigure(move: 'balance', params: const {'hand': 'left'}),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      ),
+    );
+    await repositories.dances.create(
+      Dance(
+        id: 'b-right',
+        title: 'shared dance',
+        figures: [
+          testFigure(move: 'balance', params: const {'hand': 'right'}),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      ),
+    );
 
-      final first = await storage.deduplicateFreshAttach();
-      final firstRow = (await repositories.syncLocal.listReviewQueue()).single;
-      final second = await storage.deduplicateFreshAttach();
-      final rows = await repositories.syncLocal.listReviewQueue();
+    final first = await storage.deduplicateFreshAttach();
+    final firstRow = (await repositories.syncLocal.listReviewQueue()).single;
+    final second = await storage.deduplicateFreshAttach();
+    final rows = await repositories.syncLocal.listReviewQueue();
 
-      expect(first.duplicateCount, 0);
-      expect(first.reports.single.code, SyncReportCode.equalUpdatedAt);
-      expect(second.duplicateCount, 0);
-      expect(second.reports.single.code, SyncReportCode.equalUpdatedAt);
-      expect(rows, hasLength(1));
-      expect(rows.single.candidateBlob, firstRow.candidateBlob);
-      expect(rows.single.candidateHash, firstRow.candidateHash);
-      expect(rows.single.localHash, firstRow.localHash);
-      expect(rows.single.localHash, isNotNull);
-      expect(rows.single.recordId, 'a-left');
-      expect(rows.single.counterpartId, 'b-right');
-    },
-  );
+    expect(first.duplicateCount, 0);
+    expect(first.reports.single.code, SyncReportCode.equalUpdatedAt);
+    expect(second.duplicateCount, 0);
+    expect(second.reports.single.code, SyncReportCode.equalUpdatedAt);
+    expect(rows, hasLength(1));
+    expect(rows.single.candidateBlob, firstRow.candidateBlob);
+    expect(rows.single.candidateHash, firstRow.candidateHash);
+    expect(rows.single.localHash, firstRow.localHash);
+    expect(rows.single.localHash, isNotNull);
+    expect(rows.single.recordId, 'a-left');
+    expect(rows.single.counterpartId, 'b-right');
+  });
 
   test(
     'keeps ambiguity pairs distinct when dance IDs contain colons',
@@ -1819,57 +1859,54 @@ void main() {
     },
   );
 
-  test(
-    'renamed shipped difficulty IDs remain canonical for same-label inbound IDs',
-    () async {
-      final stamp = DateTime.utc(2025, 1, 2, 12);
-      final renamed = DifficultyLevel(
-        id: DifficultyLevel.beginnerId,
-        label: 'Easy',
-        position: DifficultyLevel.beginner.position,
-      );
-      await repositories.difficultyLevels.upsert(renamed, at: stamp);
-      final inbound = DifficultyLevel(
-        id: 'a-inbound-easy',
-        label: renamed.label,
-        position: 7,
-      );
+  test('renamed shipped difficulty IDs remain canonical for same-label inbound IDs', () async {
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    final renamed = DifficultyLevel(
+      id: DifficultyLevel.beginnerId,
+      label: 'Easy',
+      position: DifficultyLevel.beginner.position,
+    );
+    await repositories.difficultyLevels.upsert(renamed, at: stamp);
+    final inbound = DifficultyLevel(
+      id: 'a-inbound-easy',
+      label: renamed.label,
+      position: 7,
+    );
 
-      final result = await const SyncApplyEngine().apply(
-        candidates: [
-          SyncMergeCandidate(
-            blob: SyncRecordBlob(
-              kind: SyncRecordKind.difficultyLevel,
-              id: inbound.id,
-              updatedAt: stamp.add(const Duration(minutes: 1)),
-              deletedAt: null,
-              existenceAt: stamp.add(const Duration(minutes: 1)),
-              body: syncBodyForEntity(SyncRecordKind.difficultyLevel, inbound),
-            ),
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.difficultyLevel,
+            id: inbound.id,
+            updatedAt: stamp.add(const Duration(minutes: 1)),
+            deletedAt: null,
+            existenceAt: stamp.add(const Duration(minutes: 1)),
+            body: syncBodyForEntity(SyncRecordKind.difficultyLevel, inbound),
           ),
-        ],
-        storage: storage,
-      );
-
-      expect(result.reports, isEmpty);
-      expect(await repositories.difficultyLevels.getById(inbound.id), isNull);
-      final stored = await repositories.difficultyLevels.getById(
-        DifficultyLevel.beginnerId,
-      );
-      expect(stored, isNotNull);
-      expect(stored!.label, renamed.label);
-      expect(stored.position, inbound.position);
-      expect(
-        (await repositories.syncLocal.listAliases()).any(
-          (alias) =>
-              alias.kind == SyncRecordKind.difficultyLevel &&
-              alias.losingId == inbound.id &&
-              alias.survivingId == DifficultyLevel.beginnerId,
         ),
-        isTrue,
-      );
-    },
-  );
+      ],
+      storage: storage,
+    );
+
+    expect(result.reports, isEmpty);
+    expect(await repositories.difficultyLevels.getById(inbound.id), isNull);
+    final stored = await repositories.difficultyLevels.getById(
+      DifficultyLevel.beginnerId,
+    );
+    expect(stored, isNotNull);
+    expect(stored!.label, renamed.label);
+    expect(stored.position, inbound.position);
+    expect(
+      (await repositories.syncLocal.listAliases()).any(
+        (alias) =>
+            alias.kind == SyncRecordKind.difficultyLevel &&
+            alias.losingId == inbound.id &&
+            alias.survivingId == DifficultyLevel.beginnerId,
+      ),
+      isTrue,
+    );
+  });
 
   test(
     'distinct shipped difficulty IDs with one natural key enter review',
@@ -1919,54 +1956,49 @@ void main() {
     },
   );
 
-  test(
-    'canonical difficulty keeps newer local existence over stale inbound tombstone',
-    () async {
-      final localStamp = DateTime.utc(2025, 1, 2, 12);
-      final inboundStamp = localStamp.subtract(const Duration(minutes: 1));
-      final custom = DifficultyLevel(
-        id: 'a-custom-beginner',
-        label: DifficultyLevel.beginner.label,
-        position: 7,
-      );
-      await (db.delete(
-        db.difficultyLevels,
-      )..where((row) => row.id.equals(DifficultyLevel.beginner.id))).go();
-      await repositories.difficultyLevels.upsert(custom, at: localStamp);
+  test('canonical difficulty keeps newer local existence over stale inbound tombstone', () async {
+    final localStamp = DateTime.utc(2025, 1, 2, 12);
+    final inboundStamp = localStamp.subtract(const Duration(minutes: 1));
+    final custom = DifficultyLevel(
+      id: 'a-custom-beginner',
+      label: DifficultyLevel.beginner.label,
+      position: 7,
+    );
+    await (db.delete(
+      db.difficultyLevels,
+    )..where((row) => row.id.equals(DifficultyLevel.beginner.id))).go();
+    await repositories.difficultyLevels.upsert(custom, at: localStamp);
 
-      final result = await const SyncApplyEngine().apply(
-        candidates: [
-          SyncMergeCandidate(
-            blob: SyncRecordBlob(
-              kind: SyncRecordKind.difficultyLevel,
-              id: DifficultyLevel.beginner.id,
-              updatedAt: inboundStamp,
-              deletedAt: inboundStamp,
-              existenceAt: inboundStamp,
-              body: syncBodyForEntity(
-                SyncRecordKind.difficultyLevel,
-                DifficultyLevel.beginner,
-              ),
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.difficultyLevel,
+            id: DifficultyLevel.beginner.id,
+            updatedAt: inboundStamp,
+            deletedAt: inboundStamp,
+            existenceAt: inboundStamp,
+            body: syncBodyForEntity(
+              SyncRecordKind.difficultyLevel,
+              DifficultyLevel.beginner,
             ),
           ),
-        ],
-        storage: storage,
-      );
-
-      expect(result.reports, isEmpty);
-      expect(
-        await repositories.difficultyLevels.getById(
-          DifficultyLevel.beginner.id,
         ),
-        isNull,
-      );
-      expect(
-        (await repositories.difficultyLevels.getById(custom.id))!.position,
-        custom.position,
-      );
-      expect(await repositories.syncLocal.listReviewQueue(), isNotEmpty);
-    },
-  );
+      ],
+      storage: storage,
+    );
+
+    expect(result.reports, isEmpty);
+    expect(
+      await repositories.difficultyLevels.getById(DifficultyLevel.beginner.id),
+      isNull,
+    );
+    expect(
+      (await repositories.difficultyLevels.getById(custom.id))!.position,
+      custom.position,
+    );
+    expect(await repositories.syncLocal.listReviewQueue(), isNotEmpty);
+  });
 
   test(
     'applies forward and cyclic dance references after parent rows',
@@ -2037,21 +2069,24 @@ void main() {
       ]);
       expect(result.reports, isEmpty);
       expect(
-        (await repositories.dances.getById(
-          'a-source',
-        ))!.links.single.targetDanceId,
+        (await repositories.dances.getById('a-source'))!
+            .links
+            .single
+            .targetDanceId,
         'z-target',
       );
       expect(
-        (await repositories.dances.getById(
-          'cycle-a',
-        ))!.links.single.targetDanceId,
+        (await repositories.dances.getById('cycle-a'))!
+            .links
+            .single
+            .targetDanceId,
         'cycle-b',
       );
       expect(
-        (await repositories.dances.getById(
-          'cycle-b',
-        ))!.links.single.targetDanceId,
+        (await repositories.dances.getById('cycle-b'))!
+            .links
+            .single
+            .targetDanceId,
         'cycle-a',
       );
     },
@@ -2580,13 +2615,322 @@ void main() {
         'owned-link',
       );
       expect(
-        (await repositories.programs.getById(
-          existingSlotOwner.id,
-        ))!.slots.single.id,
+        (await repositories.programs.getById(existingSlotOwner.id))!
+            .slots
+            .single
+            .id,
         'owned-slot',
       );
     },
   );
+
+  test(
+    'batches high-cardinality inbound reference lookups and unions all rows',
+    () async {
+      final guardedDb = CompendiumDatabase(
+        NativeDatabase.memory().interceptWith(_SqliteBindLimitGuard()),
+      );
+      addTearDown(guardedDb.close);
+      final guardedRepositories = CompendiumRepositories(
+        guardedDb,
+        contraTaxonomy,
+      );
+      final guardedStorage = CompendiumSyncStorage(guardedRepositories);
+      const total = 1001;
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+
+      String id(String prefix, int index) =>
+          '$prefix-${index.toString().padLeft(4, '0')}';
+
+      final authorIds = [for (var i = 0; i < total; i++) id('author', i)];
+      final tagIds = [for (var i = 0; i < total; i++) id('tag', i)];
+      final sourceIds = [for (var i = 0; i < total; i++) id('source', i)];
+      final customFieldIds = [for (var i = 0; i < total; i++) id('field', i)];
+      final targetDanceIds = [for (var i = 0; i < total; i++) id('target', i)];
+
+      await guardedDb.batch((batch) {
+        batch.insertAll(guardedDb.choreographers, [
+          for (var i = 0; i < total; i++)
+            ChoreographersCompanion.insert(
+              id: authorIds[i],
+              name: 'Author $i',
+              updatedAt: Value(stamp),
+              existenceAt: Value(stamp),
+            ),
+        ]);
+        batch.insertAll(guardedDb.tags, [
+          for (var i = 0; i < total; i++)
+            TagsCompanion.insert(
+              id: tagIds[i],
+              name: 'Tag $i',
+              updatedAt: Value(stamp),
+              existenceAt: Value(stamp),
+            ),
+        ]);
+        batch.insertAll(guardedDb.publishedSources, [
+          for (var i = 0; i < total; i++)
+            PublishedSourcesCompanion.insert(
+              id: sourceIds[i],
+              title: 'Source $i',
+              updatedAt: Value(stamp),
+              existenceAt: Value(stamp),
+            ),
+        ]);
+        batch.insertAll(guardedDb.customFieldDefs, [
+          for (var i = 0; i < total; i++)
+            CustomFieldDefsCompanion.insert(
+              id: customFieldIds[i],
+              key: 'field_$i',
+              label: 'Field $i',
+              type: CustomFieldType.text,
+              updatedAt: Value(stamp),
+              existenceAt: Value(stamp),
+            ),
+        ]);
+        batch.insertAll(guardedDb.dances, [
+          for (var i = 0; i < total; i++)
+            DancesCompanion.insert(
+              id: targetDanceIds[i],
+              title: 'Target dance $i',
+              form: DanceForm.contra,
+              formationShape: FormationShape.dupleImproper,
+              progression: Progression.single,
+              status: DanceStatus.active,
+              createdAt: stamp,
+              updatedAt: stamp,
+              existenceAt: Value(stamp),
+            ),
+        ]);
+      });
+
+      final inboundDance = Dance(
+        id: 'high-cardinality-dance',
+        title: 'High-cardinality dance',
+        authorIds: authorIds,
+        tagIds: tagIds,
+        sourceCitations: [
+          for (final sourceId in sourceIds) SourceCitation(sourceId: sourceId),
+        ],
+        customFields: [
+          for (final fieldId in customFieldIds)
+            CustomFieldValue(fieldId: fieldId, value: 'value'),
+        ],
+        links: [
+          for (var i = 0; i < total; i++)
+            DanceLink(
+              id: id('link', i),
+              kind: LinkKind.relatedDance,
+              targetDanceId: targetDanceIds[i],
+            ),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final inboundProgram = Program(
+        id: 'high-cardinality-program',
+        title: 'High-cardinality program',
+        slots: [
+          for (var i = 0; i < total; i++)
+            ProgramSlot(
+              id: id('slot', i),
+              position: i,
+              danceId: targetDanceIds[i],
+            ),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+
+      final candidates = [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.dance,
+            id: inboundDance.id,
+            updatedAt: stamp.add(const Duration(minutes: 1)),
+            deletedAt: null,
+            existenceAt: stamp,
+            body: syncBodyForEntity(SyncRecordKind.dance, inboundDance),
+          ),
+        ),
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.program,
+            id: inboundProgram.id,
+            updatedAt: stamp.add(const Duration(minutes: 1)),
+            deletedAt: null,
+            existenceAt: stamp,
+            body: syncBodyForEntity(SyncRecordKind.program, inboundProgram),
+          ),
+        ),
+      ];
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: candidates,
+        storage: guardedStorage,
+      );
+
+      expect(result.applied, [
+        (kind: SyncRecordKind.dance, recordId: inboundDance.id),
+        (kind: SyncRecordKind.program, recordId: inboundProgram.id),
+      ]);
+      expect(result.reports, isEmpty);
+      expect(
+        (await guardedRepositories.dances.getById(inboundDance.id))!.authorIds,
+        authorIds,
+      );
+      expect(
+        (await guardedRepositories.dances.getById(inboundDance.id))!.links,
+        inboundDance.links,
+      );
+      expect(
+        (await guardedRepositories.programs.getById(inboundProgram.id))!.slots,
+        inboundProgram.slots,
+      );
+    },
+  );
+
+  test('detects a dance-link owner in the second bind-limit chunk', () async {
+    final guardedDb = CompendiumDatabase(
+      NativeDatabase.memory().interceptWith(_SqliteBindLimitGuard()),
+    );
+    addTearDown(guardedDb.close);
+    final guardedRepositories = CompendiumRepositories(
+      guardedDb,
+      contraTaxonomy,
+    );
+    final guardedStorage = CompendiumSyncStorage(guardedRepositories);
+    const total = 1001;
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    final conflictIndex = 500;
+    final conflictLinkId =
+        'inbound-link-${conflictIndex.toString().padLeft(4, '0')}';
+    final foreignOwner = Dance(
+      id: 'stored-link-owner',
+      title: 'Stored link owner',
+      links: [
+        DanceLink(
+          id: conflictLinkId,
+          kind: LinkKind.other,
+          url: 'https://stored.example/link',
+        ),
+      ],
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+    await guardedRepositories.dances.create(foreignOwner);
+
+    final inboundDance = Dance(
+      id: 'inbound-link-conflict',
+      title: 'Inbound link conflict',
+      links: [
+        for (var i = 0; i < total; i++)
+          DanceLink(
+            id: 'inbound-link-${i.toString().padLeft(4, '0')}',
+            kind: LinkKind.other,
+            url: 'https://inbound.example/$i',
+          ),
+      ],
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.dance,
+            id: inboundDance.id,
+            updatedAt: stamp.add(const Duration(minutes: 1)),
+            deletedAt: null,
+            existenceAt: stamp,
+            body: syncBodyForEntity(SyncRecordKind.dance, inboundDance),
+          ),
+        ),
+      ],
+      storage: guardedStorage,
+    );
+
+    expect(result.applied, isEmpty);
+    expect(result.reports, hasLength(1));
+    expect(result.reports.single.code, SyncReportCode.malformedRecord);
+    expect(
+      result.reports.single.message,
+      'Dance link id "$conflictLinkId" is already owned by '
+      '"${foreignOwner.id}".',
+    );
+    expect(await guardedRepositories.dances.getById(inboundDance.id), isNull);
+  });
+
+  test('detects a program-slot owner in the second bind-limit chunk', () async {
+    final guardedDb = CompendiumDatabase(
+      NativeDatabase.memory().interceptWith(_SqliteBindLimitGuard()),
+    );
+    addTearDown(guardedDb.close);
+    final guardedRepositories = CompendiumRepositories(
+      guardedDb,
+      contraTaxonomy,
+    );
+    final guardedStorage = CompendiumSyncStorage(guardedRepositories);
+    const total = 1001;
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    final conflictIndex = 500;
+    final conflictSlotId =
+        'inbound-slot-${conflictIndex.toString().padLeft(4, '0')}';
+    final foreignOwner = Program(
+      id: 'stored-slot-owner',
+      title: 'Stored slot owner',
+      slots: [
+        ProgramSlot(id: conflictSlotId, position: 0, text: 'Stored slot'),
+      ],
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+    await guardedRepositories.programs.create(foreignOwner);
+
+    final inboundProgram = Program(
+      id: 'inbound-slot-conflict',
+      title: 'Inbound slot conflict',
+      slots: [
+        for (var i = 0; i < total; i++)
+          ProgramSlot(
+            id: 'inbound-slot-${i.toString().padLeft(4, '0')}',
+            position: i,
+            text: 'Inbound slot $i',
+          ),
+      ],
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.program,
+            id: inboundProgram.id,
+            updatedAt: stamp.add(const Duration(minutes: 1)),
+            deletedAt: null,
+            existenceAt: stamp,
+            body: syncBodyForEntity(SyncRecordKind.program, inboundProgram),
+          ),
+        ),
+      ],
+      storage: guardedStorage,
+    );
+
+    expect(result.applied, isEmpty);
+    expect(result.reports, hasLength(1));
+    expect(result.reports.single.code, SyncReportCode.malformedRecord);
+    expect(
+      result.reports.single.message,
+      'Program slot id "$conflictSlotId" is already owned by '
+      '"${foreignOwner.id}".',
+    );
+    expect(
+      await guardedRepositories.programs.getById(inboundProgram.id),
+      isNull,
+    );
+  });
 
   test(
     'isolates dependent-id collisions to the conflicting inbound owners',
@@ -3214,54 +3558,49 @@ void main() {
     },
   );
 
-  test(
-    'defers derived maintenance during sync relation writes to the batch rebuild',
-    () async {
-      final counter = FtsDeleteByDanceCounter();
-      await db.close();
-      final countingDb = openCountingTestDatabase(counter);
-      db = countingDb;
-      final countingRepositories = CompendiumRepositories(
-        countingDb,
-        contraTaxonomy,
-      );
-      final countingStorage = CompendiumSyncStorage(countingRepositories);
-      final stamp = DateTime.utc(2025, 1, 2, 12);
-      final dance = Dance(
-        id: 'sync-derived-batch',
-        title: 'Sync dance',
-        createdAt: stamp,
-        updatedAt: stamp,
-      );
+  test('defers derived maintenance during sync relation writes to the batch rebuild', () async {
+    final counter = FtsDeleteByDanceCounter();
+    await db.close();
+    final countingDb = openCountingTestDatabase(counter);
+    db = countingDb;
+    final countingRepositories = CompendiumRepositories(
+      countingDb,
+      contraTaxonomy,
+    );
+    final countingStorage = CompendiumSyncStorage(countingRepositories);
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    final dance = Dance(
+      id: 'sync-derived-batch',
+      title: 'Sync dance',
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
 
-      final result = await const SyncApplyEngine().apply(
-        candidates: [
-          SyncMergeCandidate(
-            blob: SyncRecordBlob(
-              kind: SyncRecordKind.dance,
-              id: dance.id,
-              updatedAt: dance.updatedAt,
-              deletedAt: null,
-              existenceAt: stamp,
-              body: syncBodyForEntity(SyncRecordKind.dance, dance),
-            ),
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.dance,
+            id: dance.id,
+            updatedAt: dance.updatedAt,
+            deletedAt: null,
+            existenceAt: stamp,
+            body: syncBodyForEntity(SyncRecordKind.dance, dance),
           ),
-        ],
-        storage: countingStorage,
-      );
+        ),
+      ],
+      storage: countingStorage,
+    );
 
-      expect(result.applied, [
-        (kind: SyncRecordKind.dance, recordId: dance.id),
-      ]);
-      expect(
-        counter.count,
-        0,
-        reason:
-            'sync relation writes must defer per-dance derived maintenance '
-            'until the final bulk rebuild',
-      );
-    },
-  );
+    expect(result.applied, [(kind: SyncRecordKind.dance, recordId: dance.id)]);
+    expect(
+      counter.count,
+      0,
+      reason:
+          'sync relation writes must defer per-dance derived maintenance '
+          'until the final bulk rebuild',
+    );
+  });
 
   test(
     'holds a cited tombstone out of the live view until its citation is gone',
@@ -3414,148 +3753,140 @@ void main() {
     },
   );
 
-  test(
-    'an explicit restore clears pending state while archive restore can retain it',
-    () async {
-      final stamp = DateTime.utc(2025, 1, 2, 12);
-      final dance = Dance(
-        id: 'pending-dance',
-        title: 'Pending dance',
+  test('an explicit restore clears pending state while archive restore can retain it', () async {
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    final dance = Dance(
+      id: 'pending-dance',
+      title: 'Pending dance',
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+    await repositories.dances.create(dance);
+    await repositories.programs.create(
+      Program(
+        id: 'citing-program',
+        title: 'Citing program',
+        slots: [ProgramSlot(id: 'citing-slot', position: 0, danceId: dance.id)],
         createdAt: stamp,
         updatedAt: stamp,
-      );
-      await repositories.dances.create(dance);
-      await repositories.programs.create(
-        Program(
-          id: 'citing-program',
-          title: 'Citing program',
-          slots: [
-            ProgramSlot(id: 'citing-slot', position: 0, danceId: dance.id),
-          ],
-          createdAt: stamp,
-          updatedAt: stamp,
-        ),
-      );
-      final tombstone = SyncMergeCandidate(
-        blob: SyncRecordBlob(
-          kind: SyncRecordKind.dance,
-          id: dance.id,
-          updatedAt: stamp.add(const Duration(minutes: 1)),
-          deletedAt: stamp.add(const Duration(minutes: 1)),
-          existenceAt: stamp.add(const Duration(minutes: 1)),
-          body: syncBodyForEntity(SyncRecordKind.dance, dance),
-        ),
-      );
-      await const SyncApplyEngine().apply(
-        candidates: [tombstone],
-        storage: storage,
-      );
-      expect(
-        await repositories.syncLocal.getPendingDeletion(
-          kind: SyncRecordKind.dance,
-          recordId: dance.id,
-        ),
-        isNotNull,
-      );
-
-      await repositories.dances.restore(
-        dance.id,
-        at: stamp.add(const Duration(minutes: 2)),
-      );
-      expect(
-        await repositories.syncLocal.getPendingDeletion(
-          kind: SyncRecordKind.dance,
-          recordId: dance.id,
-        ),
-        isNull,
-      );
-
-      // Recreate the pending state and exercise the archive-only path. The
-      // archive restorer must leave the pending state for citation revalidation.
-      await repositories.syncLocal.upsertPendingDeletion(
+      ),
+    );
+    final tombstone = SyncMergeCandidate(
+      blob: SyncRecordBlob(
+        kind: SyncRecordKind.dance,
+        id: dance.id,
+        updatedAt: stamp.add(const Duration(minutes: 1)),
+        deletedAt: stamp.add(const Duration(minutes: 1)),
+        existenceAt: stamp.add(const Duration(minutes: 1)),
+        body: syncBodyForEntity(SyncRecordKind.dance, dance),
+      ),
+    );
+    await const SyncApplyEngine().apply(
+      candidates: [tombstone],
+      storage: storage,
+    );
+    expect(
+      await repositories.syncLocal.getPendingDeletion(
         kind: SyncRecordKind.dance,
         recordId: dance.id,
-        tombstonedAt: tombstone.blob.deletedAt!,
-        tombstoneHash: tombstone.wireHash,
-        tombstoneBlob: encodeSyncRecordBlob(tombstone.blob),
-      );
-      await repositories.dances.restore(
-        dance.id,
-        at: stamp.add(const Duration(minutes: 3)),
-        clearPending: false,
-      );
-      expect(
-        await repositories.syncLocal.getPendingDeletion(
-          kind: SyncRecordKind.dance,
-          recordId: dance.id,
-        ),
-        isNotNull,
-      );
-    },
-  );
+      ),
+      isNotNull,
+    );
 
-  test(
-    'natural-key reconciliation rewrites local references and advances their content stamp',
-    () async {
-      final stamp = DateTime.utc(2025, 1, 2, 12);
-      final local = Choreographer(id: 'z-author', name: 'Same author');
-      // ignore: unused_result
-      await repositories.choreographers.upsert(
-        local,
-        at: stamp,
-      ); // ignore: unused_result
-      final dance = Dance(
-        id: 'referencing-dance',
-        title: 'Referencing dance',
-        authorIds: [local.id],
-        createdAt: stamp,
-        updatedAt: stamp,
-      );
-      await repositories.dances.create(dance);
-      final beforeSnapshot = await storage.snapshot();
-      final before = await (db.select(
-        db.dances,
-      )..where((row) => row.id.equals(dance.id))).getSingle();
+    await repositories.dances.restore(
+      dance.id,
+      at: stamp.add(const Duration(minutes: 2)),
+    );
+    expect(
+      await repositories.syncLocal.getPendingDeletion(
+        kind: SyncRecordKind.dance,
+        recordId: dance.id,
+      ),
+      isNull,
+    );
 
-      final inbound = Choreographer(id: 'a-author', name: 'Same author');
-      final result = await const SyncApplyEngine().apply(
-        candidates: [
-          SyncMergeCandidate(
-            blob: SyncRecordBlob(
-              kind: SyncRecordKind.choreographer,
-              id: inbound.id,
-              updatedAt: stamp.add(const Duration(minutes: 1)),
-              deletedAt: null,
-              existenceAt: stamp.add(const Duration(minutes: 1)),
-              body: syncBodyForEntity(SyncRecordKind.choreographer, inbound),
-            ),
+    // Recreate the pending state and exercise the archive-only path. The
+    // archive restorer must leave the pending state for citation revalidation.
+    await repositories.syncLocal.upsertPendingDeletion(
+      kind: SyncRecordKind.dance,
+      recordId: dance.id,
+      tombstonedAt: tombstone.blob.deletedAt!,
+      tombstoneHash: tombstone.wireHash,
+      tombstoneBlob: encodeSyncRecordBlob(tombstone.blob),
+    );
+    await repositories.dances.restore(
+      dance.id,
+      at: stamp.add(const Duration(minutes: 3)),
+      clearPending: false,
+    );
+    expect(
+      await repositories.syncLocal.getPendingDeletion(
+        kind: SyncRecordKind.dance,
+        recordId: dance.id,
+      ),
+      isNotNull,
+    );
+  });
+
+  test('natural-key reconciliation rewrites local references and advances their content stamp', () async {
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    final local = Choreographer(id: 'z-author', name: 'Same author');
+    // ignore: unused_result
+    await repositories.choreographers.upsert(
+      local,
+      at: stamp,
+    ); // ignore: unused_result
+    final dance = Dance(
+      id: 'referencing-dance',
+      title: 'Referencing dance',
+      authorIds: [local.id],
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+    await repositories.dances.create(dance);
+    final beforeSnapshot = await storage.snapshot();
+    final before = await (db.select(
+      db.dances,
+    )..where((row) => row.id.equals(dance.id))).getSingle();
+
+    final inbound = Choreographer(id: 'a-author', name: 'Same author');
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.choreographer,
+            id: inbound.id,
+            updatedAt: stamp.add(const Duration(minutes: 1)),
+            deletedAt: null,
+            existenceAt: stamp.add(const Duration(minutes: 1)),
+            body: syncBodyForEntity(SyncRecordKind.choreographer, inbound),
           ),
-        ],
-        storage: storage,
-      );
+        ),
+      ],
+      storage: storage,
+    );
 
-      expect(result.reports, isEmpty);
-      expect(await repositories.choreographers.getById(local.id), isNull);
-      expect((await repositories.dances.getById(dance.id))!.authorIds, [
-        inbound.id,
-      ]);
-      final after = await (db.select(
-        db.dances,
-      )..where((row) => row.id.equals(dance.id))).getSingle();
-      expect(after.updatedAt, isNot(before.updatedAt));
-      final snapshot = await storage.snapshot();
-      expect(
-        snapshot
+    expect(result.reports, isEmpty);
+    expect(await repositories.choreographers.getById(local.id), isNull);
+    expect((await repositories.dances.getById(dance.id))!.authorIds, [
+      inbound.id,
+    ]);
+    final after = await (db.select(
+      db.dances,
+    )..where((row) => row.id.equals(dance.id))).getSingle();
+    expect(after.updatedAt, isNot(before.updatedAt));
+    final snapshot = await storage.snapshot();
+    expect(
+      snapshot
+          .local[(kind: SyncRecordKind.dance, recordId: dance.id)]!
+          .wireHash,
+      isNot(
+        beforeSnapshot
             .local[(kind: SyncRecordKind.dance, recordId: dance.id)]!
             .wireHash,
-        isNot(
-          beforeSnapshot
-              .local[(kind: SyncRecordKind.dance, recordId: dance.id)]!
-              .wireHash,
-        ),
-      );
-    },
-  );
+      ),
+    );
+  });
 
   test('natural-key reconciliation rejects a changed local survivor', () async {
     final stamp = DateTime.utc(2025, 1, 2, 12);
@@ -3742,9 +4073,10 @@ void main() {
       )..where((row) => row.id.equals(dance.id))).getSingle();
       expect((await repositories.dances.getById(dance.id))!.tagIds, ['a-tag']);
       expect(
-        (await repositories.dances.getById(
-          dance.id,
-        ))!.customFields.single.fieldId,
+        (await repositories.dances.getById(dance.id))!
+            .customFields
+            .single
+            .fieldId,
         'a-field',
       );
       expect(rewritten.updatedAt, isNot(before.updatedAt));
@@ -4010,88 +4342,83 @@ void main() {
     },
   );
 
-  test(
-    'shareability mismatch renames an inbound field without exposing private values',
-    () async {
-      final stamp = DateTime.utc(2025, 1, 2, 12);
-      final privateField = CustomFieldDef(
-        id: 'private-field',
-        key: 'private_key',
-        label: 'Private key',
-        type: CustomFieldType.text,
-        shareable: false,
-      );
-      // ignore: unused_result
-      await repositories.customFieldDefs.upsert(privateField, at: stamp);
-      final inbound = CustomFieldDef(
-        id: 'shareable-field',
-        key: privateField.key,
-        label: privateField.label,
-        type: privateField.type,
-        shareable: true,
-      );
+  test('shareability mismatch renames an inbound field without exposing private values', () async {
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    final privateField = CustomFieldDef(
+      id: 'private-field',
+      key: 'private_key',
+      label: 'Private key',
+      type: CustomFieldType.text,
+      shareable: false,
+    );
+    // ignore: unused_result
+    await repositories.customFieldDefs.upsert(privateField, at: stamp);
+    final inbound = CustomFieldDef(
+      id: 'shareable-field',
+      key: privateField.key,
+      label: privateField.label,
+      type: privateField.type,
+      shareable: true,
+    );
 
-      final result = await const SyncApplyEngine().apply(
-        candidates: [
-          SyncMergeCandidate(
-            blob: SyncRecordBlob(
-              kind: SyncRecordKind.customFieldDef,
-              id: inbound.id,
-              updatedAt: stamp.add(const Duration(minutes: 1)),
-              deletedAt: null,
-              existenceAt: stamp.add(const Duration(minutes: 1)),
-              body: syncBodyForEntity(SyncRecordKind.customFieldDef, inbound),
-            ),
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.customFieldDef,
+            id: inbound.id,
+            updatedAt: stamp.add(const Duration(minutes: 1)),
+            deletedAt: null,
+            existenceAt: stamp.add(const Duration(minutes: 1)),
+            body: syncBodyForEntity(SyncRecordKind.customFieldDef, inbound),
           ),
-        ],
-        storage: storage,
-      );
+        ),
+      ],
+      storage: storage,
+    );
 
-      expect(result.reports, isEmpty);
-      final storedPrivate = await repositories.customFieldDefs.getById(
-        privateField.id,
-      );
-      final storedInbound = await repositories.customFieldDefs.getById(
-        inbound.id,
-      );
-      expect(storedPrivate, isNotNull);
-      expect(storedPrivate!.key, privateField.key);
-      expect(storedPrivate.shareable, isFalse);
-      expect(storedInbound, isNotNull);
-      expect(storedInbound!.key, isNot(privateField.key));
-      expect(storedInbound.shareable, isTrue);
+    expect(result.reports, isEmpty);
+    final storedPrivate = await repositories.customFieldDefs.getById(
+      privateField.id,
+    );
+    final storedInbound = await repositories.customFieldDefs.getById(
+      inbound.id,
+    );
+    expect(storedPrivate, isNotNull);
+    expect(storedPrivate!.key, privateField.key);
+    expect(storedPrivate.shareable, isFalse);
+    expect(storedInbound, isNotNull);
+    expect(storedInbound!.key, isNot(privateField.key));
+    expect(storedInbound.shareable, isTrue);
 
-      final sameId = CustomFieldDef(
-        id: privateField.id,
-        key: privateField.key,
-        label: privateField.label,
-        type: privateField.type,
-        shareable: true,
-      );
-      final sameIdResult = await const SyncApplyEngine().apply(
-        candidates: [
-          SyncMergeCandidate(
-            blob: SyncRecordBlob(
-              kind: SyncRecordKind.customFieldDef,
-              id: sameId.id,
-              updatedAt: stamp.add(const Duration(minutes: 2)),
-              deletedAt: null,
-              existenceAt: stamp.add(const Duration(minutes: 2)),
-              body: syncBodyForEntity(SyncRecordKind.customFieldDef, sameId),
-            ),
+    final sameId = CustomFieldDef(
+      id: privateField.id,
+      key: privateField.key,
+      label: privateField.label,
+      type: privateField.type,
+      shareable: true,
+    );
+    final sameIdResult = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.customFieldDef,
+            id: sameId.id,
+            updatedAt: stamp.add(const Duration(minutes: 2)),
+            deletedAt: null,
+            existenceAt: stamp.add(const Duration(minutes: 2)),
+            body: syncBodyForEntity(SyncRecordKind.customFieldDef, sameId),
           ),
-        ],
-        storage: storage,
-      );
-      expect(sameIdResult.applied, isEmpty);
-      expect(
-        (await repositories.customFieldDefs.getById(
-          privateField.id,
-        ))!.shareable,
-        isFalse,
-      );
-    },
-  );
+        ),
+      ],
+      storage: storage,
+    );
+    expect(sameIdResult.applied, isEmpty);
+    expect(
+      (await repositories.customFieldDefs.getById(privateField.id))!.shareable,
+      isFalse,
+    );
+  });
 
   test(
     'rejects a non-shareable definition before natural-key reconciliation',
@@ -4559,9 +4886,9 @@ void main() {
         [inbound.id],
       );
       expect(
-        decodeSyncRecordBlob(
-          remappedDance.tombstoneBlob,
-        ).updatedAt.toUtc().isAfter(danceTombstoneUpdatedAt.toUtc()),
+        decodeSyncRecordBlob(remappedDance.tombstoneBlob).updatedAt
+            .toUtc()
+            .isAfter(danceTombstoneUpdatedAt.toUtc()),
         isTrue,
       );
     },
