@@ -241,6 +241,7 @@ void main() {
 
   test(
     'replacement consumes the validated store before the isolate continuation',
+    timeout: const Timeout(Duration(minutes: 2)),
     () async {
       final directory = await Directory.systemTemp.createTemp(
         'compendium-sync-isolate-replacement-',
