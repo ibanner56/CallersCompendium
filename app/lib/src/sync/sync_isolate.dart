@@ -76,6 +76,7 @@ final class IsolatedSyncPassHandle {
 final class IsolatedSyncPassOperation {
   IsolatedSyncPassOperation({
     required this.databasePath,
+    this.databaseName,
     required this.endpoint,
     required this.syncId,
     required this.deviceId,
@@ -84,6 +85,7 @@ final class IsolatedSyncPassOperation {
   }) : peerManifestCache = peerManifestCache ?? SyncPeerManifestCache();
 
   final String databasePath;
+  final String? databaseName;
   final Uri endpoint;
   final String syncId;
   final String deviceId;

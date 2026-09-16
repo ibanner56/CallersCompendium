@@ -7,7 +7,21 @@ import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_app/src/sync/sync_isolate.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/native.dart';
+import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+CompendiumDatabase _openSharedTestDatabase({
+  required String name,
+  required String path,
+}) => CompendiumDatabase(
+  driftDatabase(
+    name: name,
+    native: DriftNativeOptions(
+      databasePath: () async => path,
+      shareAcrossIsolates: true,
+    ),
+  ),
+);
 
 void main() {
   test('opens the database and transport inside the pass isolate', () async {
@@ -401,6 +415,102 @@ void main() {
     expect((await operation.call()).status, SyncPassStatus.completed);
     expect(manifestEtags, [null, '"peer-v1"']);
   }, timeout: const Timeout(Duration(minutes: 2)));
+
+  test('refreshes a main-isolate watch after inbound worker write', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'compendium-sync-isolate-watch-',
+    );
+    final databasePath = '${directory.path}/compendium.sqlite';
+    final databaseName = directory.path.split(Platform.pathSeparator).last;
+    final database = _openSharedTestDatabase(
+      name: databaseName,
+      path: databasePath,
+    );
+    final repositories = CompendiumRepositories(database, contraTaxonomy);
+    await repositories.ensureMigrated();
+    await repositories.settings.set(
+      'custom_dialects',
+      'before-first',
+      at: DateTime.utc(2026, 7, 15, 11),
+    );
+    await repositories.syncLocal.replaceBaseline(epoch: 'epoch-1');
+
+    final incoming = _setting('custom_dialects', 'after-first', seconds: 1);
+    final incomingHash = sha256Hex(encodeSyncRecordBlobUtf8(incoming));
+    final peerManifest = SyncManifest(
+      deviceId: 'peer',
+      epoch: 'epoch-1',
+      writtenAt: DateTime.utc(2026, 7, 15, 12),
+      records: {
+        SyncRecordKind.setting: {incoming.id: incomingHash},
+      },
+    );
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    server.listen((request) async {
+      await request.drain<void>();
+      request.response.headers.contentType = ContentType.json;
+      if (request.method == 'GET' && request.uri.path == '/v1/store') {
+        request.response.write(
+          jsonEncode({
+            'epoch': 'epoch-1',
+            'devices': ['peer'],
+          }),
+        );
+      } else if (request.method == 'POST' &&
+          request.uri.path == '/v1/blobs/missing') {
+        request.response.write(jsonEncode({'missing': <String>[]}));
+      } else if (request.method == 'GET' &&
+          request.uri.path == '/v1/manifests/peer') {
+        request.response.write(encodeSyncManifest(peerManifest));
+      } else if (request.method == 'GET' &&
+          request.uri.path == '/v1/blobs/$incomingHash') {
+        request.response.add(encodeSyncRecordBlobUtf8(incoming));
+      } else if (request.method == 'PUT' &&
+          request.uri.path == '/v1/manifests/device-a') {
+        request.response.write('{}');
+      } else {
+        request.response
+          ..statusCode = HttpStatus.notFound
+          ..write('{}');
+      }
+      await request.response.close();
+    });
+
+    final changes = StreamIterator(
+      (database.select(
+        database.settings,
+      )..where((table) => table.key.equals('custom_dialects'))).watch(),
+    );
+    addTearDown(() async {
+      await changes.cancel();
+      await server.close(force: true);
+      await database.close();
+      await directory.delete(recursive: true);
+    });
+
+    expect(await changes.moveNext(), isTrue);
+    expect(changes.current.single.valueJson, jsonEncode('before-first'));
+
+    final operation = IsolatedSyncPassOperation(
+      databasePath: databasePath,
+      databaseName: databaseName,
+      endpoint: Uri.parse('http://127.0.0.1:${server.port}'),
+      syncId: 'alpha-beta-gamma-delta',
+      deviceId: 'device-a',
+    );
+    final result = await operation.call();
+    expect(result.status, SyncPassStatus.completed);
+
+    final persisted = await (database.select(
+      database.settings,
+    )..where((table) => table.key.equals('custom_dialects'))).getSingle();
+    expect(jsonDecode(persisted.valueJson), 'after-first');
+    expect(
+      await changes.moveNext().timeout(const Duration(seconds: 5)),
+      isTrue,
+    );
+    expect(changes.current.single.valueJson, jsonEncode('after-first'));
+  });
 
   test('terminating during apply leaves an atomic database state', () async {
     final directory = await Directory.systemTemp.createTemp(
