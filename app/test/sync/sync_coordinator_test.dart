@@ -1,9 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart'
+    show ApplyInterceptor, QueryExecutor, QueryInterceptor, TransactionExecutor;
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/test_repositories.dart';
@@ -703,6 +707,133 @@ void main() {
           deletedAt = retained?.deletedAt;
         }
         expect(deletedAt, isNotNull);
+        final manifest = decodeSyncManifest(
+          utf8.decode(transport.manifestBodies.single),
+        );
+        expect(manifest.records[entry.value]?[recordId], isNotNull);
+      },
+    );
+  }
+
+  for (final entry in const {
+    'dance': SyncRecordKind.dance,
+    'program': SyncRecordKind.program,
+  }.entries) {
+    test(
+      'protects a ${entry.key} from hard-delete between snapshot and marker',
+      () async {
+        final directory = await Directory.systemTemp.createTemp(
+          'publication-marker-race-',
+        );
+        final databaseFile = File('${directory.path}/test.sqlite');
+        final writerDatabase = CompendiumDatabase(
+          NativeDatabase(
+            databaseFile,
+            setup: (database) {
+              database.execute('PRAGMA busy_timeout = 5000');
+            },
+          ),
+          closeStreamsSynchronously: true,
+        );
+        final deleteTransactionGate = _TransactionStartGate();
+        final deletingDatabase = CompendiumDatabase(
+          NativeDatabase.createInBackground(
+            databaseFile,
+            setup: (database) {
+              database.execute('PRAGMA busy_timeout = 5000');
+            },
+          ).interceptWith(deleteTransactionGate),
+          closeStreamsSynchronously: true,
+        );
+        final repositories = CompendiumRepositories(
+          writerDatabase,
+          contraTaxonomy,
+        );
+        final deletingRepositories = CompendiumRepositories(
+          deletingDatabase,
+          contraTaxonomy,
+        );
+        addTearDown(() async {
+          await writerDatabase.close();
+          await deletingDatabase.close();
+          if (await directory.exists()) {
+            await directory.delete(recursive: true);
+          }
+        });
+
+        final stamp = DateTime.utc(2026, 7, 15, 12);
+        final recordId = 'publication-marker-race-${entry.key}';
+        if (entry.value == SyncRecordKind.dance) {
+          await repositories.dances.create(
+            Dance(
+              id: recordId,
+              title: 'Publication marker race dance',
+              createdAt: stamp,
+              updatedAt: stamp,
+            ),
+          );
+          expect(
+            await deletingRepositories.dances.getById(recordId),
+            isNotNull,
+          );
+        } else {
+          await repositories.programs.create(
+            Program(
+              id: recordId,
+              title: 'Publication marker race program',
+              createdAt: stamp,
+              updatedAt: stamp,
+            ),
+          );
+          expect(
+            await deletingRepositories.programs.getById(recordId),
+            isNotNull,
+          );
+        }
+        await repositories.syncLocal.resetEpoch(epoch: 'epoch-1');
+        deleteTransactionGate.arm();
+
+        late Future<void> deleteFuture;
+        final store = _SnapshotInterleavingStore(
+          CompendiumSyncCoordinatorStore(repositories),
+          afterFinalSnapshot: () async {
+            deleteFuture = entry.value == SyncRecordKind.dance
+                ? deletingRepositories.dances.hardDelete([recordId])
+                : deletingRepositories.programs.hardDelete([recordId]);
+            await deleteTransactionGate.started;
+          },
+          afterTransaction: () => deleteFuture,
+        );
+        final transport = _FakeTransport();
+        final coordinator = SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-a',
+          store: store,
+          transport: transport,
+        );
+
+        final result = await coordinator.syncNow();
+        await deleteFuture;
+
+        expect(result.status, SyncPassStatus.completed);
+        final DateTime? deletedAt;
+        if (entry.value == SyncRecordKind.dance) {
+          final retained = await deletingRepositories.dances.getById(
+            recordId,
+            includeDeleted: true,
+          );
+          expect(retained, isNotNull);
+          deletedAt = retained?.deletedAt;
+        } else {
+          final retained = await deletingRepositories.programs.getById(
+            recordId,
+            includeDeleted: true,
+          );
+          expect(retained, isNotNull);
+          deletedAt = retained?.deletedAt;
+        }
+        expect(deletedAt, isNotNull);
+        expect(store.snapshotCalls, 2);
         final manifest = decodeSyncManifest(
           utf8.decode(transport.manifestBodies.single),
         );
@@ -1805,6 +1936,164 @@ void main() {
     expect(store.advancedEntries, isEmpty);
     expect(transport.blobCalls, 0);
   });
+}
+
+final class _SnapshotInterleavingStore
+    implements SyncCoordinatorStore, SyncApplyReconciliationStorage {
+  _SnapshotInterleavingStore(
+    this._delegate, {
+    required this.afterFinalSnapshot,
+    required this.afterTransaction,
+  });
+
+  final CompendiumSyncCoordinatorStore _delegate;
+  final Future<void> Function() afterFinalSnapshot;
+  final Future<void> Function() afterTransaction;
+  int snapshotCalls = 0;
+  bool _interleavingStarted = false;
+
+  @override
+  Future<SyncCoordinatorSnapshot> snapshot() async {
+    final snapshot = await _delegate.snapshot();
+    snapshotCalls++;
+    if (snapshotCalls == 2 && !_interleavingStarted) {
+      _interleavingStarted = true;
+      await afterFinalSnapshot();
+    }
+    return snapshot;
+  }
+
+  @override
+  Future<Map<SyncRecordAddress, SyncMergeCandidate?>> snapshotCandidates() =>
+      _delegate.snapshotCandidates();
+
+  @override
+  Future<SyncRecordAddress> resolveAlias(SyncRecordAddress address) =>
+      _delegate.resolveAlias(address);
+
+  @override
+  Future<void> markSyncUsed(String syncId) => _delegate.markSyncUsed(syncId);
+
+  @override
+  Future<void> retireAliases({required Set<SyncRecordAddress> peerAddresses}) =>
+      _delegate.retireAliases(peerAddresses: peerAddresses);
+
+  @override
+  Future<void> markPublished(Iterable<SyncRecordAddress> records) =>
+      _delegate.markPublished(records);
+
+  @override
+  Future<void> markPublicationAttempt({
+    required String syncId,
+    required Iterable<SyncRecordAddress> records,
+  }) => _delegate.markPublicationAttempt(syncId: syncId, records: records);
+
+  @override
+  Future<SyncFreshAttachDedupeResult> deduplicateFreshAttach() =>
+      _delegate.deduplicateFreshAttach();
+
+  @override
+  Future<SyncFreshAttachDedupeResult> refreshDanceAmbiguityReviews() =>
+      _delegate.refreshDanceAmbiguityReviews();
+
+  @override
+  Future<void> replaceBaseline({
+    required String epoch,
+    required Iterable<SyncBaselineEntry> entries,
+  }) => _delegate.replaceBaseline(epoch: epoch, entries: entries);
+
+  @override
+  Future<void> clearEpochState() => _delegate.clearEpochState();
+
+  @override
+  Future<void> advanceBaseline({
+    required String epoch,
+    required Iterable<SyncBaselineEntry> entries,
+    required Iterable<SyncRecordAddress> drop,
+  }) => _delegate.advanceBaseline(epoch: epoch, entries: entries, drop: drop);
+
+  @override
+  Future<T> transaction<T>(Future<T> Function() action) async {
+    final result = await _delegate.transaction(action);
+    if (_interleavingStarted) {
+      await afterTransaction();
+    }
+    return result;
+  }
+
+  @override
+  Future<Map<String, Object?>?> read(SyncRecordAddress address) =>
+      _delegate.read(address);
+
+  @override
+  Future<void> write(SyncApplyRecord record) => _delegate.write(record);
+
+  @override
+  Future<SyncReport?> validateInboundReferences(
+    SyncApplyRecord record, {
+    Set<SyncRecordAddress> inboundLiveAddresses = const {},
+    Set<SyncRecordAddress> inboundAddresses = const {},
+    Map<SyncRecordAddress, SyncApplyRecord> inboundRecords = const {},
+  }) => _delegate.validateInboundReferences(
+    record,
+    inboundLiveAddresses: inboundLiveAddresses,
+    inboundAddresses: inboundAddresses,
+    inboundRecords: inboundRecords,
+  );
+
+  @override
+  Future<SyncReport?> writeWithReport(SyncApplyRecord record) =>
+      _delegate.writeWithReport(record);
+
+  @override
+  Future<SyncReport?> writeParentWithReport(SyncApplyRecord record) =>
+      _delegate.writeParentWithReport(record);
+
+  @override
+  Future<SyncReport?> writeJoinsWithReport(SyncApplyRecord record) =>
+      _delegate.writeJoinsWithReport(record);
+
+  @override
+  Future<void> rebuildDerivedIndexes() => _delegate.rebuildDerivedIndexes();
+
+  @override
+  Future<SyncApplyPreparation> reconcileInbound(
+    List<SyncMergeCandidate> candidates, {
+    Map<SyncRecordAddress, String?>? expectedWireHashes,
+  }) => _delegate.reconcileInbound(
+    candidates,
+    expectedWireHashes: expectedWireHashes,
+  );
+
+  @override
+  Future<void> setInboundTombstoneContext(
+    Set<SyncRecordAddress> tombstonedAddresses,
+  ) => _delegate.setInboundTombstoneContext(tombstonedAddresses);
+
+  @override
+  Future<void> clearReconciliationContext() =>
+      _delegate.clearReconciliationContext();
+}
+
+final class _TransactionStartGate extends QueryInterceptor {
+  Completer<void>? _started;
+  bool _armed = false;
+
+  Future<void> get started => _started!.future;
+
+  void arm() {
+    _started = Completer<void>();
+    _armed = true;
+  }
+
+  @override
+  TransactionExecutor beginTransaction(QueryExecutor parent) {
+    if (_armed) {
+      _armed = false;
+      _started!.complete();
+    }
+    return parent.beginTransaction();
+  }
 }
 
 final class _FakeStore implements SyncCoordinatorStore {
