@@ -2445,10 +2445,13 @@ cannot be distinguished from a newer peer's legitimate field, so storing a
 truncated copy is the one outcome that is silently wrong rather than loudly
 refused.
 
-**Admission and ordering**, within the transaction:
+**Admission and ordering**, before merge planning and within the apply
+transaction:
 
-0. Admit each downloaded peer candidate before merge planning, then admit each
-   candidate once more after reconciliation rewrites its address. Reject any
+0. Before merge planning, the coordinator MUST admit each downloaded peer
+   candidate. The apply engine MUST admit those candidates again before
+   reconciliation, then admit each resulting candidate once more inside the
+   apply transaction after reconciliation rewrites its address. Reject any
    `nonCanonicalWireBody` candidate before it can enter merge winner selection,
    `prepared`, natural-key reconciliation, reference validation, parent/join
    processing, or tombstone context. The accepted candidate includes the
