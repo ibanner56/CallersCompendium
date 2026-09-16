@@ -42,7 +42,7 @@
   ],
   "hold": null,
   "completion": {
-    "complete": false,
+    "complete": true,
     "conditions": [
       "Explicit tombstones and fresh-attach exclusions are honored.",
       "Dedupe and reference rewiring preserve all intended data.",
@@ -50,14 +50,14 @@
       "Replacement attach cannot run before confirmation and successful POST.",
       "W8 never initiates backup export or bypasses user consent."
     ],
-    "summary": null,
+    "summary": "PR #1280 is merged and all W8 implementation conditions are evidenced; ADR-004/W14 completion is now recorded, satisfying W8's declared dependencies.",
     "evidence": [
       "packages/compendium_core/test/sync/sync_merge_test.dart covers normalized-title and choreography matching, deterministic survivor selection, source-citation identity, survivor provenance, collection unions, and equal-time ambiguity reporting.",
       "packages/compendium_core/test/storage/sync_storage_test.dart covers fresh-attach reference rewiring, aliases, program slots, links, pending-tombstone exclusions, review-queue reconciliation, and batched FTS cleanup before losing-row deletion.",
       "app/test/sync/sync_coordinator_test.dart covers fresh attach, replacement confirmation, attach continuation, stale-epoch deferral, publication failure retry, baseline persistence ordering, and the production single-flight boundary.",
       "The fresh-attach durability guard was mutation-proven: inserting replaceBaseline before continuation manifest publication made the failed-publication retry test red; restoring the committed implementation made it green.",
       "The tracker validator and its mutation-proven validation suites pass, and python3 tools/preflight.py passes all 30 available steps.",
-      "Completion remains false until ADR-004/W14's tracker completion evidence is recorded; this PR records W8 implementation evidence without changing that dependency's lifecycle state."
+      "ADR-004/W14 completion evidence is recorded in .github/tracking/adr-004/units/W14.json; W4, W5, W6, W7, W14, and W18 are complete, satisfying every declared W8 dependency."
     ]
   }
 }
