@@ -1324,6 +1324,10 @@ void main() {
 
       expect(result.status, SyncPassStatus.completed);
       expect(result.duplicateCount, 2);
+      expect(
+        result.appliedKinds,
+        containsAll([SyncRecordKind.dance, SyncRecordKind.program]),
+      );
     },
   );
 

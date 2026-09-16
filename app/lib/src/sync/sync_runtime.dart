@@ -9,6 +9,7 @@ import '../screens/settings/settings_keys.dart'
 import 'sync_coordinator.dart';
 import 'sync_http_client.dart';
 import 'sync_isolate.dart';
+import 'sync_invalidation.dart';
 
 /// Builds the production coordinator after the database-backed settings are
 /// available.
@@ -57,6 +58,8 @@ final class ConfiguredSyncCoordinatorFactory {
         endpoint: endpoint,
         syncId: syncId,
         deviceId: deviceId,
+        onAppliedKinds: (kinds) =>
+            markSyncAppliedTablesUpdated(repositories.db, kinds),
       ).call,
     );
   }
