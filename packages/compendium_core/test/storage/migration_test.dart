@@ -49,6 +49,51 @@ import '../test_package_root.dart';
 import 'generated/schema.dart';
 
 void main() {
+  test('v35 review rows retain legacy null local hashes at v36', () async {
+    final raw = sqlite3.sqlite3.openInMemory();
+    addTearDown(raw.close);
+
+    final historical = GeneratedHelper().databaseForVersion(
+      NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+      35,
+    );
+    await historical.customSelect('SELECT 1').get();
+    await historical.customStatement(
+      'INSERT INTO review_queue '
+      '(kind, record_id, counterpart_id, reason, candidate_blob, '
+      'candidate_hash, queued_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [
+        'tag',
+        'legacy-local',
+        'legacy-remote',
+        'baselineAbsenceTombstone',
+        '{"id":"legacy-remote"}',
+        'candidate-hash',
+        1,
+      ],
+    );
+    await historical.close();
+
+    final migrated = CompendiumDatabase(
+      NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+    );
+    addTearDown(migrated.close);
+    await migrated.customSelect('SELECT 1').get();
+
+    final row = await migrated
+        .customSelect(
+          'SELECT local_hash FROM review_queue '
+          'WHERE kind = ? AND record_id = ? AND counterpart_id = ?',
+          variables: [
+            Variable.withString('tag'),
+            Variable.withString('legacy-local'),
+            Variable.withString('legacy-remote'),
+          ],
+        )
+        .getSingle();
+    expect(row.read<String?>('local_hash'), isNull);
+  });
+
   group('re-homed migration-agnostic tests (from the retired v11 group)', () {
     late Directory dir;
     late String dbPath;

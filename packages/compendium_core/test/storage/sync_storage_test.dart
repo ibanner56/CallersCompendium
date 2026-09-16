@@ -312,6 +312,8 @@ void main() {
       expect(rows, hasLength(1));
       expect(rows.single.candidateBlob, firstRow.candidateBlob);
       expect(rows.single.candidateHash, firstRow.candidateHash);
+      expect(rows.single.localHash, firstRow.localHash);
+      expect(rows.single.localHash, isNotNull);
       expect(rows.single.recordId, 'a-left');
       expect(rows.single.counterpartId, 'b-right');
     },
@@ -431,6 +433,68 @@ void main() {
     },
   );
 
+  test('rejects a dance ambiguity after an ordinary local edit', () async {
+    final stamp = DateTime.utc(2026, 7, 15, 12);
+    await repositories.dances.create(
+      Dance(
+        id: 'a-edited',
+        title: 'Shared dance',
+        figures: [
+          testFigure(move: 'balance', params: const {'hand': 'left'}),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      ),
+    );
+    await repositories.dances.create(
+      Dance(
+        id: 'b-edited',
+        title: 'The shared dance',
+        figures: [
+          testFigure(move: 'balance', params: const {'hand': 'right'}),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      ),
+    );
+
+    await storage.deduplicateFreshAttach();
+    final item = SyncReviewQueueItem.fromRow(
+      (await repositories.syncLocal.listReviewQueue()).single,
+    );
+    final before = await (db.select(
+      db.dances,
+    )..where((row) => row.id.equals('a-edited'))).getSingle();
+    final local = (await repositories.dances.getById('a-edited'))!;
+    await repositories.dances.update(
+      local.copyWith(
+        rating: 4,
+        updatedAt: stamp.add(const Duration(minutes: 3)),
+      ),
+    );
+    final after = await (db.select(
+      db.dances,
+    )..where((row) => row.id.equals('a-edited'))).getSingle();
+    expect(after.existenceAt, before.existenceAt);
+    expect(after.updatedAt, isNot(before.updatedAt));
+
+    await expectLater(
+      storage.resolveReviewQueue(
+        expectedRow: item.row,
+        action: SyncReviewAction.merge,
+      ),
+      throwsA(
+        isA<SyncReviewException>().having(
+          (error) => error.code,
+          'code',
+          SyncReviewFailureCode.candidateChanged,
+        ),
+      ),
+    );
+    expect((await repositories.dances.getById('a-edited'))!.rating, 4);
+    expect(await repositories.syncLocal.listReviewQueue(), hasLength(1));
+  });
+
   test(
     'reconciles sibling dance ambiguities after merging one of three groups',
     () async {
@@ -479,6 +543,19 @@ void main() {
       expect(remaining.map((row) => (row.recordId, row.counterpartId)), [
         ('a-left', 'c-swing'),
       ]);
+      final current = await storage.snapshot();
+      expect(
+        remaining.single.localHash,
+        current
+            .local[(kind: SyncRecordKind.dance, recordId: 'a-left')]!
+            .wireHash,
+      );
+      expect(
+        remaining.single.candidateHash,
+        current
+            .local[(kind: SyncRecordKind.dance, recordId: 'c-swing')]!
+            .wireHash,
+      );
       expect(await repositories.dances.getById('b-right'), isNull);
       expect(
         SyncReviewQueueItem.fromRow(remaining.single).isActionable,
@@ -2365,6 +2442,7 @@ void main() {
     'inbound dance writes preserve device-local custom-field values',
     () async {
       final stamp = DateTime.utc(2025, 1, 2, 12);
+      // ignore: unused_result
       // ignore: unused_result
       await repositories.customFieldDefs.upsert(
         CustomFieldDef(
@@ -4377,6 +4455,13 @@ void main() {
       String reason = syncBaselineAbsenceTombstoneReason,
     }) async {
       final candidateBlob = encodeSyncRecordBlob(candidate);
+      final localHash =
+          reason == syncBaselineAbsenceTombstoneReason ||
+              reason == syncDanceChoreographyAmbiguityReason
+          ? (await storage.snapshot())
+                .local[(kind: kind, recordId: localId)]
+                ?.wireHash
+          : null;
       await repositories.syncLocal.enqueueReview(
         kind: kind,
         recordId: localId,
@@ -4384,6 +4469,7 @@ void main() {
         reason: reason,
         candidateBlob: candidateBlob,
         candidateHash: sha256Hex(encodeSyncRecordBlobUtf8(candidate)),
+        localHash: localHash,
         queuedAt: stamp.add(const Duration(minutes: 2)),
       );
       return SyncReviewQueueItem.fromRow(
@@ -4594,6 +4680,9 @@ void main() {
           reason: syncBaselineAbsenceTombstoneReason,
           candidateBlob: encodeSyncRecordBlob(candidate),
           candidateHash: sha256Hex(encodeSyncRecordBlobUtf8(candidate)),
+          localHash: (await CompendiumSyncStorage(
+            fileRepositories,
+          ).snapshot()).local[(kind: kind, recordId: localId)]!.wireHash,
           queuedAt: stamp.add(const Duration(minutes: 2)),
         );
         await initialDb.close();
@@ -4661,6 +4750,9 @@ void main() {
           reason: syncBaselineAbsenceTombstoneReason,
           candidateBlob: encodeSyncRecordBlob(candidate),
           candidateHash: sha256Hex(encodeSyncRecordBlobUtf8(candidate)),
+          localHash: (await CompendiumSyncStorage(
+            injectedRepositories,
+          ).snapshot()).local[(kind: kind, recordId: localId)]!.wireHash,
           queuedAt: stamp.add(const Duration(minutes: 2)),
         );
         final item = SyncReviewQueueItem.fromRow(
@@ -4951,6 +5043,110 @@ void main() {
         }
       },
     );
+
+    test(
+      'rejects an ordinary local edit even when existence is unchanged',
+      () async {
+        for (final action in SyncReviewAction.values) {
+          const kind = SyncRecordKind.customFieldDef;
+          final localId = 'ordinary-edit-local-${action.name}';
+          final remoteId = 'ordinary-edit-remote-${action.name}';
+          final key = 'ordinary_edit_${action.name}';
+          await seedLocal(kind, localId, key);
+          final item = await enqueue(
+            kind,
+            localId,
+            tombstoneFor(kind, remoteId, key),
+          );
+          final before = await (db.select(
+            db.customFieldDefs,
+          )..where((row) => row.id.equals(localId))).getSingle();
+
+          // ignore: unused_result
+          await repositories.customFieldDefs.upsert(
+            CustomFieldDef(
+              id: localId,
+              key: key,
+              label: 'Edited field',
+              type: CustomFieldType.text,
+            ),
+            at: stamp.add(const Duration(minutes: 3)),
+          );
+          final after = await (db.select(
+            db.customFieldDefs,
+          )..where((row) => row.id.equals(localId))).getSingle();
+          expect(after.existenceAt, before.existenceAt);
+          expect(after.updatedAt, isNot(before.updatedAt));
+
+          await expectLater(
+            storage.resolveReviewQueue(
+              expectedRow: item.row,
+              action: action,
+              newNaturalKey: action == SyncReviewAction.keepBoth
+                  ? 'ordinary_edit_${action.name}_renamed'
+                  : null,
+            ),
+            throwsA(
+              isA<SyncReviewException>().having(
+                (error) => error.code,
+                'code',
+                SyncReviewFailureCode.candidateChanged,
+              ),
+            ),
+          );
+          expect(
+            (await repositories.customFieldDefs.getById(localId))!.label,
+            'Edited field',
+          );
+          expect(await repositories.syncLocal.listReviewQueue(), hasLength(1));
+          await repositories.syncLocal.deleteReview(
+            kind: kind,
+            recordId: localId,
+            counterpartId: remoteId,
+          );
+        }
+      },
+    );
+
+    test('rejects legacy review rows without a local hash', () async {
+      const kind = SyncRecordKind.choreographer;
+      const localId = 'legacy-local';
+      const remoteId = 'legacy-remote';
+      const key = 'Legacy author';
+      await seedLocal(kind, localId, key);
+      final candidate = tombstoneFor(kind, remoteId, key);
+      await repositories.syncLocal.enqueueReview(
+        kind: kind,
+        recordId: localId,
+        counterpartId: remoteId,
+        reason: syncBaselineAbsenceTombstoneReason,
+        candidateBlob: encodeSyncRecordBlob(candidate),
+        candidateHash: sha256Hex(encodeSyncRecordBlobUtf8(candidate)),
+        queuedAt: stamp.add(const Duration(minutes: 2)),
+      );
+      final item = SyncReviewQueueItem.fromRow(
+        (await repositories.syncLocal.listReviewQueue()).single,
+      );
+      expect(item.row.localHash, isNull);
+
+      await expectLater(
+        storage.resolveReviewQueue(
+          expectedRow: item.row,
+          action: SyncReviewAction.merge,
+        ),
+        throwsA(
+          isA<SyncReviewException>().having(
+            (error) => error.code,
+            'code',
+            SyncReviewFailureCode.candidateChanged,
+          ),
+        ),
+      );
+      final retained = await repositories.syncLocal.listReviewQueue();
+      expect(retained, hasLength(1));
+      expect(retained.single.localHash, isNull);
+      await expectLiveKey(kind, localId, key);
+    });
 
     test(
       'rejects invalid custom-field keep-both keys without changing the row',

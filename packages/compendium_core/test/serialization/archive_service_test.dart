@@ -305,6 +305,7 @@ void main() {
         reason: 'test',
         candidateBlob: encodeSyncRecordBlob(candidate.blob),
         candidateHash: candidate.wireHash,
+        localHash: 'local-hash',
         queuedAt: DateTime.utc(2026, 7, 15),
       );
 

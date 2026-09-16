@@ -55,6 +55,9 @@ Future<void> _enqueue(
     reason: reason,
     candidateBlob: encodeSyncRecordBlob(candidate),
     candidateHash: sha256Hex(encodeSyncRecordBlobUtf8(candidate)),
+    localHash: (await CompendiumSyncStorage(
+      repos,
+    ).snapshot()).local[(kind: candidate.kind, recordId: localId)]?.wireHash,
     queuedAt: _stamp.add(const Duration(minutes: 2)),
   );
 }

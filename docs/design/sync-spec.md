@@ -169,7 +169,7 @@ MUST be classified in the PR that creates it or the coverage ratchet fails.
 | `id_aliases` | `losing_id`, `surviving_id`, `kind` | `deviceScoped` |
 | `pending_deletions` | `kind`, `record_id`, `tombstoned_at`, `tombstone_hash` | `deviceScoped` |
 | `pending_deletions` | `tombstone_blob` | **`shareable`** |
-| `review_queue` | `kind`, `record_id`, `counterpart_id`, `reason`, `candidate_blob`, `candidate_hash`, `queued_at` | `deviceScoped` |
+| `review_queue` | `kind`, `record_id`, `counterpart_id`, `reason`, `candidate_blob`, `candidate_hash`, nullable `local_hash`, `queued_at` | `deviceScoped` |
 | `published_records` | `kind`, `record_id` | `deviceScoped` |
 | `normalisation_skips` | `table`, `column`, `record_id` | `deviceScoped` |
 
@@ -2272,6 +2272,25 @@ to fall outside the window; and repair revisits only records already flagged,
 so no repair path reaches it. Without this rule the record the user created
 moments ago disappears from their own device, with nothing reported.
 
+**A persisted review also carries the local version that made the choice
+safe.** For every actionable baseline-absence tombstone row,
+`local_hash` MUST be the complete `wireHash` of `record_id` when the row is
+queued. Before any alias, rename, merge, tombstone, or candidate write, the
+resolver MUST reconstruct that local record inside the transaction and require
+that its current wire hash equals the non-NULL `local_hash`. A NULL legacy
+value or a mismatch MUST fail with the stale-candidate outcome and MUST retain
+the queue row without writing. This check is in addition to the persisted
+candidate blob/hash, natural-key, and `existence_at` checks.
+
+Baseline-tombstone rows are immutable under duplicate delivery: their
+`candidate_blob`, `candidate_hash`, and `local_hash` are preserved by
+`insertOrIgnore`, so a later remote delivery with the same queue key does not
+replace or refresh the pending choice. Fresh-attach dance ambiguity rows use
+the same local-version check. Explicit dance reconciliation may delete affected
+ambiguity rows and reinsert derived pairs; each reinsert records the current
+left/`record_id` wire hash as `local_hash` and the right/`counterpart_id` wire
+hash as `candidate_hash`.
+
 This does not disturb the equal-`existenceAt` rule below, which resolves
 silently by design. That case is a genuine tie between two transitions each
 stamped against a real prior value; this one is an *unequal* comparison against
@@ -2533,8 +2552,11 @@ the same second.
 
 Everything else `DedupeIndex` flags is deferred to `review_queue`. Queuing MUST
 be idempotent under the canonical tie-break ordering, MUST carry an immutable
-candidate blob and hash, and a queued pair MUST NOT be re-resolved while
-pending. The queue MUST NOT denormalise contact fields.
+candidate blob and hash, and actionable rows MUST carry the queue-time local
+wire hash. A queued pair MUST NOT be re-resolved while pending. Baseline rows
+use immutable insertion; only the explicit dance reconciliation path may
+delete and reinsert derived pairs. The queue MUST NOT denormalise contact
+fields.
 
 ### 6.11 Restore
 

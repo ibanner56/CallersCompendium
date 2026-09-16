@@ -197,6 +197,7 @@ void main() {
         reason: 'collision',
         candidateBlob: '{"id":"d1"}',
         candidateHash: 'c1',
+        localHash: 'local-h1',
         queuedAt: DateTime.utc(2026, 1, 1),
       );
       await repository.markPublished(
@@ -443,6 +444,7 @@ void main() {
         reason: 'first',
         candidateBlob: '{"v":1}',
         candidateHash: 'h1',
+        localHash: 'local-h1',
         queuedAt: DateTime.utc(2026, 1, 1),
       );
       await repository.enqueueReview(
@@ -452,6 +454,7 @@ void main() {
         reason: 'second',
         candidateBlob: '{"v":2}',
         candidateHash: 'h2',
+        localHash: 'local-h2',
         queuedAt: DateTime.utc(2026, 1, 2),
       );
 
@@ -459,6 +462,7 @@ void main() {
       expect(rows, hasLength(1));
       expect(rows.single.reason, 'first');
       expect(rows.single.candidateHash, 'h1');
+      expect(rows.single.localHash, 'local-h1');
 
       await repository.markPublished(
         kind: SyncRecordKind.dance,
