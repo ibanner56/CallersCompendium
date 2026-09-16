@@ -6,7 +6,12 @@ import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart'
-    show ApplyInterceptor, QueryExecutor, QueryInterceptor, TransactionExecutor;
+    show
+        ApplyInterceptor,
+        QueryExecutor,
+        QueryExecutorUser,
+        QueryInterceptor,
+        TransactionExecutor;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -802,7 +807,10 @@ void main() {
                 : deletingRepositories.programs.hardDelete([recordId]);
             await deleteTransactionGate.started;
           },
-          afterTransaction: () => deleteFuture,
+          afterTransaction: () async {
+            deleteTransactionGate.release();
+            await deleteFuture;
+          },
         );
         final transport = _FakeTransport();
         final coordinator = SyncCoordinator(
@@ -1951,6 +1959,8 @@ final class _SnapshotInterleavingStore
   final Future<void> Function() afterTransaction;
   int snapshotCalls = 0;
   bool _interleavingStarted = false;
+  int _activeTransactions = 0;
+  bool _publicationTransactionPending = false;
 
   @override
   Future<SyncCoordinatorSnapshot> snapshot() async {
@@ -1958,7 +1968,14 @@ final class _SnapshotInterleavingStore
     snapshotCalls++;
     if (snapshotCalls == 2 && !_interleavingStarted) {
       _interleavingStarted = true;
+      final publicationTransactionActive = _activeTransactions > 0;
+      if (publicationTransactionActive) {
+        _publicationTransactionPending = true;
+      }
       await afterFinalSnapshot();
+      if (!publicationTransactionActive) {
+        await afterTransaction();
+      }
     }
     return snapshot;
   }
@@ -2014,11 +2031,19 @@ final class _SnapshotInterleavingStore
 
   @override
   Future<T> transaction<T>(Future<T> Function() action) async {
-    final result = await _delegate.transaction(action);
-    if (_interleavingStarted) {
-      await afterTransaction();
+    _activeTransactions++;
+    var ownsPublicationInterleave = false;
+    try {
+      final result = await _delegate.transaction(action);
+      ownsPublicationInterleave = _publicationTransactionPending;
+      _publicationTransactionPending = false;
+      if (ownsPublicationInterleave) {
+        await afterTransaction();
+      }
+      return result;
+    } finally {
+      _activeTransactions--;
     }
-    return result;
   }
 
   @override
@@ -2077,13 +2102,22 @@ final class _SnapshotInterleavingStore
 
 final class _TransactionStartGate extends QueryInterceptor {
   Completer<void>? _started;
+  Completer<void>? _release;
   bool _armed = false;
 
   Future<void> get started => _started!.future;
 
   void arm() {
     _started = Completer<void>();
+    _release = Completer<void>();
     _armed = true;
+  }
+
+  void release() {
+    final release = _release;
+    if (release != null && !release.isCompleted) {
+      release.complete();
+    }
   }
 
   @override
@@ -2093,6 +2127,19 @@ final class _TransactionStartGate extends QueryInterceptor {
       _started!.complete();
     }
     return parent.beginTransaction();
+  }
+
+  @override
+  Future<bool> ensureOpen(
+    QueryExecutor executor,
+    QueryExecutorUser user,
+  ) async {
+    final release = _release;
+    if (release != null && executor is TransactionExecutor) {
+      await release.future;
+      _release = null;
+    }
+    return executor.ensureOpen(user);
   }
 }
 
