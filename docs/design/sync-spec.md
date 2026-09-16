@@ -1116,6 +1116,17 @@ round-trip.
 Two devices holding an identical record MUST produce identical bytes. A change
 to canonicalisation is a wire-format break and MUST bump `v`.
 
+For `dance` and `program` records, the `updatedAt` and `deletedAt` values in
+the body are redundant projections of the envelope fields, not independent
+content. A receiver MUST overwrite only those two body fields with the trusted
+envelope values before every decode, including reconciliation preflight, and
+MUST preserve `createdAt` and every other body field. The operation is
+idempotent, so the receiver's persisted and republished blob is canonical; its
+wire hash MUST be computed from that canonical blob rather than from the
+original body. The original source blob and wire hash MAY remain attached to an
+inbound record for pending-tombstone identity validation, but MUST NOT
+reintroduce the original body into publication.
+
 ### 4.2 Content hash
 
 ```
@@ -1259,9 +1270,10 @@ by this specification: a rule that stripped line breaks from a notes field to
 satisfy sync would be destroying user content to fix a problem sync does not
 have.
 
-**Why this is not a receiver-side repair.** The obvious reading — the receiver
-cleans what it is given — is wrong, and it is wrong in a way that is invisible
-until two devices are running. A receiver that rewrites inbound content breaks
+**Why text sanitisation is not a receiver-side repair.** The obvious reading —
+the receiver cleans what it is given — is wrong, and it is wrong in a way that
+is invisible until two devices are running. A receiver that rewrites inbound
+content-bearing text breaks
 "the hash identifies the content": it stores bytes whose hash is not the one the
 sender's manifest advertised, so under §6.3 step 9 **neither** device's baseline
 ever advances, both then read `changed`/`changed`, and because the receiver
@@ -1272,6 +1284,14 @@ page. Sanitising *inbound* is a no-op against a conforming peer for the same
 reason NFC is — the sender already ran it, and the function returns its input
 unchanged when nothing is stripped — and it is the write path plus the one-time
 pass, not the inbound call, that makes that true.
+
+That argument does not prohibit the bounded timestamp normalisation in §4.1.
+The two body timestamp fields are metadata projections, so replacing only those
+fields with the trusted envelope values does not rewrite user content or invent
+a new ordering. The receiver deliberately republishes the resulting canonical
+body and its hash; a peer that ingests that publication receives the same
+timestamp projections. This is distinct from sanitising arbitrary text, which
+would alter content that the sender intentionally hashed.
 
 This closes a divergence that predates sync. Archive **decode** sanitises
 (`archive_codec.dart:980-1042`, and `_sanitizeFigureJson` at `:755-778`) and
@@ -2124,9 +2144,19 @@ hydrated from other tables, so a write that never touches the record's own row
 can still change what it publishes. I2 protects the repair classifier in §6.9,
 which compares body hashes: a metadata-only re-stamp would be invisible to it.
 
-**I1 has exactly one exception, and it is stated as a property rather than as a
-name.** An operation MAY change serialised content without advancing
-`updatedAt` if and only if it satisfies **both** of the following.
+**Inbound envelope timestamp normalisation is a separate, narrower exception.**
+For `dance` and `program`, a receiver MAY change only the body's redundant
+`updatedAt` and `deletedAt` projections without advancing the envelope's
+`updatedAt` when it replaces them with the trusted envelope values. It MUST
+preserve `createdAt` and every other body field, apply the rule before every
+decode, and compute any republished wire hash from the normalized blob. This
+exception is deliberately limited to metadata whose authoritative copy is
+already in the envelope.
+
+**Apart from that inbound metadata rule, I1 has exactly one content-derived
+exception, and it is stated as a property rather than as a name.** An operation
+MAY change serialised content without advancing `updatedAt` if and only if it
+satisfies **both** of the following.
 
 1. **Content-derived.** Its output is a pure, idempotent function of the
    database's existing content. It MUST NOT consult the clock, the device
