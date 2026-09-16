@@ -2543,10 +2543,13 @@ quarantined.
 | --- | --- |
 | No entry at all | Never agreed; compare local body to peers' |
 | Wire hash, no body hash | Agreed pre-upgrade; verbatim if body matches a peer, else stays quarantined |
-| Wholesale wipe | Cannot occur — fresh attach repersists the baseline first |
+| Legacy full-body hash | Drop the old epoch-scoped baseline and force a fresh attach before repair; never interpret it as a comparison hash |
+| Wholesale wipe | Only the legacy compatibility transition may clear the baseline; fresh attach repersists it before steady-state repair/publication |
 
-The baseline comparison hash starts null on upgrade and populates on the first
-pass that observes agreement. There is no safe backfill.
+On upgrade, the client cannot backfill comparison hashes. It recognizes the
+unmarked pre-upgrade full-body values, clears the old epoch-scoped baseline, and
+performs a fresh attach; that attach repopulates comparison hashes only after a
+peer's agreement is observed. There is no safe backfill.
 
 **Clock-suspect** is a derived per-pass diagnostic: it holds when at least one
 peer value was observed and every value observed in that pass fell outside the

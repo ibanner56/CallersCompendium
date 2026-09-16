@@ -2710,9 +2710,9 @@ final class _FakeStore implements SyncCoordinatorStore {
     this.currentCandidatesBuilder,
     List<String>? lifecycle,
   }) : _storedEpoch = epoch,
-       local = local ?? const {},
-       baseline = baseline ?? const {},
-       aliases = aliases ?? const {},
+       local = {...?local},
+       baseline = {...?baseline},
+       aliases = {...?aliases},
        snapshotEpochs = [...?snapshotEpochs],
        lifecycle = lifecycle ?? <String>[];
 

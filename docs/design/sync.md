@@ -1293,13 +1293,13 @@ other copies actually hold:
   applied to every record with an edit in flight at upgrade; and inventing any
   other value is a guess about content.
 
-  So the comparison body hash is **left null on upgrade and populated on the
-  first pass that observes agreement**. In the interval, such a record is *not*
-  handed to the never-agreed comparison — it was agreed, and the surviving wire
-  hash proves that much — and it stays quarantined if quarantined at all, since
-  the wire hash cannot stand in for the comparison hash it lacks. There is no
-  safe backfill to write, which is worth saying outright rather than leaving an
-  implementer to discover it:
+  So the client **drops the old epoch-scoped baseline on upgrade and performs
+  a fresh attach**. The persisted representation marks comparison hashes
+  written by W9, so an unmarked pre-W9 full-body hash is never reinterpreted as
+  a comparison hash or handed to repair. Fresh attach repopulates comparison
+  hashes only after a peer's agreement is observed. There is no safe backfill
+  to write, which is worth saying outright rather than leaving an implementer
+  to discover it:
   unlike the `existence_at` migration, where the wrong choice is available and
   tempting, here every choice that invents a value is wrong, and the only correct
   one is to admit the value is not recoverable.
