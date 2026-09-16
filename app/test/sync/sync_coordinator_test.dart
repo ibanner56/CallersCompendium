@@ -376,13 +376,23 @@ void main() {
 
     final first = coordinator.syncNow();
     final queued = coordinator.syncNow();
-    final disposing = coordinator.dispose();
+    var disposeCompleted = false;
+    final disposing = coordinator.dispose().then((_) {
+      disposeCompleted = true;
+    });
 
     expect((await queued).status, SyncPassStatus.failed);
     expect(passRuns, 1);
+    await Future<void>.delayed(Duration.zero);
+    expect(
+      disposeCompleted,
+      isFalse,
+      reason: 'dispose must await the active pass while it is still gated',
+    );
     passGate.complete();
     expect((await first).status, SyncPassStatus.completed);
     await disposing;
+    expect(disposeCompleted, isTrue);
     expect(passRuns, 1);
     expect((await coordinator.syncNow()).status, SyncPassStatus.failed);
   });

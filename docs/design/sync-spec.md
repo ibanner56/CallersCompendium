@@ -2564,6 +2564,22 @@ when merge-mode sharing ships.
 Restore converges on a deletion only while some peer still advertises the
 tombstone.
 
+At the currently shipped backup UI boundary, the client MUST serialize the
+restore operation with Device Sync: before `BackupService.restoreFromJson`
+begins any write, it MUST prevent new sync work and await the active
+coordinator pass; no pre-restore pass may apply, publish, or advance the
+baseline after the restore begins. Once the restore operation completes, the
+client MUST recreate the coordinator from the current settings, including
+integrity/incomplete refusal, settings-apply failure after a committed core
+restore, and thrown-error paths. This lifecycle clause protects the
+`BackupService.restoreFromJson` writer without changing the event-wide
+definition above.
+
+The event-wide requirement still includes `CompendiumArchiveImporter`.
+Shared-import serialization is not provided by this backup-UI boundary and
+remains a known follow-up; it is not a safe exclusion from §6.11 and this
+change does not claim full event-wide conformance.
+
 ### 6.12 Failure, offline and triggers
 
 Sync is best-effort and MUST NOT block the UI. A failure MUST retry on the next

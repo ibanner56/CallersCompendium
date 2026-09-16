@@ -61,6 +61,8 @@ class GeneralSection extends StatefulWidget {
 }
 
 class _GeneralSectionState extends State<GeneralSection> {
+  bool _restoreOperationInFlight = false;
+
   /// Soft-delete retention window (ROADMAP G.4), as the stored `int` day count
   /// (`0` = never auto-purge). `null` = not yet loaded; the view shows the
   /// 30-day default until the read resolves.
@@ -215,20 +217,30 @@ class _GeneralSectionState extends State<GeneralSection> {
   /// restore: a corrupt or altered file is refused with a clean,
   /// non-destructive error and the restore never runs — zero entities written.
   Future<void> _onRestoreBackup() async {
+    if (_restoreOperationInFlight) return;
+    _restoreOperationInFlight = true;
+
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
     final repos = RepositoriesScope.of(context);
     final picker = widget.backupPicker ?? pickBackupFile;
-    final onRestored = BackupControllerScope.maybeOf(context)?.onRestored;
-
-    final raw = await showDialog<String>(
-      context: context,
-      builder: (_) => _RestoreBackupDialog(picker: picker),
-    );
-    if (raw == null || raw.trim().isEmpty) return;
+    final backupController = BackupControllerScope.maybeOf(context);
+    final onRestored = backupController?.onRestored;
+    final beforeRestore = backupController?.beforeRestore;
+    final afterRestore = backupController?.afterRestore;
 
     try {
-      final outcome = await BackupService(repos).restoreFromJson(raw);
+      final raw = await showDialog<String>(
+        context: context,
+        builder: (_) => _RestoreBackupDialog(picker: picker),
+      );
+      if (raw == null || raw.trim().isEmpty) return;
+
+      final outcome = await _runRestoreLifecycle(
+        beforeRestore: beforeRestore,
+        afterRestore: afterRestore,
+        operation: () => BackupService(repos).restoreFromJson(raw),
+      );
       if (!outcome.applied) {
         if (!mounted) return;
         // Distinguish the refusal reasons so the user gets an accurate message:
@@ -274,6 +286,26 @@ class _GeneralSectionState extends State<GeneralSection> {
         debugPrint('Backup restore failed: $e\n$st');
       }
       messenger.showSnackBar(SnackBar(content: Text(l10n.backupRestoreFailed)));
+    } finally {
+      _restoreOperationInFlight = false;
+    }
+  }
+
+  /// Serializes the database restore with any coordinator-backed sync pass.
+  ///
+  /// The post-hook intentionally lives in [finally]: an integrity refusal,
+  /// settings-apply failure, thrown restore, or a partially successful
+  /// pre-hook must all leave the runtime with a usable coordinator.
+  Future<T> _runRestoreLifecycle<T>({
+    required Future<T> Function() operation,
+    Future<void> Function()? beforeRestore,
+    Future<void> Function()? afterRestore,
+  }) async {
+    try {
+      await beforeRestore?.call();
+      return await operation();
+    } finally {
+      await afterRestore?.call();
     }
   }
 
