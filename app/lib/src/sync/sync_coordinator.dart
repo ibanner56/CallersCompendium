@@ -958,10 +958,7 @@ class SyncCoordinator {
         : await store.refreshDanceAmbiguityReviews();
     reports.addAll(dedupe.reports);
     if (freshAttach && dedupe.duplicateCount > 0) {
-      appliedKinds.addAll({
-        SyncRecordKind.dance,
-        SyncRecordKind.program,
-      });
+      appliedKinds.addAll({SyncRecordKind.dance, SyncRecordKind.program});
     }
     if (freshAttach) {
       final attachedSnapshot = await store.snapshot();
