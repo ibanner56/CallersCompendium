@@ -5,6 +5,7 @@ enum SyncReportCode {
   equalUpdatedAt,
   unseenLocalCreation,
   malformedRecord,
+  nonCanonicalWireBody,
   invalidClassification,
   unresolvedBlob,
   blobIdentityMismatch,

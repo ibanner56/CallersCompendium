@@ -1859,6 +1859,163 @@ void main() {
     expect(store.advancedEntries, isEmpty);
   });
 
+  test('filters noncanonical peer candidates before merge planning', () async {
+    final noncanonical = SyncRecordBlob(
+      kind: SyncRecordKind.setting,
+      id: 'custom_dialects',
+      updatedAt: DateTime.utc(2026, 7, 15, 12),
+      deletedAt: DateTime.utc(2026, 7, 15, 12),
+      existenceAt: DateTime.utc(2026, 7, 15, 12, 0, 2),
+      body: {'value': 'e\u0301'},
+    );
+    final canonical = SyncRecordBlob(
+      kind: SyncRecordKind.setting,
+      id: 'custom_dialects',
+      updatedAt: DateTime.utc(2026, 7, 15, 12, 0, 1),
+      deletedAt: DateTime.utc(2026, 7, 15, 12, 0, 1),
+      existenceAt: DateTime.utc(2026, 7, 15, 12, 0, 1),
+      body: {'value': 'canonical'},
+    );
+    final noncanonicalCandidate = SyncMergeCandidate.fromBlob(noncanonical);
+    final canonicalCandidate = SyncMergeCandidate.fromBlob(canonical);
+    final store = _FakeStore(previouslyUsed: true);
+    final transport = _FakeTransport(
+      devices: ['peer-bad', 'peer-good'],
+      peerManifests: {
+        'peer-bad': _manifest(
+          deviceId: 'peer-bad',
+          records: {
+            SyncRecordKind.setting: {
+              noncanonical.id: noncanonicalCandidate.wireHash,
+            },
+          },
+        ),
+        'peer-good': _manifest(
+          deviceId: 'peer-good',
+          records: {
+            SyncRecordKind.setting: {canonical.id: canonicalCandidate.wireHash},
+          },
+        ),
+      },
+      blobResponses: {
+        noncanonicalCandidate.wireHash: _FakeTransport.response(
+          200,
+          body: utf8.encode(encodeSyncRecordBlob(noncanonical)),
+        ),
+        canonicalCandidate.wireHash: _FakeTransport.response(
+          200,
+          body: utf8.encode(encodeSyncRecordBlob(canonical)),
+        ),
+      },
+    );
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: store,
+      transport: transport,
+    );
+
+    final result = await coordinator.syncNow();
+
+    expect(result.status, SyncPassStatus.completed);
+    final rejectionReports = result.reports
+        .where((report) => report.code == SyncReportCode.nonCanonicalWireBody)
+        .toList();
+    expect(rejectionReports, hasLength(1));
+    expect(rejectionReports.single.peerId, 'peer-bad');
+    expect(store.writes, hasLength(1));
+    final write = store.writes.single;
+    expect(write.body, canonical.body);
+    expect(write.updatedAt, canonical.updatedAt);
+    expect(write.deletedAt, canonical.deletedAt);
+    expect(write.existenceAt, canonical.existenceAt);
+    expect(write.sourceBlob?.body, canonical.body);
+  });
+
+  test(
+    'filters noncanonical cached peer candidates before merge planning',
+    () async {
+      final noncanonical = SyncRecordBlob(
+        kind: SyncRecordKind.setting,
+        id: 'custom_dialects',
+        updatedAt: DateTime.utc(2026, 7, 15, 12),
+        deletedAt: DateTime.utc(2026, 7, 15, 12),
+        existenceAt: DateTime.utc(2026, 7, 15, 12, 0, 2),
+        body: {'value': 'e\u0301'},
+      );
+      final canonical = SyncRecordBlob(
+        kind: SyncRecordKind.setting,
+        id: 'custom_dialects',
+        updatedAt: DateTime.utc(2026, 7, 15, 12, 0, 1),
+        deletedAt: DateTime.utc(2026, 7, 15, 12, 0, 1),
+        existenceAt: DateTime.utc(2026, 7, 15, 12, 0, 1),
+        body: {'value': 'canonical'},
+      );
+      final noncanonicalCandidate = SyncMergeCandidate.fromBlob(noncanonical);
+      final canonicalCandidate = SyncMergeCandidate.fromBlob(canonical);
+      final store = _FakeStore(
+        previouslyUsed: true,
+        snapshotBuilder: (_) => SyncCoordinatorSnapshot(
+          epoch: 'epoch-1',
+          previouslyUsed: true,
+          local: const {},
+          baseline: const {},
+          publication: {noncanonicalCandidate.address: noncanonicalCandidate},
+        ),
+      );
+      final transport = _FakeTransport(
+        devices: ['peer-bad', 'peer-good'],
+        peerManifests: {
+          'peer-bad': _manifest(
+            deviceId: 'peer-bad',
+            records: {
+              SyncRecordKind.setting: {
+                noncanonical.id: noncanonicalCandidate.wireHash,
+              },
+            },
+          ),
+          'peer-good': _manifest(
+            deviceId: 'peer-good',
+            records: {
+              SyncRecordKind.setting: {
+                canonical.id: canonicalCandidate.wireHash,
+              },
+            },
+          ),
+        },
+        blobResponses: {
+          canonicalCandidate.wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(canonical)),
+          ),
+        },
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+      );
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      final rejectionReports = result.reports
+          .where((report) => report.code == SyncReportCode.nonCanonicalWireBody)
+          .toList();
+      expect(rejectionReports, hasLength(1));
+      expect(rejectionReports.single.peerId, 'peer-bad');
+      expect(transport.blobCalls, 1);
+      expect(store.writes, hasLength(1));
+      final write = store.writes.single;
+      expect(write.body, canonical.body);
+      expect(write.updatedAt, canonical.updatedAt);
+      expect(write.deletedAt, canonical.deletedAt);
+      expect(write.existenceAt, canonical.existenceAt);
+      expect(write.sourceBlob?.body, canonical.body);
+    },
+  );
+
   test('a wrong-envelope blob is reported and remains unapplied', () async {
     final wrong = SyncMergeCandidate.fromBlob(
       _setting('default_program_band', 'peer'),

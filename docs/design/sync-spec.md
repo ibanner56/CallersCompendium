@@ -1123,9 +1123,24 @@ envelope values before every decode, including reconciliation preflight, and
 MUST preserve `createdAt` and every other body field. The operation is
 idempotent, so the receiver's persisted and republished blob is canonical; its
 wire hash MUST be computed from that canonical blob rather than from the
-original body. The original source blob and wire hash MAY remain attached to an
-inbound record for pending-tombstone identity validation, but MUST NOT
-reintroduce the original body into publication.
+original body. The admitted candidate's source blob MUST be replaced by that
+complete canonical envelope, including the projected fields and excluding any
+device-local overlay fields. Pending-tombstone storage and publication MUST use
+that admitted source blob; an original noncanonical body MUST NOT be retained
+for retransmission.
+
+For every other body field, and for every record kind other than this bounded
+timestamp projection, a receiver MUST reject the candidate if shareable JSON
+normalization would change its content. The rejection MUST happen before W7
+natural-key reconciliation, merge winner selection, or any apply preparation,
+skip only that peer candidate, leave local state and reconciliation state
+unchanged, and produce the non-blocking `nonCanonicalWireBody` update-required
+report. A canonical candidate admitted from another peer may still enter merge
+planning; a rejected candidate MUST NOT contribute existence or content fields
+to a synthetic winner. The v1 wire blob does not carry sender schema or
+canonicalization provenance, so a receiver MUST treat every such body as
+requiring the sending device to update before retrying rather than guessing
+whether it came from an old schema or a malformed current client.
 
 ### 4.2 Content hash
 
@@ -2149,9 +2164,12 @@ For `dance` and `program`, a receiver MAY change only the body's redundant
 `updatedAt` and `deletedAt` projections without advancing the envelope's
 `updatedAt` when it replaces them with the trusted envelope values. It MUST
 preserve `createdAt` and every other body field, apply the rule before every
-decode, and compute any republished wire hash from the normalized blob. This
-exception is deliberately limited to metadata whose authoritative copy is
-already in the envelope.
+decode and before reconciliation, and compute any republished wire hash from
+the complete projected blob. This exception is deliberately limited to
+metadata whose authoritative copy is already in the envelope. An arbitrary
+normalization change MUST instead be rejected and reported as
+`nonCanonicalWireBody`; the report skips only that record and does not gate the
+rest of the batch.
 
 **Apart from that inbound metadata rule, I1 has exactly one content-derived
 exception, and it is stated as a property rather than as a name.** An operation
@@ -2427,8 +2445,17 @@ cannot be distinguished from a newer peer's legitimate field, so storing a
 truncated copy is the one outcome that is silently wrong rather than loudly
 refused.
 
-**Ordering**, within the transaction:
+**Admission and ordering**, before merge planning and within the apply
+transaction:
 
+0. Before merge planning, the coordinator MUST admit each downloaded peer
+   candidate. The apply engine MUST admit those candidates again before
+   reconciliation, then admit each resulting candidate once more inside the
+   apply transaction after reconciliation rewrites its address. Reject any
+   `nonCanonicalWireBody` candidate before it can enter merge winner selection,
+   `prepared`, natural-key reconciliation, reference validation, parent/join
+   processing, or tombstone context. The accepted candidate includes the
+   complete canonical source blob.
 1. Reconcile `UNIQUE`-key collisions, building the remap.
 2. Apply the remap to every inbound record in the batch.
 3. Apply parent records by UUID.
@@ -2468,6 +2495,15 @@ device can land holding a record that cites a tombstone.
 `localNow + 24h` MUST be refused as malformed and reported: one record skipped,
 batch intact, local state unchanged. Values MUST NOT be clamped. A rejected hash
 is reported once per session (in memory).
+
+A body that is not canonical under the receiver's shareable JSON normalizer
+MUST likewise be refused before reconciliation, except for the bounded
+`dance`/`program` timestamp projection in §§4.1 and 6.5. It MUST be reported
+with code `nonCanonicalWireBody` and a message telling the user to update the
+sending device before retrying. The report is non-blocking, skips only that
+record, includes the peer identity when the coordinator knows it, and is
+coalesced by code, kind, record, and peer for the pass. The receiver MUST NOT
+silently repair arbitrary text or keys under the peer's timestamp and hash.
 
 Rejecting both fields is what makes a poisoned value always **local**.
 

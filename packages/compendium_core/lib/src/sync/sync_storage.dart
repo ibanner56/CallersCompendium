@@ -25,6 +25,7 @@ import '../storage/repositories/custom_field_repository.dart';
 import '../storage/repositories/sync_local_repository.dart';
 import '../storage/shareable_text.dart';
 import 'sync_apply.dart';
+import 'sync_admission.dart';
 import 'sync_codec.dart';
 import 'sync_id.dart';
 import 'sync_merge.dart';
@@ -32,7 +33,6 @@ import 'sync_record_kind.dart';
 import 'sync_reconciliation.dart';
 import 'sync_report.dart';
 import 'sync_review.dart';
-import 'wire_mapping.dart';
 
 Iterable<List<T>> _chunked<T>(Iterable<T> values, int size) sync* {
   final list = values.toList(growable: false);
@@ -1665,10 +1665,12 @@ final class CompendiumSyncStorage
     final reports = <SyncReport>[];
     final preparedNatural = <({SyncRecordKind kind, String key}), int>{};
     for (var candidate in candidates) {
-      final preflightReport = _preflightInboundCandidate(candidate);
+      final preflight = _preflightInboundCandidate(candidate);
+      final preflightReport = preflight.report;
       if (preflightReport != null) {
         if (candidate.blob.kind == SyncRecordKind.customFieldDef &&
-            candidate.blob.body['shareable'] == false) {
+            candidate.blob.body['shareable'] == false &&
+            preflightReport.code == SyncReportCode.invalidClassification) {
           // Keep the rejected definition in the validation context so
           // dependent inbound dances receive the same classification report.
           // It must not enter natural-key reconciliation, which can migrate
@@ -1679,6 +1681,7 @@ final class CompendiumSyncStorage
         }
         continue;
       }
+      candidate = preflight.candidate!;
       final kind = candidate.blob.kind;
       if (syncNaturalKeyKinds.contains(kind)) {
         final originalAddress = candidate.address;
@@ -2043,96 +2046,43 @@ final class CompendiumSyncStorage
     _naturalKeyIndex = null;
   }
 
-  SyncReport? _preflightInboundCandidate(SyncMergeCandidate candidate) {
-    final validation = validateShareableRecordBody(
-      candidate.blob.kind,
-      candidate.blob.body,
-      settingsKey: candidate.blob.kind == SyncRecordKind.setting
-          ? candidate.blob.id
-          : null,
-    );
-    if (!validation.isValid) {
-      return SyncReport(
-        code: SyncReportCode.invalidClassification,
-        kind: candidate.blob.kind,
-        recordId: candidate.blob.id,
-        message:
-            'Inbound body contains a non-shareable wire path '
-            '${validation.invalidPath}.',
-      );
-    }
+  SyncInboundCandidateAdmission _preflightInboundCandidate(
+    SyncMergeCandidate candidate,
+  ) {
+    final admission = admitSyncInboundCandidate(candidate);
+    final admissionReport = admission.report;
+    if (admissionReport != null) return admission;
+    final admitted = admission.candidate!;
     if (candidate.blob.kind == SyncRecordKind.customFieldDef &&
         candidate.blob.body['shareable'] == false) {
-      return SyncReport(
-        code: SyncReportCode.invalidClassification,
-        kind: candidate.blob.kind,
-        recordId: candidate.blob.id,
-        message:
-            'Inbound custom-field definition '
-            '"${candidate.blob.id}" is not shareable.',
-      );
-    }
-    if (candidate.blob.kind == SyncRecordKind.setting &&
-        (candidate.blob.id == 'sync_id' ||
-            candidate.blob.id == 'sync_device_id')) {
-      return SyncReport(
-        code: SyncReportCode.invalidClassification,
-        kind: candidate.blob.kind,
-        recordId: candidate.blob.id,
-        message:
-            'Inbound sync credentials are receive-only and were not adopted.',
-      );
-    }
-
-    final Object? normalized;
-    try {
-      normalized = normalizeShareableJson(candidate.blob.body);
-    } on ArgumentError catch (error) {
-      return SyncReport(
-        code: SyncReportCode.malformedRecord,
-        kind: candidate.blob.kind,
-        recordId: candidate.blob.id,
-        message: 'Inbound record body could not be normalized: $error.',
-      );
-    } on ShareableJsonKeyCollision catch (error) {
-      return SyncReport(
-        code: SyncReportCode.malformedRecord,
-        kind: candidate.blob.kind,
-        recordId: candidate.blob.id,
-        message:
-            'Inbound record body has a normalized key collision: '
-            '${error.normalizedKey}.',
-      );
-    }
-    if (normalized is! Map) {
-      return SyncReport(
-        code: SyncReportCode.malformedRecord,
-        kind: candidate.blob.kind,
-        recordId: candidate.blob.id,
-        message: 'Inbound record body is not an object.',
-      );
-    }
-    if (candidate.blob.kind == SyncRecordKind.setting) return null;
-
-    try {
-      _decodeEntity(
-        candidate.blob.kind,
-        _normalizeInboundTimestampBody(
+      return SyncInboundCandidateAdmission.rejected(
+        SyncReport(
+          code: SyncReportCode.invalidClassification,
           kind: candidate.blob.kind,
-          body: Map<String, Object?>.from(normalized),
-          updatedAt: candidate.blob.updatedAt,
-          deletedAt: candidate.blob.deletedAt,
+          recordId: candidate.blob.id,
+          peerId: candidate.peerId,
+          message:
+              'Inbound custom-field definition '
+              '"${candidate.blob.id}" is not shareable.',
         ),
       );
+    }
+    if (candidate.blob.kind == SyncRecordKind.setting) return admission;
+
+    try {
+      _decodeEntity(candidate.blob.kind, admitted.blob.body);
     } on Object catch (error) {
-      return SyncReport(
-        code: SyncReportCode.malformedRecord,
-        kind: candidate.blob.kind,
-        recordId: candidate.blob.id,
-        message: 'Inbound record could not be decoded: $error.',
+      return SyncInboundCandidateAdmission.rejected(
+        SyncReport(
+          code: SyncReportCode.malformedRecord,
+          kind: candidate.blob.kind,
+          recordId: candidate.blob.id,
+          peerId: candidate.peerId,
+          message: 'Inbound record could not be decoded: $error.',
+        ),
       );
     }
-    return null;
+    return admission;
   }
 
   Future<Map<SyncRecordKind, Map<String, String>>> _aliasMap() async {
@@ -2219,7 +2169,7 @@ final class CompendiumSyncStorage
       existenceAt: candidate.blob.existenceAt,
       body: body,
     );
-    return SyncMergeCandidate(blob: blob);
+    return SyncMergeCandidate(blob: blob, peerId: candidate.peerId);
   }
 
   SyncApplyRecord _normalizeInboundRecord(SyncApplyRecord record) {
@@ -2229,14 +2179,40 @@ final class CompendiumSyncStorage
       updatedAt: record.updatedAt,
       deletedAt: record.deletedAt,
     );
-    if (identical(body, record.body)) return record;
+    final sourceBlob = record.sourceBlob;
+    final normalizedSourceBlob = sourceBlob == null
+        ? null
+        : SyncRecordBlob(
+            v: sourceBlob.v,
+            kind: sourceBlob.kind,
+            id: sourceBlob.id,
+            updatedAt: sourceBlob.updatedAt,
+            deletedAt: sourceBlob.deletedAt,
+            existenceAt: sourceBlob.existenceAt,
+            body: _normalizeInboundTimestampBody(
+              kind: sourceBlob.kind,
+              body: sourceBlob.body,
+              updatedAt: sourceBlob.updatedAt,
+              deletedAt: sourceBlob.deletedAt,
+            ),
+          );
+    final canonicalSourceBlob =
+        sourceBlob == null ||
+            canonicalJson(sourceBlob.toJson()) ==
+                canonicalJson(normalizedSourceBlob!.toJson())
+        ? sourceBlob
+        : normalizedSourceBlob;
+    if (identical(body, record.body) &&
+        identical(canonicalSourceBlob, record.sourceBlob)) {
+      return record;
+    }
     return SyncApplyRecord(
       address: record.address,
       body: body,
       updatedAt: record.updatedAt,
       deletedAt: record.deletedAt,
       existenceAt: record.existenceAt,
-      sourceBlob: record.sourceBlob,
+      sourceBlob: canonicalSourceBlob,
     );
   }
 
@@ -2671,6 +2647,7 @@ final class CompendiumSyncStorage
             : local.blob.existenceAt,
         body: body,
       ),
+      peerId: contentSource.peerId,
     );
   }
 

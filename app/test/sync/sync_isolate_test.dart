@@ -82,6 +82,95 @@ void main() {
     ]);
   });
 
+  test(
+    'round-trips a noncanonical-body report through the sync isolate',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'compendium-sync-isolate-noncanonical-',
+      );
+      final databasePath = '${directory.path}/compendium.sqlite';
+      final database = CompendiumDatabase(NativeDatabase(File(databasePath)));
+      final repositories = CompendiumRepositories(database, contraTaxonomy);
+      await repositories.ensureMigrated();
+      await repositories.syncLocal.replaceBaseline(epoch: 'epoch-1');
+
+      final blob = SyncRecordBlob(
+        kind: SyncRecordKind.setting,
+        id: 'default_program_band',
+        updatedAt: DateTime.utc(2026, 7, 15, 12),
+        deletedAt: null,
+        existenceAt: DateTime.utc(2026, 7, 15, 12),
+        body: {'value': 'e\u0301'},
+      );
+      final encodedBlob = encodeSyncRecordBlobUtf8(blob);
+      final blobHash = sha256Hex(encodedBlob);
+      final manifest = SyncManifest(
+        deviceId: 'peer',
+        epoch: 'epoch-1',
+        writtenAt: DateTime.utc(2026, 7, 15, 12),
+        records: {
+          SyncRecordKind.setting: {blob.id: blobHash},
+        },
+      );
+
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      server.listen((request) async {
+        final path = request.uri.path;
+        await request.drain<void>();
+        if (request.method == 'GET' && path == '/v1/store') {
+          request.response.headers.contentType = ContentType.json;
+          request.response.write(
+            jsonEncode({
+              'epoch': 'epoch-1',
+              'devices': ['peer'],
+            }),
+          );
+        } else if (request.method == 'GET' && path == '/v1/manifests/peer') {
+          request.response.headers.contentType = ContentType.json;
+          request.response.write(encodeSyncManifest(manifest));
+        } else if (request.method == 'GET' && path == '/v1/blobs/$blobHash') {
+          request.response.headers.contentType = ContentType(
+            'application',
+            'octet-stream',
+          );
+          request.response.add(encodedBlob);
+        } else if (request.method == 'POST' && path == '/v1/blobs/missing') {
+          request.response.headers.contentType = ContentType.json;
+          request.response.write(jsonEncode({'missing': <String>[]}));
+        } else if (request.method == 'PUT' &&
+            path == '/v1/manifests/device-a') {
+          request.response.headers.contentType = ContentType.json;
+          request.response.write('{}');
+        } else {
+          request.response
+            ..statusCode = HttpStatus.notFound
+            ..headers.contentType = ContentType.json
+            ..write('{}');
+        }
+        await request.response.close();
+      });
+      addTearDown(() async {
+        await server.close(force: true);
+        await database.close();
+        await directory.delete(recursive: true);
+      });
+
+      final operation = IsolatedSyncPassOperation(
+        databasePath: databasePath,
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}'),
+        syncId: 'alpha-beta-gamma-delta',
+        deviceId: 'device-a',
+      );
+
+      final result = await operation.call();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(result.reports, hasLength(1));
+      expect(result.reports.single.code, SyncReportCode.nonCanonicalWireBody);
+      expect(result.reports.single.peerId, 'peer');
+    },
+  );
+
   test('propagates a nonzero fresh-attach duplicate count', () async {
     final directory = await Directory.systemTemp.createTemp(
       'compendium-sync-isolate-dedupe-',
@@ -240,6 +329,7 @@ void main() {
         'PUT /v1/manifests/device-a',
       ]);
     },
+    timeout: const Timeout(Duration(minutes: 2)),
   );
 
   test('preserves peer manifest cache across isolated passes', () async {
@@ -310,7 +400,7 @@ void main() {
     expect((await operation.call()).status, SyncPassStatus.completed);
     expect((await operation.call()).status, SyncPassStatus.completed);
     expect(manifestEtags, [null, '"peer-v1"']);
-  });
+  }, timeout: const Timeout(Duration(minutes: 2)));
 
   test('terminating during apply leaves an atomic database state', () async {
     final directory = await Directory.systemTemp.createTemp(

@@ -129,6 +129,63 @@ void main() {
   );
 
   test(
+    'rejects a noncanonical natural-key body before reconciliation side effects',
+    () async {
+      final localStamp = DateTime.utc(2025, 1, 1, 12);
+      final remoteStamp = DateTime.utc(2025, 1, 2, 12);
+      // ignore: unused_result
+      await repositories.tags.upsert(
+        Tag(id: 'local-tag', name: 'Café'),
+        at: localStamp,
+      );
+      final noncanonicalTag = SyncMergeCandidate(
+        blob: SyncRecordBlob(
+          kind: SyncRecordKind.tag,
+          id: 'remote-tag',
+          updatedAt: remoteStamp,
+          deletedAt: null,
+          existenceAt: remoteStamp,
+          body: {'id': 'remote-tag', 'name': 'Caf\u0065\u0301'},
+        ),
+        peerId: 'peer-a',
+      );
+      final valid = SyncMergeCandidate(
+        blob: SyncRecordBlob(
+          kind: SyncRecordKind.choreographer,
+          id: 'valid-peer',
+          updatedAt: remoteStamp,
+          deletedAt: null,
+          existenceAt: remoteStamp,
+          body: {'id': 'valid-peer', 'name': 'Valid peer'},
+        ),
+        peerId: 'peer-a',
+      );
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [noncanonicalTag, valid],
+        storage: storage,
+      );
+
+      expect(result.applied, [valid.address]);
+      expect(result.reports.single.code, SyncReportCode.nonCanonicalWireBody);
+      expect(result.reports.single.peerId, 'peer-a');
+      expect(
+        await repositories.syncLocal.resolveAlias(
+          kind: SyncRecordKind.tag,
+          recordId: noncanonicalTag.blob.id,
+        ),
+        noncanonicalTag.blob.id,
+      );
+      expect(await repositories.tags.getById('local-tag'), isNotNull);
+      expect(await repositories.tags.getById('remote-tag'), isNull);
+      expect(
+        await repositories.choreographers.getById('valid-peer'),
+        isNotNull,
+      );
+    },
+  );
+
+  test(
     'uses envelope timestamps for inbound dance and program bodies',
     () async {
       final createdAt = DateTime.utc(2020, 1, 1, 12);
@@ -279,6 +336,34 @@ void main() {
         expectedUpdatedAt: tombstoneStamp,
         expectedDeletedAt: tombstoneStamp,
       );
+
+      final publishedAddress = (
+        kind: SyncRecordKind.dance,
+        recordId: liveDance.id,
+      );
+      final published =
+          (await storage.snapshot()).publication[publishedAddress]!;
+      final mergePlan = const SyncMergeEngine().plan(
+        local: {published.address: published},
+        baseline: {
+          published.address: SyncBaselineEntry(
+            kind: published.address.kind,
+            recordId: published.address.recordId,
+            wireHash: published.wireHash,
+          ),
+        },
+        peers: [
+          {
+            published.address: SyncMergeCandidate(
+              blob: published.blob,
+              wireHash: published.wireHash,
+              peerId: 'peer-a',
+            ),
+          },
+        ],
+      );
+      expect(mergePlan.reports, isEmpty);
+      expect(mergePlan.decisions.single.action, SyncMergeAction.none);
     },
   );
 
@@ -432,7 +517,27 @@ void main() {
       recordId: dance.id,
     );
     expect(pending, isNotNull);
-    expect(pending!.tombstoneHash, tombstone.wireHash);
+    final canonicalTombstone = SyncRecordBlob(
+      kind: SyncRecordKind.dance,
+      id: dance.id,
+      updatedAt: tombstoneStamp,
+      deletedAt: tombstoneStamp,
+      existenceAt: tombstoneStamp,
+      body: {
+        ...poisonedBody,
+        'updatedAt': tombstoneStamp.toIso8601String(),
+        'deletedAt': tombstoneStamp.toIso8601String(),
+      },
+    );
+    expect(
+      pending!.tombstoneHash,
+      SyncMergeCandidate.fromBlob(canonicalTombstone).wireHash,
+    );
+    expect(pending.tombstoneHash, isNot(tombstone.wireHash));
+    expect(
+      decodeSyncRecordBlob(pending.tombstoneBlob).body,
+      canonicalTombstone.body,
+    );
 
     Future<void> expectPublishedTombstone() async {
       final publication =

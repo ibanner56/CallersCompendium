@@ -111,6 +111,7 @@ export 'src/sync/sync_merge.dart';
 export 'src/sync/sync_reconciliation.dart';
 export 'src/sync/sync_report.dart';
 export 'src/sync/sync_apply.dart';
+export 'src/sync/sync_admission.dart';
 export 'src/sync/sync_review.dart';
 export 'src/sync/sync_review_resolver.dart';
 export 'src/sync/sync_storage.dart';

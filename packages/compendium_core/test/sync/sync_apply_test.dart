@@ -50,6 +50,25 @@ void main() {
     expect(storage.rebuilds, 0);
   });
 
+  test('coalesces noncanonical reports separately for each peer', () {
+    final sink = SyncReportSink();
+    SyncReport report(String peerId, String message) => SyncReport(
+      code: SyncReportCode.nonCanonicalWireBody,
+      kind: SyncRecordKind.setting,
+      recordId: 'custom_dialects',
+      peerId: peerId,
+      message: message,
+    );
+
+    sink
+      ..add(report('peer-a', 'first'))
+      ..add(report('peer-a', 'duplicate'))
+      ..add(report('peer-b', 'second'));
+
+    expect(sink.reports, hasLength(2));
+    expect(sink.reports.map((value) => value.peerId), ['peer-a', 'peer-b']);
+  });
+
   test(
     'malformed records do not abort valid records in the same batch',
     () async {
@@ -130,6 +149,116 @@ void main() {
         ),
       ),
     );
+  });
+
+  test(
+    'rejects noncanonical bodies without mutating the record or its peers',
+    () async {
+      final bad = SyncRecordBlob(
+        kind: SyncRecordKind.setting,
+        id: 'custom_dialects',
+        updatedAt: DateTime.utc(2026, 7, 15, 12),
+        deletedAt: null,
+        existenceAt: DateTime.utc(2026, 7, 15, 12),
+        body: {'value': 'e\u0301'},
+      );
+      final valid = SyncRecordBlob(
+        kind: SyncRecordKind.setting,
+        id: 'default_program_band',
+        updatedAt: DateTime.utc(2026, 7, 15, 12, 1),
+        deletedAt: null,
+        existenceAt: DateTime.utc(2026, 7, 15, 12, 1),
+        body: {'value': 'remote'},
+      );
+      final storage = _MemoryApplyStorage({
+        bad.address: {'value': 'local'},
+      });
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate.fromBlob(bad, peerId: 'peer-a'),
+          SyncMergeCandidate.fromBlob(valid, peerId: 'peer-a'),
+        ],
+        storage: storage,
+      );
+
+      expect(result.applied, [valid.address]);
+      expect(storage.records[bad.address], {'value': 'local'});
+      expect(result.reports, hasLength(1));
+      expect(result.reports.single.code, SyncReportCode.nonCanonicalWireBody);
+      expect(result.reports.single.peerId, 'peer-a');
+      expect(
+        result.reports.single.message,
+        contains('Update the sending device'),
+      );
+    },
+  );
+
+  test(
+    'admits timestamp projections and preserves their source blob',
+    () async {
+      final envelopeUpdatedAt = DateTime.utc(2026, 7, 15, 12);
+      final envelopeDeletedAt = DateTime.utc(2026, 7, 15, 12, 1);
+      final candidate = SyncRecordBlob(
+        kind: SyncRecordKind.dance,
+        id: 'projection-dance',
+        updatedAt: envelopeUpdatedAt,
+        deletedAt: envelopeDeletedAt,
+        existenceAt: envelopeDeletedAt,
+        body: {
+          'id': 'projection-dance',
+          'title': 'Projection dance',
+          'updatedAt': DateTime.utc(2099, 1, 1).toIso8601String(),
+          'deletedAt': DateTime.utc(2099, 1, 1, 1).toIso8601String(),
+        },
+      );
+      final storage = _MemoryApplyStorage({});
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [SyncMergeCandidate.fromBlob(candidate)],
+        storage: storage,
+      );
+
+      expect(result.reports, isEmpty);
+      expect(result.applied, [candidate.address]);
+      final source = storage.sourceBlobs[candidate.address];
+      expect(source, isNotNull);
+      expect(source!.body['updatedAt'], envelopeUpdatedAt.toIso8601String());
+      expect(source.body['deletedAt'], envelopeDeletedAt.toIso8601String());
+    },
+  );
+
+  test('rejects noncanonical candidates before batch reconciliation', () async {
+    final bad = SyncRecordBlob(
+      kind: SyncRecordKind.tag,
+      id: 'noncanonical-tag',
+      updatedAt: DateTime.utc(2026, 7, 15, 12),
+      deletedAt: null,
+      existenceAt: DateTime.utc(2026, 7, 15, 12),
+      body: {'id': 'noncanonical-tag', 'name': 'Caf\u0065\u0301'},
+    );
+    final valid = SyncRecordBlob(
+      kind: SyncRecordKind.setting,
+      id: 'default_program_band',
+      updatedAt: DateTime.utc(2026, 7, 15, 12, 1),
+      deletedAt: null,
+      existenceAt: DateTime.utc(2026, 7, 15, 12, 1),
+      body: {'value': 'remote'},
+    );
+    final storage = _BatchProbeStorage();
+
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate.fromBlob(bad),
+        SyncMergeCandidate.fromBlob(valid),
+      ],
+      storage: storage,
+    );
+
+    expect(result.applied, [valid.address]);
+    expect(storage.reconciledAddresses, [valid.address]);
+    expect(storage.records.containsKey(bad.address), isFalse);
+    expect(result.reports.single.code, SyncReportCode.nonCanonicalWireBody);
   });
 
   test('an interrupted apply rolls back every earlier record', () async {
@@ -261,6 +390,7 @@ class _MemoryApplyStorage implements SyncApplyStorage {
       };
 
   final Map<SyncRecordAddress, Map<String, Object?>> records;
+  final sourceBlobs = <SyncRecordAddress, SyncRecordBlob?>{};
   int rebuilds = 0;
 
   @override
@@ -273,6 +403,7 @@ class _MemoryApplyStorage implements SyncApplyStorage {
   @override
   Future<void> write(SyncApplyRecord record) async {
     records[record.address] = Map.of(record.body);
+    sourceBlobs[record.address] = record.sourceBlob;
   }
 
   @override
@@ -328,4 +459,52 @@ final class _ReferenceFailureStorage extends _MemoryApplyStorage {
     }
     return super.write(record);
   }
+}
+
+final class _BatchProbeStorage extends _MemoryApplyStorage
+    implements SyncApplyReconciliationStorage {
+  _BatchProbeStorage() : super({});
+
+  final reconciledAddresses = <SyncRecordAddress>[];
+
+  @override
+  Future<SyncApplyPreparation> reconcileInbound(
+    List<SyncMergeCandidate> candidates, {
+    Map<SyncRecordAddress, String?>? expectedWireHashes,
+  }) async {
+    reconciledAddresses.addAll([
+      for (final candidate in candidates) candidate.address,
+    ]);
+    return SyncApplyPreparation(candidates: candidates);
+  }
+
+  @override
+  Future<SyncReport?> validateInboundReferences(
+    SyncApplyRecord record, {
+    Set<SyncRecordAddress> inboundLiveAddresses = const {},
+    Set<SyncRecordAddress> inboundAddresses = const {},
+    Map<SyncRecordAddress, SyncApplyRecord> inboundRecords = const {},
+  }) async => null;
+
+  @override
+  Future<SyncReport?> writeWithReport(SyncApplyRecord record) async {
+    await write(record);
+    return null;
+  }
+
+  @override
+  Future<SyncReport?> writeParentWithReport(SyncApplyRecord record) =>
+      writeWithReport(record);
+
+  @override
+  Future<SyncReport?> writeJoinsWithReport(SyncApplyRecord record) async =>
+      null;
+
+  @override
+  Future<void> setInboundTombstoneContext(
+    Set<SyncRecordAddress> tombstonedAddresses,
+  ) async {}
+
+  @override
+  Future<void> clearReconciliationContext() async {}
 }
