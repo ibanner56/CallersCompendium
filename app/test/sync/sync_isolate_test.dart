@@ -331,7 +331,6 @@ void main() {
         'PUT /v1/manifests/device-a',
       ]);
     },
-    timeout: const Timeout(Duration(minutes: 2)),
   );
 
   test('preserves peer manifest cache across isolated passes', () async {
