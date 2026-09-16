@@ -171,6 +171,7 @@ class SyncApplyEngine {
             code: SyncReportCode.malformedRecord,
             kind: candidate.blob.kind,
             recordId: candidate.blob.id,
+            peerId: candidate.peerId,
             message:
                 'Inbound record timestamp exceeded the local clock window.',
           ),

@@ -359,6 +359,7 @@ void main() {
     final peerManifestCache = SyncPeerManifestCache(
       rejectedHashes: {rejectedHash},
       unreflectedPasses: {diagnosticAddress: 2},
+      unreflectedEpoch: 'epoch-1',
     );
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     server.listen((request) async {

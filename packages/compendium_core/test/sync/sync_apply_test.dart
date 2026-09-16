@@ -124,7 +124,7 @@ void main() {
 
       final result = await SyncApplyEngine(now: () => localNow).apply(
         candidates: [
-          SyncMergeCandidate.fromBlob(future),
+          SyncMergeCandidate.fromBlob(future, peerId: 'peer-a'),
           SyncMergeCandidate.fromBlob(valid),
         ],
         storage: storage,
@@ -138,6 +138,7 @@ void main() {
       expect(result.reports.single.code, SyncReportCode.malformedRecord);
       expect(result.reports.single.kind, future.kind);
       expect(result.reports.single.recordId, future.id);
+      expect(result.reports.single.peerId, 'peer-a');
     },
   );
 

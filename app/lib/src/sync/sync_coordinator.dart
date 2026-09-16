@@ -383,6 +383,7 @@ final class SyncPeerManifestCache {
     Map<String, SyncPeerManifestCacheEntry>? entries,
     Set<String>? rejectedHashes,
     Map<SyncRecordAddress, int>? unreflectedPasses,
+    this.unreflectedEpoch,
   }) : _entries = {...?entries},
        rejectedHashes = {...?rejectedHashes},
        unreflectedPasses = {...?unreflectedPasses};
@@ -390,6 +391,13 @@ final class SyncPeerManifestCache {
   final Map<String, SyncPeerManifestCacheEntry> _entries;
   final Set<String> rejectedHashes;
   final Map<SyncRecordAddress, int> unreflectedPasses;
+  String? unreflectedEpoch;
+
+  void beginUnreflectedEpoch(String epoch) {
+    if (unreflectedEpoch == epoch) return;
+    unreflectedPasses.clear();
+    unreflectedEpoch = epoch;
+  }
 
   SyncPeerManifestCacheEntry? operator [](String peerId) => _entries[peerId];
 
@@ -405,6 +413,7 @@ final class SyncPeerManifestCache {
     _entries.clear();
     rejectedHashes.clear();
     unreflectedPasses.clear();
+    unreflectedEpoch = null;
   }
 
   void replaceFrom(SyncPeerManifestCache source) {
@@ -417,15 +426,18 @@ final class SyncPeerManifestCache {
     unreflectedPasses
       ..clear()
       ..addAll(source.unreflectedPasses);
+    unreflectedEpoch = source.unreflectedEpoch;
   }
 
   Map<String, Object?> toMessage() => {
-    for (final entry in _entries.entries)
-      entry.key: {
-        'epoch': entry.value.epoch,
-        'etag': entry.value.etag,
-        'manifest': utf8.decode(encodeSyncManifestUtf8(entry.value.manifest)),
-      },
+    '_entries': {
+      for (final entry in _entries.entries)
+        entry.key: {
+          'epoch': entry.value.epoch,
+          'etag': entry.value.etag,
+          'manifest': utf8.decode(encodeSyncManifestUtf8(entry.value.manifest)),
+        },
+    },
     '_rejectedHashes': rejectedHashes.toList(growable: false),
     '_unreflectedPasses': [
       for (final entry in unreflectedPasses.entries)
@@ -435,6 +447,7 @@ final class SyncPeerManifestCache {
           'count': entry.value,
         },
     ],
+    '_unreflectedEpoch': unreflectedEpoch,
   };
 
   static SyncPeerManifestCache fromMessage(Object? message) {
@@ -445,43 +458,11 @@ final class SyncPeerManifestCache {
     final entries = <String, SyncPeerManifestCacheEntry>{};
     final rejectedHashes = <String>{};
     final unreflectedPasses = <SyncRecordAddress, int>{};
-    for (final rawEntry in message.entries) {
-      if (rawEntry.key == '_rejectedHashes') {
-        final rawHashes = rawEntry.value;
-        if (rawHashes is! List<Object?> ||
-            rawHashes.any((hash) => hash is! String)) {
-          throw const FormatException(
-            'sync isolate returned a malformed rejected hash set',
-          );
-        }
-        rejectedHashes.addAll(rawHashes.cast<String>());
-        continue;
-      }
-      if (rawEntry.key == '_unreflectedPasses') {
-        final rawPasses = rawEntry.value;
-        if (rawPasses is! List<Object?>) {
-          throw const FormatException(
-            'sync isolate returned malformed unreflected diagnostics',
-          );
-        }
-        for (final rawPass in rawPasses) {
-          if (rawPass is! Map<Object?, Object?> ||
-              rawPass['kind'] is! String ||
-              rawPass['recordId'] is! String ||
-              rawPass['count'] is! int ||
-              (rawPass['count']! as int) < 1) {
-            throw const FormatException(
-              'sync isolate returned malformed unreflected diagnostic',
-            );
-          }
-          final address = (
-            kind: SyncRecordKind.values.byName(rawPass['kind']! as String),
-            recordId: rawPass['recordId']! as String,
-          );
-          unreflectedPasses[address] = rawPass['count']! as int;
-        }
-        continue;
-      }
+    final rawEntries = message['_entries'];
+    if (rawEntries is! Map<Object?, Object?>) {
+      throw const FormatException('sync isolate returned a malformed cache');
+    }
+    for (final rawEntry in rawEntries.entries) {
       final peerId = rawEntry.key;
       final value = rawEntry.value;
       if (peerId is! String || value is! Map<Object?, Object?>) {
@@ -499,10 +480,48 @@ final class SyncPeerManifestCache {
         manifest: decodeSyncManifest(manifestBody),
       );
     }
+    final rawHashes = message['_rejectedHashes'];
+    if (rawHashes is! List<Object?> ||
+        rawHashes.any((hash) => hash is! String)) {
+      throw const FormatException(
+        'sync isolate returned a malformed rejected hash set',
+      );
+    }
+    rejectedHashes.addAll(rawHashes.cast<String>());
+
+    final rawPasses = message['_unreflectedPasses'];
+    if (rawPasses is! List<Object?>) {
+      throw const FormatException(
+        'sync isolate returned malformed unreflected diagnostics',
+      );
+    }
+    for (final rawPass in rawPasses) {
+      if (rawPass is! Map<Object?, Object?> ||
+          rawPass['kind'] is! String ||
+          rawPass['recordId'] is! String ||
+          rawPass['count'] is! int ||
+          (rawPass['count']! as int) < 1) {
+        throw const FormatException(
+          'sync isolate returned malformed unreflected diagnostic',
+        );
+      }
+      final address = (
+        kind: SyncRecordKind.values.byName(rawPass['kind']! as String),
+        recordId: rawPass['recordId']! as String,
+      );
+      unreflectedPasses[address] = rawPass['count']! as int;
+    }
+    final rawUnreflectedEpoch = message['_unreflectedEpoch'];
+    if (rawUnreflectedEpoch != null && rawUnreflectedEpoch is! String) {
+      throw const FormatException(
+        'sync isolate returned malformed unreflected epoch',
+      );
+    }
     return SyncPeerManifestCache(
       entries: entries,
       rejectedHashes: rejectedHashes,
       unreflectedPasses: unreflectedPasses,
+      unreflectedEpoch: rawUnreflectedEpoch as String?,
     );
   }
 }
@@ -529,9 +548,7 @@ class SyncCoordinator {
   }) : _mergeEngine = mergeEngine ?? const SyncMergeEngine(),
        _applyEngine = applyEngine ?? SyncApplyEngine(now: now),
        _peerManifestCache = peerManifestCache ?? SyncPeerManifestCache(),
-       _ownsPeerManifestCache = peerManifestCache == null,
-       _rejectedInboundHashes = peerManifestCache?.rejectedHashes ?? <String>{},
-       _unreflectedPasses = peerManifestCache?.unreflectedPasses ?? {};
+       _ownsPeerManifestCache = peerManifestCache == null;
 
   final String deviceId;
   final SyncCoordinatorStore store;
@@ -545,8 +562,6 @@ class SyncCoordinator {
   final SyncPeerManifestCache _peerManifestCache;
   final bool _ownsPeerManifestCache;
   final DateTime Function() now;
-  final Set<String> _rejectedInboundHashes;
-  final Map<SyncRecordAddress, int> _unreflectedPasses;
   final _replacementEvents =
       StreamController<SyncReplacementRequiredEvent>.broadcast();
 
@@ -839,6 +854,7 @@ class SyncCoordinator {
         message: 'store metadata was malformed', // i18n-ignore: internal status
       );
     }
+    _peerManifestCache.beginUnreflectedEpoch(metadata.epoch);
     final attachContinuation =
         continuation && continuationEpoch != null && deferredBaseline != null;
     if (attachContinuation && metadata.epoch != continuationEpoch) {
@@ -879,6 +895,19 @@ class SyncCoordinator {
             },
     );
     final normalizedPending = await _normalizeAddresses(snapshot.pending);
+    final normalizedPendingTombstones =
+        <SyncRecordAddress, SyncMergeCandidate>{};
+    if (!freshAttach) {
+      final normalizedPublication = await _normalizeCandidates(
+        snapshot.publication,
+      );
+      for (final address in normalizedPending) {
+        final candidate = normalizedPublication[address];
+        if (candidate != null) {
+          normalizedPendingTombstones[address] = candidate;
+        }
+      }
+    }
     final reports = SyncReportSink();
     final peerMaps = <Map<SyncRecordAddress, SyncMergeCandidate?>>[];
     final peerManifests = <({String peerId, SyncManifest manifest})>[];
@@ -1010,7 +1039,11 @@ class SyncCoordinator {
     }
 
     final repairCandidates = <SyncMergeCandidate>[];
-    for (final entry in normalizedLocal.entries) {
+    final repairLocal = <SyncRecordAddress, SyncMergeCandidate?>{
+      ...normalizedLocal,
+      ...normalizedPendingTombstones,
+    };
+    for (final entry in repairLocal.entries) {
       final local = entry.value;
       if (local == null) continue;
       final repair = repairSyncCandidate(
@@ -1035,8 +1068,10 @@ class SyncCoordinator {
     }
     if (repairCandidates.isNotEmpty) {
       final repairExpected = <SyncRecordAddress, String?>{
-        for (final entry in normalizedLocal.entries)
-          entry.key: entry.value?.wireHash,
+        for (final entry in repairLocal.entries)
+          entry.key: normalizedPending.contains(entry.key)
+              ? normalizedPendingLive[entry.key]?.wireHash
+              : entry.value?.wireHash,
       };
       final repairResult = await _applyEngine.apply(
         candidates: repairCandidates,
@@ -1384,7 +1419,9 @@ class SyncCoordinator {
           !classifier.assess(candidate, windowEnd: windowEnd).isQuarantined) {
         continue;
       }
-      if (!_rejectedInboundHashes.add(candidate.wireHash)) continue;
+      if (!_peerManifestCache.rejectedHashes.add(candidate.wireHash)) {
+        continue;
+      }
       reports.add(
         SyncReport(
           code: SyncReportCode.malformedRecord,
@@ -1433,11 +1470,11 @@ class SyncCoordinator {
   }) {
     final peers = peerManifests.toList(growable: false);
     if (peers.isEmpty) {
-      _unreflectedPasses.clear();
+      _peerManifestCache.unreflectedPasses.clear();
       return;
     }
     final publishedAddresses = manifestHashes.keys.toSet();
-    _unreflectedPasses.removeWhere(
+    _peerManifestCache.unreflectedPasses.removeWhere(
       (address, _) => !publishedAddresses.contains(address),
     );
     for (final entry in manifestHashes.entries) {
@@ -1447,11 +1484,11 @@ class SyncCoordinator {
             entry.value,
       );
       if (reflected) {
-        _unreflectedPasses.remove(entry.key);
+        _peerManifestCache.unreflectedPasses.remove(entry.key);
         continue;
       }
-      final count = (_unreflectedPasses[entry.key] ?? 0) + 1;
-      _unreflectedPasses[entry.key] = count;
+      final count = (_peerManifestCache.unreflectedPasses[entry.key] ?? 0) + 1;
+      _peerManifestCache.unreflectedPasses[entry.key] = count;
       if (count < 3) continue;
       reports.add(
         SyncReport(

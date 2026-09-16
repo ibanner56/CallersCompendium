@@ -2528,14 +2528,16 @@ that field** is outside the local window, and take the greatest of what remains:
 | Field | Verbatim when | Otherwise |
 | --- | --- | --- |
 | `existenceAt` | peers agree with local live-or-deleted state | `peer + 1 tick` |
-| `updatedAt` | local comparison body matches this device's own **baseline comparison hash** | `peer + 1 tick` |
+| `updatedAt` | local comparison body matches this device's own **baseline comparison hash** | with no baseline, `peer + 1 tick`; with a non-null baseline but no agreeing in-window peer, remain quarantined |
 
 The adopted timestamp MUST come from the peer whose body matched, not the global
 maximum. Repair MUST NOT leave a record at equal `updatedAt` with content
 differing from the peer that supplied that timestamp. A field inside the window
 MUST be left untouched. A rebuilt value is re-checked against the local window
 before the record is considered repaired; one that still fails leaves the record
-quarantined.
+quarantined. The `peer + 1 tick` branch for `updatedAt` therefore applies only
+when no baseline exists; a baseline without an agreeing peer is evidence that
+the local content cannot be safely classified and MUST remain quarantined.
 
 **Missing baseline entry**, by cause:
 

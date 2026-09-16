@@ -18,6 +18,76 @@ import 'package:flutter_test/flutter_test.dart';
 import '../support/test_repositories.dart';
 
 void main() {
+  test('isolated peer cache namespaces peer ids from diagnostic fields', () {
+    final peerManifest = _manifest(deviceId: 'peer', records: const {});
+    final diagnosticAddress = (
+      kind: SyncRecordKind.setting,
+      recordId: 'custom_dialects',
+    );
+    final cache = SyncPeerManifestCache(
+      entries: {
+        '_rejectedHashes': SyncPeerManifestCacheEntry(
+          epoch: 'epoch-1',
+          etag: '"peer"',
+          manifest: peerManifest,
+        ),
+        '_unreflectedPasses': SyncPeerManifestCacheEntry(
+          epoch: 'epoch-1',
+          etag: '"diagnostic"',
+          manifest: peerManifest,
+        ),
+      },
+      rejectedHashes: {'rejected-hash'},
+      unreflectedPasses: {diagnosticAddress: 2},
+      unreflectedEpoch: 'epoch-1',
+    );
+
+    final restored = SyncPeerManifestCache.fromMessage(cache.toMessage());
+
+    expect(restored['_rejectedHashes']?.etag, '"peer"');
+    expect(restored['_unreflectedPasses']?.etag, '"diagnostic"');
+    expect(restored.rejectedHashes, {'rejected-hash'});
+    expect(restored.unreflectedPasses, {diagnosticAddress: 2});
+    expect(restored.unreflectedEpoch, 'epoch-1');
+
+    restored.beginUnreflectedEpoch('epoch-1');
+    expect(restored.unreflectedPasses, {diagnosticAddress: 2});
+    restored.beginUnreflectedEpoch('epoch-2');
+    expect(restored.unreflectedPasses, isEmpty);
+  });
+
+  test(
+    'resets an unreflected publication streak when the store epoch changes',
+    () async {
+      final candidate = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'local'),
+      );
+      final cache = SyncPeerManifestCache(
+        unreflectedPasses: {candidate.address: 2},
+        unreflectedEpoch: 'epoch-old',
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(local: {candidate.address: candidate}),
+        transport: _FakeTransport(
+          devices: ['peer'],
+          peerManifest: _manifest(deviceId: 'peer', records: const {}),
+        ),
+        peerManifestCache: cache,
+      );
+      addTearDown(coordinator.dispose);
+
+      final result = await coordinator.syncNow();
+
+      expect(
+        result.reports.map((report) => report.code),
+        isNot(contains(SyncReportCode.unreflectedPublication)),
+      );
+      expect(cache.unreflectedPasses, {candidate.address: 1});
+    },
+  );
+
   test(
     'coordinator store dispatches inbound reconciliation before apply',
     () async {
@@ -1831,6 +1901,100 @@ void main() {
       expect(store.publishedRecords, [candidate.address]);
       expect(store.publishedBatches.first, _manifestAddresses(manifest));
       expect(store.writes, isEmpty);
+    },
+  );
+
+  test(
+    'repairs a future-dated pending tombstone without dropping its live guard',
+    () async {
+      final now = DateTime.utc(2026, 7, 15, 12);
+      final address = (
+        kind: SyncRecordKind.setting,
+        recordId: 'custom_dialects',
+      );
+      final localTombstone = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: address.kind,
+          id: address.recordId,
+          updatedAt: now.add(const Duration(hours: 25)),
+          deletedAt: now,
+          existenceAt: now,
+          body: const {'value': 'pending'},
+        ),
+      );
+      final peerTombstone = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: address.kind,
+          id: address.recordId,
+          updatedAt: now.add(const Duration(hours: 1)),
+          deletedAt: now,
+          existenceAt: now,
+          body: const {'value': 'peer'},
+        ),
+      );
+      final pendingLive = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: address.kind,
+          id: address.recordId,
+          updatedAt: now,
+          deletedAt: null,
+          existenceAt: now,
+          body: const {'value': 'pending'},
+        ),
+      );
+      final store = _FakeStore(
+        snapshotBuilder: (_) => SyncCoordinatorSnapshot(
+          epoch: 'epoch-1',
+          previouslyUsed: false,
+          local: const {},
+          publication: {address: localTombstone},
+          pendingLive: {address: pendingLive},
+          pending: {address},
+          baseline: const {},
+        ),
+        currentCandidatesBuilder: () => {address: pendingLive},
+      );
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        peerManifest: _manifest(
+          deviceId: 'peer',
+          records: {
+            SyncRecordKind.setting: {address.recordId: peerTombstone.wireHash},
+          },
+        ),
+        blobResponses: {
+          peerTombstone.wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(peerTombstone.blob)),
+          ),
+        },
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+        now: () => now,
+      );
+      addTearDown(coordinator.dispose);
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(store.writes, hasLength(2));
+      expect(store.writes.map((write) => write.address), [address, address]);
+      expect(store.writes.first.sourceBlob?.body['value'], 'pending');
+      expect(
+        store.writes.first.sourceBlob!.updatedAt.isAfter(
+          peerTombstone.updatedAt,
+        ),
+        isTrue,
+      );
+      expect(store.writes.last.sourceBlob?.body['value'], 'peer');
+      expect(
+        result.reports.map((report) => report.code),
+        isNot(contains(SyncReportCode.concurrentLocalChange)),
+      );
     },
   );
 
