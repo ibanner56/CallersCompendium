@@ -1284,14 +1284,15 @@ other copies actually hold:
   record's current wire hash; an upload this device has not yet seen reflected
   stays out of it. The stored body hash is the comparison hash described above.
 
-  **Existing baselines cannot be migrated, and are dropped.** The baseline has
-  only ever stored the wire hash, so a device already attached under the previous
-  scheme has no way to derive a comparison hash for its rows — the content
-  those hashes covered was never retained. Both obvious backfills reintroduce
-  bugs this design has already closed: taking the *current local content*
-  records an unconfirmed edit as agreed, which is the advance-on-upload defect
-  applied to every record with an edit in flight at upgrade; and inventing any
-  other value is a guess about content.
+  **Existing baselines cannot be migrated, and are dropped.** A legacy baseline
+  stores a full-body hash, not the projection-neutral comparison hash required
+  by W9. Because the hash is one-way, a device already attached under the
+  previous scheme cannot derive the new comparison hash from the legacy value;
+  the content covered by that hash was never retained in the baseline. Both
+  obvious backfills reintroduce bugs this design has already closed: taking the
+  *current local content* records an unconfirmed edit as agreed, which is the
+  advance-on-upload defect applied to every record with an edit in flight at
+  upgrade; and inventing any other value is a guess about content.
 
   So the client **drops the old epoch-scoped baseline on upgrade and performs
   a fresh attach**. The persisted representation marks comparison hashes
