@@ -137,6 +137,20 @@ final class _InboundDependentIndex {
   final Map<String, List<SyncRecordAddress>> programSlotOwners = {};
 }
 
+Map<String, Object?> _normalizeInboundTimestampBody({
+  required SyncRecordKind kind,
+  required Map<String, Object?> body,
+  required DateTime updatedAt,
+  required DateTime? deletedAt,
+}) {
+  if (kind != SyncRecordKind.dance && kind != SyncRecordKind.program) {
+    return body;
+  }
+  return Map<String, Object?>.from(body)
+    ..['updatedAt'] = updatedAt.toIso8601String()
+    ..['deletedAt'] = deletedAt?.toIso8601String();
+}
+
 /// The result of scanning or applying the W8 live-dance dedupe pass.
 class SyncFreshAttachDedupeResult {
   const SyncFreshAttachDedupeResult({
@@ -402,7 +416,27 @@ final class CompendiumSyncStorage
       final address = (kind: row.kind, recordId: row.recordId);
       pendingLive[address] = local[address];
       local.remove(address);
-      publication[address] = SyncMergeCandidate(blob: blob, wireHash: hash);
+      final publicationBody = _normalizeInboundTimestampBody(
+        kind: blob.kind,
+        body: blob.body,
+        updatedAt: blob.updatedAt,
+        deletedAt: blob.deletedAt,
+      );
+      final publicationBlob = identical(publicationBody, blob.body)
+          ? blob
+          : SyncRecordBlob(
+              v: blob.v,
+              kind: blob.kind,
+              id: blob.id,
+              updatedAt: blob.updatedAt,
+              deletedAt: blob.deletedAt,
+              existenceAt: blob.existenceAt,
+              body: publicationBody,
+            );
+      publication[address] = SyncMergeCandidate(
+        blob: publicationBlob,
+        wireHash: sha256Hex(encodeSyncRecordBlobUtf8(publicationBlob)),
+      );
       pendingAddresses.add(address);
     }
 
@@ -2068,7 +2102,15 @@ final class CompendiumSyncStorage
     if (candidate.blob.kind == SyncRecordKind.setting) return null;
 
     try {
-      _decodeEntity(candidate.blob.kind, Map<String, Object?>.from(normalized));
+      _decodeEntity(
+        candidate.blob.kind,
+        _normalizeInboundTimestampBody(
+          kind: candidate.blob.kind,
+          body: Map<String, Object?>.from(normalized),
+          updatedAt: candidate.blob.updatedAt,
+          deletedAt: candidate.blob.deletedAt,
+        ),
+      );
     } on Object catch (error) {
       return SyncReport(
         code: SyncReportCode.malformedRecord,
@@ -2165,6 +2207,24 @@ final class CompendiumSyncStorage
       body: body,
     );
     return SyncMergeCandidate(blob: blob);
+  }
+
+  SyncApplyRecord _normalizeInboundRecord(SyncApplyRecord record) {
+    final body = _normalizeInboundTimestampBody(
+      kind: record.address.kind,
+      body: record.body,
+      updatedAt: record.updatedAt,
+      deletedAt: record.deletedAt,
+    );
+    if (identical(body, record.body)) return record;
+    return SyncApplyRecord(
+      address: record.address,
+      body: body,
+      updatedAt: record.updatedAt,
+      deletedAt: record.deletedAt,
+      existenceAt: record.existenceAt,
+      sourceBlob: record.sourceBlob,
+    );
   }
 
   String _resolveInMap(String id, Map<String, String>? aliases) {
@@ -3238,6 +3298,7 @@ final class CompendiumSyncStorage
     Set<SyncRecordAddress> inboundAddresses = const {},
     Map<SyncRecordAddress, SyncApplyRecord> inboundRecords = const {},
   }) async {
+    record = _normalizeInboundRecord(record);
     if (record.address.kind == SyncRecordKind.setting) return null;
     final Object entity;
     try {
@@ -3320,6 +3381,7 @@ final class CompendiumSyncStorage
 
   @override
   Future<SyncReport?> writeWithReport(SyncApplyRecord record) async {
+    record = _normalizeInboundRecord(record);
     final kind = record.address.kind;
     if (record.deletedAt != null &&
         await _hasCitation(
@@ -3418,6 +3480,7 @@ final class CompendiumSyncStorage
 
   @override
   Future<SyncReport?> writeParentWithReport(SyncApplyRecord record) async {
+    record = _normalizeInboundRecord(record);
     if (record.deletedAt != null &&
         await _hasCitation(
           record.address.kind,
@@ -3518,6 +3581,7 @@ final class CompendiumSyncStorage
   Future<({Object entity, SyncReport? report})> _prepareEntity(
     SyncApplyRecord record,
   ) async {
+    record = _normalizeInboundRecord(record);
     final kind = record.address.kind;
     final entity = _decodeEntity(kind, record.body);
     if (kind != SyncRecordKind.program) {
@@ -3934,7 +3998,11 @@ final class CompendiumSyncStorage
         switch (entry.key.kind) {
           case SyncRecordKind.dance:
             final dance =
-                _decodeEntity(SyncRecordKind.dance, entry.value.body) as Dance;
+                _decodeEntity(
+                      SyncRecordKind.dance,
+                      _normalizeInboundRecord(entry.value).body,
+                    )
+                    as Dance;
             for (final link in dance.links) {
               index.danceLinkOwners
                   .putIfAbsent(link.id, () => <SyncRecordAddress>[])
@@ -3942,7 +4010,10 @@ final class CompendiumSyncStorage
             }
           case SyncRecordKind.program:
             final program =
-                _decodeEntity(SyncRecordKind.program, entry.value.body)
+                _decodeEntity(
+                      SyncRecordKind.program,
+                      _normalizeInboundRecord(entry.value).body,
+                    )
                     as Program;
             for (final slot in program.slots) {
               index.programSlotOwners
