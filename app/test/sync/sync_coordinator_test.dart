@@ -1,9 +1,18 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart'
+    show
+        ApplyInterceptor,
+        QueryExecutor,
+        QueryExecutorUser,
+        QueryInterceptor,
+        TransactionExecutor;
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/test_repositories.dart';
@@ -594,7 +603,7 @@ void main() {
   );
 
   test(
-    'marks published records before a failed manifest publication',
+    'marks published records before blob and failed manifest publication',
     () async {
       final candidate = SyncMergeCandidate.fromBlob(
         _setting('custom_dialects', 'local'),
@@ -605,6 +614,11 @@ void main() {
       );
       final transport = _FakeTransport(
         putManifestStatus: 500,
+        onPostMissing: (_) async {
+          expect(store.publishedRecords, [candidate.address]);
+          expect(store.lifecycle, contains('markPublished'));
+          expect(store.lifecycle, isNot(contains('markSyncUsed')));
+        },
         onManifestPut: (_) {
           expect(store.lifecycle, contains('markPublished'));
           expect(store.lifecycle, contains('markSyncUsed'));
@@ -621,7 +635,248 @@ void main() {
 
       expect(result.status, SyncPassStatus.failed);
       expect(store.publishedRecords, [candidate.address]);
+      expect(store.publishedBatches, hasLength(2));
+      expect(store.publishedTransactionDepths.first, greaterThan(0));
+      final manifest = decodeSyncManifest(
+        utf8.decode(transport.manifestBodies.single),
+      );
+      expect(store.publishedBatches.first, _manifestAddresses(manifest));
       expect(store.baselineAdvances, 0);
+    },
+  );
+
+  for (final entry in const {
+    'dance': SyncRecordKind.dance,
+    'program': SyncRecordKind.program,
+  }.entries) {
+    test(
+      'protects a ${entry.key} from hard-delete during blob publication',
+      () async {
+        final repositories = openTestRepositories();
+        final stamp = DateTime.utc(2026, 7, 15, 12);
+        final recordId = 'publication-race-${entry.key}';
+        if (entry.value == SyncRecordKind.dance) {
+          await repositories.dances.create(
+            Dance(
+              id: recordId,
+              title: 'Publication race dance',
+              createdAt: stamp,
+              updatedAt: stamp,
+            ),
+          );
+        } else {
+          await repositories.programs.create(
+            Program(
+              id: recordId,
+              title: 'Publication race program',
+              createdAt: stamp,
+              updatedAt: stamp,
+            ),
+          );
+        }
+        await repositories.syncLocal.resetEpoch(epoch: 'epoch-1');
+
+        final transport = _FakeTransport(
+          onPostMissing: (_) async {
+            if (entry.value == SyncRecordKind.dance) {
+              await repositories.dances.hardDelete([recordId]);
+            } else {
+              await repositories.programs.hardDelete([recordId]);
+            }
+          },
+        );
+        final coordinator = SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-a',
+          store: CompendiumSyncCoordinatorStore(repositories),
+          transport: transport,
+        );
+
+        final result = await coordinator.syncNow();
+
+        expect(result.status, SyncPassStatus.completed);
+        final DateTime? deletedAt;
+        if (entry.value == SyncRecordKind.dance) {
+          final retained = await repositories.dances.getById(
+            recordId,
+            includeDeleted: true,
+          );
+          expect(retained, isNotNull);
+          deletedAt = retained?.deletedAt;
+        } else {
+          final retained = await repositories.programs.getById(
+            recordId,
+            includeDeleted: true,
+          );
+          expect(retained, isNotNull);
+          deletedAt = retained?.deletedAt;
+        }
+        expect(deletedAt, isNotNull);
+        final manifest = decodeSyncManifest(
+          utf8.decode(transport.manifestBodies.single),
+        );
+        expect(manifest.records[entry.value]?[recordId], isNotNull);
+      },
+    );
+  }
+
+  for (final entry in const {
+    'dance': SyncRecordKind.dance,
+    'program': SyncRecordKind.program,
+  }.entries) {
+    test(
+      'protects a ${entry.key} from hard-delete between snapshot and marker',
+      () async {
+        final directory = await Directory.systemTemp.createTemp(
+          'publication-marker-race-',
+        );
+        final databaseFile = File('${directory.path}/test.sqlite');
+        final writerDatabase = CompendiumDatabase(
+          NativeDatabase(
+            databaseFile,
+            setup: (database) {
+              database.execute('PRAGMA busy_timeout = 5000');
+            },
+          ),
+          closeStreamsSynchronously: true,
+        );
+        final deleteTransactionGate = _TransactionStartGate();
+        final deletingDatabase = CompendiumDatabase(
+          NativeDatabase.createInBackground(
+            databaseFile,
+            setup: (database) {
+              database.execute('PRAGMA busy_timeout = 5000');
+            },
+          ).interceptWith(deleteTransactionGate),
+          closeStreamsSynchronously: true,
+        );
+        final repositories = CompendiumRepositories(
+          writerDatabase,
+          contraTaxonomy,
+        );
+        final deletingRepositories = CompendiumRepositories(
+          deletingDatabase,
+          contraTaxonomy,
+        );
+        addTearDown(() async {
+          await writerDatabase.close();
+          await deletingDatabase.close();
+          if (await directory.exists()) {
+            await directory.delete(recursive: true);
+          }
+        });
+
+        final stamp = DateTime.utc(2026, 7, 15, 12);
+        final recordId = 'publication-marker-race-${entry.key}';
+        if (entry.value == SyncRecordKind.dance) {
+          await repositories.dances.create(
+            Dance(
+              id: recordId,
+              title: 'Publication marker race dance',
+              createdAt: stamp,
+              updatedAt: stamp,
+            ),
+          );
+          expect(
+            await deletingRepositories.dances.getById(recordId),
+            isNotNull,
+          );
+        } else {
+          await repositories.programs.create(
+            Program(
+              id: recordId,
+              title: 'Publication marker race program',
+              createdAt: stamp,
+              updatedAt: stamp,
+            ),
+          );
+          expect(
+            await deletingRepositories.programs.getById(recordId),
+            isNotNull,
+          );
+        }
+        await repositories.syncLocal.resetEpoch(epoch: 'epoch-1');
+        deleteTransactionGate.arm();
+
+        late Future<void> deleteFuture;
+        final store = _SnapshotInterleavingStore(
+          CompendiumSyncCoordinatorStore(repositories),
+          afterFinalSnapshot: () async {
+            deleteFuture = entry.value == SyncRecordKind.dance
+                ? deletingRepositories.dances.hardDelete([recordId])
+                : deletingRepositories.programs.hardDelete([recordId]);
+            await deleteTransactionGate.started;
+          },
+          afterTransaction: () async {
+            deleteTransactionGate.release();
+            await deleteFuture;
+          },
+        );
+        final transport = _FakeTransport();
+        final coordinator = SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-a',
+          store: store,
+          transport: transport,
+        );
+
+        final result = await coordinator.syncNow();
+        await deleteFuture;
+
+        expect(result.status, SyncPassStatus.completed);
+        final DateTime? deletedAt;
+        if (entry.value == SyncRecordKind.dance) {
+          final retained = await deletingRepositories.dances.getById(
+            recordId,
+            includeDeleted: true,
+          );
+          expect(retained, isNotNull);
+          deletedAt = retained?.deletedAt;
+        } else {
+          final retained = await deletingRepositories.programs.getById(
+            recordId,
+            includeDeleted: true,
+          );
+          expect(retained, isNotNull);
+          deletedAt = retained?.deletedAt;
+        }
+        expect(deletedAt, isNotNull);
+        expect(store.snapshotCalls, 2);
+        final manifest = decodeSyncManifest(
+          utf8.decode(transport.manifestBodies.single),
+        );
+        expect(manifest.records[entry.value]?[recordId], isNotNull);
+      },
+    );
+  }
+
+  test(
+    'retains the record marker without marking the sync used on upload failure',
+    () async {
+      final candidate = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'local'),
+      );
+      final store = _FakeStore(local: {candidate.address: candidate});
+      final transport = _FakeTransport(
+        postMissingStatuses: [500],
+        onPostMissing: (_) async {
+          expect(store.publishedRecords, [candidate.address]);
+          expect(store.lifecycle, isNot(contains('markSyncUsed')));
+        },
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+      );
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.failed);
+      expect(store.publishedRecords, [candidate.address]);
+      expect(store.lifecycle, isNot(contains('markSyncUsed')));
+      expect(transport.manifestPuts, 0);
     },
   );
 
@@ -727,7 +982,18 @@ void main() {
         local: {candidate.address: candidate},
         snapshotEpochs: [null, null, 'epoch-1'],
       );
-      final transport = _FakeTransport();
+      var postMissingCall = 0;
+      final transport = _FakeTransport(
+        onPostMissing: (_) async {
+          postMissingCall++;
+          if (postMissingCall == 1) {
+            expect(store.publishedRecords, isEmpty);
+          } else {
+            expect(store.publishedRecords, [candidate.address]);
+            expect(store.lifecycle, isNot(contains('markSyncUsed')));
+          }
+        },
+      );
       final coordinator = SyncCoordinator(
         syncId: 'configured',
         deviceId: 'device-a',
@@ -745,6 +1011,7 @@ void main() {
       expect(store.baselineReplacements, 1);
       expect(store.baselineAdvances, 0);
       expect(store.epochStateClears, 1);
+      expect(postMissingCall, 2);
     },
   );
 
@@ -1143,7 +1410,11 @@ void main() {
           baseline: const {},
         ),
       );
-      final transport = _FakeTransport();
+      final transport = _FakeTransport(
+        onPostMissing: (_) async {
+          expect(store.publishedRecords, [candidate.address]);
+        },
+      );
       final coordinator = SyncCoordinator(
         syncId: 'configured',
         deviceId: 'device-a',
@@ -1162,6 +1433,7 @@ void main() {
         candidate.wireHash,
       );
       expect(store.publishedRecords, [candidate.address]);
+      expect(store.publishedBatches.first, _manifestAddresses(manifest));
       expect(store.writes, isEmpty);
     },
   );
@@ -1674,6 +1946,203 @@ void main() {
   });
 }
 
+final class _SnapshotInterleavingStore
+    implements SyncCoordinatorStore, SyncApplyReconciliationStorage {
+  _SnapshotInterleavingStore(
+    this._delegate, {
+    required this.afterFinalSnapshot,
+    required this.afterTransaction,
+  });
+
+  final CompendiumSyncCoordinatorStore _delegate;
+  final Future<void> Function() afterFinalSnapshot;
+  final Future<void> Function() afterTransaction;
+  int snapshotCalls = 0;
+  bool _interleavingStarted = false;
+  int _activeTransactions = 0;
+  bool _publicationTransactionPending = false;
+
+  @override
+  Future<SyncCoordinatorSnapshot> snapshot() async {
+    final snapshot = await _delegate.snapshot();
+    snapshotCalls++;
+    if (snapshotCalls == 2 && !_interleavingStarted) {
+      _interleavingStarted = true;
+      final publicationTransactionActive = _activeTransactions > 0;
+      if (publicationTransactionActive) {
+        _publicationTransactionPending = true;
+      }
+      await afterFinalSnapshot();
+      if (!publicationTransactionActive) {
+        await afterTransaction();
+      }
+    }
+    return snapshot;
+  }
+
+  @override
+  Future<Map<SyncRecordAddress, SyncMergeCandidate?>> snapshotCandidates() =>
+      _delegate.snapshotCandidates();
+
+  @override
+  Future<SyncRecordAddress> resolveAlias(SyncRecordAddress address) =>
+      _delegate.resolveAlias(address);
+
+  @override
+  Future<void> markSyncUsed(String syncId) => _delegate.markSyncUsed(syncId);
+
+  @override
+  Future<void> retireAliases({required Set<SyncRecordAddress> peerAddresses}) =>
+      _delegate.retireAliases(peerAddresses: peerAddresses);
+
+  @override
+  Future<void> markPublished(Iterable<SyncRecordAddress> records) =>
+      _delegate.markPublished(records);
+
+  @override
+  Future<void> markPublicationAttempt({
+    required String syncId,
+    required Iterable<SyncRecordAddress> records,
+  }) => _delegate.markPublicationAttempt(syncId: syncId, records: records);
+
+  @override
+  Future<SyncFreshAttachDedupeResult> deduplicateFreshAttach() =>
+      _delegate.deduplicateFreshAttach();
+
+  @override
+  Future<SyncFreshAttachDedupeResult> refreshDanceAmbiguityReviews() =>
+      _delegate.refreshDanceAmbiguityReviews();
+
+  @override
+  Future<void> replaceBaseline({
+    required String epoch,
+    required Iterable<SyncBaselineEntry> entries,
+  }) => _delegate.replaceBaseline(epoch: epoch, entries: entries);
+
+  @override
+  Future<void> clearEpochState() => _delegate.clearEpochState();
+
+  @override
+  Future<void> advanceBaseline({
+    required String epoch,
+    required Iterable<SyncBaselineEntry> entries,
+    required Iterable<SyncRecordAddress> drop,
+  }) => _delegate.advanceBaseline(epoch: epoch, entries: entries, drop: drop);
+
+  @override
+  Future<T> transaction<T>(Future<T> Function() action) async {
+    _activeTransactions++;
+    var ownsPublicationInterleave = false;
+    try {
+      final result = await _delegate.transaction(action);
+      ownsPublicationInterleave = _publicationTransactionPending;
+      _publicationTransactionPending = false;
+      if (ownsPublicationInterleave) {
+        await afterTransaction();
+      }
+      return result;
+    } finally {
+      _activeTransactions--;
+    }
+  }
+
+  @override
+  Future<Map<String, Object?>?> read(SyncRecordAddress address) =>
+      _delegate.read(address);
+
+  @override
+  Future<void> write(SyncApplyRecord record) => _delegate.write(record);
+
+  @override
+  Future<SyncReport?> validateInboundReferences(
+    SyncApplyRecord record, {
+    Set<SyncRecordAddress> inboundLiveAddresses = const {},
+    Set<SyncRecordAddress> inboundAddresses = const {},
+    Map<SyncRecordAddress, SyncApplyRecord> inboundRecords = const {},
+  }) => _delegate.validateInboundReferences(
+    record,
+    inboundLiveAddresses: inboundLiveAddresses,
+    inboundAddresses: inboundAddresses,
+    inboundRecords: inboundRecords,
+  );
+
+  @override
+  Future<SyncReport?> writeWithReport(SyncApplyRecord record) =>
+      _delegate.writeWithReport(record);
+
+  @override
+  Future<SyncReport?> writeParentWithReport(SyncApplyRecord record) =>
+      _delegate.writeParentWithReport(record);
+
+  @override
+  Future<SyncReport?> writeJoinsWithReport(SyncApplyRecord record) =>
+      _delegate.writeJoinsWithReport(record);
+
+  @override
+  Future<void> rebuildDerivedIndexes() => _delegate.rebuildDerivedIndexes();
+
+  @override
+  Future<SyncApplyPreparation> reconcileInbound(
+    List<SyncMergeCandidate> candidates, {
+    Map<SyncRecordAddress, String?>? expectedWireHashes,
+  }) => _delegate.reconcileInbound(
+    candidates,
+    expectedWireHashes: expectedWireHashes,
+  );
+
+  @override
+  Future<void> setInboundTombstoneContext(
+    Set<SyncRecordAddress> tombstonedAddresses,
+  ) => _delegate.setInboundTombstoneContext(tombstonedAddresses);
+
+  @override
+  Future<void> clearReconciliationContext() =>
+      _delegate.clearReconciliationContext();
+}
+
+final class _TransactionStartGate extends QueryInterceptor {
+  Completer<void>? _started;
+  Completer<void>? _release;
+  bool _armed = false;
+
+  Future<void> get started => _started!.future;
+
+  void arm() {
+    _started = Completer<void>();
+    _release = Completer<void>();
+    _armed = true;
+  }
+
+  void release() {
+    final release = _release;
+    if (release != null && !release.isCompleted) {
+      release.complete();
+    }
+  }
+
+  @override
+  TransactionExecutor beginTransaction(QueryExecutor parent) {
+    if (_armed) {
+      _armed = false;
+      _started!.complete();
+    }
+    return parent.beginTransaction();
+  }
+
+  @override
+  Future<bool> ensureOpen(
+    QueryExecutor executor,
+    QueryExecutorUser user,
+  ) async {
+    final release = _release;
+    if (release != null && executor is TransactionExecutor) {
+      await release.future;
+      _release = null;
+    }
+    return executor.ensureOpen(user);
+  }
+}
+
 final class _FakeStore implements SyncCoordinatorStore {
   _FakeStore({
     this.previouslyUsed = false,
@@ -1707,6 +2176,8 @@ final class _FakeStore implements SyncCoordinatorStore {
   currentCandidatesBuilder;
   final List<String> lifecycle;
   final List<SyncRecordAddress> publishedRecords = [];
+  final List<List<SyncRecordAddress>> publishedBatches = [];
+  final List<int> publishedTransactionDepths = [];
   final List<SyncRecordAddress> advancedEntries = [];
   final List<SyncRecordAddress> droppedRecords = [];
   final List<SyncApplyRecord> writes = [];
@@ -1718,6 +2189,7 @@ final class _FakeStore implements SyncCoordinatorStore {
   int freshAttachDedupeCalls = 0;
   int steadyStateReviewRefreshCalls = 0;
   final List<SyncRecordAddress> replacedEntries = [];
+  int _transactionDepth = 0;
 
   @override
   Future<SyncCoordinatorSnapshot> snapshot() async {
@@ -1756,7 +2228,12 @@ final class _FakeStore implements SyncCoordinatorStore {
   @override
   Future<T> transaction<T>(Future<T> Function() action) async {
     lifecycle.add('transaction');
-    return action();
+    _transactionDepth++;
+    try {
+      return await action();
+    } finally {
+      _transactionDepth--;
+    }
   }
 
   @override
@@ -1783,7 +2260,14 @@ final class _FakeStore implements SyncCoordinatorStore {
   @override
   Future<void> markPublished(Iterable<SyncRecordAddress> records) async {
     lifecycle.add('markPublished');
-    publishedRecords.addAll(records);
+    publishedTransactionDepths.add(_transactionDepth);
+    final batch = records.toList(growable: false);
+    publishedBatches.add(batch);
+    for (final address in batch) {
+      if (!publishedRecords.contains(address)) {
+        publishedRecords.add(address);
+      }
+    }
   }
 
   @override
@@ -1799,8 +2283,10 @@ final class _FakeStore implements SyncCoordinatorStore {
     required String syncId,
     required Iterable<SyncRecordAddress> records,
   }) async {
-    await markPublished(records);
-    await markSyncUsed(syncId);
+    await transaction(() async {
+      await markPublished(records);
+      await markSyncUsed(syncId);
+    });
   }
 
   @override
@@ -1871,6 +2357,8 @@ final class _FakeTransport implements SyncCoordinatorTransport {
     List<int>? putManifestStatuses,
     this.onManifestPut,
     this.onManifestGet,
+    this.onPostMissing,
+    List<int>? postMissingStatuses,
   }) : createResponses = [...createResponses ?? const []],
        storeEpochs = [
          ...storeEpochs ?? const ['epoch-1'],
@@ -1880,6 +2368,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
            [...response],
        ],
        putManifestStatuses = [...putManifestStatuses ?? const []],
+       postMissingStatuses = [...postMissingStatuses ?? const []],
        manifestResponses = {
          for (final entry
              in (manifestResponses ?? const <String, List<SyncHttpResponse>>{})
@@ -1899,8 +2388,10 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   final List<List<String>> missingResponses;
   final int putManifestStatus;
   final List<int> putManifestStatuses;
+  final List<int> postMissingStatuses;
   final void Function(List<int> body)? onManifestPut;
   final Future<void> Function(String deviceId)? onManifestGet;
+  final Future<void> Function(List<String> hashes)? onPostMissing;
   final firstStoreStarted = Completer<void>();
   final requestLog = <String>[];
   final manifestBodies = <List<int>>[];
@@ -1983,13 +2474,18 @@ final class _FakeTransport implements SyncCoordinatorTransport {
 
   @override
   Future<SyncHttpResponse> postMissing(Iterable<String> hashes) async {
-    postMissingBatches.add(hashes.toList(growable: false));
+    final batch = hashes.toList(growable: false);
+    postMissingBatches.add(batch);
     postMissingCalls++;
     requestLog.add('missing');
+    await onPostMissing?.call(batch);
     final response = missingResponses.length >= postMissingCalls
         ? missingResponses[postMissingCalls - 1]
         : const <String>[];
-    return _response(200, body: jsonEncode({'missing': response}));
+    final status = postMissingStatuses.isNotEmpty
+        ? postMissingStatuses.removeAt(0)
+        : 200;
+    return _response(status, body: jsonEncode({'missing': response}));
   }
 
   @override
@@ -2036,6 +2532,12 @@ SyncManifest _manifest({
   writtenAt: DateTime.utc(2026, 7, 15, 12),
   records: records,
 );
+
+List<SyncRecordAddress> _manifestAddresses(SyncManifest manifest) => [
+  for (final kindEntry in manifest.records.entries)
+    for (final recordId in kindEntry.value.keys)
+      (kind: kindEntry.key, recordId: recordId),
+];
 
 SyncRecordBlob _setting(String id, String value, {int seconds = 0}) {
   final stamp = DateTime.utc(2026, 7, 15, 12).add(Duration(seconds: seconds));

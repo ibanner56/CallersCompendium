@@ -585,7 +585,7 @@ it:
 | Pending deletions — markers (`kind`, `record_id`, `tombstoned_at`, `tombstone_hash`) | `pending_deletions` | `deviceScoped` |
 | Pending deletions — retained tombstone bytes (`tombstone_blob`) | `pending_deletions` | `shareable` |
 | Deferred review items (`kind`, `record_id`, `counterpart_id`, `reason`, `candidate_blob`, `candidate_hash`, nullable `local_hash`, `queued_at`) | `review_queue` | `deviceScoped` |
-| Records this device has published (`kind`, `record_id`) | `published_records` | `deviceScoped` |
+| Records this device has selected for publication (`kind`, `record_id`) | `published_records` | `deviceScoped` |
 | Rows the normalisation pass could not repair (`table`, `column`, `record_id`) | `normalisation_skips` | `deviceScoped` |
 
 **Three of these are scoped to the store identity**, and `id_aliases` and
@@ -663,13 +663,13 @@ window in which a record is fetchable by every peer while the check still says
 loop the rule exists to prevent, since the peer that downloaded it keeps
 republishing a row this device can no longer tombstone.
 
-So it is its own marker, written before the `PUT` rather than after it: a crash
-between the two over-marks instead of under-marking. Those are not equivalent
-mistakes, and the asymmetry is the whole design of this table. An under-mark
-loses the guarantee silently; an over-mark leaves a tombstone where an undone
-import should have left nothing, which is a real cost — it is precisely what
-`VenueRepository.hardDelete`'s exemption exists to avoid — but a visible and
-recoverable one.
+So it is its own marker, written before blob negotiation rather than after the
+`PUT`: a crash or upload failure over-marks instead of under-marking. Those are
+not equivalent mistakes, and the asymmetry is the whole design of this table.
+An under-mark loses the guarantee silently; an over-mark leaves a tombstone
+where an undone import should have left nothing, which is a real cost — it is
+precisely what `VenueRepository.hardDelete`'s exemption exists to avoid — but a
+visible and recoverable one.
 
 **The first draft cleared it on detach, and that was wrong.** The reasoning was
 that re-attach is a union which deletes nothing, so a hard delete made while
@@ -684,17 +684,19 @@ reached through the detach path rather than the undo path.
 What makes it wrong is not that the rule was insufficiently cautious. It is that
 **detach does not un-publish anything.** Detach forgets the sync ID locally and
 leaves this device's manifest on the server; there is no `DELETE
-/v1/manifests/{self}`, and a blob stays reachable while any manifest for its
-store references it. So the marker's claim — these bytes left this device and
-peers can still fetch them — remains literally true after a detach. Clearing it
-records a falsehood, and every consequence follows from that one error.
+/v1/manifests/{self}`, and a successful publication stays reachable while any
+manifest for its store references it. The marker is retained because a failed
+attempt cannot later be distinguished from a publication that peers may have
+fetched. Clearing it would discard the conservative protection and every
+consequence follows from that one error.
 
 The correction is that `published_records` is **not store-scoped state at all**,
 which is why the analogy to `pending_deletions` misled. The other three tables
 hold conclusions *about a store*: which ids were merged there, which pairs need
 adjudicating there, which deletions are owed there. All of those stop meaning
-anything when the store does. This one holds a physical event — bytes left the
-device — and an event does not stop having happened. It is monotonic: written
+anything when the store does. This one holds a conservative
+publication-attempt decision rather than a physical event, and that decision
+does not become safe to forget when an attempt fails. It is monotonic: written
 once, never cleared by an epoch reset, a detach or a restore.
 
 That also settles retirement, which `id_aliases` gets and this deliberately does
@@ -712,9 +714,9 @@ nothing, which is the whole point of it. So on a device with churn the marker
 table will hold *more* rows than the baseline, and "smaller than the baseline"
 is a bound that quietly stops holding at exactly the moment anyone would want to
 lean on it. The figure that actually bounds it is absolute: tens of bytes per
-pair, one per record ever published, so a device that has published 100,000
-records over its lifetime carries a few megabytes. An entry is kept even after
-its record is tombstoned and purged.
+pair, one per record selected for publication, so a device that has selected
+100,000 records over its lifetime carries a few megabytes. An entry is kept even
+after its record is tombstoned and purged.
 
 Stale entries after a restore are inert and need no revalidation for the same
 reason they need no clearing: the marker is consulted only when deleting the
@@ -3380,9 +3382,15 @@ checked against the discriminator rule above.
    applying.**
 6. Apply in one transaction, **read-modify-write** (below). Rebuild derived
    indexes.
-7. Recompute the local manifest from the post-apply state. `POST
-   /v1/blobs/missing`; `PUT` only what is missing from that final manifest.
-8. `PUT /v1/manifests/{self}`.
+7. Recompute the local manifest from the post-apply state. Before any
+   publication network request, record every address named by that final
+   manifest in `published_records`; then `POST /v1/blobs/missing` and `PUT`
+   only what is missing from the final manifest. Attach-only blobs are not
+   marked because attach writes no manifest and those blobs remain unreachable
+   until this continuation pass.
+8. `PUT /v1/manifests/{self}`. The pre-blob marker is retained before this
+   request, so a failure between the marker and the request over-marks rather
+   than allowing a later hard delete to erase publication evidence.
 9. Store the new baseline. A record's entry advances only where a peer's
    manifest was observed to carry **this device's current content hash** — an
    upload not yet reflected by any peer is not agreement, and quarantine repair
