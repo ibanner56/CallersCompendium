@@ -1249,6 +1249,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Een peer heeft een overeenkomend record verwijderd dat op dit apparaat is gemaakt.';
 
   @override
+  String get syncReviewDanceAmbiguityReason =>
+      'Live dansen hebben dezelfde titel, maar een andere choreografie.';
+
+  @override
   String get syncReviewUnsupportedReason =>
       'Dit synchronisatieconflict wordt voorlopig bewaard; hier is geen veilige actie beschikbaar.';
 

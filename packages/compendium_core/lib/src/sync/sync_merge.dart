@@ -1,6 +1,9 @@
 import '../storage/repositories/sync_local_repository.dart';
+import '../imports/dedupe.dart';
+import '../model/stored_timestamp.dart';
 import 'canonical_json.dart';
 import 'sync_codec.dart';
+import 'sync_record_kind.dart';
 import 'sync_report.dart';
 
 /// A record candidate carrying the hashes needed by the baseline diff.
@@ -60,6 +63,310 @@ class SyncMergePlan {
   Iterable<SyncMergeDecision> get downloads => decisions.where(
     (decision) => decision.action == SyncMergeAction.download,
   );
+}
+
+/// One deterministic live-dance merge discovered during a fresh attach.
+///
+/// The [winner] already contains the merged body under the lexicographically
+/// smallest dance ID. [losingIds] are the identities that must be aliased,
+/// rewired, and removed by the storage transaction.
+class SyncDanceDedupeMerge {
+  const SyncDanceDedupeMerge({required this.winner, required this.losingIds});
+
+  final SyncMergeCandidate winner;
+  final List<String> losingIds;
+}
+
+/// A title match whose choreography is not equal and therefore needs the
+/// durable review surface rather than a silent merge.
+class SyncDanceDedupeAmbiguity {
+  const SyncDanceDedupeAmbiguity({required this.left, required this.right});
+
+  final SyncMergeCandidate left;
+  final SyncMergeCandidate right;
+
+  String get firstId =>
+      left.blob.id.compareTo(right.blob.id) <= 0 ? left.blob.id : right.blob.id;
+
+  String get secondId =>
+      left.blob.id.compareTo(right.blob.id) <= 0 ? right.blob.id : left.blob.id;
+
+  /// The candidate stored in the canonical `(firstId, secondId)` queue row.
+  SyncMergeCandidate get candidate => left.blob.id == secondId ? left : right;
+}
+
+/// The pure result of comparing all live dance candidates in a fresh union.
+class SyncFreshAttachDedupePlan {
+  const SyncFreshAttachDedupePlan({
+    required this.merges,
+    required this.ambiguities,
+    required this.aliases,
+  });
+
+  final List<SyncDanceDedupeMerge> merges;
+  final List<SyncDanceDedupeAmbiguity> ambiguities;
+  final Map<String, String> aliases;
+}
+
+/// Merges live dance candidates after an explicit dedupe decision.
+///
+/// The caller may use this for a choreography ambiguity only after the user
+/// chose Merge. Automatic fresh-attach planning calls the same helper only
+/// for candidates whose choreography already matches.
+SyncDanceDedupeMerge mergeDanceCandidates(
+  Iterable<SyncMergeCandidate> candidates,
+) {
+  final group = candidates.toList(growable: false)
+    ..sort((left, right) => left.blob.id.compareTo(right.blob.id));
+  if (group.length < 2 ||
+      group.any(
+        (candidate) =>
+            candidate.blob.kind != SyncRecordKind.dance || candidate.isDeleted,
+      )) {
+    throw ArgumentError(
+      'dance merge requires at least two live dance candidates',
+    );
+  }
+  final survivor = group.first;
+  final latestUpdatedAt = group
+      .map((candidate) => candidate.blob.updatedAt)
+      .reduce((left, right) => left.isAfter(right) ? left : right);
+  final merged = SyncMergeCandidate(
+    blob: SyncRecordBlob(
+      v: survivor.blob.v,
+      kind: SyncRecordKind.dance,
+      id: survivor.blob.id,
+      updatedAt: latestUpdatedAt.add(storedTimestampTick),
+      deletedAt: null,
+      existenceAt: group
+          .map((candidate) => candidate.blob.existenceAt)
+          .reduce((left, right) => left.isAfter(right) ? left : right),
+      body: _mergeDanceBodies(group, survivor.blob.id),
+    ),
+  );
+  return SyncDanceDedupeMerge(
+    winner: merged,
+    losingIds: List.unmodifiable([
+      for (final candidate in group.skip(1)) candidate.blob.id,
+    ]),
+  );
+}
+
+/// Finds live dance duplicates without touching storage.
+///
+/// Matching intentionally delegates title normalization to the shipped import
+/// normalizer. Choreography comparison includes figure parameters and all
+/// intrinsic fields, while collections and non-choreography scalars are
+/// resolved only after a match is established.
+SyncFreshAttachDedupePlan planFreshAttachDedupe(
+  Iterable<SyncMergeCandidate> candidates,
+) {
+  final liveDances = [
+    for (final candidate in candidates)
+      if (candidate.blob.kind == SyncRecordKind.dance &&
+          !candidate.isDeleted &&
+          candidate.blob.body['title'] is String)
+        candidate,
+  ]..sort((left, right) => left.blob.id.compareTo(right.blob.id));
+
+  final byTitle = <String, List<SyncMergeCandidate>>{};
+  for (final candidate in liveDances) {
+    final title = normalizeTitle(candidate.blob.body['title']! as String);
+    if (title.isEmpty) continue;
+    byTitle.putIfAbsent(title, () => []).add(candidate);
+  }
+
+  final choreographyGroups = <List<SyncMergeCandidate>>[];
+  final ambiguities = <SyncDanceDedupeAmbiguity>[];
+  for (final titleCandidates in byTitle.values) {
+    final byChoreography = <String, List<SyncMergeCandidate>>{};
+    for (final candidate in titleCandidates) {
+      byChoreography
+          .putIfAbsent(_syncChoreographyKey(candidate.blob.body), () => [])
+          .add(candidate);
+    }
+    final groups = byChoreography.values.toList()
+      ..forEach(
+        (group) =>
+            group.sort((left, right) => left.blob.id.compareTo(right.blob.id)),
+      )
+      ..sort(
+        (left, right) => left.first.blob.id.compareTo(right.first.blob.id),
+      );
+    choreographyGroups.addAll(groups);
+    for (var i = 0; i < groups.length; i++) {
+      for (var j = i + 1; j < groups.length; j++) {
+        ambiguities.add(
+          SyncDanceDedupeAmbiguity(
+            left: groups[i].first,
+            right: groups[j].first,
+          ),
+        );
+      }
+    }
+  }
+
+  final merges = <SyncDanceDedupeMerge>[];
+  final aliases = <String, String>{};
+  for (final group in choreographyGroups) {
+    if (group.length < 2) continue;
+    final merge = mergeDanceCandidates(group);
+    for (final losingId in merge.losingIds) {
+      aliases[losingId] = merge.winner.blob.id;
+    }
+    merges.add(merge);
+  }
+
+  ambiguities.sort((left, right) {
+    final first = left.firstId.compareTo(right.firstId);
+    return first == 0 ? left.secondId.compareTo(right.secondId) : first;
+  });
+  merges.sort((left, right) {
+    final first = left.winner.blob.id.compareTo(right.winner.blob.id);
+    return first == 0
+        ? left.losingIds.first.compareTo(right.losingIds.first)
+        : first;
+  });
+  return SyncFreshAttachDedupePlan(
+    merges: List.unmodifiable(merges),
+    ambiguities: List.unmodifiable(ambiguities),
+    aliases: Map.unmodifiable(aliases),
+  );
+}
+
+String _syncChoreographyKey(Map<String, Object?> body) =>
+    contentHash(choreographyFingerprint(body));
+
+Map<String, Object?> _mergeDanceBodies(
+  List<SyncMergeCandidate> candidates,
+  String survivorId,
+) {
+  final survivor = candidates.firstWhere(
+    (candidate) => candidate.blob.id == survivorId,
+  );
+  final latest = _latestDanceCandidate(candidates, survivorId);
+  final body = _copySyncBody(survivor.blob.body)..['id'] = survivorId;
+
+  for (final key in const [
+    'walkthrough',
+    'rating',
+    'status',
+    'composedOn',
+    'revisedOn',
+  ]) {
+    if (latest.blob.body.containsKey(key)) {
+      body[key] = latest.blob.body[key];
+    }
+  }
+
+  body['authorIds'] = _unionStrings(candidates, 'authorIds');
+  body['tagIds'] = _unionStrings(candidates, 'tagIds');
+  body['customFields'] = _unionObjects(
+    candidates,
+    'customFields',
+    keyOf: (value) => value is Map && value['fieldId'] is String
+        ? value['fieldId']! as String
+        : canonicalJson(value),
+  );
+  body['links'] = _unionObjects(
+    candidates,
+    'links',
+    keyOf: (value) => value is Map && value['id'] is String
+        ? value['id']! as String
+        : canonicalJson(value),
+  );
+  body['sourceCitations'] = _unionObjects(
+    candidates,
+    'sourceCitations',
+    keyOf: (value) => value is Map && value['sourceId'] is String
+        ? value['sourceId']! as String
+        : canonicalJson(value),
+  );
+  return body;
+}
+
+SyncMergeCandidate _latestDanceCandidate(
+  List<SyncMergeCandidate> candidates,
+  String survivorId,
+) {
+  var latest = candidates.first;
+  for (final candidate in candidates.skip(1)) {
+    final comparison = candidate.blob.updatedAt.compareTo(
+      latest.blob.updatedAt,
+    );
+    if (comparison > 0 ||
+        (comparison == 0 &&
+            candidate.blob.id == survivorId &&
+            latest.blob.id != survivorId)) {
+      latest = candidate;
+    }
+  }
+  return latest;
+}
+
+List<String> _unionStrings(List<SyncMergeCandidate> candidates, String key) {
+  final result = <String>[];
+  final seen = <String>{};
+  for (final candidate in candidates) {
+    final values = candidate.blob.body[key];
+    if (values is! List) continue;
+    for (final value in values) {
+      if (value is String && seen.add(value)) result.add(value);
+    }
+  }
+  return result;
+}
+
+List<Object?> _unionObjects(
+  List<SyncMergeCandidate> candidates,
+  String field, {
+  required String Function(Object?) keyOf,
+}) {
+  final values = <String, ({Object? value, SyncMergeCandidate source})>{};
+  for (final candidate in candidates) {
+    final raw = candidate.blob.body[field];
+    if (raw is! List) continue;
+    for (final value in raw) {
+      final valueKey = keyOf(value);
+      final previous = values[valueKey];
+      if (previous == null ||
+          _prefersDanceCandidate(
+            candidate,
+            previous.source,
+            candidates.first,
+          )) {
+        values[valueKey] = (value: value, source: candidate);
+      }
+    }
+  }
+  return [for (final entry in values.entries) entry.value.value];
+}
+
+bool _prefersDanceCandidate(
+  SyncMergeCandidate candidate,
+  SyncMergeCandidate other,
+  SyncMergeCandidate survivor,
+) {
+  final comparison = candidate.blob.updatedAt.compareTo(other.blob.updatedAt);
+  if (comparison != 0) return comparison > 0;
+  if (candidate.blob.id == survivor.blob.id) return true;
+  return other.blob.id != survivor.blob.id &&
+      candidate.blob.id.compareTo(other.blob.id) < 0;
+}
+
+Map<String, Object?> _copySyncBody(Map<String, Object?> body) {
+  Object? copy(Object? value) {
+    if (value is Map) {
+      return {
+        for (final entry in value.entries)
+          if (entry.key is String) entry.key as String: copy(entry.value),
+      };
+    }
+    if (value is List) return [for (final item in value) copy(item)];
+    return value;
+  }
+
+  return copy(body) as Map<String, Object?>;
 }
 
 /// Pure implementation of the steady-state baseline table.

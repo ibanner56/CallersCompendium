@@ -13,6 +13,7 @@ import '../model/published_source.dart';
 import '../model/program.dart';
 import '../model/tag.dart';
 import '../model/venue.dart';
+import '../imports/dedupe.dart';
 import '../privacy/data_classification.dart';
 import '../privacy/settings_registry.dart';
 import '../serialization/archive_entity_codec.dart';
@@ -134,6 +135,17 @@ class SyncStorageSnapshot {
 final class _InboundDependentIndex {
   final Map<String, List<SyncRecordAddress>> danceLinkOwners = {};
   final Map<String, List<SyncRecordAddress>> programSlotOwners = {};
+}
+
+/// The result of scanning or applying the W8 live-dance dedupe pass.
+class SyncFreshAttachDedupeResult {
+  const SyncFreshAttachDedupeResult({
+    required this.duplicateCount,
+    required this.reports,
+  });
+
+  final int duplicateCount;
+  final List<SyncReport> reports;
 }
 
 /// The production storage adapter for the core sync engine.
@@ -407,6 +419,363 @@ final class CompendiumSyncStorage
     );
   });
 
+  /// Scans the current live dance collection for W8 title/choreography
+  /// matches and applies the complete merge and identity rewrite inside the
+  /// same repository transaction as the resulting rows.
+  ///
+  /// This full-library scan is a fresh-attach operation. Ordinary passes use
+  /// [refreshDanceAmbiguityReviews] so they do not rediscover or merge dances.
+  Future<SyncFreshAttachDedupeResult> deduplicateFreshAttach() =>
+      repositories.transaction(() async {
+        final plan = await _danceDedupePlan();
+        await _refreshDanceAmbiguityReviews(plan.ambiguities);
+        final reports = _reportsForDanceAmbiguities(plan.ambiguities);
+
+        if (plan.merges.isEmpty) {
+          return SyncFreshAttachDedupeResult(
+            duplicateCount: 0,
+            reports: List.unmodifiable(reports),
+          );
+        }
+        for (final merge in plan.merges) {
+          await _applyDanceDedupeMerge(merge, plan.aliases);
+        }
+        await rebuildDerivedIndexes();
+        return SyncFreshAttachDedupeResult(
+          duplicateCount: plan.merges.fold<int>(
+            0,
+            (count, merge) => count + merge.losingIds.length,
+          ),
+          reports: List.unmodifiable(reports),
+        );
+      });
+
+  /// Revalidates only the dance ambiguity pairs already present in the review
+  /// queue. It deliberately does not scan the complete dance collection or
+  /// discover new same-title pairs during steady-state sync.
+  Future<SyncFreshAttachDedupeResult> refreshDanceAmbiguityReviews() =>
+      repositories.transaction(() async {
+        final queuedRows = (await repositories.syncLocal.listReviewQueue())
+            .where(
+              (row) =>
+                  row.kind == SyncRecordKind.dance &&
+                  row.reason == syncDanceChoreographyAmbiguityReason,
+            );
+        final pendingDanceIds = {
+          for (final pending
+              in await repositories.syncLocal.listPendingDeletions())
+            if (pending.kind == SyncRecordKind.dance) pending.recordId,
+        };
+        final ambiguities = <SyncDanceDedupeAmbiguity>[];
+        final seenPairs = <String>{};
+        for (final row in queuedRows) {
+          final pairKey = _danceReviewPairKey(row.recordId, row.counterpartId);
+          if (!seenPairs.add(pairKey) ||
+              row.recordId == row.counterpartId ||
+              pendingDanceIds.contains(row.recordId) ||
+              pendingDanceIds.contains(row.counterpartId)) {
+            continue;
+          }
+          final left = await _danceCandidate(row.recordId);
+          final right = await _danceCandidate(row.counterpartId);
+          if (left == null || right == null) continue;
+          final pairPlan = planFreshAttachDedupe([left, right]);
+          if (pairPlan.ambiguities.length == 1) {
+            ambiguities.add(pairPlan.ambiguities.single);
+          }
+        }
+        await _refreshDanceAmbiguityReviews(ambiguities);
+        return SyncFreshAttachDedupeResult(
+          duplicateCount: 0,
+          reports: List.unmodifiable(_reportsForDanceAmbiguities(ambiguities)),
+        );
+      });
+
+  List<SyncReport> _reportsForDanceAmbiguities(
+    Iterable<SyncDanceDedupeAmbiguity> ambiguities,
+  ) => [
+    for (final ambiguity in ambiguities)
+      if (ambiguity.left.blob.updatedAt == ambiguity.right.blob.updatedAt)
+        SyncReport(
+          code: SyncReportCode.equalUpdatedAt,
+          kind: SyncRecordKind.dance,
+          recordId: ambiguity.firstId,
+          message:
+              'Dances with the same normalized title have different '
+              'choreography at the same updatedAt; no silent winner was '
+              'selected.',
+        ),
+  ];
+
+  Future<void> _refreshDanceAmbiguityReviews(
+    Iterable<SyncDanceDedupeAmbiguity> ambiguities,
+  ) async {
+    final expected = <String, SyncDanceDedupeAmbiguity>{
+      for (final ambiguity in ambiguities)
+        _danceReviewPairKey(ambiguity.firstId, ambiguity.secondId): ambiguity,
+    };
+    final existingRows = await repositories.syncLocal.listReviewQueue();
+    for (final row in existingRows) {
+      if (row.kind != SyncRecordKind.dance ||
+          row.reason != syncDanceChoreographyAmbiguityReason) {
+        continue;
+      }
+      final ambiguity =
+          expected[_danceReviewPairKey(row.recordId, row.counterpartId)];
+      if (ambiguity == null ||
+          row.recordId != ambiguity.firstId ||
+          row.counterpartId != ambiguity.secondId ||
+          row.candidateHash != ambiguity.candidate.wireHash) {
+        await repositories.syncLocal.deleteReview(
+          kind: row.kind,
+          recordId: row.recordId,
+          counterpartId: row.counterpartId,
+        );
+      }
+    }
+
+    final queuedAt = DateTime.now().toUtc();
+    for (final ambiguity in expected.values) {
+      final candidate = ambiguity.candidate;
+      final candidateBlob = encodeSyncRecordBlob(candidate.blob);
+      final existing = await repositories.syncLocal.getReviewQueue(
+        kind: SyncRecordKind.dance,
+        recordId: ambiguity.firstId,
+        counterpartId: ambiguity.secondId,
+      );
+      if (existing != null &&
+          existing.candidateHash == candidate.wireHash &&
+          existing.candidateBlob == candidateBlob) {
+        continue;
+      }
+      if (existing != null) {
+        await repositories.syncLocal.deleteReview(
+          kind: SyncRecordKind.dance,
+          recordId: ambiguity.firstId,
+          counterpartId: ambiguity.secondId,
+        );
+      }
+      await repositories.syncLocal.enqueueReview(
+        kind: SyncRecordKind.dance,
+        recordId: ambiguity.firstId,
+        counterpartId: ambiguity.secondId,
+        reason: syncDanceChoreographyAmbiguityReason,
+        candidateBlob: candidateBlob,
+        candidateHash: candidate.wireHash,
+        queuedAt: queuedAt,
+      );
+    }
+  }
+
+  String _danceReviewPairKey(String left, String right) {
+    final first = left.compareTo(right) <= 0 ? left : right;
+    final second = first == left ? right : left;
+    return canonicalJson([first, second]);
+  }
+
+  Future<SyncFreshAttachDedupePlan> _danceDedupePlan() async {
+    final customFields = await repositories.customFieldDefs
+        .listAllWithDeleted();
+    final allowedCustomFieldIds = {
+      for (final entry in customFields)
+        if (entry.field.shareable && !entry.deleted) entry.field.id,
+    };
+    final dances = await repositories.dances.listAll(includeDeleted: true);
+    final rows = await _db.select(_db.dances).get();
+    final rowsById = {for (final row in rows) row.id: row};
+    final pendingDanceIds = {
+      for (final pending in await repositories.syncLocal.listPendingDeletions())
+        if (pending.kind == SyncRecordKind.dance) pending.recordId,
+    };
+    final candidates = <SyncMergeCandidate>[];
+    for (final dance in dances) {
+      // The live row is only retained until its inbound tombstone can apply.
+      // It must not become a fresh-attach survivor or merge target.
+      if (pendingDanceIds.contains(dance.id)) continue;
+      final row = rowsById[dance.id];
+      if (row == null) continue;
+      final blob = syncRecordBlobForEntity(
+        SyncRecordKind.dance,
+        dance,
+        updatedAt: row.updatedAt,
+        deletedAt: row.deletedAt,
+        existenceAt: row.existenceAt ?? row.updatedAt,
+        allowedCustomFieldIds: allowedCustomFieldIds,
+      );
+      if (blob != null) candidates.add(SyncMergeCandidate(blob: blob));
+    }
+    return planFreshAttachDedupe(candidates);
+  }
+
+  Future<void> _applyDanceDedupeMerge(
+    SyncDanceDedupeMerge merge,
+    Map<String, String> aliases,
+  ) async {
+    final loserDeviceLocalCustomFields = <CustomFieldValue>[];
+    for (final losingId in merge.losingIds) {
+      loserDeviceLocalCustomFields.addAll(
+        await repositories.dances.readDeviceLocalCustomFields(losingId),
+      );
+    }
+    final body = _rewriteDanceReferences(merge.winner.blob.body, aliases);
+    final record = SyncApplyRecord(
+      address: merge.winner.address,
+      body: body,
+      updatedAt: merge.winner.blob.updatedAt,
+      deletedAt: null,
+      existenceAt: merge.winner.blob.existenceAt,
+      sourceBlob: merge.winner.blob,
+    );
+    for (final losingId in merge.losingIds) {
+      await _rewriteLocalReferences(
+        SyncRecordKind.dance,
+        losingId,
+        merge.winner.blob.id,
+      );
+      await _remapPendingDeletions(
+        kind: SyncRecordKind.dance,
+        losingId: losingId,
+        survivingId: merge.winner.blob.id,
+        aliases: {SyncRecordKind.dance: aliases},
+      );
+      await repositories.syncLocal.remapIdentity(
+        kind: SyncRecordKind.dance,
+        losingId: losingId,
+        survivingId: merge.winner.blob.id,
+      );
+    }
+    for (final losingId in merge.losingIds) {
+      await (_db.delete(
+        _db.dances,
+      )..where((table) => table.id.equals(losingId))).go();
+    }
+    final entity = _decodeEntity(record.address.kind, record.body) as Dance;
+    await repositories.dances.writeFromSync(
+      entity,
+      rebuildDerived: false,
+      additionalDeviceLocalCustomFields: loserDeviceLocalCustomFields,
+    );
+    await _restoreTimestamps(
+      kind: record.address.kind,
+      id: record.address.recordId,
+      updatedAt: record.updatedAt,
+      deletedAt: record.deletedAt,
+      existenceAt: record.existenceAt,
+    );
+    await _reconcileDanceReviewQueue(
+      survivorId: merge.winner.blob.id,
+      losingIds: merge.losingIds.toSet(),
+    );
+  }
+
+  Future<void> _reconcileDanceReviewQueue({
+    required String survivorId,
+    required Set<String> losingIds,
+  }) async {
+    final affectedIds = {...losingIds, survivorId};
+    final rows =
+        (await repositories.syncLocal.listReviewQueue())
+            .where(
+              (row) =>
+                  row.kind == SyncRecordKind.dance &&
+                  row.reason == syncDanceChoreographyAmbiguityReason &&
+                  (affectedIds.contains(row.recordId) ||
+                      affectedIds.contains(row.counterpartId)),
+            )
+            .toList()
+          ..sort((left, right) {
+            final queued = left.queuedAt.compareTo(right.queuedAt);
+            if (queued != 0) return queued;
+            final record = left.recordId.compareTo(right.recordId);
+            if (record != 0) return record;
+            return left.counterpartId.compareTo(right.counterpartId);
+          });
+    final retainedPairs = <String>{};
+    for (final row in rows) {
+      final mappedRecordId = row.recordId;
+      final mappedCounterpartId = row.counterpartId;
+      final recordId = losingIds.contains(mappedRecordId)
+          ? survivorId
+          : mappedRecordId;
+      final counterpartId = losingIds.contains(mappedCounterpartId)
+          ? survivorId
+          : mappedCounterpartId;
+
+      await repositories.syncLocal.deleteReview(
+        kind: row.kind,
+        recordId: row.recordId,
+        counterpartId: row.counterpartId,
+      );
+      if (recordId == counterpartId) continue;
+
+      final leftId = recordId.compareTo(counterpartId) < 0
+          ? recordId
+          : counterpartId;
+      final rightId = leftId == recordId ? counterpartId : recordId;
+      final pairKey = _danceReviewPairKey(leftId, rightId);
+      if (retainedPairs.contains(pairKey)) continue;
+
+      final left = await _danceCandidate(leftId);
+      final right = await _danceCandidate(rightId);
+      if (left == null ||
+          right == null ||
+          left.blob.deletedAt != null ||
+          right.blob.deletedAt != null) {
+        continue;
+      }
+      final plan = planFreshAttachDedupe([left, right]);
+      if (plan.ambiguities.length != 1) continue;
+
+      retainedPairs.add(pairKey);
+      await repositories.syncLocal.enqueueReview(
+        kind: SyncRecordKind.dance,
+        recordId: leftId,
+        counterpartId: rightId,
+        reason: syncDanceChoreographyAmbiguityReason,
+        candidateBlob: encodeSyncRecordBlob(right.blob),
+        candidateHash: right.wireHash,
+        queuedAt: row.queuedAt,
+      );
+    }
+  }
+
+  Map<String, Object?> _rewriteDanceReferences(
+    Map<String, Object?> body,
+    Map<String, String> aliases,
+  ) {
+    final copy = Map<String, Object?>.from(body);
+    final links = copy['links'];
+    if (links is List) {
+      final rewritten = <Object?>[];
+      final survivorId = copy['id'];
+      for (final value in links) {
+        if (value is! Map) {
+          rewritten.add(value);
+          continue;
+        }
+        final item = Map<String, Object?>.from(value);
+        final target = item['targetDanceId'];
+        if (target is String) {
+          final resolvedTarget = _resolveDanceAlias(target, aliases);
+          if (resolvedTarget == survivorId) continue;
+          item['targetDanceId'] = resolvedTarget;
+        }
+        rewritten.add(item);
+      }
+      copy['links'] = rewritten;
+    }
+    return copy;
+  }
+
+  String _resolveDanceAlias(String id, Map<String, String> aliases) {
+    var current = id;
+    final seen = <String>{id};
+    while (aliases[current] != null && seen.add(aliases[current]!)) {
+      current = aliases[current]!;
+    }
+    return current;
+  }
+
   /// Revalidates pending tombstones against the complete current library.
   ///
   /// Archive merge restores must not use only the archive's written records:
@@ -660,7 +1029,7 @@ final class CompendiumSyncStorage
   Future<T> transaction<T>(Future<T> Function() action) =>
       repositories.transaction(action);
 
-  /// Resolves the one review reason whose user decision is normative in W14.
+  /// Resolves persisted W8 choreography and W14 tombstone review decisions.
   ///
   /// The queue row is re-read inside the transaction so a stale screen cannot
   /// clear a replacement candidate. The inherited queue has no historical
@@ -678,6 +1047,17 @@ final class CompendiumSyncStorage
     );
     if (currentRow == null || !_sameReviewQueueRow(currentRow, expectedRow)) {
       throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
+    }
+    if (currentRow.reason == syncDanceChoreographyAmbiguityReason) {
+      await _resolveDanceAmbiguity(
+        currentRow: currentRow,
+        action: action,
+        newNaturalKey: newNaturalKey,
+      );
+      return;
+    }
+    if (currentRow.reason != syncBaselineAbsenceTombstoneReason) {
+      throw const SyncReviewException(SyncReviewFailureCode.unsupportedReason);
     }
     final SyncRecordBlob candidate;
     try {
@@ -702,10 +1082,6 @@ final class CompendiumSyncStorage
     } on Object {
       throw const SyncReviewException(SyncReviewFailureCode.candidateInvalid);
     }
-    if (currentRow.reason != syncBaselineAbsenceTombstoneReason) {
-      throw const SyncReviewException(SyncReviewFailureCode.unsupportedReason);
-    }
-
     final localAddress = (kind: currentRow.kind, recordId: currentRow.recordId);
     final localBody = await read(localAddress);
     final localMetadata = await _naturalRecordMetadata(
@@ -846,6 +1222,172 @@ final class CompendiumSyncStorage
       counterpartId: currentRow.counterpartId,
     );
   });
+
+  Future<void> _resolveDanceAmbiguity({
+    required ReviewQueueRow currentRow,
+    required SyncReviewAction action,
+    required String? newNaturalKey,
+  }) async {
+    final SyncRecordBlob queuedCandidate;
+    try {
+      queuedCandidate = decodeSyncRecordBlob(currentRow.candidateBlob);
+    } on Object {
+      throw const SyncReviewException(SyncReviewFailureCode.candidateInvalid);
+    }
+    if (currentRow.kind != SyncRecordKind.dance ||
+        queuedCandidate.kind != SyncRecordKind.dance ||
+        queuedCandidate.id != currentRow.counterpartId ||
+        queuedCandidate.body['id'] != queuedCandidate.id ||
+        queuedCandidate.deletedAt != null ||
+        currentRow.recordId == queuedCandidate.id ||
+        currentRow.candidateHash !=
+            sha256Hex(encodeSyncRecordBlobUtf8(queuedCandidate))) {
+      throw const SyncReviewException(SyncReviewFailureCode.candidateInvalid);
+    }
+    try {
+      validateSyncReviewCandidateBody(
+        SyncRecordKind.dance,
+        queuedCandidate.body,
+      );
+    } on Object {
+      throw const SyncReviewException(SyncReviewFailureCode.candidateInvalid);
+    }
+
+    final local = await _danceCandidate(currentRow.recordId);
+    final currentCandidate = await _danceCandidate(queuedCandidate.id);
+    if (local == null ||
+        local.blob.deletedAt != null ||
+        currentCandidate == null ||
+        currentCandidate.blob.deletedAt != null) {
+      throw const SyncReviewException(SyncReviewFailureCode.targetMissing);
+    }
+    if (currentCandidate.wireHash != currentRow.candidateHash ||
+        await repositories.syncLocal.resolveAlias(
+              kind: SyncRecordKind.dance,
+              recordId: local.blob.id,
+            ) !=
+            local.blob.id ||
+        await repositories.syncLocal.resolveAlias(
+              kind: SyncRecordKind.dance,
+              recordId: currentCandidate.blob.id,
+            ) !=
+            currentCandidate.blob.id) {
+      throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
+    }
+
+    final localTitle = local.blob.body['title'];
+    final candidateTitle = currentCandidate.blob.body['title'];
+    if (localTitle is! String ||
+        candidateTitle is! String ||
+        normalizeTitle(localTitle) != normalizeTitle(candidateTitle)) {
+      throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
+    }
+
+    switch (action) {
+      case SyncReviewAction.merge:
+        final merge = mergeDanceCandidates([local, currentCandidate]);
+        final aliases = <String, String>{
+          for (final losingId in merge.losingIds)
+            losingId: merge.winner.blob.id,
+        };
+        await _applyDanceDedupeMerge(merge, aliases);
+      case SyncReviewAction.keepBoth:
+        final renamedTitle = _validatedDanceTitle(
+          newNaturalKey,
+          currentKey: normalizeTitle(candidateTitle),
+        );
+        if (await _danceTitleOccupied(
+          normalizeTitle(renamedTitle),
+          excludingId: local.blob.id,
+        )) {
+          throw const SyncReviewException(
+            SyncReviewFailureCode.nameNotDistinct,
+          );
+        }
+        await _renameLocalDanceTitle(local.blob.id, renamedTitle);
+        await _reconcileDanceReviewQueue(
+          survivorId: local.blob.id,
+          losingIds: const {},
+        );
+    }
+    await rebuildDerivedIndexes();
+    await repositories.syncLocal.deleteReview(
+      kind: currentRow.kind,
+      recordId: currentRow.recordId,
+      counterpartId: currentRow.counterpartId,
+    );
+  }
+
+  Future<SyncMergeCandidate?> _danceCandidate(String id) async {
+    final dance = await repositories.dances.getById(id, includeDeleted: true);
+    if (dance == null) return null;
+    final row = await (_db.select(
+      _db.dances,
+    )..where((table) => table.id.equals(id))).getSingleOrNull();
+    if (row == null) return null;
+    final customFields = await repositories.customFieldDefs
+        .listAllWithDeleted();
+    final allowedCustomFieldIds = {
+      for (final entry in customFields)
+        if (entry.field.shareable && !entry.deleted) entry.field.id,
+    };
+    final blob = syncRecordBlobForEntity(
+      SyncRecordKind.dance,
+      dance,
+      updatedAt: row.updatedAt,
+      deletedAt: row.deletedAt,
+      existenceAt: row.existenceAt ?? row.updatedAt,
+      allowedCustomFieldIds: allowedCustomFieldIds,
+    );
+    return blob == null ? null : SyncMergeCandidate(blob: blob);
+  }
+
+  String _validatedDanceTitle(String? raw, {required String currentKey}) {
+    if (raw == null) {
+      throw const SyncReviewException(SyncReviewFailureCode.nameRequired);
+    }
+    final normalized = normalizeShareableText(raw).trim();
+    if (normalized.isEmpty) {
+      throw const SyncReviewException(SyncReviewFailureCode.nameRequired);
+    }
+    if (normalizeTitle(normalized) == currentKey) {
+      throw const SyncReviewException(SyncReviewFailureCode.nameNotDistinct);
+    }
+    return normalized;
+  }
+
+  Future<bool> _danceTitleOccupied(
+    String normalizedTitle, {
+    required String excludingId,
+  }) async {
+    final rows = await _db.select(_db.dances).get();
+    return rows.any(
+      (row) =>
+          row.id != excludingId &&
+          row.deletedAt == null &&
+          normalizeTitle(row.title) == normalizedTitle,
+    );
+  }
+
+  Future<void> _renameLocalDanceTitle(String id, String title) async {
+    final row = await (_db.select(
+      _db.dances,
+    )..where((table) => table.id.equals(id))).getSingleOrNull();
+    if (row == null) {
+      throw const SyncReviewException(SyncReviewFailureCode.targetMissing);
+    }
+    await (_db.update(_db.dances)..where((table) => table.id.equals(id))).write(
+      DancesCompanion(
+        title: Value(normalizeShareableText(title)),
+        updatedAt: Value(
+          nextExistenceStamp(
+            now: DateTime.now().toUtc(),
+            current: row.updatedAt,
+          ),
+        ),
+      ),
+    );
+  }
 
   bool _sameReviewQueueRow(ReviewQueueRow left, ReviewQueueRow right) =>
       left.kind == right.kind &&
@@ -2437,6 +2979,14 @@ final class CompendiumSyncStorage
           _db.difficultyLevels,
         )..where((table) => table.id.equals(id))).go();
       case SyncRecordKind.dance:
+        for (final table in const ['dance_fts', 'dance_substring_fts']) {
+          await _db.customStatement('DELETE FROM $table WHERE dance_id = ?', [
+            id,
+          ]);
+        }
+        await (_db.delete(
+          _db.dances,
+        )..where((table) => table.id.equals(id))).go();
       case SyncRecordKind.program:
       case SyncRecordKind.publishedSource:
       case SyncRecordKind.venue:
@@ -2587,6 +3137,42 @@ final class CompendiumSyncStorage
           );
         }
       case SyncRecordKind.dance:
+        final slotRows = await (_db.select(
+          _db.programSlots,
+        )..where((row) => row.danceId.equals(losingId))).get();
+        final affectedPrograms = slotRows.map((row) => row.programId).toSet();
+        await (_db.update(_db.programSlots)
+              ..where((row) => row.danceId.equals(losingId)))
+            .write(ProgramSlotsCompanion(danceId: Value(survivingId)));
+
+        final linkOwners = await (_db.select(
+          _db.danceLinks,
+        )..where((row) => row.targetDanceId.equals(losingId))).get();
+        final linkOwnerIds = linkOwners
+            .map((row) => row.danceId)
+            .where((id) => id != losingId)
+            .toSet();
+        await (_db.update(_db.danceLinks)
+              ..where((row) => row.targetDanceId.equals(losingId)))
+            .write(DanceLinksCompanion(targetDanceId: Value(survivingId)));
+
+        final now = DateTime.now().toUtc();
+        for (final programId in affectedPrograms) {
+          final row = await (_db.select(
+            _db.programs,
+          )..where((table) => table.id.equals(programId))).getSingleOrNull();
+          if (row == null) continue;
+          await (_db.update(
+            _db.programs,
+          )..where((table) => table.id.equals(programId))).write(
+            ProgramsCompanion(
+              updatedAt: Value(
+                nextExistenceStamp(now: now, current: row.updatedAt),
+              ),
+            ),
+          );
+        }
+        affectedDances.addAll(linkOwnerIds);
       case SyncRecordKind.program:
       case SyncRecordKind.venue:
       case SyncRecordKind.setting:

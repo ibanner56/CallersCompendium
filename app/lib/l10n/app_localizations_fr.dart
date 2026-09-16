@@ -1268,6 +1268,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Un pair a supprimé un élément correspondant créé sur cet appareil.';
 
   @override
+  String get syncReviewDanceAmbiguityReason =>
+      'Les danses actives portent le même titre, mais ont une chorégraphie différente.';
+
+  @override
   String get syncReviewUnsupportedReason =>
       'Ce conflit de synchronisation est conservé pour le moment ; aucune action sûre n’est disponible ici.';
 
