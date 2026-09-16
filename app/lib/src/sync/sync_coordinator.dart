@@ -978,19 +978,31 @@ class SyncCoordinator {
       );
     }
 
-    final currentSnapshot = await store.snapshot();
+    final publicationState = await store.transaction(() async {
+      final currentSnapshot = await store.snapshot();
+      final publication = <SyncRecordAddress, SyncMergeCandidate?>{
+        ...currentSnapshot.publication,
+      };
+      final manifest = SyncManifest(
+        deviceId: deviceId,
+        epoch: metadata.epoch,
+        writtenAt: DateTime.now().toUtc(),
+        records: _manifestRecords(publication),
+      );
+      final addresses = _manifestAddresses(manifest);
+      await store.markPublished(addresses);
+      return (
+        currentSnapshot: currentSnapshot,
+        publication: publication,
+        manifest: manifest,
+        addresses: addresses,
+      );
+    });
+    final currentSnapshot = publicationState.currentSnapshot;
     final current = await _normalizeCandidates(currentSnapshot.local);
-    final publication = <SyncRecordAddress, SyncMergeCandidate?>{
-      ...currentSnapshot.publication,
-    };
-    final manifest = SyncManifest(
-      deviceId: deviceId,
-      epoch: metadata.epoch,
-      writtenAt: DateTime.now().toUtc(),
-      records: _manifestRecords(publication),
-    );
-    final addresses = _manifestAddresses(manifest);
-    await store.markPublished(addresses);
+    final publication = publicationState.publication;
+    final manifest = publicationState.manifest;
+    final addresses = publicationState.addresses;
     final finalByHash = <String, SyncMergeCandidate>{};
     for (final candidate in publication.values) {
       if (candidate != null) finalByHash[candidate.wireHash] = candidate;

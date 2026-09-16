@@ -101,10 +101,11 @@ that already soft-deletes.
 those kinds (`venue`, `choreographer`) produce blobs (§4.3).
 
 A hard delete is permitted **only** where the record can never have been
-published to a peer. A tombstone is worth its storage only when there is
-somebody to inform; conversely, a row a peer holds live cannot be removed
-locally without the next pass taking the "absent from baseline, present remotely
-→ download" path (§6.3) and restoring it, reversing the deletion on every pass.
+published to a peer and has no conservative publication-attempt marker. A
+tombstone is worth its storage only when there is somebody to inform;
+conversely, a row a peer holds live cannot be removed locally without the next
+pass taking the "absent from baseline, present remotely → download" path
+(§6.3) and restoring it, reversing the deletion on every pass.
 
 That condition is currently **assumed, not enforced**. Its production callers
 divide in two:
@@ -119,11 +120,15 @@ divide in two:
   excludes a sync pass from landing inside it.
 
 A client implementation MUST therefore either suspend sync for the duration of
-an undoable import session, or treat publication as forfeiting the right to hard
-delete — falling back to a tombstone for any record this device has ever named
-in a manifest it `PUT`. The sibling case has already shipped as a real defect
-once: an import undo left a *revived* row live (#903), which would have
-outranked that deletion on every peer once a client exists.
+an undoable import session, or treat a publication attempt as forfeiting the
+right to hard delete — falling back to a tombstone for any record this device
+has named in a final manifest snapshot selected for publication. The marker is
+written before blob negotiation, so a failed negotiation, upload, or manifest
+`PUT` may conservatively leave a marker even when no peer could fetch the
+bytes. That over-mark is intentional: the alternative is silently losing the
+ability to publish deletion evidence. The sibling case has already shipped as a
+real defect once: an import undo left a *revived* row live (#903), which would
+have outranked that deletion on every peer once a client exists.
 
 A client taking the forfeiture route MUST evaluate that predicate against the
 durable marker in §3.2, written at §6.3 step 7, and MUST NOT evaluate it against
@@ -221,19 +226,20 @@ It is **not** store-scoped bookkeeping and does **not** share
 `pending_deletions`' lifecycle: it MUST NOT be cleared on an epoch reset, on
 detach, or on restore. It is monotonic — an entry is written and never removed.
 
-It records an irreversible physical event, that a record's bytes left this
-device, and no local action can make that false. An epoch reset un-publishes
-nothing: the peers that already downloaded a record still hold it live, and that
-liveness is exactly what forfeiture guards against. **Detach un-publishes
-nothing either**, and it is worth being precise about why, because a
-store-scoped reading is the intuitive one. Detach forgets the sync ID *locally*
-(§6.2 step 3); it does not `DELETE /v1/manifests/{self}`, so this device's
-manifest remains on the server, and by §7.3 a blob is reachable while any
-manifest for its store references it. The record therefore stays downloadable by
-every peer for as long as the store lives, and a re-attach — which is a union
-that deletes nothing (§6.2) — restores it against a device that kept no
-tombstone. Clearing on detach would convert "the deletion sticks" into "the
-deletion silently reverts", which is the defect this rule exists to prevent.
+It records an irreversible publication-protection decision: a record was named
+by a final manifest snapshot and marked before blob negotiation. It does not
+prove that the bytes left this device or that a peer fetched them; a failed
+negotiation, upload, or manifest `PUT` can leave an intentional over-mark.
+An epoch reset un-publishes nothing: peers that already downloaded a record
+still hold it live, and that liveness is exactly what forfeiture guards against.
+**Detach un-publishes nothing either**, and it is worth being precise about why,
+because a store-scoped reading is the intuitive one. Detach forgets the sync ID
+*locally* (§6.2 step 3); it does not `DELETE /v1/manifests/{self}`, so a
+successful publication remains reachable while the store's manifest references
+it. The marker is retained because a failed attempt cannot later be
+distinguished from a publication that peers may have fetched. Clearing on
+detach would convert "the deletion sticks" into "the deletion silently
+reverts", which is the defect this rule exists to prevent.
 
 Restore needs no revalidation for the same reason it needs no clearing: the
 marker's only consumer is the forfeiture check at hard-delete time, so a row
@@ -247,14 +253,15 @@ record reachable, and it survives detach; retiring against peer manifests alone
 would ignore it. The failure modes are also asymmetric, which is what settles
 it: a wrongly-retired alias skips and reports one record, while a
 wrongly-retired marker silently resurrects a deletion. Growth is bounded by the
-number of records ever published rather than by activity: one
+number of records ever selected for publication rather than by activity: one
 `(kind, record_id)` pair per record. Each row is smaller than the baseline entry
 for the same record, which additionally carries a hash — but the row *counts*
 diverge, because the baseline is rebuilt on an epoch reset and drops purged
 records while this table is rebuilt by nothing. On a device with churn this
 table MUST be expected to hold more rows than the baseline. The bound is
 therefore absolute rather than relative: tens of bytes per pair, so a device
-that has published 100,000 records over its lifetime carries a few megabytes.
+that has selected 100,000 records for publication over its lifetime carries a
+few megabytes.
 An entry MUST be retained even after its record is tombstoned and purged.
 
 `review_queue` requires a new review surface: `import_review_screen.dart`

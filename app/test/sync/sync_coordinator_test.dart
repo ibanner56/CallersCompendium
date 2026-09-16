@@ -627,6 +627,7 @@ void main() {
       expect(result.status, SyncPassStatus.failed);
       expect(store.publishedRecords, [candidate.address]);
       expect(store.publishedBatches, hasLength(2));
+      expect(store.publishedTransactionDepths.first, greaterThan(0));
       final manifest = decodeSyncManifest(
         utf8.decode(transport.manifestBodies.single),
       );
@@ -1840,6 +1841,7 @@ final class _FakeStore implements SyncCoordinatorStore {
   final List<String> lifecycle;
   final List<SyncRecordAddress> publishedRecords = [];
   final List<List<SyncRecordAddress>> publishedBatches = [];
+  final List<int> publishedTransactionDepths = [];
   final List<SyncRecordAddress> advancedEntries = [];
   final List<SyncRecordAddress> droppedRecords = [];
   final List<SyncApplyRecord> writes = [];
@@ -1851,6 +1853,7 @@ final class _FakeStore implements SyncCoordinatorStore {
   int freshAttachDedupeCalls = 0;
   int steadyStateReviewRefreshCalls = 0;
   final List<SyncRecordAddress> replacedEntries = [];
+  int _transactionDepth = 0;
 
   @override
   Future<SyncCoordinatorSnapshot> snapshot() async {
@@ -1889,7 +1892,12 @@ final class _FakeStore implements SyncCoordinatorStore {
   @override
   Future<T> transaction<T>(Future<T> Function() action) async {
     lifecycle.add('transaction');
-    return action();
+    _transactionDepth++;
+    try {
+      return await action();
+    } finally {
+      _transactionDepth--;
+    }
   }
 
   @override
@@ -1916,6 +1924,7 @@ final class _FakeStore implements SyncCoordinatorStore {
   @override
   Future<void> markPublished(Iterable<SyncRecordAddress> records) async {
     lifecycle.add('markPublished');
+    publishedTransactionDepths.add(_transactionDepth);
     final batch = records.toList(growable: false);
     publishedBatches.add(batch);
     for (final address in batch) {
@@ -1938,8 +1947,10 @@ final class _FakeStore implements SyncCoordinatorStore {
     required String syncId,
     required Iterable<SyncRecordAddress> records,
   }) async {
-    await markPublished(records);
-    await markSyncUsed(syncId);
+    await transaction(() async {
+      await markPublished(records);
+      await markSyncUsed(syncId);
+    });
   }
 
   @override
