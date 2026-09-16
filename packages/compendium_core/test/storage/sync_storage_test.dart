@@ -230,6 +230,101 @@ void main() {
     },
   );
 
+  test(
+    'preflight admits malformed embedded timestamps when the envelope is valid',
+    () async {
+      final createdAt = DateTime.utc(2020, 1, 1, 12);
+      final bodyStamp = DateTime.utc(2099, 1, 1, 12);
+      final liveStamp = DateTime.utc(2026, 2, 1, 12);
+      final tombstoneStamp = DateTime.utc(2026, 2, 1, 12, 1);
+
+      SyncMergeCandidate malformedCandidate({
+        required SyncRecordKind kind,
+        required String id,
+        required Object entity,
+        required DateTime updatedAt,
+        required DateTime? deletedAt,
+      }) {
+        final body = Map<String, Object?>.from(syncBodyForEntity(kind, entity))
+          ..['updatedAt'] = 'not-a-timestamp'
+          ..['deletedAt'] = 'also-not-a-timestamp';
+        return SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: kind,
+            id: id,
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            existenceAt: updatedAt,
+            body: body,
+          ),
+        );
+      }
+
+      final candidates = [
+        malformedCandidate(
+          kind: SyncRecordKind.dance,
+          id: 'inbound-timestamp-preflight-dance',
+          entity: Dance(
+            id: 'inbound-timestamp-preflight-dance',
+            title: 'Preflight malformed dance',
+            createdAt: createdAt,
+            updatedAt: bodyStamp,
+          ),
+          updatedAt: liveStamp,
+          deletedAt: null,
+        ),
+        malformedCandidate(
+          kind: SyncRecordKind.program,
+          id: 'inbound-timestamp-preflight-program',
+          entity: Program(
+            id: 'inbound-timestamp-preflight-program',
+            title: 'Preflight malformed program',
+            createdAt: createdAt,
+            updatedAt: bodyStamp,
+          ),
+          updatedAt: tombstoneStamp,
+          deletedAt: tombstoneStamp,
+        ),
+      ];
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: candidates,
+        storage: storage,
+      );
+
+      expect(result.applied, [
+        for (final candidate in candidates) candidate.address,
+      ]);
+      expect(result.reports, isEmpty);
+
+      final storedDance = await repositories.dances.getById(
+        candidates[0].blob.id,
+        includeDeleted: true,
+      );
+      expect(storedDance, isNotNull);
+      expect(storedDance!.createdAt.toUtc(), createdAt);
+      expect(storedDance.updatedAt.toUtc(), liveStamp);
+      expect(storedDance.deletedAt, isNull);
+
+      final storedProgram = await repositories.programs.getById(
+        candidates[1].blob.id,
+        includeDeleted: true,
+      );
+      expect(storedProgram, isNotNull);
+      expect(storedProgram!.createdAt.toUtc(), createdAt);
+      expect(storedProgram.updatedAt.toUtc(), tombstoneStamp);
+      expect(storedProgram.deletedAt?.toUtc(), tombstoneStamp);
+
+      final publication = (await storage.snapshot()).publication;
+      final danceBody = publication[candidates[0].address]!.blob.body;
+      expect(danceBody['updatedAt'], liveStamp.toIso8601String());
+      expect(danceBody['deletedAt'], isNull);
+      final programBody = publication[candidates[1].address]!.blob.body;
+      expect(programBody['updatedAt'], tombstoneStamp.toIso8601String());
+      expect(programBody['deletedAt'], tombstoneStamp.toIso8601String());
+    },
+  );
+
   test('normalizes pending dance tombstone publication and replay', () async {
     final createdAt = DateTime.utc(2020, 1, 1, 12);
     final bodyStamp = DateTime.utc(2099, 1, 1, 12);
