@@ -126,10 +126,10 @@ once: an import undo left a *revived* row live (#903), which would have
 outranked that deletion on every peer once a client exists.
 
 A client taking the forfeiture route MUST evaluate that predicate against the
-durable marker in §3.2, written at §6.3 step 8, and MUST NOT evaluate it against
+durable marker in §3.2, written at §6.3 step 7, and MUST NOT evaluate it against
 the baseline. A baseline entry advances only where a peer was observed to carry
 this device's content hash (§6.3 step 9), so it records *confirmed agreement*,
-not *exposure*. Exposure begins one step earlier, at the `PUT`, so a baseline
+not *exposure*. Exposure begins at the manifest `PUT` in step 8, so a baseline
 test leaves a window between one pass's step 8 and the next pass's step 9 in
 which the bytes are already reachable server-side while the check still answers
 "never published" — a narrower version of the hole this rule exists to close.
