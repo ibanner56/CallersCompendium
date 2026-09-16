@@ -168,6 +168,67 @@ void main() {
     expect(quarantined.after.isQuarantined, isTrue);
   });
 
+  for (final kind in [SyncRecordKind.dance, SyncRecordKind.program]) {
+    for (final deleted in [false, true]) {
+      for (final hasBaseline in [false, true]) {
+        test('repair ignores timestamp projections for ${kind.name} '
+            '${deleted ? 'pending tombstone' : 'live'} '
+            '${hasBaseline ? 'with' : 'without'} baseline', () {
+          final localDeletedAt = deleted
+              ? _windowEnd.add(const Duration(hours: 1))
+              : null;
+          final peerDeletedAt = deleted
+              ? _localNow.add(const Duration(hours: 2))
+              : null;
+          final local = _timestampedEntityCandidate(
+            kind: kind,
+            id: '${kind.name}-${deleted ? 'deleted' : 'live'}',
+            updatedAt: _windowEnd.add(const Duration(hours: 1)),
+            deletedAt: localDeletedAt,
+          );
+          final peer = _timestampedEntityCandidate(
+            kind: kind,
+            id: local.blob.id,
+            updatedAt: _localNow.add(const Duration(hours: 2)),
+            deletedAt: peerDeletedAt,
+          );
+          final baselineCandidate = _timestampedEntityCandidate(
+            kind: kind,
+            id: local.blob.id,
+            updatedAt: _localNow,
+            deletedAt: deleted ? _localNow : null,
+          );
+
+          final result = repairSyncCandidate(
+            local: local,
+            baseline: hasBaseline
+                ? SyncBaselineEntry(
+                    kind: local.address.kind,
+                    recordId: local.address.recordId,
+                    wireHash: baselineCandidate.wireHash,
+                    bodyHash: baselineCandidate.comparisonBodyHash,
+                  )
+                : null,
+            peers: [peer],
+            windowEnd: _windowEnd,
+          );
+
+          expect(result.completed, isTrue);
+          expect(result.repaired!.updatedAt, peer.updatedAt);
+          expect(result.repaired!.existenceAt, local.existenceAt);
+          expect(result.repaired!.blob.deletedAt, local.blob.deletedAt);
+          expect(result.repaired!.blob.body, local.blob.body);
+          expect(result.repaired!.blob.id, local.blob.id);
+          expect(result.repaired!.blob.kind, local.blob.kind);
+          expect(
+            result.repaired!.wireHash,
+            sha256Hex(encodeSyncRecordBlobUtf8(result.repaired!.blob)),
+          );
+        });
+      }
+    }
+  }
+
   test(
     'post-repair recheck keeps a boundary peer plus one tick quarantined',
     () {
@@ -345,6 +406,30 @@ void main() {
     expect(plan.withheld, isNot(contains(program.address)));
     expect(plan.manifestHashes[program.address], program.wireHash);
   });
+}
+
+SyncMergeCandidate _timestampedEntityCandidate({
+  required SyncRecordKind kind,
+  required String id,
+  required DateTime updatedAt,
+  required DateTime? deletedAt,
+}) {
+  final body = <String, Object?>{
+    'id': id,
+    'title': kind == SyncRecordKind.dance ? 'Dance' : 'Program',
+    'updatedAt': updatedAt.toIso8601String(),
+    'deletedAt': deletedAt?.toIso8601String(),
+  };
+  return SyncMergeCandidate.fromBlob(
+    SyncRecordBlob(
+      kind: kind,
+      id: id,
+      updatedAt: updatedAt,
+      deletedAt: deletedAt,
+      existenceAt: _localNow,
+      body: body,
+    ),
+  );
 }
 
 SyncMergeCandidate _candidate({

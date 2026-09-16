@@ -145,9 +145,10 @@ bool _bodyAgreesWithLocal(
 ) {
   final expected = baseline?.bodyHash;
   if (expected != null) {
-    return local.bodyHash == expected && peer.bodyHash == expected;
+    return local.comparisonBodyHash == expected &&
+        peer.comparisonBodyHash == expected;
   }
-  return peer.bodyHash == local.bodyHash;
+  return peer.comparisonBodyHash == local.comparisonBodyHash;
 }
 
 SyncMergeCandidate _greatestByExistence(List<SyncMergeCandidate> candidates) {

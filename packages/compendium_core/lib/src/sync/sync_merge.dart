@@ -22,6 +22,30 @@ class SyncMergeCandidate {
 
   String get bodyHash => contentHash(blob.body);
 
+  /// Hashes user content for quarantine repair agreement.
+  ///
+  /// Archive-shaped dance and program bodies repeat the envelope's timestamp
+  /// fields. Those projections are ignored only for this comparison; the
+  /// full body hash and wire hash retain their existing meanings.
+  String get comparisonBodyHash {
+    switch (blob.kind) {
+      case SyncRecordKind.dance:
+      case SyncRecordKind.program:
+        final body = Map<String, Object?>.from(blob.body)
+          ..remove('updatedAt')
+          ..remove('deletedAt');
+        return contentHash(body);
+      case SyncRecordKind.choreographer:
+      case SyncRecordKind.tag:
+      case SyncRecordKind.publishedSource:
+      case SyncRecordKind.customFieldDef:
+      case SyncRecordKind.difficultyLevel:
+      case SyncRecordKind.venue:
+      case SyncRecordKind.setting:
+        return bodyHash;
+    }
+  }
+
   bool get isDeleted => blob.deletedAt != null;
 
   DateTime get updatedAt => blob.updatedAt;

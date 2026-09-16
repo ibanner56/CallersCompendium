@@ -134,6 +134,10 @@ void main() {
       expect(storage.records, {
         valid.address: {'value': 'valid'},
       });
+      expect(result.reports, hasLength(1));
+      expect(result.reports.single.code, SyncReportCode.malformedRecord);
+      expect(result.reports.single.kind, future.kind);
+      expect(result.reports.single.recordId, future.id);
     },
   );
 

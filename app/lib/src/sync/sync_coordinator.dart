@@ -1141,7 +1141,7 @@ class SyncCoordinator {
               kind: entry.key.kind,
               recordId: entry.key.recordId,
               wireHash: entry.value!.wireHash,
-              bodyHash: entry.value!.bodyHash,
+              bodyHash: entry.value!.comparisonBodyHash,
             ),
       ];
       if (!await _uploadMissingLocalBlobs(
@@ -1258,7 +1258,7 @@ class SyncCoordinator {
           kind: entry.key.kind,
           recordId: entry.key.recordId,
           wireHash: candidate.wireHash,
-          bodyHash: candidate.bodyHash,
+          bodyHash: candidate.comparisonBodyHash,
         ),
       );
     }
