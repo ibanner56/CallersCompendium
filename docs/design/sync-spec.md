@@ -1148,8 +1148,11 @@ whether it came from an old schema or a malformed current client.
 hash = lowercase-hex(SHA-256(canonical-json(blob)))
 ```
 
-The baseline additionally stores a **`body`-scoped** hash over the same
-canonicalisation, used only by §6.9.
+The baseline additionally stores a **`body`-scoped comparison hash**, used only
+by §6.9. For `dance` and `program`, the comparison removes only the
+top-level `updatedAt` and `deletedAt` projections from the body before applying
+the canonicalisation; every other body field and record kind is unchanged.
+The wire hash remains the full canonical blob hash.
 
 ### 4.3 Record blob
 
@@ -2525,7 +2528,7 @@ that field** is outside the local window, and take the greatest of what remains:
 | Field | Verbatim when | Otherwise |
 | --- | --- | --- |
 | `existenceAt` | peers agree with local live-or-deleted state | `peer + 1 tick` |
-| `updatedAt` | local body matches this device's own **baseline body hash** | `peer + 1 tick` |
+| `updatedAt` | local comparison body matches this device's own **baseline comparison hash** | `peer + 1 tick` |
 
 The adopted timestamp MUST come from the peer whose body matched, not the global
 maximum. Repair MUST NOT leave a record at equal `updatedAt` with content
@@ -2542,8 +2545,8 @@ quarantined.
 | Wire hash, no body hash | Agreed pre-upgrade; verbatim if body matches a peer, else stays quarantined |
 | Wholesale wipe | Cannot occur — fresh attach repersists the baseline first |
 
-The body hash starts null on upgrade and populates on the first pass that
-observes agreement. There is no safe backfill.
+The baseline comparison hash starts null on upgrade and populates on the first
+pass that observes agreement. There is no safe backfill.
 
 **Clock-suspect** is a derived per-pass diagnostic: it holds when at least one
 peer value was observed and every value observed in that pass fell outside the
