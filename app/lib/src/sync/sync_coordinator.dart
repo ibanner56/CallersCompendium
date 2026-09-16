@@ -36,10 +36,11 @@ class SyncPassResult {
   final String? message;
   final int duplicateCount;
 
-  /// Sync record kinds that were committed by the inbound apply transaction.
+  /// Sync record kinds whose tables were mutated by this pass.
   ///
-  /// This crosses the worker boundary so the owning Drift connection can
-  /// invalidate its live queries after the worker has closed its connection.
+  /// This includes inbound apply records and fresh-attach dedupe rewrites. It
+  /// crosses the worker boundary so the owning Drift connection can invalidate
+  /// its live queries after the worker has closed its connection.
   final List<SyncRecordKind> appliedKinds;
 }
 
@@ -956,6 +957,12 @@ class SyncCoordinator {
         ? await store.deduplicateFreshAttach()
         : await store.refreshDanceAmbiguityReviews();
     reports.addAll(dedupe.reports);
+    if (freshAttach && dedupe.duplicateCount > 0) {
+      appliedKinds.addAll({
+        SyncRecordKind.dance,
+        SyncRecordKind.program,
+      });
+    }
     if (freshAttach) {
       final attachedSnapshot = await store.snapshot();
       final attachedLocal = await _normalizeCandidates(attachedSnapshot.local);
