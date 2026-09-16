@@ -77,15 +77,18 @@ abstract interface class SyncCoordinatorStore
 
   Future<void> markSyncUsed(String syncId);
 
-  Future<void> markPublished(Iterable<SyncRecordAddress> records);
-
   /// Drops aliases whose losing IDs no longer appear in any verified peer
   /// manifest. The coordinator only invokes this when every current peer
   /// manifest was available for the epoch.
   Future<void> retireAliases({required Set<SyncRecordAddress> peerAddresses});
 
-  /// Records publication intent before the network PUT, so a crash after the
-  /// server accepts the manifest cannot lose the previously-used marker.
+  /// Records a manifest-producing snapshot's addresses before blob
+  /// publication, so a concurrent hard delete retains tombstone evidence.
+  Future<void> markPublished(Iterable<SyncRecordAddress> records);
+
+  /// Atomically records the manifest attempt and marks the sync identity
+  /// immediately before the manifest request. Keep this after blob
+  /// publication so a failed upload does not mark the sync identity used.
   Future<void> markPublicationAttempt({
     required String syncId,
     required Iterable<SyncRecordAddress> records,
@@ -980,6 +983,14 @@ class SyncCoordinator {
     final publication = <SyncRecordAddress, SyncMergeCandidate?>{
       ...currentSnapshot.publication,
     };
+    final manifest = SyncManifest(
+      deviceId: deviceId,
+      epoch: metadata.epoch,
+      writtenAt: DateTime.now().toUtc(),
+      records: _manifestRecords(publication),
+    );
+    final addresses = _manifestAddresses(manifest);
+    await store.markPublished(addresses);
     final finalByHash = <String, SyncMergeCandidate>{};
     for (final candidate in publication.values) {
       if (candidate != null) finalByHash[candidate.wireHash] = candidate;
@@ -996,18 +1007,7 @@ class SyncCoordinator {
             'post-apply blob publication failed', // i18n-ignore: internal status
       );
     }
-    final manifest = SyncManifest(
-      deviceId: deviceId,
-      epoch: metadata.epoch,
-      writtenAt: DateTime.now().toUtc(),
-      records: _manifestRecords(publication),
-    );
     final manifestBody = encodeSyncManifestUtf8(manifest);
-    final addresses = [
-      for (final kindEntry in manifest.records.entries)
-        for (final recordId in kindEntry.value.keys)
-          (kind: kindEntry.key, recordId: recordId),
-    ];
     await store.markPublicationAttempt(syncId: syncId!, records: addresses);
     final published = await transport.putManifest(deviceId, manifestBody);
     if (published.kind == SyncResponseKind.conflict) {
@@ -1399,6 +1399,12 @@ class SyncCoordinator {
     }
     return records;
   }
+
+  static List<SyncRecordAddress> _manifestAddresses(SyncManifest manifest) => [
+    for (final kindEntry in manifest.records.entries)
+      for (final recordId in kindEntry.value.keys)
+        (kind: kindEntry.key, recordId: recordId),
+  ];
 }
 
 class _StoreMetadata {

@@ -992,7 +992,9 @@ final class CompendiumSyncStorage
     await repositories.settings.set(syncLastUsedFingerprintKey, encoded);
   }
 
-  /// Atomically records publication intent before the manifest request.
+  /// Atomically records the manifest attempt and marks the sync identity
+  /// immediately before the manifest request. Keep this after blob publication
+  /// so a failed upload does not mark the sync identity used.
   ///
   /// The verifier is deliberately conservative: once a manifest is prepared,
   /// a later crash or network failure must still require replacement

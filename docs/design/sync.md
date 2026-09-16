@@ -3380,9 +3380,15 @@ checked against the discriminator rule above.
    applying.**
 6. Apply in one transaction, **read-modify-write** (below). Rebuild derived
    indexes.
-7. Recompute the local manifest from the post-apply state. `POST
-   /v1/blobs/missing`; `PUT` only what is missing from that final manifest.
-8. `PUT /v1/manifests/{self}`.
+7. Recompute the local manifest from the post-apply state. Before any
+   publication network request, record every address named by that final
+   manifest in `published_records`; then `POST /v1/blobs/missing` and `PUT`
+   only what is missing from the final manifest. Attach-only blobs are not
+   marked because attach writes no manifest and those blobs remain unreachable
+   until this continuation pass.
+8. `PUT /v1/manifests/{self}`. The pre-blob marker is retained before this
+   request, so a failure between the marker and the request over-marks rather
+   than allowing a later hard delete to erase publication evidence.
 9. Store the new baseline. A record's entry advances only where a peer's
    manifest was observed to carry **this device's current content hash** — an
    upload not yet reflected by any peer is not agreement, and quarantine repair

@@ -1834,13 +1834,15 @@ republishes, which is an ordinary upload and needs no special path.
 6. Persist the epoch and the resulting manifest as the new baseline. Quarantine
    and repair run **after** this, never during the union.
 7. **Immediately run one steady-state pass (§6.3).** Attach itself publishes
-   nothing: it uploads blobs at step 4 and writes no manifest, so until §6.3
-   step 8 runs, this device is absent from §7.1's `devices` list, no peer can
-   see any record it holds, and by §7.3 the blobs it just uploaded are
-   unreferenced and become collectable once the grace window elapses. A device
-   attaching to an empty store — the shape on first attach, and again after a
-   user confirms replacement of a store that no longer exists — would otherwise
-   seed nothing at all.
+   nothing: it uploads blobs at step 4 and writes no manifest, so the
+   attach-only upload MUST NOT mark `published_records`. Until §6.3's final
+   snapshot is protected before its blob negotiation and its step 8 manifest
+   runs, this device is absent from §7.1's `devices` list, no peer can see any
+   record it holds, and by §7.3 the blobs it just uploaded are unreferenced
+   and become collectable once the grace window elapses. A device attaching to
+   an empty store — the shape on first attach, and again after a user confirms
+   replacement of a store that no longer exists — would otherwise seed nothing
+   at all.
 
    This pass is a **continuation of the attach**, not a second concurrent
    operation, and §6.12's single-flight rule MUST NOT be read as forbidding it.
@@ -1967,23 +1969,23 @@ republishes, which is an ordinary upload and needs no special path.
    find the blob missing and re-upload it. This is reachable without a faulty
    peer: a manifest can outlive its blob by §7.3.
 6. Apply in one transaction (§6.7). Rebuild derived indexes.
-7. Recompute the local manifest from the post-apply state. `POST
-   /v1/blobs/missing`; `PUT` only what is missing from that final manifest.
-8. `PUT /v1/manifests/{self}`. A client relying on §3.1's forfeiture rule MUST
-   record every record the manifest names in `published_records` **before**
-   issuing the request. A crash between the two then over-marks rather than
-   under-marks, and those costs are not equivalent: an under-mark forfeits the
-   guarantee, while an over-mark makes a later hard delete of that record fall
-   back to a tombstone. The over-mark is not free — a tombstone left behind by
-   an undone import is exactly what §3.1's `hardDelete` exemption exists to
-   avoid — but it is recoverable and visible, where the under-mark is neither.
-   This step is the only point at which a record becomes exposed: §6.2 performs
-   no manifest `PUT` of its own, and by §7.3 a blob is unreachable until some
-   manifest references it, so the blobs uploaded at attach step 4 create no
-   window ahead of the first mark. Attach reaches publication by *running this
-   pass* (§6.2 step 7), which is why there is still exactly one publication
-   point to reason about — and why those blobs are published well inside §7.3's
-   grace window rather than relying on it.
+7. Recompute the local manifest from the post-apply state. Before any
+   publication network request, a client relying on §3.1's forfeiture rule
+   MUST record every address named by this final manifest in
+   `published_records`. Then issue `POST /v1/blobs/missing`; `PUT` only what is
+   missing from that final manifest. The marker protects a concurrent hard
+   delete during blob negotiation and upload, even if either request fails.
+8. `PUT /v1/manifests/{self}`. The marker was written in step 7 before blob
+   work, and the client MUST retain that protection before issuing this
+   request. A crash between the marker and the request then over-marks rather
+   than under-marks, and those costs are not equivalent: an under-mark forfeits
+   the guarantee, while an over-mark makes a later hard delete of that record
+   fall back to a tombstone. The over-mark is not free — a tombstone left
+   behind by an undone import is exactly what §3.1's `hardDelete` exemption
+   exists to avoid — but it is recoverable and visible, where the under-mark
+   is neither. Attach reaches publication only by *running this pass*
+   (§6.2 step 7); its attach-only blobs create no exposure window because no
+   manifest can reference them before this continuation.
 9. Store the new baseline. A record's entry advances **only** where a peer's
    manifest was observed to carry this device's current content hash.
 

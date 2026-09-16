@@ -594,7 +594,7 @@ void main() {
   );
 
   test(
-    'marks published records before a failed manifest publication',
+    'marks published records before blob and failed manifest publication',
     () async {
       final candidate = SyncMergeCandidate.fromBlob(
         _setting('custom_dialects', 'local'),
@@ -605,6 +605,11 @@ void main() {
       );
       final transport = _FakeTransport(
         putManifestStatus: 500,
+        onPostMissing: (_) async {
+          expect(store.publishedRecords, [candidate.address]);
+          expect(store.lifecycle, contains('markPublished'));
+          expect(store.lifecycle, isNot(contains('markSyncUsed')));
+        },
         onManifestPut: (_) {
           expect(store.lifecycle, contains('markPublished'));
           expect(store.lifecycle, contains('markSyncUsed'));
@@ -621,7 +626,117 @@ void main() {
 
       expect(result.status, SyncPassStatus.failed);
       expect(store.publishedRecords, [candidate.address]);
+      expect(store.publishedBatches, hasLength(2));
+      final manifest = decodeSyncManifest(
+        utf8.decode(transport.manifestBodies.single),
+      );
+      expect(store.publishedBatches.first, _manifestAddresses(manifest));
       expect(store.baselineAdvances, 0);
+    },
+  );
+
+  for (final entry in const {
+    'dance': SyncRecordKind.dance,
+    'program': SyncRecordKind.program,
+  }.entries) {
+    test(
+      'protects a ${entry.key} from hard-delete during blob publication',
+      () async {
+        final repositories = openTestRepositories();
+        final stamp = DateTime.utc(2026, 7, 15, 12);
+        final recordId = 'publication-race-${entry.key}';
+        if (entry.value == SyncRecordKind.dance) {
+          await repositories.dances.create(
+            Dance(
+              id: recordId,
+              title: 'Publication race dance',
+              createdAt: stamp,
+              updatedAt: stamp,
+            ),
+          );
+        } else {
+          await repositories.programs.create(
+            Program(
+              id: recordId,
+              title: 'Publication race program',
+              createdAt: stamp,
+              updatedAt: stamp,
+            ),
+          );
+        }
+        await repositories.syncLocal.resetEpoch(epoch: 'epoch-1');
+
+        final transport = _FakeTransport(
+          onPostMissing: (_) async {
+            if (entry.value == SyncRecordKind.dance) {
+              await repositories.dances.hardDelete([recordId]);
+            } else {
+              await repositories.programs.hardDelete([recordId]);
+            }
+          },
+        );
+        final coordinator = SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-a',
+          store: CompendiumSyncCoordinatorStore(repositories),
+          transport: transport,
+        );
+
+        final result = await coordinator.syncNow();
+
+        expect(result.status, SyncPassStatus.completed);
+        final DateTime? deletedAt;
+        if (entry.value == SyncRecordKind.dance) {
+          final retained = await repositories.dances.getById(
+            recordId,
+            includeDeleted: true,
+          );
+          expect(retained, isNotNull);
+          deletedAt = retained?.deletedAt;
+        } else {
+          final retained = await repositories.programs.getById(
+            recordId,
+            includeDeleted: true,
+          );
+          expect(retained, isNotNull);
+          deletedAt = retained?.deletedAt;
+        }
+        expect(deletedAt, isNotNull);
+        final manifest = decodeSyncManifest(
+          utf8.decode(transport.manifestBodies.single),
+        );
+        expect(manifest.records[entry.value]?[recordId], isNotNull);
+      },
+    );
+  }
+
+  test(
+    'retains the record marker without marking the sync used on upload failure',
+    () async {
+      final candidate = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'local'),
+      );
+      final store = _FakeStore(local: {candidate.address: candidate});
+      final transport = _FakeTransport(
+        postMissingStatuses: [500],
+        onPostMissing: (_) async {
+          expect(store.publishedRecords, [candidate.address]);
+          expect(store.lifecycle, isNot(contains('markSyncUsed')));
+        },
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+      );
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.failed);
+      expect(store.publishedRecords, [candidate.address]);
+      expect(store.lifecycle, isNot(contains('markSyncUsed')));
+      expect(transport.manifestPuts, 0);
     },
   );
 
@@ -727,7 +842,18 @@ void main() {
         local: {candidate.address: candidate},
         snapshotEpochs: [null, null, 'epoch-1'],
       );
-      final transport = _FakeTransport();
+      var postMissingCall = 0;
+      final transport = _FakeTransport(
+        onPostMissing: (_) async {
+          postMissingCall++;
+          if (postMissingCall == 1) {
+            expect(store.publishedRecords, isEmpty);
+          } else {
+            expect(store.publishedRecords, [candidate.address]);
+            expect(store.lifecycle, isNot(contains('markSyncUsed')));
+          }
+        },
+      );
       final coordinator = SyncCoordinator(
         syncId: 'configured',
         deviceId: 'device-a',
@@ -745,6 +871,7 @@ void main() {
       expect(store.baselineReplacements, 1);
       expect(store.baselineAdvances, 0);
       expect(store.epochStateClears, 1);
+      expect(postMissingCall, 2);
     },
   );
 
@@ -1143,7 +1270,11 @@ void main() {
           baseline: const {},
         ),
       );
-      final transport = _FakeTransport();
+      final transport = _FakeTransport(
+        onPostMissing: (_) async {
+          expect(store.publishedRecords, [candidate.address]);
+        },
+      );
       final coordinator = SyncCoordinator(
         syncId: 'configured',
         deviceId: 'device-a',
@@ -1162,6 +1293,7 @@ void main() {
         candidate.wireHash,
       );
       expect(store.publishedRecords, [candidate.address]);
+      expect(store.publishedBatches.first, _manifestAddresses(manifest));
       expect(store.writes, isEmpty);
     },
   );
@@ -1707,6 +1839,7 @@ final class _FakeStore implements SyncCoordinatorStore {
   currentCandidatesBuilder;
   final List<String> lifecycle;
   final List<SyncRecordAddress> publishedRecords = [];
+  final List<List<SyncRecordAddress>> publishedBatches = [];
   final List<SyncRecordAddress> advancedEntries = [];
   final List<SyncRecordAddress> droppedRecords = [];
   final List<SyncApplyRecord> writes = [];
@@ -1783,7 +1916,13 @@ final class _FakeStore implements SyncCoordinatorStore {
   @override
   Future<void> markPublished(Iterable<SyncRecordAddress> records) async {
     lifecycle.add('markPublished');
-    publishedRecords.addAll(records);
+    final batch = records.toList(growable: false);
+    publishedBatches.add(batch);
+    for (final address in batch) {
+      if (!publishedRecords.contains(address)) {
+        publishedRecords.add(address);
+      }
+    }
   }
 
   @override
@@ -1871,6 +2010,8 @@ final class _FakeTransport implements SyncCoordinatorTransport {
     List<int>? putManifestStatuses,
     this.onManifestPut,
     this.onManifestGet,
+    this.onPostMissing,
+    List<int>? postMissingStatuses,
   }) : createResponses = [...createResponses ?? const []],
        storeEpochs = [
          ...storeEpochs ?? const ['epoch-1'],
@@ -1880,6 +2021,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
            [...response],
        ],
        putManifestStatuses = [...putManifestStatuses ?? const []],
+       postMissingStatuses = [...postMissingStatuses ?? const []],
        manifestResponses = {
          for (final entry
              in (manifestResponses ?? const <String, List<SyncHttpResponse>>{})
@@ -1899,8 +2041,10 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   final List<List<String>> missingResponses;
   final int putManifestStatus;
   final List<int> putManifestStatuses;
+  final List<int> postMissingStatuses;
   final void Function(List<int> body)? onManifestPut;
   final Future<void> Function(String deviceId)? onManifestGet;
+  final Future<void> Function(List<String> hashes)? onPostMissing;
   final firstStoreStarted = Completer<void>();
   final requestLog = <String>[];
   final manifestBodies = <List<int>>[];
@@ -1983,13 +2127,18 @@ final class _FakeTransport implements SyncCoordinatorTransport {
 
   @override
   Future<SyncHttpResponse> postMissing(Iterable<String> hashes) async {
-    postMissingBatches.add(hashes.toList(growable: false));
+    final batch = hashes.toList(growable: false);
+    postMissingBatches.add(batch);
     postMissingCalls++;
     requestLog.add('missing');
+    await onPostMissing?.call(batch);
     final response = missingResponses.length >= postMissingCalls
         ? missingResponses[postMissingCalls - 1]
         : const <String>[];
-    return _response(200, body: jsonEncode({'missing': response}));
+    final status = postMissingStatuses.isNotEmpty
+        ? postMissingStatuses.removeAt(0)
+        : 200;
+    return _response(status, body: jsonEncode({'missing': response}));
   }
 
   @override
@@ -2036,6 +2185,12 @@ SyncManifest _manifest({
   writtenAt: DateTime.utc(2026, 7, 15, 12),
   records: records,
 );
+
+List<SyncRecordAddress> _manifestAddresses(SyncManifest manifest) => [
+  for (final kindEntry in manifest.records.entries)
+    for (final recordId in kindEntry.value.keys)
+      (kind: kindEntry.key, recordId: recordId),
+];
 
 SyncRecordBlob _setting(String id, String value, {int seconds = 0}) {
   final stamp = DateTime.utc(2026, 7, 15, 12).add(Duration(seconds: seconds));
