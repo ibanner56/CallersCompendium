@@ -14,6 +14,7 @@ assert SPEC and SPEC.loader
 validate_pr = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = validate_pr
 SPEC.loader.exec_module(validate_pr)
+REPOSITORY = "ibanner56/CallersCompendium"
 
 
 def validate(
@@ -26,6 +27,9 @@ def validate(
     pull_requests: dict[str, list[int]] | None = None,
     bootstrap: bool = False,
     author_association: str = "CONTRIBUTOR",
+    base_ref: str = "",
+    head_repo: str = "",
+    base_repo: str = "",
 ) -> list[str]:
     return validate_pr.validate_pull_request(
         changed_paths=paths,
@@ -36,6 +40,9 @@ def validate(
         pull_requests=pull_requests or {},
         bootstrap=bootstrap,
         author_association=author_association,
+        base_ref=base_ref,
+        head_repo=head_repo,
+        base_repo=base_repo,
     )
 
 
@@ -194,6 +201,144 @@ def test_bootstrap_rejects_combined_admin_and_unit_markers() -> None:
         author_association="OWNER",
     )
     assert any("cannot be combined" in error for error in errors)
+
+
+def test_topic_merge_allows_multiple_units_and_implementation_files() -> None:
+    assert (
+        validate(
+            paths=[
+                ".github/tracking/adr-004/units/W6.json",
+                ".github/tracking/adr-004/units/W7.json",
+                "packages/compendium_core/lib/src/sync/sync_merge.dart",
+            ],
+            body="<!-- tracking-topic-merge: athenaeum -->",
+            head_ref="athenaeum",
+            base_ref="main",
+            head_repo=REPOSITORY,
+            base_repo=REPOSITORY,
+            author_association="OWNER",
+        )
+        == []
+    )
+
+
+def test_topic_merge_requires_exact_source_branch() -> None:
+    errors = validate(
+        paths=["packages/compendium_core/lib/src/sync/sync_merge.dart"],
+        body="<!-- tracking-topic-merge: athenaeum -->",
+        head_ref="feature/athenaeum",
+        base_ref="main",
+        head_repo=REPOSITORY,
+        base_repo=REPOSITORY,
+        author_association="OWNER",
+    )
+    assert any("source branch athenaeum" in error for error in errors)
+
+
+def test_topic_merge_requires_exact_target_branch() -> None:
+    errors = validate(
+        paths=["packages/compendium_core/lib/src/sync/sync_merge.dart"],
+        body="<!-- tracking-topic-merge: athenaeum -->",
+        head_ref="athenaeum",
+        base_ref="release",
+        head_repo=REPOSITORY,
+        base_repo=REPOSITORY,
+        author_association="OWNER",
+    )
+    assert any("target branch main" in error for error in errors)
+
+
+def test_topic_merge_requires_canonical_head_repository() -> None:
+    errors = validate(
+        paths=["packages/compendium_core/lib/src/sync/sync_merge.dart"],
+        body="<!-- tracking-topic-merge: athenaeum -->",
+        head_ref="athenaeum",
+        base_ref="main",
+        head_repo="contributor/CallersCompendium",
+        base_repo=REPOSITORY,
+        author_association="OWNER",
+    )
+    assert any("head repository" in error for error in errors)
+
+
+def test_topic_merge_requires_canonical_base_repository() -> None:
+    errors = validate(
+        paths=["packages/compendium_core/lib/src/sync/sync_merge.dart"],
+        body="<!-- tracking-topic-merge: athenaeum -->",
+        head_ref="athenaeum",
+        base_ref="main",
+        head_repo=REPOSITORY,
+        base_repo="ibanner56/CallersCompendium-fork",
+        author_association="OWNER",
+    )
+    assert any("base repository" in error for error in errors)
+
+
+def test_topic_merge_is_owner_only() -> None:
+    errors = validate(
+        paths=["packages/compendium_core/lib/src/sync/sync_merge.dart"],
+        body="<!-- tracking-topic-merge: athenaeum -->",
+        head_ref="athenaeum",
+        base_ref="main",
+        head_repo=REPOSITORY,
+        base_repo=REPOSITORY,
+        author_association="CONTRIBUTOR",
+    )
+    assert any("repository-owner association" in error for error in errors)
+
+
+def test_topic_merge_cannot_combine_with_unit_marker() -> None:
+    errors = validate(
+        paths=[
+            ".github/tracking/adr-004/units/W6.json",
+            "packages/compendium_core/lib/src/sync/sync_merge.dart",
+        ],
+        body=(
+            "<!-- tracking-topic-merge: athenaeum -->\n"
+            "<!-- tracking-unit: ADR-004/W6 -->"
+        ),
+        head_ref="athenaeum",
+        base_ref="main",
+        head_repo=REPOSITORY,
+        base_repo=REPOSITORY,
+        author_association="OWNER",
+    )
+    assert any("cannot be combined" in error for error in errors)
+
+
+def test_topic_merge_cannot_combine_with_admin_marker() -> None:
+    errors = validate(
+        paths=["packages/compendium_core/lib/src/sync/sync_merge.dart"],
+        body=(
+            "<!-- tracking-topic-merge: athenaeum -->\n"
+            "<!-- tracking-admin -->"
+        ),
+        head_ref="athenaeum",
+        base_ref="main",
+        head_repo=REPOSITORY,
+        base_repo=REPOSITORY,
+        author_association="OWNER",
+    )
+    assert any("cannot be combined" in error for error in errors)
+
+
+def test_topic_merge_rejects_tracking_control_paths() -> None:
+    for path in (
+        "tools/tracking/validate_pr.py",
+        ".github/workflows/ci.yml",
+        ".github/instructions/device-sync-tracking.instructions.md",
+        ".github/tracking/adr-004/project.json",
+    ):
+        errors = validate(
+            paths=[path],
+            body="<!-- tracking-topic-merge: athenaeum -->",
+            head_ref="athenaeum",
+            base_ref="main",
+            head_repo=REPOSITORY,
+            base_repo=REPOSITORY,
+            author_association="OWNER",
+        )
+        assert any("tracking control paths" in error for error in errors), path
 
 
 def test_malformed_unit_file_reports_controlled_error() -> None:
