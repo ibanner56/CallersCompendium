@@ -169,6 +169,7 @@ class SyncLocalRepository {
     required String reason,
     required String candidateBlob,
     required String candidateHash,
+    String? localHash,
     required DateTime queuedAt,
   }) => transaction(
     (tx) => tx.enqueueReview(
@@ -178,6 +179,7 @@ class SyncLocalRepository {
       reason: reason,
       candidateBlob: candidateBlob,
       candidateHash: candidateHash,
+      localHash: localHash,
       queuedAt: queuedAt,
     ),
   );
@@ -401,6 +403,7 @@ class SyncLocalTransaction {
     required String reason,
     required String candidateBlob,
     required String candidateHash,
+    String? localHash,
     required DateTime queuedAt,
   }) => _db
       .into(_db.reviewQueue)
@@ -412,6 +415,7 @@ class SyncLocalTransaction {
           reason: reason,
           candidateBlob: candidateBlob,
           candidateHash: candidateHash,
+          localHash: Value(localHash),
           queuedAt: queuedAt,
         ),
         mode: InsertMode.insertOrIgnore,

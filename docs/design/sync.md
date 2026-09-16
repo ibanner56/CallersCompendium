@@ -584,7 +584,7 @@ it:
 | Id aliases (`losing_id`, `surviving_id`, `kind`) | `id_aliases` | `deviceScoped` |
 | Pending deletions — markers (`kind`, `record_id`, `tombstoned_at`, `tombstone_hash`) | `pending_deletions` | `deviceScoped` |
 | Pending deletions — retained tombstone bytes (`tombstone_blob`) | `pending_deletions` | `shareable` |
-| Deferred review items (`kind`, `record_id`, `counterpart_id`, `reason`, `candidate_blob`, `candidate_hash`, `queued_at`) | `review_queue` | `deviceScoped` |
+| Deferred review items (`kind`, `record_id`, `counterpart_id`, `reason`, `candidate_blob`, `candidate_hash`, nullable `local_hash`, `queued_at`) | `review_queue` | `deviceScoped` |
 | Records this device has published (`kind`, `record_id`) | `published_records` | `deviceScoped` |
 | Rows the normalisation pass could not repair (`table`, `column`, `record_id`) | `normalisation_skips` | `deviceScoped` |
 
@@ -3107,7 +3107,7 @@ block the sync that found them.
 
 Device Sync therefore **specifies the durable queue** rather than assuming it:
 a `review_queue` table (`kind`, `record_id`, `counterpart_id`, `reason`,
-`candidate_blob`, `candidate_hash`, `queued_at`), classified `deviceScoped`, a
+`candidate_blob`, `candidate_hash`, nullable `local_hash`, `queued_at`), classified `deviceScoped`, a
 schema change beyond the sync migration alongside `id_aliases`. Deferring an
 item is a write,
 not a prompt; the user is shown a count and works through it whenever they

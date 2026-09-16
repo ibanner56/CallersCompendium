@@ -590,6 +590,7 @@ final Map<String, DataClassification> fieldClassifications = {
   'review_queue.reason': _syncBookkeeping,
   'review_queue.candidate_blob': _syncCandidatePayload,
   'review_queue.candidate_hash': _syncBookkeeping,
+  'review_queue.local_hash': _syncBookkeeping,
   'review_queue.queued_at': _syncBookkeeping,
   'published_records.kind': _syncBookkeeping,
   'published_records.record_id': _syncBookkeeping,

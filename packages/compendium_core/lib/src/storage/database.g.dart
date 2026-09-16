@@ -13029,6 +13029,17 @@ class $ReviewQueueTable extends ReviewQueue
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _localHashMeta = const VerificationMeta(
+    'localHash',
+  );
+  @override
+  late final GeneratedColumn<String> localHash = GeneratedColumn<String>(
+    'local_hash',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _queuedAtMeta = const VerificationMeta(
     'queuedAt',
   );
@@ -13048,6 +13059,7 @@ class $ReviewQueueTable extends ReviewQueue
     reason,
     candidateBlob,
     candidateHash,
+    localHash,
     queuedAt,
   ];
   @override
@@ -13111,6 +13123,12 @@ class $ReviewQueueTable extends ReviewQueue
     } else if (isInserting) {
       context.missing(_candidateHashMeta);
     }
+    if (data.containsKey('local_hash')) {
+      context.handle(
+        _localHashMeta,
+        localHash.isAcceptableOrUnknown(data['local_hash']!, _localHashMeta),
+      );
+    }
     if (data.containsKey('queued_at')) {
       context.handle(
         _queuedAtMeta,
@@ -13154,6 +13172,10 @@ class $ReviewQueueTable extends ReviewQueue
         DriftSqlType.string,
         data['${effectivePrefix}candidate_hash'],
       )!,
+      localHash: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}local_hash'],
+      ),
       queuedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}queued_at'],
@@ -13177,6 +13199,7 @@ class ReviewQueueRow extends DataClass implements Insertable<ReviewQueueRow> {
   final String reason;
   final String candidateBlob;
   final String candidateHash;
+  final String? localHash;
   final DateTime queuedAt;
   const ReviewQueueRow({
     required this.kind,
@@ -13185,6 +13208,7 @@ class ReviewQueueRow extends DataClass implements Insertable<ReviewQueueRow> {
     required this.reason,
     required this.candidateBlob,
     required this.candidateHash,
+    this.localHash,
     required this.queuedAt,
   });
   @override
@@ -13200,6 +13224,9 @@ class ReviewQueueRow extends DataClass implements Insertable<ReviewQueueRow> {
     map['reason'] = Variable<String>(reason);
     map['candidate_blob'] = Variable<String>(candidateBlob);
     map['candidate_hash'] = Variable<String>(candidateHash);
+    if (!nullToAbsent || localHash != null) {
+      map['local_hash'] = Variable<String>(localHash);
+    }
     map['queued_at'] = Variable<DateTime>(queuedAt);
     return map;
   }
@@ -13212,6 +13239,9 @@ class ReviewQueueRow extends DataClass implements Insertable<ReviewQueueRow> {
       reason: Value(reason),
       candidateBlob: Value(candidateBlob),
       candidateHash: Value(candidateHash),
+      localHash: localHash == null && nullToAbsent
+          ? const Value.absent()
+          : Value(localHash),
       queuedAt: Value(queuedAt),
     );
   }
@@ -13230,6 +13260,7 @@ class ReviewQueueRow extends DataClass implements Insertable<ReviewQueueRow> {
       reason: serializer.fromJson<String>(json['reason']),
       candidateBlob: serializer.fromJson<String>(json['candidateBlob']),
       candidateHash: serializer.fromJson<String>(json['candidateHash']),
+      localHash: serializer.fromJson<String?>(json['localHash']),
       queuedAt: serializer.fromJson<DateTime>(json['queuedAt']),
     );
   }
@@ -13245,6 +13276,7 @@ class ReviewQueueRow extends DataClass implements Insertable<ReviewQueueRow> {
       'reason': serializer.toJson<String>(reason),
       'candidateBlob': serializer.toJson<String>(candidateBlob),
       'candidateHash': serializer.toJson<String>(candidateHash),
+      'localHash': serializer.toJson<String?>(localHash),
       'queuedAt': serializer.toJson<DateTime>(queuedAt),
     };
   }
@@ -13256,6 +13288,7 @@ class ReviewQueueRow extends DataClass implements Insertable<ReviewQueueRow> {
     String? reason,
     String? candidateBlob,
     String? candidateHash,
+    Value<String?> localHash = const Value.absent(),
     DateTime? queuedAt,
   }) => ReviewQueueRow(
     kind: kind ?? this.kind,
@@ -13264,6 +13297,7 @@ class ReviewQueueRow extends DataClass implements Insertable<ReviewQueueRow> {
     reason: reason ?? this.reason,
     candidateBlob: candidateBlob ?? this.candidateBlob,
     candidateHash: candidateHash ?? this.candidateHash,
+    localHash: localHash.present ? localHash.value : this.localHash,
     queuedAt: queuedAt ?? this.queuedAt,
   );
   ReviewQueueRow copyWithCompanion(ReviewQueueCompanion data) {
@@ -13280,6 +13314,7 @@ class ReviewQueueRow extends DataClass implements Insertable<ReviewQueueRow> {
       candidateHash: data.candidateHash.present
           ? data.candidateHash.value
           : this.candidateHash,
+      localHash: data.localHash.present ? data.localHash.value : this.localHash,
       queuedAt: data.queuedAt.present ? data.queuedAt.value : this.queuedAt,
     );
   }
@@ -13293,6 +13328,7 @@ class ReviewQueueRow extends DataClass implements Insertable<ReviewQueueRow> {
           ..write('reason: $reason, ')
           ..write('candidateBlob: $candidateBlob, ')
           ..write('candidateHash: $candidateHash, ')
+          ..write('localHash: $localHash, ')
           ..write('queuedAt: $queuedAt')
           ..write(')'))
         .toString();
@@ -13306,6 +13342,7 @@ class ReviewQueueRow extends DataClass implements Insertable<ReviewQueueRow> {
     reason,
     candidateBlob,
     candidateHash,
+    localHash,
     queuedAt,
   );
   @override
@@ -13318,6 +13355,7 @@ class ReviewQueueRow extends DataClass implements Insertable<ReviewQueueRow> {
           other.reason == this.reason &&
           other.candidateBlob == this.candidateBlob &&
           other.candidateHash == this.candidateHash &&
+          other.localHash == this.localHash &&
           other.queuedAt == this.queuedAt);
 }
 
@@ -13328,6 +13366,7 @@ class ReviewQueueCompanion extends UpdateCompanion<ReviewQueueRow> {
   final Value<String> reason;
   final Value<String> candidateBlob;
   final Value<String> candidateHash;
+  final Value<String?> localHash;
   final Value<DateTime> queuedAt;
   final Value<int> rowid;
   const ReviewQueueCompanion({
@@ -13337,6 +13376,7 @@ class ReviewQueueCompanion extends UpdateCompanion<ReviewQueueRow> {
     this.reason = const Value.absent(),
     this.candidateBlob = const Value.absent(),
     this.candidateHash = const Value.absent(),
+    this.localHash = const Value.absent(),
     this.queuedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -13347,6 +13387,7 @@ class ReviewQueueCompanion extends UpdateCompanion<ReviewQueueRow> {
     required String reason,
     required String candidateBlob,
     required String candidateHash,
+    this.localHash = const Value.absent(),
     required DateTime queuedAt,
     this.rowid = const Value.absent(),
   }) : kind = Value(kind),
@@ -13363,6 +13404,7 @@ class ReviewQueueCompanion extends UpdateCompanion<ReviewQueueRow> {
     Expression<String>? reason,
     Expression<String>? candidateBlob,
     Expression<String>? candidateHash,
+    Expression<String>? localHash,
     Expression<DateTime>? queuedAt,
     Expression<int>? rowid,
   }) {
@@ -13373,6 +13415,7 @@ class ReviewQueueCompanion extends UpdateCompanion<ReviewQueueRow> {
       if (reason != null) 'reason': reason,
       if (candidateBlob != null) 'candidate_blob': candidateBlob,
       if (candidateHash != null) 'candidate_hash': candidateHash,
+      if (localHash != null) 'local_hash': localHash,
       if (queuedAt != null) 'queued_at': queuedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -13385,6 +13428,7 @@ class ReviewQueueCompanion extends UpdateCompanion<ReviewQueueRow> {
     Value<String>? reason,
     Value<String>? candidateBlob,
     Value<String>? candidateHash,
+    Value<String?>? localHash,
     Value<DateTime>? queuedAt,
     Value<int>? rowid,
   }) {
@@ -13395,6 +13439,7 @@ class ReviewQueueCompanion extends UpdateCompanion<ReviewQueueRow> {
       reason: reason ?? this.reason,
       candidateBlob: candidateBlob ?? this.candidateBlob,
       candidateHash: candidateHash ?? this.candidateHash,
+      localHash: localHash ?? this.localHash,
       queuedAt: queuedAt ?? this.queuedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -13423,6 +13468,9 @@ class ReviewQueueCompanion extends UpdateCompanion<ReviewQueueRow> {
     if (candidateHash.present) {
       map['candidate_hash'] = Variable<String>(candidateHash.value);
     }
+    if (localHash.present) {
+      map['local_hash'] = Variable<String>(localHash.value);
+    }
     if (queuedAt.present) {
       map['queued_at'] = Variable<DateTime>(queuedAt.value);
     }
@@ -13441,6 +13489,7 @@ class ReviewQueueCompanion extends UpdateCompanion<ReviewQueueRow> {
           ..write('reason: $reason, ')
           ..write('candidateBlob: $candidateBlob, ')
           ..write('candidateHash: $candidateHash, ')
+          ..write('localHash: $localHash, ')
           ..write('queuedAt: $queuedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -23952,6 +24001,7 @@ typedef $$ReviewQueueTableCreateCompanionBuilder =
       required String reason,
       required String candidateBlob,
       required String candidateHash,
+      Value<String?> localHash,
       required DateTime queuedAt,
       Value<int> rowid,
     });
@@ -23963,6 +24013,7 @@ typedef $$ReviewQueueTableUpdateCompanionBuilder =
       Value<String> reason,
       Value<String> candidateBlob,
       Value<String> candidateHash,
+      Value<String?> localHash,
       Value<DateTime> queuedAt,
       Value<int> rowid,
     });
@@ -24004,6 +24055,11 @@ class $$ReviewQueueTableFilterComposer
 
   ColumnFilters<String> get candidateHash => $composableBuilder(
     column: $table.candidateHash,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get localHash => $composableBuilder(
+    column: $table.localHash,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -24052,6 +24108,11 @@ class $$ReviewQueueTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get localHash => $composableBuilder(
+    column: $table.localHash,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get queuedAt => $composableBuilder(
     column: $table.queuedAt,
     builder: (column) => ColumnOrderings(column),
@@ -24090,6 +24151,9 @@ class $$ReviewQueueTableAnnotationComposer
     column: $table.candidateHash,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get localHash =>
+      $composableBuilder(column: $table.localHash, builder: (column) => column);
 
   GeneratedColumn<DateTime> get queuedAt =>
       $composableBuilder(column: $table.queuedAt, builder: (column) => column);
@@ -24138,6 +24202,7 @@ class $$ReviewQueueTableTableManager
                 Value<String> reason = const Value.absent(),
                 Value<String> candidateBlob = const Value.absent(),
                 Value<String> candidateHash = const Value.absent(),
+                Value<String?> localHash = const Value.absent(),
                 Value<DateTime> queuedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ReviewQueueCompanion(
@@ -24147,6 +24212,7 @@ class $$ReviewQueueTableTableManager
                 reason: reason,
                 candidateBlob: candidateBlob,
                 candidateHash: candidateHash,
+                localHash: localHash,
                 queuedAt: queuedAt,
                 rowid: rowid,
               ),
@@ -24158,6 +24224,7 @@ class $$ReviewQueueTableTableManager
                 required String reason,
                 required String candidateBlob,
                 required String candidateHash,
+                Value<String?> localHash = const Value.absent(),
                 required DateTime queuedAt,
                 Value<int> rowid = const Value.absent(),
               }) => ReviewQueueCompanion.insert(
@@ -24167,6 +24234,7 @@ class $$ReviewQueueTableTableManager
                 reason: reason,
                 candidateBlob: candidateBlob,
                 candidateHash: candidateHash,
+                localHash: localHash,
                 queuedAt: queuedAt,
                 rowid: rowid,
               ),
