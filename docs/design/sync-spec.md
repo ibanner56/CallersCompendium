@@ -1132,13 +1132,15 @@ for retransmission.
 For every other body field, and for every record kind other than this bounded
 timestamp projection, a receiver MUST reject the candidate if shareable JSON
 normalization would change its content. The rejection MUST happen before W7
-natural-key reconciliation or any apply preparation, skip only that record,
-leave local state and reconciliation state unchanged, and produce the
-non-blocking `nonCanonicalWireBody` update-required report. The v1 wire blob
-does not carry sender schema or canonicalization provenance, so a receiver MUST
-treat every such body as requiring the sending device to update before retrying
-rather than guessing whether it came from an old schema or a malformed current
-client.
+natural-key reconciliation, merge winner selection, or any apply preparation,
+skip only that peer candidate, leave local state and reconciliation state
+unchanged, and produce the non-blocking `nonCanonicalWireBody` update-required
+report. A canonical candidate admitted from another peer may still enter merge
+planning; a rejected candidate MUST NOT contribute existence or content fields
+to a synthetic winner. The v1 wire blob does not carry sender schema or
+canonicalization provenance, so a receiver MUST treat every such body as
+requiring the sending device to update before retrying rather than guessing
+whether it came from an old schema or a malformed current client.
 
 ### 4.2 Content hash
 
@@ -2445,10 +2447,12 @@ refused.
 
 **Admission and ordering**, within the transaction:
 
-0. Admit each candidate once before reconciliation. Reject any
-   `nonCanonicalWireBody` candidate before it can enter `prepared`, natural-key
-   reconciliation, reference validation, parent/join processing, or tombstone
-   context. The accepted candidate includes the complete canonical source blob.
+0. Admit each downloaded peer candidate before merge planning, then admit each
+   candidate once more after reconciliation rewrites its address. Reject any
+   `nonCanonicalWireBody` candidate before it can enter merge winner selection,
+   `prepared`, natural-key reconciliation, reference validation, parent/join
+   processing, or tombstone context. The accepted candidate includes the
+   complete canonical source blob.
 1. Reconcile `UNIQUE`-key collisions, building the remap.
 2. Apply the remap to every inbound record in the batch.
 3. Apply parent records by UUID.

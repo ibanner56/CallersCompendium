@@ -871,6 +871,7 @@ class SyncCoordinator {
       if (candidate != null) localByHash[candidate.wireHash] = candidate;
     }
     final availableByHash = <String, SyncMergeCandidate>{...localByHash};
+    final rejectedPeerAddresses = <SyncRecordAddress>{};
 
     for (final peer in peerManifests) {
       peerMaps.add(
@@ -881,12 +882,22 @@ class SyncCoordinator {
             reports: reports,
             unresolved: unresolved,
             candidateByHash: availableByHash,
+            rejectedAddresses: rejectedPeerAddresses,
           ),
         ),
       );
     }
 
     final normalizedUnresolved = await _normalizeAddresses(unresolved);
+    final normalizedPeerAddresses = <SyncRecordAddress>{
+      for (final peer in peerMaps) ...peer.keys,
+    };
+    final normalizedRejectedPeerAddresses = await _normalizeAddresses(
+      rejectedPeerAddresses,
+    );
+    normalizedUnresolved.addAll(
+      normalizedRejectedPeerAddresses.difference(normalizedPeerAddresses),
+    );
     if (freshAttach &&
         (!allPeerManifestsAvailable || normalizedUnresolved.isNotEmpty)) {
       return SyncPassResult(
@@ -1190,6 +1201,7 @@ class SyncCoordinator {
     required SyncReportSink reports,
     required Set<SyncRecordAddress> unresolved,
     required Map<String, SyncMergeCandidate> candidateByHash,
+    required Set<SyncRecordAddress> rejectedAddresses,
   }) async {
     final result = <SyncRecordAddress, SyncMergeCandidate?>{};
     for (final kindEntry in manifest.records.entries) {
@@ -1211,11 +1223,16 @@ class SyncCoordinator {
             );
             continue;
           }
-          result[address] = SyncMergeCandidate(
-            blob: cachedCandidate.blob,
-            wireHash: cachedCandidate.wireHash,
-            peerId: peerId,
+          final admitted = _admitPeerCandidate(
+            SyncMergeCandidate(
+              blob: cachedCandidate.blob,
+              wireHash: cachedCandidate.wireHash,
+              peerId: peerId,
+            ),
+            reports: reports,
+            rejectedAddresses: rejectedAddresses,
           );
+          if (admitted != null) result[address] = admitted;
           continue;
         }
         final response = await transport.getBlob(recordEntry.value);
@@ -1281,11 +1298,32 @@ class SyncCoordinator {
           wireHash: recordEntry.value,
           peerId: peerId,
         );
-        candidateByHash[recordEntry.value] = candidate;
-        result[address] = candidate;
+        final admitted = _admitPeerCandidate(
+          candidate,
+          reports: reports,
+          rejectedAddresses: rejectedAddresses,
+        );
+        if (admitted == null) continue;
+        candidateByHash[recordEntry.value] = admitted;
+        result[address] = admitted;
       }
     }
     return result;
+  }
+
+  SyncMergeCandidate? _admitPeerCandidate(
+    SyncMergeCandidate candidate, {
+    required SyncReportSink reports,
+    required Set<SyncRecordAddress> rejectedAddresses,
+  }) {
+    final admission = admitSyncInboundCandidate(candidate);
+    final report = admission.report;
+    if (report != null) {
+      rejectedAddresses.add(candidate.address);
+      reports.add(report);
+      return null;
+    }
+    return admission.candidate!;
   }
 
   Future<bool> _uploadMissingLocalBlobs(
