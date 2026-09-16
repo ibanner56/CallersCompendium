@@ -1211,7 +1211,11 @@ class SyncCoordinator {
             );
             continue;
           }
-          result[address] = cachedCandidate;
+          result[address] = SyncMergeCandidate(
+            blob: cachedCandidate.blob,
+            wireHash: cachedCandidate.wireHash,
+            peerId: peerId,
+          );
           continue;
         }
         final response = await transport.getBlob(recordEntry.value);
@@ -1275,6 +1279,7 @@ class SyncCoordinator {
         final candidate = SyncMergeCandidate(
           blob: blob,
           wireHash: recordEntry.value,
+          peerId: peerId,
         );
         candidateByHash[recordEntry.value] = candidate;
         result[address] = candidate;

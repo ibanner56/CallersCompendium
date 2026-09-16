@@ -8,14 +8,15 @@ import 'sync_report.dart';
 
 /// A record candidate carrying the hashes needed by the baseline diff.
 class SyncMergeCandidate {
-  SyncMergeCandidate({required this.blob, String? wireHash})
+  SyncMergeCandidate({required this.blob, String? wireHash, this.peerId})
     : wireHash = wireHash ?? sha256Hex(encodeSyncRecordBlobUtf8(blob));
 
-  factory SyncMergeCandidate.fromBlob(SyncRecordBlob blob) =>
-      SyncMergeCandidate(blob: blob);
+  factory SyncMergeCandidate.fromBlob(SyncRecordBlob blob, {String? peerId}) =>
+      SyncMergeCandidate(blob: blob, peerId: peerId);
 
   final SyncRecordBlob blob;
   final String wireHash;
+  final String? peerId;
 
   SyncRecordAddress get address => (kind: blob.kind, recordId: blob.id);
 
@@ -601,6 +602,7 @@ class SyncMergeEngine {
         existenceAt: existenceWinner.existenceAt,
         body: contentWinner.blob.body,
       ),
+      peerId: contentWinner.peerId,
     );
     return _Resolution.winner(winner);
   }

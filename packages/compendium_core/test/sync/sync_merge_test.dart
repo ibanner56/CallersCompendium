@@ -140,6 +140,24 @@ void main() {
     expect(plan.reports.single.code, SyncReportCode.equalUpdatedAt);
   });
 
+  test('preserves the peer identity on a remote download winner', () {
+    final remote = SyncMergeCandidate.fromBlob(
+      _setting('custom_dialects', 'remote'),
+      peerId: 'peer-a',
+    );
+    final plan = engine.plan(
+      local: const {},
+      baseline: const {},
+      peers: [
+        {remote.address: remote},
+      ],
+    );
+
+    final decision = plan.decisions.single;
+    expect(decision.action, SyncMergeAction.download);
+    expect(decision.winner?.peerId, 'peer-a');
+  });
+
   test('guards an unequal tombstone over a baseline-absent setting', () {
     final local = _setting('custom_dialects', 'local');
     final tombstone = _setting(
