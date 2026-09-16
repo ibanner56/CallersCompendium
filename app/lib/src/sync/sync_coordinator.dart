@@ -28,12 +28,19 @@ class SyncPassResult {
     this.reports = const [],
     this.message,
     this.duplicateCount = 0,
+    this.appliedKinds = const [],
   });
 
   final SyncPassStatus status;
   final List<SyncReport> reports;
   final String? message;
   final int duplicateCount;
+
+  /// Sync record kinds that were committed by the inbound apply transaction.
+  ///
+  /// This crosses the worker boundary so the owning Drift connection can
+  /// invalidate its live queries after the worker has closed its connection.
+  final List<SyncRecordKind> appliedKinds;
 }
 
 /// The data needed to construct a local manifest and calculate a pass.
@@ -941,6 +948,9 @@ class SyncCoordinator {
       expectedWireHashes: expectedWireHashes,
     );
     reports.addAll(applyResult.reports);
+    final appliedKinds = {
+      for (final address in applyResult.applied) address.kind,
+    };
 
     final dedupe = freshAttach
         ? await store.deduplicateFreshAttach()
@@ -970,6 +980,7 @@ class SyncCoordinator {
           message:
               'fresh-attach blob publication failed', // i18n-ignore: internal status
           duplicateCount: dedupe.duplicateCount,
+          appliedKinds: appliedKinds.toList(),
         );
       }
       final continuationResult = await _runPass(
@@ -986,6 +997,10 @@ class SyncCoordinator {
         message: continuationResult.message,
         duplicateCount:
             dedupe.duplicateCount + continuationResult.duplicateCount,
+        appliedKinds: {
+          ...appliedKinds,
+          ...continuationResult.appliedKinds,
+        }.toList(),
       );
     }
 
@@ -1028,6 +1043,7 @@ class SyncCoordinator {
         reports: reports.reports,
         message:
             'post-apply blob publication failed', // i18n-ignore: internal status
+        appliedKinds: appliedKinds.toList(),
       );
     }
     final manifestBody = encodeSyncManifestUtf8(manifest);
@@ -1039,6 +1055,7 @@ class SyncCoordinator {
         reports: reports.reports,
         message:
             'manifest publication observed a stale epoch', // i18n-ignore: internal status
+        appliedKinds: appliedKinds.toList(),
       );
     }
     if (!published.isSuccess) {
@@ -1047,6 +1064,7 @@ class SyncCoordinator {
         reports: reports.reports,
         message:
             'manifest publication returned ${published.statusCode}', // i18n-ignore: internal status
+        appliedKinds: appliedKinds.toList(),
       );
     }
     final observed = <SyncBaselineEntry>[];
@@ -1095,6 +1113,7 @@ class SyncCoordinator {
       SyncPassStatus.completed,
       reports: reports.reports,
       duplicateCount: dedupe.duplicateCount,
+      appliedKinds: appliedKinds.toList(),
     );
   }
 

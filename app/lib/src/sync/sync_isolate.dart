@@ -76,20 +76,19 @@ final class IsolatedSyncPassHandle {
 final class IsolatedSyncPassOperation {
   IsolatedSyncPassOperation({
     required this.databasePath,
-    this.databaseName,
     required this.endpoint,
     required this.syncId,
     required this.deviceId,
     this.beforeTerminalAcknowledgement,
+    this.onAppliedKinds,
     SyncPeerManifestCache? peerManifestCache,
   }) : peerManifestCache = peerManifestCache ?? SyncPeerManifestCache();
-
   final String databasePath;
-  final String? databaseName;
   final Uri endpoint;
   final String syncId;
   final String deviceId;
   final Future<void> Function()? beforeTerminalAcknowledgement;
+  final void Function(Set<SyncRecordKind> kinds)? onAppliedKinds;
   final SyncPeerManifestCache peerManifestCache;
 
   Future<SyncPassResult> call({SyncStoreResult? initialStore}) async {
@@ -171,6 +170,11 @@ final class IsolatedSyncPassOperation {
             );
             final decodedResult = _decodeResult(encodedResult);
             peerManifestCache.replaceFrom(updatedCache);
+            final onAppliedKinds = this.onAppliedKinds;
+            if (onAppliedKinds != null &&
+                decodedResult.appliedKinds.isNotEmpty) {
+              onAppliedKinds(decodedResult.appliedKinds.toSet());
+            }
             completeResult(decodedResult);
             // diagnostics: silent — malformed terminal results are surfaced to the caller.
           } on Object catch (error, stack) {
@@ -403,6 +407,7 @@ Map<String, Object?> _encodeResult(SyncPassResult result) => {
   'status': result.status.name,
   'message': result.message,
   'duplicateCount': result.duplicateCount,
+  'appliedKinds': [for (final kind in result.appliedKinds) kind.name],
   'reports': [
     for (final report in result.reports)
       {
@@ -419,15 +424,26 @@ SyncPassResult _decodeResult(Map<String, Object?> encoded) {
   final rawStatus = encoded['status'];
   final rawMessage = encoded['message'];
   final rawDuplicateCount = encoded['duplicateCount'];
+  final rawAppliedKinds = encoded['appliedKinds'];
   final rawReports = encoded['reports'];
   if (rawStatus is! String ||
       (rawMessage != null && rawMessage is! String) ||
       (rawDuplicateCount != null && rawDuplicateCount is! int) ||
+      rawAppliedKinds is! List<Object?> ||
       rawReports is! List<Object?>) {
     throw const FormatException('sync isolate returned a malformed result');
   }
 
   final status = SyncPassStatus.values.byName(rawStatus);
+  final appliedKinds = <SyncRecordKind>[];
+  for (final rawKind in rawAppliedKinds) {
+    if (rawKind is! String) {
+      throw const FormatException(
+        'sync isolate returned an invalid applied kind',
+      );
+    }
+    appliedKinds.add(SyncRecordKind.values.byName(rawKind));
+  }
   final reports = <SyncReport>[];
   for (final rawReport in rawReports) {
     if (rawReport is! Map<Object?, Object?>) {
@@ -464,5 +480,6 @@ SyncPassResult _decodeResult(Map<String, Object?> encoded) {
     reports: reports,
     message: rawMessage as String?,
     duplicateCount: rawDuplicateCount as int? ?? 0,
+    appliedKinds: appliedKinds,
   );
 }

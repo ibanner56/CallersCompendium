@@ -5,28 +5,12 @@ import 'dart:io';
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_app/src/sync/sync_isolate.dart';
+import 'package:compendium_app/src/sync/sync_invalidation.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/native.dart';
-import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-CompendiumDatabase _openSharedTestDatabase({
-  required String name,
-  required String path,
-}) => CompendiumDatabase(
-  driftDatabase(
-    name: name,
-    native: DriftNativeOptions(
-      databasePath: () async => path,
-      tempDirectoryPath: () async => Directory(path).parent.path,
-      shareAcrossIsolates: true,
-    ),
-  ),
-);
-
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-
   test('opens the database and transport inside the pass isolate', () async {
     final directory = await Directory.systemTemp.createTemp(
       'compendium-sync-isolate-',
@@ -424,11 +408,7 @@ void main() {
       'compendium-sync-isolate-watch-',
     );
     final databasePath = '${directory.path}/compendium.sqlite';
-    final databaseName = directory.path.split(Platform.pathSeparator).last;
-    final database = _openSharedTestDatabase(
-      name: databaseName,
-      path: databasePath,
-    );
+    final database = CompendiumDatabase(NativeDatabase(File(databasePath)));
     final repositories = CompendiumRepositories(database, contraTaxonomy);
     await repositories.ensureMigrated();
     await repositories.settings.set(
@@ -494,12 +474,16 @@ void main() {
     expect(await changes.moveNext(), isTrue);
     expect(changes.current.single.valueJson, jsonEncode('before-first'));
 
+    Set<SyncRecordKind>? appliedKinds;
     final operation = IsolatedSyncPassOperation(
       databasePath: databasePath,
-      databaseName: databaseName,
       endpoint: Uri.parse('http://127.0.0.1:${server.port}'),
       syncId: 'alpha-beta-gamma-delta',
       deviceId: 'device-a',
+      onAppliedKinds: (kinds) {
+        appliedKinds = kinds;
+        markSyncAppliedTablesUpdated(database, kinds);
+      },
     );
     final result = await operation.call();
     expect(result.status, SyncPassStatus.completed);
@@ -508,6 +492,7 @@ void main() {
       database.settings,
     )..where((table) => table.key.equals('custom_dialects'))).getSingle();
     expect(jsonDecode(persisted.valueJson), 'after-first');
+    expect(appliedKinds, {SyncRecordKind.setting});
     expect(
       await changes.moveNext().timeout(const Duration(seconds: 5)),
       isTrue,
