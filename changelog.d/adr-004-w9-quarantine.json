@@ -1,0 +1,14 @@
+{
+  "id": "adr-004-w9-quarantine",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Device Sync now quarantines records with implausible future timestamps, repairs timestamps only from permitted peer evidence, and keeps quarantined records and their enforced dependents out of publication until they are safe."
+    ]
+  },
+  "core": {
+    "changed": [
+      "Add timestamp-window quarantine, peer-only repair, dependency-closure withholding, and publication planning for Device Sync."
+    ]
+  }
+}

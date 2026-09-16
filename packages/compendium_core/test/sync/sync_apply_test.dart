@@ -100,6 +100,43 @@ void main() {
     },
   );
 
+  test(
+    'refuses inbound records whose timestamps are more than a day ahead',
+    () async {
+      final storage = _MemoryApplyStorage({});
+      final localNow = DateTime.utc(2026, 7, 15, 12);
+      final future = SyncRecordBlob(
+        kind: SyncRecordKind.setting,
+        id: 'custom_dialects',
+        updatedAt: localNow.add(const Duration(hours: 25)),
+        deletedAt: null,
+        existenceAt: localNow.add(const Duration(hours: 25)),
+        body: {'value': 'future'},
+      );
+      final valid = SyncRecordBlob(
+        kind: SyncRecordKind.setting,
+        id: 'default_program_band',
+        updatedAt: localNow.add(const Duration(hours: 24)),
+        deletedAt: null,
+        existenceAt: localNow.add(const Duration(hours: 24)),
+        body: {'value': 'valid'},
+      );
+
+      final result = await SyncApplyEngine(now: () => localNow).apply(
+        candidates: [
+          SyncMergeCandidate.fromBlob(future),
+          SyncMergeCandidate.fromBlob(valid),
+        ],
+        storage: storage,
+      );
+
+      expect(result.applied, [valid.address]);
+      expect(storage.records, {
+        valid.address: {'value': 'valid'},
+      });
+    },
+  );
+
   test('does not adopt receive-only sync credentials', () async {
     final storage = _MemoryApplyStorage({
       (kind: SyncRecordKind.setting, recordId: 'sync_id'): {
