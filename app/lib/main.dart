@@ -433,6 +433,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// once per launch after preferences load.
   late UpdateController _updateController;
   SyncCoordinator? _syncCoordinator;
+  Future<void>? _syncCoordinatorDisposeFuture;
 
   /// Result of the once-per-launch [_runIntegrityCheck]. `false` means the
   /// `PRAGMA quick_check` probe failed, so the ready app surfaces a (non-fatal)
@@ -535,10 +536,26 @@ class _CompendiumAppState extends State<CompendiumApp> {
     widget.applicationShutdownController?.replaceCloseApp(_closeForShutdown);
   }
 
-  Future<void> _disposeSyncCoordinator() async {
+  Future<void> _disposeSyncCoordinator() {
+    final existing = _syncCoordinatorDisposeFuture;
+    if (existing != null) return existing;
+
     final coordinator = _syncCoordinator;
     _syncCoordinator = null;
-    await coordinator?.dispose();
+    final future = Future<void>.sync(() async {
+      await coordinator?.dispose();
+    });
+    _syncCoordinatorDisposeFuture = future;
+    future
+        .whenComplete(() => _clearSyncCoordinatorDisposeFuture(future))
+        .ignore();
+    return future;
+  }
+
+  void _clearSyncCoordinatorDisposeFuture(Future<void> future) {
+    if (identical(_syncCoordinatorDisposeFuture, future)) {
+      _syncCoordinatorDisposeFuture = null;
+    }
   }
 
   Future<void> _closeForShutdown() async {
@@ -1758,6 +1775,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
                                                                 notifier:
                                                                     _localeNotifier,
                                                                 child: BackupControllerScope(
+                                                                  beforeRestore:
+                                                                      _disposeSyncCoordinator,
+                                                                  afterRestore:
+                                                                      _configureSyncCoordinator,
                                                                   onRestored:
                                                                       reloadFromSettings,
                                                                   child: CollectionFilterScope(

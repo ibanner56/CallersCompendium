@@ -1210,6 +1210,12 @@ and it merges records **silently**.
   with the baseline" clears neither, and the pass never re-runs over restored
   rows. The rule is over the **event**, not the mode: `RestoreMode.merge` writes
   unjudged rows exactly as `replace` does.
+- **Produces** a serialized backup UI lifecycle: the active coordinator is
+  disposed and awaited before `BackupService.restoreFromJson` writes, and a
+  replacement coordinator is created from current settings after the operation
+  completes, including refusal and failure paths. The shared
+  `CompendiumArchiveImporter` writer remains a separate follow-up under the
+  unchanged event-wide §6.11 contract.
 - **Unblocks** **W13**'s `sync_exclude_imports` filter, which reuses this
   unit's §6.9 citation closure and nothing else here.
 - **Done when** the §9 *Quarantine and repair* bucket is green, and so is the
