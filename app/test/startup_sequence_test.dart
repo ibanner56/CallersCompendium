@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/main.dart';
 import 'package:compendium_app/src/data/app_database.dart';
+import 'package:compendium_app/src/data/application_shutdown_controller.dart';
 import 'package:compendium_app/src/data/backup_controller_scope.dart';
 import 'package:compendium_app/src/data/backup_service.dart';
 import 'package:compendium_app/src/data/migration_guard.dart';
@@ -470,6 +471,72 @@ void main() {
         'replacement-factory',
         'replacement-onAppStart',
       ]);
+    },
+  );
+
+  testWidgets(
+    'shutdown shares coordinator disposal with an in-progress restore hook',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+      final firstPassGate = Completer<void>();
+      final firstPassStarted = Completer<void>();
+      final shutdownController = ApplicationShutdownController(() async {});
+
+      Future<SyncCoordinator?> factory(
+        CompendiumRepositories repositories,
+      ) async {
+        final coordinator = SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-a',
+          store: CompendiumSyncCoordinatorStore(repositories),
+          transport: NoopSyncCoordinatorTransport(),
+          passOperation: ({SyncStoreResult? initialStore}) async {
+            if (!firstPassStarted.isCompleted) firstPassStarted.complete();
+            await firstPassGate.future;
+            return const SyncPassResult(SyncPassStatus.completed);
+          },
+        );
+        return coordinator;
+      }
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          applicationShutdownController: shutdownController,
+          integrityCheck: () async => true,
+          syncCoordinatorFactory: factory,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await firstPassStarted.future;
+
+      final scope = tester.widget<BackupControllerScope>(
+        find.byType(BackupControllerScope),
+      );
+      final before = scope.beforeRestore;
+      expect(before, isNotNull);
+
+      final beforeFuture = before!();
+      var shutdownCompleted = false;
+      final shutdownFuture = shutdownController.close().then((_) {
+        shutdownCompleted = true;
+      });
+
+      await tester.pump();
+      expect(
+        shutdownCompleted,
+        isFalse,
+        reason: 'shutdown must await the restore hook disposal',
+      );
+
+      firstPassGate.complete();
+      await beforeFuture;
+      await shutdownFuture;
+      expect(shutdownCompleted, isTrue);
     },
   );
 
