@@ -249,7 +249,6 @@ SyncPublicationPlan planSyncPublication({
     quarantined: initialQuarantine,
   );
   final manifestHashes = <SyncRecordAddress, String>{};
-  final uploadCandidates = <String, SyncMergeCandidate>{};
   for (final entry in publication.entries) {
     final candidate = entry.value;
     if (candidate == null) continue;
@@ -259,6 +258,31 @@ SyncPublicationPlan planSyncPublication({
       continue;
     }
     manifestHashes[entry.key] = candidate.wireHash;
+  }
+
+  var changed = true;
+  while (changed) {
+    changed = false;
+    for (final address in manifestHashes.keys.toList()) {
+      final candidate = publication[address];
+      if (candidate == null ||
+          syncRecordReferences(
+            candidate,
+          ).any((reference) => !manifestHashes.containsKey(reference))) {
+        manifestHashes.remove(address);
+        changed = true;
+      }
+    }
+  }
+
+  final uploadCandidates = <String, SyncMergeCandidate>{};
+  for (final entry in publication.entries) {
+    final candidate = entry.value;
+    if (candidate == null ||
+        withheld.contains(entry.key) ||
+        manifestHashes[entry.key] != candidate.wireHash) {
+      continue;
+    }
     uploadCandidates[candidate.wireHash] = candidate;
   }
   return SyncPublicationPlan(

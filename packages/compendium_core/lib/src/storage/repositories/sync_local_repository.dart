@@ -43,8 +43,16 @@ String? _decodeStoredBodyHash(
   return bodyHash.substring(_comparisonBodyHashPrefix.length);
 }
 
-String? _encodeStoredBodyHash(String? bodyHash) =>
-    bodyHash == null ? null : '$_comparisonBodyHashPrefix$bodyHash';
+String? _encodeStoredBodyHash(
+  String? bodyHash,
+  SyncBaselineBodyHashVersion version,
+) {
+  if (bodyHash == null ||
+      version == SyncBaselineBodyHashVersion.legacyFullBody) {
+    return bodyHash;
+  }
+  return '$_comparisonBodyHashPrefix$bodyHash';
+}
 
 /// A baseline hash pair to persist for one sync record.
 class SyncBaselineEntry {
@@ -308,7 +316,9 @@ class SyncLocalTransaction {
               kind: entry.kind,
               recordId: entry.recordId,
               wireHash: entry.wireHash,
-              bodyHash: Value(_encodeStoredBodyHash(entry.bodyHash)),
+              bodyHash: Value(
+                _encodeStoredBodyHash(entry.bodyHash, entry.bodyHashVersion),
+              ),
             ),
           );
     }
@@ -339,7 +349,9 @@ class SyncLocalTransaction {
               kind: entry.kind,
               recordId: entry.recordId,
               wireHash: entry.wireHash,
-              bodyHash: Value(_encodeStoredBodyHash(entry.bodyHash)),
+              bodyHash: Value(
+                _encodeStoredBodyHash(entry.bodyHash, entry.bodyHashVersion),
+              ),
             ),
           );
     }

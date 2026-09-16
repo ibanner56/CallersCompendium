@@ -381,6 +381,45 @@ void main() {
     },
   );
 
+  test(
+    'publication omits a dependent fallback when its quarantined root has no baseline',
+    () {
+      final root = _candidate(
+        kind: SyncRecordKind.choreographer,
+        id: 'author-without-baseline',
+        updatedAt: _windowEnd.add(const Duration(minutes: 1)),
+        existenceAt: _localNow,
+      );
+      final dependent = _candidate(
+        kind: SyncRecordKind.dance,
+        id: 'dance-with-baseline',
+        body: const {
+          'id': 'dance-with-baseline',
+          'title': 'Dance',
+          'authorIds': ['author-without-baseline'],
+        },
+        updatedAt: _localNow,
+        existenceAt: _localNow,
+      );
+
+      final plan = planSyncPublication(
+        publication: {root.address: root, dependent.address: dependent},
+        baseline: {
+          dependent.address: SyncBaselineEntry(
+            kind: dependent.address.kind,
+            recordId: dependent.address.recordId,
+            wireHash: 'b' * 64,
+          ),
+        },
+        windowEnd: _windowEnd,
+      );
+
+      expect(plan.manifestHashes, isNot(contains(root.address)));
+      expect(plan.manifestHashes, isNot(contains(dependent.address)));
+      expect(plan.withheld, containsAll([root.address, dependent.address]));
+    },
+  );
+
   test('publication does not withhold a program that only cites venueId', () {
     final venue = _candidate(
       kind: SyncRecordKind.venue,

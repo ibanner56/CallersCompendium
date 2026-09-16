@@ -144,6 +144,30 @@ void main() {
       );
 
       await repository.replaceBaseline(
+        epoch: 'epoch-legacy',
+        entries: [legacy],
+      );
+      final replacedLegacy =
+          (await repository.snapshotBaseline()).values.single;
+      expect(replacedLegacy.bodyHash, 'legacy-full-body');
+      expect(
+        replacedLegacy.bodyHashVersion,
+        SyncBaselineBodyHashVersion.legacyFullBody,
+      );
+
+      await repository.advanceBaseline(
+        epoch: 'epoch-legacy',
+        entries: [legacy],
+      );
+      final advancedLegacy =
+          (await repository.snapshotBaseline()).values.single;
+      expect(advancedLegacy.bodyHash, 'legacy-full-body');
+      expect(
+        advancedLegacy.bodyHashVersion,
+        SyncBaselineBodyHashVersion.legacyFullBody,
+      );
+
+      await repository.replaceBaseline(
         epoch: 'epoch-1',
         entries: [
           SyncBaselineEntry(
