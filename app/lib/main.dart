@@ -1758,6 +1758,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
                                                                 notifier:
                                                                     _localeNotifier,
                                                                 child: BackupControllerScope(
+                                                                  beforeRestore:
+                                                                      _disposeSyncCoordinator,
+                                                                  afterRestore:
+                                                                      _configureSyncCoordinator,
                                                                   onRestored:
                                                                       reloadFromSettings,
                                                                   child: CollectionFilterScope(

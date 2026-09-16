@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart';
@@ -8,8 +9,12 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/main.dart';
 import 'package:compendium_app/src/data/app_database.dart';
+import 'package:compendium_app/src/data/backup_controller_scope.dart';
+import 'package:compendium_app/src/data/backup_service.dart';
 import 'package:compendium_app/src/data/migration_guard.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
+import 'package:compendium_app/src/sync/sync_coordinator.dart';
+import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_app/src/data/window_service.dart';
 import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
 import 'package:compendium_app/src/diagnostics/error_log.dart';
@@ -18,6 +23,7 @@ import 'package:compendium_app/src/screens/settings_screen.dart'
     show kAppThemeKey;
 
 import 'support/test_repositories.dart';
+import 'support/noop_sync_transport.dart';
 
 /// A [WindowService] whose restore does nothing — the plugin glue is untestable
 /// under `flutter test` (no real window), and these tests only care about the
@@ -359,6 +365,111 @@ void main() {
 
       expect(find.byType(AppShell), findsOneWidget);
       expect(sink.sources, contains('main.sync-configure'));
+    },
+  );
+
+  testWidgets(
+    'backup restore hooks dispose and recreate the production sync coordinator',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+      final source = openTestRepositories();
+      await source.dances.create(
+        Dance(
+          id: 'restored',
+          title: 'Restored Dance',
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+      final backupJson = await BackupService(source).exportToJson();
+
+      final firstPassGate = Completer<void>();
+      final firstPassStarted = Completer<void>();
+      final replacementPassStarted = Completer<void>();
+      var factoryCalls = 0;
+      SyncCoordinator? replacement;
+
+      Future<SyncCoordinator?> factory(
+        CompendiumRepositories repositories,
+      ) async {
+        factoryCalls++;
+        final isFirst = factoryCalls == 1;
+        final started = isFirst ? firstPassStarted : replacementPassStarted;
+        final coordinator = SyncCoordinator(
+          syncId: 'configured',
+          deviceId: isFirst ? 'device-a' : 'device-b',
+          store: CompendiumSyncCoordinatorStore(repositories),
+          transport: NoopSyncCoordinatorTransport(),
+          passOperation: ({SyncStoreResult? initialStore}) async {
+            if (!started.isCompleted) started.complete();
+            if (isFirst) await firstPassGate.future;
+            return const SyncPassResult(SyncPassStatus.completed);
+          },
+        );
+        if (!isFirst) replacement = coordinator;
+        return coordinator;
+      }
+
+      addTearDown(() async {
+        await replacement?.dispose();
+      });
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          integrityCheck: () async => true,
+          syncCoordinatorFactory: factory,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await firstPassStarted.future;
+      expect(find.byType(AppShell), findsOneWidget);
+
+      final scope = tester.widget<BackupControllerScope>(
+        find.byType(BackupControllerScope),
+      );
+      final lifecycle = <String>[];
+      var beforeCompleted = false;
+      final before = scope.beforeRestore;
+      final after = scope.afterRestore;
+      expect(before, isNotNull);
+      expect(after, isNotNull);
+
+      final beforeFuture = before!().then((_) {
+        beforeCompleted = true;
+        lifecycle.add('disposed');
+      });
+      expect(
+        beforeCompleted,
+        isFalse,
+        reason: 'the pre-hook must await the active startup pass',
+      );
+
+      firstPassGate.complete();
+      await beforeFuture;
+
+      final outcome = await BackupService(
+        appData.repositories,
+      ).restoreFromJson(backupJson);
+      expect(outcome.applied, isTrue);
+      lifecycle.add('restored');
+
+      await after!();
+      lifecycle.add('replacement-factory');
+      expect(factoryCalls, 2);
+
+      await replacementPassStarted.future;
+      lifecycle.add('replacement-onAppStart');
+      expect(lifecycle, [
+        'disposed',
+        'restored',
+        'replacement-factory',
+        'replacement-onAppStart',
+      ]);
     },
   );
 

@@ -1,13 +1,15 @@
 import 'package:flutter/widgets.dart';
 
-/// Provides the "refresh the live app after a restore" hook to the Settings
-/// screen's backup controls (ROADMAP G.5).
+/// Provides the restore lifecycle hooks to the Settings screen's backup
+/// controls (ROADMAP G.5).
 ///
 /// A [BackupService] restore writes the restored data into the database and the
-/// `settings` table, but the running app holds preference values in notifiers
-/// and the dialect/theme controllers in memory. [onRestored] re-reads all of
-/// those so the UI reflects the restored state without a relaunch. It is wired
-/// in `main.dart` to `_CompendiumAppState`'s reload sequence.
+/// `settings` table, while the running app also owns an optional database-backed
+/// sync coordinator. [beforeRestore] must quiesce that coordinator before any
+/// restore write begins, and [afterRestore] must recreate it after the restore
+/// operation completes. [onRestored] remains the separate in-memory refresh
+/// callback: it re-reads preferences so the UI reflects the restored state
+/// without a relaunch. The running app wires these callbacks in `main.dart`.
 ///
 /// Optional by design: [maybeOf] returns `null` in focused widget tests that
 /// don't exercise restore. The running app always provides it.
@@ -15,8 +17,16 @@ class BackupControllerScope extends InheritedWidget {
   const BackupControllerScope({
     super.key,
     required this.onRestored,
+    this.beforeRestore,
+    this.afterRestore,
     required super.child,
   });
+
+  /// Stops new sync work and awaits any active pass before restore writes.
+  final Future<void> Function()? beforeRestore;
+
+  /// Recreates the database-backed sync coordinator after restore completes.
+  final Future<void> Function()? afterRestore;
 
   /// Reloads the dialect/theme controllers and preference notifiers from the
   /// (freshly restored) `settings` table so the live UI updates immediately.
@@ -27,5 +37,7 @@ class BackupControllerScope extends InheritedWidget {
 
   @override
   bool updateShouldNotify(BackupControllerScope oldWidget) =>
-      oldWidget.onRestored != onRestored;
+      oldWidget.onRestored != onRestored ||
+      oldWidget.beforeRestore != beforeRestore ||
+      oldWidget.afterRestore != afterRestore;
 }
