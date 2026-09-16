@@ -77,6 +77,255 @@ void main() {
   );
 
   test(
+    'uses envelope timestamps for inbound dance and program bodies',
+    () async {
+      final createdAt = DateTime.utc(2020, 1, 1, 12);
+      final bodyStamp = DateTime.utc(2099, 1, 1, 12);
+      final liveStamp = DateTime.utc(2026, 1, 1, 12);
+      final tombstoneStamp = DateTime.utc(2026, 1, 1, 12, 1);
+
+      final liveDance = Dance(
+        id: 'inbound-timestamp-live-dance',
+        title: 'Inbound timestamp live dance',
+        createdAt: createdAt,
+        updatedAt: bodyStamp,
+        deletedAt: bodyStamp,
+      );
+      final tombstonedDance = Dance(
+        id: 'inbound-timestamp-tombstone-dance',
+        title: 'Inbound timestamp tombstone dance',
+        createdAt: createdAt,
+        updatedAt: bodyStamp,
+      );
+      final liveProgram = Program(
+        id: 'inbound-timestamp-live-program',
+        title: 'Inbound timestamp live program',
+        createdAt: createdAt,
+        updatedAt: bodyStamp,
+        deletedAt: bodyStamp,
+      );
+      final tombstonedProgram = Program(
+        id: 'inbound-timestamp-tombstone-program',
+        title: 'Inbound timestamp tombstone program',
+        createdAt: createdAt,
+        updatedAt: bodyStamp,
+      );
+
+      SyncMergeCandidate candidate(
+        SyncRecordKind kind,
+        Object entity,
+        DateTime envelopeUpdatedAt,
+        DateTime? envelopeDeletedAt,
+      ) {
+        final id = switch (entity) {
+          Dance value => value.id,
+          Program value => value.id,
+          _ => throw ArgumentError('unexpected sync entity'),
+        };
+        return SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: kind,
+            id: id,
+            updatedAt: envelopeUpdatedAt,
+            deletedAt: envelopeDeletedAt,
+            existenceAt: envelopeUpdatedAt,
+            body: syncBodyForEntity(kind, entity),
+          ),
+        );
+      }
+
+      final candidates = [
+        candidate(SyncRecordKind.dance, liveDance, liveStamp, null),
+        candidate(
+          SyncRecordKind.dance,
+          tombstonedDance,
+          tombstoneStamp,
+          tombstoneStamp,
+        ),
+        candidate(SyncRecordKind.program, liveProgram, liveStamp, null),
+        candidate(
+          SyncRecordKind.program,
+          tombstonedProgram,
+          tombstoneStamp,
+          tombstoneStamp,
+        ),
+      ];
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: candidates,
+        storage: storage,
+      );
+
+      expect(result.applied, [
+        for (final candidate in candidates) candidate.address,
+      ]);
+
+      Future<void> expectPublished({
+        required SyncRecordKind kind,
+        required String id,
+        required DateTime expectedUpdatedAt,
+        required DateTime? expectedDeletedAt,
+      }) async {
+        final stored = switch (kind) {
+          SyncRecordKind.dance => await repositories.dances.getById(
+            id,
+            includeDeleted: true,
+          ),
+          SyncRecordKind.program => await repositories.programs.getById(
+            id,
+            includeDeleted: true,
+          ),
+          _ => throw ArgumentError('unexpected sync kind'),
+        };
+        switch (stored) {
+          case Dance value:
+            expect(value.createdAt.toUtc(), createdAt);
+            expect(value.updatedAt.toUtc(), expectedUpdatedAt);
+            expect(value.deletedAt?.toUtc(), expectedDeletedAt);
+          case Program value:
+            expect(value.createdAt.toUtc(), createdAt);
+            expect(value.updatedAt.toUtc(), expectedUpdatedAt);
+            expect(value.deletedAt?.toUtc(), expectedDeletedAt);
+          case null:
+            fail('expected $kind/$id to be persisted');
+          default:
+            fail('unexpected stored entity type: ${stored.runtimeType}');
+        }
+
+        final address = (kind: kind, recordId: id);
+        final publication = (await storage.snapshot()).publication[address];
+        expect(publication, isNotNull);
+        final blob = publication!.blob;
+        expect(blob.updatedAt, expectedUpdatedAt);
+        expect(blob.deletedAt, expectedDeletedAt);
+        expect(blob.body['createdAt'], createdAt.toIso8601String());
+        expect(blob.body['updatedAt'], expectedUpdatedAt.toIso8601String());
+        expect(blob.body['deletedAt'], expectedDeletedAt?.toIso8601String());
+      }
+
+      await expectPublished(
+        kind: SyncRecordKind.dance,
+        id: liveDance.id,
+        expectedUpdatedAt: liveStamp,
+        expectedDeletedAt: null,
+      );
+      await expectPublished(
+        kind: SyncRecordKind.dance,
+        id: tombstonedDance.id,
+        expectedUpdatedAt: tombstoneStamp,
+        expectedDeletedAt: tombstoneStamp,
+      );
+      await expectPublished(
+        kind: SyncRecordKind.program,
+        id: liveProgram.id,
+        expectedUpdatedAt: liveStamp,
+        expectedDeletedAt: null,
+      );
+      await expectPublished(
+        kind: SyncRecordKind.program,
+        id: tombstonedProgram.id,
+        expectedUpdatedAt: tombstoneStamp,
+        expectedDeletedAt: tombstoneStamp,
+      );
+    },
+  );
+
+  test('normalizes pending dance tombstone publication and replay', () async {
+    final createdAt = DateTime.utc(2020, 1, 1, 12);
+    final bodyStamp = DateTime.utc(2099, 1, 1, 12);
+    final localStamp = DateTime.utc(2025, 1, 1, 12);
+    final tombstoneStamp = DateTime.utc(2026, 1, 1, 12);
+    final dance = Dance(
+      id: 'inbound-timestamp-pending-dance',
+      title: 'Inbound timestamp pending dance',
+      createdAt: createdAt,
+      updatedAt: localStamp,
+    );
+    await repositories.dances.create(dance);
+    final citingProgram = Program(
+      id: 'inbound-timestamp-citing-program',
+      title: 'Inbound timestamp citing program',
+      slots: [
+        ProgramSlot(
+          id: 'inbound-timestamp-citing-slot',
+          position: 0,
+          danceId: dance.id,
+        ),
+      ],
+      createdAt: createdAt,
+      updatedAt: localStamp,
+    );
+    await repositories.programs.create(citingProgram);
+
+    final poisonedBody =
+        Map<String, Object?>.from(
+            syncBodyForEntity(SyncRecordKind.dance, dance),
+          )
+          ..['updatedAt'] = bodyStamp.toIso8601String()
+          ..['deletedAt'] = bodyStamp.toIso8601String();
+    final tombstone = SyncMergeCandidate(
+      blob: SyncRecordBlob(
+        kind: SyncRecordKind.dance,
+        id: dance.id,
+        updatedAt: tombstoneStamp,
+        deletedAt: tombstoneStamp,
+        existenceAt: tombstoneStamp,
+        body: poisonedBody,
+      ),
+    );
+
+    final result = await const SyncApplyEngine().apply(
+      candidates: [tombstone],
+      storage: storage,
+    );
+
+    expect(result.reports, isEmpty);
+    final pending = await repositories.syncLocal.getPendingDeletion(
+      kind: SyncRecordKind.dance,
+      recordId: dance.id,
+    );
+    expect(pending, isNotNull);
+    expect(pending!.tombstoneHash, tombstone.wireHash);
+
+    Future<void> expectPublishedTombstone() async {
+      final publication =
+          (await storage.snapshot()).publication[tombstone.address];
+      expect(publication, isNotNull);
+      final blob = publication!.blob;
+      expect(blob.updatedAt, tombstoneStamp);
+      expect(blob.deletedAt, tombstoneStamp);
+      expect(blob.body['createdAt'], createdAt.toIso8601String());
+      expect(blob.body['updatedAt'], tombstoneStamp.toIso8601String());
+      expect(blob.body['deletedAt'], tombstoneStamp.toIso8601String());
+    }
+
+    await expectPublishedTombstone();
+
+    await repositories.programs.update(citingProgram.copyWith(slots: const []));
+
+    final replayedSnapshot = await storage.snapshot();
+    expect(
+      await repositories.syncLocal.getPendingDeletion(
+        kind: SyncRecordKind.dance,
+        recordId: dance.id,
+      ),
+      isNull,
+    );
+    final stored = await repositories.dances.getById(
+      dance.id,
+      includeDeleted: true,
+    );
+    expect(stored, isNotNull);
+    expect(stored!.createdAt.toUtc(), createdAt);
+    expect(stored.updatedAt.toUtc(), tombstoneStamp);
+    expect(stored.deletedAt?.toUtc(), tombstoneStamp);
+    final replayed = replayedSnapshot.publication[tombstone.address];
+    expect(replayed, isNotNull);
+    expect(replayed!.blob.body['updatedAt'], tombstoneStamp.toIso8601String());
+    expect(replayed.blob.body['deletedAt'], tombstoneStamp.toIso8601String());
+  });
+
+  test(
     'fresh attach dedupe rewires aliases, slots, links, indexes, and timestamps',
     () async {
       final stamp = DateTime.utc(2026, 7, 15, 12);
