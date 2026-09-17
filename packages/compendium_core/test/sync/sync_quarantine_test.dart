@@ -418,6 +418,87 @@ void main() {
   );
 
   test(
+    'publication resolves aliases before checking fallback dependencies',
+    () {
+      final root = _candidate(
+        kind: SyncRecordKind.choreographer,
+        id: 'author-canonical',
+        updatedAt: _windowEnd.add(const Duration(minutes: 1)),
+        existenceAt: _localNow,
+      );
+      final dependent = _candidate(
+        kind: SyncRecordKind.dance,
+        id: 'dance-aliased-author',
+        body: const {
+          'id': 'dance-aliased-author',
+          'title': 'Dance',
+          'authorIds': ['author-legacy'],
+        },
+        updatedAt: _localNow,
+        existenceAt: _localNow,
+      );
+      final legacy = (
+        kind: SyncRecordKind.choreographer,
+        recordId: 'author-legacy',
+      );
+
+      final plan = planSyncPublication(
+        publication: {root.address: root, dependent.address: dependent},
+        baseline: {
+          root.address: SyncBaselineEntry(
+            kind: root.address.kind,
+            recordId: root.address.recordId,
+            wireHash: 'a' * 64,
+          ),
+        },
+        windowEnd: _windowEnd,
+        resolveAlias: (address) => address == legacy ? root.address : address,
+      );
+
+      expect(plan.manifestHashes[root.address], 'a' * 64);
+      expect(plan.manifestHashes[dependent.address], dependent.wireHash);
+    },
+  );
+
+  test('publication withholds dependents when its fallback is unavailable', () {
+    final root = _candidate(
+      kind: SyncRecordKind.choreographer,
+      id: 'author-1',
+      updatedAt: _windowEnd.add(const Duration(minutes: 1)),
+      existenceAt: _localNow,
+    );
+    final dependent = _candidate(
+      kind: SyncRecordKind.dance,
+      id: 'dance-1',
+      body: const {
+        'id': 'dance-1',
+        'title': 'Dance',
+        'authorIds': ['author-1'],
+      },
+      updatedAt: _localNow,
+      existenceAt: _localNow,
+    );
+
+    final plan = planSyncPublication(
+      publication: {root.address: root, dependent.address: dependent},
+      baseline: {
+        root.address: SyncBaselineEntry(
+          kind: root.address.kind,
+          recordId: root.address.recordId,
+          wireHash: 'a' * 64,
+        ),
+      },
+      windowEnd: _windowEnd,
+      unavailableFallbackHashes: {'a' * 64},
+    );
+
+    expect(plan.manifestHashes, isNot(contains(root.address)));
+    expect(plan.manifestHashes, isNot(contains(dependent.address)));
+    expect(plan.withheldDependentCounts[root.address], 1);
+    expect(plan.fallbackHashes, isEmpty);
+  });
+
+  test(
     'publication omits a dependent fallback when its quarantined root has no baseline',
     () {
       final root = _candidate(

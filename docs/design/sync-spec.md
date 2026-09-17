@@ -2523,7 +2523,12 @@ publish against that fallback because the referenced address remains in the
 manifest; the quarantined root's current blob is still never uploaded. The
 withholding case is computed as a **fixpoint over the publish set**, scoped to
 references that are database-enforced foreign keys. `Programs.venueId` is
-exempt (§6.7).
+exempt (§6.7). Before publishing a fallback, the client MUST negotiate that
+wire hash through `POST /v1/blobs/missing`. If the store reports the fallback
+missing and the client has no body for that hash, the client MUST treat the
+root as having no usable fallback for this pass, omit it, and recompute the
+same foreign-key withholding fixpoint. If the body is locally available, the
+client uploads it before publishing the manifest.
 
 **Repair** runs during a sync pass, not on a user gesture, and reads no clock.
 For each out-of-window field, gather peer copies, discard any whose value **for
@@ -3849,7 +3854,8 @@ slow clock does not rewrite the collection downward. Repair adopts the matching
 peer's timestamp, not the greatest. Repair does not push stale content. A local
 edit made while poisoned survives. An in-window field is never touched. An
 out-of-window `updatedAt` is rebuilt. A poisoned `updatedAt` never enters
-circulation. A quarantined record advertises its last agreed hash. No-fallback
+circulation. A quarantined record probes its last agreed hash before advertising it; an
+unavailable fallback omits the root and withholds its dependents. No-fallback
 withholding reaches the second hop. A program citing a quarantined venue still
 publishes.
 

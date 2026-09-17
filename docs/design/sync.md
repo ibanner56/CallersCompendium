@@ -884,7 +884,7 @@ several places, and a change to it must be traced to all of them:
 | Inbound validation | Out-of-range `existenceAt` *or* `updatedAt` rejected, never clamped |
 | Quarantine repair | Rebuilds only out-of-window fields, from peers sound in that same field; keyed on the baseline for `updatedAt` |
 | Repair's missing-baseline branch | Never-agreed only; upgraded and wiped entries take other paths |
-| Quarantined records | Excluded from merge table and union; manifest advertises last agreed hash; records citing them withheld to a fixpoint over database-FK references, `venueId` exempt |
+| Quarantined records | Excluded from merge table and union; manifest probes each fallback hash before advertising it; unavailable fallbacks are omitted and records citing them are withheld to a fixpoint over database-FK references, `venueId` exempt |
 
 #### The increment is one *tick*, and that is not a detail
 
@@ -1124,14 +1124,19 @@ other copies actually hold:
   distinction the pending-tombstone rule turns on:
 
   - **The blob is withheld.** Nothing publishes a poisoned value.
-  - **The manifest advertises the record's last agreed hash**, whose blob peers
-    already hold — the **wire** hash, which is what a manifest carries and what
-    peers fetch by, and which survives the body-hash migration since it was never
-    dropped. Advertising the *current* hash would name a blob nobody can fetch,
-    and omitting the record entirely would break referential closure — a
-    fresh-attaching peer that downloads a dance citing the omitted entity fails
-    at COMMIT on the cascading foreign key and discards its whole batch, which is
-    the failure the pending-tombstone rule exists to prevent.
+  - **The manifest advertises the record's last agreed hash** only after the
+    client negotiates that **wire** hash through `POST /v1/blobs/missing`.
+    Peers normally hold that blob, and this is the hash a manifest carries and
+    peers fetch by — it survives the body-hash migration since it was never
+    dropped. If the server reports the fallback missing and this device has no
+    body for it, the fallback is not usable for this pass: the record is
+    omitted and its database-FK dependents are withheld through the same
+    fixpoint. If the body is available locally, it is uploaded before the
+    manifest is published. Advertising the *current* hash would name a blob
+    nobody can fetch, and omitting a usable fallback would break referential
+    closure — a fresh-attaching peer that downloads a dance citing the omitted
+    entity fails at COMMIT on the cascading foreign key and discards its whole
+    batch, which is the failure the pending-tombstone rule exists to prevent.
 
     Advertising a hash older than what this device holds means peers may offer it
     their newer content, which is correct and harmless: this device is genuinely
@@ -1222,7 +1227,7 @@ other copies actually hold:
   **A quarantined record never advances its baseline, whatever its manifest
   says.** Those two facts pull apart for exactly these records: the manifest
   advertises the last agreed hash while the device holds a poisoned current one,
-  so a peer echoing the advertised hash would look like agreement on every pass
+  so a peer echoing the usable advertised hash would look like agreement on every pass
   under a rule keyed to "the hash it published". It is not agreement — it is this
   device's own fallback coming back to it — and treating it as such would
   populate a null body hash from the poisoned body and land the edited sub-case
@@ -4486,11 +4491,13 @@ must say this plainly rather than implying sync is opaque to us.
   a null body hash from the poisoned body, and lands the edited sub-case on the
   verbatim branch.
 - **A quarantined record advertises its last agreed hash** — assert the manifest
-  entry names a hash peers can actually fetch, that the poisoned blob is not
-  uploaded, and that a fresh-attaching peer downloading a dance citing that
-  entity commits successfully. Mutation-proved two ways: advertise the current
-  hash, and the entry names a blob nobody holds; omit the entry, and the peer's
-  batch fails at COMMIT on the cascading foreign key.
+  probes a hash peers can actually fetch before advertising it, that the
+  poisoned blob is not uploaded, and that a fresh-attaching peer downloading a
+  dance citing that entity commits successfully. If the fallback is missing at
+  the store and locally, assert the root and its dependents are omitted and
+  reported. Mutation-proved two ways: advertise the current hash, and the entry
+  names a blob nobody holds; omit a usable fallback, and the peer's batch fails
+  at COMMIT on the cascading foreign key.
 - **A locally quarantined value is excluded from the union, not overwritten** —
   assert the local row survives arbitration and is handed to repair afterwards.
   Mutation-proved by letting the peer's value replace it, which discards a

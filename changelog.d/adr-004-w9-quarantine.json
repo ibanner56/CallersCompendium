@@ -3,12 +3,12 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "Device Sync now quarantines records with implausible future timestamps, repairs timestamps only from permitted peer evidence, and keeps quarantined records and their enforced dependents out of publication until they are safe."
+      "Device Sync now quarantines records with implausible future timestamps, repairs timestamps only from permitted peer evidence, and keeps unsafe quarantined values and their enforced dependents out of publication until an agreed fallback is available."
     ]
   },
   "core": {
     "changed": [
-      "Add timestamp-window quarantine, peer-only repair, dependency-closure withholding, and publication planning for Device Sync."
+      "Add timestamp-window quarantine, peer-only repair, dependency-closure withholding, fallback availability negotiation, and publication planning for Device Sync."
     ]
   }
 }
