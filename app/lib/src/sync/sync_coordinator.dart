@@ -1255,6 +1255,7 @@ class SyncCoordinator {
     Future<
       ({
         Map<SyncRecordAddress, SyncMergeCandidate?> current,
+        Map<SyncRecordAddress, SyncMergeCandidate?> publication,
         Map<String, SyncMergeCandidate> fallbackCandidates,
         SyncPublicationPlan publicationPlan,
         SyncManifest manifest,
@@ -1263,13 +1264,13 @@ class SyncCoordinator {
     >
     buildPublicationState({
       Set<String> unavailableFallbackHashes = const {},
-      bool markPublished = false,
+      Map<SyncRecordAddress, SyncMergeCandidate?>? publicationOverride,
     }) async => store.transaction(() async {
       final currentSnapshot = await store.snapshot();
       final current = await _normalizeCandidates(currentSnapshot.local);
-      final publication = await _normalizeCandidates(
-        currentSnapshot.publication,
-      );
+      final publication =
+          publicationOverride ??
+          await _normalizeCandidates(currentSnapshot.publication);
       final referenceAliases = await _resolveReferenceAliases([publication]);
       final publicationPlan = planSyncPublication(
         publication: publication,
@@ -1291,11 +1292,12 @@ class SyncCoordinator {
         records: _manifestRecords(publicationPlan.manifestHashes),
       );
       final addresses = _manifestAddresses(manifest);
-      if (markPublished && publicationPlan.fallbackHashes.isEmpty) {
-        await store.markPublished(addresses);
-      }
+      // The initial plan is a conservative superset of any replan that omits
+      // unavailable fallback hashes, so protect it before probing the store.
+      await store.markPublished(addresses);
       return (
         current: current,
+        publication: publication,
         fallbackCandidates: fallbackCandidates,
         publicationPlan: publicationPlan,
         manifest: manifest,
@@ -1303,11 +1305,7 @@ class SyncCoordinator {
       );
     });
 
-    var publicationState = await buildPublicationState(markPublished: true);
-    var publicationMarked = true;
-    if (publicationState.publicationPlan.fallbackHashes.isNotEmpty) {
-      publicationMarked = false;
-    }
+    var publicationState = await buildPublicationState();
     final fallbackProbe = await _uploadMissingLocalBlobs(
       publicationState.fallbackCandidates,
       fallbackHashes: publicationState.publicationPlan.fallbackHashes,
@@ -1324,12 +1322,8 @@ class SyncCoordinator {
     }
     if (fallbackProbe.unavailableFallbackHashes.isNotEmpty) {
       publicationState = await buildPublicationState(
+        publicationOverride: publicationState.publication,
         unavailableFallbackHashes: fallbackProbe.unavailableFallbackHashes,
-      );
-    }
-    if (!publicationMarked) {
-      await store.transaction(
-        () => store.markPublished(publicationState.addresses),
       );
     }
     for (final address in quarantinedLocal) {

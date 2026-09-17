@@ -1669,6 +1669,129 @@ void main() {
   }
 
   test(
+    'protects a fallback root and FK dependent from hard-delete during probing',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'fallback-publication-marker-race-',
+      );
+      final databaseFile = File('${directory.path}/test.sqlite');
+      final writerDatabase = CompendiumDatabase(
+        NativeDatabase(
+          databaseFile,
+          setup: (database) {
+            database.execute('PRAGMA busy_timeout = 5000');
+          },
+        ),
+        closeStreamsSynchronously: true,
+      );
+      final deleteTransactionGate = _TransactionStartGate();
+      final deletingDatabase = CompendiumDatabase(
+        NativeDatabase.createInBackground(
+          databaseFile,
+          setup: (database) {
+            database.execute('PRAGMA busy_timeout = 5000');
+          },
+        ).interceptWith(deleteTransactionGate),
+        closeStreamsSynchronously: true,
+      );
+      final repositories = CompendiumRepositories(
+        writerDatabase,
+        contraTaxonomy,
+      );
+      final deletingRepositories = CompendiumRepositories(
+        deletingDatabase,
+        contraTaxonomy,
+      );
+      addTearDown(() async {
+        await writerDatabase.close();
+        await deletingDatabase.close();
+        if (await directory.exists()) {
+          await directory.delete(recursive: true);
+        }
+      });
+
+      final stamp = DateTime.utc(2026, 7, 15, 12);
+      final rootId = 'fallback-publication-race-dance';
+      final dependentId = 'fallback-publication-race-program';
+      final fallbackHash = _hash('a');
+      await repositories.dances.create(
+        Dance(
+          id: rootId,
+          title: 'Fallback publication race dance',
+          createdAt: stamp,
+          updatedAt: stamp.add(const Duration(hours: 25)),
+        ),
+      );
+      await repositories.programs.create(
+        Program(
+          id: dependentId,
+          title: 'Fallback publication race program',
+          slots: [
+            ProgramSlot(id: 'fallback-race-slot', position: 0, danceId: rootId),
+          ],
+          createdAt: stamp,
+          updatedAt: stamp,
+        ),
+      );
+      await repositories.syncLocal.resetEpoch(
+        epoch: 'epoch-1',
+        entries: [
+          SyncBaselineEntry(
+            kind: SyncRecordKind.dance,
+            recordId: rootId,
+            wireHash: fallbackHash,
+          ),
+        ],
+      );
+      expect(
+        await deletingRepositories.programs.getById(dependentId),
+        isNotNull,
+      );
+      deleteTransactionGate.arm();
+
+      late Future<void> deleteFuture;
+      final store = _SnapshotInterleavingStore(
+        CompendiumSyncCoordinatorStore(repositories),
+        afterFinalSnapshot: () async {
+          deleteFuture = deletingRepositories.programs.hardDelete([
+            dependentId,
+          ]);
+          await deleteTransactionGate.started;
+        },
+        afterTransaction: () async {
+          deleteTransactionGate.release();
+          await deleteFuture;
+        },
+      );
+      final transport = _FakeTransport();
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+        now: () => stamp,
+      );
+
+      final result = await coordinator.syncNow();
+      await deleteFuture;
+
+      expect(result.status, SyncPassStatus.completed);
+      final retained = await deletingRepositories.programs.getById(
+        dependentId,
+        includeDeleted: true,
+      );
+      expect(retained, isNotNull);
+      expect(retained?.deletedAt, isNotNull);
+      expect(store.snapshotCalls, 2);
+      final manifest = decodeSyncManifest(
+        utf8.decode(transport.manifestBodies.single),
+      );
+      expect(manifest.records[SyncRecordKind.dance]?[rootId], fallbackHash);
+      expect(manifest.records[SyncRecordKind.program]?[dependentId], isNotNull);
+    },
+  );
+
+  test(
     'retains the record marker without marking the sync used on upload failure',
     () async {
       final candidate = SyncMergeCandidate.fromBlob(
