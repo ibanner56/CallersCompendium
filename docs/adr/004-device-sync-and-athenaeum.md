@@ -1150,16 +1150,19 @@ makes self-hosting materially harder, which constraint 4 forbids.
   in a fresh attach's union and in the steady-state merge table alike, since
   otherwise a poisoned `local.updatedAt` no honest peer can exceed would freeze
   the record while appearing to participate. A record citing a quarantined
-  entity is withheld with it, or a peer's batch fails at COMMIT on the cascading
-  foreign key — computed as a fixpoint over the publish set, since the citation
-  graph is multi-hop, and excluding `Programs.venueId`, which is not a database
-  foreign key and is instead resolved-or-nulled on apply, as the archive
-  restorer already does. That withholding does not resolve itself: an entity created while
-  a clock was broken has no peer copy to repair against, so it and everything
-  citing it stay unsynced until the user writes to it again. The report says how
-  many records each one holds back, because otherwise the only symptom is a
-  collection that quietly stops syncing. And an advertised fallback never counts
-  as agreement: it is this
+  entity with no agreed fallback is withheld with it, or a peer's batch fails at
+  COMMIT on the cascading foreign key. When an agreed fallback is advertised,
+  the referenced address remains in the manifest, so database-enforced
+  dependents may publish while the quarantined root's current blob remains
+  withheld. No-fallback withholding is computed as a fixpoint over the publish
+  set, since the citation graph is multi-hop, and excludes `Programs.venueId`,
+  which is not a database foreign key and is instead resolved-or-nulled on
+  apply, as the archive restorer already does. That withholding does not
+  resolve itself: an entity created while a clock was broken has no peer copy
+  to repair against, so it and everything citing it stay unsynced until the
+  user writes to it again. The report says how many records each one holds
+  back, because otherwise the only symptom is a collection that quietly stops
+  syncing. And an advertised fallback never counts as agreement: it is this
   device's own hash coming back to it, and treating it otherwise would populate
   a baseline from the poisoned content it exists to repair.
 

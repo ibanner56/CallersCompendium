@@ -514,7 +514,106 @@ void main() {
       );
       expect(
         published.records[SyncRecordKind.dance]?[dependent.blob.id],
-        isNull,
+        dependent.wireHash,
+      );
+    },
+  );
+
+  test('does not report a quarantined fallback hash as unreflected', () async {
+    final now = DateTime.utc(2026, 7, 15, 12);
+    final root = SyncMergeCandidate.fromBlob(
+      SyncRecordBlob(
+        kind: SyncRecordKind.choreographer,
+        id: 'author-1',
+        updatedAt: now.add(const Duration(hours: 25)),
+        deletedAt: null,
+        existenceAt: now,
+        body: const {'id': 'author-1', 'name': 'Author'},
+      ),
+    );
+    final store = _FakeStore(
+      snapshotBuilder: (_) => SyncCoordinatorSnapshot(
+        epoch: 'epoch-1',
+        previouslyUsed: false,
+        local: {root.address: root},
+        publication: {root.address: root},
+        baseline: {
+          root.address: SyncBaselineEntry(
+            kind: root.address.kind,
+            recordId: root.address.recordId,
+            wireHash: _hash('a'),
+          ),
+        },
+      ),
+    );
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: store,
+      transport: _FakeTransport(
+        devices: ['peer'],
+        peerManifest: _manifest(deviceId: 'peer', records: const {}),
+      ),
+      now: () => now,
+    );
+    addTearDown(coordinator.dispose);
+
+    final results = [
+      await coordinator.syncNow(),
+      await coordinator.syncNow(),
+      await coordinator.syncNow(),
+    ];
+
+    expect(
+      results.expand((result) => result.reports).map((report) => report.code),
+      isNot(contains(SyncReportCode.unreflectedPublication)),
+    );
+  });
+
+  test(
+    'uses alias-normalized peer candidates for reflection diagnostics',
+    () async {
+      final candidate = SyncMergeCandidate.fromBlob(
+        _tag('legacy', 'Shared tag'),
+      );
+      final legacy = candidate.address;
+      final canonical = (kind: SyncRecordKind.tag, recordId: 'canonical');
+      final store = _FakeStore(
+        aliases: {legacy: canonical},
+        snapshotBuilder: (_) => SyncCoordinatorSnapshot(
+          epoch: 'epoch-1',
+          previouslyUsed: false,
+          local: {legacy: candidate},
+          publication: {legacy: candidate},
+          baseline: const {},
+        ),
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: _FakeTransport(
+          devices: ['peer'],
+          peerManifest: _manifest(
+            deviceId: 'peer',
+            records: {
+              SyncRecordKind.tag: {legacy.recordId: candidate.wireHash},
+            },
+          ),
+        ),
+        now: () => DateTime.utc(2026, 7, 15, 12),
+      );
+      addTearDown(coordinator.dispose);
+
+      final results = [
+        await coordinator.syncNow(),
+        await coordinator.syncNow(),
+        await coordinator.syncNow(),
+      ];
+
+      expect(
+        results.expand((result) => result.reports).map((report) => report.code),
+        isNot(contains(SyncReportCode.unreflectedPublication)),
       );
     },
   );

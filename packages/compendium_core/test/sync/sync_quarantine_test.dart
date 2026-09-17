@@ -168,6 +168,40 @@ void main() {
     expect(quarantined.after.isQuarantined, isTrue);
   });
 
+  test('legacy full-body baselines never authorize timestamp repair', () {
+    final local = _candidate(
+      kind: SyncRecordKind.setting,
+      id: 'custom_dialects',
+      value: 'local',
+      updatedAt: _windowEnd.add(const Duration(hours: 1)),
+      existenceAt: _localNow,
+    );
+    final peer = _candidate(
+      kind: SyncRecordKind.setting,
+      id: 'custom_dialects',
+      value: 'local',
+      updatedAt: _localNow.add(const Duration(hours: 1)),
+      existenceAt: _localNow,
+    );
+
+    final result = repairSyncCandidate(
+      local: local,
+      baseline: SyncBaselineEntry(
+        kind: local.address.kind,
+        recordId: local.address.recordId,
+        wireHash: local.wireHash,
+        bodyHash: local.comparisonBodyHash,
+        bodyHashVersion: SyncBaselineBodyHashVersion.legacyFullBody,
+      ),
+      peers: [peer],
+      windowEnd: _windowEnd,
+    );
+
+    expect(result.completed, isFalse);
+    expect(result.repaired!.updatedAt, local.updatedAt);
+    expect(result.after.isQuarantined, isTrue);
+  });
+
   for (final kind in [SyncRecordKind.dance, SyncRecordKind.program]) {
     for (final deleted in [false, true]) {
       for (final hasBaseline in [false, true]) {
@@ -329,7 +363,7 @@ void main() {
   );
 
   test(
-    'publication falls back to an agreed wire hash and withholds dependents',
+    'publication falls back to an agreed wire hash and publishes dependents',
     () {
       final root = _candidate(
         kind: SyncRecordKind.choreographer,
@@ -373,11 +407,13 @@ void main() {
       );
 
       expect(plan.manifestHashes[root.address], 'a' * 64);
-      expect(plan.manifestHashes, isNot(contains(dependent.address)));
+      expect(plan.manifestHashes[dependent.address], dependent.wireHash);
       expect(plan.manifestHashes[safe.address], safe.wireHash);
+      expect(plan.uploadCandidates.keys, contains(dependent.wireHash));
       expect(plan.uploadCandidates.keys, contains(safe.wireHash));
       expect(plan.uploadCandidates.keys, isNot(contains(root.wireHash)));
-      expect(plan.withheld, containsAll([root.address, dependent.address]));
+      expect(plan.withheld, contains(root.address));
+      expect(plan.withheld, isNot(contains(dependent.address)));
     },
   );
 

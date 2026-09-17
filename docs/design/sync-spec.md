@@ -2517,9 +2517,13 @@ schema.
 A quarantined record MUST NOT be uploaded, MUST be excluded from the merge table
 and from a fresh attach's union with its local row retained, and its manifest
 entry MUST fall back to the last agreed **wire** hash. A quarantined record with
-no agreed hash is omitted, and every record citing it MUST be withheld with it —
-computed as a **fixpoint over the publish set**, scoped to references that are
-database-enforced foreign keys. `Programs.venueId` is exempt (§6.7).
+no agreed hash is omitted, and every record citing it MUST be withheld with it.
+When an agreed fallback hash is advertised, database-enforced dependents MAY
+publish against that fallback because the referenced address remains in the
+manifest; the quarantined root's current blob is still never uploaded. The
+withholding case is computed as a **fixpoint over the publish set**, scoped to
+references that are database-enforced foreign keys. `Programs.venueId` is
+exempt (§6.7).
 
 **Repair** runs during a sync pass, not on a user gesture, and reads no clock.
 For each out-of-window field, gather peer copies, discard any whose value **for
@@ -3845,8 +3849,9 @@ slow clock does not rewrite the collection downward. Repair adopts the matching
 peer's timestamp, not the greatest. Repair does not push stale content. A local
 edit made while poisoned survives. An in-window field is never touched. An
 out-of-window `updatedAt` is rebuilt. A poisoned `updatedAt` never enters
-circulation. A quarantined record advertises its last agreed hash. Withholding
-reaches the second hop. A program citing a quarantined venue still publishes.
+circulation. A quarantined record advertises its last agreed hash. No-fallback
+withholding reaches the second hop. A program citing a quarantined venue still
+publishes.
 
 **Deletion.** Absence never deletes (mutation: make absence delete). A pending
 tombstone is never republished. A pending-held row is never advertised as live.

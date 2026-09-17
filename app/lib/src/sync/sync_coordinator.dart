@@ -1307,9 +1307,13 @@ class SyncCoordinator {
         ),
       );
     }
+    final uploadManifestHashes = <SyncRecordAddress, String>{
+      for (final address in publicationPlan.uploadAddresses)
+        address: publicationPlan.manifestHashes[address]!,
+    };
     _recordUnreflectedPublications(
-      publicationPlan.manifestHashes,
-      peerManifests: peerManifests,
+      uploadManifestHashes,
+      peerMaps: peerMaps,
       reports: reports,
     );
     final dropped = {
@@ -1464,24 +1468,22 @@ class SyncCoordinator {
   }
 
   void _recordUnreflectedPublications(
-    Map<SyncRecordAddress, String> manifestHashes, {
-    required Iterable<({String peerId, SyncManifest manifest})> peerManifests,
+    Map<SyncRecordAddress, String> publishableHashes, {
+    required Iterable<Map<SyncRecordAddress, SyncMergeCandidate?>> peerMaps,
     required SyncReportSink reports,
   }) {
-    final peers = peerManifests.toList(growable: false);
+    final peers = peerMaps.toList(growable: false);
     if (peers.isEmpty) {
       _peerManifestCache.unreflectedPasses.clear();
       return;
     }
-    final publishedAddresses = manifestHashes.keys.toSet();
+    final publishedAddresses = publishableHashes.keys.toSet();
     _peerManifestCache.unreflectedPasses.removeWhere(
       (address, _) => !publishedAddresses.contains(address),
     );
-    for (final entry in manifestHashes.entries) {
+    for (final entry in publishableHashes.entries) {
       final reflected = peers.any(
-        (peer) =>
-            peer.manifest.records[entry.key.kind]?[entry.key.recordId] ==
-            entry.value,
+        (peer) => peer[entry.key]?.wireHash == entry.value,
       );
       if (reflected) {
         _peerManifestCache.unreflectedPasses.remove(entry.key);

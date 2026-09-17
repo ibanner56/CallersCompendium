@@ -4446,17 +4446,17 @@ must say this plainly rather than implying sync is opaque to us.
   taking the global maximum, which pairs B's content with C's clock, leaves the
   pair at equal `updatedAt` against C, and permanently blocks C's genuine edit
   behind a strict-`>` gate.
-- **A record citing a quarantined entity is withheld too** — create an entity on
-  a broken clock, correct the clock, create a record citing it, and sync; assert
-  the citing record is withheld until the entity is publishable. Mutation-proved
-  by publishing it, after which a peer's batch fails at COMMIT on the cascading
-  foreign key — the citing record is freshly stamped and not itself quarantined,
-  so nothing else stops it.
-- **Withholding reaches the second hop** — a program citing a dance citing a
-  quarantined choreographer; assert the program is withheld too. Mutation-proved
-  by testing only direct citations, where the dance is withheld but not
-  quarantined, so the program publishes and its peer's batch fails on the same
-  foreign key the rule exists to protect.
+- **A no-fallback quarantined record's dependents are withheld too** — create an
+  entity on a broken clock with no agreed hash, correct the clock, create a
+  record citing it, and sync; assert the citing record is withheld until the
+  entity is publishable. Mutation-proved by publishing it, after which a
+  peer's batch fails at COMMIT on the cascading foreign key — the citing record
+  is freshly stamped and not itself quarantined, so nothing else stops it.
+- **No-fallback withholding reaches the second hop** — a program citing a dance
+  citing a quarantined choreographer with no agreed hash; assert the program is
+  withheld too. Mutation-proved by testing only direct citations, where the
+  dance is withheld but not quarantined, so the program publishes and its peer's
+  batch fails on the same foreign key the rule exists to protect.
 - **A program citing a quarantined venue still publishes** — assert the venue
   exemption holds, that the receiving peer nulls the dangling `venueId` before
   the write, and that the program applies with the rest of its content intact.

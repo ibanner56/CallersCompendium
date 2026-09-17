@@ -75,6 +75,14 @@ SyncRepairResult repairSyncCandidate({
       after: before,
     );
   }
+  if (baseline?.bodyHashVersion == SyncBaselineBodyHashVersion.legacyFullBody) {
+    return SyncRepairResult(
+      original: local,
+      repaired: local,
+      before: before,
+      after: before,
+    );
+  }
 
   final peerList = peers.toList(growable: false);
   var updatedAt = local.updatedAt;
@@ -181,15 +189,24 @@ Set<SyncRecordAddress> syncQuarantineClosure({
   required Map<SyncRecordAddress, SyncMergeCandidate?> candidates,
   required Set<SyncRecordAddress> quarantined,
 }) {
+  final dependentsByReference = <SyncRecordAddress, Set<SyncRecordAddress>>{};
+  for (final entry in candidates.entries) {
+    final candidate = entry.value;
+    if (candidate == null) continue;
+    for (final reference in syncRecordReferences(candidate)) {
+      dependentsByReference
+          .putIfAbsent(reference, () => <SyncRecordAddress>{})
+          .add(entry.key);
+    }
+  }
   final blocked = {...quarantined};
-  var changed = true;
-  while (changed) {
-    changed = false;
-    for (final entry in candidates.entries) {
-      final candidate = entry.value;
-      if (candidate == null || blocked.contains(entry.key)) continue;
-      if (syncRecordReferences(candidate).any(blocked.contains)) {
-        changed = blocked.add(entry.key) || changed;
+  final pending = <SyncRecordAddress>[...blocked];
+  for (var index = 0; index < pending.length; index++) {
+    final dependency = pending[index];
+    for (final dependent
+        in dependentsByReference[dependency] ?? const <SyncRecordAddress>{}) {
+      if (blocked.add(dependent)) {
+        pending.add(dependent);
       }
     }
   }
@@ -227,11 +244,13 @@ class SyncPublicationPlan {
   const SyncPublicationPlan({
     required this.manifestHashes,
     required this.uploadCandidates,
+    required this.uploadAddresses,
     required this.withheld,
   });
 
   final Map<SyncRecordAddress, String> manifestHashes;
   final Map<String, SyncMergeCandidate> uploadCandidates;
+  final Set<SyncRecordAddress> uploadAddresses;
   final Set<SyncRecordAddress> withheld;
 }
 
@@ -244,10 +263,17 @@ SyncPublicationPlan planSyncPublication({
     publication,
     windowEnd: windowEnd,
   );
-  final withheld = syncQuarantineClosure(
-    candidates: publication,
-    quarantined: initialQuarantine,
-  );
+  final noBaselineQuarantine = {
+    for (final address in initialQuarantine)
+      if (!baseline.containsKey(address)) address,
+  };
+  final withheld = {
+    ...initialQuarantine,
+    ...syncQuarantineClosure(
+      candidates: publication,
+      quarantined: noBaselineQuarantine,
+    ),
+  };
   final manifestHashes = <SyncRecordAddress, String>{};
   for (final entry in publication.entries) {
     final candidate = entry.value;
@@ -276,6 +302,7 @@ SyncPublicationPlan planSyncPublication({
   }
 
   final uploadCandidates = <String, SyncMergeCandidate>{};
+  final uploadAddresses = <SyncRecordAddress>{};
   for (final entry in publication.entries) {
     final candidate = entry.value;
     if (candidate == null ||
@@ -284,10 +311,12 @@ SyncPublicationPlan planSyncPublication({
       continue;
     }
     uploadCandidates[candidate.wireHash] = candidate;
+    uploadAddresses.add(entry.key);
   }
   return SyncPublicationPlan(
     manifestHashes: Map.unmodifiable(manifestHashes),
     uploadCandidates: Map.unmodifiable(uploadCandidates),
+    uploadAddresses: Set.unmodifiable(uploadAddresses),
     withheld: Set.unmodifiable(withheld),
   );
 }
