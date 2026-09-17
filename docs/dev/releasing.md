@@ -775,7 +775,10 @@ gh workflow run release.yml --ref main -f release_tag=v0.1.1-beta
 
 Recovery validates that the input is an existing accepted release tag, checks
 out that immutable tag for every build and publishing step, and creates or
-refreshes the same draft release. It deliberately marks the iOS signing gate
+refreshes the same draft release. If the tag's release is already published
+when the workflow checks it, the workflow fails before uploading any assets;
+recovery never intentionally overwrites a published release. It deliberately
+marks the iOS signing gate
 `skipped-recovery`, so it neither builds another `.ipa` nor uploads another
 TestFlight build. Its SLSA predicate records the tagged source SHA and the
 `main` workflow SHA as separate resolved dependencies, rather than claiming the

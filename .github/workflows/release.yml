@@ -1611,8 +1611,12 @@ jobs:
           pre_flag=()
           if [ "$PRERELEASE" = "true" ]; then pre_flag=(--prerelease); fi
 
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release $TAG exists; refreshing assets (draft preserved)."
+          if is_draft="$(gh release view "$TAG" --json isDraft --jq '.isDraft' 2>/dev/null)"; then
+            if [ "$is_draft" != "true" ]; then
+              echo "::error::Release $TAG is already published; refusing to overwrite assets."
+              exit 1
+            fi
+            echo "Release $TAG exists as a draft; refreshing assets."
             gh release upload "$TAG" "${files[@]}" --clobber
           else
             # The tag already exists in both release paths. Do not pass its
