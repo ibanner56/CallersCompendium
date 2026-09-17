@@ -261,6 +261,167 @@ void main() {
     expect(normalized?.title, 'café');
   });
 
+  test(
+    'failed archive import rolls back sync and normalization cleanup',
+    () async {
+      final candidate = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: SyncRecordKind.tag,
+          id: 'review-tag',
+          updatedAt: now,
+          deletedAt: null,
+          existenceAt: now,
+          body: const {'id': 'review-tag', 'name': 'Review tag'},
+        ),
+      );
+      await repositories.syncLocal.replaceBaseline(
+        epoch: 'archive-import-epoch',
+        entries: [
+          SyncBaselineEntry(
+            kind: candidate.blob.kind,
+            recordId: candidate.blob.id,
+            wireHash: candidate.wireHash,
+          ),
+        ],
+      );
+      await repositories.syncLocal.upsertAlias(
+        kind: SyncRecordKind.tag,
+        losingId: 'loser',
+        survivingId: 'survivor',
+      );
+      await repositories.syncLocal.enqueueReview(
+        kind: candidate.blob.kind,
+        recordId: candidate.blob.id,
+        counterpartId: 'other-tag',
+        reason: 'test',
+        candidateBlob: encodeSyncRecordBlob(candidate.blob),
+        candidateHash: candidate.wireHash,
+        queuedAt: now,
+      );
+      await repositories.settings.set(
+        shareableTextNormalisationScopeKey,
+        'stale',
+      );
+      await db.customStatement(
+        'INSERT INTO normalisation_skips '
+        '(table_name, column_name, record_id) VALUES (?, ?, ?)',
+        ['tags', 'name', 'stale-tag'],
+      );
+      final existing = _dance('pre-existing', 'Existing dance');
+      await dances.create(existing);
+      await repositories.syncLocal.upsertPendingDeletion(
+        kind: SyncRecordKind.dance,
+        recordId: 'uncited-pending',
+        tombstonedAt: now,
+        tombstoneHash: 'not-the-real-hash',
+        tombstoneBlob: 'not-a-sync-record',
+      );
+
+      final baselineStateBefore = await repositories.syncLocal
+          .getBaselineState();
+      final baselineEntriesBefore = await repositories.syncLocal
+          .listBaselineEntries();
+      final aliasesBefore = await repositories.syncLocal.listAliases();
+      final reviewBefore = await repositories.syncLocal.listReviewQueue();
+      final pendingBefore = await repositories.syncLocal.getPendingDeletion(
+        kind: SyncRecordKind.dance,
+        recordId: 'uncited-pending',
+      );
+      final markerBefore = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [
+              Variable.withString(shareableTextNormalisationScopeKey),
+            ],
+          )
+          .get();
+      final skipsBefore = await db
+          .customSelect(
+            'SELECT table_name, column_name, record_id '
+            'FROM normalisation_skips',
+          )
+          .get();
+
+      final archive = _bundle();
+      await expectLater(
+        importer.import(
+          encodeArchive(archive),
+          archive,
+          now: now,
+          newId: sequentialIds('failed-import'),
+          newSlotId: sequentialIds('failed-slot'),
+        ),
+        throwsA(isA<Object>()),
+      );
+
+      expect(
+        (await repositories.syncLocal.getBaselineState())?.epoch,
+        baselineStateBefore?.epoch,
+      );
+      final baselineEntriesAfter = await repositories.syncLocal
+          .listBaselineEntries();
+      expect(baselineEntriesAfter, hasLength(baselineEntriesBefore.length));
+      expect(
+        baselineEntriesAfter.single.kind,
+        baselineEntriesBefore.single.kind,
+      );
+      expect(
+        baselineEntriesAfter.single.recordId,
+        baselineEntriesBefore.single.recordId,
+      );
+      expect(
+        baselineEntriesAfter.single.wireHash,
+        baselineEntriesBefore.single.wireHash,
+      );
+      expect(
+        await repositories.syncLocal.listAliases(),
+        hasLength(aliasesBefore.length),
+      );
+      final aliasAfter = (await repositories.syncLocal.listAliases()).single;
+      expect(aliasAfter.losingId, aliasesBefore.single.losingId);
+      expect(aliasAfter.survivingId, aliasesBefore.single.survivingId);
+      expect(
+        await repositories.syncLocal.listReviewQueue(),
+        hasLength(reviewBefore.length),
+      );
+      final reviewAfter =
+          (await repositories.syncLocal.listReviewQueue()).single;
+      expect(reviewAfter.recordId, reviewBefore.single.recordId);
+      expect(reviewAfter.counterpartId, reviewBefore.single.counterpartId);
+      expect(reviewAfter.candidateHash, reviewBefore.single.candidateHash);
+      final pendingAfter = await repositories.syncLocal.getPendingDeletion(
+        kind: SyncRecordKind.dance,
+        recordId: 'uncited-pending',
+      );
+      expect(pendingAfter?.tombstoneHash, pendingBefore?.tombstoneHash);
+      expect(pendingAfter?.tombstoneBlob, pendingBefore?.tombstoneBlob);
+      final markerAfter = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [
+              Variable.withString(shareableTextNormalisationScopeKey),
+            ],
+          )
+          .get();
+      expect(
+        markerAfter.single.read<String>('value_json'),
+        markerBefore.single.read<String>('value_json'),
+      );
+      final skipsAfter = await db
+          .customSelect(
+            'SELECT table_name, column_name, record_id '
+            'FROM normalisation_skips',
+          )
+          .get();
+      expect(skipsAfter, hasLength(skipsBefore.length));
+      expect(skipsAfter.single.read<String>('table_name'), 'tags');
+      expect(skipsAfter.single.read<String>('column_name'), 'name');
+      expect(skipsAfter.single.read<String>('record_id'), 'stale-tag');
+      expect(await dances.getById(existing.id), isNotNull);
+      expect(await dances.getById('failed-import-1'), isNull);
+    },
+  );
+
   test('preserves purge markers when rebuilding imported programs', () {
     final archive = CompendiumArchive(
       exportedAt: now,

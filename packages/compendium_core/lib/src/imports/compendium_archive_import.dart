@@ -392,10 +392,11 @@ class CompendiumArchiveImporter {
   /// to text placeholders + issues (never a throw — see [buildArchivePrograms]).
   ///
   /// Everything is recorded on the returned [CompendiumArchiveImportResult] so
-  /// [undo] reverts dances **and** programs. If any program write fails the
-  /// dances are already committed, so the import compensates (removing inserted
-  /// programs, restoring updated ones, and undoing the dance commit) before
-  /// rethrowing, keeping the import all-or-nothing from the caller's view.
+  /// [undo] reverts dances **and** programs. Sync-state invalidation, pending
+  /// deletion revalidation, and normalization run in one database transaction
+  /// after the content writes. If that cleanup fails, the transaction restores
+  /// every pre-import sync/normalization row and the importer compensates its
+  /// in-memory content ledger before rethrowing.
   Future<CompendiumArchiveImportResult> commit(
     ImportBatchResult batch,
     CompendiumArchive archive, {
@@ -672,15 +673,20 @@ class CompendiumArchiveImporter {
       // bundle, so pending deletions for unrelated local records remain valid.
       // Baselines, aliases, review decisions, and normalization bookkeeping
       // are conclusions about the pre-import dataset and must not survive it.
-      await repositories.syncLocal.clearForRestore(
-        restoredRecords: const [],
-        revalidatePending: false,
-      );
-      await repositories.resetNormalisationStateForRestore();
-      await CompendiumSyncStorage(
-        repositories,
-      ).revalidatePendingDeletions(dropMissing: true);
-      await repositories.ensureMigrated();
+      // Keep the cleanup transaction separate from the content ledger: on a
+      // cleanup failure it rolls back these rows, then the catch block
+      // compensates the already-written content.
+      await repositories.transaction(() async {
+        await repositories.syncLocal.clearForRestore(
+          restoredRecords: const [],
+          revalidatePending: false,
+        );
+        await repositories.resetNormalisationStateForRestore();
+        await CompendiumSyncStorage(
+          repositories,
+        ).revalidatePendingDeletions(dropMissing: true);
+        await repositories.ensureMigrated();
+      });
 
       return CompendiumArchiveImportResult(
         danceSession: committedDanceSession,
