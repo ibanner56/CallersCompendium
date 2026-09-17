@@ -168,6 +168,11 @@ void main() {
       '(table_name, column_name, record_id) VALUES (?, ?, ?)',
       ['tags', 'name', 'stale-tag'],
     );
+    await dances.create(_dance('pre-existing-unnormalized', 'placeholder'));
+    await db.customStatement('UPDATE dances SET title = ? WHERE id = ?', [
+      'cafe\u0301',
+      'pre-existing-unnormalized',
+    ]);
 
     final pending = _dance('pending', 'Untouched pending dance');
     await dances.create(pending);
@@ -246,12 +251,14 @@ void main() {
     );
     expect(
       await repositories.settings.contains(shareableTextNormalisationScopeKey),
-      isFalse,
+      isTrue,
     );
     expect(
       await db.customSelect('SELECT 1 FROM normalisation_skips').get(),
       isEmpty,
     );
+    final normalized = await dances.getById('pre-existing-unnormalized');
+    expect(normalized?.title, 'café');
   });
 
   test('preserves purge markers when rebuilding imported programs', () {
@@ -1824,8 +1831,9 @@ void main() {
 
       // Two provenance lookups (live and tombstoned), one fingerprint-index
       // preload, and one live-id snapshot are fixed reads; the program write
-      // phase adds no per-program venue existence SELECT.
-      expect(counter.count, 4);
+      // phase adds no per-program venue existence SELECT. The required
+      // post-import normalization sweep adds eight full-table reads.
+      expect(counter.count, 12);
       expect(await countingPrograms.listAll(), hasLength(3));
     });
 
@@ -1872,7 +1880,9 @@ void main() {
         newSlotId: sequentialIds('slot'),
       );
 
-      expect(counter.count, 3);
+      // The three venue reads are followed by the eight full-table reads from
+      // the required post-import normalization sweep.
+      expect(counter.count, 11);
     });
 
     test(

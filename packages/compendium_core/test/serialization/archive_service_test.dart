@@ -331,6 +331,20 @@ void main() {
           '(table_name, column_name, record_id) VALUES (?, ?, ?)',
           ['tags', 'name', 'stale-tag'],
         );
+        if (mode == RestoreMode.merge) {
+          await repos.dances.create(
+            Dance(
+              id: 'pre-existing-unnormalized',
+              title: 'placeholder',
+              createdAt: DateTime.utc(2026, 1, 1),
+              updatedAt: DateTime.utc(2026, 1, 1),
+            ),
+          );
+          await db.customStatement('UPDATE dances SET title = ? WHERE id = ?', [
+            'cafe\u0301',
+            'pre-existing-unnormalized',
+          ]);
+        }
 
         final result = await ArchiveRestorer(repos).restore(
           CompendiumArchive(exportedAt: DateTime.utc(2026, 7, 15)),
@@ -345,14 +359,25 @@ void main() {
         );
         expect(
           await repos.settings.contains(shareableTextNormalisationScopeKey),
-          isFalse,
-          reason: '$mode should clear the normalization marker',
+          isTrue,
+          reason: '$mode should rerun normalization after clearing its marker',
         );
         expect(
           await db.customSelect('SELECT 1 FROM normalisation_skips').get(),
           isEmpty,
-          reason: '$mode should clear normalization skips',
+          reason: '$mode should clear normalization skips before rerunning',
         );
+        if (mode == RestoreMode.merge) {
+          final row = await db
+              .customSelect(
+                'SELECT title FROM dances WHERE id = ?',
+                variables: [
+                  const Variable<String>('pre-existing-unnormalized'),
+                ],
+              )
+              .getSingle();
+          expect(row.read<String>('title'), 'café');
+        }
       }
     });
 
@@ -1536,10 +1561,12 @@ void main() {
         final result = await ArchiveRestorer(repos).restore(archive);
         expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
 
-        // Exactly one venue SELECT (the preload) for the whole programs phase —
-        // not two per venue-linked program (a resolve-or-null read here plus a
-        // write-time guard read inside each program insert).
-        expect(counter.count, 1);
+        // Exactly one venue SELECT (the preload) for the whole programs phase,
+        // plus the eight full-table reads from the required post-restore
+        // normalization sweep — not two per venue-linked program (a
+        // resolve-or-null read here plus a write-time guard read inside each
+        // program insert).
+        expect(counter.count, 9);
 
         // The single snapshot still resolves / nulls links correctly.
         expect((await repos.programs.getById('p1'))!.venueId, 'v1');

@@ -680,6 +680,7 @@ class CompendiumArchiveImporter {
       await CompendiumSyncStorage(
         repositories,
       ).revalidatePendingDeletions(dropMissing: true);
+      await repositories.ensureMigrated();
 
       return CompendiumArchiveImportResult(
         danceSession: committedDanceSession,

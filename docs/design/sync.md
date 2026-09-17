@@ -3440,15 +3440,14 @@ resolves this case correctly **while any peer still advertises the tombstone**:
 X uploads, that tombstone carries the greater `existenceAt`, and the device
 converges on the deletion instead of diverging from it for ever.
 
-The shipped backup UI also makes the baseline drop a writer-order boundary:
-it stops new coordinator work and awaits the active pass before calling the
-transactional restore, then recreates the coordinator after the operation
-finishes. Without that boundary, a pass that captured the pre-restore snapshot
-could apply, publish, or advance the old baseline after the restore and
-overwrite the restored library. Refusal and failure paths still recreate the
-coordinator so a partially closed runtime is not left unusable. The shared
-archive-import writer is outside this backup-UI lifecycle and remains a
-separate follow-up under the event-wide specification.
+The app's general sync-writer lifecycle makes the baseline drop a writer-order
+boundary for both backup restore and shared archive import: it stops new
+coordinator work and awaits the active pass before the writer starts, then
+recreates the coordinator after the operation finishes. Without that boundary,
+a pass that captured the pre-write snapshot could apply, publish, or advance
+the old baseline after the writer and overwrite the restored library. Refusal
+and failure paths still recreate the coordinator so a partially closed runtime
+is not left unusable. Shared-import Undo uses the same boundary.
 
 **That bound is real and is not a formality.** Once the deletion has been applied
 everywhere and each device's sweep has purged the soft-deleted row past the

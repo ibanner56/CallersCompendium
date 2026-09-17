@@ -10,7 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/main.dart';
 import 'package:compendium_app/src/data/app_database.dart';
 import 'package:compendium_app/src/data/application_shutdown_controller.dart';
-import 'package:compendium_app/src/data/backup_controller_scope.dart';
+import 'package:compendium_app/src/data/sync_writer_lifecycle_scope.dart';
 import 'package:compendium_app/src/data/backup_service.dart';
 import 'package:compendium_app/src/data/migration_guard.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
@@ -430,13 +430,13 @@ void main() {
       await firstPassStarted.future;
       expect(find.byType(AppShell), findsOneWidget);
 
-      final scope = tester.widget<BackupControllerScope>(
-        find.byType(BackupControllerScope),
+      final scope = tester.widget<SyncWriterLifecycleScope>(
+        find.byType(SyncWriterLifecycleScope),
       );
       final lifecycle = <String>[];
       var beforeCompleted = false;
-      final before = scope.beforeRestore;
-      final after = scope.afterRestore;
+      final before = scope.beforeWrite;
+      final after = scope.afterWrite;
       expect(before, isNotNull);
       expect(after, isNotNull);
 
@@ -514,10 +514,10 @@ void main() {
       await tester.pumpAndSettle();
       await firstPassStarted.future;
 
-      final scope = tester.widget<BackupControllerScope>(
-        find.byType(BackupControllerScope),
+      final scope = tester.widget<SyncWriterLifecycleScope>(
+        find.byType(SyncWriterLifecycleScope),
       );
-      final before = scope.beforeRestore;
+      final before = scope.beforeWrite;
       expect(before, isNotNull);
 
       final beforeFuture = before!();

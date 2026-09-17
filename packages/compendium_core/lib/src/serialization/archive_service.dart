@@ -98,6 +98,7 @@ class ArchiveRestorer {
     // error) from an unexpected transaction failure, without depending on how
     // the database layer re-surfaces the thrown sentinel.
     var abortedForRollback = false;
+    var committed = false;
     try {
       await _repos.db.transaction(() async {
         // Dances can reference each other (relatedDance links), so intra-batch
@@ -142,6 +143,7 @@ class ArchiveRestorer {
           _repos,
         ).revalidatePendingDeletionsInTransaction(dropMissing: true);
       });
+      committed = true;
     } on Exception catch (e) {
       if (!abortedForRollback) {
         // Deferred foreign-key checks and other integrity constraints only fire
@@ -158,6 +160,12 @@ class ArchiveRestorer {
           ),
         );
       }
+    }
+    if (committed) {
+      // The reset above deliberately invalidates the previous sweep marker.
+      // Run the complete-library pass after the restore transaction commits so
+      // direct ArchiveRestorer callers get the same NFC guarantee as backups.
+      await _repos.ensureMigrated();
     }
     return ArchiveRestoreResult(errors: errors);
   }

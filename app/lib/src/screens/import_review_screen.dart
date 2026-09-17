@@ -15,6 +15,7 @@ import '../data/repositories_scope.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/shorthand_mappings_scope.dart';
+import '../data/sync_writer_lifecycle_scope.dart';
 import '../data/title_list_import.dart';
 import '../data/venue_entity_mode_scope.dart';
 import '../diagnostics/error_log.dart';
@@ -743,8 +744,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       final request = _isByteSource
           ? ImportRequest(options: {'bytes': bytes!})
           : ImportRequest(payload: payload, uri: _sourceUri);
+      final adapterFactory = _effectiveSharedBundle != null
+          ? GenericJsonAdapter.new
+          : _selected.adapterFactory;
       final batch = await pipeline.plan(
-        _selected.adapterFactory(),
+        adapterFactory(),
         request,
         index: index,
         preserveCanonicalDifficultyIds: _effectiveSharedBundle != null,
@@ -1485,6 +1489,21 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
   }
 
+  /// Serializes a shared archive writer with the live sync coordinator. The
+  /// coordinator must remain stopped until the writer has finished clearing
+  /// conclusions and rerunning restore bookkeeping.
+  Future<T> _runSyncWriterLifecycle<T>({
+    required Future<T> Function() operation,
+  }) async {
+    final lifecycle = SyncWriterLifecycleScope.maybeOf(context);
+    try {
+      await lifecycle?.beforeWrite?.call();
+      return await operation();
+    } finally {
+      await lifecycle?.afterWrite?.call();
+    }
+  }
+
   /// Commits a validated shared [bundle] (issue #432): dances + their author
   /// choreographers + programs + venues, via [CompendiumArchiveImporter] — the
   /// same commit engine the receive-side share path has always used — then hands
@@ -1507,13 +1526,15 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       customFields: _repos.customFieldDefs,
       difficultyLevels: _repos.difficultyLevels,
     );
-    final result = await importer.commit(
-      commitBatch,
-      bundle.archive,
-      now: DateTime.now().toUtc(),
-      newId: uuidV4,
-      newSlotId: uuidV4,
-      resolutions: resolutions,
+    final result = await _runSyncWriterLifecycle(
+      operation: () => importer.commit(
+        commitBatch,
+        bundle.archive,
+        now: DateTime.now().toUtc(),
+        newId: uuidV4,
+        newSlotId: uuidV4,
+        resolutions: resolutions,
+      ),
     );
     if (!mounted) return;
     setState(() => _phase = _Phase.review);
@@ -1547,7 +1568,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       onUndo: () async {
         // Idempotent: a repeated tap (or a tap after another undo) is a no-op.
         if (result.isUndone) return;
-        await importer.undo(result);
+        await _runSyncWriterLifecycle(operation: () => importer.undo(result));
       },
     );
 

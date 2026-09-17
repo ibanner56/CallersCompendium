@@ -16,7 +16,7 @@ import 'src/data/app_database.dart';
 import 'src/data/app_theme_scope.dart';
 import 'src/data/archive_intake_labels.dart';
 import 'src/data/archive_intake_service.dart';
-import 'src/data/backup_controller_scope.dart';
+import 'src/data/sync_writer_lifecycle_scope.dart';
 import 'src/data/callersbox_online.dart';
 import 'src/data/collection_filter_scope.dart';
 import 'src/data/collection_tile_fields_scope.dart';
@@ -1353,7 +1353,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// Re-reads all preferences and app-local controllers from the (freshly
   /// restored) `settings` table so the live UI reflects a backup restore
   /// without a relaunch (ROADMAP G.5). Wired to the backup controls via
-  /// [BackupControllerScope].
+  /// [SyncWriterLifecycleScope].
   Future<void> reloadFromSettings() async {
     await _loadPreferences();
     if (mounted) setState(() {});
@@ -1774,10 +1774,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
                                                               child: LocaleScope(
                                                                 notifier:
                                                                     _localeNotifier,
-                                                                child: BackupControllerScope(
-                                                                  beforeRestore:
+                                                                child: SyncWriterLifecycleScope(
+                                                                  beforeWrite:
                                                                       _disposeSyncCoordinator,
-                                                                  afterRestore:
+                                                                  afterWrite:
                                                                       _configureSyncCoordinator,
                                                                   onRestored:
                                                                       reloadFromSettings,
