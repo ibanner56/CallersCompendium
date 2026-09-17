@@ -6,6 +6,8 @@ import 'package:compendium_core/compendium_core.dart';
 import '../diagnostics/error_log.dart';
 import 'sync_http_client.dart';
 
+DateTime _syncNowUtc() => DateTime.now().toUtc();
+
 /// The event sources that share the single-flight sync scheduler.
 enum SyncTrigger { appStart, debouncedChange, manual }
 
@@ -377,10 +379,25 @@ final class SyncPeerManifestCacheEntry {
 /// has an explicit message representation that the pass operation can return
 /// to its owner after each worker finishes.
 final class SyncPeerManifestCache {
-  SyncPeerManifestCache({Map<String, SyncPeerManifestCacheEntry>? entries})
-    : _entries = {...?entries};
+  SyncPeerManifestCache({
+    Map<String, SyncPeerManifestCacheEntry>? entries,
+    Set<String>? rejectedHashes,
+    Map<SyncRecordAddress, int>? unreflectedPasses,
+    this.unreflectedEpoch,
+  }) : _entries = {...?entries},
+       rejectedHashes = {...?rejectedHashes},
+       unreflectedPasses = {...?unreflectedPasses};
 
   final Map<String, SyncPeerManifestCacheEntry> _entries;
+  final Set<String> rejectedHashes;
+  final Map<SyncRecordAddress, int> unreflectedPasses;
+  String? unreflectedEpoch;
+
+  void beginUnreflectedEpoch(String epoch) {
+    if (unreflectedEpoch == epoch) return;
+    unreflectedPasses.clear();
+    unreflectedEpoch = epoch;
+  }
 
   SyncPeerManifestCacheEntry? operator [](String peerId) => _entries[peerId];
 
@@ -394,21 +411,43 @@ final class SyncPeerManifestCache {
 
   void clear() {
     _entries.clear();
+    rejectedHashes.clear();
+    unreflectedPasses.clear();
+    unreflectedEpoch = null;
   }
 
   void replaceFrom(SyncPeerManifestCache source) {
     _entries
       ..clear()
       ..addAll(source._entries);
+    rejectedHashes
+      ..clear()
+      ..addAll(source.rejectedHashes);
+    unreflectedPasses
+      ..clear()
+      ..addAll(source.unreflectedPasses);
+    unreflectedEpoch = source.unreflectedEpoch;
   }
 
   Map<String, Object?> toMessage() => {
-    for (final entry in _entries.entries)
-      entry.key: {
-        'epoch': entry.value.epoch,
-        'etag': entry.value.etag,
-        'manifest': utf8.decode(encodeSyncManifestUtf8(entry.value.manifest)),
-      },
+    '_entries': {
+      for (final entry in _entries.entries)
+        entry.key: {
+          'epoch': entry.value.epoch,
+          'etag': entry.value.etag,
+          'manifest': utf8.decode(encodeSyncManifestUtf8(entry.value.manifest)),
+        },
+    },
+    '_rejectedHashes': rejectedHashes.toList(growable: false),
+    '_unreflectedPasses': [
+      for (final entry in unreflectedPasses.entries)
+        {
+          'kind': entry.key.kind.name,
+          'recordId': entry.key.recordId,
+          'count': entry.value,
+        },
+    ],
+    '_unreflectedEpoch': unreflectedEpoch,
   };
 
   static SyncPeerManifestCache fromMessage(Object? message) {
@@ -417,7 +456,13 @@ final class SyncPeerManifestCache {
       throw const FormatException('sync isolate returned a malformed cache');
     }
     final entries = <String, SyncPeerManifestCacheEntry>{};
-    for (final rawEntry in message.entries) {
+    final rejectedHashes = <String>{};
+    final unreflectedPasses = <SyncRecordAddress, int>{};
+    final rawEntries = message['_entries'];
+    if (rawEntries is! Map<Object?, Object?>) {
+      throw const FormatException('sync isolate returned a malformed cache');
+    }
+    for (final rawEntry in rawEntries.entries) {
       final peerId = rawEntry.key;
       final value = rawEntry.value;
       if (peerId is! String || value is! Map<Object?, Object?>) {
@@ -435,13 +480,65 @@ final class SyncPeerManifestCache {
         manifest: decodeSyncManifest(manifestBody),
       );
     }
-    return SyncPeerManifestCache(entries: entries);
+    final rawHashes = message['_rejectedHashes'];
+    if (rawHashes is! List<Object?> ||
+        rawHashes.any((hash) => hash is! String)) {
+      throw const FormatException(
+        'sync isolate returned a malformed rejected hash set',
+      );
+    }
+    rejectedHashes.addAll(rawHashes.cast<String>());
+
+    final rawPasses = message['_unreflectedPasses'];
+    if (rawPasses is! List<Object?>) {
+      throw const FormatException(
+        'sync isolate returned malformed unreflected diagnostics',
+      );
+    }
+    for (final rawPass in rawPasses) {
+      if (rawPass is! Map<Object?, Object?> ||
+          rawPass['kind'] is! String ||
+          rawPass['recordId'] is! String ||
+          rawPass['count'] is! int ||
+          (rawPass['count']! as int) < 1) {
+        throw const FormatException(
+          'sync isolate returned malformed unreflected diagnostic',
+        );
+      }
+      final address = (
+        kind: SyncRecordKind.values.byName(rawPass['kind']! as String),
+        recordId: rawPass['recordId']! as String,
+      );
+      unreflectedPasses[address] = rawPass['count']! as int;
+    }
+    final rawUnreflectedEpoch = message['_unreflectedEpoch'];
+    if (rawUnreflectedEpoch != null && rawUnreflectedEpoch is! String) {
+      throw const FormatException(
+        'sync isolate returned malformed unreflected epoch',
+      );
+    }
+    return SyncPeerManifestCache(
+      entries: entries,
+      rejectedHashes: rejectedHashes,
+      unreflectedPasses: unreflectedPasses,
+      unreflectedEpoch: rawUnreflectedEpoch as String?,
+    );
   }
 }
 
 /// A coalesced notification that a previously-used remote store is missing.
 class SyncReplacementRequiredEvent {
   const SyncReplacementRequiredEvent();
+}
+
+final class _MissingBlobUploadResult {
+  const _MissingBlobUploadResult({
+    required this.succeeded,
+    required this.unavailableFallbackHashes,
+  });
+
+  final bool succeeded;
+  final Set<String> unavailableFallbackHashes;
 }
 
 /// Coordinates one steady-state pass and its explicit replacement decision.
@@ -457,8 +554,9 @@ class SyncCoordinator {
     SyncMergeEngine? mergeEngine,
     SyncApplyEngine? applyEngine,
     SyncPeerManifestCache? peerManifestCache,
+    this.now = _syncNowUtc,
   }) : _mergeEngine = mergeEngine ?? const SyncMergeEngine(),
-       _applyEngine = applyEngine ?? const SyncApplyEngine(),
+       _applyEngine = applyEngine ?? SyncApplyEngine(now: now),
        _peerManifestCache = peerManifestCache ?? SyncPeerManifestCache(),
        _ownsPeerManifestCache = peerManifestCache == null;
 
@@ -473,6 +571,7 @@ class SyncCoordinator {
   final String? syncId;
   final SyncPeerManifestCache _peerManifestCache;
   final bool _ownsPeerManifestCache;
+  final DateTime Function() now;
   final _replacementEvents =
       StreamController<SyncReplacementRequiredEvent>.broadcast();
 
@@ -765,6 +864,7 @@ class SyncCoordinator {
         message: 'store metadata was malformed', // i18n-ignore: internal status
       );
     }
+    _peerManifestCache.beginUnreflectedEpoch(metadata.epoch);
     final attachContinuation =
         continuation && continuationEpoch != null && deferredBaseline != null;
     if (attachContinuation && metadata.epoch != continuationEpoch) {
@@ -775,16 +875,25 @@ class SyncCoordinator {
     if (continuation && epochMismatch && !attachContinuation) {
       return const SyncPassResult(SyncPassStatus.staleEpoch);
     }
-    final freshAttach = epochMismatch && !attachContinuation;
+    var freshAttach = epochMismatch && !attachContinuation;
     if (freshAttach) {
       await store.clearEpochState();
       snapshot = await store.snapshot();
     }
+    if (!freshAttach &&
+        deferredBaseline == null &&
+        _hasLegacyBaselineBodyHashes(snapshot.baseline)) {
+      await store.clearEpochState();
+      snapshot = await store.snapshot();
+      freshAttach = true;
+    }
 
-    final normalizedLocal = await _normalizeCandidates(
+    final localNow = now().toUtc();
+    final windowEnd = syncQuarantineWindowEnd(localNow);
+    var normalizedLocal = await _normalizeCandidates(
       freshAttach ? snapshot.publication : snapshot.local,
     );
-    final normalizedPendingLive = await _normalizeCandidates(
+    var normalizedPendingLive = await _normalizeCandidates(
       snapshot.pendingLive,
     );
     final normalizedBaseline = await _normalizeBaseline(
@@ -796,8 +905,23 @@ class SyncCoordinator {
             },
     );
     final normalizedPending = await _normalizeAddresses(snapshot.pending);
+    final normalizedPendingTombstones =
+        <SyncRecordAddress, SyncMergeCandidate>{};
+    if (!freshAttach) {
+      final normalizedPublication = await _normalizeCandidates(
+        snapshot.publication,
+      );
+      for (final address in normalizedPending) {
+        final candidate = normalizedPublication[address];
+        if (candidate != null) {
+          normalizedPendingTombstones[address] = candidate;
+        }
+      }
+    }
     final reports = SyncReportSink();
     final peerMaps = <Map<SyncRecordAddress, SyncMergeCandidate?>>[];
+    final peerManifestHashes = <Map<SyncRecordAddress, String>>[];
+    final peerReferenceAliases = <Map<SyncRecordAddress, SyncRecordAddress>>[];
     final peerManifests = <({String peerId, SyncManifest manifest})>[];
     final unresolved = <SyncRecordAddress>{};
     var allPeerManifestsAvailable = true;
@@ -863,6 +987,7 @@ class SyncCoordinator {
         );
       }
       peerManifests.add((peerId: peerId, manifest: manifest));
+      peerManifestHashes.add(await _normalizeManifestHashes(manifest));
     }
     if (allPeerManifestsAvailable) {
       final peerAddresses = <SyncRecordAddress>{
@@ -881,20 +1006,36 @@ class SyncCoordinator {
     final availableByHash = <String, SyncMergeCandidate>{...localByHash};
     final rejectedPeerAddresses = <SyncRecordAddress>{};
 
+    final rawPeerMaps = <Map<SyncRecordAddress, SyncMergeCandidate?>>[];
     for (final peer in peerManifests) {
+      final downloaded = await _downloadPeerRecords(
+        peer.manifest,
+        peerId: peer.peerId,
+        reports: reports,
+        unresolved: unresolved,
+        candidateByHash: availableByHash,
+        rejectedAddresses: rejectedPeerAddresses,
+      );
+      final normalized = await _normalizeCandidates(downloaded);
+      final referenceAliases = await _resolveReferenceAliases([normalized]);
+      rawPeerMaps.add(normalized);
+      peerReferenceAliases.add(referenceAliases);
+      _addPeerQuarantineReports(
+        normalized,
+        peerId: peer.peerId,
+        windowEnd: windowEnd,
+        reports: reports,
+      );
       peerMaps.add(
-        await _normalizeCandidates(
-          await _downloadPeerRecords(
-            peer.manifest,
-            peerId: peer.peerId,
-            reports: reports,
-            unresolved: unresolved,
-            candidateByHash: availableByHash,
-            rejectedAddresses: rejectedPeerAddresses,
-          ),
+        filterSyncQuarantinedCandidates(
+          normalized,
+          windowEnd: windowEnd,
+          resolveAlias: (address) => referenceAliases[address] ?? address,
         ),
       );
     }
+
+    _recordClockSuspect(rawPeerMaps, windowEnd: windowEnd, reports: reports);
 
     final normalizedUnresolved = await _normalizeAddresses(unresolved);
     final normalizedPeerAddresses = <SyncRecordAddress>{
@@ -915,17 +1056,105 @@ class SyncCoordinator {
             'fresh attach requires a complete peer union', // i18n-ignore: internal status
       );
     }
+
+    final repairCandidates = <SyncMergeCandidate>[];
+    final quarantinedLocal = <SyncRecordAddress>{};
+    final repairLocal = <SyncRecordAddress, SyncMergeCandidate?>{
+      ...normalizedLocal,
+      ...normalizedPendingTombstones,
+    };
+    for (final entry in repairLocal.entries) {
+      final local = entry.value;
+      if (local == null) continue;
+      final repair = repairSyncCandidate(
+        local: local,
+        baseline: normalizedBaseline[entry.key],
+        peers: [for (final peer in rawPeerMaps) ?peer[entry.key]],
+        windowEnd: windowEnd,
+      );
+      if (repair.completed && repair.repaired!.wireHash != local.wireHash) {
+        repairCandidates.add(repair.repaired!);
+      } else if (repair.before.isQuarantined) {
+        quarantinedLocal.add(entry.key);
+      }
+    }
+    if (repairCandidates.isNotEmpty) {
+      final repairExpected = <SyncRecordAddress, String?>{
+        for (final entry in repairLocal.entries)
+          entry.key: normalizedPending.contains(entry.key)
+              ? normalizedPendingLive[entry.key]?.wireHash
+              : entry.value?.wireHash,
+      };
+      final repairResult = await _applyEngine.apply(
+        candidates: repairCandidates,
+        storage: store,
+        expectedWireHashes: repairExpected,
+      );
+      reports.addAll(repairResult.reports);
+      snapshot = await store.snapshot();
+      normalizedLocal = await _normalizeCandidates(
+        freshAttach ? snapshot.publication : snapshot.local,
+      );
+      normalizedPendingLive = await _normalizeCandidates(snapshot.pendingLive);
+    }
+
+    final localReferenceAliases = await _resolveReferenceAliases([
+      normalizedLocal,
+    ]);
+    final mergeLocal = filterSyncQuarantinedCandidates(
+      normalizedLocal,
+      windowEnd: windowEnd,
+      resolveAlias: (address) => localReferenceAliases[address] ?? address,
+    );
+    final mergePeers = [
+      for (var index = 0; index < rawPeerMaps.length; index++)
+        filterSyncQuarantinedCandidates(
+          rawPeerMaps[index],
+          windowEnd: windowEnd,
+          resolveAlias: (address) =>
+              peerReferenceAliases[index][address] ?? address,
+        ),
+    ];
+    final localQuarantined = syncQuarantineClosure(
+      candidates: normalizedLocal,
+      quarantined: syncQuarantinedAddresses(
+        normalizedLocal,
+        windowEnd: windowEnd,
+      ),
+      resolveAlias: (address) => localReferenceAliases[address] ?? address,
+    );
+    final peerQuarantined = <SyncRecordAddress>{};
+    for (var index = 0; index < rawPeerMaps.length; index++) {
+      final peer = rawPeerMaps[index];
+      peerQuarantined.addAll(
+        syncQuarantineClosure(
+          candidates: peer,
+          quarantined: syncQuarantinedAddresses(peer, windowEnd: windowEnd),
+          resolveAlias: (address) =>
+              peerReferenceAliases[index][address] ?? address,
+        ),
+      );
+    }
+    final mergeQuarantined = {
+      ...localQuarantined,
+      for (final address in peerQuarantined)
+        if (normalizedLocal[address] == null) address,
+    };
     final mergeBaseline =
         freshAttach
               ? <SyncRecordAddress, SyncBaselineEntry>{}
               : <SyncRecordAddress, SyncBaselineEntry>{...normalizedBaseline}
-          ..removeWhere((address, _) => normalizedPending.contains(address));
+          ..removeWhere(
+            (address, _) =>
+                normalizedPending.contains(address) ||
+                mergeQuarantined.contains(address),
+          );
     final plan = _mergeEngine.plan(
-      local: normalizedLocal,
+      local: mergeLocal,
       baseline: mergeBaseline,
-      peers: peerMaps,
+      peers: mergePeers,
       freshAttach: freshAttach,
-      unresolved: normalizedUnresolved,
+      unresolved: {...normalizedUnresolved, ...mergeQuarantined},
     );
     reports.addAll(plan.reports);
     final downloads = [
@@ -963,21 +1192,37 @@ class SyncCoordinator {
     if (freshAttach) {
       final attachedSnapshot = await store.snapshot();
       final attachedLocal = await _normalizeCandidates(attachedSnapshot.local);
+      final attachedPublication = await _normalizeCandidates(
+        attachedSnapshot.publication,
+      );
+      final attachedReferenceAliases = await _resolveReferenceAliases([
+        attachedPublication,
+      ]);
+      final attachPlan = planSyncPublication(
+        publication: attachedPublication,
+        baseline: const {},
+        windowEnd: windowEnd,
+        resolveAlias: (address) => attachedReferenceAliases[address] ?? address,
+      );
       final baselineEntries = <SyncBaselineEntry>[
         for (final entry in attachedLocal.entries)
-          if (entry.value != null)
+          if (entry.value != null &&
+              attachPlan.manifestHashes[entry.key] == entry.value!.wireHash &&
+              peerMaps.any(
+                (peer) => peer[entry.key]?.wireHash == entry.value!.wireHash,
+              ))
             SyncBaselineEntry(
               kind: entry.key.kind,
               recordId: entry.key.recordId,
               wireHash: entry.value!.wireHash,
-              bodyHash: entry.value!.bodyHash,
+              bodyHash: entry.value!.comparisonBodyHash,
             ),
       ];
-      final attachByHash = <String, SyncMergeCandidate>{};
-      for (final candidate in attachedSnapshot.publication.values) {
-        if (candidate != null) attachByHash[candidate.wireHash] = candidate;
-      }
-      if (!await _uploadMissingLocalBlobs(attachByHash, reports: reports)) {
+      final uploadResult = await _uploadMissingLocalBlobs(
+        attachPlan.uploadCandidates,
+        reports: reports,
+      );
+      if (!uploadResult.succeeded) {
         return SyncPassResult(
           SyncPassStatus.failed,
           reports: reports.reports,
@@ -1007,41 +1252,105 @@ class SyncCoordinator {
         }.toList(),
       );
     }
-
-    final publicationState = await store.transaction(() async {
+    Future<
+      ({
+        Map<SyncRecordAddress, SyncMergeCandidate?> current,
+        Map<SyncRecordAddress, SyncMergeCandidate?> publication,
+        Map<String, SyncMergeCandidate> fallbackCandidates,
+        SyncPublicationPlan publicationPlan,
+        SyncManifest manifest,
+        List<SyncRecordAddress> addresses,
+      })
+    >
+    buildPublicationState({
+      Set<String> unavailableFallbackHashes = const {},
+      Map<SyncRecordAddress, SyncMergeCandidate?>? publicationOverride,
+    }) async => store.transaction(() async {
       final currentSnapshot = await store.snapshot();
-      final publication = <SyncRecordAddress, SyncMergeCandidate?>{
-        ...currentSnapshot.publication,
+      final current = await _normalizeCandidates(currentSnapshot.local);
+      final publication =
+          publicationOverride ??
+          await _normalizeCandidates(currentSnapshot.publication);
+      final referenceAliases = await _resolveReferenceAliases([publication]);
+      final publicationPlan = planSyncPublication(
+        publication: publication,
+        baseline: normalizedBaseline,
+        windowEnd: windowEnd,
+        resolveAlias: (address) => referenceAliases[address] ?? address,
+        unavailableFallbackHashes: unavailableFallbackHashes,
+      );
+      final fallbackCandidates = <String, SyncMergeCandidate>{
+        for (final candidate in publication.values)
+          if (candidate != null &&
+              publicationPlan.fallbackHashes.contains(candidate.wireHash))
+            candidate.wireHash: candidate,
       };
       final manifest = SyncManifest(
         deviceId: deviceId,
         epoch: metadata.epoch,
         writtenAt: DateTime.now().toUtc(),
-        records: _manifestRecords(publication),
+        records: _manifestRecords(publicationPlan.manifestHashes),
       );
       final addresses = _manifestAddresses(manifest);
+      // The initial plan is a conservative superset of any replan that omits
+      // unavailable fallback hashes, so protect it before probing the store.
       await store.markPublished(addresses);
       return (
-        currentSnapshot: currentSnapshot,
+        current: current,
         publication: publication,
+        fallbackCandidates: fallbackCandidates,
+        publicationPlan: publicationPlan,
         manifest: manifest,
         addresses: addresses,
       );
     });
-    final currentSnapshot = publicationState.currentSnapshot;
-    final current = await _normalizeCandidates(currentSnapshot.local);
-    final publication = publicationState.publication;
-    final manifest = publicationState.manifest;
-    final addresses = publicationState.addresses;
-    final finalByHash = <String, SyncMergeCandidate>{};
-    for (final candidate in publication.values) {
-      if (candidate != null) finalByHash[candidate.wireHash] = candidate;
-    }
-    final finalUploadSucceeded = await _uploadMissingLocalBlobs(
-      finalByHash,
+
+    var publicationState = await buildPublicationState();
+    final fallbackProbe = await _uploadMissingLocalBlobs(
+      publicationState.fallbackCandidates,
+      fallbackHashes: publicationState.publicationPlan.fallbackHashes,
       reports: reports,
     );
-    if (!finalUploadSucceeded) {
+    if (!fallbackProbe.succeeded) {
+      return SyncPassResult(
+        SyncPassStatus.failed,
+        reports: reports.reports,
+        message:
+            'fallback blob availability probe failed', // i18n-ignore: internal status
+        appliedKinds: appliedKinds.toList(),
+      );
+    }
+    if (fallbackProbe.unavailableFallbackHashes.isNotEmpty) {
+      publicationState = await buildPublicationState(
+        publicationOverride: publicationState.publication,
+        unavailableFallbackHashes: fallbackProbe.unavailableFallbackHashes,
+      );
+    }
+    for (final address in quarantinedLocal) {
+      final count =
+          publicationState.publicationPlan.withheldDependentCounts[address] ??
+          0;
+      final dependentLabel = count == 1 ? 'dependent' : 'dependents';
+      reports.add(
+        SyncReport(
+          code: SyncReportCode.quarantinedRecord,
+          kind: address.kind,
+          recordId: address.recordId,
+          message:
+              'Record remained quarantined after peer-only timestamp repair; ' // i18n-ignore: internal status
+              '$count database-FK $dependentLabel withheld.', // i18n-ignore: internal status
+        ),
+      );
+    }
+    final current = publicationState.current;
+    final publicationPlan = publicationState.publicationPlan;
+    final manifest = publicationState.manifest;
+    final addresses = publicationState.addresses;
+    final finalUploadResult = await _uploadMissingLocalBlobs(
+      publicationPlan.uploadCandidates,
+      reports: reports,
+    );
+    if (!finalUploadResult.succeeded) {
       return SyncPassResult(
         SyncPassStatus.failed,
         reports: reports.reports,
@@ -1076,6 +1385,9 @@ class SyncCoordinator {
       if (normalizedUnresolved.contains(entry.key)) continue;
       final candidate = entry.value;
       if (candidate == null) continue;
+      if (publicationPlan.manifestHashes[entry.key] != candidate.wireHash) {
+        continue;
+      }
       final seenByPeer = peerMaps.any(
         (peer) => peer[entry.key]?.wireHash == candidate.wireHash,
       );
@@ -1085,10 +1397,19 @@ class SyncCoordinator {
           kind: entry.key.kind,
           recordId: entry.key.recordId,
           wireHash: candidate.wireHash,
-          bodyHash: candidate.bodyHash,
+          bodyHash: candidate.comparisonBodyHash,
         ),
       );
     }
+    final uploadManifestHashes = <SyncRecordAddress, String>{
+      for (final address in publicationPlan.uploadAddresses)
+        address: publicationPlan.manifestHashes[address]!,
+    };
+    _recordUnreflectedPublications(
+      uploadManifestHashes,
+      peerManifestHashes: peerManifestHashes,
+      reports: reports,
+    );
     final dropped = {
       for (final decision in plan.decisions)
         if (decision.action == SyncMergeAction.dropBaseline) decision.address,
@@ -1131,6 +1452,14 @@ class SyncCoordinator {
     return normalized;
   }
 
+  bool _hasLegacyBaselineBodyHashes(
+    Map<SyncRecordAddress, SyncBaselineEntry> baseline,
+  ) => baseline.values.any(
+    (entry) =>
+        entry.bodyHash != null &&
+        entry.bodyHashVersion == SyncBaselineBodyHashVersion.legacyFullBody,
+  );
+
   Future<Map<SyncRecordAddress, SyncBaselineEntry>> _normalizeBaseline(
     Map<SyncRecordAddress, SyncBaselineEntry> baseline,
   ) async {
@@ -1148,6 +1477,7 @@ class SyncCoordinator {
           recordId: address.recordId,
           wireHash: entry.value.wireHash,
           bodyHash: entry.value.bodyHash,
+          bodyHashVersion: entry.value.bodyHashVersion,
         );
         sources[address] = entry.key;
       }
@@ -1172,6 +1502,140 @@ class SyncCoordinator {
       }
     }
     return normalized;
+  }
+
+  Future<Map<SyncRecordAddress, String>> _normalizeManifestHashes(
+    SyncManifest manifest,
+  ) async {
+    final normalized = <SyncRecordAddress, String>{};
+    final sources = <SyncRecordAddress, SyncRecordAddress>{};
+    for (final kindEntry in manifest.records.entries) {
+      for (final entry in kindEntry.value.entries) {
+        final source = (kind: kindEntry.key, recordId: entry.key);
+        final address = await store.resolveAlias(source);
+        if (_shouldReplaceNormalizedAddress(
+          sources[address],
+          source,
+          address,
+        )) {
+          normalized[address] = entry.value;
+          sources[address] = source;
+        }
+      }
+    }
+    return normalized;
+  }
+
+  Future<Map<SyncRecordAddress, SyncRecordAddress>> _resolveReferenceAliases(
+    Iterable<Map<SyncRecordAddress, SyncMergeCandidate?>> candidateMaps,
+  ) async {
+    final references = <SyncRecordAddress>{};
+    for (final candidates in candidateMaps) {
+      for (final candidate in candidates.values) {
+        if (candidate != null) {
+          references.addAll(syncRecordReferences(candidate));
+        }
+      }
+    }
+    final resolved = <SyncRecordAddress, SyncRecordAddress>{};
+    for (final reference in references) {
+      final address = await store.resolveAlias(reference);
+      if (address != reference) resolved[reference] = address;
+    }
+    return resolved;
+  }
+
+  void _addPeerQuarantineReports(
+    Map<SyncRecordAddress, SyncMergeCandidate?> candidates, {
+    required String peerId,
+    required DateTime windowEnd,
+    required SyncReportSink reports,
+  }) {
+    const classifier = SyncQuarantineClassifier();
+    for (final entry in candidates.entries) {
+      final candidate = entry.value;
+      if (candidate == null ||
+          !classifier.assess(candidate, windowEnd: windowEnd).isQuarantined) {
+        continue;
+      }
+      if (!_peerManifestCache.rejectedHashes.add(candidate.wireHash)) {
+        continue;
+      }
+      reports.add(
+        SyncReport(
+          code: SyncReportCode.malformedRecord,
+          kind: entry.key.kind,
+          recordId: entry.key.recordId,
+          peerId: peerId,
+          message:
+              'Inbound record timestamp exceeded the local clock window.', // i18n-ignore: internal status
+        ),
+      );
+    }
+  }
+
+  void _recordClockSuspect(
+    Iterable<Map<SyncRecordAddress, SyncMergeCandidate?>> peerMaps, {
+    required DateTime windowEnd,
+    required SyncReportSink reports,
+  }) {
+    final observed = <DateTime>[];
+    for (final peer in peerMaps) {
+      for (final candidate in peer.values) {
+        if (candidate == null) continue;
+        observed
+          ..add(candidate.updatedAt)
+          ..add(candidate.existenceAt);
+      }
+    }
+    if (observed.isEmpty ||
+        !observed.every((value) => value.isAfter(windowEnd))) {
+      return;
+    }
+    reports.add(
+      const SyncReport(
+        code: SyncReportCode.clockSuspect,
+        message:
+            'Every peer timestamp observed in this pass exceeded the local ' // i18n-ignore: internal status
+            'clock window.', // i18n-ignore: internal status
+      ),
+    );
+  }
+
+  void _recordUnreflectedPublications(
+    Map<SyncRecordAddress, String> publishableHashes, {
+    required Iterable<Map<SyncRecordAddress, String>> peerManifestHashes,
+    required SyncReportSink reports,
+  }) {
+    final peers = peerManifestHashes.toList(growable: false);
+    if (peers.isEmpty) {
+      _peerManifestCache.unreflectedPasses.clear();
+      return;
+    }
+    final publishedAddresses = publishableHashes.keys.toSet();
+    _peerManifestCache.unreflectedPasses.removeWhere(
+      (address, _) => !publishedAddresses.contains(address),
+    );
+    for (final entry in publishableHashes.entries) {
+      final reflected = peers.any((peer) => peer[entry.key] == entry.value);
+      if (reflected) {
+        _peerManifestCache.unreflectedPasses.remove(entry.key);
+        continue;
+      }
+      final count = (_peerManifestCache.unreflectedPasses[entry.key] ?? 0) + 1;
+      _peerManifestCache.unreflectedPasses[entry.key] = count;
+      if (count < 3) continue;
+      reports.add(
+        SyncReport(
+          code: SyncReportCode.unreflectedPublication,
+          kind: entry.key.kind,
+          recordId: entry.key.recordId,
+          message:
+              'A published record was not reflected by any observed peer ' // i18n-ignore: internal status
+              'for three consecutive passes.', // i18n-ignore: internal status
+        ),
+      );
+    }
   }
 
   static bool _shouldReplaceNormalizedAddress(
@@ -1349,29 +1813,56 @@ class SyncCoordinator {
     return admission.candidate!;
   }
 
-  Future<bool> _uploadMissingLocalBlobs(
+  Future<_MissingBlobUploadResult> _uploadMissingLocalBlobs(
     Map<String, SyncMergeCandidate> localByHash, {
+    Set<String> fallbackHashes = const {},
     required SyncReportSink reports,
   }) async {
-    final entries = localByHash.entries.toList(growable: false);
+    final requestedHashes = {
+      ...localByHash.keys,
+      ...fallbackHashes,
+    }.toList(growable: false);
+    final unavailableFallbackHashes = <String>{};
     for (
       var offset = 0;
-      offset < entries.length;
+      offset < requestedHashes.length;
       offset += _maxMissingHashesPerRequest
     ) {
       final end = (offset + _maxMissingHashesPerRequest).clamp(
         0,
-        entries.length,
+        requestedHashes.length,
       );
       final response = await transport.postMissing(
-        entries.sublist(offset, end).map((entry) => entry.key),
+        requestedHashes.sublist(offset, end),
       );
-      if (!response.isSuccess) return false;
+      if (!response.isSuccess) {
+        return const _MissingBlobUploadResult(
+          succeeded: false,
+          unavailableFallbackHashes: {},
+        );
+      }
       final missing = _decodeMissing(response.body);
-      if (missing == null) return false;
+      if (missing == null) {
+        return const _MissingBlobUploadResult(
+          succeeded: false,
+          unavailableFallbackHashes: {},
+        );
+      }
       for (final hash in missing) {
         final candidate = localByHash[hash];
         if (candidate == null) {
+          if (fallbackHashes.contains(hash)) {
+            unavailableFallbackHashes.add(hash);
+            reports.add(
+              SyncReport(
+                code: SyncReportCode.unresolvedBlob,
+                message:
+                    'An agreed fallback blob was unavailable locally and at the ' // i18n-ignore: internal report
+                    'store.', // i18n-ignore: internal report
+              ),
+            );
+            continue;
+          }
           reports.add(
             SyncReport(
               code: SyncReportCode.unresolvedBlob,
@@ -1379,16 +1870,27 @@ class SyncCoordinator {
                   'The store requested an unknown local blob.', // i18n-ignore: internal report
             ),
           );
-          return false;
+          return const _MissingBlobUploadResult(
+            succeeded: false,
+            unavailableFallbackHashes: {},
+          );
         }
         final uploaded = await transport.putBlob(
           hash,
           encodeSyncRecordBlobUtf8(candidate.blob),
         );
-        if (!uploaded.isSuccess) return false;
+        if (!uploaded.isSuccess) {
+          return const _MissingBlobUploadResult(
+            succeeded: false,
+            unavailableFallbackHashes: {},
+          );
+        }
       }
     }
-    return true;
+    return _MissingBlobUploadResult(
+      succeeded: true,
+      unavailableFallbackHashes: Set.unmodifiable(unavailableFallbackHashes),
+    );
   }
 
   void _emitReplacementRequired() {
@@ -1467,13 +1969,12 @@ class SyncCoordinator {
   }
 
   static Map<SyncRecordKind, Map<String, String>> _manifestRecords(
-    Map<SyncRecordAddress, SyncMergeCandidate?> local,
+    Map<SyncRecordAddress, String> hashes,
   ) {
     final records = <SyncRecordKind, Map<String, String>>{};
-    for (final candidate in local.values) {
-      if (candidate == null) continue;
-      records.putIfAbsent(candidate.blob.kind, () => {})[candidate.blob.id] =
-          candidate.wireHash;
+    for (final entry in hashes.entries) {
+      records.putIfAbsent(entry.key.kind, () => {})[entry.key.recordId] =
+          entry.value;
     }
     return records;
   }

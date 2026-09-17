@@ -291,16 +291,16 @@ newest `updatedAt` wins.
 
 **Absence never means deletion.** Deletions travel as `deletedAt` tombstones.
 `Dances` and `Programs` carry `deletedAt` today; the sync migration adds it to the other
-six kinds and converts their repositories from hard to soft delete, because a
+seven kinds and converts their repositories from hard to soft delete, because a
 kind that cannot express deletion cannot propagate it — the record would simply
 reappear from any peer that still held it. A device that has not synced for a
 month must never conclude that records missing from a sibling's manifest were
 deleted.
 
-### Record model: eight first-class kinds
+### Record model: nine first-class kinds
 
 Every persisted entity is a **first-class synced record** with its own blob:
-`dance`, `program`, `choreographer`, `tag`, `publishedSource`,
+`dance`, `program`, `choreographer`, `tag`, `publishedSource`, `difficultyLevel`,
 `customFieldDef`, `venue`, `setting`. Join rows ride inline with their parent —
 a dance carries its `authorIds`, `tagIds`, citations and custom-field values; a
 program carries its slots — exactly as the archive codec already models them.
@@ -1134,10 +1134,11 @@ makes self-hosting materially harder, which constraint 4 forbids.
   an entry and only one carries it: a record agreed under the previous scheme has
   a wire hash and no body hash, and takes the wire-hash path or stays
   quarantined; a wholesale-wiped baseline routes through fresh attach, which
-  repersists it before quarantine and repair run at all. Existing baselines
-  cannot be migrated — the body was never retained, and every backfill that
-  invents a value re-opens a defect this design has closed — so the column starts
-  null and fills on the first pass that observes agreement.
+  repersists it before quarantine and repair run at all. A legacy full-body
+  baseline is different: its body was never retained, so it cannot be migrated
+  by clearing only the body hash or inventing a replacement. The client drops
+  that old epoch-scoped baseline and routes through fresh attach; W9 comparison
+  hashes then start absent and fill only after a peer's agreement is observed.
 
   A quarantined record is also never uploaded: a device does not publish a value
   it has judged impossible. Its **manifest entry falls back to the last agreed
@@ -1149,16 +1150,24 @@ makes self-hosting materially harder, which constraint 4 forbids.
   in a fresh attach's union and in the steady-state merge table alike, since
   otherwise a poisoned `local.updatedAt` no honest peer can exceed would freeze
   the record while appearing to participate. A record citing a quarantined
-  entity is withheld with it, or a peer's batch fails at COMMIT on the cascading
-  foreign key — computed as a fixpoint over the publish set, since the citation
-  graph is multi-hop, and excluding `Programs.venueId`, which is not a database
-  foreign key and is instead resolved-or-nulled on apply, as the archive
-  restorer already does. That withholding does not resolve itself: an entity created while
-  a clock was broken has no peer copy to repair against, so it and everything
-  citing it stay unsynced until the user writes to it again. The report says how
-  many records each one holds back, because otherwise the only symptom is a
-  collection that quietly stops syncing. And an advertised fallback never counts
-  as agreement: it is this
+  entity with no agreed fallback is withheld with it, or a peer's batch fails at
+  COMMIT on the cascading foreign key. When an agreed fallback is advertised,
+  the referenced address remains in the manifest, so database-enforced
+  dependents may publish while the quarantined root's current blob remains
+  withheld. Before publishing a fallback, the client probes its wire hash
+  through `POST /v1/blobs/missing`; if the store reports it missing and this
+  device has no body for that hash, this pass treats the root as having no
+  usable fallback, omits it, and recomputes the same closure. If the body is
+  locally available, it is uploaded before the manifest is published.
+  No-fallback withholding is computed as a fixpoint over the publish set, since
+  the citation graph is multi-hop, and excludes `Programs.venueId`, which is
+  not a database foreign key and is instead resolved-or-nulled on apply, as the
+  archive restorer already does. That withholding does not
+  resolve itself: an entity created while a clock was broken has no peer copy
+  to repair against, so it and everything citing it stay unsynced until the
+  user writes to it again. The report says how many records each one holds
+  back, because otherwise the only symptom is a collection that quietly stops
+  syncing. And an advertised fallback never counts as agreement: it is this
   device's own hash coming back to it, and treating it otherwise would populate
   a baseline from the poisoned content it exists to repair.
 

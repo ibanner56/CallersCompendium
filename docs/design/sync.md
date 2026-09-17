@@ -884,7 +884,7 @@ several places, and a change to it must be traced to all of them:
 | Inbound validation | Out-of-range `existenceAt` *or* `updatedAt` rejected, never clamped |
 | Quarantine repair | Rebuilds only out-of-window fields, from peers sound in that same field; keyed on the baseline for `updatedAt` |
 | Repair's missing-baseline branch | Never-agreed only; upgraded and wiped entries take other paths |
-| Quarantined records | Excluded from merge table and union; manifest advertises last agreed hash; records citing them withheld to a fixpoint over database-FK references, `venueId` exempt |
+| Quarantined records | Excluded from merge table and union; manifest probes each fallback hash before advertising it; unavailable fallbacks are omitted and records citing them are withheld to a fixpoint over database-FK references, `venueId` exempt |
 
 #### The increment is one *tick*, and that is not a detail
 
@@ -1124,14 +1124,19 @@ other copies actually hold:
   distinction the pending-tombstone rule turns on:
 
   - **The blob is withheld.** Nothing publishes a poisoned value.
-  - **The manifest advertises the record's last agreed hash**, whose blob peers
-    already hold — the **wire** hash, which is what a manifest carries and what
-    peers fetch by, and which survives the body-hash migration since it was never
-    dropped. Advertising the *current* hash would name a blob nobody can fetch,
-    and omitting the record entirely would break referential closure — a
-    fresh-attaching peer that downloads a dance citing the omitted entity fails
-    at COMMIT on the cascading foreign key and discards its whole batch, which is
-    the failure the pending-tombstone rule exists to prevent.
+  - **The manifest advertises the record's last agreed hash** only after the
+    client negotiates that **wire** hash through `POST /v1/blobs/missing`.
+    Peers normally hold that blob, and this is the hash a manifest carries and
+    peers fetch by — it survives the body-hash migration since it was never
+    dropped. If the server reports the fallback missing and this device has no
+    body for it, the fallback is not usable for this pass: the record is
+    omitted and its database-FK dependents are withheld through the same
+    fixpoint. If the body is available locally, it is uploaded before the
+    manifest is published. Advertising the *current* hash would name a blob
+    nobody can fetch, and omitting a usable fallback would break referential
+    closure — a fresh-attaching peer that downloads a dance citing the omitted
+    entity fails at COMMIT on the cascading foreign key and discards its whole
+    batch, which is the failure the pending-tombstone rule exists to prevent.
 
     Advertising a hash older than what this device holds means peers may offer it
     their newer content, which is correct and harmless: this device is genuinely
@@ -1222,7 +1227,7 @@ other copies actually hold:
   **A quarantined record never advances its baseline, whatever its manifest
   says.** Those two facts pull apart for exactly these records: the manifest
   advertises the last agreed hash while the device holds a poisoned current one,
-  so a peer echoing the advertised hash would look like agreement on every pass
+  so a peer echoing the usable advertised hash would look like agreement on every pass
   under a rule keyed to "the hash it published". It is not agreement — it is this
   device's own fallback coming back to it — and treating it as such would
   populate a null body hash from the poisoned body and land the edited sub-case
@@ -1255,11 +1260,15 @@ other copies actually hold:
   now", and only the first is what the rebuild needs to know.
 
   The comparison is **hash equality over the record's `body` alone**, against a
-  body-scoped hash stored alongside the wire hash in the baseline table, using
-  the same canonicalisation the wire hash uses so that `8` and `8.0`, or absent
-  and null, cannot read as a difference.
+  body-scoped comparison hash stored alongside the wire hash in the baseline
+  table. It uses the same canonicalisation as the wire hash so that `8` and
+  `8.0`, or absent and null, cannot read as a difference. For dances and
+  programs, the comparison removes only the body's redundant top-level
+  `updatedAt` and `deletedAt` projections; every other body field remains part
+  of the hash.
 
-  **It has to exclude the ordering fields, or it answers a different question.**
+  **It has to exclude redundant body timestamp projections, or it answers a
+  different question.**
   The wire hash covers the whole blob — `v`, `kind`, `id`, `updatedAt`,
   `deletedAt`, `existenceAt` and `body` — so comparing it asks "is my record
   byte-identical to my last synced snapshot", not "did I edit the content". Those
@@ -1267,32 +1276,36 @@ other copies actually hold:
   timestamp and nothing else, so a whole-blob comparison reports "differs"
   unconditionally, and the classifier degenerates to "I edited" for every
   quarantined record. A device that soft-deleted while its clock was broken —
-  `softDelete` writes `deletedAt` and `updatedAt`, never touching `body` — would
-  be classified as having edited, and would stamp its possibly-stale content
-  above the peers. That is the round-17 defect returning by another route, and it
-  is the same whole-blob comparator that caused it: there it could never report
-  *equal*, here it can never report *differs* falsely — the tell in both cases
-  being an answer that goes constant precisely where the classifier is needed.
+  `softDelete` writes `deletedAt` and `updatedAt`; archive-shaped dance and
+  program bodies repeat those timestamps. That record would be classified as
+  having edited, and would stamp its possibly-stale content above the peers.
+  That is the round-17 defect returning by another route, and it is the same
+  whole-blob comparator that caused it: there it could never report *equal*,
+  here it can never report *differs* falsely — the tell in both cases being an
+  answer that goes constant precisely where the classifier is needed.
 
   **The baseline entry must record agreement, not merely upload.** A record's
   baseline entry advances only once a peer's manifest is observed to carry that
-  hash; an upload this device has not yet seen reflected stays out of it.
+  record's current wire hash; an upload this device has not yet seen reflected
+  stays out of it. The stored body hash is the comparison hash described above.
 
-  **Existing baselines cannot be migrated, and are dropped.** The baseline has
-  only ever stored the wire hash, so a device already attached under the previous
-  scheme has no way to derive a body hash for its rows — the content those hashes
-  covered was never retained. Both obvious backfills reintroduce bugs this design
-  has already closed: taking the *current local content* records an unconfirmed
-  edit as agreed, which is the advance-on-upload defect applied to every record
-  with an edit in flight at upgrade; and inventing any other value is a guess
-  about content.
+  **Existing baselines cannot be migrated, and are dropped.** A legacy baseline
+  stores a full-body hash, not the projection-neutral comparison hash required
+  by W9. Because the hash is one-way, a device already attached under the
+  previous scheme cannot derive the new comparison hash from the legacy value;
+  the content covered by that hash was never retained in the baseline. Both
+  obvious backfills reintroduce bugs this design has already closed: taking the
+  *current local content* records an unconfirmed edit as agreed, which is the
+  advance-on-upload defect applied to every record with an edit in flight at
+  upgrade; and inventing any other value is a guess about content.
 
-  So the body hash is **left null on upgrade and populated on the first pass that
-  observes agreement**. In the interval, such a record is *not* handed to the
-  never-agreed comparison — it was agreed, and the surviving wire hash proves
-  that much — and it stays quarantined if quarantined at all, since the wire hash
-  cannot stand in for the body hash it lacks. There is no safe backfill to write, which
-  is worth saying outright rather than leaving an implementer to discover it:
+  So the client **drops the old epoch-scoped baseline on upgrade and performs
+  a fresh attach**. The persisted representation marks comparison hashes
+  written by W9, so an unmarked pre-W9 full-body hash is never reinterpreted as
+  a comparison hash or handed to repair. Fresh attach repopulates comparison
+  hashes only after a peer's agreement is observed. There is no safe backfill
+  to write, which is worth saying outright rather than leaving an implementer
+  to discover it:
   unlike the `existence_at` migration, where the wrong choice is available and
   tempting, here every choice that invents a value is wrong, and the only correct
   one is to admit the value is not recoverable.
@@ -4344,9 +4357,10 @@ must say this plainly rather than implying sync is opaque to us.
 - **A timestamp-only change is not read as an edit** — soft-delete a record on a
   clock-broken device without touching its content, then repair; assert the
   verbatim branch is taken. Mutation-proved by comparing the **whole-blob** hash
-  instead of the body hash: `softDelete` moves `deletedAt` and `updatedAt`, so
-  the blob hash always differs and every quarantined record is misclassified as
-  edited — the comparator answering constantly in the one case it exists for.
+  instead of the canonical comparison hash: `softDelete` moves `deletedAt` and
+  `updatedAt`, and archive-shaped dance/program bodies repeat them, so the blob
+  hash always differs and every quarantined record is misclassified as edited —
+  the comparator answering constantly in the one case it exists for.
 - **An unconfirmed upload is not agreement** — a device with a fast clock uploads
   a poisoned blob that every peer refuses; assert its baseline does **not**
   advance, so a later repair still classifies the record as locally edited.
@@ -4437,17 +4451,17 @@ must say this plainly rather than implying sync is opaque to us.
   taking the global maximum, which pairs B's content with C's clock, leaves the
   pair at equal `updatedAt` against C, and permanently blocks C's genuine edit
   behind a strict-`>` gate.
-- **A record citing a quarantined entity is withheld too** — create an entity on
-  a broken clock, correct the clock, create a record citing it, and sync; assert
-  the citing record is withheld until the entity is publishable. Mutation-proved
-  by publishing it, after which a peer's batch fails at COMMIT on the cascading
-  foreign key — the citing record is freshly stamped and not itself quarantined,
-  so nothing else stops it.
-- **Withholding reaches the second hop** — a program citing a dance citing a
-  quarantined choreographer; assert the program is withheld too. Mutation-proved
-  by testing only direct citations, where the dance is withheld but not
-  quarantined, so the program publishes and its peer's batch fails on the same
-  foreign key the rule exists to protect.
+- **A no-fallback quarantined record's dependents are withheld too** — create an
+  entity on a broken clock with no agreed hash, correct the clock, create a
+  record citing it, and sync; assert the citing record is withheld until the
+  entity is publishable. Mutation-proved by publishing it, after which a
+  peer's batch fails at COMMIT on the cascading foreign key — the citing record
+  is freshly stamped and not itself quarantined, so nothing else stops it.
+- **No-fallback withholding reaches the second hop** — a program citing a dance
+  citing a quarantined choreographer with no agreed hash; assert the program is
+  withheld too. Mutation-proved by testing only direct citations, where the
+  dance is withheld but not quarantined, so the program publishes and its peer's
+  batch fails on the same foreign key the rule exists to protect.
 - **A program citing a quarantined venue still publishes** — assert the venue
   exemption holds, that the receiving peer nulls the dangling `venueId` before
   the write, and that the program applies with the rest of its content intact.
@@ -4477,11 +4491,13 @@ must say this plainly rather than implying sync is opaque to us.
   a null body hash from the poisoned body, and lands the edited sub-case on the
   verbatim branch.
 - **A quarantined record advertises its last agreed hash** — assert the manifest
-  entry names a hash peers can actually fetch, that the poisoned blob is not
-  uploaded, and that a fresh-attaching peer downloading a dance citing that
-  entity commits successfully. Mutation-proved two ways: advertise the current
-  hash, and the entry names a blob nobody holds; omit the entry, and the peer's
-  batch fails at COMMIT on the cascading foreign key.
+  probes a hash peers can actually fetch before advertising it, that the
+  poisoned blob is not uploaded, and that a fresh-attaching peer downloading a
+  dance citing that entity commits successfully. If the fallback is missing at
+  the store and locally, assert the root and its dependents are omitted and
+  reported. Mutation-proved two ways: advertise the current hash, and the entry
+  names a blob nobody holds; omit a usable fallback, and the peer's batch fails
+  at COMMIT on the cascading foreign key.
 - **A locally quarantined value is excluded from the union, not overwritten** —
   assert the local row survives arbitration and is handed to repair afterwards.
   Mutation-proved by letting the peer's value replace it, which discards a

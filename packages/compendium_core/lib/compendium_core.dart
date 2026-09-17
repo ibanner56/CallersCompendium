@@ -108,6 +108,7 @@ export 'src/sync/sync_id.dart'
         syncIdWordCount,
         validateSyncId;
 export 'src/sync/sync_merge.dart';
+export 'src/sync/sync_quarantine.dart';
 export 'src/sync/sync_reconciliation.dart';
 export 'src/sync/sync_report.dart';
 export 'src/sync/sync_apply.dart';

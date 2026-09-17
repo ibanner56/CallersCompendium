@@ -18,6 +18,76 @@ import 'package:flutter_test/flutter_test.dart';
 import '../support/test_repositories.dart';
 
 void main() {
+  test('isolated peer cache namespaces peer ids from diagnostic fields', () {
+    final peerManifest = _manifest(deviceId: 'peer', records: const {});
+    final diagnosticAddress = (
+      kind: SyncRecordKind.setting,
+      recordId: 'custom_dialects',
+    );
+    final cache = SyncPeerManifestCache(
+      entries: {
+        '_rejectedHashes': SyncPeerManifestCacheEntry(
+          epoch: 'epoch-1',
+          etag: '"peer"',
+          manifest: peerManifest,
+        ),
+        '_unreflectedPasses': SyncPeerManifestCacheEntry(
+          epoch: 'epoch-1',
+          etag: '"diagnostic"',
+          manifest: peerManifest,
+        ),
+      },
+      rejectedHashes: {'rejected-hash'},
+      unreflectedPasses: {diagnosticAddress: 2},
+      unreflectedEpoch: 'epoch-1',
+    );
+
+    final restored = SyncPeerManifestCache.fromMessage(cache.toMessage());
+
+    expect(restored['_rejectedHashes']?.etag, '"peer"');
+    expect(restored['_unreflectedPasses']?.etag, '"diagnostic"');
+    expect(restored.rejectedHashes, {'rejected-hash'});
+    expect(restored.unreflectedPasses, {diagnosticAddress: 2});
+    expect(restored.unreflectedEpoch, 'epoch-1');
+
+    restored.beginUnreflectedEpoch('epoch-1');
+    expect(restored.unreflectedPasses, {diagnosticAddress: 2});
+    restored.beginUnreflectedEpoch('epoch-2');
+    expect(restored.unreflectedPasses, isEmpty);
+  });
+
+  test(
+    'resets an unreflected publication streak when the store epoch changes',
+    () async {
+      final candidate = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'local'),
+      );
+      final cache = SyncPeerManifestCache(
+        unreflectedPasses: {candidate.address: 2},
+        unreflectedEpoch: 'epoch-old',
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(local: {candidate.address: candidate}),
+        transport: _FakeTransport(
+          devices: ['peer'],
+          peerManifest: _manifest(deviceId: 'peer', records: const {}),
+        ),
+        peerManifestCache: cache,
+      );
+      addTearDown(coordinator.dispose);
+
+      final result = await coordinator.syncNow();
+
+      expect(
+        result.reports.map((report) => report.code),
+        isNot(contains(SyncReportCode.unreflectedPublication)),
+      );
+      expect(cache.unreflectedPasses, {candidate.address: 1});
+    },
+  );
+
   test(
     'coordinator store dispatches inbound reconciliation before apply',
     () async {
@@ -103,6 +173,754 @@ void main() {
     expect(result.status, SyncPassStatus.completed);
     expect(store.advancedEntries, [canonical]);
   });
+
+  test(
+    'rejects a future peer record once while preserving the batch',
+    () async {
+      final now = DateTime.utc(2026, 7, 15, 12);
+      final future = SyncRecordBlob(
+        kind: SyncRecordKind.setting,
+        id: 'custom_dialects',
+        updatedAt: now.add(const Duration(hours: 25)),
+        deletedAt: null,
+        existenceAt: now,
+        body: const {'value': 'future'},
+      );
+      final valid = _setting('default_program_band', 'valid', seconds: 1);
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        peerManifest: _manifest(
+          deviceId: 'peer',
+          records: {
+            SyncRecordKind.setting: {
+              future.id: SyncMergeCandidate.fromBlob(future).wireHash,
+              valid.id: SyncMergeCandidate.fromBlob(valid).wireHash,
+            },
+          },
+        ),
+        blobResponses: {
+          SyncMergeCandidate.fromBlob(future).wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(future)),
+          ),
+          SyncMergeCandidate.fromBlob(valid).wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(valid)),
+          ),
+        },
+      );
+      final store = _FakeStore();
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+        now: () => now,
+      );
+      addTearDown(coordinator.dispose);
+
+      final first = await coordinator.syncNow();
+      final second = await coordinator.syncNow();
+
+      expect(
+        first.reports.where((r) => r.code == SyncReportCode.malformedRecord),
+        [isNotNull],
+      );
+      expect(
+        second.reports.where((r) => r.code == SyncReportCode.malformedRecord),
+        isEmpty,
+      );
+      expect(store.writes.map((write) => write.address), [
+        (kind: valid.kind, recordId: valid.id),
+        (kind: valid.kind, recordId: valid.id),
+      ]);
+      expect(
+        store.writes.any(
+          (write) => write.address == (kind: future.kind, recordId: future.id),
+        ),
+        isFalse,
+      );
+    },
+  );
+
+  test('clock-suspect requires observed peer values', () async {
+    final now = DateTime.utc(2026, 7, 15, 12);
+    final future = SyncRecordBlob(
+      kind: SyncRecordKind.setting,
+      id: 'custom_dialects',
+      updatedAt: now.add(const Duration(hours: 25)),
+      deletedAt: null,
+      existenceAt: now.add(const Duration(hours: 25)),
+      body: const {'value': 'future'},
+    );
+    final futureCandidate = SyncMergeCandidate.fromBlob(future);
+    final observedCoordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: _FakeStore(),
+      transport: _FakeTransport(
+        devices: ['peer'],
+        peerManifest: _manifest(
+          deviceId: 'peer',
+          records: {
+            SyncRecordKind.setting: {future.id: futureCandidate.wireHash},
+          },
+        ),
+        blobResponses: {
+          futureCandidate.wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(future)),
+          ),
+        },
+      ),
+      now: () => now,
+    );
+    addTearDown(observedCoordinator.dispose);
+
+    final observed = await observedCoordinator.syncNow();
+
+    expect(
+      observed.reports.map((report) => report.code),
+      contains(SyncReportCode.clockSuspect),
+    );
+
+    final soloCoordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: _FakeStore(),
+      transport: _FakeTransport(),
+      now: () => now,
+    );
+    addTearDown(soloCoordinator.dispose);
+
+    final solo = await soloCoordinator.syncNow();
+
+    expect(
+      solo.reports.map((report) => report.code),
+      isNot(contains(SyncReportCode.clockSuspect)),
+    );
+  });
+
+  test(
+    'repairs a quarantined local record from a matching peer copy',
+    () async {
+      final now = DateTime.utc(2026, 7, 15, 12);
+      final local = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: SyncRecordKind.setting,
+          id: 'custom_dialects',
+          updatedAt: now.add(const Duration(hours: 25)),
+          deletedAt: null,
+          existenceAt: now,
+          body: const {'value': 'local'},
+        ),
+      );
+      final peer = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: SyncRecordKind.setting,
+          id: 'custom_dialects',
+          updatedAt: now.add(const Duration(hours: 1)),
+          deletedAt: null,
+          existenceAt: now,
+          body: const {'value': 'local'},
+        ),
+      );
+      final store = _FakeStore(
+        local: {local.address: local},
+        snapshotBuilder: (snapshotNumber) => SyncCoordinatorSnapshot(
+          epoch: 'epoch-1',
+          previouslyUsed: false,
+          local: {local.address: snapshotNumber == 1 ? local : peer},
+          publication: {local.address: snapshotNumber == 1 ? local : peer},
+          baseline: {
+            local.address: SyncBaselineEntry(
+              kind: local.address.kind,
+              recordId: local.address.recordId,
+              wireHash: local.wireHash,
+              bodyHash: local.bodyHash,
+            ),
+          },
+        ),
+      );
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        peerManifest: _manifest(
+          deviceId: 'peer',
+          records: {
+            SyncRecordKind.setting: {peer.blob.id: peer.wireHash},
+          },
+        ),
+        blobResponses: {
+          peer.wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(peer.blob)),
+          ),
+        },
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+        now: () => now,
+      );
+      addTearDown(coordinator.dispose);
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(store.writes, hasLength(1));
+      expect(store.writes.single.address, local.address);
+      expect(store.writes.single.updatedAt, peer.updatedAt);
+      final published = decodeSyncManifest(
+        utf8.decode(transport.manifestBodies.single),
+      );
+      expect(
+        published.records[SyncRecordKind.setting]?[local.blob.id],
+        peer.wireHash,
+      );
+    },
+  );
+
+  test('fresh-attaches before repairing a pre-W9 dance baseline', () async {
+    final now = DateTime.utc(2026, 7, 15, 12);
+    final local = SyncMergeCandidate.fromBlob(
+      _dance('dance-1', updatedAt: now.add(const Duration(hours: 25))),
+    );
+    final peer = SyncMergeCandidate.fromBlob(
+      _dance('dance-1', updatedAt: now.add(const Duration(hours: 1))),
+    );
+    late final _FakeStore store;
+    store = _FakeStore(
+      local: {local.address: local},
+      baseline: {
+        local.address: SyncBaselineEntry(
+          kind: local.address.kind,
+          recordId: local.address.recordId,
+          wireHash: local.wireHash,
+          bodyHash: local.bodyHash,
+          bodyHashVersion: SyncBaselineBodyHashVersion.legacyFullBody,
+        ),
+      },
+      snapshotBuilder: (snapshotNumber) {
+        final current = snapshotNumber >= 3 ? peer : local;
+        return SyncCoordinatorSnapshot(
+          epoch: snapshotNumber == 1 ? 'epoch-1' : null,
+          previouslyUsed: false,
+          local: {local.address: current},
+          publication: {local.address: current},
+          baseline: store.baseline,
+        );
+      },
+    );
+    final transport = _FakeTransport(
+      devices: ['peer'],
+      peerManifest: _manifest(
+        deviceId: 'peer',
+        records: {
+          SyncRecordKind.dance: {peer.blob.id: peer.wireHash},
+        },
+      ),
+      blobResponses: {
+        peer.wireHash: _FakeTransport.response(
+          200,
+          body: utf8.encode(encodeSyncRecordBlob(peer.blob)),
+        ),
+      },
+    );
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: store,
+      transport: transport,
+      now: () => now,
+    );
+    addTearDown(coordinator.dispose);
+
+    final result = await coordinator.syncNow();
+
+    expect(result.status, SyncPassStatus.completed);
+    expect(store.epochStateClears, 1);
+    expect(store.writes, hasLength(1));
+    expect(store.writes.single.address, local.address);
+    expect(store.writes.single.updatedAt, peer.updatedAt);
+    expect(store.baselineReplacements, 1);
+  });
+
+  test(
+    'withholds quarantined publication and its enforced dependents',
+    () async {
+      final now = DateTime.utc(2026, 7, 15, 12);
+      final root = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: SyncRecordKind.choreographer,
+          id: 'author-1',
+          updatedAt: now.add(const Duration(hours: 25)),
+          deletedAt: null,
+          existenceAt: now,
+          body: const {'id': 'author-1', 'name': 'Author'},
+        ),
+      );
+      final dependent = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: SyncRecordKind.dance,
+          id: 'dance-1',
+          updatedAt: now,
+          deletedAt: null,
+          existenceAt: now,
+          body: const {
+            'id': 'dance-1',
+            'title': 'Dance',
+            'authorIds': ['author-1'],
+          },
+        ),
+      );
+      final fallbackHash = _hash('a');
+      final store = _FakeStore(
+        snapshotBuilder: (_) => SyncCoordinatorSnapshot(
+          epoch: 'epoch-1',
+          previouslyUsed: false,
+          local: {root.address: root, dependent.address: dependent},
+          publication: {root.address: root, dependent.address: dependent},
+          baseline: {
+            root.address: SyncBaselineEntry(
+              kind: root.address.kind,
+              recordId: root.address.recordId,
+              wireHash: fallbackHash,
+            ),
+          },
+        ),
+      );
+      final transport = _FakeTransport();
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+        now: () => now,
+      );
+      addTearDown(coordinator.dispose);
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(transport.putBlobHashes, isEmpty);
+      final published = decodeSyncManifest(
+        utf8.decode(transport.manifestBodies.single),
+      );
+      expect(
+        published.records[SyncRecordKind.choreographer]?[root.blob.id],
+        fallbackHash,
+      );
+      expect(
+        published.records[SyncRecordKind.dance]?[dependent.blob.id],
+        dependent.wireHash,
+      );
+    },
+  );
+
+  test('does not report a quarantined fallback hash as unreflected', () async {
+    final now = DateTime.utc(2026, 7, 15, 12);
+    final root = SyncMergeCandidate.fromBlob(
+      SyncRecordBlob(
+        kind: SyncRecordKind.choreographer,
+        id: 'author-1',
+        updatedAt: now.add(const Duration(hours: 25)),
+        deletedAt: null,
+        existenceAt: now,
+        body: const {'id': 'author-1', 'name': 'Author'},
+      ),
+    );
+    final store = _FakeStore(
+      snapshotBuilder: (_) => SyncCoordinatorSnapshot(
+        epoch: 'epoch-1',
+        previouslyUsed: false,
+        local: {root.address: root},
+        publication: {root.address: root},
+        baseline: {
+          root.address: SyncBaselineEntry(
+            kind: root.address.kind,
+            recordId: root.address.recordId,
+            wireHash: _hash('a'),
+          ),
+        },
+      ),
+    );
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: store,
+      transport: _FakeTransport(
+        devices: ['peer'],
+        peerManifest: _manifest(deviceId: 'peer', records: const {}),
+      ),
+      now: () => now,
+    );
+    addTearDown(coordinator.dispose);
+
+    final results = [
+      await coordinator.syncNow(),
+      await coordinator.syncNow(),
+      await coordinator.syncNow(),
+    ];
+
+    expect(
+      results.expand((result) => result.reports).map((report) => report.code),
+      isNot(contains(SyncReportCode.unreflectedPublication)),
+    );
+  });
+
+  test(
+    'uses alias-normalized peer candidates for reflection diagnostics',
+    () async {
+      final candidate = SyncMergeCandidate.fromBlob(
+        _tag('legacy', 'Shared tag'),
+      );
+      final legacy = candidate.address;
+      final canonical = (kind: SyncRecordKind.tag, recordId: 'canonical');
+      final store = _FakeStore(
+        aliases: {legacy: canonical},
+        snapshotBuilder: (_) => SyncCoordinatorSnapshot(
+          epoch: 'epoch-1',
+          previouslyUsed: false,
+          local: {legacy: candidate},
+          publication: {legacy: candidate},
+          baseline: const {},
+        ),
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: _FakeTransport(
+          devices: ['peer'],
+          peerManifest: _manifest(
+            deviceId: 'peer',
+            records: {
+              SyncRecordKind.tag: {legacy.recordId: candidate.wireHash},
+            },
+          ),
+        ),
+        now: () => DateTime.utc(2026, 7, 15, 12),
+      );
+      addTearDown(coordinator.dispose);
+
+      final results = [
+        await coordinator.syncNow(),
+        await coordinator.syncNow(),
+        await coordinator.syncNow(),
+      ];
+
+      expect(
+        results.expand((result) => result.reports).map((report) => report.code),
+        isNot(contains(SyncReportCode.unreflectedPublication)),
+      );
+    },
+  );
+
+  test(
+    'normalizes aliased dependency references before fallback publication',
+    () async {
+      final now = DateTime.utc(2026, 7, 15, 12);
+      final root = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: SyncRecordKind.choreographer,
+          id: 'canonical-author',
+          updatedAt: now.add(const Duration(hours: 25)),
+          deletedAt: null,
+          existenceAt: now,
+          body: const {'id': 'canonical-author', 'name': 'Author'},
+        ),
+      );
+      final dependent = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: SyncRecordKind.dance,
+          id: 'dance-aliased-author',
+          updatedAt: now,
+          deletedAt: null,
+          existenceAt: now,
+          body: const {
+            'id': 'dance-aliased-author',
+            'title': 'Dance',
+            'authorIds': ['legacy-author'],
+          },
+        ),
+      );
+      final legacy = (
+        kind: SyncRecordKind.choreographer,
+        recordId: 'legacy-author',
+      );
+      final store = _FakeStore(
+        aliases: {legacy: root.address},
+        snapshotBuilder: (_) => SyncCoordinatorSnapshot(
+          epoch: 'epoch-1',
+          previouslyUsed: false,
+          local: {root.address: root, dependent.address: dependent},
+          publication: {root.address: root, dependent.address: dependent},
+          baseline: {
+            root.address: SyncBaselineEntry(
+              kind: root.address.kind,
+              recordId: root.address.recordId,
+              wireHash: _hash('a'),
+            ),
+          },
+        ),
+      );
+      final transport = _FakeTransport();
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+        now: () => now,
+      );
+      addTearDown(coordinator.dispose);
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      final published = decodeSyncManifest(
+        utf8.decode(transport.manifestBodies.single),
+      );
+      expect(
+        published.records[SyncRecordKind.choreographer]?[root.blob.id],
+        _hash('a'),
+      );
+      expect(
+        published.records[SyncRecordKind.dance]?[dependent.blob.id],
+        dependent.wireHash,
+      );
+    },
+  );
+
+  test(
+    'counts dependents held by a quarantined record without a fallback',
+    () async {
+      final now = DateTime.utc(2026, 7, 15, 12);
+      final root = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: SyncRecordKind.choreographer,
+          id: 'author-without-baseline',
+          updatedAt: now.add(const Duration(hours: 25)),
+          deletedAt: null,
+          existenceAt: now,
+          body: const {'id': 'author-without-baseline', 'name': 'Author'},
+        ),
+      );
+      final dependent = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: SyncRecordKind.dance,
+          id: 'dance-withheld',
+          updatedAt: now,
+          deletedAt: null,
+          existenceAt: now,
+          body: const {
+            'id': 'dance-withheld',
+            'title': 'Dance',
+            'authorIds': ['author-without-baseline'],
+          },
+        ),
+      );
+      final store = _FakeStore(
+        snapshotBuilder: (_) => SyncCoordinatorSnapshot(
+          epoch: 'epoch-1',
+          previouslyUsed: false,
+          local: {root.address: root, dependent.address: dependent},
+          publication: {root.address: root, dependent.address: dependent},
+          baseline: const {},
+        ),
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: _FakeTransport(),
+        now: () => now,
+      );
+      addTearDown(coordinator.dispose);
+
+      final result = await coordinator.syncNow();
+
+      final quarantineReports = result.reports.where(
+        (report) => report.code == SyncReportCode.quarantinedRecord,
+      );
+      expect(quarantineReports, hasLength(1));
+      expect(
+        quarantineReports.single.message,
+        contains('1 database-FK dependent'),
+      );
+    },
+  );
+
+  test(
+    'does not report an uploaded publication as unreflected when its peer blob is unavailable',
+    () async {
+      final candidate = SyncMergeCandidate.fromBlob(
+        _tag('legacy', 'Shared tag'),
+      );
+      final legacy = candidate.address;
+      final canonical = (kind: SyncRecordKind.tag, recordId: 'canonical');
+      final store = _FakeStore(
+        aliases: {legacy: canonical},
+        snapshotBuilder: (_) => SyncCoordinatorSnapshot(
+          epoch: 'epoch-1',
+          previouslyUsed: false,
+          local: {legacy: candidate},
+          publication: {legacy: candidate},
+          baseline: const {},
+        ),
+      );
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        peerManifest: _manifest(
+          deviceId: 'peer',
+          records: {
+            SyncRecordKind.tag: {canonical.recordId: candidate.wireHash},
+          },
+        ),
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+        now: () => DateTime.utc(2026, 7, 15, 12),
+      );
+      addTearDown(coordinator.dispose);
+
+      final results = [
+        await coordinator.syncNow(),
+        await coordinator.syncNow(),
+        await coordinator.syncNow(),
+      ];
+
+      expect(
+        results.expand((result) => result.reports).map((report) => report.code),
+        isNot(contains(SyncReportCode.unreflectedPublication)),
+      );
+    },
+  );
+
+  test(
+    'omits a fallback and its dependents when the fallback blob is unavailable',
+    () async {
+      final now = DateTime.utc(2026, 7, 15, 12);
+      final root = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: SyncRecordKind.choreographer,
+          id: 'author-1',
+          updatedAt: now.add(const Duration(hours: 25)),
+          deletedAt: null,
+          existenceAt: now,
+          body: const {'id': 'author-1', 'name': 'Author'},
+        ),
+      );
+      final dependent = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: SyncRecordKind.dance,
+          id: 'dance-1',
+          updatedAt: now,
+          deletedAt: null,
+          existenceAt: now,
+          body: const {
+            'id': 'dance-1',
+            'title': 'Dance',
+            'authorIds': ['author-1'],
+          },
+        ),
+      );
+      final fallbackHash = _hash('a');
+      final store = _FakeStore(
+        snapshotBuilder: (_) => SyncCoordinatorSnapshot(
+          epoch: 'epoch-1',
+          previouslyUsed: false,
+          local: {root.address: root, dependent.address: dependent},
+          publication: {root.address: root, dependent.address: dependent},
+          baseline: {
+            root.address: SyncBaselineEntry(
+              kind: root.address.kind,
+              recordId: root.address.recordId,
+              wireHash: fallbackHash,
+            ),
+          },
+        ),
+      );
+      final transport = _FakeTransport(
+        missingResponses: [
+          [fallbackHash],
+        ],
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+        now: () => now,
+      );
+      addTearDown(coordinator.dispose);
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      final published = decodeSyncManifest(
+        utf8.decode(transport.manifestBodies.single),
+      );
+      expect(published.records[SyncRecordKind.choreographer], isNull);
+      expect(published.records[SyncRecordKind.dance], isNull);
+      expect(
+        result.reports.map((report) => report.code),
+        contains(SyncReportCode.unresolvedBlob),
+      );
+      expect(transport.postMissingBatches.single, contains(fallbackHash));
+    },
+  );
+
+  test(
+    'reports an unreflected publication on the third observed pass',
+    () async {
+      final candidate = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'local'),
+      );
+      final store = _FakeStore(
+        local: {candidate.address: candidate},
+        snapshotBuilder: (_) => SyncCoordinatorSnapshot(
+          epoch: 'epoch-1',
+          previouslyUsed: false,
+          local: {candidate.address: candidate},
+          publication: {candidate.address: candidate},
+          baseline: const {},
+        ),
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: _FakeTransport(
+          devices: ['peer'],
+          peerManifest: _manifest(deviceId: 'peer', records: const {}),
+        ),
+        now: () => DateTime.utc(2026, 7, 15, 12),
+      );
+      addTearDown(coordinator.dispose);
+
+      final first = await coordinator.syncNow();
+      final second = await coordinator.syncNow();
+      final third = await coordinator.syncNow();
+
+      expect(
+        first.reports.map((report) => report.code),
+        isNot(contains(SyncReportCode.unreflectedPublication)),
+      );
+      expect(
+        second.reports.map((report) => report.code),
+        isNot(contains(SyncReportCode.unreflectedPublication)),
+      );
+      expect(
+        third.reports.map((report) => report.code),
+        contains(SyncReportCode.unreflectedPublication),
+      );
+    },
+  );
 
   test('unconfigured triggers make no transport calls', () async {
     final transport = _FakeTransport();
@@ -851,6 +1669,129 @@ void main() {
   }
 
   test(
+    'protects a fallback root and FK dependent from hard-delete during probing',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'fallback-publication-marker-race-',
+      );
+      final databaseFile = File('${directory.path}/test.sqlite');
+      final writerDatabase = CompendiumDatabase(
+        NativeDatabase(
+          databaseFile,
+          setup: (database) {
+            database.execute('PRAGMA busy_timeout = 5000');
+          },
+        ),
+        closeStreamsSynchronously: true,
+      );
+      final deleteTransactionGate = _TransactionStartGate();
+      final deletingDatabase = CompendiumDatabase(
+        NativeDatabase.createInBackground(
+          databaseFile,
+          setup: (database) {
+            database.execute('PRAGMA busy_timeout = 5000');
+          },
+        ).interceptWith(deleteTransactionGate),
+        closeStreamsSynchronously: true,
+      );
+      final repositories = CompendiumRepositories(
+        writerDatabase,
+        contraTaxonomy,
+      );
+      final deletingRepositories = CompendiumRepositories(
+        deletingDatabase,
+        contraTaxonomy,
+      );
+      addTearDown(() async {
+        await writerDatabase.close();
+        await deletingDatabase.close();
+        if (await directory.exists()) {
+          await directory.delete(recursive: true);
+        }
+      });
+
+      final stamp = DateTime.utc(2026, 7, 15, 12);
+      final rootId = 'fallback-publication-race-dance';
+      final dependentId = 'fallback-publication-race-program';
+      final fallbackHash = _hash('a');
+      await repositories.dances.create(
+        Dance(
+          id: rootId,
+          title: 'Fallback publication race dance',
+          createdAt: stamp,
+          updatedAt: stamp.add(const Duration(hours: 25)),
+        ),
+      );
+      await repositories.programs.create(
+        Program(
+          id: dependentId,
+          title: 'Fallback publication race program',
+          slots: [
+            ProgramSlot(id: 'fallback-race-slot', position: 0, danceId: rootId),
+          ],
+          createdAt: stamp,
+          updatedAt: stamp,
+        ),
+      );
+      await repositories.syncLocal.resetEpoch(
+        epoch: 'epoch-1',
+        entries: [
+          SyncBaselineEntry(
+            kind: SyncRecordKind.dance,
+            recordId: rootId,
+            wireHash: fallbackHash,
+          ),
+        ],
+      );
+      expect(
+        await deletingRepositories.programs.getById(dependentId),
+        isNotNull,
+      );
+      deleteTransactionGate.arm();
+
+      late Future<void> deleteFuture;
+      final store = _SnapshotInterleavingStore(
+        CompendiumSyncCoordinatorStore(repositories),
+        afterFinalSnapshot: () async {
+          deleteFuture = deletingRepositories.programs.hardDelete([
+            dependentId,
+          ]);
+          await deleteTransactionGate.started;
+        },
+        afterTransaction: () async {
+          deleteTransactionGate.release();
+          await deleteFuture;
+        },
+      );
+      final transport = _FakeTransport();
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+        now: () => stamp,
+      );
+
+      final result = await coordinator.syncNow();
+      await deleteFuture;
+
+      expect(result.status, SyncPassStatus.completed);
+      final retained = await deletingRepositories.programs.getById(
+        dependentId,
+        includeDeleted: true,
+      );
+      expect(retained, isNotNull);
+      expect(retained?.deletedAt, isNotNull);
+      expect(store.snapshotCalls, 2);
+      final manifest = decodeSyncManifest(
+        utf8.decode(transport.manifestBodies.single),
+      );
+      expect(manifest.records[SyncRecordKind.dance]?[rootId], fallbackHash);
+      expect(manifest.records[SyncRecordKind.program]?[dependentId], isNotNull);
+    },
+  );
+
+  test(
     'retains the record marker without marking the sync used on upload failure',
     () async {
       final candidate = SyncMergeCandidate.fromBlob(
@@ -1439,6 +2380,100 @@ void main() {
       expect(store.publishedRecords, [candidate.address]);
       expect(store.publishedBatches.first, _manifestAddresses(manifest));
       expect(store.writes, isEmpty);
+    },
+  );
+
+  test(
+    'repairs a future-dated pending tombstone without dropping its live guard',
+    () async {
+      final now = DateTime.utc(2026, 7, 15, 12);
+      final address = (
+        kind: SyncRecordKind.setting,
+        recordId: 'custom_dialects',
+      );
+      final localTombstone = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: address.kind,
+          id: address.recordId,
+          updatedAt: now.add(const Duration(hours: 25)),
+          deletedAt: now,
+          existenceAt: now,
+          body: const {'value': 'pending'},
+        ),
+      );
+      final peerTombstone = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: address.kind,
+          id: address.recordId,
+          updatedAt: now.add(const Duration(hours: 1)),
+          deletedAt: now,
+          existenceAt: now,
+          body: const {'value': 'peer'},
+        ),
+      );
+      final pendingLive = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: address.kind,
+          id: address.recordId,
+          updatedAt: now,
+          deletedAt: null,
+          existenceAt: now,
+          body: const {'value': 'pending'},
+        ),
+      );
+      final store = _FakeStore(
+        snapshotBuilder: (_) => SyncCoordinatorSnapshot(
+          epoch: 'epoch-1',
+          previouslyUsed: false,
+          local: const {},
+          publication: {address: localTombstone},
+          pendingLive: {address: pendingLive},
+          pending: {address},
+          baseline: const {},
+        ),
+        currentCandidatesBuilder: () => {address: pendingLive},
+      );
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        peerManifest: _manifest(
+          deviceId: 'peer',
+          records: {
+            SyncRecordKind.setting: {address.recordId: peerTombstone.wireHash},
+          },
+        ),
+        blobResponses: {
+          peerTombstone.wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(peerTombstone.blob)),
+          ),
+        },
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+        now: () => now,
+      );
+      addTearDown(coordinator.dispose);
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(store.writes, hasLength(2));
+      expect(store.writes.map((write) => write.address), [address, address]);
+      expect(store.writes.first.sourceBlob?.body['value'], 'pending');
+      expect(
+        store.writes.first.sourceBlob!.updatedAt.isAfter(
+          peerTombstone.updatedAt,
+        ),
+        isTrue,
+      );
+      expect(store.writes.last.sourceBlob?.body['value'], 'peer');
+      expect(
+        result.reports.map((report) => report.code),
+        isNot(contains(SyncReportCode.concurrentLocalChange)),
+      );
     },
   );
 
@@ -2318,9 +3353,9 @@ final class _FakeStore implements SyncCoordinatorStore {
     this.currentCandidatesBuilder,
     List<String>? lifecycle,
   }) : _storedEpoch = epoch,
-       local = local ?? const {},
-       baseline = baseline ?? const {},
-       aliases = aliases ?? const {},
+       local = {...?local},
+       baseline = {...?baseline},
+       aliases = {...?aliases},
        snapshotEpochs = [...?snapshotEpochs],
        lifecycle = lifecycle ?? <String>[];
 
@@ -2484,6 +3519,7 @@ final class _FakeStore implements SyncCoordinatorStore {
   @override
   Future<void> clearEpochState() async {
     _storedEpoch = null;
+    baseline.clear();
     epochStateClears++;
     lifecycle.add('clearEpochState');
   }
@@ -2711,6 +3747,21 @@ SyncRecordBlob _setting(String id, String value, {int seconds = 0}) {
     body: {'value': value},
   );
 }
+
+SyncRecordBlob _dance(String id, {required DateTime updatedAt}) =>
+    SyncRecordBlob(
+      kind: SyncRecordKind.dance,
+      id: id,
+      updatedAt: updatedAt,
+      deletedAt: null,
+      existenceAt: updatedAt,
+      body: {
+        'id': id,
+        'title': 'Dance',
+        'updatedAt': updatedAt.toIso8601String(),
+        'deletedAt': null,
+      },
+    );
 
 SyncRecordBlob _tag(String id, String name, {int seconds = 0}) {
   final stamp = DateTime.utc(2026, 7, 15, 12).add(Duration(seconds: seconds));

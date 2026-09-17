@@ -241,6 +241,7 @@ void main() {
 
   test(
     'replacement consumes the validated store before the isolate continuation',
+    timeout: const Timeout(Duration(minutes: 2)),
     () async {
       final directory = await Directory.systemTemp.createTemp(
         'compendium-sync-isolate-replacement-',
@@ -330,7 +331,6 @@ void main() {
         'PUT /v1/manifests/device-a',
       ]);
     },
-    timeout: const Timeout(Duration(minutes: 2)),
   );
 
   test('preserves peer manifest cache across isolated passes', () async {
@@ -351,6 +351,16 @@ void main() {
       records: const {},
     );
     final manifestEtags = <String?>[];
+    final diagnosticAddress = (
+      kind: SyncRecordKind.difficultyLevel,
+      recordId: 'difficulty-beginner',
+    );
+    final rejectedHash = List.filled(64, 'f').join();
+    final peerManifestCache = SyncPeerManifestCache(
+      rejectedHashes: {rejectedHash},
+      unreflectedPasses: {diagnosticAddress: 2},
+      unreflectedEpoch: 'epoch-1',
+    );
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     server.listen((request) async {
       await request.drain<void>();
@@ -396,11 +406,25 @@ void main() {
       endpoint: Uri.parse('http://127.0.0.1:${server.port}'),
       syncId: 'alpha-beta-gamma-delta',
       deviceId: 'device-a',
+      peerManifestCache: peerManifestCache,
     );
 
     expect((await operation.call()).status, SyncPassStatus.completed);
     expect((await operation.call()).status, SyncPassStatus.completed);
     expect(manifestEtags, [null, '"peer-v1"']);
+    expect(peerManifestCache.rejectedHashes, {rejectedHash});
+    expect(peerManifestCache.unreflectedPasses[diagnosticAddress], 4);
+    expect(
+      peerManifestCache.unreflectedPasses.keys,
+      containsAll([
+        diagnosticAddress,
+        (
+          kind: SyncRecordKind.difficultyLevel,
+          recordId: 'difficulty-intermediate',
+        ),
+        (kind: SyncRecordKind.difficultyLevel, recordId: 'difficulty-advanced'),
+      ]),
+    );
   }, timeout: const Timeout(Duration(minutes: 2)));
 
   test('refreshes a main-isolate watch after inbound worker write', () async {

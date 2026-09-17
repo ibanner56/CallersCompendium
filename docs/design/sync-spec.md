@@ -1148,8 +1148,11 @@ whether it came from an old schema or a malformed current client.
 hash = lowercase-hex(SHA-256(canonical-json(blob)))
 ```
 
-The baseline additionally stores a **`body`-scoped** hash over the same
-canonicalisation, used only by §6.9.
+The baseline additionally stores a **`body`-scoped comparison hash**, used only
+by §6.9. For `dance` and `program`, the comparison removes only the
+top-level `updatedAt` and `deletedAt` projections from the body before applying
+the canonicalisation; every other body field and record kind is unchanged.
+The wire hash remains the full canonical blob hash.
 
 ### 4.3 Record blob
 
@@ -2514,9 +2517,18 @@ schema.
 A quarantined record MUST NOT be uploaded, MUST be excluded from the merge table
 and from a fresh attach's union with its local row retained, and its manifest
 entry MUST fall back to the last agreed **wire** hash. A quarantined record with
-no agreed hash is omitted, and every record citing it MUST be withheld with it —
-computed as a **fixpoint over the publish set**, scoped to references that are
-database-enforced foreign keys. `Programs.venueId` is exempt (§6.7).
+no agreed hash is omitted, and every record citing it MUST be withheld with it.
+When an agreed fallback hash is advertised, database-enforced dependents MAY
+publish against that fallback because the referenced address remains in the
+manifest; the quarantined root's current blob is still never uploaded. The
+withholding case is computed as a **fixpoint over the publish set**, scoped to
+references that are database-enforced foreign keys. `Programs.venueId` is
+exempt (§6.7). Before publishing a fallback, the client MUST negotiate that
+wire hash through `POST /v1/blobs/missing`. If the store reports the fallback
+missing and the client has no body for that hash, the client MUST treat the
+root as having no usable fallback for this pass, omit it, and recompute the
+same foreign-key withholding fixpoint. If the body is locally available, the
+client uploads it before publishing the manifest.
 
 **Repair** runs during a sync pass, not on a user gesture, and reads no clock.
 For each out-of-window field, gather peer copies, discard any whose value **for
@@ -2525,14 +2537,16 @@ that field** is outside the local window, and take the greatest of what remains:
 | Field | Verbatim when | Otherwise |
 | --- | --- | --- |
 | `existenceAt` | peers agree with local live-or-deleted state | `peer + 1 tick` |
-| `updatedAt` | local body matches this device's own **baseline body hash** | `peer + 1 tick` |
+| `updatedAt` | local comparison body matches this device's own **baseline comparison hash** | with no baseline, `peer + 1 tick`; with a non-null baseline but no agreeing in-window peer, remain quarantined |
 
 The adopted timestamp MUST come from the peer whose body matched, not the global
 maximum. Repair MUST NOT leave a record at equal `updatedAt` with content
 differing from the peer that supplied that timestamp. A field inside the window
 MUST be left untouched. A rebuilt value is re-checked against the local window
 before the record is considered repaired; one that still fails leaves the record
-quarantined.
+quarantined. The `peer + 1 tick` branch for `updatedAt` therefore applies only
+when no baseline exists; a baseline without an agreeing peer is evidence that
+the local content cannot be safely classified and MUST remain quarantined.
 
 **Missing baseline entry**, by cause:
 
@@ -2540,10 +2554,13 @@ quarantined.
 | --- | --- |
 | No entry at all | Never agreed; compare local body to peers' |
 | Wire hash, no body hash | Agreed pre-upgrade; verbatim if body matches a peer, else stays quarantined |
-| Wholesale wipe | Cannot occur — fresh attach repersists the baseline first |
+| Legacy full-body hash | Drop the old epoch-scoped baseline and force a fresh attach before repair; never interpret it as a comparison hash |
+| Wholesale wipe | Only the legacy compatibility transition may clear the baseline; fresh attach repersists it before steady-state repair/publication |
 
-The body hash starts null on upgrade and populates on the first pass that
-observes agreement. There is no safe backfill.
+On upgrade, the client cannot backfill comparison hashes. It recognizes the
+unmarked pre-upgrade full-body values, clears the old epoch-scoped baseline, and
+performs a fresh attach; that attach repopulates comparison hashes only after a
+peer's agreement is observed. There is no safe backfill.
 
 **Clock-suspect** is a derived per-pass diagnostic: it holds when at least one
 peer value was observed and every value observed in that pass fell outside the
@@ -3837,8 +3854,10 @@ slow clock does not rewrite the collection downward. Repair adopts the matching
 peer's timestamp, not the greatest. Repair does not push stale content. A local
 edit made while poisoned survives. An in-window field is never touched. An
 out-of-window `updatedAt` is rebuilt. A poisoned `updatedAt` never enters
-circulation. A quarantined record advertises its last agreed hash. Withholding
-reaches the second hop. A program citing a quarantined venue still publishes.
+circulation. A quarantined record probes its last agreed hash before advertising it; an
+unavailable fallback omits the root and withholds its dependents. No-fallback
+withholding reaches the second hop. A program citing a quarantined venue still
+publishes.
 
 **Deletion.** Absence never deletes (mutation: make absence delete). A pending
 tombstone is never republished. A pending-held row is never advertised as live.

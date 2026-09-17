@@ -14,6 +14,46 @@ Iterable<List<T>> _chunked<T>(Iterable<T> values, int size) sync* {
 /// A polymorphic sync record identity.
 typedef SyncRecordAddress = ({SyncRecordKind kind, String recordId});
 
+/// The body-hash representation used by a persisted baseline entry.
+enum SyncBaselineBodyHashVersion {
+  /// The pre-W9 hash covered the complete record body, including projections.
+  legacyFullBody,
+
+  /// W9 hashes cover only the projection-neutral comparison body.
+  comparison,
+}
+
+const _comparisonBodyHashPrefix = 'comparison-v1:';
+
+SyncBaselineBodyHashVersion _storedBodyHashVersion(String? bodyHash) {
+  if (bodyHash == null || bodyHash.startsWith(_comparisonBodyHashPrefix)) {
+    return SyncBaselineBodyHashVersion.comparison;
+  }
+  return SyncBaselineBodyHashVersion.legacyFullBody;
+}
+
+String? _decodeStoredBodyHash(
+  String? bodyHash,
+  SyncBaselineBodyHashVersion version,
+) {
+  if (bodyHash == null ||
+      version == SyncBaselineBodyHashVersion.legacyFullBody) {
+    return bodyHash;
+  }
+  return bodyHash.substring(_comparisonBodyHashPrefix.length);
+}
+
+String? _encodeStoredBodyHash(
+  String? bodyHash,
+  SyncBaselineBodyHashVersion version,
+) {
+  if (bodyHash == null ||
+      version == SyncBaselineBodyHashVersion.legacyFullBody) {
+    return bodyHash;
+  }
+  return '$_comparisonBodyHashPrefix$bodyHash';
+}
+
 /// A baseline hash pair to persist for one sync record.
 class SyncBaselineEntry {
   const SyncBaselineEntry({
@@ -21,12 +61,14 @@ class SyncBaselineEntry {
     required this.recordId,
     required this.wireHash,
     this.bodyHash,
+    this.bodyHashVersion = SyncBaselineBodyHashVersion.comparison,
   });
 
   final SyncRecordKind kind;
   final String recordId;
   final String wireHash;
   final String? bodyHash;
+  final SyncBaselineBodyHashVersion bodyHashVersion;
 }
 
 /// Local-only state for the Device Sync protocol.
@@ -52,12 +94,16 @@ class SyncLocalRepository {
     final rows = await listBaselineEntries();
     return {
       for (final row in rows)
-        (kind: row.kind, recordId: row.recordId): SyncBaselineEntry(
-          kind: row.kind,
-          recordId: row.recordId,
-          wireHash: row.wireHash,
-          bodyHash: row.bodyHash,
-        ),
+        (kind: row.kind, recordId: row.recordId): () {
+          final version = _storedBodyHashVersion(row.bodyHash);
+          return SyncBaselineEntry(
+            kind: row.kind,
+            recordId: row.recordId,
+            wireHash: row.wireHash,
+            bodyHash: _decodeStoredBodyHash(row.bodyHash, version),
+            bodyHashVersion: version,
+          );
+        }(),
     };
   }
 
@@ -270,7 +316,9 @@ class SyncLocalTransaction {
               kind: entry.kind,
               recordId: entry.recordId,
               wireHash: entry.wireHash,
-              bodyHash: Value(entry.bodyHash),
+              bodyHash: Value(
+                _encodeStoredBodyHash(entry.bodyHash, entry.bodyHashVersion),
+              ),
             ),
           );
     }
@@ -301,7 +349,9 @@ class SyncLocalTransaction {
               kind: entry.kind,
               recordId: entry.recordId,
               wireHash: entry.wireHash,
-              bodyHash: Value(entry.bodyHash),
+              bodyHash: Value(
+                _encodeStoredBodyHash(entry.bodyHash, entry.bodyHashVersion),
+              ),
             ),
           );
     }

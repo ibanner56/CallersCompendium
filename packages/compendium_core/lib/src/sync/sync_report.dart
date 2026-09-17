@@ -11,6 +11,9 @@ enum SyncReportCode {
   blobIdentityMismatch,
   unresolvedReference,
   concurrentLocalChange,
+  quarantinedRecord,
+  clockSuspect,
+  unreflectedPublication,
 }
 
 /// A structured, non-blocking diagnostic produced by a sync pass.

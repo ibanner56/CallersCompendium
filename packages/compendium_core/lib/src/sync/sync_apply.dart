@@ -2,6 +2,7 @@ import '../storage/repositories/sync_local_repository.dart';
 import 'sync_admission.dart';
 import 'sync_codec.dart';
 import 'sync_merge.dart';
+import 'sync_quarantine.dart';
 import 'sync_record_kind.dart';
 import 'sync_report.dart';
 
@@ -144,9 +145,10 @@ typedef SyncApplyWriteHook = Future<void> Function(SyncApplyRecord record);
 
 /// Transaction-bound read-modify-write application for validated blobs.
 class SyncApplyEngine {
-  const SyncApplyEngine({this.onAfterWrite});
+  const SyncApplyEngine({this.onAfterWrite, this.now = _syncNowUtc});
 
   final SyncApplyWriteHook? onAfterWrite;
+  final DateTime Function() now;
 
   /// Applies [candidates] in dependency order inside one transaction.
   Future<SyncApplyResult> apply({
@@ -156,7 +158,29 @@ class SyncApplyEngine {
   }) async {
     final applied = <SyncRecordAddress>[];
     final reports = <SyncReport>[];
-    final ordered = candidates.toList()..sort(_compareCandidates);
+    final windowEnd = syncQuarantineWindowEnd(now());
+    final ordered = <SyncMergeCandidate>[];
+    for (final candidate in candidates) {
+      final assessment = const SyncQuarantineClassifier().assess(
+        candidate,
+        windowEnd: windowEnd,
+      );
+      if (assessment.isQuarantined) {
+        reports.add(
+          SyncReport(
+            code: SyncReportCode.malformedRecord,
+            kind: candidate.blob.kind,
+            recordId: candidate.blob.id,
+            peerId: candidate.peerId,
+            message:
+                'Inbound record timestamp exceeded the local clock window.',
+          ),
+        );
+        continue;
+      }
+      ordered.add(candidate);
+    }
+    ordered.sort(_compareCandidates);
     final admitted = _admitCandidates(ordered, reports);
 
     try {
@@ -585,3 +609,5 @@ class SyncApplyEngine {
     SyncRecordKind.setting => 8,
   };
 }
+
+DateTime _syncNowUtc() => DateTime.now().toUtc();
