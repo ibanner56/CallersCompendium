@@ -744,7 +744,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       final request = _isByteSource
           ? ImportRequest(options: {'bytes': bytes!})
           : ImportRequest(payload: payload, uri: _sourceUri);
-      final adapterFactory = _effectiveSharedBundle != null
+      final adapterFactory =
+          _effectiveSharedBundle != null &&
+              _selected.kind != ImportSourceKind.genericJson
           ? GenericJsonAdapter.new
           : _selected.adapterFactory;
       final batch = await pipeline.plan(
@@ -1494,13 +1496,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// conclusions and rerunning restore bookkeeping.
   Future<T> _runSyncWriterLifecycle<T>({
     required Future<T> Function() operation,
+    Future<void> Function()? beforeWrite,
+    Future<void> Function()? afterWrite,
   }) async {
-    final lifecycle = SyncWriterLifecycleScope.maybeOf(context);
     try {
-      await lifecycle?.beforeWrite?.call();
+      await beforeWrite?.call();
       return await operation();
     } finally {
-      await lifecycle?.afterWrite?.call();
+      await afterWrite?.call();
     }
   }
 
@@ -1526,7 +1529,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       customFields: _repos.customFieldDefs,
       difficultyLevels: _repos.difficultyLevels,
     );
+    final lifecycle = SyncWriterLifecycleScope.maybeOf(context);
     final result = await _runSyncWriterLifecycle(
+      beforeWrite: lifecycle?.beforeWrite,
+      afterWrite: lifecycle?.afterWrite,
       operation: () => importer.commit(
         commitBatch,
         bundle.archive,
@@ -1538,7 +1544,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
     if (!mounted) return;
     setState(() => _phase = _Phase.review);
-    await _showSharedBundleUndo(result: result, importer: importer);
+    await _showSharedBundleUndo(
+      result: result,
+      importer: importer,
+      beforeWrite: lifecycle?.beforeWrite,
+      afterWrite: lifecycle?.afterWrite,
+    );
   }
 
   /// Shows the transient post-commit Undo for a shared bundle and returns the
@@ -1549,6 +1560,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   Future<void> _showSharedBundleUndo({
     required CompendiumArchiveImportResult result,
     required CompendiumArchiveImporter importer,
+    Future<void> Function()? beforeWrite,
+    Future<void> Function()? afterWrite,
   }) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
@@ -1568,7 +1581,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       onUndo: () async {
         // Idempotent: a repeated tap (or a tap after another undo) is a no-op.
         if (result.isUndone) return;
-        await _runSyncWriterLifecycle(operation: () => importer.undo(result));
+        await _runSyncWriterLifecycle(
+          beforeWrite: beforeWrite,
+          afterWrite: afterWrite,
+          operation: () => importer.undo(result),
+        );
       },
     );
 
