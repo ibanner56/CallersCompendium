@@ -57,6 +57,7 @@
       "app/test/incoming_share_wiring_test.dart and app/test/startup_sequence_test.dart cover shared-import and backup quiescence behind an in-flight sync pass, shutdown waiting for the writer boundary, and suppression of post-shutdown writer execution and coordinator recreation.",
       "packages/compendium_core/test/storage/normalisation_test.dart proves a failed outer transaction after migration clears the memo so a subsequent ensureMigrated reruns the normalization sweep.",
       "The shutdown guard was mutation-proven: removing the post-disposal shutdown check made the in-flight writer regression fail; restoring fd0f05a3d made it pass.",
+      "The required restore-marker guard was mutation-proven: in `cd packages/compendium_core && fvm dart test test/storage/normalisation_test.dart --plain-name 'restore reset lets the next migration normalize restored text'`, removing the marker DELETE from resetNormalisationStateForRestore made the test red because the stored title remained decomposed; restoring 7d8285822 made it green.",
       "The migration-memo guard was mutation-proven: removing transaction-failure memo invalidation left restored text unnormalized on retry; restoring fd0f05a3d made the guard pass.",
       "Targeted app and core restore/lifecycle suites passed, and python3 tools/preflight.py --require-available passed all 30 gates with 0 skipped at PR-B head fd0f05a3d."
     ]
