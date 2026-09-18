@@ -39,9 +39,12 @@ def _cases() -> None:
         'description: "Running 1.2.2."\nvalue: "1.2.2"\n',
         "1.2.3",
     ) == [
-        ".github/ISSUE_TEMPLATE/bug_report.yml:1: build-version literal '1.2.2' "
+        # Build the expected diagnostics from `template` itself so the path
+        # separator matches whatever `str(Path)` emits on the host OS (backslash
+        # on Windows, slash on POSIX); a hardcoded POSIX literal fails on Windows.
+        f"{template}:1: build-version literal '1.2.2' "
         "must match app/pubspec.yaml version '1.2.3'.",
-        ".github/ISSUE_TEMPLATE/bug_report.yml:2: build-version literal '1.2.2' "
+        f"{template}:2: build-version literal '1.2.2' "
         "must match app/pubspec.yaml version '1.2.3'.",
     ]
     # Prefixes and prerelease/build suffixes are literals too: the issue form

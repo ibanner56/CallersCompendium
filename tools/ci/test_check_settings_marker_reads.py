@@ -923,7 +923,24 @@ def test_real_tree_is_clean() -> None:
     check("baseline is clean", not offenders, "; ".join(loc for _k, loc in offenders))
 
 
+def _force_utf8_stdout() -> None:
+    """Print UTF-8 regardless of the console code page.
+
+    Several test labels below carry non-ASCII characters (``≠``, ``…``). The
+    default Windows console encoding is cp1252, which cannot encode them, so
+    ``print`` would raise ``UnicodeEncodeError`` before the suite finishes —
+    unless ``PYTHONUTF8=1`` is supplied externally. Reconfigure here so the
+    runner does not depend on an undeclared environment override.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
+        except (AttributeError, ValueError):
+            pass
+
+
 def main() -> int:
+    _force_utf8_stdout()
     test_extract_sql_literals()
     test_compliant_reads()
     test_non_compliant_reads()
