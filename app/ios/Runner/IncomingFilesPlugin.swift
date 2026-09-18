@@ -6,13 +6,14 @@ import UIKit
 /// share sheet (issue #343) to Dart over the
 /// `is.banner.callerscompendium/incoming_files` channel.
 ///
-/// The native side does exactly one thing per payload: hand Dart either the
-/// **path** of a local copy of an incoming file (#298), or the **raw URL
-/// string** shared into the app (#343). It never parses, trusts, or interprets
-/// a payload — Dart owns every byte of validation and import (`ArchiveIntake`
-/// for files, and Dart's supported program/dance URL classifiers for URLs; both
-/// are untrusted input). Incoming files are copied into the app's temporary
-/// directory first, so the path Dart receives is always readable.
+/// The native side does exactly one thing per payload: hand Dart either an
+/// ownership-marked payload containing the **path** of a local copy of an
+/// incoming file (#298), or the **raw URL string** shared into the app (#343).
+/// It never parses, trusts, or interprets a payload — Dart owns every byte of
+/// validation and import (`ArchiveIntake` for files, and Dart's supported
+/// program/dance URL classifiers for URLs; both are untrusted input). Incoming
+/// files are copied into the app's temporary directory first, so the path Dart
+/// receives is always readable.
 ///
 /// Shared URLs are delivered out-of-band: the Share Extension writes them into
 /// the shared App Group, then the user dismisses the extension and opens this
@@ -74,7 +75,7 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
     case "getInitialFile":
       let path = pendingInitialPath
       pendingInitialPath = nil
-      result(path)
+      result(path.map(filePayload))
     case "getInitialUrl":
       result(takeInitialSharedURL())
     default:
@@ -99,6 +100,9 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
       return false
     }
     guard let path = localCopyPath(forContexts: contexts) else { return false }
+    if let previous = pendingInitialPath {
+      deleteStagedCopy(at: previous)
+    }
     pendingInitialPath = path
     return true
   }
@@ -117,7 +121,7 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
       return true
     }
     guard let path = localCopyPath(forContexts: URLContexts) else { return false }
-    channel?.invokeMethod("fileOpened", arguments: path)
+    channel?.invokeMethod("fileOpened", arguments: filePayload(path))
     return true
   }
 
@@ -206,6 +210,16 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
     return nil
   }
 
+  private func filePayload(_ path: String) -> [String: Any] {
+    ["path": path, "appOwned": true]
+  }
+
+  private func deleteStagedCopy(at path: String) {
+    let fileManager = FileManager.default
+    guard fileManager.fileExists(atPath: path) else { return }
+    try? fileManager.removeItem(atPath: path)
+  }
+
   /// Copies a file URL into a private temp directory and returns the copy's
   /// path. Returns `nil` for non-file URLs or on any I/O error (intake then
   /// simply does nothing — the native side never crashes the app).
@@ -218,16 +232,21 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
     let fileManager = FileManager.default
     let tempDir = fileManager.temporaryDirectory
       .appendingPathComponent("incoming_share", isDirectory: true)
+    var destination: URL?
     do {
       try fileManager.createDirectory(at: tempDir, withIntermediateDirectories: true)
       let dest = tempDir.appendingPathComponent(
         UUID().uuidString + "-" + url.lastPathComponent)
+      destination = dest
       if fileManager.fileExists(atPath: dest.path) {
         try fileManager.removeItem(at: dest)
       }
       try fileManager.copyItem(at: url, to: dest)
       return dest.path
     } catch {
+      if let destination = destination {
+        deleteStagedCopy(at: destination.path)
+      }
       return nil
     }
   }
