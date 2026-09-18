@@ -225,7 +225,9 @@ def report(measured: dict[Path, Weight], top: int) -> list[str]:
         for path, weight in shown:
             lines.append(
                 f"  {_kib(weight.comment_bytes):>9} comment  "
-                f"{weight.share:>4.0%} of file  {path}"
+                # `as_posix()` keeps the reported repository path '/'-separated on
+                # every host OS (str(path) would show backslashes on Windows).
+                f"{weight.share:>4.0%} of file  {path.as_posix()}"
             )
     return lines
 
