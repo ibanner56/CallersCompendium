@@ -918,7 +918,7 @@ void main() {
         clock: () => now,
         budgetLimits: const AthenaeumBudgetLimits(
           perIpRequestsPerMinute: 60,
-          perIpRequestBurst: 1,
+          perIpRequestBurst: 2,
         ),
       );
       Future<Response> request() => customApp.call(
@@ -931,6 +931,7 @@ void main() {
         ),
       );
 
+      expect((await request()).statusCode, 200);
       expect((await request()).statusCode, 200);
       expect((await request()).statusCode, 429);
       now = now.add(const Duration(seconds: 1));
