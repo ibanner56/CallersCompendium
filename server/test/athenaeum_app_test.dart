@@ -1976,13 +1976,6 @@ void main() {
       final directory = await Directory.systemTemp.createTemp(
         'athenaeum-manifest-byte-quota-',
       );
-      final probe = SyncManifest(
-        deviceId: 'device-a',
-        epoch: 'e' * 32,
-        writtenAt: DateTime.utc(2026, 9, 3),
-        records: const {},
-      );
-      final length = encodeSyncManifestUtf8(probe).length;
       final customStore = AthenaeumStore(
         config: AthenaeumConfig(
           dataDirectory: directory.path,
@@ -1991,7 +1984,7 @@ void main() {
         database: sqlite3.openInMemory(),
         breakGlassDatabase: sqlite3.openInMemory(),
         diagnosticDatabase: sqlite3.openInMemory(),
-        quotaLimits: AthenaeumQuotaLimits(maxBytes: length - 1),
+        quotaLimits: const AthenaeumQuotaLimits(maxBytes: 10),
       );
       final customApp = AthenaeumApp(
         config: customStore.config,
@@ -2002,6 +1995,14 @@ void main() {
         await directory.delete(recursive: true);
       });
       final authorization = ['Bearer', encodeSyncCredential(syncId)].join(' ');
+      var pulled = 0;
+      Stream<List<int>> chunks(Uint8List body) async* {
+        for (final byte in body) {
+          pulled++;
+          yield [byte];
+        }
+      }
+
       Future<Response> request(
         String method,
         String path, {
@@ -2017,7 +2018,7 @@ void main() {
             if (body != null && declareLength)
               'content-length': '${body.length}',
           },
-          body: body == null ? null : Stream.value(body),
+          body: body == null ? null : chunks(body),
         ),
       );
 
@@ -2035,8 +2036,9 @@ void main() {
           records: const {},
         ),
       );
-      expect(body.length, length);
+      expect(body.length, greaterThan(20));
       for (final declareLength in [true, false]) {
+        pulled = 0;
         expect(
           (await request(
             'PUT',
@@ -2045,6 +2047,14 @@ void main() {
             declareLength: declareLength,
           )).statusCode,
           507,
+          reason: 'declareLength=$declareLength',
+        );
+        // The over-quota body must be refused before it is buffered: a
+        // declared length is refused unread, a streamed one is cut off at
+        // the quota rather than read to the end.
+        expect(
+          pulled,
+          declareLength ? 0 : lessThan(body.length),
           reason: 'declareLength=$declareLength',
         );
       }
