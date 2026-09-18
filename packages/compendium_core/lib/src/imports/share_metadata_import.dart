@@ -5,6 +5,7 @@ import '../serialization/compendium_archive.dart';
 import '../storage/repositories/custom_field_repository.dart';
 import '../storage/repositories/published_source_repository.dart';
 import '../storage/repositories/tag_repository.dart';
+import '../storage/shareable_text.dart';
 
 /// The receiver-side ids and rollback ledger for metadata in a shared archive.
 class ShareMetadataImportResult {
@@ -199,11 +200,17 @@ class ShareMetadataImporter {
     ShareMetadataImportResult result,
     String Function() newId,
   ) {
+    // Key on the same canonical name `TagRepository.upsert` writes and enforces
+    // as UNIQUE (`normalizeShareableText`), so a live tag that is canonically
+    // equivalent to an incoming one — differing only in Unicode form or in
+    // characters the codec strips — is adopted here rather than minted as a new
+    // tag whose insert would then collide on the normalized unique name.
     final byName = <String, ({Tag tag, bool deleted})>{
-      for (final item in existing) item.tag.name: item,
+      for (final item in existing) normalizeShareableText(item.tag.name): item,
     };
     for (final tag in incoming) {
-      final match = byName[tag.name];
+      final name = normalizeShareableText(tag.name);
+      final match = byName[name];
       if (match != null) {
         result.tagIdByArchiveId[tag.id] = match.tag.id;
         if (match.deleted) result.restoredTagIds.add(match.tag.id);
@@ -211,7 +218,7 @@ class ShareMetadataImporter {
         final id = newId();
         result.tagIdByArchiveId[tag.id] = id;
         result.insertedTagIds.add(id);
-        byName[tag.name] = (
+        byName[name] = (
           tag: Tag(id: id, name: tag.name, color: tag.color),
           deleted: false,
         );
@@ -276,11 +283,16 @@ class ShareMetadataImporter {
     ShareMetadataImportResult result,
     String Function() newId,
   ) {
+    // Key on the same canonical key `CustomFieldDefRepository.upsert` writes and
+    // enforces as UNIQUE (`normalizeShareableText`), matching the tag path: a
+    // canonically-equivalent live field is compatibility-checked and adopted
+    // rather than minted into a normalized-key collision on insert.
     final byKey = <String, ({CustomFieldDef field, bool deleted})>{
-      for (final item in existing) item.field.key: item,
+      for (final item in existing) normalizeShareableText(item.field.key): item,
     };
     for (final field in incoming) {
-      final match = byKey[field.key];
+      final key = normalizeShareableText(field.key);
+      final match = byKey[key];
       if (match != null) {
         if (!_sameField(match.field, field)) {
           throw StateError(
@@ -293,7 +305,7 @@ class ShareMetadataImporter {
         final id = newId();
         result.fieldIdByArchiveId[field.id] = id;
         result.insertedFieldIds.add(id);
-        byKey[field.key] = (
+        byKey[key] = (
           field: CustomFieldDef(
             id: id,
             key: field.key,
@@ -318,7 +330,10 @@ class ShareMetadataImporter {
       a.notes == b.notes;
 
   static bool _sameField(CustomFieldDef a, CustomFieldDef b) =>
-      a.key == b.key &&
+      // Keys are compared canonically because the caller already matched on the
+      // canonical key; a raw compare would treat an NFC/NFD-equivalent key as a
+      // conflict and reject an otherwise-identical field.
+      normalizeShareableText(a.key) == normalizeShareableText(b.key) &&
       a.label == b.label &&
       a.type == b.type &&
       _listEquals(a.choices, b.choices) &&
