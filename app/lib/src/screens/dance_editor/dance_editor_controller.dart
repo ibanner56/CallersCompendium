@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../data/editor_draft_shutdown_scope.dart';
 import '../../data/display_defaults.dart';
 import '../../editor/editor_draft_codec.dart';
 import '../../editor/editor_snapshot.dart';
@@ -682,6 +683,20 @@ class DanceEditorController extends ChangeNotifier {
     _autosaveTimer = Timer(const Duration(milliseconds: 500), _saveDraft);
   }
 
+  /// Cancels the pending debounce and queues one immutable final snapshot
+  /// synchronously, before shutdown begins awaiting any editor operation.
+  EditorDraftShutdownOperation prepareShutdownFlush() {
+    _autosaveTimer?.cancel();
+    if (!_loaded || _disposed || !_dirty) {
+      return () async {};
+    }
+    final future = _saveDraft(
+      preparedSnapshot: captureSnapshot(),
+      surfaceErrors: true,
+    );
+    return () => future;
+  }
+
   /// Flags the editor as having unsaved changes. Called from the shared
   /// [scheduleAutosave] chokepoint (every edit path runs through it) so the
   /// unsaved-changes guard stays in sync.
@@ -692,26 +707,39 @@ class DanceEditorController extends ChangeNotifier {
     }
   }
 
-  Future<void> _saveDraft() {
+  Future<void> _saveDraft({
+    EditorSnapshot? preparedSnapshot,
+    bool surfaceErrors = false,
+  }) {
     if (!_loaded || _disposed) return Future<void>.value();
     final generation = _draftGeneration;
+    final snapshot = preparedSnapshot ?? captureSnapshot();
+    final key = draftKey;
     // Chain onto the tail (rather than racing a fresh write) so overlapping
     // autosaves never write concurrently, and so the tail always reflects
     // every write scheduled so far.
-    final future = _saveQueueTail.then((_) => _writeDraft(generation));
+    final future = _saveQueueTail.then(
+      (_) =>
+          _writeDraft(generation, key, snapshot, surfaceErrors: surfaceErrors),
+    );
     _saveQueueTail = future;
     return future;
   }
 
-  Future<void> _writeDraft(int generation) async {
+  Future<void> _writeDraft(
+    int generation,
+    String key,
+    EditorSnapshot snapshot, {
+    required bool surfaceErrors,
+  }) async {
     try {
       // A clearDraft() ran since this save was scheduled — it will (or did)
       // remove the draft itself, so skip the write rather than race it.
       if (generation != _draftGeneration) return;
-      final encoded = encodeDraft(captureSnapshot());
-      await _repos.settings.set(draftKey, encoded);
-    } catch (_) {
+      await _repos.settings.set(key, encodeDraft(snapshot));
+    } catch (error, stackTrace) {
       // diagnostics: silent — draft write failure; must never stall editing or permanently block later autosaves.
+      if (surfaceErrors) Error.throwWithStackTrace(error, stackTrace);
     }
   }
 

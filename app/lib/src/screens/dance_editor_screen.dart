@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/display_defaults.dart';
+import '../data/editor_draft_shutdown_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/related_dance_links.dart';
 import '../data/shorthand_mappings_scope.dart';
@@ -82,6 +83,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   Dialect _activeDialect = Dialect.larksRobins;
 
   bool _dependenciesInitialized = false;
+  void Function()? _unregisterShutdownFlush;
   Object? _loadError;
   bool _saving = false;
 
@@ -158,6 +160,12 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         initialTitle: widget.initialTitle,
       );
       _controller.addListener(_onControllerChanged);
+      final shutdownController = EditorDraftShutdownScope.maybeOf(context);
+      if (shutdownController != null) {
+        _unregisterShutdownFlush = shutdownController.register(
+          _controller.prepareShutdownFlush,
+        );
+      }
       _load();
       _subscribeReferenceData();
     } else if (!identical(newDialect, _activeDialect) &&
@@ -281,6 +289,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   @override
   void dispose() {
     if (_dependenciesInitialized) {
+      _unregisterShutdownFlush?.call();
       _controller.removeListener(_onControllerChanged);
       _controller.dispose();
       _moreDetailsController.dispose();

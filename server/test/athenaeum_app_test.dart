@@ -874,6 +874,124 @@ void main() {
   });
 
   test(
+    'general client request budget limits successful sync requests',
+    () async {
+      final authorization = ['Bearer', encodeSyncCredential(syncId)].join(' ');
+      final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
+      app.store.create(idKey);
+      final customApp = AthenaeumApp(
+        config: app.config,
+        store: app.store,
+        clientAddressResolver: (_) => 'client',
+        clock: () => DateTime.utc(2026, 9, 3),
+      );
+      Future<Response> request() => customApp.call(
+        Request(
+          'GET',
+          Uri.parse('http://127.0.0.1/v1/store'),
+          headers: {'authorization': authorization},
+        ),
+      );
+      for (var attempt = 0; attempt < 120; attempt++) {
+        final response = await request();
+        expect(response.statusCode, 200);
+      }
+      final response = await request();
+      expect(response.statusCode, 429);
+      expect(response.headers['retry-after'], '60');
+      final heartbeat = await customApp.call(
+        Request('GET', Uri.parse('http://127.0.0.1/heartbeat')),
+      );
+      expect(heartbeat.statusCode, 200);
+    },
+  );
+
+  test(
+    'general client request budget refills at its configured rate',
+    () async {
+      var now = DateTime.utc(2026, 9, 3);
+      final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
+      app.store.create(idKey);
+      final customApp = AthenaeumApp(
+        config: app.config,
+        store: app.store,
+        clientAddressResolver: (_) => 'refill-client',
+        clock: () => now,
+        budgetLimits: const AthenaeumBudgetLimits(
+          perIpRequestsPerMinute: 60,
+          perIpRequestBurst: 2,
+        ),
+      );
+      Future<Response> request() => customApp.call(
+        Request(
+          'GET',
+          Uri.parse('http://127.0.0.1/v1/store'),
+          headers: {
+            'authorization': ['Bearer', encodeSyncCredential(syncId)].join(' '),
+          },
+        ),
+      );
+
+      expect((await request()).statusCode, 200);
+      expect((await request()).statusCode, 200);
+      expect((await request()).statusCode, 429);
+      now = now.add(const Duration(seconds: 1));
+      expect((await request()).statusCode, 200);
+    },
+  );
+
+  test(
+    'general store request budget rejects before reading the body',
+    () async {
+      final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
+      app.store.create(idKey);
+      final authorization = ['Bearer', encodeSyncCredential(syncId)].join(' ');
+      final customApp = AthenaeumApp(
+        config: app.config,
+        store: app.store,
+        clientAddressResolver: (request) => request.headers['x-test-ip']!,
+        clock: () => DateTime.utc(2026, 9, 3),
+        budgetLimits: const AthenaeumBudgetLimits(
+          perIpRequestBurst: 10,
+          perStoreRequestsPerMinute: 1,
+          perStoreRequestBurst: 1,
+        ),
+      );
+      Future<Response> storeRequest(String address) => customApp.call(
+        Request(
+          'GET',
+          Uri.parse('http://127.0.0.1/v1/store'),
+          headers: {'authorization': authorization, 'x-test-ip': address},
+        ),
+      );
+      expect((await storeRequest('store-client-0')).statusCode, 200);
+      expect((await storeRequest('store-client-1')).statusCode, 429);
+
+      var yielded = 0;
+      Stream<List<int>> body() async* {
+        yielded++;
+        yield Uint8List.fromList([1]);
+      }
+
+      final response = await customApp.call(
+        Request(
+          'PUT',
+          Uri.parse('http://127.0.0.1/v1/blobs/${'0' * 64}'),
+          headers: {
+            'authorization': authorization,
+            'content-type': 'application/octet-stream',
+            'x-test-ip': 'store-client-2',
+          },
+          body: body(),
+        ),
+      );
+      expect(response.statusCode, 429);
+      expect(response.headers['retry-after'], '60');
+      expect(yielded, 0);
+    },
+  );
+
+  test(
     'each failed store-resolution outcome consumes its own budget',
     () async {
       for (
