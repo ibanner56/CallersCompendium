@@ -33,7 +33,10 @@ void main() {
     //   dart run test/seed/generate_baby_rose_seed.dart
     test('checked-in asset matches freshly generated output', () async {
       final generated = await buildBabyRoseSeedArchiveJson(fixtureHtml);
-      final onDisk = File(assetPath).readAsStringSync();
+      // Normalize CRLF -> LF so a Windows checkout is compared like-for-like
+      // against the LF-emitting generator; only line endings are stripped, so
+      // real content drift still fails. See the repository .gitattributes.
+      final onDisk = File(assetPath).readAsStringSync().replaceAll('\r\n', '\n');
       expect(
         onDisk,
         '$generated\n',

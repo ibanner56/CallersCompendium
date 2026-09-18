@@ -269,7 +269,10 @@ def main(argv: list[str] | None = None) -> int:
         payload = {
             "resident_budget_bytes": RESIDENT_BUDGET_BYTES,
             "files": {
-                str(path): {
+                # `as_posix()` keeps the JSON key a stable repository identifier
+                # ('/'-separated) on every host OS; `str(path)` would emit
+                # backslashes on Windows and break downstream expectations.
+                path.as_posix(): {
                     "comment_bytes": weight.comment_bytes,
                     "code_bytes": weight.code_bytes,
                 }
