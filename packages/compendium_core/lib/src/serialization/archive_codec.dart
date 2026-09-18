@@ -36,7 +36,9 @@ import 'figure_codec.dart';
 /// treated as the current version, and a newer `schemaVersion` is read on a
 /// best-effort basis with a warning rather than an error. Recoverable problems
 /// never throw: a malformed entity is skipped and recorded as an
-/// [ArchiveError] while the rest of the archive still loads.
+/// [ArchiveError] while the rest of the archive still loads. Content-validation
+/// [ArgumentError]s are normalized at the per-entity boundary; unrelated Dart
+/// [Error]s still surface.
 
 // ---------------------------------------------------------------------------
 // Encoding
@@ -483,7 +485,11 @@ List<T> _decodeList<T>(
     }
     final map = entry.cast<String, Object?>();
     try {
-      result.add(decode(map));
+      try {
+        result.add(decode(map));
+      } on ArgumentError catch (e) {
+        throw ArchiveContentValidationException(e);
+      }
     } on _UnknownEnumValueException catch (e) {
       // Forward-compatible skip: a newer app version wrote an enum value this
       // build doesn't recognize. Drop just this entity rather than recording an
@@ -496,10 +502,19 @@ List<T> _decodeList<T>(
       final ref = '$entityType${id == null ? '' : ' ($id)'}';
       droppedEntities.add(ref);
       warnings.add('$ref skipped: $e');
+    } on ArchiveContentValidationException catch (e) {
+      errors.add(
+        ArchiveError(
+          kind: ArchiveErrorKind.read,
+          entityType: entityType,
+          entityId: map['id'] is String ? map['id'] as String : null,
+          message: 'could not be read: ${e.cause}',
+          cause: e.cause,
+        ),
+      );
     } on Exception catch (e) {
-      // Catch only Exceptions (the decode helpers throw FormatException for
-      // malformed input): Dart Errors signal genuine bugs and should surface
-      // during development rather than being recorded as data-quality errors.
+      // Other Exceptions, such as FormatException from malformed input, are
+      // recorded as data-quality errors. Unrelated Dart Errors still surface.
       errors.add(
         ArchiveError(
           kind: ArchiveErrorKind.read,
@@ -554,10 +569,8 @@ CustomFieldDef _customFieldDefFromJson(Map<String, Object?> m) {
   // now stripped) are dropped so they can't smuggle a blank option in.
   final choices = _clampChoices(_stringListOrNull(m, 'choices'));
   // A choice field with no usable options can't be constructed (the model
-  // requires ≥1). Rather than let the constructor throw an `ArgumentError` — a
-  // Dart Error that `_decodeList` deliberately doesn't catch, which would abort
-  // the whole restore — raise a `FormatException` so just this one field is
-  // skipped and recorded, keeping the import partial-failure tolerant.
+  // requires ≥1). Raise a FormatException here so the diagnostic is specific
+  // and this one field is skipped and recorded.
   if (type == CustomFieldType.choice && (choices == null || choices.isEmpty)) {
     throw const FormatException('choice field has no usable options');
   }
@@ -878,10 +891,9 @@ List<ProgramSlot> _programSlotsFromJson(Object? raw) {
 /// is type-checked (`_str`/`_strOrNull` throw a [FormatException] for a
 /// non-string value); a missing/extra field is tolerated (nullable fields
 /// default to null, unknown keys are ignored). The blank-name case is rejected
-/// *here* with a [FormatException] — which [_decodeList] records as a per-entity
-/// [ArchiveError] and skips — rather than letting the [Venue] constructor's
-/// `ArgumentError` (a Dart `Error`, not an `Exception`) escape [_decodeList] and
-/// abort the whole import.
+/// *here* with a [FormatException] so [_decodeList] records a specific
+/// per-entity [ArchiveError] and skips it. Other constructor validation
+/// [ArgumentError]s are normalized by [_decodeList] at the archive boundary.
 Venue _venueFromJson(Map<String, Object?> m) {
   final name = _str(m, 'name');
   if (name.trim().isEmpty) {
