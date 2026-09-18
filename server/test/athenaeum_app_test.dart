@@ -2272,15 +2272,13 @@ void main() {
     expect(rows.single['status'], 400);
     expect(rows.single['id_key'], isNot(syncId));
     expect(rows.single['hash'], hash);
-    app.store.diagnosticDatabase.execute(
-      'UPDATE diagnostic_events SET recorded_at = ?',
-      [
-        DateTime.now()
-                .subtract(const Duration(days: 31))
-                .millisecondsSinceEpoch ~/
-            1000,
-      ],
-    );
+    app.store.diagnosticDatabase
+        .execute('UPDATE diagnostic_events SET recorded_at = ?', [
+          DateTime.now()
+                  .subtract(const Duration(days: 31))
+                  .millisecondsSinceEpoch ~/
+              1000,
+        ]);
     app.store.purgeExpiredDiagnostics();
     expect(
       app.store.diagnosticDatabase.select('SELECT * FROM diagnostic_events'),
@@ -2442,16 +2440,14 @@ void main() {
     var sweeps = 0;
     final expiredIdKey = '9' * 64;
     app.store.create(expiredIdKey);
-    app.store.database.execute(
-      'UPDATE stores SET last_seen = ? WHERE id_key = ?',
-      [
-        DateTime.now()
-                .subtract(const Duration(days: 31))
-                .millisecondsSinceEpoch ~/
-            1000,
-        expiredIdKey,
-      ],
-    );
+    app.store.database
+        .execute('UPDATE stores SET last_seen = ? WHERE id_key = ?', [
+          DateTime.now()
+                  .subtract(const Duration(days: 31))
+                  .millisecondsSinceEpoch ~/
+              1000,
+          expiredIdKey,
+        ]);
     final controller = AthenaeumSweepController(
       app.store,
       schedule: (interval, callback) {
