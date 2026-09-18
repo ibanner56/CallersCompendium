@@ -434,6 +434,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
   late UpdateController _updateController;
   SyncCoordinator? _syncCoordinator;
   Future<void>? _syncCoordinatorDisposeFuture;
+  Future<void>? _syncWriterTail;
+  bool _shutdownRequested = false;
 
   /// Result of the once-per-launch [_runIntegrityCheck]. `false` means the
   /// `PRAGMA quick_check` probe failed, so the ready app surfaces a (non-fatal)
@@ -552,6 +554,33 @@ class _CompendiumAppState extends State<CompendiumApp> {
     return future;
   }
 
+  Future<T> _runSyncWriter<T>(Future<T> Function() operation) async {
+    final prior = _syncWriterTail;
+    final release = Completer<void>();
+    final tail = release.future;
+    _syncWriterTail = tail;
+    try {
+      if (prior != null) await prior;
+      if (_shutdownRequested) {
+        throw StateError('cannot start a database writer during shutdown');
+      }
+      try {
+        await _disposeSyncCoordinator();
+        if (_shutdownRequested) {
+          throw StateError('cannot start a database writer during shutdown');
+        }
+        return await operation();
+      } finally {
+        if (!_shutdownRequested && mounted) {
+          await _configureSyncCoordinator();
+        }
+      }
+    } finally {
+      if (!release.isCompleted) release.complete();
+      if (identical(_syncWriterTail, tail)) _syncWriterTail = null;
+    }
+  }
+
   void _clearSyncCoordinatorDisposeFuture(Future<void> future) {
     if (identical(_syncCoordinatorDisposeFuture, future)) {
       _syncCoordinatorDisposeFuture = null;
@@ -559,6 +588,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
   }
 
   Future<void> _closeForShutdown() async {
+    _shutdownRequested = true;
+    final writer = _syncWriterTail;
+    if (writer != null) await writer;
     await _disposeSyncCoordinator();
     await _appData.close();
   }
@@ -1076,7 +1108,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     await _disposeSyncCoordinator();
 
     final factory = widget.syncCoordinatorFactory;
-    if (factory == null || !mounted) return;
+    if (factory == null || !mounted || _shutdownRequested) return;
     SyncCoordinator? coordinator;
     try {
       coordinator = await factory(_appData.repositories);
@@ -1084,7 +1116,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
       logCaughtError(error, stackTrace, source: 'main.sync-configure');
       return;
     }
-    if (!mounted) {
+    if (!mounted || _shutdownRequested) {
       await coordinator?.dispose();
       return;
     }
@@ -1775,10 +1807,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
                                                                 notifier:
                                                                     _localeNotifier,
                                                                 child: SyncWriterLifecycleScope(
-                                                                  beforeWrite:
-                                                                      _disposeSyncCoordinator,
-                                                                  afterWrite:
-                                                                      _configureSyncCoordinator,
+                                                                  runWrite:
+                                                                      _runSyncWriter,
                                                                   onRestored:
                                                                       reloadFromSettings,
                                                                   child: CollectionFilterScope(

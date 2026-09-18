@@ -226,8 +226,7 @@ class _GeneralSectionState extends State<GeneralSection> {
     final picker = widget.backupPicker ?? pickBackupFile;
     final writerLifecycle = SyncWriterLifecycleScope.maybeOf(context);
     final onRestored = writerLifecycle?.onRestored;
-    final beforeWrite = writerLifecycle?.beforeWrite;
-    final afterWrite = writerLifecycle?.afterWrite;
+    final runWrite = writerLifecycle?.runWrite;
 
     try {
       final raw = await showDialog<String>(
@@ -237,8 +236,7 @@ class _GeneralSectionState extends State<GeneralSection> {
       if (raw == null || raw.trim().isEmpty) return;
 
       final outcome = await _runRestoreLifecycle(
-        beforeWrite: beforeWrite,
-        afterWrite: afterWrite,
+        runWrite: runWrite,
         operation: () => BackupService(repos).restoreFromJson(raw),
       );
       if (!outcome.applied) {
@@ -298,16 +296,8 @@ class _GeneralSectionState extends State<GeneralSection> {
   /// pre-hook must all leave the runtime with a usable coordinator.
   Future<T> _runRestoreLifecycle<T>({
     required Future<T> Function() operation,
-    Future<void> Function()? beforeWrite,
-    Future<void> Function()? afterWrite,
-  }) async {
-    try {
-      await beforeWrite?.call();
-      return await operation();
-    } finally {
-      await afterWrite?.call();
-    }
-  }
+    SyncWriterCallback? runWrite,
+  }) => runWrite?.call(operation) ?? operation();
 
   /// Shows the retryable "core restored, settings failed" state (#608) as an
   /// indefinite snackbar carrying a "retry settings" action. Kept separate so

@@ -111,8 +111,17 @@ class CompendiumRepositories {
   ///
   /// Repository methods may open nested transactions, but the outer boundary
   /// keeps related records such as staged tags and their owning dances atomic.
-  Future<T> transaction<T>(Future<T> Function() action) =>
-      db.transaction(action);
+  Future<T> transaction<T>(
+    Future<T> Function() action, {
+    bool resetMigrationOnFailure = false,
+  }) async {
+    try {
+      return await db.transaction(action);
+    } catch (_) {
+      if (resetMigrationOnFailure) _migration = null;
+      rethrow;
+    }
+  }
 
   /// Clears normalization bookkeeping before a restore or archive import.
   ///

@@ -1496,16 +1496,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// conclusions and rerunning restore bookkeeping.
   Future<T> _runSyncWriterLifecycle<T>({
     required Future<T> Function() operation,
-    Future<void> Function()? beforeWrite,
-    Future<void> Function()? afterWrite,
-  }) async {
-    try {
-      await beforeWrite?.call();
-      return await operation();
-    } finally {
-      await afterWrite?.call();
-    }
-  }
+    SyncWriterCallback? runWrite,
+  }) => runWrite?.call(operation) ?? operation();
 
   /// Commits a validated shared [bundle] (issue #432): dances + their author
   /// choreographers + programs + venues, via [CompendiumArchiveImporter] — the
@@ -1531,8 +1523,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
     final lifecycle = SyncWriterLifecycleScope.maybeOf(context);
     final result = await _runSyncWriterLifecycle(
-      beforeWrite: lifecycle?.beforeWrite,
-      afterWrite: lifecycle?.afterWrite,
+      runWrite: lifecycle?.runWrite,
       operation: () => importer.commit(
         commitBatch,
         bundle.archive,
@@ -1547,8 +1538,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     await _showSharedBundleUndo(
       result: result,
       importer: importer,
-      beforeWrite: lifecycle?.beforeWrite,
-      afterWrite: lifecycle?.afterWrite,
+      runWrite: lifecycle?.runWrite,
     );
   }
 
@@ -1560,8 +1550,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   Future<void> _showSharedBundleUndo({
     required CompendiumArchiveImportResult result,
     required CompendiumArchiveImporter importer,
-    Future<void> Function()? beforeWrite,
-    Future<void> Function()? afterWrite,
+    SyncWriterCallback? runWrite,
   }) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
@@ -1582,8 +1571,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         // Idempotent: a repeated tap (or a tap after another undo) is a no-op.
         if (result.isUndone) return;
         await _runSyncWriterLifecycle(
-          beforeWrite: beforeWrite,
-          afterWrite: afterWrite,
+          runWrite: runWrite,
           operation: () => importer.undo(result),
         );
       },

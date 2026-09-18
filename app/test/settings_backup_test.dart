@@ -67,8 +67,14 @@ Future<void> _pumpGeneral(
   if (onRestored != null || beforeRestore != null || afterRestore != null) {
     tree = SyncWriterLifecycleScope(
       onRestored: onRestored ?? () async {},
-      beforeWrite: beforeRestore,
-      afterWrite: afterRestore,
+      runWrite: <T>(operation) async {
+        try {
+          await beforeRestore?.call();
+          return await operation();
+        } finally {
+          await afterRestore?.call();
+        }
+      },
       child: tree,
     );
   }

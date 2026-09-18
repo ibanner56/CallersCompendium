@@ -686,7 +686,7 @@ class CompendiumArchiveImporter {
           repositories,
         ).revalidatePendingDeletions(dropMissing: true);
         await repositories.ensureMigrated();
-      });
+      }, resetMigrationOnFailure: true);
 
       return CompendiumArchiveImportResult(
         danceSession: committedDanceSession,
