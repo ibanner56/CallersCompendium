@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:compendium_app/main.dart';
@@ -172,6 +173,39 @@ void main() {
     expect(find.byType(ImportReviewScreen), findsNothing);
     expect(await appData.repositories.programs.listAll(), isEmpty);
   });
+
+  testWidgets(
+    'a rejected shared file removes its staging copy',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+      final tempDir = await Directory.systemTemp.createTemp(
+        'incoming-share-guard-',
+      );
+      addTearDown(() async {
+        if (await tempDir.exists()) await tempDir.delete(recursive: true);
+      });
+      final stagedFile = File('${tempDir.path}/bundle.json');
+      await stagedFile.writeAsString('this is not a compendium archive');
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          incomingFileChannel: _FakeIncomingFileChannel(
+            initialPath: stagedFile.path,
+          ),
+          incomingFileReader: _readerFor('this is not a compendium archive'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('shared-import-error')), findsOneWidget);
+      expect(await stagedFile.exists(), isFalse);
+    },
+  );
 
   testWidgets(
     'issue #343: a shared ContraDB program URL opens the import screen '
