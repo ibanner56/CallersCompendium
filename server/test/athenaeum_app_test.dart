@@ -871,6 +871,73 @@ void main() {
   });
 
   test(
+    'general client request budget limits successful sync requests',
+    () async {
+      final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
+      app.store.create(idKey);
+      for (var attempt = 0; attempt < 120; attempt++) {
+        final response = await _send(
+          'GET',
+          '/v1/store',
+          syncId: syncId,
+          headers: {'x-test-ip': 'client'},
+        );
+        expect(response.statusCode, 200);
+        await response.drain<void>();
+      }
+      final response = await _send(
+        'GET',
+        '/v1/store',
+        syncId: syncId,
+        headers: {'x-test-ip': 'client'},
+      );
+      expect(response.statusCode, 429);
+      expect(response.headers.value('retry-after'), '60');
+      await response.drain<void>();
+    },
+  );
+
+  test(
+    'general store request budget rejects before reading the body',
+    () async {
+      final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
+      app.store.create(idKey);
+      for (var attempt = 0; attempt < 600; attempt++) {
+        final response = await _send(
+          'GET',
+          '/v1/store',
+          syncId: syncId,
+          headers: {'x-test-ip': 'store-client-${attempt % 6}'},
+        );
+        expect(response.statusCode, 200);
+        await response.drain<void>();
+      }
+
+      var yielded = 0;
+      Stream<List<int>> body() async* {
+        yielded++;
+        yield Uint8List.fromList([1]);
+      }
+
+      final response = await app.call(
+        Request(
+          'PUT',
+          Uri.parse('http://127.0.0.1/v1/blobs/${'0' * 64}'),
+          headers: {
+            'authorization': ['Bearer', encodeSyncCredential(syncId)].join(' '),
+            'content-type': 'application/octet-stream',
+            'x-test-ip': 'store-client-0',
+          },
+          body: body(),
+        ),
+      );
+      expect(response.statusCode, 429);
+      expect(response.headers['retry-after'], '60');
+      expect(yielded, 0);
+    },
+  );
+
+  test(
     'each failed store-resolution outcome consumes its own budget',
     () async {
       for (
@@ -2161,13 +2228,15 @@ void main() {
     expect(rows.single['status'], 400);
     expect(rows.single['id_key'], isNot(syncId));
     expect(rows.single['hash'], hash);
-    app.store.diagnosticDatabase
-        .execute('UPDATE diagnostic_events SET recorded_at = ?', [
-          DateTime.now()
-                  .subtract(const Duration(days: 31))
-                  .millisecondsSinceEpoch ~/
-              1000,
-        ]);
+    app.store.diagnosticDatabase.execute(
+      'UPDATE diagnostic_events SET recorded_at = ?',
+      [
+        DateTime.now()
+                .subtract(const Duration(days: 31))
+                .millisecondsSinceEpoch ~/
+            1000,
+      ],
+    );
     app.store.purgeExpiredDiagnostics();
     expect(
       app.store.diagnosticDatabase.select('SELECT * FROM diagnostic_events'),
@@ -2329,14 +2398,16 @@ void main() {
     var sweeps = 0;
     final expiredIdKey = '9' * 64;
     app.store.create(expiredIdKey);
-    app.store.database
-        .execute('UPDATE stores SET last_seen = ? WHERE id_key = ?', [
-          DateTime.now()
-                  .subtract(const Duration(days: 31))
-                  .millisecondsSinceEpoch ~/
-              1000,
-          expiredIdKey,
-        ]);
+    app.store.database.execute(
+      'UPDATE stores SET last_seen = ? WHERE id_key = ?',
+      [
+        DateTime.now()
+                .subtract(const Duration(days: 31))
+                .millisecondsSinceEpoch ~/
+            1000,
+        expiredIdKey,
+      ],
+    );
     final controller = AthenaeumSweepController(
       app.store,
       schedule: (interval, callback) {
