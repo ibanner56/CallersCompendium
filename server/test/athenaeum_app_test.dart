@@ -1970,6 +1970,89 @@ void main() {
     },
   );
 
+  test(
+    'manifest PUT over the byte quota returns 507 without storing',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'athenaeum-manifest-byte-quota-',
+      );
+      final probe = SyncManifest(
+        deviceId: 'device-a',
+        epoch: 'e' * 32,
+        writtenAt: DateTime.utc(2026, 9, 3),
+        records: const {},
+      );
+      final length = encodeSyncManifestUtf8(probe).length;
+      final customStore = AthenaeumStore(
+        config: AthenaeumConfig(
+          dataDirectory: directory.path,
+          pepper: List<int>.filled(32, 0x42),
+        ),
+        database: sqlite3.openInMemory(),
+        breakGlassDatabase: sqlite3.openInMemory(),
+        diagnosticDatabase: sqlite3.openInMemory(),
+        quotaLimits: AthenaeumQuotaLimits(maxBytes: length - 1),
+      );
+      final customApp = AthenaeumApp(
+        config: customStore.config,
+        store: customStore,
+      );
+      addTearDown(() async {
+        customStore.close();
+        await directory.delete(recursive: true);
+      });
+      final authorization = ['Bearer', encodeSyncCredential(syncId)].join(' ');
+      Future<Response> request(
+        String method,
+        String path, {
+        Uint8List? body,
+        bool declareLength = true,
+      }) => customApp.call(
+        Request(
+          method,
+          Uri.parse('http://127.0.0.1$path'),
+          headers: {
+            'authorization': authorization,
+            if (body != null) 'content-type': 'application/json',
+            if (body != null && declareLength)
+              'content-length': '${body.length}',
+          },
+          body: body == null ? null : Stream.value(body),
+        ),
+      );
+
+      final created = await request('POST', '/v1/store');
+      expect(created.statusCode, 201);
+      final epoch =
+          (jsonDecode(await created.readAsString())
+                  as Map<String, Object?>)['epoch']!
+              as String;
+      final body = encodeSyncManifestUtf8(
+        SyncManifest(
+          deviceId: 'device-a',
+          epoch: epoch,
+          writtenAt: DateTime.utc(2026, 9, 3),
+          records: const {},
+        ),
+      );
+      expect(body.length, length);
+      for (final declareLength in [true, false]) {
+        expect(
+          (await request(
+            'PUT',
+            '/v1/manifests/device-a',
+            body: body,
+            declareLength: declareLength,
+          )).statusCode,
+          507,
+          reason: 'declareLength=$declareLength',
+        );
+      }
+      final idKey = deriveIncomingSyncIdKey(syncId, customApp.config.pepper);
+      expect(customStore.manifest(idKey, epoch, 'device-a'), isNull);
+    },
+  );
+
   test('blob-count quota rejects the next unique upload', () async {
     final directory = await Directory.systemTemp.createTemp(
       'athenaeum-blob-quota-',

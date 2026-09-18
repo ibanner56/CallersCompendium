@@ -391,8 +391,9 @@ class AthenaeumApp {
       if (_declaredLengthExceeds(request, maxManifestBytes)) {
         throw const _RequestFailure(413, 'request body exceeds limit');
       }
+      late final int quotaLimit;
       try {
-        store.manifestUploadPreflight(
+        quotaLimit = store.manifestUploadPreflight(
           idKey: identity.idKey,
           epoch: current.epoch,
           deviceId: deviceId,
@@ -402,11 +403,15 @@ class AthenaeumApp {
       } on StoreQuotaExceeded catch (error) {
         throw _RequestFailure(507, error.message);
       }
+      if (_declaredLengthExceeds(request, quotaLimit)) {
+        throw const _RequestFailure(507, 'byte quota exhausted');
+      }
       final depthScanner = _MissingHashScanner();
       final body = await _readBody(
         request,
         maxManifestBytes,
         onChunk: depthScanner.add,
+        quotaBytes: quotaLimit,
       );
       final manifest = _decodeManifest(body);
       if (manifest.deviceId != deviceId) {
