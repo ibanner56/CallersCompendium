@@ -10,6 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
+CHECKS_WORKFLOW = ROOT / ".github" / "workflows" / "_checks.yml"
 JOB_HEADING = re.compile(r"^  [a-z][a-z0-9_]*:\n", re.MULTILINE)
 
 
@@ -164,6 +165,36 @@ def main() -> None:
 
     assert text.count("ref: ${{ needs.meta.outputs.release_ref }}") == 4, (
         "build, Windows, publish, and Pages jobs must all check out the release ref"
+    )
+
+    # The reusable assurance checks must run against the SAME resolved commit as
+    # the build/publish jobs, not the dispatch ref. On a recovery dispatch (which
+    # must be launched from main) a ref-less reusable checkout validated main
+    # while the build packaged the tagged commit. The checks job therefore has to
+    # depend on meta and pass the resolved commit down into _checks.yml.
+    checks_job = _job_section(text, "checks")
+    assert "uses: ./.github/workflows/_checks.yml" in checks_job, (
+        "the release checks job must delegate to the reusable checks workflow"
+    )
+    assert re.search(r"^    needs:\s*(meta\b|\[[^\]]*\bmeta\b[^\]]*\])", checks_job, re.MULTILINE), (
+        "the checks job must depend on meta so the resolved commit is available"
+    )
+    assert "checkout_ref: ${{ needs.meta.outputs.source_sha }}" in checks_job, (
+        "the checks job must pin the reusable checks to the resolved release commit"
+    )
+
+    # And _checks.yml must actually honour that input in every job's checkout,
+    # while defaulting to the triggering ref so the PR gate (ci.yml passes no
+    # checkout_ref) is unaffected.
+    checks_text = CHECKS_WORKFLOW.read_text(encoding="utf-8")
+    assert re.search(
+        r"^      checkout_ref:\n(?:.*\n)*?        default:\s*''\n",
+        checks_text,
+        re.MULTILINE,
+    ), "_checks.yml must declare a checkout_ref input defaulting to the triggering ref"
+    assert checks_text.count("ref: ${{ inputs.checkout_ref }}") == 4, (
+        "every _checks.yml job (validate, core, app, server) must check out "
+        "the passed-in ref"
     )
     assert text.count("needs.meta.outputs.is_release == 'true'") == 4, (
         "draft, mobile, provenance verification, and Pages must share the release guard"
