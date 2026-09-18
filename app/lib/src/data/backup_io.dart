@@ -27,6 +27,14 @@ typedef BackupPicker = Future<String?> Function();
 bool Function() isDesktopPlatform = () =>
     Platform.isMacOS || Platform.isWindows || Platform.isLinux;
 
+/// Test seam for macOS detection; defaults to the real `dart:io` getter.
+///
+/// macOS is the one desktop platform whose sandbox forces the direct
+/// exact-path backup write (see [writeDesktopBackup]); Windows and Linux get
+/// the atomic replacement. Overridable so tests can drive both branches of that
+/// routing without depending on the host OS.
+bool Function() isMacOsPlatform = () => Platform.isMacOS;
+
 const _jsonTypeGroup = XTypeGroup(
   label: 'Backup (JSON)',
   extensions: ['json'],
@@ -122,9 +130,11 @@ Future<void> writeStringAtomically(
 ///
 /// On desktop (macOS/Windows/Linux) a backup is a "save a file" action: this
 /// shows a native Save As dialog (via `file_selector`'s [getSaveLocation]) and
-/// writes [json] directly to the chosen path. On sandboxed macOS, the save
-/// panel grants access only to that exact path, not to an atomic writer's
-/// sibling `<path>.tmp` file.
+/// then writes [json] to the chosen path via [writeDesktopBackup] — atomically
+/// on Windows and Linux (so an interrupted write can't destroy the previous
+/// good backup), and directly on sandboxed macOS, where the save panel grants
+/// access only to that exact path and not to an atomic writer's sibling
+/// `<path>.tmp` file.
 /// Returns `false` without writing anything if the user cancels the dialog.
 ///
 /// On mobile (iOS/Android) a backup is a "share to another app" action: this
@@ -142,7 +152,7 @@ Future<bool> saveBackupToFile(String json, String suggestedFileName) async {
       acceptedTypeGroups: const [_jsonTypeGroup],
     );
     if (location == null) return false;
-    await writeStringToUserSelectedPath(location.path, json);
+    await writeDesktopBackup(location.path, json);
     return true;
   }
 
@@ -164,7 +174,45 @@ Future<bool> saveBackupToFile(String json, String suggestedFileName) async {
   return true;
 }
 
-/// Writes to the exact path authorized by a native desktop Save As panel.
+/// Writes a finished backup to the [path] a native desktop Save As panel
+/// returned, choosing the safest write the platform's sandbox allows.
+///
+/// On Windows and Linux there is no sandbox restriction on the chosen path's
+/// directory, so this writes atomically ([writeStringAtomically]): the bytes go
+/// to a flushed sibling `<path>.tmp` that is then `rename`d over [path], so an
+/// interrupted write (crash, power loss, disk-full) leaves the previous good
+/// backup untouched instead of a truncated half-file.
+///
+/// On macOS the app is sandboxed (`com.apple.security.app-sandbox`, see
+/// `macos/Runner/Release.entitlements`) and the save panel grants a security
+/// scope for the *exact* selected path only, not for the sibling `<path>.tmp`
+/// the atomic writer needs. There this intentionally writes in place via
+/// [writeStringToUserSelectedPath], accepting that an interrupted write can
+/// still truncate the prior backup — the sandbox leaves no atomic alternative
+/// for a user-selected destination.
+///
+/// [debugSimulateFailure] is forwarded to [writeStringAtomically] on the
+/// Windows/Linux path (a test-only seam proving an interrupted write can't harm
+/// the previous backup); the in-place macOS path has no such protection to
+/// exercise and ignores it. Production callers never pass it.
+@visibleForTesting
+Future<void> writeDesktopBackup(
+  String path,
+  String contents, {
+  Future<void> Function()? debugSimulateFailure,
+}) {
+  if (isMacOsPlatform()) {
+    return writeStringToUserSelectedPath(path, contents);
+  }
+  return writeStringAtomically(
+    path,
+    contents,
+    debugSimulateFailure: debugSimulateFailure,
+  );
+}
+
+/// Writes in place to the exact path authorized by a native desktop Save As
+/// panel. This is the sandboxed-macOS branch of [writeDesktopBackup].
 ///
 /// macOS sandbox permissions for the selected destination do not extend to
 /// sibling paths, so this intentionally cannot use [writeStringAtomically].

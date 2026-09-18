@@ -163,6 +163,83 @@ void main() {
     });
   });
 
+  group('writeDesktopBackup (platform routing)', () {
+    late Directory dir;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('backup_io_desktop_test');
+    });
+
+    tearDown(() async {
+      // Restore the seam so routing never leaks between tests.
+      isMacOsPlatform = () => Platform.isMacOS;
+      if (await dir.exists()) await dir.delete(recursive: true);
+    });
+
+    test(
+      'non-macOS routes through the atomic writer: an interrupted write leaves '
+      'the previous good backup intact and no .tmp litter',
+      () async {
+        isMacOsPlatform = () => false;
+        final target = File('${dir.path}/backup.json');
+        await target.writeAsString('GOOD');
+
+        // The failure fires after the temp file is written but before the
+        // rename — exactly where a naive in-place overwrite would already have
+        // clobbered the previous good backup.
+        await expectLater(
+          writeDesktopBackup(
+            target.path,
+            'NEW-BUT-DOOMED',
+            debugSimulateFailure: () async =>
+                throw const FileSystemException('simulated write failure'),
+          ),
+          throwsA(isA<FileSystemException>()),
+        );
+
+        // Proves Windows/Linux went through writeStringAtomically: the prior
+        // backup survives and no `.tmp` sibling is left behind. A regression
+        // that routed non-macOS to the direct write would complete without
+        // throwing and leave 'NEW-BUT-DOOMED' here.
+        expect(await target.readAsString(), 'GOOD');
+        expect(await File('${target.path}.tmp').exists(), isFalse);
+      },
+    );
+
+    test('non-macOS replaces the file and leaves no .tmp on success', () async {
+      isMacOsPlatform = () => false;
+      final target = File('${dir.path}/backup.json');
+      await target.writeAsString('OLD');
+
+      await writeDesktopBackup(target.path, 'NEW');
+
+      expect(await target.readAsString(), 'NEW');
+      expect(await File('${target.path}.tmp').exists(), isFalse);
+    });
+
+    test(
+      'macOS routes to the in-place write, bypassing the atomic seam',
+      () async {
+        isMacOsPlatform = () => true;
+        final target = File('${dir.path}/backup.json');
+        await target.writeAsString('GOOD');
+
+        // The in-place macOS path ignores debugSimulateFailure, so the write
+        // completes and overwrites the target. A regression that routed macOS
+        // through the atomic writer would honor the seam and throw here (and
+        // preserve 'GOOD'), failing this test.
+        await writeDesktopBackup(
+          target.path,
+          'NEW',
+          debugSimulateFailure: () async =>
+              throw const FileSystemException('must not fire on macOS'),
+        );
+
+        expect(await target.readAsString(), 'NEW');
+      },
+    );
+  });
+
   group('writeStringToUserSelectedPath', () {
     late Directory dir;
 
