@@ -625,6 +625,74 @@ void main() {
     });
 
     testWidgets(
+      'shutdown does not recreate a draft after a successful Perform update',
+      (tester) async {
+        final delayed = openTestRepositoriesWithDelayedPrograms();
+        await delayed.repos.dances.create(
+          Dance(
+            id: 'd1',
+            title: 'First Dance',
+            figures: const [],
+            status: DanceStatus.active,
+            createdAt: _now,
+            updatedAt: _now,
+          ),
+        );
+        await delayed.repos.programs.create(
+          _program(
+            id: 'p1',
+            title: 'Before',
+            slots: [_danceSlot('s1', 0, 'd1')],
+          ),
+        );
+        final shutdown = EditorDraftShutdownController();
+        await _pumpEditor(
+          tester,
+          delayed.repos,
+          programId: 'p1',
+          shutdownController: shutdown,
+        );
+
+        await tester.enterText(
+          find.byKey(const ValueKey('program-title')),
+          'Pending metadata',
+        );
+        await tester.tap(find.byKey(const ValueKey('perform-program')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+        await tester.pumpAndSettle();
+
+        delayed.programs.holdNextWrite();
+        await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('adjust-done')));
+        await tester.pumpAndSettle();
+        await delayed.programs.writeStarted;
+
+        final flush = shutdown.flushAll();
+        var completed = false;
+        final observed = flush.whenComplete(() => completed = true);
+        await tester.pump();
+        expect(completed, isFalse);
+
+        delayed.programs.releaseWrite();
+        await observed;
+        await tester.pumpAndSettle();
+
+        final persisted = await delayed.repos.programs.getById('p1');
+        expect(persisted?.title, 'Pending metadata');
+        expect(persisted?.slots.single.performedAt, isNotNull);
+        expect(
+          await delayed.repos.settings.contains('program_editor_draft:p1'),
+          isFalse,
+          reason:
+              'a successful Perform update already removed the draft and '
+              'shutdown must not recreate it',
+        );
+      },
+    );
+
+    testWidgets(
       'shutdown waits for a successful auto-commit without recreating its draft',
       (tester) async {
         final delayed = openTestRepositoriesWithDelayedPrograms();

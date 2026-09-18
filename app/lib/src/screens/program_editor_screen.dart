@@ -1833,7 +1833,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 updatedAt: DateTime.now().toUtc(),
               );
               _autoCommitTimer?.cancel();
-              _editGeneration++;
+              final generation = ++_editGeneration;
               final operation = _commitQueueTail.then((_) async {
                 await _repos.programs.update(persisted);
                 await _clearDraft(waitForCommits: false);
@@ -1841,14 +1841,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               // Keep later commits usable if this live-gig write fails, while
               // still surfacing the failure to this callback.
               _commitQueueTail = operation.then<_AutoCommitOutcome>(
-                (_) => const _AutoCommitOutcome.none(),
+                (_) => _AutoCommitOutcome.committed(generation),
                 onError: (Object error, StackTrace stackTrace) {
                   logCaughtError(
                     error,
                     stackTrace,
                     source: 'program_editor_screen._performPersist',
                   );
-                  return const _AutoCommitOutcome.none();
+                  return _AutoCommitOutcome.failed(generation);
                 },
               );
               try {
