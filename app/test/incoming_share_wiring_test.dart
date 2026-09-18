@@ -425,9 +425,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.pumpWidget(const SizedBox.shrink());
-      initialFile.complete(
-        IncomingFile(path: stagedFile.path, appOwned: true),
-      );
+      initialFile.complete(IncomingFile(path: stagedFile.path, appOwned: true));
       await tester.pump();
 
       expect(stagedFile.existsSync(), isFalse);
