@@ -239,6 +239,15 @@ class ArchiveRestorer {
         if (wasTombstoned) {
           await _repos.dances.restore(d.id, at: causalAt);
         }
+        Future<void> compensate() async {
+          if (existing != null) {
+            await _repos.dances.create(existing);
+            if (wasTombstoned) {
+              await _repos.dances.softDelete(d.id, at: causalAt);
+            }
+          }
+        }
+
         try {
           final restoredDance = _repairRestoredCallersBoxRollAway(
             _applyRemap(d, choreoRemap, tagRemap, fieldRemap),
@@ -251,13 +260,13 @@ class ArchiveRestorer {
           if (wasLive) {
             await _repos.dances.softDelete(d.id, at: causalAt);
           }
+        } on ArgumentError {
+          // Malformed content is an Error, but it still needs to undo a
+          // tombstone revival before _guard records the restore failure.
+          await compensate();
+          rethrow;
         } on Exception {
-          if (existing != null) {
-            await _repos.dances.create(existing);
-            if (wasTombstoned) {
-              await _repos.dances.softDelete(d.id, at: causalAt);
-            }
-          }
+          await compensate();
           rethrow;
         }
       });
@@ -288,6 +297,15 @@ class ArchiveRestorer {
         if (wasTombstoned) {
           await _repos.programs.restore(p.id, at: causalAt);
         }
+        Future<void> compensate() async {
+          if (existing != null) {
+            await _repos.programs.create(existing);
+            if (wasTombstoned) {
+              await _repos.programs.softDelete(p.id, at: causalAt);
+            }
+          }
+        }
+
         try {
           await _repos.programs.create(
             wasLive
@@ -301,13 +319,13 @@ class ArchiveRestorer {
           if (wasLive) {
             await _repos.programs.softDelete(p.id, at: causalAt);
           }
+        } on ArgumentError {
+          // Malformed content is an Error, but it still needs to undo a
+          // tombstone revival before _guard records the restore failure.
+          await compensate();
+          rethrow;
         } on Exception {
-          if (existing != null) {
-            await _repos.programs.create(existing);
-            if (wasTombstoned) {
-              await _repos.programs.softDelete(p.id, at: causalAt);
-            }
-          }
+          await compensate();
           rethrow;
         }
       });
