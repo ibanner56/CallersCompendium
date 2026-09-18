@@ -27,6 +27,7 @@ import 'src/data/custom_themes_scope.dart';
 import 'src/data/date_format_scope.dart';
 import 'src/data/dialect_library_controller.dart';
 import 'src/data/dialect_library_scope.dart';
+import 'src/data/editor_draft_shutdown_scope.dart';
 import 'src/data/first_day_of_week_scope.dart';
 import 'src/data/formation_colors_controller.dart';
 import 'src/data/formation_colors_scope.dart';
@@ -151,7 +152,13 @@ Future<void> main() async {
     // AppBootstrap error/retry screen instead of throwing out of `main` before
     // `runApp` — which would leave a blank window with no way to recover.
     final appData = AppData(openAppDatabase());
-    final shutdownController = ApplicationShutdownController(appData.close);
+    final editorDraftShutdownController = EditorDraftShutdownController();
+    Future<void> closeApp() => flushEditorDraftsThenClose(
+      editorDraftShutdownController,
+      appData.close,
+    );
+
+    final shutdownController = ApplicationShutdownController(closeApp);
     _applicationTerminationChannel.setMethodCallHandler((
       MethodCall call,
     ) async {
@@ -172,6 +179,7 @@ Future<void> main() async {
         appData: appData,
         windowService: windowService,
         applicationShutdownController: shutdownController,
+        editorDraftShutdownController: editorDraftShutdownController,
         crashReporter: crashReporter,
         migrationPreflight: (onSnapshotFailure) => runMigrationPreflightForApp(
           runningSchemaVersion: kCompendiumSchemaVersion,
@@ -223,6 +231,7 @@ class CompendiumApp extends StatefulWidget {
     this.databaseFileResolver = resolveDatabaseFile,
     this.databaseResetter = _resetDatabaseFile,
     this.applicationShutdownController,
+    this.editorDraftShutdownController,
   });
 
   /// The initially opened database + repositories facade. Injected from [main]
@@ -238,6 +247,11 @@ class CompendiumApp extends StatefulWidget {
   /// The reset flow swaps this controller's action to its replacement database,
   /// so native termination never closes a stale connection.
   final ApplicationShutdownController? applicationShutdownController;
+
+  /// Coordinates final draft persistence before ordinary application
+  /// termination. The reset flow deliberately bypasses this coordinator while
+  /// closing the database before deleting it.
+  final EditorDraftShutdownController? editorDraftShutdownController;
 
   /// Initial value for the history preference notifier. Exposed for widget
   /// tests that need to verify replacement resets a stale in-memory value.
@@ -333,6 +347,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
   late AppData _appData;
   late WindowService _windowService;
   late Future<void> _bootstrap;
+  late final EditorDraftShutdownController _editorDraftShutdownController;
 
   /// Determinate progress of the post-migration derived-index rebuild, surfaced
   /// on the [AppBootstrap] loading screen so a large-collection rebuild shows a
@@ -459,6 +474,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
   @override
   void initState() {
     super.initState();
+    _editorDraftShutdownController =
+        widget.editorDraftShutdownController ?? EditorDraftShutdownController();
     _windowService = widget.windowService;
     _initializeDatabaseBackedServices(widget.appData);
     // Listen for files opened while the app is running (AirDrop / "Open with"
@@ -510,7 +527,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _updateController.dispose();
 
     final appData = widget.appDataFactory();
-    widget.applicationShutdownController?.replaceCloseApp(appData.close);
+    widget.applicationShutdownController?.replaceCloseApp(
+      () => _closeAppData(appData),
+    );
     _windowService =
         widget.windowServiceFactory?.call(appData.repositories.settings) ??
         WindowService(
@@ -518,6 +537,13 @@ class _CompendiumAppState extends State<CompendiumApp> {
           onClose: widget.applicationShutdownController?.close ?? appData.close,
         );
     _initializeDatabaseBackedServices(appData);
+  }
+
+  Future<void> _closeAppData(AppData appData) async {
+    await flushEditorDraftsThenClose(
+      _editorDraftShutdownController,
+      appData.close,
+    );
   }
 
   void _resetAppPreferenceNotifiers() {
@@ -1699,20 +1725,24 @@ class _CompendiumAppState extends State<CompendiumApp> {
                                                               child: LocaleScope(
                                                                 notifier:
                                                                     _localeNotifier,
-                                                                child: BackupControllerScope(
-                                                                  onRestored:
-                                                                      reloadFromSettings,
-                                                                  child: CollectionFilterScope(
-                                                                    controller:
-                                                                        _collectionFilterController,
-                                                                    child: VenueEntityModeScope(
-                                                                      notifier:
-                                                                          _venueEntityModeNotifier,
-                                                                      child: ProgramAutoCommitScope(
+                                                                child: EditorDraftShutdownScope(
+                                                                  controller:
+                                                                      _editorDraftShutdownController,
+                                                                  child: BackupControllerScope(
+                                                                    onRestored:
+                                                                        reloadFromSettings,
+                                                                    child: CollectionFilterScope(
+                                                                      controller:
+                                                                          _collectionFilterController,
+                                                                      child: VenueEntityModeScope(
                                                                         notifier:
-                                                                            _autoCommitProgramChangesNotifier,
-                                                                        child:
-                                                                            child!,
+                                                                            _venueEntityModeNotifier,
+                                                                        child: ProgramAutoCommitScope(
+                                                                          notifier:
+                                                                              _autoCommitProgramChangesNotifier,
+                                                                          child:
+                                                                              child!,
+                                                                        ),
                                                                       ),
                                                                     ),
                                                                   ),
