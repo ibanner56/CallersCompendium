@@ -9,6 +9,8 @@ import 'package:compendium_app/src/data/backup_service.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/soft_delete_retention.dart'
+    show kSoftDeleteRetentionDefaultDays, kSoftDeleteRetentionKey;
 import 'package:compendium_app/src/screens/settings_screen.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
@@ -161,9 +163,18 @@ void main() {
     // The live repos starts with different, stale data.
     final repos = openTestRepositories();
     await repos.dances.create(_dance('stale', 'Old Dance'));
+    await repos.settings.set(kSoftDeleteRetentionKey, 90);
 
     var refreshed = false;
     await _pumpGeneral(tester, repos, onRestored: () async => refreshed = true);
+    expect(
+      tester
+          .widget<DropdownButton<int>>(
+            find.byKey(const ValueKey('general-soft-delete-retention')),
+          )
+          .value,
+      90,
+    );
 
     await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
     await tester.pumpAndSettle();
@@ -180,6 +191,15 @@ void main() {
     final dances = await repos.dances.listAll();
     expect(dances.map((d) => d.id), ['d1']);
     expect(refreshed, isTrue, reason: 'onRestored should refresh the live app');
+    expect(await repos.settings.get(kSoftDeleteRetentionKey), isNull);
+    expect(
+      tester
+          .widget<DropdownButton<int>>(
+            find.byKey(const ValueKey('general-soft-delete-retention')),
+          )
+          .value,
+      kSoftDeleteRetentionDefaultDays,
+    );
     expect(find.text('Backup restored.'), findsOneWidget);
   });
 
@@ -358,12 +378,23 @@ void main() {
       // commits, but the SEPARATE settings apply throws.
       final target = openTestRepositoriesWithFailingSettings();
       await target.repos.dances.create(_dance('stale', 'Old Dance'));
+      target.settings.failWrites = false;
+      await target.repos.settings.set(kSoftDeleteRetentionKey, 90);
+      target.settings.failWrites = true;
 
       var refreshCount = 0;
       await _pumpGeneral(
         tester,
         target.repos,
         onRestored: () async => refreshCount++,
+      );
+      expect(
+        tester
+            .widget<DropdownButton<int>>(
+              find.byKey(const ValueKey('general-soft-delete-retention')),
+            )
+            .value,
+        90,
       );
 
       await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
@@ -387,6 +418,15 @@ void main() {
       expect(find.text('Retry settings'), findsOneWidget);
       expect(find.text('Backup restored.'), findsNothing);
       expect(find.text('Settings applied.'), findsNothing);
+      expect(await target.repos.settings.get(kSoftDeleteRetentionKey), isNull);
+      expect(
+        tester
+            .widget<DropdownButton<int>>(
+              find.byKey(const ValueKey('general-soft-delete-retention')),
+            )
+            .value,
+        kSoftDeleteRetentionDefaultDays,
+      );
 
       // The store recovers; tapping Retry re-applies ONLY settings and now
       // reports the success (and refreshes again).
@@ -396,6 +436,15 @@ void main() {
 
       expect(find.text('Settings applied.'), findsOneWidget);
       expect(refreshCount, 2);
+      expect(await target.repos.settings.get(kSoftDeleteRetentionKey), isNull);
+      expect(
+        tester
+            .widget<DropdownButton<int>>(
+              find.byKey(const ValueKey('general-soft-delete-retention')),
+            )
+            .value,
+        kSoftDeleteRetentionDefaultDays,
+      );
     },
   );
 
