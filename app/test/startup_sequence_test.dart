@@ -9,13 +9,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/main.dart';
 import 'package:compendium_app/src/data/app_database.dart';
 import 'package:compendium_app/src/data/application_shutdown_controller.dart';
+import 'package:compendium_app/src/data/backup_service.dart';
 import 'package:compendium_app/src/data/editor_draft_shutdown_scope.dart';
 import 'package:compendium_app/src/data/migration_guard.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/data/window_service.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart'
-    show kAppThemeKey;
+    show kAppThemeKey, kRequirePerformedForHistoryKey;
 
 import 'support/test_repositories.dart';
 
@@ -444,6 +445,63 @@ void main() {
         ),
         isFalse,
       );
+    },
+  );
+
+  testWidgets(
+    'restoring a backup without a preference resets its live notifier',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 2600));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final source = openTestRepositories();
+      await source.dances.create(
+        Dance(
+          id: 'restored',
+          title: 'Restored Dance',
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+      final backupJson = await BackupService(source).exportToJson();
+
+      final appData = _openAppData();
+      await appData.repositories.settings.set(
+        kRequirePerformedForHistoryKey,
+        true,
+      );
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      var context = tester.element(find.byType(AppShell));
+      expect(RequirePerformedForHistoryScope.of(context), isTrue);
+
+      await tester.tap(find.text('Settings').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('settings-nav-general')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('restore-paste-field')),
+        backupJson,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('restore-confirm')));
+      await tester.pumpAndSettle();
+
+      expect(
+        await appData.repositories.settings.get(kRequirePerformedForHistoryKey),
+        isNull,
+      );
+      context = tester.element(find.byType(AppShell));
+      expect(RequirePerformedForHistoryScope.of(context), isFalse);
     },
   );
 
