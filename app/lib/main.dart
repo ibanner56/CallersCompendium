@@ -473,6 +473,12 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// Null when no [CompendiumApp.incomingFileChannel] was injected.
   StreamSubscription<String>? _incomingUrlSub;
 
+  /// App-owned staging paths still being processed. Disposal may race with
+  /// validation or the review route, so cleanup is idempotently shared by both
+  /// the intake future and [dispose].
+  final Set<String> _ownedIncomingPaths = <String>{};
+  bool _incomingIntakeDisposed = false;
+
   bool _incomingDanceImporting = false;
 
   /// Guards the one-time cold-start file check so it runs only once, after the
@@ -616,6 +622,11 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// dispositions, and commits (dances + programs + venues) only on the user's
   /// confirmation — offering a transient Undo afterwards.
   Future<void> _handleIncomingFile(IncomingFile incomingFile) async {
+    _trackOwnedIncomingFile(incomingFile);
+    if (_incomingIntakeDisposed) {
+      await _cleanupOwnedIncomingFile(incomingFile.path);
+      return;
+    }
     try {
       final intake = ArchiveIntakeService(readBytes: widget.incomingFileReader);
       final validation = await intake.validateFromPath(incomingFile.path);
@@ -653,10 +664,17 @@ class _CompendiumAppState extends State<CompendiumApp> {
         ),
       );
     } finally {
-      if (incomingFile.appOwned) {
-        await _deleteIncomingFile(incomingFile.path);
-      }
+      await _cleanupOwnedIncomingFile(incomingFile.path);
     }
+  }
+
+  void _trackOwnedIncomingFile(IncomingFile incomingFile) {
+    if (incomingFile.appOwned) _ownedIncomingPaths.add(incomingFile.path);
+  }
+
+  Future<void> _cleanupOwnedIncomingFile(String path) async {
+    if (!_ownedIncomingPaths.remove(path)) return;
+    await _deleteIncomingFile(path);
   }
 
   Future<void> _deleteIncomingFile(String path) async {
@@ -1348,6 +1366,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
 
   @override
   void dispose() {
+    _incomingIntakeDisposed = true;
+    for (final path in List<String>.of(_ownedIncomingPaths)) {
+      unawaited(_cleanupOwnedIncomingFile(path));
+    }
     unawaited(_incomingFileSub?.cancel());
     unawaited(_incomingUrlSub?.cancel());
     widget.incomingFileChannel?.dispose();
@@ -1625,7 +1647,14 @@ class _CompendiumAppState extends State<CompendiumApp> {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (!mounted) return;
         final file = await channel.initialFile();
-        if (mounted && file != null) await _handleIncomingFile(file);
+        if (!mounted) {
+          if (file != null) {
+            _trackOwnedIncomingFile(file);
+            await _cleanupOwnedIncomingFile(file.path);
+          }
+          return;
+        }
+        if (file != null) await _handleIncomingFile(file);
         if (!mounted) return;
         // Cold start via a shared URL (issue #343): pull it once too. Files and
         // URLs are mutually exclusive for a single launch, so at most one of
