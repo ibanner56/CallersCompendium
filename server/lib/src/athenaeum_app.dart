@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -22,6 +23,7 @@ const int maxGeneralRequestsPerIpPerMinute = 60;
 const int maxGeneralRequestsPerIpBurst = 120;
 const int maxGeneralRequestsPerStorePerMinute = 600;
 const int maxGeneralRequestsPerStoreBurst = 600;
+const int _maxTrackedRequestBuckets = 10000;
 
 void _writeOperationalAlert(AthenaeumOperationalAlert alert) {
   stderr.writeln(jsonEncode({'alert': alert.toJson()}));
@@ -1361,44 +1363,66 @@ class _TokenBucket {
 
 class _RequestBudget {
   _RequestBudget(AthenaeumBudgetLimits limits, {required this.clock})
-    : _limits = limits;
+    : _perIp = _RequestBucketCache(
+        capacity: limits.perIpRequestBurst,
+        refillPerMinute: limits.perIpRequestsPerMinute,
+      ),
+      _perStore = _RequestBucketCache(
+        capacity: limits.perStoreRequestBurst,
+        refillPerMinute: limits.perStoreRequestsPerMinute,
+      );
 
-  final AthenaeumBudgetLimits _limits;
   final DateTime Function() clock;
-  final Map<String, _TokenBucket> _perIp = <String, _TokenBucket>{};
-  final Map<String, _TokenBucket> _perStore = <String, _TokenBucket>{};
+  final _RequestBucketCache _perIp;
+  final _RequestBucketCache _perStore;
 
   bool allowClient(String address) {
     final now = clock();
-    _prune(now);
-    final bucket = _perIp.putIfAbsent(
-      address,
-      () => _TokenBucket(
-        capacity: _limits.perIpRequestBurst,
-        refillPerMinute: _limits.perIpRequestsPerMinute,
-        now: now,
-      ),
-    );
-    return bucket.tryTake(now);
+    return _perIp.allow(address, now);
   }
 
   bool allowStore(String idKey) {
     final now = clock();
+    return _perStore.allow(idKey, now);
+  }
+}
+
+class _RequestBucketCache {
+  _RequestBucketCache({
+    required this._capacity,
+    required this._refillPerMinute,
+  });
+
+  final int _capacity;
+  final int _refillPerMinute;
+  final LinkedHashMap<String, _TokenBucket> _buckets =
+      LinkedHashMap<String, _TokenBucket>();
+
+  bool allow(String key, DateTime now) {
     _prune(now);
-    final bucket = _perStore.putIfAbsent(
-      idKey,
-      () => _TokenBucket(
-        capacity: _limits.perStoreRequestBurst,
-        refillPerMinute: _limits.perStoreRequestsPerMinute,
+    var bucket = _buckets.remove(key);
+    if (bucket == null) {
+      if (_buckets.length >= _maxTrackedRequestBuckets) {
+        _buckets.remove(_buckets.keys.first);
+      }
+      bucket = _TokenBucket(
+        capacity: _capacity,
+        refillPerMinute: _refillPerMinute,
         now: now,
-      ),
-    );
-    return bucket.tryTake(now);
+      );
+    }
+    final allowed = bucket.tryTake(now);
+    _buckets[key] = bucket;
+    return allowed;
   }
 
   void _prune(DateTime now) {
-    _perIp.removeWhere((_, bucket) => bucket.isInactive(now));
-    _perStore.removeWhere((_, bucket) => bucket.isInactive(now));
+    // Access order matches expiry order because every access updates the clock.
+    while (_buckets.isNotEmpty) {
+      final entry = _buckets.entries.first;
+      if (!entry.value.isInactive(now)) break;
+      _buckets.remove(entry.key);
+    }
   }
 }
 

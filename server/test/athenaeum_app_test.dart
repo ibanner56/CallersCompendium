@@ -873,33 +873,31 @@ void main() {
   test(
     'general client request budget limits successful sync requests',
     () async {
+      final authorization = ['Bearer', encodeSyncCredential(syncId)].join(' ');
       final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
       app.store.create(idKey);
-      for (var attempt = 0; attempt < 120; attempt++) {
-        final response = await _send(
-          'GET',
-          '/v1/store',
-          syncId: syncId,
-          headers: {'x-test-ip': 'client'},
-        );
-        expect(response.statusCode, 200);
-        await response.drain<void>();
-      }
-      final response = await _send(
-        'GET',
-        '/v1/store',
-        syncId: syncId,
-        headers: {'x-test-ip': 'client'},
+      final customApp = AthenaeumApp(
+        config: app.config,
+        store: app.store,
+        clientAddressResolver: (_) => 'client',
+        clock: () => DateTime.utc(2026, 9, 3),
       );
-      expect(response.statusCode, 429);
-      expect(response.headers.value('retry-after'), '60');
-      await response.drain<void>();
-      final heartbeat = await app.call(
+      Future<Response> request() => customApp.call(
         Request(
           'GET',
-          Uri.parse('http://127.0.0.1/heartbeat'),
-          headers: {'x-test-ip': 'client'},
+          Uri.parse('http://127.0.0.1/v1/store'),
+          headers: {'authorization': authorization},
         ),
+      );
+      for (var attempt = 0; attempt < 120; attempt++) {
+        final response = await request();
+        expect(response.statusCode, 200);
+      }
+      final response = await request();
+      expect(response.statusCode, 429);
+      expect(response.headers['retry-after'], '60');
+      final heartbeat = await customApp.call(
+        Request('GET', Uri.parse('http://127.0.0.1/heartbeat')),
       );
       expect(heartbeat.statusCode, 200);
     },
