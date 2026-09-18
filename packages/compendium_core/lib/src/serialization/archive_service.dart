@@ -412,12 +412,26 @@ class ArchiveRestorer {
     Future<void> Function() op,
   ) async {
     try {
-      await op();
+      try {
+        await op();
+      } on ArgumentError catch (e) {
+        throw ArchiveContentValidationException(e);
+      }
+    } on ArchiveContentValidationException catch (e) {
+      errors.add(
+        ArchiveError(
+          kind: ArchiveErrorKind.restore,
+          entityType: entityType,
+          entityId: entityId,
+          message: 'could not be restored',
+          cause: e.cause,
+        ),
+      );
     } on Exception catch (e) {
-      // Catch only Exceptions: Dart Errors signal programming/contract bugs and
-      // should surface, not be swallowed as data-quality issues. Keep the
+      // Other Exceptions are expected per-entity failures. Keep the
       // user-facing message stable (no engine-specific SQL leaking in); the raw
-      // exception is preserved in `cause` for diagnostics.
+      // exception is preserved in `cause` for diagnostics. Unrelated Dart
+      // Errors still surface.
       errors.add(
         ArchiveError(
           kind: ArchiveErrorKind.restore,
