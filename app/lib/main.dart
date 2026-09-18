@@ -530,6 +530,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _sortIgnoreArticlesNotifier.value = true;
     _reduceMotionNotifier.value = null;
     _verboseFigureRenderingNotifier.value = false;
+    _canonicalDiscouragedTermsNotifier.value = true;
     _decimalTurnsNotifier.value = false;
     _aggressiveBeatsUpdateNotifier.value = false;
     _confirmBeforeDeleteNotifier.value = false;
@@ -1033,6 +1034,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// startup sequence so a backup restore (ROADMAP G.5) can re-run exactly this
   /// step — via [reloadFromSettings] — to refresh the UI without a relaunch.
   Future<void> _loadPreferences() async {
+    _resetAppPreferenceNotifiers();
     // Load the persisted dialect library (custom dialects + active-name ref),
     // migrating any legacy single-dialect blob one time, then seed the notifier
     // with the resolved active dialect (defaults to Larks/Robins when unset).
