@@ -8,6 +8,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/main.dart';
 import 'package:compendium_app/src/data/app_database.dart';
+import 'package:compendium_app/src/data/application_shutdown_controller.dart';
+import 'package:compendium_app/src/data/editor_draft_shutdown_scope.dart';
 import 'package:compendium_app/src/data/migration_guard.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/data/window_service.dart';
@@ -78,6 +80,19 @@ class _FailOnceMigrationAppData extends AppData {
 
   @override
   _FailOnceMigrationRepositories get repositories => _repositories;
+}
+
+class _RecordingAppData extends AppData {
+  _RecordingAppData(super.db, this.closeEvents, this.closeLabel);
+
+  final List<String> closeEvents;
+  final String closeLabel;
+
+  @override
+  Future<void> close() async {
+    closeEvents.add(closeLabel);
+    await super.close();
+  }
 }
 
 AppData _openAppData() {
@@ -444,12 +459,28 @@ void main() {
       bridgeTag: 'v0.1.0-beta.6',
     );
     var replacementAppDataCount = 0;
-    final initialAppData = _openAppData();
+    final closeEvents = <String>[];
+    final initialAppData = _RecordingAppData(
+      openWidgetTestDatabase(closeOnTearDown: false),
+      closeEvents,
+      'initial-db-close',
+    );
+    addTearDown(initialAppData.close);
+    final draftShutdownController = EditorDraftShutdownController();
+    draftShutdownController.register(() {
+      closeEvents.add('draft-flush');
+      return () async {};
+    });
+    final applicationShutdownController = ApplicationShutdownController(
+      () async => closeEvents.add('initial-shutdown'),
+    );
 
     await tester.pumpWidget(
       CompendiumApp(
         appData: initialAppData,
         windowService: _NoopWindowService(initialAppData.repositories.settings),
+        applicationShutdownController: applicationShutdownController,
+        editorDraftShutdownController: draftShutdownController,
         migrationPreflight: (_) async {
           // Keep the failure asynchronous so FutureBuilder can subscribe to
           // the replacement bootstrap future before it completes.
@@ -462,7 +493,13 @@ void main() {
             const ResetFailed('injected reset failure'),
         appDataFactory: () {
           replacementAppDataCount++;
-          return _openAppData();
+          final replacementAppData = _RecordingAppData(
+            openWidgetTestDatabase(closeOnTearDown: false),
+            closeEvents,
+            'replacement-db-close',
+          );
+          addTearDown(replacementAppData.close);
+          return replacementAppData;
         },
         windowServiceFactory: (settings) => _NoopWindowService(settings),
       ),
@@ -486,6 +523,15 @@ void main() {
     expect(
       find.text('This data is from a version too old to open'),
       findsOneWidget,
+    );
+    await applicationShutdownController.close();
+    expect(
+      closeEvents,
+      containsAllInOrder([
+        'initial-db-close',
+        'draft-flush',
+        'replacement-db-close',
+      ]),
     );
   });
 

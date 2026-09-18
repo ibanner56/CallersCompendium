@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/editor_draft_shutdown_scope.dart';
 import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/editor/program_editor_draft_codec.dart';
@@ -70,6 +71,7 @@ Future<void> _pumpEditor(
   String? programId,
   bool autoCommit = false,
   ValueNotifier<bool>? autoCommitController,
+  EditorDraftShutdownController? shutdownController,
   void Function(String)? onSaved,
 }) async {
   await tester.binding.setSurfaceSize(const Size(800, 1400));
@@ -85,13 +87,24 @@ Future<void> _pumpEditor(
       supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
-        child: ActiveDialectScope(
-          notifier: notifier,
-          child: ProgramAutoCommitScope(
-            notifier: autoCommitNotifier,
-            child: child!,
-          ),
-        ),
+        child: shutdownController == null
+            ? ActiveDialectScope(
+                notifier: notifier,
+                child: ProgramAutoCommitScope(
+                  notifier: autoCommitNotifier,
+                  child: child!,
+                ),
+              )
+            : EditorDraftShutdownScope(
+                controller: shutdownController,
+                child: ActiveDialectScope(
+                  notifier: notifier,
+                  child: ProgramAutoCommitScope(
+                    notifier: autoCommitNotifier,
+                    child: child!,
+                  ),
+                ),
+              ),
       ),
       home: ProgramEditorScreen(
         programId: programId,
@@ -297,6 +310,43 @@ void main() {
       );
       expect(decoded.title, 'Draft Title');
     });
+
+    testWidgets(
+      'shutdown flush writes a pending title edit before the debounce',
+      (tester) async {
+        final delayed = openTestRepositoriesWithDelayedSettings();
+        final shutdown = EditorDraftShutdownController();
+        await _pumpEditor(tester, delayed.repos, shutdownController: shutdown);
+
+        await tester.enterText(
+          find.byKey(const ValueKey('program-title')),
+          'Final program title',
+        );
+        delayed.settings.holdNextWrite();
+
+        final flush = shutdown.flushAll();
+        var completed = false;
+        final observed = flush.whenComplete(() => completed = true);
+
+        await tester.pump();
+        expect(
+          delayed.settings.writesStarted,
+          1,
+          reason:
+              'shutdown must enqueue the pending snapshot immediately '
+              'instead of waiting for the autosave timer',
+        );
+        expect(completed, isFalse);
+
+        delayed.settings.releaseWrite();
+        await observed;
+
+        final draft = decodeProgramDraft(
+          await delayed.repos.settings.get('program_editor_draft:new'),
+        );
+        expect(draft.title, 'Final program title');
+      },
+    );
 
     testWidgets('structural change (insert break) autosaves the set list', (
       tester,
@@ -573,6 +623,174 @@ void main() {
       expect(all.single.id, 'p1');
       expect(all.single.title, 'After');
     });
+
+    testWidgets(
+      'shutdown does not recreate a draft after a successful Perform update',
+      (tester) async {
+        final delayed = openTestRepositoriesWithDelayedPrograms();
+        await delayed.repos.dances.create(
+          Dance(
+            id: 'd1',
+            title: 'First Dance',
+            figures: const [],
+            status: DanceStatus.active,
+            createdAt: _now,
+            updatedAt: _now,
+          ),
+        );
+        await delayed.repos.programs.create(
+          _program(
+            id: 'p1',
+            title: 'Before',
+            slots: [_danceSlot('s1', 0, 'd1')],
+          ),
+        );
+        final shutdown = EditorDraftShutdownController();
+        await _pumpEditor(
+          tester,
+          delayed.repos,
+          programId: 'p1',
+          shutdownController: shutdown,
+        );
+
+        await tester.enterText(
+          find.byKey(const ValueKey('program-title')),
+          'Pending metadata',
+        );
+        await tester.tap(find.byKey(const ValueKey('perform-program')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+        await tester.pumpAndSettle();
+
+        delayed.programs.holdNextWrite();
+        await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('adjust-done')));
+        await tester.pumpAndSettle();
+        await delayed.programs.writeStarted;
+
+        final flush = shutdown.flushAll();
+        var completed = false;
+        final observed = flush.whenComplete(() => completed = true);
+        await tester.pump();
+        expect(completed, isFalse);
+
+        delayed.programs.releaseWrite();
+        await observed;
+        await tester.pumpAndSettle();
+
+        final persisted = await delayed.repos.programs.getById('p1');
+        expect(persisted?.title, 'Pending metadata');
+        expect(persisted?.slots.single.performedAt, isNotNull);
+        expect(
+          await delayed.repos.settings.contains('program_editor_draft:p1'),
+          isFalse,
+          reason:
+              'a successful Perform update already removed the draft and '
+              'shutdown must not recreate it',
+        );
+      },
+    );
+
+    testWidgets(
+      'shutdown waits for a successful auto-commit without recreating its draft',
+      (tester) async {
+        final delayed = openTestRepositoriesWithDelayedPrograms();
+        await delayed.repos.programs.create(
+          _program(id: 'p1', title: 'Before'),
+        );
+        final shutdown = EditorDraftShutdownController();
+        await _pumpEditor(
+          tester,
+          delayed.repos,
+          programId: 'p1',
+          autoCommit: true,
+          shutdownController: shutdown,
+        );
+
+        await tester.enterText(
+          find.byKey(const ValueKey('program-title')),
+          'Committed title',
+        );
+        delayed.programs.holdNextWrite();
+        await tester.pump(const Duration(milliseconds: 600));
+        await delayed.programs.writeStarted;
+
+        final flush = shutdown.flushAll();
+        var completed = false;
+        final observed = flush.whenComplete(() => completed = true);
+        await tester.pump();
+        expect(completed, isFalse);
+
+        delayed.programs.releaseWrite();
+        await observed;
+        await tester.pumpAndSettle();
+
+        expect(
+          (await delayed.repos.programs.getById('p1'))!.title,
+          'Committed title',
+        );
+        expect(
+          await delayed.repos.settings.contains('program_editor_draft:p1'),
+          isFalse,
+          reason:
+              'a successful auto-commit already removed the draft and the '
+              'shutdown flush must not recreate it',
+        );
+      },
+    );
+
+    testWidgets(
+      'shutdown preserves a captured draft when an auto-commit becomes stale',
+      (tester) async {
+        final delayed = openTestRepositoriesWithDelayedPrograms();
+        await delayed.repos.programs.create(
+          _program(id: 'p1', title: 'Before'),
+        );
+        final shutdown = EditorDraftShutdownController();
+        await _pumpEditor(
+          tester,
+          delayed.repos,
+          programId: 'p1',
+          autoCommit: true,
+          shutdownController: shutdown,
+        );
+
+        await tester.enterText(
+          find.byKey(const ValueKey('program-title')),
+          'First committed attempt',
+        );
+        delayed.programs.holdNextWrite();
+        await tester.pump(const Duration(milliseconds: 600));
+        await delayed.programs.writeStarted;
+
+        await tester.enterText(
+          find.byKey(const ValueKey('program-title')),
+          'Newest recovery title',
+        );
+        await tester.pump();
+
+        final flush = shutdown.flushAll();
+        var completed = false;
+        final observed = flush.whenComplete(() => completed = true);
+        await tester.pump();
+        expect(completed, isFalse);
+
+        delayed.programs.releaseWrite();
+        await observed;
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.pumpAndSettle();
+
+        expect(
+          (await delayed.repos.programs.getById('p1'))!.title,
+          'First committed attempt',
+        );
+        final draft = decodeProgramDraft(
+          await delayed.repos.settings.get('program_editor_draft:p1'),
+        );
+        expect(draft.title, 'Newest recovery title');
+      },
+    );
 
     testWidgets('auto-commit preserves edits made while clearing the draft', (
       tester,
