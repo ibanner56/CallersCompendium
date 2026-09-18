@@ -225,7 +225,9 @@ def report(measured: dict[Path, Weight], top: int) -> list[str]:
         for path, weight in shown:
             lines.append(
                 f"  {_kib(weight.comment_bytes):>9} comment  "
-                f"{weight.share:>4.0%} of file  {path}"
+                # `as_posix()` keeps the reported repository path '/'-separated on
+                # every host OS (str(path) would show backslashes on Windows).
+                f"{weight.share:>4.0%} of file  {path.as_posix()}"
             )
     return lines
 
@@ -269,7 +271,10 @@ def main(argv: list[str] | None = None) -> int:
         payload = {
             "resident_budget_bytes": RESIDENT_BUDGET_BYTES,
             "files": {
-                str(path): {
+                # `as_posix()` keeps the JSON key a stable repository identifier
+                # ('/'-separated) on every host OS; `str(path)` would emit
+                # backslashes on Windows and break downstream expectations.
+                path.as_posix(): {
                     "comment_bytes": weight.comment_bytes,
                     "code_bytes": weight.code_bytes,
                 }

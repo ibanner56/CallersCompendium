@@ -856,6 +856,55 @@ void main() {
       );
     });
 
+    test(
+      'constructor validation errors are structured and valid siblings load',
+      () {
+        final result = decodeArchive(
+          jsonEncode({
+            'choreographers': [
+              {'id': 'bad-choreographer', 'name': '  '},
+              {'id': 'good-choreographer', 'name': 'Alice'},
+            ],
+            'tags': [
+              {'id': 'bad-tag', 'name': '\t'},
+              {'id': 'good-tag', 'name': 'chestnut'},
+            ],
+          }),
+        );
+
+        expect(result.errors, hasLength(2));
+        expect(
+          result.errors
+              .where((error) => error.entityType == 'choreographer')
+              .single
+              .kind,
+          ArchiveErrorKind.read,
+        );
+        expect(
+          result.errors
+              .where((error) => error.entityType == 'choreographer')
+              .single
+              .cause,
+          isA<ArgumentError>(),
+        );
+        expect(
+          result.errors.where((error) => error.entityType == 'tag').single.kind,
+          ArchiveErrorKind.read,
+        );
+        expect(
+          result.errors
+              .where((error) => error.entityType == 'tag')
+              .single
+              .cause,
+          isA<ArgumentError>(),
+        );
+        expect(result.archive.choreographers.map((entity) => entity.id), [
+          'good-choreographer',
+        ]);
+        expect(result.archive.tags.map((entity) => entity.id), ['good-tag']);
+      },
+    );
+
     test('a non-array entity collection is reported and skipped', () {
       final map =
           jsonDecode(encodeArchive(_sampleArchive())) as Map<String, Object?>;

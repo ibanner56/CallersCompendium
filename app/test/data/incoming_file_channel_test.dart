@@ -50,19 +50,41 @@ void main() {
       expect(urls, <String>['https://contradb.com/programs/33']);
     });
 
-    test('an opened file path is surfaced on the files stream', () async {
+    test('a legacy opened file path is surfaced as unowned', () async {
       final channel = IncomingFileChannel();
       addTearDown(channel.dispose);
       channel.start();
 
-      final files = <String>[];
+      final files = <IncomingFile>[];
       final sub = channel.files.listen(files.add);
       addTearDown(sub.cancel);
 
       await sendFromNative('fileOpened', '/tmp/incoming/bundle.json');
       await pumpEventQueue();
 
-      expect(files, <String>['/tmp/incoming/bundle.json']);
+      expect(files, <IncomingFile>[
+        const IncomingFile(path: '/tmp/incoming/bundle.json', appOwned: false),
+      ]);
+    });
+
+    test('a native file map preserves its ownership marker', () async {
+      final channel = IncomingFileChannel();
+      addTearDown(channel.dispose);
+      channel.start();
+
+      final files = <IncomingFile>[];
+      final sub = channel.files.listen(files.add);
+      addTearDown(sub.cancel);
+
+      await sendFromNative('fileOpened', <String, Object>{
+        'path': '/tmp/incoming/bundle.json',
+        'appOwned': true,
+      });
+      await pumpEventQueue();
+
+      expect(files, <IncomingFile>[
+        const IncomingFile(path: '/tmp/incoming/bundle.json', appOwned: true),
+      ]);
     });
 
     test('multiple drained URLs are each delivered in order', () async {
@@ -90,7 +112,7 @@ void main() {
       channel.start();
 
       final urls = <String>[];
-      final files = <String>[];
+      final files = <IncomingFile>[];
       final urlSub = channel.urls.listen(urls.add);
       final fileSub = channel.files.listen(files.add);
       addTearDown(urlSub.cancel);
@@ -100,6 +122,13 @@ void main() {
       await sendFromNative('urlShared', null);
       await sendFromNative('urlShared', 42);
       await sendFromNative('fileOpened', '');
+      await sendFromNative('fileOpened', <String, Object>{
+        'path': '/tmp/incoming/bundle.json',
+      });
+      await sendFromNative('fileOpened', <String, Object>{
+        'path': '/tmp/incoming/bundle.json',
+        'appOwned': 'true',
+      });
       await pumpEventQueue();
 
       expect(urls, isEmpty);
@@ -131,6 +160,43 @@ void main() {
       addTearDown(channel.dispose);
 
       expect(await channel.initialUrl(), isNull);
+    });
+
+    test('getInitialFile decodes the native ownership marker', () async {
+      messenger.setMockMethodCallHandler(
+        platformChannel,
+        (call) async => call.method == 'getInitialFile'
+            ? <String, Object>{
+                'path': '/tmp/incoming/bundle.json',
+                'appOwned': true,
+              }
+            : null,
+      );
+
+      final channel = IncomingFileChannel();
+      addTearDown(channel.dispose);
+
+      expect(
+        await channel.initialFile(),
+        const IncomingFile(path: '/tmp/incoming/bundle.json', appOwned: true),
+      );
+    });
+
+    test('getInitialFile treats a legacy string as unowned', () async {
+      messenger.setMockMethodCallHandler(
+        platformChannel,
+        (call) async => call.method == 'getInitialFile'
+            ? '/tmp/incoming/bundle.json'
+            : null,
+      );
+
+      final channel = IncomingFileChannel();
+      addTearDown(channel.dispose);
+
+      expect(
+        await channel.initialFile(),
+        const IncomingFile(path: '/tmp/incoming/bundle.json', appOwned: false),
+      );
     });
 
     test('a missing native implementation resolves to no URL', () async {
