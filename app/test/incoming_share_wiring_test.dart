@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:compendium_app/main.dart';
@@ -31,12 +32,19 @@ class _NoopWindowService extends WindowService {
 /// A fake [IncomingFileChannel] that delivers a caller-chosen cold-start file
 /// path and/or shared URL — no real platform channel is touched.
 class _FakeIncomingFileChannel extends IncomingFileChannel {
-  _FakeIncomingFileChannel({this.initialPath, this.initialSharedUrl});
+  _FakeIncomingFileChannel({
+    this.initialPath,
+    this.initialSharedUrl,
+    this.initialFileOwned = false,
+    this.initialFileFuture,
+  });
 
   final String? initialPath;
   final String? initialSharedUrl;
-  final StreamController<String> _controller =
-      StreamController<String>.broadcast();
+  final bool initialFileOwned;
+  final Future<IncomingFile?>? initialFileFuture;
+  final StreamController<IncomingFile> _controller =
+      StreamController<IncomingFile>.broadcast();
   final StreamController<String> _urlController =
       StreamController<String>.broadcast();
 
@@ -44,13 +52,19 @@ class _FakeIncomingFileChannel extends IncomingFileChannel {
   void start() {}
 
   @override
-  Stream<String> get files => _controller.stream;
+  Stream<IncomingFile> get files => _controller.stream;
 
   @override
   Stream<String> get urls => _urlController.stream;
 
   @override
-  Future<String?> initialFile() async => initialPath;
+  Future<IncomingFile?> initialFile() async {
+    final initialFileFuture = this.initialFileFuture;
+    if (initialFileFuture != null) return initialFileFuture;
+    return initialPath == null
+        ? null
+        : IncomingFile(path: initialPath!, appOwned: initialFileOwned);
+  }
 
   @override
   Future<String?> initialUrl() async => initialSharedUrl;
@@ -124,7 +138,6 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
       final appData = _openAppData();
-
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
@@ -172,6 +185,252 @@ void main() {
     expect(find.byType(ImportReviewScreen), findsNothing);
     expect(await appData.repositories.programs.listAll(), isEmpty);
   });
+
+  testWidgets('a rejected shared file removes its staging copy', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final appData = _openAppData();
+    final tempDir = Directory.systemTemp.createTempSync(
+      'incoming-share-guard-',
+    );
+    addTearDown(() {
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+    final stagedFile = File('${tempDir.path}/bundle.json');
+    stagedFile.writeAsStringSync('this is not a compendium archive');
+
+    await tester.pumpWidget(
+      CompendiumApp(
+        appData: appData,
+        windowService: _NoopWindowService(appData.repositories.settings),
+        incomingFileChannel: _FakeIncomingFileChannel(
+          initialPath: stagedFile.path,
+          initialFileOwned: true,
+        ),
+        incomingFileReader: _readerFor('this is not a compendium archive'),
+        incomingFileDeleter: (path) async {
+          File(path).deleteSync();
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('shared-import-error')), findsOneWidget);
+    expect(stagedFile.existsSync(), isFalse);
+  });
+
+  testWidgets(
+    'an accepted shared file stays staged until its review route is dismissed',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+      final tempDir = Directory.systemTemp.createTempSync(
+        'incoming-share-dismiss-',
+      );
+      addTearDown(() {
+        if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+      });
+      final stagedFile = File('${tempDir.path}/bundle.json');
+      stagedFile.writeAsStringSync(_validBundleJson());
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          incomingFileChannel: _FakeIncomingFileChannel(
+            initialPath: stagedFile.path,
+            initialFileOwned: true,
+          ),
+          incomingFileReader: _readerFor(_validBundleJson()),
+          incomingFileDeleter: (path) async {
+            File(path).deleteSync();
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ImportReviewScreen), findsOneWidget);
+      expect(stagedFile.existsSync(), isTrue);
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(stagedFile.existsSync(), isFalse);
+    },
+  );
+
+  testWidgets(
+    'an owned shared file is cleaned when disposed with its review route open',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+      final tempDir = Directory.systemTemp.createTempSync(
+        'incoming-share-route-dispose-',
+      );
+      addTearDown(() {
+        if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+      });
+      final stagedFile = File('${tempDir.path}/bundle.json');
+      stagedFile.writeAsStringSync(_validBundleJson());
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          incomingFileChannel: _FakeIncomingFileChannel(
+            initialPath: stagedFile.path,
+            initialFileOwned: true,
+          ),
+          incomingFileReader: _readerFor(_validBundleJson()),
+          incomingFileDeleter: (path) async {
+            File(path).deleteSync();
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ImportReviewScreen), findsOneWidget);
+      expect(stagedFile.existsSync(), isTrue);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+
+      expect(stagedFile.existsSync(), isFalse);
+    },
+  );
+
+  testWidgets('an unowned shared path is never deleted by intake cleanup', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final appData = _openAppData();
+    final tempDir = Directory.systemTemp.createTempSync(
+      'incoming-share-unowned-',
+    );
+    addTearDown(() {
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+    final stagedFile = File('${tempDir.path}/bundle.json');
+    stagedFile.writeAsStringSync('this is not a compendium archive');
+    var deletionCalled = false;
+
+    await tester.pumpWidget(
+      CompendiumApp(
+        appData: appData,
+        windowService: _NoopWindowService(appData.repositories.settings),
+        incomingFileChannel: _FakeIncomingFileChannel(
+          initialPath: stagedFile.path,
+        ),
+        incomingFileReader: _readerFor('this is not a compendium archive'),
+        incomingFileDeleter: (path) async {
+          deletionCalled = true;
+          File(path).deleteSync();
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('shared-import-error')), findsOneWidget);
+    expect(deletionCalled, isFalse);
+    expect(stagedFile.existsSync(), isTrue);
+  });
+
+  testWidgets(
+    'an owned shared file is cleaned when the widget is disposed during validation',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+      final tempDir = Directory.systemTemp.createTempSync(
+        'incoming-share-dispose-',
+      );
+      addTearDown(() {
+        if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+      });
+      final stagedFile = File('${tempDir.path}/bundle.json');
+      stagedFile.writeAsStringSync('this is not a compendium archive');
+      final readStarted = Completer<void>();
+      final pendingRead = Completer<Uint8List>();
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          incomingFileChannel: _FakeIncomingFileChannel(
+            initialPath: stagedFile.path,
+            initialFileOwned: true,
+          ),
+          incomingFileReader: (_) {
+            if (!readStarted.isCompleted) readStarted.complete();
+            return pendingRead.future;
+          },
+          incomingFileDeleter: (path) async {
+            File(path).deleteSync();
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(readStarted.isCompleted, isTrue);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      pendingRead.complete(
+        Uint8List.fromList(utf8.encode('this is not a compendium archive')),
+      );
+      await tester.pump();
+
+      expect(stagedFile.existsSync(), isFalse);
+    },
+  );
+
+  testWidgets(
+    'an owned cold-start file is cleaned when initial delivery finishes after disposal',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+      final tempDir = Directory.systemTemp.createTempSync(
+        'incoming-share-initial-dispose-',
+      );
+      addTearDown(() {
+        if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+      });
+      final stagedFile = File('${tempDir.path}/bundle.json');
+      stagedFile.writeAsStringSync('this is not a compendium archive');
+      final initialFile = Completer<IncomingFile?>();
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          incomingFileChannel: _FakeIncomingFileChannel(
+            initialFileFuture: initialFile.future,
+          ),
+          incomingFileReader: _readerFor('this is not a compendium archive'),
+          incomingFileDeleter: (path) async {
+            File(path).deleteSync();
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      initialFile.complete(IncomingFile(path: stagedFile.path, appOwned: true));
+      await tester.pump();
+
+      expect(stagedFile.existsSync(), isFalse);
+    },
+  );
 
   testWidgets(
     'issue #343: a shared ContraDB program URL opens the import screen '
