@@ -710,6 +710,7 @@ void main() {
 
         delayed.programs.releaseWrite();
         await observed;
+        await tester.pump(const Duration(milliseconds: 600));
         await tester.pumpAndSettle();
 
         expect(

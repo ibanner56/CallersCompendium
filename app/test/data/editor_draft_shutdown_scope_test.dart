@@ -12,6 +12,7 @@ void main() {
       final firstGate = Completer<void>();
       final prepared = <int>[];
       final executed = <int>[];
+      late void Function() unregisterSecond;
 
       controller.register(() {
         prepared.add(1);
@@ -20,7 +21,7 @@ void main() {
           await firstGate.future;
         };
       });
-      controller.register(() {
+      unregisterSecond = controller.register(() {
         prepared.add(2);
         return () async {
           executed.add(2);
@@ -31,6 +32,10 @@ void main() {
       expect(prepared, [1, 2]);
       expect(executed, [1]);
 
+      // Simulate the second editor being disposed while the first editor's
+      // prepared operation is still waiting. The snapped operation must still
+      // persist the second editor's immutable draft.
+      unregisterSecond();
       firstGate.complete();
       await flush;
       expect(executed, [1, 2]);
