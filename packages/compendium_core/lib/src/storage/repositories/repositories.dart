@@ -111,8 +111,39 @@ class CompendiumRepositories {
   ///
   /// Repository methods may open nested transactions, but the outer boundary
   /// keeps related records such as staged tags and their owning dances atomic.
-  Future<T> transaction<T>(Future<T> Function() action) =>
-      db.transaction(action);
+  Future<T> transaction<T>(
+    Future<T> Function() action, {
+    bool resetMigrationOnFailure = false,
+  }) async {
+    try {
+      return await db.transaction(action);
+    } catch (_) {
+      if (resetMigrationOnFailure) _migration = null;
+      rethrow;
+    }
+  }
+
+  /// Clears normalization bookkeeping before a restore or archive import.
+  ///
+  /// The next [ensureMigrated] must inspect every persisted shareable value
+  /// written by the operation rather than trusting a marker or skip row from
+  /// the previous dataset.
+  Future<void> resetNormalisationStateForRestore() async {
+    await db.transaction(() async {
+      await db.customUpdate(
+        'DELETE FROM normalisation_skips',
+        updates: {db.normalisationSkips},
+        updateKind: UpdateKind.delete,
+      );
+      await db.customUpdate(
+        'DELETE FROM ${db.settings.actualTableName} WHERE key = ?',
+        variables: [Variable.withString(shareableTextNormalisationScopeKey)],
+        updates: {db.settings},
+        updateKind: UpdateKind.delete,
+      );
+    });
+    _migration = null;
+  }
 
   /// The scope is derived from the live Drift schema and privacy registry, so
   /// adding a shareable text column cannot be missed by the repair sweep.

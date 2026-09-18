@@ -10,7 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/main.dart';
 import 'package:compendium_app/src/data/app_database.dart';
 import 'package:compendium_app/src/data/application_shutdown_controller.dart';
-import 'package:compendium_app/src/data/backup_controller_scope.dart';
+import 'package:compendium_app/src/data/sync_writer_lifecycle_scope.dart';
 import 'package:compendium_app/src/data/backup_service.dart';
 import 'package:compendium_app/src/data/migration_guard.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
@@ -370,7 +370,7 @@ void main() {
   );
 
   testWidgets(
-    'backup restore hooks dispose and recreate the production sync coordinator',
+    'backup restore serializes and recreates the production sync coordinator',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -430,43 +430,37 @@ void main() {
       await firstPassStarted.future;
       expect(find.byType(AppShell), findsOneWidget);
 
-      final scope = tester.widget<BackupControllerScope>(
-        find.byType(BackupControllerScope),
+      final scope = tester.widget<SyncWriterLifecycleScope>(
+        find.byType(SyncWriterLifecycleScope),
       );
       final lifecycle = <String>[];
-      var beforeCompleted = false;
-      final before = scope.beforeRestore;
-      final after = scope.afterRestore;
-      expect(before, isNotNull);
-      expect(after, isNotNull);
+      var restoreStarted = false;
+      final runWrite = scope.runWrite;
+      expect(runWrite, isNotNull);
 
-      final beforeFuture = before!().then((_) {
-        beforeCompleted = true;
-        lifecycle.add('disposed');
+      final restoreFuture = runWrite!(() async {
+        restoreStarted = true;
+        final outcome = await BackupService(
+          appData.repositories,
+        ).restoreFromJson(backupJson);
+        lifecycle.add('restored');
+        return outcome;
       });
       expect(
-        beforeCompleted,
+        restoreStarted,
         isFalse,
-        reason: 'the pre-hook must await the active startup pass',
+        reason: 'the writer must await the active startup pass',
       );
 
       firstPassGate.complete();
-      await beforeFuture;
-
-      final outcome = await BackupService(
-        appData.repositories,
-      ).restoreFromJson(backupJson);
+      final outcome = await restoreFuture;
       expect(outcome.applied, isTrue);
-      lifecycle.add('restored');
-
-      await after!();
       lifecycle.add('replacement-factory');
       expect(factoryCalls, 2);
 
       await replacementPassStarted.future;
       lifecycle.add('replacement-onAppStart');
       expect(lifecycle, [
-        'disposed',
         'restored',
         'replacement-factory',
         'replacement-onAppStart',
@@ -484,10 +478,12 @@ void main() {
       final firstPassGate = Completer<void>();
       final firstPassStarted = Completer<void>();
       final shutdownController = ApplicationShutdownController(() async {});
+      var factoryCalls = 0;
 
       Future<SyncCoordinator?> factory(
         CompendiumRepositories repositories,
       ) async {
+        factoryCalls++;
         final coordinator = SyncCoordinator(
           syncId: 'configured',
           deviceId: 'device-a',
@@ -514,13 +510,15 @@ void main() {
       await tester.pumpAndSettle();
       await firstPassStarted.future;
 
-      final scope = tester.widget<BackupControllerScope>(
-        find.byType(BackupControllerScope),
+      final scope = tester.widget<SyncWriterLifecycleScope>(
+        find.byType(SyncWriterLifecycleScope),
       );
-      final before = scope.beforeRestore;
-      expect(before, isNotNull);
-
-      final beforeFuture = before!();
+      final runWrite = scope.runWrite;
+      expect(runWrite, isNotNull);
+      var writerStarted = false;
+      final writerFuture = runWrite!(() async {
+        writerStarted = true;
+      });
       var shutdownCompleted = false;
       final shutdownFuture = shutdownController.close().then((_) {
         shutdownCompleted = true;
@@ -530,13 +528,15 @@ void main() {
       expect(
         shutdownCompleted,
         isFalse,
-        reason: 'shutdown must await the restore hook disposal',
+        reason: 'shutdown must await the writer disposal',
       );
 
       firstPassGate.complete();
-      await beforeFuture;
+      await expectLater(writerFuture, throwsA(isA<StateError>()));
       await shutdownFuture;
       expect(shutdownCompleted, isTrue);
+      expect(writerStarted, isFalse);
+      expect(factoryCalls, 1);
     },
   );
 

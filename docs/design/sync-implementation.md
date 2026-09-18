@@ -1214,8 +1214,9 @@ and it merges records **silently**.
   disposed and awaited before `BackupService.restoreFromJson` writes, and a
   replacement coordinator is created from current settings after the operation
   completes, including refusal and failure paths. The shared
-  `CompendiumArchiveImporter` writer remains a separate follow-up under the
-  unchanged event-wide §6.11 contract.
+  `CompendiumArchiveImporter` writer uses the same general sync-writer
+  lifecycle: the active coordinator is quiesced and awaited before the import
+  (and its transient Undo), then recreated from current settings afterwards.
 - **Unblocks** **W13**'s `sync_exclude_imports` filter, which reuses this
   unit's §6.9 citation closure and nothing else here.
 - **Done when** the §9 *Quarantine and repair* bucket is green, and so is the

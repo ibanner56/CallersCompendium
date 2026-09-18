@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import 'settings_keys.dart';
-import '../../data/backup_controller_scope.dart';
+import '../../data/sync_writer_lifecycle_scope.dart';
 import '../../data/backup_io.dart';
 import '../../data/backup_reminder.dart';
 import '../../data/backup_service.dart';
@@ -224,10 +224,9 @@ class _GeneralSectionState extends State<GeneralSection> {
     final l10n = AppLocalizations.of(context);
     final repos = RepositoriesScope.of(context);
     final picker = widget.backupPicker ?? pickBackupFile;
-    final backupController = BackupControllerScope.maybeOf(context);
-    final onRestored = backupController?.onRestored;
-    final beforeRestore = backupController?.beforeRestore;
-    final afterRestore = backupController?.afterRestore;
+    final writerLifecycle = SyncWriterLifecycleScope.maybeOf(context);
+    final onRestored = writerLifecycle?.onRestored;
+    final runWrite = writerLifecycle?.runWrite;
 
     try {
       final raw = await showDialog<String>(
@@ -237,8 +236,7 @@ class _GeneralSectionState extends State<GeneralSection> {
       if (raw == null || raw.trim().isEmpty) return;
 
       final outcome = await _runRestoreLifecycle(
-        beforeRestore: beforeRestore,
-        afterRestore: afterRestore,
+        runWrite: runWrite,
         operation: () => BackupService(repos).restoreFromJson(raw),
       );
       if (!outcome.applied) {
@@ -298,16 +296,8 @@ class _GeneralSectionState extends State<GeneralSection> {
   /// pre-hook must all leave the runtime with a usable coordinator.
   Future<T> _runRestoreLifecycle<T>({
     required Future<T> Function() operation,
-    Future<void> Function()? beforeRestore,
-    Future<void> Function()? afterRestore,
-  }) async {
-    try {
-      await beforeRestore?.call();
-      return await operation();
-    } finally {
-      await afterRestore?.call();
-    }
-  }
+    SyncWriterCallback? runWrite,
+  }) => runWrite?.call(operation) ?? operation();
 
   /// Shows the retryable "core restored, settings failed" state (#608) as an
   /// indefinite snackbar carrying a "retry settings" action. Kept separate so

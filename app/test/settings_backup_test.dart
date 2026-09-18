@@ -3,7 +3,7 @@ import 'dart:convert';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
-import 'package:compendium_app/src/data/backup_controller_scope.dart';
+import 'package:compendium_app/src/data/sync_writer_lifecycle_scope.dart';
 import 'package:compendium_app/src/data/backup_io.dart';
 import 'package:compendium_app/src/data/backup_reminder.dart';
 import 'package:compendium_app/src/data/backup_service.dart';
@@ -65,10 +65,16 @@ Future<void> _pumpGeneral(
     ),
   );
   if (onRestored != null || beforeRestore != null || afterRestore != null) {
-    tree = BackupControllerScope(
+    tree = SyncWriterLifecycleScope(
       onRestored: onRestored ?? () async {},
-      beforeRestore: beforeRestore,
-      afterRestore: afterRestore,
+      runWrite: <T>(operation) async {
+        try {
+          await beforeRestore?.call();
+          return await operation();
+        } finally {
+          await afterRestore?.call();
+        }
+      },
       child: tree,
     );
   }

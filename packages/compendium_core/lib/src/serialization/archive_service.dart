@@ -6,7 +6,6 @@ import '../model/program.dart';
 import '../storage/repositories/repositories.dart';
 import '../storage/repositories/sync_local_repository.dart';
 import '../storage/repositories/venue_repository.dart';
-import '../storage/database.dart';
 import '../sync/sync_record_kind.dart';
 import '../sync/sync_storage.dart';
 import 'compendium_archive.dart';
@@ -99,6 +98,7 @@ class ArchiveRestorer {
     // error) from an unexpected transaction failure, without depending on how
     // the database layer re-surfaces the thrown sentinel.
     var abortedForRollback = false;
+    var committed = false;
     try {
       await _repos.db.transaction(() async {
         // Dances can reference each other (relatedDance links), so intra-batch
@@ -138,10 +138,12 @@ class ArchiveRestorer {
             revalidatePending: false,
           );
         }
+        await _repos.resetNormalisationStateForRestore();
         await CompendiumSyncStorage(
           _repos,
         ).revalidatePendingDeletionsInTransaction(dropMissing: true);
       });
+      committed = true;
     } on Exception catch (e) {
       if (!abortedForRollback) {
         // Deferred foreign-key checks and other integrity constraints only fire
@@ -158,6 +160,12 @@ class ArchiveRestorer {
           ),
         );
       }
+    }
+    if (committed) {
+      // The reset above deliberately invalidates the previous sweep marker.
+      // Run the complete-library pass after the restore transaction commits so
+      // direct ArchiveRestorer callers get the same NFC guarantee as backups.
+      await _repos.ensureMigrated();
     }
     return ArchiveRestoreResult(errors: errors);
   }
@@ -481,10 +489,6 @@ class ArchiveRestorer {
     await db.delete(db.choreographers).go();
     await db.delete(db.publishedSources).go();
     await db.delete(db.venues).go();
-    await db.customStatement('DELETE FROM normalisation_skips');
-    await db.customStatement('DELETE FROM settings WHERE key = ?', [
-      shareableTextNormalisationScopeKey,
-    ]);
   }
 
   Future<void> _guard(

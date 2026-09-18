@@ -2689,10 +2689,10 @@ restore, and thrown-error paths. This lifecycle clause protects the
 `BackupService.restoreFromJson` writer without changing the event-wide
 definition above.
 
-The event-wide requirement still includes `CompendiumArchiveImporter`.
-Shared-import serialization is not provided by this backup-UI boundary and
-remains a known follow-up; it is not a safe exclusion from §6.11 and this
-change does not claim full event-wide conformance.
+The event-wide requirement includes `CompendiumArchiveImporter` as well as
+`BackupService.restoreFromJson`. The app's general sync-writer lifecycle
+surface supplies the same quiesce/await/recreate boundary to both entry points,
+so neither writer can race a pass that captured the old dataset.
 
 ### 6.12 Failure, offline and triggers
 
