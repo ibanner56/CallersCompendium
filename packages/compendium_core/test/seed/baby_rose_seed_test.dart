@@ -36,7 +36,9 @@ void main() {
       // Normalize CRLF -> LF so a Windows checkout is compared like-for-like
       // against the LF-emitting generator; only line endings are stripped, so
       // real content drift still fails. See the repository .gitattributes.
-      final onDisk = File(assetPath).readAsStringSync().replaceAll('\r\n', '\n');
+      final onDisk = File(
+        assetPath,
+      ).readAsStringSync().replaceAll('\r\n', '\n');
       expect(
         onDisk,
         '$generated\n',
