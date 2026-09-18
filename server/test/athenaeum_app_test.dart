@@ -894,6 +894,47 @@ void main() {
       expect(response.statusCode, 429);
       expect(response.headers.value('retry-after'), '60');
       await response.drain<void>();
+      final heartbeat = await app.call(
+        Request(
+          'GET',
+          Uri.parse('http://127.0.0.1/heartbeat'),
+          headers: {'x-test-ip': 'client'},
+        ),
+      );
+      expect(heartbeat.statusCode, 200);
+    },
+  );
+
+  test(
+    'general client request budget refills at its configured rate',
+    () async {
+      var now = DateTime.utc(2026, 9, 3);
+      final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
+      app.store.create(idKey);
+      final customApp = AthenaeumApp(
+        config: app.config,
+        store: app.store,
+        clientAddressResolver: (_) => 'refill-client',
+        clock: () => now,
+        budgetLimits: const AthenaeumBudgetLimits(
+          perIpRequestsPerMinute: 60,
+          perIpRequestBurst: 1,
+        ),
+      );
+      Future<Response> request() => customApp.call(
+        Request(
+          'GET',
+          Uri.parse('http://127.0.0.1/v1/store'),
+          headers: {
+            'authorization': ['Bearer', encodeSyncCredential(syncId)].join(' '),
+          },
+        ),
+      );
+
+      expect((await request()).statusCode, 200);
+      expect((await request()).statusCode, 429);
+      now = now.add(const Duration(seconds: 1));
+      expect((await request()).statusCode, 200);
     },
   );
 
@@ -902,16 +943,19 @@ void main() {
     () async {
       final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
       app.store.create(idKey);
-      for (var attempt = 0; attempt < 600; attempt++) {
-        final response = await _send(
+      final authorization = ['Bearer', encodeSyncCredential(syncId)].join(' ');
+      Future<Response> storeRequest(int attempt) => app.call(
+        Request(
           'GET',
-          '/v1/store',
-          syncId: syncId,
-          headers: {'x-test-ip': 'store-client-${attempt % 6}'},
-        );
-        expect(response.statusCode, 200);
-        await response.drain<void>();
-      }
+          Uri.parse('http://127.0.0.1/v1/store'),
+          headers: {
+            'authorization': authorization,
+            'x-test-ip': 'store-client-${attempt % 9}',
+          },
+        ),
+      );
+      final responses = await Future.wait(List.generate(1000, storeRequest));
+      expect(responses.any((response) => response.statusCode == 429), isTrue);
 
       var yielded = 0;
       Stream<List<int>> body() async* {

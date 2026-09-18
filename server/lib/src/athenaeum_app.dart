@@ -18,6 +18,11 @@ typedef AthenaeumPeriodicTimer =
     Timer Function(Duration interval, void Function(Timer timer) callback);
 typedef AthenaeumSweep = void Function();
 
+const int maxGeneralRequestsPerIpPerMinute = 60;
+const int maxGeneralRequestsPerIpBurst = 120;
+const int maxGeneralRequestsPerStorePerMinute = 600;
+const int maxGeneralRequestsPerStoreBurst = 600;
+
 void _writeOperationalAlert(AthenaeumOperationalAlert alert) {
   stderr.writeln(jsonEncode({'alert': alert.toJson()}));
 }
@@ -167,12 +172,20 @@ const _blobEnvelopeKeys = <String>{
 
 class AthenaeumBudgetLimits {
   const AthenaeumBudgetLimits({
+    this.perIpRequestsPerMinute = maxGeneralRequestsPerIpPerMinute,
+    this.perIpRequestBurst = maxGeneralRequestsPerIpBurst,
+    this.perStoreRequestsPerMinute = maxGeneralRequestsPerStorePerMinute,
+    this.perStoreRequestBurst = maxGeneralRequestsPerStoreBurst,
     this.perIpFailuresPerMinute = maxFailedResolutionsPerIp,
     this.perIpFailureBurst = maxFailedResolutionsPerIpBurst,
     this.serverWideFailuresPerMinute = maxFailedResolutionsServerWide,
     this.creationsPerMinute = maxStoreCreationsPerMinute,
   });
 
+  final int perIpRequestsPerMinute;
+  final int perIpRequestBurst;
+  final int perStoreRequestsPerMinute;
+  final int perStoreRequestBurst;
   final int perIpFailuresPerMinute;
   final int perIpFailureBurst;
   final int serverWideFailuresPerMinute;
@@ -185,6 +198,7 @@ class AthenaeumApp {
     AthenaeumStore? store,
     ClientAddressResolver? clientAddressResolver,
     AthenaeumBudgetLimits budgetLimits = const AthenaeumBudgetLimits(),
+    DateTime Function()? clock,
     AthenaeumDiagnosticLogger? diagnosticLogger,
     AthenaeumOperationalAlertSink? alertSink,
   }) : config = config,
@@ -194,6 +208,10 @@ class AthenaeumApp {
              request,
              trustForwardedHeaders: config.trustForwardedHeadersFromLoopback,
            )),
+       _requestBudget = _RequestBudget(
+         budgetLimits,
+         clock: clock ?? DateTime.now,
+       ),
        _failureBudget = _FailureBudget(budgetLimits),
        _creationBudget = _CreationBudget(budgetLimits) {
     _alertSink = alertSink ?? _writeOperationalAlert;
@@ -224,6 +242,7 @@ class AthenaeumApp {
   final AthenaeumConfig config;
   late final AthenaeumStore store;
   final ClientAddressResolver _clientAddressResolver;
+  final _RequestBudget _requestBudget;
   final _FailureBudget _failureBudget;
   final _CreationBudget _creationBudget;
   late final AthenaeumOperationalAlertSink _alertSink;
@@ -237,15 +256,18 @@ class AthenaeumApp {
     if (segments.length == 1 && segments.first == 'heartbeat') {
       return _healthRoute(request);
     }
+    if (segments.length < 2 || segments.first != 'v1') {
+      return _jsonResponse(404, {'error': 'not found'});
+    }
+    if (!_requestBudget.allowClient(_clientAddressResolver(request))) {
+      return _rateLimitedResponse();
+    }
     try {
       store.retryPendingDeletions();
     } on Object catch (error) {
       stderr.writeln(
         'Athenaeum request cleanup retry failed (${error.runtimeType})',
       );
-    }
-    if (segments.length < 2 || segments.first != 'v1') {
-      return _jsonResponse(404, {'error': 'not found'});
     }
     try {
       return switch (segments[1]) {
@@ -296,11 +318,11 @@ class AthenaeumApp {
       return _jsonResponse(200, store.metadata(storeRow).toJson());
     }
     if (request.method == 'POST') {
+      final existing = store.lookup(identity.idKey);
       final body = await _readBody(request, 1);
       if (body.isNotEmpty) {
         throw const _RequestFailure(400, 'store creation has no body');
       }
-      final existing = store.lookup(identity.idKey);
       if (existing != null) {
         return _failedResolution(request, 409, 'store already exists');
       }
@@ -580,6 +602,9 @@ class AthenaeumApp {
     final idKey = deriveIncomingSyncIdKey(decoded, config.pepper);
     final current = store.lookup(idKey);
     if (current != null) {
+      if (!_requestBudget.allowStore(idKey)) {
+        return _AuthResult.response(_rateLimitedResponse());
+      }
       store.touch(idKey);
     }
     return _AuthResult.identity(_Identity(idKey, current));
@@ -1304,9 +1329,12 @@ class _FailureBudget {
 }
 
 class _TokenBucket {
-  _TokenBucket({required this.capacity, required this.refillPerMinute})
-    : _tokens = capacity.toDouble(),
-      _updatedAt = DateTime.now();
+  _TokenBucket({
+    required this.capacity,
+    required this.refillPerMinute,
+    DateTime? now,
+  }) : _tokens = capacity.toDouble(),
+       _updatedAt = now ?? DateTime.now();
 
   final int capacity;
   final int refillPerMinute;
@@ -1329,6 +1357,49 @@ class _TokenBucket {
   bool isInactive(DateTime now) =>
       now.difference(_updatedAt).inSeconds >=
       ((capacity * 60) / refillPerMinute).ceil();
+}
+
+class _RequestBudget {
+  _RequestBudget(AthenaeumBudgetLimits limits, {required this.clock})
+    : _limits = limits;
+
+  final AthenaeumBudgetLimits _limits;
+  final DateTime Function() clock;
+  final Map<String, _TokenBucket> _perIp = <String, _TokenBucket>{};
+  final Map<String, _TokenBucket> _perStore = <String, _TokenBucket>{};
+
+  bool allowClient(String address) {
+    final now = clock();
+    _prune(now);
+    final bucket = _perIp.putIfAbsent(
+      address,
+      () => _TokenBucket(
+        capacity: _limits.perIpRequestBurst,
+        refillPerMinute: _limits.perIpRequestsPerMinute,
+        now: now,
+      ),
+    );
+    return bucket.tryTake(now);
+  }
+
+  bool allowStore(String idKey) {
+    final now = clock();
+    _prune(now);
+    final bucket = _perStore.putIfAbsent(
+      idKey,
+      () => _TokenBucket(
+        capacity: _limits.perStoreRequestBurst,
+        refillPerMinute: _limits.perStoreRequestsPerMinute,
+        now: now,
+      ),
+    );
+    return bucket.tryTake(now);
+  }
+
+  void _prune(DateTime now) {
+    _perIp.removeWhere((_, bucket) => bucket.isInactive(now));
+    _perStore.removeWhere((_, bucket) => bucket.isInactive(now));
+  }
 }
 
 class _CreationBudget {
