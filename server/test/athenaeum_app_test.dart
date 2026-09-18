@@ -187,7 +187,7 @@ void main() {
   });
 
   test(
-    'blob allow-list rejects non-shareable fields and tolerates new versions',
+    'blob allow-list rejects non-shareable and incomplete envelopes',
     () async {
       expect(
         (await _send('POST', '/v1/store', syncId: syncId)).statusCode,
@@ -502,35 +502,38 @@ void main() {
       expect(opaqueGet.statusCode, 200);
       expect(await opaqueGet.bodyBytes(), equals(opaque));
 
-      final jsonOpaque = Uint8List.fromList(
+      final incompleteEnvelope = Uint8List.fromList(
         utf8.encode(
           jsonEncode({
             'kind': 'choreographer',
-            'id': 'json-opaque',
+            'id': 'incomplete-envelope',
             'body': {
-              'id': 'json-opaque',
-              'name': 'Opaque JSON',
+              'id': 'incomplete-envelope',
+              'name': 'Incomplete Envelope',
               'email': 'opaque@example.com',
             },
           }),
         ),
       );
-      final jsonOpaqueHash = sha256.convert(jsonOpaque).toString();
-      final jsonOpaquePut = await _send(
+      final incompleteEnvelopeHash = sha256
+          .convert(incompleteEnvelope)
+          .toString();
+      final incompleteEnvelopePut = await _send(
         'PUT',
-        '/v1/blobs/$jsonOpaqueHash',
+        '/v1/blobs/$incompleteEnvelopeHash',
         syncId: syncId,
-        body: jsonOpaque,
+        body: incompleteEnvelope,
         contentType: 'application/octet-stream',
       );
-      expect(jsonOpaquePut.statusCode, 201);
-      final jsonOpaqueGet = await _send(
+      expect(incompleteEnvelopePut.statusCode, 422);
+      await incompleteEnvelopePut.drain<void>();
+      final incompleteEnvelopeGet = await _send(
         'GET',
-        '/v1/blobs/$jsonOpaqueHash',
+        '/v1/blobs/$incompleteEnvelopeHash',
         syncId: syncId,
       );
-      expect(jsonOpaqueGet.statusCode, 200);
-      expect(await jsonOpaqueGet.bodyBytes(), equals(jsonOpaque));
+      expect(incompleteEnvelopeGet.statusCode, 404);
+      await incompleteEnvelopeGet.drain<void>();
 
       final deepOpaque = Uint8List.fromList(
         utf8.encode(

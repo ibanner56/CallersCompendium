@@ -1017,7 +1017,6 @@ class _BlobEnvelopeShape {
   final bool hasUnknownKey;
 
   bool get recognizable =>
-      keys.contains('v') &&
       keys.contains('kind') &&
       keys.contains('id') &&
       keys.contains('body');

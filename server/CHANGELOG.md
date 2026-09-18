@@ -34,6 +34,9 @@ the app and of `compendium_core`; version headings below refer to
 
 ### Fixed
 
+- Reject incomplete record-like blob envelopes before privacy allow-list
+  validation so private fields cannot bypass the boundary by omitting `v`.
+
 - Route Apache error logs through a redactor so module messages cannot persist
   request targets.
 - Serialize store deletion with durable filesystem cleanup retries, preserve
