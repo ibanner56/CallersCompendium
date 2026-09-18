@@ -945,18 +945,26 @@ void main() {
       final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
       app.store.create(idKey);
       final authorization = ['Bearer', encodeSyncCredential(syncId)].join(' ');
-      Future<Response> storeRequest(int attempt) => app.call(
+      final customApp = AthenaeumApp(
+        config: app.config,
+        store: app.store,
+        clientAddressResolver: (request) => request.headers['x-test-ip']!,
+        clock: () => DateTime.utc(2026, 9, 3),
+        budgetLimits: const AthenaeumBudgetLimits(
+          perIpRequestBurst: 10,
+          perStoreRequestsPerMinute: 1,
+          perStoreRequestBurst: 1,
+        ),
+      );
+      Future<Response> storeRequest(String address) => customApp.call(
         Request(
           'GET',
           Uri.parse('http://127.0.0.1/v1/store'),
-          headers: {
-            'authorization': authorization,
-            'x-test-ip': 'store-client-${attempt % 9}',
-          },
+          headers: {'authorization': authorization, 'x-test-ip': address},
         ),
       );
-      final responses = await Future.wait(List.generate(1000, storeRequest));
-      expect(responses.any((response) => response.statusCode == 429), isTrue);
+      expect((await storeRequest('store-client-0')).statusCode, 200);
+      expect((await storeRequest('store-client-1')).statusCode, 429);
 
       var yielded = 0;
       Stream<List<int>> body() async* {
@@ -964,14 +972,14 @@ void main() {
         yield Uint8List.fromList([1]);
       }
 
-      final response = await app.call(
+      final response = await customApp.call(
         Request(
           'PUT',
           Uri.parse('http://127.0.0.1/v1/blobs/${'0' * 64}'),
           headers: {
-            'authorization': ['Bearer', encodeSyncCredential(syncId)].join(' '),
+            'authorization': authorization,
             'content-type': 'application/octet-stream',
-            'x-test-ip': 'store-client-0',
+            'x-test-ip': 'store-client-2',
           },
           body: body(),
         ),

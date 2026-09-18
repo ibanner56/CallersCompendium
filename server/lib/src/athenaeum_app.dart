@@ -318,11 +318,11 @@ class AthenaeumApp {
       return _jsonResponse(200, store.metadata(storeRow).toJson());
     }
     if (request.method == 'POST') {
-      final existing = store.lookup(identity.idKey);
       final body = await _readBody(request, 1);
       if (body.isNotEmpty) {
         throw const _RequestFailure(400, 'store creation has no body');
       }
+      final existing = store.lookup(identity.idKey);
       if (existing != null) {
         return _failedResolution(request, 409, 'store already exists');
       }
