@@ -2819,6 +2819,14 @@ and proven by test — a hand-maintained list drifts and is worse than useless.
 This is a second line of defence. The client serialiser is the control, and
 neither is sufficient alone.
 
+**Record-like envelope detection.** A JSON object whose top-level keys include
+`kind`, `id`, and `body` is a record-envelope candidate even when `v` or
+another required envelope key is absent. The server MUST reject (`422`) that
+candidate as an invalid record envelope rather than treating it as opaque.
+Unknown or duplicate envelope keys and malformed candidate content are likewise
+rejected before any blob is stored. This minimum-shape rule does not require
+the server to parse arbitrary non-record JSON or binary opaque blobs.
+
 **Deployment ordering.** Because that mapping is generated from the client's
 registry and lives on the server, **the server MUST be deployed before any
 client emits a new `shareable` field or a new record kind.** Adding either does
