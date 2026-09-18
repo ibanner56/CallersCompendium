@@ -216,6 +216,7 @@ class CompendiumApp extends StatefulWidget {
     this.seedInitialCollection,
     this.incomingFileChannel,
     this.incomingFileReader,
+    this.incomingFileDeleter,
     this.incomingUrlFetcher,
     this.nowOverride,
     this.appDataFactory = _defaultAppDataFactory,
@@ -280,12 +281,13 @@ class CompendiumApp extends StatefulWidget {
   final Future<void> Function(CompendiumRepositories repos)?
   seedInitialCollection;
 
-  /// Delivers the path of a shared [CompendiumArchive] file the OS handed the
-  /// app (AirDrop / "Open with" / a share intent) so it can be imported and the
-  /// restored program auto-opened (issue #298, receive side). Injected from
-  /// [main] with a real [IncomingFileChannel]; left `null` in tests that don't
-  /// exercise intake, which disables the wiring entirely (no platform-channel
-  /// traffic), and can be given a fake channel to drive intake without the OS.
+  /// Delivers a shared [CompendiumArchive] file the OS handed the app (AirDrop /
+  /// "Open with" / a share intent), including whether native code staged an
+  /// app-owned copy for Dart to remove after intake (issue #298, receive side).
+  /// Injected from [main] with a real [IncomingFileChannel]; left `null` in
+  /// tests that don't exercise intake, which disables the wiring entirely
+  /// (no platform-channel traffic), and can be given a fake channel to drive
+  /// intake without the OS.
   final IncomingFileChannel? incomingFileChannel;
 
   /// Reads the bytes of an incoming shared file for [ArchiveIntakeService].
@@ -294,6 +296,12 @@ class CompendiumApp extends StatefulWidget {
   /// no real file I/O — real disk reads would be started inside the test's
   /// faked-time zone and never complete. Left `null` in production.
   final ArchiveByteReader? incomingFileReader;
+
+  /// Deletes an app-owned incoming staging copy after intake. Defaults to the
+  /// asynchronous filesystem deleter in production; injected in widget tests
+  /// so cleanup does not depend on real I/O completing inside fake async.
+  @visibleForTesting
+  final Future<void> Function(String path)? incomingFileDeleter;
 
   /// Program-page fetcher handed to the [ContraDbProgramImportScreen] opened
   /// from a shared URL (issue #343), so the screen's auto-fetch can be driven
@@ -444,7 +452,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
 
   /// Subscription to files delivered while the app is running. Null when no
   /// [CompendiumApp.incomingFileChannel] was injected (intake disabled).
-  StreamSubscription<String>? _incomingFileSub;
+  StreamSubscription<IncomingFile>? _incomingFileSub;
 
   /// Subscription to URLs shared into the app while it is running (issue #343).
   /// Null when no [CompendiumApp.incomingFileChannel] was injected.
@@ -581,42 +589,68 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// then handed to [ImportReviewScreen], which previews it, applies per-entity
   /// dispositions, and commits (dances + programs + venues) only on the user's
   /// confirmation — offering a transient Undo afterwards.
-  Future<void> _handleIncomingFile(String path) async {
-    final intake = ArchiveIntakeService(readBytes: widget.incomingFileReader);
-    final validation = await intake.validateFromPath(path);
-    if (!mounted) return;
+  Future<void> _handleIncomingFile(IncomingFile incomingFile) async {
+    try {
+      final intake = ArchiveIntakeService(readBytes: widget.incomingFileReader);
+      final validation = await intake.validateFromPath(incomingFile.path);
+      if (!mounted) return;
 
-    if (validation.isRejected) {
-      final messenger = _messengerKey.currentState;
-      final messengerContext = _messengerKey.currentContext;
-      if (messenger != null &&
-          messengerContext != null &&
-          messengerContext.mounted) {
-        final l10n = AppLocalizations.of(messengerContext);
-        messenger.showSnackBar(
-          SnackBar(
-            key: const ValueKey('shared-import-error'),
-            content: Text(
-              archiveIntakeRejectionMessage(l10n, validation.reason!),
+      if (validation.isRejected) {
+        final messenger = _messengerKey.currentState;
+        final messengerContext = _messengerKey.currentContext;
+        if (messenger != null &&
+            messengerContext != null &&
+            messengerContext.mounted) {
+          final l10n = AppLocalizations.of(messengerContext);
+          messenger.showSnackBar(
+            SnackBar(
+              key: const ValueKey('shared-import-error'),
+              content: Text(
+                archiveIntakeRejectionMessage(l10n, validation.reason!),
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
+      await _navigatorKey.currentState?.push(
+        MaterialPageRoute<void>(
+          builder: (_) => ImportReviewScreen(
+            sources: defaultImportSources(),
+            sharedBundle: SharedBundleImport(
+              json: validation.json!,
+              archive: validation.archive!,
+              entityCount: validation.entityCount,
             ),
           ),
-        );
-      }
-      return;
-    }
-
-    await _navigatorKey.currentState?.push(
-      MaterialPageRoute<void>(
-        builder: (_) => ImportReviewScreen(
-          sources: defaultImportSources(),
-          sharedBundle: SharedBundleImport(
-            json: validation.json!,
-            archive: validation.archive!,
-            entityCount: validation.entityCount,
-          ),
         ),
-      ),
-    );
+      );
+    } finally {
+      if (incomingFile.appOwned) {
+        await _deleteIncomingFile(incomingFile.path);
+      }
+    }
+  }
+
+  Future<void> _deleteIncomingFile(String path) async {
+    try {
+      final deleter = widget.incomingFileDeleter;
+      if (deleter != null) {
+        await deleter(path);
+        return;
+      }
+      final stagedFile = File(path);
+      if (await stagedFile.exists()) {
+        await stagedFile.delete();
+      }
+    } on Object catch (error, stackTrace) {
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'main._handleIncomingFile.cleanup',
+      );
+    }
   }
 
   /// Handles a URL shared into the app from the OS share sheet / an
@@ -1564,8 +1598,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
       _initialFileChecked = true;
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (!mounted) return;
-        final path = await channel.initialFile();
-        if (mounted && path != null) await _handleIncomingFile(path);
+        final file = await channel.initialFile();
+        if (mounted && file != null) await _handleIncomingFile(file);
         if (!mounted) return;
         // Cold start via a shared URL (issue #343): pull it once too. Files and
         // URLs are mutually exclusive for a single launch, so at most one of
