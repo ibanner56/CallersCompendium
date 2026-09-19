@@ -34,6 +34,11 @@ the app and of `compendium_core`; version headings below refer to
 
 ### Fixed
 
+- Count device manifest bodies toward the per-store byte quota. Manifest and
+  blob uploads and store metadata now include manifest bytes, and a manifest
+  upload that would exceed the quota is refused with `507` before its body is
+  buffered, charging a replacement only for its size difference.
+
 - Reject incomplete record-like blob envelopes before privacy allow-list
   validation so private fields cannot bypass the boundary by omitting `v`.
 
