@@ -17,3 +17,9 @@ pubspec_overrides.yaml
 
 # macos file system metadata
 .DS_Store
+
+# preflight artifacts
+coverage/
+lcov.info
+**/Pods/
+**/Podfile.lock
