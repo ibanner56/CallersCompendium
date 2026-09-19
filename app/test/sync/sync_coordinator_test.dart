@@ -222,12 +222,14 @@ void main() {
       final first = await coordinator.syncNow();
       final second = await coordinator.syncNow();
 
+      // Quarantine, not malformation: the peer blob is well formed, its clock
+      // is implausible. The "once" coalescing is what this test is about.
       expect(
-        first.reports.where((r) => r.code == SyncReportCode.malformedRecord),
+        first.reports.where((r) => r.code == SyncReportCode.quarantinedRecord),
         [isNotNull],
       );
       expect(
-        second.reports.where((r) => r.code == SyncReportCode.malformedRecord),
+        second.reports.where((r) => r.code == SyncReportCode.quarantinedRecord),
         isEmpty,
       );
       expect(store.writes.map((write) => write.address), [

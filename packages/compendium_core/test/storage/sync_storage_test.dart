@@ -6204,6 +6204,57 @@ void main() {
       );
     });
 
+    // Copilot review on PR #1327: the merge path derived its survivor from
+    // `_canonicalDifficultyId` without resolving it, while `_adoptCollision`
+    // resolves its own target — so a shipped ID an earlier collision had
+    // already retired split one natural key across two rows.
+    test(
+      'merge resolves a retired shipped difficulty ID before adopting',
+      () async {
+        const kind = SyncRecordKind.difficultyLevel;
+        await (db.delete(
+          db.difficultyLevels,
+        )..where((row) => row.id.equals(DifficultyLevel.beginnerId))).go();
+        await seedLocal(kind, 'review-custom-level', 'Beginner');
+        await repositories.syncLocal.upsertAlias(
+          kind: kind,
+          losingId: DifficultyLevel.beginnerId,
+          survivingId: 'review-ghost-level',
+        );
+
+        final item = await enqueue(
+          kind,
+          'review-custom-level',
+          tombstoneFor(kind, 'review-remote-level', 'Beginner'),
+        );
+        expect(item.isActionable, isTrue);
+
+        await storage.resolveReviewQueue(
+          expectedRow: item.row,
+          action: SyncReviewAction.merge,
+        );
+
+        // One row for the natural key, at the end of the alias chain, and the
+        // merged tombstone landed on it.
+        final rows = await db.select(db.difficultyLevels).get();
+        final beginners = [
+          for (final row in rows)
+            if (row.label == 'Beginner') row,
+        ];
+        expect(beginners, hasLength(1));
+        expect(beginners.single.id, 'review-ghost-level');
+        expect(beginners.single.deletedAt, isNotNull);
+        expect(
+          await repositories.syncLocal.resolveAlias(
+            kind: kind,
+            recordId: 'review-custom-level',
+          ),
+          'review-ghost-level',
+        );
+        expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+      },
+    );
+
     // The local-hash guard above only stays safe if re-observing the collision
     // re-queues the row. `insertOrIgnore` alone would pin the first
     // observation, leaving an actionable row that no decision could ever

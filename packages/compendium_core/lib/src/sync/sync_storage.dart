@@ -1203,11 +1203,22 @@ final class CompendiumSyncStorage
                 incumbentId: currentRow.recordId,
               )
             : null;
-        final survivorId =
-            canonicalDifficultyId ??
-            (currentRow.recordId.compareTo(candidate.id) <= 0
-                ? currentRow.recordId
-                : candidate.id);
+        // Resolved through the alias chain for the same reason inbound
+        // reconciliation resolves its own: `_adoptCollision` adopts onto the
+        // end of the chain, so adopting towards a retired ID here and then
+        // writing the candidate under the raw one splits a single natural key
+        // across two rows. A shipped difficulty ID is the reachable case —
+        // `_canonicalDifficultyId` names it without consulting the aliases —
+        // but `currentRow.recordId` is never checked for being chain-terminal
+        // either, so the resolution is applied to whichever ID wins.
+        final survivorId = await repositories.syncLocal.resolveAlias(
+          kind: currentRow.kind,
+          recordId:
+              canonicalDifficultyId ??
+              (currentRow.recordId.compareTo(candidate.id) <= 0
+                  ? currentRow.recordId
+                  : candidate.id),
+        );
         final aliases = <SyncRecordKind, Map<String, String>>{};
         if (currentRow.recordId != survivorId) {
           await _adoptCollision(
@@ -1756,9 +1767,7 @@ final class CompendiumSyncStorage
                   candidate,
                   candidate.blob.id,
                   recordId: incumbent.id,
-                  reason:
-                      'a tombstone would remove a locally-created '
-                      'natural-key row before a peer observed it',
+                  reason: syncBaselineAbsenceTombstoneReason,
                 );
                 continue;
               }
@@ -1865,9 +1874,7 @@ final class CompendiumSyncStorage
                 candidate,
                 candidate.blob.id,
                 recordId: incumbent.id,
-                reason:
-                    'a tombstone would remove a locally-created '
-                    'natural-key row before a peer observed it',
+                reason: syncBaselineAbsenceTombstoneReason,
               );
               continue;
             }
@@ -2261,12 +2268,13 @@ final class CompendiumSyncStorage
       // not on whether `survivingId` needed an alias hop to reach it.
       // `_migrateLocalIdentity` writes the row at whatever id it is given.
       //
-      // Defensive: every caller now resolves its survivor through the alias
-      // chain before calling, so `target == survivingId` always holds and no
-      // test reaches the `target != survivingId && targetIdentity == null`
-      // case. Gating the migration on that equality is still wrong — it would
-      // fall through both branches and let the rewrite below point join rows
-      // at an id with no row — so the condition is on occupancy alone.
+      // Both call sites are expected to pass a chain-terminal survivor, since
+      // they also have to write the record under it. Do not turn that into an
+      // `target == survivingId` gate here: a caller that forgets would fall
+      // through both branches, and the rewrite below would then point join
+      // rows at an ID with no row and fail the foreign key. Occupancy is the
+      // property that actually decides between migrating and deleting, so it
+      // is the only thing tested.
       if (targetIdentity == null) {
         await _migrateLocalIdentity(kind, losingId, target);
       } else {

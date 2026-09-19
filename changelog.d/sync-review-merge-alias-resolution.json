@@ -1,0 +1,15 @@
+{
+  "id": "sync-review-merge-alias-resolution",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Merging a saved sync decision about a difficulty level that was already merged away once now resolves onto the surviving level instead of failing and leaving the decision stuck.",
+      "A clock-implausible peer record is now reported as quarantined rather than malformed, so it reads as a clock problem instead of a corrupt record."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "Resolve the review-resolution survivor through the persisted alias chain before adopting and rewriting the candidate, roll an inbound batch back when a tombstone other records were reconciled against cannot be written, and report quarantined records under their own code."
+    ]
+  }
+}

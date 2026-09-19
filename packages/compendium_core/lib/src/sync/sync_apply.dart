@@ -173,7 +173,11 @@ class SyncApplyEngine {
       if (assessment.isQuarantined) {
         reports.add(
           SyncReport(
-            code: SyncReportCode.malformedRecord,
+            // Not `malformedRecord`: the blob decoded and validated fine, its
+            // clock is implausible. A consumer filtering by code has to be
+            // able to tell "this peer's clock is wrong" from "this blob is
+            // corrupt" — they call for different things from the user.
+            code: SyncReportCode.quarantinedRecord,
             kind: candidate.blob.kind,
             recordId: candidate.blob.id,
             peerId: candidate.peerId,
@@ -284,6 +288,21 @@ class SyncApplyEngine {
           }
         });
       }
+    } on _NamedTombstoneWriteFailure catch (failure) {
+      // The transaction rolled back, so nothing was applied; report the batch
+      // rather than throwing a pass. See [_guardNamedTombstone].
+      applied.clear();
+      reports.add(
+        SyncReport(
+          code: SyncReportCode.unresolvedReference,
+          kind: failure.address.kind,
+          recordId: failure.address.recordId,
+          message:
+              'A tombstone other records had already been reconciled against '
+              'could not be written, so the batch was rolled back and will be '
+              'retried.',
+        ),
+      );
     } finally {
       if (storage is SyncApplyReconciliationStorage) {
         await storage.clearReconciliationContext();
@@ -461,11 +480,12 @@ class SyncApplyEngine {
       }
     }
 
-    await reconciliationStorage?.setInboundTombstoneContext({
+    final namedTombstones = {
       for (final group in settledGroups)
         for (final record in group)
           if (record.deletedAt != null) record.address,
-    });
+    };
+    await reconciliationStorage?.setInboundTombstoneContext(namedTombstones);
 
     final parentWritten = <SyncApplyRecord>[];
     final parentWrittenByAddress = <SyncRecordAddress, SyncApplyRecord>{};
@@ -491,14 +511,17 @@ class SyncApplyEngine {
           reports.add(
             _writeReport(record, SyncReportCode.malformedRecord, '$error'),
           );
+          _guardNamedTombstone(record, namedTombstones);
         } on ArgumentError catch (error) {
           reports.add(
             _writeReport(record, SyncReportCode.malformedRecord, '$error'),
           );
+          _guardNamedTombstone(record, namedTombstones);
         } on StateError catch (error) {
           reports.add(
             _writeReport(record, SyncReportCode.unresolvedReference, '$error'),
           );
+          _guardNamedTombstone(record, namedTombstones);
         }
       }
     }
@@ -524,6 +547,32 @@ class SyncApplyEngine {
         );
       }
     }
+  }
+
+  /// Aborts the batch when a tombstone the adapter was told about fails to
+  /// write.
+  ///
+  /// Settling every group before naming closes the case where validation drops
+  /// a named tombstone, but not this one: a write can still throw afterwards,
+  /// and referenced kinds are written before the dances and programs that cite
+  /// them. By then a record in an earlier group may already have been
+  /// tombstoned outright because its last citation was supposed to disappear
+  /// with this record — and now will not.
+  ///
+  /// There is nothing to undo towards: the engine holds the pre-write body but
+  /// not the pre-write timestamps, so it cannot restore the earlier record to
+  /// live and re-queue its tombstone as pending. Rolling the transaction back
+  /// is the honest option — every record is retried on the next pass, and the
+  /// reports already collected still reach the caller. Batch isolation is
+  /// deliberately kept for every other write failure: only a *named tombstone*
+  /// can have changed another record's citation decision.
+  static void _guardNamedTombstone(
+    SyncApplyRecord record,
+    Set<SyncRecordAddress> namedTombstones,
+  ) {
+    if (record.deletedAt == null) return;
+    if (!namedTombstones.contains(record.address)) return;
+    throw _NamedTombstoneWriteFailure(record.address);
   }
 
   /// Splits an already kind-ordered batch into consecutive same-kind runs.
@@ -679,3 +728,17 @@ class SyncApplyEngine {
 }
 
 DateTime _syncNowUtc() => DateTime.now().toUtc();
+
+/// Rolls the inbound batch back when a named tombstone cannot be written.
+///
+/// Private to this library: it never escapes [SyncApplyEngine.apply], which
+/// converts it into a report once the transaction has unwound.
+final class _NamedTombstoneWriteFailure implements Exception {
+  const _NamedTombstoneWriteFailure(this.address);
+
+  final SyncRecordAddress address;
+
+  @override
+  String toString() =>
+      'named tombstone ${address.kind.name}:${address.recordId} failed to write';
+}
