@@ -23,6 +23,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+from _bash import find_bash
+
 SCRIPT = Path(__file__).resolve().parent / "publish_pages_manifest.sh"
 REMOTE_BRANCH = "gh-pages"
 
@@ -67,7 +69,7 @@ def _publish(checkout: Path, worktree: Path, manifest_path: Path,
         PUSH_RETRIES="3",
     )
     args = [
-        "bash", str(SCRIPT),
+        find_bash(), str(SCRIPT),
         "--manifest", str(manifest_path),
         "--channel", channel,
         "--tag", tag,
@@ -236,7 +238,7 @@ def _cases() -> None:
         env = dict(os.environ, REMOTE="origin", BRANCH=REMOTE_BRANCH,
                    WORKTREE=str(tmp / "wtz"))
         no_value = subprocess.run(
-            ["bash", str(SCRIPT), "--manifest"],
+            [find_bash(), str(SCRIPT), "--manifest"],
             cwd=str(checkout), env=env, capture_output=True, text=True,
         )
         assert no_value.returncode != 0
@@ -253,7 +255,7 @@ def _cases() -> None:
         env2 = dict(os.environ, REMOTE="origin", BRANCH=REMOTE_BRANCH,
                     WORKTREE=str(tmp / "wtsv"))
         sig_no_value = subprocess.run(
-            ["bash", str(SCRIPT), "--manifest", str(good2),
+            [find_bash(), str(SCRIPT), "--manifest", str(good2),
              "--channel", "stable", "--tag", "v0.1.0", "--signature"],
             cwd=str(checkout), env=env2, capture_output=True, text=True,
         )

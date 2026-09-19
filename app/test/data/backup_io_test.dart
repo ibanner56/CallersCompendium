@@ -244,17 +244,19 @@ void main() {
       },
     );
 
-    test('non-macOS replaces the file and leaves no temp litter on success',
-        () async {
-      isMacOsPlatform = () => false;
-      final target = File('${dir.path}/backup.json');
-      await target.writeAsString('OLD');
+    test(
+      'non-macOS replaces the file and leaves no temp litter on success',
+      () async {
+        isMacOsPlatform = () => false;
+        final target = File('${dir.path}/backup.json');
+        await target.writeAsString('OLD');
 
-      await writeDesktopBackup(target.path, 'NEW');
+        await writeDesktopBackup(target.path, 'NEW');
 
-      expect(await target.readAsString(), 'NEW');
-      expect(_entryNames(dir), unorderedEquals(['backup.json']));
-    });
+        expect(await target.readAsString(), 'NEW');
+        expect(_entryNames(dir), unorderedEquals(['backup.json']));
+      },
+    );
 
     test(
       'macOS routes to the in-place write, bypassing the atomic seam',

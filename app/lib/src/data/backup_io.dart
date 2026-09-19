@@ -174,6 +174,7 @@ Future<File> _createSecureSiblingTemp(File target) async {
       await tmp.create(exclusive: true);
       return tmp;
     } on FileSystemException {
+      // diagnostics: silent — a raced name is retried; exhaustion throws below.
       // Something raced us to this name (TOCTOU) — pick another and retry.
       continue;
     }
