@@ -253,7 +253,10 @@ class AthenaeumStore {
       epoch: store.epoch,
       devices: [for (final row in deviceRows) row['device_id'] as String],
       blobs: ((blobRows.single['count'] as int?) ?? 0) + pending.blobs,
-      bytes: (byteRows.single['bytes'] as int) + pending.bytes,
+      bytes:
+          (byteRows.single['bytes'] as int) +
+          pending.bytes +
+          _manifestBytes(store.idKey),
       maxBlobs: quotaLimits.maxBlobs,
       maxBytes: quotaLimits.maxBytes,
     );
@@ -291,6 +294,9 @@ class AthenaeumStore {
       }
       final existed = _manifestExists(idKey, epoch, deviceId);
       _checkManifestDeviceQuota(idKey, epoch, deviceId, existed: existed);
+      if (body.length > _manifestByteLimit(current, deviceId)) {
+        throw const StoreQuotaExceeded('byte quota exhausted');
+      }
       _database.execute(
         'INSERT INTO manifests (id_key, epoch, device_id, etag, written_at, body) '
         'VALUES (?, ?, ?, ?, ?, ?) '
@@ -310,7 +316,8 @@ class AthenaeumStore {
     }
   }
 
-  void manifestUploadPreflight({
+  /// Returns the largest manifest body, in bytes, this device may upload.
+  int manifestUploadPreflight({
     required String idKey,
     required String epoch,
     required String deviceId,
@@ -320,7 +327,45 @@ class AthenaeumStore {
       throw const StoreEpochMismatch();
     }
     _checkManifestDeviceQuota(idKey, epoch, deviceId);
+    final limit = _manifestByteLimit(current, deviceId);
+    if (limit <= 0) throw const StoreQuotaExceeded('byte quota exhausted');
+    return limit;
   }
+
+  /// Bytes available to [deviceId]'s manifest: the store's remaining byte
+  /// quota with that device's current manifest treated as replaced.
+  int _manifestByteLimit(StoreRow current, String deviceId) {
+    final idKey = current.idKey;
+    final blobBytes =
+        _database.select(
+              'SELECT COALESCE(SUM(size), 0) AS bytes FROM blob_refs '
+              'WHERE id_key = ?',
+              [idKey],
+            ).single['bytes']
+            as int;
+    final used =
+        max(current.bytesUsed, blobBytes) +
+        _pendingDeletionUsage(idKey).bytes +
+        _manifestBytes(
+          idKey,
+          excludingEpoch: current.epoch,
+          excludingDeviceId: deviceId,
+        );
+    return min(maxManifestBytes, quotaLimits.maxBytes - used);
+  }
+
+  int _manifestBytes(
+    String idKey, {
+    String? excludingEpoch,
+    String? excludingDeviceId,
+  }) =>
+      _database.select(
+            'SELECT COALESCE(SUM(LENGTH(body)), 0) AS bytes FROM manifests '
+            'WHERE id_key = ? '
+            'AND NOT (epoch IS ? AND device_id IS ?)',
+            [idKey, excludingEpoch, excludingDeviceId],
+          ).single['bytes']
+          as int;
 
   bool _manifestExists(String idKey, String epoch, String deviceId) =>
       _database.select(
@@ -573,7 +618,10 @@ class AthenaeumStore {
               [idKey],
             ).single['bytes']
             as int;
-    final bytesUsed = max(current.bytesUsed, aggregateBytes) + pending.bytes;
+    final bytesUsed =
+        max(current.bytesUsed, aggregateBytes) +
+        pending.bytes +
+        _manifestBytes(idKey);
     if (bytesUsed >= quotaLimits.maxBytes) {
       throw const StoreQuotaExceeded('byte quota exhausted');
     }
@@ -739,7 +787,10 @@ class AthenaeumStore {
         excludingEpoch: epoch,
         excludingHash: hash,
       );
-      final bytesUsed = max(current.bytesUsed, aggregateBytes) + pending.bytes;
+      final bytesUsed =
+          max(current.bytesUsed, aggregateBytes) +
+          pending.bytes +
+          _manifestBytes(idKey);
       if (count + pending.blobs >= quotaLimits.maxBlobs) {
         throw const StoreQuotaExceeded('blob quota exhausted');
       }

@@ -69,6 +69,7 @@ class _GeneralSectionState extends State<GeneralSection> {
   int? _softDeleteRetentionDays;
   bool _softDeleteRetentionRequested = false;
   bool _softDeleteRetentionUserSet = false;
+  int _softDeleteRetentionLoadGeneration = 0;
 
   /// Lazily loads the persisted soft-delete retention window (ROADMAP G.4) the
   /// first time the General section is built. Mirrors [_ensureAutoSizeLoaded]: a
@@ -76,11 +77,16 @@ class _GeneralSectionState extends State<GeneralSection> {
   void _ensureSoftDeleteRetentionLoaded(BuildContext context) {
     if (_softDeleteRetentionRequested) return;
     _softDeleteRetentionRequested = true;
+    final loadGeneration = ++_softDeleteRetentionLoadGeneration;
     final repos = RepositoriesScope.of(context);
     repos.settings
         .get(kSoftDeleteRetentionKey)
         .then((stored) {
-          if (!mounted || _softDeleteRetentionUserSet) return;
+          if (!mounted ||
+              loadGeneration != _softDeleteRetentionLoadGeneration ||
+              _softDeleteRetentionUserSet) {
+            return;
+          }
           setState(
             () => _softDeleteRetentionDays = _retentionSelectionFromStored(
               stored,
@@ -89,11 +95,28 @@ class _GeneralSectionState extends State<GeneralSection> {
         })
         .catchError((_) {
           // diagnostics: silent — retention setting read failed; falls back to built-in default.
-          if (!mounted || _softDeleteRetentionUserSet) return;
+          if (!mounted ||
+              loadGeneration != _softDeleteRetentionLoadGeneration ||
+              _softDeleteRetentionUserSet) {
+            return;
+          }
           setState(
             () => _softDeleteRetentionDays = kSoftDeleteRetentionDefaultDays,
           );
         });
+  }
+
+  /// Invalidates the cached retention read after a restore. Clear the value
+  /// immediately so the dropdown shows the built-in default while the fresh
+  /// read resolves; the generation guard prevents an older read from winning.
+  void _refreshSoftDeleteRetention() {
+    if (!mounted) return;
+    setState(() {
+      _softDeleteRetentionDays = null;
+      _softDeleteRetentionRequested = false;
+      _softDeleteRetentionUserSet = false;
+    });
+    _ensureSoftDeleteRetentionLoaded(context);
   }
 
   /// Maps a persisted retention value to the `int` the dropdown selects (one of
@@ -258,6 +281,7 @@ class _GeneralSectionState extends State<GeneralSection> {
       }
       if (onRestored != null) await onRestored();
       if (!mounted) return;
+      _refreshSoftDeleteRetention();
       // The core content committed and refreshed, but the separate settings
       // apply failed (#608). The restored dances/programs are safe; offer a
       // retry that re-applies ONLY the settings. Use an indefinite-duration
@@ -347,6 +371,7 @@ class _GeneralSectionState extends State<GeneralSection> {
       // Only refresh when something was actually applied.
       if (outcome.applied && onRestored != null) await onRestored();
       if (!mounted) return;
+      if (outcome.applied) _refreshSoftDeleteRetention();
       if (outcome.settingsFailed) {
         _showSettingsRestoreFailed(messenger, l10n, repos, raw, onRestored);
         return;

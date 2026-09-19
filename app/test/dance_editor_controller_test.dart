@@ -236,6 +236,41 @@ void main() {
     },
   );
 
+  test(
+    'shutdown flush writes the newest edit before the debounce fires',
+    () async {
+      final delayed = openTestRepositoriesWithDelayedSettings();
+      final controller = await newDanceController(delayed.repos);
+
+      controller.titleController.text = 'Final title';
+      controller.onTextEdited();
+      delayed.settings.holdNextWrite();
+
+      final flush = controller.prepareShutdownFlush()();
+      var completed = false;
+      final observed = flush.whenComplete(() => completed = true);
+
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(
+        delayed.settings.writesStarted,
+        1,
+        reason:
+            'shutdown must enqueue the pending snapshot immediately instead '
+            'of waiting for the autosave timer',
+      );
+      expect(completed, isFalse);
+
+      controller.dispose();
+      delayed.settings.releaseWrite();
+      await observed;
+
+      final draft = decodeDraft(
+        await delayed.repos.settings.get('editor_draft:new'),
+      );
+      expect(draft.title, 'Final title');
+    },
+  );
+
   test('clearDraft awaits an in-flight autosave so it cannot resurrect the '
       'draft afterwards (issue #616)', () async {
     final delayed = openTestRepositoriesWithDelayedSettings();

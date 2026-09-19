@@ -644,6 +644,108 @@ void main() {
     expect(store.blobFile(idKey, created.epoch, hash).existsSync(), isFalse);
   });
 
+  group('manifest bytes count toward the store byte quota', () {
+    late Directory dataDirectory;
+    late AthenaeumStore store;
+    late String epoch;
+    final idKey = 'c' * 64;
+
+    setUp(() {
+      dataDirectory = Directory.systemTemp.createTempSync(
+        'athenaeum-manifest-quota-',
+      );
+      store = AthenaeumStore(
+        config: AthenaeumConfig(
+          dataDirectory: dataDirectory.path,
+          pepper: List<int>.filled(32, 0x42),
+        ),
+        database: sqlite3.openInMemory(),
+        quotaLimits: const AthenaeumQuotaLimits(maxBytes: 10),
+      );
+      epoch = store.create(idKey).epoch;
+    });
+    tearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+
+    bool put(String device, int length) => store.putManifest(
+      idKey: idKey,
+      epoch: epoch,
+      deviceId: device,
+      etag: 'd' * 64,
+      writtenAt: 0,
+      body: Uint8List(length)..fillRange(0, length, 1),
+    );
+
+    test('a new device manifest over the remaining quota is rejected', () {
+      put('one', 6);
+      expect(() => put('two', 5), throwsA(isA<StoreQuotaExceeded>()));
+      expect(store.manifest(idKey, epoch, 'two'), isNull);
+      expect(put('two', 4), isTrue);
+    });
+
+    test('a replacement is charged only by its delta', () {
+      put('one', 6);
+      put('two', 3);
+      expect(put('one', 7), isFalse);
+      expect(() => put('one', 8), throwsA(isA<StoreQuotaExceeded>()));
+      expect(store.manifest(idKey, epoch, 'one')!.body.length, 7);
+    });
+
+    test('preflight reports the headroom for the uploading device', () {
+      put('one', 6);
+      expect(
+        store.manifestUploadPreflight(
+          idKey: idKey,
+          epoch: epoch,
+          deviceId: 'one',
+        ),
+        10,
+      );
+      expect(
+        store.manifestUploadPreflight(
+          idKey: idKey,
+          epoch: epoch,
+          deviceId: 'two',
+        ),
+        4,
+      );
+      put('two', 4);
+      expect(
+        () => store.manifestUploadPreflight(
+          idKey: idKey,
+          epoch: epoch,
+          deviceId: 'three',
+        ),
+        throwsA(isA<StoreQuotaExceeded>()),
+      );
+    });
+
+    test('blob uploads see manifest bytes and metadata reports them', () {
+      put('one', 9);
+      expect(store.metadata(store.lookup(idKey)!).bytes, 9);
+      expect(
+        () => store.putBlob(
+          idKey: idKey,
+          epoch: epoch,
+          hash: 'f' * 64,
+          body: Uint8List.fromList([1, 2]),
+        ),
+        throwsA(isA<StoreQuotaExceeded>()),
+      );
+      expect(
+        () => store.blobUploadLimit(idKey, epoch, 'e' * 64),
+        returnsNormally,
+      );
+      put('two', 1);
+      expect(
+        () => store.blobUploadLimit(idKey, epoch, 'e' * 64),
+        throwsA(isA<StoreQuotaExceeded>()),
+      );
+    });
+  });
+
   test('store deletion rolls back all metadata when a delete fails', () {
     final dataDirectory = Directory.systemTemp.createTempSync(
       'athenaeum-store-test-',

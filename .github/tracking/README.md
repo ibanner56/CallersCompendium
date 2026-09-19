@@ -63,6 +63,24 @@ and sets it true; merging that change is the human completion decision.
 Administrative tracking changes use `<!-- tracking-admin -->` and do not claim
 delivery of a work unit.
 
+The Athenaeum topic merge is a separate owner-authorized path:
+
+```text
+Body:   <!-- tracking-topic-merge: athenaeum -->
+Source: athenaeum
+Target: main
+```
+
+The marker is valid only for an owner-authored pull request whose head and base
+repositories are both `ibanner56/CallersCompendium`. It may update multiple
+`adr-004/units/W*.json` files alongside implementation files, but it may not
+change tracking control files such as `tools/tracking/**`, workflows,
+instructions, `project.json`, or other non-unit tracking files. It cannot be
+combined with `tracking-unit` or `tracking-admin`. This path exists so the
+Athenaeum implementation can be merged as one topic while CI continues to run
+the validator from the trusted base commit; the validator change must therefore
+land first.
+
 Do not create GitHub Issues for Device Sync implementation tracking. Historical
 issue and PR numbers may remain as evidence of work completed before this system.
 

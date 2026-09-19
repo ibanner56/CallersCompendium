@@ -12,6 +12,7 @@ import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/date_format_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
+import '../data/editor_draft_shutdown_scope.dart';
 import '../data/matrix_collision_mode_scope.dart';
 import '../data/program_matrix_column_config_scope.dart';
 import '../data/program_auto_commit_scope.dart';
@@ -71,6 +72,30 @@ import '../widgets/program_status_chip.dart';
 enum _ProgramLoadError { missing, undoRecoveryFailed }
 
 enum _PreviewPane { editor, picker }
+
+enum _AutoCommitResultKind { notCommitted, committed, failed }
+
+class _AutoCommitOutcome {
+  const _AutoCommitOutcome({required this.generation, required this.kind});
+
+  const _AutoCommitOutcome.none()
+    : generation = null,
+      kind = _AutoCommitResultKind.notCommitted;
+
+  const _AutoCommitOutcome.notCommitted(this.generation)
+    : kind = _AutoCommitResultKind.notCommitted;
+
+  const _AutoCommitOutcome.committed(this.generation)
+    : kind = _AutoCommitResultKind.committed;
+
+  const _AutoCommitOutcome.failed(this.generation)
+    : kind = _AutoCommitResultKind.failed;
+
+  final int? generation;
+  final _AutoCommitResultKind kind;
+
+  bool get committed => kind == _AutoCommitResultKind.committed;
+}
 
 /// [programId] null ⇒ create a new program; otherwise edit that program.
 /// Raised into a pending first-value future when its subscription is replaced
@@ -138,6 +163,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   final _notesController = TextEditingController();
 
   bool _loaded = false;
+  void Function()? _unregisterShutdownFlush;
 
   /// Last-seen "track calling history for all callers" setting (issue #583),
   /// used to scope the embedded dance picker's call counts.
@@ -458,7 +484,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// autosave (however many are queued) can never complete *after* the
   /// removal and resurrect a just-cleared draft (issue #616).
   Future<void> _saveQueueTail = Future<void>.value();
-  Future<void> _commitQueueTail = Future<void>.value();
+  Future<_AutoCommitOutcome> _commitQueueTail =
+      Future<_AutoCommitOutcome>.value(const _AutoCommitOutcome.none());
 
   /// Bumped by every [_clearDraft] call. A save started before the bump
   /// skips its write if it observes a newer generation, so a cleanup that
@@ -470,6 +497,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// `true` while [_applyRestoredDraft] repopulates state from a restored draft,
   /// so [_scheduleAutosave] doesn't re-arm a write mid-restore.
   bool _restoringDraft = false;
+  bool _shutdownFlushActive = false;
 
   /// A decoded draft staged by [_load] awaiting a restore/discard prompt; shown
   /// after the first frame by [_maybeShowRestoreDialog].
@@ -532,6 +560,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (_unregisterShutdownFlush == null) {
+      final shutdownController = EditorDraftShutdownScope.maybeOf(context);
+      if (shutdownController != null) {
+        _unregisterShutdownFlush = shutdownController.register(
+          _prepareShutdownFlush,
+        );
+      }
+    }
     // Read the active dialect if a scope is present; tolerate its absence
     // (e.g. narrow embedded tests) with a sensible default.
     final scope = context
@@ -926,6 +962,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   @override
   void dispose() {
+    _unregisterShutdownFlush?.call();
     _autosaveTimer?.cancel();
     _autoCommitTimer?.cancel();
     _bulkUndoSnackBar?.close();
@@ -960,7 +997,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// dance editor. No-op before the initial load completes or while restoring a
   /// draft, so neither seeding defaults nor a restore triggers a spurious write.
   void _scheduleAutosave() {
-    if (!_loaded || _restoringDraft) return;
+    if (_shutdownFlushActive || !_loaded || _restoringDraft) return;
     _autosaveTimer?.cancel();
     _autosaveTimer = Timer(const Duration(milliseconds: 500), _saveDraft);
   }
@@ -985,23 +1022,36 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       notes: _notesController.text,
       status: _status,
       hideAlternates: _hideAlternates,
-      slots: _renumber(_slots),
+      slots: List.unmodifiable(_renumber(_slots)),
     );
   }
 
-  Future<void> _saveDraft() {
-    if (!_loaded || !mounted || _restoringDraft) return Future<void>.value();
+  Future<void> _saveDraft({
+    ProgramEditorDraft? preparedDraft,
+    bool surfaceErrors = false,
+  }) {
+    if (_shutdownFlushActive && preparedDraft == null) {
+      return Future<void>.value();
+    }
+    if (!_loaded || !mounted || _restoringDraft) {
+      return Future<void>.value();
+    }
     final generation = _draftGeneration;
+    final draft = preparedDraft ?? _captureDraft();
+    final key = _draftKey;
     // Chain onto the tail (rather than racing a fresh write) so overlapping
     // autosaves never write concurrently, and so the tail always reflects
     // every write scheduled so far.
-    final future = _saveQueueTail.then((_) => _writeDraft(generation));
+    final future = _saveQueueTail.then(
+      (_) => _writeDraft(generation, key, draft, surfaceErrors: surfaceErrors),
+    );
     _saveQueueTail = future;
     return future;
   }
 
   void _scheduleAutoCommit() {
-    if (!_autoCommitEnabled ||
+    if (_shutdownFlushActive ||
+        !_autoCommitEnabled ||
         !_loaded ||
         _restoringDraft ||
         !_dirty ||
@@ -1016,23 +1066,58 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   void _enqueueAutoCommit() {
-    if (!_autoCommitEnabled || !_dirty || _saving || !mounted) return;
+    if (_shutdownFlushActive ||
+        !_autoCommitEnabled ||
+        !_dirty ||
+        _saving ||
+        !mounted) {
+      return;
+    }
     final generation = _editGeneration;
     final future = _commitQueueTail.then((_) => _autoCommit(generation));
     _commitQueueTail = future;
   }
 
-  Future<void> _autoCommit(int generation) async {
+  /// Prepares the final shutdown write without reading this State after the
+  /// commit tail has been awaited. The auto-commit reports an immutable
+  /// outcome, so a successful commit does not recreate the draft it cleared.
+  EditorDraftShutdownOperation _prepareShutdownFlush() {
+    _shutdownFlushActive = true;
+    _autosaveTimer?.cancel();
+    _autoCommitTimer?.cancel();
+    if (!_loaded || !mounted || _restoringDraft) {
+      return () async {};
+    }
+
+    final generation = _editGeneration;
+    final dirty = _dirty;
+    final snapshot = _captureDraft();
+    final key = _draftKey;
+    final commitTail = _commitQueueTail;
+    final saveTail = _saveQueueTail;
+    return () async {
+      final outcome = await commitTail;
+      if (!dirty) return;
+      if (outcome.generation == generation && outcome.committed) return;
+      final finalWrite = saveTail.then(
+        (_) => _writePreparedDraft(key, snapshot),
+      );
+      _saveQueueTail = finalWrite;
+      await finalWrite;
+    };
+  }
+
+  Future<_AutoCommitOutcome> _autoCommit(int generation) async {
     _autoCommitInFlight = true;
     try {
       if (!mounted ||
           !_autoCommitEnabled ||
           !_dirty ||
           generation != _editGeneration) {
-        return;
+        return _AutoCommitOutcome.notCommitted(generation);
       }
       final draft = _draftProgram;
-      if (draft == null) return;
+      if (draft == null) return _AutoCommitOutcome.notCommitted(generation);
       final wasNew = _existing == null;
       final oldDraftKey = _draftKey;
       final bulkUndoEditGeneration = _pendingBulkUndoEditGeneration;
@@ -1053,7 +1138,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             )) {
           _persistedBulkUndoActionToken = bulkUndoActionToken;
         }
-        if (!mounted) return;
+        if (!mounted) return _AutoCommitOutcome.notCommitted(generation);
         if (wasNew && _existing == null) {
           _existing = persisted;
           await _clearDraftKey(oldDraftKey);
@@ -1061,31 +1146,35 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             await _saveDraft();
           }
         }
-        if (!mounted || generation != _editGeneration) {
+        if (!mounted) {
+          return _AutoCommitOutcome.notCommitted(generation);
+        }
+        if (generation != _editGeneration) {
           if (_autoCommitEnabled && _dirty) _scheduleAutoCommit();
-          return;
+          return _AutoCommitOutcome.notCommitted(generation);
         }
         await _clearDraft(waitForCommits: false, resetEditorState: false);
-        if (!mounted) return;
+        if (!mounted) return _AutoCommitOutcome.notCommitted(generation);
         if (generation != _editGeneration) {
           await _saveDraft();
-          if (!mounted) return;
+          if (!mounted) return _AutoCommitOutcome.notCommitted(generation);
           if (_autoCommitEnabled && _dirty) _scheduleAutoCommit();
-          return;
+          return _AutoCommitOutcome.notCommitted(generation);
         }
         setState(() {
           _existing = persisted;
           _dirty = false;
           _slots = persisted.slots;
         });
+        return _AutoCommitOutcome.committed(generation);
       } catch (error, stackTrace) {
         logCaughtError(
           error,
           stackTrace,
           source: 'program_editor_screen._autoCommit',
         );
-        if (!mounted) return;
-        if (_saving) return;
+        if (!mounted) return _AutoCommitOutcome.failed(generation);
+        if (_saving) return _AutoCommitOutcome.failed(generation);
         final errorMessage = AppLocalizations.of(context).programsSaveError;
         if (_pendingBulkUndoSlotIds != null) {
           _showBulkUndoSnackBar(message: errorMessage);
@@ -1094,6 +1183,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             context,
           ).showSnackBar(SnackBar(content: Text(errorMessage)));
         }
+        return _AutoCommitOutcome.failed(generation);
       }
     } finally {
       _autoCommitInFlight = false;
@@ -1110,17 +1200,26 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     }
   }
 
-  Future<void> _writeDraft(int generation) async {
+  Future<void> _writeDraft(
+    int generation,
+    String key,
+    ProgramEditorDraft draft, {
+    required bool surfaceErrors,
+  }) async {
     if (!mounted) return;
     try {
       // A _clearDraft() ran since this save was scheduled — it will (or
       // did) remove the draft itself, so skip the write rather than race it.
       if (generation != _draftGeneration) return;
-      final encoded = encodeProgramDraft(_captureDraft());
-      await _repos.settings.set(_draftKey, encoded);
-    } catch (_) {
+      await _repos.settings.set(key, encodeProgramDraft(draft));
+    } catch (error, stackTrace) {
       // diagnostics: silent — draft write failed; must never stall editing or permanently block later autosaves.
+      if (surfaceErrors) Error.throwWithStackTrace(error, stackTrace);
     }
+  }
+
+  Future<void> _writePreparedDraft(String key, ProgramEditorDraft draft) async {
+    await _repos.settings.set(key, encodeProgramDraft(draft));
   }
 
   /// Cancels the pending autosave and removes the draft from storage. Called on
@@ -1734,21 +1833,22 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 updatedAt: DateTime.now().toUtc(),
               );
               _autoCommitTimer?.cancel();
-              _editGeneration++;
+              final generation = ++_editGeneration;
               final operation = _commitQueueTail.then((_) async {
                 await _repos.programs.update(persisted);
                 await _clearDraft(waitForCommits: false);
               });
               // Keep later commits usable if this live-gig write fails, while
               // still surfacing the failure to this callback.
-              _commitQueueTail = operation.then<void>(
-                (_) {},
+              _commitQueueTail = operation.then<_AutoCommitOutcome>(
+                (_) => _AutoCommitOutcome.committed(generation),
                 onError: (Object error, StackTrace stackTrace) {
                   logCaughtError(
                     error,
                     stackTrace,
                     source: 'program_editor_screen._performPersist',
                   );
+                  return _AutoCommitOutcome.failed(generation);
                 },
               );
               try {

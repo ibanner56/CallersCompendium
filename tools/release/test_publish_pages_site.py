@@ -32,6 +32,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+from _bash import find_bash
+
 HERE = Path(__file__).resolve().parent
 SITE_SCRIPT = HERE / "publish_pages_site.sh"
 MANIFEST_SCRIPT = HERE / "publish_pages_manifest.sh"
@@ -108,7 +110,7 @@ def _publish_site(checkout: Path, worktree: Path, site: Path,
         SOURCE_REF=source_ref,
     )
     return subprocess.run(
-        ["bash", str(SITE_SCRIPT), "--site", str(site)],
+        [find_bash(), str(SITE_SCRIPT), "--site", str(site)],
         cwd=str(checkout), env=env, capture_output=True, text=True,
     )
 
@@ -122,7 +124,7 @@ def _publish_manifest(checkout: Path, worktree: Path, manifest: Path,
         PAGES_USER_NAME="Test Bot", PAGES_USER_EMAIL="test@example.com",
         PUSH_RETRIES="3",
     )
-    args = ["bash", str(MANIFEST_SCRIPT), "--manifest", str(manifest),
+    args = [find_bash(), str(MANIFEST_SCRIPT), "--manifest", str(manifest),
             "--channel", channel, "--tag", tag]
     if signature is None:
         signature = manifest.with_suffix(manifest.suffix + ".sig")
@@ -377,7 +379,7 @@ def _cases() -> None:
         env = dict(os.environ, REMOTE="origin", BRANCH=REMOTE_BRANCH,
                    WORKTREE=str(tmp / "wtz"))
         no_value = subprocess.run(
-            ["bash", str(SITE_SCRIPT), "--site"],
+            [find_bash(), str(SITE_SCRIPT), "--site"],
             cwd=str(checkout), env=env, capture_output=True, text=True,
         )
         assert no_value.returncode != 0

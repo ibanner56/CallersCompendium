@@ -1685,7 +1685,7 @@ Every limit MUST be enforced before allocation, streaming-abort style.
 | Blob size | 1 MB |
 | Manifest size | 16 MB |
 | Blobs per store | 100,000 |
-| Bytes per store | 250 MB |
+| Bytes per store (blobs and device manifests) | 250 MB |
 | Devices per store | 32 |
 | Hashes per `POST /v1/blobs/missing` request | 10,000 |
 | JSON parse depth | 32 |
@@ -2952,6 +2952,14 @@ and proven by test — a hand-maintained list drifts and is worse than useless.
 
 This is a second line of defence. The client serialiser is the control, and
 neither is sufficient alone.
+
+**Record-like envelope detection.** A JSON object whose top-level keys include
+`kind`, `id`, and `body` is a record-envelope candidate even when `v` or
+another required envelope key is absent. The server MUST reject (`422`) that
+candidate as an invalid record envelope rather than treating it as opaque.
+Unknown or duplicate envelope keys and malformed candidate content are likewise
+rejected before any blob is stored. This minimum-shape rule does not require
+the server to parse arbitrary non-record JSON or binary opaque blobs.
 
 **Deployment ordering.** Because that mapping is generated from the client's
 registry and lives on the server, **the server MUST be deployed before any

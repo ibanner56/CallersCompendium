@@ -21,11 +21,13 @@ def run(core_dir: Path = CORE_DIR) -> int:
     if coverage_dir.exists():
         shutil.rmtree(coverage_dir)
 
+    # which() applies PATHEXT, so Windows resolves the dart.bat shim.
+    dart = shutil.which("dart") or "dart"
     commands = (
-        ["dart", "test", "--coverage=coverage"],
-        ["dart", "pub", "global", "activate", "coverage"],
+        [dart, "test", "--coverage=coverage"],
+        [dart, "pub", "global", "activate", "coverage"],
         [
-            "dart",
+            dart,
             "pub",
             "global",
             "run",
