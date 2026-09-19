@@ -9,6 +9,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+from _bash import find_bash
+
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
@@ -231,7 +233,7 @@ esac
             }
         )
         result = subprocess.run(
-            ["bash", "-c", script],
+            [find_bash(), "-c", script],
             cwd=root,
             env=environment,
             capture_output=True,
