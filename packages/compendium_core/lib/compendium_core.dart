@@ -141,6 +141,8 @@ export 'src/storage/database.dart'
         kSectionRuleVersion,
         kCompendiumSchemaVersion,
         kMinSupportedSchemaVersion;
+export 'src/storage/database_setup.dart'
+    show applyCompendiumSqliteSetup, compendiumSqliteBusyTimeoutMs;
 // Only the pure pieces of the timestamp and existence modules are public: the
 // timestamp rules, the ticks they are pinned to, and the unix-seconds
 // conversion, all of which the tests exercise directly.

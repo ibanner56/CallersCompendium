@@ -30,11 +30,18 @@ Future<File> resolveDatabaseFile() async {
 /// inspected. Without it, drift_flutter would recompute the default path
 /// internally; keeping a single source of truth avoids any drift between the
 /// preflight's target and the opened database.
+/// The [DriftNativeOptions.setup] enables WAL and a busy timeout. Device Sync
+/// runs its pass in a worker isolate that opens this same file on its own
+/// connection (`sync_isolate.dart`), so both connections have to agree: without
+/// WAL a sync write would stall every app read, and without a busy timeout an
+/// app write that lands during an inbound apply fails outright with "database
+/// is locked". See [applyCompendiumSqliteSetup].
 CompendiumDatabase openAppDatabase() => CompendiumDatabase(
   driftDatabase(
     name: kDatabaseName,
     native: DriftNativeOptions(
       databasePath: () async => (await resolveDatabaseFile()).path,
+      setup: applyCompendiumSqliteSetup,
     ),
   ),
 );

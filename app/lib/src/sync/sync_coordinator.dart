@@ -1256,7 +1256,6 @@ class SyncCoordinator {
       ({
         Map<SyncRecordAddress, SyncMergeCandidate?> current,
         Map<SyncRecordAddress, SyncMergeCandidate?> publication,
-        Map<String, SyncMergeCandidate> fallbackCandidates,
         SyncPublicationPlan publicationPlan,
         SyncManifest manifest,
         List<SyncRecordAddress> addresses,
@@ -1279,12 +1278,6 @@ class SyncCoordinator {
         resolveAlias: (address) => referenceAliases[address] ?? address,
         unavailableFallbackHashes: unavailableFallbackHashes,
       );
-      final fallbackCandidates = <String, SyncMergeCandidate>{
-        for (final candidate in publication.values)
-          if (candidate != null &&
-              publicationPlan.fallbackHashes.contains(candidate.wireHash))
-            candidate.wireHash: candidate,
-      };
       final manifest = SyncManifest(
         deviceId: deviceId,
         epoch: metadata.epoch,
@@ -1298,7 +1291,6 @@ class SyncCoordinator {
       return (
         current: current,
         publication: publication,
-        fallbackCandidates: fallbackCandidates,
         publicationPlan: publicationPlan,
         manifest: manifest,
         addresses: addresses,
@@ -1306,8 +1298,14 @@ class SyncCoordinator {
     });
 
     var publicationState = await buildPublicationState();
+    // Availability-only: a fallback hash is a baseline hash for a withheld
+    // address, which by construction differs from that address's current wire
+    // hash — and a wire blob embeds its own kind and id, so no other address
+    // can be carrying it either. There is therefore never a local candidate to
+    // re-upload; the probe exists to learn which agreed fallbacks the store has
+    // lost, so the replan can drop them.
     final fallbackProbe = await _uploadMissingLocalBlobs(
-      publicationState.fallbackCandidates,
+      const {},
       fallbackHashes: publicationState.publicationPlan.fallbackHashes,
       reports: reports,
     );
@@ -1563,7 +1561,10 @@ class SyncCoordinator {
       }
       reports.add(
         SyncReport(
-          code: SyncReportCode.malformedRecord,
+          // See SyncApplyEngine.apply: a quarantined record is well-formed
+          // with an implausible clock, which is not the same finding as a
+          // malformed one.
+          code: SyncReportCode.quarantinedRecord,
           kind: entry.key.kind,
           recordId: entry.key.recordId,
           peerId: peerId,

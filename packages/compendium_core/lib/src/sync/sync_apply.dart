@@ -115,9 +115,14 @@ abstract interface class SyncApplyReconciliationStorage
     Map<SyncRecordAddress, String?>? expectedWireHashes,
   });
 
-  /// Provides the final fixed-point eligible tombstones to the storage
-  /// adapter. Reconciliation may prepare candidates that reference validation
-  /// later rejects, so citation suppression must use this final set only.
+  /// Provides the tombstones the batch will actually write.
+  ///
+  /// Adapters use this to suppress a citation whose owner is itself being
+  /// tombstoned here, so the set has to be the one the write pass settled on:
+  /// reconciliation prepares candidates that both the batch-wide fixed point
+  /// and the later per-group settling can still reject, and naming a tombstone
+  /// that is then dropped would delete a record whose live owner still cites
+  /// it. The engine therefore calls this only after every group has settled.
   Future<void> setInboundTombstoneContext(
     Set<SyncRecordAddress> tombstonedAddresses,
   ) async {}
@@ -168,7 +173,11 @@ class SyncApplyEngine {
       if (assessment.isQuarantined) {
         reports.add(
           SyncReport(
-            code: SyncReportCode.malformedRecord,
+            // Not `malformedRecord`: the blob decoded and validated fine, its
+            // clock is implausible. A consumer filtering by code has to be
+            // able to tell "this peer's clock is wrong" from "this blob is
+            // corrupt" — they call for different things from the user.
+            code: SyncReportCode.quarantinedRecord,
             kind: candidate.blob.kind,
             recordId: candidate.blob.id,
             peerId: candidate.peerId,
@@ -279,6 +288,21 @@ class SyncApplyEngine {
           }
         });
       }
+    } on _NamedTombstoneWriteFailure catch (failure) {
+      // The transaction rolled back, so nothing was applied; report the batch
+      // rather than throwing a pass. See [_guardNamedTombstone].
+      applied.clear();
+      reports.add(
+        SyncReport(
+          code: SyncReportCode.unresolvedReference,
+          kind: failure.address.kind,
+          recordId: failure.address.recordId,
+          message:
+              'A tombstone other records had already been reconciled against '
+              'could not be written, so the batch was rolled back and will be '
+              'retried.',
+        ),
+      );
     } finally {
       if (storage is SyncApplyReconciliationStorage) {
         await storage.clearReconciliationContext();
@@ -430,49 +454,52 @@ class SyncApplyEngine {
             if (record.deletedAt == null) record.address,
         });
     }
-    await reconciliationStorage?.setInboundTombstoneContext({
-      for (final record in eligible)
-        if (record.deletedAt != null) record.address,
-    });
+    final groups = _kindGroups(eligible);
+
+    // Settle every group against the same per-group rules the write pass uses,
+    // before naming any tombstone to the storage adapter. The batch-wide
+    // fixed-point above is not enough on its own: it validates each record
+    // against every other eligible record, while the write pass only offers a
+    // record the groups already settled, so a record can survive there and
+    // still be dropped here. A tombstone dropped after being named would have
+    // already suppressed a citation — leaving a record hard-tombstoned while
+    // the live owner that cites it stays — so the naming has to come last.
+    final settled = <SyncRecordAddress, SyncApplyRecord>{};
+    final settledGroups = <List<SyncApplyRecord>>[];
+    for (final group in groups) {
+      final ready = await _settleGroup(
+        storage: storage,
+        group: group,
+        available: settled,
+        reports: reports,
+        reported: reported,
+      );
+      settledGroups.add(ready);
+      for (final record in ready) {
+        settled[record.address] = record;
+      }
+    }
+
+    final namedTombstones = {
+      for (final group in settledGroups)
+        for (final record in group)
+          if (record.deletedAt != null) record.address,
+    };
+    await reconciliationStorage?.setInboundTombstoneContext(namedTombstones);
 
     final parentWritten = <SyncApplyRecord>[];
     final parentWrittenByAddress = <SyncRecordAddress, SyncApplyRecord>{};
-    var groupStart = 0;
-    while (groupStart < eligible.length) {
-      final kind = eligible[groupStart].address.kind;
-      var groupEnd = groupStart + 1;
-      while (groupEnd < eligible.length &&
-          eligible[groupEnd].address.kind == kind) {
-        groupEnd++;
-      }
-      var ready = eligible.sublist(groupStart, groupEnd);
-      while (true) {
-        final availableRecords = <SyncRecordAddress, SyncApplyRecord>{
-          ...parentWrittenByAddress,
-          for (final record in ready) record.address: record,
-        };
-        final availableAddresses = availableRecords.keys.toSet();
-        final availableLiveAddresses = {
-          for (final record in availableRecords.values)
-            if (record.deletedAt == null) record.address,
-        };
-        final next = <SyncApplyRecord>[];
-        for (final record in ready) {
-          final referenceReport = await storage.validateInboundReferences(
-            record,
-            inboundLiveAddresses: availableLiveAddresses,
-            inboundAddresses: availableAddresses,
-            inboundRecords: availableRecords,
-          );
-          if (referenceReport == null) {
-            next.add(record);
-          } else if (reported.add(record.address)) {
-            reports.add(referenceReport);
-          }
-        }
-        if (next.length == ready.length) break;
-        ready = next;
-      }
+    for (final group in settledGroups) {
+      // Re-settle against the records that were actually written rather than
+      // the ones expected to be: a parent whose write failed must still prune
+      // its dependents.
+      final ready = await _settleGroup(
+        storage: storage,
+        group: group,
+        available: parentWrittenByAddress,
+        reports: reports,
+        reported: reported,
+      );
 
       for (final record in ready) {
         try {
@@ -484,17 +511,19 @@ class SyncApplyEngine {
           reports.add(
             _writeReport(record, SyncReportCode.malformedRecord, '$error'),
           );
+          _guardNamedTombstone(record, namedTombstones);
         } on ArgumentError catch (error) {
           reports.add(
             _writeReport(record, SyncReportCode.malformedRecord, '$error'),
           );
+          _guardNamedTombstone(record, namedTombstones);
         } on StateError catch (error) {
           reports.add(
             _writeReport(record, SyncReportCode.unresolvedReference, '$error'),
           );
+          _guardNamedTombstone(record, namedTombstones);
         }
       }
-      groupStart = groupEnd;
     }
 
     for (final record in parentWritten) {
@@ -517,6 +546,94 @@ class SyncApplyEngine {
           _writeReport(record, SyncReportCode.unresolvedReference, '$error'),
         );
       }
+    }
+  }
+
+  /// Aborts the batch when a tombstone the adapter was told about fails to
+  /// write.
+  ///
+  /// Settling every group before naming closes the case where validation drops
+  /// a named tombstone, but not this one: a write can still throw afterwards,
+  /// and referenced kinds are written before the dances and programs that cite
+  /// them. By then a record in an earlier group may already have been
+  /// tombstoned outright because its last citation was supposed to disappear
+  /// with this record — and now will not.
+  ///
+  /// There is nothing to undo towards: the engine holds the pre-write body but
+  /// not the pre-write timestamps, so it cannot restore the earlier record to
+  /// live and re-queue its tombstone as pending. Rolling the transaction back
+  /// is the honest option — every record is retried on the next pass, and the
+  /// reports already collected still reach the caller. Batch isolation is
+  /// deliberately kept for every other write failure: only a *named tombstone*
+  /// can have changed another record's citation decision.
+  static void _guardNamedTombstone(
+    SyncApplyRecord record,
+    Set<SyncRecordAddress> namedTombstones,
+  ) {
+    if (record.deletedAt == null) return;
+    if (!namedTombstones.contains(record.address)) return;
+    throw _NamedTombstoneWriteFailure(record.address);
+  }
+
+  /// Splits an already kind-ordered batch into consecutive same-kind runs.
+  static List<List<SyncApplyRecord>> _kindGroups(
+    List<SyncApplyRecord> records,
+  ) {
+    final groups = <List<SyncApplyRecord>>[];
+    var start = 0;
+    while (start < records.length) {
+      final kind = records[start].address.kind;
+      var end = start + 1;
+      while (end < records.length && records[end].address.kind == kind) {
+        end++;
+      }
+      groups.add(records.sublist(start, end));
+      start = end;
+    }
+    return groups;
+  }
+
+  /// Reduces one kind group to the records whose references all resolve.
+  ///
+  /// A record may reference another record of its own kind, so dropping one
+  /// can invalidate another; the group is therefore reduced to a fixed point.
+  /// [available] is what the group may reference beyond itself — records
+  /// already settled, or already written, depending on the caller. Each
+  /// dropped address is reported once across both passes via [reported].
+  static Future<List<SyncApplyRecord>> _settleGroup({
+    required SyncApplyBatchStorage storage,
+    required List<SyncApplyRecord> group,
+    required Map<SyncRecordAddress, SyncApplyRecord> available,
+    required List<SyncReport> reports,
+    required Set<SyncRecordAddress> reported,
+  }) async {
+    var ready = group;
+    while (true) {
+      final availableRecords = <SyncRecordAddress, SyncApplyRecord>{
+        ...available,
+        for (final record in ready) record.address: record,
+      };
+      final availableAddresses = availableRecords.keys.toSet();
+      final availableLiveAddresses = {
+        for (final record in availableRecords.values)
+          if (record.deletedAt == null) record.address,
+      };
+      final next = <SyncApplyRecord>[];
+      for (final record in ready) {
+        final referenceReport = await storage.validateInboundReferences(
+          record,
+          inboundLiveAddresses: availableLiveAddresses,
+          inboundAddresses: availableAddresses,
+          inboundRecords: availableRecords,
+        );
+        if (referenceReport == null) {
+          next.add(record);
+        } else if (reported.add(record.address)) {
+          reports.add(referenceReport);
+        }
+      }
+      if (next.length == ready.length) return ready;
+      ready = next;
     }
   }
 
@@ -611,3 +728,17 @@ class SyncApplyEngine {
 }
 
 DateTime _syncNowUtc() => DateTime.now().toUtc();
+
+/// Rolls the inbound batch back when a named tombstone cannot be written.
+///
+/// Private to this library: it never escapes [SyncApplyEngine.apply], which
+/// converts it into a report once the transaction has unwound.
+final class _NamedTombstoneWriteFailure implements Exception {
+  const _NamedTombstoneWriteFailure(this.address);
+
+  final SyncRecordAddress address;
+
+  @override
+  String toString() =>
+      'named tombstone ${address.kind.name}:${address.recordId} failed to write';
+}

@@ -135,7 +135,9 @@ void main() {
         valid.address: {'value': 'valid'},
       });
       expect(result.reports, hasLength(1));
-      expect(result.reports.single.code, SyncReportCode.malformedRecord);
+      // Quarantine, not malformation: the blob decoded and validated, its
+      // clock is implausible. The distinction is the whole point of the code.
+      expect(result.reports.single.code, SyncReportCode.quarantinedRecord);
       expect(result.reports.single.kind, future.kind);
       expect(result.reports.single.recordId, future.id);
       expect(result.reports.single.peerId, 'peer-a');
@@ -422,6 +424,98 @@ void main() {
     expect(result.applied, [valid.address]);
     expect(result.reports.single.code, SyncReportCode.malformedRecord);
   });
+
+  test('names only the tombstones the write pass will actually apply', () async {
+    // Citation suppression is the whole point of the tombstone context: a
+    // storage adapter holding back a tombstone because its last citation is
+    // itself being tombstoned has to be told the truth. Naming a tombstone the
+    // engine then drops would delete a record whose live owner still cites it.
+    final choreographer = SyncRecordBlob(
+      kind: SyncRecordKind.choreographer,
+      id: 'author',
+      updatedAt: DateTime.utc(2025, 3, 1),
+      deletedAt: DateTime.utc(2025, 3, 1),
+      existenceAt: DateTime.utc(2025, 3, 1),
+      body: const {'id': 'author', 'name': 'Author'},
+    );
+    final dance = SyncRecordBlob(
+      kind: SyncRecordKind.dance,
+      id: 'dance',
+      updatedAt: DateTime.utc(2025, 3, 1),
+      deletedAt: null,
+      existenceAt: DateTime.utc(2025, 3, 1),
+      body: const {'id': 'dance', 'title': 'Dance'},
+    );
+    // The choreographer group settles first, so a dependency on the dance is
+    // satisfied batch-wide and unsatisfiable per-group.
+    final storage = _TombstoneContextProbeStorage({
+      choreographer.address: {dance.address},
+    });
+
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate.fromBlob(choreographer),
+        SyncMergeCandidate.fromBlob(dance),
+      ],
+      storage: storage,
+    );
+
+    expect(storage.namedTombstones, isNotNull);
+    expect(
+      storage.namedTombstones,
+      isNot(contains(choreographer.address)),
+      reason: 'a tombstone the write pass drops must never be named',
+    );
+    expect(storage.writtenAddresses, isNot(contains(choreographer.address)));
+    expect(result.applied, [dance.address]);
+    expect(
+      result.reports.map((report) => report.code),
+      contains(SyncReportCode.unresolvedReference),
+    );
+  });
+
+  test('rolls the batch back when a named tombstone fails to write', () async {
+    // Copilot review on PR #1327: settling before naming does not cover a
+    // write that throws afterwards. Referenced kinds are written before the
+    // dances that cite them, so by then an earlier record may already have
+    // been tombstoned on the strength of this one disappearing.
+    final author = SyncRecordBlob(
+      kind: SyncRecordKind.choreographer,
+      id: 'author',
+      updatedAt: DateTime.utc(2025, 3, 1),
+      deletedAt: DateTime.utc(2025, 3, 1),
+      existenceAt: DateTime.utc(2025, 3, 1),
+      body: const {'id': 'author', 'name': 'Author'},
+    );
+    final dance = SyncRecordBlob(
+      kind: SyncRecordKind.dance,
+      id: 'dance',
+      updatedAt: DateTime.utc(2025, 3, 1),
+      deletedAt: DateTime.utc(2025, 3, 1),
+      existenceAt: DateTime.utc(2025, 3, 1),
+      body: const {'id': 'dance', 'title': 'Dance'},
+    );
+    final storage = _TombstoneWriteFailureStorage(dance.address);
+
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate.fromBlob(author),
+        SyncMergeCandidate.fromBlob(dance),
+      ],
+      storage: storage,
+    );
+
+    expect(storage.namedTombstones, contains(dance.address));
+    // The choreographer was written before the dance failed; the rollback has
+    // to take it with it, because its citation decision assumed the dance
+    // tombstone would land.
+    expect(storage.records, isEmpty);
+    expect(result.applied, isEmpty);
+    expect(
+      result.reports.map((report) => report.message),
+      contains(contains('rolled back')),
+    );
+  });
 }
 
 class _MemoryApplyStorage implements SyncApplyStorage {
@@ -501,6 +595,137 @@ final class _ReferenceFailureStorage extends _MemoryApplyStorage {
     }
     return super.write(record);
   }
+}
+
+/// Records the tombstone context and the writes, and lets a test declare a
+/// cross-kind dependency the engine itself has no notion of.
+///
+/// A record is admitted only while every address in [dependencies] is on offer.
+/// The batch-wide fixed point offers every eligible record, while the
+/// per-group settle only offers groups already settled plus the group being
+/// settled — so a dependency on a later kind separates the two passes.
+/// Names tombstones, then fails the write of one of them.
+final class _TombstoneWriteFailureStorage extends _MemoryApplyStorage
+    implements SyncApplyReconciliationStorage {
+  _TombstoneWriteFailureStorage(this.failingAddress) : super({});
+
+  final SyncRecordAddress failingAddress;
+  Set<SyncRecordAddress>? namedTombstones;
+
+  @override
+  Future<T> transaction<T>(Future<T> Function() action) async {
+    final snapshot = {
+      for (final entry in records.entries) entry.key: Map.of(entry.value),
+    };
+    try {
+      return await action();
+    } catch (_) {
+      records
+        ..clear()
+        ..addAll({
+          for (final entry in snapshot.entries) entry.key: Map.of(entry.value),
+        });
+      rethrow;
+    }
+  }
+
+  @override
+  Future<SyncApplyPreparation> reconcileInbound(
+    List<SyncMergeCandidate> candidates, {
+    Map<SyncRecordAddress, String?>? expectedWireHashes,
+  }) async => SyncApplyPreparation(candidates: candidates);
+
+  @override
+  Future<SyncReport?> validateInboundReferences(
+    SyncApplyRecord record, {
+    Set<SyncRecordAddress> inboundLiveAddresses = const {},
+    Set<SyncRecordAddress> inboundAddresses = const {},
+    Map<SyncRecordAddress, SyncApplyRecord> inboundRecords = const {},
+  }) async => null;
+
+  @override
+  Future<SyncReport?> writeWithReport(SyncApplyRecord record) async {
+    if (record.address == failingAddress) {
+      throw StateError('parent write failed');
+    }
+    await write(record);
+    return null;
+  }
+
+  @override
+  Future<SyncReport?> writeParentWithReport(SyncApplyRecord record) =>
+      writeWithReport(record);
+
+  @override
+  Future<SyncReport?> writeJoinsWithReport(SyncApplyRecord record) async =>
+      null;
+
+  @override
+  Future<void> setInboundTombstoneContext(
+    Set<SyncRecordAddress> tombstonedAddresses,
+  ) async {
+    namedTombstones = {...tombstonedAddresses};
+  }
+
+  @override
+  Future<void> clearReconciliationContext() async {}
+}
+
+final class _TombstoneContextProbeStorage extends _MemoryApplyStorage
+    implements SyncApplyReconciliationStorage {
+  _TombstoneContextProbeStorage(this.dependencies) : super({});
+
+  final Map<SyncRecordAddress, Set<SyncRecordAddress>> dependencies;
+  final writtenAddresses = <SyncRecordAddress>[];
+  Set<SyncRecordAddress>? namedTombstones;
+
+  @override
+  Future<SyncApplyPreparation> reconcileInbound(
+    List<SyncMergeCandidate> candidates, {
+    Map<SyncRecordAddress, String?>? expectedWireHashes,
+  }) async => SyncApplyPreparation(candidates: candidates);
+
+  @override
+  Future<SyncReport?> validateInboundReferences(
+    SyncApplyRecord record, {
+    Set<SyncRecordAddress> inboundLiveAddresses = const {},
+    Set<SyncRecordAddress> inboundAddresses = const {},
+    Map<SyncRecordAddress, SyncApplyRecord> inboundRecords = const {},
+  }) async {
+    final required = dependencies[record.address] ?? const {};
+    if (required.every(inboundAddresses.contains)) return null;
+    return SyncReport(
+      code: SyncReportCode.unresolvedReference,
+      kind: record.address.kind,
+      recordId: record.address.recordId,
+      message: 'dependency unavailable',
+    );
+  }
+
+  @override
+  Future<SyncReport?> writeWithReport(SyncApplyRecord record) async {
+    writtenAddresses.add(record.address);
+    await write(record);
+    return null;
+  }
+
+  @override
+  Future<SyncReport?> writeParentWithReport(SyncApplyRecord record) =>
+      writeWithReport(record);
+
+  @override
+  Future<SyncReport?> writeJoinsWithReport(SyncApplyRecord record) async =>
+      null;
+
+  @override
+  Future<void> setInboundTombstoneContext(
+    Set<SyncRecordAddress> tombstonedAddresses,
+  ) async {
+    namedTombstones = {...tombstonedAddresses};
+  }
+
+  @override
+  Future<void> clearReconciliationContext() async {}
 }
 
 final class _BatchProbeStorage extends _MemoryApplyStorage

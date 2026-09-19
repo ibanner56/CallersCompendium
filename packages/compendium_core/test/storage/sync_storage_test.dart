@@ -1496,6 +1496,143 @@ void main() {
     },
   );
 
+  // The sibling of the test above for the other side of the pair. Resolution
+  // compares the live local record against the hash captured at enqueue, so a
+  // row kept across an edit to the `recordId` side stays actionable while no
+  // decision on it can ever succeed.
+  test(
+    'refreshes a live ambiguity review after its local record is edited',
+    () async {
+      final stamp = DateTime.utc(2026, 7, 15, 12);
+      final left = Dance(
+        id: 'a-left',
+        title: 'Shared dance',
+        figures: [
+          testFigure(move: 'balance', params: const {'hand': 'left'}),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final right = Dance(
+        id: 'b-right',
+        title: 'The shared dance',
+        figures: [
+          testFigure(move: 'balance', params: const {'hand': 'right'}),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      await repositories.dances.create(left);
+      await repositories.dances.create(right);
+
+      await storage.deduplicateFreshAttach();
+      final firstRow = (await repositories.syncLocal.listReviewQueue()).single;
+      expect(firstRow.recordId, 'a-left');
+      expect(firstRow.localHash, isNotNull);
+
+      // An edit that leaves the pair ambiguous and the candidate untouched:
+      // only the local side moves.
+      await repositories.dances.update(
+        left.copyWith(
+          walkthrough: 'A new walkthrough',
+          updatedAt: stamp.add(const Duration(minutes: 1)),
+        ),
+      );
+
+      await storage.refreshDanceAmbiguityReviews();
+      final refreshedRow =
+          (await repositories.syncLocal.listReviewQueue()).single;
+      expect(refreshedRow.candidateHash, firstRow.candidateHash);
+      expect(refreshedRow.localHash, isNot(firstRow.localHash));
+      expect(SyncReviewQueueItem.fromRow(refreshedRow).isActionable, isTrue);
+
+      await storage.resolveReviewQueue(
+        expectedRow: refreshedRow,
+        action: SyncReviewAction.keepBoth,
+        newNaturalKey: 'A distinct dance',
+      );
+      expect(
+        (await repositories.dances.getById('a-left'))!.title,
+        'A distinct dance',
+      );
+      expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+    },
+  );
+
+  test('adopts onto an aliased survivor that has no local row', () async {
+    // Difficulty canonicalization picks a shipped ID without resolving it
+    // through the alias table, so the adoption target can be an ID an earlier
+    // collision already aliased away. When nothing occupies the end of that
+    // chain the losing row has to move there; leaving it behind and rewriting
+    // its references anyway points `dances.level_id` at a row that does not
+    // exist and fails the foreign key, taking the whole inbound batch with it.
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    // The shipped row is gone and a user-defined ID holds its label, so
+    // canonicalization falls through to the label match and names the shipped
+    // ID as the survivor.
+    await (db.delete(
+      db.difficultyLevels,
+    )..where((row) => row.id.equals(DifficultyLevel.beginnerId))).go();
+    // ignore: unused_result
+    await repositories.difficultyLevels.upsert(
+      DifficultyLevel(id: 'custom-level', label: 'Beginner', position: 0),
+      at: stamp,
+    );
+    await repositories.dances.create(
+      Dance(
+        id: 'levelled-dance',
+        title: 'Levelled dance',
+        difficultyLevelId: 'custom-level',
+        createdAt: stamp,
+        updatedAt: stamp,
+      ),
+    );
+    await repositories.syncLocal.upsertAlias(
+      kind: SyncRecordKind.difficultyLevel,
+      losingId: DifficultyLevel.beginnerId,
+      survivingId: 'ghost-level',
+    );
+    expect(await repositories.difficultyLevels.getById('ghost-level'), isNull);
+
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.difficultyLevel,
+            id: 'custom-level',
+            updatedAt: stamp.add(const Duration(minutes: 1)),
+            deletedAt: null,
+            existenceAt: stamp.add(const Duration(minutes: 1)),
+            body: syncBodyForEntity(
+              SyncRecordKind.difficultyLevel,
+              DifficultyLevel(
+                id: 'custom-level',
+                label: 'Beginner',
+                position: 0,
+              ),
+            ),
+          ),
+        ),
+      ],
+      storage: storage,
+    );
+
+    expect(
+      result.reports.map((report) => '${report.code}: ${report.message}'),
+      isEmpty,
+    );
+    // The local row moved to the end of the alias chain, and the dance still
+    // resolves to it.
+    expect(await repositories.difficultyLevels.getById('custom-level'), isNull);
+    final survivor = await repositories.difficultyLevels.getById('ghost-level');
+    expect(survivor, isNotNull);
+    expect(survivor!.label, 'Beginner');
+    expect(
+      (await repositories.dances.getById('levelled-dance'))!.difficultyLevelId,
+      'ghost-level',
+    );
+  });
+
   test(
     'reconciles same-label difficulty levels before applying dependents',
     () async {
@@ -6066,6 +6203,115 @@ void main() {
         isNull,
       );
     });
+
+    // Copilot review on PR #1327: the merge path derived its survivor from
+    // `_canonicalDifficultyId` without resolving it, while `_adoptCollision`
+    // resolves its own target — so a shipped ID an earlier collision had
+    // already retired split one natural key across two rows.
+    test(
+      'merge resolves a retired shipped difficulty ID before adopting',
+      () async {
+        const kind = SyncRecordKind.difficultyLevel;
+        await (db.delete(
+          db.difficultyLevels,
+        )..where((row) => row.id.equals(DifficultyLevel.beginnerId))).go();
+        await seedLocal(kind, 'review-custom-level', 'Beginner');
+        await repositories.syncLocal.upsertAlias(
+          kind: kind,
+          losingId: DifficultyLevel.beginnerId,
+          survivingId: 'review-ghost-level',
+        );
+
+        final item = await enqueue(
+          kind,
+          'review-custom-level',
+          tombstoneFor(kind, 'review-remote-level', 'Beginner'),
+        );
+        expect(item.isActionable, isTrue);
+
+        await storage.resolveReviewQueue(
+          expectedRow: item.row,
+          action: SyncReviewAction.merge,
+        );
+
+        // One row for the natural key, at the end of the alias chain, and the
+        // merged tombstone landed on it.
+        final rows = await db.select(db.difficultyLevels).get();
+        final beginners = [
+          for (final row in rows)
+            if (row.label == 'Beginner') row,
+        ];
+        expect(beginners, hasLength(1));
+        expect(beginners.single.id, 'review-ghost-level');
+        expect(beginners.single.deletedAt, isNotNull);
+        expect(
+          await repositories.syncLocal.resolveAlias(
+            kind: kind,
+            recordId: 'review-custom-level',
+          ),
+          'review-ghost-level',
+        );
+        expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+      },
+    );
+
+    // The local-hash guard above only stays safe if re-observing the collision
+    // re-queues the row. `insertOrIgnore` alone would pin the first
+    // observation, leaving an actionable row that no decision could ever
+    // satisfy and a peer tombstone that could never converge.
+    test(
+      're-queues a tombstone review after the local record changes',
+      () async {
+        const kind = SyncRecordKind.tag;
+        final tombstone = tombstoneFor(kind, 'requeue-remote', 'Requeue tag');
+        final candidate = SyncMergeCandidate(blob: tombstone);
+        await seedLocal(kind, 'requeue-local', 'Requeue tag');
+
+        await const SyncApplyEngine().apply(
+          candidates: [candidate],
+          storage: storage,
+        );
+        final first = (await repositories.syncLocal.listReviewQueue()).single;
+        expect(first.reason, syncBaselineAbsenceTombstoneReason);
+        expect(first.localHash, isNotNull);
+
+        // Re-observing an unchanged collision must not churn the queue.
+        await const SyncApplyEngine().apply(
+          candidates: [candidate],
+          storage: storage,
+        );
+        final unchanged =
+            (await repositories.syncLocal.listReviewQueue()).single;
+        expect(unchanged.queuedAt, first.queuedAt);
+        expect(unchanged.localHash, first.localHash);
+
+        // An ordinary local edit invalidates the captured hash.
+        // ignore: unused_result
+        await repositories.tags.upsert(
+          Tag(id: 'requeue-local', name: 'Requeue tag', color: 0xFF0000),
+          at: stamp.add(const Duration(minutes: 5)),
+        );
+        await const SyncApplyEngine().apply(
+          candidates: [candidate],
+          storage: storage,
+        );
+
+        final refreshed =
+            (await repositories.syncLocal.listReviewQueue()).single;
+        expect(refreshed.localHash, isNot(first.localHash));
+        final item = SyncReviewQueueItem.fromRow(refreshed);
+        expect(item.isActionable, isTrue);
+
+        // The refreshed row resolves; the stale one never could.
+        await storage.resolveReviewQueue(
+          expectedRow: refreshed,
+          action: SyncReviewAction.keepBoth,
+          newNaturalKey: 'Requeue tag local',
+        );
+        await expectLiveKey(kind, 'requeue-local', 'Requeue tag local');
+        expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+      },
+    );
   });
 }
 

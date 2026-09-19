@@ -21,6 +21,39 @@ void main() {
     },
   );
 
+  test(
+    'the dance fingerprint ignores collections and cannot throw on them',
+    () {
+      final stamp = DateTime.utc(2026, 7, 15, 12);
+      final plain = Dance(
+        id: 'collection-dance',
+        title: 'Collection dance',
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      // None of these is a choreography field, and the archive encoder throws
+      // on a non-finite custom-field number. `ImportPipeline` calls the
+      // fingerprint from a candidate loop that treats it as a predicate, so a
+      // throw here would abort auto-resolution rather than decline a match.
+      final decorated = plain.copyWith(
+        customFields: [CustomFieldValue(fieldId: 'field', value: double.nan)],
+        links: [
+          DanceLink(id: 'link', kind: LinkKind.video, url: 'https://x.test'),
+        ],
+        sourceCitations: [SourceCitation(sourceId: 'source')],
+        provenance: Provenance(
+          source: ProvenanceSource.manual,
+          importedAt: stamp,
+        ),
+      );
+
+      expect(
+        choreographyFingerprintForDance(decorated),
+        choreographyFingerprintForDance(plain),
+      );
+    },
+  );
+
   final choreographyCases = <({String name, Dance Function(Dance) mutate})>[
     (name: 'form', mutate: (dance) => dance.copyWith(form: DanceForm.ecd)),
     (
