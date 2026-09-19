@@ -155,6 +155,18 @@ def test_packaging_paths_trigger_builds_independently() -> None:
         app_tests_changed=True,
         builds_changed=True,
     )
+    # Caught by Copilot review on #1322: builds_changed must never be true
+    # while validation_changed is false. ci.yml's `build` job requires
+    # needs.checks.result == 'success', and `checks` is skipped outright when
+    # validation_changed is false -- so a packaging-only .md diff (an
+    # all-Markdown diff is exactly what makes validation_changed false) would
+    # set builds_changed=true with no way for `build` to ever run, and
+    # merge-gate's `require_success 'Platform builds'` would fail closed
+    # forever. builds_changed must imply validation_changed.
+    expect(
+        "an all-Markdown packaging diff does not set builds_changed",
+        (b"packaging/README.md",),
+    )
 
 
 def test_docs_bundle_and_changelog_gates_run_on_markdown_only_diffs() -> None:
@@ -207,6 +219,18 @@ def test_docs_bundle_and_changelog_gates_run_on_markdown_only_diffs() -> None:
     expect(
         "unrelated markdown diff sets neither",
         (b"README.md",),
+    )
+    # Caught by Copilot review on #1324: docs-bundle-gate and
+    # changelog-structure-gate are now DEFINED inside ci.yml (not only in the
+    # standalone workflows), so an edit to those job definitions has to be
+    # self-validating the same way the standalone workflows self-trigger on
+    # their own YAML changing.
+    expect(
+        "editing ci.yml itself re-triggers both required gates",
+        (b".github/workflows/ci.yml",),
+        validation_changed=True,
+        docs_bundle_changed=True,
+        changelog_changed=True,
     )
 
 

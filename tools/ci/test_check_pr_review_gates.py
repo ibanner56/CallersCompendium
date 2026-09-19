@@ -231,16 +231,25 @@ def test_total_count_beyond_nodes_is_truncation_even_without_the_flag() -> None:
 # --------------------------------------------------------------------------- #
 
 
+CHECK_RUNS_PATH = f"commits/{HEAD}/check-runs?per_page=100"
+
+
+def check_runs_page(runs: list[dict[str, Any]], total: int | None = None) -> dict[str, Any]:
+    return {"total_count": len(runs) if total is None else total, "check_runs": runs}
+
+
 def test_ci_reports_failures_on_head() -> None:
     fetcher = FakeFetcher(
         {
             "pulls/1": pull(),
-            f"commits/{HEAD}/check-runs": {
-                "check_runs": [
-                    {"name": "checks", "status": "completed", "conclusion": "failure"},
-                    {"name": "build", "status": "completed", "conclusion": "success"},
-                ]
-            },
+            CHECK_RUNS_PATH: [
+                check_runs_page(
+                    [
+                        {"name": "checks", "status": "completed", "conclusion": "failure"},
+                        {"name": "build", "status": "completed", "conclusion": "success"},
+                    ]
+                )
+            ],
         }
     )
     ok, lines = gates.gate_ci(fetcher, 1)
@@ -252,9 +261,9 @@ def test_ci_fails_while_a_check_is_still_running() -> None:
     fetcher = FakeFetcher(
         {
             "pulls/1": pull(),
-            f"commits/{HEAD}/check-runs": {
-                "check_runs": [{"name": "build", "status": "in_progress"}]
-            },
+            CHECK_RUNS_PATH: [
+                check_runs_page([{"name": "build", "status": "in_progress"}])
+            ],
         }
     )
     ok, _ = gates.gate_ci(fetcher, 1)
@@ -265,16 +274,75 @@ def test_ci_passes_when_green_and_skipped_counts_as_green() -> None:
     fetcher = FakeFetcher(
         {
             "pulls/1": pull(),
-            f"commits/{HEAD}/check-runs": {
-                "check_runs": [
-                    {"name": "checks", "status": "completed", "conclusion": "success"},
-                    {"name": "docs", "status": "completed", "conclusion": "skipped"},
-                ]
-            },
+            CHECK_RUNS_PATH: [
+                check_runs_page(
+                    [
+                        {"name": "checks", "status": "completed", "conclusion": "success"},
+                        {"name": "docs", "status": "completed", "conclusion": "skipped"},
+                    ]
+                )
+            ],
         }
     )
     ok, lines = gates.gate_ci(fetcher, 1)
     assert ok, lines
+
+
+def test_ci_reads_check_runs_across_pages() -> None:
+    """A commit with more check runs than fit on one page must have every
+    page evaluated, not just the first."""
+    fetcher = FakeFetcher(
+        {
+            "pulls/1": pull(),
+            CHECK_RUNS_PATH: [
+                check_runs_page(
+                    [{"name": "checks", "status": "completed", "conclusion": "success"}],
+                    total=2,
+                ),
+                check_runs_page(
+                    [{"name": "build", "status": "completed", "conclusion": "success"}],
+                    total=2,
+                ),
+            ],
+        }
+    )
+    ok, lines = gates.gate_ci(fetcher, 1)
+    assert ok, lines
+    assert "2 check(s)" in lines[0], lines
+
+
+def test_ci_fails_when_total_count_exceeds_fetched_runs() -> None:
+    """A truncated fetch must fail closed rather than read as green -- the
+    bug this gate exists for: a later, unfetched check run can be failing."""
+    fetcher = FakeFetcher(
+        {
+            "pulls/1": pull(),
+            CHECK_RUNS_PATH: [
+                check_runs_page(
+                    [{"name": "checks", "status": "completed", "conclusion": "success"}],
+                    total=4,
+                )
+            ],
+        }
+    )
+    ok, lines = gates.gate_ci(fetcher, 1)
+    assert not ok, lines
+    assert "4" in lines[0] and "1" in lines[0], lines
+
+
+def test_ci_requests_max_page_size_and_paginates() -> None:
+    fetcher = FakeFetcher(
+        {
+            "pulls/1": pull(),
+            CHECK_RUNS_PATH: [
+                check_runs_page(
+                    [{"name": "checks", "status": "completed", "conclusion": "success"}]
+                )
+            ],
+        }
+    )
+    gates.gate_ci(fetcher, 1)
+    assert (CHECK_RUNS_PATH, True) in fetcher.rest_calls, fetcher.rest_calls
 
 
 # --------------------------------------------------------------------------- #
