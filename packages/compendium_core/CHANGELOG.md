@@ -23,6 +23,17 @@ core version. They are left that way deliberately — do not renumber them.
 
 _Nothing yet._
 
+## [0.5.1] - 2026-09-19
+
+### Added
+
+- Support and validate the fixed ContraDB figure-search filter in the search request builder.
+
+### Fixed
+
+- Normalize archive-content validation failures into structured read and restore results while preserving unrelated programming errors.
+- Plan shared-metadata tag and custom-field adoption on the repository's canonical natural key, resolving canonically-equivalent rows deterministically instead of colliding on the normalized unique key.
+
 ## [0.5.0] - 2026-09-11
 
 ### Added

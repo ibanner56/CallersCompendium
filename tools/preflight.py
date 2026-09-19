@@ -87,6 +87,11 @@ STEPS: tuple[Step, ...] = (
         (py("tools/test_preflight.py"),),
     ),
     Step(
+        "classify-gate",
+        "the CI path-classification gate's own logic (routes changes to their guards)",
+        (py("tools/ci/test_classify_changes.py"),),
+    ),
+    Step(
         "agent-context",
         "resident agent instructions stay within their byte budget",
         (

@@ -268,11 +268,33 @@ def gate_threads(fetcher: Any, pr: int) -> tuple[bool, list[str]]:
     return True, [f"0 of {total} thread(s) unresolved"]
 
 
+def _check_runs(fetcher: Any, head: str) -> tuple[list[dict[str, Any]], int | None]:
+    """Every check run for `head`, at the max page size, following every page --
+    a single unpaged response silently hides checks past the first page, which
+    is exactly the failing check a merge gate must not miss."""
+    payload = fetcher.rest(f"commits/{head}/check-runs?per_page=100", paginate=True)
+    pages = payload if isinstance(payload, list) else [payload]
+    runs: list[dict[str, Any]] = []
+    total: int | None = None
+    for page in pages:
+        if not isinstance(page, dict):
+            continue
+        page_total = page.get("total_count")
+        if isinstance(page_total, int):
+            total = page_total
+        runs.extend(r for r in page.get("check_runs", []) if isinstance(r, dict))
+    return runs, total
+
+
 def gate_ci(fetcher: Any, pr: int) -> tuple[bool, list[str]]:
     """Checks must be green on the head commit, not on a superseded one."""
     head = _head_sha(fetcher, pr)
-    payload = fetcher.rest(f"commits/{head}/check-runs")
-    runs = payload.get("check_runs", []) if isinstance(payload, dict) else []
+    runs, total = _check_runs(fetcher, head)
+    if total is not None and len(runs) < total:
+        return False, [
+            f"{total} check run(s) reported on {head[:8]} but only {len(runs)} "
+            "fetched -- pagination truncated, investigate before concluding"
+        ]
     if not runs:
         return False, [f"no check runs on head {head[:8]} (has CI started?)"]
     pending = [r for r in runs if r.get("status") != "completed"]
