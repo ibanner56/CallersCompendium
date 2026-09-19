@@ -122,10 +122,44 @@ def test_non_markdown_paths_route_to_their_suites() -> None:
     )
 
 
+def test_packaging_paths_trigger_builds_independently() -> None:
+    print("packaging-only diffs still build:")
+    expect(
+        "linux packaging asset alone",
+        (b"packaging/linux/AppRun",),
+        validation_changed=True,
+        builds_changed=True,
+    )
+    expect(
+        "windows packaging script alone",
+        (b"packaging/windows/CallersCompendium.iss",),
+        validation_changed=True,
+        builds_changed=True,
+    )
+    # Packaging-only changes have no app/core code in the diff, so they must
+    # not falsely light up app_tests_changed -- builds_changed has to be an
+    # independent predicate, not just a wider app_tests_changed.
+    expect(
+        "packaging alone does not imply app_tests_changed",
+        (b"packaging/linux/AppRun",),
+        validation_changed=True,
+        builds_changed=True,
+        app_tests_changed=False,
+    )
+    expect(
+        "packaging plus an app change still builds (no interaction bug)",
+        (b"packaging/linux/AppRun", b"app/lib/main.dart"),
+        validation_changed=True,
+        app_tests_changed=True,
+        builds_changed=True,
+    )
+
+
 def main() -> int:
     test_ordinary_markdown_only_skips_everything()
     test_generated_classification_doc_forces_core_tests()
     test_non_markdown_paths_route_to_their_suites()
+    test_packaging_paths_trigger_builds_independently()
 
     if FAILURES:
         print(f"\n{len(FAILURES)} failure(s):")

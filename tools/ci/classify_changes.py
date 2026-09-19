@@ -99,7 +99,15 @@ def classify(paths):
         path.startswith(b"server/") or path in SHARED_RUNTIME_PATHS
         for path in paths
     )
-    builds_changed = app_tests_changed
+    # builds_changed used to be a bare alias for app_tests_changed, so a diff
+    # limited to packaging/ (the Linux AppImage assets and the Windows Inno
+    # Setup script -- neither under app/ nor packages/compendium_core/) never
+    # ran the build matrix. Widen it independently rather than folding
+    # packaging/ into app_tests_changed, since packaging changes have no
+    # Flutter app code to test.
+    builds_changed = app_tests_changed or any(
+        path.startswith(b"packaging/") for path in paths
+    )
     return {
         "validation_changed": validation_changed,
         "core_tests_changed": core_tests_changed,
