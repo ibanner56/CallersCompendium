@@ -31,9 +31,14 @@ on:
         type: string
 
 # Don't cancel an in-flight release (a half-uploaded draft is worse than a
-# queued run); serialize per ref instead.
+# queued run); serialize per target tag instead. A tag push (ref = the tag) and
+# an existing-tag recovery dispatch (ref = main, tag in `release_tag`) mutate the
+# same draft and assets, so both key on the tag. Workflow-level concurrency
+# cannot read job outputs, so the key comes from the raw input; a malformed tag
+# only gets its own group and is rejected by `meta` before any mutation. The
+# `tag-`/`ref-` prefixes keep a branch named like a tag from sharing its group.
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.release_tag != '' && format('tag-{0}', inputs.release_tag) || github.ref_type == 'tag' && format('tag-{0}', github.ref_name) || format('ref-{0}', github.ref) }}
   cancel-in-progress: false
 
 # Least privilege: the default token only reads. The publish job opts into the
@@ -1794,6 +1799,18 @@ jobs:
   # `gh-pages` branch so the client's fixed URL resolves (A11c / ADR-002 §1):
   #   https://ibanner56.github.io/CallersCompendium/<channel>.json
   #
+  # ORDERING: the update channel advances only after verification and public
+  # release. It is NOT ordered against `publish_mobile` (TestFlight): both run
+  # after `verify` and the desktop channel does not wait on the mobile upload.
+  # This job (1) needs `verify`, so no manifest is published unless every
+  # binary's provenance + SBOM attestation verified; (2) runs behind the
+  # `release-publication` approval, which the maintainer grants only AFTER
+  # publishing the draft; (3) refuses to start unless the release is public and
+  # its manifest assets download anonymously, so the channel never advertises
+  # draft (inaccessible) assets; and (4) verifies every manifest/signature pair
+  # against the pinned key BEFORE anything is pushed. An early approval fails
+  # closed without touching gh-pages; re-run the failed job once the draft is public.
+  #
   # CROSS-CHANNEL PRESERVATION: publish_pages_manifest.sh starts from the EXISTING
   # gh-pages content and overwrites only the selected file. A stable release
   # refreshes both manifests for beta opt-ins; a beta refreshes beta only (proven by
@@ -1807,14 +1824,38 @@ jobs:
   # the client 404s gracefully, so shipping this before Pages is enabled is safe.
   pages:
     name: Publish update manifest to Pages
-    needs: [meta, publish_draft]
+    needs: [meta, publish_draft, verify]
     if: >-
       github.repository == 'ibanner56/CallersCompendium' &&
       needs.meta.outputs.is_release == 'true'
     runs-on: ubuntu-latest
+    # Human approval AFTER the draft is published (see the ORDERING note above).
+    environment: release-publication
     permissions:
       contents: write        # push the manifest to the gh-pages branch
     steps:
+      - name: Require a public release with downloadable manifests
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CHANNELS: ${{ needs.meta.outputs.manifest_channels }}
+          TAG: ${{ needs.meta.outputs.tag }}
+        run: |
+          set -euo pipefail
+          is_draft="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq '.isDraft')"
+          if [ "$is_draft" != "false" ]; then
+            echo "::error::Release $TAG is still a draft; publish it, then re-run this job. The update channel was not changed."
+            exit 1
+          fi
+          # Anonymous fetch (no token): the channel must only advertise assets
+          # any client can download.
+          for channel in $CHANNELS; do
+            url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${channel}.json"
+            if ! env -u GH_TOKEN curl -fsSL --retry 3 -o /dev/null "$url"; then
+              echo "::error::${url} is not publicly downloadable; the update channel was not changed."
+              exit 1
+            fi
+          done
+
       # Provides the git remote + push credentials (persist-credentials) the
       # publisher pushes gh-pages through; no new/third-party action is needed.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -1827,6 +1868,14 @@ jobs:
           name: channel-manifests
           path: manifest
 
+      - name: Install Ed25519 verification dependency
+        run: python3 -m pip install --quiet cryptography==50.0.0
+
+      # Publication gate: every manifest/signature pair must verify against the
+      # key pinned in the checked-out source BEFORE any file reaches gh-pages.
+      - name: Verify manifest signatures before publishing
+        run: python3 tools/release/check_pages_signature_files.py manifest
+
       - name: Publish signed manifests to gh-pages
         env:
           CHANNELS: ${{ needs.meta.outputs.manifest_channels }}
@@ -1834,21 +1883,13 @@ jobs:
         run: |
           set -euo pipefail
           for channel in $CHANNELS; do
-            bash tools/release/publish_pages_manifest.sh \
-              --manifest "manifest/${channel}.json" \
-              --signature "manifest/${channel}.json.sig" \
-              --channel "$channel" \
-              --tag "$TAG"
+            bash tools/release/publish_pages_manifest.sh               --manifest "manifest/${channel}.json"               --signature "manifest/${channel}.json.sig"               --channel "$channel"               --tag "$TAG"
           done
 
-      # Defence in depth (#759, #810): assert the published gh-pages state
-      # immediately after a manifest publish, catching a missing or invalid
-      # *.json.sig synchronously within this job. The primary ongoing gate is
-      # pages-sig-gate.yml (daily schedule + workflow_dispatch — see that
-      # workflow for why no push trigger).
-      - name: Install Ed25519 verification dependency
-        run: python3 -m pip install --quiet cryptography==50.0.0
-
+      # Defence in depth (#759, #810): assert the merged published gh-pages state
+      # (including the other channel's untouched files) after the push. The
+      # primary ongoing gate is pages-sig-gate.yml (daily schedule +
+      # workflow_dispatch — see that workflow for why no push trigger).
       - name: Assert gh-pages signature invariant
         run: |
           set -euo pipefail

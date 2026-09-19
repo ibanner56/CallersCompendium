@@ -3,7 +3,9 @@
 
 import os
 import re
+import base64
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -44,6 +46,132 @@ def _publish_script(text: str) -> str:
             break
         lines.append(line[10:] if line else "")
     return "\n".join(lines) + "\n"
+
+
+def _step_script(job: str, step_name: str) -> str:
+    """Return the dedented `run:` body of the named step within a job section."""
+    marker = f"      - name: {step_name}\n"
+    start = job.index(marker) + len(marker)
+    following = re.search(r"^      (?:- |# )", job[start:], re.MULTILINE)
+    end = start + following.start() if following else len(job)
+    step = job[start:end]
+    if "        run: |\n" not in step:
+        return step.split("        run: ", 1)[1]
+    _, body = step.split("        run: |\n", 1)
+    return "\n".join(line[10:] if line else "" for line in body.splitlines()) + "\n"
+
+
+def _step_index(job: str, step_name: str) -> int:
+    return job.index(f"      - name: {step_name}\n")
+
+
+def _concurrency_group(text: str, event: str, ref: str, ref_type: str, tag: str) -> str:
+    """Evaluate the workflow's concurrency-group expression for one trigger.
+
+    Supports only the `&&` / `||` / `==` / `!=` / `format('<p>{0}', x)` subset the
+    expression uses; anything else fails the sanity regex instead of being
+    silently mis-evaluated. This is a local re-implementation, not GitHub's
+    evaluator.
+    """
+    match = re.search(r"^  group: release-\$\{\{ (.+) \}\}$", text, re.MULTILINE)
+    assert match is not None, "missing release concurrency group"
+    expression = re.sub(
+        r"format\('([^'{]*)\{0\}', ([a-z_.]+)\)", r"('\1' + \2)", match.group(1)
+    )
+    contexts = {
+        "github.event_name": event,
+        "github.ref_type": ref_type,
+        "github.ref_name": ref.rsplit("/", 1)[-1],
+        "github.ref": ref,
+        "inputs.release_tag": tag,
+    }
+    for name in sorted(contexts, key=len, reverse=True):
+        expression = expression.replace(name, repr(contexts[name]))
+    expression = expression.replace("&&", " and ").replace("||", " or ")
+    leftover = re.sub(r"'[^']*'", "", expression)
+    assert re.fullmatch(r"[\s+=!()]*(?:(?:and|or)[\s+=!()]*)*", leftover), expression
+    return "release-" + str(eval(expression, {"__builtins__": {}}))  # noqa: S307
+
+
+def _run_guard_script(
+    script: str, is_draft: str, curl_ok: bool
+) -> tuple[subprocess.CompletedProcess[str], list[str]]:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        fake_bin = root / "bin"
+        fake_bin.mkdir()
+        calls = root / "calls"
+        (fake_bin / "gh").write_text(
+            '#!/usr/bin/env bash\n'
+            'printf "gh %s\\n" "$*" >> "$CALLS"\n'
+            'printf "%s\\n" "$IS_DRAFT"\n',
+            encoding="utf-8",
+        )
+        (fake_bin / "curl").write_text(
+            '#!/usr/bin/env bash\n'
+            'printf "curl token=%s %s\\n" "${GH_TOKEN:-unset}" "$*" >> "$CALLS"\n'
+            '[ "$CURL_OK" = "1" ]\n',
+            encoding="utf-8",
+        )
+        for name in ("gh", "curl"):
+            (fake_bin / name).chmod(0o755)
+        environment = os.environ.copy()
+        environment.update(
+            {
+                "PATH": f"{fake_bin}{os.pathsep}{environment.get('PATH', '')}",
+                "CALLS": str(calls),
+                "IS_DRAFT": is_draft,
+                "CURL_OK": "1" if curl_ok else "0",
+                "GH_TOKEN": "secret-token",
+                "CHANNELS": "stable beta",
+                "TAG": "v0.1.0",
+                "GITHUB_REPOSITORY": "ibanner56/CallersCompendium",
+            }
+        )
+        result = subprocess.run(
+            [find_bash(), "-c", script],
+            cwd=root,
+            env=environment,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        recorded = calls.read_text(encoding="utf-8").splitlines() if calls.exists() else []
+        return result, recorded
+
+
+def _assert_verifier_rejects_tampered_manifest() -> None:
+    """Run the real pre-publish verifier on a valid, then tampered, manifest."""
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+    key = Ed25519PrivateKey.generate()
+    raw_public = key.public_key().public_bytes(
+        serialization.Encoding.Raw, serialization.PublicFormat.Raw
+    )
+    script = ROOT / "tools" / "release" / "check_pages_signature_files.py"
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        key_source = root / "key.dart"
+        key_source.write_text(
+            "const String kUpdateManifestPublicKey =\n    '"
+            + base64.b64encode(raw_public).decode()
+            + "';\n",
+            encoding="utf-8",
+        )
+        manifest = root / "manifest" / "stable.json"
+        manifest.parent.mkdir()
+        manifest.write_bytes(b'{"version":"1.0.0"}')
+        (manifest.parent / "stable.json.sig").write_text(
+            base64.b64encode(key.sign(manifest.read_bytes())).decode(),
+            encoding="utf-8",
+        )
+        args = [sys.executable, str(script), str(manifest.parent), "--key-source", str(key_source)]
+        ok = subprocess.run(args, capture_output=True, text=True, check=False)
+        assert ok.returncode == 0, (ok.stdout, ok.stderr)
+        manifest.write_bytes(b'{"version":"9.9.9"}')
+        bad = subprocess.run(args, capture_output=True, text=True, check=False)
+        assert bad.returncode == 1, (bad.stdout, bad.stderr)
 
 
 def _run_publish_script(
@@ -315,6 +443,69 @@ def main() -> None:
     assert "needs.meta.outputs.recovery != 'true'" in provenance
     assert "needs.meta.outputs.recovery == 'true'" in provenance
     assert "predicate-path: recovery-provenance.json" in provenance
+
+    # Issue 07: every run targeting one tag shares a concurrency group, whether
+    # it began as a tag push or a main-dispatched recovery.
+    tag_push = _concurrency_group(text, "push", "refs/tags/v0.1.0", "tag", "")
+    recovery = _concurrency_group(
+        text, "workflow_dispatch", "refs/heads/main", "branch", "v0.1.0"
+    )
+    dry_run = _concurrency_group(text, "workflow_dispatch", "refs/heads/main", "branch", "")
+    branch_like_tag = _concurrency_group(
+        text, "workflow_dispatch", "refs/heads/v0.1.0", "branch", ""
+    )
+    other_tag = _concurrency_group(text, "push", "refs/tags/v0.2.0", "tag", "")
+    assert tag_push == recovery, (tag_push, recovery)
+    assert len({tag_push, dry_run, branch_like_tag, other_tag}) == 4, (
+        tag_push,
+        dry_run,
+        branch_like_tag,
+        other_tag,
+    )
+    assert "  cancel-in-progress: false" in text
+
+    # Issues 04/05/06: the channel advances only after verification and public
+    # release. Ordering against publish_mobile is deliberately NOT asserted.
+    pages_job = _job_section(text, "pages")
+    pages_needs = re.search(r"^    needs:\s*\[([^\]]+)\]\s*$", pages_job, re.MULTILINE)
+    assert pages_needs is not None and {"meta", "publish_draft", "verify"}.issubset(
+        {item.strip() for item in pages_needs.group(1).split(",")}
+    ), "pages must wait for provenance verification"
+    assert "    environment: release-publication\n" in pages_job, (
+        "pages must sit behind the post-publication approval"
+    )
+    public_step = "Require a public release with downloadable manifests"
+    install_step = "Install Ed25519 verification dependency"
+    verify_step = "Verify manifest signatures before publishing"
+    publish_step = "Publish signed manifests to gh-pages"
+    assert (
+        _step_index(pages_job, public_step)
+        < _step_index(pages_job, install_step)
+        < _step_index(pages_job, verify_step)
+        < _step_index(pages_job, publish_step)
+    ), "pages must check publicity and signatures before it publishes"
+    assert (
+        "python3 tools/release/check_pages_signature_files.py manifest"
+        in _step_script(pages_job, verify_step)
+    )
+    assert "publish_pages_manifest.sh" not in pages_job[: _step_index(pages_job, publish_step)]
+
+    guard = _step_script(pages_job, public_step)
+    result, calls = _run_guard_script(guard, "false", True)
+    assert result.returncode == 0, (result.stdout, result.stderr)
+    curls = [call for call in calls if call.startswith("curl ")]
+    assert len(curls) == 2 and all("token=unset" in call for call in curls), calls
+    assert any(call.endswith("/v0.1.0/stable.json") for call in curls), calls
+    result, calls = _run_guard_script(guard, "true", True)
+    assert result.returncode != 0 and "still a draft" in result.stdout + result.stderr
+    assert not any(call.startswith("curl ") for call in calls), calls
+    result, _ = _run_guard_script(guard, "false", False)
+    assert result.returncode != 0 and "not publicly downloadable" in (
+        result.stdout + result.stderr
+    )
+
+    # The pre-publish verifier itself must reject a tampered manifest.
+    _assert_verifier_rejects_tampered_manifest()
 
     print("release workflow recovery guards: OK")
 
