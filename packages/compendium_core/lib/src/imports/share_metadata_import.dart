@@ -5,6 +5,7 @@ import '../serialization/compendium_archive.dart';
 import '../storage/repositories/custom_field_repository.dart';
 import '../storage/repositories/published_source_repository.dart';
 import '../storage/repositories/tag_repository.dart';
+import '../storage/shareable_text.dart';
 
 /// The receiver-side ids and rollback ledger for metadata in a shared archive.
 class ShareMetadataImportResult {
@@ -199,11 +200,33 @@ class ShareMetadataImporter {
     ShareMetadataImportResult result,
     String Function() newId,
   ) {
-    final byName = <String, ({Tag tag, bool deleted})>{
-      for (final item in existing) item.tag.name: item,
-    };
+    // Group existing rows by the canonical name `TagRepository.upsert` writes
+    // and enforces as UNIQUE (`normalizeShareableText`), so a live tag that is
+    // canonically equivalent to an incoming one — differing only in Unicode
+    // form or in characters the codec strips — is adopted rather than minted
+    // into a normalized-unique-name collision on insert.
+    //
+    // A canonical key can legitimately hold more than one raw row: the
+    // normalisation-skip repair leaves canonically-equivalent legacy names
+    // (e.g. NFC "café" beside NFD "café") unchanged. The group is therefore
+    // kept as a bucket and resolved deterministically by [_bestMatch] — exact
+    // raw match, then a live row, then the smallest id — never collapsed to
+    // whichever row happened to be seen last.
+    final buckets = <String, List<({Tag tag, bool deleted})>>{};
+    for (final item in existing) {
+      buckets
+          .putIfAbsent(normalizeShareableText(item.tag.name), () => [])
+          .add(item);
+    }
     for (final tag in incoming) {
-      final match = byName[tag.name];
+      final canonical = normalizeShareableText(tag.name);
+      final match = _bestMatch(
+        buckets[canonical],
+        tag.name,
+        (c) => c.tag.name,
+        (c) => c.tag.id,
+        (c) => c.deleted,
+      );
       if (match != null) {
         result.tagIdByArchiveId[tag.id] = match.tag.id;
         if (match.deleted) result.restoredTagIds.add(match.tag.id);
@@ -211,10 +234,10 @@ class ShareMetadataImporter {
         final id = newId();
         result.tagIdByArchiveId[tag.id] = id;
         result.insertedTagIds.add(id);
-        byName[tag.name] = (
+        buckets.putIfAbsent(canonical, () => []).add((
           tag: Tag(id: id, name: tag.name, color: tag.color),
           deleted: false,
-        );
+        ));
       }
     }
   }
@@ -276,11 +299,26 @@ class ShareMetadataImporter {
     ShareMetadataImportResult result,
     String Function() newId,
   ) {
-    final byKey = <String, ({CustomFieldDef field, bool deleted})>{
-      for (final item in existing) item.field.key: item,
-    };
+    // Bucket by the canonical key `CustomFieldDefRepository.upsert` writes and
+    // enforces as UNIQUE, for the same reason as tags (see [_planTags]): the
+    // repair pass can leave canonically-equivalent legacy keys as distinct raw
+    // rows, so resolve the bucket deterministically with [_bestMatch] before
+    // applying the compatibility check.
+    final buckets = <String, List<({CustomFieldDef field, bool deleted})>>{};
+    for (final item in existing) {
+      buckets
+          .putIfAbsent(normalizeShareableText(item.field.key), () => [])
+          .add(item);
+    }
     for (final field in incoming) {
-      final match = byKey[field.key];
+      final canonical = normalizeShareableText(field.key);
+      final match = _bestMatch(
+        buckets[canonical],
+        field.key,
+        (c) => c.field.key,
+        (c) => c.field.id,
+        (c) => c.deleted,
+      );
       if (match != null) {
         if (!_sameField(match.field, field)) {
           throw StateError(
@@ -293,7 +331,7 @@ class ShareMetadataImporter {
         final id = newId();
         result.fieldIdByArchiveId[field.id] = id;
         result.insertedFieldIds.add(id);
-        byKey[field.key] = (
+        buckets.putIfAbsent(canonical, () => []).add((
           field: CustomFieldDef(
             id: id,
             key: field.key,
@@ -305,9 +343,36 @@ class ShareMetadataImporter {
             shareable: field.shareable,
           ),
           deleted: false,
-        );
+        ));
       }
     }
+  }
+
+  /// Chooses which row an incoming record adopts from a canonical-key [bucket].
+  ///
+  /// A canonical key can map to several raw rows because the normalisation-skip
+  /// repair leaves canonically-equivalent legacy values unchanged, so the
+  /// choice must be deterministic and independent of load order: an exact raw
+  /// match ([rawKey]) wins first, then a live row over a tombstone, then the
+  /// smallest id — the same precedence `TagRepository.idByName` applies. Returns
+  /// `null` when the key is free.
+  static T? _bestMatch<T>(
+    List<T>? bucket,
+    String rawKey,
+    String Function(T) rawOf,
+    String Function(T) idOf,
+    bool Function(T) deletedOf,
+  ) {
+    if (bucket == null || bucket.isEmpty) return null;
+    return bucket.reduce((best, candidate) {
+      final candidateExact = rawOf(candidate) == rawKey;
+      final bestExact = rawOf(best) == rawKey;
+      if (candidateExact != bestExact) return candidateExact ? candidate : best;
+      if (deletedOf(candidate) != deletedOf(best)) {
+        return deletedOf(candidate) ? best : candidate;
+      }
+      return idOf(candidate).compareTo(idOf(best)) < 0 ? candidate : best;
+    });
   }
 
   static bool _sameSource(PublishedSource a, PublishedSource b) =>
@@ -318,7 +383,10 @@ class ShareMetadataImporter {
       a.notes == b.notes;
 
   static bool _sameField(CustomFieldDef a, CustomFieldDef b) =>
-      a.key == b.key &&
+      // Keys are compared canonically because the caller already matched on the
+      // canonical key; a raw compare would treat an NFC/NFD-equivalent key as a
+      // conflict and reject an otherwise-identical field.
+      normalizeShareableText(a.key) == normalizeShareableText(b.key) &&
       a.label == b.label &&
       a.type == b.type &&
       _listEquals(a.choices, b.choices) &&
