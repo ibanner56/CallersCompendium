@@ -38,6 +38,26 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 _Nothing yet._
 
+## [0.4.1] - 2026-09-19
+
+### Added
+
+- You can search Caller's Box and ContraDB online by figure text from Collection; ContraDB uses complete canonical move names.
+
+### Changed
+
+- The About page and GitHub Pages landing page now show the 0.4.0 release codename, “Allemande Left,” alongside the app version.
+- You can more easily distinguish the Program defaults and Dance-authoring defaults sections in the Defaults pane.
+
+### Fixed
+
+- When you import or restore an archive with malformed content, the problem is reported as an archive error instead of an uncaught failure.
+- Importing shared metadata no longer fails when an incoming tag or custom field matches one you already have but is written in a different Unicode form; the existing entry is reused instead.
+- Private copies of files you share into the app are now removed after validation or dismissal.
+- Saving a backup on Windows or Linux now writes to a temporary file and swaps it into place, so an interrupted save can no longer destroy your previous backup.
+- Restoring a backup now resets settings missing from that backup to their defaults immediately.
+- You no longer lose your newest dance or program editor changes when the app closes before autosave finishes.
+
 ## [0.4.0] - 2026-09-11
 
 ### Added
