@@ -564,6 +564,86 @@ void main() {
     expect(decoded.tags.single.name, 'café');
     expect(decoded.tags.single.name, isNot('café'));
   });
+
+  test(
+    'canonical bucket with multiple live raw rows adopts the exact raw match',
+    () async {
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      // Two live tags that are canonically equal ("café") but stored in
+      // distinct raw forms — the state the normalisation-skip repair leaves
+      // behind. Insert raw, because upsert would normalise (and collide).
+      await db.customStatement('INSERT INTO tags (id, name) VALUES (?, ?)', [
+        't-nfd',
+        'café',
+      ]);
+      await db.customStatement('INSERT INTO tags (id, name) VALUES (?, ?)', [
+        't-nfc',
+        'café',
+      ]);
+      final tags = TagRepository(db);
+
+      final result =
+          await ShareMetadataImporter(
+            tags: tags,
+            sources: PublishedSourceRepository(db),
+            customFields: CustomFieldDefRepository(db),
+          ).commit(
+            CompendiumArchive(
+              exportedAt: _now,
+              // Incoming exactly matches the NFD row's raw form.
+              tags: [Tag(id: 'archive-tag', name: 'café')],
+            ),
+            now: _now,
+            newId: () => 'fresh-tag',
+          );
+
+      // Exact raw match wins deterministically; the canonical twin is not
+      // chosen by load order, and nothing new is minted.
+      expect(result.tagIdByArchiveId['archive-tag'], 't-nfd');
+      expect(result.insertedTagIds, isEmpty);
+      expect(result.restoredTagIds, isEmpty);
+      expect(
+        (await tags.listAll()).map((t) => t.id),
+        containsAll(['t-nfd', 't-nfc']),
+      );
+    },
+  );
+
+  test(
+    'canonical match revives a tombstoned raw variant instead of colliding',
+    () async {
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      // A tombstoned tag stored as NFC "café" (deleted_at set).
+      await db.customStatement(
+        'INSERT INTO tags (id, name, deleted_at) VALUES (?, ?, ?)',
+        ['t-nfc', 'café', 1000],
+      );
+      final tags = TagRepository(db);
+
+      final result =
+          await ShareMetadataImporter(
+            tags: tags,
+            sources: PublishedSourceRepository(db),
+            customFields: CustomFieldDefRepository(db),
+          ).commit(
+            CompendiumArchive(
+              exportedAt: _now,
+              // NFD spelling: no exact raw match, but canonically equal to the
+              // tombstone, so it is revived rather than minted into a collision.
+              tags: [Tag(id: 'archive-tag', name: 'café')],
+            ),
+            now: _now,
+            newId: () => 'fresh-tag',
+          );
+
+      expect(result.tagIdByArchiveId['archive-tag'], 't-nfc');
+      expect(result.insertedTagIds, isEmpty);
+      expect(result.restoredTagIds, ['t-nfc']);
+      expect(await tags.getById('t-nfc'), isNotNull);
+    },
+  );
 }
 
 class _FailingProgramCreateRepository extends ProgramRepository {
