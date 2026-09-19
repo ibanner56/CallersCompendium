@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -60,7 +61,8 @@ def _installed_version(argv: list[str]) -> str:
     else:
         try:
             raw = subprocess.run(
-                ["flutter", "--version"],
+                # which() applies PATHEXT, so Windows resolves flutter.bat.
+                [shutil.which("flutter") or "flutter", "--version"],
                 capture_output=True,
                 text=True,
                 check=True,

@@ -757,15 +757,35 @@ void main() {
       );
       expect(manifestTooLarge.statusCode, 413);
 
+      // These reject while the body is still streaming, so the server cancels
+      // it and dart:io destroys the socket. On Windows the resulting RST can
+      // discard the response before the client reads it; call the handler
+      // in-process to assert the response without depending on socket teardown.
+      Future<Response> streamedReject(
+        String method,
+        String path,
+        List<int> body, {
+        String contentType = 'application/json',
+        Map<String, String> headers = const {},
+      }) => app.call(
+        Request(
+          method,
+          Uri.parse('http://127.0.0.1$path'),
+          headers: {
+            'authorization': 'Bearer ${encodeSyncCredential(syncId)}',
+            'content-type': contentType,
+            ...headers,
+          },
+          body: body,
+        ),
+      );
       final deepJson = utf8.encode(
         '[' * (maxJsonDepth + 2) + ']' * (maxJsonDepth + 2),
       );
-      final tooDeep = await _send(
+      final tooDeep = await streamedReject(
         'POST',
         '/v1/blobs/missing',
-        syncId: syncId,
-        body: Uint8List.fromList(deepJson),
-        contentType: 'application/json',
+        deepJson,
       );
       expect(tooDeep.statusCode, 413);
 
@@ -774,22 +794,19 @@ void main() {
           jsonEncode({'hashes': List<int>.filled(maxMissingHashes + 1, 0)}),
         ),
       );
-      final tooMany = await _send(
+      final tooMany = await streamedReject(
         'POST',
         '/v1/blobs/missing',
-        syncId: syncId,
-        body: tooManyHashes,
-        contentType: 'application/json',
+        tooManyHashes,
       );
       expect(tooMany.statusCode, 413);
 
       final expanded = Uint8List.fromList(List<int>.filled(1024, 0x61));
       final compressed = Uint8List.fromList(gzip.encode(expanded));
-      final expansion = await _send(
+      final expansion = await streamedReject(
         'PUT',
         '/v1/blobs/${'b' * 64}',
-        syncId: syncId,
-        body: compressed,
+        compressed,
         contentType: 'application/octet-stream',
         headers: {'content-encoding': 'gzip'},
       );
@@ -801,16 +818,18 @@ void main() {
         gzip.encode(malformedSource),
       );
       malformedCompressed[10] ^= 0xff;
-      final malformedGzip = await _send(
+      final malformedGzip = await streamedReject(
         'PUT',
         '/v1/blobs/${'c' * 64}',
-        syncId: syncId,
-        body: malformedCompressed.sublist(0, malformedCompressed.length - 1),
+        malformedCompressed.sublist(0, malformedCompressed.length - 1),
         contentType: 'application/octet-stream',
         headers: {'content-encoding': 'gzip'},
       );
       expect(malformedGzip.statusCode, 400);
-      expect(await malformedGzip.body(), contains('malformed compressed body'));
+      expect(
+        await malformedGzip.readAsString(),
+        contains('malformed compressed body'),
+      );
     },
   );
 
@@ -1076,6 +1095,7 @@ void main() {
   test('failure-budget churn cannot reset an active address bucket', () async {
     final customApp = AthenaeumApp(
       config: app.config,
+      store: app.store,
       clientAddressResolver: (request) => request.headers['x-test-ip']!,
       budgetLimits: const AthenaeumBudgetLimits(
         perIpFailureBurst: maxFailedResolutionsPerIpBurst,
