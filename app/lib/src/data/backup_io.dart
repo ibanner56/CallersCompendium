@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart';
@@ -87,17 +88,26 @@ class BackupFileTooLargeException implements Exception {
 /// good copy while the new one is incomplete — potentially losing both
 /// (issue #438).
 ///
-/// Instead we write to a sibling temp file `<path>.tmp`, flush it to disk
-/// (`flush: true` performs an `fsync`, so the bytes are durable before we
-/// touch the target), then atomically `rename` it over [path]. `dart:io`'s
-/// [File.rename] is an atomic same-volume replace on every target platform
-/// (`rename(2)` on POSIX; `MoveFileExW` with `MOVEFILE_REPLACE_EXISTING` on
-/// Windows), and keeping the temp beside the target guarantees they share a
-/// volume. So the target is only ever swapped for a fully-written file — a
-/// failed write leaves the old backup untouched.
+/// Instead we write to a sibling temp file, flush it to disk (`flush: true`
+/// performs an `fsync`, so the bytes are durable before we touch the target),
+/// then atomically `rename` it over [path]. `dart:io`'s [File.rename] is an
+/// atomic same-volume replace on every target platform (`rename(2)` on POSIX;
+/// `MoveFileExW` with `MOVEFILE_REPLACE_EXISTING` on Windows), and keeping the
+/// temp beside the target guarantees they share a volume. So the target is only
+/// ever swapped for a fully-written file — a failed write leaves the old backup
+/// untouched.
+///
+/// The sibling temp is created under an **unpredictable** name via an exclusive,
+/// no-follow create (see [_createSecureSiblingTemp]). [writeDesktopBackup]
+/// routes user-selected desktop destinations here, and those directories are
+/// not app-private — a fixed, guessable temp name (`<path>.tmp`) could be
+/// pre-planted as a symlink so the write followed it and clobbered the link
+/// target (CWE-59/377). An unpredictable name the writer creates exclusively
+/// closes that vector, mirroring the update downloader's hardening
+/// (`app/lib/src/update/artifact_downloader.dart`).
 ///
 /// On any failure the temp file is removed on a best-effort basis (so a failed
-/// write leaves no `.tmp` litter) and the error is rethrown. The pre-existing
+/// write leaves no temp litter) and the error is rethrown. The pre-existing
 /// file at [path] is never modified unless the rename succeeds.
 ///
 /// [debugSimulateFailure], if supplied, is awaited *after* the temp file has
@@ -110,20 +120,68 @@ Future<void> writeStringAtomically(
   String contents, {
   Future<void> Function()? debugSimulateFailure,
 }) async {
-  final tmp = File('$path.tmp');
+  final tmp = await _createSecureSiblingTemp(File(path));
   try {
+    // The temp is a regular file we just created exclusively, so this write
+    // cannot be redirected through a pre-planted symlink. `flush: true` fsyncs
+    // before the rename so the bytes are durable.
     await tmp.writeAsString(contents, flush: true);
     if (debugSimulateFailure != null) await debugSimulateFailure();
     await tmp.rename(path);
   } catch (_) {
-    // diagnostics: silent — write/rename failed; cleans up .tmp then rethrows to caller.
+    // diagnostics: silent — write/rename failed; cleans up the temp then rethrows to caller.
     try {
       if (await tmp.exists()) await tmp.delete();
     } catch (_) {
-      // diagnostics: silent — .tmp cleanup failed; original write/rename failure is what matters.
+      // diagnostics: silent — temp cleanup failed; original write/rename failure is what matters.
     }
     rethrow;
   }
+}
+
+final Random _secureRandom = Random.secure();
+
+/// Creates an empty temp file beside [target] under an unpredictable name,
+/// returning it for the caller to write and then `rename` over [target].
+///
+/// Keeping the temp in [target]'s own directory guarantees a same-volume (hence
+/// atomic) rename. The name is drawn from [Random.secure] and the file is
+/// created with an exclusive, no-follow create so a local attacker cannot
+/// pre-plant a symlink at the path and have our write follow it (CWE-59/377):
+///
+/// 1. `FileSystemEntity.type(..., followLinks: false)` rejects any entity —
+///    file, directory, or symlink (dangling or not) — already at the raw path,
+///    without following a link.
+/// 2. `create(exclusive: true)` (an `O_EXCL`-equivalent) then fails closed if
+///    anything appears between that check and the create (TOCTOU), rather than
+///    writing through it.
+///
+/// The unpredictable name makes a collision astronomically unlikely; the retry
+/// loop only exists so a freak collision retries instead of throwing.
+Future<File> _createSecureSiblingTemp(File target) async {
+  final dir = target.parent.path;
+  for (var attempt = 0; attempt < 8; attempt++) {
+    final suffix = List<int>.generate(
+      16,
+      (_) => _secureRandom.nextInt(16),
+    ).map((n) => n.toRadixString(16)).join();
+    final tmp = File('$dir${Platform.pathSeparator}.cc-backup-$suffix.tmp');
+    if (await FileSystemEntity.type(tmp.path, followLinks: false) !=
+        FileSystemEntityType.notFound) {
+      continue;
+    }
+    try {
+      await tmp.create(exclusive: true);
+      return tmp;
+    } on FileSystemException {
+      // Something raced us to this name (TOCTOU) — pick another and retry.
+      continue;
+    }
+  }
+  throw FileSystemException(
+    'could not create a secure temporary backup file',
+    dir,
+  );
 }
 
 /// Default [BackupSaver].
