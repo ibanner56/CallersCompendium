@@ -1640,7 +1640,7 @@ Every limit MUST be enforced before allocation, streaming-abort style.
 | Blob size | 1 MB |
 | Manifest size | 16 MB |
 | Blobs per store | 100,000 |
-| Bytes per store | 250 MB |
+| Bytes per store (blobs and device manifests) | 250 MB |
 | Devices per store | 32 |
 | Hashes per `POST /v1/blobs/missing` request | 10,000 |
 | JSON parse depth | 32 |
