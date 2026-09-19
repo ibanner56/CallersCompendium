@@ -1,37 +1,38 @@
 {
   "manifestSchemaVersion": 1,
   "channel": "beta",
-  "version": "0.4.0-beta",
-  "releaseNotesUrl": "https://github.com/ibanner56/CallersCompendium/releases/tag/v0.4.0-beta",
-  "pubDate": "2026-09-11T17:18:25Z",
+  "version": "0.4.1-beta",
+  "releaseNotesUrl": "https://github.com/ibanner56/CallersCompendium/releases/tag/v0.4.1-beta",
+  "pubDate": "2026-09-19T18:01:12Z",
   "artifacts": [
     {
       "platform": "android",
       "arch": "universal",
-      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.4.0-beta/CallersCompendium-0.4.0-beta-android-universal.apk",
-      "sha256": "679e63ee2d67ada2f4d90c1b9f76070be5fa3615be1e2d0e79eba109fc28c504",
-      "size": 97284238
+      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.4.1-beta/CallersCompendium-0.4.1-beta-android-universal.apk",
+      "sha256": "b5326d48ff66c5c0cea0fa37f578b7fe1a458eb17cc4d75406ba11aa2d1e224e",
+      "size": 97448262
     },
     {
       "platform": "linux",
       "arch": "x64",
-      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.4.0-beta/CallersCompendium-0.4.0-beta-linux-x64.AppImage",
-      "sha256": "8a251317ebaa3e690b665ac8b824836ae80dfc31e712d7a106494b14de819b0b",
-      "size": 19253752
+      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.4.1-beta/CallersCompendium-0.4.1-beta-linux-x64.AppImage",
+      "sha256": "824715c36dcba9304fbf805568c1b1d2f1a27224f75de76e986b38d7aa9a595e",
+      "size": 19274232
     },
     {
       "platform": "macos",
       "arch": "universal",
-      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.4.0-beta/CallersCompendium-0.4.0-beta-macos-universal.dmg",
-      "sha256": "92ff902dacca86bb993c59aaa587b3e858f97532890693111dcbc54f8e586359",
-      "size": 36972876
+      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.4.1-beta/CallersCompendium-0.4.1-beta-macos-universal.dmg",
+      "sha256": "024292f0698a0bcd733d70d572303da430013ba2f83c29164bdf211dc5c8091c",
+      "size": 36984084
     },
     {
       "platform": "windows",
       "arch": "x64",
-      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.4.0-beta/CallersCompendium-0.4.0-beta-windows-x64.exe",
-      "sha256": "8c241ba46635ea1921ab29795bdf1074ca07ea227059756314229b90652975be",
-      "size": 17701232
+      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.4.1-beta/CallersCompendium-0.4.1-beta-windows-x64.exe",
+      "sha256": "ae7fba65da39835a8a7b85c8af2ad827552b82a373931eecbf648a48cc792ed6",
+      "size": 17712784
     }
-  ]
+  ],
+  "codename": "Allemande Left"
 }
