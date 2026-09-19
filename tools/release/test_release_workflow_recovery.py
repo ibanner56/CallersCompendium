@@ -129,7 +129,7 @@ def _run_guard_script(
             }
         )
         result = subprocess.run(
-            ["bash", "-c", script],
+            [find_bash(), "-c", script],
             cwd=root,
             env=environment,
             capture_output=True,
