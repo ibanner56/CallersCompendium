@@ -35,9 +35,25 @@ List<Object?> choreographyFingerprint(Map<String, Object?> body) => [
 /// Building the archive-shaped body here keeps import matching in lockstep
 /// with the body Device Sync groups, rather than maintaining a second field
 /// list or figure serialization.
+///
+/// The collections are emptied first. None of them appears in
+/// [_choreographyFields], and encoding them is not free of consequence:
+/// `archiveCustomFieldValueToJson` throws [ArchiveEncodingException] on a
+/// non-finite number, which would turn this predicate — called in a candidate
+/// loop that does not expect it to throw — into an abort. Dropping them also
+/// keeps the per-comparison cost to the fields actually compared.
 List<Object?> choreographyFingerprintForDance(Dance dance) =>
     choreographyFingerprint(
-      archiveDanceToJson(dance, const {}, includeOptionalFields: true),
+      archiveDanceToJson(
+        dance.copyWith(
+          customFields: const [],
+          links: const [],
+          sourceCitations: const [],
+          clearProvenance: true,
+        ),
+        const {},
+        includeOptionalFields: true,
+      ),
     );
 
 /// One existing dance as seen by the deduplicator: enough to match a candidate

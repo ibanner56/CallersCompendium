@@ -588,9 +588,16 @@ final class CompendiumSyncStorage
         recordId: ambiguity.firstId,
         counterpartId: ambiguity.secondId,
       );
+      final local = ambiguity.left.blob.id == ambiguity.firstId
+          ? ambiguity.left
+          : ambiguity.right;
+      // The local hash is part of what makes a row current: resolution refuses
+      // a decision whose local record moved after enqueue, so a row kept with
+      // a stale hash would stay actionable and never be resolvable.
       if (existing != null &&
           existing.candidateHash == candidate.wireHash &&
-          existing.candidateBlob == candidateBlob) {
+          existing.candidateBlob == candidateBlob &&
+          existing.localHash == local.wireHash) {
         continue;
       }
       if (existing != null) {
@@ -600,9 +607,6 @@ final class CompendiumSyncStorage
           counterpartId: ambiguity.secondId,
         );
       }
-      final local = ambiguity.left.blob.id == ambiguity.firstId
-          ? ambiguity.left
-          : ambiguity.right;
       await repositories.syncLocal.enqueueReview(
         kind: SyncRecordKind.dance,
         recordId: ambiguity.firstId,
@@ -1716,13 +1720,23 @@ final class CompendiumSyncStorage
 
           // Shipped difficulty IDs are part of the persisted relationship
           // contract and outrank a same-label custom ID.
-          final canonicalDifficultyId = kind == SyncRecordKind.difficultyLevel
+          //
+          // The result is resolved through the alias chain: a shipped ID an
+          // earlier collision already retired is not a usable survivor, and
+          // `_adoptCollision` resolves its own target, so leaving this one raw
+          // would migrate the local row to the end of the chain while the
+          // inbound record adopted the retired ID — two rows, one natural key.
+          final rawCanonicalDifficultyId =
+              kind == SyncRecordKind.difficultyLevel
               ? _canonicalDifficultyId(
                   naturalKey,
                   candidateId: candidate.blob.id,
                   incumbentId: incumbent?.id,
                 )
               : null;
+          final canonicalDifficultyId = rawCanonicalDifficultyId == null
+              ? null
+              : _resolveInMap(rawCanonicalDifficultyId, aliases[kind]);
           if (canonicalDifficultyId != null) {
             if (byId != null && incumbent != null && byId.id != incumbent.id) {
               await _enqueueCollisionReview(
@@ -2242,9 +2256,20 @@ final class CompendiumSyncStorage
     );
     final targetIdentity = await _recordIdentity(kind, target);
     if (localIdentity != null && localIdentity.id == losingId) {
-      if (target == survivingId && targetIdentity == null) {
+      // The losing row has to stop existing under its own identity either way,
+      // and which way depends only on whether `target` is already occupied —
+      // not on whether `survivingId` needed an alias hop to reach it.
+      // `_migrateLocalIdentity` writes the row at whatever id it is given.
+      //
+      // Defensive: every caller now resolves its survivor through the alias
+      // chain before calling, so `target == survivingId` always holds and no
+      // test reaches the `target != survivingId && targetIdentity == null`
+      // case. Gating the migration on that equality is still wrong — it would
+      // fall through both branches and let the rewrite below point join rows
+      // at an id with no row — so the condition is on occupancy alone.
+      if (targetIdentity == null) {
         await _migrateLocalIdentity(kind, losingId, target);
-      } else if (targetIdentity != null) {
+      } else {
         await _rewriteLocalReferences(kind, losingId, target);
         await _deleteIdentityRow(kind, losingId);
       }
@@ -2776,6 +2801,15 @@ final class CompendiumSyncStorage
     );
   }
 
+  /// Queues, or re-queues, one collision for the persisted review surface.
+  ///
+  /// The row carries the local wire hash captured at enqueue so
+  /// [resolveReviewQueue] can refuse a decision taken against a record the user
+  /// has since edited. That guard is only safe because this re-queues the row
+  /// whenever either side has moved: `insertOrIgnore` alone would pin the first
+  /// observation forever and leave an actionable row no resolution could ever
+  /// satisfy. An unchanged row keeps its original `queuedAt` so re-observing
+  /// the same collision does not reorder the queue.
   Future<void> _enqueueCollisionReview(
     SyncMergeCandidate candidate,
     String counterpartId, {
@@ -2789,12 +2823,31 @@ final class CompendiumSyncStorage
             id: queuedRecordId,
           ))?.wireHash
         : null;
+    final candidateBlob = encodeSyncRecordBlob(candidate.blob);
+    final existing = await repositories.syncLocal.getReviewQueue(
+      kind: candidate.blob.kind,
+      recordId: queuedRecordId,
+      counterpartId: counterpartId,
+    );
+    if (existing != null) {
+      if (existing.reason == reason &&
+          existing.candidateBlob == candidateBlob &&
+          existing.candidateHash == candidate.wireHash &&
+          existing.localHash == localHash) {
+        return;
+      }
+      await repositories.syncLocal.deleteReview(
+        kind: candidate.blob.kind,
+        recordId: queuedRecordId,
+        counterpartId: counterpartId,
+      );
+    }
     await repositories.syncLocal.enqueueReview(
       kind: candidate.blob.kind,
       recordId: queuedRecordId,
       counterpartId: counterpartId,
       reason: reason,
-      candidateBlob: encodeSyncRecordBlob(candidate.blob),
+      candidateBlob: candidateBlob,
       candidateHash: candidate.wireHash,
       localHash: localHash,
       queuedAt: DateTime.now().toUtc(),

@@ -1550,21 +1550,14 @@ void main() {
         );
         final databaseFile = File('${directory.path}/test.sqlite');
         final writerDatabase = CompendiumDatabase(
-          NativeDatabase(
-            databaseFile,
-            setup: (database) {
-              database.execute('PRAGMA busy_timeout = 5000');
-            },
-          ),
+          NativeDatabase(databaseFile, setup: applyCompendiumSqliteSetup),
           closeStreamsSynchronously: true,
         );
         final deleteTransactionGate = _TransactionStartGate();
         final deletingDatabase = CompendiumDatabase(
           NativeDatabase.createInBackground(
             databaseFile,
-            setup: (database) {
-              database.execute('PRAGMA busy_timeout = 5000');
-            },
+            setup: applyCompendiumSqliteSetup,
           ).interceptWith(deleteTransactionGate),
           closeStreamsSynchronously: true,
         );
@@ -1676,21 +1669,14 @@ void main() {
       );
       final databaseFile = File('${directory.path}/test.sqlite');
       final writerDatabase = CompendiumDatabase(
-        NativeDatabase(
-          databaseFile,
-          setup: (database) {
-            database.execute('PRAGMA busy_timeout = 5000');
-          },
-        ),
+        NativeDatabase(databaseFile, setup: applyCompendiumSqliteSetup),
         closeStreamsSynchronously: true,
       );
       final deleteTransactionGate = _TransactionStartGate();
       final deletingDatabase = CompendiumDatabase(
         NativeDatabase.createInBackground(
           databaseFile,
-          setup: (database) {
-            database.execute('PRAGMA busy_timeout = 5000');
-          },
+          setup: applyCompendiumSqliteSetup,
         ).interceptWith(deleteTransactionGate),
         closeStreamsSynchronously: true,
       );

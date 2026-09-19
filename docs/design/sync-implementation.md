@@ -1092,6 +1092,12 @@ the programme and the only one that can block a release on its own.
   the suite passes against an implementation that adopts both. The missing-store
   vector preserves local content and baseline state and mutation-proves that
   automatic recreation fails.
+  The worker opens the database file on its **own connection**, so it and the
+  app are two writers against one file. Both therefore run
+  `applyCompendiumSqliteSetup` (WAL plus a busy timeout); without it an
+  ordinary app write landing inside the pass's apply transaction fails with
+  "database is locked" rather than waiting. See *Durability* in
+  [storage.md](storage.md).
   The isolate half of *Client isolate and robustness* lands here too — a
   malformed date rejects one record without aborting the batch or escaping the
   isolate; **an interrupted pass leaves no partial apply**, which is §6.7's

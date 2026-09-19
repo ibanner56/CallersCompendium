@@ -570,6 +570,13 @@ and does not leak into what the user sees.
 ## Durability
 
 - WAL mode; foreign keys ON; nightly-on-launch `PRAGMA quick_check`.
+- WAL and the busy timeout are set by `applyCompendiumSqliteSetup`, which
+  **every** connection to the database file must run. Device Sync opens a
+  second connection from its worker isolate, so both it and `openAppDatabase`
+  pass it as their `DatabaseSetup`. Neither is a default: sqlite ships the
+  rollback journal (under which a sync write blocks every app read) and a zero
+  busy timeout (under which an app write landing during an inbound apply fails
+  with "database is locked" rather than waiting).
 - All writes in transactions via repository layer; dance/program soft deletes
   purge after a configurable retention (default 30 days) via startup sweep. The
   six kinds that became soft-deletable in v25 have no retention sweep yet:

@@ -310,7 +310,13 @@ Future<Map<String, Object?>> _runSyncPass({
   required SyncPeerManifestCache peerManifestCache,
   SyncStoreResult? initialStore,
 }) async {
-  final database = CompendiumDatabase(NativeDatabase(File(databasePath)));
+  // This is a second connection to the file the app already has open, so it
+  // needs the same WAL/busy-timeout setup the app connection uses. Without it
+  // an ordinary app write arriving during this pass's apply transaction fails
+  // immediately with "database is locked".
+  final database = CompendiumDatabase(
+    NativeDatabase(File(databasePath), setup: applyCompendiumSqliteSetup),
+  );
   SyncHttpClient? client;
   SyncCoordinator? coordinator;
 
