@@ -118,6 +118,9 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  tag run's successful upload as this evidence rather than sending a duplicate.
  (Without all eight secrets the iOS leg is a clean skip; the API key needs the
  **App Manager** role or the upload fails.)
+- [ ] Update channel advanced **after** the draft was published — the `pages` job
+ (`release-publication` approval) passed its public-release check, verified the
+ manifest signatures, and pushed `gh-pages`; `verify` was green first.
 - [ ] iOS **export compliance** needs no per-build action — `Info.plist` declares
  `ITSAppUsesNonExemptEncryption = false` (app uses only exempt encryption), so
  App Store Connect skips the "Missing Compliance" prompt automatically.

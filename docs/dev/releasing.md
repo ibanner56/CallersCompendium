@@ -331,6 +331,17 @@ and produces no Android artifact.
    [Verifying attestations](#verifying-attestations).
 8. **Publish** the draft manually once the `verify` job is green and the draft
    looks right.
+9. **Approve the `pages` job** (`release-publication` environment) **after** the
+   draft is public. `pages` needs `verify`, checks that the release is no longer a
+   draft and that its manifests download anonymously, verifies every manifest
+   signature against the pinned key, and only then pushes `gh-pages`. Approving
+   before publishing fails closed without changing the update channel; publish the
+   draft, then re-run the failed `pages` job.
+
+Runs are serialized **per target tag**: a tag push and a recovery dispatch for the
+same tag share one concurrency group and queue rather than racing on the draft.
+(GitHub keeps only one *pending* run per group, so a third run queued behind an
+in-flight one replaces the second.)
 
 ## CHANGELOG-driven release notes
 
@@ -465,9 +476,14 @@ https://ibanner56.github.io/CallersCompendium/beta.json
 ```
 
 On every real tagged release the `pages` job publishes the selected manifests
-to those URLs. It runs after `publish`, downloads the `channel-manifests`
-artifact (the exact signed `stable.json` / `beta.json` files that `publish`
-generated), and
+to those URLs. The channel advances only after verification and public release (it is not
+ordered against the mobile TestFlight upload, which runs independently after
+`verify`): the job needs `verify`, waits behind the `release-publication` approval (granted after
+the draft is published), and fails closed unless the release is public and its
+manifests download anonymously. It then downloads the `channel-manifests`
+artifact (the exact signed `stable.json` / `beta.json` files that `publish_draft`
+generated), verifies each manifest/signature pair with
+`tools/release/check_pages_signature_files.py` **before** publishing, and
 calls `tools/release/publish_pages_manifest.sh` to commit it to the persistent
 **`gh-pages`** branch at the site **root**. For a project Pages site the branch
 root maps 1:1 to the base URL (root `stable.json` → `…/CallersCompendium/stable.json`),
