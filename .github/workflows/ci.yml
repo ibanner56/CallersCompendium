@@ -45,6 +45,8 @@ jobs:
       app_tests_changed: ${{ steps.classify.outputs.app_tests_changed }}
       server_tests_changed: ${{ steps.classify.outputs.server_tests_changed }}
       builds_changed: ${{ steps.classify.outputs.builds_changed }}
+      docs_bundle_changed: ${{ steps.classify.outputs.docs_bundle_changed }}
+      changelog_changed: ${{ steps.classify.outputs.changelog_changed }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: github.event_name == 'pull_request'
@@ -66,6 +68,8 @@ jobs:
               echo 'app_tests_changed=true'
               echo 'server_tests_changed=true'
               echo 'builds_changed=true'
+              echo 'docs_bundle_changed=true'
+              echo 'changelog_changed=true'
             } >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -92,6 +96,47 @@ jobs:
       run_core_tests: ${{ needs.classify.outputs.core_tests_changed == 'true' }}
       run_app_tests: ${{ needs.classify.outputs.app_tests_changed == 'true' }}
       run_server_tests: ${{ needs.classify.outputs.server_tests_changed == 'true' }}
+
+  # Reuses docs-bundle-check.yml's own checks (that workflow is not a required
+  # status, so its own failure can't block a merge). This job feeds the same
+  # result into merge-gate below for PRs that touch docs_bundle_changed paths.
+  # docs-bundle-check.yml itself is left running unchanged as a push-to-main
+  # safety net; duplicated execution on a relevant PR is accepted.
+  docs-bundle-gate:
+    name: User-docs bundle in sync
+    needs: classify
+    if: needs.classify.outputs.docs_bundle_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Test the in-app user-docs sync checker
+        run: python3 tools/ci/test_sync_user_docs.py
+      - name: Guard in-app user-docs bundle single-source (docs/user == assets)
+        run: python3 tools/ci/sync_user_docs.py --check
+      - name: Guard hosted user guides (render + link/anchor integrity)
+        run: python3 tools/site/render_user_docs.py --check
+      - name: Test the hosted-guide renderer (escaping, links, anchors)
+        run: |
+          python3 tools/site/test_markdown_to_html.py
+          python3 tools/site/test_render_user_docs.py
+          python3 tools/site/test_privacy_policy.py
+
+  # Same shape as docs-bundle-gate above, for changelog-structure.yml.
+  changelog-structure-gate:
+    name: CHANGELOG validation
+    needs: classify
+    if: needs.classify.outputs.changelog_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Test the changelog structure gate
+        run: python3 tools/ci/test_check_changelog_structure.py
+      - name: Test the changelog fragment compiler
+        run: python3 tools/release/test_compile_changelog_fragments.py
+      - name: Validate pending changelog fragments
+        run: python3 tools/release/compile_changelog_fragments.py --check
+      - name: Guard CHANGELOG structure (version order, no repeated category)
+        run: python3 tools/ci/check_changelog_structure.py
 
   build:
     name: Build (${{ matrix.target }})
@@ -199,7 +244,7 @@ jobs:
   # fails or is skipped, so a cancelled or missing heavy job cannot look green.
   merge-gate:
     name: Merge gate
-    needs: [classify, checks, build, schema-guard, tracking-gate]
+    needs: [classify, checks, build, schema-guard, tracking-gate, docs-bundle-gate, changelog-structure-gate]
     if: ${{ always() && github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
@@ -208,10 +253,14 @@ jobs:
           CLASSIFY_RESULT: ${{ needs.classify.result }}
           VALIDATION_CHANGED: ${{ needs.classify.outputs.validation_changed }}
           BUILDS_CHANGED: ${{ needs.classify.outputs.builds_changed }}
+          DOCS_BUNDLE_CHANGED: ${{ needs.classify.outputs.docs_bundle_changed }}
+          CHANGELOG_CHANGED: ${{ needs.classify.outputs.changelog_changed }}
           CHECKS_RESULT: ${{ needs.checks.result }}
           BUILD_RESULT: ${{ needs.build.result }}
           SCHEMA_GUARD_RESULT: ${{ needs.schema-guard.result }}
           TRACKING_GATE_RESULT: ${{ needs.tracking-gate.result }}
+          DOCS_BUNDLE_GATE_RESULT: ${{ needs.docs-bundle-gate.result }}
+          CHANGELOG_GATE_RESULT: ${{ needs.changelog-structure-gate.result }}
         run: |
           set -u
           failed=0
@@ -252,6 +301,24 @@ jobs:
             false) require_skipped 'Platform builds' "$BUILD_RESULT" ;;
             *)
               echo "::error::Classify changes produced invalid builds_changed output '$BUILDS_CHANGED'."
+              failed=1
+              ;;
+          esac
+
+          case "$DOCS_BUNDLE_CHANGED" in
+            true) require_success 'User-docs bundle in sync' "$DOCS_BUNDLE_GATE_RESULT" ;;
+            false) require_skipped 'User-docs bundle in sync' "$DOCS_BUNDLE_GATE_RESULT" ;;
+            *)
+              echo "::error::Classify changes produced invalid docs_bundle_changed output '$DOCS_BUNDLE_CHANGED'."
+              failed=1
+              ;;
+          esac
+
+          case "$CHANGELOG_CHANGED" in
+            true) require_success 'CHANGELOG validation' "$CHANGELOG_GATE_RESULT" ;;
+            false) require_skipped 'CHANGELOG validation' "$CHANGELOG_GATE_RESULT" ;;
+            *)
+              echo "::error::Classify changes produced invalid changelog_changed output '$CHANGELOG_CHANGED'."
               failed=1
               ;;
           esac
