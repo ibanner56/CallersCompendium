@@ -8,6 +8,8 @@ the app and of `compendium_core`; version headings below refer to
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-19
+
 ### Added
 
 - Serve a dedicated static status page from the Apache root instead of the
