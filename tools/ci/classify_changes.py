@@ -75,6 +75,11 @@ DOCS_BUNDLE_EXACT_PATHS = {
     b"tools/ci/sync_user_docs.py",
     b"tools/ci/test_sync_user_docs.py",
     b".github/workflows/docs-bundle-check.yml",
+    # docs-bundle-gate's own job definition lives in ci.yml, not only in the
+    # standalone workflow above -- an edit to that job has to re-trigger it,
+    # the same way docs-bundle-check.yml self-triggers on its own YAML
+    # changing. Caught by review on #1324.
+    b".github/workflows/ci.yml",
 }
 
 # Mirrors changelog-structure.yml's path filter exactly, same reasoning as
@@ -88,6 +93,9 @@ CHANGELOG_EXACT_PATHS = {
     b"tools/ci/check_changelog_structure.py",
     b"tools/ci/test_check_changelog_structure.py",
     b".github/workflows/changelog-structure.yml",
+    # Same reasoning as DOCS_BUNDLE_EXACT_PATHS above: changelog-structure-gate
+    # is defined in ci.yml.
+    b".github/workflows/ci.yml",
 }
 
 OUTPUT_KEYS = (

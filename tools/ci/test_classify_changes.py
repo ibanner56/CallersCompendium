@@ -220,6 +220,18 @@ def test_docs_bundle_and_changelog_gates_run_on_markdown_only_diffs() -> None:
         "unrelated markdown diff sets neither",
         (b"README.md",),
     )
+    # Caught by Copilot review on #1324: docs-bundle-gate and
+    # changelog-structure-gate are now DEFINED inside ci.yml (not only in the
+    # standalone workflows), so an edit to those job definitions has to be
+    # self-validating the same way the standalone workflows self-trigger on
+    # their own YAML changing.
+    expect(
+        "editing ci.yml itself re-triggers both required gates",
+        (b".github/workflows/ci.yml",),
+        validation_changed=True,
+        docs_bundle_changed=True,
+        changelog_changed=True,
+    )
 
 
 def main() -> int:
