@@ -464,7 +464,8 @@ def main() -> None:
     )
     assert "  cancel-in-progress: false" in text
 
-    # Issues 04/05/06: public metadata is the last side effect of a release.
+    # Issues 04/05/06: the channel advances only after verification and public
+    # release. Ordering against publish_mobile is deliberately NOT asserted.
     pages_job = _job_section(text, "pages")
     pages_needs = re.search(r"^    needs:\s*\[([^\]]+)\]\s*$", pages_job, re.MULTILINE)
     assert pages_needs is not None and {"meta", "publish_draft", "verify"}.issubset(

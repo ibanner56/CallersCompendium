@@ -476,8 +476,9 @@ https://ibanner56.github.io/CallersCompendium/beta.json
 ```
 
 On every real tagged release the `pages` job publishes the selected manifests
-to those URLs. Advancing the channel is the **last** side effect of a release: the
-job needs `verify`, waits behind the `release-publication` approval (granted after
+to those URLs. The channel advances only after verification and public release (it is not
+ordered against the mobile TestFlight upload, which runs independently after
+`verify`): the job needs `verify`, waits behind the `release-publication` approval (granted after
 the draft is published), and fails closed unless the release is public and its
 manifests download anonymously. It then downloads the `channel-manifests`
 artifact (the exact signed `stable.json` / `beta.json` files that `publish_draft`

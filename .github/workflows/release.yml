@@ -1799,8 +1799,10 @@ jobs:
   # `gh-pages` branch so the client's fixed URL resolves (A11c / ADR-002 §1):
   #   https://ibanner56.github.io/CallersCompendium/<channel>.json
   #
-  # ORDERING: advancing the public update channel is the LAST side effect of a
-  # release. This job (1) needs `verify`, so no manifest is published unless every
+  # ORDERING: the update channel advances only after verification and public
+  # release. It is NOT ordered against `publish_mobile` (TestFlight): both run
+  # after `verify` and the desktop channel does not wait on the mobile upload.
+  # This job (1) needs `verify`, so no manifest is published unless every
   # binary's provenance + SBOM attestation verified; (2) runs behind the
   # `release-publication` approval, which the maintainer grants only AFTER
   # publishing the draft; (3) refuses to start unless the release is public and
