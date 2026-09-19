@@ -29,6 +29,8 @@ ALL_FALSE = {
     "app_tests_changed": False,
     "server_tests_changed": False,
     "builds_changed": False,
+    "docs_bundle_changed": False,
+    "changelog_changed": False,
 }
 
 
@@ -155,11 +157,65 @@ def test_packaging_paths_trigger_builds_independently() -> None:
     )
 
 
+def test_docs_bundle_and_changelog_gates_run_on_markdown_only_diffs() -> None:
+    print("docs-bundle and changelog gates are not gated on validation_changed:")
+    expect(
+        "docs/user markdown alone (no other code) still flags docs_bundle_changed",
+        (b"docs/user/getting-started.md",),
+        docs_bundle_changed=True,
+    )
+    expect(
+        "app/assets/docs bundle path",
+        (b"app/assets/docs/getting-started.md",),
+        docs_bundle_changed=True,
+    )
+    expect(
+        "site/ path",
+        (b"site/index.html",),
+        # Not markdown, so validation_changed is already true independent of
+        # this predicate -- included for path-prefix coverage, not to test
+        # the validation_changed independence claim (see the .md cases above
+        # and below for that).
+        validation_changed=True,
+        docs_bundle_changed=True,
+    )
+    expect(
+        "the sync tool script itself",
+        (b"tools/ci/sync_user_docs.py",),
+        validation_changed=True,
+        docs_bundle_changed=True,
+    )
+    expect(
+        "app CHANGELOG.md alone still flags changelog_changed",
+        (b"app/CHANGELOG.md",),
+        changelog_changed=True,
+    )
+    expect(
+        # Ends in .md and isn't in GENERATED_MARKDOWN_PATHS, so
+        # validation_changed stays false -- exactly the case this predicate
+        # exists to still catch independently.
+        "core package CHANGELOG.md alone",
+        (b"packages/compendium_core/CHANGELOG.md",),
+        changelog_changed=True,
+    )
+    expect(
+        "a changelog.d fragment",
+        (b"changelog.d/1234.added.json",),
+        validation_changed=True,
+        changelog_changed=True,
+    )
+    expect(
+        "unrelated markdown diff sets neither",
+        (b"README.md",),
+    )
+
+
 def main() -> int:
     test_ordinary_markdown_only_skips_everything()
     test_generated_classification_doc_forces_core_tests()
     test_non_markdown_paths_route_to_their_suites()
     test_packaging_paths_trigger_builds_independently()
+    test_docs_bundle_and_changelog_gates_run_on_markdown_only_diffs()
 
     if FAILURES:
         print(f"\n{len(FAILURES)} failure(s):")

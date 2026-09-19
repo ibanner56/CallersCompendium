@@ -60,12 +60,44 @@ GENERATED_MARKDOWN_PATHS = {
     b"docs/dev/data-classification.md",
 }
 
+# Mirrors docs-bundle-check.yml's path filter exactly. That workflow is the
+# only PR gate for the in-app User Guide bundle and the hosted-guide
+# renderer, and it is not a required status check -- so its result has to
+# reach merge-gate through this predicate for the same paths to actually
+# block a merge.
+DOCS_BUNDLE_PATH_PREFIXES = (
+    b"docs/user/",
+    b"app/assets/docs/",
+    b"site/",
+    b"tools/site/",
+)
+DOCS_BUNDLE_EXACT_PATHS = {
+    b"tools/ci/sync_user_docs.py",
+    b"tools/ci/test_sync_user_docs.py",
+    b".github/workflows/docs-bundle-check.yml",
+}
+
+# Mirrors changelog-structure.yml's path filter exactly, same reasoning as
+# DOCS_BUNDLE_* above.
+CHANGELOG_PATH_PREFIXES = (b"changelog.d/",)
+CHANGELOG_EXACT_PATHS = {
+    b"app/CHANGELOG.md",
+    b"packages/compendium_core/CHANGELOG.md",
+    b"tools/release/compile_changelog_fragments.py",
+    b"tools/release/test_compile_changelog_fragments.py",
+    b"tools/ci/check_changelog_structure.py",
+    b"tools/ci/test_check_changelog_structure.py",
+    b".github/workflows/changelog-structure.yml",
+}
+
 OUTPUT_KEYS = (
     "validation_changed",
     "core_tests_changed",
     "app_tests_changed",
     "server_tests_changed",
     "builds_changed",
+    "docs_bundle_changed",
+    "changelog_changed",
 )
 
 
@@ -108,12 +140,26 @@ def classify(paths):
     builds_changed = app_tests_changed or any(
         path.startswith(b"packaging/") for path in paths
     )
+    # These two are deliberately NOT gated on validation_changed: their whole
+    # reason for existing is that a Markdown-only diff (docs/user/**.md,
+    # CHANGELOG.md) can set validation_changed=false, and that is exactly the
+    # case each was written to still catch.
+    docs_bundle_changed = any(
+        path.startswith(DOCS_BUNDLE_PATH_PREFIXES) or path in DOCS_BUNDLE_EXACT_PATHS
+        for path in paths
+    )
+    changelog_changed = any(
+        path.startswith(CHANGELOG_PATH_PREFIXES) or path in CHANGELOG_EXACT_PATHS
+        for path in paths
+    )
     return {
         "validation_changed": validation_changed,
         "core_tests_changed": core_tests_changed,
         "app_tests_changed": app_tests_changed,
         "server_tests_changed": server_tests_changed,
         "builds_changed": builds_changed,
+        "docs_bundle_changed": docs_bundle_changed,
+        "changelog_changed": changelog_changed,
     }
 
 
