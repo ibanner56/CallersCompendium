@@ -29,6 +29,16 @@ on:
         required: false
         default: true
         type: boolean
+      checkout_ref:
+        description: >-
+          Commit/ref every job checks out. Blank (the default) keeps the
+          ref-less behaviour — the ref that triggered the run — which is what the
+          PR gate wants. The release workflow passes the commit resolved from the
+          target tag so a recovery dispatch validates the tagged source, not the
+          dispatch ref.
+        required: false
+        default: ''
+        type: string
 
 # Least privilege: these checks only read the checked-out code. The effective
 # token permissions of a called workflow are the intersection of the caller's
@@ -42,6 +52,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Blank on the PR gate (triggering ref); the resolved release commit
+          # when the release workflow passes checkout_ref.
+          ref: ${{ inputs.checkout_ref }}
       # Single-source guard: the in-code kAppVersion must equal the semver part
       # of app/pubspec.yaml's version:. Runs before the (slower) Flutter setup so
       # a version drift fails fast. See tools/ci/check_app_version.py.
@@ -273,6 +287,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Blank on the PR gate (triggering ref); the resolved release commit
+          # when the release workflow passes checkout_ref.
+          ref: ${{ inputs.checkout_ref }}
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version-file: .fvmrc
@@ -298,6 +316,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Blank on the PR gate (triggering ref); the resolved release commit
+          # when the release workflow passes checkout_ref.
+          ref: ${{ inputs.checkout_ref }}
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version-file: .fvmrc
@@ -332,6 +354,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Blank on the PR gate (triggering ref); the resolved release commit
+          # when the release workflow passes checkout_ref.
+          ref: ${{ inputs.checkout_ref }}
       - name: Detect server package
         id: server-package
         shell: bash
