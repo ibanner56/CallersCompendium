@@ -187,7 +187,7 @@ void main() {
   });
 
   test(
-    'blob allow-list rejects non-shareable fields and tolerates new versions',
+    'blob allow-list rejects non-shareable and incomplete envelopes',
     () async {
       expect(
         (await _send('POST', '/v1/store', syncId: syncId)).statusCode,
@@ -502,35 +502,38 @@ void main() {
       expect(opaqueGet.statusCode, 200);
       expect(await opaqueGet.bodyBytes(), equals(opaque));
 
-      final jsonOpaque = Uint8List.fromList(
+      final incompleteEnvelope = Uint8List.fromList(
         utf8.encode(
           jsonEncode({
             'kind': 'choreographer',
-            'id': 'json-opaque',
+            'id': 'incomplete-envelope',
             'body': {
-              'id': 'json-opaque',
-              'name': 'Opaque JSON',
+              'id': 'incomplete-envelope',
+              'name': 'Incomplete Envelope',
               'email': 'opaque@example.com',
             },
           }),
         ),
       );
-      final jsonOpaqueHash = sha256.convert(jsonOpaque).toString();
-      final jsonOpaquePut = await _send(
+      final incompleteEnvelopeHash = sha256
+          .convert(incompleteEnvelope)
+          .toString();
+      final incompleteEnvelopePut = await _send(
         'PUT',
-        '/v1/blobs/$jsonOpaqueHash',
+        '/v1/blobs/$incompleteEnvelopeHash',
         syncId: syncId,
-        body: jsonOpaque,
+        body: incompleteEnvelope,
         contentType: 'application/octet-stream',
       );
-      expect(jsonOpaquePut.statusCode, 201);
-      final jsonOpaqueGet = await _send(
+      expect(incompleteEnvelopePut.statusCode, 422);
+      await incompleteEnvelopePut.drain<void>();
+      final incompleteEnvelopeGet = await _send(
         'GET',
-        '/v1/blobs/$jsonOpaqueHash',
+        '/v1/blobs/$incompleteEnvelopeHash',
         syncId: syncId,
       );
-      expect(jsonOpaqueGet.statusCode, 200);
-      expect(await jsonOpaqueGet.bodyBytes(), equals(jsonOpaque));
+      expect(incompleteEnvelopeGet.statusCode, 404);
+      await incompleteEnvelopeGet.drain<void>();
 
       final deepOpaque = Uint8List.fromList(
         utf8.encode(
@@ -754,15 +757,35 @@ void main() {
       );
       expect(manifestTooLarge.statusCode, 413);
 
+      // These reject while the body is still streaming, so the server cancels
+      // it and dart:io destroys the socket. On Windows the resulting RST can
+      // discard the response before the client reads it; call the handler
+      // in-process to assert the response without depending on socket teardown.
+      Future<Response> streamedReject(
+        String method,
+        String path,
+        List<int> body, {
+        String contentType = 'application/json',
+        Map<String, String> headers = const {},
+      }) => app.call(
+        Request(
+          method,
+          Uri.parse('http://127.0.0.1$path'),
+          headers: {
+            'authorization': 'Bearer ${encodeSyncCredential(syncId)}',
+            'content-type': contentType,
+            ...headers,
+          },
+          body: body,
+        ),
+      );
       final deepJson = utf8.encode(
         '[' * (maxJsonDepth + 2) + ']' * (maxJsonDepth + 2),
       );
-      final tooDeep = await _send(
+      final tooDeep = await streamedReject(
         'POST',
         '/v1/blobs/missing',
-        syncId: syncId,
-        body: Uint8List.fromList(deepJson),
-        contentType: 'application/json',
+        deepJson,
       );
       expect(tooDeep.statusCode, 413);
 
@@ -771,22 +794,19 @@ void main() {
           jsonEncode({'hashes': List<int>.filled(maxMissingHashes + 1, 0)}),
         ),
       );
-      final tooMany = await _send(
+      final tooMany = await streamedReject(
         'POST',
         '/v1/blobs/missing',
-        syncId: syncId,
-        body: tooManyHashes,
-        contentType: 'application/json',
+        tooManyHashes,
       );
       expect(tooMany.statusCode, 413);
 
       final expanded = Uint8List.fromList(List<int>.filled(1024, 0x61));
       final compressed = Uint8List.fromList(gzip.encode(expanded));
-      final expansion = await _send(
+      final expansion = await streamedReject(
         'PUT',
         '/v1/blobs/${'b' * 64}',
-        syncId: syncId,
-        body: compressed,
+        compressed,
         contentType: 'application/octet-stream',
         headers: {'content-encoding': 'gzip'},
       );
@@ -798,16 +818,18 @@ void main() {
         gzip.encode(malformedSource),
       );
       malformedCompressed[10] ^= 0xff;
-      final malformedGzip = await _send(
+      final malformedGzip = await streamedReject(
         'PUT',
         '/v1/blobs/${'c' * 64}',
-        syncId: syncId,
-        body: malformedCompressed.sublist(0, malformedCompressed.length - 1),
+        malformedCompressed.sublist(0, malformedCompressed.length - 1),
         contentType: 'application/octet-stream',
         headers: {'content-encoding': 'gzip'},
       );
       expect(malformedGzip.statusCode, 400);
-      expect(await malformedGzip.body(), contains('malformed compressed body'));
+      expect(
+        await malformedGzip.readAsString(),
+        contains('malformed compressed body'),
+      );
     },
   );
 
@@ -869,6 +891,124 @@ void main() {
     final missing = await _send('GET', '/v1/blobs/$wrongHash', syncId: syncId);
     expect(missing.statusCode, 404);
   });
+
+  test(
+    'general client request budget limits successful sync requests',
+    () async {
+      final authorization = ['Bearer', encodeSyncCredential(syncId)].join(' ');
+      final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
+      app.store.create(idKey);
+      final customApp = AthenaeumApp(
+        config: app.config,
+        store: app.store,
+        clientAddressResolver: (_) => 'client',
+        clock: () => DateTime.utc(2026, 9, 3),
+      );
+      Future<Response> request() => customApp.call(
+        Request(
+          'GET',
+          Uri.parse('http://127.0.0.1/v1/store'),
+          headers: {'authorization': authorization},
+        ),
+      );
+      for (var attempt = 0; attempt < 120; attempt++) {
+        final response = await request();
+        expect(response.statusCode, 200);
+      }
+      final response = await request();
+      expect(response.statusCode, 429);
+      expect(response.headers['retry-after'], '60');
+      final heartbeat = await customApp.call(
+        Request('GET', Uri.parse('http://127.0.0.1/heartbeat')),
+      );
+      expect(heartbeat.statusCode, 200);
+    },
+  );
+
+  test(
+    'general client request budget refills at its configured rate',
+    () async {
+      var now = DateTime.utc(2026, 9, 3);
+      final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
+      app.store.create(idKey);
+      final customApp = AthenaeumApp(
+        config: app.config,
+        store: app.store,
+        clientAddressResolver: (_) => 'refill-client',
+        clock: () => now,
+        budgetLimits: const AthenaeumBudgetLimits(
+          perIpRequestsPerMinute: 60,
+          perIpRequestBurst: 2,
+        ),
+      );
+      Future<Response> request() => customApp.call(
+        Request(
+          'GET',
+          Uri.parse('http://127.0.0.1/v1/store'),
+          headers: {
+            'authorization': ['Bearer', encodeSyncCredential(syncId)].join(' '),
+          },
+        ),
+      );
+
+      expect((await request()).statusCode, 200);
+      expect((await request()).statusCode, 200);
+      expect((await request()).statusCode, 429);
+      now = now.add(const Duration(seconds: 1));
+      expect((await request()).statusCode, 200);
+    },
+  );
+
+  test(
+    'general store request budget rejects before reading the body',
+    () async {
+      final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
+      app.store.create(idKey);
+      final authorization = ['Bearer', encodeSyncCredential(syncId)].join(' ');
+      final customApp = AthenaeumApp(
+        config: app.config,
+        store: app.store,
+        clientAddressResolver: (request) => request.headers['x-test-ip']!,
+        clock: () => DateTime.utc(2026, 9, 3),
+        budgetLimits: const AthenaeumBudgetLimits(
+          perIpRequestBurst: 10,
+          perStoreRequestsPerMinute: 1,
+          perStoreRequestBurst: 1,
+        ),
+      );
+      Future<Response> storeRequest(String address) => customApp.call(
+        Request(
+          'GET',
+          Uri.parse('http://127.0.0.1/v1/store'),
+          headers: {'authorization': authorization, 'x-test-ip': address},
+        ),
+      );
+      expect((await storeRequest('store-client-0')).statusCode, 200);
+      expect((await storeRequest('store-client-1')).statusCode, 429);
+
+      var yielded = 0;
+      Stream<List<int>> body() async* {
+        yielded++;
+        yield Uint8List.fromList([1]);
+      }
+
+      final response = await customApp.call(
+        Request(
+          'PUT',
+          Uri.parse('http://127.0.0.1/v1/blobs/${'0' * 64}'),
+          headers: {
+            'authorization': authorization,
+            'content-type': 'application/octet-stream',
+            'x-test-ip': 'store-client-2',
+          },
+          body: body(),
+        ),
+      );
+      expect(response.statusCode, 429);
+      expect(response.headers['retry-after'], '60');
+      expect(yielded, 0);
+    },
+  );
 
   test(
     'each failed store-resolution outcome consumes its own budget',
@@ -955,6 +1095,7 @@ void main() {
   test('failure-budget churn cannot reset an active address bucket', () async {
     final customApp = AthenaeumApp(
       config: app.config,
+      store: app.store,
       clientAddressResolver: (request) => request.headers['x-test-ip']!,
       budgetLimits: const AthenaeumBudgetLimits(
         perIpFailureBurst: maxFailedResolutionsPerIpBurst,
@@ -1849,6 +1990,99 @@ void main() {
         )).statusCode,
         507,
       );
+    },
+  );
+
+  test(
+    'manifest PUT over the byte quota returns 507 without storing',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'athenaeum-manifest-byte-quota-',
+      );
+      final customStore = AthenaeumStore(
+        config: AthenaeumConfig(
+          dataDirectory: directory.path,
+          pepper: List<int>.filled(32, 0x42),
+        ),
+        database: sqlite3.openInMemory(),
+        breakGlassDatabase: sqlite3.openInMemory(),
+        diagnosticDatabase: sqlite3.openInMemory(),
+        quotaLimits: const AthenaeumQuotaLimits(maxBytes: 10),
+      );
+      final customApp = AthenaeumApp(
+        config: customStore.config,
+        store: customStore,
+      );
+      addTearDown(() async {
+        customStore.close();
+        await directory.delete(recursive: true);
+      });
+      final authorization = ['Bearer', encodeSyncCredential(syncId)].join(' ');
+      var pulled = 0;
+      Stream<List<int>> chunks(Uint8List body) async* {
+        for (final byte in body) {
+          pulled++;
+          yield [byte];
+        }
+      }
+
+      Future<Response> request(
+        String method,
+        String path, {
+        Uint8List? body,
+        bool declareLength = true,
+      }) => customApp.call(
+        Request(
+          method,
+          Uri.parse('http://127.0.0.1$path'),
+          headers: {
+            'authorization': authorization,
+            if (body != null) 'content-type': 'application/json',
+            if (body != null && declareLength)
+              'content-length': '${body.length}',
+          },
+          body: body == null ? null : chunks(body),
+        ),
+      );
+
+      final created = await request('POST', '/v1/store');
+      expect(created.statusCode, 201);
+      final epoch =
+          (jsonDecode(await created.readAsString())
+                  as Map<String, Object?>)['epoch']!
+              as String;
+      final body = encodeSyncManifestUtf8(
+        SyncManifest(
+          deviceId: 'device-a',
+          epoch: epoch,
+          writtenAt: DateTime.utc(2026, 9, 3),
+          records: const {},
+        ),
+      );
+      expect(body.length, greaterThan(20));
+      for (final declareLength in [true, false]) {
+        pulled = 0;
+        expect(
+          (await request(
+            'PUT',
+            '/v1/manifests/device-a',
+            body: body,
+            declareLength: declareLength,
+          )).statusCode,
+          507,
+          reason: 'declareLength=$declareLength',
+        );
+        // The over-quota body must be refused before it is buffered: a
+        // declared length is refused unread, a streamed one is cut off at
+        // the quota rather than read to the end.
+        expect(
+          pulled,
+          declareLength ? 0 : lessThan(body.length),
+          reason: 'declareLength=$declareLength',
+        );
+      }
+      final idKey = deriveIncomingSyncIdKey(syncId, customApp.config.pepper);
+      expect(customStore.manifest(idKey, epoch, 'device-a'), isNull);
     },
   );
 

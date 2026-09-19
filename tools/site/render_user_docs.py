@@ -134,13 +134,20 @@ def discover_guides(user_docs: Path = USER_DOCS) -> list[str]:
     """
     if not user_docs.is_dir():
         _fail(f"missing source docs directory: {user_docs}")
-    names = [
+    # Sort the file-name *strings* (codepoint order on every platform), not the
+    # Path objects: `sorted(Path...)` compares case-insensitively on Windows, so
+    # `README.md` would land after lowercase guides there but before them on
+    # POSIX. Then pin the hub (README.md) first — it is the section landing page
+    # and must lead navigation regardless of any future uppercase guide name.
+    names = sorted(
         path.name
-        for path in sorted(user_docs.glob("*.md"))
+        for path in user_docs.glob("*.md")
         if path.name not in EXCLUDED_GUIDES
-    ]
+    )
     if not names:
         _fail(f"no user guides found under {user_docs}")
+    if HUB_DOC in names:
+        names = [HUB_DOC] + [name for name in names if name != HUB_DOC]
     return names
 
 

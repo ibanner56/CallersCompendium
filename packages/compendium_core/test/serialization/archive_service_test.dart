@@ -1188,6 +1188,143 @@ void main() {
         expect(tagIds, containsAll(<String>['keep', 't1']));
       },
     );
+
+    test(
+      'merge records invalid custom values and continues with valid dances',
+      () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        final customField = CustomFieldDef(
+          id: 'f-choice',
+          key: 'tempo',
+          label: 'Tempo',
+          type: CustomFieldType.choice,
+          choices: const ['slow', 'fast'],
+        );
+
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          customFields: [customField],
+          dances: [
+            Dance(
+              id: 'bad',
+              title: 'Bad',
+              customFields: [
+                CustomFieldValue(fieldId: customField.id, value: 42),
+              ],
+              createdAt: DateTime.utc(2026, 1, 1),
+              updatedAt: DateTime.utc(2026, 1, 1),
+            ),
+            Dance(
+              id: 'good',
+              title: 'Good',
+              createdAt: DateTime.utc(2026, 1, 1),
+              updatedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ],
+        );
+
+        final result = await ArchiveRestorer(
+          repos,
+        ).restore(archive, mode: RestoreMode.merge);
+
+        expect(result.errors, hasLength(1));
+        expect(result.errors.single.kind, ArchiveErrorKind.restore);
+        expect(result.errors.single.entityType, 'dance');
+        expect(result.errors.single.entityId, 'bad');
+        expect(result.errors.single.cause, isA<ArgumentError>());
+        expect(await repos.dances.getById('good'), isNotNull);
+        expect(await repos.dances.getById('bad'), isNull);
+      },
+    );
+
+    test(
+      'merge compensates a tombstoned dance after invalid custom validation',
+      () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        final customField = CustomFieldDef(
+          id: 'f-choice',
+          key: 'tempo',
+          label: 'Tempo',
+          type: CustomFieldType.choice,
+          choices: const ['slow', 'fast'],
+        );
+        // ignore: unused_result
+        await repos.customFieldDefs.upsert(customField);
+        await repos.dances.create(
+          Dance(
+            id: 'tombstone',
+            title: 'Original',
+            customFields: [
+              CustomFieldValue(fieldId: customField.id, value: 'slow'),
+            ],
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 1, 1),
+          ),
+        );
+        await repos.dances.softDelete(
+          'tombstone',
+          at: DateTime.utc(2026, 7, 1),
+        );
+
+        final result = await ArchiveRestorer(repos).restore(
+          CompendiumArchive(
+            exportedAt: DateTime.utc(2026, 7, 15),
+            customFields: [customField],
+            dances: [
+              Dance(
+                id: 'tombstone',
+                title: 'Incoming',
+                customFields: [
+                  CustomFieldValue(fieldId: customField.id, value: 42),
+                ],
+                createdAt: DateTime.utc(2026, 1, 1),
+                updatedAt: DateTime.utc(2026, 7, 2),
+              ),
+            ],
+          ),
+          mode: RestoreMode.merge,
+        );
+
+        expect(result.errors, hasLength(1));
+        expect(result.errors.single.entityType, 'dance');
+        expect(result.errors.single.entityId, 'tombstone');
+        final restored = await repos.dances.getById(
+          'tombstone',
+          includeDeleted: true,
+        );
+        expect(restored, isNotNull);
+        expect(restored!.title, 'Original');
+        expect(restored.deletedAt, isNotNull);
+        expect(await repos.dances.getById('tombstone'), isNull);
+      },
+    );
+
+    test('restore does not swallow programming StateError', () async {
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        dances: [
+          Dance(
+            id: 'unknown-level',
+            title: 'Unknown level',
+            difficultyLevelId: 'not-in-database',
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 1, 1),
+          ),
+        ],
+      );
+
+      await expectLater(
+        ArchiveRestorer(repos).restore(archive, mode: RestoreMode.merge),
+        throwsA(isA<StateError>()),
+      );
+    });
   });
 
   group('venue restore', () {

@@ -13,7 +13,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 MARKER = re.compile(r"<!--\s*tracking-unit:\s*(ADR-004/W(?:0|[1-9]|1[0-8]))\s*-->")
 ADMIN_MARKER = re.compile(r"<!--\s*tracking-admin\s*-->")
+TOPIC_MERGE_MARKER = re.compile(r"<!--\s*tracking-topic-merge:\s*athenaeum\s*-->")
 UNIT_PATH = re.compile(r"\.github/tracking/adr-004/units/(W(?:0|[1-9]|1[0-8]))\.json\Z")
+TOPIC_MERGE_UNIT_PATH = re.compile(r"\.github/tracking/adr-004/units/W[0-9]+\.json\Z")
+UNIT_MARKER = re.compile(r"<!--\s*tracking-unit\s*:")
+REPOSITORY = "ibanner56/CallersCompendium"
 ADMIN_PATH_PREFIXES = (
     ".github/tracking/",
     "tools/tracking/",
@@ -41,6 +45,15 @@ CONTROL_PATHS = {
     ".github/workflows/device-sync-tracking.yml",
     "tools/preflight.py",
 }
+TOPIC_MERGE_CONTROL_PATH_PREFIXES = (
+    ".github/instructions/",
+    ".github/workflows/",
+    "tools/tracking/",
+)
+TOPIC_MERGE_CONTROL_PATHS = {
+    ".github/tracking/README.md",
+    "tools/preflight.py",
+}
 
 
 def is_admin_path(path: str) -> bool:
@@ -55,6 +68,16 @@ def is_control_path(path: str) -> bool:
     )
 
 
+def is_topic_merge_control_path(path: str) -> bool:
+    if path in TOPIC_MERGE_CONTROL_PATHS or any(
+        path.startswith(prefix) for prefix in TOPIC_MERGE_CONTROL_PATH_PREFIXES
+    ):
+        return True
+    return path.startswith(".github/tracking/") and not TOPIC_MERGE_UNIT_PATH.fullmatch(
+        path
+    )
+
+
 def validate_pull_request(
     *,
     changed_paths: list[str],
@@ -65,18 +88,54 @@ def validate_pull_request(
     pull_requests: dict[str, list[int]],
     bootstrap: bool,
     author_association: str,
+    base_ref: str = "",
+    head_repo: str = "",
+    base_repo: str = "",
 ) -> list[str]:
     errors: list[str] = []
     markers = sorted(set(MARKER.findall(body)))
     admin = bool(ADMIN_MARKER.search(body))
+    topic_merge = bool(TOPIC_MERGE_MARKER.search(body))
+    unit_marker = bool(UNIT_MARKER.search(body))
     changed_units = [
         (match.group(1), path)
         for path in changed_paths
         if (match := UNIT_PATH.fullmatch(path))
     ]
 
+    if topic_merge and (admin or unit_marker):
+        errors.append(
+            "tracking-topic-merge cannot be combined with tracking-unit or tracking-admin"
+        )
+        return errors
     if admin and markers:
         errors.append("tracking-admin and tracking-unit markers cannot be combined")
+        return errors
+    if topic_merge:
+        if head_ref != "athenaeum":
+            errors.append("tracking-topic-merge requires source branch athenaeum")
+        if base_ref != "main":
+            errors.append("tracking-topic-merge requires target branch main")
+        if head_repo != REPOSITORY:
+            errors.append(
+                "tracking-topic-merge requires the head repository "
+                f"to be {REPOSITORY}"
+            )
+        if base_repo != REPOSITORY:
+            errors.append(
+                "tracking-topic-merge requires the base repository "
+                f"to be {REPOSITORY}"
+            )
+        if author_association != "OWNER":
+            errors.append("tracking-topic-merge requires repository-owner association")
+        invalid_paths = [
+            path for path in changed_paths if is_topic_merge_control_path(path)
+        ]
+        if invalid_paths:
+            errors.append(
+                "tracking-topic-merge cannot change tracking control paths: "
+                + ", ".join(sorted(invalid_paths))
+            )
         return errors
     if bootstrap:
         if not admin or author_association != "OWNER":
@@ -197,6 +256,18 @@ def main(argv: list[str] | None = None) -> int:
     if not isinstance(pull_request, dict):
         print("ERROR: event has no pull_request object")
         return 2
+    base = pull_request.get("base")
+    head = pull_request.get("head")
+    if not isinstance(base, dict):
+        base = {}
+    if not isinstance(head, dict):
+        head = {}
+    base_repo = base.get("repo")
+    head_repo = head.get("repo")
+    if not isinstance(base_repo, dict):
+        base_repo = {}
+    if not isinstance(head_repo, dict):
+        head_repo = {}
     try:
         paths = changed_paths(args.base_sha, args.head_sha)
         bootstrap = is_bootstrap(args.base_sha)
@@ -208,11 +279,14 @@ def main(argv: list[str] | None = None) -> int:
         changed_paths=paths,
         title=pull_request.get("title") or "",
         body=pull_request.get("body") or "",
-        head_ref=pull_request.get("head", {}).get("ref") or "",
+        head_ref=head.get("ref") or "",
         number=pull_request.get("number") or 0,
         pull_requests=pull_requests,
         bootstrap=bootstrap,
         author_association=pull_request.get("author_association") or "",
+        base_ref=base.get("ref") or "",
+        head_repo=head_repo.get("full_name") or "",
+        base_repo=base_repo.get("full_name") or "",
     )
     if errors:
         for error in errors:

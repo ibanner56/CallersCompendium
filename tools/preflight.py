@@ -36,7 +36,7 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePath
 from typing import Sequence
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -62,7 +62,14 @@ class Step:
 
 
 def py(*args: str) -> tuple[str, ...]:
-    return (sys.executable, *args)
+    if not args:
+        return (sys.executable,)
+
+    # Automatically switch separators based on the host OS
+    normalized_script = str(PurePath(args[0]))
+    remaining_args = args[1:]
+
+    return (sys.executable, normalized_script, *remaining_args)
 
 
 def fvm(*args: str) -> tuple[str, ...]:

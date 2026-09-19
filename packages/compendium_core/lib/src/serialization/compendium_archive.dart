@@ -255,6 +255,20 @@ class ArchiveEncodingException implements Exception {
       'contains a non-finite or unrepresentable numeric value';
 }
 
+/// Normalizes a domain [ArgumentError] caused by malformed archive content.
+///
+/// Archive boundaries convert this Dart [Error] into a narrow exception so it
+/// can be recorded in an [ArchiveReadResult] or [ArchiveRestoreResult] without
+/// also swallowing unrelated programming errors.
+class ArchiveContentValidationException implements Exception {
+  const ArchiveContentValidationException(this.cause);
+
+  final ArgumentError cause;
+
+  @override
+  String toString() => 'ArchiveContentValidationException: $cause';
+}
+
 /// Outcome of decoding archive JSON: the recovered [archive] plus any
 /// per-entity [errors] and non-fatal [warnings] (e.g. a newer schema version).
 ///

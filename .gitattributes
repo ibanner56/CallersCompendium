@@ -1,0 +1,25 @@
+# Repository line-ending policy: this is an LF repository.
+#
+# Generated artifacts (Markdown, JSON, Dart) are compared byte-for-byte against
+# LF-emitting generators in freshness tests, so a CRLF checkout on Windows would
+# fail those tests on line endings alone. Every tracked text blob is already
+# stored LF, so this file changes no committed content — it pins how files are
+# written to the working tree on every OS, removing the need for a per-developer
+# `core.autocrlf=false`.
+* text=auto eol=lf
+
+# Binary types must never be treated as text or have line endings rewritten.
+# (`text=auto` also auto-detects these; the explicit declarations are a guard.)
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.gif    binary
+*.webp   binary
+*.ico    binary
+*.ttf    binary
+*.otf    binary
+*.woff   binary
+*.woff2  binary
+*.sqlite binary
+*.pdf    binary
+*.zip    binary

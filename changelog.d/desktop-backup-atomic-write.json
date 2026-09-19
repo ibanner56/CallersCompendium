@@ -1,0 +1,9 @@
+{
+  "id": "desktop-backup-atomic-write",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Saving a backup on Windows or Linux now writes to a temporary file and swaps it into place, so an interrupted save can no longer destroy your previous backup."
+    ]
+  }
+}

@@ -10,8 +10,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/main.dart';
 import 'package:compendium_app/src/data/app_database.dart';
 import 'package:compendium_app/src/data/application_shutdown_controller.dart';
-import 'package:compendium_app/src/data/sync_writer_lifecycle_scope.dart';
 import 'package:compendium_app/src/data/backup_service.dart';
+import 'package:compendium_app/src/data/editor_draft_shutdown_scope.dart';
+import 'package:compendium_app/src/data/sync_writer_lifecycle_scope.dart';
 import 'package:compendium_app/src/data/migration_guard.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
@@ -21,7 +22,7 @@ import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
 import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart'
-    show kAppThemeKey;
+    show kAppThemeKey, kRequirePerformedForHistoryKey;
 
 import 'support/test_repositories.dart';
 import 'support/noop_sync_transport.dart';
@@ -96,6 +97,19 @@ class _FailOnceMigrationAppData extends AppData {
 
   @override
   _FailOnceMigrationRepositories get repositories => _repositories;
+}
+
+class _RecordingAppData extends AppData {
+  _RecordingAppData(super.db, this.closeEvents, this.closeLabel);
+
+  final List<String> closeEvents;
+  final String closeLabel;
+
+  @override
+  Future<void> close() async {
+    closeEvents.add(closeLabel);
+    await super.close();
+  }
 }
 
 AppData _openAppData() {
@@ -652,6 +666,63 @@ void main() {
     },
   );
 
+  testWidgets(
+    'restoring a backup without a preference resets its live notifier',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 2600));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final source = openTestRepositories();
+      await source.dances.create(
+        Dance(
+          id: 'restored',
+          title: 'Restored Dance',
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+      final backupJson = await BackupService(source).exportToJson();
+
+      final appData = _openAppData();
+      await appData.repositories.settings.set(
+        kRequirePerformedForHistoryKey,
+        true,
+      );
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      var context = tester.element(find.byType(AppShell));
+      expect(RequirePerformedForHistoryScope.of(context), isTrue);
+
+      await tester.tap(find.text('Settings').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('settings-nav-general')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('restore-paste-field')),
+        backupJson,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('restore-confirm')));
+      await tester.pumpAndSettle();
+
+      expect(
+        await appData.repositories.settings.get(kRequirePerformedForHistoryKey),
+        isNull,
+      );
+      context = tester.element(find.byType(AppShell));
+      expect(RequirePerformedForHistoryScope.of(context), isFalse);
+    },
+  );
+
   testWidgets('a failed below-floor reset restores the recovery screen', (
     tester,
   ) async {
@@ -664,12 +735,28 @@ void main() {
       bridgeTag: 'v0.1.0-beta.6',
     );
     var replacementAppDataCount = 0;
-    final initialAppData = _openAppData();
+    final closeEvents = <String>[];
+    final initialAppData = _RecordingAppData(
+      openWidgetTestDatabase(closeOnTearDown: false),
+      closeEvents,
+      'initial-db-close',
+    );
+    addTearDown(initialAppData.close);
+    final draftShutdownController = EditorDraftShutdownController();
+    draftShutdownController.register(() {
+      closeEvents.add('draft-flush');
+      return () async {};
+    });
+    final applicationShutdownController = ApplicationShutdownController(
+      () async => closeEvents.add('initial-shutdown'),
+    );
 
     await tester.pumpWidget(
       CompendiumApp(
         appData: initialAppData,
         windowService: _NoopWindowService(initialAppData.repositories.settings),
+        applicationShutdownController: applicationShutdownController,
+        editorDraftShutdownController: draftShutdownController,
         migrationPreflight: (_) async {
           // Keep the failure asynchronous so FutureBuilder can subscribe to
           // the replacement bootstrap future before it completes.
@@ -682,7 +769,13 @@ void main() {
             const ResetFailed('injected reset failure'),
         appDataFactory: () {
           replacementAppDataCount++;
-          return _openAppData();
+          final replacementAppData = _RecordingAppData(
+            openWidgetTestDatabase(closeOnTearDown: false),
+            closeEvents,
+            'replacement-db-close',
+          );
+          addTearDown(replacementAppData.close);
+          return replacementAppData;
         },
         windowServiceFactory: (settings) => _NoopWindowService(settings),
       ),
@@ -706,6 +799,15 @@ void main() {
     expect(
       find.text('This data is from a version too old to open'),
       findsOneWidget,
+    );
+    await applicationShutdownController.close();
+    expect(
+      closeEvents,
+      containsAllInOrder([
+        'initial-db-close',
+        'draft-flush',
+        'replacement-db-close',
+      ]),
     );
   });
 

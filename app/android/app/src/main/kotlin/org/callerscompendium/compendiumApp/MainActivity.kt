@@ -15,7 +15,8 @@ import java.io.FileOutputStream
  *
  * - **File** (#298): a shared CompendiumArchive `.json` bundle (AirDrop-style
  *   share / "Open with"). The native side copies it into the app's private
- *   cache and hands Dart the **path** of that copy.
+ *   cache and hands Dart an ownership-marked payload containing the path of
+ *   that copy.
  * - **URL** (#343): a web page URL shared as `text/plain` from a browser (an
  *   `ACTION_SEND` with `EXTRA_TEXT`). The native side hands Dart the **raw URL
  *   string** verbatim.
@@ -52,7 +53,7 @@ class MainActivity : FlutterActivity() {
                     val path = pendingInitialPath
                     pendingInitialPath = null
                     initialPayloadPulled = true
-                    result.success(path)
+                    result.success(path?.let { filePayload(it) })
                 }
                 "getInitialUrl" -> {
                     val url = pendingInitialUrl
@@ -98,26 +99,42 @@ class MainActivity : FlutterActivity() {
         if (uri == null) return
         val path = copyToCache(uri) ?: return
         if (initialPayloadPulled) {
-            channel?.invokeMethod("fileOpened", path)
+            channel?.invokeMethod("fileOpened", filePayload(path))
         } else {
+            pendingInitialPath?.let(::deleteStagedCopy)
             pendingInitialPath = path
         }
     }
+
+    private fun filePayload(path: String): Map<String, Any> =
+        mapOf("path" to path, "appOwned" to true)
 
     /** Copies the content of [uri] into a private cache file and returns its
      * path, or `null` on any error (intake then simply does nothing — the
      * native side never crashes the app). */
     private fun copyToCache(uri: Uri): String? {
+        val dir = File(cacheDir, "incoming_share")
+        val name = uri.lastPathSegment?.substringAfterLast('/') ?: "bundle.json"
+        val dest = File(dir, "${System.nanoTime()}-$name")
         return try {
-            val dir = File(cacheDir, "incoming_share").apply { mkdirs() }
-            val name = uri.lastPathSegment?.substringAfterLast('/') ?: "bundle.json"
-            val dest = File(dir, "${System.nanoTime()}-$name")
+            dir.mkdirs()
             contentResolver.openInputStream(uri)?.use { input ->
                 FileOutputStream(dest).use { output -> input.copyTo(output) }
             } ?: return null
             dest.absolutePath
         } catch (e: Exception) {
+            deleteStagedCopy(dest.absolutePath)
             null
+        }
+    }
+
+    private fun deleteStagedCopy(path: String) {
+        try {
+            val file = File(path)
+            if (file.exists()) file.delete()
+        } catch (_: Exception) {
+            // A failed cleanup must not crash the activity while handling an
+            // already-failed or superseded share.
         }
     }
 }

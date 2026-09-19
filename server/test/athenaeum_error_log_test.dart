@@ -12,7 +12,7 @@ void main() {
       await output.parent.delete(recursive: true);
     });
 
-    final process = await Process.start('sh', [
+    final process = await Process.start(_shellExecutable(), [
       _deploymentScriptPath(),
       output.path,
     ]);
@@ -32,6 +32,32 @@ void main() {
       '[redacted Apache error]\n',
     );
   });
+}
+
+/// `sh` for running the deployment script.
+///
+/// Windows shells such as PowerShell often don't have Git's `usr\bin` on the
+/// PATH that Dart resolves against, so a bare `sh` fails to start even though
+/// Git for Windows is installed; fall back to its known install locations.
+String _shellExecutable() {
+  if (!Platform.isWindows) return 'sh';
+  for (final variable in [
+    'ProgramFiles',
+    'ProgramFiles(x86)',
+    'LocalAppData',
+  ]) {
+    final base = Platform.environment[variable];
+    if (base == null) continue;
+    for (final relative in [
+      r'Git\bin\sh.exe',
+      r'Git\usr\bin\sh.exe',
+      r'Programs\Git\bin\sh.exe',
+    ]) {
+      final candidate = File('$base\\$relative');
+      if (candidate.existsSync()) return candidate.path;
+    }
+  }
+  return 'sh';
 }
 
 String _deploymentScriptPath() {

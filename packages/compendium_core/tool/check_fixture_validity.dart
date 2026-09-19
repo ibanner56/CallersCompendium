@@ -483,7 +483,7 @@ int run(List<String> args) {
   final cwd = Directory.current.path;
   final rootPath = args.isNotEmpty
       ? args.first
-      : cwd.endsWith('packages/compendium_core')
+      : cwd.replaceAll('\\', '/').endsWith('packages/compendium_core')
       ? Directory(cwd).parent.parent.path
       : cwd;
   final root = Directory(rootPath);

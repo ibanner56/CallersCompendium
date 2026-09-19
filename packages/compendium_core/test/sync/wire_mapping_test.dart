@@ -11,11 +11,14 @@ final _now = DateTime.utc(2026, 7, 15, 12);
 void main() {
   test('the generated artifact is fresh', () {
     expect(
+      // Normalize CRLF -> LF so a Windows checkout is compared like-for-like
+      // against the LF-emitting generator; only line endings are stripped, so
+      // real content drift still fails. See the repository .gitattributes.
       File(
         Directory('packages/compendium_core').existsSync()
             ? 'packages/compendium_core/lib/src/sync/generated_sync_allow_list.dart'
             : 'lib/src/sync/generated_sync_allow_list.dart',
-      ).readAsStringSync(),
+      ).readAsStringSync().replaceAll('\r\n', '\n'),
       generator.renderSyncAllowList(),
     );
   });
