@@ -1,9 +1,0 @@
-{
-  "id": "shutdown-draft-persistence",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "You no longer lose your newest dance or program editor changes when the app closes before autosave finishes."
-    ]
-  }
-}

@@ -1,9 +1,0 @@
-{
-  "id": "android-share-cache-cleanup",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "Private copies of files you share into the app are now removed after validation or dismissal."
-    ]
-  }
-}

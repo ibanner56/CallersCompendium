@@ -1,9 +1,0 @@
-{
-  "id": "restore-resets-missing-settings",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "Restoring a backup now resets settings missing from that backup to their defaults immediately."
-    ]
-  }
-}
