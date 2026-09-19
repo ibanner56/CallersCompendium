@@ -5,13 +5,14 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CORE = "compendium_core"
-CORE_DIR = Path("packages/compendium_core")
+CORE_DIR = Path("packages") / "compendium_core"
 FORBIDDEN = {
     "flutter",
     "flutter_test",
@@ -79,7 +80,8 @@ def source_failures(core_dir: Path) -> tuple[list[str], int]:
 
 def run(root: Path = REPO_ROOT) -> int:
     result = subprocess.run(
-        ["dart", "pub", "deps", "--json"],
+        # which() applies PATHEXT, so Windows resolves the dart.bat shim.
+        [shutil.which("dart") or "dart", "pub", "deps", "--json"],
         cwd=root,
         check=False,
         capture_output=True,
