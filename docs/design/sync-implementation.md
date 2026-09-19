@@ -871,24 +871,32 @@ backup taken on a syncing device leaves sync off and makes no network call.
 #### W14 · A kind-agnostic review surface
 
 - **Serves** the review-queue surface required by §3.2.
-- **Inherits** W4 (`review_queue` is the storage this reviews).
-- **Produces** a generic keep-both-or-merge list. **No per-kind editors are
-  required**, which is the scope control on this unit. The one thing that is
-  not generic: for the four `UNIQUE` natural-key kinds, resolving **keep
-  both** MUST rename the surviving live row before the counterpart tombstone is
-  applied (§6.6 step 2). The index is not filtered on `deleted_at`, so without
-  the rename the resolution simply fails to write. That is a name prompt on an
-  otherwise kind-agnostic surface, not a per-kind editor.
+- **Inherits** W4 (`review_queue` is the storage this reviews) and W7 (the
+  production queue and collision machinery).
+- **Produces** a generic queue list. **No per-kind editors are required**, which
+  is the scope control on this unit. W14 v1 exposes mutating **merge** and
+  **keep both** actions for the §6.6 baseline-absence tombstone reason and for
+  W8's live-dance choreography-ambiguity reason. Other current or future
+  reasons remain visible as retained/unsupported rows with no mutating action.
+  For the four `UNIQUE` natural-key kinds, resolving **keep both** MUST rename
+  the surviving live row before the counterpart tombstone is applied (§6.6
+  step 2). A W8 dance ambiguity's **keep both** action similarly renames the
+  local live dance before it is removed from the ambiguity set. The index is
+  not filtered on `deleted_at`, so without the rename the resolution simply
+  fails to write. These are name prompts on an otherwise kind-agnostic
+  surface, not per-kind editors.
 - **Unblocks** W8.
-- **Done when** a queued pair survives an app restart and can be resolved, and
-  a "keep both" resolution on a name collision leaves both rows stored.
+- **Done when** a queued supported pair survives an app restart and can be
+  resolved, unsupported reasons remain retained without mutation, and a "keep
+  both" resolution on a name collision leaves both rows stored.
 
 The existing `import_review_screen.dart` reviews **dances only**, and is driven
 by `ImportSession`, whose own doc comment says it is deliberately not persisted.
 Sync runs non-interactively with nobody watching, so there is no in-progress
-import to attach a decision to. This is new storage plus a new surface, not a
-reuse of proven machinery — the ADR corrects an earlier draft that implied
-otherwise.
+import to attach a decision to. This is a new resolver and surface over the
+existing persisted queue, not a new storage path and not a reuse of
+`ImportSession`/`ImportReviewScreen` — the ADR corrects an earlier draft that
+implied otherwise.
 
 #### W17 · Standing-invariant ratchets
 
@@ -1084,14 +1092,20 @@ the programme and the only one that can block a release on its own.
   the suite passes against an implementation that adopts both. The missing-store
   vector preserves local content and baseline state and mutation-proves that
   automatic recreation fails.
+  The worker opens the database file on its **own connection**, so it and the
+  app are two writers against one file. Both therefore run
+  `applyCompendiumSqliteSetup` (WAL plus a busy timeout); without it an
+  ordinary app write landing inside the pass's apply transaction fails with
+  "database is locked" rather than waiting. See *Durability* in
+  [storage.md](storage.md).
   The isolate half of *Client isolate and robustness* lands here too — a
   malformed date rejects one record without aborting the batch or escaping the
   isolate; **an interrupted pass leaves no partial apply**, which is §6.7's
   single apply transaction seen from outside — and, per §6.12, *not* that a
-  failed pass leaves local data untouched, since a failure between steps 7 and 8
+  failed pass leaves local data untouched, since a failure between steps 6 and 8
   keeps the applied content and leaves the baseline unadvanced; and **a blob
   `GET` returning `404` skips and reports the record and leaves the baseline
-  unadvanced** rather than deleting it (§6.3 step 6), **and a blob whose
+  unadvanced** rather than deleting it (§6.3 step 5), **and a blob whose
   envelope declares a different `(kind, id)` than the manifest entry it was
   fetched under is skipped and reported rather than applied under either
   identity** — the hash still verifies in that case, so no content-addressing
@@ -1144,10 +1158,11 @@ content conflict for W6's table rather than a reconciliation for this unit.
   surface).
 - **Produces** the union — **absence never deletes at attach, but an explicit
   tombstone with the greater `existenceAt` is applied** (§6.2 step 5, §6.4);
-  dedupe on `normalizeTitle` plus `_choreographyEquals`, with tombstones
-  excluded from candidacy entirely; `program_slots.dance_id` rewiring to the
-  survivor; epoch and baseline persistence; confirmed replacement attach after
-  W13 authorizes one successful `POST`; and the after-the-fact count
+  dedupe on `normalizeTitle` plus the shared `choreographyFingerprint`
+  contract, with tombstones excluded from candidacy entirely;
+  `program_slots.dance_id` rewiring to the survivor; epoch and baseline
+  persistence; confirmed replacement attach after W13 authorizes one
+  successful `POST`; and the after-the-fact count
   ("merged 412 duplicates"), which is the mitigation rather than a prompt.
 - **Unblocks** **W13's attach-completion report only**. The count is surfaced
   at the end of pairing, and pairing is W13's. This is the "what the user is
@@ -1201,6 +1216,13 @@ and it merges records **silently**.
   with the baseline" clears neither, and the pass never re-runs over restored
   rows. The rule is over the **event**, not the mode: `RestoreMode.merge` writes
   unjudged rows exactly as `replace` does.
+- **Produces** a serialized backup UI lifecycle: the active coordinator is
+  disposed and awaited before `BackupService.restoreFromJson` writes, and a
+  replacement coordinator is created from current settings after the operation
+  completes, including refusal and failure paths. The shared
+  `CompendiumArchiveImporter` writer uses the same general sync-writer
+  lifecycle: the active coordinator is quiesced and awaited before the import
+  (and its transient Undo), then recreated from current settings afterwards.
 - **Unblocks** **W13**'s `sync_exclude_imports` filter, which reuses this
   unit's §6.9 citation closure and nothing else here.
 - **Done when** the §9 *Quarantine and repair* bucket is green, and so is the
@@ -1332,6 +1354,7 @@ graph LR
   W7 --> W8[W8 attach + dedupe]
   W6 --> W9[W9 quarantine + restore]
   W4 --> W14[W14 review surface]
+  W7 --> W14
   W14 --> W8
   W8 -.attach report.-> W13
   W5 --> W13[W13 settings + pairing]
@@ -1371,8 +1394,10 @@ Everything else has slack, and the slack is worth spending deliberately:
 - **W10 runs beside W4 and W5**, from C1. It is off the *nominal* critical path
   and on the *practical* one, because W6 is far cheaper to build and far safer
   to trust against a real server than a mock.
-- **W13 and W14 run from C1** against fakes. They are leaves; W14 rejoins at W8,
-  and W13 rejoins at W6 + W9 for the `sync_exclude_imports` filter only.
+- **W13 runs from C1** against fakes and rejoins at W6 + W9 for the
+  `sync_exclude_imports` filter only. W14's production resolver and persisted
+  review surface begin after W7 and rejoin at W8; UI wiring may use fakes
+  during development but is not an independently scheduled deliverable.
 - **W15 runs whenever.** It should be done first, being the cheapest thing that
   can block a release — and under S7 it blocks the beta, not just the release.
 - **W17 runs first, or as near to first as anything does.** It is independent of

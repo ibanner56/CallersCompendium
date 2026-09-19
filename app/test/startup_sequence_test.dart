@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart';
@@ -11,14 +12,20 @@ import 'package:compendium_app/src/data/app_database.dart';
 import 'package:compendium_app/src/data/application_shutdown_controller.dart';
 import 'package:compendium_app/src/data/backup_service.dart';
 import 'package:compendium_app/src/data/editor_draft_shutdown_scope.dart';
+import 'package:compendium_app/src/data/sync_writer_lifecycle_scope.dart';
 import 'package:compendium_app/src/data/migration_guard.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
+import 'package:compendium_app/src/sync/sync_coordinator.dart';
+import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_app/src/data/window_service.dart';
+import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
+import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart'
     show kAppThemeKey, kRequirePerformedForHistoryKey;
 
 import 'support/test_repositories.dart';
+import 'support/noop_sync_transport.dart';
 
 /// A [WindowService] whose restore does nothing — the plugin glue is untestable
 /// under `flutter test` (no real window), and these tests only care about the
@@ -45,6 +52,15 @@ class _FailingWindowService extends WindowService {
 
   @override
   void dispose() {}
+}
+
+class _RecordingCrashLogSink implements CrashLogSink {
+  final List<String> sources = [];
+
+  @override
+  void record(Object error, StackTrace? stack, {required String source}) {
+    sources.add(source);
+  }
 }
 
 /// A [CompendiumRepositories] whose derived-index rebuild throws on its first
@@ -335,6 +351,208 @@ void main() {
     expect(find.textContaining('integrity check failed'), findsNothing);
     expect(find.byType(AppShell), findsOneWidget);
   });
+
+  testWidgets(
+    'a failing sync configuration does not block startup and is logged',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final sink = _RecordingCrashLogSink();
+      installCaughtErrorLog(sink);
+      addTearDown(resetCaughtErrorLogForTesting);
+      final appData = _openAppData();
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          integrityCheck: () async => true,
+          // A malformed persisted sync setting can throw synchronously before
+          // the factory returns a Future. Device Sync is optional, so this
+          // must not abort the rest of startup.
+          syncCoordinatorFactory: (_) {
+            throw const FormatException('stored sync ID must be a string');
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AppShell), findsOneWidget);
+      expect(sink.sources, contains('main.sync-configure'));
+    },
+  );
+
+  testWidgets(
+    'backup restore serializes and recreates the production sync coordinator',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+      final source = openTestRepositories();
+      await source.dances.create(
+        Dance(
+          id: 'restored',
+          title: 'Restored Dance',
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+      final backupJson = await BackupService(source).exportToJson();
+
+      final firstPassGate = Completer<void>();
+      final firstPassStarted = Completer<void>();
+      final replacementPassStarted = Completer<void>();
+      var factoryCalls = 0;
+      SyncCoordinator? replacement;
+
+      Future<SyncCoordinator?> factory(
+        CompendiumRepositories repositories,
+      ) async {
+        factoryCalls++;
+        final isFirst = factoryCalls == 1;
+        final started = isFirst ? firstPassStarted : replacementPassStarted;
+        final coordinator = SyncCoordinator(
+          syncId: 'configured',
+          deviceId: isFirst ? 'device-a' : 'device-b',
+          store: CompendiumSyncCoordinatorStore(repositories),
+          transport: NoopSyncCoordinatorTransport(),
+          passOperation: ({SyncStoreResult? initialStore}) async {
+            if (!started.isCompleted) started.complete();
+            if (isFirst) await firstPassGate.future;
+            return const SyncPassResult(SyncPassStatus.completed);
+          },
+        );
+        if (!isFirst) replacement = coordinator;
+        return coordinator;
+      }
+
+      addTearDown(() async {
+        await replacement?.dispose();
+      });
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          integrityCheck: () async => true,
+          syncCoordinatorFactory: factory,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await firstPassStarted.future;
+      expect(find.byType(AppShell), findsOneWidget);
+
+      final scope = tester.widget<SyncWriterLifecycleScope>(
+        find.byType(SyncWriterLifecycleScope),
+      );
+      final lifecycle = <String>[];
+      var restoreStarted = false;
+      final runWrite = scope.runWrite;
+      expect(runWrite, isNotNull);
+
+      final restoreFuture = runWrite!(() async {
+        restoreStarted = true;
+        final outcome = await BackupService(
+          appData.repositories,
+        ).restoreFromJson(backupJson);
+        lifecycle.add('restored');
+        return outcome;
+      });
+      expect(
+        restoreStarted,
+        isFalse,
+        reason: 'the writer must await the active startup pass',
+      );
+
+      firstPassGate.complete();
+      final outcome = await restoreFuture;
+      expect(outcome.applied, isTrue);
+      lifecycle.add('replacement-factory');
+      expect(factoryCalls, 2);
+
+      await replacementPassStarted.future;
+      lifecycle.add('replacement-onAppStart');
+      expect(lifecycle, [
+        'restored',
+        'replacement-factory',
+        'replacement-onAppStart',
+      ]);
+    },
+  );
+
+  testWidgets(
+    'shutdown shares coordinator disposal with an in-progress restore hook',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+      final firstPassGate = Completer<void>();
+      final firstPassStarted = Completer<void>();
+      final shutdownController = ApplicationShutdownController(() async {});
+      var factoryCalls = 0;
+
+      Future<SyncCoordinator?> factory(
+        CompendiumRepositories repositories,
+      ) async {
+        factoryCalls++;
+        final coordinator = SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-a',
+          store: CompendiumSyncCoordinatorStore(repositories),
+          transport: NoopSyncCoordinatorTransport(),
+          passOperation: ({SyncStoreResult? initialStore}) async {
+            if (!firstPassStarted.isCompleted) firstPassStarted.complete();
+            await firstPassGate.future;
+            return const SyncPassResult(SyncPassStatus.completed);
+          },
+        );
+        return coordinator;
+      }
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          applicationShutdownController: shutdownController,
+          integrityCheck: () async => true,
+          syncCoordinatorFactory: factory,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await firstPassStarted.future;
+
+      final scope = tester.widget<SyncWriterLifecycleScope>(
+        find.byType(SyncWriterLifecycleScope),
+      );
+      final runWrite = scope.runWrite;
+      expect(runWrite, isNotNull);
+      var writerStarted = false;
+      final writerFuture = runWrite!(() async {
+        writerStarted = true;
+      });
+      var shutdownCompleted = false;
+      final shutdownFuture = shutdownController.close().then((_) {
+        shutdownCompleted = true;
+      });
+
+      await tester.pump();
+      expect(
+        shutdownCompleted,
+        isFalse,
+        reason: 'shutdown must await the writer disposal',
+      );
+
+      firstPassGate.complete();
+      await expectLater(writerFuture, throwsA(isA<StateError>()));
+      await shutdownFuture;
+      expect(shutdownCompleted, isTrue);
+      expect(writerStarted, isFalse);
+      expect(factoryCalls, 1);
+    },
+  );
 
   testWidgets(
     'a downgrade preflight failure shows the update-app message and gates the '

@@ -1,7 +1,60 @@
 import 'package:meta/meta.dart';
 import 'package:unorm_dart/unorm_dart.dart';
 
+import '../model/dance.dart';
 import '../model/enums.dart';
+import '../serialization/archive_entity_codec.dart';
+
+const _choreographyFields = [
+  'form',
+  'formation',
+  'progression',
+  'phraseStructure',
+  'figures',
+  'hook',
+  'callingNotes',
+  'difficultyLevelId',
+  'mixedLevel',
+  'mixer',
+  'tunes',
+];
+
+/// Returns the intrinsic choreography values shared by import and sync dedupe.
+///
+/// [body] is an archive-shaped dance body, including a sync body after its
+/// shareable projection. Identity, provenance, timestamps, collections, and
+/// other device-local metadata are deliberately excluded. The ordered list
+/// keeps the field contract in one place while callers choose the equality or
+/// hashing strategy appropriate to their boundary.
+List<Object?> choreographyFingerprint(Map<String, Object?> body) => [
+  for (final field in _choreographyFields) body[field],
+];
+
+/// Returns the same choreography fingerprint for a model used by imports.
+///
+/// Building the archive-shaped body here keeps import matching in lockstep
+/// with the body Device Sync groups, rather than maintaining a second field
+/// list or figure serialization.
+///
+/// The collections are emptied first. None of them appears in
+/// [_choreographyFields], and encoding them is not free of consequence:
+/// `archiveCustomFieldValueToJson` throws [ArchiveEncodingException] on a
+/// non-finite number, which would turn this predicate — called in a candidate
+/// loop that does not expect it to throw — into an abort. Dropping them also
+/// keeps the per-comparison cost to the fields actually compared.
+List<Object?> choreographyFingerprintForDance(Dance dance) =>
+    choreographyFingerprint(
+      archiveDanceToJson(
+        dance.copyWith(
+          customFields: const [],
+          links: const [],
+          sourceCitations: const [],
+          clearProvenance: true,
+        ),
+        const {},
+        includeOptionalFields: true,
+      ),
+    );
 
 /// One existing dance as seen by the deduplicator: enough to match a candidate
 /// import against, without loading the whole [Dance]. Built by the pipeline

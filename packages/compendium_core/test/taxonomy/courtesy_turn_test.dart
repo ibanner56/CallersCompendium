@@ -70,8 +70,9 @@ void main() {
       // Schema 32 adds Device Sync local persistence and likewise does not
       // change the taxonomy. Schema 33 adds a program-slot purge-caption
       // marker, schema 34 adds difficulty vocabulary, and schema 35 splits
-      // planned slot timing; none of them changes it.
-      expect(kCompendiumSchemaVersion, 35);
+      // planned slot timing. Schema 36 adds the sync review local-version
+      // guard; none of them changes the taxonomy.
+      expect(kCompendiumSchemaVersion, 36);
     });
 
     test('registers with the maintainer-ruled param set', () {

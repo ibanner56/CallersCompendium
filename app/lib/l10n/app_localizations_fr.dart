@@ -1195,6 +1195,125 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsGeneralSoftDeleteRetentionNever => 'Jamais';
 
   @override
+  String get syncReviewSettingsTitle => 'Décisions de synchronisation';
+
+  @override
+  String get syncReviewSettingsSubtitle =>
+      'Examinez les suppressions du pair qui entrent en conflit avec des éléments créés sur cet appareil.';
+
+  @override
+  String get syncReviewTitle => 'Décisions de synchronisation';
+
+  @override
+  String get syncReviewLoading => 'Chargement des décisions de synchronisation';
+
+  @override
+  String get syncReviewEmpty =>
+      'Aucune décision de synchronisation ne vous attend.';
+
+  @override
+  String get syncReviewIntro =>
+      'Ces éléments nécessitent une décision avant l’application de la modification du pair.';
+
+  @override
+  String get syncReviewLoadFailed =>
+      'Impossible de charger les décisions de synchronisation.';
+
+  @override
+  String get syncReviewResolved => 'Décision de synchronisation appliquée.';
+
+  @override
+  String get syncReviewActionFailed =>
+      'Cette décision de synchronisation n’a pas pu être appliquée. L’élément a été conservé pour une nouvelle tentative.';
+
+  @override
+  String get syncReviewKindChoreographer => 'Chorégraphe';
+
+  @override
+  String get syncReviewKindTag => 'Étiquette';
+
+  @override
+  String get syncReviewKindCustomField => 'Champ personnalisé';
+
+  @override
+  String get syncReviewKindDifficulty => 'Niveau de difficulté';
+
+  @override
+  String get syncReviewKindDance => 'Danse';
+
+  @override
+  String get syncReviewKindProgram => 'Programme';
+
+  @override
+  String get syncReviewKindPublishedSource => 'Source publiée';
+
+  @override
+  String get syncReviewKindVenue => 'Lieu';
+
+  @override
+  String get syncReviewKindSetting => 'Paramètre';
+
+  @override
+  String syncReviewLocalRecord(String id) {
+    return 'Élément local : $id';
+  }
+
+  @override
+  String syncReviewPeerRecord(String identity) {
+    return 'Élément du pair : $identity';
+  }
+
+  @override
+  String get syncReviewTombstoneReason =>
+      'Un pair a supprimé un élément correspondant créé sur cet appareil.';
+
+  @override
+  String get syncReviewDanceAmbiguityReason =>
+      'Les danses actives portent le même titre, mais ont une chorégraphie différente.';
+
+  @override
+  String get syncReviewUnsupportedReason =>
+      'Ce conflit de synchronisation est conservé pour le moment ; aucune action sûre n’est disponible ici.';
+
+  @override
+  String get syncReviewUnsupportedAction =>
+      'Conservez cet élément jusqu’à ce qu’une synchronisation ultérieure ou un flux de vérification pris en charge puisse le traiter.';
+
+  @override
+  String get syncReviewMergeAction => 'Fusionner';
+
+  @override
+  String get syncReviewKeepBothAction => 'Conserver les deux';
+
+  @override
+  String get syncReviewKeepBothTitle => 'Choisissez un nouveau nom local';
+
+  @override
+  String get syncReviewNewNameLabel => 'Nouveau nom local';
+
+  @override
+  String get syncReviewNameRequired => 'Saisissez un nom.';
+
+  @override
+  String get syncReviewNameNotDistinct => 'Choisissez un autre nom.';
+
+  @override
+  String get syncReviewCandidateInvalid =>
+      'La modification enregistrée du pair n’est pas valide ; elle a donc été conservée.';
+
+  @override
+  String get syncReviewCandidateChanged =>
+      'La modification enregistrée du pair n’est plus actuelle ; elle a donc été conservée.';
+
+  @override
+  String get syncReviewTargetMissing =>
+      'L’élément local n’est plus disponible ; la décision a été conservée.';
+
+  @override
+  String get syncReviewCandidateAlreadyPresent =>
+      'L’élément du pair est déjà présent ; la décision a été conservée.';
+
+  @override
   String get settingsGeneralImportHeader => 'Importation';
 
   @override

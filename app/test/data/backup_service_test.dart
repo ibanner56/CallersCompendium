@@ -216,6 +216,26 @@ void main() {
     },
   );
 
+  test('restore reruns normalization for a surviving merge row', () async {
+    final source = openTestRepositories();
+    final json = await BackupService(source).exportToJson();
+
+    final target = openTestRepositories();
+    await target.dances.create(_dance('existing', 'placeholder'));
+    await target.db.customStatement(
+      'UPDATE dances SET title = ? WHERE id = ?',
+      ['cafe\u0301', 'existing'],
+    );
+    await target.settings.set(shareableTextNormalisationScopeKey, 'stale');
+
+    final outcome = await BackupService(
+      target,
+    ).restoreFromJson(json, mode: RestoreMode.merge);
+
+    expect(outcome.hasErrors, isFalse);
+    expect((await target.dances.getById('existing'))?.title, 'café');
+  });
+
   test(
     'restore drops invalid settings values, keeps valid ones, and never throws '
     '(issue #609)',

@@ -4,8 +4,10 @@ import '../model/difficulty_level.dart';
 import '../model/enums.dart';
 import '../model/program.dart';
 import '../storage/repositories/repositories.dart';
+import '../storage/repositories/sync_local_repository.dart';
 import '../storage/repositories/venue_repository.dart';
-import '../storage/database.dart';
+import '../sync/sync_record_kind.dart';
+import '../sync/sync_storage.dart';
 import 'compendium_archive.dart';
 
 /// Reads the entire core-persisted collection into a [CompendiumArchive] for
@@ -96,6 +98,7 @@ class ArchiveRestorer {
     // error) from an unexpected transaction failure, without depending on how
     // the database layer re-surfaces the thrown sentinel.
     var abortedForRollback = false;
+    var committed = false;
     try {
       await _repos.db.transaction(() async {
         // Dances can reference each other (relatedDance links), so intra-batch
@@ -111,15 +114,36 @@ class ArchiveRestorer {
           // replace never leaves the user with wiped data and a half-applied
           // archive — either the whole archive writes, or live data is intact.
           await _clearAll();
-          await _load(archive, errors, causalAt: causalAt);
+          final restoredRecords = await _load(
+            archive,
+            errors,
+            causalAt: causalAt,
+          );
           if (errors.isNotEmpty) {
             abortedForRollback = true;
             throw const _RestoreAborted();
           }
+          await _repos.syncLocal.clearForRestore(
+            restoredRecords: restoredRecords,
+            revalidatePending: true,
+          );
         } else {
-          await _load(archive, errors, causalAt: causalAt);
+          final restoredRecords = await _load(
+            archive,
+            errors,
+            causalAt: causalAt,
+          );
+          await _repos.syncLocal.clearForRestore(
+            restoredRecords: restoredRecords,
+            revalidatePending: false,
+          );
         }
+        await _repos.resetNormalisationStateForRestore();
+        await CompendiumSyncStorage(
+          _repos,
+        ).revalidatePendingDeletionsInTransaction(dropMissing: true);
       });
+      committed = true;
     } on Exception catch (e) {
       if (!abortedForRollback) {
         // Deferred foreign-key checks and other integrity constraints only fire
@@ -136,6 +160,12 @@ class ArchiveRestorer {
           ),
         );
       }
+    }
+    if (committed) {
+      // The reset above deliberately invalidates the previous sweep marker.
+      // Run the complete-library pass after the restore transaction commits so
+      // direct ArchiveRestorer callers get the same NFC guarantee as backups.
+      await _repos.ensureMigrated();
     }
     return ArchiveRestoreResult(errors: errors);
   }
@@ -169,11 +199,12 @@ class ArchiveRestorer {
   ///
   /// Both outcomes are correct: a dangling reference is never silently
   /// persisted.
-  Future<void> _load(
+  Future<Set<SyncRecordAddress>> _load(
     CompendiumArchive archive,
     List<ArchiveError> errors, {
     required DateTime causalAt,
   }) async {
+    final restoredRecords = <SyncRecordAddress>{};
     // archiveId -> writtenId for the three entity kinds that dance references.
     // An entry is only added on success; a failed upsert leaves no entry.
     final choreoRemap = <String, String>{};
@@ -190,45 +221,88 @@ class ArchiveRestorer {
       final existingIds = {for (final row in existingLevels) row.level.id};
       for (final level in DifficultyLevel.shipped) {
         if (existingIds.contains(level.id)) continue;
+        final errorsBefore = errors.length;
         await _guard('difficultyLevel', level.id, errors, () async {
           await _repos.difficultyLevels.upsert(level);
         });
+        if (errors.length == errorsBefore) {
+          restoredRecords.add((
+            kind: SyncRecordKind.difficultyLevel,
+            recordId: level.id,
+          ));
+        }
       }
     }
     if (archive.schemaVersion >= archiveSchemaVersionDifficultyLevels) {
       for (final level in archive.difficultyLevels) {
+        final errorsBefore = errors.length;
         await _guard('difficultyLevel', level.id, errors, () async {
           await _repos.difficultyLevels.upsert(level);
         });
+        if (errors.length == errorsBefore) {
+          restoredRecords.add((
+            kind: SyncRecordKind.difficultyLevel,
+            recordId: level.id,
+          ));
+        }
       }
     }
     for (final s in archive.publishedSources) {
+      final errorsBefore = errors.length;
       await _guard('publishedSource', s.id, errors, () async {
         // publishedSources.upsert returns Future<void> — it contains no
         // adoptTombstonedNaturalKey calls, so its id can never change. No
         // remap needed; the discard is structural, not an oversight.
         await _repos.publishedSources.upsert(s);
       });
+      if (errors.length == errorsBefore) {
+        restoredRecords.add((
+          kind: SyncRecordKind.publishedSource,
+          recordId: s.id,
+        ));
+      }
     }
     for (final c in archive.choreographers) {
+      final errorsBefore = errors.length;
       await _guard('choreographer', c.id, errors, () async {
         final writtenId = await _repos.choreographers.upsert(c);
         choreoRemap[c.id] = writtenId;
       });
+      if (errors.length == errorsBefore) {
+        restoredRecords.add((
+          kind: SyncRecordKind.choreographer,
+          recordId: choreoRemap[c.id] ?? c.id,
+        ));
+      }
     }
     for (final t in archive.tags) {
+      final errorsBefore = errors.length;
       await _guard('tag', t.id, errors, () async {
         final writtenId = await _repos.tags.upsert(t);
         tagRemap[t.id] = writtenId;
       });
+      if (errors.length == errorsBefore) {
+        restoredRecords.add((
+          kind: SyncRecordKind.tag,
+          recordId: tagRemap[t.id] ?? t.id,
+        ));
+      }
     }
     for (final f in archive.customFields) {
+      final errorsBefore = errors.length;
       await _guard('customField', f.id, errors, () async {
         final writtenId = await _repos.customFieldDefs.upsert(f);
         fieldRemap[f.id] = writtenId;
       });
+      if (errors.length == errorsBefore) {
+        restoredRecords.add((
+          kind: SyncRecordKind.customFieldDef,
+          recordId: fieldRemap[f.id] ?? f.id,
+        ));
+      }
     }
     for (final d in archive.dances) {
+      final errorsBefore = errors.length;
       await _guard('dance', d.id, errors, () async {
         final existingDeleted = await _repos.dances.isDeletedById(d.id);
         final wasTombstoned = existingDeleted == true && d.deletedAt == null;
@@ -237,7 +311,7 @@ class ArchiveRestorer {
             ? await _repos.dances.getById(d.id, includeDeleted: true)
             : null;
         if (wasTombstoned) {
-          await _repos.dances.restore(d.id, at: causalAt);
+          await _repos.dances.restore(d.id, at: causalAt, clearPending: false);
         }
         Future<void> compensate() async {
           if (existing != null) {
@@ -270,13 +344,20 @@ class ArchiveRestorer {
           rethrow;
         }
       });
+      if (errors.length == errorsBefore) {
+        restoredRecords.add((kind: SyncRecordKind.dance, recordId: d.id));
+      }
     }
     // Venues before programs: a program's `venueId` soft-references a venue, so
     // the referenced record must land first for the link to resolve.
     for (final v in archive.venues) {
+      final errorsBefore = errors.length;
       await _guard('venue', v.id, errors, () async {
         await _repos.venues.upsert(v);
       });
+      if (errors.length == errorsBefore) {
+        restoredRecords.add((kind: SyncRecordKind.venue, recordId: v.id));
+      }
     }
     // Load the set of known venue ids **once** for the whole programs phase:
     // both the dangling-ref resolve-or-null below and the repository's
@@ -287,6 +368,7 @@ class ArchiveRestorer {
     // mid-batch, so the snapshot cannot go stale under us.
     final knownVenueIds = await _repos.venues.listAllIds();
     for (final p in archive.programs) {
+      final errorsBefore = errors.length;
       await _guard('program', p.id, errors, () async {
         final existingDeleted = await _repos.programs.isDeletedById(p.id);
         final wasTombstoned = existingDeleted == true && p.deletedAt == null;
@@ -295,7 +377,11 @@ class ArchiveRestorer {
             ? await _repos.programs.getById(p.id, includeDeleted: true)
             : null;
         if (wasTombstoned) {
-          await _repos.programs.restore(p.id, at: causalAt);
+          await _repos.programs.restore(
+            p.id,
+            at: causalAt,
+            clearPending: false,
+          );
         }
         Future<void> compensate() async {
           if (existing != null) {
@@ -329,7 +415,11 @@ class ArchiveRestorer {
           rethrow;
         }
       });
+      if (errors.length == errorsBefore) {
+        restoredRecords.add((kind: SyncRecordKind.program, recordId: p.id));
+      }
     }
+    return restoredRecords;
   }
 
   /// Applies the same conservative legacy repair used by the startup sweep to
@@ -417,10 +507,6 @@ class ArchiveRestorer {
     await db.delete(db.choreographers).go();
     await db.delete(db.publishedSources).go();
     await db.delete(db.venues).go();
-    await db.customStatement('DELETE FROM normalisation_skips');
-    await db.customStatement('DELETE FROM settings WHERE key = ?', [
-      shareableTextNormalisationScopeKey,
-    ]);
   }
 
   Future<void> _guard(

@@ -67,11 +67,16 @@ void main() {
       kModifierContainerCanonicalRebuildDoneKey,
       taxonomyV35FigureNormalizationDoneKey,
       callersBoxRollAwayRoleRepairDoneKey,
+      'sync_last_used_fingerprint',
     });
     expect(kBackupSettingsDenylist, containsAll(exactDeviceScopedKeys));
-    expect(kBackupSettingsDenylist, containsAll({'sync_id', 'sync_device_id'}));
+    expect(
+      kBackupSettingsDenylist,
+      containsAll({'sync_id', 'sync_device_id', 'sync_last_used_fingerprint'}),
+    );
     expect(isBackupEligibleSettingKey('sync_id'), isFalse);
     expect(isBackupEligibleSettingKey('sync_device_id'), isFalse);
+    expect(isBackupEligibleSettingKey('sync_last_used_fingerprint'), isFalse);
     expect(
       isBackupEligibleSettingKey(taxonomyV33CanonicalRebuildDoneKey),
       isFalse,

@@ -138,6 +138,87 @@ void main() {
     },
   );
 
+  test('restore reset clears the normalization marker and skips', () async {
+    await repos.settings.set(shareableTextNormalisationScopeKey, 'stale');
+    await db.customStatement(
+      'INSERT INTO normalisation_skips '
+      '(table_name, column_name, record_id) VALUES (?, ?, ?)',
+      ['tags', 'name', 'stale-tag'],
+    );
+
+    await repos.resetNormalisationStateForRestore();
+
+    expect(
+      await repos.settings.contains(shareableTextNormalisationScopeKey),
+      isFalse,
+    );
+    expect(
+      await db.customSelect('SELECT 1 FROM normalisation_skips').get(),
+      isEmpty,
+    );
+  });
+
+  test(
+    'restore reset lets the next migration normalize restored text',
+    () async {
+      await repos.dances.create(sampleDance(id: 'd1', title: 'Original'));
+      await repos.ensureMigrated();
+      await db.customStatement('UPDATE dances SET title = ? WHERE id = ?', [
+        'cafe\u0301',
+        'd1',
+      ]);
+
+      await repos.resetNormalisationStateForRestore();
+      await repos.ensureMigrated();
+
+      final row = await db
+          .customSelect(
+            'SELECT title FROM dances WHERE id = ?',
+            variables: [const Variable<String>('d1')],
+          )
+          .getSingle();
+      expect(row.read<String>('title'), 'café');
+    },
+  );
+
+  test(
+    'a failed transaction after migration clears the migration memo',
+    () async {
+      await repos.dances.create(sampleDance(id: 'd1', title: 'Original'));
+      await repos.ensureMigrated();
+      await db.customStatement('UPDATE dances SET title = ? WHERE id = ?', [
+        'cafe\u0301',
+        'd1',
+      ]);
+      await repos.resetNormalisationStateForRestore();
+
+      await expectLater(
+        repos.transaction(() async {
+          await repos.ensureMigrated();
+          throw StateError('simulate outer transaction rollback');
+        }, resetMigrationOnFailure: true),
+        throwsA(isA<StateError>()),
+      );
+
+      final rolledBack = await db
+          .customSelect(
+            'SELECT title FROM dances WHERE id = ?',
+            variables: [const Variable<String>('d1')],
+          )
+          .getSingle();
+      expect(rolledBack.read<String>('title'), 'cafe\u0301');
+
+      await repos.ensureMigrated();
+      final retried = await db
+          .customSelect(
+            'SELECT title FROM dances WHERE id = ?',
+            variables: [const Variable<String>('d1')],
+          )
+          .getSingle();
+      expect(retried.read<String>('title'), 'café');
+    },
+  );
+
   test('backfill repairs tombstoned shareable settings', () async {
     await db.customStatement(
       'INSERT INTO settings (key, value_json, deleted_at) VALUES (?, ?, ?)',

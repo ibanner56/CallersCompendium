@@ -1,0 +1,14 @@
+{
+  "id": "sync-review-requeue",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A saved sync decision no longer becomes permanently unresolvable after you edit the record it is about: the decision is re-queued against the current version instead of keeping the one captured when it was first raised."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "Re-queue persisted sync review rows whose candidate, reason, or queue-time local wire hash has changed, instead of ignoring the re-observation and pinning the first one."
+    ]
+  }
+}

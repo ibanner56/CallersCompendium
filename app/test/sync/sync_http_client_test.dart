@@ -481,6 +481,41 @@ void main() {
       expect(requests.single.headers.value('x-sync-epoch'), isNull);
     });
 
+    test('posts the bounded missing-blob request as JSON', () async {
+      final requests = <HttpRequest>[];
+      final bodies = <Object?>[];
+      final server = await _startServer((request) async {
+        requests.add(request);
+        final bytes = await request.fold<List<int>>(
+          <int>[],
+          (all, chunk) => all..addAll(chunk),
+        );
+        bodies.add(jsonDecode(utf8.decode(bytes)));
+        request.response
+          ..statusCode = HttpStatus.ok
+          ..headers.contentType = ContentType.json;
+        request.response.write('{"missing":[]}');
+        await request.response.close();
+      });
+      addTearDown(() => server.close(force: true));
+
+      final hash = List.filled(64, 'a').join();
+      final client = SyncHttpClient(
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
+        syncId: 'one-two-three-four',
+      );
+      addTearDown(client.close);
+
+      final response = await client.postMissing([hash]);
+
+      expect(response.kind, SyncResponseKind.success);
+      expect(requests.single.uri.path, '/v1/blobs/missing');
+      expect(requests.single.headers.contentType?.mimeType, 'application/json');
+      expect(bodies.single, {
+        'hashes': [hash],
+      });
+    });
+
     test(
       'enforces manifest and blob response limits before allocation',
       () async {

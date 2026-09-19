@@ -32,10 +32,12 @@
     "Natural-key reconciliation and ID aliases",
     "Reference rewrites with timestamp updates"
   ],
-  "pullRequests": [],
+  "pullRequests": [
+    1278
+  ],
   "hold": null,
   "completion": {
-    "complete": false,
+    "complete": true,
     "conditions": [
       "Absence alone never deletes a record.",
       "Reset preserves pending deletions.",
@@ -43,7 +45,30 @@
       "Detach and reattach cannot resurrect a deleted record.",
       "Reconciliation rewrites every affected reference safely."
     ],
-    "summary": null,
-    "evidence": []
+    "summary": "Pending tombstone publication, publication-marker forfeiture, natural-key collision reconciliation, aliases, and causal reference rewrites are implemented and guarded at the storage and coordinator boundaries.",
+    "evidence": [
+      "packages/compendium_core/test/sync/sync_merge_test.dart and app/test/sync/sync_coordinator_test.dart cover omission as non-deletion, explicit tombstones, live/publication snapshot separation, baseline exclusion for pending addresses, and post-apply publication.",
+      "packages/compendium_core/test/storage/sync_local_repository_test.dart covers epoch reset preserving pending deletions and published records, archive restore revalidation, detach clearing pending state without clearing publication history, and transactional rollback of the coupled state.",
+      "packages/compendium_core/test/storage/sync_storage_test.dart and app/test/sync/sync_coordinator_test.dart cover cited tombstones, pending tombstone overlay publication, final-citation application, deliberate restore versus archive restore, marker-before-manifest publication, and unavailable-peer alias retention.",
+      "packages/compendium_core/test/storage/sync_publication_lifecycle_test.dart covers published-record tombstoning through choreographer, tag, published-source, custom-field, difficulty, venue, dance, program, and shareable-settings permanent-delete paths.",
+      "packages/compendium_core/test/storage/sync_local_repository_test.dart covers transitive alias resolution, fixed-point alias remapping, publication-marker union from a transitive loser, peer-manifest alias retirement, and marker preservation across reset and detach.",
+      "packages/compendium_core/test/storage/sync_storage_test.dart covers both natural-key survivor directions, existence/content separation, equal-time body review, known-UUID rename review, malformed-collision isolation, shipped difficulty-ID canonicalization, custom-field type mismatch retention, deterministic short/full suffix escalation, and occupied-suffix review termination.",
+      "packages/compendium_core/test/storage/sync_storage_test.dart covers local author, tag, custom-field, and difficulty reference rewrites; the all-kind inbound-reference guard proves that losing IDs are rewritten before foreign-key validation and commit.",
+      "packages/compendium_core/test/storage/sync_storage_test.dart covers same-batch natural-key collisions, deterministic same-batch custom-field type suffixing, pending tombstone migration across an identity remap, and causal stamping of inbound bodies changed by aliases.",
+      "The all-kind inbound-reference guard was run with the tag rewrite removed from rewriteSyncInboundReferences and went red with an unresolved-reference report; restoring the rewrite made it green.",
+      "The device-local custom-field guard was first shown ineffective when only writeFromSyncParent was mutated; mutating the actual writeFromSyncRelations boundary to preserveDeviceLocalCustomFields: false went red because the stored dance lost one of two expected fields, and restoring both sync writers made it green.",
+      "The alias remap guard was strengthened to mark only the transitive loser; replacing the remap fixed-point loop with one pass went red because the survivor lacked the transitive publication marker, and restoring the loop made it green.",
+      "The local-reference I1 guard asserts a strict updated_at advance and changed publication wire hash; omitting the causal bump was run red and the restored implementation passed.",
+      "The renamed custom-field I1 guard asserts the renamed definition's causal timestamp and publication body; omitting that bump was run red and the restored implementation passed.",
+      "The repaired review guards cover coordinator alias normalization, deterministic natural-key survivor selection, private/shareable custom-field isolation, canonical difficulty known-UUID review, transitive alias-chain retention, and causal timestamp advancement for remapped pending tombstones; each was run red before restoration.",
+      "The final review guards `a cached aliased blob with the wrong envelope is rejected` and `aliased natural-key reconciliation rejects a changed local survivor` were run red after mutating cached identity checks to alias-resolved comparison and removing the post-alias expected-wire-hash guard; both failed as expected and were restored from commit 10f9150e643a4439c0fcd15167af865c5561ac80.",
+      "The merge-restore guard `merge restore revalidates pending tombstones against untouched rows` was run against the unfixed implementation and went red because an unrelated merge deleted the cited pending row; the restored implementation revalidates against the complete post-restore library and passes.",
+      "The non-shareable-definition guard `rejects a non-shareable definition before natural-key reconciliation` was run against the unfixed implementation and went red because natural-key reconciliation migrated the local incumbent before semantic rejection; the restored preflight preserves local identity and aliases and passes.",
+      "The atomic restore guard `replace restore rolls back when pending tombstone revalidation fails` was run with revalidation moved after the restore transaction and went red because the replacement collection committed; restoring in-transaction revalidation made the guard pass and preserved the original collection and pending row.",
+      "The pending-survivor coordinator guard `guards aliased downloads against pending survivor changes` was run after removing the pending-live expected-wire-hash mapping and went red because the unchanged-survivor control falsely reported concurrentLocalChange; restoring the pending-live mapping made both changed and unchanged cases pass.",
+      "The renamed-shipped-difficulty guards were run after removing shipped-ID preference and the distinct-shipped collision review branch: `renamed shipped difficulty IDs remain canonical for same-label inbound IDs` went red because the inbound UUID survived, and `distinct shipped difficulty IDs with one natural key enter review` went red because the collision was applied instead of queued for review; restoring both branches made both pass.",
+      "Mutation runs were completed and restored for pending exclusion, final-citation revalidation, existence/content separation, known-UUID review, custom-field suffix derivation and escalation, canonical difficulty IDs, publication-marker union, hard-delete protection, reset/detach lifecycle, alias retirement, and both collision survivor directions.",
+      "python3 tools/preflight.py completed with 30 steps passed and 0 skipped, including sync invariants, privacy and persisted-field ratchets, changelog checks, fixtures, formatting, analysis, core/app/server tests, and benchmark checks."
+    ]
   }
 }

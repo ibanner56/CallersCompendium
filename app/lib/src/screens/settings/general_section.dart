@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import 'settings_keys.dart';
-import '../../data/backup_controller_scope.dart';
+import '../../data/sync_writer_lifecycle_scope.dart';
 import '../../data/backup_io.dart';
 import '../../data/backup_reminder.dart';
 import '../../data/backup_service.dart';
@@ -26,6 +26,7 @@ import '../../widgets/section_header.dart';
 import '../import_review_screen.dart';
 import '../published_collection_navigation.dart';
 import '../reparse_custom_figures_screen.dart';
+import '../sync_review_screen.dart';
 
 /// The General settings section: app-wide toggles, soft-delete retention,
 /// backup/restore, and the import launcher. Owns its async loads + load-race
@@ -60,6 +61,8 @@ class GeneralSection extends StatefulWidget {
 }
 
 class _GeneralSectionState extends State<GeneralSection> {
+  bool _restoreOperationInFlight = false;
+
   /// Soft-delete retention window (ROADMAP G.4), as the stored `int` day count
   /// (`0` = never auto-purge). `null` = not yet loaded; the view shows the
   /// 30-day default until the read resolves.
@@ -237,20 +240,28 @@ class _GeneralSectionState extends State<GeneralSection> {
   /// restore: a corrupt or altered file is refused with a clean,
   /// non-destructive error and the restore never runs — zero entities written.
   Future<void> _onRestoreBackup() async {
+    if (_restoreOperationInFlight) return;
+    _restoreOperationInFlight = true;
+
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
     final repos = RepositoriesScope.of(context);
     final picker = widget.backupPicker ?? pickBackupFile;
-    final onRestored = BackupControllerScope.maybeOf(context)?.onRestored;
-
-    final raw = await showDialog<String>(
-      context: context,
-      builder: (_) => _RestoreBackupDialog(picker: picker),
-    );
-    if (raw == null || raw.trim().isEmpty) return;
+    final writerLifecycle = SyncWriterLifecycleScope.maybeOf(context);
+    final onRestored = writerLifecycle?.onRestored;
+    final runWrite = writerLifecycle?.runWrite;
 
     try {
-      final outcome = await BackupService(repos).restoreFromJson(raw);
+      final raw = await showDialog<String>(
+        context: context,
+        builder: (_) => _RestoreBackupDialog(picker: picker),
+      );
+      if (raw == null || raw.trim().isEmpty) return;
+
+      final outcome = await _runRestoreLifecycle(
+        runWrite: runWrite,
+        operation: () => BackupService(repos).restoreFromJson(raw),
+      );
       if (!outcome.applied) {
         if (!mounted) return;
         // Distinguish the refusal reasons so the user gets an accurate message:
@@ -297,8 +308,20 @@ class _GeneralSectionState extends State<GeneralSection> {
         debugPrint('Backup restore failed: $e\n$st');
       }
       messenger.showSnackBar(SnackBar(content: Text(l10n.backupRestoreFailed)));
+    } finally {
+      _restoreOperationInFlight = false;
     }
   }
+
+  /// Serializes the database restore with any coordinator-backed sync pass.
+  ///
+  /// The post-hook intentionally lives in [finally]: an integrity refusal,
+  /// settings-apply failure, thrown restore, or a partially successful
+  /// pre-hook must all leave the runtime with a usable coordinator.
+  Future<T> _runRestoreLifecycle<T>({
+    required Future<T> Function() operation,
+    SyncWriterCallback? runWrite,
+  }) => runWrite?.call(operation) ?? operation();
 
   /// Shows the retryable "core restored, settings failed" state (#608) as an
   /// indefinite snackbar carrying a "retry settings" action. Kept separate so
@@ -414,6 +437,12 @@ class _GeneralSectionState extends State<GeneralSection> {
   Future<void> _onPublishedCollections() =>
       pushPublishedCollectionCatalog(context);
 
+  Future<void> _onSyncReview() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const SyncReviewScreen()));
+  }
+
   Future<void> _onSortIgnoreArticlesChanged(bool value) async {
     // Same instant-notifier-then-persist pattern: flip the live notifier so the
     // dance list re-sorts immediately, then persist in the background.
@@ -471,6 +500,7 @@ class _GeneralSectionState extends State<GeneralSection> {
       lastBackupAt: _lastBackupAt,
       onExportBackup: _onExportBackup,
       onRestoreBackup: _onRestoreBackup,
+      onSyncReview: _onSyncReview,
       onImportDances: _onImportDances,
       onPublishedCollections: _onPublishedCollections,
       onReparseCustomFigures: _onReparseCustomFigures,
@@ -502,6 +532,7 @@ class _GeneralView extends StatelessWidget {
     required this.lastBackupAt,
     required this.onExportBackup,
     required this.onRestoreBackup,
+    required this.onSyncReview,
     required this.onImportDances,
     required this.onPublishedCollections,
     required this.onReparseCustomFigures,
@@ -531,6 +562,7 @@ class _GeneralView extends StatelessWidget {
   final DateTime? lastBackupAt;
   final Future<void> Function() onExportBackup;
   final Future<void> Function() onRestoreBackup;
+  final Future<void> Function() onSyncReview;
 
   /// Opens the import review flow (ROADMAP 6.3).
   final Future<void> Function() onImportDances;
@@ -612,6 +644,13 @@ class _GeneralView extends StatelessWidget {
               ),
             ],
           ),
+        ),
+        ListTile(
+          key: const ValueKey('sync-review-button'),
+          title: Text(l10n.syncReviewSettingsTitle),
+          subtitle: Text(l10n.syncReviewSettingsSubtitle),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: onSyncReview,
         ),
         SectionHeader(title: l10n.settingsGeneralImportHeader),
         ListTile(

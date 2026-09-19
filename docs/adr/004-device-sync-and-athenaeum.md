@@ -291,16 +291,16 @@ newest `updatedAt` wins.
 
 **Absence never means deletion.** Deletions travel as `deletedAt` tombstones.
 `Dances` and `Programs` carry `deletedAt` today; the sync migration adds it to the other
-six kinds and converts their repositories from hard to soft delete, because a
+seven kinds and converts their repositories from hard to soft delete, because a
 kind that cannot express deletion cannot propagate it — the record would simply
 reappear from any peer that still held it. A device that has not synced for a
 month must never conclude that records missing from a sibling's manifest were
 deleted.
 
-### Record model: eight first-class kinds
+### Record model: nine first-class kinds
 
 Every persisted entity is a **first-class synced record** with its own blob:
-`dance`, `program`, `choreographer`, `tag`, `publishedSource`,
+`dance`, `program`, `choreographer`, `tag`, `publishedSource`, `difficultyLevel`,
 `customFieldDef`, `venue`, `setting`. Join rows ride inline with their parent —
 a dance carries its `authorIds`, `tagIds`, citations and custom-field values; a
 program carries its slots — exactly as the archive codec already models them.
@@ -437,9 +437,10 @@ The silent-merge test reuses the rule already in the import pipeline:
 1. **Exact normalized-title match** (the `normalizeTitle` gate in `autoResolveAmbiguous`). A
    fuzzy-but-inexact title is never confident; that is the "two different dances
    share a title" trap.
-2. **`_choreographyEquals`** — form, formation, progression, phrase structure,
-   **figures including their params**, hook, calling notes, level, mixed level
-   and tunes. It deliberately ignores identity, provenance, timestamps and
+2. **the shared `choreographyFingerprint` contract** — form, formation,
+   progression, phrase structure, **figures including their params**, hook,
+   calling notes, level, mixed level and tunes. It deliberately ignores
+   identity, provenance, timestamps and
    device-local id collections, so, in the words of its own doc comment, "a
    bundle received on another device still matches by its intrinsic content".
 
@@ -492,10 +493,10 @@ pointing at the losing duplicate are rewired to the survivor; the column is
 `onDelete: setNull`, so leaving them would silently strip a caller's program of a
 dance that still exists.
 
-`_choreographyEquals` is currently private to `ImportPipeline`; exposing it (or
-lifting it somewhere shared) is an implementation detail for the sync issue, but
-sync must call *that* function rather than reimplement the comparison, or the
-two definitions of "the same dance" will drift.
+The comparison contract is shared in the imports dedupe layer: import compares
+model fingerprints and sync hashes the same ordered wire fingerprint. Keeping
+that field list in one place prevents the two definitions of "the same dance"
+from drifting.
 
 **Three distinct events produce a fresh attach, and all three use the same
 union, dedupe and baseline algorithm once any required user decision has been
@@ -503,7 +504,10 @@ made:**
 
 1. A device attaches to a sync ID for the first time.
 2. A device that had detached re-attaches. **Detaching forgets the sync ID
-   entirely** — there is no memory of previously-attached IDs.
+   entirely** — there is no recoverable list of previously-attached IDs. A
+   salted, slow verifier set remains only to distinguish prior use of an ID
+   from a first attach when the collection has disappeared; it cannot
+   reconstruct the credential and is not backed up or transmitted.
 3. A previously used sync ID no longer exists server-side and the user confirms
    creation of a replacement.
 
@@ -1130,10 +1134,11 @@ makes self-hosting materially harder, which constraint 4 forbids.
   an entry and only one carries it: a record agreed under the previous scheme has
   a wire hash and no body hash, and takes the wire-hash path or stays
   quarantined; a wholesale-wiped baseline routes through fresh attach, which
-  repersists it before quarantine and repair run at all. Existing baselines
-  cannot be migrated — the body was never retained, and every backfill that
-  invents a value re-opens a defect this design has closed — so the column starts
-  null and fills on the first pass that observes agreement.
+  repersists it before quarantine and repair run at all. A legacy full-body
+  baseline is different: its body was never retained, so it cannot be migrated
+  by clearing only the body hash or inventing a replacement. The client drops
+  that old epoch-scoped baseline and routes through fresh attach; W9 comparison
+  hashes then start absent and fill only after a peer's agreement is observed.
 
   A quarantined record is also never uploaded: a device does not publish a value
   it has judged impossible. Its **manifest entry falls back to the last agreed
@@ -1145,16 +1150,24 @@ makes self-hosting materially harder, which constraint 4 forbids.
   in a fresh attach's union and in the steady-state merge table alike, since
   otherwise a poisoned `local.updatedAt` no honest peer can exceed would freeze
   the record while appearing to participate. A record citing a quarantined
-  entity is withheld with it, or a peer's batch fails at COMMIT on the cascading
-  foreign key — computed as a fixpoint over the publish set, since the citation
-  graph is multi-hop, and excluding `Programs.venueId`, which is not a database
-  foreign key and is instead resolved-or-nulled on apply, as the archive
-  restorer already does. That withholding does not resolve itself: an entity created while
-  a clock was broken has no peer copy to repair against, so it and everything
-  citing it stay unsynced until the user writes to it again. The report says how
-  many records each one holds back, because otherwise the only symptom is a
-  collection that quietly stops syncing. And an advertised fallback never counts
-  as agreement: it is this
+  entity with no agreed fallback is withheld with it, or a peer's batch fails at
+  COMMIT on the cascading foreign key. When an agreed fallback is advertised,
+  the referenced address remains in the manifest, so database-enforced
+  dependents may publish while the quarantined root's current blob remains
+  withheld. Before publishing a fallback, the client probes its wire hash
+  through `POST /v1/blobs/missing`; if the store reports it missing and this
+  device has no body for that hash, this pass treats the root as having no
+  usable fallback, omits it, and recomputes the same closure. If the body is
+  locally available, it is uploaded before the manifest is published.
+  No-fallback withholding is computed as a fixpoint over the publish set, since
+  the citation graph is multi-hop, and excludes `Programs.venueId`, which is
+  not a database foreign key and is instead resolved-or-nulled on apply, as the
+  archive restorer already does. That withholding does not
+  resolve itself: an entity created while a clock was broken has no peer copy
+  to repair against, so it and everything citing it stay unsynced until the
+  user writes to it again. The report says how many records each one holds
+  back, because otherwise the only symptom is a collection that quietly stops
+  syncing. And an advertised fallback never counts as agreement: it is this
   device's own hash coming back to it, and treating it otherwise would populate
   a baseline from the poisoned content it exists to repair.
 
@@ -1435,6 +1448,6 @@ blocking defect in a published document.
 - **Venue and published-source duplication becomes a nuisance** rather than a
   curiosity, justifying fuzzy dedupe for the two kinds with no natural key.
 - **Silent merge is observed collapsing dances users considered distinct** — for
-  instance two arrangements that differ only in fields `_choreographyEquals`
-  ignores. That would mean the equality test is too loose for sync even though it
-  is right for import, and the two should stop sharing one definition.
+  instance two arrangements that differ only in fields the shared choreography
+  contract ignores. That would mean the equality test is too loose for sync even
+  though it is right for import, and the two should stop sharing one definition.

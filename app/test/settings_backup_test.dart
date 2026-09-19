@@ -1,8 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
-import 'package:compendium_app/src/data/backup_controller_scope.dart';
+import 'package:compendium_app/src/data/sync_writer_lifecycle_scope.dart';
 import 'package:compendium_app/src/data/backup_io.dart';
 import 'package:compendium_app/src/data/backup_reminder.dart';
 import 'package:compendium_app/src/data/backup_service.dart';
@@ -12,6 +13,8 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/soft_delete_retention.dart'
     show kSoftDeleteRetentionDefaultDays, kSoftDeleteRetentionKey;
 import 'package:compendium_app/src/screens/settings_screen.dart';
+import 'package:compendium_app/src/sync/sync_coordinator.dart';
+import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
@@ -19,6 +22,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
+import 'support/noop_sync_transport.dart';
 
 Dance _dance(String id, String title) => Dance(
   id: id,
@@ -35,6 +39,8 @@ Future<void> _pumpGeneral(
   BackupSaver? saver,
   BackupPicker? picker,
   Future<void> Function()? onRestored,
+  Future<void> Function()? beforeRestore,
+  Future<void> Function()? afterRestore,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1200, 2200));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -60,8 +66,19 @@ Future<void> _pumpGeneral(
       ),
     ),
   );
-  if (onRestored != null) {
-    tree = BackupControllerScope(onRestored: onRestored, child: tree);
+  if (onRestored != null || beforeRestore != null || afterRestore != null) {
+    tree = SyncWriterLifecycleScope(
+      onRestored: onRestored ?? () async {},
+      runWrite: <T>(operation) async {
+        try {
+          await beforeRestore?.call();
+          return await operation();
+        } finally {
+          await afterRestore?.call();
+        }
+      },
+      child: tree,
+    );
   }
 
   await tester.pumpWidget(
@@ -204,6 +221,146 @@ void main() {
   });
 
   testWidgets(
+    'restore waits for the active sync pass before replacing content',
+    (tester) async {
+      final source = openTestRepositories();
+      await source.dances.create(_dance('restored', 'Restored Dance'));
+      final backupJson = await BackupService(source).exportToJson();
+
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance('live', 'Live Dance'));
+
+      final passGate = Completer<void>();
+      final passStarted = Completer<void>();
+      final lifecycle = <String>[];
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: CompendiumSyncCoordinatorStore(repos),
+        transport: NoopSyncCoordinatorTransport(),
+        passOperation: ({SyncStoreResult? initialStore}) async {
+          if (!passStarted.isCompleted) passStarted.complete();
+          await passGate.future;
+          final oldPass = _dance('old-pass', 'Old Pass Dance');
+          await repos.dances.create(oldPass);
+          await repos.syncLocal.replaceBaseline(
+            epoch: 'old-pass-epoch',
+            entries: [
+              SyncBaselineEntry(
+                kind: SyncRecordKind.dance,
+                recordId: oldPass.id,
+                wireHash: 'old-pass-wire-hash',
+              ),
+            ],
+          );
+          return const SyncPassResult(SyncPassStatus.completed);
+        },
+      );
+      addTearDown(coordinator.dispose);
+
+      final inFlight = coordinator.syncNow();
+      await passStarted.future;
+
+      var refreshed = false;
+      await _pumpGeneral(
+        tester,
+        repos,
+        onRestored: () async {
+          lifecycle.add('refresh');
+          refreshed = true;
+        },
+        beforeRestore: () async {
+          lifecycle.add('before');
+          await coordinator.dispose();
+          lifecycle.add('pass-complete');
+        },
+        afterRestore: () async {
+          expect(
+            await repos.dances.getById('restored'),
+            isNotNull,
+            reason: 'the restore must commit before the post-hook runs',
+          );
+          lifecycle.add('after');
+        },
+      );
+
+      await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('restore-paste-field')),
+        backupJson,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('restore-confirm')));
+      await tester.pump();
+
+      // The pre-hook is waiting in coordinator.dispose(), so the restore
+      // transaction must not have started while the active pass is gated.
+      expect(lifecycle, ['before']);
+      expect(await repos.dances.getById('live'), isNotNull);
+      expect(await repos.dances.getById('restored'), isNull);
+      expect(await repos.dances.getById('old-pass'), isNull);
+
+      passGate.complete();
+      expect((await inFlight).status, SyncPassStatus.completed);
+      await tester.pumpAndSettle();
+
+      expect(lifecycle, ['before', 'pass-complete', 'after', 'refresh']);
+      expect(refreshed, isTrue);
+      expect(await repos.dances.getById('live'), isNull);
+      expect(await repos.dances.getById('old-pass'), isNull);
+      expect(await repos.dances.getById('restored'), isNotNull);
+      expect(await repos.syncLocal.snapshotBaseline(), isEmpty);
+    },
+  );
+
+  testWidgets(
+    'a second restore activation cannot overlap a restore waiting for sync',
+    (tester) async {
+      final source = openTestRepositories();
+      await source.dances.create(_dance('restored', 'Restored Dance'));
+      final backupJson = await BackupService(source).exportToJson();
+      final repos = openTestRepositories();
+      final preHookGate = Completer<void>();
+      var beforeCalls = 0;
+
+      await _pumpGeneral(
+        tester,
+        repos,
+        picker: () async => backupJson,
+        beforeRestore: () async {
+          beforeCalls++;
+          await preHookGate.future;
+        },
+      );
+
+      final button = find.byKey(const ValueKey('backup-restore-button'));
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('restore-choose-file')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('restore-confirm')));
+      await tester.pumpAndSettle();
+
+      expect(beforeCalls, 1);
+
+      // The first restore is blocked in its pre-hook. A second tap must not
+      // open another dialog or invoke the lifecycle a second time.
+      await tester.tap(button);
+      await tester.pump();
+      expect(find.byKey(const ValueKey('restore-backup-dialog')), findsNothing);
+      expect(beforeCalls, 1);
+
+      preHookGate.complete();
+      await tester.pumpAndSettle();
+      expect(beforeCalls, 1);
+      expect((await repos.dances.listAll()).map((dance) => dance.id), [
+        'restored',
+      ]);
+    },
+  );
+
+  testWidgets(
     'a tampered container fails the integrity check and leaves data untouched '
     '(#536)',
     (tester) async {
@@ -224,10 +381,13 @@ void main() {
       await repos.dances.create(_dance('stale', 'Old Dance'));
 
       var refreshed = false;
+      final lifecycle = <String>[];
       await _pumpGeneral(
         tester,
         repos,
         onRestored: () async => refreshed = true,
+        beforeRestore: () async => lifecycle.add('before'),
+        afterRestore: () async => lifecycle.add('after'),
       );
 
       await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
@@ -244,6 +404,7 @@ void main() {
       expect(find.textContaining('integrity check'), findsOneWidget);
       expect(find.text('Backup restored.'), findsNothing);
       expect(refreshed, isFalse);
+      expect(lifecycle, ['before', 'after']);
       final dances = await repos.dances.listAll();
       expect(dances.map((d) => d.id), ['stale']);
     },
@@ -288,7 +449,14 @@ void main() {
     await repos.dances.create(_dance('stale', 'Old Dance'));
 
     var refreshed = false;
-    await _pumpGeneral(tester, repos, onRestored: () async => refreshed = true);
+    final lifecycle = <String>[];
+    await _pumpGeneral(
+      tester,
+      repos,
+      onRestored: () async => refreshed = true,
+      beforeRestore: () async => lifecycle.add('before'),
+      afterRestore: () async => lifecycle.add('after'),
+    );
 
     await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
     await tester.pumpAndSettle();
@@ -316,6 +484,7 @@ void main() {
     expect(find.text('Backup restored.'), findsNothing);
     expect(find.textContaining("can't read"), findsOneWidget);
     expect(refreshed, isFalse);
+    expect(lifecycle, ['before', 'after']);
     final dances = await repos.dances.listAll();
     expect(dances.map((d) => d.id), ['stale']);
   });
@@ -325,14 +494,21 @@ void main() {
   ) async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance('stale', 'Old Dance'));
+    final lifecycle = <String>[];
 
-    await _pumpGeneral(tester, repos, onRestored: () async {});
-
+    await _pumpGeneral(
+      tester,
+      repos,
+      onRestored: () async {},
+      beforeRestore: () async => lifecycle.add('before'),
+      afterRestore: () async => lifecycle.add('after'),
+    );
     await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('restore-cancel')));
     await tester.pumpAndSettle();
 
+    expect(lifecycle, isEmpty);
     final dances = await repos.dances.listAll();
     expect(dances.map((d) => d.id), ['stale']);
   });
@@ -383,10 +559,13 @@ void main() {
       target.settings.failWrites = true;
 
       var refreshCount = 0;
+      final lifecycle = <String>[];
       await _pumpGeneral(
         tester,
         target.repos,
         onRestored: () async => refreshCount++,
+        beforeRestore: () async => lifecycle.add('before'),
+        afterRestore: () async => lifecycle.add('after'),
       );
       expect(
         tester
@@ -411,6 +590,7 @@ void main() {
       // show; crucially NO false success is reported.
       expect((await target.repos.dances.listAll()).map((d) => d.id), ['d1']);
       expect(refreshCount, 1);
+      expect(lifecycle, ['before', 'after']);
       expect(
         find.textContaining('applying your saved settings failed'),
         findsOneWidget,
@@ -436,6 +616,10 @@ void main() {
 
       expect(find.text('Settings applied.'), findsOneWidget);
       expect(refreshCount, 2);
+      expect(lifecycle, [
+        'before',
+        'after',
+      ], reason: 'settings-only retry must not re-enter sync lifecycle');
       expect(await target.repos.settings.get(kSoftDeleteRetentionKey), isNull);
       expect(
         tester
@@ -447,6 +631,45 @@ void main() {
       );
     },
   );
+
+  testWidgets('a failed restore pre-hook still runs the post-hook recovery', (
+    tester,
+  ) async {
+    final source = openTestRepositories();
+    await source.dances.create(_dance('d1', 'Restored Dance'));
+    final backupJson = await BackupService(source).exportToJson();
+
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance('stale', 'Old Dance'));
+    final lifecycle = <String>[];
+    var refreshed = false;
+
+    await _pumpGeneral(
+      tester,
+      repos,
+      onRestored: () async => refreshed = true,
+      beforeRestore: () async {
+        lifecycle.add('before');
+        throw const FormatException('injected restore pre-hook failure');
+      },
+      afterRestore: () async => lifecycle.add('after'),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('restore-paste-field')),
+      backupJson,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('restore-confirm')));
+    await tester.pumpAndSettle();
+
+    expect(lifecycle, ['before', 'after']);
+    expect(refreshed, isFalse);
+    expect(find.text("Couldn't restore the backup."), findsOneWidget);
+    expect((await repos.dances.listAll()).map((dance) => dance.id), ['stale']);
+  });
 
   testWidgets('changing the reminder cadence persists it', (tester) async {
     final repos = openTestRepositories();
