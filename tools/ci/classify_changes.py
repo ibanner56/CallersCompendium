@@ -137,8 +137,19 @@ def classify(paths):
     # ran the build matrix. Widen it independently rather than folding
     # packaging/ into app_tests_changed, since packaging changes have no
     # Flutter app code to test.
-    builds_changed = app_tests_changed or any(
-        path.startswith(b"packaging/") for path in paths
+    #
+    # The `validation_changed and` guard is load-bearing, not decorative
+    # (caught by review on #1322): ci.yml's `build` job requires
+    # needs.checks.result == 'success', and `checks` is skipped outright when
+    # validation_changed is false. Without this guard, an all-Markdown diff
+    # limited to packaging/ (e.g. a hypothetical packaging/README.md) would
+    # set builds_changed=true with no way for `build` to ever run, and
+    # merge-gate's `require_success 'Platform builds'` would fail closed
+    # forever. builds_changed must imply validation_changed, same as every
+    # other *_changed output above.
+    builds_changed = app_tests_changed or (
+        validation_changed
+        and any(path.startswith(b"packaging/") for path in paths)
     )
     # These two are deliberately NOT gated on validation_changed: their whole
     # reason for existing is that a Markdown-only diff (docs/user/**.md,
