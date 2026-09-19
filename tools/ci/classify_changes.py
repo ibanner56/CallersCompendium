@@ -60,12 +60,52 @@ GENERATED_MARKDOWN_PATHS = {
     b"docs/dev/data-classification.md",
 }
 
+# Mirrors docs-bundle-check.yml's path filter exactly. That workflow is the
+# only PR gate for the in-app User Guide bundle and the hosted-guide
+# renderer, and it is not a required status check -- so its result has to
+# reach merge-gate through this predicate for the same paths to actually
+# block a merge.
+DOCS_BUNDLE_PATH_PREFIXES = (
+    b"docs/user/",
+    b"app/assets/docs/",
+    b"site/",
+    b"tools/site/",
+)
+DOCS_BUNDLE_EXACT_PATHS = {
+    b"tools/ci/sync_user_docs.py",
+    b"tools/ci/test_sync_user_docs.py",
+    b".github/workflows/docs-bundle-check.yml",
+    # docs-bundle-gate's own job definition lives in ci.yml, not only in the
+    # standalone workflow above -- an edit to that job has to re-trigger it,
+    # the same way docs-bundle-check.yml self-triggers on its own YAML
+    # changing. Caught by review on #1324.
+    b".github/workflows/ci.yml",
+}
+
+# Mirrors changelog-structure.yml's path filter exactly, same reasoning as
+# DOCS_BUNDLE_* above.
+CHANGELOG_PATH_PREFIXES = (b"changelog.d/",)
+CHANGELOG_EXACT_PATHS = {
+    b"app/CHANGELOG.md",
+    b"packages/compendium_core/CHANGELOG.md",
+    b"tools/release/compile_changelog_fragments.py",
+    b"tools/release/test_compile_changelog_fragments.py",
+    b"tools/ci/check_changelog_structure.py",
+    b"tools/ci/test_check_changelog_structure.py",
+    b".github/workflows/changelog-structure.yml",
+    # Same reasoning as DOCS_BUNDLE_EXACT_PATHS above: changelog-structure-gate
+    # is defined in ci.yml.
+    b".github/workflows/ci.yml",
+}
+
 OUTPUT_KEYS = (
     "validation_changed",
     "core_tests_changed",
     "app_tests_changed",
     "server_tests_changed",
     "builds_changed",
+    "docs_bundle_changed",
+    "changelog_changed",
 )
 
 
@@ -99,13 +139,46 @@ def classify(paths):
         path.startswith(b"server/") or path in SHARED_RUNTIME_PATHS
         for path in paths
     )
-    builds_changed = app_tests_changed
+    # builds_changed used to be a bare alias for app_tests_changed, so a diff
+    # limited to packaging/ (the Linux AppImage assets and the Windows Inno
+    # Setup script -- neither under app/ nor packages/compendium_core/) never
+    # ran the build matrix. Widen it independently rather than folding
+    # packaging/ into app_tests_changed, since packaging changes have no
+    # Flutter app code to test.
+    #
+    # The `validation_changed and` guard is load-bearing, not decorative
+    # (caught by review on #1322): ci.yml's `build` job requires
+    # needs.checks.result == 'success', and `checks` is skipped outright when
+    # validation_changed is false. Without this guard, an all-Markdown diff
+    # limited to packaging/ (e.g. a hypothetical packaging/README.md) would
+    # set builds_changed=true with no way for `build` to ever run, and
+    # merge-gate's `require_success 'Platform builds'` would fail closed
+    # forever. builds_changed must imply validation_changed, same as every
+    # other *_changed output above.
+    builds_changed = app_tests_changed or (
+        validation_changed
+        and any(path.startswith(b"packaging/") for path in paths)
+    )
+    # These two are deliberately NOT gated on validation_changed: their whole
+    # reason for existing is that a Markdown-only diff (docs/user/**.md,
+    # CHANGELOG.md) can set validation_changed=false, and that is exactly the
+    # case each was written to still catch.
+    docs_bundle_changed = any(
+        path.startswith(DOCS_BUNDLE_PATH_PREFIXES) or path in DOCS_BUNDLE_EXACT_PATHS
+        for path in paths
+    )
+    changelog_changed = any(
+        path.startswith(CHANGELOG_PATH_PREFIXES) or path in CHANGELOG_EXACT_PATHS
+        for path in paths
+    )
     return {
         "validation_changed": validation_changed,
         "core_tests_changed": core_tests_changed,
         "app_tests_changed": app_tests_changed,
         "server_tests_changed": server_tests_changed,
         "builds_changed": builds_changed,
+        "docs_bundle_changed": docs_bundle_changed,
+        "changelog_changed": changelog_changed,
     }
 
 
