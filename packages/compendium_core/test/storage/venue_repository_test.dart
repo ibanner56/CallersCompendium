@@ -199,6 +199,22 @@ void main() {
       expect(row.name, 'Published Hall');
     });
 
+    test('retains a venue a tombstoned program still names', () async {
+      // `programs.venue_id` is not a foreign key, so nothing at the database
+      // level rejects erasing a venue a surviving program still points at, and
+      // the program writer refuses a program whose non-null venueId has no
+      // matching venue — the program becomes unrestorable from Trash. The
+      // caller can no longer be assumed to have removed every referencing
+      // program, because a published one is tombstoned rather than erased.
+      await repo.upsert(Venue(id: 'v1', name: 'Cited Hall'));
+      await programs.create(buildProgram(id: 'p1', venueId: 'v1'));
+      await programs.softDelete('p1', at: DateTime.utc(2026, 2));
+
+      await repo.hardDelete(['v1']);
+
+      expect(await repo.getById('v1'), isNotNull);
+    });
+
     test('an empty id list is a no-op', () async {
       await repo.upsert(Venue(id: 'v1', name: 'Solo Hall'));
       await repo.hardDelete(const []);
