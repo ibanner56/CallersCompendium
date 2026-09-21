@@ -1577,6 +1577,84 @@ void main() {
     },
   );
 
+  test('a failed join write rolls back its own parent write', () async {
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    final later = DateTime.utc(2025, 1, 3, 12);
+    await repositories.dances.create(
+      Dance(
+        id: 'd1',
+        title: 'Original title',
+        createdAt: stamp,
+        updatedAt: stamp,
+      ),
+    );
+
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.dance,
+            id: 'd1',
+            updatedAt: later,
+            deletedAt: null,
+            existenceAt: later,
+            body: syncBodyForEntity(
+              SyncRecordKind.dance,
+              Dance(
+                id: 'd1',
+                title: 'Peer title',
+                createdAt: stamp,
+                updatedAt: later,
+              ),
+            ),
+          ),
+        ),
+      ],
+      storage: _JoinFailingStorage(storage),
+    );
+
+    // The record is not applied, and the parent row it half-wrote is put back
+    // exactly as it was. Leaving the peer's title behind at the peer's
+    // `updatedAt` would hash to neither side at a timestamp that ties, which
+    // §6.3 declines to resolve — a record that never converges again.
+    expect(result.applied, isEmpty);
+    final row = await (db.select(
+      db.dances,
+    )..where((table) => table.id.equals('d1'))).getSingle();
+    expect(row.title, 'Original title');
+    expect(row.updatedAt.toUtc(), stamp);
+  });
+
+  test('a failed join write removes a parent that did not exist', () async {
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.dance,
+            id: 'new-dance',
+            updatedAt: stamp,
+            deletedAt: null,
+            existenceAt: stamp,
+            body: syncBodyForEntity(
+              SyncRecordKind.dance,
+              Dance(
+                id: 'new-dance',
+                title: 'Peer dance',
+                createdAt: stamp,
+                updatedAt: stamp,
+              ),
+            ),
+          ),
+        ),
+      ],
+      storage: _JoinFailingStorage(storage),
+    );
+
+    expect(result.applied, isEmpty);
+    expect(await repositories.dances.getById('new-dance'), isNull);
+  });
+
   test('rejected inbound tombstones do not suppress live citations', () async {
     final stamp = DateTime.utc(2025, 1, 2, 12);
     final tag = Tag(id: 'retained-tag', name: 'Retained tag');
@@ -6592,4 +6670,81 @@ final class _FailAfterNaturalKeyRenameInterceptor extends QueryInterceptor {
     _observeWrite(statement);
     return super.runDelete(executor, statement, args);
   }
+}
+
+/// Delegates every inbound write to the real storage but fails the join phase,
+/// which is the failure the engine's parent-write undo exists for. Nothing
+/// inside `CompendiumSyncStorage` can be made to throw there on demand:
+/// `validateInboundReferences` pre-checks each condition the join writers
+/// raise, which is exactly why the gap stayed latent.
+final class _JoinFailingStorage
+    implements SyncApplyReconciliationStorage, SyncApplyRestorableStorage {
+  _JoinFailingStorage(this._delegate);
+
+  final CompendiumSyncStorage _delegate;
+
+  @override
+  Future<SyncReport?> writeJoinsWithReport(SyncApplyRecord record) async =>
+      throw StateError('join write failed for ${record.address.recordId}');
+
+  @override
+  Future<T> transaction<T>(Future<T> Function() action) =>
+      _delegate.transaction(action);
+
+  @override
+  Future<Map<String, Object?>?> read(SyncRecordAddress address) =>
+      _delegate.read(address);
+
+  @override
+  Future<void> write(SyncApplyRecord record) => _delegate.write(record);
+
+  @override
+  Future<void> rebuildDerivedIndexes() => _delegate.rebuildDerivedIndexes();
+
+  @override
+  Future<SyncReport?> validateInboundReferences(
+    SyncApplyRecord record, {
+    Set<SyncRecordAddress> inboundLiveAddresses = const {},
+    Set<SyncRecordAddress> inboundAddresses = const {},
+    Map<SyncRecordAddress, SyncApplyRecord> inboundRecords = const {},
+  }) => _delegate.validateInboundReferences(
+    record,
+    inboundLiveAddresses: inboundLiveAddresses,
+    inboundAddresses: inboundAddresses,
+    inboundRecords: inboundRecords,
+  );
+
+  @override
+  Future<SyncReport?> writeWithReport(SyncApplyRecord record) =>
+      _delegate.writeWithReport(record);
+
+  @override
+  Future<SyncReport?> writeParentWithReport(SyncApplyRecord record) =>
+      _delegate.writeParentWithReport(record);
+
+  @override
+  Future<SyncApplyPreparation> reconcileInbound(
+    List<SyncMergeCandidate> candidates, {
+    Map<SyncRecordAddress, String?>? expectedWireHashes,
+  }) => _delegate.reconcileInbound(
+    candidates,
+    expectedWireHashes: expectedWireHashes,
+  );
+
+  @override
+  Future<void> setInboundTombstoneContext(
+    Set<SyncRecordAddress> tombstonedAddresses,
+  ) => _delegate.setInboundTombstoneContext(tombstonedAddresses);
+
+  @override
+  Future<void> clearReconciliationContext() =>
+      _delegate.clearReconciliationContext();
+
+  @override
+  Future<Object?> capturePreImage(SyncRecordAddress address) =>
+      _delegate.capturePreImage(address);
+
+  @override
+  Future<void> restorePreImage(SyncRecordAddress address, Object? preImage) =>
+      _delegate.restorePreImage(address, preImage);
 }

@@ -137,7 +137,10 @@ abstract interface class SyncCoordinatorStore
 /// semantics live in [CompendiumSyncStorage], while this layer owns only the
 /// coordinator's baseline/publication lifecycle.
 final class CompendiumSyncCoordinatorStore
-    implements SyncCoordinatorStore, SyncApplyReconciliationStorage {
+    implements
+        SyncCoordinatorStore,
+        SyncApplyReconciliationStorage,
+        SyncApplyRestorableStorage {
   CompendiumSyncCoordinatorStore(
     CompendiumRepositories repositories, {
     this.syncId,
@@ -271,6 +274,18 @@ final class CompendiumSyncCoordinatorStore
   @override
   Future<SyncReport?> writeWithReport(SyncApplyRecord record) =>
       storage.writeWithReport(record);
+
+  // Forwarded so the engine can make a record's parent and join writes atomic.
+  // The engine type-tests for this capability, so an adapter that did not
+  // forward it would silently lose the protection in production while every
+  // core-level test kept it.
+  @override
+  Future<Object?> capturePreImage(SyncRecordAddress address) =>
+      storage.capturePreImage(address);
+
+  @override
+  Future<void> restorePreImage(SyncRecordAddress address, Object? preImage) =>
+      storage.restorePreImage(address, preImage);
 
   @override
   Future<SyncReport?> writeParentWithReport(SyncApplyRecord record) =>

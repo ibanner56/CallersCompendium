@@ -95,6 +95,30 @@ abstract interface class SyncApplyBatchStorage
       null;
 }
 
+/// Optional seam that lets the engine undo a record's parent write when the
+/// second phase of that same record's apply fails.
+///
+/// The two-phase order — every parent before any join, so a reference between
+/// two records of the same batch resolves whichever way it points — means a
+/// record's parent and join writes land in two separate savepoints. Catching a
+/// join failure and continuing would otherwise commit the peer's parent row
+/// beside this device's existing join rows, at the peer's `updatedAt`: a body
+/// that matches neither side at a timestamp that ties, which §6.3 declines to
+/// resolve and which therefore never converges.
+///
+/// The token is opaque on purpose. The engine orchestrates; only the adapter
+/// knows the schema, so only the adapter decides what has to be captured.
+abstract interface class SyncApplyRestorableStorage
+    implements SyncApplyBatchStorage {
+  /// Captures whatever [restorePreImage] needs to put [address] back the way
+  /// it is now, or `null` when this kind has no separate join phase to undo.
+  Future<Object?> capturePreImage(SyncRecordAddress address);
+
+  /// Restores the state [capturePreImage] returned, removing the row entirely
+  /// when the record did not exist at capture time.
+  Future<void> restorePreImage(SyncRecordAddress address, Object? preImage);
+}
+
 /// Result of the transaction-bound W7 reconciliation phase.
 class SyncApplyPreparation {
   const SyncApplyPreparation({
@@ -488,6 +512,8 @@ class SyncApplyEngine {
     await reconciliationStorage?.setInboundTombstoneContext(namedTombstones);
 
     final parentWrittenByAddress = <SyncRecordAddress, SyncApplyRecord>{};
+    final restorable = storage is SyncApplyRestorableStorage ? storage : null;
+    final preImages = <SyncRecordAddress, Object?>{};
     for (final group in settledGroups) {
       // Re-settle against the records that were actually written rather than
       // the ones expected to be: a parent whose write failed must still prune
@@ -502,6 +528,11 @@ class SyncApplyEngine {
 
       for (final record in ready) {
         try {
+          if (restorable != null) {
+            preImages[record.address] = await restorable.capturePreImage(
+              record.address,
+            );
+          }
           final report = await storage.writeParentWithReport(record);
           if (report != null) reports.add(report);
           parentWrittenByAddress[record.address] = record;
@@ -562,24 +593,20 @@ class SyncApplyEngine {
       );
     }
 
-    // KNOWN GAP — a join-write failure here is not atomic with its own parent
-    // write. The parent row was written in the loop above, in a separate
-    // savepoint, so catching the failure and continuing commits the peer's
-    // parent content alongside this device's existing join rows, stamped with
-    // the peer's `updatedAt`. The record is correctly not counted applied, so
-    // the baseline does not advance, but the next pass recomputes a wire hash
-    // that matches neither peer nor baseline at an `updatedAt` identical to the
-    // peer's — the equal-`updatedAt` tie §6.3 declines to resolve.
-    //
-    // Closing it properly means making each record's parent+joins one
-    // savepoint, which the two-phase order (every parent before any join, so
-    // cross-record references can resolve) does not currently allow: undoing
-    // the parent would need a pre-image the `SyncApplyStorage` seam does not
-    // expose, and for a record that did not exist before, a delete it has no
-    // operation for. Every trigger is currently pre-checked by
-    // `validateInboundReferences`, which is why this is latent rather than
-    // live; it stops being latent the moment a writer can fail on something
-    // validation does not mirror.
+    // A join failure rolls that record's parent write back with it, so a
+    // record is either applied whole or not at all. Its two phases are separate
+    // savepoints — the two-phase order requires every parent before any join —
+    // so without this the peer's parent row would commit beside this device's
+    // existing join rows at the peer's `updatedAt`, which §6.3 reads as a tie
+    // it declines to resolve and therefore never converges.
+    Future<void> undoParentWrite(SyncApplyRecord record) async {
+      if (restorable == null) return;
+      await restorable.restorePreImage(
+        record.address,
+        preImages[record.address],
+      );
+    }
+
     for (final record in joinReady) {
       try {
         final report = await storage.writeJoinsWithReport(record);
@@ -591,20 +618,24 @@ class SyncApplyEngine {
         reports.add(
           _writeReport(record, SyncReportCode.malformedRecord, '$error'),
         );
+        await undoParentWrite(record);
       } on ArgumentError catch (error) {
         reports.add(
           _writeReport(record, SyncReportCode.malformedRecord, '$error'),
         );
+        await undoParentWrite(record);
       } on StateError catch (error) {
         reports.add(
           _writeReport(record, SyncReportCode.unresolvedReference, '$error'),
         );
+        await undoParentWrite(record);
       } on Object catch (error) {
         // As in the parent loop: an unnamed failure must skip this record, not
         // escape the engine and strand the whole batch on every later pass.
         reports.add(
           _writeReport(record, SyncReportCode.malformedRecord, '$error'),
         );
+        await undoParentWrite(record);
       }
     }
   }

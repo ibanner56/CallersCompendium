@@ -143,6 +143,17 @@ class SyncStorageSnapshot {
   final Set<SyncRecordAddress> pending;
 }
 
+/// The parent row of a two-phase record as it stood before its inbound write.
+///
+/// A `null` companion means the record had no row then, so the undo is a
+/// delete rather than a rewrite.
+final class _ParentPreImage {
+  const _ParentPreImage({this.dance, this.program});
+
+  final DancesCompanion? dance;
+  final ProgramsCompanion? program;
+}
+
 final class _InboundDependentIndex {
   final Map<String, List<SyncRecordAddress>> danceLinkOwners = {};
   final Map<String, List<SyncRecordAddress>> programSlotOwners = {};
@@ -180,7 +191,10 @@ class SyncFreshAttachDedupeResult {
 /// interactive side effects cannot alter the validated peer body, then restore
 /// the wire timestamp triple because local persistence stamps causal times.
 final class CompendiumSyncStorage
-    implements SyncApplyReconciliationStorage, SyncApplyConcurrencyStorage {
+    implements
+        SyncApplyReconciliationStorage,
+        SyncApplyConcurrencyStorage,
+        SyncApplyRestorableStorage {
   CompendiumSyncStorage(this.repositories);
 
   final CompendiumRepositories repositories;
@@ -3644,6 +3658,83 @@ final class CompendiumSyncStorage
         throw StateError('unexpected non-parent sync kind: $kind');
     }
     return prepared.report;
+  }
+
+  /// Captures the parent row of a two-phase kind so a failed join write can
+  /// put it back. Only `dance` and `program` have a join phase; every other
+  /// kind is written whole by `writeWithReport`, so there is nothing to undo
+  /// and this returns `null` for them.
+  @override
+  Future<Object?> capturePreImage(SyncRecordAddress address) async {
+    switch (address.kind) {
+      case SyncRecordKind.dance:
+        final row =
+            await (_db.select(_db.dances)
+                  ..where((table) => table.id.equals(address.recordId)))
+                .getSingleOrNull();
+        return _ParentPreImage(dance: row?.toCompanion(false));
+      case SyncRecordKind.program:
+        final row =
+            await (_db.select(_db.programs)
+                  ..where((table) => table.id.equals(address.recordId)))
+                .getSingleOrNull();
+        return _ParentPreImage(program: row?.toCompanion(false));
+      case SyncRecordKind.choreographer:
+      case SyncRecordKind.tag:
+      case SyncRecordKind.publishedSource:
+      case SyncRecordKind.customFieldDef:
+      case SyncRecordKind.difficultyLevel:
+      case SyncRecordKind.venue:
+      case SyncRecordKind.setting:
+        return null;
+    }
+  }
+
+  /// Puts back what [capturePreImage] took, deleting the row when the record
+  /// did not exist then.
+  ///
+  /// The row is restored directly rather than through the repository writers:
+  /// this is an undo, so it must reinstate exactly the captured columns
+  /// without re-running normalisation, existence seeding or the reference
+  /// guards — any of which could fail here, or quietly write something other
+  /// than what was captured. Deleting cascades the join rows, which is right:
+  /// a record that did not exist before this batch has none of its own, and
+  /// the failed join savepoint wrote none.
+  @override
+  Future<void> restorePreImage(
+    SyncRecordAddress address,
+    Object? preImage,
+  ) async {
+    if (preImage is! _ParentPreImage) return;
+    switch (address.kind) {
+      case SyncRecordKind.dance:
+        final companion = preImage.dance;
+        if (companion == null) {
+          await (_db.delete(
+            _db.dances,
+          )..where((table) => table.id.equals(address.recordId))).go();
+        } else {
+          await _db.into(_db.dances).insertOnConflictUpdate(companion);
+        }
+      case SyncRecordKind.program:
+        final companion = preImage.program;
+        if (companion == null) {
+          await (_db.delete(
+            _db.programs,
+          )..where((table) => table.id.equals(address.recordId))).go();
+        } else {
+          await _db.into(_db.programs).insertOnConflictUpdate(companion);
+        }
+      case SyncRecordKind.choreographer:
+      case SyncRecordKind.tag:
+      case SyncRecordKind.publishedSource:
+      case SyncRecordKind.customFieldDef:
+      case SyncRecordKind.difficultyLevel:
+      case SyncRecordKind.venue:
+      case SyncRecordKind.setting:
+        return;
+    }
+    _deferredEntities.remove(address);
   }
 
   @override
