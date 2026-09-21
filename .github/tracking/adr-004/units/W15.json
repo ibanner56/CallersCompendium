@@ -30,13 +30,17 @@
   ],
   "hold": null,
   "completion": {
-    "complete": false,
+    "complete": true,
     "conditions": [
       "Both policy copies affirmatively disclose operator-visible plaintext and break-glass access.",
       "The obsolete no-cloud claim is absent.",
       "The effective date is rechecked and in force before any real beta content leaves a device."
     ],
-    "summary": null,
-    "evidence": []
+    "summary": "Both policy copies now carry the ratified v0.5.0-beta effective date and the required Device Sync disclosures, with the merge-time Pages workflow publishing the dated policy before beta transfer.",
+    "evidence": [
+      "docs/dev/store-submission/privacy-policy.md and site/privacy/index.html both disclose operator-visible plaintext and logged break-glass access; tools/site/test_privacy_policy.py passes.",
+      "Both policy copies omit the obsolete no-cloud and before-it-ships claims; the policy parity guard passes its required and forbidden phrase checks.",
+      "The first Device Sync beta is ratified as v0.5.0-beta with an effective date of September 21, 2026; the Pages workflow publishes site/ from main to gh-pages on merge before beta transfer."
+    ]
   }
 }
