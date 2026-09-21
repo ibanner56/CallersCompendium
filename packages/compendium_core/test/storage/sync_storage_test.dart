@@ -1446,6 +1446,84 @@ void main() {
     },
   );
 
+  test('applies an inbound update to a record held by a pending tombstone', () async {
+    // A record kept live by §6.8's referential guard is moved out of
+    // `snapshot().local` into `pendingLive`. The coordinator builds its
+    // expected wire hashes from *both*, so a guard reading only `local` saw
+    // `null` where a real hash was expected and refused the record as a
+    // concurrent local change — structurally, on every pass, over a record the
+    // user never touched.
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    final later = DateTime.utc(2025, 1, 3, 12);
+    final tag = Tag(id: 'cited-tag', name: 'Cited tag');
+    // ignore: unused_result
+    await repositories.tags.upsert(tag, at: stamp);
+    await repositories.dances.create(
+      Dance(
+        id: 'citing-dance',
+        title: 'Citing dance',
+        tagIds: const ['cited-tag'],
+        createdAt: stamp,
+        updatedAt: stamp,
+      ),
+    );
+
+    // A peer deletes the tag; the live citation defers it as pending.
+    await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.tag,
+            id: tag.id,
+            updatedAt: stamp,
+            deletedAt: stamp,
+            existenceAt: stamp,
+            body: syncBodyForEntity(SyncRecordKind.tag, tag),
+          ),
+        ),
+      ],
+      storage: storage,
+    );
+    final pending = await repositories.syncLocal.listPendingDeletions();
+    expect(pending.map((row) => row.recordId), contains(tag.id));
+
+    // A peer now edits the same tag. Build the expected hashes exactly as the
+    // coordinator does: local candidates plus the pending-live ones.
+    final snapshot = await storage.snapshot();
+    final expectedCandidates = {...snapshot.local, ...snapshot.pendingLive};
+    final renamed = Tag(id: tag.id, name: 'Renamed by peer');
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.tag,
+            id: tag.id,
+            updatedAt: later,
+            deletedAt: null,
+            existenceAt: later,
+            body: syncBodyForEntity(SyncRecordKind.tag, renamed),
+          ),
+        ),
+      ],
+      storage: storage,
+      expectedWireHashes: {
+        for (final entry in expectedCandidates.entries)
+          entry.key: entry.value?.wireHash,
+      },
+    );
+
+    expect(
+      result.reports.where(
+        (report) => report.code == SyncReportCode.concurrentLocalChange,
+      ),
+      isEmpty,
+    );
+    expect(
+      result.applied,
+      contains((kind: SyncRecordKind.tag, recordId: tag.id)),
+    );
+  });
+
   test('rejected inbound tombstones do not suppress live citations', () async {
     final stamp = DateTime.utc(2025, 1, 2, 12);
     final tag = Tag(id: 'retained-tag', name: 'Retained tag');
@@ -2332,18 +2410,26 @@ void main() {
         storage: storage,
       );
 
+      // Step 2 does not resolve the survivor to non-existence here — the local
+      // row's `existence_at` is newer than the inbound tombstone's — so §6.6's
+      // baseline-absence guard does not apply and the collision reconciles
+      // silently onto the canonical shipped ID, which is what step 2 and the
+      // shipped-difficulty rule both require. The stale tombstone still loses
+      // the existence comparison, so the level stays live carrying the local
+      // row's content.
+      //
+      // This previously queued a review instead. That entry could never be
+      // resolved by Merge: `resolveReviewQueue` refuses a candidate whose
+      // `existence_at` is older than the local record's, so the only exit was
+      // renaming a difficulty level the user never had a conflict over.
       expect(result.reports, isEmpty);
-      expect(
-        await repositories.difficultyLevels.getById(
-          DifficultyLevel.beginner.id,
-        ),
-        isNull,
+      final canonical = await repositories.difficultyLevels.getById(
+        DifficultyLevel.beginner.id,
       );
-      expect(
-        (await repositories.difficultyLevels.getById(custom.id))!.position,
-        custom.position,
-      );
-      expect(await repositories.syncLocal.listReviewQueue(), isNotEmpty);
+      expect(canonical, isNotNull);
+      expect(canonical!.position, custom.position);
+      expect(await repositories.difficultyLevels.getById(custom.id), isNull);
+      expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
     },
   );
 

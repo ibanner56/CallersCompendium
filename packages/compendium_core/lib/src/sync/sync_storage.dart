@@ -1593,7 +1593,19 @@ final class CompendiumSyncStorage
 
   @override
   Future<Map<SyncRecordAddress, SyncMergeCandidate?>>
-  snapshotCandidates() async => (await snapshot()).local;
+  snapshotCandidates() async {
+    // The concurrency guard compares this against the coordinator's
+    // `expectedWireHashes`, which is built from the local candidates *and* the
+    // pending-live ones. Returning only `local` — which `snapshot()`
+    // deliberately strips every pending-deletion address out of — made the
+    // guard read `null` for exactly those addresses while the coordinator had
+    // supplied a real hash, so every inbound update to a record held live by
+    // the §6.8 referential guard was refused as a concurrent local change on
+    // every pass, over a record the user had not touched. Nothing changes
+    // between the two reads; the mismatch was structural.
+    final current = await snapshot();
+    return {...current.local, ...current.pendingLive};
+  }
 
   Future<_NaturalKeyIndex> _loadNaturalKeyIndex() async {
     final index = _NaturalKeyIndex({});
@@ -1762,7 +1774,15 @@ final class CompendiumSyncStorage
             if (incumbent != null) {
               if (candidate.blob.deletedAt != null &&
                   !incumbent.deleted &&
-                  !baseline.containsKey((kind: kind, recordId: incumbent.id))) {
+                  !baseline.containsKey((
+                    kind: kind,
+                    recordId: incumbent.id,
+                  )) &&
+                  await _tombstoneOutranksLocalCreation(
+                    kind,
+                    incumbent.id,
+                    candidate.blob,
+                  )) {
                 await _enqueueCollisionReview(
                   candidate,
                   candidate.blob.id,
@@ -1869,7 +1889,12 @@ final class CompendiumSyncStorage
           } else if (incumbent != null && incumbent.id != candidate.blob.id) {
             if (candidate.blob.deletedAt != null &&
                 !incumbent.deleted &&
-                !baseline.containsKey((kind: kind, recordId: incumbent.id))) {
+                !baseline.containsKey((kind: kind, recordId: incumbent.id)) &&
+                await _tombstoneOutranksLocalCreation(
+                  kind,
+                  incumbent.id,
+                  candidate.blob,
+                )) {
               await _enqueueCollisionReview(
                 candidate,
                 candidate.blob.id,
@@ -2031,14 +2056,24 @@ final class CompendiumSyncStorage
               survivorId: survivingId,
             );
             if (reconciled == null) continue;
+            final losingId = survivingId == candidate.blob.id
+                ? previous.blob.id
+                : candidate.blob.id;
+            // The losing id can itself be a known local row — the ordinary
+            // "a peer renamed it" case. Passing null here skipped
+            // `_migrateLocalIdentity`/`_deleteIdentityRow`, so
+            // `_rewriteLocalReferences` repointed join rows at an id that has
+            // no row yet (reconciliation runs before any record is written),
+            // which fails the foreign key and rolls the batch back — or, with
+            // foreign keys off, leaves the local row as a ghost under the
+            // losing id with its references rewritten away and the peer's
+            // rename lost. `_adoptCollision`'s own comment names this hazard.
             await _adoptCollision(
               kind: kind,
-              losingId: survivingId == candidate.blob.id
-                  ? previous.blob.id
-                  : candidate.blob.id,
+              losingId: losingId,
               survivingId: survivingId,
               aliases: aliases,
-              localIdentity: null,
+              localIdentity: await _recordIdentity(kind, losingId),
             );
             prepared[previousIndex] = reconciled;
             continue;
@@ -2573,6 +2608,31 @@ final class CompendiumSyncStorage
         body: syncBodyForEntity(kind, entity),
       ),
     );
+  }
+
+  /// Whether [candidate] would actually resolve a baseline-absent live local
+  /// row out of existence.
+  ///
+  /// §6.6 conditions its guard on *step 2 resolving the survivor to
+  /// non-existence*, and step 2 decides existence by the greater
+  /// `existenceAt`. Firing on "inbound is a tombstone and the local row is
+  /// live" alone queued pairs that step 2 would have kept alive, so no alias
+  /// was ever written, the collision was re-derived every pass, and the user
+  /// was handed a review whose Merge action `resolveReviewQueue` is bound to
+  /// refuse (it rejects a local `existence_at` newer than the candidate's).
+  ///
+  /// An equal stamp is deliberately not suppressed: that is a genuine tie
+  /// between two floored transitions, which §6.4 resolves to the tombstone
+  /// silently. Only the unequal comparison against a creation stamp that was
+  /// never floored is the one the guard exists for.
+  Future<bool> _tombstoneOutranksLocalCreation(
+    SyncRecordKind kind,
+    String incumbentId,
+    SyncRecordBlob candidate,
+  ) async {
+    final metadata = await _naturalRecordMetadata(kind, incumbentId);
+    if (metadata == null) return true;
+    return candidate.existenceAt.isAfter(metadata.existenceAt);
   }
 
   Future<({DateTime updatedAt, DateTime existenceAt, DateTime? deletedAt})?>

@@ -989,7 +989,16 @@ class SyncCoordinator {
       peerManifests.add((peerId: peerId, manifest: manifest));
       peerManifestHashes.add(await _normalizeManifestHashes(manifest));
     }
-    if (allPeerManifestsAvailable) {
+    // Zero observed peers is not evidence that an alias has nothing left to
+    // resolve — it is the absence of evidence, the same distinction §6.9 draws
+    // twice for clock-suspect and for unreflected publications. Without the
+    // emptiness check `allPeerManifestsAvailable` is vacuously true whenever
+    // the store lists no other device (a solo install, peers aged out by §7.3,
+    // or the attach continuation before this device has published), and
+    // `retireAliases` with an empty set retains nothing and deletes every row.
+    // A peer returning afterwards then re-raises every collision this device
+    // had already reconciled.
+    if (allPeerManifestsAvailable && peerManifests.isNotEmpty) {
       final peerAddresses = <SyncRecordAddress>{
         for (final peer in peerManifests)
           for (final kindEntry in peer.manifest.records.entries)

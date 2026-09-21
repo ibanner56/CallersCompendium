@@ -1827,6 +1827,28 @@ void main() {
     expect(store.retiredPeerAddresses, [<SyncRecordAddress>{}]);
   });
 
+  test('does not retire aliases when the store lists no peer', () async {
+    // Zero observed peers is not evidence that an alias has nothing left to
+    // resolve. `allPeerManifestsAvailable` is vacuously true when the loop over
+    // `devices` never runs, so retirement used to be called with an empty
+    // address set — which retains nothing and deletes every `id_aliases` row.
+    // A peer that later returns then re-raises every collision this device had
+    // already reconciled. Reachable on a solo install, after peers age out
+    // under §7.3, and on the attach continuation.
+    final store = _FakeStore();
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: store,
+      transport: _FakeTransport(devices: ['device-a']),
+    );
+
+    final result = await coordinator.syncNow();
+
+    expect(result.status, SyncPassStatus.completed);
+    expect(store.retiredPeerAddresses, isEmpty);
+  });
+
   test('does not retire aliases when a peer manifest is unavailable', () async {
     final store = _FakeStore();
     final coordinator = SyncCoordinator(
