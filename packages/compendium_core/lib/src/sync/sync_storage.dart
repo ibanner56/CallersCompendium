@@ -3552,67 +3552,47 @@ final class CompendiumSyncStorage
       }
     }
 
-    // `upsert` on the three natural-key kinds that carry a UNIQUE name returns
-    // the id the row actually occupies, which differs from the one we asked
-    // for when `adoptTombstonedNaturalKey` found a tombstoned row already
-    // holding that name (see `repositories.dart`, which enumerates the three).
-    // The return is `@useResult` precisely because of that, and discarding it
-    // here left the record stored under an id the peer never named: no alias
-    // recorded the move, and `_restoreTimestamps` then addressed the envelope's
-    // id, matched zero rows, and never applied the envelope's stamps.
-    String? occupiedId;
     switch (kind) {
       case SyncRecordKind.dance:
         await repositories.dances.writeFromSync(entityToWrite as Dance);
       case SyncRecordKind.program:
         await repositories.programs.writeFromSync(entityToWrite as Program);
       case SyncRecordKind.choreographer:
-        occupiedId = await repositories.choreographers.upsert(
+        await repositories.choreographers.writeFromSync(
           entityToWrite as Choreographer,
           at: record.updatedAt,
         );
       case SyncRecordKind.tag:
-        occupiedId = await repositories.tags.upsert(
+        await repositories.tags.writeFromSync(
           entityToWrite as Tag,
           at: record.updatedAt,
         );
       case SyncRecordKind.publishedSource:
-        await repositories.publishedSources.upsert(
+        await repositories.publishedSources.writeFromSync(
           entityToWrite as PublishedSource,
           at: record.updatedAt,
         );
       case SyncRecordKind.customFieldDef:
-        occupiedId = await repositories.customFieldDefs.upsert(
+        await repositories.customFieldDefs.writeFromSync(
           entityToWrite as CustomFieldDef,
           at: record.updatedAt,
         );
       case SyncRecordKind.difficultyLevel:
-        final _ = await repositories.difficultyLevels.upsert(
+        await repositories.difficultyLevels.writeFromSync(
           entityToWrite as DifficultyLevel,
           at: record.updatedAt,
         );
       case SyncRecordKind.venue:
-        await repositories.venues.upsert(
+        await repositories.venues.writeFromSync(
           entityToWrite as Venue,
           at: record.updatedAt,
         );
       case SyncRecordKind.setting:
         throw StateError('settings are handled above');
     }
-    final writtenId = occupiedId ?? record.address.recordId;
-    if (writtenId != record.address.recordId) {
-      // §6.6's remap: the peer's id lost to the id the row already occupies,
-      // so record it. Without the alias the next pass re-derives the same
-      // adoption instead of resolving the peer's id onto the survivor.
-      await repositories.syncLocal.upsertAlias(
-        kind: kind,
-        losingId: record.address.recordId,
-        survivingId: writtenId,
-      );
-    }
     await _restoreTimestamps(
       kind: kind,
-      id: writtenId,
+      id: record.address.recordId,
       updatedAt: record.updatedAt,
       deletedAt: record.deletedAt,
       existenceAt: record.existenceAt,

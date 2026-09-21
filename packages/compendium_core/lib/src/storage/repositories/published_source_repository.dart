@@ -20,7 +20,24 @@ class PublishedSourceRepository {
 
   final CompendiumDatabase _db;
 
-  Future<void> upsert(PublishedSource s, {DateTime? at}) {
+  Future<void> upsert(PublishedSource s, {DateTime? at}) =>
+      _write(s, at: at, fromSync: false);
+
+  /// Applies a validated inbound sync record.
+  ///
+  /// Separate from [upsert] so the interactive path can gain behaviour without
+  /// silently changing what an inbound apply does — §6.7 requires the sync
+  /// write never to travel through the editor's path. Today the only
+  /// difference is existence seeding: the envelope owns `existence_at`, which
+  /// `_restoreTimestamps` writes straight after this returns.
+  Future<void> writeFromSync(PublishedSource s, {DateTime? at}) =>
+      _write(s, at: at, fromSync: true);
+
+  Future<void> _write(
+    PublishedSource s, {
+    required DateTime? at,
+    required bool fromSync,
+  }) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
       await _db
@@ -40,13 +57,15 @@ class PublishedSourceRepository {
               updatedAt: Value(now),
             ),
           );
-      await applyUpsertExistence(
-        _db,
-        table: _db.publishedSources,
-        keyColumn: 'id',
-        key: s.id,
-        at: now,
-      );
+      if (!fromSync) {
+        await applyUpsertExistence(
+          _db,
+          table: _db.publishedSources,
+          keyColumn: 'id',
+          key: s.id,
+          at: now,
+        );
+      }
     });
   }
 

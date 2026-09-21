@@ -2441,6 +2441,17 @@ repository `upsert` path, which writes every column:
 2. overlay only the fields the blob carries;
 3. write the merged result.
 
+In this implementation every kind has a `writeFromSync` entry point and the
+`sync-interactive-upsert` ratchet (`tools/ci/check_sync_invariants.py`) fails
+the build on a `repositories.<kind>.upsert(` call inside the inbound write
+path. The rule is structural rather than behavioural on purpose: `upsert`
+carries behaviour that exists for a person editing a record and is wrong for a
+peer's — adopting a tombstoned row's identity, and keeping the local name when
+another row holds the incoming one, which stores an altered copy while still
+reporting success. Auditing today's behaviour would not hold, because the risk
+is a future edit to the editor's path silently changing what an inbound apply
+does.
+
 **Sender/receiver contract.** The sender emits explicit `null` for an empty
 `shareable` field and omits only non-`shareable` fields. The receiver MUST
 independently consult the registry to decide which absences mean *preserve*, and

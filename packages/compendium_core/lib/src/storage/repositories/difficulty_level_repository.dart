@@ -55,6 +55,20 @@ class DifficultyLevelRepository {
     await _db.transaction(() => _upsertInTransaction(normalized, now));
   }
 
+  /// Applies a validated inbound sync record.
+  ///
+  /// Separate from [upsert] per §6.7 so the interactive path cannot change what
+  /// an inbound apply does. The duplicate-label check is kept deliberately: a
+  /// collision is an identity decision that belongs to reconciliation, so the
+  /// writer refuses rather than guessing, and the engine reports the record.
+  Future<void> writeFromSync(DifficultyLevel level, {DateTime? at}) async {
+    final normalized = level.copyWith(label: _normalizeLabel(level.label));
+    final now = resolveStamp(at);
+    await _db.transaction(
+      () => _upsertInTransaction(normalized, now, seedExistence: false),
+    );
+  }
+
   Future<DifficultyLevel?> getById(String id) async {
     final row = await (_db.select(
       _db.difficultyLevels,
@@ -226,8 +240,9 @@ class DifficultyLevelRepository {
 
   Future<void> _upsertInTransaction(
     DifficultyLevel normalized,
-    DateTime now,
-  ) async {
+    DateTime now, {
+    bool seedExistence = true,
+  }) async {
     final duplicateRows = (await _db.select(_db.difficultyLevels).get())
         .where(
           (row) =>
@@ -251,13 +266,15 @@ class DifficultyLevelRepository {
             updatedAt: Value(now),
           ),
         );
-    await applyUpsertExistence(
-      _db,
-      table: _db.difficultyLevels,
-      keyColumn: 'id',
-      key: normalized.id,
-      at: now,
-    );
+    if (seedExistence) {
+      await applyUpsertExistence(
+        _db,
+        table: _db.difficultyLevels,
+        keyColumn: 'id',
+        key: normalized.id,
+        at: now,
+      );
+    }
   }
 
   String _normalizeLabel(String raw) {

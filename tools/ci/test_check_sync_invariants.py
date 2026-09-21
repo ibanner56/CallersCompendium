@@ -9,9 +9,11 @@ import tempfile
 from pathlib import Path
 
 from check_sync_invariants import (
+    SYNC_WRITE_PATH,
     _certificate_violations,
     _drift_join_violations,
     _drift_write_violations,
+    _interactive_upsert_violations,
     _raw_join_violations,
     _write_violations,
     blank_comments,
@@ -257,6 +259,29 @@ def test_typed_drift_writes_fail_closed() -> None:
     assert any(
         v.kind == "typed-write-boundary"
         for v in _drift_write_violations(unmarked_after_excused, "fixture.dart")
+    )
+
+
+def test_sync_write_path_rejects_the_interactive_upsert() -> None:
+    offending = "await repositories.tags.upsert(tag, at: record.updatedAt);\n"
+    compliant = "await repositories.tags.writeFromSync(tag, at: record.updatedAt);\n"
+    assert any(
+        v.kind == "sync-interactive-upsert"
+        for v in _interactive_upsert_violations(offending, SYNC_WRITE_PATH)
+    )
+    assert_no(_interactive_upsert_violations(compliant, SYNC_WRITE_PATH))
+    # Scoped to the inbound write path: the editor's own callers are the whole
+    # reason `upsert` still exists.
+    assert_no(
+        _interactive_upsert_violations(
+            offending, "app/lib/src/screens/tags_screen.dart"
+        )
+    )
+    # Commented-out code is not a call.
+    assert_no(
+        _interactive_upsert_violations(
+            "// await repositories.tags.upsert(tag);", SYNC_WRITE_PATH
+        )
     )
 
 

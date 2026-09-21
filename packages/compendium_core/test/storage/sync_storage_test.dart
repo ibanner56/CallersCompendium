@@ -1528,17 +1528,16 @@ void main() {
   );
 
   test(
-    'records an alias when a write lands on an adopted natural key',
+    'refuses an inbound record whose natural key another row holds',
     () async {
-      // `adoptTombstonedNaturalKey` stores the record under the id a tombstoned
-      // row already holds for that UNIQUE name, so the row the peer named never
-      // appears. Discarding `upsert`'s (`@useResult`) return left nothing
-      // pointing the peer's id at the row that actually holds its content, and
-      // `_restoreTimestamps` addressed the peer's id and matched no rows.
-      //
-      // Reconciliation normally settles this before the writer sees it; the
-      // paths that reach `writeWithReport` directly — review-queue resolution
-      // and pending-deletion revalidation — do not.
+      // The inbound writer must not take the editor's way out. `upsert` would
+      // either relocate the record onto the tombstoned row's id — storing it
+      // under an id the peer never named — or, for a live incumbent, keep the
+      // local name and store an altered copy while still counting the record
+      // applied. §6.7 says refuse the record instead; identity is
+      // reconciliation's decision, and it runs before the writer on an ordinary
+      // pass. The paths that reach the writer directly (review resolution,
+      // pending-deletion revalidation) free the key first.
       final stamp = DateTime.utc(2025, 1, 2, 12);
       final later = DateTime.utc(2025, 1, 3, 12);
       // ignore: unused_result
@@ -1548,32 +1547,35 @@ void main() {
       );
       await repositories.tags.delete('local-tag', at: stamp);
 
-      final report = await storage.writeWithReport(
-        SyncApplyRecord(
-          address: (kind: SyncRecordKind.tag, recordId: 'peer-tag'),
-          body: syncBodyForEntity(
-            SyncRecordKind.tag,
-            Tag(id: 'peer-tag', name: 'Swing'),
+      await expectLater(
+        storage.writeWithReport(
+          SyncApplyRecord(
+            address: (kind: SyncRecordKind.tag, recordId: 'peer-tag'),
+            body: syncBodyForEntity(
+              SyncRecordKind.tag,
+              Tag(id: 'peer-tag', name: 'Swing'),
+            ),
+            updatedAt: later,
+            deletedAt: null,
+            existenceAt: later,
           ),
-          updatedAt: later,
-          deletedAt: null,
-          existenceAt: later,
         ),
+        throwsA(isA<StateError>()),
       );
 
-      expect(report, isNull);
+      // The local row keeps its identity and its tombstone; nothing was
+      // relocated onto it and no alias was invented.
+      final row = await (db.select(
+        db.tags,
+      )..where((table) => table.id.equals('local-tag'))).getSingle();
+      expect(row.deletedAt, isNotNull);
       expect(
         await repositories.syncLocal.resolveAlias(
           kind: SyncRecordKind.tag,
           recordId: 'peer-tag',
         ),
-        'local-tag',
+        'peer-tag',
       );
-      final row = await (db.select(
-        db.tags,
-      )..where((table) => table.id.equals('local-tag'))).getSingle();
-      expect(row.deletedAt, isNull);
-      expect(row.existenceAt?.toUtc(), later);
     },
   );
 

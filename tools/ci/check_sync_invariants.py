@@ -553,6 +553,42 @@ def _write_violations(source: str, path: str) -> list[Violation]:
     return violations
 
 
+SYNC_WRITE_PATH = "packages/compendium_core/lib/src/sync/sync_storage.dart"
+INTERACTIVE_UPSERT_RE = re.compile(
+    r"\brepositories\s*\.\s*[A-Za-z_][A-Za-z0-9_]*\s*\.\s*upsert\s*\("
+)
+
+
+def _interactive_upsert_violations(source: str, path: str) -> list[Violation]:
+    """Keep the inbound sync write off the interactive `upsert` path.
+
+    §6.7: "Apply MUST be read-modify-write inside the apply transaction — never
+    the repository `upsert` path, which writes every column." The rule is
+    structural rather than behavioural on purpose. `upsert` carries behaviour
+    that exists for a person editing a record and is wrong for a peer's: it
+    adopts a tombstoned row's identity, and it keeps the local name when another
+    row holds the incoming one, storing an altered copy while still reporting
+    success. Each kind has a `writeFromSync` entry point instead.
+
+    Auditing today's behaviour would not hold: the point is that a future edit
+    to the editor's path must not silently change what an inbound apply does.
+    """
+
+    if path != SYNC_WRITE_PATH:
+        return []
+    masked = "\n".join(mask_source(source))
+    return [
+        Violation(
+            "sync-interactive-upsert",
+            path,
+            _line_number(source, match.start()),
+            "inbound sync write must use writeFromSync, not the interactive "
+            "upsert path (sync-spec.md §6.7)",
+        )
+        for match in INTERACTIVE_UPSERT_RE.finditer(masked)
+    ]
+
+
 def _drift_write_violations(source: str, path: str) -> list[Violation]:
     """Check direct Drift writes to sync-record tables for I1 and I2."""
 
@@ -862,6 +898,7 @@ def scan(root: Path = REPO_ROOT) -> ScanResult:
         violations.extend(drift_violations)
         violations.extend(_write_violations(source, relative))
         violations.extend(_drift_write_violations(source, relative))
+        violations.extend(_interactive_upsert_violations(source, relative))
         violations.extend(_certificate_violations(source, relative))
         soft_candidates += raw_candidates + drift_candidates
 
