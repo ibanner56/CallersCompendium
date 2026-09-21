@@ -1427,12 +1427,12 @@ void main() {
       // unrelated peer record below was lost with it.
       expect(
         result.applied,
-        contains((
-          kind: SyncRecordKind.choreographer,
-          recordId: unrelated.id,
-        )),
+        contains((kind: SyncRecordKind.choreographer, recordId: unrelated.id)),
       );
-      expect(await repositories.choreographers.getById(unrelated.id), isNotNull);
+      expect(
+        await repositories.choreographers.getById(unrelated.id),
+        isNotNull,
+      );
       expect(
         result.applied,
         contains((kind: SyncRecordKind.dance, recordId: deletedDance.id)),
@@ -1446,83 +1446,86 @@ void main() {
     },
   );
 
-  test('applies an inbound update to a record held by a pending tombstone', () async {
-    // A record kept live by §6.8's referential guard is moved out of
-    // `snapshot().local` into `pendingLive`. The coordinator builds its
-    // expected wire hashes from *both*, so a guard reading only `local` saw
-    // `null` where a real hash was expected and refused the record as a
-    // concurrent local change — structurally, on every pass, over a record the
-    // user never touched.
-    final stamp = DateTime.utc(2025, 1, 2, 12);
-    final later = DateTime.utc(2025, 1, 3, 12);
-    final tag = Tag(id: 'cited-tag', name: 'Cited tag');
-    // ignore: unused_result
-    await repositories.tags.upsert(tag, at: stamp);
-    await repositories.dances.create(
-      Dance(
-        id: 'citing-dance',
-        title: 'Citing dance',
-        tagIds: const ['cited-tag'],
-        createdAt: stamp,
-        updatedAt: stamp,
-      ),
-    );
-
-    // A peer deletes the tag; the live citation defers it as pending.
-    await const SyncApplyEngine().apply(
-      candidates: [
-        SyncMergeCandidate(
-          blob: SyncRecordBlob(
-            kind: SyncRecordKind.tag,
-            id: tag.id,
-            updatedAt: stamp,
-            deletedAt: stamp,
-            existenceAt: stamp,
-            body: syncBodyForEntity(SyncRecordKind.tag, tag),
-          ),
+  test(
+    'applies an inbound update to a record held by a pending tombstone',
+    () async {
+      // A record kept live by §6.8's referential guard is moved out of
+      // `snapshot().local` into `pendingLive`. The coordinator builds its
+      // expected wire hashes from *both*, so a guard reading only `local` saw
+      // `null` where a real hash was expected and refused the record as a
+      // concurrent local change — structurally, on every pass, over a record the
+      // user never touched.
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+      final later = DateTime.utc(2025, 1, 3, 12);
+      final tag = Tag(id: 'cited-tag', name: 'Cited tag');
+      // ignore: unused_result
+      await repositories.tags.upsert(tag, at: stamp);
+      await repositories.dances.create(
+        Dance(
+          id: 'citing-dance',
+          title: 'Citing dance',
+          tagIds: const ['cited-tag'],
+          createdAt: stamp,
+          updatedAt: stamp,
         ),
-      ],
-      storage: storage,
-    );
-    final pending = await repositories.syncLocal.listPendingDeletions();
-    expect(pending.map((row) => row.recordId), contains(tag.id));
+      );
 
-    // A peer now edits the same tag. Build the expected hashes exactly as the
-    // coordinator does: local candidates plus the pending-live ones.
-    final snapshot = await storage.snapshot();
-    final expectedCandidates = {...snapshot.local, ...snapshot.pendingLive};
-    final renamed = Tag(id: tag.id, name: 'Renamed by peer');
-    final result = await const SyncApplyEngine().apply(
-      candidates: [
-        SyncMergeCandidate(
-          blob: SyncRecordBlob(
-            kind: SyncRecordKind.tag,
-            id: tag.id,
-            updatedAt: later,
-            deletedAt: null,
-            existenceAt: later,
-            body: syncBodyForEntity(SyncRecordKind.tag, renamed),
+      // A peer deletes the tag; the live citation defers it as pending.
+      await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.tag,
+              id: tag.id,
+              updatedAt: stamp,
+              deletedAt: stamp,
+              existenceAt: stamp,
+              body: syncBodyForEntity(SyncRecordKind.tag, tag),
+            ),
           ),
-        ),
-      ],
-      storage: storage,
-      expectedWireHashes: {
-        for (final entry in expectedCandidates.entries)
-          entry.key: entry.value?.wireHash,
-      },
-    );
+        ],
+        storage: storage,
+      );
+      final pending = await repositories.syncLocal.listPendingDeletions();
+      expect(pending.map((row) => row.recordId), contains(tag.id));
 
-    expect(
-      result.reports.where(
-        (report) => report.code == SyncReportCode.concurrentLocalChange,
-      ),
-      isEmpty,
-    );
-    expect(
-      result.applied,
-      contains((kind: SyncRecordKind.tag, recordId: tag.id)),
-    );
-  });
+      // A peer now edits the same tag. Build the expected hashes exactly as the
+      // coordinator does: local candidates plus the pending-live ones.
+      final snapshot = await storage.snapshot();
+      final expectedCandidates = {...snapshot.local, ...snapshot.pendingLive};
+      final renamed = Tag(id: tag.id, name: 'Renamed by peer');
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.tag,
+              id: tag.id,
+              updatedAt: later,
+              deletedAt: null,
+              existenceAt: later,
+              body: syncBodyForEntity(SyncRecordKind.tag, renamed),
+            ),
+          ),
+        ],
+        storage: storage,
+        expectedWireHashes: {
+          for (final entry in expectedCandidates.entries)
+            entry.key: entry.value?.wireHash,
+        },
+      );
+
+      expect(
+        result.reports.where(
+          (report) => report.code == SyncReportCode.concurrentLocalChange,
+        ),
+        isEmpty,
+      );
+      expect(
+        result.applied,
+        contains((kind: SyncRecordKind.tag, recordId: tag.id)),
+      );
+    },
+  );
 
   test('rejected inbound tombstones do not suppress live citations', () async {
     final stamp = DateTime.utc(2025, 1, 2, 12);

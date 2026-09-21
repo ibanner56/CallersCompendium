@@ -148,16 +148,14 @@ class DifficultyLevelRepository {
   Future<void> delete(String id, {DateTime? at}) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
-      // Live dances only; a soft-deleted dance keeps its `level_id`. See the
-      // note in `ChoreographerRepository.delete`.
+      // Deliberately counts tombstoned dances too, unlike the other
+      // referential guards: [isInUse] states the policy for this kind — a
+      // deleted dance can be restored, so it still protects its level.
       final references = _db.dances.id.count();
       final count =
           await (_db.selectOnly(_db.dances)
                 ..addColumns([references])
-                ..where(
-                  _db.dances.levelId.equals(id) &
-                      _db.dances.deletedAt.isNull(),
-                ))
+                ..where(_db.dances.levelId.equals(id)))
               .map((row) => row.read(references) ?? 0)
               .getSingle();
       if (count > 0) {

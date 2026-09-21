@@ -87,12 +87,27 @@ soft delete: `settings`, `choreographers`, `tags`, `published_sources`,
 `custom_field_defs`, and `VenueRepository.delete`. The `restore()` paths on
 every kind MUST stamp `existence_at`.
 
-`VenueRepository.hardDelete` is **deliberately excluded** and stays a hard
-delete. It exists solely to revert a just-committed import batch, where the
-caller has already removed the referencing programs, and converting it would
-leave an undone import visible as tombstones. `DanceRepository` and
-`ProgramRepository` set the precedent: both keep a hard-delete path on a kind
-that already soft-deletes.
+`VenueRepository.hardDelete` is **not** converted to an unconditional soft
+delete. It exists solely to revert a just-committed import batch, and a
+rollback that left tombstones behind would advertise the removal of a record
+no other device saw. `DanceRepository` and `ProgramRepository` set the
+precedent: both keep a hard-delete path on a kind that already soft-deletes.
+
+It is nonetheless **subject to the forfeiture rule below**, as every
+hard-delete path is: a record already named by a final manifest snapshot is
+tombstoned rather than erased, because peers may hold it live and erasing it
+locally would have the next pass download it back. So the erasure applies to
+records that were never selected for publication, which is the ordinary case
+for an import the user undoes before a pass runs. An earlier draft of this
+paragraph said the method "stays a hard delete" without that qualification,
+which contradicted the forfeiture rule thirty lines below it and would have
+licensed exactly the resurrection this section exists to prevent.
+
+`hardDelete` MUST also retain any row still referenced by a surviving record,
+including a tombstoned one. `programs.venue_id` is not a foreign key, so
+nothing at the database level rejects erasing a venue a tombstoned program
+still names, and the program writer refuses a program whose non-null `venueId`
+has no matching venue — the program becomes unrestorable.
 
 **The generic hard-delete hatch.** The shipped migration also added a
 `permanent: true` parameter to `delete()`/`remove()` on five repositories —

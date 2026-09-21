@@ -1115,9 +1115,7 @@ class SyncCoordinator {
       // `repairResult.applied` meant a pass whose only writes were §6.9
       // timestamp repairs reported no applied kinds at all, and neither the
       // derived-index rebuild nor the live-query invalidation ran for them.
-      repairedKinds.addAll(
-        repairResult.applied.map((address) => address.kind),
-      );
+      repairedKinds.addAll(repairResult.applied.map((address) => address.kind));
       snapshot = await store.snapshot();
       normalizedLocal = await _normalizeCandidates(
         freshAttach ? snapshot.publication : snapshot.local,

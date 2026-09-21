@@ -9,7 +9,7 @@
   },
   "core": {
     "fixed": [
-      "Referential delete guards for choreographers, tags' sources, custom fields, difficulty levels and venues now count only live owners, matching the sync-side citation check and the schema contract that a purge refuses an entity referenced by a live record.",
+      "Referential delete guards for choreographers, published sources, custom fields and venues now count only live owners, matching the sync-side citation check and the schema contract that a purge refuses an entity referenced by a live record. Difficulty levels keep counting tombstoned dances, as `isInUse` documents.",
       "VenueRepository.hardDelete retains venues still named by any surviving program row, since programs.venue_id is not a foreign key and the program writer rejects a dangling reference."
     ]
   }

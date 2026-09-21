@@ -1774,10 +1774,7 @@ final class CompendiumSyncStorage
             if (incumbent != null) {
               if (candidate.blob.deletedAt != null &&
                   !incumbent.deleted &&
-                  !baseline.containsKey((
-                    kind: kind,
-                    recordId: incumbent.id,
-                  )) &&
+                  !baseline.containsKey((kind: kind, recordId: incumbent.id)) &&
                   await _tombstoneOutranksLocalCreation(
                     kind,
                     incumbent.id,

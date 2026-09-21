@@ -562,6 +562,24 @@ class SyncApplyEngine {
       );
     }
 
+    // KNOWN GAP — a join-write failure here is not atomic with its own parent
+    // write. The parent row was written in the loop above, in a separate
+    // savepoint, so catching the failure and continuing commits the peer's
+    // parent content alongside this device's existing join rows, stamped with
+    // the peer's `updatedAt`. The record is correctly not counted applied, so
+    // the baseline does not advance, but the next pass recomputes a wire hash
+    // that matches neither peer nor baseline at an `updatedAt` identical to the
+    // peer's — the equal-`updatedAt` tie §6.3 declines to resolve.
+    //
+    // Closing it properly means making each record's parent+joins one
+    // savepoint, which the two-phase order (every parent before any join, so
+    // cross-record references can resolve) does not currently allow: undoing
+    // the parent would need a pre-image the `SyncApplyStorage` seam does not
+    // expose, and for a record that did not exist before, a delete it has no
+    // operation for. Every trigger is currently pre-checked by
+    // `validateInboundReferences`, which is why this is latent rather than
+    // live; it stops being latent the moment a writer can fail on something
+    // validation does not mirror.
     for (final record in joinReady) {
       try {
         final report = await storage.writeJoinsWithReport(record);

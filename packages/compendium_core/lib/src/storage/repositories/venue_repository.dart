@@ -279,12 +279,19 @@ class VenueRepository {
         }
       });
 
-  /// Removes unpublished venues [ids] in a single transaction, skipping the
-  /// reference guard; published venues become tombstones so peers retain
-  /// deletion evidence. Intended solely for reverting a just-committed import
-  /// batch (see `CompendiumArchiveImporter.undo`), where the caller has already
-  /// removed the programs that referenced these venues; an empty [ids] is a
-  /// no-op. Ordinary deletes must go through [delete].
+  /// Removes unpublished, unreferenced venues [ids] in a single transaction;
+  /// published venues become tombstones so peers retain deletion evidence.
+  /// Intended solely for reverting a just-committed import batch (see
+  /// `CompendiumArchiveImporter.undo`); an empty [ids] is a no-op. Ordinary
+  /// deletes must go through [delete].
+  ///
+  /// It skips [delete]'s *live*-reference guard, but still retains a venue any
+  /// surviving program row names — including a tombstoned one. The caller can
+  /// no longer be assumed to have removed every referencing program, because a
+  /// published program is tombstoned rather than erased, and `programs.venueId`
+  /// is not a foreign key: nothing else would reject the erasure, and the
+  /// program writer refuses a program whose non-null `venueId` has no matching
+  /// venue.
   ///
   /// Unpublished rollback rows stay hard-deleted after the schema-v25
   /// soft-delete conversion (issue #898), exactly as the corresponding dance
@@ -322,11 +329,12 @@ class VenueRepository {
       // referencing program.
       final stillReferenced = <String>{};
       for (final chunk in _chunkIds(list)) {
-        final rows = await (_db.selectOnly(_db.programs)
-              ..addColumns([_db.programs.venueId])
-              ..where(_db.programs.venueId.isIn(chunk)))
-            .map((row) => row.read(_db.programs.venueId))
-            .get();
+        final rows =
+            await (_db.selectOnly(_db.programs)
+                  ..addColumns([_db.programs.venueId])
+                  ..where(_db.programs.venueId.isIn(chunk)))
+                .map((row) => row.read(_db.programs.venueId))
+                .get();
         stillReferenced.addAll(rows.whereType<String>());
       }
       final erasableIds = list

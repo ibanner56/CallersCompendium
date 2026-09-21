@@ -1621,6 +1621,12 @@ class DanceRepository {
   /// place and do its own targeted cleanup of only the rows that import
   /// *created* (see `ImportPipeline.undo`).
   ///
+  /// A dance already named by a final manifest snapshot is **tombstoned rather
+  /// than erased** (sync-spec.md §3.1 forfeiture), so its `dance_authors` rows
+  /// survive — a soft delete fires no FK cascade. Callers that erase a
+  /// reference row's owner on the strength of that cascade must count only
+  /// *live* owners, as the referential guards do.
+  ///
   /// Intended for reverting a just-committed import batch (import-session
   /// undo); ordinary user deletes should go through [softDelete].
   Future<void> hardDelete(Iterable<String> ids, {bool gcOrphanedRefs = true}) {
