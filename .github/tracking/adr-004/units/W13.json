@@ -41,7 +41,9 @@
     "Previously used missing-collection explanation and replacement confirmation",
     "WiFi-only default, import exclusion, and partial-venue guidance"
   ],
-  "pullRequests": [],
+  "pullRequests": [
+    1331
+  ],
   "hold": null,
   "completion": {
     "complete": false,
