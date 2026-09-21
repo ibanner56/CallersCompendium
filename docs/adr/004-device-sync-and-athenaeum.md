@@ -1412,12 +1412,13 @@ sync" at all — and both carry the operator-visibility and logged break-glass
 disclosures §8 requires, with the 30-day linkability bound and the
 structured-venue-field carve-out stated plainly.
 
-What remains is not a contradiction but a release-time step: the effective date
-must be bumped in the release that turns the feature on, **before any real
-user's content leaves a device** — which is the beta, not the public release.
-That is the execution plan's **C6** gate, the checkpoint that defines the beta.
-It is a prerequisite of shipping, not of this ADR, and it is no longer a
-blocking defect in a published document.
+The first Device Sync beta is now ratified as **v0.5.0-beta**, with an effective
+date of **September 21, 2026**. The policy copies must be deployed with that
+date **before any real user's content leaves a device** — which is the beta,
+not the public release. The deployed-page check is the execution plan's
+**C6** gate, the checkpoint that defines the beta. It is a prerequisite of
+shipping, not of this ADR, and the remaining work is release ordering rather
+than a contradiction in the published wording.
 
 ## Revisit triggers
 
