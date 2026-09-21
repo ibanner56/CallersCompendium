@@ -11,6 +11,7 @@ import '../model/tag.dart';
 import '../model/venue.dart';
 import '../privacy/data_classification.dart';
 import '../privacy/settings_registry.dart';
+import '../serialization/archive_codec.dart';
 import '../serialization/archive_entity_codec.dart';
 import 'canonical_json.dart';
 import 'sync_record_kind.dart';
@@ -317,6 +318,82 @@ Map<String, Object?> syncBodyForEntity(
   );
 }
 
+/// Strictly decodes an archive-shaped sync body into its entity model.
+///
+/// This is shared by inbound application and persisted review validation so a
+/// candidate cannot be presented as actionable when the eventual write would
+/// reject its entity body.
+Object decodeSyncRecordEntity(SyncRecordKind kind, Map<String, Object?> body) {
+  if (kind == SyncRecordKind.setting) {
+    throw StateError('settings have no archive entity');
+  }
+  final key = switch (kind) {
+    SyncRecordKind.dance => 'dances',
+    SyncRecordKind.program => 'programs',
+    SyncRecordKind.choreographer => 'choreographers',
+    SyncRecordKind.tag => 'tags',
+    SyncRecordKind.publishedSource => 'publishedSources',
+    SyncRecordKind.customFieldDef => 'customFields',
+    SyncRecordKind.difficultyLevel => 'difficultyLevels',
+    SyncRecordKind.venue => 'venues',
+    SyncRecordKind.setting => throw StateError(
+      'settings have no archive entity',
+    ),
+  };
+  final result = archiveFromJson({
+    'schemaVersion': 4,
+    'exportedAt': DateTime.now().toUtc().toIso8601String(),
+    key: [body],
+  });
+  final errors = result.errors
+      .where((error) => !_isUnknownDifficultyReference(error.message))
+      .toList(growable: false);
+  if (errors.isNotEmpty || result.droppedEntities.isNotEmpty) {
+    throw FormatException(
+      errors.isEmpty
+          ? 'decoded entity was dropped'
+          : errors.map((error) => error.message).join('; '),
+    );
+  }
+  final archive = result.archive;
+  return switch (kind) {
+    SyncRecordKind.dance => _oneDecoded(archive.dances, kind),
+    SyncRecordKind.program => _oneDecoded(archive.programs, kind),
+    SyncRecordKind.choreographer => _oneDecoded(archive.choreographers, kind),
+    SyncRecordKind.tag => _oneDecoded(archive.tags, kind),
+    SyncRecordKind.publishedSource => _oneDecoded(
+      archive.publishedSources,
+      kind,
+    ),
+    SyncRecordKind.customFieldDef => _oneDecoded(archive.customFields, kind),
+    SyncRecordKind.difficultyLevel => _oneDecoded(
+      archive.difficultyLevels,
+      kind,
+    ),
+    SyncRecordKind.venue => _oneDecoded(archive.venues, kind),
+    SyncRecordKind.setting => throw StateError(
+      'settings have no archive entity',
+    ),
+  };
+}
+
+/// Validates the entity and classification constraints for a review action.
+void validateSyncReviewCandidateBody(
+  SyncRecordKind kind,
+  Map<String, Object?> body,
+) {
+  final validation = validateShareableRecordBody(kind, body);
+  if (!validation.isValid) {
+    throw FormatException(
+      'body contains non-shareable path ${validation.invalidPath}',
+    );
+  }
+  if (kind == SyncRecordKind.customFieldDef && body['shareable'] == false) {
+    throw FormatException('custom-field definition is not shareable');
+  }
+  decodeSyncRecordEntity(kind, body);
+}
+
 /// Builds a versioned blob for one of the eight archive entity kinds.
 SyncRecordBlob? syncRecordBlobForEntity(
   SyncRecordKind kind,
@@ -344,6 +421,13 @@ SyncRecordBlob? syncRecordBlobForEntity(
     existenceAt: existenceAt,
     body: body,
   );
+}
+
+T _oneDecoded<T>(List<T> values, SyncRecordKind kind) {
+  if (values.length != 1) {
+    throw FormatException('expected one ${kind.name} entity');
+  }
+  return values.single;
 }
 
 T _requireEntity<T>(Object entity, SyncRecordKind kind) {
@@ -383,6 +467,9 @@ SyncRecordKind _kindFromJson(Object? value) {
   }
   throw FormatException('unknown record kind $value');
 }
+
+bool _isUnknownDifficultyReference(String message) =>
+    message.startsWith('references unknown difficulty level "');
 
 void _validateBlobBody(
   SyncRecordKind kind,

@@ -1,0 +1,17 @@
+{
+  "id": "sync-pass-resilience",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "An unexpected database error while applying one incoming record no longer stops the whole sync pass, and no longer repeats on every later pass.",
+      "Device Sync keeps what it learned from a pass that failed partway, so the warning about records no other device has picked up is no longer reset by an unreliable connection.",
+      "Screens now refresh after a sync pass that only repaired timestamps, or that renamed a shared tag, author, source or level."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "Treat an unnamed write failure as a per-record skip and report, matching §6.7's one-record-skipped contract, instead of letting it escape the apply engine and strand the batch.",
+      "Re-settle each group against the parents that were actually written before writing join rows, so a failed parent prunes its same-kind dependents."
+    ]
+  }
+}

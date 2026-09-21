@@ -1,0 +1,14 @@
+{
+  "id": "sqlite-bind-limit",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Large device sync updates no longer fail when a dance or program has many relationships."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "Batch inbound sync relationship validation queries to stay within SQLite bind-variable limits."
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "sync-worker-database-locking",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Saving while Device Sync is applying changes in the background no longer fails with a database error: both connections now use write-ahead logging and wait for each other."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add the shared SQLite connection setup (write-ahead logging and a busy timeout) that every connection to the collection database must apply."
+    ]
+  }
+}

@@ -140,6 +140,16 @@ final Map<String, DataClassification> settingsClassifications = {
         'protocol metadata but must never be adopted from another device or '
         'restored from a backup.',
   ),
+  'sync_last_used_fingerprint': const DataClassification(
+    term: DpvTerm.unclassifiedPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.deviceScoped,
+    note:
+        'A set of salted, slow credential verifiers used only to distinguish '
+        'previously used configured sync identities after detach; the '
+        'credential-derived values are never transmitted, adopted from a peer, '
+        'or restored from a backup.',
+  ),
 
   // -- Programs and performance --------------------------------------------
   'default_program_band': const DataClassification(

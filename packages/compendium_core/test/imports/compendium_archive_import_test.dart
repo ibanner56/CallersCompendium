@@ -97,6 +97,7 @@ void main() {
   late ProgramRepository programs;
   late VenueRepository venues;
   late DifficultyLevelRepository difficultyLevels;
+  late CompendiumRepositories repositories;
   late ImportPipeline pipeline;
   late CompendiumArchiveImporter importer;
 
@@ -107,11 +108,13 @@ void main() {
     programs = ProgramRepository(db);
     venues = VenueRepository(db);
     difficultyLevels = DifficultyLevelRepository(db);
+    repositories = CompendiumRepositories(db, contraTaxonomy);
     pipeline = ImportPipeline(dances, choreographers);
     importer = CompendiumArchiveImporter(
       pipeline,
       programs,
       venues,
+      repositories: repositories,
       difficultyLevels: difficultyLevels,
     );
   });
@@ -119,6 +122,305 @@ void main() {
   tearDown(() => db.close());
 
   final now = DateTime.utc(2026, 7, 18);
+
+  test('archive import clears sync and normalization conclusions but preserves '
+      'unrelated pending deletions', () async {
+    final candidate = SyncMergeCandidate.fromBlob(
+      SyncRecordBlob(
+        kind: SyncRecordKind.tag,
+        id: 'review-tag',
+        updatedAt: now,
+        deletedAt: null,
+        existenceAt: now,
+        body: const {'id': 'review-tag', 'name': 'Review tag'},
+      ),
+    );
+    await repositories.syncLocal.replaceBaseline(
+      epoch: 'archive-import-epoch',
+      entries: [
+        SyncBaselineEntry(
+          kind: candidate.blob.kind,
+          recordId: candidate.blob.id,
+          wireHash: candidate.wireHash,
+        ),
+      ],
+    );
+    await repositories.syncLocal.upsertAlias(
+      kind: SyncRecordKind.tag,
+      losingId: 'loser',
+      survivingId: 'survivor',
+    );
+    await repositories.syncLocal.enqueueReview(
+      kind: candidate.blob.kind,
+      recordId: candidate.blob.id,
+      counterpartId: 'other-tag',
+      reason: 'test',
+      candidateBlob: encodeSyncRecordBlob(candidate.blob),
+      candidateHash: candidate.wireHash,
+      queuedAt: now,
+    );
+    await repositories.settings.set(
+      shareableTextNormalisationScopeKey,
+      'stale',
+    );
+    await db.customStatement(
+      'INSERT INTO normalisation_skips '
+      '(table_name, column_name, record_id) VALUES (?, ?, ?)',
+      ['tags', 'name', 'stale-tag'],
+    );
+    await dances.create(_dance('pre-existing-unnormalized', 'placeholder'));
+    await db.customStatement('UPDATE dances SET title = ? WHERE id = ?', [
+      'cafe\u0301',
+      'pre-existing-unnormalized',
+    ]);
+
+    final pending = _dance('pending', 'Untouched pending dance');
+    await dances.create(pending);
+    await programs.create(
+      Program(
+        id: 'pending-program',
+        title: 'Pending citation',
+        slots: [
+          ProgramSlot(id: 'pending-slot', position: 0, danceId: pending.id),
+        ],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    final tombstone = SyncRecordBlob(
+      kind: SyncRecordKind.dance,
+      id: pending.id,
+      updatedAt: now,
+      deletedAt: now,
+      existenceAt: now,
+      body: syncBodyForEntity(SyncRecordKind.dance, pending),
+    );
+    await repositories.syncLocal.upsertPendingDeletion(
+      kind: tombstone.kind,
+      recordId: tombstone.id,
+      tombstonedAt: tombstone.deletedAt!,
+      tombstoneHash: SyncMergeCandidate.fromBlob(tombstone).wireHash,
+      tombstoneBlob: encodeSyncRecordBlob(tombstone),
+    );
+    final absentTombstone = SyncRecordBlob(
+      kind: SyncRecordKind.dance,
+      id: 'already-absent',
+      updatedAt: now,
+      deletedAt: now,
+      existenceAt: now,
+      body: syncBodyForEntity(
+        SyncRecordKind.dance,
+        _dance('already-absent', 'Already absent'),
+      ),
+    );
+    await repositories.syncLocal.upsertPendingDeletion(
+      kind: absentTombstone.kind,
+      recordId: absentTombstone.id,
+      tombstonedAt: absentTombstone.deletedAt!,
+      tombstoneHash: SyncMergeCandidate.fromBlob(absentTombstone).wireHash,
+      tombstoneBlob: encodeSyncRecordBlob(absentTombstone),
+    );
+
+    final archive = _bundle();
+    final result = await importer.import(
+      encodeArchive(archive),
+      archive,
+      now: now,
+      newId: sequentialIds('import'),
+      newSlotId: sequentialIds('slot'),
+    );
+
+    expect(result.programIssues, isNotEmpty);
+    expect(await repositories.syncLocal.getBaselineState(), isNull);
+    expect(await repositories.syncLocal.listBaselineEntries(), isEmpty);
+    expect(await repositories.syncLocal.listAliases(), isEmpty);
+    expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+    expect(
+      await repositories.syncLocal.getPendingDeletion(
+        kind: SyncRecordKind.dance,
+        recordId: pending.id,
+      ),
+      isNotNull,
+    );
+    expect(
+      await repositories.syncLocal.getPendingDeletion(
+        kind: SyncRecordKind.dance,
+        recordId: absentTombstone.id,
+      ),
+      isNull,
+    );
+    expect(
+      await repositories.settings.contains(shareableTextNormalisationScopeKey),
+      isTrue,
+    );
+    expect(
+      await db.customSelect('SELECT 1 FROM normalisation_skips').get(),
+      isEmpty,
+    );
+    final normalized = await dances.getById('pre-existing-unnormalized');
+    expect(normalized?.title, 'café');
+  });
+
+  test(
+    'failed archive import rolls back sync and normalization cleanup',
+    () async {
+      final candidate = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: SyncRecordKind.tag,
+          id: 'review-tag',
+          updatedAt: now,
+          deletedAt: null,
+          existenceAt: now,
+          body: const {'id': 'review-tag', 'name': 'Review tag'},
+        ),
+      );
+      await repositories.syncLocal.replaceBaseline(
+        epoch: 'archive-import-epoch',
+        entries: [
+          SyncBaselineEntry(
+            kind: candidate.blob.kind,
+            recordId: candidate.blob.id,
+            wireHash: candidate.wireHash,
+          ),
+        ],
+      );
+      await repositories.syncLocal.upsertAlias(
+        kind: SyncRecordKind.tag,
+        losingId: 'loser',
+        survivingId: 'survivor',
+      );
+      await repositories.syncLocal.enqueueReview(
+        kind: candidate.blob.kind,
+        recordId: candidate.blob.id,
+        counterpartId: 'other-tag',
+        reason: 'test',
+        candidateBlob: encodeSyncRecordBlob(candidate.blob),
+        candidateHash: candidate.wireHash,
+        queuedAt: now,
+      );
+      await repositories.settings.set(
+        shareableTextNormalisationScopeKey,
+        'stale',
+      );
+      await db.customStatement(
+        'INSERT INTO normalisation_skips '
+        '(table_name, column_name, record_id) VALUES (?, ?, ?)',
+        ['tags', 'name', 'stale-tag'],
+      );
+      final existing = _dance('pre-existing', 'Existing dance');
+      await dances.create(existing);
+      await repositories.syncLocal.upsertPendingDeletion(
+        kind: SyncRecordKind.dance,
+        recordId: 'uncited-pending',
+        tombstonedAt: now,
+        tombstoneHash: 'not-the-real-hash',
+        tombstoneBlob: 'not-a-sync-record',
+      );
+
+      final baselineStateBefore = await repositories.syncLocal
+          .getBaselineState();
+      final baselineEntriesBefore = await repositories.syncLocal
+          .listBaselineEntries();
+      final aliasesBefore = await repositories.syncLocal.listAliases();
+      final reviewBefore = await repositories.syncLocal.listReviewQueue();
+      final pendingBefore = await repositories.syncLocal.getPendingDeletion(
+        kind: SyncRecordKind.dance,
+        recordId: 'uncited-pending',
+      );
+      final markerBefore = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [
+              Variable.withString(shareableTextNormalisationScopeKey),
+            ],
+          )
+          .get();
+      final skipsBefore = await db
+          .customSelect(
+            'SELECT table_name, column_name, record_id '
+            'FROM normalisation_skips',
+          )
+          .get();
+
+      final archive = _bundle();
+      await expectLater(
+        importer.import(
+          encodeArchive(archive),
+          archive,
+          now: now,
+          newId: sequentialIds('failed-import'),
+          newSlotId: sequentialIds('failed-slot'),
+        ),
+        throwsA(isA<Object>()),
+      );
+
+      expect(
+        (await repositories.syncLocal.getBaselineState())?.epoch,
+        baselineStateBefore?.epoch,
+      );
+      final baselineEntriesAfter = await repositories.syncLocal
+          .listBaselineEntries();
+      expect(baselineEntriesAfter, hasLength(baselineEntriesBefore.length));
+      expect(
+        baselineEntriesAfter.single.kind,
+        baselineEntriesBefore.single.kind,
+      );
+      expect(
+        baselineEntriesAfter.single.recordId,
+        baselineEntriesBefore.single.recordId,
+      );
+      expect(
+        baselineEntriesAfter.single.wireHash,
+        baselineEntriesBefore.single.wireHash,
+      );
+      expect(
+        await repositories.syncLocal.listAliases(),
+        hasLength(aliasesBefore.length),
+      );
+      final aliasAfter = (await repositories.syncLocal.listAliases()).single;
+      expect(aliasAfter.losingId, aliasesBefore.single.losingId);
+      expect(aliasAfter.survivingId, aliasesBefore.single.survivingId);
+      expect(
+        await repositories.syncLocal.listReviewQueue(),
+        hasLength(reviewBefore.length),
+      );
+      final reviewAfter =
+          (await repositories.syncLocal.listReviewQueue()).single;
+      expect(reviewAfter.recordId, reviewBefore.single.recordId);
+      expect(reviewAfter.counterpartId, reviewBefore.single.counterpartId);
+      expect(reviewAfter.candidateHash, reviewBefore.single.candidateHash);
+      final pendingAfter = await repositories.syncLocal.getPendingDeletion(
+        kind: SyncRecordKind.dance,
+        recordId: 'uncited-pending',
+      );
+      expect(pendingAfter?.tombstoneHash, pendingBefore?.tombstoneHash);
+      expect(pendingAfter?.tombstoneBlob, pendingBefore?.tombstoneBlob);
+      final markerAfter = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [
+              Variable.withString(shareableTextNormalisationScopeKey),
+            ],
+          )
+          .get();
+      expect(
+        markerAfter.single.read<String>('value_json'),
+        markerBefore.single.read<String>('value_json'),
+      );
+      final skipsAfter = await db
+          .customSelect(
+            'SELECT table_name, column_name, record_id '
+            'FROM normalisation_skips',
+          )
+          .get();
+      expect(skipsAfter, hasLength(skipsBefore.length));
+      expect(skipsAfter.single.read<String>('table_name'), 'tags');
+      expect(skipsAfter.single.read<String>('column_name'), 'name');
+      expect(skipsAfter.single.read<String>('record_id'), 'stale-tag');
+      expect(await dances.getById(existing.id), isNotNull);
+      expect(await dances.getById('failed-import-1'), isNull);
+    },
+  );
 
   test('preserves purge markers when rebuilding imported programs', () {
     final archive = CompendiumArchive(
@@ -604,6 +906,7 @@ void main() {
         ),
         failing,
         venues,
+        repositories: repositories,
       );
       await expectLater(
         rollbackImporter.import(
@@ -1650,6 +1953,7 @@ void main() {
         ),
         countingPrograms,
         countingVenues,
+        repositories: CompendiumRepositories(countingDb, contraTaxonomy),
       );
 
       Program p(String id, String venueId) => Program(
@@ -1688,8 +1992,9 @@ void main() {
 
       // Two provenance lookups (live and tombstoned), one fingerprint-index
       // preload, and one live-id snapshot are fixed reads; the program write
-      // phase adds no per-program venue existence SELECT.
-      expect(counter.count, 4);
+      // phase adds no per-program venue existence SELECT. The required
+      // post-import normalization sweep adds eight full-table reads.
+      expect(counter.count, 12);
       expect(await countingPrograms.listAll(), hasLength(3));
     });
 
@@ -1707,6 +2012,7 @@ void main() {
         ),
         ProgramRepository(countingDb),
         VenueRepository(countingDb),
+        repositories: CompendiumRepositories(countingDb, contraTaxonomy),
       );
       final archive = CompendiumArchive(
         exportedAt: DateTime.utc(2026, 7, 15),
@@ -1735,7 +2041,9 @@ void main() {
         newSlotId: sequentialIds('slot'),
       );
 
-      expect(counter.count, 3);
+      // The three venue reads are followed by the eight full-table reads from
+      // the required post-import normalization sweep.
+      expect(counter.count, 11);
     });
 
     test(

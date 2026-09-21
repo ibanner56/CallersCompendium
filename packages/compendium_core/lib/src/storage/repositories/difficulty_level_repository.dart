@@ -2,10 +2,12 @@ import 'package:drift/drift.dart';
 import 'package:meta/meta.dart';
 
 import '../../model/difficulty_level.dart';
+import '../../sync/sync_record_kind.dart';
 import '../../util/uuid.dart';
 import '../database.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
+import 'sync_local_repository.dart';
 
 /// CRUD for the collection's user-configurable difficulty vocabulary.
 class DifficultyLevelRepository {
@@ -146,6 +148,9 @@ class DifficultyLevelRepository {
   Future<void> delete(String id, {DateTime? at}) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
+      // Deliberately counts tombstoned dances too, unlike the other
+      // referential guards: [isInUse] states the policy for this kind — a
+      // deleted dance can be restored, so it still protects its level.
       final references = _db.dances.id.count();
       final count =
           await (_db.selectOnly(_db.dances)
@@ -171,23 +176,50 @@ class DifficultyLevelRepository {
   }
 
   /// Revives a tombstoned level without changing its stable ID.
-  Future<void> restore(String id, {required DateTime at}) =>
-      stampExistenceTransition(
+  Future<void> restore(
+    String id, {
+    required DateTime at,
+    bool clearPending = true,
+  }) => _db.transaction(() async {
+    await stampExistenceTransition(
+      _db,
+      table: _db.difficultyLevels,
+      keyColumn: 'id',
+      key: id,
+      at: at,
+      deleted: false,
+    );
+    if (clearPending) {
+      await clearPendingSyncDeletion(
         _db,
-        table: _db.difficultyLevels,
-        keyColumn: 'id',
-        key: id,
-        at: at,
-        deleted: false,
+        kind: SyncRecordKind.difficultyLevel,
+        recordId: id,
       );
-
-  Future<void> hardDelete(Iterable<String> ids) async {
-    for (final id in ids) {
-      await (_db.delete(
-        _db.difficultyLevels,
-      )..where((t) => t.id.equals(id))).go();
     }
-  }
+  });
+
+  Future<void> hardDelete(Iterable<String> ids) => _db.transaction(() async {
+    for (final id in ids) {
+      if (await isPublishedSyncRecord(
+        _db,
+        kind: SyncRecordKind.difficultyLevel,
+        recordId: id,
+      )) {
+        await stampExistenceTransition(
+          _db,
+          table: _db.difficultyLevels,
+          keyColumn: 'id',
+          key: id,
+          at: DateTime.now().toUtc(),
+          deleted: true,
+        );
+      } else {
+        await (_db.delete(
+          _db.difficultyLevels,
+        )..where((t) => t.id.equals(id))).go();
+      }
+    }
+  });
 
   DifficultyLevel _toModel(DifficultyLevelRow row) =>
       DifficultyLevel(id: row.id, label: row.label, position: row.position);

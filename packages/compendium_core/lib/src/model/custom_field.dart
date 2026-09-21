@@ -11,6 +11,10 @@ import 'enums.dart';
 /// Shared so both entry paths agree on one bound.
 const int kMaxCustomFieldChoiceLength = 100;
 
+/// Returns whether [value] is a valid persisted custom-field machine key.
+bool isValidCustomFieldKey(String value) =>
+    RegExp(r'^[a-zA-Z_][a-zA-Z0-9_]*$').hasMatch(value.trim());
+
 /// Parses a custom number input only when it can be represented by the
 /// persisted `REAL` column and JSON.
 num? parseFiniteNumber(String raw) {

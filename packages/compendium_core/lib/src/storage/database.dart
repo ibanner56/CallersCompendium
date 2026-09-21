@@ -295,7 +295,7 @@ Future<void> recordNormalisationSkip(
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 35;
+const int kCompendiumSchemaVersion = 36;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
@@ -333,6 +333,9 @@ const int kMinSupportedSchemaVersion = 20;
 ///   taxonomy source JSON is rewritten recursively, including nested
 ///   `meanwhile` figures; derived figure/search rows are rebuilt after the
 ///   rewrite.
+///
+/// - v36: adds the nullable queue-time local wire hash to actionable sync
+///   review rows so resolution can reject edits made after enqueue.
 ///
 /// - v34 (issue #1200): adds the Device Sync timestamp triple to the
 ///   difficulty-level vocabulary, converting level deletion into a tombstone.
@@ -904,6 +907,21 @@ class CompendiumDatabase extends _$CompendiumDatabase {
           'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
           [taxonomyV35FigureNormalizationDoneKey, 'false'],
         );
+      }
+      if (from < 36) {
+        // Review queues were first created by the v32 migration using the
+        // then-current Dart table definition. A database migrating from
+        // before v32 therefore already has this v36 column by the time it
+        // reaches this step; inspect the live schema before adding it.
+        final reviewQueueColumns = await customSelect(
+          "SELECT name FROM pragma_table_info('${reviewQueue.actualTableName}')",
+        ).get();
+        final hasLocalHash = reviewQueueColumns.any(
+          (row) => row.read<String>('name') == reviewQueue.localHash.name,
+        );
+        if (!hasLocalHash) {
+          await m.addColumn(reviewQueue, reviewQueue.localHash);
+        }
       }
     },
     beforeOpen: (details) async {

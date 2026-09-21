@@ -1122,6 +1122,115 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsGeneralSoftDeleteRetentionNever => '削除しない';
 
   @override
+  String get syncReviewSettingsTitle => '同期の判断';
+
+  @override
+  String get syncReviewSettingsSubtitle => 'このデバイスで作成したレコードと競合するピア側の削除を確認します。';
+
+  @override
+  String get syncReviewTitle => '同期の判断';
+
+  @override
+  String get syncReviewLoading => '同期の判断を読み込み中';
+
+  @override
+  String get syncReviewEmpty => '確認が必要な同期の判断はありません。';
+
+  @override
+  String get syncReviewIntro => 'ピア側の変更を適用する前に、これらのレコードについて判断が必要です。';
+
+  @override
+  String get syncReviewLoadFailed => '同期の判断を読み込めませんでした。';
+
+  @override
+  String get syncReviewResolved => '同期の判断を適用しました。';
+
+  @override
+  String get syncReviewActionFailed => '同期の判断を適用できませんでした。再試行できるよう項目を保持しました。';
+
+  @override
+  String get syncReviewKindChoreographer => '振付師';
+
+  @override
+  String get syncReviewKindTag => 'タグ';
+
+  @override
+  String get syncReviewKindCustomField => 'カスタムフィールド';
+
+  @override
+  String get syncReviewKindDifficulty => '難易度';
+
+  @override
+  String get syncReviewKindDance => 'ダンス';
+
+  @override
+  String get syncReviewKindProgram => 'プログラム';
+
+  @override
+  String get syncReviewKindPublishedSource => '公開元';
+
+  @override
+  String get syncReviewKindVenue => '会場';
+
+  @override
+  String get syncReviewKindSetting => '設定';
+
+  @override
+  String syncReviewLocalRecord(String id) {
+    return 'ローカルレコード: $id';
+  }
+
+  @override
+  String syncReviewPeerRecord(String identity) {
+    return 'ピアのレコード: $identity';
+  }
+
+  @override
+  String get syncReviewTombstoneReason => 'このデバイスで作成した一致するレコードが、ピア側で削除されました。';
+
+  @override
+  String get syncReviewDanceAmbiguityReason => 'ライブのダンスは同じタイトルですが、振り付けが異なります。';
+
+  @override
+  String get syncReviewUnsupportedReason =>
+      'この同期の競合は保留されています。ここでは安全な操作を利用できません。';
+
+  @override
+  String get syncReviewUnsupportedAction =>
+      '後の同期パスまたは対応する確認フローで処理できるまで、この項目を保持してください。';
+
+  @override
+  String get syncReviewMergeAction => '統合';
+
+  @override
+  String get syncReviewKeepBothAction => '両方保持';
+
+  @override
+  String get syncReviewKeepBothTitle => 'ローカルの新しい名前を選択';
+
+  @override
+  String get syncReviewNewNameLabel => '新しいローカル名';
+
+  @override
+  String get syncReviewNameRequired => '名前を入力してください。';
+
+  @override
+  String get syncReviewNameNotDistinct => '別の名前を選択してください。';
+
+  @override
+  String get syncReviewCandidateInvalid => '保存されたピア側の変更が無効なため、保持しました。';
+
+  @override
+  String get syncReviewCandidateChanged => '保存されたピア側の変更は最新でないため、保持しました。';
+
+  @override
+  String get syncReviewTargetMissing => 'ローカルレコードが見つからないため、判断を保持しました。';
+
+  @override
+  String get syncReviewCandidateAlreadyPresent =>
+      'ピアのレコードはすでに存在するため、判断を保持しました。';
+
+  @override
   String get settingsGeneralImportHeader => 'インポート';
 
   @override

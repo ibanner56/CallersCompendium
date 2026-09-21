@@ -215,7 +215,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**218 columns**: 147 shareable, 21 device-local, 25 device-scoped, 25 derived. 26 personal data by category.
+**219 columns**: 147 shareable, 21 device-local, 26 device-scoped, 25 derived. 26 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -391,6 +391,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `review_queue` | `candidate_hash` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `review_queue` | `counterpart_id` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `review_queue` | `kind` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
+| `review_queue` | `local_hash` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `review_queue` | `queued_at` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `review_queue` | `reason` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `review_queue` | `record_id` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
@@ -442,7 +443,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared in `app/lib`; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**73 settings keys**: 57 shareable, 7 device-local, 7 device-scoped, 1 protocol-identifier, 1 access-control-data. 3 personal data by category.
+**74 settings keys**: 57 shareable, 7 device-local, 8 device-scoped, 1 protocol-identifier, 1 access-control-data. 4 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -509,6 +510,7 @@ Declared in `app/lib`; classified here so the catalogue has one source of truth.
 | `sort_ignore_articles` | `dpv:NonPersonalData` | app user | shareable |  |
 | `sync_device_id` | `dpv:NonPersonalData` | — | **protocol-identifier** | Opaque per-installation routing identifier. It must travel in protocol metadata but must never be adopted from another device or restored from a backup. |
 | `sync_id` | `dpv:PersonalData` | app user | **access-control-data** | User-entered bearer credential. It may contain personal information, travels only in Authorization to the configured sync origin, and is never recoverably retained or logged by the server or a proxy; local persistence is governed by this settings classification. |
+| `sync_last_used_fingerprint` | `dpv:PersonalData` | app user | device-scoped | A set of salted, slow credential verifiers used only to distinguish previously used configured sync identities after detach; the credential-derived values are never transmitted, adopted from a peer, or restored from a backup. |
 | `theme_mode` | `dpv:NonPersonalData` | app user | shareable |  |
 | `track_history_for_all_callers` | `dpv:NonPersonalData` | app user | shareable |  |
 | `update_auto_check` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |

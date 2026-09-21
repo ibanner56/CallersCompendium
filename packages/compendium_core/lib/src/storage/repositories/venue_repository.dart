@@ -4,10 +4,12 @@ import 'package:meta/meta.dart';
 import '../../model/enums.dart';
 import '../../model/provenance.dart';
 import '../../model/venue.dart';
+import '../../sync/sync_record_kind.dart';
 import '../database.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
 import '../utc_datetime.dart';
+import 'sync_local_repository.dart';
 
 /// CRUD for [Venue] rows — the reusable venue entity many programs are held at.
 /// Mirrors `PublishedSourceRepository`: editing a venue's address/contacts/
@@ -208,11 +210,16 @@ class VenueRepository {
       // `programs_venue_id` index (see `venueLookupIndexSql`) backs this WHERE
       // so the count restricts to matching references instead of scanning every
       // program row, keeping the guard cheap as a popular venue's history grows.
+      // Live programs only; a soft-deleted program keeps its `venue_id`. See
+      // the note in `ChoreographerRepository.delete`.
       final referencingCount = _db.programs.id.count();
       final count =
           await (_db.selectOnly(_db.programs)
                 ..addColumns([referencingCount])
-                ..where(_db.programs.venueId.equals(id)))
+                ..where(
+                  _db.programs.venueId.equals(id) &
+                      _db.programs.deletedAt.isNull(),
+                ))
               .map((row) => row.read(referencingCount) ?? 0)
               .getSingle();
       if (count > 0) {
@@ -221,6 +228,21 @@ class VenueRepository {
         );
       }
       if (permanent) {
+        if (await isPublishedSyncRecord(
+          _db,
+          kind: SyncRecordKind.venue,
+          recordId: id,
+        )) {
+          await stampExistenceTransition(
+            _db,
+            table: _db.venues,
+            keyColumn: 'id',
+            key: id,
+            at: now,
+            deleted: true,
+          );
+          return;
+        }
         await (_db.delete(_db.venues)..where((t) => t.id.equals(id))).go();
         return;
       }
@@ -237,35 +259,90 @@ class VenueRepository {
 
   /// Restores a tombstoned venue without changing its fields. Exact archive
   /// re-imports use this when the provenance row survives a prior deletion.
-  Future<void> restore(String id, {DateTime? at}) {
-    final now = resolveStamp(at);
-    return stampExistenceTransition(
-      _db,
-      table: _db.venues,
-      keyColumn: 'id',
-      key: id,
-      at: now,
-      deleted: false,
-    );
-  }
+  Future<void> restore(String id, {DateTime? at, bool clearPending = true}) =>
+      _db.transaction(() async {
+        final now = resolveStamp(at);
+        await stampExistenceTransition(
+          _db,
+          table: _db.venues,
+          keyColumn: 'id',
+          key: id,
+          at: now,
+          deleted: false,
+        );
+        if (clearPending) {
+          await clearPendingSyncDeletion(
+            _db,
+            kind: SyncRecordKind.venue,
+            recordId: id,
+          );
+        }
+      });
 
-  /// Unconditionally removes the venues [ids] in a single transaction, skipping
-  /// the reference guard. Intended solely for reverting a just-committed import
-  /// batch (see `CompendiumArchiveImporter.undo`), where the caller has already
-  /// removed the programs that referenced these venues; an empty [ids] is a
-  /// no-op. Ordinary deletes must go through [delete].
+  /// Removes unpublished, unreferenced venues [ids] in a single transaction;
+  /// published venues become tombstones so peers retain deletion evidence.
+  /// Intended solely for reverting a just-committed import batch (see
+  /// `CompendiumArchiveImporter.undo`); an empty [ids] is a no-op. Ordinary
+  /// deletes must go through [delete].
   ///
-  /// Stays a **hard** delete after the schema-v25 soft-delete conversion
-  /// (issue #898), exactly as `DanceRepository.hardDelete` and
-  /// `ProgramRepository.hardDelete` do on kinds that have been soft-deletable
-  /// for far longer. A rollback erases an import that is being treated as never
-  /// having happened, so a tombstone would advertise the deletion of an entity
-  /// no other device ever saw.
+  /// It skips [delete]'s *live*-reference guard, but still retains a venue any
+  /// surviving program row names — including a tombstoned one. The caller can
+  /// no longer be assumed to have removed every referencing program, because a
+  /// published program is tombstoned rather than erased, and `programs.venueId`
+  /// is not a foreign key: nothing else would reject the erasure, and the
+  /// program writer refuses a program whose non-null `venueId` has no matching
+  /// venue.
+  ///
+  /// Unpublished rollback rows stay hard-deleted after the schema-v25
+  /// soft-delete conversion (issue #898), exactly as the corresponding dance
+  /// and program paths do. A rollback erases an import that is being treated as
+  /// never having happened, but a row that was already published still needs
+  /// its tombstone.
   Future<void> hardDelete(Iterable<String> ids) {
     final list = ids.toList();
     if (list.isEmpty) return Future.value();
     return _db.transaction(() async {
+      final publishedIds = await publishedSyncRecordIds(
+        _db,
+        kind: SyncRecordKind.venue,
+        recordIds: list,
+      );
+      final now = DateTime.now().toUtc();
+      for (final id in publishedIds) {
+        await stampExistenceTransition(
+          _db,
+          table: _db.venues,
+          keyColumn: 'id',
+          key: id,
+          at: now,
+          deleted: true,
+        );
+      }
+      // A venue still named by *any* surviving program row — including a
+      // tombstoned one — must stay. `programs.venue_id` is not a foreign key,
+      // so nothing at the database level would reject the erasure, and the
+      // program write path refuses a program whose non-null `venueId` has no
+      // matching venue: the program would become unrestorable from Trash.
+      // This became reachable when publication forfeiture started tombstoning
+      // published programs instead of erasing them, which breaks this method's
+      // documented precondition that the caller has already removed every
+      // referencing program.
+      final stillReferenced = <String>{};
       for (final chunk in _chunkIds(list)) {
+        final rows =
+            await (_db.selectOnly(_db.programs)
+                  ..addColumns([_db.programs.venueId])
+                  ..where(_db.programs.venueId.isIn(chunk)))
+                .map((row) => row.read(_db.programs.venueId))
+                .get();
+        stillReferenced.addAll(rows.whereType<String>());
+      }
+      final erasableIds = list
+          .where(
+            (id) => !publishedIds.contains(id) && !stillReferenced.contains(id),
+          )
+          .toList(growable: false);
+      for (final chunk in _chunkIds(erasableIds)) {
         await (_db.delete(_db.venues)..where((t) => t.id.isIn(chunk))).go();
       }
     });

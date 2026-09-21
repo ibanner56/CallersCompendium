@@ -15,12 +15,14 @@
 > If the ADR and this document disagree, the ADR wins. If the specification and
 > this document disagree, that is a defect in one of them.
 
-**Status: design rationale. ADR-004 is `Accepted`; the protocol itself is
-unbuilt** — no client, no server, no network code. What is built is the
-groundwork this design filed as repair issues and `main` has since closed: the
-v25 schema migration (shipped early so its soft-delete columns hydrate across
-devices before sync code depends on them), the privacy-policy amendment
-(#1115), the standing-invariant ratchets (#1118), and shareable-text
+**Status: design rationale. ADR-004 is `Accepted`; the protocol is partially
+implemented.** W6 now supplies the client-side steady-state pass, transactional
+inbound apply, isolated worker boundary, and endpoint transport; the Athenaeum
+server is implemented for loopback/client development, while public deployment
+and the remaining roadmap units are not yet complete. Earlier groundwork
+includes the v25 schema migration (shipped early so its soft-delete columns
+hydrate across devices before sync code depends on them), the privacy-policy
+amendment (#1115), the standing-invariant ratchets (#1118), and shareable-text
 normalisation on every write path at schema v29 (#1119). ADR-004's
 *Implementation status* is the authoritative list; if this line and that section
 disagree, that section wins.
@@ -32,7 +34,7 @@ disagree, that section wins.
 | **Device Sync** | The user-facing feature. |
 | **Athenaeum** | The store Device Sync talks to. Default `https://athenaeum.callerscompendium.com/`; user-editable. |
 | **sync ID** | Diceware passphrase identifying one store. A bearer credential. |
-| **device ID** | Random v4 UUID minted per installation, on opt-in. Classified `protocolIdentifier`: it travels in manifest envelopes and request paths as an opaque routing key, and is **never adopted from a peer**. Not `deviceScoped`, which means never transmitted by any route. See "what `EgressClass` actually governs". |
+| **device ID** | Random opaque base64url identifier minted per installation, on opt-in. Classified `protocolIdentifier`: it travels in manifest envelopes and request paths as an opaque routing key, and is **never adopted from a peer**. Not `deviceScoped`, which means never transmitted by any route. See "what `EgressClass` actually governs". |
 | **epoch** | Opaque 128-bit random value the server stamps on a sync ID at creation. |
 | **record** | One syncable row — a dance, program, tag, choreographer, published source, custom field def, difficulty level, venue, or a settings key. |
 | **blob** | One record, serialised and content-addressed. |
@@ -563,6 +565,7 @@ transmitting it *is* the authorisation for the request carrying it:
 | `sync_wifi_only` | A per-device network policy; a laptop and a phone want different answers. |
 | `sync_exclude_imports` | Governs what *this* device uploads. |
 | `sync_last_synced_at` | Local state. |
+| `sync_last_used_fingerprint` | Salted, slow credential verifiers used only to distinguish a previously used sync ID after detach. They are credential-derived, device-scoped, never transmitted or adopted, and excluded from backups. |
 
 The rule is simple enough to state as one: **sync configuration is never itself
 synced** — `sync_device_id` included, which travels as a routing key without
@@ -581,8 +584,8 @@ it:
 | Id aliases (`losing_id`, `surviving_id`, `kind`) | `id_aliases` | `deviceScoped` |
 | Pending deletions — markers (`kind`, `record_id`, `tombstoned_at`, `tombstone_hash`) | `pending_deletions` | `deviceScoped` |
 | Pending deletions — retained tombstone bytes (`tombstone_blob`) | `pending_deletions` | `shareable` |
-| Deferred review items (`kind`, `record_id`, `counterpart_id`, `reason`, `candidate_blob`, `candidate_hash`, `queued_at`) | `review_queue` | `deviceScoped` |
-| Records this device has published (`kind`, `record_id`) | `published_records` | `deviceScoped` |
+| Deferred review items (`kind`, `record_id`, `counterpart_id`, `reason`, `candidate_blob`, `candidate_hash`, nullable `local_hash`, `queued_at`) | `review_queue` | `deviceScoped` |
+| Records this device has selected for publication (`kind`, `record_id`) | `published_records` | `deviceScoped` |
 | Rows the normalisation pass could not repair (`table`, `column`, `record_id`) | `normalisation_skips` | `deviceScoped` |
 
 **Three of these are scoped to the store identity**, and `id_aliases` and
@@ -660,13 +663,13 @@ window in which a record is fetchable by every peer while the check still says
 loop the rule exists to prevent, since the peer that downloaded it keeps
 republishing a row this device can no longer tombstone.
 
-So it is its own marker, written before the `PUT` rather than after it: a crash
-between the two over-marks instead of under-marking. Those are not equivalent
-mistakes, and the asymmetry is the whole design of this table. An under-mark
-loses the guarantee silently; an over-mark leaves a tombstone where an undone
-import should have left nothing, which is a real cost — it is precisely what
-`VenueRepository.hardDelete`'s exemption exists to avoid — but a visible and
-recoverable one.
+So it is its own marker, written before blob negotiation rather than after the
+`PUT`: a crash or upload failure over-marks instead of under-marking. Those are
+not equivalent mistakes, and the asymmetry is the whole design of this table.
+An under-mark loses the guarantee silently; an over-mark leaves a tombstone
+where an undone import should have left nothing, which is a real cost — it is
+precisely what `VenueRepository.hardDelete`'s exemption exists to avoid — but a
+visible and recoverable one.
 
 **The first draft cleared it on detach, and that was wrong.** The reasoning was
 that re-attach is a union which deletes nothing, so a hard delete made while
@@ -681,17 +684,19 @@ reached through the detach path rather than the undo path.
 What makes it wrong is not that the rule was insufficiently cautious. It is that
 **detach does not un-publish anything.** Detach forgets the sync ID locally and
 leaves this device's manifest on the server; there is no `DELETE
-/v1/manifests/{self}`, and a blob stays reachable while any manifest for its
-store references it. So the marker's claim — these bytes left this device and
-peers can still fetch them — remains literally true after a detach. Clearing it
-records a falsehood, and every consequence follows from that one error.
+/v1/manifests/{self}`, and a successful publication stays reachable while any
+manifest for its store references it. The marker is retained because a failed
+attempt cannot later be distinguished from a publication that peers may have
+fetched. Clearing it would discard the conservative protection and every
+consequence follows from that one error.
 
 The correction is that `published_records` is **not store-scoped state at all**,
 which is why the analogy to `pending_deletions` misled. The other three tables
 hold conclusions *about a store*: which ids were merged there, which pairs need
 adjudicating there, which deletions are owed there. All of those stop meaning
-anything when the store does. This one holds a physical event — bytes left the
-device — and an event does not stop having happened. It is monotonic: written
+anything when the store does. This one holds a conservative
+publication-attempt decision rather than a physical event, and that decision
+does not become safe to forget when an attempt fails. It is monotonic: written
 once, never cleared by an epoch reset, a detach or a restore.
 
 That also settles retirement, which `id_aliases` gets and this deliberately does
@@ -709,9 +714,9 @@ nothing, which is the whole point of it. So on a device with churn the marker
 table will hold *more* rows than the baseline, and "smaller than the baseline"
 is a bound that quietly stops holding at exactly the moment anyone would want to
 lean on it. The figure that actually bounds it is absolute: tens of bytes per
-pair, one per record ever published, so a device that has published 100,000
-records over its lifetime carries a few megabytes. An entry is kept even after
-its record is tombstoned and purged.
+pair, one per record selected for publication, so a device that has selected
+100,000 records over its lifetime carries a few megabytes. An entry is kept even
+after its record is tombstoned and purged.
 
 Stale entries after a restore are inert and need no revalidation for the same
 reason they need no clearing: the marker is consulted only when deleting the
@@ -879,7 +884,7 @@ several places, and a change to it must be traced to all of them:
 | Inbound validation | Out-of-range `existenceAt` *or* `updatedAt` rejected, never clamped |
 | Quarantine repair | Rebuilds only out-of-window fields, from peers sound in that same field; keyed on the baseline for `updatedAt` |
 | Repair's missing-baseline branch | Never-agreed only; upgraded and wiped entries take other paths |
-| Quarantined records | Excluded from merge table and union; manifest advertises last agreed hash; records citing them withheld to a fixpoint over database-FK references, `venueId` exempt |
+| Quarantined records | Excluded from merge table and union; manifest probes each fallback hash before advertising it; unavailable fallbacks are omitted and records citing them are withheld to a fixpoint over database-FK references, `venueId` exempt |
 
 #### The increment is one *tick*, and that is not a detail
 
@@ -1119,14 +1124,19 @@ other copies actually hold:
   distinction the pending-tombstone rule turns on:
 
   - **The blob is withheld.** Nothing publishes a poisoned value.
-  - **The manifest advertises the record's last agreed hash**, whose blob peers
-    already hold — the **wire** hash, which is what a manifest carries and what
-    peers fetch by, and which survives the body-hash migration since it was never
-    dropped. Advertising the *current* hash would name a blob nobody can fetch,
-    and omitting the record entirely would break referential closure — a
-    fresh-attaching peer that downloads a dance citing the omitted entity fails
-    at COMMIT on the cascading foreign key and discards its whole batch, which is
-    the failure the pending-tombstone rule exists to prevent.
+  - **The manifest advertises the record's last agreed hash** only after the
+    client negotiates that **wire** hash through `POST /v1/blobs/missing`.
+    Peers normally hold that blob, and this is the hash a manifest carries and
+    peers fetch by — it survives the body-hash migration since it was never
+    dropped. If the server reports the fallback missing and this device has no
+    body for it, the fallback is not usable for this pass: the record is
+    omitted and its database-FK dependents are withheld through the same
+    fixpoint. If the body is available locally, it is uploaded before the
+    manifest is published. Advertising the *current* hash would name a blob
+    nobody can fetch, and omitting a usable fallback would break referential
+    closure — a fresh-attaching peer that downloads a dance citing the omitted
+    entity fails at COMMIT on the cascading foreign key and discards its whole
+    batch, which is the failure the pending-tombstone rule exists to prevent.
 
     Advertising a hash older than what this device holds means peers may offer it
     their newer content, which is correct and harmless: this device is genuinely
@@ -1217,7 +1227,7 @@ other copies actually hold:
   **A quarantined record never advances its baseline, whatever its manifest
   says.** Those two facts pull apart for exactly these records: the manifest
   advertises the last agreed hash while the device holds a poisoned current one,
-  so a peer echoing the advertised hash would look like agreement on every pass
+  so a peer echoing the usable advertised hash would look like agreement on every pass
   under a rule keyed to "the hash it published". It is not agreement — it is this
   device's own fallback coming back to it — and treating it as such would
   populate a null body hash from the poisoned body and land the edited sub-case
@@ -1250,11 +1260,15 @@ other copies actually hold:
   now", and only the first is what the rebuild needs to know.
 
   The comparison is **hash equality over the record's `body` alone**, against a
-  body-scoped hash stored alongside the wire hash in the baseline table, using
-  the same canonicalisation the wire hash uses so that `8` and `8.0`, or absent
-  and null, cannot read as a difference.
+  body-scoped comparison hash stored alongside the wire hash in the baseline
+  table. It uses the same canonicalisation as the wire hash so that `8` and
+  `8.0`, or absent and null, cannot read as a difference. For dances and
+  programs, the comparison removes only the body's redundant top-level
+  `updatedAt` and `deletedAt` projections; every other body field remains part
+  of the hash.
 
-  **It has to exclude the ordering fields, or it answers a different question.**
+  **It has to exclude redundant body timestamp projections, or it answers a
+  different question.**
   The wire hash covers the whole blob — `v`, `kind`, `id`, `updatedAt`,
   `deletedAt`, `existenceAt` and `body` — so comparing it asks "is my record
   byte-identical to my last synced snapshot", not "did I edit the content". Those
@@ -1262,32 +1276,36 @@ other copies actually hold:
   timestamp and nothing else, so a whole-blob comparison reports "differs"
   unconditionally, and the classifier degenerates to "I edited" for every
   quarantined record. A device that soft-deleted while its clock was broken —
-  `softDelete` writes `deletedAt` and `updatedAt`, never touching `body` — would
-  be classified as having edited, and would stamp its possibly-stale content
-  above the peers. That is the round-17 defect returning by another route, and it
-  is the same whole-blob comparator that caused it: there it could never report
-  *equal*, here it can never report *differs* falsely — the tell in both cases
-  being an answer that goes constant precisely where the classifier is needed.
+  `softDelete` writes `deletedAt` and `updatedAt`; archive-shaped dance and
+  program bodies repeat those timestamps. That record would be classified as
+  having edited, and would stamp its possibly-stale content above the peers.
+  That is the round-17 defect returning by another route, and it is the same
+  whole-blob comparator that caused it: there it could never report *equal*,
+  here it can never report *differs* falsely — the tell in both cases being an
+  answer that goes constant precisely where the classifier is needed.
 
   **The baseline entry must record agreement, not merely upload.** A record's
   baseline entry advances only once a peer's manifest is observed to carry that
-  hash; an upload this device has not yet seen reflected stays out of it.
+  record's current wire hash; an upload this device has not yet seen reflected
+  stays out of it. The stored body hash is the comparison hash described above.
 
-  **Existing baselines cannot be migrated, and are dropped.** The baseline has
-  only ever stored the wire hash, so a device already attached under the previous
-  scheme has no way to derive a body hash for its rows — the content those hashes
-  covered was never retained. Both obvious backfills reintroduce bugs this design
-  has already closed: taking the *current local content* records an unconfirmed
-  edit as agreed, which is the advance-on-upload defect applied to every record
-  with an edit in flight at upgrade; and inventing any other value is a guess
-  about content.
+  **Existing baselines cannot be migrated, and are dropped.** A legacy baseline
+  stores a full-body hash, not the projection-neutral comparison hash required
+  by W9. Because the hash is one-way, a device already attached under the
+  previous scheme cannot derive the new comparison hash from the legacy value;
+  the content covered by that hash was never retained in the baseline. Both
+  obvious backfills reintroduce bugs this design has already closed: taking the
+  *current local content* records an unconfirmed edit as agreed, which is the
+  advance-on-upload defect applied to every record with an edit in flight at
+  upgrade; and inventing any other value is a guess about content.
 
-  So the body hash is **left null on upgrade and populated on the first pass that
-  observes agreement**. In the interval, such a record is *not* handed to the
-  never-agreed comparison — it was agreed, and the surviving wire hash proves
-  that much — and it stays quarantined if quarantined at all, since the wire hash
-  cannot stand in for the body hash it lacks. There is no safe backfill to write, which
-  is worth saying outright rather than leaving an implementer to discover it:
+  So the client **drops the old epoch-scoped baseline on upgrade and performs
+  a fresh attach**. The persisted representation marks comparison hashes
+  written by W9, so an unmarked pre-W9 full-body hash is never reinterpreted as
+  a comparison hash or handed to repair. Fresh attach repopulates comparison
+  hashes only after a peer's agreement is observed. There is no safe backfill
+  to write, which is worth saying outright rather than leaving an implementer
+  to discover it:
   unlike the `existence_at` migration, where the wrong choice is available and
   tempting, here every choice that invents a value is wrong, and the only correct
   one is to admit the value is not recoverable.
@@ -2965,9 +2983,11 @@ sync ID entirely, so re-enabling is a fresh attach.
    prior success can explain disappearance and offer replacement, but it still
    cannot create without confirmation.
 3. **Fresh attach**, always, on first attach for this ID, on re-attach after
-   detach, and on `409`. Detaching **forgets the sync ID entirely**: no list of
-   previously-attached IDs is kept, so re-attaching cannot resurrect a stale
-   baseline.
+   detach, and on `409`. Detaching **forgets the sync ID entirely**: no
+   recoverable list of previously-attached IDs is kept. A salted, slow local
+   verifier set remains only to distinguish prior use of an ID from a first
+   attach when the collection has disappeared; it cannot reconstruct the
+   credential and is not backed up or transmitted.
 4. Upload every local record; download every remote record. **Inbound rejection
    applies here as in steady state** — a blob whose `existenceAt` or `updatedAt`
    is out of window is refused and reported, rather than admitted because this is
@@ -3022,8 +3042,9 @@ hold different ids for it, so union alone yields duplicates.
 **Silent merge** where both hold:
 
 1. exact normalized-title match (`normalizeTitle`), and
-2. `_choreographyEquals` — form, formation, progression, phrase structure,
-   figures *including params*, hook, calling notes, level, mixed level, tunes.
+2. the shared `choreographyFingerprint` contract — form, formation,
+   progression, phrase structure, figures *including params*, hook, calling
+   notes, level, mixed level, tunes.
 
 **Tombstones do not participate.** A deleted dance is not a duplicate candidate.
 Merging a live copy with a tombstoned one would decide existence by title and
@@ -3035,7 +3056,7 @@ tombstone until its own purge.
 A draft of this paragraph also said such a pair is "settled by `existenceAt` and
 only then considered for dedupe". That step cannot run. Dedupe pairs records
 holding **different UUIDs**, and the only thing that pairs them is the title and
-`_choreographyEquals` match — so excluding tombstones from the match means no
+shared choreography match — so excluding tombstones from the match means no
 pair ever exists for `existenceAt` to settle. The claim was harmless in effect,
 since the safe reading is the implemented one, but it described a mechanism that
 does not exist.
@@ -3101,7 +3122,7 @@ block the sync that found them.
 
 Device Sync therefore **specifies the durable queue** rather than assuming it:
 a `review_queue` table (`kind`, `record_id`, `counterpart_id`, `reason`,
-`candidate_blob`, `candidate_hash`, `queued_at`), classified `deviceScoped`, a
+`candidate_blob`, `candidate_hash`, nullable `local_hash`, `queued_at`), classified `deviceScoped`, a
 schema change beyond the sync migration alongside `id_aliases`. Deferring an
 item is a write,
 not a prompt; the user is shown a count and works through it whenever they
@@ -3156,8 +3177,9 @@ not new work *caused* by Device Sync, though — the dance dedupe path has depen
 on it since the first draft, which no earlier round caught, and the same gap
 would have surfaced on the first fresh attach.
 
-Device Sync **calls** `_choreographyEquals` rather than reimplementing it. Two
-definitions of "the same dance" would drift, and the drift would be silent.
+Device Sync and import use the shared `choreographyFingerprint` contract rather
+than maintaining separate field lists. Two definitions of "the same dance"
+would drift, and the drift would be silent.
 
 Deliberately stricter than import: import treats title + author-overlap as
 confident even when choreography differs, which is right for re-importing a
@@ -3166,13 +3188,13 @@ device, and merging it silently would discard one side.
 
 On silent merge the surviving record is chosen by the **canonical tie-break** —
 the lexicographically smaller UUID, the same rule entity reconciliation uses, so
-both devices independently pick the same survivor. The id-collections
-`_choreographyEquals` ignores — tags, custom fields, links, citations — are
+both devices independently pick the same survivor. The id-collections the
+shared choreography contract ignores — tags, custom fields, links, citations — are
 **unioned**, since they are additive and neither side is more correct.
 
-**The scalars `_choreographyEquals` does not compare are resolved by recency, not
-taken from the survivor.** It compares form, formation, progression, phrase
-structure, figures, hook, calling notes, level, mixed-level and tunes — so
+**The scalars the shared choreography contract does not compare are resolved by
+recency, not taken from the survivor.** It compares form, formation, progression,
+phrase structure, figures, hook, calling notes, level, mixed-level and tunes — so
 `walkthrough`, `rating`, `status`, `composedOn` and `revisedOn` fall outside both
 the equality test and the union. Taking them from the tie-break survivor would
 discard a caller's own walkthrough notes and their rating on an arbitrary UUID
@@ -3369,13 +3391,19 @@ would break repair silently and without resembling a sync change at the point it
 was added. Any new write is checked against this the way new write paths are
 checked against the discriminator rule above.
 
-5. `POST /v1/blobs/missing` with the hashes to upload; `PUT` only what is
-   missing.
-6. `GET /v1/blobs/{hash}` for each needed hash. **Verify the hash before
+5. `GET /v1/blobs/{hash}` for each needed hash. **Verify the hash before
    applying.**
-7. Apply in one transaction, **read-modify-write** (below). Rebuild derived
+6. Apply in one transaction, **read-modify-write** (below). Rebuild derived
    indexes.
-8. `PUT /v1/manifests/{self}`.
+7. Recompute the local manifest from the post-apply state. Before any
+   publication network request, record every address named by that final
+   manifest in `published_records`; then `POST /v1/blobs/missing` and `PUT`
+   only what is missing from the final manifest. Attach-only blobs are not
+   marked because attach writes no manifest and those blobs remain unreachable
+   until this continuation pass.
+8. `PUT /v1/manifests/{self}`. The pre-blob marker is retained before this
+   request, so a failure between the marker and the request over-marks rather
+   than allowing a later hard delete to erase publication evidence.
 9. Store the new baseline. A record's entry advances only where a peer's
    manifest was observed to carry **this device's current content hash** — an
    upload not yet reflected by any peer is not agreement, and quarantine repair
@@ -3411,6 +3439,15 @@ Fresh attach is already the specified path for "no valid baseline", and it
 resolves this case correctly **while any peer still advertises the tombstone**:
 X uploads, that tombstone carries the greater `existenceAt`, and the device
 converges on the deletion instead of diverging from it for ever.
+
+The app's general sync-writer lifecycle makes the baseline drop a writer-order
+boundary for both backup restore and shared archive import: it stops new
+coordinator work and awaits the active pass before the writer starts, then
+recreates the coordinator after the operation finishes. Without that boundary,
+a pass that captured the pre-write snapshot could apply, publish, or advance
+the old baseline after the writer and overwrite the restored library. Refusal
+and failure paths still recreate the coordinator so a partially closed runtime
+is not left unusable. Shared-import Undo uses the same boundary.
 
 **That bound is real and is not a formality.** Once the deletion has been applied
 everywhere and each device's sweep has purged the soft-deleted row past the
@@ -3570,8 +3607,12 @@ implementable.
 
 ### Failure and offline
 
-Device Sync is best-effort and never blocks the UI. Any failure leaves local data
-untouched and the baseline unchanged, so the next attempt retries cleanly.
+Device Sync is best-effort and never blocks the UI. A failure before apply
+leaves local data untouched. The inbound apply itself is one transaction, so it
+either commits whole or not at all; it never leaves a partial local apply. A
+failure after that transaction commits can therefore leave local data changed
+while the published manifest and baseline remain old, so the next attempt
+republishes and converges.
 
 - Network unreachable, DNS failure, TLS failure, `5xx` → retry with exponential
   backoff and jitter, cap 6 hours.
@@ -3583,10 +3624,12 @@ untouched and the baseline unchanged, so the next attempt retries cleanly.
   dances* toggle offered inline, since imports are usually the bulk and that
   setting is the lever.
 - Partial upload → harmless. Blobs are content-addressed and immutable; the
-  manifest is written last, so a half-finished sync publishes nothing.
+  manifest is written last, so a half-finished sync publishes no new manifest
+  or baseline, while any already-committed local apply remains.
 
 **The manifest is written last, always.** That single ordering rule is what
-makes an interrupted sync a no-op instead of a corruption.
+makes an interrupted sync publish no partial state. It does not roll back a
+transaction that already committed locally.
 
 ### Triggers
 
@@ -3710,8 +3753,9 @@ manifest `PUT`, and during the sweep, unreferenced blobs for that store are
 deleted. Mark-and-sweep scoped to one store is cheap; no global scan.
 
 **Reachability alone is not a safe collection rule, and the first draft of this
-section used it as one.** The client uploads blobs at step 5 and publishes its
-manifest at step 8, with a full download-and-apply in between, so every upload
+section used it as one.** The client downloads records at step 5, applies them
+in one transaction at step 6, uploads blobs missing from the post-apply final
+manifest at step 7, and publishes its manifest at step 8, so every upload
 spends a window referenced by no manifest at all. A concurrent peer's manifest
 `PUT` during that window triggers store-scoped GC and deletes a blob that is
 about to be published; the hourly sweep does the same thing with one device.
@@ -4117,8 +4161,10 @@ must say this plainly rather than implying sync is opaque to us.
   every field classified `deviceLocal`, a record carrying a value there produces
   a blob not containing it. This is the test that must never be allowed to
   become vacuous.
-- **Interrupted sync is a no-op** — kill after blob upload, before manifest
-  `PUT`; assert peers see nothing.
+- **Interrupted sync has no partial apply or publication** — kill after blob
+  upload, before manifest `PUT`; assert peers see no new manifest, the baseline
+  remains old, and the next pass republishes. Local state is wholly pre-apply
+  or post-apply, never a partial apply; a committed post-apply state remains.
 - **Fresh-attach union and silent merge** — `{B,C}` joining `{A,B}` yields
   `{A,B,C}`; identical-choreography duplicates merge without a prompt;
   same-title-same-author-different-figures reaches the review queue.
@@ -4310,9 +4356,10 @@ must say this plainly rather than implying sync is opaque to us.
 - **A timestamp-only change is not read as an edit** — soft-delete a record on a
   clock-broken device without touching its content, then repair; assert the
   verbatim branch is taken. Mutation-proved by comparing the **whole-blob** hash
-  instead of the body hash: `softDelete` moves `deletedAt` and `updatedAt`, so
-  the blob hash always differs and every quarantined record is misclassified as
-  edited — the comparator answering constantly in the one case it exists for.
+  instead of the canonical comparison hash: `softDelete` moves `deletedAt` and
+  `updatedAt`, and archive-shaped dance/program bodies repeat them, so the blob
+  hash always differs and every quarantined record is misclassified as edited —
+  the comparator answering constantly in the one case it exists for.
 - **An unconfirmed upload is not agreement** — a device with a fast clock uploads
   a poisoned blob that every peer refuses; assert its baseline does **not**
   advance, so a later repair still classifies the record as locally edited.
@@ -4403,17 +4450,17 @@ must say this plainly rather than implying sync is opaque to us.
   taking the global maximum, which pairs B's content with C's clock, leaves the
   pair at equal `updatedAt` against C, and permanently blocks C's genuine edit
   behind a strict-`>` gate.
-- **A record citing a quarantined entity is withheld too** — create an entity on
-  a broken clock, correct the clock, create a record citing it, and sync; assert
-  the citing record is withheld until the entity is publishable. Mutation-proved
-  by publishing it, after which a peer's batch fails at COMMIT on the cascading
-  foreign key — the citing record is freshly stamped and not itself quarantined,
-  so nothing else stops it.
-- **Withholding reaches the second hop** — a program citing a dance citing a
-  quarantined choreographer; assert the program is withheld too. Mutation-proved
-  by testing only direct citations, where the dance is withheld but not
-  quarantined, so the program publishes and its peer's batch fails on the same
-  foreign key the rule exists to protect.
+- **A no-fallback quarantined record's dependents are withheld too** — create an
+  entity on a broken clock with no agreed hash, correct the clock, create a
+  record citing it, and sync; assert the citing record is withheld until the
+  entity is publishable. Mutation-proved by publishing it, after which a
+  peer's batch fails at COMMIT on the cascading foreign key — the citing record
+  is freshly stamped and not itself quarantined, so nothing else stops it.
+- **No-fallback withholding reaches the second hop** — a program citing a dance
+  citing a quarantined choreographer with no agreed hash; assert the program is
+  withheld too. Mutation-proved by testing only direct citations, where the
+  dance is withheld but not quarantined, so the program publishes and its peer's
+  batch fails on the same foreign key the rule exists to protect.
 - **A program citing a quarantined venue still publishes** — assert the venue
   exemption holds, that the receiving peer nulls the dangling `venueId` before
   the write, and that the program applies with the rest of its content intact.
@@ -4443,11 +4490,13 @@ must say this plainly rather than implying sync is opaque to us.
   a null body hash from the poisoned body, and lands the edited sub-case on the
   verbatim branch.
 - **A quarantined record advertises its last agreed hash** — assert the manifest
-  entry names a hash peers can actually fetch, that the poisoned blob is not
-  uploaded, and that a fresh-attaching peer downloading a dance citing that
-  entity commits successfully. Mutation-proved two ways: advertise the current
-  hash, and the entry names a blob nobody holds; omit the entry, and the peer's
-  batch fails at COMMIT on the cascading foreign key.
+  probes a hash peers can actually fetch before advertising it, that the
+  poisoned blob is not uploaded, and that a fresh-attaching peer downloading a
+  dance citing that entity commits successfully. If the fallback is missing at
+  the store and locally, assert the root and its dependents are omitted and
+  reported. Mutation-proved two ways: advertise the current hash, and the entry
+  names a blob nobody holds; omit a usable fallback, and the peer's batch fails
+  at COMMIT on the cascading foreign key.
 - **A locally quarantined value is excluded from the union, not overwritten** —
   assert the local row survives arbitration and is handed to repair afterwards.
   Mutation-proved by letting the peer's value replace it, which discards a
@@ -4859,9 +4908,11 @@ that had not been given.
 ### Dance dedupe runs only at fresh attach, so a dance can fork permanently
 
 Content-based dance dedupe is an attach-time pass. Steady-state sync has no
-per-record dedupe, so two dances that become identical *after* attach — or a
-device attaching later that merges a pair a third device already merged
-differently — stay forked with no mechanism to reconcile them afterwards.
+per-record dedupe: it only revalidates already-queued ambiguity pairs, so two
+dances that become identical *after* attach — or a device attaching later that
+merges a pair a third device already merged differently — stay forked with no
+mechanism to reconcile them afterwards. That targeted refresh does not discover
+new pairs or scan the full library.
 
 This is materially worse than the disclosed venue and published-source
 duplication, and the difference is worth stating: those two kinds never had an

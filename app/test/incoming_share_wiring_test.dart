@@ -13,11 +13,14 @@ import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/screens/contradb_program_import_screen.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';
+import 'package:compendium_app/src/sync/sync_coordinator.dart';
+import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
+import 'support/noop_sync_transport.dart';
 import 'support/test_repositories.dart';
 
 /// A [WindowService] whose restore does nothing (no real window under test).
@@ -156,10 +159,90 @@ void main() {
       // The untrusted bundle lands on the review/consent screen — never the old
       // auto-open ProgramSummaryScreen — and NOTHING is written yet.
       expect(find.byType(ImportReviewScreen), findsOneWidget);
+      expect(find.byKey(const ValueKey('import-review-list')), findsOneWidget);
       expect(await appData.repositories.programs.listAll(), isEmpty);
       expect(await appData.repositories.dances.listAll(), isEmpty);
     },
   );
+
+  testWidgets('shared bundle commit waits for an in-flight sync pass', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final appData = _openAppData();
+    final firstPassStarted = Completer<void>();
+    final firstPassGate = Completer<void>();
+    var factoryCalls = 0;
+
+    Future<SyncCoordinator?> factory(
+      CompendiumRepositories repositories,
+    ) async {
+      factoryCalls++;
+      final isFirstCoordinator = factoryCalls == 1;
+      return SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: CompendiumSyncCoordinatorStore(repositories),
+        transport: NoopSyncCoordinatorTransport(),
+        passOperation: ({SyncStoreResult? initialStore}) async {
+          if (isFirstCoordinator) {
+            if (!firstPassStarted.isCompleted) {
+              firstPassStarted.complete();
+            }
+            await firstPassGate.future;
+          }
+          return const SyncPassResult(SyncPassStatus.completed);
+        },
+      );
+    }
+
+    await tester.pumpWidget(
+      CompendiumApp(
+        appData: appData,
+        windowService: _NoopWindowService(appData.repositories.settings),
+        incomingFileChannel: _FakeIncomingFileChannel(
+          initialPath: '/shared/bundle.json',
+        ),
+        incomingFileReader: _readerFor(_validBundleJson()),
+        syncCoordinatorFactory: factory,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await firstPassStarted.future;
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ImportReviewScreen), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+    await tester.pump();
+
+    expect(
+      await appData.repositories.dances.listAll(),
+      isEmpty,
+      reason: 'shared import must not write while sync is still in flight',
+    );
+    expect(
+      await appData.repositories.programs.listAll(),
+      isEmpty,
+      reason: 'shared import must not write while sync is still in flight',
+    );
+
+    firstPassGate.complete();
+    await tester.pumpAndSettle();
+
+    expect(
+      (await appData.repositories.dances.listAll()).map((dance) => dance.title),
+      contains('Simplicity Swing'),
+    );
+    expect(
+      (await appData.repositories.programs.listAll()).map(
+        (program) => program.title,
+      ),
+      contains('Shared Spring Fling'),
+    );
+    expect(factoryCalls, greaterThanOrEqualTo(2));
+  });
 
   testWidgets('a malformed shared file is rejected with a snackbar', (
     tester,

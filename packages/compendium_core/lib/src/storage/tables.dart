@@ -482,9 +482,11 @@ class Venues extends Table {
 
   /// Sync timestamp triple; see the note at the top of this file. Added in
   /// schema v25 (issue #898), which also converted `VenueRepository.delete`
-  /// from a hard delete to a tombstone. [VenueRepository.hardDelete] stays a
-  /// hard delete: it exists solely to roll back a just-committed import, and a
-  /// rollback must leave no trace to publish.
+  /// from a hard delete to a tombstone. [VenueRepository.hardDelete] still
+  /// erases, because it exists solely to roll back a just-committed import and
+  /// a rollback should leave no trace to publish — but only for a venue that
+  /// was never published and that no surviving program still names. A
+  /// published venue is tombstoned instead (sync-spec.md §3.1 forfeiture).
   DateTimeColumn get updatedAt => dateTime().nullable()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
   DateTimeColumn get existenceAt => dateTime().nullable()();
@@ -680,6 +682,7 @@ class ReviewQueue extends Table {
   TextColumn get reason => text()();
   TextColumn get candidateBlob => text().named('candidate_blob')();
   TextColumn get candidateHash => text().named('candidate_hash')();
+  TextColumn get localHash => text().named('local_hash').nullable()();
   DateTimeColumn get queuedAt => dateTime().named('queued_at')();
 
   @override

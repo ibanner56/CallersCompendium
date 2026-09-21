@@ -6,12 +6,14 @@ import '../../model/enums.dart';
 import '../../model/program.dart';
 import '../../model/provenance.dart' as model;
 import '../../model/stored_timestamp.dart';
+import '../../sync/sync_record_kind.dart';
 import '../database.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
 import '../utc_datetime.dart';
 import '../calling_history_scope.dart';
 import 'venue_repository.dart';
+import 'sync_local_repository.dart';
 
 /// One entry in a dance's calling history: a program that includes the dance
 /// (a slot referencing it), produced by
@@ -275,6 +277,19 @@ class ProgramRepository {
   Future<void> update(Program program, {LiveVenueIds? knownVenueIds}) =>
       _upsert(program, knownVenueIds: knownVenueIds);
 
+  /// Persists an inbound sync body without stamping performed slots as a local
+  /// status-transition side effect.
+  Future<void> writeFromSync(Program program) =>
+      _upsert(program, stampPerformedSlots: false);
+
+  /// Persists only the program row for a two-phase inbound sync write.
+  Future<void> writeFromSyncParent(Program program) =>
+      _upsert(program, stampPerformedSlots: false, writeRelations: false);
+
+  /// Persists only the program's dependent rows for a two-phase inbound write.
+  Future<void> writeFromSyncRelations(Program program) =>
+      _upsert(program, stampPerformedSlots: false, writeParent: false);
+
   /// Clears performed stamps created by one bulk mark action.
   ///
   /// The slot id and timestamp predicates make this an atomic compare-and-clear
@@ -336,6 +351,9 @@ class ProgramRepository {
   Future<void> _upsert(
     Program program, {
     LiveVenueIds? knownVenueIds,
+    bool stampPerformedSlots = true,
+    bool writeParent = true,
+    bool writeRelations = true,
   }) => _db.transaction(() async {
     assertUtc(program.createdAt, 'program.createdAt');
     assertUtc(program.updatedAt, 'program.updatedAt');
@@ -387,7 +405,7 @@ class ProgramRepository {
     // dance-linked-only logic lives in [Program.stampDanceSlotsPerformed]. The
     // stamp uses the program's eventDate when set, else its updatedAt (the
     // save's "now"), keeping the timestamp deterministic and validated.
-    if (program.status == ProgramStatus.performed) {
+    if (stampPerformedSlots && program.status == ProgramStatus.performed) {
       final priorRow = await (_db.select(
         _db.programs,
       )..where((t) => t.id.equals(program.id))).getSingleOrNull();
@@ -395,114 +413,118 @@ class ProgramRepository {
         program = program.stampDanceSlotsPerformed(fallback: program.updatedAt);
       }
     }
-    await _db
-        .into(_db.programs)
-        .insertOnConflictUpdate(
-          ProgramsCompanion.insert(
-            id: program.id,
-            title: normalizeShareableText(program.title),
-            eventDate: Value(program.eventDate),
-            venue: Value(
-              program.venue == null
-                  ? null
-                  : normalizeShareableText(program.venue!),
-            ),
-            venueId: Value(program.venueId),
-            band: Value(
-              program.band == null
-                  ? null
-                  : normalizeShareableText(program.band!),
-            ),
-            caller: Value(
-              program.caller == null
-                  ? null
-                  : normalizeShareableText(program.caller!),
-            ),
-            dancerLevel: Value(
-              program.dancerLevel == null
-                  ? null
-                  : normalizeShareableText(program.dancerLevel!),
-            ),
-            notes: Value(normalizeShareableText(program.notes)),
-            status: program.status,
-            hideAlternates: Value(program.hideAlternates),
-            createdAt: program.createdAt,
-            updatedAt: program.updatedAt,
-            deletedAt: Value(program.deletedAt),
-          ),
-        );
-    await seedExistenceIfMissing(
-      _db,
-      table: _db.programs,
-      keyColumn: 'id',
-      key: program.id,
-    );
-    await (_db.delete(
-      _db.programSlots,
-    )..where((t) => t.programId.equals(program.id))).go();
-    for (final slot in program.slots) {
+    if (writeParent) {
       await _db
-          .into(_db.programSlots)
-          .insert(
-            ProgramSlotsCompanion.insert(
-              id: slot.id,
-              programId: program.id,
-              position: slot.position,
-              danceId: Value(slot.danceId),
-              text_: Value(
-                slot.text == null ? null : normalizeShareableText(slot.text!),
-              ),
-              isPurgedDance: Value(slot.isPurgedDance),
-              isAlt: Value(slot.isAlt),
-              guestCaller: Value(
-                slot.guestCaller == null
+          .into(_db.programs)
+          .insertOnConflictUpdate(
+            ProgramsCompanion.insert(
+              id: program.id,
+              title: normalizeShareableText(program.title),
+              eventDate: Value(program.eventDate),
+              venue: Value(
+                program.venue == null
                     ? null
-                    : normalizeShareableText(slot.guestCaller!),
+                    : normalizeShareableText(program.venue!),
               ),
-              walkthroughMinutes: Value(slot.walkthroughMinutes),
-              danceMinutes: Value(slot.danceMinutes),
-              performedAt: Value(slot.performedAt),
+              venueId: Value(program.venueId),
+              band: Value(
+                program.band == null
+                    ? null
+                    : normalizeShareableText(program.band!),
+              ),
+              caller: Value(
+                program.caller == null
+                    ? null
+                    : normalizeShareableText(program.caller!),
+              ),
+              dancerLevel: Value(
+                program.dancerLevel == null
+                    ? null
+                    : normalizeShareableText(program.dancerLevel!),
+              ),
+              notes: Value(normalizeShareableText(program.notes)),
+              status: program.status,
+              hideAlternates: Value(program.hideAlternates),
+              createdAt: program.createdAt,
+              updatedAt: program.updatedAt,
+              deletedAt: Value(program.deletedAt),
             ),
           );
+      await seedExistenceIfMissing(
+        _db,
+        table: _db.programs,
+        keyColumn: 'id',
+        key: program.id,
+      );
     }
-    // Provenance is a single dependent row keyed on the program id: delete then
-    // (re)insert so an update refreshes it and a program that lost its
-    // provenance drops the row. Mirrors DanceRepository's provenance handling.
-    await (_db.delete(
-      _db.programProvenance,
-    )..where((t) => t.programId.equals(program.id))).go();
-    final prov = program.provenance;
-    if (prov != null) {
-      assertUtc(prov.importedAt, 'program.provenance.importedAt');
-      await _db
-          .into(_db.programProvenance)
-          .insert(
-            ProgramProvenanceCompanion.insert(
-              programId: program.id,
-              source: prov.source,
-              externalId: Value(
-                prov.externalId == null
-                    ? null
-                    : normalizeShareableText(prov.externalId!),
+    if (writeRelations) {
+      await (_db.delete(
+        _db.programSlots,
+      )..where((t) => t.programId.equals(program.id))).go();
+      for (final slot in program.slots) {
+        await _db
+            .into(_db.programSlots)
+            .insert(
+              ProgramSlotsCompanion.insert(
+                id: slot.id,
+                programId: program.id,
+                position: slot.position,
+                danceId: Value(slot.danceId),
+                text_: Value(
+                  slot.text == null ? null : normalizeShareableText(slot.text!),
+                ),
+                isPurgedDance: Value(slot.isPurgedDance),
+                isAlt: Value(slot.isAlt),
+                guestCaller: Value(
+                  slot.guestCaller == null
+                      ? null
+                      : normalizeShareableText(slot.guestCaller!),
+                ),
+                walkthroughMinutes: Value(slot.walkthroughMinutes),
+                danceMinutes: Value(slot.danceMinutes),
+                performedAt: Value(slot.performedAt),
               ),
-              importedAt: prov.importedAt,
-              permission: Value(
-                prov.permission == null
-                    ? null
-                    : normalizeShareableText(prov.permission!),
+            );
+      }
+      // Provenance is a single dependent row keyed on the program id: delete then
+      // (re)insert so an update refreshes it and a program that lost its
+      // provenance drops the row. Mirrors DanceRepository's provenance handling.
+      await (_db.delete(
+        _db.programProvenance,
+      )..where((t) => t.programId.equals(program.id))).go();
+      final prov = program.provenance;
+      if (prov != null) {
+        assertUtc(prov.importedAt, 'program.provenance.importedAt');
+        await _db
+            .into(_db.programProvenance)
+            .insert(
+              ProgramProvenanceCompanion.insert(
+                programId: program.id,
+                source: prov.source,
+                externalId: Value(
+                  prov.externalId == null
+                      ? null
+                      : normalizeShareableText(prov.externalId!),
+                ),
+                importedAt: prov.importedAt,
+                permission: Value(
+                  prov.permission == null
+                      ? null
+                      : normalizeShareableText(prov.permission!),
+                ),
+                license: Value(
+                  prov.license == null
+                      ? null
+                      : normalizeShareableText(prov.license!),
+                ),
+                sourceVersion: Value(
+                  prov.sourceVersion == null
+                      ? null
+                      : normalizeShareableText(prov.sourceVersion!),
+                ),
               ),
-              license: Value(
-                prov.license == null
-                    ? null
-                    : normalizeShareableText(prov.license!),
-              ),
-              sourceVersion: Value(
-                prov.sourceVersion == null
-                    ? null
-                    : normalizeShareableText(prov.sourceVersion!),
-              ),
-            ),
-          );
+            );
+      }
     }
   });
 
@@ -1186,8 +1208,20 @@ class ProgramRepository {
   /// #898). A revival is an existence transition, so it must advance
   /// `existence_at` or a peer holding the tombstone would win the comparison
   /// and delete it straight back.
-  Future<void> restore(String id, {required DateTime at}) =>
-      _stampExistence(id, at: at, deleted: false);
+  Future<void> restore(
+    String id, {
+    required DateTime at,
+    bool clearPending = true,
+  }) => _db.transaction(() async {
+    await _stampExistence(id, at: at, deleted: false);
+    if (clearPending) {
+      await clearPendingSyncDeletion(
+        _db,
+        kind: SyncRecordKind.program,
+        recordId: id,
+      );
+    }
+  });
 
   /// Shared live<->deleted transition: one statement that writes
   /// `max(at, current + 1 tick)` while reading the pre-update
@@ -1207,10 +1241,11 @@ class ProgramRepository {
     deleted: deleted,
   );
 
-  /// Hard-deletes the programs identified by [ids] outright (ignoring their
-  /// soft-delete state), removing each program's slots via the
-  /// `program_slots.program_id` cascade. Unknown ids are ignored; an empty
-  /// [ids] is a no-op. Runs in a single transaction.
+  /// Removes the programs identified by [ids] regardless of soft-delete state:
+  /// unpublished programs are hard-deleted, while published programs become
+  /// tombstones so peers retain deletion evidence. Physical deletes remove
+  /// each program's slots via the `program_slots.program_id` cascade. Unknown
+  /// ids are ignored; an empty [ids] is a no-op. Runs in a single transaction.
   ///
   /// Intended for reverting a just-committed import batch (import-session undo,
   /// e.g. [CallersCompanionUsrImporter.undo]); ordinary user deletes should go
@@ -1219,24 +1254,63 @@ class ProgramRepository {
     final list = ids.toList();
     if (list.isEmpty) return Future.value();
     return _db.transaction(() async {
-      for (final chunk in _chunkIds(list)) {
+      final publishedIds = await publishedSyncRecordIds(
+        _db,
+        kind: SyncRecordKind.program,
+        recordIds: list,
+      );
+      for (final id in publishedIds) {
+        await stampExistenceTransition(
+          _db,
+          table: _db.programs,
+          keyColumn: 'id',
+          key: id,
+          at: DateTime.now().toUtc(),
+          deleted: true,
+        );
+      }
+      final erasableIds = list
+          .where((id) => !publishedIds.contains(id))
+          .toList(growable: false);
+      for (final chunk in _chunkIds(erasableIds)) {
         await (_db.delete(_db.programs)..where((t) => t.id.isIn(chunk))).go();
       }
     });
   }
 
-  /// Hard-deletes soft-deleted programs whose `deletedAt` is older than
-  /// [retention] (default 30 days per `docs/design/storage.md`). Slots
-  /// cascade automatically (FK).
+  /// Hard-deletes unpublished soft-deleted programs whose `deletedAt` is older
+  /// than [retention] (default 30 days per `docs/design/storage.md`). Published
+  /// programs remain as tombstones so peers retain deletion evidence. Physical
+  /// deletes cascade slots automatically (FK).
   Future<int> purgeDeleted({
     required DateTime now,
     Duration retention = const Duration(days: 30),
   }) {
     assertUtc(now, 'now');
     final cutoff = now.subtract(retention);
-    return (_db.delete(
-      _db.programs,
-    )..where((t) => t.deletedAt.isSmallerOrEqualValue(cutoff))).go();
+    return _db.transaction(() async {
+      final rows = await (_db.select(
+        _db.programs,
+      )..where((t) => t.deletedAt.isSmallerOrEqualValue(cutoff))).get();
+      if (rows.isEmpty) return 0;
+      final publishedIds = await publishedSyncRecordIds(
+        _db,
+        kind: SyncRecordKind.program,
+        recordIds: rows.map((row) => row.id),
+      );
+      final erasableIds = [
+        for (final row in rows)
+          if (!publishedIds.contains(row.id)) row.id,
+      ];
+      if (erasableIds.isEmpty) return 0;
+      var deleted = 0;
+      for (final chunk in _chunkIds(erasableIds)) {
+        deleted += await (_db.delete(
+          _db.programs,
+        )..where((t) => t.id.isIn(chunk))).go();
+      }
+      return deleted;
+    });
   }
 
   Program _toModel(

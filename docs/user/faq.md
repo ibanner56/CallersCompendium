@@ -113,11 +113,16 @@ A few things to check:
 
 ### I deleted a dance by accident — can I get it back?
 
-Usually, yes. Deleted dances are kept for a while before they're removed for good
+Usually, yes. Deleted dances are kept for a while before they're removed
 — by default **30 days** (adjustable under **Settings › General › Keep deleted
 dances for**). You can restore them within that window; see
 [Collection & search](./collection.md). To avoid slips in the first place, turn on
 **Confirm before delete** under **Settings › General**.
+
+If a dance had already been shared to your other devices, a small record of the
+deletion is kept after that window instead of being removed outright. It holds
+no dance content, and it is what tells your other devices the dance was deleted
+here rather than never received — without it, they would send it back.
 
 ### An imported dance reads differently than I expected.
 

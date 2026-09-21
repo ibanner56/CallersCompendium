@@ -487,6 +487,9 @@ can still fire.
   `dance_minutes`. The migration recursively normalizes nested `meanwhile`
   figures, copies legacy slot timing to `dance_minutes`, and rebuilds the
   derived figure and search indexes.
+- v36: adds nullable `review_queue.local_hash`, the queue-time wire hash of
+  the affected local record. Actionable review resolution rejects a row whose
+  local record changed after enqueue; v35 rows retain NULL and fail closed.
 
 ## The delete model
 
@@ -513,11 +516,12 @@ favour of the tombstone. One tick is one **second**, because drift stores
 `DateTime` as unix seconds; a smaller increment would round away and the stamp
 would tie. See `lib/src/storage/existence.dart`.
 
-Nothing reads `existence_at` *for a merge decision* yet. The causal advance
-described just above does read it, so the flat claim "nothing reads it" is
-false against the file this paragraph points at. It exists for Device Sync
-(ADR-004), which is not implemented; the migration that adds it is deliberately
-behaviour-preserving.
+`existence_at` is the discriminator Device Sync (ADR-004) merges on:
+`SyncMergeEngine` resolves existence from it before it looks at content, and
+never from `updated_at`. The causal advance described just above reads it too.
+Until the sync engine landed this paragraph said nothing read it for a merge
+decision and that Device Sync was not implemented; both are now false, and the
+migration that added the column remains behaviour-preserving on its own.
 
 **Deletion is a tombstone, with two named exceptions.** Deleting an entity
 writes `deleted_at` and leaves the row on disk, so the deletion is something a
@@ -527,6 +531,11 @@ rather than deletions:
 - The `hardDelete` / `permanent: true` paths, used only to roll back a
   just-committed import. A rollback treats the import as never having happened,
   so a tombstone would advertise the removal of a record no other device saw.
+  **Unless the record was already published**: once Device Sync has named a
+  record in a final manifest snapshot it forfeits the right to erase it
+  (`sync-spec.md` §3.1), because a peer may hold it live and the next pass
+  would download it back. Those rows are tombstoned instead, so an undo of an
+  already-synced import is a partial rollback by construction.
 - `DanceRepository`'s orphaned-reference GC (#462), which runs inside the
   retention purge and collects reusable rows the purge left unreferenced.
   Nobody deleted those; they went away as a side effect.
@@ -567,8 +576,17 @@ and does not leak into what the user sees.
 ## Durability
 
 - WAL mode; foreign keys ON; nightly-on-launch `PRAGMA quick_check`.
+- WAL and the busy timeout are set by `applyCompendiumSqliteSetup`, which
+  **every** connection to the database file must run. Device Sync opens a
+  second connection from its worker isolate, so both it and `openAppDatabase`
+  pass it as their `DatabaseSetup`. Neither is a default: sqlite ships the
+  rollback journal (under which a sync write blocks every app read) and a zero
+  busy timeout (under which an app write landing during an inbound apply fails
+  with "database is locked" rather than waiting).
 - All writes in transactions via repository layer; dance/program soft deletes
-  purge after a configurable retention (default 30 days) via startup sweep. The
+  purge after a configurable retention (default 30 days) via startup sweep,
+  except for rows Device Sync has published: those are retained as tombstones
+  indefinitely so peers keep the deletion evidence (`sync-spec.md` §3.1). The
   six kinds that became soft-deletable in v25 have no retention sweep yet:
   their tombstones accumulate until Device Sync, which owns retention, adds
   one.

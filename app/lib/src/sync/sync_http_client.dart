@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
@@ -176,6 +177,14 @@ class SyncHttpClient {
     'GET',
     'blobs/${Uri.encodeComponent(hash)}',
     maxDecodedBytes: min(maxResponseBytes, syncMaxBlobResponseBytes),
+  );
+
+  /// Returns the content-addressed blobs the store does not yet have.
+  Future<SyncHttpResponse> postMissing(Iterable<String> hashes) => request(
+    'POST',
+    'blobs/missing',
+    body: utf8.encode(jsonEncode({'hashes': hashes.toList(growable: false)})),
+    contentType: 'application/json',
   );
 
   /// Uploads one content-addressed blob without JSON encoding.

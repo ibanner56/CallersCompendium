@@ -1,9 +1,11 @@
 import 'package:drift/drift.dart';
 
 import '../../model/published_source.dart';
+import '../../sync/sync_record_kind.dart';
 import '../database.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
+import 'sync_local_repository.dart';
 
 /// CRUD for [PublishedSource] rows — the reusable bibliographic entity many
 /// dances cite. Mirrors `ChoreographerRepository`: editing a source's metadata
@@ -88,14 +90,26 @@ class PublishedSourceRepository {
   /// check-then-act race). Mirrors `VenueRepository.delete` /
   /// `ChoreographerRepository.delete`.
   ///
-  /// Tombstones by default (schema v25, issue #898); the guard is kept. See
-  /// `ChoreographerRepository.delete` for [permanent].
+  /// Tombstones by default (schema v25, issue #898); the guard is kept.
+  /// [permanent] removes unpublished rows for rollback, while published rows
+  /// are tombstoned so peers retain deletion evidence.
   Future<void> delete(String id, {DateTime? at, bool permanent = false}) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
-      final stillUsed = await (_db.select(
-        _db.danceSources,
-      )..where((t) => t.sourceId.equals(id))).get();
+      // Live dances only; a soft-deleted dance keeps its `dance_sources` rows
+      // because the tombstone fires no FK cascade. See the note in
+      // `ChoreographerRepository.delete`.
+      final stillUsed =
+          await (_db.select(_db.danceSources).join([
+                innerJoin(
+                  _db.dances,
+                  _db.dances.id.equalsExp(_db.danceSources.danceId),
+                ),
+              ])..where(
+                _db.danceSources.sourceId.equals(id) &
+                    _db.dances.deletedAt.isNull(),
+              ))
+              .get();
       if (stillUsed.isNotEmpty) {
         throw StateError(
           'cannot delete published source "$id": still cited by '
@@ -104,6 +118,21 @@ class PublishedSourceRepository {
       }
 
       if (permanent) {
+        if (await isPublishedSyncRecord(
+          _db,
+          kind: SyncRecordKind.publishedSource,
+          recordId: id,
+        )) {
+          await stampExistenceTransition(
+            _db,
+            table: _db.publishedSources,
+            keyColumn: 'id',
+            key: id,
+            at: now,
+            deleted: true,
+          );
+          return;
+        }
         await (_db.delete(
           _db.publishedSources,
         )..where((t) => t.id.equals(id))).go();
@@ -120,15 +149,27 @@ class PublishedSourceRepository {
     });
   }
 
-  Future<void> restore(String id, {required DateTime at}) =>
-      stampExistenceTransition(
+  Future<void> restore(
+    String id, {
+    required DateTime at,
+    bool clearPending = true,
+  }) => _db.transaction(() async {
+    await stampExistenceTransition(
+      _db,
+      table: _db.publishedSources,
+      keyColumn: 'id',
+      key: id,
+      at: at,
+      deleted: false,
+    );
+    if (clearPending) {
+      await clearPendingSyncDeletion(
         _db,
-        table: _db.publishedSources,
-        keyColumn: 'id',
-        key: id,
-        at: at,
-        deleted: false,
+        kind: SyncRecordKind.publishedSource,
+        recordId: id,
       );
+    }
+  });
 
   Future<void> hardDelete(Iterable<String> ids) async {
     for (final id in ids) {

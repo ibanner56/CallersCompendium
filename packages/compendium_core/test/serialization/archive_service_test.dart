@@ -269,6 +269,118 @@ void main() {
       },
     );
 
+    test('archive restore clears stale sync conclusions and aliases', () async {
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      final candidate = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: SyncRecordKind.tag,
+          id: 'review-tag',
+          updatedAt: DateTime.utc(2026, 7, 15),
+          deletedAt: null,
+          existenceAt: DateTime.utc(2026, 7, 15),
+          body: const {'id': 'review-tag', 'name': 'Review tag'},
+        ),
+      );
+      await repos.syncLocal.replaceBaseline(
+        epoch: 'archive-restore-epoch',
+        entries: [
+          SyncBaselineEntry(
+            kind: candidate.blob.kind,
+            recordId: candidate.blob.id,
+            wireHash: candidate.wireHash,
+          ),
+        ],
+      );
+      await repos.syncLocal.upsertAlias(
+        kind: SyncRecordKind.tag,
+        losingId: 'loser',
+        survivingId: 'survivor',
+      );
+      await repos.syncLocal.enqueueReview(
+        kind: candidate.blob.kind,
+        recordId: candidate.blob.id,
+        counterpartId: 'other-tag',
+        reason: 'test',
+        candidateBlob: encodeSyncRecordBlob(candidate.blob),
+        candidateHash: candidate.wireHash,
+        localHash: 'local-hash',
+        queuedAt: DateTime.utc(2026, 7, 15),
+      );
+
+      final result = await ArchiveRestorer(
+        repos,
+      ).restore(CompendiumArchive(exportedAt: DateTime.utc(2026, 7, 15)));
+
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+      expect(await repos.syncLocal.getBaselineState(), isNull);
+      expect(await repos.syncLocal.listBaselineEntries(), isEmpty);
+      expect(await repos.syncLocal.listAliases(), isEmpty);
+      expect(await repos.syncLocal.listReviewQueue(), isEmpty);
+    });
+
+    test('replace and merge restore clear normalization state', () async {
+      for (final mode in [RestoreMode.replace, RestoreMode.merge]) {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await repos.settings.set(shareableTextNormalisationScopeKey, 'stale');
+        await db.customStatement(
+          'INSERT INTO normalisation_skips '
+          '(table_name, column_name, record_id) VALUES (?, ?, ?)',
+          ['tags', 'name', 'stale-tag'],
+        );
+        if (mode == RestoreMode.merge) {
+          await repos.dances.create(
+            Dance(
+              id: 'pre-existing-unnormalized',
+              title: 'placeholder',
+              createdAt: DateTime.utc(2026, 1, 1),
+              updatedAt: DateTime.utc(2026, 1, 1),
+            ),
+          );
+          await db.customStatement('UPDATE dances SET title = ? WHERE id = ?', [
+            'cafe\u0301',
+            'pre-existing-unnormalized',
+          ]);
+        }
+
+        final result = await ArchiveRestorer(repos).restore(
+          CompendiumArchive(exportedAt: DateTime.utc(2026, 7, 15)),
+          mode: mode,
+        );
+
+        expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+        expect(
+          await repos.syncLocal.getBaselineState(),
+          isNull,
+          reason: '$mode should clear sync conclusions',
+        );
+        expect(
+          await repos.settings.contains(shareableTextNormalisationScopeKey),
+          isTrue,
+          reason: '$mode should rerun normalization after clearing its marker',
+        );
+        expect(
+          await db.customSelect('SELECT 1 FROM normalisation_skips').get(),
+          isEmpty,
+          reason: '$mode should clear normalization skips before rerunning',
+        );
+        if (mode == RestoreMode.merge) {
+          final row = await db
+              .customSelect(
+                'SELECT title FROM dances WHERE id = ?',
+                variables: [
+                  const Variable<String>('pre-existing-unnormalized'),
+                ],
+              )
+              .getSingle();
+          expect(row.read<String>('title'), 'café');
+        }
+      }
+    });
+
     test(
       'replace overwrites pre-existing rows rather than duplicating',
       () async {
@@ -353,6 +465,133 @@ void main() {
       final tagIds = (await repos.tags.listAll()).map((t) => t.id).toSet();
       expect(tagIds, containsAll(<String>['keep', 't1']));
     });
+
+    test(
+      'merge restore revalidates pending tombstones against untouched rows',
+      () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        final stamp = DateTime.utc(2026, 7, 15);
+        final dance = Dance(
+          id: 'pending-dance',
+          title: 'Pending dance',
+          createdAt: stamp,
+          updatedAt: stamp,
+        );
+        await repos.dances.create(dance);
+        await repos.programs.create(
+          Program(
+            id: 'citing-program',
+            title: 'Citing program',
+            slots: [
+              ProgramSlot(id: 'citing-slot', position: 0, danceId: dance.id),
+            ],
+            createdAt: stamp,
+            updatedAt: stamp,
+          ),
+        );
+        final tombstone = SyncRecordBlob(
+          kind: SyncRecordKind.dance,
+          id: dance.id,
+          updatedAt: stamp.add(const Duration(minutes: 1)),
+          deletedAt: stamp.add(const Duration(minutes: 1)),
+          existenceAt: stamp.add(const Duration(minutes: 1)),
+          body: syncBodyForEntity(SyncRecordKind.dance, dance),
+        );
+        await repos.syncLocal.upsertPendingDeletion(
+          kind: tombstone.kind,
+          recordId: tombstone.id,
+          tombstonedAt: tombstone.deletedAt!,
+          tombstoneHash: SyncMergeCandidate.fromBlob(tombstone).wireHash,
+          tombstoneBlob: encodeSyncRecordBlob(tombstone),
+        );
+
+        final result = await ArchiveRestorer(repos).restore(
+          CompendiumArchive(
+            exportedAt: stamp,
+            tags: [Tag(id: 'unrelated-tag', name: 'Unrelated')],
+          ),
+          mode: RestoreMode.merge,
+        );
+
+        expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+        expect(
+          await repos.syncLocal.getPendingDeletion(
+            kind: SyncRecordKind.dance,
+            recordId: dance.id,
+          ),
+          isNotNull,
+        );
+        expect(await repos.dances.getById(dance.id), isNotNull);
+        expect(await repos.programs.getById('citing-program'), isNotNull);
+      },
+    );
+
+    test(
+      'replace restore rolls back when pending tombstone revalidation fails',
+      () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        final stamp = DateTime.utc(2026, 7, 15);
+        const danceId = 'restore-target';
+        await repos.dances.create(
+          Dance(
+            id: danceId,
+            title: 'Original',
+            createdAt: stamp,
+            updatedAt: stamp,
+          ),
+        );
+        await repos.syncLocal.upsertPendingDeletion(
+          kind: SyncRecordKind.dance,
+          recordId: danceId,
+          tombstonedAt: stamp.add(const Duration(minutes: 1)),
+          tombstoneHash: 'corrupt-hash',
+          tombstoneBlob: 'corrupt-blob',
+        );
+        await repos.settings.set(shareableTextNormalisationScopeKey, 'stale');
+        await db.customStatement(
+          'INSERT INTO normalisation_skips '
+          '(table_name, column_name, record_id) VALUES (?, ?, ?)',
+          ['tags', 'name', 'stale-tag'],
+        );
+
+        final result = await ArchiveRestorer(repos).restore(
+          CompendiumArchive(
+            exportedAt: stamp,
+            dances: [
+              Dance(
+                id: danceId,
+                title: 'Replacement',
+                createdAt: stamp,
+                updatedAt: stamp,
+              ),
+            ],
+          ),
+          mode: RestoreMode.replace,
+        );
+
+        expect(result.hasErrors, isTrue);
+        expect((await repos.dances.getById(danceId))!.title, 'Original');
+        expect(
+          await repos.syncLocal.getPendingDeletion(
+            kind: SyncRecordKind.dance,
+            recordId: danceId,
+          ),
+          isNotNull,
+        );
+        expect(
+          await repos.settings.contains(shareableTextNormalisationScopeKey),
+          isTrue,
+        );
+        expect(
+          await db.customSelect('SELECT 1 FROM normalisation_skips').get(),
+          isNotEmpty,
+        );
+      },
+    );
 
     test(
       'replace and merge preserve ordered difficulty levels and assignments',
@@ -1459,10 +1698,12 @@ void main() {
         final result = await ArchiveRestorer(repos).restore(archive);
         expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
 
-        // Exactly one venue SELECT (the preload) for the whole programs phase —
-        // not two per venue-linked program (a resolve-or-null read here plus a
-        // write-time guard read inside each program insert).
-        expect(counter.count, 1);
+        // Exactly one venue SELECT (the preload) for the whole programs phase,
+        // plus the eight full-table reads from the required post-restore
+        // normalization sweep — not two per venue-linked program (a
+        // resolve-or-null read here plus a write-time guard read inside each
+        // program insert).
+        expect(counter.count, 9);
 
         // The single snapshot still resolves / nulls links correctly.
         expect((await repos.programs.getById('p1'))!.venueId, 'v1');

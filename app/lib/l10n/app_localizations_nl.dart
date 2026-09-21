@@ -1176,6 +1176,125 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsGeneralSoftDeleteRetentionNever => 'Nooit';
 
   @override
+  String get syncReviewSettingsTitle => 'Synchronisatiebeslissingen';
+
+  @override
+  String get syncReviewSettingsSubtitle =>
+      'Bekijk verwijderingen op het peerapparaat die conflicteren met records die op dit apparaat zijn gemaakt.';
+
+  @override
+  String get syncReviewTitle => 'Synchronisatiebeslissingen';
+
+  @override
+  String get syncReviewLoading => 'Synchronisatiebeslissingen laden';
+
+  @override
+  String get syncReviewEmpty =>
+      'Er zijn geen synchronisatiebeslissingen die op je wachten.';
+
+  @override
+  String get syncReviewIntro =>
+      'Voor deze records is een beslissing nodig voordat de wijziging van het peerapparaat kan worden toegepast.';
+
+  @override
+  String get syncReviewLoadFailed =>
+      'Synchronisatiebeslissingen konden niet worden geladen.';
+
+  @override
+  String get syncReviewResolved => 'Synchronisatiebeslissing toegepast.';
+
+  @override
+  String get syncReviewActionFailed =>
+      'Deze synchronisatiebeslissing kon niet worden toegepast. Het item is bewaard voor een nieuwe poging.';
+
+  @override
+  String get syncReviewKindChoreographer => 'Choreograaf';
+
+  @override
+  String get syncReviewKindTag => 'Tag';
+
+  @override
+  String get syncReviewKindCustomField => 'Aangepast veld';
+
+  @override
+  String get syncReviewKindDifficulty => 'Moeilijkheidsgraad';
+
+  @override
+  String get syncReviewKindDance => 'Dans';
+
+  @override
+  String get syncReviewKindProgram => 'Programma';
+
+  @override
+  String get syncReviewKindPublishedSource => 'Gepubliceerde bron';
+
+  @override
+  String get syncReviewKindVenue => 'Locatie';
+
+  @override
+  String get syncReviewKindSetting => 'Instelling';
+
+  @override
+  String syncReviewLocalRecord(String id) {
+    return 'Lokaal record: $id';
+  }
+
+  @override
+  String syncReviewPeerRecord(String identity) {
+    return 'Peerrecord: $identity';
+  }
+
+  @override
+  String get syncReviewTombstoneReason =>
+      'Een peer heeft een overeenkomend record verwijderd dat op dit apparaat is gemaakt.';
+
+  @override
+  String get syncReviewDanceAmbiguityReason =>
+      'Live dansen hebben dezelfde titel, maar een andere choreografie.';
+
+  @override
+  String get syncReviewUnsupportedReason =>
+      'Dit synchronisatieconflict wordt voorlopig bewaard; hier is geen veilige actie beschikbaar.';
+
+  @override
+  String get syncReviewUnsupportedAction =>
+      'Bewaar dit item totdat een latere synchronisatie of ondersteunde controle het kan verwerken.';
+
+  @override
+  String get syncReviewMergeAction => 'Samenvoegen';
+
+  @override
+  String get syncReviewKeepBothAction => 'Beide behouden';
+
+  @override
+  String get syncReviewKeepBothTitle => 'Kies een nieuwe lokale naam';
+
+  @override
+  String get syncReviewNewNameLabel => 'Nieuwe lokale naam';
+
+  @override
+  String get syncReviewNameRequired => 'Voer een naam in.';
+
+  @override
+  String get syncReviewNameNotDistinct => 'Kies een andere naam.';
+
+  @override
+  String get syncReviewCandidateInvalid =>
+      'De opgeslagen wijziging van het peerapparaat is ongeldig en is daarom bewaard.';
+
+  @override
+  String get syncReviewCandidateChanged =>
+      'De opgeslagen wijziging van het peerapparaat is niet meer actueel en is daarom bewaard.';
+
+  @override
+  String get syncReviewTargetMissing =>
+      'Het lokale record is niet meer beschikbaar; de beslissing is bewaard.';
+
+  @override
+  String get syncReviewCandidateAlreadyPresent =>
+      'Het peerrecord is al aanwezig; de beslissing is bewaard.';
+
+  @override
   String get settingsGeneralImportHeader => 'Importeren';
 
   @override

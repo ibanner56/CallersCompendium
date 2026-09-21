@@ -107,6 +107,15 @@ export 'src/sync/sync_id.dart'
         syncIdStrengthWarningBits,
         syncIdWordCount,
         validateSyncId;
+export 'src/sync/sync_merge.dart';
+export 'src/sync/sync_quarantine.dart';
+export 'src/sync/sync_reconciliation.dart';
+export 'src/sync/sync_report.dart';
+export 'src/sync/sync_apply.dart';
+export 'src/sync/sync_admission.dart';
+export 'src/sync/sync_review.dart';
+export 'src/sync/sync_review_resolver.dart';
+export 'src/sync/sync_storage.dart';
 export 'src/sync/server/sync_id_server.dart';
 export 'src/sync/wire_mapping.dart';
 export 'src/snippet/snippet_library.dart';
@@ -132,6 +141,8 @@ export 'src/storage/database.dart'
         kSectionRuleVersion,
         kCompendiumSchemaVersion,
         kMinSupportedSchemaVersion;
+export 'src/storage/database_setup.dart'
+    show applyCompendiumSqliteSetup, compendiumSqliteBusyTimeoutMs;
 // Only the pure pieces of the timestamp and existence modules are public: the
 // timestamp rules, the ticks they are pinned to, and the unix-seconds
 // conversion, all of which the tests exercise directly.

@@ -22,6 +22,7 @@ import '../../search/filter_compiler.dart';
 import '../../search/search_enrichment.dart';
 import '../../search/fts_query.dart';
 import '../../serialization/figure_codec.dart';
+import '../../sync/sync_record_kind.dart';
 import '../../taxonomy/param_types.dart';
 import '../../taxonomy/taxonomy.dart';
 import '../database.dart';
@@ -30,6 +31,7 @@ import '../shareable_text.dart';
 import '../tables.dart';
 import '../utc_datetime.dart';
 import 'custom_field_repository.dart';
+import 'sync_local_repository.dart';
 
 /// Progress of a [DanceRepository.rebuildAllDerived] pass: [completed] of
 /// [total] dances have had their derived `dance_figures`/`dance_fts` rows
@@ -460,7 +462,49 @@ class DanceRepository {
 
   Future<void> update(Dance dance) => _upsert(dance);
 
-  Future<void> _upsert(Dance dance) => _db.transaction(() async {
+  /// Persists a validated peer body without taxonomy migration side effects.
+  ///
+  /// Sync records already passed wire admission and must retain their exact
+  /// serialized content; ordinary editor/import writes may normalize legacy
+  /// taxonomy IDs before persistence.
+  Future<void> writeFromSync(
+    Dance dance, {
+    bool rebuildDerived = true,
+    Iterable<CustomFieldValue> additionalDeviceLocalCustomFields = const [],
+  }) => _upsert(
+    dance,
+    normalizeTaxonomy: false,
+    preserveDeviceLocalCustomFields: true,
+    additionalDeviceLocalCustomFields: additionalDeviceLocalCustomFields,
+    rebuildDerived: rebuildDerived,
+  );
+
+  /// Persists only the dance row for a two-phase inbound sync write.
+  Future<void> writeFromSyncParent(Dance dance) => _upsert(
+    dance,
+    normalizeTaxonomy: false,
+    preserveDeviceLocalCustomFields: true,
+    writeRelations: false,
+  );
+
+  /// Persists only the dance's dependent rows for a two-phase inbound write.
+  Future<void> writeFromSyncRelations(Dance dance) => _upsert(
+    dance,
+    normalizeTaxonomy: false,
+    preserveDeviceLocalCustomFields: true,
+    writeParent: false,
+    rebuildDerived: false,
+  );
+
+  Future<void> _upsert(
+    Dance dance, {
+    bool normalizeTaxonomy = true,
+    bool preserveDeviceLocalCustomFields = false,
+    Iterable<CustomFieldValue> additionalDeviceLocalCustomFields = const [],
+    bool writeParent = true,
+    bool writeRelations = true,
+    bool rebuildDerived = true,
+  }) => _db.transaction(() async {
     assertUtc(dance.createdAt, 'dance.createdAt');
     assertUtc(dance.updatedAt, 'dance.updatedAt');
     assertUtcOrNull(dance.deletedAt, 'dance.deletedAt');
@@ -472,14 +516,30 @@ class DanceRepository {
     // persisting. This is the single convergence point for all figure writers.
     // v34-v35: normalize legacy figures here as well as in one-time sweeps, so
     // restores and later imports cannot reintroduce old taxonomy keys.
-    final normalisedDance = normaliseTaxonomyV34Public(
-      _normaliseTaxonomyV35Dance(_normaliseMoveIds(dance)),
-    );
+    final normalisedDance = normalizeTaxonomy
+        ? normaliseTaxonomyV34Public(
+            _normaliseTaxonomyV35Dance(_normaliseMoveIds(dance)),
+          )
+        : dance;
     final difficultyLevelId = normalisedDance.difficultyLevelId;
     if (difficultyLevelId != null) {
+      // A dance that is itself a tombstone may cite a tombstoned level, and
+      // inbound validation accepts exactly that: `validateInboundReferences`
+      // relaxes its liveness predicate for a record with a `deletedAt`
+      // (`allowTombstonedReferences`). Keeping this guard strict for the same
+      // record made the two disagree, and because every inbound tombstone is
+      // named to the storage adapter, that disagreement escalated a per-record
+      // failure into a whole-batch rollback that repeated on every pass and
+      // stalled Device Sync permanently. The liveness requirement still holds
+      // for a live dance, which is the case the guard exists for.
+      final requireLiveLevel = normalisedDance.deletedAt == null;
       final level =
           await (_db.select(_db.difficultyLevels)..where(
-                (t) => t.id.equals(difficultyLevelId) & t.deletedAt.isNull(),
+                (t) =>
+                    t.id.equals(difficultyLevelId) &
+                    (requireLiveLevel
+                        ? t.deletedAt.isNull()
+                        : const Constant(true)),
               ))
               .getSingleOrNull();
       if (level == null) {
@@ -489,201 +549,256 @@ class DanceRepository {
         );
       }
     }
-    await _db
-        .into(_db.dances)
-        .insertOnConflictUpdate(
-          DancesCompanion.insert(
-            id: normalisedDance.id,
-            title: normalizeShareableText(normalisedDance.title),
-            form: normalisedDance.form,
-            formationShape: normalisedDance.formation.shape,
-            formationDetail: Value(
-              normalisedDance.formation.detail == null
-                  ? null
-                  : normalizeShareableText(normalisedDance.formation.detail!),
-            ),
-            progression: normalisedDance.progression,
-            phraseStructure: Value(normalisedDance.phraseStructure.raw),
-            figuresJson: Value(
-              normalizeShareableJsonText(
-                encodeFigures(normalisedDance.figures),
-              ),
-            ),
-            hook: Value(normalizeShareableText(normalisedDance.hook)),
-            callingNotes: Value(
-              normalizeShareableText(normalisedDance.callingNotes),
-            ),
-            walkthrough: Value(
-              normalizeShareableText(normalisedDance.walkthrough),
-            ),
-            status: normalisedDance.status,
-            levelId: Value(dance.difficultyLevelId),
-            mixedLevel: Value(dance.mixedLevel),
-            mixer: Value(dance.mixer),
-            rating: Value(dance.rating),
-            composedOn: Value(dance.composedOn?.serialize()),
-            revisedOn: Value(dance.revisedOn?.serialize()),
-            tunesJson: Value(
-              normalizeShareableJsonText(jsonEncode(dance.tunes)),
-            ),
-            createdAt: dance.createdAt,
-            updatedAt: dance.updatedAt,
-            deletedAt: Value(dance.deletedAt),
-          ),
-        );
-    await seedExistenceIfMissing(
-      _db,
-      table: _db.dances,
-      keyColumn: 'id',
-      key: dance.id,
-    );
-
-    await (_db.delete(
-      _db.danceAuthors,
-    )..where((t) => t.danceId.equals(dance.id))).go();
-    for (var i = 0; i < dance.authorIds.length; i++) {
+    if (writeParent) {
       await _db
-          .into(_db.danceAuthors)
-          .insert(
-            DanceAuthorsCompanion.insert(
-              danceId: dance.id,
-              choreographerId: dance.authorIds[i],
-              position: i,
-            ),
-          );
-    }
-
-    await (_db.delete(
-      _db.danceTags,
-    )..where((t) => t.danceId.equals(dance.id))).go();
-    for (final tagId in dance.tagIds) {
-      await _db
-          .into(_db.danceTags)
-          .insert(DanceTagsCompanion.insert(danceId: dance.id, tagId: tagId));
-    }
-
-    await (_db.delete(
-      _db.danceLinks,
-    )..where((t) => t.danceId.equals(dance.id))).go();
-    for (final link in dance.links) {
-      await _db
-          .into(_db.danceLinks)
-          .insert(
-            DanceLinksCompanion.insert(
-              id: link.id,
-              danceId: dance.id,
-              kind: link.kind,
-              url: Value(
-                link.url == null ? null : normalizeShareableText(link.url!),
-              ),
-              targetDanceId: Value(link.targetDanceId),
-              label: Value(
-                link.label == null ? null : normalizeShareableText(link.label!),
-              ),
-              transitive: Value(link.transitive),
-            ),
-          );
-    }
-
-    await (_db.delete(
-      _db.danceSources,
-    )..where((t) => t.danceId.equals(dance.id))).go();
-    for (var i = 0; i < dance.sourceCitations.length; i++) {
-      final citation = dance.sourceCitations[i];
-      await _db
-          .into(_db.danceSources)
-          .insert(
-            DanceSourcesCompanion.insert(
-              danceId: dance.id,
-              sourceId: citation.sourceId,
-              page: Value(
-                citation.page == null
+          .into(_db.dances)
+          .insertOnConflictUpdate(
+            DancesCompanion.insert(
+              id: normalisedDance.id,
+              title: normalizeShareableText(normalisedDance.title),
+              form: normalisedDance.form,
+              formationShape: normalisedDance.formation.shape,
+              formationDetail: Value(
+                normalisedDance.formation.detail == null
                     ? null
-                    : normalizeShareableText(citation.page!),
+                    : normalizeShareableText(normalisedDance.formation.detail!),
               ),
-              number: Value(
-                citation.number == null
-                    ? null
-                    : normalizeShareableText(citation.number!),
+              progression: normalisedDance.progression,
+              phraseStructure: Value(normalisedDance.phraseStructure.raw),
+              figuresJson: Value(
+                normalizeShareableJsonText(
+                  encodeFigures(normalisedDance.figures),
+                ),
               ),
-              position: i,
+              hook: Value(normalizeShareableText(normalisedDance.hook)),
+              callingNotes: Value(
+                normalizeShareableText(normalisedDance.callingNotes),
+              ),
+              walkthrough: Value(
+                normalizeShareableText(normalisedDance.walkthrough),
+              ),
+              status: normalisedDance.status,
+              levelId: Value(dance.difficultyLevelId),
+              mixedLevel: Value(dance.mixedLevel),
+              mixer: Value(dance.mixer),
+              rating: Value(dance.rating),
+              composedOn: Value(dance.composedOn?.serialize()),
+              revisedOn: Value(dance.revisedOn?.serialize()),
+              tunesJson: Value(
+                normalizeShareableJsonText(jsonEncode(dance.tunes)),
+              ),
+              createdAt: dance.createdAt,
+              updatedAt: dance.updatedAt,
+              deletedAt: Value(dance.deletedAt),
             ),
           );
+      await seedExistenceIfMissing(
+        _db,
+        table: _db.dances,
+        keyColumn: 'id',
+        key: dance.id,
+      );
     }
 
-    await (_db.delete(
-      _db.customFieldValues,
-    )..where((t) => t.danceId.equals(dance.id))).go();
-    for (final value in dance.customFields) {
-      final def = await (_db.select(
-        _db.customFieldDefs,
-      )..where((t) => t.id.equals(value.fieldId))).getSingleOrNull();
-      if (def == null) {
-        throw StateError(
-          'dance "${dance.id}" has a value for unknown custom field '
-          '"${value.fieldId}"',
+    if (writeRelations) {
+      await (_db.delete(
+        _db.danceAuthors,
+      )..where((t) => t.danceId.equals(dance.id))).go();
+      for (var i = 0; i < dance.authorIds.length; i++) {
+        await _db
+            .into(_db.danceAuthors)
+            .insert(
+              DanceAuthorsCompanion.insert(
+                danceId: dance.id,
+                choreographerId: dance.authorIds[i],
+                position: i,
+              ),
+            );
+      }
+
+      await (_db.delete(
+        _db.danceTags,
+      )..where((t) => t.danceId.equals(dance.id))).go();
+      for (final tagId in dance.tagIds) {
+        await _db
+            .into(_db.danceTags)
+            .insert(DanceTagsCompanion.insert(danceId: dance.id, tagId: tagId));
+      }
+
+      await (_db.delete(
+        _db.danceLinks,
+      )..where((t) => t.danceId.equals(dance.id))).go();
+      for (final link in dance.links) {
+        await _db
+            .into(_db.danceLinks)
+            .insert(
+              DanceLinksCompanion.insert(
+                id: link.id,
+                danceId: dance.id,
+                kind: link.kind,
+                url: Value(
+                  link.url == null ? null : normalizeShareableText(link.url!),
+                ),
+                targetDanceId: Value(link.targetDanceId),
+                label: Value(
+                  link.label == null
+                      ? null
+                      : normalizeShareableText(link.label!),
+                ),
+                transitive: Value(link.transitive),
+              ),
+            );
+      }
+
+      await (_db.delete(
+        _db.danceSources,
+      )..where((t) => t.danceId.equals(dance.id))).go();
+      for (var i = 0; i < dance.sourceCitations.length; i++) {
+        final citation = dance.sourceCitations[i];
+        await _db
+            .into(_db.danceSources)
+            .insert(
+              DanceSourcesCompanion.insert(
+                danceId: dance.id,
+                sourceId: citation.sourceId,
+                page: Value(
+                  citation.page == null
+                      ? null
+                      : normalizeShareableText(citation.page!),
+                ),
+                number: Value(
+                  citation.number == null
+                      ? null
+                      : normalizeShareableText(citation.number!),
+                ),
+                position: i,
+              ),
+            );
+      }
+
+      final deviceLocalCustomFields = preserveDeviceLocalCustomFields
+          ? await _deviceLocalCustomFields(dance.id)
+          : const <CustomFieldValue>[];
+      final preservedDeviceLocalCustomFields = <String, CustomFieldValue>{
+        for (final value in deviceLocalCustomFields) value.fieldId: value,
+      };
+      for (final value in additionalDeviceLocalCustomFields) {
+        preservedDeviceLocalCustomFields.putIfAbsent(
+          value.fieldId,
+          () => value,
         );
       }
-      final fieldDef = CustomFieldDefRepository.toModel(def);
-      if (fieldDef == null) {
-        throw StateError(
-          'dance "${dance.id}" has a value for custom field '
-          '"${value.fieldId}" whose stored definition is corrupt',
-        );
+      final incomingCustomFields = <String, CustomFieldValue>{
+        for (final value in dance.customFields)
+          if (!preservedDeviceLocalCustomFields.containsKey(value.fieldId))
+            value.fieldId: value,
+        ...preservedDeviceLocalCustomFields,
+      };
+
+      await (_db.delete(
+        _db.customFieldValues,
+      )..where((t) => t.danceId.equals(dance.id))).go();
+      for (final value in incomingCustomFields.values) {
+        final def = await (_db.select(
+          _db.customFieldDefs,
+        )..where((t) => t.id.equals(value.fieldId))).getSingleOrNull();
+        if (def == null) {
+          throw StateError(
+            'dance "${dance.id}" has a value for unknown custom field '
+            '"${value.fieldId}"',
+          );
+        }
+        final fieldDef = CustomFieldDefRepository.toModel(def);
+        if (fieldDef == null) {
+          throw StateError(
+            'dance "${dance.id}" has a value for custom field '
+            '"${value.fieldId}" whose stored definition is corrupt',
+          );
+        }
+        final (rawText, num) = encodeCustomFieldValue(value, fieldDef);
+        await _db
+            .into(_db.customFieldValues)
+            .insert(
+              CustomFieldValuesCompanion.insert(
+                danceId: dance.id,
+                fieldId: value.fieldId,
+                valueText: Value(
+                  rawText == null ? null : normalizeShareableText(rawText),
+                ),
+                valueNum: Value(num),
+              ),
+            );
       }
-      final (rawText, num) = encodeCustomFieldValue(value, fieldDef);
-      await _db
-          .into(_db.customFieldValues)
-          .insert(
-            CustomFieldValuesCompanion.insert(
-              danceId: dance.id,
-              fieldId: value.fieldId,
-              valueText: Value(
-                rawText == null ? null : normalizeShareableText(rawText),
-              ),
-              valueNum: Value(num),
-            ),
-          );
-    }
 
-    await (_db.delete(
-      _db.provenance,
-    )..where((t) => t.danceId.equals(dance.id))).go();
-    final prov = dance.provenance;
-    if (prov != null) {
-      await _db
-          .into(_db.provenance)
-          .insert(
-            ProvenanceCompanion.insert(
-              danceId: dance.id,
-              source: prov.source,
-              externalId: Value(
-                prov.externalId == null
-                    ? null
-                    : normalizeShareableText(prov.externalId!),
+      await (_db.delete(
+        _db.provenance,
+      )..where((t) => t.danceId.equals(dance.id))).go();
+      final prov = dance.provenance;
+      if (prov != null) {
+        await _db
+            .into(_db.provenance)
+            .insert(
+              ProvenanceCompanion.insert(
+                danceId: dance.id,
+                source: prov.source,
+                externalId: Value(
+                  prov.externalId == null
+                      ? null
+                      : normalizeShareableText(prov.externalId!),
+                ),
+                importedAt: prov.importedAt,
+                permission: Value(
+                  prov.permission == null
+                      ? null
+                      : normalizeShareableText(prov.permission!),
+                ),
+                license: Value(
+                  prov.license == null
+                      ? null
+                      : normalizeShareableText(prov.license!),
+                ),
+                sourceVersion: Value(
+                  prov.sourceVersion == null
+                      ? null
+                      : normalizeShareableText(prov.sourceVersion!),
+                ),
               ),
-              importedAt: prov.importedAt,
-              permission: Value(
-                prov.permission == null
-                    ? null
-                    : normalizeShareableText(prov.permission!),
-              ),
-              license: Value(
-                prov.license == null
-                    ? null
-                    : normalizeShareableText(prov.license!),
-              ),
-              sourceVersion: Value(
-                prov.sourceVersion == null
-                    ? null
-                    : normalizeShareableText(prov.sourceVersion!),
-              ),
-            ),
-          );
-    }
+            );
+      }
 
-    await _rebuildDerived(normalisedDance);
+      if (rebuildDerived) await _rebuildDerived(normalisedDance);
+    }
   });
+
+  Future<List<CustomFieldValue>> _deviceLocalCustomFields(
+    String danceId,
+  ) async {
+    final query = _db.select(_db.customFieldValues)
+      ..where((table) => table.danceId.equals(danceId));
+    final joined = query.join([
+      innerJoin(
+        _db.customFieldDefs,
+        _db.customFieldDefs.id.equalsExp(_db.customFieldValues.fieldId) &
+            _db.customFieldDefs.deletedAt.isNull() &
+            _db.customFieldDefs.shareable.equals(false),
+      ),
+    ]);
+    final rows = await joined.get();
+    return [
+      for (final row in rows)
+        decodeCustomFieldValue(
+          fieldId: row.readTable(_db.customFieldValues).fieldId,
+          type: row.readTable(_db.customFieldDefs).type,
+          valueText: row.readTable(_db.customFieldValues).valueText,
+          valueNum: row.readTable(_db.customFieldValues).valueNum,
+        ),
+    ];
+  }
+
+  /// Reads active non-shareable values so a local-only value can survive a
+  /// sync-side identity merge without entering the shareable wire body.
+  Future<List<CustomFieldValue>> readDeviceLocalCustomFields(String danceId) =>
+      _deviceLocalCustomFields(danceId);
 
   Dance _normaliseTaxonomyV35Dance(Dance dance) {
     List<Figure>? normalised;
@@ -1113,8 +1228,20 @@ class DanceRepository {
   /// `existence_at`: leaving it at the tombstone's value would tie, and a tie
   /// resolves in favour of the tombstone, so a peer would delete the restored
   /// dance straight back.
-  Future<void> restore(String id, {required DateTime at}) =>
-      _stampExistence(id, at: at, deleted: false);
+  Future<void> restore(
+    String id, {
+    required DateTime at,
+    bool clearPending = true,
+  }) => _db.transaction(() async {
+    await _stampExistence(id, at: at, deleted: false);
+    if (clearPending) {
+      await clearPendingSyncDeletion(
+        _db,
+        kind: SyncRecordKind.dance,
+        recordId: id,
+      );
+    }
+  });
 
   /// Shared live<->deleted transition: one statement that writes
   /// `max(at, current + 1 tick)` while reading the pre-update
@@ -1134,14 +1261,15 @@ class DanceRepository {
     deleted: deleted,
   );
 
-  /// Hard-deletes soft-deleted dances whose `deletedAt` is older than
-  /// [retention] (default 30 days). Cascades to child rows (authors, tags,
-  /// links, custom values, provenance, derived figures) via FK; any
-  /// `program_slots.dance_id` pointing at a purged dance is set to `NULL`
-  /// (the slot's `text`, if any, survives as a tombstone caption). Reusable
-  /// `choreographers` / `published_sources` / `tags` rows left unreferenced
-  /// after the cascade are garbage-collected in the same transaction
-  /// (#462, #1199).
+  /// Hard-deletes unpublished soft-deleted dances whose `deletedAt` is older
+  /// than [retention] (default 30 days). Published dances remain as
+  /// tombstones so peers can still learn about their deletion. Physical
+  /// purges cascade to child rows (authors, tags, links, custom values,
+  /// provenance, derived figures) via FK; any `program_slots.dance_id`
+  /// pointing at a purged dance is set to `NULL` (the slot's `text`, if any,
+  /// survives as a tombstone caption). Reusable `choreographers` /
+  /// `published_sources` / `tags` rows left unreferenced after the cascade
+  /// are garbage-collected in the same transaction (#462, #1199).
   Future<int> purgeDeleted({
     required DateTime now,
     Duration retention = const Duration(days: 30),
@@ -1159,13 +1287,23 @@ class DanceRepository {
         _db.dances,
       )..where((t) => t.deletedAt.isSmallerOrEqualValue(cutoff))).get();
       if (toPurge.isEmpty) return 0;
-      final ids = [for (final r in toPurge) r.id];
+      final publishedIds = await publishedSyncRecordIds(
+        _db,
+        kind: SyncRecordKind.dance,
+        recordIds: toPurge.map((row) => row.id),
+      );
+      final erasable = [
+        for (final row in toPurge)
+          if (!publishedIds.contains(row.id)) row,
+      ];
+      if (erasable.isEmpty) return 0;
+      final ids = [for (final r in erasable) r.id];
       // Snapshot the orphan-ref candidates from the SAME in-txn snapshot,
       // before _cleanupDanglingReferences / the DELETE cascade the purged
       // dances' dance_authors / dance_sources join rows away (#462).
       final orphanCandidates = await _referencedRefIds(ids);
       await _cleanupDanglingReferences([
-        for (final r in toPurge) (id: r.id, title: r.title),
+        for (final r in erasable) (id: r.id, title: r.title),
       ]);
       for (final id in ids) {
         await _deleteFtsRows(id);
@@ -1400,7 +1538,15 @@ class DanceRepository {
     ({Set<String> choreographerIds, Set<String> sourceIds, Set<String> tagIds})
     candidates,
   ) async {
-    for (final chunk in _chunkIds(candidates.choreographerIds.toList())) {
+    final publishedChoreographers = await publishedSyncRecordIds(
+      _db,
+      kind: SyncRecordKind.choreographer,
+      recordIds: candidates.choreographerIds,
+    );
+    final erasableChoreographers = candidates.choreographerIds
+        .difference(publishedChoreographers)
+        .toList();
+    for (final chunk in _chunkIds(erasableChoreographers)) {
       final placeholders = List.filled(chunk.length, '?').join(', ');
       await _db.customUpdate(
         'DELETE FROM ${_db.choreographers.actualTableName} '
@@ -1411,7 +1557,15 @@ class DanceRepository {
         updateKind: UpdateKind.delete,
       );
     }
-    for (final chunk in _chunkIds(candidates.sourceIds.toList())) {
+    final publishedSources = await publishedSyncRecordIds(
+      _db,
+      kind: SyncRecordKind.publishedSource,
+      recordIds: candidates.sourceIds,
+    );
+    final erasableSources = candidates.sourceIds
+        .difference(publishedSources)
+        .toList();
+    for (final chunk in _chunkIds(erasableSources)) {
       final placeholders = List.filled(chunk.length, '?').join(', ');
       await _db.customUpdate(
         'DELETE FROM ${_db.publishedSources.actualTableName} '
@@ -1422,7 +1576,14 @@ class DanceRepository {
         updateKind: UpdateKind.delete,
       );
     }
-    await _garbageCollectOrphanedTags(candidates.tagIds);
+    final publishedTags = await publishedSyncRecordIds(
+      _db,
+      kind: SyncRecordKind.tag,
+      recordIds: candidates.tagIds,
+    );
+    await _garbageCollectOrphanedTags(
+      candidates.tagIds.difference(publishedTags),
+    );
   }
 
   Future<void> _garbageCollectOrphanedTags(
@@ -1441,10 +1602,11 @@ class DanceRepository {
     }
   }
 
-  /// Immediately and permanently removes the dances identified by [ids]
-  /// (bypassing the soft-delete/retention path). Cascades to child rows
+  /// Immediately removes unpublished dances identified by [ids] (bypassing the
+  /// soft-delete/retention path). Published dances are tombstoned instead so
+  /// peers retain deletion evidence. Physical deletes cascade to child rows
   /// (authors, tags, links, custom values, provenance, derived figures) via
-  /// FK, and clears each dance's `dance_fts` row (that virtual table is not
+  /// FK, and clear each dance's `dance_fts` row (that virtual table is not
   /// FK-linked). Any `program_slots.dance_id` pointing at a removed dance is
   /// set to `NULL` (the slot's `text`, if any, survives as a tombstone
   /// caption). Unknown ids are ignored. Runs in a single transaction.
@@ -1459,6 +1621,12 @@ class DanceRepository {
   /// place and do its own targeted cleanup of only the rows that import
   /// *created* (see `ImportPipeline.undo`).
   ///
+  /// A dance already named by a final manifest snapshot is **tombstoned rather
+  /// than erased** (sync-spec.md §3.1 forfeiture), so its `dance_authors` rows
+  /// survive — a soft delete fires no FK cascade. Callers that erase a
+  /// reference row's owner on the strength of that cascade must count only
+  /// *live* owners, as the referential guards do.
+  ///
   /// Intended for reverting a just-committed import batch (import-session
   /// undo); ordinary user deletes should go through [softDelete].
   Future<void> hardDelete(Iterable<String> ids, {bool gcOrphanedRefs = true}) {
@@ -1468,16 +1636,37 @@ class DanceRepository {
       final rows = await (_db.select(
         _db.dances,
       )..where((t) => t.id.isIn(list))).get();
+      final publishedIds = await publishedSyncRecordIds(
+        _db,
+        kind: SyncRecordKind.dance,
+        recordIds: rows.map((row) => row.id),
+      );
+      for (final id in publishedIds) {
+        await stampExistenceTransition(
+          _db,
+          table: _db.dances,
+          keyColumn: 'id',
+          key: id,
+          at: DateTime.now().toUtc(),
+          deleted: true,
+        );
+      }
+      final erasableRows = [
+        for (final row in rows)
+          if (!publishedIds.contains(row.id)) row,
+      ];
+      if (erasableRows.isEmpty) return;
+      final erasableIds = [for (final row in erasableRows) row.id];
       final orphanCandidates = gcOrphanedRefs
-          ? await _referencedRefIds([for (final r in rows) r.id])
+          ? await _referencedRefIds(erasableIds)
           : null;
       await _cleanupDanglingReferences([
-        for (final r in rows) (id: r.id, title: r.title),
+        for (final r in erasableRows) (id: r.id, title: r.title),
       ]);
-      for (final id in list) {
+      for (final id in erasableIds) {
         await _deleteFtsRows(id);
       }
-      await (_db.delete(_db.dances)..where((t) => t.id.isIn(list))).go();
+      await (_db.delete(_db.dances)..where((t) => t.id.isIn(erasableIds))).go();
       if (orphanCandidates != null) {
         await _garbageCollectOrphanedRefs(orphanCandidates);
       }

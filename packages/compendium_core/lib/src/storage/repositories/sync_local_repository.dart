@@ -3,8 +3,56 @@ import 'package:drift/drift.dart';
 import '../../sync/sync_record_kind.dart';
 import '../database.dart';
 
+Iterable<List<T>> _chunked<T>(Iterable<T> values, int size) sync* {
+  final list = values.toList(growable: false);
+  for (var start = 0; start < list.length; start += size) {
+    final end = start + size < list.length ? start + size : list.length;
+    yield list.sublist(start, end);
+  }
+}
+
 /// A polymorphic sync record identity.
 typedef SyncRecordAddress = ({SyncRecordKind kind, String recordId});
+
+/// The body-hash representation used by a persisted baseline entry.
+enum SyncBaselineBodyHashVersion {
+  /// The pre-W9 hash covered the complete record body, including projections.
+  legacyFullBody,
+
+  /// W9 hashes cover only the projection-neutral comparison body.
+  comparison,
+}
+
+const _comparisonBodyHashPrefix = 'comparison-v1:';
+
+SyncBaselineBodyHashVersion _storedBodyHashVersion(String? bodyHash) {
+  if (bodyHash == null || bodyHash.startsWith(_comparisonBodyHashPrefix)) {
+    return SyncBaselineBodyHashVersion.comparison;
+  }
+  return SyncBaselineBodyHashVersion.legacyFullBody;
+}
+
+String? _decodeStoredBodyHash(
+  String? bodyHash,
+  SyncBaselineBodyHashVersion version,
+) {
+  if (bodyHash == null ||
+      version == SyncBaselineBodyHashVersion.legacyFullBody) {
+    return bodyHash;
+  }
+  return bodyHash.substring(_comparisonBodyHashPrefix.length);
+}
+
+String? _encodeStoredBodyHash(
+  String? bodyHash,
+  SyncBaselineBodyHashVersion version,
+) {
+  if (bodyHash == null ||
+      version == SyncBaselineBodyHashVersion.legacyFullBody) {
+    return bodyHash;
+  }
+  return '$_comparisonBodyHashPrefix$bodyHash';
+}
 
 /// A baseline hash pair to persist for one sync record.
 class SyncBaselineEntry {
@@ -13,12 +61,14 @@ class SyncBaselineEntry {
     required this.recordId,
     required this.wireHash,
     this.bodyHash,
+    this.bodyHashVersion = SyncBaselineBodyHashVersion.comparison,
   });
 
   final SyncRecordKind kind;
   final String recordId;
   final String wireHash;
   final String? bodyHash;
+  final SyncBaselineBodyHashVersion bodyHashVersion;
 }
 
 /// Local-only state for the Device Sync protocol.
@@ -40,10 +90,39 @@ class SyncLocalRepository {
   Future<List<BaselineEntryRow>> listBaselineEntries() =>
       _db.select(_db.baselineEntries).get();
 
+  Future<Map<SyncRecordAddress, SyncBaselineEntry>> snapshotBaseline() async {
+    final rows = await listBaselineEntries();
+    return {
+      for (final row in rows)
+        (kind: row.kind, recordId: row.recordId): () {
+          final version = _storedBodyHashVersion(row.bodyHash);
+          return SyncBaselineEntry(
+            kind: row.kind,
+            recordId: row.recordId,
+            wireHash: row.wireHash,
+            bodyHash: _decodeStoredBodyHash(row.bodyHash, version),
+            bodyHashVersion: version,
+          );
+        }(),
+    };
+  }
+
   Future<void> replaceBaseline({
     required String epoch,
     Iterable<SyncBaselineEntry> entries = const [],
   }) => transaction((tx) => tx.replaceBaseline(epoch: epoch, entries: entries));
+
+  /// Advances only entries justified by an observed peer manifest.
+  ///
+  /// Entries not named by [entries] or [drop] are retained so an unresolved
+  /// blob or malformed record remains retryable on the next pass.
+  Future<void> advanceBaseline({
+    required String epoch,
+    Iterable<SyncBaselineEntry> entries = const [],
+    Iterable<SyncRecordAddress> drop = const [],
+  }) => transaction(
+    (tx) => tx.advanceBaseline(epoch: epoch, entries: entries, drop: drop),
+  );
 
   Future<void> resetEpoch({
     required String epoch,
@@ -56,8 +135,13 @@ class SyncLocalRepository {
 
   Future<void> clearForRestore({
     required Iterable<SyncRecordAddress> restoredRecords,
-  }) =>
-      transaction((tx) => tx.clearForRestore(restoredRecords: restoredRecords));
+    bool revalidatePending = true,
+  }) => transaction(
+    (tx) => tx.clearForRestore(
+      restoredRecords: restoredRecords,
+      revalidatePending: revalidatePending,
+    ),
+  );
 
   Future<List<IdAliasRow>> listAliases() => _db.select(_db.idAliases).get();
 
@@ -76,6 +160,15 @@ class SyncLocalRepository {
   Future<List<PendingDeletionRow>> listPendingDeletions() =>
       _db.select(_db.pendingDeletions).get();
 
+  Future<PendingDeletionRow?> getPendingDeletion({
+    required SyncRecordKind kind,
+    required String recordId,
+  }) =>
+      (_db.select(_db.pendingDeletions)..where(
+            (row) => row.kind.equals(kind.name) & row.recordId.equals(recordId),
+          ))
+          .getSingleOrNull();
+
   Future<void> upsertPendingDeletion({
     required SyncRecordKind kind,
     required String recordId,
@@ -92,8 +185,28 @@ class SyncLocalRepository {
     ),
   );
 
+  Future<void> deletePendingDeletion({
+    required SyncRecordKind kind,
+    required String recordId,
+  }) => transaction(
+    (tx) => tx.deletePendingDeletion(kind: kind, recordId: recordId),
+  );
+
   Future<List<ReviewQueueRow>> listReviewQueue() =>
       _db.select(_db.reviewQueue).get();
+
+  Future<ReviewQueueRow?> getReviewQueue({
+    required SyncRecordKind kind,
+    required String recordId,
+    required String counterpartId,
+  }) =>
+      (_db.select(_db.reviewQueue)..where(
+            (row) =>
+                row.kind.equals(kind.name) &
+                row.recordId.equals(recordId) &
+                row.counterpartId.equals(counterpartId),
+          ))
+          .getSingleOrNull();
 
   Future<void> enqueueReview({
     required SyncRecordKind kind,
@@ -102,6 +215,7 @@ class SyncLocalRepository {
     required String reason,
     required String candidateBlob,
     required String candidateHash,
+    String? localHash,
     required DateTime queuedAt,
   }) => transaction(
     (tx) => tx.enqueueReview(
@@ -111,7 +225,20 @@ class SyncLocalRepository {
       reason: reason,
       candidateBlob: candidateBlob,
       candidateHash: candidateHash,
+      localHash: localHash,
       queuedAt: queuedAt,
+    ),
+  );
+
+  Future<void> deleteReview({
+    required SyncRecordKind kind,
+    required String recordId,
+    required String counterpartId,
+  }) => transaction(
+    (tx) => tx.deleteReview(
+      kind: kind,
+      recordId: recordId,
+      counterpartId: counterpartId,
     ),
   );
 
@@ -133,6 +260,9 @@ class SyncLocalRepository {
     required String recordId,
   }) => transaction((tx) => tx.markPublished(kind: kind, recordId: recordId));
 
+  Future<void> markPublishedAll(Iterable<SyncRecordAddress> records) =>
+      transaction((tx) => tx.markPublishedAll(records));
+
   Future<void> remapIdentity({
     required SyncRecordKind kind,
     required String losingId,
@@ -144,6 +274,18 @@ class SyncLocalRepository {
       survivingId: survivingId,
     ),
   );
+
+  /// Retires aliases whose losing IDs are absent from every current peer
+  /// manifest. The caller must only invoke this after all peer manifests for
+  /// the current epoch were verified; an unavailable manifest is not evidence
+  /// that it dropped an ID.
+  Future<void> retireAliases({required Set<SyncRecordAddress> peerAddresses}) =>
+      transaction((tx) => tx.retireAliases(peerAddresses: peerAddresses));
+
+  Future<String> resolveAlias({
+    required SyncRecordKind kind,
+    required String recordId,
+  }) => transaction((tx) => tx.resolveAlias(kind: kind, recordId: recordId));
 }
 
 /// The transaction-bound operations of [SyncLocalRepository].
@@ -174,7 +316,42 @@ class SyncLocalTransaction {
               kind: entry.kind,
               recordId: entry.recordId,
               wireHash: entry.wireHash,
-              bodyHash: Value(entry.bodyHash),
+              bodyHash: Value(
+                _encodeStoredBodyHash(entry.bodyHash, entry.bodyHashVersion),
+              ),
+            ),
+          );
+    }
+  }
+
+  Future<void> advanceBaseline({
+    required String epoch,
+    Iterable<SyncBaselineEntry> entries = const [],
+    Iterable<SyncRecordAddress> drop = const [],
+  }) async {
+    final state = await _db.select(_db.baselineState).getSingleOrNull();
+    if (state == null || state.epoch != epoch) {
+      throw StateError('cannot advance a baseline from a different epoch');
+    }
+    for (final address in drop) {
+      await (_db.delete(_db.baselineEntries)..where(
+            (row) =>
+                row.kind.equals(address.kind.name) &
+                row.recordId.equals(address.recordId),
+          ))
+          .go();
+    }
+    for (final entry in entries) {
+      await _db
+          .into(_db.baselineEntries)
+          .insertOnConflictUpdate(
+            BaselineEntriesCompanion.insert(
+              kind: entry.kind,
+              recordId: entry.recordId,
+              wireHash: entry.wireHash,
+              bodyHash: Value(
+                _encodeStoredBodyHash(entry.bodyHash, entry.bodyHashVersion),
+              ),
             ),
           );
     }
@@ -202,9 +379,12 @@ class SyncLocalTransaction {
 
   Future<void> clearForRestore({
     required Iterable<SyncRecordAddress> restoredRecords,
+    bool revalidatePending = true,
   }) async {
     await clearBaseline();
-    await revalidatePendingDeletions(restoredRecords: restoredRecords);
+    if (revalidatePending) {
+      await revalidatePendingDeletions(restoredRecords: restoredRecords);
+    }
   }
 
   Future<void> revalidatePendingDeletions({
@@ -257,6 +437,15 @@ class SyncLocalTransaction {
         ),
       );
 
+  Future<void> deletePendingDeletion({
+    required SyncRecordKind kind,
+    required String recordId,
+  }) =>
+      (_db.delete(_db.pendingDeletions)..where(
+            (row) => row.kind.equals(kind.name) & row.recordId.equals(recordId),
+          ))
+          .go();
+
   Future<void> enqueueReview({
     required SyncRecordKind kind,
     required String recordId,
@@ -264,6 +453,7 @@ class SyncLocalTransaction {
     required String reason,
     required String candidateBlob,
     required String candidateHash,
+    String? localHash,
     required DateTime queuedAt,
   }) => _db
       .into(_db.reviewQueue)
@@ -275,10 +465,25 @@ class SyncLocalTransaction {
           reason: reason,
           candidateBlob: candidateBlob,
           candidateHash: candidateHash,
+          localHash: Value(localHash),
           queuedAt: queuedAt,
         ),
         mode: InsertMode.insertOrIgnore,
       );
+
+  Future<void> deleteReview({
+    required SyncRecordKind kind,
+    required String recordId,
+    required String counterpartId,
+  }) async {
+    await (_db.delete(_db.reviewQueue)..where(
+          (row) =>
+              row.kind.equals(kind.name) &
+              row.recordId.equals(recordId) &
+              row.counterpartId.equals(counterpartId),
+        ))
+        .go();
+  }
 
   Future<void> markPublished({
     required SyncRecordKind kind,
@@ -288,6 +493,24 @@ class SyncLocalTransaction {
       .insertOnConflictUpdate(
         PublishedRecordsCompanion.insert(kind: kind, recordId: recordId),
       );
+
+  Future<void> markPublishedAll(Iterable<SyncRecordAddress> records) async {
+    final rows = [
+      for (final record in records)
+        PublishedRecordsCompanion.insert(
+          kind: record.kind,
+          recordId: record.recordId,
+        ),
+    ];
+    if (rows.isEmpty) return;
+    await _db.batch((batch) {
+      batch.insertAll(
+        _db.publishedRecords,
+        rows,
+        mode: InsertMode.insertOrIgnore,
+      );
+    });
+  }
 
   Future<void> remapIdentity({
     required SyncRecordKind kind,
@@ -314,24 +537,63 @@ class SyncLocalTransaction {
         }
       }
     }
-    await (_db.update(_db.idAliases)..where(
-          (row) =>
-              row.kind.equals(kind.name) & row.survivingId.isIn(rewrittenIds),
-        ))
-        .write(IdAliasesCompanion(survivingId: Value(target)));
+    for (final chunk in _chunked(rewrittenIds, 500)) {
+      await (_db.update(_db.idAliases)..where(
+            (row) => row.kind.equals(kind.name) & row.survivingId.isIn(chunk),
+          ))
+          .write(IdAliasesCompanion(survivingId: Value(target)));
+    }
     await upsertAlias(kind: kind, losingId: losingId, survivingId: target);
 
-    final published =
-        await (_db.select(_db.publishedRecords)..where(
-              (row) =>
-                  row.kind.equals(kind.name) &
-                  row.recordId.isIn({...rewrittenIds, target}),
-            ))
-            .get();
-    if (published.isNotEmpty) {
-      await markPublished(kind: kind, recordId: target);
+    final publishedIds = {...rewrittenIds, target};
+    for (final chunk in _chunked(publishedIds, 500)) {
+      final published =
+          await (_db.select(_db.publishedRecords)..where(
+                (row) => row.kind.equals(kind.name) & row.recordId.isIn(chunk),
+              ))
+              .get();
+      if (published.isNotEmpty) {
+        await markPublished(kind: kind, recordId: target);
+        break;
+      }
     }
   }
+
+  Future<void> retireAliases({
+    required Set<SyncRecordAddress> peerAddresses,
+  }) async {
+    final aliases = await _db.select(_db.idAliases).get();
+    final aliasesByAddress = {
+      for (final alias in aliases)
+        (kind: alias.kind, recordId: alias.losingId): alias,
+    };
+    final retainedAddresses = <SyncRecordAddress>{};
+    for (final peerAddress in peerAddresses) {
+      var current = peerAddress;
+      final seen = <SyncRecordAddress>{};
+      while (seen.add(current)) {
+        final alias = aliasesByAddress[current];
+        if (alias == null) break;
+        retainedAddresses.add(current);
+        current = (kind: alias.kind, recordId: alias.survivingId);
+      }
+    }
+    for (final alias in aliases) {
+      final address = (kind: alias.kind, recordId: alias.losingId);
+      if (retainedAddresses.contains(address)) continue;
+      await (_db.delete(_db.idAliases)..where(
+            (row) =>
+                row.kind.equals(alias.kind.name) &
+                row.losingId.equals(alias.losingId),
+          ))
+          .go();
+    }
+  }
+
+  Future<String> resolveAlias({
+    required SyncRecordKind kind,
+    required String recordId,
+  }) => _resolveAlias(kind: kind, recordId: recordId, seen: {recordId});
 
   Future<String> _resolveAlias({
     required SyncRecordKind kind,
@@ -354,3 +616,53 @@ class SyncLocalTransaction {
     }
   }
 }
+
+/// Returns whether a record has ever been named by a successfully prepared
+/// publication. Repository hard-delete paths use this marker instead of the
+/// sync baseline because the marker survives reset, detach, and restore.
+Future<bool> isPublishedSyncRecord(
+  CompendiumDatabase db, {
+  required SyncRecordKind kind,
+  required String recordId,
+}) async =>
+    (await (db.select(db.publishedRecords)..where(
+          (row) => row.kind.equals(kind.name) & row.recordId.equals(recordId),
+        ))
+        .getSingleOrNull()) !=
+    null;
+
+Future<Set<String>> publishedSyncRecordIds(
+  CompendiumDatabase db, {
+  required SyncRecordKind kind,
+  required Iterable<String> recordIds,
+}) async {
+  final ids = recordIds.toSet().toList(growable: false);
+  if (ids.isEmpty) return const {};
+  final published = <String>{};
+  const chunkSize = 500;
+  for (var start = 0; start < ids.length; start += chunkSize) {
+    final end = start + chunkSize < ids.length ? start + chunkSize : ids.length;
+    final chunk = ids.sublist(start, end);
+    final rows =
+        await (db.select(db.publishedRecords)..where(
+              (row) => row.kind.equals(kind.name) & row.recordId.isIn(chunk),
+            ))
+            .get();
+    published.addAll([for (final row in rows) row.recordId]);
+  }
+  return published;
+}
+
+/// Clears a pending tombstone only for an explicit local existence transition.
+///
+/// Sync-originated body/reference writes deliberately do not call this helper;
+/// a newer [updatedAt] alone is not evidence that the user revived a record.
+Future<void> clearPendingSyncDeletion(
+  CompendiumDatabase db, {
+  required SyncRecordKind kind,
+  required String recordId,
+}) =>
+    (db.delete(db.pendingDeletions)..where(
+          (row) => row.kind.equals(kind.name) & row.recordId.equals(recordId),
+        ))
+        .go();

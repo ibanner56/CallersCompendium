@@ -1167,6 +1167,125 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsGeneralSoftDeleteRetentionNever => 'Aldrig';
 
   @override
+  String get syncReviewSettingsTitle => 'Synkroniseringsbeslutninger';
+
+  @override
+  String get syncReviewSettingsSubtitle =>
+      'Gennemgå peer-sletninger, der er i konflikt med poster, som er oprettet på denne enhed.';
+
+  @override
+  String get syncReviewTitle => 'Synkroniseringsbeslutninger';
+
+  @override
+  String get syncReviewLoading => 'Indlæser synkroniseringsbeslutninger';
+
+  @override
+  String get syncReviewEmpty =>
+      'Der er ingen synkroniseringsbeslutninger, der venter på dig.';
+
+  @override
+  String get syncReviewIntro =>
+      'Disse poster kræver en beslutning, før ændringen fra peer-enheden kan anvendes.';
+
+  @override
+  String get syncReviewLoadFailed =>
+      'Synkroniseringsbeslutninger kunne ikke indlæses.';
+
+  @override
+  String get syncReviewResolved => 'Synkroniseringsbeslutning anvendt.';
+
+  @override
+  String get syncReviewActionFailed =>
+      'Synkroniseringsbeslutningen kunne ikke anvendes. Posten blev bevaret, så du kan prøve igen.';
+
+  @override
+  String get syncReviewKindChoreographer => 'Koreograf';
+
+  @override
+  String get syncReviewKindTag => 'Mærke';
+
+  @override
+  String get syncReviewKindCustomField => 'Brugerdefineret felt';
+
+  @override
+  String get syncReviewKindDifficulty => 'Sværhedsgrad';
+
+  @override
+  String get syncReviewKindDance => 'Dans';
+
+  @override
+  String get syncReviewKindProgram => 'Program';
+
+  @override
+  String get syncReviewKindPublishedSource => 'Udgivet kilde';
+
+  @override
+  String get syncReviewKindVenue => 'Sted';
+
+  @override
+  String get syncReviewKindSetting => 'Indstilling';
+
+  @override
+  String syncReviewLocalRecord(String id) {
+    return 'Lokal post: $id';
+  }
+
+  @override
+  String syncReviewPeerRecord(String identity) {
+    return 'Peer-post: $identity';
+  }
+
+  @override
+  String get syncReviewTombstoneReason =>
+      'En peer slettede en matchende post, som denne enhed oprettede.';
+
+  @override
+  String get syncReviewDanceAmbiguityReason =>
+      'Levende danse har samme titel, men forskellig koreografi.';
+
+  @override
+  String get syncReviewUnsupportedReason =>
+      'Denne synkroniseringskonflikt er bevaret indtil videre; ingen sikker handling er tilgængelig her.';
+
+  @override
+  String get syncReviewUnsupportedAction =>
+      'Behold denne post, indtil en senere synkronisering eller en understøttet gennemgang kan håndtere den.';
+
+  @override
+  String get syncReviewMergeAction => 'Flet';
+
+  @override
+  String get syncReviewKeepBothAction => 'Behold begge';
+
+  @override
+  String get syncReviewKeepBothTitle => 'Vælg et nyt lokalt navn';
+
+  @override
+  String get syncReviewNewNameLabel => 'Nyt lokalt navn';
+
+  @override
+  String get syncReviewNameRequired => 'Indtast et navn.';
+
+  @override
+  String get syncReviewNameNotDistinct => 'Vælg et andet navn.';
+
+  @override
+  String get syncReviewCandidateInvalid =>
+      'Den gemte ændring fra peer-enheden er ugyldig, så den blev bevaret.';
+
+  @override
+  String get syncReviewCandidateChanged =>
+      'Den gemte ændring fra peer-enheden er ikke længere aktuel, så den blev bevaret.';
+
+  @override
+  String get syncReviewTargetMissing =>
+      'Den lokale post er ikke længere tilgængelig, så beslutningen blev bevaret.';
+
+  @override
+  String get syncReviewCandidateAlreadyPresent =>
+      'Peer-posten findes allerede, så beslutningen blev bevaret.';
+
+  @override
   String get settingsGeneralImportHeader => 'Import';
 
   @override
