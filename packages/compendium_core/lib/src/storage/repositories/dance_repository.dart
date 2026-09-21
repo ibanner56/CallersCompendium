@@ -523,9 +523,23 @@ class DanceRepository {
         : dance;
     final difficultyLevelId = normalisedDance.difficultyLevelId;
     if (difficultyLevelId != null) {
+      // A dance that is itself a tombstone may cite a tombstoned level, and
+      // inbound validation accepts exactly that: `validateInboundReferences`
+      // relaxes its liveness predicate for a record with a `deletedAt`
+      // (`allowTombstonedReferences`). Keeping this guard strict for the same
+      // record made the two disagree, and because every inbound tombstone is
+      // named to the storage adapter, that disagreement escalated a per-record
+      // failure into a whole-batch rollback that repeated on every pass and
+      // stalled Device Sync permanently. The liveness requirement still holds
+      // for a live dance, which is the case the guard exists for.
+      final requireLiveLevel = normalisedDance.deletedAt == null;
       final level =
           await (_db.select(_db.difficultyLevels)..where(
-                (t) => t.id.equals(difficultyLevelId) & t.deletedAt.isNull(),
+                (t) =>
+                    t.id.equals(difficultyLevelId) &
+                    (requireLiveLevel
+                        ? t.deletedAt.isNull()
+                        : const Constant(true)),
               ))
               .getSingleOrNull();
       if (level == null) {

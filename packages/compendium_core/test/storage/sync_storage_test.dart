@@ -1361,6 +1361,91 @@ void main() {
     },
   );
 
+  test(
+    'applies an inbound tombstone citing a locally tombstoned difficulty level',
+    () async {
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+      // A custom level this device has since deleted. Deleting it is permitted
+      // once no live dance cites it.
+      await db
+          .into(db.difficultyLevels)
+          .insert(
+            DifficultyLevelsCompanion.insert(
+              id: 'custom-level',
+              label: 'Sizzling',
+              position: 99,
+              updatedAt: Value(stamp),
+              deletedAt: Value(stamp),
+              existenceAt: Value(stamp),
+            ),
+          );
+      // A peer deletes a dance that cited that level; this device never held
+      // the dance itself.
+      final deletedDance = Dance(
+        id: 'peer-dance',
+        title: 'Peer dance',
+        difficultyLevelId: 'custom-level',
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final unrelated = Choreographer(
+        id: 'peer-choreographer',
+        name: 'Unrelated peer choreographer',
+      );
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.dance,
+              id: deletedDance.id,
+              updatedAt: stamp,
+              deletedAt: stamp,
+              existenceAt: stamp,
+              body: syncBodyForEntity(SyncRecordKind.dance, deletedDance),
+            ),
+          ),
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.choreographer,
+              id: unrelated.id,
+              updatedAt: stamp,
+              deletedAt: null,
+              existenceAt: stamp,
+              body: syncBodyForEntity(SyncRecordKind.choreographer, unrelated),
+            ),
+          ),
+        ],
+        storage: storage,
+      );
+
+      // The tombstone applies rather than failing its write: a record that is
+      // itself deleted may cite a deleted level, which is exactly what
+      // `validateInboundReferences` already allows. Before this was aligned,
+      // the failed write was a *named tombstone* failure, so the whole batch
+      // rolled back — deterministically, on every later pass — and the
+      // unrelated peer record below was lost with it.
+      expect(
+        result.applied,
+        contains((
+          kind: SyncRecordKind.choreographer,
+          recordId: unrelated.id,
+        )),
+      );
+      expect(await repositories.choreographers.getById(unrelated.id), isNotNull);
+      expect(
+        result.applied,
+        contains((kind: SyncRecordKind.dance, recordId: deletedDance.id)),
+      );
+      expect(
+        result.reports.where(
+          (report) => report.message.contains('rolled back'),
+        ),
+        isEmpty,
+      );
+    },
+  );
+
   test('rejected inbound tombstones do not suppress live citations', () async {
     final stamp = DateTime.utc(2025, 1, 2, 12);
     final tag = Tag(id: 'retained-tag', name: 'Retained tag');

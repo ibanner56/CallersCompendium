@@ -180,9 +180,20 @@ class CustomFieldDefRepository {
   Future<void> delete(String id, {DateTime? at, bool permanent = false}) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
-      final stillUsed = await (_db.select(
-        _db.customFieldValues,
-      )..where((t) => t.fieldId.equals(id))).get();
+      // Live dances only; a soft-deleted dance keeps its `custom_field_values`
+      // rows because the tombstone fires no FK cascade. See the note in
+      // `ChoreographerRepository.delete`.
+      final stillUsed =
+          await (_db.select(_db.customFieldValues).join([
+                innerJoin(
+                  _db.dances,
+                  _db.dances.id.equalsExp(_db.customFieldValues.danceId),
+                ),
+              ])..where(
+                _db.customFieldValues.fieldId.equals(id) &
+                    _db.dances.deletedAt.isNull(),
+              ))
+              .get();
       if (stillUsed.isNotEmpty) {
         throw StateError(
           'cannot delete custom field "$id": still set on '

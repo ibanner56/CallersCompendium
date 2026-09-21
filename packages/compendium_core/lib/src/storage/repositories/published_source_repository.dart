@@ -96,9 +96,20 @@ class PublishedSourceRepository {
   Future<void> delete(String id, {DateTime? at, bool permanent = false}) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
-      final stillUsed = await (_db.select(
-        _db.danceSources,
-      )..where((t) => t.sourceId.equals(id))).get();
+      // Live dances only; a soft-deleted dance keeps its `dance_sources` rows
+      // because the tombstone fires no FK cascade. See the note in
+      // `ChoreographerRepository.delete`.
+      final stillUsed =
+          await (_db.select(_db.danceSources).join([
+                innerJoin(
+                  _db.dances,
+                  _db.dances.id.equalsExp(_db.danceSources.danceId),
+                ),
+              ])..where(
+                _db.danceSources.sourceId.equals(id) &
+                    _db.dances.deletedAt.isNull(),
+              ))
+              .get();
       if (stillUsed.isNotEmpty) {
         throw StateError(
           'cannot delete published source "$id": still cited by '

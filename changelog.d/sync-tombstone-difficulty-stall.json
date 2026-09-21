@@ -1,0 +1,14 @@
+{
+  "id": "sync-tombstone-difficulty-stall",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Device Sync no longer stops applying changes after a peer deletes a dance that used a difficulty level this device had already deleted. The incoming deletion used to fail every pass and roll back the whole batch with it, so no further record could sync."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "Align the inbound dance writer's difficulty-level guard with inbound reference validation: a record that is itself a tombstone may cite a tombstoned level, so a per-record failure can no longer escalate into a repeating whole-batch rollback."
+    ]
+  }
+}

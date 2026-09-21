@@ -210,11 +210,16 @@ class VenueRepository {
       // `programs_venue_id` index (see `venueLookupIndexSql`) backs this WHERE
       // so the count restricts to matching references instead of scanning every
       // program row, keeping the guard cheap as a popular venue's history grows.
+      // Live programs only; a soft-deleted program keeps its `venue_id`. See
+      // the note in `ChoreographerRepository.delete`.
       final referencingCount = _db.programs.id.count();
       final count =
           await (_db.selectOnly(_db.programs)
                 ..addColumns([referencingCount])
-                ..where(_db.programs.venueId.equals(id)))
+                ..where(
+                  _db.programs.venueId.equals(id) &
+                      _db.programs.deletedAt.isNull(),
+                ))
               .map((row) => row.read(referencingCount) ?? 0)
               .getSingle();
       if (count > 0) {
@@ -306,8 +311,28 @@ class VenueRepository {
           deleted: true,
         );
       }
+      // A venue still named by *any* surviving program row — including a
+      // tombstoned one — must stay. `programs.venue_id` is not a foreign key,
+      // so nothing at the database level would reject the erasure, and the
+      // program write path refuses a program whose non-null `venueId` has no
+      // matching venue: the program would become unrestorable from Trash.
+      // This became reachable when publication forfeiture started tombstoning
+      // published programs instead of erasing them, which breaks this method's
+      // documented precondition that the caller has already removed every
+      // referencing program.
+      final stillReferenced = <String>{};
+      for (final chunk in _chunkIds(list)) {
+        final rows = await (_db.selectOnly(_db.programs)
+              ..addColumns([_db.programs.venueId])
+              ..where(_db.programs.venueId.isIn(chunk)))
+            .map((row) => row.read(_db.programs.venueId))
+            .get();
+        stillReferenced.addAll(rows.whereType<String>());
+      }
       final erasableIds = list
-          .where((id) => !publishedIds.contains(id))
+          .where(
+            (id) => !publishedIds.contains(id) && !stillReferenced.contains(id),
+          )
           .toList(growable: false);
       for (final chunk in _chunkIds(erasableIds)) {
         await (_db.delete(_db.venues)..where((t) => t.id.isIn(chunk))).go();

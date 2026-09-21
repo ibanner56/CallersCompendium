@@ -154,9 +154,26 @@ class ChoreographerRepository {
   Future<void> delete(String id, {DateTime? at, bool permanent = false}) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
-      final stillUsed = await (_db.select(
-        _db.danceAuthors,
-      )..where((t) => t.choreographerId.equals(id))).get();
+      // Only a *live* dance holds this choreographer back (§3.1: "refuse to
+      // hard-delete an entity still referenced by a live record"). A
+      // soft-deleted dance keeps its `dance_authors` rows — the tombstone
+      // fires no FK cascade — so counting them would block a delete on the
+      // strength of a record that is itself deleted. That regressed import
+      // undo once publication forfeiture started tombstoning published dances
+      // instead of erasing them: the surviving rows made this guard throw, the
+      // caller swallowed it, and the import-created choreographer stayed live.
+      // `CompendiumSyncStorage._hasCitation` counts liveness the same way.
+      final stillUsed =
+          await (_db.select(_db.danceAuthors).join([
+                innerJoin(
+                  _db.dances,
+                  _db.dances.id.equalsExp(_db.danceAuthors.danceId),
+                ),
+              ])..where(
+                _db.danceAuthors.choreographerId.equals(id) &
+                    _db.dances.deletedAt.isNull(),
+              ))
+              .get();
       if (stillUsed.isNotEmpty) {
         throw StateError(
           'cannot delete choreographer "$id": still credited on '

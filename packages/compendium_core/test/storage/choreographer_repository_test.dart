@@ -141,6 +141,30 @@ void main() {
     expect(await repo.getById('c1'), isNotNull);
   });
 
+  test('delete succeeds when only a soft-deleted dance credits it', () async {
+    // A tombstoned dance keeps its `dance_authors` row — a soft delete fires
+    // no FK cascade — so counting those rows blocked the delete on the
+    // strength of a record that is itself deleted. That is what broke import
+    // undo once publication forfeiture started tombstoning a published dance
+    // instead of erasing it: the guard threw, `ImportPipeline.undo` swallowed
+    // the error, and the import-created choreographer stayed live forever.
+    // ignore: unused_result
+    await repo.upsert(Choreographer(id: 'c1', name: 'Credited'));
+    await dances.create(
+      Dance(
+        id: 'd1',
+        title: 'Some Dance',
+        authorIds: const ['c1'],
+        createdAt: DateTime.utc(2026),
+        updatedAt: DateTime.utc(2026),
+      ),
+    );
+    await dances.softDelete('d1', at: DateTime.utc(2026, 2));
+
+    await repo.delete('c1', permanent: true);
+    expect(await repo.getById('c1'), isNull);
+  });
+
   test('delete succeeds once the crediting dance is unlinked', () async {
     // ignore: unused_result
     await repo.upsert(Choreographer(id: 'c1', name: 'Credited'));
