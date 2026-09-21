@@ -459,6 +459,25 @@ The **Experimental** section is a home for features that are still in
 development. It may be empty, and anything that appears there can change before
 it becomes a regular setting.
 
+### Device Sync
+
+**Device Sync** keeps your library in step across your own devices. It is **off
+until you turn it on**, and while it is off the app sends nothing anywhere.
+Turning it on does not send anything by itself; nothing is exchanged until you
+connect a store.
+
+- **Sync only on WiFi** is on by default. On a mobile-data connection automatic
+  sync waits, and pressing **Sync now** tells you why and points at this setting.
+  A pass that was skipped runs the next time sync is triggered; you do not need
+  to do anything.
+- **Status** shows when this device last synced. **Sync is not a backup:** a
+  store that goes unused for 30 days is removed, so keep making file backups.
+  From three weeks of disuse the status also warns that the store is close to
+  expiring.
+- These settings belong to this device. They are not synced to your other
+  devices, and they are not included in a backup, so restoring a backup never
+  turns sync on.
+
 ## About
 
 The **About** section tells you what you're running and where it comes from.

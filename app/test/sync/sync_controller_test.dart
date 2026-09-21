@@ -1,0 +1,286 @@
+import 'package:compendium_app/src/screens/settings/settings_keys.dart';
+import 'package:compendium_app/src/sync/sync_controller.dart';
+import 'package:compendium_app/src/sync/sync_coordinator.dart';
+import 'package:compendium_app/src/sync/sync_network.dart';
+import 'package:compendium_core/compendium_core.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:drift/drift.dart' show driftRuntimeOptions;
+import 'package:flutter_test/flutter_test.dart';
+
+import '../support/noop_sync_transport.dart';
+import '../support/test_repositories.dart';
+
+final class _FixedNetwork implements SyncNetworkClassifier {
+  _FixedNetwork(this.kind);
+  SyncNetworkKind kind;
+  @override
+  Future<SyncNetworkKind> current() async => kind;
+}
+
+/// A coordinator whose pass operation counts calls and never reaches a network.
+SyncCoordinator _coordinator(
+  CompendiumRepositories repos,
+  List<int> passes, {
+  SyncPassStatus status = SyncPassStatus.completed,
+}) => SyncCoordinator(
+  syncId: 'configured',
+  deviceId: 'device',
+  store: CompendiumSyncCoordinatorStore(repos),
+  transport: NoopSyncCoordinatorTransport(),
+  passOperation: ({initialStore}) async {
+    passes.add(1);
+    return SyncPassResult(status);
+  },
+);
+
+void main() {
+  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+  late CompendiumRepositories repos;
+  late List<int> passes;
+  late _FixedNetwork network;
+  late DateTime clock;
+  SyncCoordinator? coordinator;
+
+  SyncController build({Duration debounce = const Duration(seconds: 30)}) {
+    final controller = SyncController(
+      settings: repos.settings,
+      coordinator: () => coordinator,
+      reconfigure: () async {},
+      classifier: network,
+      now: () => clock,
+      debounce: debounce,
+    );
+    addTearDown(controller.dispose);
+    return controller;
+  }
+
+  setUp(() {
+    repos = openTestRepositories();
+    passes = [];
+    network = _FixedNetwork(SyncNetworkKind.unmetered);
+    clock = DateTime.utc(2026, 9, 21, 12);
+    coordinator = _coordinator(repos, passes);
+  });
+
+  group('defaults and enablement', () {
+    test('sync is off and WiFi-only is on by default', () async {
+      final controller = build();
+      await controller.load();
+      expect(controller.enabled, isFalse);
+      expect(controller.wifiOnly, isTrue);
+      expect(controller.excludeImports, isFalse);
+    });
+
+    test('while disabled no trigger reaches the coordinator', () async {
+      final controller = build();
+      await controller.load();
+      for (final trigger in SyncTrigger.values) {
+        expect(await controller.trigger(trigger), SyncGateOutcome.disabled);
+      }
+      expect(passes, isEmpty);
+    });
+
+    test('enabled but unpaired makes no request', () async {
+      final controller = build();
+      await controller.load();
+      await controller.setEnabled(true);
+      coordinator = null;
+      expect(await controller.onAppStart(), SyncGateOutcome.notPaired);
+      expect(passes, isEmpty);
+    });
+
+    test('enabling persists consent and asks for reconfiguration', () async {
+      var reconfigured = 0;
+      final controller = SyncController(
+        settings: repos.settings,
+        coordinator: () => null,
+        reconfigure: () async => reconfigured++,
+        classifier: network,
+      );
+      addTearDown(controller.dispose);
+      await controller.setEnabled(true);
+      expect(await repos.settings.get(kSyncEnabledKey), isTrue);
+      await controller.setEnabled(false);
+      expect(await repos.settings.get(kSyncEnabledKey), isFalse);
+      expect(reconfigured, 2);
+    });
+  });
+
+  group('§6.12 triggers', () {
+    test('a metered connection suppresses automatic passes', () async {
+      final controller = build();
+      await controller.load();
+      await controller.setEnabled(true);
+      network.kind = SyncNetworkKind.metered;
+
+      expect(
+        await controller.trigger(SyncTrigger.appStart),
+        SyncGateOutcome.suppressedMetered,
+      );
+      expect(
+        await controller.trigger(SyncTrigger.debouncedChange),
+        SyncGateOutcome.suppressedMetered,
+      );
+      expect(passes, isEmpty);
+      expect(controller.lastSuccessAt, isNull);
+    });
+
+    test('a manual attempt on a metered connection routes to the setting '
+        'instead of running or failing', () async {
+      final controller = build();
+      await controller.load();
+      await controller.setEnabled(true);
+      network.kind = SyncNetworkKind.metered;
+      var routed = 0;
+      controller.wifiSettingRequests.addListener(() => routed++);
+
+      expect(await controller.syncNow(), SyncGateOutcome.suppressedMetered);
+      expect(routed, 1);
+      expect(passes, isEmpty);
+    });
+
+    test(
+      'a suppressed pass runs at the next trigger without user action',
+      () async {
+        final controller = build();
+        await controller.load();
+        await controller.setEnabled(true);
+        network.kind = SyncNetworkKind.metered;
+        await controller.trigger(SyncTrigger.appStart);
+        expect(passes, isEmpty);
+
+        network.kind = SyncNetworkKind.unmetered;
+        expect(
+          await controller.trigger(SyncTrigger.debouncedChange),
+          SyncGateOutcome.ran,
+        );
+        expect(passes, hasLength(1));
+      },
+    );
+
+    test('turning WiFi-only off lets a metered connection sync', () async {
+      final controller = build();
+      await controller.load();
+      await controller.setEnabled(true);
+      await controller.setWifiOnly(false);
+      network.kind = SyncNetworkKind.metered;
+
+      expect(await controller.syncNow(), SyncGateOutcome.ran);
+      expect(passes, hasLength(1));
+      expect(await repos.settings.get(kSyncWifiOnlyKey), isFalse);
+    });
+
+    test('offline suppresses a pass and records nothing', () async {
+      final controller = build();
+      await controller.load();
+      await controller.setEnabled(true);
+      network.kind = SyncNetworkKind.offline;
+      expect(await controller.syncNow(), SyncGateOutcome.suppressedOffline);
+      expect(passes, isEmpty);
+      expect(controller.lastSuccessAt, isNull);
+    });
+
+    test('an unknown connection is not treated as metered', () async {
+      final controller = build();
+      await controller.load();
+      await controller.setEnabled(true);
+      network.kind = SyncNetworkKind.unknown;
+      expect(await controller.syncNow(), SyncGateOutcome.ran);
+    });
+
+    test('a completed pass records the last-success time; a failed one does '
+        'not', () async {
+      final controller = build();
+      await controller.load();
+      await controller.setEnabled(true);
+      coordinator = _coordinator(repos, passes, status: SyncPassStatus.failed);
+      await controller.syncNow();
+      expect(controller.lastSuccessAt, isNull);
+
+      coordinator = _coordinator(repos, passes);
+      await controller.syncNow();
+      expect(controller.lastSuccessAt, clock);
+      expect(
+        await repos.settings.get(kSyncLastSuccessAtKey),
+        clock.toIso8601String(),
+      );
+    });
+
+    test(
+      'changes inside the debounce window share one automatic pass',
+      () async {
+        final controller = build(debounce: const Duration(milliseconds: 20));
+        await controller.load();
+        await controller.setEnabled(true);
+        controller
+          ..notifyLocalChange()
+          ..notifyLocalChange()
+          ..notifyLocalChange();
+        await Future<void>.delayed(const Duration(milliseconds: 120));
+        expect(passes, hasLength(1));
+      },
+    );
+
+    test('local changes while sync is off schedule nothing', () async {
+      final controller = build(debounce: const Duration(milliseconds: 10));
+      await controller.load();
+      controller.notifyLocalChange();
+      await Future<void>.delayed(const Duration(milliseconds: 60));
+      expect(passes, isEmpty);
+    });
+  });
+
+  group('§6.14 item 4 expiry warning', () {
+    test('warns once the last success is 21 days old, not before', () async {
+      final controller = build();
+      await controller.load();
+      await controller.setEnabled(true);
+      await repos.settings.set(kSyncIdKey, 'configured');
+      await controller.syncNow();
+      await controller.load();
+      expect(controller.expiryApproaching, isFalse);
+
+      clock = clock.add(const Duration(days: 20, hours: 23));
+      expect(controller.expiryApproaching, isFalse);
+      clock = clock.add(const Duration(hours: 1));
+      expect(controller.expiryApproaching, isTrue);
+    });
+
+    test('never warns before a first success', () async {
+      final controller = build();
+      await controller.load();
+      await controller.setEnabled(true);
+      clock = clock.add(const Duration(days: 90));
+      expect(controller.expiryApproaching, isFalse);
+    });
+  });
+
+  group('connectivity classification', () {
+    test('maps platform results', () {
+      expect(
+        classifyConnectivity([ConnectivityResult.wifi]),
+        SyncNetworkKind.unmetered,
+      );
+      expect(
+        classifyConnectivity([ConnectivityResult.mobile]),
+        SyncNetworkKind.metered,
+      );
+      expect(
+        classifyConnectivity([
+          ConnectivityResult.mobile,
+          ConnectivityResult.wifi,
+        ]),
+        SyncNetworkKind.unmetered,
+      );
+      expect(
+        classifyConnectivity([ConnectivityResult.none]),
+        SyncNetworkKind.offline,
+      );
+      expect(classifyConnectivity([]), SyncNetworkKind.unknown);
+      expect(
+        classifyConnectivity([ConnectivityResult.other]),
+        SyncNetworkKind.unknown,
+      );
+    });
+  });
+}

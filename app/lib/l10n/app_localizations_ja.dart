@@ -189,6 +189,66 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsExperimentalPlaceholder => '開発中の新機能がここに表示される場合があります。';
 
   @override
+  String get settingsSyncHeader => 'Device Sync';
+
+  @override
+  String get settingsSyncIntro =>
+      'Keep your library in step across your own devices. Device Sync is off until you turn it on, and nothing is sent anywhere while it is off.';
+
+  @override
+  String get settingsSyncEnableTitle => 'Turn on Device Sync';
+
+  @override
+  String get settingsSyncEnableSubtitle =>
+      'Off by default. Turning this on does not send anything until you connect a store.';
+
+  @override
+  String get settingsSyncWifiOnlyTitle => 'Sync only on WiFi';
+
+  @override
+  String get settingsSyncWifiOnlySubtitle =>
+      'On by default. On a mobile-data connection sync waits until you are on WiFi.';
+
+  @override
+  String get settingsSyncStatusHeader => 'Status';
+
+  @override
+  String get settingsSyncStatusNotPaired => 'Not connected to a store yet.';
+
+  @override
+  String get settingsSyncStatusNeverSynced => 'Connected. Not synced yet.';
+
+  @override
+  String settingsSyncStatusLastSynced(String when) {
+    return 'Last synced $when';
+  }
+
+  @override
+  String get settingsSyncStatusSyncing => 'Syncing…';
+
+  @override
+  String get settingsSyncNotBackup =>
+      'Sync is not a backup. A store that goes unused for 30 days is removed, so keep making file backups.';
+
+  @override
+  String get settingsSyncExpiryWarning =>
+      'This store has not synced for a while and will be removed after 30 days without use. Open the app on a connected device and sync to keep it.';
+
+  @override
+  String get settingsSyncNowTitle => 'Sync now';
+
+  @override
+  String get settingsSyncMeteredRouted =>
+      'You are on a mobile-data connection and Sync only on WiFi is on. Turn that setting off below to sync now.';
+
+  @override
+  String get settingsSyncOffline =>
+      'No connection right now. Sync will run at the next opportunity.';
+
+  @override
+  String get settingsSyncNotPairedNow => 'Connect a store before syncing.';
+
+  @override
   String get settingsAboutTitle => '情報';
 
   @override

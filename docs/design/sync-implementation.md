@@ -851,6 +851,17 @@ blade. Without it the two halves of one screen are scheduled independently.
   the decision available; confirmation creates once. The pre-connection backup
   offer is user-initiated and neither choice silently exports.
 
+**Delivery shape and placement (maintainer direction).** W13 is delivered as
+three dependency-ordered PRs, each owned by this unit: enablement and status
+(keys, classification, backup denylist, no-network gate, trigger policy, status
+surface); pairing and the §6.14 pairing-time obligations; and the
+`sync_exclude_imports` publish filter with the §6.13 hint. For the initial
+release the user-visible configuration lives in the **Experimental** settings
+pane rather than a new top-level pane. That is a deliberate, temporary
+departure from spec §6.1's "top-level Settings blade" and changes presentation
+only: every normative MUST is unchanged. Promoting it to a top-level pane is
+owed before public release (C7).
+
 Its settings keys are themselves `deviceScoped` and MUST NOT sync — a sync
 feature whose configuration syncs is a loop. That holds for this unit's keys;
 it is **not** true of every key the feature introduces. `sync_device_id` is

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/section_header.dart';
+import 'device_sync_section.dart';
 
 /// The Experimental settings section for features still in development.
 class ExperimentalSection extends StatelessWidget {
@@ -20,6 +21,7 @@ class ExperimentalSection extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
           child: Text(l10n.settingsExperimentalPlaceholder),
         ),
+        const DeviceSyncSection(),
       ],
     );
   }

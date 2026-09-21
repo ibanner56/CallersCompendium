@@ -15,17 +15,17 @@ import 'package:compendium_app/src/data/editor_draft_shutdown_scope.dart';
 import 'package:compendium_app/src/data/sync_writer_lifecycle_scope.dart';
 import 'package:compendium_app/src/data/migration_guard.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
+import 'package:compendium_app/src/screens/settings/settings_keys.dart';
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_app/src/data/window_service.dart';
 import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
 import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
-import 'package:compendium_app/src/screens/settings_screen.dart'
-    show kAppThemeKey, kRequirePerformedForHistoryKey;
 
 import 'support/test_repositories.dart';
 import 'support/noop_sync_transport.dart';
+import 'support/sync_test_network.dart';
 
 /// A [WindowService] whose restore does nothing — the plugin glue is untestable
 /// under `flutter test` (no real window), and these tests only care about the
@@ -432,12 +432,17 @@ void main() {
         await replacement?.dispose();
       });
 
+      // A production coordinator exists only once the user has turned sync on
+      // (spec §6.1); the app-start trigger honors that consent.
+      await appData.repositories.settings.set(kSyncEnabledKey, true);
+
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
           windowService: _NoopWindowService(appData.repositories.settings),
           integrityCheck: () async => true,
           syncCoordinatorFactory: factory,
+          syncNetworkClassifier: const UnmeteredSyncNetwork(),
         ),
       );
       await tester.pumpAndSettle();
@@ -512,6 +517,8 @@ void main() {
         return coordinator;
       }
 
+      await appData.repositories.settings.set(kSyncEnabledKey, true);
+
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
@@ -519,6 +526,7 @@ void main() {
           applicationShutdownController: shutdownController,
           integrityCheck: () async => true,
           syncCoordinatorFactory: factory,
+          syncNetworkClassifier: const UnmeteredSyncNetwork(),
         ),
       );
       await tester.pumpAndSettle();

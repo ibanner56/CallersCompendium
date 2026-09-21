@@ -68,6 +68,10 @@ void main() {
       taxonomyV35FigureNormalizationDoneKey,
       callersBoxRollAwayRoleRepairDoneKey,
       'sync_last_used_fingerprint',
+      'sync_enabled',
+      'sync_wifi_only',
+      'sync_exclude_imports',
+      'sync_last_success_at',
     });
     expect(kBackupSettingsDenylist, containsAll(exactDeviceScopedKeys));
     expect(
@@ -77,6 +81,14 @@ void main() {
     expect(isBackupEligibleSettingKey('sync_id'), isFalse);
     expect(isBackupEligibleSettingKey('sync_device_id'), isFalse);
     expect(isBackupEligibleSettingKey('sync_last_used_fingerprint'), isFalse);
+    for (final key in [
+      'sync_enabled',
+      'sync_wifi_only',
+      'sync_exclude_imports',
+      'sync_last_success_at',
+    ]) {
+      expect(isBackupEligibleSettingKey(key), isFalse, reason: key);
+    }
     expect(
       isBackupEligibleSettingKey(taxonomyV33CanonicalRebuildDoneKey),
       isFalse,
