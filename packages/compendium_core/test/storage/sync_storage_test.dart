@@ -1527,6 +1527,56 @@ void main() {
     },
   );
 
+  test(
+    'records an alias when a write lands on an adopted natural key',
+    () async {
+      // `adoptTombstonedNaturalKey` stores the record under the id a tombstoned
+      // row already holds for that UNIQUE name, so the row the peer named never
+      // appears. Discarding `upsert`'s (`@useResult`) return left nothing
+      // pointing the peer's id at the row that actually holds its content, and
+      // `_restoreTimestamps` addressed the peer's id and matched no rows.
+      //
+      // Reconciliation normally settles this before the writer sees it; the
+      // paths that reach `writeWithReport` directly — review-queue resolution
+      // and pending-deletion revalidation — do not.
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+      final later = DateTime.utc(2025, 1, 3, 12);
+      // ignore: unused_result
+      await repositories.tags.upsert(
+        Tag(id: 'local-tag', name: 'Swing'),
+        at: stamp,
+      );
+      await repositories.tags.delete('local-tag', at: stamp);
+
+      final report = await storage.writeWithReport(
+        SyncApplyRecord(
+          address: (kind: SyncRecordKind.tag, recordId: 'peer-tag'),
+          body: syncBodyForEntity(
+            SyncRecordKind.tag,
+            Tag(id: 'peer-tag', name: 'Swing'),
+          ),
+          updatedAt: later,
+          deletedAt: null,
+          existenceAt: later,
+        ),
+      );
+
+      expect(report, isNull);
+      expect(
+        await repositories.syncLocal.resolveAlias(
+          kind: SyncRecordKind.tag,
+          recordId: 'peer-tag',
+        ),
+        'local-tag',
+      );
+      final row = await (db.select(
+        db.tags,
+      )..where((table) => table.id.equals('local-tag'))).getSingle();
+      expect(row.deletedAt, isNull);
+      expect(row.existenceAt?.toUtc(), later);
+    },
+  );
+
   test('rejected inbound tombstones do not suppress live citations', () async {
     final stamp = DateTime.utc(2025, 1, 2, 12);
     final tag = Tag(id: 'retained-tag', name: 'Retained tag');

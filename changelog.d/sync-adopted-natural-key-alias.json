@@ -1,0 +1,15 @@
+{
+  "id": "sync-adopted-natural-key-alias",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "When an incoming tag, author or custom field reuses the name of one you had deleted, Device Sync now links the two instead of storing the incoming copy under a name your other devices never used."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "Honour the id returned by the natural-key upserts when an inbound sync write adopts a tombstoned row: record the §6.6 alias for the peer's losing id and restore the envelope's timestamps against the id the row actually occupies.",
+      "SyncLocalRepository.upsertAlias ignores a self-alias, which would otherwise make alias-chain resolution revisit the same id."
+    ]
+  }
+}

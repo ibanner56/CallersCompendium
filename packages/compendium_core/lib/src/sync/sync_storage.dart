@@ -3538,18 +3538,27 @@ final class CompendiumSyncStorage
       }
     }
 
+    // `upsert` on the three natural-key kinds that carry a UNIQUE name returns
+    // the id the row actually occupies, which differs from the one we asked
+    // for when `adoptTombstonedNaturalKey` found a tombstoned row already
+    // holding that name (see `repositories.dart`, which enumerates the three).
+    // The return is `@useResult` precisely because of that, and discarding it
+    // here left the record stored under an id the peer never named: no alias
+    // recorded the move, and `_restoreTimestamps` then addressed the envelope's
+    // id, matched zero rows, and never applied the envelope's stamps.
+    String? occupiedId;
     switch (kind) {
       case SyncRecordKind.dance:
         await repositories.dances.writeFromSync(entityToWrite as Dance);
       case SyncRecordKind.program:
         await repositories.programs.writeFromSync(entityToWrite as Program);
       case SyncRecordKind.choreographer:
-        final _ = await repositories.choreographers.upsert(
+        occupiedId = await repositories.choreographers.upsert(
           entityToWrite as Choreographer,
           at: record.updatedAt,
         );
       case SyncRecordKind.tag:
-        final _ = await repositories.tags.upsert(
+        occupiedId = await repositories.tags.upsert(
           entityToWrite as Tag,
           at: record.updatedAt,
         );
@@ -3559,7 +3568,7 @@ final class CompendiumSyncStorage
           at: record.updatedAt,
         );
       case SyncRecordKind.customFieldDef:
-        final _ = await repositories.customFieldDefs.upsert(
+        occupiedId = await repositories.customFieldDefs.upsert(
           entityToWrite as CustomFieldDef,
           at: record.updatedAt,
         );
@@ -3576,9 +3585,20 @@ final class CompendiumSyncStorage
       case SyncRecordKind.setting:
         throw StateError('settings are handled above');
     }
+    final writtenId = occupiedId ?? record.address.recordId;
+    if (writtenId != record.address.recordId) {
+      // §6.6's remap: the peer's id lost to the id the row already occupies,
+      // so record it. Without the alias the next pass re-derives the same
+      // adoption instead of resolving the peer's id onto the survivor.
+      await repositories.syncLocal.upsertAlias(
+        kind: kind,
+        losingId: record.address.recordId,
+        survivingId: writtenId,
+      );
+    }
     await _restoreTimestamps(
       kind: kind,
-      id: record.address.recordId,
+      id: writtenId,
       updatedAt: record.updatedAt,
       deletedAt: record.deletedAt,
       existenceAt: record.existenceAt,
