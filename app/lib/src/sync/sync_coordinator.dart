@@ -1141,8 +1141,24 @@ class SyncCoordinator {
     final localReferenceAliases = await _resolveReferenceAliases([
       normalizedLocal,
     ]);
+    // A pending tombstone is this device's copy for the merge's purposes, even
+    // though the row it names is still live locally. `snapshot.local` strips
+    // those addresses out — the row must not be offered as live — so without
+    // the overlay the merge saw no local candidate at all and §6.4's existence
+    // comparison never ran for them. A peer still advertising the record live
+    // therefore won by default, including when its `existenceAt` was *older*
+    // than the tombstone's: the stale body was applied and `_restoreTimestamps`
+    // lowered the local row's `existence_at` below the deletion that supersedes
+    // it. §6.4 requires the comparison "on every path that can decide
+    // existence".
+    //
+    // Feeding the tombstone in resolves it the way §6.4 specifies without
+    // changing what is stored: when the tombstone wins, the winner is this
+    // device's own candidate, so the pass uploads rather than downloads and the
+    // live row stays untouched (§6.8). A peer revival stamped above the
+    // tombstone still wins and still downloads, exactly as before.
     final mergeLocal = filterSyncQuarantinedCandidates(
-      normalizedLocal,
+      {...normalizedLocal, ...normalizedPendingTombstones},
       windowEnd: windowEnd,
       resolveAlias: (address) => localReferenceAliases[address] ?? address,
     );
