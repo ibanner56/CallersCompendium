@@ -928,10 +928,12 @@ class SyncCoordinator {
                 (kind: entry.kind, recordId: entry.recordId): entry,
             },
     );
-    final normalizedPending = await _normalizeAddresses(snapshot.pending);
-    final normalizedPendingTombstones =
-        <SyncRecordAddress, SyncMergeCandidate>{};
-    if (!freshAttach) {
+    var normalizedPending = await _normalizeAddresses(snapshot.pending);
+    var normalizedPendingTombstones = <SyncRecordAddress, SyncMergeCandidate>{};
+    Future<void> rebuildPendingViews() async {
+      normalizedPending = await _normalizeAddresses(snapshot.pending);
+      normalizedPendingTombstones = <SyncRecordAddress, SyncMergeCandidate>{};
+      if (freshAttach) return;
       final normalizedPublication = await _normalizeCandidates(
         snapshot.publication,
       );
@@ -942,6 +944,8 @@ class SyncCoordinator {
         }
       }
     }
+
+    await rebuildPendingViews();
     final reports = SyncReportSink();
     final peerMaps = <Map<SyncRecordAddress, SyncMergeCandidate?>>[];
     final peerManifestHashes = <Map<SyncRecordAddress, String>>[];
@@ -1136,10 +1140,20 @@ class SyncCoordinator {
         freshAttach ? snapshot.publication : snapshot.local,
       );
       normalizedPendingLive = await _normalizeCandidates(snapshot.pendingLive);
+      // The pending views are derived from the same snapshot, so they go stale
+      // with it. A repaired tombstone left behind as its pre-repair copy stays
+      // filtered out as quarantined, and a stale peer live copy then wins the
+      // merge the repair was supposed to make it lose.
+      await rebuildPendingViews();
     }
 
+    // Both maps, because both are about to be merged. Resolving only
+    // `normalizedLocal` left a pending tombstone's references unaliased, so a
+    // reference to a losing ID could not be connected to its survivor and the
+    // quarantine closure could not reach the dependent.
     final localReferenceAliases = await _resolveReferenceAliases([
       normalizedLocal,
+      normalizedPendingTombstones,
     ]);
     // A pending tombstone is this device's copy for the merge's purposes, even
     // though the row it names is still live locally. `snapshot.local` strips

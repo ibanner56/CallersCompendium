@@ -599,45 +599,100 @@ class SyncApplyEngine {
     // so without this the peer's parent row would commit beside this device's
     // existing join rows at the peer's `updatedAt`, which §6.3 reads as a tie
     // it declines to resolve and therefore never converges.
-    Future<void> undoParentWrite(SyncApplyRecord record) async {
+    //
+    // Undoing a record that did not exist before this batch means deleting its
+    // parent row, and a row another record already joined against cannot be
+    // deleted in isolation: `dance_links.target_dance_id` and
+    // `program_slots.dance_id` are `ON DELETE SET NULL`, so the delete would
+    // silently blank a reference inside a record that was already applied and
+    // counted. Those referrers are therefore undone with it, transitively, and
+    // drop out of `applied` — the alternative is reporting one record while
+    // quietly mutating another.
+    final joinWritten = <SyncRecordAddress, SyncApplyRecord>{};
+    Future<void> undoRecord(SyncApplyRecord record) async {
       if (restorable == null) return;
-      await restorable.restorePreImage(
-        record.address,
-        preImages[record.address],
-      );
+      final pending = <SyncApplyRecord>[record];
+      final undone = <SyncRecordAddress>{};
+      while (pending.isNotEmpty) {
+        final current = pending.removeLast();
+        if (!undone.add(current.address)) continue;
+        await restorable.restorePreImage(
+          current.address,
+          preImages[current.address],
+        );
+        applied.remove(current.address);
+        joinWritten.remove(current.address);
+        for (final candidate in joinWritten.values.toList()) {
+          if (SyncApplyEngine._referencesAddress(candidate, current.address)) {
+            pending.add(candidate);
+          }
+        }
+      }
     }
 
     for (final record in joinReady) {
       try {
         final report = await storage.writeJoinsWithReport(record);
         if (report != null) reports.add(report);
-        final afterWrite = onAfterWrite;
-        if (afterWrite != null) await afterWrite(record);
+        joinWritten[record.address] = record;
         applied.add(record.address);
       } on FormatException catch (error) {
         reports.add(
           _writeReport(record, SyncReportCode.malformedRecord, '$error'),
         );
-        await undoParentWrite(record);
+        await undoRecord(record);
       } on ArgumentError catch (error) {
         reports.add(
           _writeReport(record, SyncReportCode.malformedRecord, '$error'),
         );
-        await undoParentWrite(record);
+        await undoRecord(record);
       } on StateError catch (error) {
         reports.add(
           _writeReport(record, SyncReportCode.unresolvedReference, '$error'),
         );
-        await undoParentWrite(record);
+        await undoRecord(record);
       } on Object catch (error) {
         // As in the parent loop: an unnamed failure must skip this record, not
         // escape the engine and strand the whole batch on every later pass.
         reports.add(
           _writeReport(record, SyncReportCode.malformedRecord, '$error'),
         );
-        await undoParentWrite(record);
+        await undoRecord(record);
       }
+      // Deliberately outside the compensating `try`. The hook runs once the
+      // record has landed, so a failure in it is not a relation-write failure
+      // and must not undo a parent whose joins succeeded — that would leave the
+      // new join rows beside the old parent, the hybrid this undo exists to
+      // prevent. It is an interruption seam, and letting it escape keeps the
+      // whole-transaction rollback its callers rely on.
+      final afterWrite = onAfterWrite;
+      if (afterWrite != null) await afterWrite(record);
     }
+  }
+
+  /// Whether [record] names [address] among the references its body carries.
+  ///
+  /// Reuses §6.9's reference walk rather than restating which columns point
+  /// where: the pair that matters here — `dance_links.target_dance_id` and
+  /// `program_slots.dance_id` — are `ON DELETE SET NULL`, so a parent deleted
+  /// by an undo silently blanks them inside an already-applied record.
+  static bool _referencesAddress(
+    SyncApplyRecord record,
+    SyncRecordAddress address,
+  ) {
+    final blob =
+        record.sourceBlob ??
+        SyncRecordBlob(
+          kind: record.address.kind,
+          id: record.address.recordId,
+          updatedAt: record.updatedAt,
+          deletedAt: record.deletedAt,
+          existenceAt: record.existenceAt,
+          body: record.body,
+        );
+    return syncRecordReferences(
+      SyncMergeCandidate(blob: blob),
+    ).contains(address);
   }
 
   /// Aborts the batch when a tombstone the adapter was told about fails to

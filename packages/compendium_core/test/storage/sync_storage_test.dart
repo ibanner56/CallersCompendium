@@ -1722,6 +1722,72 @@ void main() {
   });
 
   test(
+    'a refused write keeps the pending deletion it would have cancelled',
+    () async {
+      // The cancellation used to run before the record was written, so a write
+      // that was then reported and skipped — a malformed body, a natural key
+      // another row holds — discarded the deferred tombstone anyway. Nothing
+      // else remembers it, so the deletion could never apply once the last
+      // citation cleared.
+      final stamp = DateTime.utc(2025);
+      final deleted = DateTime.utc(2025, 6, 15, 12);
+      final tag = Tag(id: 'cited-tag', name: 'Cited tag');
+      // ignore: unused_result
+      await repositories.tags.upsert(tag, at: stamp);
+      // A second live tag already holds the name the inbound record wants, so
+      // the writer refuses it.
+      // ignore: unused_result
+      await repositories.tags.upsert(
+        Tag(id: 'other-tag', name: 'Taken name'),
+        at: stamp,
+      );
+      await repositories.dances.create(
+        Dance(
+          id: 'citing-dance',
+          title: 'Citing dance',
+          tagIds: const ['cited-tag'],
+          createdAt: stamp,
+          updatedAt: stamp,
+        ),
+      );
+      await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.tag,
+              id: tag.id,
+              updatedAt: deleted,
+              deletedAt: deleted,
+              existenceAt: deleted,
+              body: syncBodyForEntity(SyncRecordKind.tag, tag),
+            ),
+          ),
+        ],
+        storage: storage,
+      );
+      expect(await repositories.syncLocal.listPendingDeletions(), hasLength(1));
+
+      await expectLater(
+        storage.writeWithReport(
+          SyncApplyRecord(
+            address: (kind: SyncRecordKind.tag, recordId: 'cited-tag'),
+            body: syncBodyForEntity(
+              SyncRecordKind.tag,
+              Tag(id: 'cited-tag', name: 'Taken name'),
+            ),
+            updatedAt: deleted.add(const Duration(minutes: 1)),
+            deletedAt: null,
+            existenceAt: deleted.add(const Duration(minutes: 1)),
+          ),
+        ),
+        throwsA(isA<StateError>()),
+      );
+
+      expect(await repositories.syncLocal.listPendingDeletions(), hasLength(1));
+    },
+  );
+
+  test(
     'a stale inbound live copy leaves the pending deletion in place',
     () async {
       // The control for the comparison above: a live copy that does *not*
@@ -1772,6 +1838,57 @@ void main() {
       expect(await repositories.syncLocal.listPendingDeletions(), hasLength(1));
     },
   );
+
+  test('undoing a new parent also undoes the records joined against it', () async {
+    // Same-kind records are joined in id order, so `a-dance` writes its link to
+    // `z-dance` before `z-dance`'s own join write fails. Undoing `z-dance`
+    // means deleting a row that did not exist before this batch, and
+    // `dance_links.target_dance_id` is ON DELETE SET NULL — so the delete would
+    // silently blank the link inside `a-dance`, which had already been counted
+    // applied. The referrer is undone with it instead.
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    Dance linked(String id, {String? target}) => Dance(
+      id: id,
+      title: id,
+      links: target == null
+          ? const []
+          : [
+              DanceLink(
+                id: '$id-link',
+                kind: LinkKind.relatedDance,
+                targetDanceId: target,
+              ),
+            ],
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+
+    SyncMergeCandidate candidate(Dance dance) => SyncMergeCandidate(
+      blob: SyncRecordBlob(
+        kind: SyncRecordKind.dance,
+        id: dance.id,
+        updatedAt: stamp,
+        deletedAt: null,
+        existenceAt: stamp,
+        body: syncBodyForEntity(SyncRecordKind.dance, dance),
+      ),
+    );
+
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        candidate(linked('a-dance', target: 'z-dance')),
+        candidate(linked('z-dance')),
+      ],
+      storage: _JoinFailingStorage(
+        storage,
+        only: (kind: SyncRecordKind.dance, recordId: 'z-dance'),
+      ),
+    );
+
+    expect(result.applied, isEmpty);
+    expect(await repositories.dances.getById('z-dance'), isNull);
+    expect(await repositories.dances.getById('a-dance'), isNull);
+  });
 
   test('rejected inbound tombstones do not suppress live citations', () async {
     final stamp = DateTime.utc(2025, 1, 2, 12);
@@ -6797,13 +6914,21 @@ final class _FailAfterNaturalKeyRenameInterceptor extends QueryInterceptor {
 /// raise, which is exactly why the gap stayed latent.
 final class _JoinFailingStorage
     implements SyncApplyReconciliationStorage, SyncApplyRestorableStorage {
-  _JoinFailingStorage(this._delegate);
+  _JoinFailingStorage(this._delegate, {this.only});
 
   final CompendiumSyncStorage _delegate;
 
+  /// Fail only this record's join write, letting the rest through. Used to put
+  /// a successful join *before* a failing one in the same group.
+  final SyncRecordAddress? only;
+
   @override
-  Future<SyncReport?> writeJoinsWithReport(SyncApplyRecord record) async =>
-      throw StateError('join write failed for ${record.address.recordId}');
+  Future<SyncReport?> writeJoinsWithReport(SyncApplyRecord record) async {
+    if (only != null && record.address != only) {
+      return _delegate.writeJoinsWithReport(record);
+    }
+    throw StateError('join write failed for ${record.address.recordId}');
+  }
 
   @override
   Future<T> transaction<T>(Future<T> Function() action) =>

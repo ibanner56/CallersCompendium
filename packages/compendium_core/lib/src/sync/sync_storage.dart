@@ -3564,7 +3564,6 @@ final class CompendiumSyncStorage
       await _storePendingDeletion(record);
       return null;
     }
-    await _cancelOutrankedPendingDeletion(record);
     if (kind == SyncRecordKind.setting) {
       final value = record.body['value'];
       await _db
@@ -3648,6 +3647,11 @@ final class CompendiumSyncStorage
       deletedAt: record.deletedAt,
       existenceAt: record.existenceAt,
     );
+    // Last, once the record has actually landed. Cancelling earlier discarded
+    // the deferred tombstone even when the write was then reported and skipped
+    // — a malformed body, a held natural key — and the deletion could never
+    // apply again, because nothing else remembers it.
+    await _cancelOutrankedPendingDeletion(record);
     return report;
   }
 
@@ -3665,7 +3669,6 @@ final class CompendiumSyncStorage
       return null;
     }
     _pendingParentWrites.remove(record.address);
-    await _cancelOutrankedPendingDeletion(record);
     final kind = record.address.kind;
     if (kind != SyncRecordKind.dance && kind != SyncRecordKind.program) {
       return writeWithReport(record);
@@ -3778,7 +3781,16 @@ final class CompendiumSyncStorage
         record.address.kind != SyncRecordKind.program) {
       return null;
     }
+    // One savepoint over the relations, the timestamp restore and the pending
+    // cancellation. The engine's undo restores the parent only, which is sound
+    // exactly when a throw from here leaves none of this behind: previously a
+    // failure in `_restoreTimestamps` kept the relation rows the writer had
+    // already committed, and the undo then put the old parent back beside
+    // them — the hybrid it exists to prevent.
+    return _db.transaction(() => _writeJoins(record));
+  }
 
+  Future<SyncReport?> _writeJoins(SyncApplyRecord record) async {
     final entity = _deferredEntities.remove(record.address);
     if (entity == null) {
       throw StateError(
@@ -3807,6 +3819,10 @@ final class CompendiumSyncStorage
       deletedAt: record.deletedAt,
       existenceAt: record.existenceAt,
     );
+    // A dance or program is complete only once its joins are in, so this is
+    // where its deferred tombstone may be cancelled — not at the parent write,
+    // which the joins phase can still undo.
+    await _cancelOutrankedPendingDeletion(record);
     return null;
   }
 

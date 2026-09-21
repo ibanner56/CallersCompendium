@@ -253,6 +253,15 @@ def test_typed_drift_writes_fail_closed() -> None:
         "await db.into(db.dances).insertOnConflictUpdate(companion);\n"
     )
     assert_no(_drift_write_violations(excused, "fixture.dart"))
+    # The marker is for the typed boundary only. It must not reach the raw-SQL
+    # I1/I2 checks, which share the *other* exclusion set.
+    raw_i1 = (
+        "// sync-invariant-exclusion: apply-undo\n"
+        "final q = 'UPDATE dances SET figures_json = ? WHERE id = ?';\n"
+    )
+    assert any(
+        v.kind == "I1" for v in _write_violations(raw_i1, "fixture.dart")
+    )
     unmarked_after_excused = excused + (
         "await db.into(db.dances).insertOnConflictUpdate(other);\n"
     )

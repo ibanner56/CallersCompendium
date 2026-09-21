@@ -64,8 +64,15 @@ I1_EXCEPTION_MARKER_RE = re.compile(
 )
 NON_SYNC_WRITE_EXCLUSION_RE = re.compile(
     r"sync-invariant-exclusion:\s*"
-    r"(?:migration-backfill|maintenance-backfill|maintenance-cleanup"
-    r"|apply-undo)\b[^\n]*",
+    r"(?:migration-backfill|maintenance-backfill|maintenance-cleanup)\b[^\n]*",
+    re.IGNORECASE,
+)
+# Deliberately its own pattern rather than another alternative in the set
+# above. That set is consulted by the raw-SQL I1/I2 checks as well, so an
+# `apply-undo` alternative there would also let a marked raw `UPDATE` skip
+# those invariants — far more than the captured-companion case it is for.
+APPLY_UNDO_EXCLUSION_RE = re.compile(
+    r"sync-invariant-exclusion:\s*apply-undo\b[^\n]*",
     re.IGNORECASE,
 )
 SOFT_JOIN_EXCEPTION_RE = re.compile(
@@ -623,9 +630,10 @@ def _drift_write_violations(source: str, path: str) -> list[Violation]:
             # the stamps, is restored to the value it already had. Spelling the
             # columns out would make the undo silently drop any column added
             # later, which is the corruption it exists to prevent. Narrow on
-            # purpose: it suppresses only this boundary check, only on the line
-            # carrying the marker.
-            if _exception_on_line(source, line, NON_SYNC_WRITE_EXCLUSION_RE):
+            # purpose: its own marker, suppressing only this boundary check, only
+            # on the line carrying it, and excusing nothing in the raw-SQL
+            # checks that share the other exclusion set.
+            if _exception_on_line(source, line, APPLY_UNDO_EXCLUSION_RE):
                 continue
             violations.append(
                 Violation(
