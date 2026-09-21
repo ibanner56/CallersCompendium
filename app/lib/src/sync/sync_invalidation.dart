@@ -30,18 +30,40 @@ void markSyncAppliedTablesUpdated(
           database.programSlots,
           database.programProvenance,
         });
+      // Applying one of these kinds can also rewrite the rows that reference
+      // it: natural-key reconciliation migrates an identity through
+      // `_rewriteLocalReferences`, which rewrites the join rows and bumps the
+      // citing dance's `updated_at` for I1. Naming only the kind's own table
+      // left a screen whose stream reads `dances` (or the join) showing
+      // pre-rewrite data until an unrelated write happened to invalidate it.
       case SyncRecordKind.choreographer:
-        tables.add(database.choreographers);
+        tables.addAll({
+          database.choreographers,
+          database.danceAuthors,
+          database.dances,
+        });
       case SyncRecordKind.tag:
-        tables.add(database.tags);
+        tables.addAll({database.tags, database.danceTags, database.dances});
       case SyncRecordKind.publishedSource:
-        tables.add(database.publishedSources);
+        tables.addAll({
+          database.publishedSources,
+          database.danceSources,
+          database.dances,
+        });
       case SyncRecordKind.customFieldDef:
-        tables.add(database.customFieldDefs);
+        tables.addAll({
+          database.customFieldDefs,
+          database.customFieldValues,
+          database.dances,
+        });
       case SyncRecordKind.difficultyLevel:
-        tables.add(database.difficultyLevels);
+        tables.addAll({database.difficultyLevels, database.dances});
       case SyncRecordKind.venue:
-        tables.addAll({database.venues, database.venueProvenance});
+        tables.addAll({
+          database.venues,
+          database.venueProvenance,
+          database.programs,
+        });
       case SyncRecordKind.setting:
         tables.add(database.settings);
     }

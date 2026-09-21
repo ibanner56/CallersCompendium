@@ -181,6 +181,23 @@ final class IsolatedSyncPassOperation {
             completeError(error, stack);
           }
         case 'error':
+          // Adopt whatever the failed pass learned before it threw. Without
+          // this the §6.9 session counters restart at every failure, so a
+          // device on a flaky link never reaches the three consecutive passes
+          // the unreflected-publication report is defined over, and every peer
+          // manifest it had already verified is downloaded again.
+          final failedCache = message['_peerManifestCache'];
+          if (failedCache != null) {
+            try {
+              peerManifestCache.replaceFrom(
+                SyncPeerManifestCache.fromMessage(failedCache),
+              );
+              // diagnostics: silent — a malformed cache is discarded, and the
+              // pass failure below is what the caller acts on.
+            } on FormatException {
+              // Keep the pre-pass cache rather than losing the pass error.
+            }
+          }
           final messageText = message['message'];
           completeError(
             StateError(
@@ -253,8 +270,12 @@ final class _SyncPassRequest {
 
 Future<void> _runSyncPassWorker(_SyncPassRequest request) async {
   final acknowledgementPort = ReceivePort();
+  // Hoisted so the failure path can return it too: the worker mutates this
+  // cache as the pass runs, and a fresh isolate per pass means anything not
+  // sent back is lost.
+  SyncPeerManifestCache? peerManifestCache;
   try {
-    final peerManifestCache = SyncPeerManifestCache.fromMessage(
+    peerManifestCache = SyncPeerManifestCache.fromMessage(
       request.peerManifestCache,
     );
     final applyControlPort = request.applyControlPort;
@@ -280,10 +301,17 @@ Future<void> _runSyncPassWorker(_SyncPassRequest request) async {
     });
     // diagnostics: silent — worker errors are serialized to the parent isolate.
   } on Object catch (error, stack) {
+    // The cache carries the session-scoped state §6.9 depends on — the
+    // unreflected-publication counter, the reported-once rejected hashes — and
+    // every peer ETag. A fresh isolate per pass means anything not returned
+    // here is lost, so a pass that throws late (a manifest PUT on a flaky
+    // link) would reset counters the spec defines over consecutive passes and
+    // force a full re-download of manifests it had already verified.
     request.resultPort.send({
       'type': 'error',
       'message': '$error',
       'stack': '$stack',
+      '_peerManifestCache': peerManifestCache?.toMessage(),
       'ack': acknowledgementPort.sendPort,
     });
   }

@@ -581,6 +581,9 @@ class SyncCoordinator {
   var _replacementPending = false;
   var _paused = false;
   Future<SyncPassResult>? _confirmation;
+
+  /// Set when the user declines while a confirmation is already running.
+  bool _replacementDeclined = false;
   var _replacementCreated = false;
   var _disposed = false;
 
@@ -716,8 +719,14 @@ class SyncCoordinator {
   /// Declines replacement without detaching or clearing the configured sync
   /// identity. A later explicit manual action can reconsider the decision.
   void declineReplacement() {
-    if (!_replacementPending) return;
+    if (!_replacementPending && _confirmation == null) return;
     _replacementPending = false;
+    // A confirmation already in flight cannot be recalled — its `POST
+    // /v1/store` may already have created the store — but the user's decision
+    // to pause must still hold. Without this the confirmation went on to clear
+    // `_paused` on success, so declining silently left sync running against a
+    // store the user had just declined.
+    _replacementDeclined = true;
     _confirmation = null;
     _paused = true;
   }
@@ -1087,6 +1096,7 @@ class SyncCoordinator {
         quarantinedLocal.add(entry.key);
       }
     }
+    final repairedKinds = <SyncRecordKind>{};
     if (repairCandidates.isNotEmpty) {
       final repairExpected = <SyncRecordAddress, String?>{
         for (final entry in repairLocal.entries)
@@ -1100,6 +1110,14 @@ class SyncCoordinator {
         expectedWireHashes: repairExpected,
       );
       reports.addAll(repairResult.reports);
+      // A repair is a durable local write like any other, so the kinds it
+      // touched have to reach the owning connection. Dropping
+      // `repairResult.applied` meant a pass whose only writes were §6.9
+      // timestamp repairs reported no applied kinds at all, and neither the
+      // derived-index rebuild nor the live-query invalidation ran for them.
+      repairedKinds.addAll(
+        repairResult.applied.map((address) => address.kind),
+      );
       snapshot = await store.snapshot();
       normalizedLocal = await _normalizeCandidates(
         freshAttach ? snapshot.publication : snapshot.local,
@@ -1188,6 +1206,7 @@ class SyncCoordinator {
     );
     reports.addAll(applyResult.reports);
     final appliedKinds = {
+      ...repairedKinds,
       for (final address in applyResult.applied) address.kind,
     };
 
@@ -1660,6 +1679,7 @@ class SyncCoordinator {
   }
 
   Future<SyncPassResult> _confirmReplacement() async {
+    _replacementDeclined = false;
     SyncStoreResult? attached;
     if (!_replacementCreated) {
       final created = await transport.createStore();
@@ -1685,10 +1705,11 @@ class SyncCoordinator {
     final result = await _runStartedPass(initialStore: attached);
     if (result.status == SyncPassStatus.completed) {
       _replacementCreated = false;
-      _paused = false;
+      if (!_replacementDeclined) _paused = false;
     } else if (result.status == SyncPassStatus.replacementRequired) {
       _replacementCreated = false;
     }
+    _replacementDeclined = false;
     return result;
   }
 

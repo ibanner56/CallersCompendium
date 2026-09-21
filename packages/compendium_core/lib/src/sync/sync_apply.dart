@@ -487,7 +487,6 @@ class SyncApplyEngine {
     };
     await reconciliationStorage?.setInboundTombstoneContext(namedTombstones);
 
-    final parentWritten = <SyncApplyRecord>[];
     final parentWrittenByAddress = <SyncRecordAddress, SyncApplyRecord>{};
     for (final group in settledGroups) {
       // Re-settle against the records that were actually written rather than
@@ -505,7 +504,6 @@ class SyncApplyEngine {
         try {
           final report = await storage.writeParentWithReport(record);
           if (report != null) reports.add(report);
-          parentWritten.add(record);
           parentWrittenByAddress[record.address] = record;
         } on FormatException catch (error) {
           reports.add(
@@ -522,11 +520,49 @@ class SyncApplyEngine {
             _writeReport(record, SyncReportCode.unresolvedReference, '$error'),
           );
           _guardNamedTombstone(record, namedTombstones);
+        } on Object catch (error) {
+          // §6.7's contract is "one record skipped, batch intact", and §6.7
+          // requires per-record handling to catch `Error` as well as
+          // `Exception`. Anything the typed arms above do not name — a driver
+          // exception such as a UNIQUE or FOREIGN KEY constraint failure, or a
+          // cast error on a hostile body — used to escape the engine entirely,
+          // rolling the transaction back and throwing the pass to its caller.
+          // Because the inputs are durable, that repeated on every later pass.
+          if (error is _NamedTombstoneWriteFailure) rethrow;
+          reports.add(
+            _writeReport(record, SyncReportCode.malformedRecord, '$error'),
+          );
+          _guardNamedTombstone(record, namedTombstones);
         }
       }
     }
 
-    for (final record in parentWritten) {
+    // Re-settle once more against what was *actually* written. The pass above
+    // settles each group before its own writes run, so `parentWrittenByAddress`
+    // then holds only earlier groups' results: a record whose same-kind
+    // dependency failed inside its own group still looked ready. Writing its
+    // joins would insert a row pointing at a parent that was never written —
+    // a foreign-key failure, or a dangling row that `_hasCitation` would later
+    // read as a live citation.
+    final joinReady = <SyncApplyRecord>[];
+    for (final group in settledGroups) {
+      final written = [
+        for (final record in group)
+          if (parentWrittenByAddress.containsKey(record.address)) record,
+      ];
+      if (written.isEmpty) continue;
+      joinReady.addAll(
+        await _settleGroup(
+          storage: storage,
+          group: written,
+          available: parentWrittenByAddress,
+          reports: reports,
+          reported: reported,
+        ),
+      );
+    }
+
+    for (final record in joinReady) {
       try {
         final report = await storage.writeJoinsWithReport(record);
         if (report != null) reports.add(report);
@@ -544,6 +580,12 @@ class SyncApplyEngine {
       } on StateError catch (error) {
         reports.add(
           _writeReport(record, SyncReportCode.unresolvedReference, '$error'),
+        );
+      } on Object catch (error) {
+        // As in the parent loop: an unnamed failure must skip this record, not
+        // escape the engine and strand the whole batch on every later pass.
+        reports.add(
+          _writeReport(record, SyncReportCode.malformedRecord, '$error'),
         );
       }
     }
