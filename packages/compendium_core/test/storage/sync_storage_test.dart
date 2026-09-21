@@ -1657,6 +1657,122 @@ void main() {
     expect(await repositories.dances.getById('new-dance'), isNull);
   });
 
+  test('an inbound revival cancels the pending deletion it outranks', () async {
+    // §6.8 defers a tombstone this device cannot apply while the entity is
+    // still cited, keeping the row live. A peer that revives the record stamps
+    // above the tombstone it revived (§6.4), so the deferred deletion has been
+    // overtaken — leaving the pending row would let the deletion land anyway
+    // once the last citation clears, undoing the revival.
+    Future<void> setUpPending(DateTime deletedAt) async {
+      final tag = Tag(id: 'cited-tag', name: 'Cited tag');
+      // ignore: unused_result
+      await repositories.tags.upsert(tag, at: DateTime.utc(2025));
+      await repositories.dances.create(
+        Dance(
+          id: 'citing-dance',
+          title: 'Citing dance',
+          tagIds: const ['cited-tag'],
+          createdAt: DateTime.utc(2025),
+          updatedAt: DateTime.utc(2025),
+        ),
+      );
+      await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.tag,
+              id: tag.id,
+              updatedAt: deletedAt,
+              deletedAt: deletedAt,
+              existenceAt: deletedAt,
+              body: syncBodyForEntity(SyncRecordKind.tag, tag),
+            ),
+          ),
+        ],
+        storage: storage,
+      );
+    }
+
+    Future<void> applyLiveAt(DateTime existenceAt) => storage.writeWithReport(
+      SyncApplyRecord(
+        address: (kind: SyncRecordKind.tag, recordId: 'cited-tag'),
+        body: syncBodyForEntity(
+          SyncRecordKind.tag,
+          Tag(id: 'cited-tag', name: 'Revived by peer'),
+        ),
+        updatedAt: existenceAt,
+        deletedAt: null,
+        existenceAt: existenceAt,
+      ),
+    );
+
+    final deleted = DateTime.utc(2025, 6, 15, 12);
+    await setUpPending(deleted);
+    expect(await repositories.syncLocal.listPendingDeletions(), hasLength(1));
+
+    await applyLiveAt(deleted.add(const Duration(minutes: 1)));
+
+    expect(await repositories.syncLocal.listPendingDeletions(), isEmpty);
+    // With the deferral gone the record is advertised live again, not as the
+    // tombstone the pending row used to overlay.
+    final snapshot = await storage.snapshot();
+    final address = (kind: SyncRecordKind.tag, recordId: 'cited-tag');
+    expect(snapshot.publication[address]?.blob.deletedAt, isNull);
+    expect(snapshot.pending, isEmpty);
+  });
+
+  test(
+    'a stale inbound live copy leaves the pending deletion in place',
+    () async {
+      // The control for the comparison above: a live copy that does *not*
+      // outrank the tombstone must not cancel it. §6.4 resolves an equal stamp
+      // to the tombstone, so the advance has to be strict.
+      final tag = Tag(id: 'cited-tag', name: 'Cited tag');
+      // ignore: unused_result
+      await repositories.tags.upsert(tag, at: DateTime.utc(2025));
+      await repositories.dances.create(
+        Dance(
+          id: 'citing-dance',
+          title: 'Citing dance',
+          tagIds: const ['cited-tag'],
+          createdAt: DateTime.utc(2025),
+          updatedAt: DateTime.utc(2025),
+        ),
+      );
+      final deleted = DateTime.utc(2025, 6, 15, 12);
+      await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.tag,
+              id: tag.id,
+              updatedAt: deleted,
+              deletedAt: deleted,
+              existenceAt: deleted,
+              body: syncBodyForEntity(SyncRecordKind.tag, tag),
+            ),
+          ),
+        ],
+        storage: storage,
+      );
+
+      await storage.writeWithReport(
+        SyncApplyRecord(
+          address: (kind: SyncRecordKind.tag, recordId: 'cited-tag'),
+          body: syncBodyForEntity(
+            SyncRecordKind.tag,
+            Tag(id: 'cited-tag', name: 'Stale peer name'),
+          ),
+          updatedAt: deleted,
+          deletedAt: null,
+          existenceAt: deleted,
+        ),
+      );
+
+      expect(await repositories.syncLocal.listPendingDeletions(), hasLength(1));
+    },
+  );
+
   test('rejected inbound tombstones do not suppress live citations', () async {
     final stamp = DateTime.utc(2025, 1, 2, 12);
     final tag = Tag(id: 'retained-tag', name: 'Retained tag');

@@ -2511,9 +2511,27 @@ be applied. Such a device MUST:
 - **not** advance its baseline entry for that record;
 - apply the deletion when its last citation goes.
 
-A pending tombstone is cancelled **only** by a deliberate user edit, gated on
-`existenceAt` per §6.4 — never on a newer `updatedAt`, since several sync
-mechanisms advance that without user involvement.
+A pending tombstone is cancelled by exactly two things, and by nothing else.
+
+**A deliberate local user edit**, gated on `existenceAt` per §6.4 — never on a
+newer `updatedAt`, since several sync mechanisms advance that without user
+involvement.
+
+**An inbound revival that outranks it.** Where a peer's live copy wins the
+§6.4 existence comparison against the pending tombstone, the deferred deletion
+has been overtaken and MUST be discarded with it. Retaining the row would let
+the deletion land anyway the moment the last citation clears, silently undoing
+a revival that had already won — and the pending row is invisible to the user,
+so nothing would explain the record disappearing a second time. The comparison
+is the ordinary one: equal stamps resolve to the tombstone, so the revival's
+`existenceAt` must be strictly greater. That is not a narrow case, because
+§6.4 makes a revival stamp above the tombstone it revives by construction.
+
+An earlier draft gave only the first of these, which read as though an inbound
+revival could never cancel a deferral. That left the two rules in conflict —
+§6.4 decides existence "on any path", while a surviving pending row would
+re-apply the deletion afterwards — and the merge was decided in favour of
+§6.4.
 
 Fresh attach MUST run the revive-on-citation rule; without it an attaching
 device can land holding a record that cites a tombstone.

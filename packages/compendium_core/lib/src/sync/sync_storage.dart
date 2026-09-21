@@ -201,6 +201,15 @@ final class CompendiumSyncStorage
   final Map<SyncRecordAddress, Object> _deferredEntities = {};
   final Set<SyncRecordAddress> _pendingParentWrites = {};
   Set<SyncRecordAddress> _inboundTombstonedAddresses = {};
+
+  /// Pending deletions this batch's reconciliation carried onto a survivor.
+  ///
+  /// A remap is not a revival: the inbound record is a different UUID that
+  /// shares a natural key, and §6.6 already decided what happens to the
+  /// deferred deletion when it migrated the identity. Cancelling it here on
+  /// the strength of the inbound stamp would overturn that decision from the
+  /// writer, which is not the writer's call.
+  final Set<SyncRecordAddress> _remappedPendingDeletions = {};
   _NaturalKeyIndex? _naturalKeyIndex;
   final Expando<_InboundDependentIndex> _dependentIndexCache =
       Expando<_InboundDependentIndex>();
@@ -2110,6 +2119,7 @@ final class CompendiumSyncStorage
   @override
   Future<void> clearReconciliationContext() async {
     _inboundTombstonedAddresses = {};
+    _remappedPendingDeletions.clear();
     _naturalKeyIndex = null;
   }
 
@@ -2355,6 +2365,7 @@ final class CompendiumSyncStorage
     required Map<SyncRecordKind, Map<String, String>> aliases,
   }) async {
     if (losingId == survivingId) return;
+    _remappedPendingDeletions.add((kind: kind, recordId: survivingId));
     final persistedAliases = await repositories.syncLocal.listAliases();
     final remappedIds = <String>{losingId};
     var changed = true;
@@ -3501,6 +3512,45 @@ final class CompendiumSyncStorage
           );
   }
 
+  /// Cancels a deferred deletion that an inbound revival outranks.
+  ///
+  /// §6.8 keeps a tombstone this device cannot apply — the entity is still
+  /// cited — as a pending row, and the row it names stays live meanwhile. A
+  /// peer that revives the record stamps above the tombstone it revived by
+  /// construction (§6.4), so once such a revival wins the existence comparison
+  /// the deferred deletion has been overtaken and must go: leaving the row in
+  /// place would let the deletion land anyway the moment the last citation
+  /// clears, silently undoing a revival that outranked it.
+  ///
+  /// The comparison is made here rather than assumed from the caller, so every
+  /// path that writes a record holds it — including the ones that reach this
+  /// writer without merge planning. Equal stamps resolve to the tombstone, per
+  /// §6.4, so the advance must be strict.
+  Future<void> _cancelOutrankedPendingDeletion(SyncApplyRecord record) async {
+    if (record.deletedAt != null) return;
+    if (_remappedPendingDeletions.contains(record.address)) return;
+    final pending = await repositories.syncLocal.getPendingDeletion(
+      kind: record.address.kind,
+      recordId: record.address.recordId,
+    );
+    if (pending == null) return;
+    final DateTime tombstonedExistence;
+    try {
+      tombstonedExistence = decodeSyncRecordBlob(
+        pending.tombstoneBlob,
+      ).existenceAt;
+    } on Object {
+      // A tombstone blob that will not decode cannot be compared against, and
+      // `_revalidatePendingDeletions` owns that failure. Leave it alone.
+      return;
+    }
+    if (!record.existenceAt.isAfter(tombstonedExistence)) return;
+    await repositories.syncLocal.deletePendingDeletion(
+      kind: record.address.kind,
+      recordId: record.address.recordId,
+    );
+  }
+
   @override
   Future<SyncReport?> writeWithReport(SyncApplyRecord record) async {
     record = _normalizeInboundRecord(record);
@@ -3514,6 +3564,7 @@ final class CompendiumSyncStorage
       await _storePendingDeletion(record);
       return null;
     }
+    await _cancelOutrankedPendingDeletion(record);
     if (kind == SyncRecordKind.setting) {
       final value = record.body['value'];
       await _db
@@ -3614,6 +3665,7 @@ final class CompendiumSyncStorage
       return null;
     }
     _pendingParentWrites.remove(record.address);
+    await _cancelOutrankedPendingDeletion(record);
     final kind = record.address.kind;
     if (kind != SyncRecordKind.dance && kind != SyncRecordKind.program) {
       return writeWithReport(record);
