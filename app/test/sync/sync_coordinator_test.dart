@@ -2342,6 +2342,75 @@ void main() {
     },
   );
 
+  test('a stale peer copy does not outrank a pending tombstone', () async {
+    // §6.4 decides existence by the greater `existenceAt` "on every path that
+    // can decide existence". `snapshot.local` strips pending addresses out,
+    // so the merge used to see no local candidate and the peer's live copy
+    // won by default — even this one, stamped three days *before* the
+    // deletion it is competing with. The stale body was applied and the local
+    // row's `existence_at` was lowered below the tombstone superseding it.
+    final deleted = DateTime.utc(2026, 7, 15, 12);
+    final stale = DateTime.utc(2026, 7, 12, 12);
+    final tombstone = SyncMergeCandidate.fromBlob(
+      SyncRecordBlob(
+        kind: SyncRecordKind.tag,
+        id: 'pending-tag',
+        updatedAt: deleted,
+        deletedAt: deleted,
+        existenceAt: deleted,
+        body: const {'id': 'pending-tag', 'name': 'Pending tag'},
+      ),
+    );
+    final stalePeerCopy = SyncMergeCandidate.fromBlob(
+      SyncRecordBlob(
+        kind: SyncRecordKind.tag,
+        id: 'pending-tag',
+        updatedAt: stale,
+        deletedAt: null,
+        existenceAt: stale,
+        body: const {'id': 'pending-tag', 'name': 'Renamed by a stale peer'},
+      ),
+    );
+    final store = _FakeStore(
+      snapshotBuilder: (_) => SyncCoordinatorSnapshot(
+        epoch: 'epoch-1',
+        previouslyUsed: false,
+        local: const {},
+        publication: {tombstone.address: tombstone},
+        pending: {tombstone.address},
+        baseline: const {},
+      ),
+    );
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: store,
+      transport: _FakeTransport(
+        devices: ['peer'],
+        peerManifest: _manifest(
+          deviceId: 'peer',
+          records: {
+            SyncRecordKind.tag: {'pending-tag': stalePeerCopy.wireHash},
+          },
+        ),
+        blobResponses: {
+          stalePeerCopy.wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(stalePeerCopy.blob)),
+          ),
+        },
+      ),
+    );
+
+    final result = await coordinator.syncNow();
+
+    expect(result.status, SyncPassStatus.completed);
+    // Nothing is written: the tombstone wins the existence comparison, so the
+    // winner is this device's own candidate and the live row it names is left
+    // alone (§6.8).
+    expect(store.writes, isEmpty);
+  });
+
   test(
     'publishes a cited pending tombstone without removing the local live row',
     () async {
@@ -2659,8 +2728,15 @@ void main() {
             .wireHash,
       );
 
+      // Stamped *after* the pending tombstone (12:01:00) on purpose. The
+      // tombstone is this device's existence claim for the survivor, and §6.4
+      // decides existence by the greater `existenceAt`, so an inbound copy
+      // older than it does not reach the apply at all — there would be no
+      // download for this guard to guard. The subject here is the concurrency
+      // check on an aliased download, which needs a download that legitimately
+      // wins.
       final inbound = SyncMergeCandidate.fromBlob(
-        _tag(losingId, 'Shared tag', seconds: 1),
+        _tag(losingId, 'Shared tag', seconds: 120),
       );
       final transport = _FakeTransport(
         devices: ['peer'],

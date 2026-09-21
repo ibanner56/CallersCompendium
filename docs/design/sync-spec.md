@@ -2441,6 +2441,17 @@ repository `upsert` path, which writes every column:
 2. overlay only the fields the blob carries;
 3. write the merged result.
 
+In this implementation every kind has a `writeFromSync` entry point and the
+`sync-interactive-upsert` ratchet (`tools/ci/check_sync_invariants.py`) fails
+the build on a `repositories.<kind>.upsert(` call inside the inbound write
+path. The rule is structural rather than behavioural on purpose: `upsert`
+carries behaviour that exists for a person editing a record and is wrong for a
+peer's — adopting a tombstoned row's identity, and keeping the local name when
+another row holds the incoming one, which stores an altered copy while still
+reporting success. Auditing today's behaviour would not hold, because the risk
+is a future edit to the editor's path silently changing what an inbound apply
+does.
+
 **Sender/receiver contract.** The sender emits explicit `null` for an empty
 `shareable` field and omits only non-`shareable` fields. The receiver MUST
 independently consult the registry to decide which absences mean *preserve*, and
@@ -2500,9 +2511,27 @@ be applied. Such a device MUST:
 - **not** advance its baseline entry for that record;
 - apply the deletion when its last citation goes.
 
-A pending tombstone is cancelled **only** by a deliberate user edit, gated on
-`existenceAt` per §6.4 — never on a newer `updatedAt`, since several sync
-mechanisms advance that without user involvement.
+A pending tombstone is cancelled by exactly two things, and by nothing else.
+
+**A deliberate local user edit**, gated on `existenceAt` per §6.4 — never on a
+newer `updatedAt`, since several sync mechanisms advance that without user
+involvement.
+
+**An inbound revival that outranks it.** Where a peer's live copy wins the
+§6.4 existence comparison against the pending tombstone, the deferred deletion
+has been overtaken and MUST be discarded with it. Retaining the row would let
+the deletion land anyway the moment the last citation clears, silently undoing
+a revival that had already won — and the pending row is invisible to the user,
+so nothing would explain the record disappearing a second time. The comparison
+is the ordinary one: equal stamps resolve to the tombstone, so the revival's
+`existenceAt` must be strictly greater. That is not a narrow case, because
+§6.4 makes a revival stamp above the tombstone it revives by construction.
+
+An earlier draft gave only the first of these, which read as though an inbound
+revival could never cancel a deferral. That left the two rules in conflict —
+§6.4 decides existence "on any path", while a surviving pending row would
+re-apply the deletion afterwards — and the merge was decided in favour of
+§6.4.
 
 Fresh attach MUST run the revive-on-citation rule; without it an attaching
 device can land holding a record that cites a tombstone.

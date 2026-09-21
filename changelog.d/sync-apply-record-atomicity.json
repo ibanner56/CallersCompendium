@@ -1,0 +1,14 @@
+{
+  "id": "sync-apply-record-atomicity",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "If Device Sync cannot finish applying an incoming dance or program, it now leaves that record exactly as it was instead of keeping half of the incoming version. A half-applied record could otherwise stay different from your other devices indefinitely."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "Add SyncApplyRestorableStorage and use it to roll a record's parent write back when its join write fails, so the two-phase apply is atomic per record rather than only per batch."
+    ]
+  }
+}

@@ -28,7 +28,28 @@ class CustomFieldDefRepository {
   /// Returns the id the definition actually occupies — see
   /// `TagRepository.upsert` on natural-key adoption.
   @useResult
-  Future<String> upsert(CustomFieldDef def, {DateTime? at}) {
+  Future<String> upsert(CustomFieldDef def, {DateTime? at}) =>
+      _write(def, at: at, fromSync: false);
+
+  /// Applies a validated inbound sync record.
+  ///
+  /// §6.7 keeps the inbound write off the editor's path. Concretely this
+  /// skips three behaviours that exist for a person editing a record and
+  /// are wrong for a peer's: it does not adopt a tombstoned row's identity
+  /// (identity is reconciliation's decision, and silently relocating the
+  /// record would store it under an id the peer never named), it does not
+  /// substitute the local name when another row holds the incoming one
+  /// (§6.7 refuses a record rather than storing an altered copy), and it does
+  /// not seed `existence_at`, which the envelope owns.
+  Future<void> writeFromSync(CustomFieldDef def, {DateTime? at}) async {
+    final _ = await _write(def, at: at, fromSync: true);
+  }
+
+  Future<String> _write(
+    CustomFieldDef def, {
+    required DateTime? at,
+    required bool fromSync,
+  }) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
       final key = normalizeShareableText(def.key);
@@ -42,8 +63,20 @@ class CustomFieldDefRepository {
         _db.customFieldDefs,
       )..where((t) => t.id.equals(def.id))).getSingleOrNull();
       final collidingEdit =
-          current != null && incumbent != null && incumbent.id != def.id;
-      final id = collidingEdit
+          !fromSync &&
+          current != null &&
+          incumbent != null &&
+          incumbent.id != def.id;
+      if (fromSync && incumbent != null && incumbent.id != def.id) {
+        // Refuse rather than guess: reconciliation owns natural-key
+        // identity, so reaching the writer with the key held by another
+        // row means the record must be reported, not altered to fit.
+        throw StateError(
+          'inbound custom field "${def.id}" wants a name held by '
+          '"${incumbent.id}"',
+        );
+      }
+      final id = (collidingEdit || fromSync)
           ? def.id
           : await adoptTombstonedNaturalKey(
                   _db,
@@ -81,13 +114,15 @@ class CustomFieldDefRepository {
           recordId: def.id,
         );
       }
-      await applyUpsertExistence(
-        _db,
-        table: _db.customFieldDefs,
-        keyColumn: 'id',
-        key: id,
-        at: now,
-      );
+      if (!fromSync) {
+        await applyUpsertExistence(
+          _db,
+          table: _db.customFieldDefs,
+          keyColumn: 'id',
+          key: id,
+          at: now,
+        );
+      }
       return id;
     });
   }

@@ -409,15 +409,22 @@ class SyncLocalTransaction {
     required SyncRecordKind kind,
     required String losingId,
     required String survivingId,
-  }) => _db
-      .into(_db.idAliases)
-      .insertOnConflictUpdate(
-        IdAliasesCompanion.insert(
-          kind: kind,
-          losingId: losingId,
-          survivingId: survivingId,
-        ),
-      );
+  }) async {
+    // A self-alias is never meaningful and is actively dangerous: `_resolveAlias`
+    // seeds its `seen` set with the id it was asked about, so a row mapping an
+    // id to itself would be re-read on every hop of a chain that starts
+    // elsewhere and spin inside an open write transaction.
+    if (losingId == survivingId) return;
+    await _db
+        .into(_db.idAliases)
+        .insertOnConflictUpdate(
+          IdAliasesCompanion.insert(
+            kind: kind,
+            losingId: losingId,
+            survivingId: survivingId,
+          ),
+        );
+  }
 
   Future<void> upsertPendingDeletion({
     required SyncRecordKind kind,
