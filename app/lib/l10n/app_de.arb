@@ -208,6 +208,74 @@
   "@settingsExperimentalPlaceholder": {
     "x-sourceSha256": "a268657b05fd60bc06b7df9f6abc968d3f880d899c7599cf0c000ff6dce634f5"
   },
+  "settingsSyncHeader": "Gerätesynchronisierung",
+  "@settingsSyncHeader": {
+    "x-sourceSha256": "ee5820500cbfd273ba87eb1b5096235bc96c5e960e83eeaecb4b9eb339537bdf"
+  },
+  "settingsSyncIntro": "Halte deine Bibliothek auf deinen eigenen Geräten auf dem gleichen Stand. Die Gerätesynchronisierung ist ausgeschaltet, bis du sie einschaltest, und solange sie aus ist, wird nichts gesendet.",
+  "@settingsSyncIntro": {
+    "x-sourceSha256": "da85277e12ccb9b511277697c26ebfc7416a9c9d958389ae1f4ade165e0753b1"
+  },
+  "settingsSyncEnableTitle": "Gerätesynchronisierung einschalten",
+  "@settingsSyncEnableTitle": {
+    "x-sourceSha256": "4921c5245d4766d1f245acc5fcc43f714fc78550bdb0a0c40da60e21c17cb171"
+  },
+  "settingsSyncEnableSubtitle": "Standardmäßig aus. Wenn du sie einschaltest, wird nichts gesendet, bis du einen Speicher verbunden hast.",
+  "@settingsSyncEnableSubtitle": {
+    "x-sourceSha256": "3982985012de05654896a7ea98ff8e886711ebe060bd24cc7562d07705b2992d"
+  },
+  "settingsSyncWifiOnlyTitle": "Nur über WLAN synchronisieren",
+  "@settingsSyncWifiOnlyTitle": {
+    "x-sourceSha256": "b4860c1a82e38e5b5c2a0214fd48858147978aa1c0bc433e65aa70897f942824"
+  },
+  "settingsSyncWifiOnlySubtitle": "Standardmäßig an. Bei mobilen Daten wartet die Synchronisierung, bis du im WLAN bist.",
+  "@settingsSyncWifiOnlySubtitle": {
+    "x-sourceSha256": "281c955643110d523c1f0e6616ac917e4c1eb62c95d3c9f7fe25e6e875e6dc4c"
+  },
+  "settingsSyncStatusHeader": "Status",
+  "@settingsSyncStatusHeader": {
+    "x-sourceSha256": "920e413c7d411b61ef3e8c63b1cb6ad058d5f95f8b481dbafe60248387d8c355"
+  },
+  "settingsSyncStatusNotPaired": "Noch nicht mit einem Speicher verbunden.",
+  "@settingsSyncStatusNotPaired": {
+    "x-sourceSha256": "fab16a97ef73852d7919983bfc66ae8218e9c7b75c80c7f9e3982353ffd082ed"
+  },
+  "settingsSyncStatusNeverSynced": "Verbunden. Noch nicht synchronisiert.",
+  "@settingsSyncStatusNeverSynced": {
+    "x-sourceSha256": "22887e1836df5c3e0893284c74610495f0ef3da45bd71d4d405786f765a8da86"
+  },
+  "settingsSyncStatusLastSynced": "Zuletzt synchronisiert: {when}",
+  "@settingsSyncStatusLastSynced": {
+    "x-sourceSha256": "2e4722e81e7b673034a549b3c14f93881ca876d8726d7c8bea8cd9ec33af02b7"
+  },
+  "settingsSyncStatusSyncing": "Synchronisiert …",
+  "@settingsSyncStatusSyncing": {
+    "x-sourceSha256": "8a046cc90ab0a981f95cbf2c9c609309e0cfda272d8c01fdffecdb8286877e91"
+  },
+  "settingsSyncNotBackup": "Synchronisierung ist kein Backup. Ein Speicher, der 30 Tage lang nicht genutzt wird, wird entfernt. Erstelle also weiterhin Dateisicherungen.",
+  "@settingsSyncNotBackup": {
+    "x-sourceSha256": "11cd21133a59a470d73d8b582f2307c314309fe99564283639556d8afcfd4fa3"
+  },
+  "settingsSyncExpiryWarning": "Dieser Speicher wurde länger nicht synchronisiert und wird nach 30 Tagen ohne Nutzung entfernt. Öffne die App auf einem verbundenen Gerät und synchronisiere, um ihn zu behalten.",
+  "@settingsSyncExpiryWarning": {
+    "x-sourceSha256": "d8fdf28004e03c46f276feafa3bb34ac65d8f5880f1739e6343eefab3d9f2649"
+  },
+  "settingsSyncNowTitle": "Jetzt synchronisieren",
+  "@settingsSyncNowTitle": {
+    "x-sourceSha256": "885e8f48bd70af10c21ee1046c5762dae06945145bf5c95885648e4ac308c0bf"
+  },
+  "settingsSyncMeteredRouted": "Du nutzt mobile Daten und „Nur über WLAN synchronisieren“ ist an. Schalte diese Einstellung unten aus, um jetzt zu synchronisieren.",
+  "@settingsSyncMeteredRouted": {
+    "x-sourceSha256": "213bed8509f57aef35ba73781fca3267d5e5f7d16ef7b46f83b28c82ee833777"
+  },
+  "settingsSyncOffline": "Gerade keine Verbindung. Die Synchronisierung läuft bei der nächsten Gelegenheit.",
+  "@settingsSyncOffline": {
+    "x-sourceSha256": "28761c4463c6e1ae38a895bb0c27ddee33e3b5aa0b1648cec2aec127a577a8c3"
+  },
+  "settingsSyncNotPairedNow": "Verbinde einen Speicher, bevor du synchronisierst.",
+  "@settingsSyncNotPairedNow": {
+    "x-sourceSha256": "fcee7c4478b4432bd151cb68def6a130526f17ad8725c53964026a8213b54cc4"
+  },
   "settingsAboutTitle": "Über",
   "@settingsAboutTitle": {
     "x-sourceSha256": "4efca0d10c5feb8e9b35eb1d994f2905bb71714e6a271f511d713b539ea5faa1"

@@ -196,64 +196,67 @@ class AppLocalizationsDe extends AppLocalizations {
       'Neue Funktionen können hier erscheinen, während sie sich noch in Entwicklung befinden.';
 
   @override
-  String get settingsSyncHeader => 'Device Sync';
+  String get settingsSyncHeader => 'Gerätesynchronisierung';
 
   @override
   String get settingsSyncIntro =>
-      'Keep your library in step across your own devices. Device Sync is off until you turn it on, and nothing is sent anywhere while it is off.';
+      'Halte deine Bibliothek auf deinen eigenen Geräten auf dem gleichen Stand. Die Gerätesynchronisierung ist ausgeschaltet, bis du sie einschaltest, und solange sie aus ist, wird nichts gesendet.';
 
   @override
-  String get settingsSyncEnableTitle => 'Turn on Device Sync';
+  String get settingsSyncEnableTitle => 'Gerätesynchronisierung einschalten';
 
   @override
   String get settingsSyncEnableSubtitle =>
-      'Off by default. Turning this on does not send anything until you connect a store.';
+      'Standardmäßig aus. Wenn du sie einschaltest, wird nichts gesendet, bis du einen Speicher verbunden hast.';
 
   @override
-  String get settingsSyncWifiOnlyTitle => 'Sync only on WiFi';
+  String get settingsSyncWifiOnlyTitle => 'Nur über WLAN synchronisieren';
 
   @override
   String get settingsSyncWifiOnlySubtitle =>
-      'On by default. On a mobile-data connection sync waits until you are on WiFi.';
+      'Standardmäßig an. Bei mobilen Daten wartet die Synchronisierung, bis du im WLAN bist.';
 
   @override
   String get settingsSyncStatusHeader => 'Status';
 
   @override
-  String get settingsSyncStatusNotPaired => 'Not connected to a store yet.';
+  String get settingsSyncStatusNotPaired =>
+      'Noch nicht mit einem Speicher verbunden.';
 
   @override
-  String get settingsSyncStatusNeverSynced => 'Connected. Not synced yet.';
+  String get settingsSyncStatusNeverSynced =>
+      'Verbunden. Noch nicht synchronisiert.';
 
   @override
   String settingsSyncStatusLastSynced(String when) {
-    return 'Last synced $when';
+    return 'Zuletzt synchronisiert: $when';
   }
 
   @override
-  String get settingsSyncStatusSyncing => 'Syncing…';
+  String get settingsSyncStatusSyncing => 'Synchronisiert …';
 
   @override
   String get settingsSyncNotBackup =>
-      'Sync is not a backup. A store that goes unused for 30 days is removed, so keep making file backups.';
+      'Synchronisierung ist kein Backup. Ein Speicher, der 30 Tage lang nicht genutzt wird, wird entfernt. Erstelle also weiterhin Dateisicherungen.';
 
   @override
   String get settingsSyncExpiryWarning =>
-      'This store has not synced for a while and will be removed after 30 days without use. Open the app on a connected device and sync to keep it.';
+      'Dieser Speicher wurde länger nicht synchronisiert und wird nach 30 Tagen ohne Nutzung entfernt. Öffne die App auf einem verbundenen Gerät und synchronisiere, um ihn zu behalten.';
 
   @override
-  String get settingsSyncNowTitle => 'Sync now';
+  String get settingsSyncNowTitle => 'Jetzt synchronisieren';
 
   @override
   String get settingsSyncMeteredRouted =>
-      'You are on a mobile-data connection and Sync only on WiFi is on. Turn that setting off below to sync now.';
+      'Du nutzt mobile Daten und „Nur über WLAN synchronisieren“ ist an. Schalte diese Einstellung unten aus, um jetzt zu synchronisieren.';
 
   @override
   String get settingsSyncOffline =>
-      'No connection right now. Sync will run at the next opportunity.';
+      'Gerade keine Verbindung. Die Synchronisierung läuft bei der nächsten Gelegenheit.';
 
   @override
-  String get settingsSyncNotPairedNow => 'Connect a store before syncing.';
+  String get settingsSyncNotPairedNow =>
+      'Verbinde einen Speicher, bevor du synchronisierst.';
 
   @override
   String get settingsAboutTitle => 'Über';

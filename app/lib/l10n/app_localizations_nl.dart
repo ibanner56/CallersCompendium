@@ -196,64 +196,67 @@ class AppLocalizationsNl extends AppLocalizations {
       'Nieuwe functies kunnen hier verschijnen terwijl ze nog in ontwikkeling zijn.';
 
   @override
-  String get settingsSyncHeader => 'Device Sync';
+  String get settingsSyncHeader => 'Apparaatsynchronisatie';
 
   @override
   String get settingsSyncIntro =>
-      'Keep your library in step across your own devices. Device Sync is off until you turn it on, and nothing is sent anywhere while it is off.';
+      'Houd je bibliotheek gelijk op je eigen apparaten. Apparaatsynchronisatie staat uit totdat je het aanzet, en er wordt niets verzonden zolang het uit staat.';
 
   @override
-  String get settingsSyncEnableTitle => 'Turn on Device Sync';
+  String get settingsSyncEnableTitle => 'Apparaatsynchronisatie aanzetten';
 
   @override
   String get settingsSyncEnableSubtitle =>
-      'Off by default. Turning this on does not send anything until you connect a store.';
+      'Standaard uit. Als je het aanzet, wordt er niets verzonden totdat je een opslag hebt gekoppeld.';
 
   @override
-  String get settingsSyncWifiOnlyTitle => 'Sync only on WiFi';
+  String get settingsSyncWifiOnlyTitle => 'Alleen synchroniseren via wifi';
 
   @override
   String get settingsSyncWifiOnlySubtitle =>
-      'On by default. On a mobile-data connection sync waits until you are on WiFi.';
+      'Standaard aan. Bij mobiele data wacht de synchronisatie tot je op wifi zit.';
 
   @override
   String get settingsSyncStatusHeader => 'Status';
 
   @override
-  String get settingsSyncStatusNotPaired => 'Not connected to a store yet.';
+  String get settingsSyncStatusNotPaired =>
+      'Nog niet gekoppeld aan een opslag.';
 
   @override
-  String get settingsSyncStatusNeverSynced => 'Connected. Not synced yet.';
+  String get settingsSyncStatusNeverSynced =>
+      'Gekoppeld. Nog niet gesynchroniseerd.';
 
   @override
   String settingsSyncStatusLastSynced(String when) {
-    return 'Last synced $when';
+    return 'Laatst gesynchroniseerd: $when';
   }
 
   @override
-  String get settingsSyncStatusSyncing => 'Syncing…';
+  String get settingsSyncStatusSyncing => 'Synchroniseren…';
 
   @override
   String get settingsSyncNotBackup =>
-      'Sync is not a backup. A store that goes unused for 30 days is removed, so keep making file backups.';
+      'Synchronisatie is geen back-up. Een opslag die 30 dagen niet wordt gebruikt, wordt verwijderd, dus blijf bestandsback-ups maken.';
 
   @override
   String get settingsSyncExpiryWarning =>
-      'This store has not synced for a while and will be removed after 30 days without use. Open the app on a connected device and sync to keep it.';
+      'Deze opslag is al een tijdje niet gesynchroniseerd en wordt na 30 dagen zonder gebruik verwijderd. Open de app op een gekoppeld apparaat en synchroniseer om hem te behouden.';
 
   @override
-  String get settingsSyncNowTitle => 'Sync now';
+  String get settingsSyncNowTitle => 'Nu synchroniseren';
 
   @override
   String get settingsSyncMeteredRouted =>
-      'You are on a mobile-data connection and Sync only on WiFi is on. Turn that setting off below to sync now.';
+      'Je gebruikt mobiele data en ‘Alleen synchroniseren via wifi’ staat aan. Zet die instelling hieronder uit om nu te synchroniseren.';
 
   @override
   String get settingsSyncOffline =>
-      'No connection right now. Sync will run at the next opportunity.';
+      'Geen verbinding op dit moment. De synchronisatie draait bij de eerste kans.';
 
   @override
-  String get settingsSyncNotPairedNow => 'Connect a store before syncing.';
+  String get settingsSyncNotPairedNow =>
+      'Koppel een opslag voordat je synchroniseert.';
 
   @override
   String get settingsAboutTitle => 'Over';

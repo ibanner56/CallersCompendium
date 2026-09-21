@@ -443,7 +443,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared in `app/lib`; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**74 settings keys**: 57 shareable, 7 device-local, 8 device-scoped, 1 protocol-identifier, 1 access-control-data. 4 personal data by category.
+**78 settings keys**: 57 shareable, 7 device-local, 12 device-scoped, 1 protocol-identifier, 1 access-control-data. 4 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -509,8 +509,12 @@ Declared in `app/lib`; classified here so the catalogue has one source of truth.
 | `soft_delete_retention_days` | `dpv:NonPersonalData` | app user | shareable |  |
 | `sort_ignore_articles` | `dpv:NonPersonalData` | app user | shareable |  |
 | `sync_device_id` | `dpv:NonPersonalData` | — | **protocol-identifier** | Opaque per-installation routing identifier. It must travel in protocol metadata but must never be adopted from another device or restored from a backup. |
+| `sync_enabled` | `dpv:NonPersonalData` | — | device-scoped | Per-installation Device Sync consent. Never synced and never restored from a backup: consent given on one device is not consent on another. |
+| `sync_exclude_imports` | `dpv:NonPersonalData` | — | device-scoped | Per-installation toggle that trims what this device publishes. It is a statement about this device's upload budget, not the library, so it never syncs or travels in a backup. |
 | `sync_id` | `dpv:PersonalData` | app user | **access-control-data** | User-entered bearer credential. It may contain personal information, travels only in Authorization to the configured sync origin, and is never recoverably retained or logged by the server or a proxy; local persistence is governed by this settings classification. |
+| `sync_last_success_at` | `dpv:NonPersonalData` | — | device-scoped | Time of this installation's last completed sync pass, used only for the local status surface and expiry warning. Never synced or restored from a backup. |
 | `sync_last_used_fingerprint` | `dpv:PersonalData` | app user | device-scoped | A set of salted, slow credential verifiers used only to distinguish previously used configured sync identities after detach; the credential-derived values are never transmitted, adopted from a peer, or restored from a backup. |
+| `sync_wifi_only` | `dpv:NonPersonalData` | — | device-scoped | Per-installation preference to sync only on WiFi. It is a statement about this device's connection, so it never syncs or travels in a backup. |
 | `theme_mode` | `dpv:NonPersonalData` | app user | shareable |  |
 | `track_history_for_all_callers` | `dpv:NonPersonalData` | app user | shareable |  |
 | `update_auto_check` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
