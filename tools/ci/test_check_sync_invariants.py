@@ -243,6 +243,21 @@ def test_typed_drift_writes_fail_closed() -> None:
         for v in _drift_write_violations(unknown, "fixture.dart")
     )
     assert_no(_drift_write_violations("// await db.update(db.dances).write(x);", "fixture.dart"))
+    # `apply-undo` suppresses the boundary check, and only on the marked line:
+    # the same statement one line later is still flagged, so the exclusion
+    # cannot silently cover a whole file.
+    excused = (
+        "// sync-invariant-exclusion: apply-undo restores captured values verbatim.\n"
+        "await db.into(db.dances).insertOnConflictUpdate(companion);\n"
+    )
+    assert_no(_drift_write_violations(excused, "fixture.dart"))
+    unmarked_after_excused = excused + (
+        "await db.into(db.dances).insertOnConflictUpdate(other);\n"
+    )
+    assert any(
+        v.kind == "typed-write-boundary"
+        for v in _drift_write_violations(unmarked_after_excused, "fixture.dart")
+    )
 
 
 def test_certificate_scan_catches_each_concrete_escape_hatch() -> None:

@@ -64,7 +64,8 @@ I1_EXCEPTION_MARKER_RE = re.compile(
 )
 NON_SYNC_WRITE_EXCLUSION_RE = re.compile(
     r"sync-invariant-exclusion:\s*"
-    r"(?:migration-backfill|maintenance-backfill|maintenance-cleanup)\b[^\n]*",
+    r"(?:migration-backfill|maintenance-backfill|maintenance-cleanup"
+    r"|apply-undo)\b[^\n]*",
     re.IGNORECASE,
 )
 SOFT_JOIN_EXCEPTION_RE = re.compile(
@@ -580,6 +581,16 @@ def _drift_write_violations(source: str, path: str) -> list[Violation]:
             continue
         line = _line_number(source, match.start())
         if not re.search(r"[A-Za-z_][A-Za-z0-9_]*Companion(?:\.insert)?\(", statement):
+            # `apply-undo` is the one shape that cannot name its fields inline
+            # and must not: it writes back a companion captured from the row
+            # itself, so I1/I2 hold by construction — every column, including
+            # the stamps, is restored to the value it already had. Spelling the
+            # columns out would make the undo silently drop any column added
+            # later, which is the corruption it exists to prevent. Narrow on
+            # purpose: it suppresses only this boundary check, only on the line
+            # carrying the marker.
+            if _exception_on_line(source, line, NON_SYNC_WRITE_EXCLUSION_RE):
+                continue
             violations.append(
                 Violation(
                     "typed-write-boundary",

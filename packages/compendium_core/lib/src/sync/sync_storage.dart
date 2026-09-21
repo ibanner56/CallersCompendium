@@ -3714,6 +3714,7 @@ final class CompendiumSyncStorage
             _db.dances,
           )..where((table) => table.id.equals(address.recordId))).go();
         } else {
+          // sync-invariant-exclusion: apply-undo restores the captured row verbatim.
           await _db.into(_db.dances).insertOnConflictUpdate(companion);
         }
       case SyncRecordKind.program:
@@ -3723,6 +3724,7 @@ final class CompendiumSyncStorage
             _db.programs,
           )..where((table) => table.id.equals(address.recordId))).go();
         } else {
+          // sync-invariant-exclusion: apply-undo restores the captured row verbatim.
           await _db.into(_db.programs).insertOnConflictUpdate(companion);
         }
       case SyncRecordKind.choreographer:
