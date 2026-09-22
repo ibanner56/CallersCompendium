@@ -245,6 +245,7 @@ class CompendiumApp extends StatefulWidget {
     this.applicationShutdownController,
     this.syncCoordinatorFactory,
     this.syncNetworkClassifier = const ConnectivityPlusNetworkClassifier(),
+    this.syncDebounce = kSyncChangeDebounce,
     this.editorDraftShutdownController,
   });
 
@@ -272,6 +273,11 @@ class CompendiumApp extends StatefulWidget {
   /// (spec §6.12). Injected in widget tests, where the platform channel does
   /// not answer under fake async.
   final SyncNetworkClassifier syncNetworkClassifier;
+
+  /// The delay between a local change and the automatic pass it triggers.
+  /// Widget tests override this to something small; production uses the
+  /// documented default.
+  final Duration syncDebounce;
 
   /// Coordinates final draft persistence before ordinary application
   /// termination. The reset flow deliberately bypasses this coordinator while
@@ -561,6 +567,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
       coordinator: () => _syncCoordinator,
       reconfigure: _configureSyncCoordinator,
       classifier: widget.syncNetworkClassifier,
+      debounce: widget.syncDebounce,
     );
     // Local writes schedule one debounced automatic pass (spec §6.12). Settings
     // rows are reported separately because shareable preferences are sync

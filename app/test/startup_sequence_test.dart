@@ -376,6 +376,66 @@ void main() {
   });
 
   testWidgets(
+    'a shareable-settings write schedules a pass; the controller\'s own '
+    'bookkeeping write does not (routed through the real change stream)',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+      var passes = 0;
+      final passStarted = <Completer<void>>[];
+
+      Future<SyncCoordinator?> factory(
+        CompendiumRepositories repositories,
+      ) async => SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device',
+        store: CompendiumSyncCoordinatorStore(repositories),
+        transport: NoopSyncCoordinatorTransport(),
+        passOperation: ({initialStore}) async {
+          passes++;
+          passStarted.removeAt(0).complete();
+          return const SyncPassResult(SyncPassStatus.completed);
+        },
+      );
+
+      await appData.repositories.settings.set(kSyncEnabledKey, true);
+      passStarted.add(Completer<void>());
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          integrityCheck: () async => true,
+          syncCoordinatorFactory: factory,
+          syncNetworkClassifier: const UnmeteredSyncNetwork(),
+          syncDebounce: const Duration(milliseconds: 20),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(passes, 1, reason: 'the app-start pass');
+
+      // A shareable preference write is a real sync record (its own emitted
+      // `settings` write) and must schedule the debounced pass.
+      passStarted.add(Completer<void>());
+      await appData.repositories.settings.set(kAppThemeKey, 'dark');
+      await tester.pump(const Duration(milliseconds: 30));
+      await tester.pumpAndSettle();
+      expect(passes, 2);
+
+      // A sync-internal bookkeeping write to a sync-local table (no other
+      // table touched) must not schedule another pass.
+      await appData.repositories.syncLocal.markPublished(
+        kind: SyncRecordKind.dance,
+        recordId: 'irrelevant',
+      );
+      await tester.pump(const Duration(milliseconds: 30));
+      await tester.pumpAndSettle();
+      expect(passes, 2, reason: 'bookkeeping alone must not trigger a pass');
+    },
+  );
+
+  testWidgets(
     'overlapping sync reconfigurations run one at a time and the last wins',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(1200, 900));

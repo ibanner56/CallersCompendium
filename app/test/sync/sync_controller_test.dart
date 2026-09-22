@@ -305,14 +305,21 @@ void main() {
       final controller = build(debounce: const Duration(milliseconds: 10));
       await controller.load();
       await controller.setEnabled(true);
-      clock = clock.add(const Duration(minutes: 5));
 
+      // The enable write's own change notification arrives first, exactly as
+      // it would from the real database stream, and must not schedule a pass.
+      controller.notifyLocalChange(settingsOnly: true);
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      expect(passes, isEmpty, reason: 'the enable write is not a user edit');
+
+      // A genuine shareable-preference change is a record and must be synced.
       controller.notifyLocalChange(settingsOnly: true);
       await Future<void>.delayed(const Duration(milliseconds: 80));
       expect(passes, hasLength(1), reason: 'a user preference is a record');
 
-      // The pass just recorded its own success; that settings write is not a
-      // user edit and must not start another pass.
+      // The pass that just ran recorded its own success; that settings
+      // write's own notification is not a user edit and must not start
+      // another pass.
       passes.clear();
       await controller.syncNow();
       passes.clear();

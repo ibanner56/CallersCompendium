@@ -64,7 +64,7 @@ class SyncController extends ChangeNotifier {
   SyncPassResult? _lastResult;
   int _inFlight = 0;
   bool _dirty = false;
-  DateTime? _selfWriteUntil;
+  int _pendingSelfWrites = 0;
   Timer? _debounceTimer;
   bool _disposed = false;
 
@@ -88,6 +88,13 @@ class SyncController extends ChangeNotifier {
     return _now().difference(last) >= kSyncExpiryWarningAfter;
   }
 
+  /// Marks that the next settings-only change notification for one write this
+  /// controller is about to make is its own bookkeeping, not a user edit.
+  /// Precise per-write, rather than a time window: a real preference change
+  /// made in the instant after a pass records its success must still be
+  /// observed, and this cannot mistake it for that recording.
+  void _expectSelfWrite() => _pendingSelfWrites++;
+
   /// Reads the persisted state. Absent keys mean the documented defaults: sync
   /// off, WiFi-only on, import exclusion off.
   Future<void> load() async {
@@ -105,7 +112,7 @@ class SyncController extends ChangeNotifier {
   Future<void> setEnabled(bool value) async {
     if (value == _enabled) return;
     _enabled = value;
-    _selfWriteUntil = _now().add(const Duration(seconds: 2));
+    _expectSelfWrite();
     await _settings.set(kSyncEnabledKey, value);
     if (!value) _debounceTimer?.cancel();
     _notify();
@@ -115,7 +122,7 @@ class SyncController extends ChangeNotifier {
   Future<void> setWifiOnly(bool value) async {
     if (value == _wifiOnly) return;
     _wifiOnly = value;
-    _selfWriteUntil = _now().add(const Duration(seconds: 2));
+    _expectSelfWrite();
     await _settings.set(kSyncWifiOnlyKey, value);
     _notify();
   }
@@ -134,8 +141,10 @@ class SyncController extends ChangeNotifier {
   /// success would otherwise re-trigger itself forever.
   void notifyLocalChange({bool settingsOnly = false}) {
     if (_disposed || !_enabled) return;
-    final own = _selfWriteUntil;
-    if (settingsOnly && own != null && _now().isBefore(own)) return;
+    if (settingsOnly && _pendingSelfWrites > 0) {
+      _pendingSelfWrites--;
+      return;
+    }
     if (_inFlight > 0) {
       _dirty = true;
       return;
@@ -176,7 +185,7 @@ class SyncController extends ChangeNotifier {
       if (result.status == SyncPassStatus.completed) {
         final at = _now();
         _lastSuccessAt = at;
-        _selfWriteUntil = at.add(const Duration(seconds: 2));
+        _expectSelfWrite();
         await _settings.set(kSyncLastSuccessAtKey, at.toIso8601String());
       }
       return SyncGateOutcome.ran;
