@@ -158,6 +158,13 @@ final Map<String, DataClassification> settingsClassifications = {
     note:
         'Per-installation Device Sync consent. Never synced and never restored from a backup: consent given on one device is not consent on another.',
   ),
+  'sync_endpoint': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+    note:
+        'The Athenaeum server this installation pairs and syncs with. Never synced, because a synced endpoint would let one device silently redirect another, and never restored from a backup.',
+  ),
   'sync_wifi_only': const DataClassification(
     term: DpvTerm.nonPersonal,
     subject: DataSubject.none,

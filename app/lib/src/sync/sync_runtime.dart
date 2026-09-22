@@ -5,7 +5,7 @@ import 'package:compendium_core/compendium_core.dart';
 
 import '../data/app_database.dart' show resolveDatabaseFile;
 import '../screens/settings/settings_keys.dart'
-    show kSyncDeviceIdKey, kSyncEnabledKey, kSyncIdKey;
+    show kSyncDeviceIdKey, kSyncEnabledKey, kSyncEndpointKey, kSyncIdKey;
 import 'sync_coordinator.dart';
 import 'sync_http_client.dart';
 import 'sync_isolate.dart';
@@ -19,18 +19,10 @@ import 'sync_invalidation.dart';
 /// installation constructs no client and makes no sync-related network call.
 /// A missing sync ID is also the disabled state. The device identifier is generated
 /// once when a user enables sync and is never taken from a peer or a backup.
+///
+/// The endpoint is the one recorded at pairing, which always writes it before
+/// the sync ID; a missing endpoint is therefore also the disabled state.
 final class ConfiguredSyncCoordinatorFactory {
-  ConfiguredSyncCoordinatorFactory({required this.endpoint});
-
-  /// Uses the release-configured endpoint, or keeps sync disabled when a
-  /// build has not opted into a service endpoint.
-  ConfiguredSyncCoordinatorFactory.fromEnvironment()
-    : endpoint = _syncEndpointEnvironment.isEmpty
-          ? null
-          : Uri.tryParse(_syncEndpointEnvironment);
-
-  final Uri? endpoint;
-
   /// Notified immediately before a completed pass's applied-kinds
   /// invalidation reaches the main connection (see [markSyncAppliedTablesUpdated]).
   ///
@@ -52,8 +44,14 @@ final class ConfiguredSyncCoordinatorFactory {
     }
     final syncId = normalizeSyncId(rawSyncId);
     if (syncId.isEmpty) return null;
-    final endpoint = this.endpoint;
-    if (endpoint == null) return null;
+    final rawEndpoint = await repositories.settings.get(kSyncEndpointKey);
+    if (rawEndpoint == null) return null;
+    final endpoint = rawEndpoint is String
+        ? tryParseSyncEndpoint(rawEndpoint)
+        : null;
+    if (endpoint == null) {
+      throw const FormatException('stored sync endpoint is invalid');
+    }
     final databasePath = (await resolveDatabaseFile()).path;
 
     final rawDeviceId = await repositories.settings.get(kSyncDeviceIdKey);
@@ -89,9 +87,5 @@ final class ConfiguredSyncCoordinatorFactory {
     return deviceId;
   }
 }
-
-const _syncEndpointEnvironment = String.fromEnvironment(
-  'CALLERS_COMPENDIUM_SYNC_ENDPOINT',
-);
 
 final _validDeviceId = RegExp(r'^[A-Za-z0-9_-]{1,64}$');

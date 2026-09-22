@@ -69,6 +69,7 @@ void main() {
       callersBoxRollAwayRoleRepairDoneKey,
       'sync_last_used_fingerprint',
       'sync_enabled',
+      'sync_endpoint',
       'sync_wifi_only',
       'sync_exclude_imports',
       'sync_last_success_at',
@@ -83,6 +84,7 @@ void main() {
     expect(isBackupEligibleSettingKey('sync_last_used_fingerprint'), isFalse);
     for (final key in [
       'sync_enabled',
+      'sync_endpoint',
       'sync_wifi_only',
       'sync_exclude_imports',
       'sync_last_success_at',
