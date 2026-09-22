@@ -500,17 +500,21 @@ while it is on. You can tap its heading to open or close it.
   report. A sync can finish successfully and still leave one of these standing,
   which is the point of them: the conditions they name are ones the app will
   not guess its way out of. You'll see a notice when the same record was
-  changed on two
-  devices in the same moment and neither copy could be chosen (edit either one
-  to settle it); when something created here was kept rather than removed by a
-  device that had never seen it; when records from another device couldn't be
+  changed on two devices in the same moment and neither copy could be chosen
+  (edit either one to settle it); when something created here was kept rather
+  than removed by a device that had never seen it; when something on *this*
+  device has a date the app can't trust, so it isn't being sent anywhere
+  (check this device's clock); when records from another device couldn't be
   used and were skipped; when another device's clock looks far off; when an
   update arrived while you were editing the same record, so it waits for the
   next sync; and when changes from this device still haven't reached your
   other devices after several syncs. A notice is only ever a message — it
   never blocks an edit, never holds up a sync, and there is nothing to dismiss.
   It stays until a sync no longer finds the condition, then goes away on its
-  own. Notices are not kept when you close the app; anything still true is
+  own. One kind is deliberately stickier: a record refused from another device
+  is only mentioned once per run of the app, so its notice stays for the rest
+  of that run rather than disappearing at the next sync and leaving you with
+  nothing. Notices are not kept when you close the app; anything still true is
   reported again by the next sync.
 - These settings belong to this device. They are not synced to your other
   devices, and they are not included in a backup, so restoring a backup never
