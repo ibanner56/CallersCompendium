@@ -118,7 +118,6 @@ _pumpSettings(
     syncLocal: repos.syncLocal,
     coordinator: () => _syncCoordinator,
     reconfigure: () async {},
-    endpoint: Uri.parse('https://sync.example.test'),
     pairingProbeFactory: _pairingProbeFactory,
     classifier: _syncNetwork,
   );
@@ -1717,7 +1716,7 @@ void main() {
         'the completion dialog reports the real fresh-attach duplicate '
         'count once the first pass has actually run',
         (tester) async {
-          _pairingProbeFactory = (syncId) => SyncPairingProbe(
+          _pairingProbeFactory = (syncId, endpoint) => SyncPairingProbe(
             getStore: ({required previouslyUsed}) async =>
                 throw UnimplementedError(),
             createStore: () async => const SyncHttpResponse(
@@ -1766,7 +1765,7 @@ void main() {
         'skippable backup, and reports success once connected',
         (tester) async {
           var createCalls = 0;
-          _pairingProbeFactory = (syncId) => SyncPairingProbe(
+          _pairingProbeFactory = (syncId, endpoint) => SyncPairingProbe(
             getStore: ({required previouslyUsed}) async =>
                 throw UnimplementedError('create must not GET'),
             createStore: () async {
@@ -1829,7 +1828,7 @@ void main() {
         'creating a phrase that is already in use reports it and starts '
         'nothing (spec §6.14 item 5)',
         (tester) async {
-          _pairingProbeFactory = (syncId) => SyncPairingProbe(
+          _pairingProbeFactory = (syncId, endpoint) => SyncPairingProbe(
             getStore: ({required previouslyUsed}) async =>
                 throw UnimplementedError('create must not GET'),
             createStore: () async => const SyncHttpResponse(
@@ -1871,7 +1870,7 @@ void main() {
         (tester) async {
           var getStoreCalls = 0;
           var createStoreCalls = 0;
-          _pairingProbeFactory = (syncId) => SyncPairingProbe(
+          _pairingProbeFactory = (syncId, endpoint) => SyncPairingProbe(
             getStore: ({required previouslyUsed}) async {
               getStoreCalls++;
               expect(
@@ -1930,7 +1929,7 @@ void main() {
         tester,
       ) async {
         var probeBuilt = false;
-        _pairingProbeFactory = (syncId) {
+        _pairingProbeFactory = (syncId, endpoint) {
           probeBuilt = true;
           throw StateError('must not be reached for an invalid phrase');
         };
@@ -1955,11 +1954,165 @@ void main() {
         );
       });
 
+      testWidgets('the server field is pre-filled with the default and shows '
+          'no custom-server warning for it, in both modes', (tester) async {
+        await enableAndOpenPairing(tester);
+        for (final mode in ['sync-pairing-create', 'sync-pairing-connect']) {
+          await tester.tap(find.byKey(ValueKey(mode)));
+          await tester.pumpAndSettle();
+
+          final field = tester.widget<TextField>(
+            find.byKey(const ValueKey('sync-pairing-endpoint-field')),
+          );
+          expect(field.controller!.text, kDefaultSyncEndpoint, reason: mode);
+          expect(
+            find.byKey(const ValueKey('sync-pairing-custom-endpoint-warning')),
+            findsNothing,
+            reason: mode,
+          );
+          await tester.pageBack();
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('sync-connect')));
+          await tester.pumpAndSettle();
+        }
+      });
+
+      testWidgets('changing the server to another host warns and names it '
+          '(spec §8)', (tester) async {
+        await enableAndOpenPairing(tester);
+        await tester.tap(find.byKey(const ValueKey('sync-pairing-connect')));
+        await tester.pumpAndSettle();
+
+        await tester.enterText(
+          find.byKey(const ValueKey('sync-pairing-endpoint-field')),
+          'https://sync.example.test/',
+        );
+        await tester.pump();
+
+        expect(
+          find.byKey(const ValueKey('sync-pairing-custom-endpoint-warning')),
+          findsOneWidget,
+        );
+        expect(find.text('Custom server: sync.example.test'), findsOneWidget);
+
+        await tester.enterText(
+          find.byKey(const ValueKey('sync-pairing-endpoint-field')),
+          kDefaultSyncEndpoint,
+        );
+        await tester.pump();
+        expect(
+          find.byKey(const ValueKey('sync-pairing-custom-endpoint-warning')),
+          findsNothing,
+        );
+      });
+
+      testWidgets('a server address that fails entry validation is rejected '
+          'before any network call', (tester) async {
+        var probeBuilt = false;
+        _pairingProbeFactory = (syncId, endpoint) {
+          probeBuilt = true;
+          throw StateError('must not be reached for an invalid endpoint');
+        };
+        await enableAndOpenPairing(tester);
+        await tester.tap(find.byKey(const ValueKey('sync-pairing-create')));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('sync-pairing-backup-skip')),
+        );
+        await tester.pumpAndSettle();
+
+        // Plaintext to a non-loopback host, and an https address carrying a
+        // query: the one message must be accurate for both.
+        for (final rejected in [
+          'http://sync.example.test/',
+          'https://sync.example.test/?q=1',
+        ]) {
+          await tester.enterText(
+            find.byKey(const ValueKey('sync-pairing-endpoint-field')),
+            rejected,
+          );
+          await tester.tap(find.byKey(const ValueKey('sync-pairing-continue')));
+          await tester.pumpAndSettle();
+
+          expect(probeBuilt, isFalse, reason: rejected);
+          expect(
+            find.text(
+              "That isn't a valid server address. Use an https:// address "
+              'with no username, ? or # part (plain http:// works only for '
+              'localhost or 127.0.0.1).',
+            ),
+            findsOneWidget,
+            reason: rejected,
+          );
+        }
+      });
+
+      testWidgets('connecting to a custom server probes that server, persists '
+          'it, and keeps it on the status surface', (tester) async {
+        Uri? probedEndpoint;
+        _pairingProbeFactory = (syncId, endpoint) {
+          probedEndpoint = endpoint;
+          return SyncPairingProbe(
+            getStore: ({required previouslyUsed}) async =>
+                const SyncStoreResult(
+                  response: SyncHttpResponse(
+                    statusCode: 200,
+                    kind: SyncResponseKind.success,
+                    headers: {},
+                    body: [],
+                  ),
+                ),
+            createStore: () async =>
+                throw StateError('connect must never POST'),
+          );
+        };
+        final harness = await _pumpSettings(tester);
+        await openExperimental(tester);
+        await tester.tap(find.byKey(const ValueKey('sync-enabled-toggle')));
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('sync-custom-endpoint')),
+          findsNothing,
+        );
+        await tester.tap(find.byKey(const ValueKey('sync-connect')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('sync-pairing-connect')));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const ValueKey('sync-pairing-phrase-field')),
+          'alpha-bravo-charlie-delta',
+        );
+        await tester.enterText(
+          find.byKey(const ValueKey('sync-pairing-endpoint-field')),
+          'https://sync.example.test/',
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('sync-pairing-backup-skip')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('sync-pairing-continue')));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('sync-pairing-complete-ok')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(probedEndpoint, Uri.parse('https://sync.example.test/'));
+        expect(
+          await harness.repos.settings.get('sync_endpoint'),
+          'https://sync.example.test/',
+        );
+        expect(
+          find.text('Syncing with a custom server: sync.example.test'),
+          findsOneWidget,
+        );
+      });
+
       testWidgets(
         'a transport failure while creating is reported, not left to crash '
         'the button callback',
         (tester) async {
-          _pairingProbeFactory = (syncId) => SyncPairingProbe(
+          _pairingProbeFactory = (syncId, endpoint) => SyncPairingProbe(
             getStore: ({required previouslyUsed}) async =>
                 throw UnimplementedError(),
             createStore: () async =>
@@ -1996,7 +2149,7 @@ void main() {
             return true;
           }
 
-          _pairingProbeFactory = (syncId) => SyncPairingProbe(
+          _pairingProbeFactory = (syncId, endpoint) => SyncPairingProbe(
             getStore: ({required previouslyUsed}) async =>
                 throw UnimplementedError(),
             createStore: () async => const SyncHttpResponse(
@@ -2031,7 +2184,7 @@ void main() {
             return true;
           }
 
-          _pairingProbeFactory = (syncId) => SyncPairingProbe(
+          _pairingProbeFactory = (syncId, endpoint) => SyncPairingProbe(
             getStore: ({required previouslyUsed}) async =>
                 throw UnimplementedError(),
             createStore: () async => const SyncHttpResponse(
@@ -2065,7 +2218,7 @@ void main() {
           return gate.future;
         }
 
-        _pairingProbeFactory = (syncId) => SyncPairingProbe(
+        _pairingProbeFactory = (syncId, endpoint) => SyncPairingProbe(
           getStore: ({required previouslyUsed}) async =>
               throw UnimplementedError(),
           createStore: () async => const SyncHttpResponse(

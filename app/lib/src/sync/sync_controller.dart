@@ -30,9 +30,10 @@ class SyncPairingProbe {
   final void Function()? close;
 }
 
-/// Builds the probe for one candidate sync ID. Defaults to a live
-/// [SyncHttpClient]; tests inject a fake.
-typedef SyncPairingProbeFactory = SyncPairingProbe Function(String syncId);
+/// Builds the probe for one candidate sync ID against the endpoint chosen in
+/// the pairing form. Defaults to a live [SyncHttpClient]; tests inject a fake.
+typedef SyncPairingProbeFactory =
+    SyncPairingProbe Function(String syncId, Uri endpoint);
 
 /// How long before the 30-day disuse reap (spec §7.3) the status surface starts
 /// warning that the store is approaching expiry (spec §6.14 item 4).
@@ -73,7 +74,6 @@ class SyncController extends ChangeNotifier {
     required this._reconfigure,
     required this._syncLocal,
     this._runExclusive = _runDirectly,
-    this.endpoint,
     this._pairingProbeFactory,
     this._classifier = const ConnectivityPlusNetworkClassifier(),
     DateTime Function()? now,
@@ -97,17 +97,11 @@ class SyncController extends ChangeNotifier {
   final Duration _debounce;
   final SyncPairingProbeFactory? _pairingProbeFactory;
 
-  /// The release-configured sync endpoint, or null when the build has not
-  /// opted into one — pairing is unreachable without it.
-  final Uri? endpoint;
-
-  /// Builds the probe for a pairing attempt, or null when pairing is
-  /// unreachable (no configured endpoint and no test factory).
-  SyncPairingProbe? probeFor(String syncId) {
+  /// Builds the probe for a pairing attempt. [endpoint] must already have
+  /// passed [validateSyncEndpoint] and [syncId] must be a well-formed ID.
+  SyncPairingProbe probeFor(String syncId, Uri endpoint) {
     final factory = _pairingProbeFactory;
-    if (factory != null) return factory(syncId);
-    final endpoint = this.endpoint;
-    if (endpoint == null) return null;
+    if (factory != null) return factory(syncId, endpoint);
     final client = SyncHttpClient(endpoint: endpoint, syncId: syncId);
     return SyncPairingProbe(
       getStore: client.getStore,
@@ -118,6 +112,7 @@ class SyncController extends ChangeNotifier {
 
   bool _enabled = false;
   bool _paired = false;
+  Uri? _endpoint;
   bool _wifiOnly = true;
   bool _excludeImports = false;
   DateTime? _lastSuccessAt;
@@ -138,6 +133,9 @@ class SyncController extends ChangeNotifier {
 
   bool get enabled => _enabled;
   bool get paired => _paired;
+
+  /// The server chosen at pairing, or null when this device is not paired.
+  Uri? get endpoint => _endpoint;
   bool get wifiOnly => _wifiOnly;
   bool get excludeImports => _excludeImports;
   DateTime? get lastSuccessAt => _lastSuccessAt;
@@ -192,6 +190,8 @@ class SyncController extends ChangeNotifier {
     _excludeImports = await _settings.get(kSyncExcludeImportsKey) == true;
     final id = await _settings.get(kSyncIdKey);
     _paired = id is String && normalizeSyncId(id).isNotEmpty;
+    final endpoint = await _settings.get(kSyncEndpointKey);
+    _endpoint = endpoint is String ? tryParseSyncEndpoint(endpoint) : null;
     final last = await _settings.get(kSyncLastSuccessAtKey);
     _lastSuccessAt = last is String ? DateTime.tryParse(last)?.toUtc() : null;
     _notify();
@@ -398,9 +398,12 @@ class SyncController extends ChangeNotifier {
     _notify();
   }
 
-  /// Persists a sync ID chosen by the create-or-connect pairing flow, after
-  /// the caller has already validated it against the store (spec §6.2,
-  /// §6.14 item 5), and asks the app to build the coordinator.
+  /// Persists a sync ID and endpoint chosen by the create-or-connect pairing
+  /// flow, after the caller has already validated them against the store
+  /// (spec §6.2, §6.14 item 5), and asks the app to build the coordinator.
+  ///
+  /// Each settings write is its own transaction and so its own table-update
+  /// event, which is why each is preceded by its own [_expectSelfWrite].
   ///
   /// Also runs the resulting fresh-attach pass to completion (subject to the
   /// usual §6.12 gating) so [lastResult] carries the real W8 duplicate count
@@ -408,21 +411,25 @@ class SyncController extends ChangeNotifier {
   /// coordinator's construction, not the app-start pass it schedules
   /// unawaited, which would otherwise leave the caller reading a stale or
   /// empty result.
-  Future<void> completePairing(String syncId) async {
+  Future<void> completePairing(String syncId, Uri endpoint) async {
+    _expectSelfWrite();
+    await _settings.set(kSyncEndpointKey, endpoint.toString());
     _expectSelfWrite();
     await _settings.set(kSyncIdKey, syncId);
+    _endpoint = endpoint;
     _paired = true;
     _notify();
     await _reconfigure();
     await trigger(SyncTrigger.appStart);
   }
 
-  /// Stops syncing on this device: forgets the sync ID and the store-scoped
-  /// local state (spec glossary *detach*, §6.2 step 3). Purely local — no
-  /// request is sent, so the store, this device's manifest and every peer are
-  /// untouched. Leaves sync enabled, the device ID, the used-identity
-  /// verifiers, publication history and normalisation skips in place, as the
-  /// spec requires; the next pairing is a fresh attach.
+  /// Stops syncing on this device: forgets the sync ID, the server it was
+  /// paired with and the store-scoped local state (spec glossary *detach*,
+  /// §6.2 step 3). Purely local — no request is sent, so the store, this
+  /// device's manifest and every peer are untouched. Leaves sync enabled, the
+  /// device ID, the used-identity verifiers, publication history and
+  /// normalisation skips in place, as the spec requires; the next pairing is a
+  /// fresh attach.
   ///
   /// The sync ID is erased rather than tombstoned, since a tombstone keeps
   /// the credential on disk, and it goes in the same transaction as the
@@ -430,27 +437,25 @@ class SyncController extends ChangeNotifier {
   Future<void> detach() async {
     if (!_paired || _detaching) return;
     _detaching = true;
-    _paired = false;
     _debounceTimer?.cancel();
     _dirty = false;
-    _notify();
     try {
       await _runExclusive(
         () => _syncLocal.transaction((tx) async {
           await tx.clearOnDetach();
           await _settings.remove(kSyncIdKey, permanent: true);
+          await _settings.remove(kSyncEndpointKey, permanent: true);
           await _settings.remove(kSyncLastSuccessAtKey, permanent: true);
         }),
       );
-    } on Object {
-      // diagnostics: silent — rolls back the in-memory state and rethrows;
-      // the disconnect action logs it.
-      _paired = true;
-      _notify();
-      rethrow;
     } finally {
       _detaching = false;
     }
+    // Only now: while the clear is still pending the device is still attached,
+    // and reporting otherwise would offer *Connect* — a pairing completing in
+    // that window would have the sync ID it just wrote deleted by this clear.
+    _paired = false;
+    _endpoint = null;
     _lastSuccessAt = null;
     _lastResult = null;
     _replacementPending = false;
