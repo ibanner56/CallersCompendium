@@ -1614,6 +1614,387 @@ void main() {
         },
       );
 
+      // A *report* is defined by the spec as a user-visible, non-blocking
+      // notice that outlasts the pass which raised it
+      // (docs/design/sync-spec.md:46). The engine raises twelve codes and the
+      // isolate ships them across intact, but nothing in `app/lib` read
+      // `SyncPassResult.reports`, so a pass that ended `completed` while
+      // holding a permanent equal-`updatedAt` divergence looked exactly like
+      // a clean sync (#1349 finding 1).
+      group('pass reports (spec §2 "report", §6.3, §6.4)', () {
+        /// Pairs the device, turns sync on, and installs a coordinator whose
+        /// pass returns whatever [result] currently holds, so a test can walk
+        /// a sequence of passes through the real controller and widget rather
+        /// than an inline fake of either.
+        Future<({SyncController controller, List<int> passes})> pumpPassing(
+          WidgetTester tester,
+          SyncPassResult Function() result,
+        ) async {
+          final harness = await _pumpSettings(tester);
+          await harness.repos.settings.set('sync_id', 'correct horse battery');
+          final controller = SyncScope.of(
+            tester.element(find.byType(SettingsScreen)),
+          );
+          await controller.setEnabled(true);
+          await controller.load();
+          final passes = <int>[];
+          _syncCoordinator = SyncCoordinator(
+            syncId: 'configured',
+            deviceId: 'device',
+            store: CompendiumSyncCoordinatorStore(harness.repos),
+            transport: NoopSyncCoordinatorTransport(),
+            passOperation: ({initialStore}) async {
+              passes.add(1);
+              return result();
+            },
+          );
+          addTearDown(_syncCoordinator!.dispose);
+          await openExperimental(tester);
+          return (controller: controller, passes: passes);
+        }
+
+        Future<void> syncNow(WidgetTester tester) async {
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+        }
+
+        const tie = SyncReport(
+          code: SyncReportCode.equalUpdatedAt,
+          kind: SyncRecordKind.dance,
+          recordId: 'dance-1',
+          message: 'Different record bodies have the same updatedAt.',
+        );
+        const divergence = ValueKey('sync-notice-divergence');
+
+        testWidgets('an equal-updatedAt tie on a completed pass is shown '
+            'beside the status', (tester) async {
+          var result = const SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [tie],
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          expect(find.byKey(divergence), findsOneWidget);
+          // The pass completed, so the headline is still the success line: a
+          // report names a condition, it does not fail the pass.
+          expect(find.textContaining('Last synced'), findsOneWidget);
+        });
+
+        testWidgets('the notice survives the next pass that raises the same '
+            'condition, and is shown once', (tester) async {
+          var result = const SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [tie],
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+          await syncNow(tester);
+
+          expect(find.byKey(divergence), findsOneWidget);
+        });
+
+        testWidgets('the notice stops being shown once a completed pass no '
+            'longer raises it', (tester) async {
+          var result = const SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [tie],
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+          expect(find.byKey(divergence), findsOneWidget);
+
+          result = const SyncPassResult(SyncPassStatus.completed);
+          await syncNow(tester);
+
+          expect(find.byKey(divergence), findsNothing);
+        });
+
+        testWidgets('a notice outlives a pass that failed before it could '
+            're-check the condition', (tester) async {
+          var result = const SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [tie],
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          // A pass that never reached the merge raises nothing; clearing on
+          // it would retract a standing divergence for an unrelated network
+          // failure, which is the same class of silence as #1349 itself.
+          result = const SyncPassResult(SyncPassStatus.failed);
+          await syncNow(tester);
+
+          expect(find.byKey(divergence), findsOneWidget);
+          expect(find.text('Last sync failed.'), findsOneWidget);
+        });
+
+        testWidgets('a local creation kept from a peer deletion is surfaced '
+            '(§6.4)', (tester) async {
+          var result = const SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [
+              SyncReport(
+                code: SyncReportCode.unseenLocalCreation,
+                kind: SyncRecordKind.program,
+                recordId: 'program-1',
+                message: 'A locally-created record would be resolved out.',
+              ),
+            ],
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          expect(
+            find.byKey(const ValueKey('sync-notice-keptLocalCreation')),
+            findsOneWidget,
+          );
+        });
+
+        testWidgets('every code that skips a record reaches the '
+            'skipped-record notice', (tester) async {
+          const codes = [
+            SyncReportCode.quarantinedRecord,
+            SyncReportCode.unresolvedBlob,
+            SyncReportCode.nonCanonicalWireBody,
+            SyncReportCode.invalidClassification,
+            SyncReportCode.malformedRecord,
+            SyncReportCode.blobIdentityMismatch,
+            SyncReportCode.unresolvedReference,
+          ];
+          var result = const SyncPassResult(SyncPassStatus.completed);
+          await pumpPassing(tester, () => result);
+
+          for (final code in codes) {
+            result = SyncPassResult(
+              SyncPassStatus.completed,
+              reports: [SyncReport(code: code, message: 'skipped')],
+            );
+            await syncNow(tester);
+            expect(
+              find.byKey(const ValueKey('sync-notice-skippedRecord')),
+              findsOneWidget,
+              reason: '$code must reach the skipped-record notice',
+            );
+          }
+        });
+
+        testWidgets('a suspect peer clock is surfaced', (tester) async {
+          var result = const SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [
+              SyncReport(
+                code: SyncReportCode.clockSuspect,
+                message: 'Every peer timestamp exceeded the clock window.',
+              ),
+            ],
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          expect(
+            find.byKey(const ValueKey('sync-notice-clock')),
+            findsOneWidget,
+          );
+        });
+
+        testWidgets('an inbound update deferred by a concurrent local edit is '
+            'surfaced', (tester) async {
+          var result = const SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [
+              SyncReport(
+                code: SyncReportCode.concurrentLocalChange,
+                kind: SyncRecordKind.dance,
+                recordId: 'dance-2',
+                message: 'Local record changed while sync was preparing.',
+              ),
+            ],
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          expect(
+            find.byKey(const ValueKey('sync-notice-deferredInbound')),
+            findsOneWidget,
+          );
+        });
+
+        testWidgets('a publication no peer has reflected is surfaced',
+            (tester) async {
+          var result = const SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [
+              SyncReport(
+                code: SyncReportCode.unreflectedPublication,
+                kind: SyncRecordKind.dance,
+                recordId: 'dance-3',
+                message: 'Not reflected for three consecutive passes.',
+              ),
+            ],
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          expect(
+            find.byKey(const ValueKey('sync-notice-unreflectedPublication')),
+            findsOneWidget,
+          );
+        });
+
+        testWidgets('two conditions in one pass each get their own notice',
+            (tester) async {
+          var result = const SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [
+              tie,
+              SyncReport(
+                code: SyncReportCode.clockSuspect,
+                message: 'Every peer timestamp exceeded the clock window.',
+              ),
+            ],
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          expect(find.byKey(divergence), findsOneWidget);
+          expect(
+            find.byKey(const ValueKey('sync-notice-clock')),
+            findsOneWidget,
+          );
+        });
+
+        testWidgets('a notice needs no gesture to clear and gates no later '
+            'pass (spec line 46)', (tester) async {
+          var result = const SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [tie],
+          );
+          final pumped = await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          final notice = tester.widget<ListTile>(find.byKey(divergence));
+          expect(notice.onTap, isNull, reason: 'a report is not a prompt');
+          expect(notice.trailing, isNull, reason: 'there is nothing to clear');
+
+          result = const SyncPassResult(SyncPassStatus.completed);
+          await syncNow(tester);
+
+          expect(pumped.passes.length, 2, reason: 'reporting gates no pass');
+          expect(find.byKey(divergence), findsNothing);
+        });
+      });
+
+      // Declining a replacement pauses the coordinator; every automatic
+      // trigger then answers `paused` without running a pass. With no arm for
+      // it the status surface fell back to "Last synced <old date>", which is
+      // the one thing that is certainly not true (#1349 finding 2).
+      group('paused after a declined replacement (spec §6.3 step 1)', () {
+        testWidgets('an automatic trigger after declining still says sync is '
+            'paused, not that it last synced', (tester) async {
+          final harness = await _pumpSettings(tester);
+          await harness.repos.settings.set('sync_id', 'correct horse battery');
+          final controller = SyncScope.of(
+            tester.element(find.byType(SettingsScreen)),
+          );
+          await controller.setEnabled(true);
+          await controller.load();
+          var result = const SyncPassResult(SyncPassStatus.completed);
+          _syncCoordinator = SyncCoordinator(
+            syncId: 'configured',
+            deviceId: 'device',
+            store: CompendiumSyncCoordinatorStore(harness.repos),
+            transport: NoopSyncCoordinatorTransport(),
+            passOperation: ({initialStore}) async => result,
+          );
+          addTearDown(_syncCoordinator!.dispose);
+          // As `main.dart` does when it builds a coordinator: without it the
+          // controller never learns a replacement is pending and the real
+          // dialog never opens.
+          controller.attachCoordinator(_syncCoordinator);
+          await openExperimental(tester);
+
+          // One success first, so the stale line the bug fell back to is
+          // actually available to fall back to.
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+          expect(find.textContaining('Last synced'), findsOneWidget);
+
+          result = const SyncPassResult(SyncPassStatus.replacementRequired);
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('sync-replacement-cancel')),
+          );
+          await tester.pumpAndSettle();
+
+          // An automatic trigger: the coordinator answers `paused` without
+          // running a pass, and that answer is what overwrote the decline's
+          // own explanation.
+          await controller.onAppStart();
+          await tester.pumpAndSettle();
+
+          // Asserted on the headline itself, not merely somewhere on screen:
+          // the defect was the headline reverting to "Last synced <old date>"
+          // while the store it names is gone.
+          final status = tester.widget<ListTile>(
+            find.byKey(const ValueKey('sync-status')),
+          );
+          expect(
+            (status.title! as Text).data,
+            contains('Sync is paused'),
+            reason: 'the headline must not fall back to "Last synced <date>"',
+          );
+          // The earlier success is still named, separately, as it is for
+          // every other non-success status.
+          expect(
+            find.byKey(const ValueKey('sync-status-last-success')),
+            findsOneWidget,
+          );
+        });
+
+        testWidgets('a manual sync decides again and clears the paused line',
+            (tester) async {
+          final harness = await _pumpSettings(tester);
+          await harness.repos.settings.set('sync_id', 'correct horse battery');
+          final controller = SyncScope.of(
+            tester.element(find.byType(SettingsScreen)),
+          );
+          await controller.setEnabled(true);
+          await controller.load();
+          var result = const SyncPassResult(
+            SyncPassStatus.replacementRequired,
+          );
+          _syncCoordinator = SyncCoordinator(
+            syncId: 'configured',
+            deviceId: 'device',
+            store: CompendiumSyncCoordinatorStore(harness.repos),
+            transport: NoopSyncCoordinatorTransport(),
+            passOperation: ({initialStore}) async => result,
+          );
+          addTearDown(_syncCoordinator!.dispose);
+          controller.attachCoordinator(_syncCoordinator);
+          await openExperimental(tester);
+
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('sync-replacement-cancel')),
+          );
+          await tester.pumpAndSettle();
+          await controller.onAppStart();
+          await tester.pumpAndSettle();
+          expect(find.textContaining('Sync is paused'), findsOneWidget);
+
+          result = const SyncPassResult(SyncPassStatus.completed);
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+
+          expect(find.textContaining('Sync is paused'), findsNothing);
+          expect(find.textContaining('Last synced'), findsOneWidget);
+        });
+      });
+
       group('disconnect (spec glossary: detach)', () {
         Future<CompendiumRepositories> pumpPaired(WidgetTester tester) async {
           final harness = await _pumpSettings(tester);
