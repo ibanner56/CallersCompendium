@@ -1,0 +1,14 @@
+{
+  "id": "1354-sync-rename-collision-data-loss",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "The choreographer details kept only on your own device — email, location, and the deceased marker — are no longer deleted when two of your devices rename two different people to the same name and both renames arrive in one sync. Both records are kept as they were, and the clash is recorded for review instead of the two people being merged into one record."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "CompendiumSyncStorage._reconcileInbound now applies the sync-spec §6.6 step-1 rule to candidates reconciled within one inbound batch, not only against stored rows. The natural-key index is built from stored rows alone, so two locally-known records renamed onto one previously-unused natural key by two peers in the same batch both missed the step-1 guard and reached the in-batch merge, which adopted the lexicographically smaller UUID and hard-deleted the losing local row through _deleteIdentityRow — the path that does not coalesce deviceLocal fields. Such a pair is now routed to review_queue with both local rows left intact; the silent step-2 merge is kept when at most one side is a pre-existing local row, and candidates that resolve to the same identity (difficulty canonicalization onto a shipped ID) still collapse."
+    ]
+  }
+}
