@@ -2175,6 +2175,46 @@ final class CompendiumSyncStorage
                   prepared.length;
             }
           } else {
+            // §6.6 step 1 applies in-batch, not only against stored rows.
+            // The step-1 guard above consults `_naturalKeyRow`, which is
+            // served from an index built from stored rows alone
+            // (`_loadNaturalKeyIndex`), and a candidate that is merely
+            // *prepared* never enters it. So two locally-known rows renamed
+            // onto one previously-unused name by two peers both miss that
+            // guard and arrive here, where the merge below would pick the
+            // lexicographically smaller UUID and `_adoptCollision` would
+            // reach `_deleteIdentityRow` — the branch that does not copy
+            // `deviceLocal` fields. The loser's email, location and deceased
+            // flag are held nowhere else (they are stripped from every
+            // shareable body), so the silent merge destroyed them and joined
+            // two possibly different people into one record.
+            //
+            // Both sides being pre-existing local rows is exactly what §6.6
+            // step 1 and ADR-004 forbid coalescing, so route the later
+            // candidate to the review queue instead, with the same reason the
+            // stored-row guard uses. The earlier candidate stays prepared,
+            // which reproduces the end state the stored-row path already
+            // produces when the two renames arrive in separate passes.
+            //
+            // The identity test is on distinct ids on purpose. Difficulty
+            // canonicalization rewrites a candidate onto a shipped ID, so two
+            // peers' same-label custom rows can both arrive here already
+            // carrying that one ID. Both then resolve to the same local row,
+            // and a guard that only asked "are both known?" would queue a
+            // review for a pair that collapses harmlessly — `_adoptCollision`
+            // returns immediately when the losing and surviving ids are equal.
+            if (previous.blob.id != candidate.blob.id &&
+                await _recordIdentity(kind, previous.blob.id) != null &&
+                await _recordIdentity(kind, candidate.blob.id) != null) {
+              await _enqueueCollisionReview(
+                candidate,
+                previous.blob.id,
+                reason:
+                    'known UUID natural-key rename collides with '
+                    'another local row',
+              );
+              continue;
+            }
             final survivingId =
                 candidate.blob.id.compareTo(previous.blob.id) < 0
                 ? candidate.blob.id
@@ -2189,8 +2229,9 @@ final class CompendiumSyncStorage
                 ? previous.blob.id
                 : candidate.blob.id;
             // The losing id can itself be a known local row — the ordinary
-            // "a peer renamed it" case. Passing null here skipped
-            // `_migrateLocalIdentity`/`_deleteIdentityRow`, so
+            // "a peer renamed it" case, where only one side is a pre-existing
+            // local row (the both-known case returned above). Passing null
+            // here skipped `_migrateLocalIdentity`/`_deleteIdentityRow`, so
             // `_rewriteLocalReferences` repointed join rows at an id that has
             // no row yet (reconciliation runs before any record is written),
             // which fails the foreign key and rolls the batch back — or, with

@@ -205,7 +205,9 @@ epoch reset and MUST clear on detach; after a restore its rows MUST be
 revalidated against the restored data.
 
 `normalisation_skips` records `(table, column, record_id)` for every row §4.1's
-pass left un-normalised because its target value is occupied. It is
+pass left un-normalised — because its target value is occupied, because the
+value's own object keys normalise to one key, or because the value cannot be
+normalised at all (a JSON column holding malformed text). It is
 `deviceScoped` as bookkeeping rather than as content: it stores no name, only
 the address of a row, and unlike `pending_deletions`' `tombstone_blob` nothing
 in it is ever re-transmitted. Storing the target value would make part of the
@@ -214,9 +216,9 @@ from the live column anyway.
 
 Its primary key is `(table, column, record_id)`, for the reason §4.1 gives: a
 duplicate entry would make a row block itself. Growth is bounded by the number
-of rows the pass could not repair, which is bounded in turn by the number of
-`UNIQUE` collisions the user's own library contains — normally zero, and each
-entry is one row address rather than content. It shrinks as repairs land, so
+of rows the pass could not repair, which is bounded in turn by the `UNIQUE`
+collisions and un-normalisable values the user's own library contains — normally
+zero, and each entry is one row address rather than content. It shrinks as repairs land, so
 unlike `published_records` it needs no monotonic-growth argument.
 
 **It is the only entry here that is not store state at all**, and an
@@ -907,6 +909,19 @@ and not a formality.
 only failure response, the pass is total: no row raises, so an interrupted pass
 cannot repeat a failure on every launch. Re-running it over already-normalised
 rows is a no-op.
+
+Totality binds the *canonicalisation* too, not only the collision tests. A value
+canonicalised as JSON can fail before any target exists to compare, in three
+ways: the stored text may not parse; its own object keys may normalise to one
+key; or it may parse and then refuse to re-encode. The third is the one an
+implementer will not predict, and it is not hypothetical — `1e999` is legal JSON
+that decodes to an infinity no JSON encoder will emit, so a decode/encode round
+trip is **not** total over the input its own decoder accepts. A conforming
+client MUST treat all three as a skip of that unit — left as stored, recorded in
+`normalisation_skips` — and MUST NOT let the failure escape the pass. This binds
+both halves: the row half under the row's own id, and the settings half under
+the settings key. It is what makes the totality claim above true of an
+implementation rather than only of its collision handling (#1347).
 
 **Every pass that rewrites a row MUST commit in three steps, and MUST NOT write
 its completion marker until the derived rebuild has succeeded.** The steps are:

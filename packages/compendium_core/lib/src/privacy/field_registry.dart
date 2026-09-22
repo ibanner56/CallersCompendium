@@ -77,9 +77,10 @@ const _existenceStamp = DataClassification(
       'the later existence decision, and deletions resurrect.',
 );
 
-/// Local repair bookkeeping. It identifies rows whose shareable natural key
-/// could not yet be rewritten; it is not user content and has no meaning on
-/// another device.
+/// Local repair bookkeeping. It identifies rows whose shareable text the
+/// normalization pass could not yet rewrite — a natural key another row's
+/// normalized form occupies, or a value that cannot be normalized at all; it is
+/// not user content and has no meaning on another device.
 const _normalisationRepairState = DataClassification(
   term: DpvTerm.nonPersonal,
   subject: DataSubject.none,
