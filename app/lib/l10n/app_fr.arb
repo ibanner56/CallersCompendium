@@ -252,6 +252,18 @@
   "@settingsSyncStatusSyncing": {
     "x-sourceSha256": "8a046cc90ab0a981f95cbf2c9c609309e0cfda272d8c01fdffecdb8286877e91"
   },
+  "settingsSyncStatusFailed": "La dernière synchronisation a échoué.",
+  "@settingsSyncStatusFailed": {
+    "x-sourceSha256": "53fa99d78ec8627b66d1f608b171626f6d73f1d7d70a1c3eab42afa83106af14"
+  },
+  "settingsSyncStatusStaleStore": "Cet espace de stockage a changé depuis votre dernière synchronisation. La reconnexion n’est pas encore disponible.",
+  "@settingsSyncStatusStaleStore": {
+    "x-sourceSha256": "bdd558cc5ff745fd83b115d7a2ccf5061b23d30a1b622e07a5188fb574a0621d"
+  },
+  "settingsSyncStatusStoreUnavailable": "Cet espace de stockage a peut-être expiré par inactivité ou a été supprimé. La reconnexion n’est pas encore disponible.",
+  "@settingsSyncStatusStoreUnavailable": {
+    "x-sourceSha256": "2f80067e35662f23f49e7b2c5e7febe52a30166aa4cd5bb93c9b1ed2cbe4c867"
+  },
   "settingsSyncNotBackup": "La synchronisation n’est pas une sauvegarde. Un espace inutilisé pendant 30 jours est supprimé : continuez à faire des sauvegardes de fichiers.",
   "@settingsSyncNotBackup": {
     "x-sourceSha256": "11cd21133a59a470d73d8b582f2307c314309fe99564283639556d8afcfd4fa3"

@@ -484,6 +484,24 @@ abstract class AppLocalizations {
   /// **'Syncing…'**
   String get settingsSyncStatusSyncing;
 
+  /// Status shown when the most recent sync attempt did not complete. The time of the last successful sync, if any, is shown separately below this line.
+  ///
+  /// In en, this message translates to:
+  /// **'Last sync failed.'**
+  String get settingsSyncStatusFailed;
+
+  /// Status shown when the last sync attempt found the connected store had moved on to a new epoch (e.g. another device confirmed a replacement). Reconnection UI does not exist yet, so this only reports the state.
+  ///
+  /// In en, this message translates to:
+  /// **'This store has changed since your last sync. Reconnecting isn\'t available yet.'**
+  String get settingsSyncStatusStaleStore;
+
+  /// Status shown when the last sync attempt found the previously connected store no longer exists. Per spec §6.14 item 6 this must not claim a specific cause the server did not give. Reconnection UI does not exist yet, so this only reports the state.
+  ///
+  /// In en, this message translates to:
+  /// **'This store may have expired from inactivity or been removed. Reconnecting isn\'t available yet.'**
+  String get settingsSyncStatusStoreUnavailable;
+
   /// Disclosure shown wherever Device Sync reports its status, stating that sync does not replace a file backup.
   ///
   /// In en, this message translates to:

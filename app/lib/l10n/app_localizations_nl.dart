@@ -236,6 +236,18 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsSyncStatusSyncing => 'Synchroniseren…';
 
   @override
+  String get settingsSyncStatusFailed =>
+      'De laatste synchronisatie is mislukt.';
+
+  @override
+  String get settingsSyncStatusStaleStore =>
+      'Deze opslag is gewijzigd sinds je laatste synchronisatie. Opnieuw verbinden is nog niet mogelijk.';
+
+  @override
+  String get settingsSyncStatusStoreUnavailable =>
+      'Deze opslag is mogelijk verlopen door inactiviteit of is verwijderd. Opnieuw verbinden is nog niet mogelijk.';
+
+  @override
   String get settingsSyncNotBackup =>
       'Synchronisatie is geen back-up. Een opslag die 30 dagen niet wordt gebruikt, wordt verwijderd, dus blijf bestandsback-ups maken.';
 

@@ -208,6 +208,29 @@ void main() {
       );
     });
 
+    test('a coordinator that throws is recorded as a failed pass, not an '
+        'unhandled error', () async {
+      coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device',
+        store: CompendiumSyncCoordinatorStore(repos),
+        transport: NoopSyncCoordinatorTransport(),
+        passOperation: ({initialStore}) async =>
+            throw StateError('sync isolate crashed'),
+      );
+      final controller = build();
+      await controller.load();
+      await controller.setEnabled(true);
+
+      // The await itself must not throw: a debounced pass reaches this
+      // through `unawaited(trigger(...))`, so an uncaught error here would
+      // become an unhandled async error rather than a status the surface
+      // can read.
+      expect(await controller.syncNow(), SyncGateOutcome.ran);
+      expect(controller.lastResult?.status, SyncPassStatus.failed);
+      expect(controller.lastSuccessAt, isNull);
+    });
+
     test(
       'changes inside the debounce window share one automatic pass',
       () async {
@@ -326,6 +349,41 @@ void main() {
       controller.notifyLocalChange(settingsOnly: true);
       await Future<void>.delayed(const Duration(milliseconds: 80));
       expect(passes, isEmpty);
+    });
+
+    test('the self-write expectation from a disable cannot leak into the next '
+        'enabled session', () async {
+      final controller = build(debounce: const Duration(milliseconds: 10));
+      await controller.load();
+
+      // Enable and consume its own bookkeeping write, exactly as the real
+      // settings stream would deliver it.
+      await controller.setEnabled(true);
+      controller.notifyLocalChange(settingsOnly: true);
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      passes.clear();
+
+      // Disabling also expects a self write, but `notifyLocalChange` bails
+      // out before it ever inspects the counter once `enabled` is false —
+      // exactly as it does in production — so nothing here consumes it.
+      await controller.setEnabled(false);
+
+      // Re-enable and consume this session's own bookkeeping write too.
+      await controller.setEnabled(true);
+      controller.notifyLocalChange(settingsOnly: true);
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      passes.clear();
+
+      // A genuine user settings-only edit after re-enabling must still
+      // schedule a pass. On the leaking code the disable's uncollected
+      // expectation is still outstanding and swallows this call instead.
+      controller.notifyLocalChange(settingsOnly: true);
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      expect(
+        passes,
+        hasLength(1),
+        reason: 'a real preference edit after re-enabling is a record',
+      );
     });
   });
 

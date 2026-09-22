@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../sync/sync_controller.dart';
+import '../../sync/sync_coordinator.dart' show SyncPassStatus;
 import '../../sync/sync_scope.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/section_header.dart';
@@ -94,10 +95,31 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
             onChanged: controller.setWifiOnly,
           ),
           SectionHeader(title: l10n.settingsSyncStatusHeader),
-          ListTile(
-            key: const ValueKey('sync-status'),
-            leading: const Icon(Icons.info_outline),
-            title: Text(_statusText(context, controller)),
+          Builder(
+            builder: (tileContext) {
+              final failureText = _failureText(l10n, controller);
+              final lastSuccess = controller.lastSuccessAt;
+              return ListTile(
+                key: const ValueKey('sync-status'),
+                leading: Icon(
+                  failureText != null
+                      ? Icons.error_outline
+                      : Icons.info_outline,
+                  color: failureText != null ? theme.colorScheme.error : null,
+                ),
+                title: Text(
+                  failureText ?? _statusText(tileContext, controller),
+                ),
+                subtitle: failureText != null && lastSuccess != null
+                    ? Text(
+                        l10n.settingsSyncStatusLastSynced(
+                          _formatWhen(tileContext, lastSuccess),
+                        ),
+                        key: const ValueKey('sync-status-last-success'),
+                      )
+                    : null,
+              );
+            },
           ),
           Padding(
             padding: gutter,
@@ -136,9 +158,32 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
     if (!controller.paired) return l10n.settingsSyncStatusNotPaired;
     final last = controller.lastSuccessAt;
     if (last == null) return l10n.settingsSyncStatusNeverSynced;
-    final when = DateFormat.yMMMd(
-      Localizations.localeOf(context).toString(),
-    ).add_jm().format(last.toLocal());
-    return l10n.settingsSyncStatusLastSynced(when);
+    return l10n.settingsSyncStatusLastSynced(_formatWhen(context, last));
+  }
+
+  String _formatWhen(BuildContext context, DateTime when) => DateFormat.yMMMd(
+    Localizations.localeOf(context).toString(),
+  ).add_jm().format(when.toLocal());
+
+  /// The line for the last completed trigger attempt when it was not a
+  /// success, or null when the last attempt succeeded, nothing has run yet in
+  /// this session, or a pass is currently running (the syncing status on
+  /// [_statusText] takes priority over a stale failure from an earlier pass).
+  ///
+  /// `staleEpoch` and the store-gone statuses are reported honestly rather
+  /// than offered a fix: pairing and replacement-confirmation UI are later
+  /// work (docs/design/sync-implementation.md, W13's three dependency-ordered
+  /// PRs), so this only names what happened, per spec §6.14 item 6 — never
+  /// claiming a cause the server did not give for a missing store.
+  String? _failureText(AppLocalizations l10n, SyncController controller) {
+    if (controller.running || !controller.paired) return null;
+    return switch (controller.lastResult?.status) {
+      SyncPassStatus.failed => l10n.settingsSyncStatusFailed,
+      SyncPassStatus.staleEpoch => l10n.settingsSyncStatusStaleStore,
+      SyncPassStatus.replacementRequired ||
+      SyncPassStatus.firstTimeStoreRequired =>
+        l10n.settingsSyncStatusStoreUnavailable,
+      _ => null,
+    };
   }
 }

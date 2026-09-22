@@ -241,6 +241,18 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsSyncStatusSyncing => 'Synchronisation…';
 
   @override
+  String get settingsSyncStatusFailed =>
+      'La dernière synchronisation a échoué.';
+
+  @override
+  String get settingsSyncStatusStaleStore =>
+      'Cet espace de stockage a changé depuis votre dernière synchronisation. La reconnexion n’est pas encore disponible.';
+
+  @override
+  String get settingsSyncStatusStoreUnavailable =>
+      'Cet espace de stockage a peut-être expiré par inactivité ou a été supprimé. La reconnexion n’est pas encore disponible.';
+
+  @override
   String get settingsSyncNotBackup =>
       'La synchronisation n’est pas une sauvegarde. Un espace inutilisé pendant 30 jours est supprimé : continuez à faire des sauvegardes de fichiers.';
 
