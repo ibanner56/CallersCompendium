@@ -43,11 +43,12 @@
   ],
   "pullRequests": [
     1331,
-    1332
+    1332,
+    1337
   ],
   "hold": null,
   "completion": {
-    "complete": false,
+    "complete": true,
     "conditions": [
       "Unconfigured and disabled states make no network call.",
       "Backup export is offered but never starts automatically.",
@@ -56,7 +57,19 @@
       "Confirm creates once; cancel performs no POST and keeps the decision available.",
       "Every disclosure and trigger obligation in the normative specification is covered."
     ],
-    "summary": null,
-    "evidence": []
+    "summary": "Delivered across three PRs: #1331 (enablement gate, §6.12 trigger policy, status surface), #1332 (create-vs-connect pairing, §6.14 disclosures, backup offer, replacement flow), and #1337 (sync_exclude_imports publish-set filter with citation closure, §6.13 partial-venue hint). All user-visible configuration ships in the Experimental settings pane for this release, a maintainer-ratified temporary deviation from spec §6.1's literal top-level blade; every normative MUST is unchanged.",
+    "evidence": [
+      "PR #1331 implements the enablement gate (ConfiguredSyncCoordinatorFactory constructs no coordinator unless sync_enabled is explicitly true and a sync ID is present), §6.12 trigger policy (WiFi-only default, metered routing, single-flight, suppressed-pass retry), and the status surface (not-a-backup disclosure, expiry warning), with keys classified deviceScoped and added to the backup denylist.",
+      "PR #1332 implements the create-vs-connect pairing flow with its §6.14 disclosures (sharing-not-collaboration, no-recovery/no-revocation), a user-initiated, skippable pre-connection backup offer that never auto-starts, distinct first-time-missing (404) versus replacement-required outcomes via SyncPairingProbe.getStore(previouslyUsed:), and the replacement dialog (hedged 'expired through inactivity or been removed' copy; confirm performs exactly one POST via confirmReplacement(), cancel performs zero via declineReplacement() and leaves the decision available for a later manual sync).",
+      "PR #1337 implements the sync_exclude_imports publish-set filter (withholds an imported, uncited dance from CompendiumSyncStorage.snapshot()'s publication output only, leaving local/inbound-merge untouched) and the §6.13 partial-venue hint (derived, names specific empty device-local fields, never claims contact details broadly), plus the Experimental-pane toggle for the setting.",
+      "app/test/sync/sync_enablement_test.dart covers: a fresh installation constructs no coordinator; a stored sync ID alone does not enable sync; enabled without a sync ID constructs no coordinator; a non-boolean enabled value is not consent; restoring a backup taken on a syncing device leaves sync off.",
+      "app/test/screens/settings_screen_test.dart group 'SyncPairingScreen (ADR-004/W13 PR2)' covers the create/connect choice never inferring either, the sharing/no-recovery disclosures, the skippable backup offer (including a double-tap-starts-only-one-export guard), and the real fresh-attach duplicate count reported on completion.",
+      "app/test/screens/settings_screen_test.dart group 'Replacement dialog (ADR-004/W13 PR2, spec §6.14 item 6)' covers the hedged expiry-or-removal copy and, via a recording transport, that confirm performs exactly one POST and cancel performs zero while keeping the decision available.",
+      "app/test/screens/settings_screen_test.dart group 'SettingsScreen — Device Sync (ADR-004/W13)' covers the not-a-backup disclosure on the status surface, the disuse-expiry warning, and a metered manual sync explaining and routing to the WiFi-only setting instead of running a pass.",
+      "packages/compendium_core/test/storage/sync_storage_test.dart group 'sync_exclude_imports publish-set filter (spec §6.1, ADR-004/W13)' (6 tests) covers citation-based inclusion/exclusion, the setting defaulting off, non-imported dances never being withheld, DanceLink citation, and the upload-only boundary (local still carries the withheld dance so a peer's copy is still applied).",
+      "app/test/widgets/venue_editor_sheet_hint_test.dart (7 tests) covers the §6.13 hint naming specific empty device-local fields, never claiming contact details stay local broadly, and appearing/disappearing correctly with sync state and field contents.",
+      "Full core suite (201 tests), a targeted app regression suite (260 tests across test/sync, settings_screen_test.dart, venue_editor_sheet_hint_test.dart, backup_service_test.dart, startup_sequence_test.dart, incoming_share_wiring_test.dart), and python3 tools/preflight.py (30 steps passed, 1 unrelated skip) all passed on PR #1337's branch after merging origin/main.",
+      "Red-before-green mutation testing was performed for each new guard per docs/dev/agents/verification.md, including the filter's upload-only boundary and the hint's field-naming behavior."
+    ]
   }
 }
