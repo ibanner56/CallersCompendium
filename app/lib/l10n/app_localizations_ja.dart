@@ -254,6 +254,34 @@ class AppLocalizationsJa extends AppLocalizations {
       'この同期フレーズに一致するストアがありません。もう一方のデバイスと照合してください。';
 
   @override
+  String get settingsSyncStatusPaused =>
+      'このデバイスが使っていたストアがもう存在しないため、同期は一時停止しています。「今すぐ同期」をタップすると、もう一度選び直せます。';
+
+  @override
+  String get settingsSyncNoticeDivergence =>
+      '一部のレコードが2台のデバイスで同時に変更されました。どちらのコピーも選ばれなかったため、デバイス間の差は残っています。どちらかを編集すると解消されます。';
+
+  @override
+  String get settingsSyncNoticeKeptLocalCreation =>
+      'このデバイスで作成された項目が、それを一度も見ていない別のデバイスによって削除されるところでした。代わりにこのデバイスで保持しました。';
+
+  @override
+  String get settingsSyncNoticeSkippedRecord =>
+      '別のデバイスからの一部のレコードは使用できず、スキップされました。他のデバイスが同じアプリのバージョンかどうか確認してから、もう一度同期してください。';
+
+  @override
+  String get settingsSyncNoticeClock =>
+      '別のデバイスの時計が、このデバイスと大きくずれているようです。各デバイスの日付と時刻を確認してください。同期はそれを使って、どちらの編集が新しいかを判断します。';
+
+  @override
+  String get settingsSyncNoticeDeferredInbound =>
+      '同じレコードを編集している間に別のデバイスからの更新が届いたため、適用されませんでした。次回の同期で取り込まれます。';
+
+  @override
+  String get settingsSyncNoticeUnreflectedPublication =>
+      'このデバイスでの変更が、数回同期しても他のデバイスに表示されていません。他のデバイスでアプリを開いて同期してください。';
+
+  @override
   String get settingsSyncNotBackup =>
       '同期はバックアップではありません。30日間使われなかったストアは削除されるため、ファイルのバックアップは引き続き取ってください。';
 

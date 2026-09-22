@@ -280,6 +280,34 @@
   "@settingsSyncStatusStoreNotFound": {
     "x-sourceSha256": "7eb8a9fcc42e8368f1b00c025755d94b46f4d1462fe1c5c79268e8e7f3f563ac"
   },
+  "settingsSyncStatusPaused": "Synchronisatie is gepauzeerd omdat de opslag die dit apparaat gebruikte niet meer bestaat. Tik op Nu synchroniseren om opnieuw te beslissen.",
+  "@settingsSyncStatusPaused": {
+    "x-sourceSha256": "9951cbd96bc1256a19254ff7c403db58f67549cbd3fbb716b1aba6a650e29150"
+  },
+  "settingsSyncNoticeDivergence": "Sommige records zijn op twee apparaten op hetzelfde moment gewijzigd. Geen van beide versies is gekozen, dus je apparaten verschillen nog steeds. Bewerk er één om dit op te lossen.",
+  "@settingsSyncNoticeDivergence": {
+    "x-sourceSha256": "c7fb96371231c93b42bf20abb1d074d0f48d0d361314ee2e9cc66b0de4325f37"
+  },
+  "settingsSyncNoticeKeptLocalCreation": "Iets dat op dit apparaat is gemaakt, zou zijn verwijderd door een ander apparaat dat het nooit had gezien. Het is hier in plaats daarvan bewaard.",
+  "@settingsSyncNoticeKeptLocalCreation": {
+    "x-sourceSha256": "d9d16487d769490ae080e5d0ef4715f69c825e99c7e040b6ac10d0bc5093907e"
+  },
+  "settingsSyncNoticeSkippedRecord": "Sommige records van een ander apparaat konden niet worden gebruikt en zijn overgeslagen. Controleer of je andere apparaten dezelfde app-versie gebruiken en synchroniseer opnieuw.",
+  "@settingsSyncNoticeSkippedRecord": {
+    "x-sourceSha256": "810e587b9c60b4b432183640a0295d35a70a59a9ce5f3825436d2b666600afd3"
+  },
+  "settingsSyncNoticeClock": "De klok van een ander apparaat lijkt sterk af te wijken van die van dit apparaat. Controleer de datum en tijd op je apparaten — synchronisatie bepaalt daarmee welke bewerking nieuwer is.",
+  "@settingsSyncNoticeClock": {
+    "x-sourceSha256": "78e689dce36d771c2530e7a90bc5084ed9977b4aa9dee7fd78f31c1e89029f71"
+  },
+  "settingsSyncNoticeDeferredInbound": "Een update van een ander apparaat kwam binnen terwijl je hetzelfde record bewerkte, dus die is niet toegepast. De volgende synchronisatie pikt hem op.",
+  "@settingsSyncNoticeDeferredInbound": {
+    "x-sourceSha256": "395ee35f765d5cec102c6a529736ec0a86de8c5af7835967f616210a342acde2"
+  },
+  "settingsSyncNoticeUnreflectedPublication": "Wijzigingen van dit apparaat zijn na meerdere synchronisaties niet op je andere apparaten verschenen. Open daar de app en synchroniseer.",
+  "@settingsSyncNoticeUnreflectedPublication": {
+    "x-sourceSha256": "678de9e942bee2b75e03cae7f00ac44553303acf61ee0bbb27663a90f5aa5037"
+  },
   "settingsSyncNotBackup": "Synchronisatie is geen back-up. Een opslag die 30 dagen niet wordt gebruikt, wordt verwijderd, dus blijf bestandsback-ups maken.",
   "@settingsSyncNotBackup": {
     "x-sourceSha256": "11cd21133a59a470d73d8b582f2307c314309fe99564283639556d8afcfd4fa3"

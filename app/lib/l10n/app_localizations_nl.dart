@@ -265,6 +265,34 @@ class AppLocalizationsNl extends AppLocalizations {
       'Geen opslag heeft deze synchronisatiezin. Vergelijk hem met je andere apparaat.';
 
   @override
+  String get settingsSyncStatusPaused =>
+      'Synchronisatie is gepauzeerd omdat de opslag die dit apparaat gebruikte niet meer bestaat. Tik op Nu synchroniseren om opnieuw te beslissen.';
+
+  @override
+  String get settingsSyncNoticeDivergence =>
+      'Sommige records zijn op twee apparaten op hetzelfde moment gewijzigd. Geen van beide versies is gekozen, dus je apparaten verschillen nog steeds. Bewerk er één om dit op te lossen.';
+
+  @override
+  String get settingsSyncNoticeKeptLocalCreation =>
+      'Iets dat op dit apparaat is gemaakt, zou zijn verwijderd door een ander apparaat dat het nooit had gezien. Het is hier in plaats daarvan bewaard.';
+
+  @override
+  String get settingsSyncNoticeSkippedRecord =>
+      'Sommige records van een ander apparaat konden niet worden gebruikt en zijn overgeslagen. Controleer of je andere apparaten dezelfde app-versie gebruiken en synchroniseer opnieuw.';
+
+  @override
+  String get settingsSyncNoticeClock =>
+      'De klok van een ander apparaat lijkt sterk af te wijken van die van dit apparaat. Controleer de datum en tijd op je apparaten — synchronisatie bepaalt daarmee welke bewerking nieuwer is.';
+
+  @override
+  String get settingsSyncNoticeDeferredInbound =>
+      'Een update van een ander apparaat kwam binnen terwijl je hetzelfde record bewerkte, dus die is niet toegepast. De volgende synchronisatie pikt hem op.';
+
+  @override
+  String get settingsSyncNoticeUnreflectedPublication =>
+      'Wijzigingen van dit apparaat zijn na meerdere synchronisaties niet op je andere apparaten verschenen. Open daar de app en synchroniseer.';
+
+  @override
   String get settingsSyncNotBackup =>
       'Synchronisatie is geen back-up. Een opslag die 30 dagen niet wordt gebruikt, wordt verwijderd, dus blijf bestandsback-ups maken.';
 

@@ -280,6 +280,34 @@
   "@settingsSyncStatusStoreNotFound": {
     "x-sourceSha256": "7eb8a9fcc42e8368f1b00c025755d94b46f4d1462fe1c5c79268e8e7f3f563ac"
   },
+  "settingsSyncStatusPaused": "Synkronisering er sat på pause, fordi det lager, denne enhed brugte, ikke længere findes. Tryk på Synkronisér nu for at tage stilling igen.",
+  "@settingsSyncStatusPaused": {
+    "x-sourceSha256": "9951cbd96bc1256a19254ff7c403db58f67549cbd3fbb716b1aba6a650e29150"
+  },
+  "settingsSyncNoticeDivergence": "Nogle poster blev ændret på to enheder i samme øjeblik. Ingen af kopierne blev valgt, så dine enheder er stadig forskellige. Rediger en af dem for at afgøre det.",
+  "@settingsSyncNoticeDivergence": {
+    "x-sourceSha256": "c7fb96371231c93b42bf20abb1d074d0f48d0d361314ee2e9cc66b0de4325f37"
+  },
+  "settingsSyncNoticeKeptLocalCreation": "Noget, der blev oprettet på denne enhed, ville være blevet fjernet af en anden enhed, der aldrig havde set det. Det blev beholdt her i stedet.",
+  "@settingsSyncNoticeKeptLocalCreation": {
+    "x-sourceSha256": "d9d16487d769490ae080e5d0ef4715f69c825e99c7e040b6ac10d0bc5093907e"
+  },
+  "settingsSyncNoticeSkippedRecord": "Nogle poster fra en anden enhed kunne ikke bruges og blev sprunget over. Tjek, at dine andre enheder kører den samme appversion, og synkronisér igen.",
+  "@settingsSyncNoticeSkippedRecord": {
+    "x-sourceSha256": "810e587b9c60b4b432183640a0295d35a70a59a9ce5f3825436d2b666600afd3"
+  },
+  "settingsSyncNoticeClock": "En anden enheds ur ser ud til at afvige meget fra denne enheds. Tjek dato og klokkeslæt på dine enheder — synkronisering bruger dem til at afgøre, hvilken ændring der er nyest.",
+  "@settingsSyncNoticeClock": {
+    "x-sourceSha256": "78e689dce36d771c2530e7a90bc5084ed9977b4aa9dee7fd78f31c1e89029f71"
+  },
+  "settingsSyncNoticeDeferredInbound": "En opdatering fra en anden enhed kom, mens du redigerede den samme post, så den blev ikke anvendt. Næste synkronisering tager den med.",
+  "@settingsSyncNoticeDeferredInbound": {
+    "x-sourceSha256": "395ee35f765d5cec102c6a529736ec0a86de8c5af7835967f616210a342acde2"
+  },
+  "settingsSyncNoticeUnreflectedPublication": "Ændringer fra denne enhed er ikke dukket op på dine andre enheder efter flere synkroniseringer. Åbn appen på dem, og synkronisér.",
+  "@settingsSyncNoticeUnreflectedPublication": {
+    "x-sourceSha256": "678de9e942bee2b75e03cae7f00ac44553303acf61ee0bbb27663a90f5aa5037"
+  },
   "settingsSyncNotBackup": "Synkronisering er ikke en sikkerhedskopi. Et lager, der ikke bruges i 30 dage, bliver fjernet, så bliv ved med at lave filsikkerhedskopier.",
   "@settingsSyncNotBackup": {
     "x-sourceSha256": "11cd21133a59a470d73d8b582f2307c314309fe99564283639556d8afcfd4fa3"

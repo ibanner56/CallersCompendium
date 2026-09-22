@@ -1,0 +1,10 @@
+{
+  "id": "adr-004-w13-sync-status-notices",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "The Device Sync status now tells you when a sync had something to report — records that differ on two devices and could not be resolved, a local creation kept from a peer's deletion, records skipped as unusable, a suspect clock, an update deferred by your own edit, or changes that haven't reached your other devices. These notices block nothing and need no dismissal, and they clear once a sync no longer finds the condition.",
+      "Declining to replace a store that no longer exists now says sync is paused, and how to reconsider, instead of continuing to show the date of the last successful sync with the store that has gone."
+    ]
+  }
+}

@@ -1820,8 +1820,9 @@ void main() {
           );
         });
 
-        testWidgets('a publication no peer has reflected is surfaced',
-            (tester) async {
+        testWidgets('a publication no peer has reflected is surfaced', (
+          tester,
+        ) async {
           var result = const SyncPassResult(
             SyncPassStatus.completed,
             reports: [
@@ -1842,8 +1843,9 @@ void main() {
           );
         });
 
-        testWidgets('two conditions in one pass each get their own notice',
-            (tester) async {
+        testWidgets('two conditions in one pass each get their own notice', (
+          tester,
+        ) async {
           var result = const SyncPassResult(
             SyncPassStatus.completed,
             reports: [
@@ -1953,8 +1955,9 @@ void main() {
           );
         });
 
-        testWidgets('a manual sync decides again and clears the paused line',
-            (tester) async {
+        testWidgets('a manual sync decides again and clears the paused line', (
+          tester,
+        ) async {
           final harness = await _pumpSettings(tester);
           await harness.repos.settings.set('sync_id', 'correct horse battery');
           final controller = SyncScope.of(
@@ -1962,9 +1965,7 @@ void main() {
           );
           await controller.setEnabled(true);
           await controller.load();
-          var result = const SyncPassResult(
-            SyncPassStatus.replacementRequired,
-          );
+          var result = const SyncPassResult(SyncPassStatus.replacementRequired);
           _syncCoordinator = SyncCoordinator(
             syncId: 'configured',
             deviceId: 'device',

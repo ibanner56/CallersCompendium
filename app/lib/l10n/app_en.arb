@@ -340,6 +340,34 @@
   "@settingsSyncStatusStoreNotFound": {
     "description": "Status shown when the stored sync phrase has never matched a store (the server answered not-found and this device never used the store before). Distinct from the expired-or-removed case: nothing existed to expire."
   },
+  "settingsSyncStatusPaused": "Sync is paused because the store this device used no longer exists. Tap Sync now to decide again.",
+  "@settingsSyncStatusPaused": {
+    "description": "Status shown after the user declined to replace a store that had gone missing. Per spec §6.3 step 1 declining leaves sync configured but paused; a manual 'Sync now' reopens the replacement decision. Automatic syncs do nothing while paused."
+  },
+  "settingsSyncNoticeDivergence": "Some records were changed on two devices at the same moment. Neither copy was chosen, so your devices still differ. Edit one of them to settle it.",
+  "@settingsSyncNoticeDivergence": {
+    "description": "Non-blocking notice on the Device Sync status surface for an equal-updatedAt conflict (spec §6.3). Neither body wins and neither is applied; only a human edit resolves it, so the copy asks for one. Needs no dismissal and blocks nothing."
+  },
+  "settingsSyncNoticeKeptLocalCreation": "Something created on this device would have been removed by another device that had never seen it. It was kept here instead.",
+  "@settingsSyncNoticeKeptLocalCreation": {
+    "description": "Non-blocking notice for spec §6.4: a record created locally and never observed by any peer must be reported rather than resolved out of existence. Informational — the record is safe and no action is required."
+  },
+  "settingsSyncNoticeSkippedRecord": "Some records from another device couldn't be used and were skipped. Check that your other devices are running the same app version, then sync again.",
+  "@settingsSyncNoticeSkippedRecord": {
+    "description": "Non-blocking notice covering every condition that leaves one inbound record unusable: malformed or non-canonical body, a non-shareable field, a missing or mismatched blob, an unresolved reference, or a quarantined implausible timestamp. Grouped deliberately — the spec requires the report not be a per-record prompt."
+  },
+  "settingsSyncNoticeClock": "Another device's clock looks far off from this one's. Check the date and time on your devices — sync uses them to decide which edit is newer.",
+  "@settingsSyncNoticeClock": {
+    "description": "Non-blocking notice raised when every peer timestamp observed in a pass sat outside this device's clock window, which indicates a wrong clock rather than a bad record."
+  },
+  "settingsSyncNoticeDeferredInbound": "An update from another device arrived while you were editing the same record, so it wasn't applied. The next sync picks it up.",
+  "@settingsSyncNoticeDeferredInbound": {
+    "description": "Non-blocking notice for an inbound update held back because the local row changed while the pass was preparing it. Self-resolving: the copy must not send the user to fix anything."
+  },
+  "settingsSyncNoticeUnreflectedPublication": "Changes from this device haven't appeared on your other devices after several syncs. Open the app on them and sync.",
+  "@settingsSyncNoticeUnreflectedPublication": {
+    "description": "Non-blocking notice raised when records this device published have been absent from every observed peer manifest for three consecutive passes, which usually means another device has stopped syncing."
+  },
   "settingsSyncNotBackup": "Sync is not a backup. A store that goes unused for 30 days is removed, so keep making file backups.",
   "@settingsSyncNotBackup": {
     "description": "Disclosure shown wherever Device Sync reports its status, stating that sync does not replace a file backup."

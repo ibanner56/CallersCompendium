@@ -117,6 +117,7 @@ class SyncController extends ChangeNotifier {
   bool _excludeImports = false;
   DateTime? _lastSuccessAt;
   SyncPassResult? _lastResult;
+  List<SyncReport> _notices = const [];
   int _inFlight = 0;
   bool _dirty = false;
   int _pendingSelfWrites = 0;
@@ -140,6 +141,25 @@ class SyncController extends ChangeNotifier {
   bool get excludeImports => _excludeImports;
   DateTime? get lastSuccessAt => _lastSuccessAt;
   SyncPassResult? get lastResult => _lastResult;
+
+  /// The conditions the most recent pass to raise any had to report, as the
+  /// status surface shows them (spec §2 *report*).
+  ///
+  /// These outlive the pass that raised them, which is what separates a
+  /// report from a pass status: an equal-`updatedAt` divergence is re-raised
+  /// on every later pass until a human edits one side (spec §6.3, and the
+  /// spec's "MUST be reported on that pass and on every subsequent pass"),
+  /// so a list that emptied at the end of each pass would show it only for
+  /// the instant between two triggers.
+  ///
+  /// In memory only, and not persisted: this is the same lifetime
+  /// [lastResult] already has, and no clause requires a notice to survive a
+  /// restart — the conditions that persist are re-raised by the app-start
+  /// pass. Persisting them would mean a new stored field carrying record and
+  /// peer identifiers, which is a privacy-registry question rather than a
+  /// status-surface one.
+  List<SyncReport> get notices => _notices;
+
   bool get running => _inFlight > 0;
 
   /// Whether a previously used collection is missing and awaiting the user's
@@ -342,6 +362,24 @@ class SyncController extends ChangeNotifier {
     // store being forgotten; recording it would restore its last-success time.
     if (_detaching) return;
     _lastResult = result;
+    if (result.reports.isNotEmpty) {
+      // Coalesced here rather than trusted from the engine: `SyncReportSink`
+      // deduplicates within one sink, but a fresh attach that continues into
+      // a steady-state pass concatenates two sinks' output verbatim, so one
+      // result can carry the same condition twice.
+      final byKey = <String, SyncReport>{};
+      for (final report in result.reports) {
+        byKey.putIfAbsent(report.coalescingKey, () => report);
+      }
+      _notices = List.unmodifiable(byKey.values);
+    } else if (result.status == SyncPassStatus.completed) {
+      // Only a pass that ran to completion is evidence that a condition is
+      // gone. A `failed`, `paused` or `replacementRequired` result never
+      // reached the merge, so clearing on it would retract a standing
+      // divergence for an unrelated network failure — the same silence this
+      // whole surface exists to end.
+      _notices = const [];
+    }
     if (result.status == SyncPassStatus.completed) {
       final at = _now();
       _lastSuccessAt = at;
@@ -458,6 +496,7 @@ class SyncController extends ChangeNotifier {
     _endpoint = null;
     _lastSuccessAt = null;
     _lastResult = null;
+    _notices = const [];
     _replacementPending = false;
     _notify();
   }

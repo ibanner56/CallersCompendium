@@ -14,6 +14,7 @@ import '../../sync/sync_scope.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/collapsible_section.dart';
 import '../../widgets/section_header.dart';
+import 'sync_notice_labels.dart';
 import 'sync_pairing_screen.dart';
 
 /// Device Sync settings and status (spec §6.1, §6.12, §6.14).
@@ -248,6 +249,19 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
                 );
               },
             ),
+            // The conditions the last pass to raise any had to report (spec
+            // §2 *report*): non-blocking, no dismissal, nothing to tap. They
+            // sit beside the status rather than in it because a pass can
+            // complete successfully and still have something to say.
+            for (final group in syncNoticeGroups(controller.notices))
+              ListTile(
+                key: ValueKey('sync-notice-${group.name}'),
+                leading: Icon(
+                  Icons.info_outline,
+                  color: theme.colorScheme.tertiary,
+                ),
+                title: Text(syncNoticeText(l10n, group)),
+              ),
             if (controller.paired &&
                 controller.endpoint != null &&
                 !isDefaultSyncEndpoint(controller.endpoint!))
@@ -343,6 +357,14 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
         l10n.settingsSyncStatusStoreUnavailable,
       SyncPassStatus.firstTimeStoreRequired =>
         l10n.settingsSyncStatusStoreNotFound,
+      // Declining a replacement leaves sync configured but paused so a later
+      // action can reconsider (spec §6.3 step 1, §6.14 item 6). Every
+      // automatic trigger then answers `paused` without running a pass, so
+      // without this arm the surface fell back to the last success — a date
+      // belonging to a store that no longer exists. `declineReplacement` is
+      // the only thing that pauses the coordinator, so naming the missing
+      // store here claims nothing the pause does not already mean.
+      SyncPassStatus.paused => l10n.settingsSyncStatusPaused,
       _ => null,
     };
   }

@@ -280,6 +280,34 @@
   "@settingsSyncStatusStoreNotFound": {
     "x-sourceSha256": "7eb8a9fcc42e8368f1b00c025755d94b46f4d1462fe1c5c79268e8e7f3f563ac"
   },
+  "settingsSyncStatusPaused": "Die Synchronisierung ist pausiert, weil der Speicher, den dieses Gerät genutzt hat, nicht mehr existiert. Tippe auf Jetzt synchronisieren, um erneut zu entscheiden.",
+  "@settingsSyncStatusPaused": {
+    "x-sourceSha256": "9951cbd96bc1256a19254ff7c403db58f67549cbd3fbb716b1aba6a650e29150"
+  },
+  "settingsSyncNoticeDivergence": "Einige Einträge wurden im selben Moment auf zwei Geräten geändert. Keine der Fassungen wurde ausgewählt, deine Geräte unterscheiden sich also weiterhin. Bearbeite eine davon, um das zu klären.",
+  "@settingsSyncNoticeDivergence": {
+    "x-sourceSha256": "c7fb96371231c93b42bf20abb1d074d0f48d0d361314ee2e9cc66b0de4325f37"
+  },
+  "settingsSyncNoticeKeptLocalCreation": "Etwas, das auf diesem Gerät erstellt wurde, wäre von einem anderen Gerät entfernt worden, das es nie gesehen hatte. Es wurde stattdessen hier behalten.",
+  "@settingsSyncNoticeKeptLocalCreation": {
+    "x-sourceSha256": "d9d16487d769490ae080e5d0ef4715f69c825e99c7e040b6ac10d0bc5093907e"
+  },
+  "settingsSyncNoticeSkippedRecord": "Einige Einträge von einem anderen Gerät konnten nicht verwendet werden und wurden übersprungen. Prüfe, ob deine anderen Geräte dieselbe App-Version verwenden, und synchronisiere erneut.",
+  "@settingsSyncNoticeSkippedRecord": {
+    "x-sourceSha256": "810e587b9c60b4b432183640a0295d35a70a59a9ce5f3825436d2b666600afd3"
+  },
+  "settingsSyncNoticeClock": "Die Uhr eines anderen Geräts weicht deutlich von der dieses Geräts ab. Prüfe Datum und Uhrzeit auf deinen Geräten — die Synchronisierung entscheidet daran, welche Änderung neuer ist.",
+  "@settingsSyncNoticeClock": {
+    "x-sourceSha256": "78e689dce36d771c2530e7a90bc5084ed9977b4aa9dee7fd78f31c1e89029f71"
+  },
+  "settingsSyncNoticeDeferredInbound": "Eine Aktualisierung von einem anderen Gerät kam an, während du denselben Eintrag bearbeitet hast, und wurde daher nicht übernommen. Die nächste Synchronisierung holt sie nach.",
+  "@settingsSyncNoticeDeferredInbound": {
+    "x-sourceSha256": "395ee35f765d5cec102c6a529736ec0a86de8c5af7835967f616210a342acde2"
+  },
+  "settingsSyncNoticeUnreflectedPublication": "Änderungen von diesem Gerät sind nach mehreren Synchronisierungen nicht auf deinen anderen Geräten erschienen. Öffne dort die App und synchronisiere.",
+  "@settingsSyncNoticeUnreflectedPublication": {
+    "x-sourceSha256": "678de9e942bee2b75e03cae7f00ac44553303acf61ee0bbb27663a90f5aa5037"
+  },
   "settingsSyncNotBackup": "Synchronisierung ist kein Backup. Ein Speicher, der 30 Tage lang nicht genutzt wird, wird entfernt. Erstelle also weiterhin Dateisicherungen.",
   "@settingsSyncNotBackup": {
     "x-sourceSha256": "11cd21133a59a470d73d8b582f2307c314309fe99564283639556d8afcfd4fa3"

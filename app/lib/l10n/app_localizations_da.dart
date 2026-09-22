@@ -264,6 +264,34 @@ class AppLocalizationsDa extends AppLocalizations {
       'Intet lager har denne synkroniseringssætning. Tjek den mod din anden enhed.';
 
   @override
+  String get settingsSyncStatusPaused =>
+      'Synkronisering er sat på pause, fordi det lager, denne enhed brugte, ikke længere findes. Tryk på Synkronisér nu for at tage stilling igen.';
+
+  @override
+  String get settingsSyncNoticeDivergence =>
+      'Nogle poster blev ændret på to enheder i samme øjeblik. Ingen af kopierne blev valgt, så dine enheder er stadig forskellige. Rediger en af dem for at afgøre det.';
+
+  @override
+  String get settingsSyncNoticeKeptLocalCreation =>
+      'Noget, der blev oprettet på denne enhed, ville være blevet fjernet af en anden enhed, der aldrig havde set det. Det blev beholdt her i stedet.';
+
+  @override
+  String get settingsSyncNoticeSkippedRecord =>
+      'Nogle poster fra en anden enhed kunne ikke bruges og blev sprunget over. Tjek, at dine andre enheder kører den samme appversion, og synkronisér igen.';
+
+  @override
+  String get settingsSyncNoticeClock =>
+      'En anden enheds ur ser ud til at afvige meget fra denne enheds. Tjek dato og klokkeslæt på dine enheder — synkronisering bruger dem til at afgøre, hvilken ændring der er nyest.';
+
+  @override
+  String get settingsSyncNoticeDeferredInbound =>
+      'En opdatering fra en anden enhed kom, mens du redigerede den samme post, så den blev ikke anvendt. Næste synkronisering tager den med.';
+
+  @override
+  String get settingsSyncNoticeUnreflectedPublication =>
+      'Ændringer fra denne enhed er ikke dukket op på dine andre enheder efter flere synkroniseringer. Åbn appen på dem, og synkronisér.';
+
+  @override
   String get settingsSyncNotBackup =>
       'Synkronisering er ikke en sikkerhedskopi. Et lager, der ikke bruges i 30 dage, bliver fjernet, så bliv ved med at lave filsikkerhedskopier.';
 

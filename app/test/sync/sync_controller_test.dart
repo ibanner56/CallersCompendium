@@ -541,6 +541,115 @@ void main() {
     });
   });
 
+  group('pass report notices (spec §2 "report")', () {
+    /// A coordinator whose pass returns [result] each time, so a test can
+    /// walk a sequence of pass outcomes through the real controller.
+    SyncCoordinator reporting(SyncPassResult Function() result) =>
+        SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device',
+          store: CompendiumSyncCoordinatorStore(repos),
+          transport: NoopSyncCoordinatorTransport(),
+          passOperation: ({initialStore}) async => result(),
+        );
+
+    const tie = SyncReport(
+      code: SyncReportCode.equalUpdatedAt,
+      kind: SyncRecordKind.dance,
+      recordId: 'dance-1',
+      message: 'Different record bodies have the same updatedAt.',
+    );
+
+    Future<SyncController> paired() async {
+      await repos.settings.set(kSyncIdKey, 'configured');
+      final controller = build();
+      await controller.load();
+      await controller.setEnabled(true);
+      return controller;
+    }
+
+    test('reports raised by a pass are kept as notices', () async {
+      var result = const SyncPassResult(
+        SyncPassStatus.completed,
+        reports: [tie],
+      );
+      coordinator = reporting(() => result);
+      final controller = await paired();
+      await controller.syncNow();
+
+      expect(controller.notices.map((r) => r.code), [
+        SyncReportCode.equalUpdatedAt,
+      ]);
+    });
+
+    test('duplicate reports are coalesced by their coalescing key', () async {
+      // `SyncReportSink` coalesces within one sink, but a fresh attach that
+      // continues into a steady pass concatenates two sinks' output verbatim
+      // (sync_coordinator.dart, the continuation result), so the same
+      // condition can arrive twice in one result.
+      var result = const SyncPassResult(
+        SyncPassStatus.completed,
+        reports: [tie, tie],
+      );
+      coordinator = reporting(() => result);
+      final controller = await paired();
+      await controller.syncNow();
+
+      expect(controller.notices.length, 1);
+    });
+
+    test('a completed pass that raises nothing clears the notices', () async {
+      var result = const SyncPassResult(
+        SyncPassStatus.completed,
+        reports: [tie],
+      );
+      coordinator = reporting(() => result);
+      final controller = await paired();
+      await controller.syncNow();
+      expect(controller.notices, isNotEmpty);
+
+      result = const SyncPassResult(SyncPassStatus.completed);
+      await controller.syncNow();
+
+      expect(controller.notices, isEmpty);
+    });
+
+    test('a pass that did not complete leaves the notices standing', () async {
+      var result = const SyncPassResult(
+        SyncPassStatus.completed,
+        reports: [tie],
+      );
+      coordinator = reporting(() => result);
+      final controller = await paired();
+      await controller.syncNow();
+
+      result = const SyncPassResult(SyncPassStatus.failed);
+      await controller.syncNow();
+
+      expect(controller.notices.map((r) => r.code), [
+        SyncReportCode.equalUpdatedAt,
+      ]);
+    });
+
+    test(
+      'detaching forgets the notices with the rest of the store state',
+      () async {
+        var result = const SyncPassResult(
+          SyncPassStatus.completed,
+          reports: [tie],
+        );
+        coordinator = reporting(() => result);
+        final controller = await paired();
+        await controller.syncNow();
+        expect(controller.notices, isNotEmpty);
+
+        await controller.detach();
+
+        expect(controller.notices, isEmpty);
+      },
+    );
+  });
+
   group('connectivity classification', () {
     test('maps platform results', () {
       expect(

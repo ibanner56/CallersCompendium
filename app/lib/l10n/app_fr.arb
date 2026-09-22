@@ -280,6 +280,34 @@
   "@settingsSyncStatusStoreNotFound": {
     "x-sourceSha256": "7eb8a9fcc42e8368f1b00c025755d94b46f4d1462fe1c5c79268e8e7f3f563ac"
   },
+  "settingsSyncStatusPaused": "La synchronisation est en pause car l’espace utilisé par cet appareil n’existe plus. Touchez Synchroniser maintenant pour décider à nouveau.",
+  "@settingsSyncStatusPaused": {
+    "x-sourceSha256": "9951cbd96bc1256a19254ff7c403db58f67549cbd3fbb716b1aba6a650e29150"
+  },
+  "settingsSyncNoticeDivergence": "Certaines fiches ont été modifiées sur deux appareils au même instant. Aucune version n’a été retenue, vos appareils restent donc différents. Modifiez l’une d’elles pour trancher.",
+  "@settingsSyncNoticeDivergence": {
+    "x-sourceSha256": "c7fb96371231c93b42bf20abb1d074d0f48d0d361314ee2e9cc66b0de4325f37"
+  },
+  "settingsSyncNoticeKeptLocalCreation": "Un élément créé sur cet appareil aurait été supprimé par un autre appareil qui ne l’avait jamais vu. Il a été conservé ici à la place.",
+  "@settingsSyncNoticeKeptLocalCreation": {
+    "x-sourceSha256": "d9d16487d769490ae080e5d0ef4715f69c825e99c7e040b6ac10d0bc5093907e"
+  },
+  "settingsSyncNoticeSkippedRecord": "Certaines fiches provenant d’un autre appareil n’ont pas pu être utilisées et ont été ignorées. Vérifiez que vos autres appareils utilisent la même version de l’application, puis synchronisez à nouveau.",
+  "@settingsSyncNoticeSkippedRecord": {
+    "x-sourceSha256": "810e587b9c60b4b432183640a0295d35a70a59a9ce5f3825436d2b666600afd3"
+  },
+  "settingsSyncNoticeClock": "L’horloge d’un autre appareil semble très éloignée de celle-ci. Vérifiez la date et l’heure de vos appareils : la synchronisation s’en sert pour déterminer quelle modification est la plus récente.",
+  "@settingsSyncNoticeClock": {
+    "x-sourceSha256": "78e689dce36d771c2530e7a90bc5084ed9977b4aa9dee7fd78f31c1e89029f71"
+  },
+  "settingsSyncNoticeDeferredInbound": "Une mise à jour venant d’un autre appareil est arrivée pendant que vous modifiiez la même fiche ; elle n’a donc pas été appliquée. La prochaine synchronisation la reprendra.",
+  "@settingsSyncNoticeDeferredInbound": {
+    "x-sourceSha256": "395ee35f765d5cec102c6a529736ec0a86de8c5af7835967f616210a342acde2"
+  },
+  "settingsSyncNoticeUnreflectedPublication": "Les modifications faites sur cet appareil ne sont pas apparues sur vos autres appareils après plusieurs synchronisations. Ouvrez-y l’application et synchronisez.",
+  "@settingsSyncNoticeUnreflectedPublication": {
+    "x-sourceSha256": "678de9e942bee2b75e03cae7f00ac44553303acf61ee0bbb27663a90f5aa5037"
+  },
   "settingsSyncNotBackup": "La synchronisation n’est pas une sauvegarde. Un espace inutilisé pendant 30 jours est supprimé : continuez à faire des sauvegardes de fichiers.",
   "@settingsSyncNotBackup": {
     "x-sourceSha256": "11cd21133a59a470d73d8b582f2307c314309fe99564283639556d8afcfd4fa3"
