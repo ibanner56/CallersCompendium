@@ -5,7 +5,33 @@ import 'package:flutter/foundation.dart';
 
 import '../screens/settings/settings_keys.dart';
 import 'sync_coordinator.dart';
+import 'sync_http_client.dart';
 import 'sync_network.dart';
+
+/// The subset of [SyncHttpClient] pairing needs: an explicit create-or-connect
+/// probe issued before any sync identity is persisted (spec §6.2, §6.14.5).
+/// A record, not a class, so tests can supply plain closures without a fake
+/// implementing the full transport surface.
+class SyncPairingProbe {
+  const SyncPairingProbe({
+    required this.getStore,
+    required this.createStore,
+    this.close,
+  });
+
+  /// `GET /v1/store`. Never issues a creation request (spec §6.2 step 2).
+  final Future<SyncStoreResult> Function({required bool previouslyUsed})
+  getStore;
+
+  /// `POST /v1/store`, issued only after the user explicitly chose "create".
+  final Future<SyncHttpResponse> Function() createStore;
+
+  final void Function()? close;
+}
+
+/// Builds the probe for one candidate sync ID. Defaults to a live
+/// [SyncHttpClient]; tests inject a fake.
+typedef SyncPairingProbeFactory = SyncPairingProbe Function(String syncId);
 
 /// How long before the 30-day disuse reap (spec §7.3) the status surface starts
 /// warning that the store is approaching expiry (spec §6.14 item 4).
@@ -44,6 +70,8 @@ class SyncController extends ChangeNotifier {
     required this._settings,
     required this._coordinator,
     required this._reconfigure,
+    this.endpoint,
+    this._pairingProbeFactory,
     this._classifier = const ConnectivityPlusNetworkClassifier(),
     DateTime Function()? now,
     this._debounce = kSyncChangeDebounce,
@@ -55,6 +83,26 @@ class SyncController extends ChangeNotifier {
   final SyncNetworkClassifier _classifier;
   final DateTime Function() _now;
   final Duration _debounce;
+  final SyncPairingProbeFactory? _pairingProbeFactory;
+
+  /// The release-configured sync endpoint, or null when the build has not
+  /// opted into one — pairing is unreachable without it.
+  final Uri? endpoint;
+
+  /// Builds the probe for a pairing attempt, or null when pairing is
+  /// unreachable (no configured endpoint and no test factory).
+  SyncPairingProbe? probeFor(String syncId) {
+    final factory = _pairingProbeFactory;
+    if (factory != null) return factory(syncId);
+    final endpoint = this.endpoint;
+    if (endpoint == null) return null;
+    final client = SyncHttpClient(endpoint: endpoint, syncId: syncId);
+    return SyncPairingProbe(
+      getStore: client.getStore,
+      createStore: client.createStore,
+      close: client.close,
+    );
+  }
 
   bool _enabled = false;
   bool _paired = false;
@@ -65,7 +113,9 @@ class SyncController extends ChangeNotifier {
   int _inFlight = 0;
   bool _dirty = false;
   int _pendingSelfWrites = 0;
+  bool _replacementPending = false;
   Timer? _debounceTimer;
+  StreamSubscription<SyncReplacementRequiredEvent>? _replacementSubscription;
   bool _disposed = false;
 
   /// Bumped when a manual attempt on a metered connection is routed to the
@@ -79,6 +129,10 @@ class SyncController extends ChangeNotifier {
   DateTime? get lastSuccessAt => _lastSuccessAt;
   SyncPassResult? get lastResult => _lastResult;
   bool get running => _inFlight > 0;
+
+  /// Whether a previously used collection is missing and awaiting the user's
+  /// explanation-then-confirm decision (spec §6.3 step 1, §6.14 item 6).
+  bool get replacementPending => _replacementPending;
 
   /// Whether the status surface should warn that the store is approaching the
   /// disuse expiry.
@@ -181,13 +235,7 @@ class SyncController extends ChangeNotifier {
     _notify();
     try {
       final result = await coordinator.trigger(trigger);
-      _lastResult = result;
-      if (result.status == SyncPassStatus.completed) {
-        final at = _now();
-        _lastSuccessAt = at;
-        _expectSelfWrite();
-        await _settings.set(kSyncLastSuccessAtKey, at.toIso8601String());
-      }
+      await _recordResult(result);
       return SyncGateOutcome.ran;
     } finally {
       _inFlight--;
@@ -199,6 +247,71 @@ class SyncController extends ChangeNotifier {
     }
   }
 
+  /// Records a pass result and, on success, persists the last-success time as
+  /// the controller's own bookkeeping write (spec §6.14 item 4's clock).
+  Future<void> _recordResult(SyncPassResult result) async {
+    _lastResult = result;
+    if (result.status == SyncPassStatus.completed) {
+      final at = _now();
+      _lastSuccessAt = at;
+      _expectSelfWrite();
+      await _settings.set(kSyncLastSuccessAtKey, at.toIso8601String());
+    }
+  }
+
+  /// Attaches to the live coordinator's replacement-required stream so the
+  /// status surface can show the §6.14 item 6 explanation. Called by the app
+  /// whenever the coordinator is (re)built or torn down; a coordinator swap
+  /// (e.g. after reconfiguration) re-subscribes rather than leaking the old
+  /// stream.
+  void attachCoordinator(SyncCoordinator? coordinator) {
+    unawaited(_replacementSubscription?.cancel());
+    _replacementSubscription = coordinator?.replacementRequired.listen((_) {
+      _replacementPending = true;
+      _notify();
+    });
+  }
+
+  /// Confirms replacement of a previously used, now-missing collection
+  /// exactly once (spec §6.14 item 6): the coordinator's own single-flight
+  /// guard makes a double tap here issue only one `POST`.
+  Future<SyncPassResult?> confirmReplacement() async {
+    final coordinator = _coordinator();
+    if (coordinator == null) return null;
+    _inFlight++;
+    _notify();
+    try {
+      final result = await coordinator.confirmReplacement();
+      await _recordResult(result);
+      if (result.status != SyncPassStatus.freshAttachRequired) {
+        _replacementPending = false;
+      }
+      return result;
+    } finally {
+      _inFlight--;
+      _notify();
+    }
+  }
+
+  /// Cancels replacement. Issues no network call and leaves the decision
+  /// available for a later manual sync (spec §6.14 item 6).
+  void declineReplacement() {
+    _coordinator()?.declineReplacement();
+    _replacementPending = false;
+    _notify();
+  }
+
+  /// Persists a sync ID chosen by the create-or-connect pairing flow, after
+  /// the caller has already validated it against the store (spec §6.2,
+  /// §6.14 item 5), and asks the app to build the coordinator.
+  Future<void> completePairing(String syncId) async {
+    _expectSelfWrite();
+    await _settings.set(kSyncIdKey, syncId);
+    _paired = true;
+    _notify();
+    await _reconfigure();
+  }
+
   void _notify() {
     if (!_disposed) notifyListeners();
   }
@@ -207,6 +320,7 @@ class SyncController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _debounceTimer?.cancel();
+    unawaited(_replacementSubscription?.cancel());
     wifiSettingRequests.dispose();
     super.dispose();
   }

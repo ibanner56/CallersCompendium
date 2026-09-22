@@ -259,6 +259,121 @@ class AppLocalizationsDe extends AppLocalizations {
       'Verbinde einen Speicher, bevor du synchronisierst.';
 
   @override
+  String get settingsSyncConnectTitle => 'Connect';
+
+  @override
+  String get settingsSyncPairingTitle => 'Connect Device Sync';
+
+  @override
+  String get settingsSyncPairingChooseHeading =>
+      'Is this the first device, or are you adding another?';
+
+  @override
+  String get settingsSyncPairingCreateTitle => 'Create a new store';
+
+  @override
+  String get settingsSyncPairingCreateSubtitle =>
+      'Start fresh. You\'ll get a phrase to read to your other devices.';
+
+  @override
+  String get settingsSyncPairingConnectTitle => 'Connect to an existing store';
+
+  @override
+  String get settingsSyncPairingConnectSubtitle =>
+      'Enter the phrase shown on the device you already set up.';
+
+  @override
+  String get settingsSyncPairingYourPhrase => 'Your sync phrase';
+
+  @override
+  String get settingsSyncPairingRegenerate => 'Generate a different phrase';
+
+  @override
+  String get settingsSyncPairingEnterPhrase => 'Sync phrase';
+
+  @override
+  String get settingsSyncPairingEnterPhraseHint => 'word-word-word-word';
+
+  @override
+  String get settingsSyncPairingInvalidPhrase =>
+      'That doesn\'t look like a complete sync phrase.';
+
+  @override
+  String get settingsSyncPairingNotFound =>
+      'No store has that phrase. Check it against the other device and try again.';
+
+  @override
+  String get settingsSyncPairingAlreadyInUse =>
+      'That phrase is already in use by another store. Generate a different one.';
+
+  @override
+  String get settingsSyncPairingUnreachable =>
+      'Device Sync isn\'t available right now. Check your connection and try again.';
+
+  @override
+  String get settingsSyncPairingSharingTitle => 'Sharing is not collaboration';
+
+  @override
+  String get settingsSyncPairingSharingBody =>
+      'A second person can use this same phrase on their device. If you both edit the same dance or program at the same time, one edit silently overwrites the other — there\'s no warning and no way to combine them.';
+
+  @override
+  String get settingsSyncPairingCredentialTitle =>
+      'This phrase can\'t be recovered or revoked';
+
+  @override
+  String get settingsSyncPairingCredentialBody =>
+      'Losing this phrase makes your store unreachable — there is no password reset. If it leaks, the only fix is moving every device to a new phrase.';
+
+  @override
+  String get settingsSyncPairingBackupOfferTitle =>
+      'Back up your library first?';
+
+  @override
+  String get settingsSyncPairingBackupOfferBody =>
+      'This is optional and only for your own safekeeping — connecting itself does not back anything up.';
+
+  @override
+  String get settingsSyncPairingBackupOfferAccept => 'Back up now';
+
+  @override
+  String get settingsSyncPairingBackupOfferSkip => 'Skip';
+
+  @override
+  String get settingsSyncPairingContinue => 'Continue';
+
+  @override
+  String get settingsSyncPairingComplete => 'Connected';
+
+  @override
+  String get settingsSyncPairingCompleteBody =>
+      'Your library is connected. The first sync is running now.';
+
+  @override
+  String settingsSyncPairingCompleteDuplicates(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Found and merged $count duplicate dances.',
+      one: 'Found and merged $count duplicate dance.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsSyncReplacementTitle => 'Reconnect this store?';
+
+  @override
+  String get settingsSyncReplacementBody =>
+      'The store this device used to sync with is no longer there. It may have expired through inactivity, or it may have been removed. Reconnecting creates a new store with the same phrase and re-syncs from scratch.';
+
+  @override
+  String get settingsSyncReplacementConfirm => 'Reconnect';
+
+  @override
+  String get settingsSyncReplacementCancel => 'Not now';
+
+  @override
   String get settingsAboutTitle => 'Über';
 
   @override
