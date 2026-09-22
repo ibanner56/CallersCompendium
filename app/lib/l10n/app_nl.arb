@@ -244,6 +244,34 @@
   "@settingsSyncStatusHeader": {
     "x-sourceSha256": "920e413c7d411b61ef3e8c63b1cb6ad058d5f95f8b481dbafe60248387d8c355"
   },
+  "settingsSyncIdTitle": "Je synchronisatiezin",
+  "@settingsSyncIdTitle": {
+    "x-sourceSha256": "5d1bff416b1249fb0f1026ae51f86414e77c04b4ef40fd580b76581f4f5ee31a"
+  },
+  "settingsSyncIdMasked": "Verborgen",
+  "@settingsSyncIdMasked": {
+    "x-sourceSha256": "7e6fefff0f0aeb6ca93086d3855d0406bdd0ee53b56771f8c794cf07af6598b7"
+  },
+  "settingsSyncIdShow": "Synchronisatiezin tonen",
+  "@settingsSyncIdShow": {
+    "x-sourceSha256": "b8b86cebdadf9b94bcd3ea801eb947f342eaa06e78ae869a158fd11f3859c612"
+  },
+  "settingsSyncIdHide": "Synchronisatiezin verbergen",
+  "@settingsSyncIdHide": {
+    "x-sourceSha256": "15329c684d8ca33cc414edb4d8261dc127fc22c67e913e03138b2f27ecfaa6a2"
+  },
+  "settingsSyncIdCopy": "Synchronisatiezin kopiëren",
+  "@settingsSyncIdCopy": {
+    "x-sourceSha256": "4e70e2c8f3f09f4c76638dbc8a93ff15a49da24b7f781c1e83ac084d8d421b29"
+  },
+  "settingsSyncIdCopied": "Synchronisatiezin gekopieerd. Hij geeft toegang tot je opslag, dus plak hem alleen op een apparaat dat van jou is.",
+  "@settingsSyncIdCopied": {
+    "x-sourceSha256": "81d9cf47c8df0aa7ab1264a4810a2a14b4eb11efcb8fb40108d0095f52be1c17"
+  },
+  "settingsSyncIdCaution": "Voer hem in op je andere apparaat om dat te verbinden. Iedereen die hem heeft, kan alles lezen en wijzigen wat je synchroniseert, en hij kan alleen worden gewijzigd door alle apparaten naar een nieuwe zin te verplaatsen.",
+  "@settingsSyncIdCaution": {
+    "x-sourceSha256": "797e5499782ef9ce4b832a4e5722a06bc74c51b2d49b9a9b0dc5e08c212fae52"
+  },
   "settingsSyncStatusNotPaired": "Nog niet gekoppeld aan een opslag.",
   "@settingsSyncStatusNotPaired": {
     "x-sourceSha256": "fab16a97ef73852d7919983bfc66ae8218e9c7b75c80c7f9e3982353ffd082ed"
