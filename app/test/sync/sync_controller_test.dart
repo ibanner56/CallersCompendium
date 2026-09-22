@@ -378,6 +378,38 @@ void main() {
       );
     });
 
+    test('an applied-kinds invalidation left pending across a disable does not '
+        'swallow the next genuine edit after re-enabling', () async {
+      final controller = build(debounce: const Duration(milliseconds: 10));
+      await controller.load();
+      await controller.setEnabled(true);
+
+      // The hook fires (as it would from a pass's own applied-kinds
+      // invalidation)...
+      controller.expectSyncAppliedInvalidation();
+      // ...but sync is disabled before the resulting table invalidation
+      // reaches `notifyLocalChange` (e.g. the applying pass is torn down
+      // mid-apply). The early return for a disabled controller must not
+      // skip consuming the counter, or it outlives this pass entirely.
+      await controller.setEnabled(false);
+      controller.notifyLocalChange();
+
+      await controller.setEnabled(true);
+      passes.clear();
+
+      // A genuine edit after re-enabling must schedule a pass, not be
+      // mistaken for the invalidation that was already accounted for.
+      controller.notifyLocalChange();
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      expect(
+        passes,
+        hasLength(1),
+        reason:
+            'a stale pending-invalidation counter must not survive a '
+            'disable/re-enable cycle and swallow a real edit',
+      );
+    });
+
     test('a shareable-settings change schedules a pass, but the controller\'s '
         'own bookkeeping write does not', () async {
       final controller = build(debounce: const Duration(milliseconds: 10));
