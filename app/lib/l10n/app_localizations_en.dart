@@ -282,6 +282,38 @@ class AppLocalizationsEn extends AppLocalizations {
       'No store has this sync phrase. Check it against your other device.';
 
   @override
+  String get settingsSyncStatusPaused =>
+      'Sync is paused because the store this device used no longer exists. Tap Sync now to decide again.';
+
+  @override
+  String get settingsSyncNoticeDivergence =>
+      'Some records were changed on two devices at the same moment. Neither copy was chosen, so your devices still differ. Edit one of them to settle it.';
+
+  @override
+  String get settingsSyncNoticeKeptLocalCreation =>
+      'Something created on this device would have been removed by another device that had never seen it. It was kept here instead.';
+
+  @override
+  String get settingsSyncNoticeQuarantinedLocal =>
+      'Some items on this device have a date the app can\'t trust, so they aren\'t being sent to your other devices. Check this device\'s date and time, then edit one of the items to give it a fresh date.';
+
+  @override
+  String get settingsSyncNoticeSkippedRecord =>
+      'Some records from another device couldn\'t be used and were skipped. Check that your other devices are running the same app version, then sync again.';
+
+  @override
+  String get settingsSyncNoticeClock =>
+      'Another device\'s clock looks far off from this one\'s. Check the date and time on your devices — sync uses them to decide which edit is newer.';
+
+  @override
+  String get settingsSyncNoticeDeferredInbound =>
+      'An update from another device arrived while you were editing the same record, so it wasn\'t applied. The next sync picks it up.';
+
+  @override
+  String get settingsSyncNoticeUnreflectedPublication =>
+      'Changes from this device haven\'t appeared on your other devices after several syncs. Open the app on them and sync.';
+
+  @override
   String get settingsSyncNotBackup =>
       'Sync is not a backup. A store that goes unused for 30 days is removed, so keep making file backups.';
 

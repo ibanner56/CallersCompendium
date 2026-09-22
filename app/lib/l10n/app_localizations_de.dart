@@ -288,6 +288,38 @@ class AppLocalizationsDe extends AppLocalizations {
       'Kein Speicher hat diese Synchronisierungsphrase. Vergleiche sie mit deinem anderen Gerät.';
 
   @override
+  String get settingsSyncStatusPaused =>
+      'Die Synchronisierung ist pausiert, weil der Speicher, den dieses Gerät genutzt hat, nicht mehr existiert. Tippe auf Jetzt synchronisieren, um erneut zu entscheiden.';
+
+  @override
+  String get settingsSyncNoticeDivergence =>
+      'Einige Einträge wurden im selben Moment auf zwei Geräten geändert. Keine der Fassungen wurde ausgewählt, deine Geräte unterscheiden sich also weiterhin. Bearbeite eine davon, um das zu klären.';
+
+  @override
+  String get settingsSyncNoticeKeptLocalCreation =>
+      'Etwas, das auf diesem Gerät erstellt wurde, wäre von einem anderen Gerät entfernt worden, das es nie gesehen hatte. Es wurde stattdessen hier behalten.';
+
+  @override
+  String get settingsSyncNoticeQuarantinedLocal =>
+      'Einige Einträge auf diesem Gerät haben ein Datum, dem die App nicht trauen kann, und werden deshalb nicht an deine anderen Geräte gesendet. Prüfe Datum und Uhrzeit dieses Geräts und bearbeite dann einen der Einträge, damit er ein frisches Datum bekommt.';
+
+  @override
+  String get settingsSyncNoticeSkippedRecord =>
+      'Einige Einträge von einem anderen Gerät konnten nicht verwendet werden und wurden übersprungen. Prüfe, ob deine anderen Geräte dieselbe App-Version verwenden, und synchronisiere erneut.';
+
+  @override
+  String get settingsSyncNoticeClock =>
+      'Die Uhr eines anderen Geräts weicht deutlich von der dieses Geräts ab. Prüfe Datum und Uhrzeit auf deinen Geräten — die Synchronisierung entscheidet daran, welche Änderung neuer ist.';
+
+  @override
+  String get settingsSyncNoticeDeferredInbound =>
+      'Eine Aktualisierung von einem anderen Gerät kam an, während du denselben Eintrag bearbeitet hast, und wurde daher nicht übernommen. Die nächste Synchronisierung holt sie nach.';
+
+  @override
+  String get settingsSyncNoticeUnreflectedPublication =>
+      'Änderungen von diesem Gerät sind nach mehreren Synchronisierungen nicht auf deinen anderen Geräten erschienen. Öffne dort die App und synchronisiere.';
+
+  @override
   String get settingsSyncNotBackup =>
       'Synchronisierung ist kein Backup. Ein Speicher, der 30 Tage lang nicht genutzt wird, wird entfernt. Erstelle also weiterhin Dateisicherungen.';
 
