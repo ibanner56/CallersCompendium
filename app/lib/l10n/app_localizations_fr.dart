@@ -264,6 +264,124 @@ class AppLocalizationsFr extends AppLocalizations {
       'Connectez un espace de stockage avant de synchroniser.';
 
   @override
+  String get settingsSyncConnectTitle => 'Connecter';
+
+  @override
+  String get settingsSyncPairingTitle =>
+      'Connecter la synchronisation des appareils';
+
+  @override
+  String get settingsSyncPairingChooseHeading =>
+      'Est-ce le premier appareil, ou en ajoutez-vous un autre ?';
+
+  @override
+  String get settingsSyncPairingCreateTitle => 'Créer un nouvel espace';
+
+  @override
+  String get settingsSyncPairingCreateSubtitle =>
+      'Repartir de zéro. Vous obtiendrez une phrase à lire à vos autres appareils.';
+
+  @override
+  String get settingsSyncPairingConnectTitle =>
+      'Se connecter à un espace existant';
+
+  @override
+  String get settingsSyncPairingConnectSubtitle =>
+      'Saisissez la phrase affichée sur l\'appareil déjà configuré.';
+
+  @override
+  String get settingsSyncPairingYourPhrase => 'Votre phrase de synchronisation';
+
+  @override
+  String get settingsSyncPairingRegenerate => 'Générer une autre phrase';
+
+  @override
+  String get settingsSyncPairingEnterPhrase => 'Phrase de synchronisation';
+
+  @override
+  String get settingsSyncPairingEnterPhraseHint => 'mot-mot-mot-mot';
+
+  @override
+  String get settingsSyncPairingInvalidPhrase =>
+      'Cela ne ressemble pas à une phrase de synchronisation complète.';
+
+  @override
+  String get settingsSyncPairingNotFound =>
+      'Aucun espace ne correspond à cette phrase. Vérifiez-la sur l\'autre appareil et réessayez.';
+
+  @override
+  String get settingsSyncPairingAlreadyInUse =>
+      'Cette phrase est déjà utilisée par un autre espace. Générez-en une autre.';
+
+  @override
+  String get settingsSyncPairingUnreachable =>
+      'La synchronisation des appareils n\'est pas disponible pour le moment. Vérifiez votre connexion et réessayez.';
+
+  @override
+  String get settingsSyncPairingSharingTitle =>
+      'Le partage n\'est pas une collaboration';
+
+  @override
+  String get settingsSyncPairingSharingBody =>
+      'Une deuxième personne peut utiliser la même phrase sur son appareil. Si vous modifiez tous les deux la même danse ou le même programme en même temps, une modification écrase silencieusement l\'autre — il n\'y a ni avertissement ni moyen de les combiner.';
+
+  @override
+  String get settingsSyncPairingCredentialTitle =>
+      'Cette phrase ne peut être ni récupérée ni révoquée';
+
+  @override
+  String get settingsSyncPairingCredentialBody =>
+      'Si vous perdez cette phrase, votre espace devient inaccessible — il n\'y a pas de réinitialisation. En cas de fuite, la seule solution est de faire passer tous les appareils à une nouvelle phrase.';
+
+  @override
+  String get settingsSyncPairingBackupOfferTitle =>
+      'Sauvegarder votre bibliothèque d\'abord ?';
+
+  @override
+  String get settingsSyncPairingBackupOfferBody =>
+      'C\'est facultatif et uniquement pour votre propre sécurité — la connexion elle-même ne sauvegarde rien.';
+
+  @override
+  String get settingsSyncPairingBackupOfferAccept => 'Sauvegarder maintenant';
+
+  @override
+  String get settingsSyncPairingBackupOfferSkip => 'Ignorer';
+
+  @override
+  String get settingsSyncPairingContinue => 'Continuer';
+
+  @override
+  String get settingsSyncPairingComplete => 'Connecté';
+
+  @override
+  String get settingsSyncPairingCompleteBody =>
+      'Votre bibliothèque est connectée. La première synchronisation est en cours.';
+
+  @override
+  String settingsSyncPairingCompleteDuplicates(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count danses en double trouvées et fusionnées.',
+      one: '$count danse en double trouvée et fusionnée.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsSyncReplacementTitle => 'Reconnecter cet espace ?';
+
+  @override
+  String get settingsSyncReplacementBody =>
+      'L\'espace avec lequel cet appareil se synchronisait n\'existe plus. Il a peut-être expiré par inactivité, ou il a peut-être été supprimé. Se reconnecter crée un nouvel espace avec la même phrase et resynchronise depuis le début.';
+
+  @override
+  String get settingsSyncReplacementConfirm => 'Se reconnecter';
+
+  @override
+  String get settingsSyncReplacementCancel => 'Pas maintenant';
+
+  @override
   String get settingsAboutTitle => 'À propos';
 
   @override

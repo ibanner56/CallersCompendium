@@ -166,7 +166,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           sensitiveTermsProvider: widget.sensitiveTermsProvider,
         );
       case _SettingsSection.experimental:
-        return const ExperimentalSection();
+        return ExperimentalSection(backupSaver: widget.backupSaver);
       case _SettingsSection.about:
         return AboutSection(onOpenGuide: widget.onOpenGuide);
     }
