@@ -29,6 +29,7 @@ import 'sync_admission.dart';
 import 'sync_codec.dart';
 import 'sync_id.dart';
 import 'sync_merge.dart';
+import 'sync_quarantine.dart' show syncRecordReferences;
 import 'sync_record_kind.dart';
 import 'sync_reconciliation.dart';
 import 'sync_report.dart';
@@ -474,6 +475,8 @@ final class CompendiumSyncStorage
       pendingAddresses.add(address);
     }
 
+    await _applySyncExcludeImports(publication);
+
     return SyncStorageSnapshot(
       epoch: baselineState?.epoch,
       previouslyUsed:
@@ -486,6 +489,50 @@ final class CompendiumSyncStorage
       pending: pendingAddresses,
     );
   });
+
+  /// Applies the per-device `sync_exclude_imports` upload-budget filter (spec
+  /// §6.1) to a fully built publication candidate map, in place.
+  ///
+  /// Scope is exactly "a dance carrying import provenance that no published
+  /// record cites" — provenance alone decides it, and the citation check runs
+  /// once over the whole candidate set before anything is withheld, so a
+  /// program (or another dance's link) that cites an imported dance keeps it
+  /// published regardless of how heavily it was edited after import. This is
+  /// the §6.9 withholding fixpoint run in reverse: withholding every imported
+  /// dance outright would, via [planSyncPublication]'s own reference-integrity
+  /// closure, silently drag every citing program out of sync too.
+  ///
+  /// Upload-only: [local] (used for merge comparison against inbound peer
+  /// data) is never touched here, so a peer's imported dance is still applied
+  /// on this device regardless of this setting (spec: "governs upload only").
+  /// Withheld entries are set to `null` rather than removed, matching how
+  /// [planSyncPublication] already treats an address with no candidate.
+  Future<void> _applySyncExcludeImports(
+    Map<SyncRecordAddress, SyncMergeCandidate?> publication,
+  ) async {
+    if (await repositories.settings.get(syncExcludeImportsKey) != true) {
+      return;
+    }
+    final provenanceRows = await _db.select(_db.provenance).get();
+    if (provenanceRows.isEmpty) return;
+
+    final citedDances = <SyncRecordAddress>{};
+    for (final candidate in publication.values) {
+      if (candidate == null) continue;
+      for (final reference in syncRecordReferences(candidate)) {
+        if (reference.kind == SyncRecordKind.dance) {
+          citedDances.add(reference);
+        }
+      }
+    }
+
+    for (final row in provenanceRows) {
+      final address = (kind: SyncRecordKind.dance, recordId: row.danceId);
+      if (publication[address] != null && !citedDances.contains(address)) {
+        publication[address] = null;
+      }
+    }
+  }
 
   /// Scans the current live dance collection for W8 title/choreography
   /// matches and applies the complete merge and identity rewrite inside the
@@ -4779,6 +4826,13 @@ final class CompendiumSyncStorage
 /// publication. The marker stores salted, slow credential verifiers rather
 /// than the raw bearer credentials or a fast unsalted hash.
 const syncLastUsedFingerprintKey = 'sync_last_used_fingerprint';
+
+/// Per-device upload-budget toggle for imported dances (spec §6.1). Read
+/// live on every [CompendiumSyncStorage.snapshot] rather than cached, so a
+/// mid-session change takes effect on the very next pass. Mirrors the app's
+/// own `kSyncExcludeImportsKey`; kept in sync by convention like
+/// [syncLastUsedFingerprintKey] mirrors `kSyncLastUsedFingerprintKey`.
+const syncExcludeImportsKey = 'sync_exclude_imports';
 
 const _syncIdentityVerifierAlgorithm = 'pbkdf2-sha256';
 const _syncIdentityKdfIterations = 600000;
