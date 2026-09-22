@@ -183,8 +183,8 @@ Future<void> main() async {
     // Kept as a variable (not just `.call` torn off) so `_CompendiumAppState`
     // can assign `onBeforeAppliedInvalidation` once its `SyncController`
     // exists — this factory is built here, before that controller does.
-    final syncCoordinatorFactory = ConfiguredSyncCoordinatorFactory
-        .fromEnvironment();
+    final syncCoordinatorFactory =
+        ConfiguredSyncCoordinatorFactory.fromEnvironment();
     runApp(
       CompendiumApp(
         appData: appData,
