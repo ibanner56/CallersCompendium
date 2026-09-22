@@ -143,6 +143,17 @@ class SyncStorageSnapshot {
   final Set<SyncRecordAddress> pending;
 }
 
+/// The parent row of a two-phase record as it stood before its inbound write.
+///
+/// A `null` companion means the record had no row then, so the undo is a
+/// delete rather than a rewrite.
+final class _ParentPreImage {
+  const _ParentPreImage({this.dance, this.program});
+
+  final DancesCompanion? dance;
+  final ProgramsCompanion? program;
+}
+
 final class _InboundDependentIndex {
   final Map<String, List<SyncRecordAddress>> danceLinkOwners = {};
   final Map<String, List<SyncRecordAddress>> programSlotOwners = {};
@@ -180,13 +191,25 @@ class SyncFreshAttachDedupeResult {
 /// interactive side effects cannot alter the validated peer body, then restore
 /// the wire timestamp triple because local persistence stamps causal times.
 final class CompendiumSyncStorage
-    implements SyncApplyReconciliationStorage, SyncApplyConcurrencyStorage {
+    implements
+        SyncApplyReconciliationStorage,
+        SyncApplyConcurrencyStorage,
+        SyncApplyRestorableStorage {
   CompendiumSyncStorage(this.repositories);
 
   final CompendiumRepositories repositories;
   final Map<SyncRecordAddress, Object> _deferredEntities = {};
   final Set<SyncRecordAddress> _pendingParentWrites = {};
   Set<SyncRecordAddress> _inboundTombstonedAddresses = {};
+
+  /// Pending deletions this batch's reconciliation carried onto a survivor.
+  ///
+  /// A remap is not a revival: the inbound record is a different UUID that
+  /// shares a natural key, and §6.6 already decided what happens to the
+  /// deferred deletion when it migrated the identity. Cancelling it here on
+  /// the strength of the inbound stamp would overturn that decision from the
+  /// writer, which is not the writer's call.
+  final Set<SyncRecordAddress> _remappedPendingDeletions = {};
   _NaturalKeyIndex? _naturalKeyIndex;
   final Expando<_InboundDependentIndex> _dependentIndexCache =
       Expando<_InboundDependentIndex>();
@@ -2096,6 +2119,7 @@ final class CompendiumSyncStorage
   @override
   Future<void> clearReconciliationContext() async {
     _inboundTombstonedAddresses = {};
+    _remappedPendingDeletions.clear();
     _naturalKeyIndex = null;
   }
 
@@ -2341,6 +2365,7 @@ final class CompendiumSyncStorage
     required Map<SyncRecordKind, Map<String, String>> aliases,
   }) async {
     if (losingId == survivingId) return;
+    _remappedPendingDeletions.add((kind: kind, recordId: survivingId));
     final persistedAliases = await repositories.syncLocal.listAliases();
     final remappedIds = <String>{losingId};
     var changed = true;
@@ -3487,6 +3512,45 @@ final class CompendiumSyncStorage
           );
   }
 
+  /// Cancels a deferred deletion that an inbound revival outranks.
+  ///
+  /// §6.8 keeps a tombstone this device cannot apply — the entity is still
+  /// cited — as a pending row, and the row it names stays live meanwhile. A
+  /// peer that revives the record stamps above the tombstone it revived by
+  /// construction (§6.4), so once such a revival wins the existence comparison
+  /// the deferred deletion has been overtaken and must go: leaving the row in
+  /// place would let the deletion land anyway the moment the last citation
+  /// clears, silently undoing a revival that outranked it.
+  ///
+  /// The comparison is made here rather than assumed from the caller, so every
+  /// path that writes a record holds it — including the ones that reach this
+  /// writer without merge planning. Equal stamps resolve to the tombstone, per
+  /// §6.4, so the advance must be strict.
+  Future<void> _cancelOutrankedPendingDeletion(SyncApplyRecord record) async {
+    if (record.deletedAt != null) return;
+    if (_remappedPendingDeletions.contains(record.address)) return;
+    final pending = await repositories.syncLocal.getPendingDeletion(
+      kind: record.address.kind,
+      recordId: record.address.recordId,
+    );
+    if (pending == null) return;
+    final DateTime tombstonedExistence;
+    try {
+      tombstonedExistence = decodeSyncRecordBlob(
+        pending.tombstoneBlob,
+      ).existenceAt;
+    } on Object {
+      // A tombstone blob that will not decode cannot be compared against, and
+      // `_revalidatePendingDeletions` owns that failure. Leave it alone.
+      return;
+    }
+    if (!record.existenceAt.isAfter(tombstonedExistence)) return;
+    await repositories.syncLocal.deletePendingDeletion(
+      kind: record.address.kind,
+      recordId: record.address.recordId,
+    );
+  }
+
   @override
   Future<SyncReport?> writeWithReport(SyncApplyRecord record) async {
     record = _normalizeInboundRecord(record);
@@ -3544,32 +3608,32 @@ final class CompendiumSyncStorage
       case SyncRecordKind.program:
         await repositories.programs.writeFromSync(entityToWrite as Program);
       case SyncRecordKind.choreographer:
-        final _ = await repositories.choreographers.upsert(
+        await repositories.choreographers.writeFromSync(
           entityToWrite as Choreographer,
           at: record.updatedAt,
         );
       case SyncRecordKind.tag:
-        final _ = await repositories.tags.upsert(
+        await repositories.tags.writeFromSync(
           entityToWrite as Tag,
           at: record.updatedAt,
         );
       case SyncRecordKind.publishedSource:
-        await repositories.publishedSources.upsert(
+        await repositories.publishedSources.writeFromSync(
           entityToWrite as PublishedSource,
           at: record.updatedAt,
         );
       case SyncRecordKind.customFieldDef:
-        final _ = await repositories.customFieldDefs.upsert(
+        await repositories.customFieldDefs.writeFromSync(
           entityToWrite as CustomFieldDef,
           at: record.updatedAt,
         );
       case SyncRecordKind.difficultyLevel:
-        final _ = await repositories.difficultyLevels.upsert(
+        await repositories.difficultyLevels.writeFromSync(
           entityToWrite as DifficultyLevel,
           at: record.updatedAt,
         );
       case SyncRecordKind.venue:
-        await repositories.venues.upsert(
+        await repositories.venues.writeFromSync(
           entityToWrite as Venue,
           at: record.updatedAt,
         );
@@ -3583,6 +3647,11 @@ final class CompendiumSyncStorage
       deletedAt: record.deletedAt,
       existenceAt: record.existenceAt,
     );
+    // Last, once the record has actually landed. Cancelling earlier discarded
+    // the deferred tombstone even when the write was then reported and skipped
+    // — a malformed body, a held natural key — and the deletion could never
+    // apply again, because nothing else remembers it.
+    await _cancelOutrankedPendingDeletion(record);
     return report;
   }
 
@@ -3626,6 +3695,85 @@ final class CompendiumSyncStorage
     return prepared.report;
   }
 
+  /// Captures the parent row of a two-phase kind so a failed join write can
+  /// put it back. Only `dance` and `program` have a join phase; every other
+  /// kind is written whole by `writeWithReport`, so there is nothing to undo
+  /// and this returns `null` for them.
+  @override
+  Future<Object?> capturePreImage(SyncRecordAddress address) async {
+    switch (address.kind) {
+      case SyncRecordKind.dance:
+        final row =
+            await (_db.select(_db.dances)
+                  ..where((table) => table.id.equals(address.recordId)))
+                .getSingleOrNull();
+        return _ParentPreImage(dance: row?.toCompanion(false));
+      case SyncRecordKind.program:
+        final row =
+            await (_db.select(_db.programs)
+                  ..where((table) => table.id.equals(address.recordId)))
+                .getSingleOrNull();
+        return _ParentPreImage(program: row?.toCompanion(false));
+      case SyncRecordKind.choreographer:
+      case SyncRecordKind.tag:
+      case SyncRecordKind.publishedSource:
+      case SyncRecordKind.customFieldDef:
+      case SyncRecordKind.difficultyLevel:
+      case SyncRecordKind.venue:
+      case SyncRecordKind.setting:
+        return null;
+    }
+  }
+
+  /// Puts back what [capturePreImage] took, deleting the row when the record
+  /// did not exist then.
+  ///
+  /// The row is restored directly rather than through the repository writers:
+  /// this is an undo, so it must reinstate exactly the captured columns
+  /// without re-running normalisation, existence seeding or the reference
+  /// guards — any of which could fail here, or quietly write something other
+  /// than what was captured. Deleting cascades the join rows, which is right:
+  /// a record that did not exist before this batch has none of its own, and
+  /// the failed join savepoint wrote none.
+  @override
+  Future<void> restorePreImage(
+    SyncRecordAddress address,
+    Object? preImage,
+  ) async {
+    if (preImage is! _ParentPreImage) return;
+    switch (address.kind) {
+      case SyncRecordKind.dance:
+        final companion = preImage.dance;
+        if (companion == null) {
+          await (_db.delete(
+            _db.dances,
+          )..where((table) => table.id.equals(address.recordId))).go();
+        } else {
+          // sync-invariant-exclusion: apply-undo restores the captured row verbatim.
+          await _db.into(_db.dances).insertOnConflictUpdate(companion);
+        }
+      case SyncRecordKind.program:
+        final companion = preImage.program;
+        if (companion == null) {
+          await (_db.delete(
+            _db.programs,
+          )..where((table) => table.id.equals(address.recordId))).go();
+        } else {
+          // sync-invariant-exclusion: apply-undo restores the captured row verbatim.
+          await _db.into(_db.programs).insertOnConflictUpdate(companion);
+        }
+      case SyncRecordKind.choreographer:
+      case SyncRecordKind.tag:
+      case SyncRecordKind.publishedSource:
+      case SyncRecordKind.customFieldDef:
+      case SyncRecordKind.difficultyLevel:
+      case SyncRecordKind.venue:
+      case SyncRecordKind.setting:
+        return;
+    }
+    _deferredEntities.remove(address);
+  }
+
   @override
   Future<SyncReport?> writeJoinsWithReport(SyncApplyRecord record) async {
     if (_pendingParentWrites.remove(record.address)) return null;
@@ -3633,7 +3781,16 @@ final class CompendiumSyncStorage
         record.address.kind != SyncRecordKind.program) {
       return null;
     }
+    // One savepoint over the relations, the timestamp restore and the pending
+    // cancellation. The engine's undo restores the parent only, which is sound
+    // exactly when a throw from here leaves none of this behind: previously a
+    // failure in `_restoreTimestamps` kept the relation rows the writer had
+    // already committed, and the undo then put the old parent back beside
+    // them — the hybrid it exists to prevent.
+    return _db.transaction(() => _writeJoins(record));
+  }
 
+  Future<SyncReport?> _writeJoins(SyncApplyRecord record) async {
     final entity = _deferredEntities.remove(record.address);
     if (entity == null) {
       throw StateError(
@@ -3662,6 +3819,10 @@ final class CompendiumSyncStorage
       deletedAt: record.deletedAt,
       existenceAt: record.existenceAt,
     );
+    // A dance or program is complete only once its joins are in, so this is
+    // where its deferred tombstone may be cancelled — not at the parent write,
+    // which the joins phase can still undo.
+    await _cancelOutrankedPendingDeletion(record);
     return null;
   }
 

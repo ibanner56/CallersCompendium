@@ -24,7 +24,28 @@ class ChoreographerRepository {
   /// Returns the id the choreographer actually occupies — see
   /// `TagRepository.upsert` on natural-key adoption.
   @useResult
-  Future<String> upsert(Choreographer c, {DateTime? at}) {
+  Future<String> upsert(Choreographer c, {DateTime? at}) =>
+      _write(c, at: at, fromSync: false);
+
+  /// Applies a validated inbound sync record.
+  ///
+  /// §6.7 keeps the inbound write off the editor's path. Concretely this
+  /// skips three behaviours that exist for a person editing a record and
+  /// are wrong for a peer's: it does not adopt a tombstoned row's identity
+  /// (identity is reconciliation's decision, and silently relocating the
+  /// record would store it under an id the peer never named), it does not
+  /// substitute the local name when another row holds the incoming one
+  /// (§6.7 refuses a record rather than storing an altered copy), and it does
+  /// not seed `existence_at`, which the envelope owns.
+  Future<void> writeFromSync(Choreographer c, {DateTime? at}) async {
+    final _ = await _write(c, at: at, fromSync: true);
+  }
+
+  Future<String> _write(
+    Choreographer c, {
+    required DateTime? at,
+    required bool fromSync,
+  }) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
       final name = normalizeShareableText(c.name);
@@ -35,13 +56,25 @@ class ChoreographerRepository {
         _db.choreographers,
       )..where((t) => t.id.equals(c.id))).getSingleOrNull();
       final collidingEdit =
-          current != null && incumbent != null && incumbent.id != c.id;
+          !fromSync &&
+          current != null &&
+          incumbent != null &&
+          incumbent.id != c.id;
+      if (fromSync && incumbent != null && incumbent.id != c.id) {
+        // Refuse rather than guess: reconciliation owns natural-key
+        // identity, so reaching the writer with the key held by another
+        // row means the record must be reported, not altered to fit.
+        throw StateError(
+          'inbound choreographer "${c.id}" wants a name held by '
+          '"${incumbent.id}"',
+        );
+      }
       final authorIndexChanged =
           (!collidingEdit &&
               current != null &&
               (current.name != name || current.deletedAt != null)) ||
           (current == null && incumbent?.deletedAt != null);
-      final id = collidingEdit
+      final id = (collidingEdit || fromSync)
           ? c.id
           : await adoptTombstonedNaturalKey(
                   _db,
@@ -82,13 +115,15 @@ class ChoreographerRepository {
           recordId: c.id,
         );
       }
-      await applyUpsertExistence(
-        _db,
-        table: _db.choreographers,
-        keyColumn: 'id',
-        key: id,
-        at: now,
-      );
+      if (!fromSync) {
+        await applyUpsertExistence(
+          _db,
+          table: _db.choreographers,
+          keyColumn: 'id',
+          key: id,
+          at: now,
+        );
+      }
       if (authorIndexChanged) {
         await _refreshAuthorIndex(id);
       }

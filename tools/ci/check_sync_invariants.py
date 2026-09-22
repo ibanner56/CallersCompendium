@@ -67,6 +67,14 @@ NON_SYNC_WRITE_EXCLUSION_RE = re.compile(
     r"(?:migration-backfill|maintenance-backfill|maintenance-cleanup)\b[^\n]*",
     re.IGNORECASE,
 )
+# Deliberately its own pattern rather than another alternative in the set
+# above. That set is consulted by the raw-SQL I1/I2 checks as well, so an
+# `apply-undo` alternative there would also let a marked raw `UPDATE` skip
+# those invariants — far more than the captured-companion case it is for.
+APPLY_UNDO_EXCLUSION_RE = re.compile(
+    r"sync-invariant-exclusion:\s*apply-undo\b[^\n]*",
+    re.IGNORECASE,
+)
 SOFT_JOIN_EXCEPTION_RE = re.compile(
     r"sync-invariant-exception:\s*soft-delete-join\b[^\n]*",
     re.IGNORECASE,
@@ -552,6 +560,42 @@ def _write_violations(source: str, path: str) -> list[Violation]:
     return violations
 
 
+SYNC_WRITE_PATH = "packages/compendium_core/lib/src/sync/sync_storage.dart"
+INTERACTIVE_UPSERT_RE = re.compile(
+    r"\brepositories\s*\.\s*[A-Za-z_][A-Za-z0-9_]*\s*\.\s*upsert\s*\("
+)
+
+
+def _interactive_upsert_violations(source: str, path: str) -> list[Violation]:
+    """Keep the inbound sync write off the interactive `upsert` path.
+
+    §6.7: "Apply MUST be read-modify-write inside the apply transaction — never
+    the repository `upsert` path, which writes every column." The rule is
+    structural rather than behavioural on purpose. `upsert` carries behaviour
+    that exists for a person editing a record and is wrong for a peer's: it
+    adopts a tombstoned row's identity, and it keeps the local name when another
+    row holds the incoming one, storing an altered copy while still reporting
+    success. Each kind has a `writeFromSync` entry point instead.
+
+    Auditing today's behaviour would not hold: the point is that a future edit
+    to the editor's path must not silently change what an inbound apply does.
+    """
+
+    if path != SYNC_WRITE_PATH:
+        return []
+    masked = "\n".join(mask_source(source))
+    return [
+        Violation(
+            "sync-interactive-upsert",
+            path,
+            _line_number(source, match.start()),
+            "inbound sync write must use writeFromSync, not the interactive "
+            "upsert path (sync-spec.md §6.7)",
+        )
+        for match in INTERACTIVE_UPSERT_RE.finditer(masked)
+    ]
+
+
 def _drift_write_violations(source: str, path: str) -> list[Violation]:
     """Check direct Drift writes to sync-record tables for I1 and I2."""
 
@@ -580,6 +624,17 @@ def _drift_write_violations(source: str, path: str) -> list[Violation]:
             continue
         line = _line_number(source, match.start())
         if not re.search(r"[A-Za-z_][A-Za-z0-9_]*Companion(?:\.insert)?\(", statement):
+            # `apply-undo` is the one shape that cannot name its fields inline
+            # and must not: it writes back a companion captured from the row
+            # itself, so I1/I2 hold by construction — every column, including
+            # the stamps, is restored to the value it already had. Spelling the
+            # columns out would make the undo silently drop any column added
+            # later, which is the corruption it exists to prevent. Narrow on
+            # purpose: its own marker, suppressing only this boundary check, only
+            # on the line carrying it, and excusing nothing in the raw-SQL
+            # checks that share the other exclusion set.
+            if _exception_on_line(source, line, APPLY_UNDO_EXCLUSION_RE):
+                continue
             violations.append(
                 Violation(
                     "typed-write-boundary",
@@ -851,6 +906,7 @@ def scan(root: Path = REPO_ROOT) -> ScanResult:
         violations.extend(drift_violations)
         violations.extend(_write_violations(source, relative))
         violations.extend(_drift_write_violations(source, relative))
+        violations.extend(_interactive_upsert_violations(source, relative))
         violations.extend(_certificate_violations(source, relative))
         soft_candidates += raw_candidates + drift_candidates
 

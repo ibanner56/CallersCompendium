@@ -43,7 +43,28 @@ class TagRepository {
   /// the returned id rather than the one they generated, or they will reference
   /// a row that does not exist.
   @useResult
-  Future<String> upsert(Tag tag, {DateTime? at}) {
+  Future<String> upsert(Tag tag, {DateTime? at}) =>
+      _write(tag, at: at, fromSync: false);
+
+  /// Applies a validated inbound sync record.
+  ///
+  /// §6.7 keeps the inbound write off the editor's path. Concretely this
+  /// skips three behaviours that exist for a person editing a record and
+  /// are wrong for a peer's: it does not adopt a tombstoned row's identity
+  /// (identity is reconciliation's decision, and silently relocating the
+  /// record would store it under an id the peer never named), it does not
+  /// substitute the local name when another row holds the incoming one
+  /// (§6.7 refuses a record rather than storing an altered copy), and it does
+  /// not seed `existence_at`, which the envelope owns.
+  Future<void> writeFromSync(Tag tag, {DateTime? at}) async {
+    final _ = await _write(tag, at: at, fromSync: true);
+  }
+
+  Future<String> _write(
+    Tag tag, {
+    required DateTime? at,
+    required bool fromSync,
+  }) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
       final name = normalizeShareableText(tag.name);
@@ -54,8 +75,20 @@ class TagRepository {
         _db.tags,
       )..where((t) => t.id.equals(tag.id))).getSingleOrNull();
       final collidingEdit =
-          current != null && incumbent != null && incumbent.id != tag.id;
-      final id = collidingEdit
+          !fromSync &&
+          current != null &&
+          incumbent != null &&
+          incumbent.id != tag.id;
+      if (fromSync && incumbent != null && incumbent.id != tag.id) {
+        // Refuse rather than guess: reconciliation owns natural-key
+        // identity, so reaching the writer with the key held by another
+        // row means the record must be reported, not altered to fit.
+        throw StateError(
+          'inbound tag "${tag.id}" wants a name held by '
+          '"${incumbent.id}"',
+        );
+      }
+      final id = (collidingEdit || fromSync)
           ? tag.id
           : await adoptTombstonedNaturalKey(
                   _db,
@@ -88,13 +121,15 @@ class TagRepository {
           recordId: tag.id,
         );
       }
-      await applyUpsertExistence(
-        _db,
-        table: _db.tags,
-        keyColumn: 'id',
-        key: id,
-        at: now,
-      );
+      if (!fromSync) {
+        await applyUpsertExistence(
+          _db,
+          table: _db.tags,
+          keyColumn: 'id',
+          key: id,
+          at: now,
+        );
+      }
       return id;
     });
   }

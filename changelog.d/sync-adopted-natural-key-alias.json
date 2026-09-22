@@ -1,0 +1,9 @@
+{
+  "id": "sync-adopted-natural-key-alias",
+  "user_visible": false,
+  "core": {
+    "fixed": [
+      "SyncLocalRepository.upsertAlias ignores a self-alias, which would otherwise make alias-chain resolution revisit the same id."
+    ]
+  }
+}
