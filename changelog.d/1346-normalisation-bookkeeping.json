@@ -1,0 +1,20 @@
+{
+  "id": "1346-normalisation-bookkeeping",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Startup no longer re-checks your whole collection on every launch once a single name has been left for later. Renaming a tag, choreographer or custom field to a name another one already holds is enough to trigger it, and the check then repeated forever; it now re-tries just the affected entries and stops once they are resolved.",
+      "Searching by author or by a cited source now finds dances whose choreographer, source or custom-field text was repaired by the one-time text clean-up. The search index was left holding the old text, so those dances could not be found by it."
+    ],
+    "data_migrations": [
+      "Collections that already completed the one-time text clean-up rebuild their search index once on first launch, with the usual progress indicator, to repair entries left stale by it."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "The shareable-text normalisation pass clears a `normalisation_skips` entry once its row holds its target, and re-attempts outstanding entries by reading only the recorded rows rather than re-scanning every in-scope column and settings row.",
+      "The pass's completion marker fingerprints the shareable subset of `settingsClassifications` and `settingsPrefixClassifications` alongside its columns, so reclassifying a settings key to `shareable` re-runs the pass over its stored values.",
+      "The pass requests a derived-index rebuild after any rewrite rather than only after a `dances` rewrite, so repairs to `choreographers.name`, `published_sources.title`/`.author` and `custom_field_values.value_text` refresh `dance_fts` and `dance_substring_fts`. A one-shot sweep repairs indexes left stale by the previous condition; it waits while a dance row the rebuild cannot decode is recorded."
+    ]
+  }
+}

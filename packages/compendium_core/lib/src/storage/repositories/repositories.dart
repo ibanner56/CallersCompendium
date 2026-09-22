@@ -938,7 +938,15 @@ class CompendiumRepositories {
     // Still needed after a full scan: the scan cannot see a row that no longer
     // exists, so an entry for one is only reachable here.
     await _retireMissingNormalisationSkips(db);
-    await _writeSweepMarker(shareableTextNormalisationScopeKey, scope);
+    // Only a scan records completion. A retry runs *because* the recorded scope
+    // already equals the live one, so re-writing it would store a byte-identical
+    // string and wake every `settings` watcher for nothing — and
+    // `docs/design/sync-implementation.md:509` states the rule the derived-flag
+    // rules around it are shaped against: "retry never writes the completion
+    // marker".
+    if (!scopeUnchanged) {
+      await _writeSweepMarker(shareableTextNormalisationScopeKey, scope);
+    }
     return (
       rebuilt: alreadyRebuilt || outcome.rebuild,
       deferred: outcome.deferred,
