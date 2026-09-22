@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../data/backup_io.dart';
+import '../../diagnostics/error_log.dart';
 import '../../sync/sync_controller.dart';
 import '../../sync/sync_coordinator.dart' show SyncPassStatus;
 import '../../sync/sync_http_client.dart' show isDefaultSyncEndpoint;
@@ -130,6 +131,44 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
     }
   }
 
+  /// Detach is purely local and reversible only by re-entering the phrase, so
+  /// it is confirmed first and says what it does and does not touch.
+  Future<void> _confirmDisconnect(SyncController controller) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: const ValueKey('sync-disconnect-dialog'),
+        title: Text(l10n.settingsSyncDisconnectConfirmTitle),
+        content: Text(l10n.settingsSyncDisconnectConfirmBody),
+        actions: [
+          TextButton(
+            key: const ValueKey('sync-disconnect-cancel'),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(
+              MaterialLocalizations.of(dialogContext).cancelButtonLabel,
+            ),
+          ),
+          FilledButton(
+            key: const ValueKey('sync-disconnect-confirm'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.settingsSyncDisconnectConfirmAction),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    try {
+      await controller.detach();
+    } on Object catch (e, st) {
+      logCaughtErrorTypeOnly(e, st, source: 'device_sync_section.disconnect');
+      messenger?.showSnackBar(
+        SnackBar(content: Text(l10n.settingsSyncDisconnectFailed)),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -250,6 +289,17 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
                 title: Text(l10n.settingsSyncNowTitle),
                 enabled: !controller.running,
                 onTap: controller.running ? null : () => _syncNow(controller),
+              ),
+            if (controller.paired)
+              ListTile(
+                key: const ValueKey('sync-disconnect'),
+                leading: const Icon(Icons.link_off),
+                title: Text(l10n.settingsSyncDisconnectTitle),
+                subtitle: Text(l10n.settingsSyncDisconnectSubtitle),
+                enabled: !controller.running,
+                onTap: controller.running
+                    ? null
+                    : () => _confirmDisconnect(controller),
               ),
           ],
         ],

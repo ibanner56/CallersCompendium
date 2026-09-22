@@ -276,6 +276,27 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsSyncNowTitle => 'Nu synchroniseren';
 
   @override
+  String get settingsSyncDisconnectTitle => 'Dit apparaat loskoppelen';
+
+  @override
+  String get settingsSyncDisconnectSubtitle =>
+      'Stop hier met synchroniseren. De opslag en je andere apparaten veranderen niet.';
+
+  @override
+  String get settingsSyncDisconnectConfirmTitle => 'Dit apparaat loskoppelen?';
+
+  @override
+  String get settingsSyncDisconnectConfirmBody =>
+      'Dit apparaat stopt met synchroniseren en vergeet zijn synchronisatiezin. Je bibliotheek op dit apparaat blijft zoals ze is, en de opslag en je andere apparaten worden niet beïnvloed. Om later opnieuw te verbinden heb je de zin nodig, dus zorg dat je hem hebt.';
+
+  @override
+  String get settingsSyncDisconnectConfirmAction => 'Loskoppelen';
+
+  @override
+  String get settingsSyncDisconnectFailed =>
+      'Kan dit apparaat niet loskoppelen. Het is nog steeds verbonden; probeer het opnieuw.';
+
+  @override
   String get settingsSyncMeteredRouted =>
       'Je gebruikt mobiele data en ‘Alleen synchroniseren via wifi’ staat aan. Zet die instelling hieronder uit om nu te synchroniseren.';
 

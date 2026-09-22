@@ -30,6 +30,7 @@ Future<void> _pumpAndOpen(
 }) async {
   final syncController = SyncController(
     settings: repos.settings,
+    syncLocal: repos.syncLocal,
     coordinator: () => null,
     reconfigure: () async {},
     classifier: _NoopNetwork(),

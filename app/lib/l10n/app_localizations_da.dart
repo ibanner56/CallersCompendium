@@ -275,6 +275,29 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsSyncNowTitle => 'Synkronisér nu';
 
   @override
+  String get settingsSyncDisconnectTitle =>
+      'Afbryd forbindelsen på denne enhed';
+
+  @override
+  String get settingsSyncDisconnectSubtitle =>
+      'Stop synkroniseringen her. Lageret og dine andre enheder ændres ikke.';
+
+  @override
+  String get settingsSyncDisconnectConfirmTitle =>
+      'Afbryd forbindelsen på denne enhed?';
+
+  @override
+  String get settingsSyncDisconnectConfirmBody =>
+      'Denne enhed stopper med at synkronisere og glemmer sin synkroniseringssætning. Dit bibliotek på denne enhed forbliver, som det er, og lageret og dine andre enheder påvirkes ikke. For at forbinde igen senere skal du bruge sætningen, så sørg for, at du har den.';
+
+  @override
+  String get settingsSyncDisconnectConfirmAction => 'Afbryd';
+
+  @override
+  String get settingsSyncDisconnectFailed =>
+      'Forbindelsen på denne enhed kunne ikke afbrydes. Den er stadig forbundet; prøv igen.';
+
+  @override
   String get settingsSyncMeteredRouted =>
       'Du bruger mobildata, og Synkronisér kun på WiFi er slået til. Slå den indstilling fra nedenfor for at synkronisere nu.';
 

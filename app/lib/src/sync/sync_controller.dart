@@ -72,6 +72,8 @@ class SyncController extends ChangeNotifier {
     required this._settings,
     required this._coordinator,
     required this._reconfigure,
+    required this._syncLocal,
+    this._runExclusive = _runDirectly,
     this._pairingProbeFactory,
     this._classifier = const ConnectivityPlusNetworkClassifier(),
     DateTime Function()? now,
@@ -81,6 +83,15 @@ class SyncController extends ChangeNotifier {
   final SettingsRepository _settings;
   final SyncCoordinator? Function() _coordinator;
   final Future<void> Function() _reconfigure;
+  final SyncLocalRepository _syncLocal;
+
+  /// Runs a write that no sync pass may overlap: the app's writer boundary,
+  /// which disposes the coordinator (awaiting any pass in flight) first and
+  /// reconfigures afterwards.
+  final Future<void> Function(Future<void> Function() operation) _runExclusive;
+
+  static Future<void> _runDirectly(Future<void> Function() operation) =>
+      operation();
   final SyncNetworkClassifier _classifier;
   final DateTime Function() _now;
   final Duration _debounce;
@@ -111,6 +122,7 @@ class SyncController extends ChangeNotifier {
   int _pendingSelfWrites = 0;
   int _pendingSyncAppliedInvalidations = 0;
   bool _replacementPending = false;
+  bool _detaching = false;
   Timer? _debounceTimer;
   StreamSubscription<SyncReplacementRequiredEvent>? _replacementSubscription;
   bool _disposed = false;
@@ -326,6 +338,9 @@ class SyncController extends ChangeNotifier {
   /// Records a pass result and, on success, persists the last-success time as
   /// the controller's own bookkeeping write (spec §6.14 item 4's clock).
   Future<void> _recordResult(SyncPassResult result) async {
+    // A pass that finishes while this device is detaching belongs to the
+    // store being forgotten; recording it would restore its last-success time.
+    if (_detaching) return;
     _lastResult = result;
     if (result.status == SyncPassStatus.completed) {
       final at = _now();
@@ -406,6 +421,45 @@ class SyncController extends ChangeNotifier {
     _notify();
     await _reconfigure();
     await trigger(SyncTrigger.appStart);
+  }
+
+  /// Stops syncing on this device: forgets the sync ID, the server it was
+  /// paired with and the store-scoped local state (spec glossary *detach*,
+  /// §6.2 step 3). Purely local — no request is sent, so the store, this
+  /// device's manifest and every peer are untouched. Leaves sync enabled, the
+  /// device ID, the used-identity verifiers, publication history and
+  /// normalisation skips in place, as the spec requires; the next pairing is a
+  /// fresh attach.
+  ///
+  /// The sync ID is erased rather than tombstoned, since a tombstone keeps
+  /// the credential on disk, and it goes in the same transaction as the
+  /// store-scoped state so a failure leaves the device fully attached.
+  Future<void> detach() async {
+    if (!_paired || _detaching) return;
+    _detaching = true;
+    _debounceTimer?.cancel();
+    _dirty = false;
+    try {
+      await _runExclusive(
+        () => _syncLocal.transaction((tx) async {
+          await tx.clearOnDetach();
+          await _settings.remove(kSyncIdKey, permanent: true);
+          await _settings.remove(kSyncEndpointKey, permanent: true);
+          await _settings.remove(kSyncLastSuccessAtKey, permanent: true);
+        }),
+      );
+    } finally {
+      _detaching = false;
+    }
+    // Only now: while the clear is still pending the device is still attached,
+    // and reporting otherwise would offer *Connect* — a pairing completing in
+    // that window would have the sync ID it just wrote deleted by this clear.
+    _paired = false;
+    _endpoint = null;
+    _lastSuccessAt = null;
+    _lastResult = null;
+    _replacementPending = false;
+    _notify();
   }
 
   void _notify() {

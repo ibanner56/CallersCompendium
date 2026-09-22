@@ -605,6 +605,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
       settings: _appData.repositories.settings,
       coordinator: () => _syncCoordinator,
       reconfigure: _configureSyncCoordinator,
+      syncLocal: _appData.repositories.syncLocal,
+      runExclusive: _runSyncWriter,
       pairingProbeFactory: widget.syncPairingProbeFactory,
       classifier: widget.syncNetworkClassifier,
       debounce: widget.syncDebounce,

@@ -7,7 +7,7 @@ import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_app/src/sync/sync_network.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
+import 'package:drift/drift.dart' show Variable, driftRuntimeOptions;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/controllable_sync_transport.dart';
@@ -48,6 +48,7 @@ void main() {
   SyncController build({Duration debounce = const Duration(seconds: 30)}) {
     final controller = SyncController(
       settings: repos.settings,
+      syncLocal: repos.syncLocal,
       coordinator: () => coordinator,
       reconfigure: () async {},
       classifier: network,
@@ -97,6 +98,7 @@ void main() {
       var reconfigured = 0;
       final controller = SyncController(
         settings: repos.settings,
+        syncLocal: repos.syncLocal,
         coordinator: () => null,
         reconfigure: () async => reconfigured++,
         classifier: network,
@@ -631,6 +633,7 @@ void main() {
       );
       final controller = SyncController(
         settings: repos.settings,
+        syncLocal: repos.syncLocal,
         coordinator: () => coordinator,
         reconfigure: () async {},
         pairingProbeFactory: (syncId, endpoint) => probe,
@@ -654,6 +657,7 @@ void main() {
       var reconfigured = 0;
       final controller = SyncController(
         settings: repos.settings,
+        syncLocal: repos.syncLocal,
         coordinator: () => coordinator,
         reconfigure: () async => reconfigured++,
         classifier: network,
@@ -707,6 +711,137 @@ void main() {
             'reconfigure alone only awaits coordinator construction, not '
             'the app-start pass it schedules unawaited',
       );
+    });
+  });
+
+  group('detach (spec glossary, §6.2 step 3)', () {
+    Future<SyncController> paired({
+      Future<void> Function(Future<void> Function() operation)? runExclusive,
+    }) async {
+      await repos.settings.set(kSyncEnabledKey, true);
+      await repos.settings.set(kSyncIdKey, 'correct horse battery staple');
+      await repos.settings.set(kSyncEndpointKey, 'https://sync.example.test/');
+      await repos.settings.set(kSyncDeviceIdKey, 'device_1');
+      await repos.settings.set(kSyncLastUsedFingerprintKey, ['verifier']);
+      await repos.settings.set(kSyncLastSuccessAtKey, '2026-09-20T12:00:00Z');
+      await repos.syncLocal.replaceBaseline(epoch: 'epoch-1');
+      final controller = SyncController(
+        settings: repos.settings,
+        syncLocal: repos.syncLocal,
+        coordinator: () => coordinator,
+        reconfigure: () async {},
+        runExclusive: runExclusive ?? (operation) => operation(),
+        classifier: network,
+        now: () => clock,
+      );
+      addTearDown(controller.dispose);
+      await controller.load();
+      expect(controller.paired, isTrue);
+      return controller;
+    }
+
+    Future<bool> hasRow(String key) async {
+      final rows = await repos.db
+          .customSelect(
+            'SELECT 1 FROM settings WHERE key = ?',
+            variables: [Variable.withString(key)],
+          )
+          .get();
+      return rows.isNotEmpty;
+    }
+
+    test('erases the sync ID and store-scoped state inside the writer '
+        'boundary, and leaves everything the spec keeps', () async {
+      var exclusiveRuns = 0;
+      late SyncController controller;
+      controller = await paired(
+        runExclusive: (operation) async {
+          exclusiveRuns++;
+          expect(
+            controller.paired,
+            isTrue,
+            reason:
+                'reporting unpaired here would offer Connect, and a pairing '
+                'completing in this window loses the ID it just wrote',
+          );
+          await operation();
+        },
+      );
+
+      await controller.detach();
+
+      expect(exclusiveRuns, 1);
+      expect(controller.paired, isFalse);
+      expect(controller.endpoint, isNull);
+      expect(controller.lastSuccessAt, isNull);
+      expect(
+        await hasRow(kSyncIdKey),
+        isFalse,
+        reason: 'a tombstone would keep the credential on disk',
+      );
+      expect(await hasRow(kSyncLastSuccessAtKey), isFalse);
+      expect(await hasRow(kSyncEndpointKey), isFalse);
+      expect(await repos.syncLocal.getBaselineState(), isNull);
+
+      expect(controller.enabled, isTrue, reason: 'detach is not disable');
+      expect(await repos.settings.get(kSyncEnabledKey), isTrue);
+      expect(await repos.settings.get(kSyncDeviceIdKey), 'device_1');
+      expect(await repos.settings.get(kSyncLastUsedFingerprintKey), [
+        'verifier',
+      ]);
+    });
+
+    test(
+      'a detach the writer refuses leaves the device fully attached',
+      () async {
+        final controller = await paired(
+          runExclusive: (operation) async =>
+              throw StateError('writer refused during shutdown'),
+        );
+
+        await expectLater(controller.detach(), throwsStateError);
+
+        expect(controller.paired, isTrue);
+        expect(
+          await repos.settings.get(kSyncIdKey),
+          'correct horse battery staple',
+        );
+        expect(
+          await repos.settings.get(kSyncEndpointKey),
+          'https://sync.example.test/',
+        );
+        expect(await repos.syncLocal.getBaselineState(), isNotNull);
+      },
+    );
+
+    test('a pass finishing after the clear does not restore its '
+        'last-success time', () async {
+      final gate = Completer<void>();
+      coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device',
+        store: CompendiumSyncCoordinatorStore(repos),
+        transport: NoopSyncCoordinatorTransport(),
+        passOperation: ({initialStore}) async {
+          await gate.future;
+          return const SyncPassResult(SyncPassStatus.completed);
+        },
+      );
+      addTearDown(() => coordinator?.dispose());
+      late SyncController controller;
+      controller = await paired(
+        runExclusive: (operation) async {
+          final pass = controller.trigger(SyncTrigger.manual);
+          await operation();
+          gate.complete();
+          expect(await pass, SyncGateOutcome.ran);
+        },
+      );
+
+      await controller.detach();
+
+      expect(controller.lastSuccessAt, isNull);
+      expect(await repos.settings.get(kSyncLastSuccessAtKey), isNull);
     });
   });
 

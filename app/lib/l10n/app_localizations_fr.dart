@@ -281,6 +281,27 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsSyncNowTitle => 'Synchroniser maintenant';
 
   @override
+  String get settingsSyncDisconnectTitle => 'Déconnecter cet appareil';
+
+  @override
+  String get settingsSyncDisconnectSubtitle =>
+      'Arrêter la synchronisation ici. L\'espace et vos autres appareils ne sont pas modifiés.';
+
+  @override
+  String get settingsSyncDisconnectConfirmTitle => 'Déconnecter cet appareil ?';
+
+  @override
+  String get settingsSyncDisconnectConfirmBody =>
+      'Cet appareil arrêtera de se synchroniser et oubliera sa phrase de synchronisation. Votre bibliothèque sur cet appareil reste telle quelle, et l\'espace ainsi que vos autres appareils ne sont pas affectés. Pour vous reconnecter plus tard, vous aurez besoin de la phrase : assurez-vous de l\'avoir.';
+
+  @override
+  String get settingsSyncDisconnectConfirmAction => 'Déconnecter';
+
+  @override
+  String get settingsSyncDisconnectFailed =>
+      'Impossible de déconnecter cet appareil. Il est toujours connecté ; réessayez.';
+
+  @override
   String get settingsSyncMeteredRouted =>
       'Vous utilisez les données mobiles et « Synchroniser uniquement en WiFi » est activé. Désactivez ce réglage ci-dessous pour synchroniser maintenant.';
 

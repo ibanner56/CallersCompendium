@@ -292,6 +292,30 @@
   "@settingsSyncNowTitle": {
     "x-sourceSha256": "885e8f48bd70af10c21ee1046c5762dae06945145bf5c95885648e4ac308c0bf"
   },
+  "settingsSyncDisconnectTitle": "Déconnecter cet appareil",
+  "@settingsSyncDisconnectTitle": {
+    "x-sourceSha256": "5b0463da95797a1078c49e57743fa8e7ece0b2101bae8d4f6f5b64794c3dd159"
+  },
+  "settingsSyncDisconnectSubtitle": "Arrêter la synchronisation ici. L'espace et vos autres appareils ne sont pas modifiés.",
+  "@settingsSyncDisconnectSubtitle": {
+    "x-sourceSha256": "66b3c050d9b3ce7bfaf6ab7c42b26081e8bc2ea6e0cb31c67a91e4c3b99ed2b9"
+  },
+  "settingsSyncDisconnectConfirmTitle": "Déconnecter cet appareil ?",
+  "@settingsSyncDisconnectConfirmTitle": {
+    "x-sourceSha256": "368f30952240db8e8850a97232ef46e89fc0d0ec2facc04576d0c33d946f9fdd"
+  },
+  "settingsSyncDisconnectConfirmBody": "Cet appareil arrêtera de se synchroniser et oubliera sa phrase de synchronisation. Votre bibliothèque sur cet appareil reste telle quelle, et l'espace ainsi que vos autres appareils ne sont pas affectés. Pour vous reconnecter plus tard, vous aurez besoin de la phrase : assurez-vous de l'avoir.",
+  "@settingsSyncDisconnectConfirmBody": {
+    "x-sourceSha256": "ef8fe8eddad993cbb235762e998a058f013d6d39a888d9561b3e8abbfd2dfc9b"
+  },
+  "settingsSyncDisconnectConfirmAction": "Déconnecter",
+  "@settingsSyncDisconnectConfirmAction": {
+    "x-sourceSha256": "acfc5be785a9bb3da11c9f05adb69bd5633096f09002aa44813a1b3207e912ad"
+  },
+  "settingsSyncDisconnectFailed": "Impossible de déconnecter cet appareil. Il est toujours connecté ; réessayez.",
+  "@settingsSyncDisconnectFailed": {
+    "x-sourceSha256": "23a506ff584ec8b81da1a4dfdefe90d6572957feabcfee2aa2614e3b68b0b3c8"
+  },
   "settingsSyncMeteredRouted": "Vous utilisez les données mobiles et « Synchroniser uniquement en WiFi » est activé. Désactivez ce réglage ci-dessous pour synchroniser maintenant.",
   "@settingsSyncMeteredRouted": {
     "x-sourceSha256": "213bed8509f57aef35ba73781fca3267d5e5f7d16ef7b46f83b28c82ee833777"
