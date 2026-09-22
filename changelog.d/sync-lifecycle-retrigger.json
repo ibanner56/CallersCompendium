@@ -1,0 +1,10 @@
+{
+  "id": "sync-lifecycle-retrigger",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Device Sync no longer runs a pointless extra sync pass after every pass that applied changes.",
+      "Restoring a backup or a shared archive right after turning Device Sync on no longer risks a sync pass starting while the restore is still writing."
+    ]
+  }
+}
