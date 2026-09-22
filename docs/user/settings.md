@@ -496,6 +496,26 @@ while it is on. You can tap its heading to open or close it.
   a store that goes unused for 30 days is removed, so keep making file backups.
   From three weeks of disuse the status also warns that the store is close to
   expiring.
+- **Notices** appear under that last-synced line when a sync had something to
+  report. A sync can finish successfully and still leave one of these standing,
+  which is the point of them: the conditions they name are ones the app will
+  not guess its way out of. You'll see a notice when the same record was
+  changed on two devices in the same moment and neither copy could be chosen
+  (edit either one to settle it); when something created here was kept rather
+  than removed by a device that had never seen it; when something on *this*
+  device has a date the app can't trust, so it isn't being sent anywhere
+  (check this device's clock); when records from another device couldn't be
+  used and were skipped; when another device's clock looks far off; when an
+  update arrived while you were editing the same record, so it waits for the
+  next sync; and when changes from this device still haven't reached your
+  other devices after several syncs. A notice is only ever a message — it
+  never blocks an edit, never holds up a sync, and there is nothing to dismiss.
+  It stays until a sync no longer finds the condition, then goes away on its
+  own. One kind is deliberately stickier: a record refused from another device
+  is only mentioned once per run of the app, so its notice stays for the rest
+  of that run rather than disappearing at the next sync and leaving you with
+  nothing. Notices are not kept when you close the app; anything still true is
+  reported again by the next sync.
 - These settings belong to this device. They are not synced to your other
   devices, and they are not included in a backup, so restoring a backup never
   turns sync on.
@@ -537,7 +557,11 @@ connected.
 If a store this device used to sync with is no longer there, the app asks
 before creating a replacement: it may have gone unused past its 30-day limit,
 or it may have been removed — the app can't tell which. Declining makes no
-network request and leaves the choice for later.
+network request and leaves the choice for later. Sync then **pauses**: the
+status says so and keeps saying so, and automatic syncs stop running rather
+than asking again every time. Nothing is lost while it is paused. When you
+want to decide, tap **Sync now** — that reopens the same question, and the
+paused line goes once a sync completes.
 
 **Venues sync partially.** A venue's name, website, schedule, and notes sync
 like everything else, but its address and both contact blocks stay on each
