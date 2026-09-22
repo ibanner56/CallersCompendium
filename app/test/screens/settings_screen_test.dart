@@ -205,6 +205,16 @@ _pumpSettings(
 // Tests
 // ---------------------------------------------------------------------------
 
+/// Opens the Device Sync section of the Experimental pane when it starts
+/// collapsed (sync off); a no-op when it is already open.
+Future<void> _expandSyncSection(WidgetTester tester) async {
+  if (find.byKey(const ValueKey('sync-enabled-toggle')).evaluate().isNotEmpty) {
+    return;
+  }
+  await tester.tap(find.byKey(const ValueKey('sync-section')));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -1282,6 +1292,7 @@ void main() {
           find.byKey(const ValueKey('settings-nav-experimental')),
         );
         await tester.pumpAndSettle();
+        await _expandSyncSection(tester);
       }
 
       setUp(() {
@@ -1295,14 +1306,37 @@ void main() {
       ) async {
         await _pumpSettings(tester);
         // The section list is the navigation; Device Sync must not be an entry.
-        expect(find.text('Device Sync'), findsNothing);
+        expect(find.text('DEVICE SYNC'), findsNothing);
 
-        await openExperimental(tester);
-        expect(find.text('Device Sync'), findsOneWidget);
+        await tester.tap(
+          find.byKey(const ValueKey('settings-nav-experimental')),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('DEVICE SYNC'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('sync-enabled-toggle')),
+          findsNothing,
+          reason: 'collapsed while sync is off',
+        );
+
+        await _expandSyncSection(tester);
         expect(
           find.byKey(const ValueKey('sync-enabled-toggle')),
           findsOneWidget,
         );
+      });
+
+      testWidgets('starts expanded while sync is on, so its status is in '
+          'view', (tester) async {
+        final harness = await _pumpSettings(tester);
+        await harness.repos.settings.set('sync_enabled', true);
+        await SyncScope.of(tester.element(find.byType(SettingsScreen))).load();
+        await tester.tap(
+          find.byKey(const ValueKey('settings-nav-experimental')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const ValueKey('sync-status')), findsOneWidget);
       });
 
       testWidgets('is off by default and shows no status until turned on', (
@@ -1616,6 +1650,7 @@ void main() {
           find.byKey(const ValueKey('settings-nav-experimental')),
         );
         await tester.pumpAndSettle();
+        await _expandSyncSection(tester);
       }
 
       Future<void> enableAndOpenPairing(
@@ -2037,6 +2072,7 @@ void main() {
           find.byKey(const ValueKey('settings-nav-experimental')),
         );
         await tester.pumpAndSettle();
+        await _expandSyncSection(tester);
       }
 
       setUp(() {

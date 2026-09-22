@@ -464,14 +464,16 @@ useful thing you can send.
 
 The **Experimental** section is a home for features that are still in
 development. It may be empty, and anything that appears there can change before
-it becomes a regular setting.
+it becomes a regular setting. Each feature sits in its own section: tap its
+heading to open or close it.
 
 ### Device Sync
 
 **Device Sync** keeps your library in step across your own devices. It is **off
 until you turn it on**, and while it is off the app sends nothing anywhere.
 Turning it on does not send anything by itself; nothing is exchanged until you
-connect a store.
+connect a store. The section starts closed while Device Sync is off and open
+while it is on, so its status is always in view once you use it.
 
 - **Sync only on WiFi** is on by default. On a mobile-data connection automatic
   sync waits, and pressing **Sync now** tells you why and points at this setting.
