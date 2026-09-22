@@ -259,119 +259,120 @@ class AppLocalizationsNl extends AppLocalizations {
       'Koppel een opslag voordat je synchroniseert.';
 
   @override
-  String get settingsSyncConnectTitle => 'Connect';
+  String get settingsSyncConnectTitle => 'Verbinden';
 
   @override
-  String get settingsSyncPairingTitle => 'Connect Device Sync';
+  String get settingsSyncPairingTitle => 'Apparaatsynchronisatie verbinden';
 
   @override
   String get settingsSyncPairingChooseHeading =>
-      'Is this the first device, or are you adding another?';
+      'Is dit het eerste apparaat, of voeg je er nog een toe?';
 
   @override
-  String get settingsSyncPairingCreateTitle => 'Create a new store';
+  String get settingsSyncPairingCreateTitle => 'Nieuwe opslag maken';
 
   @override
   String get settingsSyncPairingCreateSubtitle =>
-      'Start fresh. You\'ll get a phrase to read to your other devices.';
+      'Begin opnieuw. Je krijgt een zin om aan je andere apparaten voor te lezen.';
 
   @override
-  String get settingsSyncPairingConnectTitle => 'Connect to an existing store';
+  String get settingsSyncPairingConnectTitle =>
+      'Verbinden met bestaande opslag';
 
   @override
   String get settingsSyncPairingConnectSubtitle =>
-      'Enter the phrase shown on the device you already set up.';
+      'Voer de zin in die op het al ingestelde apparaat wordt getoond.';
 
   @override
-  String get settingsSyncPairingYourPhrase => 'Your sync phrase';
+  String get settingsSyncPairingYourPhrase => 'Je synchronisatiezin';
 
   @override
-  String get settingsSyncPairingRegenerate => 'Generate a different phrase';
+  String get settingsSyncPairingRegenerate => 'Andere zin genereren';
 
   @override
-  String get settingsSyncPairingEnterPhrase => 'Sync phrase';
+  String get settingsSyncPairingEnterPhrase => 'Synchronisatiezin';
 
   @override
-  String get settingsSyncPairingEnterPhraseHint => 'word-word-word-word';
+  String get settingsSyncPairingEnterPhraseHint => 'woord-woord-woord-woord';
 
   @override
   String get settingsSyncPairingInvalidPhrase =>
-      'That doesn\'t look like a complete sync phrase.';
+      'Dat lijkt niet op een volledige synchronisatiezin.';
 
   @override
   String get settingsSyncPairingNotFound =>
-      'No store has that phrase. Check it against the other device and try again.';
+      'Geen opslag heeft die zin. Vergelijk hem met het andere apparaat en probeer het opnieuw.';
 
   @override
   String get settingsSyncPairingAlreadyInUse =>
-      'That phrase is already in use by another store. Generate a different one.';
+      'Die zin is al in gebruik door een andere opslag. Genereer een andere.';
 
   @override
   String get settingsSyncPairingUnreachable =>
-      'Device Sync isn\'t available right now. Check your connection and try again.';
+      'Apparaatsynchronisatie is nu niet beschikbaar. Controleer je verbinding en probeer het opnieuw.';
 
   @override
-  String get settingsSyncPairingSharingTitle => 'Sharing is not collaboration';
+  String get settingsSyncPairingSharingTitle => 'Delen is geen samenwerking';
 
   @override
   String get settingsSyncPairingSharingBody =>
-      'A second person can use this same phrase on their device. If you both edit the same dance or program at the same time, one edit silently overwrites the other — there\'s no warning and no way to combine them.';
+      'Een tweede persoon kan dezelfde zin op zijn apparaat gebruiken. Als jullie tegelijk dezelfde dans of hetzelfde programma bewerken, overschrijft de ene bewerking stilzwijgend de andere — er is geen waarschuwing en geen manier om ze te combineren.';
 
   @override
   String get settingsSyncPairingCredentialTitle =>
-      'This phrase can\'t be recovered or revoked';
+      'Deze zin kan niet worden hersteld of ingetrokken';
 
   @override
   String get settingsSyncPairingCredentialBody =>
-      'Losing this phrase makes your store unreachable — there is no password reset. If it leaks, the only fix is moving every device to a new phrase.';
+      'Als je deze zin kwijtraakt, wordt je opslag onbereikbaar — er is geen wachtwoordherstel. Als hij uitlekt, is de enige oplossing om alle apparaten naar een nieuwe zin te verplaatsen.';
 
   @override
   String get settingsSyncPairingBackupOfferTitle =>
-      'Back up your library first?';
+      'Eerst je bibliotheek back-uppen?';
 
   @override
   String get settingsSyncPairingBackupOfferBody =>
-      'This is optional and only for your own safekeeping — connecting itself does not back anything up.';
+      'Dit is optioneel en alleen voor je eigen veiligheid — verbinden zelf maakt geen back-up.';
 
   @override
-  String get settingsSyncPairingBackupOfferAccept => 'Back up now';
+  String get settingsSyncPairingBackupOfferAccept => 'Nu back-uppen';
 
   @override
-  String get settingsSyncPairingBackupOfferSkip => 'Skip';
+  String get settingsSyncPairingBackupOfferSkip => 'Overslaan';
 
   @override
-  String get settingsSyncPairingContinue => 'Continue';
+  String get settingsSyncPairingContinue => 'Doorgaan';
 
   @override
-  String get settingsSyncPairingComplete => 'Connected';
+  String get settingsSyncPairingComplete => 'Verbonden';
 
   @override
   String get settingsSyncPairingCompleteBody =>
-      'Your library is connected. The first sync is running now.';
+      'Je bibliotheek is verbonden. De eerste synchronisatie loopt nu.';
 
   @override
   String settingsSyncPairingCompleteDuplicates(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Found and merged $count duplicate dances.',
-      one: 'Found and merged $count duplicate dance.',
+      other: '$count dubbele dansen gevonden en samengevoegd.',
+      one: '$count dubbele dans gevonden en samengevoegd.',
     );
     return '$_temp0';
   }
 
   @override
-  String get settingsSyncReplacementTitle => 'Reconnect this store?';
+  String get settingsSyncReplacementTitle => 'Deze opslag opnieuw verbinden?';
 
   @override
   String get settingsSyncReplacementBody =>
-      'The store this device used to sync with is no longer there. It may have expired through inactivity, or it may have been removed. Reconnecting creates a new store with the same phrase and re-syncs from scratch.';
+      'De opslag waarmee dit apparaat synchroniseerde, bestaat niet meer. Mogelijk is deze verlopen door inactiviteit, of is deze verwijderd. Opnieuw verbinden maakt een nieuwe opslag met dezelfde zin en synchroniseert helemaal opnieuw.';
 
   @override
-  String get settingsSyncReplacementConfirm => 'Reconnect';
+  String get settingsSyncReplacementConfirm => 'Opnieuw verbinden';
 
   @override
-  String get settingsSyncReplacementCancel => 'Not now';
+  String get settingsSyncReplacementCancel => 'Niet nu';
 
   @override
   String get settingsAboutTitle => 'Over';

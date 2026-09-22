@@ -478,6 +478,24 @@ connect a store.
   devices, and they are not included in a backup, so restoring a backup never
   turns sync on.
 
+**Connecting.** Once enabled, tap **Connect** to either **create a new store**
+(you get a phrase — read it aloud or share it with your other device) or
+**connect to an existing one** (enter the phrase shown on the device you
+already set up). The screen tells you which you're doing; it never guesses.
+Along the way it explains two things worth knowing before you commit to
+sharing a phrase: a second device using the same phrase can edit the same
+records, and if both of you touch the same dance or program at once, one
+edit silently wins — there is no merge and no warning. It also explains that
+the phrase itself has no password reset: losing it locks you out of that
+store, and the only fix for a leaked phrase is moving every device to a new
+one. Before connecting, you're offered an optional one-time backup of your
+library — accepting or skipping it doesn't change what connecting does.
+
+If a store this device used to sync with is no longer there, the app asks
+before creating a replacement: it may have gone unused past its 30-day limit,
+or it may have been removed — the app can't tell which. Declining makes no
+network request and leaves the choice for later.
+
 ## About
 
 The **About** section tells you what you're running and where it comes from.

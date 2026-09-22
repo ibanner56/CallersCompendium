@@ -259,119 +259,121 @@ class AppLocalizationsDe extends AppLocalizations {
       'Verbinde einen Speicher, bevor du synchronisierst.';
 
   @override
-  String get settingsSyncConnectTitle => 'Connect';
+  String get settingsSyncConnectTitle => 'Verbinden';
 
   @override
-  String get settingsSyncPairingTitle => 'Connect Device Sync';
+  String get settingsSyncPairingTitle => 'Gerätesynchronisierung verbinden';
 
   @override
   String get settingsSyncPairingChooseHeading =>
-      'Is this the first device, or are you adding another?';
+      'Ist das das erste Gerät, oder fügst du ein weiteres hinzu?';
 
   @override
-  String get settingsSyncPairingCreateTitle => 'Create a new store';
+  String get settingsSyncPairingCreateTitle => 'Neuen Speicher erstellen';
 
   @override
   String get settingsSyncPairingCreateSubtitle =>
-      'Start fresh. You\'ll get a phrase to read to your other devices.';
+      'Ganz neu beginnen. Du erhältst eine Phrase, die du deinen anderen Geräten vorlesen kannst.';
 
   @override
-  String get settingsSyncPairingConnectTitle => 'Connect to an existing store';
+  String get settingsSyncPairingConnectTitle =>
+      'Mit vorhandenem Speicher verbinden';
 
   @override
   String get settingsSyncPairingConnectSubtitle =>
-      'Enter the phrase shown on the device you already set up.';
+      'Gib die Phrase ein, die auf dem bereits eingerichteten Gerät angezeigt wird.';
 
   @override
-  String get settingsSyncPairingYourPhrase => 'Your sync phrase';
+  String get settingsSyncPairingYourPhrase => 'Deine Synchronisierungsphrase';
 
   @override
-  String get settingsSyncPairingRegenerate => 'Generate a different phrase';
+  String get settingsSyncPairingRegenerate => 'Andere Phrase erzeugen';
 
   @override
-  String get settingsSyncPairingEnterPhrase => 'Sync phrase';
+  String get settingsSyncPairingEnterPhrase => 'Synchronisierungsphrase';
 
   @override
-  String get settingsSyncPairingEnterPhraseHint => 'word-word-word-word';
+  String get settingsSyncPairingEnterPhraseHint => 'wort-wort-wort-wort';
 
   @override
   String get settingsSyncPairingInvalidPhrase =>
-      'That doesn\'t look like a complete sync phrase.';
+      'Das sieht nicht nach einer vollständigen Synchronisierungsphrase aus.';
 
   @override
   String get settingsSyncPairingNotFound =>
-      'No store has that phrase. Check it against the other device and try again.';
+      'Kein Speicher hat diese Phrase. Vergleiche sie mit dem anderen Gerät und versuche es erneut.';
 
   @override
   String get settingsSyncPairingAlreadyInUse =>
-      'That phrase is already in use by another store. Generate a different one.';
+      'Diese Phrase wird bereits von einem anderen Speicher verwendet. Erzeuge eine andere.';
 
   @override
   String get settingsSyncPairingUnreachable =>
-      'Device Sync isn\'t available right now. Check your connection and try again.';
+      'Die Gerätesynchronisierung ist gerade nicht verfügbar. Prüfe deine Verbindung und versuche es erneut.';
 
   @override
-  String get settingsSyncPairingSharingTitle => 'Sharing is not collaboration';
+  String get settingsSyncPairingSharingTitle =>
+      'Teilen ist keine Zusammenarbeit';
 
   @override
   String get settingsSyncPairingSharingBody =>
-      'A second person can use this same phrase on their device. If you both edit the same dance or program at the same time, one edit silently overwrites the other — there\'s no warning and no way to combine them.';
+      'Eine zweite Person kann dieselbe Phrase auf ihrem Gerät verwenden. Wenn ihr beide gleichzeitig denselben Tanz oder dasselbe Programm bearbeitet, überschreibt eine Änderung die andere stillschweigend — es gibt keine Warnung und keine Möglichkeit, sie zu kombinieren.';
 
   @override
   String get settingsSyncPairingCredentialTitle =>
-      'This phrase can\'t be recovered or revoked';
+      'Diese Phrase kann weder wiederhergestellt noch widerrufen werden';
 
   @override
   String get settingsSyncPairingCredentialBody =>
-      'Losing this phrase makes your store unreachable — there is no password reset. If it leaks, the only fix is moving every device to a new phrase.';
+      'Verlierst du diese Phrase, wird dein Speicher unerreichbar — es gibt kein Zurücksetzen. Falls sie durchsickert, ist die einzige Lösung, alle Geräte auf eine neue Phrase umzustellen.';
 
   @override
   String get settingsSyncPairingBackupOfferTitle =>
-      'Back up your library first?';
+      'Zuerst deine Bibliothek sichern?';
 
   @override
   String get settingsSyncPairingBackupOfferBody =>
-      'This is optional and only for your own safekeeping — connecting itself does not back anything up.';
+      'Das ist optional und dient nur deiner eigenen Sicherheit — das Verbinden selbst sichert nichts.';
 
   @override
-  String get settingsSyncPairingBackupOfferAccept => 'Back up now';
+  String get settingsSyncPairingBackupOfferAccept => 'Jetzt sichern';
 
   @override
-  String get settingsSyncPairingBackupOfferSkip => 'Skip';
+  String get settingsSyncPairingBackupOfferSkip => 'Überspringen';
 
   @override
-  String get settingsSyncPairingContinue => 'Continue';
+  String get settingsSyncPairingContinue => 'Weiter';
 
   @override
-  String get settingsSyncPairingComplete => 'Connected';
+  String get settingsSyncPairingComplete => 'Verbunden';
 
   @override
   String get settingsSyncPairingCompleteBody =>
-      'Your library is connected. The first sync is running now.';
+      'Deine Bibliothek ist verbunden. Die erste Synchronisierung läuft jetzt.';
 
   @override
   String settingsSyncPairingCompleteDuplicates(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Found and merged $count duplicate dances.',
-      one: 'Found and merged $count duplicate dance.',
+      other: '$count doppelte Tänze gefunden und zusammengeführt.',
+      one: '$count doppelten Tanz gefunden und zusammengeführt.',
     );
     return '$_temp0';
   }
 
   @override
-  String get settingsSyncReplacementTitle => 'Reconnect this store?';
+  String get settingsSyncReplacementTitle => 'Diesen Speicher neu verbinden?';
 
   @override
   String get settingsSyncReplacementBody =>
-      'The store this device used to sync with is no longer there. It may have expired through inactivity, or it may have been removed. Reconnecting creates a new store with the same phrase and re-syncs from scratch.';
+      'Der Speicher, mit dem dieses Gerät synchronisiert hat, ist nicht mehr vorhanden. Er könnte durch Inaktivität abgelaufen oder entfernt worden sein. Erneutes Verbinden erstellt einen neuen Speicher mit derselben Phrase und synchronisiert von vorn.';
 
   @override
-  String get settingsSyncReplacementConfirm => 'Reconnect';
+  String get settingsSyncReplacementConfirm => 'Neu verbinden';
 
   @override
-  String get settingsSyncReplacementCancel => 'Not now';
+  String get settingsSyncReplacementCancel => 'Jetzt nicht';
 
   @override
   String get settingsAboutTitle => 'Über';

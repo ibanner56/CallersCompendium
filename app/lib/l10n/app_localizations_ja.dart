@@ -248,119 +248,115 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsSyncNotPairedNow => '同期する前にストアを接続してください。';
 
   @override
-  String get settingsSyncConnectTitle => 'Connect';
+  String get settingsSyncConnectTitle => '接続';
 
   @override
-  String get settingsSyncPairingTitle => 'Connect Device Sync';
+  String get settingsSyncPairingTitle => 'デバイス同期を接続';
 
   @override
   String get settingsSyncPairingChooseHeading =>
-      'Is this the first device, or are you adding another?';
+      'これは最初のデバイスですか、それとも追加のデバイスですか?';
 
   @override
-  String get settingsSyncPairingCreateTitle => 'Create a new store';
+  String get settingsSyncPairingCreateTitle => '新しいストアを作成';
 
   @override
   String get settingsSyncPairingCreateSubtitle =>
-      'Start fresh. You\'ll get a phrase to read to your other devices.';
+      '最初から始めます。他のデバイスに読み上げるためのフレーズが表示されます。';
 
   @override
-  String get settingsSyncPairingConnectTitle => 'Connect to an existing store';
+  String get settingsSyncPairingConnectTitle => '既存のストアに接続';
 
   @override
   String get settingsSyncPairingConnectSubtitle =>
-      'Enter the phrase shown on the device you already set up.';
+      'すでに設定済みのデバイスに表示されているフレーズを入力してください。';
 
   @override
-  String get settingsSyncPairingYourPhrase => 'Your sync phrase';
+  String get settingsSyncPairingYourPhrase => '同期フレーズ';
 
   @override
-  String get settingsSyncPairingRegenerate => 'Generate a different phrase';
+  String get settingsSyncPairingRegenerate => '別のフレーズを生成';
 
   @override
-  String get settingsSyncPairingEnterPhrase => 'Sync phrase';
+  String get settingsSyncPairingEnterPhrase => '同期フレーズ';
 
   @override
-  String get settingsSyncPairingEnterPhraseHint => 'word-word-word-word';
+  String get settingsSyncPairingEnterPhraseHint => '単語-単語-単語-単語';
 
   @override
-  String get settingsSyncPairingInvalidPhrase =>
-      'That doesn\'t look like a complete sync phrase.';
+  String get settingsSyncPairingInvalidPhrase => '完全な同期フレーズのようには見えません。';
 
   @override
   String get settingsSyncPairingNotFound =>
-      'No store has that phrase. Check it against the other device and try again.';
+      'そのフレーズに一致するストアがありません。もう一方のデバイスと照合して、もう一度お試しください。';
 
   @override
   String get settingsSyncPairingAlreadyInUse =>
-      'That phrase is already in use by another store. Generate a different one.';
+      'そのフレーズはすでに別のストアで使用されています。別のフレーズを生成してください。';
 
   @override
   String get settingsSyncPairingUnreachable =>
-      'Device Sync isn\'t available right now. Check your connection and try again.';
+      'デバイス同期は現在利用できません。接続を確認して、もう一度お試しください。';
 
   @override
-  String get settingsSyncPairingSharingTitle => 'Sharing is not collaboration';
+  String get settingsSyncPairingSharingTitle => '共有は共同編集ではありません';
 
   @override
   String get settingsSyncPairingSharingBody =>
-      'A second person can use this same phrase on their device. If you both edit the same dance or program at the same time, one edit silently overwrites the other — there\'s no warning and no way to combine them.';
+      'もう一人が同じフレーズを自分のデバイスで使用できます。同じダンスやプログラムを同時に編集すると、一方の編集がもう一方を警告なく静かに上書きし、両方を統合する方法はありません。';
 
   @override
-  String get settingsSyncPairingCredentialTitle =>
-      'This phrase can\'t be recovered or revoked';
+  String get settingsSyncPairingCredentialTitle => 'このフレーズは復元も無効化もできません';
 
   @override
   String get settingsSyncPairingCredentialBody =>
-      'Losing this phrase makes your store unreachable — there is no password reset. If it leaks, the only fix is moving every device to a new phrase.';
+      'このフレーズを紛失すると、ストアに到達できなくなります — パスワードのリセットはありません。漏えいした場合、唯一の対処法はすべてのデバイスを新しいフレーズに移行することです。';
 
   @override
-  String get settingsSyncPairingBackupOfferTitle =>
-      'Back up your library first?';
+  String get settingsSyncPairingBackupOfferTitle => '先にライブラリをバックアップしますか?';
 
   @override
   String get settingsSyncPairingBackupOfferBody =>
-      'This is optional and only for your own safekeeping — connecting itself does not back anything up.';
+      'これは任意で、あくまでご自身の安全のためのものです — 接続自体は何もバックアップしません。';
 
   @override
-  String get settingsSyncPairingBackupOfferAccept => 'Back up now';
+  String get settingsSyncPairingBackupOfferAccept => '今すぐバックアップ';
 
   @override
-  String get settingsSyncPairingBackupOfferSkip => 'Skip';
+  String get settingsSyncPairingBackupOfferSkip => 'スキップ';
 
   @override
-  String get settingsSyncPairingContinue => 'Continue';
+  String get settingsSyncPairingContinue => '続ける';
 
   @override
-  String get settingsSyncPairingComplete => 'Connected';
+  String get settingsSyncPairingComplete => '接続しました';
 
   @override
   String get settingsSyncPairingCompleteBody =>
-      'Your library is connected. The first sync is running now.';
+      'ライブラリが接続されました。最初の同期が今実行されています。';
 
   @override
   String settingsSyncPairingCompleteDuplicates(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Found and merged $count duplicate dances.',
-      one: 'Found and merged $count duplicate dance.',
+      other: '重複するダンスを$count件見つけて統合しました。',
     );
     return '$_temp0';
   }
 
   @override
-  String get settingsSyncReplacementTitle => 'Reconnect this store?';
+  String get settingsSyncReplacementTitle => 'このストアに再接続しますか?';
 
   @override
   String get settingsSyncReplacementBody =>
-      'The store this device used to sync with is no longer there. It may have expired through inactivity, or it may have been removed. Reconnecting creates a new store with the same phrase and re-syncs from scratch.';
+      'このデバイスが同期していたストアはもう存在しません。非アクティブにより期限切れになったか、削除された可能性があります。再接続すると、同じフレーズで新しいストアが作成され、最初から再同期します。';
 
   @override
-  String get settingsSyncReplacementConfirm => 'Reconnect';
+  String get settingsSyncReplacementConfirm => '再接続';
 
   @override
-  String get settingsSyncReplacementCancel => 'Not now';
+  String get settingsSyncReplacementCancel => '今はしない';
 
   @override
   String get settingsAboutTitle => '情報';
