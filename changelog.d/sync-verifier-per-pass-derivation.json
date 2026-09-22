@@ -1,0 +1,14 @@
+{
+  "id": "sync-verifier-per-pass-derivation",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Device Sync no longer re-derives the slow, salted sync-identity check on every step of a sync pass. Once a pass has confirmed prior use, later steps reuse that answer instead of repeating several seconds of CPU work per configured identity, including inside a held write lock."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "CompendiumSyncStorage.snapshot() and markSyncUsed() memoise the sync-identity verifier match per storage instance (one worker pass) instead of deriving it on every call; markSyncUsed short-circuits from the memo once a match is known, and the memo is updated, not invalidated, when a new verifier is written."
+    ]
+  }
+}
