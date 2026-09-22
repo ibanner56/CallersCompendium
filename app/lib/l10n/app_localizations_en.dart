@@ -215,6 +215,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'On by default. On a mobile-data connection sync waits until you are on WiFi.';
 
   @override
+  String get settingsSyncExcludeImportsTitle =>
+      'Skip imported dances not in a program';
+
+  @override
+  String get settingsSyncExcludeImportsSubtitle =>
+      'Off by default. Cuts what this device uploads if you have a large imported collection; a dance in one of your programs is always included. Nothing is removed from your other devices.';
+
+  @override
   String get settingsSyncStatusHeader => 'Status';
 
   @override

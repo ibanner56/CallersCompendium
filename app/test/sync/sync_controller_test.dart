@@ -162,6 +162,23 @@ void main() {
       },
     );
 
+    test(
+      'setExcludeImports persists and is off by default (spec §6.1)',
+      () async {
+        final controller = build();
+        await controller.load();
+        expect(controller.excludeImports, isFalse);
+
+        await controller.setExcludeImports(true);
+        expect(controller.excludeImports, isTrue);
+        expect(await repos.settings.get(kSyncExcludeImportsKey), isTrue);
+
+        await controller.setExcludeImports(false);
+        expect(controller.excludeImports, isFalse);
+        expect(await repos.settings.get(kSyncExcludeImportsKey), isFalse);
+      },
+    );
+
     test('turning WiFi-only off lets a metered connection sync', () async {
       final controller = build();
       await controller.load();

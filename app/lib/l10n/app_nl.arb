@@ -6976,6 +6976,10 @@
   "@venueEditorSharedNote": {
     "x-sourceSha256": "4d048ad644a9c5f9e11abdd572cd76096caa35733d56f6295aa43a866b42c407"
   },
+  "venueEditorPartialSyncHint": "De adres- en contactvelden van deze locatie hieronder blijven op dit apparaat — Apparaatsynchronisatie draagt ze niet over naar je andere apparaten, dus daar kunnen ze leeg zijn. Het veld Notities synchroniseert wel, dus vermijd daar contactgegevens als je die liever privé op dit apparaat houdt.",
+  "@venueEditorPartialSyncHint": {
+    "x-sourceSha256": "d52232511ecaada9223a7115219345b13a4fe2c368b92b48330d533d3f3efba0"
+  },
   "venueEditorNameLabel": "Naam *",
   "@venueEditorNameLabel": {
     "x-sourceSha256": "862fead051bea9adb92ca8cf3072881ddb026425b8f47b4acf86644b83cd940e"

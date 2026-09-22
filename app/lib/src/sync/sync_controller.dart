@@ -181,6 +181,17 @@ class SyncController extends ChangeNotifier {
     _notify();
   }
 
+  /// Sets the per-device upload-budget toggle for imported dances (spec
+  /// §6.1). Takes effect on the next pass — [CompendiumSyncStorage.snapshot]
+  /// reads it live, so this needs no reconfiguration.
+  Future<void> setExcludeImports(bool value) async {
+    if (value == _excludeImports) return;
+    _excludeImports = value;
+    _expectSelfWrite();
+    await _settings.set(kSyncExcludeImportsKey, value);
+    _notify();
+  }
+
   /// Runs the app-start trigger (spec §6.12).
   Future<SyncGateOutcome> onAppStart() => trigger(SyncTrigger.appStart);
 

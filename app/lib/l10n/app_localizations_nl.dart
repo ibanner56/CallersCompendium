@@ -217,6 +217,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'Standaard aan. Bij mobiele data wacht de synchronisatie tot je op wifi zit.';
 
   @override
+  String get settingsSyncExcludeImportsTitle =>
+      'Skip imported dances not in a program';
+
+  @override
+  String get settingsSyncExcludeImportsSubtitle =>
+      'Off by default. Cuts what this device uploads if you have a large imported collection; a dance in one of your programs is always included. Nothing is removed from your other devices.';
+
+  @override
   String get settingsSyncStatusHeader => 'Status';
 
   @override
@@ -7050,7 +7058,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get venueEditorPartialSyncHint =>
-      'This venue\'s address and contact fields below stay on this device — Device Sync does not carry them to your other devices, so they may be blank there. The Notes field does sync, so avoid putting contact details there if you\'d rather keep them private to this device.';
+      'De adres- en contactvelden van deze locatie hieronder blijven op dit apparaat — Apparaatsynchronisatie draagt ze niet over naar je andere apparaten, dus daar kunnen ze leeg zijn. Het veld Notities synchroniseert wel, dus vermijd daar contactgegevens als je die liever privé op dit apparaat houdt.';
 
   @override
   String get venueEditorNameLabel => 'Naam *';

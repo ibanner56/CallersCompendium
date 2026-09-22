@@ -454,6 +454,18 @@ abstract class AppLocalizations {
   /// **'On by default. On a mobile-data connection sync waits until you are on WiFi.'**
   String get settingsSyncWifiOnlySubtitle;
 
+  /// Title of the switch that stops this device from uploading imported dances no program on it cites.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip imported dances not in a program'**
+  String get settingsSyncExcludeImportsTitle;
+
+  /// Subtitle of the exclude-imports switch: off by default, upload-only, cited dances are exempt, and turning it on deletes nothing already synced.
+  ///
+  /// In en, this message translates to:
+  /// **'Off by default. Cuts what this device uploads if you have a large imported collection; a dance in one of your programs is always included. Nothing is removed from your other devices.'**
+  String get settingsSyncExcludeImportsSubtitle;
+
   /// Header of the Device Sync status group.
   ///
   /// In en, this message translates to:

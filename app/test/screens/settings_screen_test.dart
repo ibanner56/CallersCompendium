@@ -1342,6 +1342,36 @@ void main() {
         expect(find.text('Not connected to a store yet.'), findsOneWidget);
       });
 
+      testWidgets('exclude-imports is off by default and persists when toggled '
+          '(ADR-004/W13 PR3)', (tester) async {
+        final harness = await _pumpSettings(tester);
+        await openExperimental(tester);
+        await tester.tap(find.byKey(const ValueKey('sync-enabled-toggle')));
+        await tester.pumpAndSettle();
+
+        final toggle = find.byKey(
+          const ValueKey('sync-exclude-imports-toggle'),
+        );
+        expect(
+          tester.widget<SwitchListTile>(toggle).value,
+          isFalse,
+          reason: 'off by default (spec §6.1)',
+        );
+        expect(
+          await harness.repos.settings.get('sync_exclude_imports'),
+          isNull,
+        );
+
+        await tester.tap(toggle);
+        await tester.pumpAndSettle();
+
+        expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
+        expect(
+          await harness.repos.settings.get('sync_exclude_imports'),
+          isTrue,
+        );
+      });
+
       testWidgets('the not-a-backup disclosure is on the status surface', (
         tester,
       ) async {
