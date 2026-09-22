@@ -252,6 +252,22 @@
   "@settingsSyncStatusSyncing": {
     "x-sourceSha256": "8a046cc90ab0a981f95cbf2c9c609309e0cfda272d8c01fdffecdb8286877e91"
   },
+  "settingsSyncStatusFailed": "Die letzte Synchronisierung ist fehlgeschlagen.",
+  "@settingsSyncStatusFailed": {
+    "x-sourceSha256": "53fa99d78ec8627b66d1f608b171626f6d73f1d7d70a1c3eab42afa83106af14"
+  },
+  "settingsSyncStatusStaleStore": "Dieser Speicher wurde seit deiner letzten Synchronisierung von einem anderen Gerät ersetzt. Die nächste Synchronisierung verbindet sich mit dem neuen.",
+  "@settingsSyncStatusStaleStore": {
+    "x-sourceSha256": "7e0535051294ba8f0749e72c2fd6b08430fedf9cddd44531793bb00c568c7f4f"
+  },
+  "settingsSyncStatusStoreUnavailable": "Dieser Speicher ist möglicherweise durch Inaktivität abgelaufen oder wurde entfernt.",
+  "@settingsSyncStatusStoreUnavailable": {
+    "x-sourceSha256": "10aa2d5b626d50a6a7e00bac6cd2082c5484d16d2ae168658b1b4ea36a8cf6eb"
+  },
+  "settingsSyncStatusStoreNotFound": "Kein Speicher hat diese Synchronisierungsphrase. Vergleiche sie mit deinem anderen Gerät.",
+  "@settingsSyncStatusStoreNotFound": {
+    "x-sourceSha256": "7eb8a9fcc42e8368f1b00c025755d94b46f4d1462fe1c5c79268e8e7f3f563ac"
+  },
   "settingsSyncNotBackup": "Synchronisierung ist kein Backup. Ein Speicher, der 30 Tage lang nicht genutzt wird, wird entfernt. Erstelle also weiterhin Dateisicherungen.",
   "@settingsSyncNotBackup": {
     "x-sourceSha256": "11cd21133a59a470d73d8b582f2307c314309fe99564283639556d8afcfd4fa3"
