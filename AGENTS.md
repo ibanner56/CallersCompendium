@@ -35,6 +35,10 @@ A clean `dart test` is not the same as a clean gate run: some ratchets — figur
 fixtures against the taxonomy, most notably — are not exercised by the test
 suites at all.
 
+A full run peaks above 5 GB, so its Dart steps take a machine-wide lock and a
+second run queues. Subagents verify their own edits with `--fast` or `--only`;
+the session that owns the change runs the full preflight once, on the final tree.
+
 Copilot cloud sessions created after `.github/workflows/copilot-setup-steps.yml`
 reaches `main` receive the pinned Flutter SDK; it cannot provision a session
 that has already started.

@@ -24,6 +24,17 @@ Missing toolchains are visibly skipped by default, so cloud and local sessions
 without FVM still run every applicable Python gate. Pass --require-available
 to make a selected unavailable gate fail instead.
 
+The Dart/Flutter steps hold a machine-wide lock, because their cost is measured
+in gigabytes rather than seconds: on a 16-thread, 16 GB Windows host `app-tests`
+alone peaked at 5.1 GB resident (eight `flutter_tester` processes plus the tool
+and its compiler) and drove system commit to 18.46 GB of an 18.8 GB limit. Two
+preflights at once therefore do not fit, and the failure is not a red gate --
+the second run is killed by whatever reaps processes when the host runs out of
+memory, which reads as an infrastructure flake and buys a retry that fails the
+same way. Runs now queue instead: the lock is taken before the first Dart step
+that will actually run and released at the end, so `--fast` runs and the Python
+gates of a full run never wait for it. Pass --no-lock to opt out.
+
 Exit codes: 0 = every selected step passed or was skipped, 1 = invalid selection
 or a selected step failed / was unavailable under --require-available.
 """
@@ -31,16 +42,36 @@ or a selected step failed / was unavailable under --require-available.
 from __future__ import annotations
 
 import argparse
+import contextlib
+import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from pathlib import Path, PurePath
-from typing import Sequence
+from typing import IO, Sequence
 
 ROOT = Path(__file__).resolve().parent.parent
 FAIL_TAIL_LINES = 12
+
+# One lock per machine, not per checkout: the constraint is the host's memory,
+# and the sessions that collide are in *different* worktrees. The per-user temp
+# directory is the right home for it -- every session here runs as the same user,
+# and a lock that vanishes on reboot is a lock that cannot go stale across one.
+TOOLCHAIN_LOCK = Path(tempfile.gettempdir()) / "callers-compendium-preflight.lock"
+LOCK_POLL_SECONDS = 2.0
+
+# Half the cores, capped at 4. `flutter test` otherwise defaults to
+# `numberOfProcessors / 2` test processes -- 8 here -- and each holds a full
+# engine: measured 5.1 GB peak at 8 against 3.3 GB at 4, for 196s against
+# 208-235s over three capped runs. Half a minute is worth 1.8 GB on a host whose
+# spare commit is ~5 GB. The cap does not reach CI, which runs a 4-core runner
+# and so lands on 2 by itself.
+MAX_TEST_JOBS = 4
+TEST_JOBS_ENV = "PREFLIGHT_TEST_JOBS"
 
 
 @dataclass(frozen=True)
@@ -59,6 +90,84 @@ class Step:
     needs_binary: str | None = None
     needs_import: str | None = None
     needs_path: Path | None = None
+
+
+def test_jobs(environ: Mapping[str, str], cpu_count: int | None) -> int:
+    """Concurrency for the Flutter test step: see MAX_TEST_JOBS.
+
+    Raises ValueError for an unusable override rather than falling back to the
+    default: a typo in the variable that is there to bound memory should say so,
+    not silently restore the 8-process run it was set to prevent.
+    """
+    override = environ.get(TEST_JOBS_ENV)
+    if override is not None:
+        try:
+            jobs = int(override)
+        except ValueError:
+            raise ValueError(f"{TEST_JOBS_ENV}={override!r} is not an integer") from None
+        if jobs < 1:
+            raise ValueError(f"{TEST_JOBS_ENV}={override!r} must be at least 1")
+        return jobs
+    return max(1, min(MAX_TEST_JOBS, (cpu_count or 2 * MAX_TEST_JOBS) // 2))
+
+
+try:
+    TEST_JOBS = test_jobs(os.environ, os.cpu_count())
+except ValueError as error:
+    sys.exit(f"preflight: {error}")
+
+
+def _lock_exclusive(handle: IO[str]) -> None:
+    """Take a whole-file advisory lock, or raise OSError if another run holds it.
+
+    Both implementations are tied to the open file, so the OS drops the lock when
+    this process exits however it exits -- including the low-memory kill this
+    lock exists to prevent. That is why there is no PID file and no staleness
+    check: a lock that outlives its holder would need one, and this cannot.
+    """
+    if os.name == "nt":
+        import msvcrt
+
+        msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+    else:
+        import fcntl
+
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+
+def _unlock(handle: IO[str]) -> None:
+    if os.name == "nt":
+        import msvcrt
+
+        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+    else:
+        import fcntl
+
+        fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+@contextlib.contextmanager
+def toolchain_lock() -> Iterator[None]:
+    """Serialize the Dart/Flutter steps against every other preflight on the host."""
+    with open(TOOLCHAIN_LOCK, "a+", encoding="utf-8") as handle:
+        announced = False
+        while True:
+            try:
+                _lock_exclusive(handle)
+                break
+            except OSError:
+                if not announced:
+                    print(
+                        f"wait {'toolchain':16} another preflight holds "
+                        f"{TOOLCHAIN_LOCK.name}; queued behind it",
+                        flush=True,
+                    )
+                    announced = True
+                time.sleep(LOCK_POLL_SECONDS)
+        try:
+            yield
+        finally:
+            _unlock(handle)
 
 
 def py(*args: str) -> tuple[str, ...]:
@@ -300,7 +409,7 @@ STEPS: tuple[Step, ...] = (
     Step(
         "app-tests",
         "app suite (includes the privacy classification ratchets)",
-        (fvm("flutter", "test"),),
+        (fvm("flutter", "test", f"--concurrency={TEST_JOBS}"),),
         cwd=ROOT / "app",
         fast=False,
         needs_binary="fvm",
@@ -378,6 +487,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         action="store_true",
         help="fail instead of skipping a selected gate with a missing toolchain",
     )
+    parser.add_argument(
+        "--no-lock",
+        action="store_true",
+        help="run the Dart/Flutter steps without the machine-wide memory lock",
+    )
     args = parser.parse_args(argv)
 
     if args.only:
@@ -405,20 +519,30 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     failures: list[str] = []
     skipped = 0
-    for step in steps:
-        status, detail = run_step(step)
-        if status == "ok":
-            print(f"ok   {step.name:16} {detail}")
-        elif status == "skip":
-            if args.require_available:
-                failures.append(step.name)
-                print(f"FAIL {step.name:16} unavailable: {detail}")
+    with contextlib.ExitStack() as lock:
+        held = args.no_lock
+        for step in steps:
+            # Lazily, and only for a step that will really run: an unavailable
+            # Dart step costs no memory, and a run that took the lock to skip
+            # eleven of them would stall the run that needs it. Held from there
+            # to the end of the run rather than per step, so two runs do not
+            # trade the lock back and forth and pay both their compile costs.
+            if not held and not step.fast and _unavailable(step) is None:
+                lock.enter_context(toolchain_lock())
+                held = True
+            status, detail = run_step(step)
+            if status == "ok":
+                print(f"ok   {step.name:16} {detail}")
+            elif status == "skip":
+                if args.require_available:
+                    failures.append(step.name)
+                    print(f"FAIL {step.name:16} unavailable: {detail}")
+                else:
+                    skipped += 1
+                    print(f"skip {step.name:16} {detail}")
             else:
-                skipped += 1
-                print(f"skip {step.name:16} {detail}")
-        else:
-            failures.append(step.name)
-            print(f"FAIL {step.name:16} {detail}")
+                failures.append(step.name)
+                print(f"FAIL {step.name:16} {detail}")
 
     ran = len(steps) - skipped - len(failures)
     if failures:
