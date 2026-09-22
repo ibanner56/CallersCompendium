@@ -496,6 +496,30 @@ abstract class AppLocalizations {
   /// **'Syncing…'**
   String get settingsSyncStatusSyncing;
 
+  /// Status shown when the most recent sync attempt did not complete. The time of the last successful sync, if any, is shown separately below this line.
+  ///
+  /// In en, this message translates to:
+  /// **'Last sync failed.'**
+  String get settingsSyncStatusFailed;
+
+  /// Status shown when the last sync attempt found the connected store had moved on to a new epoch (another device confirmed a replacement). No action is needed: the next pass attaches to the replaced store on its own.
+  ///
+  /// In en, this message translates to:
+  /// **'This store was replaced by another device since your last sync. The next sync will join the new one.'**
+  String get settingsSyncStatusStaleStore;
+
+  /// Status shown when the last sync attempt found that a store this device had previously used no longer exists. Per spec §6.14 item 6 this must not claim a specific cause the server did not give; the replacement dialog asks the user what to do.
+  ///
+  /// In en, this message translates to:
+  /// **'This store may have expired from inactivity or been removed.'**
+  String get settingsSyncStatusStoreUnavailable;
+
+  /// Status shown when the stored sync phrase has never matched a store (the server answered not-found and this device never used the store before). Distinct from the expired-or-removed case: nothing existed to expire.
+  ///
+  /// In en, this message translates to:
+  /// **'No store has this sync phrase. Check it against your other device.'**
+  String get settingsSyncStatusStoreNotFound;
+
   /// Disclosure shown wherever Device Sync reports its status, stating that sync does not replace a file backup.
   ///
   /// In en, this message translates to:

@@ -106,8 +106,10 @@ licensed exactly the resurrection this section exists to prevent.
 `hardDelete` MUST also retain any row still referenced by a surviving record,
 including a tombstoned one. `programs.venue_id` is not a foreign key, so
 nothing at the database level rejects erasing a venue a tombstoned program
-still names, and the program writer refuses a program whose non-null `venueId`
-has no matching venue — the program becomes unrestorable.
+still names — but that reference is user-visible data on the program (the
+venue it names), and erasing the venue out from under it would silently
+orphan the reference, with nothing to tell the user their program's venue
+disappeared.
 
 **The generic hard-delete hatch.** The shipped migration also added a
 `permanent: true` parameter to `delete()`/`remove()` on five repositories —
@@ -2491,8 +2493,21 @@ transaction:
 4. Apply join rows last.
 
 A record whose reference cannot be resolved MUST be skipped and reported.
-**Exception:** a dangling `Programs.venueId` MUST be nulled before the program
-reaches the repository and reported — `ProgramRepository` throws otherwise.
+**Exception:** `Programs.venueId` is not a database foreign key — integrity is
+enforced at the app layer, not by the schema (§6.9 exempts it from FK
+withholding for the same reason) — so a dangling value MUST be persisted
+**verbatim**, never nulled or otherwise altered, and reported as an
+unresolved reference. Nulling it would not qualify for I1's one
+content-derived exception (§6.5): venue liveness is not a pure function of the
+record being written, so the change is not content-derived, and republishing
+the nulled body under the peer's unchanged `updatedAt` presents a different
+body at that timestamp — an equal-`updatedAt`, differing-hash pair §6.3 cannot
+resolve, reported forever with no user action able to clear it, because a
+tombstoned program cannot be edited. The receiver's rebuilt wire hash for the
+record MUST equal the peer's. `ProgramRepository`'s live-venue guard exists to
+protect interactive `create`/`update`; the inbound sync write paths
+(`writeFromSync`, `writeFromSyncParent`, `writeFromSyncRelations`) MUST NOT run
+it — they persist the peer's `venueId` as given, live or not.
 
 **Hostile input.** Per-record decode MUST catch `Error` as well as `Exception`;
 `PartialDate.parse` throws `ArgumentError` for a well-shaped invalid date. Text

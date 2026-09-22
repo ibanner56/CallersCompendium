@@ -73,15 +73,22 @@ the full picture.
 
 ### Sync decisions
 
-- **Sync decisions** — review conflicts that synchronization could not settle
-  without your choice. In W14, the supported decision is a peer tombstone
-  colliding with a natural-key record this device created that no peer has yet
-  observed.
-- **Merge** — accept the peer deletion. The app keeps the natural-key record
-  with the deterministic identity and applies the tombstone.
-- **Keep both** — give the local record a distinct natural key, then keep it
-  alongside the peer tombstone. Other conflict reasons remain visible as
-  retained decisions until a future version defines their actions.
+- **Sync decisions** — review conflicts that [Device Sync](#device-sync)
+  couldn't settle on its own, and choose how each one is resolved. Two kinds of
+  conflict currently offer a decision:
+  - **A device deleted something another device still has.** One of your
+    devices deleted a choreographer, tag, custom field, or difficulty level
+    that this device had already created on its own under the same name,
+    before either device had seen the other's copy. **Merge** accepts the
+    deletion, so this device's copy goes too. **Keep both** gives this
+    device's record a new, distinct name so it survives alongside the
+    deletion. Dances never enter this decision; they use the next one.
+  - **Two devices independently created dances with the same title but
+    different choreography.** This turns up when a device first connects to a
+    store that already has dances in it. **Merge** combines the two dances into
+    one. **Keep both** renames one of the dances so both are kept separately.
+  Any other conflict is shown as retained, with no action available yet, until
+  a future version knows how to resolve it.
 
 ### Import
 

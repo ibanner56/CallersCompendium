@@ -309,9 +309,10 @@ class VenueRepository {
   /// surviving program row names — including a tombstoned one. The caller can
   /// no longer be assumed to have removed every referencing program, because a
   /// published program is tombstoned rather than erased, and `programs.venueId`
-  /// is not a foreign key: nothing else would reject the erasure, and the
-  /// program writer refuses a program whose non-null `venueId` has no matching
-  /// venue.
+  /// is not a foreign key: nothing else would reject the erasure, and the venue
+  /// is user-visible data on that program — erasing it out from under a
+  /// surviving reference would silently orphan the reference instead of
+  /// rejecting the delete.
   ///
   /// Unpublished rollback rows stay hard-deleted after the schema-v25
   /// soft-delete conversion (issue #898), exactly as the corresponding dance
@@ -341,12 +342,12 @@ class VenueRepository {
       // A venue still named by *any* surviving program row — including a
       // tombstoned one — must stay. `programs.venue_id` is not a foreign key,
       // so nothing at the database level would reject the erasure, and the
-      // program write path refuses a program whose non-null `venueId` has no
-      // matching venue: the program would become unrestorable from Trash.
-      // This became reachable when publication forfeiture started tombstoning
-      // published programs instead of erasing them, which breaks this method's
-      // documented precondition that the caller has already removed every
-      // referencing program.
+      // venue is user-visible data on that program: erasing it out from under
+      // a surviving reference would silently orphan the reference rather than
+      // being caught anywhere. This became reachable when publication
+      // forfeiture started tombstoning published programs instead of erasing
+      // them, which breaks this method's documented precondition that the
+      // caller has already removed every referencing program.
       final stillReferenced = <String>{};
       for (final chunk in _chunkIds(list)) {
         final rows =

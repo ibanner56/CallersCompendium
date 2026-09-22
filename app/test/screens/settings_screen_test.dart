@@ -1446,6 +1446,168 @@ void main() {
           );
         },
       );
+
+      testWidgets(
+        'a failed pass is shown, and an earlier last-synced time is not lost',
+        (tester) async {
+          final harness = await _pumpSettings(tester);
+          await harness.repos.settings.set('sync_id', 'correct horse battery');
+          final controller = SyncScope.of(
+            tester.element(find.byType(SettingsScreen)),
+          );
+          await controller.setEnabled(true);
+          await controller.load();
+          var shouldFail = false;
+          _syncCoordinator = SyncCoordinator(
+            syncId: 'configured',
+            deviceId: 'device',
+            store: CompendiumSyncCoordinatorStore(harness.repos),
+            transport: NoopSyncCoordinatorTransport(),
+            passOperation: ({initialStore}) async => shouldFail
+                ? const SyncPassResult(SyncPassStatus.failed)
+                : const SyncPassResult(SyncPassStatus.completed),
+          );
+          addTearDown(_syncCoordinator!.dispose);
+          await openExperimental(tester);
+
+          // A completed pass first, to establish a last-synced time.
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+          expect(find.textContaining('Last synced'), findsOneWidget);
+
+          // A failed pass must replace the stale "last synced" headline —
+          // not be silently absorbed by it — while still naming the earlier
+          // success separately.
+          shouldFail = true;
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+
+          expect(find.text('Last sync failed.'), findsOneWidget);
+          expect(
+            find.byKey(const ValueKey('sync-status-last-success')),
+            findsOneWidget,
+          );
+        },
+      );
+
+      testWidgets(
+        'a stale-epoch pass reports the store changed, not a stale success',
+        (tester) async {
+          final harness = await _pumpSettings(tester);
+          await harness.repos.settings.set('sync_id', 'correct horse battery');
+          final controller = SyncScope.of(
+            tester.element(find.byType(SettingsScreen)),
+          );
+          await controller.setEnabled(true);
+          await controller.load();
+          _syncCoordinator = SyncCoordinator(
+            syncId: 'configured',
+            deviceId: 'device',
+            store: CompendiumSyncCoordinatorStore(harness.repos),
+            transport: NoopSyncCoordinatorTransport(),
+            passOperation: ({initialStore}) async =>
+                const SyncPassResult(SyncPassStatus.staleEpoch),
+          );
+          addTearDown(_syncCoordinator!.dispose);
+          await openExperimental(tester);
+
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+
+          expect(find.textContaining('was replaced'), findsOneWidget);
+        },
+      );
+
+      testWidgets(
+        'a store that no longer exists is explained without claiming a '
+        'cause the server did not give',
+        (tester) async {
+          final harness = await _pumpSettings(tester);
+          await harness.repos.settings.set('sync_id', 'correct horse battery');
+          final controller = SyncScope.of(
+            tester.element(find.byType(SettingsScreen)),
+          );
+          await controller.setEnabled(true);
+          await controller.load();
+          _syncCoordinator = SyncCoordinator(
+            syncId: 'configured',
+            deviceId: 'device',
+            store: CompendiumSyncCoordinatorStore(harness.repos),
+            transport: NoopSyncCoordinatorTransport(),
+            passOperation: ({initialStore}) async =>
+                const SyncPassResult(SyncPassStatus.replacementRequired),
+          );
+          addTearDown(_syncCoordinator!.dispose);
+          await openExperimental(tester);
+
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+
+          expect(find.textContaining('may have expired'), findsOneWidget);
+        },
+      );
+
+      testWidgets(
+        'a phrase no store has ever answered to is reported as not found, '
+        'not as expired',
+        (tester) async {
+          final harness = await _pumpSettings(tester);
+          await harness.repos.settings.set('sync_id', 'correct horse battery');
+          final controller = SyncScope.of(
+            tester.element(find.byType(SettingsScreen)),
+          );
+          await controller.setEnabled(true);
+          await controller.load();
+          _syncCoordinator = SyncCoordinator(
+            syncId: 'configured',
+            deviceId: 'device',
+            store: CompendiumSyncCoordinatorStore(harness.repos),
+            transport: NoopSyncCoordinatorTransport(),
+            passOperation: ({initialStore}) async =>
+                const SyncPassResult(SyncPassStatus.firstTimeStoreRequired),
+          );
+          addTearDown(_syncCoordinator!.dispose);
+          await openExperimental(tester);
+
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+
+          // §6.2 keeps a never-seen phrase apart from a store that has gone:
+          // nothing existed to expire, so the expiry wording would explain a
+          // store that was never there.
+          expect(find.textContaining('No store has this'), findsOneWidget);
+          expect(find.textContaining('may have expired'), findsNothing);
+        },
+      );
+
+      testWidgets(
+        'a crashing sync pass is reported as failed, not an unhandled error',
+        (tester) async {
+          final harness = await _pumpSettings(tester);
+          await harness.repos.settings.set('sync_id', 'correct horse battery');
+          final controller = SyncScope.of(
+            tester.element(find.byType(SettingsScreen)),
+          );
+          await controller.setEnabled(true);
+          await controller.load();
+          _syncCoordinator = SyncCoordinator(
+            syncId: 'configured',
+            deviceId: 'device',
+            store: CompendiumSyncCoordinatorStore(harness.repos),
+            transport: NoopSyncCoordinatorTransport(),
+            passOperation: ({initialStore}) async =>
+                throw StateError('sync isolate crashed'),
+          );
+          addTearDown(_syncCoordinator!.dispose);
+          await openExperimental(tester);
+
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+
+          expect(tester.takeException(), isNull);
+          expect(find.text('Last sync failed.'), findsOneWidget);
+        },
+      );
     });
 
     group('SyncPairingScreen (ADR-004/W13 PR2)', () {
