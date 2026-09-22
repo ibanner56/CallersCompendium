@@ -252,6 +252,22 @@
   "@settingsSyncStatusSyncing": {
     "x-sourceSha256": "8a046cc90ab0a981f95cbf2c9c609309e0cfda272d8c01fdffecdb8286877e91"
   },
+  "settingsSyncStatusFailed": "La dernière synchronisation a échoué.",
+  "@settingsSyncStatusFailed": {
+    "x-sourceSha256": "53fa99d78ec8627b66d1f608b171626f6d73f1d7d70a1c3eab42afa83106af14"
+  },
+  "settingsSyncStatusStaleStore": "Cet espace a été remplacé par un autre appareil depuis votre dernière synchronisation. La prochaine synchronisation rejoindra le nouveau.",
+  "@settingsSyncStatusStaleStore": {
+    "x-sourceSha256": "7e0535051294ba8f0749e72c2fd6b08430fedf9cddd44531793bb00c568c7f4f"
+  },
+  "settingsSyncStatusStoreUnavailable": "Cet espace a peut-être expiré par inactivité ou a été supprimé.",
+  "@settingsSyncStatusStoreUnavailable": {
+    "x-sourceSha256": "10aa2d5b626d50a6a7e00bac6cd2082c5484d16d2ae168658b1b4ea36a8cf6eb"
+  },
+  "settingsSyncStatusStoreNotFound": "Aucun espace ne correspond à cette phrase de synchronisation. Vérifiez-la sur votre autre appareil.",
+  "@settingsSyncStatusStoreNotFound": {
+    "x-sourceSha256": "7eb8a9fcc42e8368f1b00c025755d94b46f4d1462fe1c5c79268e8e7f3f563ac"
+  },
   "settingsSyncNotBackup": "La synchronisation n’est pas une sauvegarde. Un espace inutilisé pendant 30 jours est supprimé : continuez à faire des sauvegardes de fichiers.",
   "@settingsSyncNotBackup": {
     "x-sourceSha256": "11cd21133a59a470d73d8b582f2307c314309fe99564283639556d8afcfd4fa3"

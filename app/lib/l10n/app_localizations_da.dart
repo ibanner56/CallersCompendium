@@ -236,6 +236,21 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsSyncStatusSyncing => 'Synkroniserer …';
 
   @override
+  String get settingsSyncStatusFailed => 'Sidste synkronisering mislykkedes.';
+
+  @override
+  String get settingsSyncStatusStaleStore =>
+      'Dette lager er blevet erstattet af en anden enhed siden din sidste synkronisering. Næste synkronisering tilslutter sig det nye.';
+
+  @override
+  String get settingsSyncStatusStoreUnavailable =>
+      'Dette lager kan være udløbet på grund af inaktivitet eller være blevet fjernet.';
+
+  @override
+  String get settingsSyncStatusStoreNotFound =>
+      'Intet lager har denne synkroniseringssætning. Tjek den mod din anden enhed.';
+
+  @override
   String get settingsSyncNotBackup =>
       'Synkronisering er ikke en sikkerhedskopi. Et lager, der ikke bruges i 30 dage, bliver fjernet, så bliv ved med at lave filsikkerhedskopier.';
 

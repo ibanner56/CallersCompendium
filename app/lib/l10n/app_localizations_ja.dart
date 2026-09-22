@@ -227,6 +227,21 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsSyncStatusSyncing => '同期中…';
 
   @override
+  String get settingsSyncStatusFailed => '前回の同期は失敗しました。';
+
+  @override
+  String get settingsSyncStatusStaleStore =>
+      '前回の同期以降、このストアは別のデバイスによって置き換えられました。次回の同期で新しいストアに参加します。';
+
+  @override
+  String get settingsSyncStatusStoreUnavailable =>
+      'このストアは非アクティブにより期限切れになったか、削除された可能性があります。';
+
+  @override
+  String get settingsSyncStatusStoreNotFound =>
+      'この同期フレーズに一致するストアがありません。もう一方のデバイスと照合してください。';
+
+  @override
   String get settingsSyncNotBackup =>
       '同期はバックアップではありません。30日間使われなかったストアは削除されるため、ファイルのバックアップは引き続き取ってください。';
 

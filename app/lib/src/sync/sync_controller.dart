@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 
+import '../diagnostics/error_log.dart';
 import '../screens/settings/settings_keys.dart';
 import 'sync_coordinator.dart';
 import 'sync_http_client.dart';
@@ -187,7 +188,15 @@ class SyncController extends ChangeNotifier {
   Future<void> setEnabled(bool value) async {
     if (value == _enabled) return;
     _enabled = value;
-    _expectSelfWrite();
+    // A disable's own bookkeeping write is never observed: once `_enabled` is
+    // false, `notifyLocalChange` returns before it ever inspects
+    // `_pendingSelfWrites`, so an expectation queued here would sit forever
+    // and swallow the first genuine settings-only edit after the next enable.
+    // Resetting on every transition — rather than only skipping the disable
+    // side — also clears anything a prior leak already left behind, so the
+    // counter can never carry state across an enable/disable cycle.
+    _pendingSelfWrites = 0;
+    if (value) _expectSelfWrite();
     await _settings.set(kSyncEnabledKey, value);
     if (!value) _debounceTimer?.cancel();
     _notify();
@@ -268,7 +277,28 @@ class SyncController extends ChangeNotifier {
     _inFlight++;
     _notify();
     try {
-      final result = await coordinator.trigger(trigger);
+      SyncPassResult result;
+      try {
+        result = await coordinator.trigger(trigger);
+      } on Object catch (error, stack) {
+        // The worker isolate reports its own failure as a thrown `StateError`
+        // (see sync_isolate.dart), and `_scheduleDebounced` awaits `trigger`
+        // via `unawaited`, so an uncaught error here would become an
+        // unhandled async error rather than a status the user ever sees.
+        // Recording it as a failed pass keeps every trigger path — including
+        // the debounced one — returning normally.
+        //
+        // Type only, as the coordinator's own `_watch` does: the text of a
+        // worker or transport failure can carry the request URI, and the
+        // diagnostics redactor deliberately keeps HTTPS URLs, so the message
+        // would put the sync endpoint into an exported diagnostic bundle.
+        logCaughtErrorTypeOnly(error, stack, source: 'sync_controller.trigger');
+        result = SyncPassResult(
+          SyncPassStatus.failed,
+          message:
+              'sync pass threw ${error.runtimeType}', // i18n-ignore: internal status
+        );
+      }
       await _recordResult(result);
       return SyncGateOutcome.ran;
     } finally {

@@ -252,6 +252,22 @@
   "@settingsSyncStatusSyncing": {
     "x-sourceSha256": "8a046cc90ab0a981f95cbf2c9c609309e0cfda272d8c01fdffecdb8286877e91"
   },
+  "settingsSyncStatusFailed": "前回の同期は失敗しました。",
+  "@settingsSyncStatusFailed": {
+    "x-sourceSha256": "53fa99d78ec8627b66d1f608b171626f6d73f1d7d70a1c3eab42afa83106af14"
+  },
+  "settingsSyncStatusStaleStore": "前回の同期以降、このストアは別のデバイスによって置き換えられました。次回の同期で新しいストアに参加します。",
+  "@settingsSyncStatusStaleStore": {
+    "x-sourceSha256": "7e0535051294ba8f0749e72c2fd6b08430fedf9cddd44531793bb00c568c7f4f"
+  },
+  "settingsSyncStatusStoreUnavailable": "このストアは非アクティブにより期限切れになったか、削除された可能性があります。",
+  "@settingsSyncStatusStoreUnavailable": {
+    "x-sourceSha256": "10aa2d5b626d50a6a7e00bac6cd2082c5484d16d2ae168658b1b4ea36a8cf6eb"
+  },
+  "settingsSyncStatusStoreNotFound": "この同期フレーズに一致するストアがありません。もう一方のデバイスと照合してください。",
+  "@settingsSyncStatusStoreNotFound": {
+    "x-sourceSha256": "7eb8a9fcc42e8368f1b00c025755d94b46f4d1462fe1c5c79268e8e7f3f563ac"
+  },
   "settingsSyncNotBackup": "同期はバックアップではありません。30日間使われなかったストアは削除されるため、ファイルのバックアップは引き続き取ってください。",
   "@settingsSyncNotBackup": {
     "x-sourceSha256": "11cd21133a59a470d73d8b582f2307c314309fe99564283639556d8afcfd4fa3"
