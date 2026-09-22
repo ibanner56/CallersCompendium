@@ -163,6 +163,18 @@ void main() {
 
     await repo.delete('c1', permanent: true);
     expect(await repo.getById('c1'), isNull);
+
+    // `getById` filters `deleted_at IS NULL`, so the assertion above is
+    // satisfied by an erasure AND by a tombstone — it states "gone from live
+    // views", which is all #1328 needed, and cannot state which outcome
+    // produced it. Issue #1357 changed the outcome from the first to the
+    // second, and this test stayed green throughout. Name the outcome here so
+    // the next change to this branch has to confront it.
+    final row = await (db.select(
+      db.choreographers,
+    )..where((t) => t.id.equals('c1'))).getSingleOrNull();
+    expect(row, isNotNull, reason: 'the row survives as a tombstone (#1357)');
+    expect(row!.deletedAt, isNotNull);
   });
 
   test('delete succeeds once the crediting dance is unlinked', () async {
@@ -180,5 +192,80 @@ void main() {
 
     await repo.delete('c1');
     expect(await repo.getById('c1'), isNull);
+  });
+
+  group('permanent delete keeps a tombstoned dance whole (#1357)', () {
+    Future<int> authorRows(String choreographerId) async {
+      final rows = await (db.select(
+        db.danceAuthors,
+      )..where((t) => t.choreographerId.equals(choreographerId))).get();
+      return rows.length;
+    }
+
+    test('tombstones the choreographer instead of erasing it', () async {
+      // `dance_authors` is ON DELETE CASCADE, so erasing here destroyed the
+      // tombstoned dance's author credit outright — restoring the dance
+      // brought it back with no author, and nothing recorded that it ever had
+      // one.
+      // ignore: unused_result
+      await repo.upsert(Choreographer(id: 'c1', name: 'Credited'));
+      await dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Some Dance',
+          authorIds: const ['c1'],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await dances.softDelete('d1', at: DateTime.utc(2026, 2));
+
+      await repo.delete('c1', permanent: true);
+
+      final row = await (db.select(
+        db.choreographers,
+      )..where((t) => t.id.equals('c1'))).getSingleOrNull();
+      expect(row, isNotNull, reason: 'the row must survive the rollback');
+      expect(row!.deletedAt, isNotNull, reason: 'as a tombstone');
+      expect(await authorRows('c1'), 1, reason: 'the credit must survive too');
+      expect(
+        await repo.getById('c1'),
+        isNull,
+        reason: 'and still leave every live view, which is what undo needs',
+      );
+    });
+
+    test('a restored dance keeps its author credit', () async {
+      // ignore: unused_result
+      await repo.upsert(Choreographer(id: 'c1', name: 'Credited'));
+      await dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Some Dance',
+          authorIds: const ['c1'],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await dances.softDelete('d1', at: DateTime.utc(2026, 2));
+
+      await repo.delete('c1', permanent: true);
+      await repo.restore('c1', at: DateTime.utc(2026, 3));
+      await dances.restore('d1', at: DateTime.utc(2026, 3));
+
+      expect((await dances.getById('d1'))!.authorIds, ['c1']);
+    });
+
+    test('still erases an unreferenced, unpublished choreographer', () async {
+      // ignore: unused_result
+      await repo.upsert(Choreographer(id: 'c1', name: 'Solo'));
+
+      await repo.delete('c1', permanent: true);
+
+      final row = await (db.select(
+        db.choreographers,
+      )..where((t) => t.id.equals('c1'))).getSingleOrNull();
+      expect(row, isNull, reason: 'a rollback still leaves nothing behind');
+    });
   });
 }

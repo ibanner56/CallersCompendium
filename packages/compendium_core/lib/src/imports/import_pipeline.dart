@@ -749,11 +749,19 @@ class ImportPipeline {
   /// the value existence is ordered by, so the resurrection would outrank that
   /// deletion on every peer once a sync client exists.
   ///
-  /// The choreographer removal is a **hard** delete (`permanent: true`), not
-  /// the tombstone `ChoreographerRepository.delete` writes by default since
+  /// The choreographer removal asks for a **hard** delete (`permanent: true`),
+  /// not the tombstone `ChoreographerRepository.delete` writes by default since
   /// schema v25 (#898). A rollback is erasing an import that is being treated
   /// as never having happened, so leaving a tombstone would advertise the
   /// deletion of an author no other device ever saw.
+  ///
+  /// The repository may still decline to erase, and the caller wants it to:
+  /// since issue #1357 it downgrades to a tombstone when the row was already
+  /// published, or when a `dance_authors` row still credits it — which after
+  /// the live guard means a *tombstoned* dance credits it. Erasing then would
+  /// cascade that dance's author credit away for good, which costs more than
+  /// the unwanted tombstone does. The choreographer leaves every live view
+  /// either way, which is all this rollback needs of it.
   Future<void> undo(ImportSession session) async {
     if (session.isUndone) return;
     // Opt out of hardDelete's orphan-ref GC (#462): undo is a faithful rollback

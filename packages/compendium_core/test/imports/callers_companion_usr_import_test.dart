@@ -974,6 +974,58 @@ void main() {
       expect(await venues.getById(mintedVenueId), isNotNull);
       expect(await programs.getById(result.programs.single.id), isNull);
     });
+
+    test('undo leaves a minted venue in place when only a TOMBSTONED program '
+        'links to it (#1357)', () async {
+      // `programs.venue_id` is not a foreign key, so a soft-deleted program
+      // keeps it and can be restored later. Undo used to call
+      // `VenueRepository.delete(permanent: true)`, whose guard #1328 narrowed
+      // to live programs, so the tombstoned program did not hold the venue
+      // back and it was erased — the restored program would then name a venue
+      // row that no longer exists. Undo now calls `hardDelete`, which retains
+      // a venue any surviving program row names (sync-spec §3.1).
+      final result = await importer.import(
+        _ccUsrBytes(),
+        now: now,
+        venueEntityMode: true,
+        newId: sequentialIds(),
+        newSlotId: sequentialIds(),
+      );
+      final mintedVenueId = result.insertedVenueIds.single;
+
+      await programs.create(
+        Program(
+          id: 'other-prog',
+          title: 'Other Dance',
+          venueId: mintedVenueId,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      await programs.softDelete(
+        'other-prog',
+        at: now.add(const Duration(days: 1)),
+      );
+
+      await importer.undo(result);
+
+      final tombstoned = await programs.getById(
+        'other-prog',
+        includeDeleted: true,
+      );
+      expect(tombstoned, isNotNull);
+      expect(tombstoned!.deletedAt, isNotNull);
+      expect(
+        tombstoned.venueId,
+        mintedVenueId,
+        reason: 'the tombstoned program still names the venue',
+      );
+      expect(
+        await venues.getById(mintedVenueId),
+        isNotNull,
+        reason: 'so undo must not erase it',
+      );
+    });
   });
 
   group('related-dance links (issue #688)', () {

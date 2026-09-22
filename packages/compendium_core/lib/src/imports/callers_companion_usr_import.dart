@@ -494,13 +494,16 @@ class CallersCompanionUsrImporter {
   /// keeps the intent obvious) — and so no program still references a venue
   /// this import is about to remove.
   ///
-  /// Venue removal is **guarded**, mirroring
-  /// `CompendiumArchiveImporter.undo`: after a successful import a surviving
-  /// user program may have linked to a venue this import minted (e.g. by
-  /// deduping onto its normalized-location key), so an unconditional delete
-  /// would orphan that program's `venueId`. Each inserted venue is deleted only
-  /// when no program still references it; a still-referenced venue is
-  /// retained.
+  /// Venue removal goes through [VenueRepository.hardDelete], mirroring
+  /// `CompendiumArchiveImporter.undo` and the commit-failure path above: after
+  /// a successful import a surviving user program may have linked to a venue
+  /// this import minted (e.g. by deduping onto its normalized-location key), so
+  /// an unconditional erase would orphan that program's `venueId`. `hardDelete`
+  /// retains a venue **any** surviving program row still names, tombstoned
+  /// programs included, and tombstones an already-published one.
+  /// `delete(permanent: true)` is deliberately *not* used: its guard counts
+  /// live programs only (issue #1328), so it erased a venue a tombstoned
+  /// program still named — issue #1357.
   ///
   /// **Related-dance links (issue #688) need no dedicated revert step here** —
   /// [ImportPipeline.undo] already fully reverts them as a side effect of its
@@ -535,16 +538,12 @@ class CallersCompanionUsrImporter {
         await _programs.softDelete(id, at: undoAt);
       }
     }
-    for (final id in result.insertedVenueIds) {
-      try {
-        // `permanent` for the same reason the dances/programs above are
-        // hard-deleted: a rollback must leave nothing behind to publish.
-        await _venues.delete(id, permanent: true);
-      } on StateError {
-        // Still referenced by a surviving program — leave it in place rather
-        // than orphan that program's venueId.
-      }
-    }
+    // Erasing for the same reason the dances/programs above are hard-deleted:
+    // a rollback must leave nothing behind to publish. `hardDelete` owns both
+    // exceptions to that — a published venue is tombstoned instead, and a venue
+    // any surviving program row still names (tombstoned ones included) is left
+    // untouched rather than orphaning that reference.
+    await _venues.hardDelete(result.insertedVenueIds);
     await _pipeline.undo(result.danceSession);
     result._undone = true;
   }

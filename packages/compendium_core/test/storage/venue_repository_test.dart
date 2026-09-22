@@ -215,6 +215,41 @@ void main() {
       expect(await repo.getById('v1'), isNotNull);
     });
 
+    test(
+      'retains a published venue a surviving program names, live not tombstoned',
+      () async {
+        // Retention under sync-spec §3.1 has to gate the *tombstone* as well as
+        // the erase (issue #1357). Every venue read filters `deleted_at IS
+        // NULL` and `ProgramRepository` refuses to link a tombstoned venue, so
+        // a tombstone orphans the referencing program's `venueId` exactly as an
+        // erasure would — the outcome this method exists to prevent. Before the
+        // fix the published-row loop ran first and unconditionally, so this
+        // venue was tombstoned despite being referenced.
+        final stamp = DateTime.utc(2026, 1, 2);
+        await repo.upsert(Venue(id: 'v1', name: 'Published Hall'), at: stamp);
+        await programs.create(buildProgram(id: 'p1', venueId: 'v1'));
+        await SyncLocalRepository(
+          db,
+        ).markPublished(kind: SyncRecordKind.venue, recordId: 'v1');
+
+        await repo.hardDelete(['v1']);
+
+        expect(
+          await repo.getById('v1'),
+          isNotNull,
+          reason: 'a referenced venue must stay visible to its program',
+        );
+        final row = await (db.select(
+          db.venues,
+        )..where((table) => table.id.equals('v1'))).getSingle();
+        expect(
+          row.deletedAt,
+          isNull,
+          reason: 'retention means untouched, not tombstoned',
+        );
+      },
+    );
+
     test('an empty id list is a no-op', () async {
       await repo.upsert(Venue(id: 'v1', name: 'Solo Hall'));
       await repo.hardDelete(const []);

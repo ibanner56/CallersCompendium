@@ -112,6 +112,14 @@ class PublishedSourceRepository {
   /// Tombstones by default (schema v25, issue #898); the guard is kept.
   /// [permanent] removes unpublished rows for rollback, while published rows
   /// are tombstoned so peers retain deletion evidence.
+  ///
+  /// [permanent] also **tombstones rather than erases** whenever any
+  /// `dance_sources` row still cites this source — the case the live guard
+  /// below lets through because every such dance is itself tombstoned (issue
+  /// #1357). `dance_sources` is `ON DELETE CASCADE`, so erasing here would take
+  /// the tombstoned dance's citation with it and restoring that dance would
+  /// bring it back uncited. See `ChoreographerRepository.delete` for the full
+  /// reasoning.
   Future<void> delete(String id, {DateTime? at, bool permanent = false}) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
@@ -137,11 +145,21 @@ class PublishedSourceRepository {
       }
 
       if (permanent) {
-        if (await isPublishedSyncRecord(
-          _db,
-          kind: SyncRecordKind.publishedSource,
-          recordId: id,
-        )) {
+        // Any surviving `dance_sources` row — necessarily a tombstoned dance's,
+        // since a live one threw above — downgrades the erase to a tombstone
+        // rather than cascading that citation away (issue #1357).
+        final citedBySurvivor =
+            await (_db.select(_db.danceSources)
+                  ..where((t) => t.sourceId.equals(id))
+                  ..limit(1))
+                .getSingleOrNull() !=
+            null;
+        if (citedBySurvivor ||
+            await isPublishedSyncRecord(
+              _db,
+              kind: SyncRecordKind.publishedSource,
+              recordId: id,
+            )) {
           await stampExistenceTransition(
             _db,
             table: _db.publishedSources,
