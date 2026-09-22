@@ -1728,6 +1728,75 @@ void main() {
       await repo.update(stored!.copyWith(clearVenueId: true));
       expect((await repo.getById('p1'))!.venueId, isNull);
     });
+
+    // Device Sync's inbound apply must persist a peer's dangling `venueId`
+    // verbatim (I1, sync-spec.md §6.5/§6.7) rather than null it — nulling
+    // would republish a different body under the peer's unchanged
+    // `updatedAt`, producing a permanent equal-`updatedAt` conflict. See
+    // `SyncStorage.writeWithReport`/`_prepareEntity`, which no longer clear
+    // the reference.
+    test(
+      'writeFromSync stores a dangling venueId without the live-venue guard',
+      () async {
+        final program = sampleProgram().copyWith(venueId: 'ghost-venue');
+
+        await repo.writeFromSync(program);
+
+        expect((await repo.getById('p1'))!.venueId, 'ghost-venue');
+      },
+    );
+
+    test(
+      'writeFromSyncParent stores a dangling venueId without the '
+      'live-venue guard',
+      () async {
+        final program = sampleProgram().copyWith(venueId: 'ghost-venue');
+
+        await repo.writeFromSyncParent(program);
+        await repo.writeFromSyncRelations(program);
+
+        expect((await repo.getById('p1'))!.venueId, 'ghost-venue');
+      },
+    );
+
+    // An inbound sync apply can leave a program pointing at a venue this
+    // device does not have. The user must still be able to interactively
+    // save that program — an unrelated edit, or simply re-saving it — without
+    // first being forced to unlink the venue; only a *newly chosen*
+    // non-existent venue is refused.
+    test(
+      'tolerates an interactive update that leaves a pre-existing dangling '
+      'venueId unchanged',
+      () async {
+        await repo.writeFromSync(
+          sampleProgram().copyWith(venueId: 'ghost-venue'),
+        );
+
+        final stored = await repo.getById('p1');
+        await repo.update(stored!.copyWith(title: 'Renamed Dance'));
+
+        final after = await repo.getById('p1');
+        expect(after!.venueId, 'ghost-venue');
+        expect(after.title, 'Renamed Dance');
+      },
+    );
+
+    test(
+      'still rejects an interactive update that repoints an already-dangling '
+      'venueId at a different missing venue',
+      () async {
+        await repo.writeFromSync(
+          sampleProgram().copyWith(venueId: 'ghost-venue'),
+        );
+
+        final stored = await repo.getById('p1');
+        await expectLater(
+          repo.update(stored!.copyWith(venueId: 'another-ghost')),
+          throwsA(isA<StateError>()),
+        );
+        expect((await repo.getById('p1'))!.venueId, 'ghost-venue');
+      },
+    );
   });
 
   group('callerFilter (host-caller scoping, #583)', () {
