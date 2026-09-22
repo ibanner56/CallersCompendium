@@ -5095,6 +5095,263 @@ void main() {
     );
   });
 
+  // §6.6 step 1 applies in-batch, not only against stored rows. The stored-row
+  // guard consults an index built from stored rows alone, and a candidate that
+  // is merely prepared never enters it, so two locally-known rows renamed onto
+  // one previously-unused name by two peers both missed it and reached the
+  // in-batch merge. That merge hard-deleted the losing row together with the
+  // `deviceLocal` email, location and deceased flag, which are stripped from
+  // every shareable body and so exist nowhere else.
+  //
+  // The arrival order is varied at the `reconcileInbound` seam rather than
+  // through `SyncApplyEngine.apply`, because `apply` sorts candidates by kind
+  // then by ID before reconciling (`sync_apply.dart` `_compareCandidates`).
+  // Handing `apply` the two candidates in the other order therefore produces
+  // the identical execution, so an `apply`-level "both orders" pair would be
+  // two copies of one test — and the silent merge it must catch also picked
+  // the lexicographically smaller UUID, so one order alone cannot tell "routed
+  // to review" from "happened to win the tie-break".
+  const renameCollisionDetails = {
+    'aaa-author': (
+      name: 'Alice Smith',
+      email: 'alice@example.com',
+      location: 'Alice hall',
+      deceased: true,
+    ),
+    'zzz-author': (
+      name: 'Bob Smith',
+      email: 'bob@example.com',
+      location: 'Bob hall',
+      deceased: false,
+    ),
+  };
+  final renameCollisionStamp = DateTime.utc(2025, 1, 2, 12);
+
+  Future<void> seedRenameCollisionRows() async {
+    for (final entry in renameCollisionDetails.entries) {
+      // ignore: unused_result
+      await repositories.choreographers.upsert(
+        Choreographer(
+          id: entry.key,
+          name: entry.value.name,
+          email: entry.value.email,
+          location: entry.value.location,
+          deceased: entry.value.deceased,
+        ),
+        at: renameCollisionStamp,
+      );
+    }
+  }
+
+  // Two peers rename their own copy onto one name. Neither name is held by a
+  // stored row, so neither candidate collides until the two meet in the batch.
+  SyncMergeCandidate renameOntoSharedName(String id) {
+    final renameStamp = renameCollisionStamp.add(const Duration(minutes: 1));
+    return SyncMergeCandidate(
+      blob: SyncRecordBlob(
+        kind: SyncRecordKind.choreographer,
+        id: id,
+        updatedAt: renameStamp,
+        deletedAt: null,
+        existenceAt: renameStamp,
+        body: syncBodyForEntity(
+          SyncRecordKind.choreographer,
+          Choreographer(id: id, name: 'Sam Jones'),
+        ),
+      ),
+    );
+  }
+
+  void expectRenameCollisionRowsIntact(
+    Choreographer? first,
+    Choreographer? second,
+  ) {
+    expect(first, isNotNull);
+    expect(second, isNotNull);
+    for (final row in [first!, second!]) {
+      final expected = renameCollisionDetails[row.id]!;
+      expect(row.email, expected.email);
+      expect(row.location, expected.location);
+      expect(row.deceased, expected.deceased);
+    }
+  }
+
+  for (final scenario in const [
+    (
+      label: 'smaller UUID arrives first',
+      firstId: 'aaa-author',
+      secondId: 'zzz-author',
+    ),
+    (
+      label: 'larger UUID arrives first',
+      firstId: 'zzz-author',
+      secondId: 'aaa-author',
+    ),
+  ]) {
+    test('queues an in-batch known-UUID rename collision rather than merging '
+        '(${scenario.label})', () async {
+      await seedRenameCollisionRows();
+
+      final preparation = await storage.reconcileInbound([
+        renameOntoSharedName(scenario.firstId),
+        renameOntoSharedName(scenario.secondId),
+      ]);
+
+      expect(preparation.reports, isEmpty);
+      // Whichever candidate arrives second is the one held for a decision,
+      // regardless of how the two UUIDs sort.
+      expect(preparation.candidates.map((candidate) => candidate.blob.id), [
+        scenario.firstId,
+      ]);
+      expect(
+        (await repositories.syncLocal.listReviewQueue()).map(
+          (row) => (row.recordId, row.counterpartId, row.reason),
+        ),
+        [
+          (
+            scenario.secondId,
+            scenario.firstId,
+            'known UUID natural-key rename collides with another local row',
+          ),
+        ],
+      );
+      // Reconciliation retired no identity and coalesced nothing: both rows
+      // are still present under their own IDs with their device-local
+      // fields, which is what the silent merge destroyed.
+      expect(await repositories.syncLocal.listAliases(), isEmpty);
+      expectRenameCollisionRowsIntact(
+        await repositories.choreographers.getById(scenario.firstId),
+        await repositories.choreographers.getById(scenario.secondId),
+      );
+      for (final entry in renameCollisionDetails.entries) {
+        expect(
+          (await repositories.choreographers.getById(entry.key))!.name,
+          entry.value.name,
+        );
+      }
+    });
+  }
+
+  test(
+    'applies only the first of two colliding known-UUID renames in a batch',
+    () async {
+      // The same collision through the production apply path, which sorts the
+      // candidates itself: the smaller UUID is reconciled first and applied,
+      // the larger is queued, and no row is deleted.
+      await seedRenameCollisionRows();
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          renameOntoSharedName('zzz-author'),
+          renameOntoSharedName('aaa-author'),
+        ],
+        storage: storage,
+      );
+
+      expect(result.reports, isEmpty);
+      expect(result.applied, [
+        (kind: SyncRecordKind.choreographer, recordId: 'aaa-author'),
+      ]);
+      expect(
+        (await repositories.syncLocal.listReviewQueue()).map(
+          (row) => (row.recordId, row.counterpartId, row.reason),
+        ),
+        [
+          (
+            'zzz-author',
+            'aaa-author',
+            'known UUID natural-key rename collides with another local row',
+          ),
+        ],
+      );
+      expect(await repositories.syncLocal.listAliases(), isEmpty);
+
+      final renamed = await repositories.choreographers.getById('aaa-author');
+      final untouched = await repositories.choreographers.getById('zzz-author');
+      expectRenameCollisionRowsIntact(renamed, untouched);
+      expect(renamed!.name, 'Sam Jones');
+      expect(untouched!.name, renameCollisionDetails['zzz-author']!.name);
+    },
+  );
+
+  test(
+    'collapses in-batch difficulty candidates sharing one canonical ID',
+    () async {
+      // Difficulty canonicalization rewrites both candidates onto the shipped ID
+      // before they meet in the batch, so the pair arrives with equal IDs that
+      // resolve to the same local row. The step-1 in-batch guard must not read
+      // that as "two pre-existing local rows": `_adoptCollision` returns
+      // immediately when the losing and surviving IDs are equal, so nothing is
+      // deleted here and nothing is owed a review. A guard that only asked "are
+      // both IDs known locally?" would queue this pair and drop the later body.
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+      // The shipped rows are seeded at database-creation time, so restamp the
+      // incumbent: otherwise its `updatedAt` outranks both candidates and the
+      // local body wins the content comparison for reasons unrelated to this
+      // test.
+      await repositories.difficultyLevels.upsert(
+        DifficultyLevel(
+          id: DifficultyLevel.beginner.id,
+          label: DifficultyLevel.beginner.label,
+          position: DifficultyLevel.beginner.position,
+        ),
+        at: stamp,
+      );
+
+      SyncMergeCandidate candidate(String id, int position, int minutes) =>
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.difficultyLevel,
+              id: id,
+              updatedAt: stamp.add(Duration(minutes: minutes)),
+              deletedAt: null,
+              existenceAt: stamp.add(Duration(minutes: minutes)),
+              body: syncBodyForEntity(
+                SyncRecordKind.difficultyLevel,
+                DifficultyLevel(
+                  id: id,
+                  label: DifficultyLevel.beginner.label,
+                  position: position,
+                ),
+              ),
+            ),
+          );
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [candidate('custom-a', 7, 1), candidate('custom-b', 9, 2)],
+        storage: storage,
+      );
+
+      expect(result.reports, isEmpty);
+      // One entity under three IDs is not two local rows, so no review is owed.
+      expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+      expect(result.applied, [
+        (
+          kind: SyncRecordKind.difficultyLevel,
+          recordId: DifficultyLevel.beginner.id,
+        ),
+      ]);
+      // The later candidate's body wins, which happens only if it reached the
+      // merge instead of being queued.
+      expect(
+        (await repositories.difficultyLevels.getById(
+          DifficultyLevel.beginner.id,
+        ))!.position,
+        9,
+      );
+      for (final losing in ['custom-a', 'custom-b']) {
+        expect(await repositories.difficultyLevels.getById(losing), isNull);
+        expect(
+          await repositories.syncLocal.resolveAlias(
+            kind: SyncRecordKind.difficultyLevel,
+            recordId: losing,
+          ),
+          DifficultyLevel.beginner.id,
+        );
+      }
+    },
+  );
+
   test(
     'canonical difficulty known-UUID conflicts enter the review queue',
     () async {
