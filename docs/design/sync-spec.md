@@ -111,11 +111,39 @@ venue it names), and erasing the venue out from under it would silently
 orphan the reference, with nothing to tell the user their program's venue
 disappeared.
 
+That retention outranks the forfeiture rule above, and "retain" means **leave
+the row alone**, not "tombstone it instead of erasing it". Every venue read
+filters `deleted_at IS NULL` and the program writer refuses to link a
+tombstoned venue, so a tombstone orphans the referencing program exactly as an
+erasure does; a published *and* still-referenced row is therefore kept live.
+Forfeiture exists to stop a peer re-downloading a row this device erased,
+which a row nobody deleted cannot trigger.
+
 **The generic hard-delete hatch.** The shipped migration also added a
-`permanent: true` parameter to `delete()`/`remove()` on five repositories —
-`settings`, `choreographers`, `published_sources`, `custom_field_defs` and
-`venues` — which bypasses the tombstone and removes the row outright. Two of
-those kinds (`venue`, `choreographer`) produce blobs (§4.3).
+`permanent: true` parameter to `delete()`/`remove()` on six repositories —
+`settings`, `choreographers`, `published_sources`, `custom_field_defs`,
+`tags` and `venues` — which bypasses the tombstone and removes the row
+outright. `TagRepository.hardDelete` and `DifficultyLevelRepository.hardDelete`
+are batch wrappers over the same hatch. Two of those kinds (`venue`,
+`choreographer`) produce blobs (§4.3). An earlier version of this paragraph
+named five repositories and omitted `tags`, which is how that hatch shipped
+from `v0.2.0-beta` with no referential guard at all (issue #1357).
+
+**Retention applies to every cascading hatch, not only to venues.**
+`dance_authors`, `dance_tags`, `dance_sources` and `custom_field_values` are
+all `ON DELETE CASCADE`, so erasing a choreographer, tag, published source or
+custom field definition that a **tombstoned** dance still references destroys
+that dance's credit, tag, citation or value, and the dance comes back without
+it on restore. Each of those hatches MUST therefore refuse the erasure when
+any join row still names the parent. Venues and the cascading parents resolve
+that refusal differently, and both are deliberate:
+
+| Hatch | Referenced only by a tombstoned owner |
+| --- | --- |
+| `venues` (soft reference, no FK) | retained **live** — the surviving program has no other way to show its venue |
+| cascading parents (FK cascade) | **tombstoned** — the join row survives for the owner's restore, and the parent still leaves every live view, which is what import rollback needs |
+
+A **live** owner blocks either kind outright, with a `StateError`.
 
 A hard delete is permitted **only** where the record can never have been
 published to a peer and has no conservative publication-attempt marker. A
@@ -173,11 +201,14 @@ cascades:
 - Every read that joins through to a soft-deletable parent MUST filter
   `parent.deleted_at IS NULL`. Soft delete does not fire the FK cascade that
   previously cleared `dance_tags`, `custom_field_values` and `dance_sources`.
-- The referential guards in `ChoreographerRepository`, `VenueRepository` and
-  `PublishedSourceRepository` MUST be kept. A tombstone applies only where the
-  entity is unreferenced; see §6.8.
+- The referential guards in `ChoreographerRepository`, `VenueRepository`,
+  `PublishedSourceRepository` and `CustomFieldDefRepository` MUST be kept, and
+  `TagRepository`'s erasing branch MUST carry one (it did not until issue
+  #1357). A tombstone applies only where the entity is unreferenced; see §6.8.
 - Any purge added here MUST refuse to hard-delete an entity still referenced by
-  a live record.
+  a live record. Where the reference is a cascading join row held by a
+  *tombstoned* owner, the erasure MUST still be refused — the cascade would
+  destroy that owner's data — per the retention table in §3.1.
 
 ### 3.2 Sync-local tables
 
