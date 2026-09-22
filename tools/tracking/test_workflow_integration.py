@@ -55,41 +55,11 @@ def test_ci_runs_for_all_pull_request_updates() -> None:
 
 
 
-def test_ci_executes_base_tracking_validator() -> None:
+def test_ci_has_no_pull_request_tracking_gate() -> None:
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
-    tracking = job(workflow, "tracking-gate")
-    assert "name: Device Sync tracking gate" in tracking
-    assert "if: github.event_name == 'pull_request'" in tracking
-    assert "ref: ${{ github.event.pull_request.head.sha }}" in tracking
-    assert "fetch-depth: 0" in tracking
-    assert (
-        "persist-credentials: false" in tracking
-    ), "tracking-gate checkout must not persist credentials"
-    assert "set -euo pipefail" in tracking
-    assert 'git show "$BASE_SHA:tools/tracking/validate_pr.py" > "$validator"' in tracking
-    base_validation = (
-        'python3 "$validator" "$BASE_SHA" "$HEAD_SHA" "$GITHUB_EVENT_PATH" \\'
-    )
-    head_validation = "python3 tools/tracking/validate.py"
-    assert base_validation in tracking
-    assert '--root "$GITHUB_WORKSPACE"' in tracking
-    assert (
-        head_validation in tracking
-    ), "tracking-gate must validate canonical head tracking after ownership"
-    assert tracking.index(base_validation) < tracking.index(
-        head_validation
-    ), "base ownership validation must run before head canonical validation"
-    assert "python3 tools/tracking/validate_pr.py" not in tracking
-    assert "||" not in tracking, "trusted validator loading must not have a fallback"
-
-
-def test_merge_gate_fails_closed_on_tracking_result() -> None:
-    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
-    merge = job(workflow, "merge-gate")
-    needs = re.search(r"^    needs: \[(?P<jobs>[^\]]+)\]$", merge, flags=re.MULTILINE)
-    assert needs and "tracking-gate" in needs.group("jobs").split(", ")
-    assert "TRACKING_GATE_RESULT: ${{ needs.tracking-gate.result }}" in merge
-    assert "require_success 'Device Sync tracking gate' \"$TRACKING_GATE_RESULT\"" in merge
+    assert "tracking-gate" not in workflow
+    assert "TRACKING_GATE_RESULT" not in workflow
+    assert "validate_pr.py" not in workflow
 
 
 def test_reconciler_workflow_uses_only_trusted_main_content() -> None:
