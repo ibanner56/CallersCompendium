@@ -266,3 +266,45 @@ instead: it fixes nothing for the sessions that read the taxonomy whole, and the
 blocks would have kept growing.
 
 Rule: [session-cost.md](session-cost.md#worked-example-a-ledger-is-not-a-rationale).
+
+## Two preflights at once exhausted the host
+
+At 06:45 on 2026-09-22 a session had two subagents each running a full
+`tools/preflight.py` in its own worktree, plus a background
+`find / -iname "*.dart" | xargs grep`. The host's process reaper killed all
+three, reporting "the system is running low on memory"; the note it attached
+said the kill was not a failure of the command, so the subagent correctly
+declined to retry and reported that it could not verify its change. One run
+finally passed only after the work was serialized by hand.
+
+The measurement, taken one step at a time on that host (16 threads, 15.9 GB RAM,
+18.8 GB commit limit, 13.6 GB already committed at idle — 2.9 GB of it the agent
+processes themselves):
+
+| step | wall | peak private | system commit |
+| --- | --- | --- | --- |
+| `app-tests` | 196s | 5.1 GB | 18.46 GB |
+| `core-tests` | 97s | 2.5 GB | 16.07 GB |
+| `analyze` | 89s | 1.5 GB | 15.10 GB |
+| every Python gate | seconds | megabytes | — |
+
+Two findings, both counter to the first guess:
+
+- **No leak.** Commit returns to the 13.6 GB baseline after every step, and
+  within a step memory saws up and down with GC rather than climbing. The
+  gigabytes are the steady-state cost of the toolchain, not an accumulation.
+- **The cost is concurrency inside one step.** `flutter test` defaults to
+  `numberOfProcessors / 2` test processes, each holding its own engine: eight
+  here against two on CI's 4-core runner. `-j 4` cost 208-235s over three runs
+  against 196s uncapped, and peaked at 3.3 GB against 5.1 GB — call it half a
+  minute for 1.8 GB. `-j 2` cost 350s and is not worth it; capping `core-tests`
+  (118s against 87s for 0.7 GB) is not either.
+
+So the fix is not a smaller suite. `app-tests` caps concurrency
+(`PREFLIGHT_TEST_JOBS` overrides), and the Dart/Flutter steps hold a
+machine-wide lock so a second run queues rather than dying. The lock is a
+whole-file OS lock tied to the open file, which is what makes it safe here: the
+process that holds it may be killed without warning by the very reaper this
+prevents, and the OS then drops the lock with no PID file to go stale.
+
+Rule: [verification.md](verification.md#one-full-preflight-per-change-run-by-the-session-that-owns-the-change).

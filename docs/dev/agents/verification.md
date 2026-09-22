@@ -84,3 +84,29 @@ One entry point for the gates CI runs, including
 does **not** run over the real suites — an invalid figure param renders
 literally and every test still passes, so a drifted fixture is invisible
 locally. See [incidents.md](incidents.md#747-drifted-figure-fixtures-were-invisible-to-dart-test).
+
+## One full preflight per change, run by the session that owns the change
+
+A full run is cheap in wall time and expensive in memory: measured on a
+16-thread, 16 GB Windows host, `app-tests` peaks at **5.1 GB** and takes system
+commit to 18.46 GB of an 18.8 GB limit, `core-tests` at 2.5 GB, `analyze` at
+1.5 GB. The Python gates together cost megabytes. That budget fits one run, not
+two, which is why the Dart/Flutter steps hold a machine-wide lock and a second
+run now queues behind them rather than being killed by the host
+([incidents.md](incidents.md#two-preflights-at-once-exhausted-the-host)).
+
+Queueing is the fallback, not the plan. Divide the work so it is not needed:
+
+- A subagent verifying its own edits runs the gates that cover them —
+  `--fast` for the Python ratchets, `--only analyze app-tests` and the like for
+  the rest. `--list` says what each step is for.
+- The session that owns the change runs the **full** preflight once, on the
+  final tree, after its subagents have finished. A subagent's pass on a subset
+  is not evidence for the merged result.
+- Never run a whole-disk search (`find / …`) next to a gate run. One at 06:45 on
+  2026-09-22 was reaped alongside two preflights.
+
+`PREFLIGHT_TEST_JOBS` overrides the Flutter test concurrency (default: half the
+cores, capped at 4) when a host has more or less memory to spare. `--no-lock`
+runs the toolchain steps without the machine-wide lock; use it when you know
+nothing else is running, not to jump a queue.
