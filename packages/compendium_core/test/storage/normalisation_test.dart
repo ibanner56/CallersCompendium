@@ -561,6 +561,94 @@ void main() {
     );
   });
 
+  // `1e999` is legal JSON syntax. `jsonDecode` accepts it and yields
+  // `double.infinity`; `jsonEncode` then refuses it with
+  // JsonUnsupportedObjectError. So a value can pass the "is it JSON?" test and
+  // still fail to round-trip, which is why catching FormatException and the key
+  // collision alone did not make the pass total.
+  test(
+    'backfill skips a JSON column that decodes but cannot re-encode',
+    () async {
+      await repos.dances.create(sampleDance(id: 'd1', title: 'Infinity'));
+      await repos.ensureMigrated();
+
+      const unencodable = '[{"move":"swing","params":{"beats":1e999}}]';
+      await db.customStatement(
+        'UPDATE dances SET figures_json = ? WHERE id = ?',
+        [unencodable, 'd1'],
+      );
+
+      await repos.resetNormalisationStateForRestore();
+      await repos.ensureMigrated();
+
+      final row = await db
+          .customSelect(
+            'SELECT figures_json FROM dances WHERE id = ?',
+            variables: [const Variable<String>('d1')],
+          )
+          .getSingle();
+      expect(row.read<String>('figures_json'), unencodable);
+      final skip = await db
+          .customSelect(
+            'SELECT table_name, column_name, record_id FROM normalisation_skips',
+          )
+          .getSingle();
+      expect(skip.data, {
+        'table_name': 'dances',
+        'column_name': 'figures_json',
+        'record_id': 'd1',
+      });
+    },
+  );
+
+  test('backfill skips a settings value that cannot be re-encoded', () async {
+    await db.customStatement(
+      'INSERT INTO settings (key, value_json) VALUES (?, ?)',
+      ['custom_dialects', '{"a":1e999}'],
+    );
+
+    await repos.ensureMigrated();
+
+    final row = await db
+        .customSelect(
+          'SELECT value_json FROM settings WHERE key = ?',
+          variables: [const Variable<String>('custom_dialects')],
+        )
+        .getSingle();
+    expect(row.read<String>('value_json'), '{"a":1e999}');
+    final skip = await db
+        .customSelect(
+          'SELECT record_id FROM normalisation_skips WHERE table_name = ?',
+          variables: [const Variable<String>('settings')],
+        )
+        .getSingle();
+    expect(skip.read<String>('record_id'), 'custom_dialects');
+  });
+
+  test('backfill skips a settings value that is not JSON at all', () async {
+    await db.customStatement(
+      'INSERT INTO settings (key, value_json) VALUES (?, ?)',
+      ['custom_dialects', '{"a":'],
+    );
+
+    await repos.ensureMigrated();
+
+    final row = await db
+        .customSelect(
+          'SELECT value_json FROM settings WHERE key = ?',
+          variables: [const Variable<String>('custom_dialects')],
+        )
+        .getSingle();
+    expect(row.read<String>('value_json'), '{"a":');
+    final skip = await db
+        .customSelect(
+          'SELECT record_id FROM normalisation_skips WHERE table_name = ?',
+          variables: [const Variable<String>('settings')],
+        )
+        .getSingle();
+    expect(skip.read<String>('record_id'), 'custom_dialects');
+  });
+
   test(
     'clears the rebuild marker after a successful normalization backfill',
     () async {

@@ -34,8 +34,7 @@ const _taxonomyV35MigrationPageSize = 128;
 const _shareableJsonColumns = {'figures_json', 'tunes_json', 'choices_json'};
 
 /// The normalized form of [raw] for [column], or **null when the stored value
-/// cannot be canonicalized at all**: malformed JSON, or an object whose keys
-/// normalize to the same string.
+/// cannot be canonicalized at all**.
 ///
 /// Returning null rather than raising is required, not defensive.
 /// `docs/design/sync-spec.md` §4.1 makes skipping the pass's only failure
@@ -44,13 +43,23 @@ const _shareableJsonColumns = {'figures_json', 'tunes_json', 'choices_json'};
 /// `ensureMigrated()` failing identically on every launch, which is the app's
 /// startup error screen with a Retry that cannot succeed (#1347).
 ///
+/// Three things can fail, and the third is not obvious:
+/// * [FormatException] — the text is not JSON.
+/// * [ShareableJsonKeyCollision] — two object keys normalize to one key.
+/// * [JsonUnsupportedObjectError] — the text *is* valid JSON, decodes, and then
+///   cannot be re-encoded. `1e999` is legal JSON syntax that `jsonDecode` reads
+///   as `double.infinity`, which `jsonEncode` refuses. The decode/encode round
+///   trip is therefore not total over its own accepted input, so "it came from
+///   `jsonDecode`, so it must re-encode" is false.
+///
 /// Only the [_shareableJsonColumns] branch can return null — [
 /// normalizeShareableText] has no failing input — so a caller that handles null
 /// by recording a skip needs a record id only for those columns.
 ///
 /// [ArgumentError] from a non-String JSON object key is deliberately not caught:
-/// `jsonDecode` cannot produce one, so catching it here would claim to handle a
-/// case that cannot reach this function.
+/// `jsonDecode` genuinely cannot produce one (unlike the infinity case above,
+/// where the same reasoning does not hold), so catching it here would claim to
+/// handle a case that cannot reach this function.
 String? _normaliseStoredColumn(String column, String raw) {
   if (!_shareableJsonColumns.contains(column)) {
     return normalizeShareableText(raw);
@@ -60,6 +69,8 @@ String? _normaliseStoredColumn(String column, String raw) {
   } on FormatException {
     return null;
   } on ShareableJsonKeyCollision {
+    return null;
+  } on JsonUnsupportedObjectError {
     return null;
   }
 }
@@ -850,11 +861,27 @@ class CompendiumRepositories {
         final key = row.read<String>('key');
         final classification = classifySettingsKey(key);
         if (classification?.egress != EgressClass.shareable) continue;
-        Object? value;
+        // The decode, the normalize AND the re-encode are all inside the try:
+        // each can fail, and §4.1's totality is a property of the whole round
+        // trip, not of the collision test alone. `jsonDecode` throws
+        // FormatException on malformed text, and `jsonEncode` throws
+        // JsonUnsupportedObjectError on a value `jsonDecode` itself produced —
+        // `1e999` is legal JSON that decodes to `double.infinity` and cannot be
+        // re-encoded. Leaving either outside the try left this half raising on
+        // a stored value's content, the same defect as #1347's JSON columns.
+        final String encoded;
         try {
-          value = normalizeShareableJson(
-            jsonDecode(row.read<String>('value_json')),
+          encoded = jsonEncode(
+            normalizeShareableJson(jsonDecode(row.read<String>('value_json'))),
           );
+        } on FormatException {
+          await recordNormalisationSkip(
+            db,
+            table: 'settings',
+            column: 'value_json',
+            recordId: key,
+          );
+          continue;
         } on ShareableJsonKeyCollision {
           await recordNormalisationSkip(
             db,
@@ -863,8 +890,15 @@ class CompendiumRepositories {
             recordId: key,
           );
           continue;
+        } on JsonUnsupportedObjectError {
+          await recordNormalisationSkip(
+            db,
+            table: 'settings',
+            column: 'value_json',
+            recordId: key,
+          );
+          continue;
         }
-        final encoded = jsonEncode(value);
         if (encoded != row.read<String>('value_json')) {
           await db.customUpdate(
             'UPDATE settings SET value_json = ? WHERE key = ?',

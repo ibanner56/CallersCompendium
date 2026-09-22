@@ -910,13 +910,17 @@ only failure response, the pass is total: no row raises, so an interrupted pass
 cannot repeat a failure on every launch. Re-running it over already-normalised
 rows is a no-op.
 
-Totality binds the *canonicalisation* too, not only the collision tests. A
-column canonicalised as JSON can fail before any target exists to compare: the
-stored text may not parse, or its own object keys may normalise to one key. A
-conforming client MUST treat both as a skip of that row — left as stored,
-recorded in `normalisation_skips` under the row's own id — and MUST NOT let the
-failure escape the pass. This is the same shape the settings half applies to an
-in-value key collision, and it is what makes the totality claim above true of an
+Totality binds the *canonicalisation* too, not only the collision tests. A value
+canonicalised as JSON can fail before any target exists to compare, in three
+ways: the stored text may not parse; its own object keys may normalise to one
+key; or it may parse and then refuse to re-encode. The third is the one an
+implementer will not predict, and it is not hypothetical — `1e999` is legal JSON
+that decodes to an infinity no JSON encoder will emit, so a decode/encode round
+trip is **not** total over the input its own decoder accepts. A conforming
+client MUST treat all three as a skip of that unit — left as stored, recorded in
+`normalisation_skips` — and MUST NOT let the failure escape the pass. This binds
+both halves: the row half under the row's own id, and the settings half under
+the settings key. It is what makes the totality claim above true of an
 implementation rather than only of its collision handling (#1347).
 
 **Every pass that rewrites a row MUST commit in three steps, and MUST NOT write
