@@ -7,6 +7,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../data/backup_io.dart';
 import '../../data/backup_service.dart';
 import '../../data/repositories_scope.dart';
+import '../../diagnostics/error_log.dart';
 import '../../sync/sync_controller.dart';
 import '../../sync/sync_http_client.dart';
 import '../../sync/sync_scope.dart';
@@ -85,7 +86,8 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
           'callers-compendium-backup-${now.toUtc().toIso8601String().substring(0, 10)}.json',
         );
         if (delivered) await service.recordBackup(now);
-      } on Exception {
+      } on Exception catch (e, st) {
+        logCaughtError(e, st, source: 'sync_pairing_screen._offerBackup');
         if (mounted) {
           messenger.showSnackBar(
             SnackBar(content: Text(l10n.backupExportFailed)),
