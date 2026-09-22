@@ -39,7 +39,25 @@ class VenueRepository {
   static String? _normalize(String? value) =>
       value == null ? null : normalizeShareableText(value);
 
-  Future<void> upsert(Venue v, {DateTime? at}) {
+  Future<void> upsert(Venue v, {DateTime? at}) =>
+      _write(v, at: at, fromSync: false);
+
+  /// Applies a validated inbound sync record.
+  ///
+  /// Separate from [upsert] per §6.7 so the interactive path cannot change what
+  /// an inbound apply does. Venues carry no UNIQUE natural key, so the only
+  /// difference today is existence seeding: the envelope owns `existence_at`.
+  /// The provenance row is rewritten either way — it travels on the wire, so
+  /// the overlay hands this writer the peer's value or the local one it
+  /// preserved.
+  Future<void> writeFromSync(Venue v, {DateTime? at}) =>
+      _write(v, at: at, fromSync: true);
+
+  Future<void> _write(
+    Venue v, {
+    required DateTime? at,
+    required bool fromSync,
+  }) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
       await _db
@@ -71,13 +89,15 @@ class VenueRepository {
               updatedAt: Value(now),
             ),
           );
-      await applyUpsertExistence(
-        _db,
-        table: _db.venues,
-        keyColumn: 'id',
-        key: v.id,
-        at: now,
-      );
+      if (!fromSync) {
+        await applyUpsertExistence(
+          _db,
+          table: _db.venues,
+          keyColumn: 'id',
+          key: v.id,
+          at: now,
+        );
+      }
       // Provenance is a single dependent row keyed on the venue id: delete
       // then (re)insert so an update refreshes it and a venue that lost its
       // provenance drops the row. Mirrors ProgramRepository's provenance

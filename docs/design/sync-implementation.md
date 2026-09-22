@@ -1045,10 +1045,11 @@ what it protects.
   logged break-glass path exists with a stated 30-day linkability bound, and
   that structured venue address and contact fields do not travel while freeform
   venue notes do. That is this card's `Done when`, including the part a mere
-  retraction would not have satisfied. What remains is the check that the
-  effective date is bumped in the release that turns the feature on. **That
-  gates C6, not C7** — C6 is the beta, and the beta is where real user content
-  first leaves a device, which is the event S7 orders the amendment ahead of. C7
+  retraction would not have satisfied. The first beta is now ratified as
+  **v0.5.0-beta**, with an effective date of **September 21, 2026**. The
+  date must be live before any real user content leaves a device. **That gates
+  C6, not C7** — C6 is the beta, and the beta is where real user content first
+  leaves a device, which is the event S7 orders the amendment ahead of. C7
   re-checks it at public release, because the date must name the release that
   actually ships.
 
@@ -1062,8 +1063,8 @@ what it protects.
 
   This card is kept rather than struck because its `Done when` is still the
   thing C7 checks, and because the unit that verifies a disclosure is not the
-  unit that wrote it. What is left is one release-time action, not a document
-  repair.
+  unit that wrote it. What remains is the C6 pre-transfer check that the
+  deployed policy carries the ratified date, not a document repair.
 
 Fully parallel with all code, and best done early: it is the cheapest unit in
 the programme and the only one that can block a release on its own.

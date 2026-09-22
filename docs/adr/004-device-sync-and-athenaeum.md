@@ -1023,10 +1023,14 @@ makes self-hosting materially harder, which constraint 4 forbids.
   deleted it once. Holding the deletion pending keeps the guarantee that no dance
   credits a tombstone without buying it by resurrecting deleted data.
 
-  A held deletion is cancelled **only by a deliberate user edit**, ordered by an
-  `existenceAt` timestamp that travels in the blob envelope: when two copies
-  disagree about whether a record exists, the greater `existenceAt` decides, and
-  its `deletedAt` says which state that is. Several sync mechanisms advance
+  A held deletion is cancelled by a **deliberate user edit**, and — by a later
+  maintainer decision — by an **inbound revival that out-ranks it**. Both are
+  ordered by the same `existenceAt` timestamp that travels in the blob envelope:
+  when two copies disagree about whether a record exists, the greater
+  `existenceAt` decides, and its `deletedAt` says which state that is. This
+  paragraph originally named only the local edit, which conflicted with that
+  comparison — a peer's revival could win it and still be undone, because the
+  held row survived and re-applied the deletion once the last citation cleared. Several sync mechanisms advance
   `updatedAt` without a user touching anything — reference rewriting,
   merge-by-recency, the dance merge's scalar recency — so a plain recency rule
   would let a third device silently reverse another's deletion.
@@ -1043,7 +1047,8 @@ makes self-hosting materially harder, which constraint 4 forbids.
   un-delete from a slow-clocked device was still silently reverted. Hardening one
   term of a conjunction hardens nothing.
 
-  It is set only by a live↔deleted transition and by no sync-apply path, which
+  It is *stamped* only by a live↔deleted transition and by no sync-apply path —
+  applying a peer's blob copies that peer's value rather than minting one — which
   makes deletions sticky: an edit made on a device that never learned of the
   deletion is swept up when it arrives — recoverable from Recently Deleted, but
   not announced. Chosen because a deletion silently reversed on every device is
@@ -1412,12 +1417,13 @@ sync" at all — and both carry the operator-visibility and logged break-glass
 disclosures §8 requires, with the 30-day linkability bound and the
 structured-venue-field carve-out stated plainly.
 
-What remains is not a contradiction but a release-time step: the effective date
-must be bumped in the release that turns the feature on, **before any real
-user's content leaves a device** — which is the beta, not the public release.
-That is the execution plan's **C6** gate, the checkpoint that defines the beta.
-It is a prerequisite of shipping, not of this ADR, and it is no longer a
-blocking defect in a published document.
+The first Device Sync beta is now ratified as **v0.5.0-beta**, with an effective
+date of **September 21, 2026**. The policy copies must be deployed with that
+date **before any real user's content leaves a device** — which is the beta,
+not the public release. The deployed-page check is the execution plan's
+**C6** gate, the checkpoint that defines the beta. It is a prerequisite of
+shipping, not of this ADR, and the remaining work is release ordering rather
+than a contradiction in the published wording.
 
 ## Revisit triggers
 

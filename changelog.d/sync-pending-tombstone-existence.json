@@ -1,0 +1,14 @@
+{
+  "id": "sync-pending-tombstone-existence",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A record you deleted that is still in use somewhere no longer takes edits back from a device that has not learned about the deletion yet."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "Include the pending tombstone as the local candidate in merge planning, so §6.4's existence comparison runs for a record whose deletion is deferred by a live citation instead of the peer's live copy winning by default."
+    ]
+  }
+}

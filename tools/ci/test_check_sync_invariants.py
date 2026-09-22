@@ -9,9 +9,11 @@ import tempfile
 from pathlib import Path
 
 from check_sync_invariants import (
+    SYNC_WRITE_PATH,
     _certificate_violations,
     _drift_join_violations,
     _drift_write_violations,
+    _interactive_upsert_violations,
     _raw_join_violations,
     _write_violations,
     blank_comments,
@@ -243,6 +245,53 @@ def test_typed_drift_writes_fail_closed() -> None:
         for v in _drift_write_violations(unknown, "fixture.dart")
     )
     assert_no(_drift_write_violations("// await db.update(db.dances).write(x);", "fixture.dart"))
+    # `apply-undo` suppresses the boundary check, and only on the marked line:
+    # the same statement one line later is still flagged, so the exclusion
+    # cannot silently cover a whole file.
+    excused = (
+        "// sync-invariant-exclusion: apply-undo restores captured values verbatim.\n"
+        "await db.into(db.dances).insertOnConflictUpdate(companion);\n"
+    )
+    assert_no(_drift_write_violations(excused, "fixture.dart"))
+    # The marker is for the typed boundary only. It must not reach the raw-SQL
+    # I1/I2 checks, which share the *other* exclusion set.
+    raw_i1 = (
+        "// sync-invariant-exclusion: apply-undo\n"
+        "final q = 'UPDATE dances SET figures_json = ? WHERE id = ?';\n"
+    )
+    assert any(
+        v.kind == "I1" for v in _write_violations(raw_i1, "fixture.dart")
+    )
+    unmarked_after_excused = excused + (
+        "await db.into(db.dances).insertOnConflictUpdate(other);\n"
+    )
+    assert any(
+        v.kind == "typed-write-boundary"
+        for v in _drift_write_violations(unmarked_after_excused, "fixture.dart")
+    )
+
+
+def test_sync_write_path_rejects_the_interactive_upsert() -> None:
+    offending = "await repositories.tags.upsert(tag, at: record.updatedAt);\n"
+    compliant = "await repositories.tags.writeFromSync(tag, at: record.updatedAt);\n"
+    assert any(
+        v.kind == "sync-interactive-upsert"
+        for v in _interactive_upsert_violations(offending, SYNC_WRITE_PATH)
+    )
+    assert_no(_interactive_upsert_violations(compliant, SYNC_WRITE_PATH))
+    # Scoped to the inbound write path: the editor's own callers are the whole
+    # reason `upsert` still exists.
+    assert_no(
+        _interactive_upsert_violations(
+            offending, "app/lib/src/screens/tags_screen.dart"
+        )
+    )
+    # Commented-out code is not a call.
+    assert_no(
+        _interactive_upsert_violations(
+            "// await repositories.tags.upsert(tag);", SYNC_WRITE_PATH
+        )
+    )
 
 
 def test_certificate_scan_catches_each_concrete_escape_hatch() -> None:

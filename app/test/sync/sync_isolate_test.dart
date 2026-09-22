@@ -11,6 +11,20 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('the production store forwards the parent-undo capability', () {
+    // The engine type-tests for `SyncApplyRestorableStorage` before it captures
+    // anything, and the object it is handed in production is this adapter, not
+    // `CompendiumSyncStorage`. An adapter that stopped forwarding the
+    // capability would therefore lose per-record atomicity in production while
+    // every core-level test, which passes the storage directly, kept it.
+    final database = CompendiumDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final store = CompendiumSyncCoordinatorStore(
+      CompendiumRepositories(database, contraTaxonomy),
+    );
+    expect(store, isA<SyncApplyRestorableStorage>());
+  });
+
   test('opens the database and transport inside the pass isolate', () async {
     final directory = await Directory.systemTemp.createTemp(
       'compendium-sync-isolate-',

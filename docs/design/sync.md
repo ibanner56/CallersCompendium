@@ -1905,13 +1905,23 @@ tombstone — without achieving it by resurrecting deleted data. The cost is rea
 and is disclosed rather than hidden: a deletion can sit unapplied on another
 device indefinitely, and the user is not told why. See the Consequences section.
 
-**A local edit cancels the pending tombstone — and nothing else does.** If the
-user on the holding device edits the entity while a deletion is pending, that is
-a deliberate act on a record they can see, and it revives the entity: the
-tombstone is discarded and the row is republished as live. Without this rule the
-mechanism has a hole, because the edit would be published anyway, advance
-`updatedAt`, out-rank the tombstone and resurrect the entity through the back
-door.
+**A local edit cancels the pending tombstone.** If the user on the holding
+device edits the entity while a deletion is pending, that is a deliberate act on
+a record they can see, and it revives the entity: the tombstone is discarded and
+the row is republished as live. Without this rule the mechanism has a hole,
+because the edit would be published anyway, advance `updatedAt`, out-rank the
+tombstone and resurrect the entity through the back door.
+
+**An inbound revival that out-ranks it cancels it too.** Where a peer's live
+copy wins the `existenceAt` comparison against the held tombstone, the deferred
+deletion has been overtaken and is discarded with it. This paragraph previously
+read "and nothing else does", which put it in conflict with the existence rule:
+the revival had already won, yet the held row survived and re-applied the
+deletion the moment the last citation cleared — undoing the revival, with
+nothing shown to the user, because a pending deletion is not a surface they can
+see. Maintainer-decided; the reasoning below about provenance is unaffected,
+since the discriminator is still `existenceAt` and a revival stamps above the
+tombstone it revives by construction.
 
 **The gate is the provenance of the write, not the resulting timestamp.**
 Phrasing the rule as "a newer `updatedAt` out-ranks the tombstone" would make

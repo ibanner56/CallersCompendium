@@ -137,7 +137,10 @@ abstract interface class SyncCoordinatorStore
 /// semantics live in [CompendiumSyncStorage], while this layer owns only the
 /// coordinator's baseline/publication lifecycle.
 final class CompendiumSyncCoordinatorStore
-    implements SyncCoordinatorStore, SyncApplyReconciliationStorage {
+    implements
+        SyncCoordinatorStore,
+        SyncApplyReconciliationStorage,
+        SyncApplyRestorableStorage {
   CompendiumSyncCoordinatorStore(
     CompendiumRepositories repositories, {
     this.syncId,
@@ -271,6 +274,18 @@ final class CompendiumSyncCoordinatorStore
   @override
   Future<SyncReport?> writeWithReport(SyncApplyRecord record) =>
       storage.writeWithReport(record);
+
+  // Forwarded so the engine can make a record's parent and join writes atomic.
+  // The engine type-tests for this capability, so an adapter that did not
+  // forward it would silently lose the protection in production while every
+  // core-level test kept it.
+  @override
+  Future<Object?> capturePreImage(SyncRecordAddress address) =>
+      storage.capturePreImage(address);
+
+  @override
+  Future<void> restorePreImage(SyncRecordAddress address, Object? preImage) =>
+      storage.restorePreImage(address, preImage);
 
   @override
   Future<SyncReport?> writeParentWithReport(SyncApplyRecord record) =>
@@ -913,10 +928,12 @@ class SyncCoordinator {
                 (kind: entry.kind, recordId: entry.recordId): entry,
             },
     );
-    final normalizedPending = await _normalizeAddresses(snapshot.pending);
-    final normalizedPendingTombstones =
-        <SyncRecordAddress, SyncMergeCandidate>{};
-    if (!freshAttach) {
+    var normalizedPending = await _normalizeAddresses(snapshot.pending);
+    var normalizedPendingTombstones = <SyncRecordAddress, SyncMergeCandidate>{};
+    Future<void> rebuildPendingViews() async {
+      normalizedPending = await _normalizeAddresses(snapshot.pending);
+      normalizedPendingTombstones = <SyncRecordAddress, SyncMergeCandidate>{};
+      if (freshAttach) return;
       final normalizedPublication = await _normalizeCandidates(
         snapshot.publication,
       );
@@ -927,6 +944,8 @@ class SyncCoordinator {
         }
       }
     }
+
+    await rebuildPendingViews();
     final reports = SyncReportSink();
     final peerMaps = <Map<SyncRecordAddress, SyncMergeCandidate?>>[];
     final peerManifestHashes = <Map<SyncRecordAddress, String>>[];
@@ -1121,13 +1140,39 @@ class SyncCoordinator {
         freshAttach ? snapshot.publication : snapshot.local,
       );
       normalizedPendingLive = await _normalizeCandidates(snapshot.pendingLive);
+      // The pending views are derived from the same snapshot, so they go stale
+      // with it. A repaired tombstone left behind as its pre-repair copy stays
+      // filtered out as quarantined, and a stale peer live copy then wins the
+      // merge the repair was supposed to make it lose.
+      await rebuildPendingViews();
     }
 
+    // Both maps, because both are about to be merged. Resolving only
+    // `normalizedLocal` left a pending tombstone's references unaliased, so a
+    // reference to a losing ID could not be connected to its survivor and the
+    // quarantine closure could not reach the dependent.
     final localReferenceAliases = await _resolveReferenceAliases([
       normalizedLocal,
+      normalizedPendingTombstones,
     ]);
+    // A pending tombstone is this device's copy for the merge's purposes, even
+    // though the row it names is still live locally. `snapshot.local` strips
+    // those addresses out — the row must not be offered as live — so without
+    // the overlay the merge saw no local candidate at all and §6.4's existence
+    // comparison never ran for them. A peer still advertising the record live
+    // therefore won by default, including when its `existenceAt` was *older*
+    // than the tombstone's: the stale body was applied and `_restoreTimestamps`
+    // lowered the local row's `existence_at` below the deletion that supersedes
+    // it. §6.4 requires the comparison "on every path that can decide
+    // existence".
+    //
+    // Feeding the tombstone in resolves it the way §6.4 specifies without
+    // changing what is stored: when the tombstone wins, the winner is this
+    // device's own candidate, so the pass uploads rather than downloads and the
+    // live row stays untouched (§6.8). A peer revival stamped above the
+    // tombstone still wins and still downloads, exactly as before.
     final mergeLocal = filterSyncQuarantinedCandidates(
-      normalizedLocal,
+      {...normalizedLocal, ...normalizedPendingTombstones},
       windowEnd: windowEnd,
       resolveAlias: (address) => localReferenceAliases[address] ?? address,
     );
