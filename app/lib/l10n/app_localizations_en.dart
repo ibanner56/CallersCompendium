@@ -308,7 +308,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSyncPairingYourPhrase => 'Your sync phrase';
 
   @override
+  String get settingsSyncPairingYourPhraseHelper =>
+      'Four words separated by hyphens. Keep the generated phrase or type your own.';
+
+  @override
   String get settingsSyncPairingRegenerate => 'Generate a different phrase';
+
+  @override
+  String get settingsSyncPairingWeakPhraseTitle =>
+      'This phrase may be easy to guess';
+
+  @override
+  String get settingsSyncPairingWeakPhraseBody =>
+      'Anyone who guesses it can read and change everything you sync. A generated phrase is much harder to guess. You can use this one anyway.';
 
   @override
   String get settingsSyncPairingEnterPhrase => 'Sync phrase';

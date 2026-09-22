@@ -610,11 +610,29 @@ abstract class AppLocalizations {
   /// **'Your sync phrase'**
   String get settingsSyncPairingYourPhrase;
 
+  /// Helper text under the sync-phrase field when creating a store, saying the phrase can be replaced with the user's own.
+  ///
+  /// In en, this message translates to:
+  /// **'Four words separated by hyphens. Keep the generated phrase or type your own.'**
+  String get settingsSyncPairingYourPhraseHelper;
+
   /// Button to generate a new random sync ID before creating the store.
   ///
   /// In en, this message translates to:
   /// **'Generate a different phrase'**
   String get settingsSyncPairingRegenerate;
+
+  /// Heading of the advisory warning shown when a user-chosen sync phrase scores below the reference strength (spec §8). Advisory only; it never blocks.
+  ///
+  /// In en, this message translates to:
+  /// **'This phrase may be easy to guess'**
+  String get settingsSyncPairingWeakPhraseTitle;
+
+  /// Body of the advisory weak-phrase warning shown while creating a store with a user-chosen phrase (spec §8: warn, never block).
+  ///
+  /// In en, this message translates to:
+  /// **'Anyone who guesses it can read and change everything you sync. A generated phrase is much harder to guess. You can use this one anyway.'**
+  String get settingsSyncPairingWeakPhraseBody;
 
   /// Text field label for entering an existing sync ID to connect.
   ///

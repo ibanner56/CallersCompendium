@@ -45,7 +45,7 @@ class SyncPairingScreen extends StatefulWidget {
 
 class _SyncPairingScreenState extends State<SyncPairingScreen> {
   SyncPairingMode? _mode;
-  late String _candidateId;
+  final _createController = TextEditingController();
   final _connectController = TextEditingController();
   final _endpointController = TextEditingController(text: kDefaultSyncEndpoint);
   String? _fieldError;
@@ -57,12 +57,13 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
   @override
   void initState() {
     super.initState();
-    _candidateId = generateSyncId().value;
+    _createController.text = generateSyncId().value;
   }
 
   @override
   void dispose() {
     _probe?.close?.call();
+    _createController.dispose();
     _connectController.dispose();
     _endpointController.dispose();
     super.dispose();
@@ -72,7 +73,13 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
 
   void _chooseConnect() => setState(() => _mode = SyncPairingMode.connect);
 
-  void _regenerate() => setState(() => _candidateId = generateSyncId().value);
+  void _regenerate() =>
+      setState(() => _createController.text = generateSyncId().value);
+
+  /// The phrase being created once it is structurally valid, for the advisory
+  /// strength warning. A phrase the user typed may be weak; §8 requires the
+  /// client to warn and forbids it from blocking, so this drives copy only.
+  SyncId? get _createCandidate => SyncId.tryParse(_createController.text);
 
   /// The entered endpoint when it is valid and not the project-operated
   /// server — a deliberate trust decision the form must warn about (spec §8).
@@ -119,17 +126,16 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
   Future<void> _submit(SyncController controller) async {
     final l10n = AppLocalizations.of(context);
     final mode = _mode!;
-    String candidate;
-    if (mode == SyncPairingMode.create) {
-      candidate = _candidateId;
-    } else {
-      final parsed = SyncId.tryParse(_connectController.text);
-      if (parsed == null) {
-        setState(() => _fieldError = l10n.settingsSyncPairingInvalidPhrase);
-        return;
-      }
-      candidate = parsed.value;
+    final parsed = SyncId.tryParse(
+      mode == SyncPairingMode.create
+          ? _createController.text
+          : _connectController.text,
+    );
+    if (parsed == null) {
+      setState(() => _fieldError = l10n.settingsSyncPairingInvalidPhrase);
+      return;
     }
+    final candidate = parsed.value;
     final endpoint = tryParseSyncEndpoint(_endpointController.text);
     if (endpoint == null) {
       setState(() => _fieldError = l10n.settingsSyncPairingInvalidEndpoint);
@@ -278,21 +284,34 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
       padding: const EdgeInsets.all(AppSpacing.md),
       children: [
         if (create) ...[
-          Text(
-            l10n.settingsSyncPairingYourPhrase,
-            style: theme.textTheme.labelLarge,
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          SelectableText(
-            _candidateId,
+          TextField(
             key: const ValueKey('sync-pairing-phrase'),
+            controller: _createController,
+            enabled: !_busy,
+            autocorrect: false,
             style: theme.textTheme.headlineSmall,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              labelText: l10n.settingsSyncPairingYourPhrase,
+              helperText: l10n.settingsSyncPairingYourPhraseHelper,
+              helperMaxLines: 3,
+            ),
           ),
           TextButton(
             key: const ValueKey('sync-pairing-regenerate'),
             onPressed: _busy ? null : _regenerate,
             child: Text(l10n.settingsSyncPairingRegenerate),
           ),
+          if (_createCandidate?.isBelowStrengthWarning ?? false) ...[
+            const SizedBox(height: AppSpacing.sm),
+            _Disclosure(
+              key: const ValueKey('sync-pairing-weak-phrase-warning'),
+              icon: Icons.warning_amber_outlined,
+              iconColor: theme.colorScheme.error,
+              title: l10n.settingsSyncPairingWeakPhraseTitle,
+              body: l10n.settingsSyncPairingWeakPhraseBody,
+            ),
+          ],
         ] else ...[
           TextField(
             key: const ValueKey('sync-pairing-phrase-field'),

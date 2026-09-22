@@ -492,7 +492,9 @@ connect a store.
   turns sync on.
 
 **Connecting.** Once enabled, tap **Connect** to either **create a new store**
-(you get a phrase — read it aloud or share it with your other device) or
+(you get a phrase — read it aloud or share it with your other device, or
+replace it with one of your own: four words separated by hyphens. If the phrase
+you choose looks easy to guess, the screen says so but still lets you use it) or
 **connect to an existing one** (enter the phrase shown on the device you
 already set up). The screen tells you which you're doing; it never guesses.
 The **Server** field is pre-filled with the Caller's Compendium sync server,
