@@ -223,11 +223,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncExcludeImportsTitle =>
-      'Skip imported dances not in a program';
+      'Ignorer les danses importées absentes d\'un programme';
 
   @override
   String get settingsSyncExcludeImportsSubtitle =>
-      'Off by default. Cuts what this device uploads if you have a large imported collection; a dance in one of your programs is always included. Nothing is removed from your other devices.';
+      'Désactivé par défaut. Réduit ce que cet appareil envoie si vous avez une grande collection importée ; une danse figurant dans l\'un de vos programmes est toujours incluse. Rien n\'est supprimé de vos autres appareils.';
 
   @override
   String get settingsSyncStatusHeader => 'État';

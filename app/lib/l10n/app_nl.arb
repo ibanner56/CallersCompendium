@@ -232,6 +232,14 @@
   "@settingsSyncWifiOnlySubtitle": {
     "x-sourceSha256": "281c955643110d523c1f0e6616ac917e4c1eb62c95d3c9f7fe25e6e875e6dc4c"
   },
+  "settingsSyncExcludeImportsTitle": "Geïmporteerde dansen overslaan die in geen enkel programma staan",
+  "@settingsSyncExcludeImportsTitle": {
+    "x-sourceSha256": "66608fdb27f257a3afbe4a4990f441894f6538732b5a741bf38a0d7908185490"
+  },
+  "settingsSyncExcludeImportsSubtitle": "Standaard uit. Vermindert wat dit apparaat uploadt als je een grote geïmporteerde verzameling hebt; een dans in een van je programma's wordt altijd meegenomen. Er wordt niets van je andere apparaten verwijderd.",
+  "@settingsSyncExcludeImportsSubtitle": {
+    "x-sourceSha256": "75f6270b800a8fedabb788035ef0142dde3e9b67f739af7fe3ea76a47e31ee26"
+  },
   "settingsSyncStatusHeader": "Status",
   "@settingsSyncStatusHeader": {
     "x-sourceSha256": "920e413c7d411b61ef3e8c63b1cb6ad058d5f95f8b481dbafe60248387d8c355"

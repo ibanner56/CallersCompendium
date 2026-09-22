@@ -210,12 +210,11 @@ class AppLocalizationsJa extends AppLocalizations {
       '初期設定ではオンです。モバイルデータ通信中は、WiFiに接続するまで同期を待機します。';
 
   @override
-  String get settingsSyncExcludeImportsTitle =>
-      'Skip imported dances not in a program';
+  String get settingsSyncExcludeImportsTitle => 'プログラムにない取り込んだダンスをスキップ';
 
   @override
   String get settingsSyncExcludeImportsSubtitle =>
-      'Off by default. Cuts what this device uploads if you have a large imported collection; a dance in one of your programs is always included. Nothing is removed from your other devices.';
+      '初期設定ではオフです。取り込んだコレクションが多い場合に、このデバイスがアップロードする内容を減らします。プログラムに含まれるダンスは常に含まれます。他のデバイスから何かが削除されることはありません。';
 
   @override
   String get settingsSyncStatusHeader => 'ステータス';
