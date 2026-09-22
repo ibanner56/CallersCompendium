@@ -6975,6 +6975,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'A venue is shared across every program held here, so edits to its address, contacts, or schedule show up on all of them.';
 
   @override
+  String get venueEditorPartialSyncHint =>
+      'This venue\'s address and contact fields below stay on this device — Device Sync does not carry them to your other devices, so they may be blank there. The Notes field does sync, so avoid putting contact details there if you\'d rather keep them private to this device.';
+
+  @override
   String get venueEditorNameLabel => 'Name *';
 
   @override

@@ -7104,6 +7104,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Un lieu est partagé entre tous les programmes qui y ont lieu ; les modifications de son adresse, contacts ou calendrier apparaissent sur tous.';
 
   @override
+  String get venueEditorPartialSyncHint =>
+      'This venue\'s address and contact fields below stay on this device — Device Sync does not carry them to your other devices, so they may be blank there. The Notes field does sync, so avoid putting contact details there if you\'d rather keep them private to this device.';
+
+  @override
   String get venueEditorNameLabel => 'Nom *';
 
   @override

@@ -10632,6 +10632,12 @@ abstract class AppLocalizations {
   /// **'A venue is shared across every program held here, so edits to its address, contacts, or schedule show up on all of them.'**
   String get venueEditorSharedNote;
 
+  /// Persistent hint in the venue editor sheet, shown while Device Sync is on and this venue's address/contact fields are all empty (spec §6.13): names the fields that never sync, and warns that Notes is different because it does sync.
+  ///
+  /// In en, this message translates to:
+  /// **'This venue\'s address and contact fields below stay on this device — Device Sync does not carry them to your other devices, so they may be blank there. The Notes field does sync, so avoid putting contact details there if you\'d rather keep them private to this device.'**
+  String get venueEditorPartialSyncHint;
+
   /// Required venue name field label; the asterisk marks the field as required.
   ///
   /// In en, this message translates to:

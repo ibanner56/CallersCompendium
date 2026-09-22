@@ -20,4 +20,12 @@ class SyncScope extends InheritedNotifier<SyncController> {
     }
     return scope.notifier!;
   }
+
+  /// The controller, registering a rebuild dependency, or `null` if this
+  /// context has no [SyncScope] ancestor. For a surface that only needs Device
+  /// Sync state for an optional feature (the §6.13 partial-venue hint) rather
+  /// than requiring the whole app to be wired for sync — including a screen
+  /// test harness that has no reason to set one up.
+  static SyncController? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<SyncScope>()?.notifier;
 }

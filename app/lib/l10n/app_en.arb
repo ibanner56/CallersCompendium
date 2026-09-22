@@ -9182,6 +9182,10 @@
   "@venueEditorSharedNote": {
     "description": "Explanatory note at the top of the venue editor sheet: a venue record is shared across programs."
   },
+  "venueEditorPartialSyncHint": "This venue's address and contact fields below stay on this device — Device Sync does not carry them to your other devices, so they may be blank there. The Notes field does sync, so avoid putting contact details there if you'd rather keep them private to this device.",
+  "@venueEditorPartialSyncHint": {
+    "description": "Persistent hint in the venue editor sheet, shown while Device Sync is on and this venue's address/contact fields are all empty (spec §6.13): names the fields that never sync, and warns that Notes is different because it does sync."
+  },
   "venueEditorNameLabel": "Name *",
   "@venueEditorNameLabel": {
     "description": "Required venue name field label; the asterisk marks the field as required."
