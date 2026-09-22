@@ -111,7 +111,7 @@ class SyncController extends ChangeNotifier {
   }
 
   bool _enabled = false;
-  bool _paired = false;
+  String? _syncId;
   Uri? _endpoint;
   bool _wifiOnly = true;
   bool _excludeImports = false;
@@ -133,7 +133,14 @@ class SyncController extends ChangeNotifier {
   final ValueNotifier<int> wifiSettingRequests = ValueNotifier<int>(0);
 
   bool get enabled => _enabled;
-  bool get paired => _paired;
+  bool get paired => _syncId != null;
+
+  /// The normalized sync ID this device is attached to, or null when it is not
+  /// paired. Held so the status surface can show the user the phrase they are
+  /// connected with: it is unrecoverable if lost (spec §6.14 item 2), and this
+  /// device is the only place it exists. Single source of truth for [paired],
+  /// so the two cannot drift.
+  String? get syncId => _syncId;
 
   /// The server chosen at pairing, or null when this device is not paired.
   Uri? get endpoint => _endpoint;
@@ -170,7 +177,7 @@ class SyncController extends ChangeNotifier {
   /// disuse expiry.
   bool get expiryApproaching {
     final last = _lastSuccessAt;
-    if (!_enabled || !_paired || last == null) return false;
+    if (!_enabled || !paired || last == null) return false;
     return _now().difference(last) >= kSyncExpiryWarningAfter;
   }
 
@@ -209,7 +216,8 @@ class SyncController extends ChangeNotifier {
     _wifiOnly = wifi is bool ? wifi : true;
     _excludeImports = await _settings.get(kSyncExcludeImportsKey) == true;
     final id = await _settings.get(kSyncIdKey);
-    _paired = id is String && normalizeSyncId(id).isNotEmpty;
+    final normalized = id is String ? normalizeSyncId(id) : '';
+    _syncId = normalized.isEmpty ? null : normalized;
     final endpoint = await _settings.get(kSyncEndpointKey);
     _endpoint = endpoint is String ? tryParseSyncEndpoint(endpoint) : null;
     final last = await _settings.get(kSyncLastSuccessAtKey);
@@ -455,7 +463,7 @@ class SyncController extends ChangeNotifier {
     _expectSelfWrite();
     await _settings.set(kSyncIdKey, syncId);
     _endpoint = endpoint;
-    _paired = true;
+    _syncId = normalizeSyncId(syncId);
     _notify();
     await _reconfigure();
     await trigger(SyncTrigger.appStart);
@@ -473,7 +481,7 @@ class SyncController extends ChangeNotifier {
   /// the credential on disk, and it goes in the same transaction as the
   /// store-scoped state so a failure leaves the device fully attached.
   Future<void> detach() async {
-    if (!_paired || _detaching) return;
+    if (!paired || _detaching) return;
     _detaching = true;
     _debounceTimer?.cancel();
     _dirty = false;
@@ -492,7 +500,7 @@ class SyncController extends ChangeNotifier {
     // Only now: while the clear is still pending the device is still attached,
     // and reporting otherwise would offer *Connect* — a pairing completing in
     // that window would have the sync ID it just wrote deleted by this clear.
-    _paired = false;
+    _syncId = null;
     _endpoint = null;
     _lastSuccessAt = null;
     _lastResult = null;

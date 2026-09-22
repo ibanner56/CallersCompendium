@@ -225,6 +225,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSyncStatusHeader => 'Status';
 
   @override
+  String get settingsSyncIdTitle => 'Your sync phrase';
+
+  @override
+  String get settingsSyncIdMasked => 'Hidden';
+
+  @override
+  String get settingsSyncIdShow => 'Show sync phrase';
+
+  @override
+  String get settingsSyncIdHide => 'Hide sync phrase';
+
+  @override
+  String get settingsSyncIdCopy => 'Copy sync phrase';
+
+  @override
+  String get settingsSyncIdCopied =>
+      'Sync phrase copied. It unlocks your store, so paste it only on a device you own.';
+
+  @override
+  String get settingsSyncIdCaution =>
+      'Enter this on your other device to connect it. Anyone who has it can read and change everything you sync, and it can\'t be changed without moving every device to a new phrase.';
+
+  @override
   String get settingsSyncStatusNotPaired => 'Not connected to a store yet.';
 
   @override

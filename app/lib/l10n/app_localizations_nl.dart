@@ -228,6 +228,29 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsSyncStatusHeader => 'Status';
 
   @override
+  String get settingsSyncIdTitle => 'Je synchronisatiezin';
+
+  @override
+  String get settingsSyncIdMasked => 'Verborgen';
+
+  @override
+  String get settingsSyncIdShow => 'Synchronisatiezin tonen';
+
+  @override
+  String get settingsSyncIdHide => 'Synchronisatiezin verbergen';
+
+  @override
+  String get settingsSyncIdCopy => 'Synchronisatiezin kopiëren';
+
+  @override
+  String get settingsSyncIdCopied =>
+      'Synchronisatiezin gekopieerd. Hij geeft toegang tot je opslag, dus plak hem alleen op een apparaat dat van jou is.';
+
+  @override
+  String get settingsSyncIdCaution =>
+      'Voer hem in op je andere apparaat om dat te verbinden. Iedereen die hem heeft, kan alles lezen en wijzigen wat je synchroniseert, en hij kan alleen worden gewijzigd door alle apparaten naar een nieuwe zin te verplaatsen.';
+
+  @override
   String get settingsSyncStatusNotPaired =>
       'Nog niet gekoppeld aan een opslag.';
 

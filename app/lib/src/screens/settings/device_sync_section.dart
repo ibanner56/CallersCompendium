@@ -1,7 +1,9 @@
 // Part of the Settings screen: the Device Sync group of the Experimental pane.
 import 'dart:async';
 
+import 'package:compendium_core/compendium_core.dart' show syncIdWordCount;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
@@ -39,6 +41,12 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
   SyncController? _controller;
 
   bool _replacementDialogShowing = false;
+
+  /// The sync phrase currently shown in the clear, or null while it is
+  /// masked. Holding the phrase rather than a bool means a reveal cannot
+  /// survive the phrase changing underneath it — detaching and pairing with a
+  /// different store re-masks on its own. Never persisted: see [_SyncIdTile].
+  String? _revealedSyncId;
 
   @override
   void didChangeDependencies() {
@@ -108,6 +116,21 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
         ],
       ),
     ).whenComplete(() => _replacementDialogShowing = false);
+  }
+
+  /// Copies the sync phrase for entry on another device. The confirmation
+  /// restates what the phrase is, because a clipboard is a shared surface and
+  /// the copy is the moment the credential leaves this app.
+  Future<void> _copySyncId(String syncId) async {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final l10n = AppLocalizations.of(context);
+    await Clipboard.setData(ClipboardData(text: syncId));
+    messenger?.showSnackBar(
+      SnackBar(
+        key: const ValueKey('sync-id-copied'),
+        content: Text(l10n.settingsSyncIdCopied),
+      ),
+    );
   }
 
   /// A manual attempt on a metered connection is routed to the setting rather
@@ -213,6 +236,17 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
               onChanged: controller.setExcludeImports,
             ),
             SectionHeader(title: l10n.settingsSyncStatusHeader),
+            if (controller.syncId case final syncId?)
+              _SyncIdTile(
+                syncId: syncId,
+                revealed: _revealedSyncId == syncId,
+                onToggleReveal: () => setState(
+                  () => _revealedSyncId = _revealedSyncId == syncId
+                      ? null
+                      : syncId,
+                ),
+                onCopy: () => _copySyncId(syncId),
+              ),
             Builder(
               builder: (tileContext) {
                 final failureText = _failureText(l10n, controller);
@@ -367,5 +401,92 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
       SyncPassStatus.paused => l10n.settingsSyncStatusPaused,
       _ => null,
     };
+  }
+}
+
+/// The sync phrase this device is attached to, on the status surface so the
+/// user can enter it on another device without having written it down at
+/// pairing (spec §6.14 item 2: it cannot be recovered from the server).
+///
+/// Masked until the user asks for it. The phrase is a bearer credential with
+/// no revocation, so a settings pane that displays it unprompted hands it to
+/// anyone who is shown the screen — a screenshot sent to support, a shared
+/// display, someone standing behind the caller at a dance. Copying works
+/// while it is masked, because the common case is moving it to another device
+/// and that never needs it on screen. The reveal is per-visit state and is
+/// deliberately not persisted.
+class _SyncIdTile extends StatelessWidget {
+  const _SyncIdTile({
+    required this.syncId,
+    required this.revealed,
+    required this.onToggleReveal,
+    required this.onCopy,
+  });
+
+  final String syncId;
+  final bool revealed;
+  final VoidCallback onToggleReveal;
+  final VoidCallback onCopy;
+
+  /// The masked rendering: one bullet group per word, so the phrase's shape is
+  /// still recognisable. Word *lengths* are not shown — those narrow a guess.
+  static final String _mask = List.filled(syncIdWordCount, '•' * 4).join('-');
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ListTile(
+          key: const ValueKey('sync-id'),
+          leading: const Icon(Icons.key_outlined),
+          title: Text(l10n.settingsSyncIdTitle),
+          subtitle: Text(
+            revealed ? syncId : _mask,
+            key: const ValueKey('sync-id-value'),
+            semanticsLabel: revealed ? syncId : l10n.settingsSyncIdMasked,
+            style: theme.textTheme.titleMedium,
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                key: const ValueKey('sync-id-reveal'),
+                icon: Icon(
+                  revealed
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                ),
+                tooltip: revealed
+                    ? l10n.settingsSyncIdHide
+                    : l10n.settingsSyncIdShow,
+                onPressed: onToggleReveal,
+              ),
+              IconButton(
+                key: const ValueKey('sync-id-copy'),
+                icon: const Icon(Icons.copy_outlined),
+                tooltip: l10n.settingsSyncIdCopy,
+                onPressed: onCopy,
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            0,
+            AppSpacing.md,
+            AppSpacing.sm,
+          ),
+          child: Text(
+            l10n.settingsSyncIdCaution,
+            key: const ValueKey('sync-id-caution'),
+            style: theme.textTheme.bodyMedium,
+          ),
+        ),
+      ],
+    );
   }
 }

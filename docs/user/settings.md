@@ -485,14 +485,22 @@ while it is on. You can tap its heading to open or close it.
   dance, is always included, so nothing that's still in use loses anything.
   Turning it on removes nothing already on your other devices; this device
   just stops advertising the rest. Turning it back off republishes them.
-- **Status** shows when this device last synced. **Sync is not a backup:** a
-  store that goes unused for 30 days is removed, so keep making file backups.
+- **Status** opens with **Your sync phrase** — the phrase this device is
+  connected with — so you can add another device later even if you didn't write
+  it down when you first connected. It stays hidden behind bullets until you
+  tap the eye button, and **Copy** puts it on the clipboard without showing it,
+  which is all you need to type or paste it into the other device. Keep it to
+  yourself: anyone who has the phrase can read and change everything you sync,
+  and the only way to change it is to move every device to a new one.
+- **Status** also shows when this device last synced. **Sync is not a backup:**
+  a store that goes unused for 30 days is removed, so keep making file backups.
   From three weeks of disuse the status also warns that the store is close to
   expiring.
-- **Notices** appear under the status when a sync had something to report. A
-  sync can finish successfully and still leave one of these standing, which is
-  the point of them: the conditions they name are ones the app will not guess
-  its way out of. You'll see a notice when the same record was changed on two
+- **Notices** appear under that last-synced line when a sync had something to
+  report. A sync can finish successfully and still leave one of these standing,
+  which is the point of them: the conditions they name are ones the app will
+  not guess its way out of. You'll see a notice when the same record was
+  changed on two
   devices in the same moment and neither copy could be chosen (edit either one
   to settle it); when something created here was kept rather than removed by a
   device that had never seen it; when records from another device couldn't be
@@ -537,6 +545,8 @@ library here stays as it is, the store keeps everything, and your other devices
 carry on syncing. Nothing is sent when you disconnect. To reconnect — to the
 same store or a different one — tap **Connect** again; you'll need the phrase,
 so keep it somewhere safe, along with the server address if you changed it.
+Disconnecting really does forget it, so copy it from **Your sync phrase**
+first if it isn't written down anywhere else.
 Turning **Device Sync** off and on again, by contrast, keeps this device
 connected.
 
