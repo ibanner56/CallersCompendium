@@ -65,6 +65,7 @@ class SyncController extends ChangeNotifier {
   int _inFlight = 0;
   bool _dirty = false;
   int _pendingSelfWrites = 0;
+  int _pendingSyncAppliedInvalidations = 0;
   Timer? _debounceTimer;
   bool _disposed = false;
 
@@ -94,6 +95,26 @@ class SyncController extends ChangeNotifier {
   /// made in the instant after a pass records its success must still be
   /// observed, and this cannot mistake it for that recording.
   void _expectSelfWrite() => _pendingSelfWrites++;
+
+  /// Marks that a table invalidation the controller is about to observe is
+  /// the direct result of applying inbound records during the pass currently
+  /// running — the isolate boundary's `onAppliedKinds` hook, wired through
+  /// `main.dart` — not a local edit.
+  ///
+  /// The invalidation reaches the main connection's live queries (and hence
+  /// this controller's [notifyLocalChange]) before the pass's own
+  /// `coordinator.trigger()` call returns, so without this the controller
+  /// sees `_inFlight > 0` and schedules a pointless follow-up pass after
+  /// every pass that applied anything. Unlike [_expectSelfWrite], this is not
+  /// scoped to settings-only writes: applying an inbound record can touch any
+  /// table. A genuine local edit landing in the same window still calls
+  /// [notifyLocalChange] on its own and is unaffected — each call here
+  /// consumes exactly one matching notification, so it cannot swallow an
+  /// edit it wasn't meant for.
+  void expectSyncAppliedInvalidation() {
+    if (_disposed) return;
+    _pendingSyncAppliedInvalidations++;
+  }
 
   /// Reads the persisted state. Absent keys mean the documented defaults: sync
   /// off, WiFi-only on, import exclusion off.
@@ -143,6 +164,10 @@ class SyncController extends ChangeNotifier {
     if (_disposed || !_enabled) return;
     if (settingsOnly && _pendingSelfWrites > 0) {
       _pendingSelfWrites--;
+      return;
+    }
+    if (_pendingSyncAppliedInvalidations > 0) {
+      _pendingSyncAppliedInvalidations--;
       return;
     }
     if (_inFlight > 0) {

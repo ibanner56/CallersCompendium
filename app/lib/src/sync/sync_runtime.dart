@@ -20,7 +20,7 @@ import 'sync_invalidation.dart';
 /// A missing sync ID is also the disabled state. The device identifier is generated
 /// once when a user enables sync and is never taken from a peer or a backup.
 final class ConfiguredSyncCoordinatorFactory {
-  const ConfiguredSyncCoordinatorFactory({required this.endpoint});
+  ConfiguredSyncCoordinatorFactory({required this.endpoint});
 
   /// Uses the release-configured endpoint, or keeps sync disabled when a
   /// build has not opted into a service endpoint.
@@ -30,6 +30,18 @@ final class ConfiguredSyncCoordinatorFactory {
           : Uri.tryParse(_syncEndpointEnvironment);
 
   final Uri? endpoint;
+
+  /// Notified immediately before a completed pass's applied-kinds
+  /// invalidation reaches the main connection (see [markSyncAppliedTablesUpdated]).
+  ///
+  /// Mutable, not a constructor parameter: `main()` constructs this factory
+  /// before `SyncController` exists, so `_CompendiumAppState` assigns this
+  /// once the controller is built, routing the notification to
+  /// `SyncController.expectSyncAppliedInvalidation` so the resulting
+  /// `tableUpdates()` event is not mistaken for a local edit that should
+  /// schedule a follow-up pass. Left `null` in tests, which build their own
+  /// [SyncCoordinator] and never call through this factory.
+  void Function()? onBeforeAppliedInvalidation;
 
   Future<SyncCoordinator?> call(CompendiumRepositories repositories) async {
     if (await repositories.settings.get(kSyncEnabledKey) != true) return null;
@@ -62,8 +74,10 @@ final class ConfiguredSyncCoordinatorFactory {
         endpoint: endpoint,
         syncId: syncId,
         deviceId: deviceId,
-        onAppliedKinds: (kinds) =>
-            markSyncAppliedTablesUpdated(repositories.db, kinds),
+        onAppliedKinds: (kinds) {
+          onBeforeAppliedInvalidation?.call();
+          markSyncAppliedTablesUpdated(repositories.db, kinds);
+        },
       ).call,
     );
   }

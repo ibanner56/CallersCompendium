@@ -180,13 +180,18 @@ Future<void> main() async {
       appData.repositories.settings,
       onClose: shutdownController.close,
     );
+    // Kept as a variable (not just `.call` torn off) so `_CompendiumAppState`
+    // can assign `onBeforeAppliedInvalidation` once its `SyncController`
+    // exists — this factory is built here, before that controller does.
+    final syncCoordinatorFactory = ConfiguredSyncCoordinatorFactory
+        .fromEnvironment();
     runApp(
       CompendiumApp(
         appData: appData,
         windowService: windowService,
         applicationShutdownController: shutdownController,
-        syncCoordinatorFactory:
-            ConfiguredSyncCoordinatorFactory.fromEnvironment().call,
+        syncCoordinatorFactory: syncCoordinatorFactory.call,
+        productionSyncCoordinatorFactory: syncCoordinatorFactory,
         editorDraftShutdownController: editorDraftShutdownController,
         crashReporter: crashReporter,
         migrationPreflight: (onSnapshotFailure) => runMigrationPreflightForApp(
@@ -244,6 +249,7 @@ class CompendiumApp extends StatefulWidget {
     this.databaseResetter = _resetDatabaseFile,
     this.applicationShutdownController,
     this.syncCoordinatorFactory,
+    this.productionSyncCoordinatorFactory,
     this.syncNetworkClassifier = const ConnectivityPlusNetworkClassifier(),
     this.syncDebounce = kSyncChangeDebounce,
     this.editorDraftShutdownController,
@@ -268,6 +274,15 @@ class CompendiumApp extends StatefulWidget {
   /// surface; omitting this keeps Device Sync disabled.
   final Future<SyncCoordinator?> Function(CompendiumRepositories repositories)?
   syncCoordinatorFactory;
+
+  /// The same production factory as [syncCoordinatorFactory], exposed as an
+  /// object (rather than the bound `.call` closure above) so
+  /// `_CompendiumAppState` can assign its `onBeforeAppliedInvalidation` hook
+  /// once `SyncController` exists (that factory is built in `main`, before
+  /// this widget's state does). `null` in every test: they inject their own
+  /// [syncCoordinatorFactory] and construct a [SyncCoordinator] directly, so
+  /// this hook never applies to them.
+  final ConfiguredSyncCoordinatorFactory? productionSyncCoordinatorFactory;
 
   /// Reports whether the connection is metered for *Sync only on WiFi*
   /// (spec §6.12). Injected in widget tests, where the platform channel does
@@ -479,6 +494,19 @@ class _CompendiumAppState extends State<CompendiumApp> {
   SyncCoordinator? _syncCoordinator;
   Future<void>? _syncCoordinatorDisposeFuture;
   Future<void>? _syncWriterTail;
+
+  /// `true` for the span between a writer boundary ([_runSyncWriter]) taking
+  /// ownership (disposing whatever coordinator exists) and its own
+  /// post-operation reconfigure completing. A sync reconfiguration
+  /// ([_configureSyncCoordinatorNow]) that resolves its factory while this is
+  /// true must not install (or start a pass on) the coordinator it just
+  /// built: the writer already owns exclusivity, and the writer's own
+  /// `finally` reconfigures once it is safe. Without this check, a reconfigure
+  /// still awaiting `factory(...)` when a writer starts finds nothing to
+  /// dispose (the coordinator isn't installed yet), so the writer's operation
+  /// (e.g. a backup restore) can run concurrently with a pass the
+  /// just-resolved factory starts — the race spec §6.11 forbids.
+  bool _syncWriterExclusive = false;
   bool _shutdownRequested = false;
 
   /// Result of the once-per-launch [_runIntegrityCheck]. `false` means the
@@ -569,6 +597,15 @@ class _CompendiumAppState extends State<CompendiumApp> {
       classifier: widget.syncNetworkClassifier,
       debounce: widget.syncDebounce,
     );
+    // The production coordinator invalidates the main connection's live
+    // queries before its pass's own `coordinator.trigger()` call returns
+    // (issue: post-apply invalidation scheduling a redundant pass); route
+    // that signal through the controller so it can tell its own
+    // invalidation apart from a genuine local edit landing in the same
+    // instant, rather than scheduling a pointless follow-up pass after every
+    // pass that applied anything.
+    widget.productionSyncCoordinatorFactory?.onBeforeAppliedInvalidation =
+        _syncController.expectSyncAppliedInvalidation;
     // Local writes schedule one debounced automatic pass (spec §6.12). Settings
     // rows are reported separately because shareable preferences are sync
     // records too, while the controller's own bookkeeping writes to that table
@@ -639,6 +676,11 @@ class _CompendiumAppState extends State<CompendiumApp> {
       if (_shutdownRequested) {
         throw StateError('cannot start a database writer during shutdown');
       }
+      // Claimed before disposing so a reconfigure whose factory is still
+      // resolving cannot install a coordinator (or start a pass) once it
+      // returns — it must find `_syncWriterExclusive` true and back off. See
+      // the field doc for the race this closes.
+      _syncWriterExclusive = true;
       try {
         await _disposeSyncCoordinator();
         if (_shutdownRequested) {
@@ -646,6 +688,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
         }
         return await operation();
       } finally {
+        // Released before the writer's own reconfigure so that call — unlike
+        // one racing in from outside — is free to install its coordinator.
+        _syncWriterExclusive = false;
         if (!_shutdownRequested && mounted) {
           await _configureSyncCoordinator();
         }
@@ -1250,7 +1295,12 @@ class _CompendiumAppState extends State<CompendiumApp> {
       logCaughtError(error, stackTrace, source: 'main.sync-configure');
       return;
     }
-    if (!mounted || _shutdownRequested) {
+    if (!mounted || _shutdownRequested || _syncWriterExclusive) {
+      // A writer boundary (backup restore / shared-archive import) claimed
+      // exclusivity while `factory(...)` above was still resolving. Installing
+      // this coordinator now — even without starting a pass — would let a
+      // concurrent trigger (e.g. "Sync Now") reach it mid-write. Dispose it
+      // unused; the writer's own `finally` reconfigures once it is done.
       await coordinator?.dispose();
       return;
     }
