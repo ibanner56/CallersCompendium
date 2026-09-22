@@ -982,7 +982,9 @@ void main() {
       // Forcing a whole-library rebuild here would be pure cost.
       expect(counting.rebuildAttempts, 0);
       expect(
-        await counting.settings.contains(normalisationDerivedIndexRepairDoneKey),
+        await counting.settings.contains(
+          normalisationDerivedIndexRepairDoneKey,
+        ),
         isTrue,
         reason: 'the sweep is retired all the same, so it never re-evaluates',
       );
@@ -1013,7 +1015,9 @@ void main() {
 
       expect(counting.rebuildAttempts, 0);
       expect(
-        await counting.settings.contains(normalisationDerivedIndexRepairDoneKey),
+        await counting.settings.contains(
+          normalisationDerivedIndexRepairDoneKey,
+        ),
         isFalse,
         reason:
             'deferring must NOT write the done marker, or the repair is lost '

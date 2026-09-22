@@ -989,10 +989,10 @@ class CompendiumRepositories {
     final grouped = <(String, String), List<String>>{};
     for (final entry in entries) {
       grouped
-          .putIfAbsent(
-            (entry.read<String>('table_name'), entry.read<String>('column_name')),
-            () => <String>[],
-          )
+          .putIfAbsent((
+            entry.read<String>('table_name'),
+            entry.read<String>('column_name'),
+          ), () => <String>[])
           .add(entry.read<String>('record_id'));
     }
     final inScope = _normalisationColumns.toSet();
@@ -1240,17 +1240,28 @@ class CompendiumRepositories {
       await clear();
       return false;
     }
-    final rows = await db
-        .customSelect(
-          'SELECT value_json FROM settings WHERE key = ?',
-          variables: [Variable<String>(key)],
-        )
-        .get();
-    if (rows.isEmpty) {
+    // Read through drift's typed API rather than as raw SQL, and the reason is
+    // the **tombstone**, not the typing. `tools/ci/check_settings_marker_reads`
+    // requires every raw `SELECT … FROM settings WHERE key` to carry
+    // `AND deleted_at IS NULL`, so that a tombstoned *marker* can never be read
+    // back as still set. This is not a marker read: it re-attempts a recorded
+    // user settings value, and the scan half whose work it continues walks
+    // `SELECT key, value_json FROM settings` unfiltered — so it judges
+    // tombstoned rows too, deliberately, because a tombstone still carries a
+    // value (`backfill repairs tombstoned shareable settings`). Adding the
+    // filter here would make the retry disagree with the scan about the same
+    // row. Satisfying the gate by typing rather than by filtering keeps the two
+    // halves reading the same set; it is stated here rather than left to be
+    // inferred, because a reader who finds the gate first will otherwise read
+    // this as an evasion of it.
+    final row = await (db.select(
+      db.settings,
+    )..where((t) => t.key.equals(key))).getSingleOrNull();
+    if (row == null) {
       await clear();
       return false;
     }
-    final raw = rows.single.read<String>('value_json');
+    final raw = row.valueJson;
     final encoded = _normaliseSettingsValue(raw);
     // The keys still collide (or the value still cannot round-trip): leave it
     // recorded. Retry succeeds when the user renames or deletes one of the
