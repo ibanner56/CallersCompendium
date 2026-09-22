@@ -568,6 +568,54 @@ abstract class AppLocalizations {
   /// **'No store has this sync phrase. Check it against your other device.'**
   String get settingsSyncStatusStoreNotFound;
 
+  /// Status shown after the user declined to replace a store that had gone missing. Per spec §6.3 step 1 declining leaves sync configured but paused; a manual 'Sync now' reopens the replacement decision. Automatic syncs do nothing while paused.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync is paused because the store this device used no longer exists. Tap Sync now to decide again.'**
+  String get settingsSyncStatusPaused;
+
+  /// Non-blocking notice on the Device Sync status surface for an equal-updatedAt conflict (spec §6.3). Neither body wins and neither is applied; only a human edit resolves it, so the copy asks for one. Needs no dismissal and blocks nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Some records were changed on two devices at the same moment. Neither copy was chosen, so your devices still differ. Edit one of them to settle it.'**
+  String get settingsSyncNoticeDivergence;
+
+  /// Non-blocking notice for spec §6.4: a record created locally and never observed by any peer must be reported rather than resolved out of existence. Informational — the record is safe and no action is required.
+  ///
+  /// In en, this message translates to:
+  /// **'Something created on this device would have been removed by another device that had never seen it. It was kept here instead.'**
+  String get settingsSyncNoticeKeptLocalCreation;
+
+  /// Non-blocking notice for a record on THIS device left quarantined after peer-only timestamp repair and withheld from publication along with its dependents. Deliberately distinct from the skipped-record notice, which is about records received from another device: nothing was received here, so the remedy is this device's clock rather than another device's app version. The two share a report code and are told apart by whether the report carries a peer id.
+  ///
+  /// In en, this message translates to:
+  /// **'Some items on this device have a date the app can\'t trust, so they aren\'t being sent to your other devices. Check this device\'s date and time, then edit one of the items to give it a fresh date.'**
+  String get settingsSyncNoticeQuarantinedLocal;
+
+  /// Non-blocking notice covering every condition that leaves one INBOUND record unusable: malformed or non-canonical body, a non-shareable field, a missing or mismatched blob, an unresolved reference, or a quarantined implausible timestamp on a record received from a peer. Grouped deliberately — the spec requires the report not be a per-record prompt. A local record quarantined on this device uses settingsSyncNoticeQuarantinedLocal instead.
+  ///
+  /// In en, this message translates to:
+  /// **'Some records from another device couldn\'t be used and were skipped. Check that your other devices are running the same app version, then sync again.'**
+  String get settingsSyncNoticeSkippedRecord;
+
+  /// Non-blocking notice raised when every peer timestamp observed in a pass sat outside this device's clock window, which indicates a wrong clock rather than a bad record.
+  ///
+  /// In en, this message translates to:
+  /// **'Another device\'s clock looks far off from this one\'s. Check the date and time on your devices — sync uses them to decide which edit is newer.'**
+  String get settingsSyncNoticeClock;
+
+  /// Non-blocking notice for an inbound update held back because the local row changed while the pass was preparing it. Self-resolving: the copy must not send the user to fix anything.
+  ///
+  /// In en, this message translates to:
+  /// **'An update from another device arrived while you were editing the same record, so it wasn\'t applied. The next sync picks it up.'**
+  String get settingsSyncNoticeDeferredInbound;
+
+  /// Non-blocking notice raised when records this device published have been absent from every observed peer manifest for three consecutive passes, which usually means another device has stopped syncing.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes from this device haven\'t appeared on your other devices after several syncs. Open the app on them and sync.'**
+  String get settingsSyncNoticeUnreflectedPublication;
+
   /// Disclosure shown wherever Device Sync reports its status, stating that sync does not replace a file backup.
   ///
   /// In en, this message translates to:
