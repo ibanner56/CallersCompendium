@@ -729,6 +729,123 @@ void main() {
   );
 
   testWidgets(
+    'a writer boundary started while a reconfigure is still awaiting its '
+    'factory prevents that reconfigure from starting a pass until the '
+    'writer completes',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+      final events = <String>[];
+      var factoryCalls = 0;
+      Completer<void>? racingFactoryGate;
+
+      Future<SyncCoordinator?> factory(
+        CompendiumRepositories repositories,
+      ) async {
+        factoryCalls++;
+        final callNumber = factoryCalls;
+        if (callNumber == 1) {
+          // Startup: sync is off, matching spec §6.1 — no coordinator.
+          return null;
+        }
+        if (callNumber == 2) {
+          // The reconfigure a writer boundary starts during (its factory
+          // call is held open exactly like a settings toggle whose repository
+          // reads/HTTP client setup have not resolved yet).
+          await racingFactoryGate!.future;
+        }
+        return SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-$callNumber',
+          store: CompendiumSyncCoordinatorStore(repositories),
+          transport: NoopSyncCoordinatorTransport(),
+          passOperation: ({SyncStoreResult? initialStore}) async {
+            events.add('pass-ran-$callNumber');
+            return const SyncPassResult(SyncPassStatus.completed);
+          },
+        );
+      }
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          integrityCheck: () async => true,
+          syncCoordinatorFactory: factory,
+          syncNetworkClassifier: const UnmeteredSyncNetwork(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(factoryCalls, 1, reason: 'startup: sync is off');
+
+      final controller = SyncScope.of(tester.element(find.byType(AppShell)));
+      racingFactoryGate = Completer<void>();
+      // Turning sync on starts the second (racing) reconfigure; its factory
+      // call is held open by the gate above.
+      final enableFuture = controller.setEnabled(true);
+      await tester.pump();
+      expect(factoryCalls, 2);
+
+      final scope = tester.widget<SyncWriterLifecycleScope>(
+        find.byType(SyncWriterLifecycleScope),
+      );
+      final runWrite = scope.runWrite;
+      expect(runWrite, isNotNull);
+
+      final writerOperationGate = Completer<void>();
+      final writerFuture = runWrite!(() async {
+        events.add('writer-started');
+        await writerOperationGate.future;
+        events.add('writer-finished');
+      });
+      await tester.pump();
+      expect(
+        events,
+        contains('writer-started'),
+        reason:
+            'nothing is installed yet to dispose, so the writer proceeds '
+            'straight into its operation',
+      );
+
+      // Release the racing reconfigure's factory while the writer's
+      // operation is still in progress. Spec §6.11: this must not install a
+      // coordinator that a concurrent trigger could reach, and must not
+      // start a pass, while the writer owns exclusivity.
+      racingFactoryGate.complete();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(
+        events.where((event) => event.startsWith('pass-ran')),
+        isEmpty,
+        reason:
+            'the racing reconfigure must not start a pass while the writer '
+            'is still running',
+      );
+      expect(factoryCalls, 2, reason: 'no further reconfigure has run yet');
+
+      writerOperationGate.complete();
+      await writerFuture;
+      await enableFuture;
+      await tester.pumpAndSettle();
+
+      expect(
+        factoryCalls,
+        3,
+        reason:
+            "the writer's own post-operation reconfigure builds a fresh "
+            'coordinator once it is safe',
+      );
+      expect(
+        events.indexOf('writer-finished'),
+        lessThan(events.indexWhere((event) => event.startsWith('pass-ran'))),
+        reason: 'no pass ran before the writer completed',
+      );
+    },
+  );
+
+  testWidgets(
     'a downgrade preflight failure shows the update-app message and gates the '
     'app, with no Retry (Phase 7 migration safety)',
     (tester) async {
