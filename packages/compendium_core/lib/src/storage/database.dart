@@ -276,8 +276,15 @@ const String callersBoxRollAwayRoleRepairDoneKey =
 const String shareableTextNormalisationScopeKey =
     '__shareable_text_normalisation_scope__';
 
-/// Records a unique natural-key value that could not yet be normalized because
-/// another row occupies the normalized value.
+/// Records the address of a row the normalization pass left as stored, so the
+/// pass can re-attempt it later.
+///
+/// There are three reasons a row is left, not one: a unique natural-key value
+/// whose normalized form another row already occupies; a settings value whose
+/// object keys normalize to the same string; and a JSON column whose stored
+/// value cannot be canonicalized at all — malformed, or itself key-colliding
+/// (#1347). Only the first is a collision with a sibling row; the pass records
+/// all three the same way because the retry unit is the same.
 Future<void> recordNormalisationSkip(
   CompendiumDatabase db, {
   required String table,

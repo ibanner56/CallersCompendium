@@ -623,8 +623,10 @@ class Settings extends Table {
   Set<Column> get primaryKey => {key};
 }
 
-/// Durable records for unique natural-key values that could not yet be
-/// normalized because another row occupies the transformed value.
+/// Durable addresses of rows the normalization pass could not yet rewrite:
+/// a unique natural-key value whose transformed form another row occupies, a
+/// settings value whose object keys transform to the same string, or a JSON
+/// column whose stored value cannot be transformed at all.
 @DataClassName('NormalisationSkipRow')
 class NormalisationSkips extends Table {
   TextColumn get tableNameValue => text().named('table_name')();
