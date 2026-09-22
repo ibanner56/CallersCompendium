@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
 
 import '../model/choreographer.dart';
 import '../model/custom_field.dart';
@@ -215,13 +216,44 @@ final class CompendiumSyncStorage
   final Expando<_InboundDependentIndex> _dependentIndexCache =
       Expando<_InboundDependentIndex>();
 
+  /// Memoises [_previouslyUsed] per sync identity for this storage instance's
+  /// lifetime.
+  ///
+  /// A fresh [CompendiumSyncStorage] is created per worker pass, so this
+  /// memo's lifetime is exactly one pass. `snapshot()` is called several
+  /// times per pass (once up front, again after §6.9 repairs, again inside
+  /// `buildPublicationState`, ...) and each call previously re-derived the
+  /// slow PBKDF2-style verifier for every stored sync identity. Caching the
+  /// match result here means only the first check in a pass pays that cost;
+  /// [markSyncUsed] writing a new verifier updates the entry directly instead
+  /// of leaving it stale.
+  final Map<String, bool> _identityVerifierMemo = {};
+
   CompendiumDatabase get _db => repositories.db;
+
+  /// Whether [syncId] has already completed a publication, deriving the slow
+  /// verifier at most once per sync identity for this instance.
+  ///
+  /// `syncId == null` still loads the stored marker (without deriving
+  /// anything) so a legacy fingerprint marker migrates even when the caller
+  /// has no identity of its own to check against it.
+  Future<bool> _previouslyUsed(String? syncId) async {
+    if (syncId != null) {
+      final cached = _identityVerifierMemo[syncId];
+      if (cached != null) return cached;
+    }
+    final verifiers = await _loadUsedIdentityVerifiers(syncId);
+    if (syncId == null) return false;
+    final result = verifiers.any((verifier) => verifier.matches(syncId));
+    _identityVerifierMemo[syncId] = result;
+    return result;
+  }
 
   Future<SyncStorageSnapshot> snapshot({
     String? syncId,
   }) => repositories.transaction(() async {
     await _revalidatePendingDeletions();
-    final usedVerifiers = await _loadUsedIdentityVerifiers(syncId);
+    final previouslyUsed = await _previouslyUsed(syncId);
     final baseline = await repositories.syncLocal.snapshotBaseline();
     final baselineState = await repositories.syncLocal.getBaselineState();
     final local = <SyncRecordAddress, SyncMergeCandidate?>{};
@@ -479,9 +511,7 @@ final class CompendiumSyncStorage
 
     return SyncStorageSnapshot(
       epoch: baselineState?.epoch,
-      previouslyUsed:
-          syncId != null &&
-          usedVerifiers.any((verifier) => verifier.matches(syncId)),
+      previouslyUsed: previouslyUsed,
       local: local,
       baseline: baseline,
       publication: publication,
@@ -1104,8 +1134,8 @@ final class CompendiumSyncStorage
   }
 
   Future<void> markSyncUsed(String syncId) async {
+    if (await _previouslyUsed(syncId)) return;
     final verifiers = await _loadUsedIdentityVerifiers(syncId);
-    if (verifiers.any((verifier) => verifier.matches(syncId))) return;
     final next = [...verifiers, _StoredSyncIdentityVerifier.create(syncId)];
     final encoded = next.map((verifier) => verifier.toJson()).toList()
       ..sort(
@@ -1114,6 +1144,10 @@ final class CompendiumSyncStorage
         ),
       );
     await repositories.settings.set(syncLastUsedFingerprintKey, encoded);
+    // The marker just gained this identity's verifier: update the memo
+    // directly rather than dropping it, so a `snapshot()` later in the same
+    // pass sees `previouslyUsed: true` without re-deriving.
+    _identityVerifierMemo[syncId] = true;
   }
 
   /// Atomically records the manifest attempt and marks the sync identity
@@ -4840,6 +4874,18 @@ const _syncIdentitySaltBytes = 16;
 const _syncIdentityVerifierBytes = 32;
 final _syncIdentityRandom = Random.secure();
 
+/// Test-only count of calls to [_deriveSyncIdentityVerifier].
+///
+/// The derivation is deliberately slow (600,000 HMAC-SHA256 iterations) so a
+/// stolen marker file cannot be brute-forced offline; that cost is only safe
+/// to keep on the hot sync path because [CompendiumSyncStorage] derives a
+/// given sync identity's verifier at most once per instance (see
+/// `_identityVerifierMemo`). This counter lets a test assert that invariant
+/// directly instead of only inferring it from wall-clock time. Nothing in
+/// this package reads it outside tests.
+@visibleForTesting
+int syncIdentityVerifierDerivationCount = 0;
+
 final class _StoredSyncIdentityVerifier {
   const _StoredSyncIdentityVerifier({
     required this.salt,
@@ -4910,6 +4956,7 @@ String _legacyIdentityFingerprint(String syncId) =>
     sha256Hex(utf8.encode(normalizeSyncId(syncId)));
 
 List<int> _deriveSyncIdentityVerifier(String syncId, List<int> salt) {
+  syncIdentityVerifierDerivationCount++;
   final hmac = Hmac(sha256, utf8.encode(normalizeSyncId(syncId)));
   var block = hmac.convert([...salt, 0, 0, 0, 1]).bytes;
   final derived = List<int>.from(block);
