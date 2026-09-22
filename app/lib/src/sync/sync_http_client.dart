@@ -9,6 +9,28 @@ import 'package:http/io_client.dart';
 import 'package:compendium_core/compendium_core.dart'
     show SyncId, encodeSyncCredential, normalizeSyncId;
 
+/// The project-operated Athenaeum, pre-filled in the pairing form. A user may
+/// replace it with a self-hosted server; see `isDefaultSyncEndpoint`.
+const String kDefaultSyncEndpoint = 'https://athenaeum.callerscompendium.com/';
+
+/// Whether [endpoint] is the project-operated server. Compared by origin: a
+/// differing path on the same origin is not a different trust decision.
+bool isDefaultSyncEndpoint(Uri endpoint) =>
+    endpoint.origin == Uri.parse(kDefaultSyncEndpoint).origin;
+
+/// Parses and validates a user-entered endpoint (spec §8: https or an exact
+/// `localhost`/`127.0.0.1`, no userinfo, query or fragment), or returns null.
+Uri? tryParseSyncEndpoint(String text) {
+  final uri = Uri.tryParse(text.trim());
+  if (uri == null) return null;
+  try {
+    return validateSyncEndpoint(uri);
+  } on SyncEndpointException {
+    // diagnostics: silent — surfaced to the user as a typed field error.
+    return null;
+  }
+}
+
 /// Maximum number of redirect hops followed by the sync client.
 const int syncMaxRedirects = 5;
 

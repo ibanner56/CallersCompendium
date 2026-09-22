@@ -581,9 +581,46 @@ void main() {
   });
 
   group('pairing (spec §6.2, §6.14 items 1, 2, 5)', () {
-    test('probeFor returns null without a configured endpoint or factory', () {
+    test('probeFor builds a live probe for the endpoint it is given', () {
       final controller = build();
-      expect(controller.probeFor('correct horse battery staple'), isNull);
+      final probe = controller.probeFor(
+        'alpha-bravo-charlie-delta',
+        Uri.parse(kDefaultSyncEndpoint),
+      );
+      addTearDown(() => probe.close?.call());
+      expect(probe.close, isNotNull);
+    });
+
+    test('tryParseSyncEndpoint enforces the spec §8 entry validation', () {
+      expect(
+        tryParseSyncEndpoint(' https://sync.example.test/ '),
+        Uri.parse('https://sync.example.test/'),
+      );
+      expect(tryParseSyncEndpoint('http://127.0.0.1:33333'), isNotNull);
+      for (final rejected in [
+        '',
+        'sync.example.test',
+        'http://sync.example.test/',
+        'https://user@sync.example.test/',
+        'https://sync.example.test/?q=1',
+        'https://sync.example.test/#f',
+      ]) {
+        expect(tryParseSyncEndpoint(rejected), isNull, reason: rejected);
+      }
+    });
+
+    test('isDefaultSyncEndpoint compares by origin', () {
+      expect(isDefaultSyncEndpoint(Uri.parse(kDefaultSyncEndpoint)), isTrue);
+      expect(
+        isDefaultSyncEndpoint(
+          Uri.parse('https://athenaeum.callerscompendium.com'),
+        ),
+        isTrue,
+      );
+      expect(
+        isDefaultSyncEndpoint(Uri.parse('https://sync.example.test/')),
+        isFalse,
+      );
     });
 
     test('probeFor uses the injected factory over the real client', () {
@@ -596,19 +633,24 @@ void main() {
         settings: repos.settings,
         coordinator: () => coordinator,
         reconfigure: () async {},
-        endpoint: Uri.parse('https://sync.example.test'),
-        pairingProbeFactory: (syncId) => probe,
+        pairingProbeFactory: (syncId, endpoint) => probe,
         classifier: network,
       );
       addTearDown(controller.dispose);
       expect(
-        identical(controller.probeFor('correct horse battery staple'), probe),
+        identical(
+          controller.probeFor(
+            'correct horse battery staple',
+            Uri.parse('https://sync.example.test/'),
+          ),
+          probe,
+        ),
         isTrue,
       );
     });
 
-    test('completePairing persists the ID, marks paired, and asks for '
-        'reconfiguration exactly once', () async {
+    test('completePairing persists the ID and endpoint, marks paired, and '
+        'asks for reconfiguration exactly once', () async {
       var reconfigured = 0;
       final controller = SyncController(
         settings: repos.settings,
@@ -620,12 +662,20 @@ void main() {
       await controller.load();
       expect(controller.paired, isFalse);
 
-      await controller.completePairing('correct horse battery staple');
+      await controller.completePairing(
+        'correct horse battery staple',
+        Uri.parse('https://sync.example.test/'),
+      );
 
       expect(controller.paired, isTrue);
+      expect(controller.endpoint, Uri.parse('https://sync.example.test/'));
       expect(
         await repos.settings.get(kSyncIdKey),
         'correct horse battery staple',
+      );
+      expect(
+        await repos.settings.get(kSyncEndpointKey),
+        'https://sync.example.test/',
       );
       expect(reconfigured, 1);
     });
@@ -645,7 +695,10 @@ void main() {
       await controller.load();
       await controller.setEnabled(true);
 
-      await controller.completePairing('correct horse battery staple');
+      await controller.completePairing(
+        'correct horse battery staple',
+        Uri.parse(kDefaultSyncEndpoint),
+      );
 
       expect(
         controller.lastResult?.duplicateCount,

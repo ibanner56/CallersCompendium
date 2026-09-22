@@ -241,6 +241,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String settingsSyncCustomEndpointStatus(String host) {
+    return 'Synchronisiert mit einem eigenen Server: $host';
+  }
+
+  @override
   String get settingsSyncStatusSyncing => 'Synchronisiert …';
 
   @override
@@ -320,8 +325,19 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsSyncPairingEnterPhraseHint => 'wort-wort-wort-wort';
 
   @override
+  String get settingsSyncPairingEndpointLabel => 'Server';
+
+  @override
+  String get settingsSyncPairingEndpointHelper =>
+      'Lass dies unverändert, außer du betreibst einen eigenen Synchronisierungsserver.';
+
+  @override
   String get settingsSyncPairingInvalidPhrase =>
       'Das sieht nicht nach einer vollständigen Synchronisierungsphrase aus.';
+
+  @override
+  String get settingsSyncPairingInvalidEndpoint =>
+      'Diese Serveradresse ist ungültig. Sie muss mit https:// beginnen.';
 
   @override
   String get settingsSyncPairingNotFound =>
@@ -334,6 +350,15 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsSyncPairingUnreachable =>
       'Die Gerätesynchronisierung ist gerade nicht verfügbar. Prüfe deine Verbindung und versuche es erneut.';
+
+  @override
+  String settingsSyncPairingCustomEndpointTitle(String host) {
+    return 'Eigener Server: $host';
+  }
+
+  @override
+  String get settingsSyncPairingCustomEndpointBody =>
+      'Das ist nicht der Standardserver der Gerätesynchronisierung. Wer ihn betreibt, kann alles, was du synchronisierst, lesen, ändern und löschen – verwende also nur einen Server, dem du vertraust.';
 
   @override
   String get settingsSyncPairingSharingTitle =>

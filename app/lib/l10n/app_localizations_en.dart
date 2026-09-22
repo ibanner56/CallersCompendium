@@ -236,6 +236,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String settingsSyncCustomEndpointStatus(String host) {
+    return 'Syncing with a custom server: $host';
+  }
+
+  @override
   String get settingsSyncStatusSyncing => 'Syncing…';
 
   @override
@@ -312,8 +317,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSyncPairingEnterPhraseHint => 'word-word-word-word';
 
   @override
+  String get settingsSyncPairingEndpointLabel => 'Server';
+
+  @override
+  String get settingsSyncPairingEndpointHelper =>
+      'Leave this as it is unless you run your own sync server.';
+
+  @override
   String get settingsSyncPairingInvalidPhrase =>
       'That doesn\'t look like a complete sync phrase.';
+
+  @override
+  String get settingsSyncPairingInvalidEndpoint =>
+      'That server address isn\'t valid. It must start with https://.';
 
   @override
   String get settingsSyncPairingNotFound =>
@@ -326,6 +342,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsSyncPairingUnreachable =>
       'Device Sync isn\'t available right now. Check your connection and try again.';
+
+  @override
+  String settingsSyncPairingCustomEndpointTitle(String host) {
+    return 'Custom server: $host';
+  }
+
+  @override
+  String get settingsSyncPairingCustomEndpointBody =>
+      'This is not the default Device Sync server. Whoever runs it can read, change and delete everything you sync, so only use a server you trust.';
 
   @override
   String get settingsSyncPairingSharingTitle => 'Sharing is not collaboration';

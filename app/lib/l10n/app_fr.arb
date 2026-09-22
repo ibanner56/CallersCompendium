@@ -256,6 +256,10 @@
   "@settingsSyncStatusLastSynced": {
     "x-sourceSha256": "2e4722e81e7b673034a549b3c14f93881ca876d8726d7c8bea8cd9ec33af02b7"
   },
+  "settingsSyncCustomEndpointStatus": "Synchronisation avec un serveur personnalisé : {host}",
+  "@settingsSyncCustomEndpointStatus": {
+    "x-sourceSha256": "525e18af1820ee4028e47676c0888e3da511339787b23321b243b94fa1537387"
+  },
   "settingsSyncStatusSyncing": "Synchronisation…",
   "@settingsSyncStatusSyncing": {
     "x-sourceSha256": "8a046cc90ab0a981f95cbf2c9c609309e0cfda272d8c01fdffecdb8286877e91"
@@ -344,9 +348,21 @@
   "@settingsSyncPairingEnterPhraseHint": {
     "x-sourceSha256": "26d1f0702fbc299d5983bb679ad99b637f8fc562afc8d361e66df171d0226a32"
   },
+  "settingsSyncPairingEndpointLabel": "Serveur",
+  "@settingsSyncPairingEndpointLabel": {
+    "x-sourceSha256": "aef7de28d52977f1b5cd0fecfdc151717610adf41e0aa33b4d9f7522a43337ef"
+  },
+  "settingsSyncPairingEndpointHelper": "Laissez cette adresse telle quelle, sauf si vous utilisez votre propre serveur de synchronisation.",
+  "@settingsSyncPairingEndpointHelper": {
+    "x-sourceSha256": "ba5b3682943b5ed4090a9a373e890e8c67a4ef068b2a22248a6e257ca940f720"
+  },
   "settingsSyncPairingInvalidPhrase": "Cela ne ressemble pas à une phrase de synchronisation complète.",
   "@settingsSyncPairingInvalidPhrase": {
     "x-sourceSha256": "21b4b4c5a41a1b892fdbd68fd465d4fbc8d30539f14a55706792065d4f76ada8"
+  },
+  "settingsSyncPairingInvalidEndpoint": "Cette adresse de serveur n'est pas valide. Elle doit commencer par https://.",
+  "@settingsSyncPairingInvalidEndpoint": {
+    "x-sourceSha256": "07dfffa05b422fca32646f628ddacb5e73f0fec4b5e1984773fe7a38dfcef671"
   },
   "settingsSyncPairingNotFound": "Aucun espace ne correspond à cette phrase. Vérifiez-la sur l'autre appareil et réessayez.",
   "@settingsSyncPairingNotFound": {
@@ -359,6 +375,14 @@
   "settingsSyncPairingUnreachable": "La synchronisation des appareils n'est pas disponible pour le moment. Vérifiez votre connexion et réessayez.",
   "@settingsSyncPairingUnreachable": {
     "x-sourceSha256": "6b46c1f7e1eaefe2de8cff490ba510bd32a56d8978f101b56f17263fd184ce00"
+  },
+  "settingsSyncPairingCustomEndpointTitle": "Serveur personnalisé : {host}",
+  "@settingsSyncPairingCustomEndpointTitle": {
+    "x-sourceSha256": "0506cfa48e1f72133db4d2a81b9154a905c14e711bc813bd2e44454594bc4328"
+  },
+  "settingsSyncPairingCustomEndpointBody": "Ce n'est pas le serveur de synchronisation par défaut. Quiconque l'exploite peut lire, modifier et supprimer tout ce que vous synchronisez ; n'utilisez donc qu'un serveur de confiance.",
+  "@settingsSyncPairingCustomEndpointBody": {
+    "x-sourceSha256": "d54806b3ae2bc40f48de0fe4db244003985300167ae2cc159504e3dcd490c277"
   },
   "settingsSyncPairingSharingTitle": "Le partage n'est pas une collaboration",
   "@settingsSyncPairingSharingTitle": {

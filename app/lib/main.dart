@@ -183,8 +183,7 @@ Future<void> main() async {
     // Kept as a variable (not just `.call` torn off) so `_CompendiumAppState`
     // can assign `onBeforeAppliedInvalidation` once its `SyncController`
     // exists — this factory is built here, before that controller does.
-    final syncCoordinatorFactory =
-        ConfiguredSyncCoordinatorFactory.fromEnvironment();
+    final syncCoordinatorFactory = ConfiguredSyncCoordinatorFactory();
     runApp(
       CompendiumApp(
         appData: appData,
@@ -192,7 +191,6 @@ Future<void> main() async {
         applicationShutdownController: shutdownController,
         syncCoordinatorFactory: syncCoordinatorFactory.call,
         productionSyncCoordinatorFactory: syncCoordinatorFactory,
-        syncEndpoint: syncCoordinatorFactory.endpoint,
         editorDraftShutdownController: editorDraftShutdownController,
         crashReporter: crashReporter,
         migrationPreflight: (onSnapshotFailure) => runMigrationPreflightForApp(
@@ -253,7 +251,6 @@ class CompendiumApp extends StatefulWidget {
     this.productionSyncCoordinatorFactory,
     this.syncNetworkClassifier = const ConnectivityPlusNetworkClassifier(),
     this.syncDebounce = kSyncChangeDebounce,
-    this.syncEndpoint,
     this.syncPairingProbeFactory,
     this.editorDraftShutdownController,
   });
@@ -297,12 +294,8 @@ class CompendiumApp extends StatefulWidget {
   /// documented default.
   final Duration syncDebounce;
 
-  /// The release-configured sync endpoint pairing probes against. Mirrors
-  /// [syncCoordinatorFactory]'s own endpoint so the two never disagree.
-  final Uri? syncEndpoint;
-
   /// Test seam for the pairing screen's create/connect probe; production
-  /// builds a live [SyncHttpClient] from [syncEndpoint].
+  /// builds a live [SyncHttpClient] against the endpoint the form supplies.
   final SyncPairingProbeFactory? syncPairingProbeFactory;
 
   /// Coordinates final draft persistence before ordinary application
@@ -612,7 +605,6 @@ class _CompendiumAppState extends State<CompendiumApp> {
       settings: _appData.repositories.settings,
       coordinator: () => _syncCoordinator,
       reconfigure: _configureSyncCoordinator,
-      endpoint: widget.syncEndpoint,
       pairingProbeFactory: widget.syncPairingProbeFactory,
       classifier: widget.syncNetworkClassifier,
       debounce: widget.syncDebounce,

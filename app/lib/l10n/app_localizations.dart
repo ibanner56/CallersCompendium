@@ -490,6 +490,12 @@ abstract class AppLocalizations {
   /// **'Last synced {when}'**
   String settingsSyncStatusLastSynced(String when);
 
+  /// Status line shown when this device is paired with a server other than the default Device Sync server (spec §8).
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing with a custom server: {host}'**
+  String settingsSyncCustomEndpointStatus(String host);
+
   /// Status shown while a sync is running.
   ///
   /// In en, this message translates to:
@@ -622,11 +628,29 @@ abstract class AppLocalizations {
   /// **'word-word-word-word'**
   String get settingsSyncPairingEnterPhraseHint;
 
+  /// Text field label for the Device Sync server address, pre-filled with the default server during pairing.
+  ///
+  /// In en, this message translates to:
+  /// **'Server'**
+  String get settingsSyncPairingEndpointLabel;
+
+  /// Helper text under the Device Sync server field during pairing.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave this as it is unless you run your own sync server.'**
+  String get settingsSyncPairingEndpointHelper;
+
   /// Error shown when the entered sync ID fails structural validation.
   ///
   /// In en, this message translates to:
   /// **'That doesn\'t look like a complete sync phrase.'**
   String get settingsSyncPairingInvalidPhrase;
+
+  /// Error shown when the entered Device Sync server address fails validation (must be https, or http only for localhost/127.0.0.1; no username, query or fragment).
+  ///
+  /// In en, this message translates to:
+  /// **'That server address isn\'t valid. It must start with https://.'**
+  String get settingsSyncPairingInvalidEndpoint;
 
   /// Error shown when connecting to a sync ID that has no store (404).
   ///
@@ -645,6 +669,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Device Sync isn\'t available right now. Check your connection and try again.'**
   String get settingsSyncPairingUnreachable;
+
+  /// Heading of the warning shown during pairing when the server address is not the default Device Sync server (spec §8).
+  ///
+  /// In en, this message translates to:
+  /// **'Custom server: {host}'**
+  String settingsSyncPairingCustomEndpointTitle(String host);
+
+  /// Body of the custom-server warning shown during pairing (spec §8: a custom endpoint is a deliberate trust decision).
+  ///
+  /// In en, this message translates to:
+  /// **'This is not the default Device Sync server. Whoever runs it can read, change and delete everything you sync, so only use a server you trust.'**
+  String get settingsSyncPairingCustomEndpointBody;
 
   /// Heading of the sharing-not-collaboration disclosure shown during pairing.
   ///
