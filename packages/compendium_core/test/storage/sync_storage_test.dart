@@ -5274,6 +5274,81 @@ void main() {
     },
   );
 
+  // Exactly one side of an in-batch collision being a pre-existing local row
+  // is step 2, not step 1: the other side is a record this device has never
+  // seen, so there are not two local rows to hold apart and the pair still
+  // reconciles silently. This is the case the step-1 guard is closest to
+  // swallowing — widening its `&&` to `||` leaves every other test in this
+  // file green — and it is also the case whose losing local row must be
+  // *migrated* onto the survivor rather than deleted, since nothing occupies
+  // the survivor's ID yet.
+  for (final scenario in const [
+    (label: 'the known row arrives first', knownFirst: true),
+    (label: 'the known row arrives second', knownFirst: false),
+  ]) {
+    test('merges an in-batch collision whose other UUID is unknown '
+        '(${scenario.label})', () async {
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+      final renameStamp = stamp.add(const Duration(minutes: 1));
+      // ignore: unused_result
+      await repositories.choreographers.upsert(
+        Choreographer(
+          id: 'm-author',
+          name: 'Old name',
+          email: 'known@example.com',
+          location: 'Known hall',
+          deceased: true,
+        ),
+        at: stamp,
+      );
+
+      SyncMergeCandidate ontoSharedName(String id) => SyncMergeCandidate(
+        blob: SyncRecordBlob(
+          kind: SyncRecordKind.choreographer,
+          id: id,
+          updatedAt: renameStamp,
+          deletedAt: null,
+          existenceAt: renameStamp,
+          body: syncBodyForEntity(
+            SyncRecordKind.choreographer,
+            Choreographer(id: id, name: 'Shared name'),
+          ),
+        ),
+      );
+
+      // 'a-author' is unknown locally; 'm-author' is the stored row being
+      // renamed by its peer.
+      final known = ontoSharedName('m-author');
+      final unknown = ontoSharedName('a-author');
+      final preparation = await storage.reconcileInbound(
+        scenario.knownFirst ? [known, unknown] : [unknown, known],
+      );
+
+      expect(preparation.reports, isEmpty);
+      // Only one pre-existing local row is involved, so nothing is owed a
+      // review and the two candidates still resolve to one identity.
+      expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+      expect(preparation.candidates.map((candidate) => candidate.blob.id), [
+        'a-author',
+      ]);
+      expect(
+        await repositories.syncLocal.resolveAlias(
+          kind: SyncRecordKind.choreographer,
+          recordId: 'm-author',
+        ),
+        'a-author',
+      );
+      // The local row moved to the survivor instead of being deleted, so its
+      // device-local fields came with it.
+      expect(await repositories.choreographers.getById('m-author'), isNull);
+      final survivor = await repositories.choreographers.getById('a-author');
+      expect(survivor, isNotNull);
+      expect(survivor!.email, 'known@example.com');
+      expect(survivor.location, 'Known hall');
+      expect(survivor.deceased, isTrue);
+    });
+  }
+
   test(
     'collapses in-batch difficulty candidates sharing one canonical ID',
     () async {
