@@ -297,7 +297,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsSyncPairingYourPhrase => '同期フレーズ';
 
   @override
+  String get settingsSyncPairingYourPhraseHelper =>
+      'ハイフンで区切られた4つの単語です。生成されたフレーズをそのまま使うか、自分で入力してください。';
+
+  @override
   String get settingsSyncPairingRegenerate => '別のフレーズを生成';
+
+  @override
+  String get settingsSyncPairingWeakPhraseTitle => 'このフレーズは推測されやすい可能性があります';
+
+  @override
+  String get settingsSyncPairingWeakPhraseBody =>
+      '推測した人は、同期するすべてのデータを閲覧・変更できます。生成されたフレーズのほうがはるかに推測されにくくなります。このまま使用することもできます。';
 
   @override
   String get settingsSyncPairingEnterPhrase => '同期フレーズ';

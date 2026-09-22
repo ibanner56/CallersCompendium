@@ -311,7 +311,19 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsSyncPairingYourPhrase => 'Je synchronisatiezin';
 
   @override
+  String get settingsSyncPairingYourPhraseHelper =>
+      'Vier woorden gescheiden door koppeltekens. Houd de gegenereerde zin aan of typ je eigen zin.';
+
+  @override
   String get settingsSyncPairingRegenerate => 'Andere zin genereren';
+
+  @override
+  String get settingsSyncPairingWeakPhraseTitle =>
+      'Deze zin is mogelijk makkelijk te raden';
+
+  @override
+  String get settingsSyncPairingWeakPhraseBody =>
+      'Wie hem raadt, kan alles lezen en wijzigen wat je synchroniseert. Een gegenereerde zin is veel moeilijker te raden. Je kunt deze toch gebruiken.';
 
   @override
   String get settingsSyncPairingEnterPhrase => 'Synchronisatiezin';

@@ -386,9 +386,21 @@
   "@settingsSyncPairingYourPhrase": {
     "description": "Label above the generated sync ID shown during create."
   },
+  "settingsSyncPairingYourPhraseHelper": "Four words separated by hyphens. Keep the generated phrase or type your own.",
+  "@settingsSyncPairingYourPhraseHelper": {
+    "description": "Helper text under the sync-phrase field when creating a store, saying the phrase can be replaced with the user's own."
+  },
   "settingsSyncPairingRegenerate": "Generate a different phrase",
   "@settingsSyncPairingRegenerate": {
     "description": "Button to generate a new random sync ID before creating the store."
+  },
+  "settingsSyncPairingWeakPhraseTitle": "This phrase may be easy to guess",
+  "@settingsSyncPairingWeakPhraseTitle": {
+    "description": "Heading of the advisory warning shown when a user-chosen sync phrase scores below the reference strength (spec §8). Advisory only; it never blocks."
+  },
+  "settingsSyncPairingWeakPhraseBody": "Anyone who guesses it can read and change everything you sync. A generated phrase is much harder to guess. You can use this one anyway.",
+  "@settingsSyncPairingWeakPhraseBody": {
+    "description": "Body of the advisory weak-phrase warning shown while creating a store with a user-chosen phrase (spec §8: warn, never block)."
   },
   "settingsSyncPairingEnterPhrase": "Sync phrase",
   "@settingsSyncPairingEnterPhrase": {
