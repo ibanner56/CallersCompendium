@@ -11,6 +11,7 @@ import '../../sync/sync_coordinator.dart' show SyncPassStatus;
 import '../../sync/sync_http_client.dart' show isDefaultSyncEndpoint;
 import '../../sync/sync_scope.dart';
 import '../../theme/app_spacing.dart';
+import '../../widgets/collapsible_section.dart';
 import '../../widgets/section_header.dart';
 import 'sync_pairing_screen.dart';
 
@@ -136,114 +137,123 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
     final controller = SyncScope.of(context);
     const gutter = EdgeInsets.symmetric(horizontal: AppSpacing.md);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SectionHeader(title: l10n.settingsSyncHeader),
-        Padding(padding: gutter, child: Text(l10n.settingsSyncIntro)),
-        SwitchListTile(
-          key: const ValueKey('sync-enabled-toggle'),
-          secondary: const Icon(Icons.sync_outlined),
-          title: Text(l10n.settingsSyncEnableTitle),
-          subtitle: Text(l10n.settingsSyncEnableSubtitle),
-          value: controller.enabled,
-          onChanged: controller.setEnabled,
-        ),
-        if (controller.enabled) ...[
+    // Starts open while sync is on, so its status and any failure stay in
+    // view; folds away otherwise to keep the Experimental pane uncluttered.
+    return CollapsibleSection(
+      sectionKey: const ValueKey('sync-section'),
+      title: l10n.settingsSyncHeader,
+      expanded: controller.enabled,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(padding: gutter, child: Text(l10n.settingsSyncIntro)),
           SwitchListTile(
-            key: _wifiTileKey,
-            secondary: const Icon(Icons.wifi),
-            title: Text(l10n.settingsSyncWifiOnlyTitle),
-            subtitle: Text(l10n.settingsSyncWifiOnlySubtitle),
-            value: controller.wifiOnly,
-            onChanged: controller.setWifiOnly,
+            key: const ValueKey('sync-enabled-toggle'),
+            secondary: const Icon(Icons.sync_outlined),
+            title: Text(l10n.settingsSyncEnableTitle),
+            subtitle: Text(l10n.settingsSyncEnableSubtitle),
+            value: controller.enabled,
+            onChanged: controller.setEnabled,
           ),
-          SwitchListTile(
-            key: const ValueKey('sync-exclude-imports-toggle'),
-            secondary: const Icon(Icons.filter_alt_outlined),
-            title: Text(l10n.settingsSyncExcludeImportsTitle),
-            subtitle: Text(l10n.settingsSyncExcludeImportsSubtitle),
-            value: controller.excludeImports,
-            onChanged: controller.setExcludeImports,
-          ),
-          SectionHeader(title: l10n.settingsSyncStatusHeader),
-          Builder(
-            builder: (tileContext) {
-              final failureText = _failureText(l10n, controller);
-              final lastSuccess = controller.lastSuccessAt;
-              return ListTile(
-                key: const ValueKey('sync-status'),
+          if (controller.enabled) ...[
+            SwitchListTile(
+              key: _wifiTileKey,
+              secondary: const Icon(Icons.wifi),
+              title: Text(l10n.settingsSyncWifiOnlyTitle),
+              subtitle: Text(l10n.settingsSyncWifiOnlySubtitle),
+              value: controller.wifiOnly,
+              onChanged: controller.setWifiOnly,
+            ),
+            SwitchListTile(
+              key: const ValueKey('sync-exclude-imports-toggle'),
+              secondary: const Icon(Icons.filter_alt_outlined),
+              title: Text(l10n.settingsSyncExcludeImportsTitle),
+              subtitle: Text(l10n.settingsSyncExcludeImportsSubtitle),
+              value: controller.excludeImports,
+              onChanged: controller.setExcludeImports,
+            ),
+            SectionHeader(title: l10n.settingsSyncStatusHeader),
+            Builder(
+              builder: (tileContext) {
+                final failureText = _failureText(l10n, controller);
+                final lastSuccess = controller.lastSuccessAt;
+                return ListTile(
+                  key: const ValueKey('sync-status'),
+                  leading: Icon(
+                    failureText != null
+                        ? Icons.error_outline
+                        : Icons.info_outline,
+                    color: failureText != null ? theme.colorScheme.error : null,
+                  ),
+                  title: Text(
+                    failureText ?? _statusText(tileContext, controller),
+                  ),
+                  subtitle: failureText != null && lastSuccess != null
+                      ? Text(
+                          l10n.settingsSyncStatusLastSynced(
+                            _formatWhen(tileContext, lastSuccess),
+                          ),
+                          key: const ValueKey('sync-status-last-success'),
+                        )
+                      : null,
+                  trailing: controller.paired
+                      ? null
+                      : FilledButton(
+                          key: const ValueKey('sync-connect'),
+                          onPressed: () => showSyncPairingScreen(
+                            tileContext,
+                            backupSaver: widget.backupSaver,
+                          ),
+                          child: Text(l10n.settingsSyncConnectTitle),
+                        ),
+                );
+              },
+            ),
+            if (controller.paired &&
+                controller.endpoint != null &&
+                !isDefaultSyncEndpoint(controller.endpoint!))
+              ListTile(
+                key: const ValueKey('sync-custom-endpoint'),
                 leading: Icon(
-                  failureText != null
-                      ? Icons.error_outline
-                      : Icons.info_outline,
-                  color: failureText != null ? theme.colorScheme.error : null,
-                ),
-                title: Text(
-                  failureText ?? _statusText(tileContext, controller),
-                ),
-                subtitle: failureText != null && lastSuccess != null
-                    ? Text(
-                        l10n.settingsSyncStatusLastSynced(
-                          _formatWhen(tileContext, lastSuccess),
-                        ),
-                        key: const ValueKey('sync-status-last-success'),
-                      )
-                    : null,
-                trailing: controller.paired
-                    ? null
-                    : FilledButton(
-                        key: const ValueKey('sync-connect'),
-                        onPressed: () => showSyncPairingScreen(
-                          tileContext,
-                          backupSaver: widget.backupSaver,
-                        ),
-                        child: Text(l10n.settingsSyncConnectTitle),
-                      ),
-              );
-            },
-          ),
-          if (controller.paired &&
-              controller.endpoint != null &&
-              !isDefaultSyncEndpoint(controller.endpoint!))
-            ListTile(
-              key: const ValueKey('sync-custom-endpoint'),
-              leading: Icon(Icons.dns_outlined, color: theme.colorScheme.error),
-              title: Text(
-                l10n.settingsSyncCustomEndpointStatus(
-                  controller.endpoint!.host,
-                ),
-              ),
-            ),
-          Padding(
-            padding: gutter,
-            child: Text(
-              l10n.settingsSyncNotBackup,
-              key: const ValueKey('sync-not-a-backup'),
-              style: theme.textTheme.bodyMedium,
-            ),
-          ),
-          if (controller.expiryApproaching)
-            Padding(
-              padding: gutter.copyWith(top: AppSpacing.sm),
-              child: Text(
-                l10n.settingsSyncExpiryWarning,
-                key: const ValueKey('sync-expiry-warning'),
-                style: theme.textTheme.bodyMedium?.copyWith(
+                  Icons.dns_outlined,
                   color: theme.colorScheme.error,
                 ),
+                title: Text(
+                  l10n.settingsSyncCustomEndpointStatus(
+                    controller.endpoint!.host,
+                  ),
+                ),
+              ),
+            Padding(
+              padding: gutter,
+              child: Text(
+                l10n.settingsSyncNotBackup,
+                key: const ValueKey('sync-not-a-backup'),
+                style: theme.textTheme.bodyMedium,
               ),
             ),
-          if (controller.paired)
-            ListTile(
-              key: const ValueKey('sync-now'),
-              leading: const Icon(Icons.sync),
-              title: Text(l10n.settingsSyncNowTitle),
-              enabled: !controller.running,
-              onTap: controller.running ? null : () => _syncNow(controller),
-            ),
+            if (controller.expiryApproaching)
+              Padding(
+                padding: gutter.copyWith(top: AppSpacing.sm),
+                child: Text(
+                  l10n.settingsSyncExpiryWarning,
+                  key: const ValueKey('sync-expiry-warning'),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              ),
+            if (controller.paired)
+              ListTile(
+                key: const ValueKey('sync-now'),
+                leading: const Icon(Icons.sync),
+                title: Text(l10n.settingsSyncNowTitle),
+                enabled: !controller.running,
+                onTap: controller.running ? null : () => _syncNow(controller),
+              ),
+          ],
         ],
-      ],
+      ),
     );
   }
 

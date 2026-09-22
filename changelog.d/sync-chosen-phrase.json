@@ -1,0 +1,9 @@
+{
+  "id": "sync-chosen-phrase",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "When you create a Device Sync store you can now type your own sync phrase instead of using the generated one. It still has to be four words separated by hyphens, and if the phrase you pick looks easy to guess the screen warns you without stopping you."
+    ]
+  }
+}

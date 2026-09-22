@@ -204,6 +204,16 @@ _pumpSettings(
 // Tests
 // ---------------------------------------------------------------------------
 
+/// Opens the Device Sync section of the Experimental pane when it starts
+/// collapsed (sync off); a no-op when it is already open.
+Future<void> _expandSyncSection(WidgetTester tester) async {
+  if (find.byKey(const ValueKey('sync-enabled-toggle')).evaluate().isNotEmpty) {
+    return;
+  }
+  await tester.tap(find.byKey(const ValueKey('sync-section')));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -1281,6 +1291,7 @@ void main() {
           find.byKey(const ValueKey('settings-nav-experimental')),
         );
         await tester.pumpAndSettle();
+        await _expandSyncSection(tester);
       }
 
       setUp(() {
@@ -1294,14 +1305,37 @@ void main() {
       ) async {
         await _pumpSettings(tester);
         // The section list is the navigation; Device Sync must not be an entry.
-        expect(find.text('Device Sync'), findsNothing);
+        expect(find.text('DEVICE SYNC'), findsNothing);
 
-        await openExperimental(tester);
-        expect(find.text('Device Sync'), findsOneWidget);
+        await tester.tap(
+          find.byKey(const ValueKey('settings-nav-experimental')),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('DEVICE SYNC'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('sync-enabled-toggle')),
+          findsNothing,
+          reason: 'collapsed while sync is off',
+        );
+
+        await _expandSyncSection(tester);
         expect(
           find.byKey(const ValueKey('sync-enabled-toggle')),
           findsOneWidget,
         );
+      });
+
+      testWidgets('starts expanded while sync is on, so its status is in '
+          'view', (tester) async {
+        final harness = await _pumpSettings(tester);
+        await harness.repos.settings.set('sync_enabled', true);
+        await SyncScope.of(tester.element(find.byType(SettingsScreen))).load();
+        await tester.tap(
+          find.byKey(const ValueKey('settings-nav-experimental')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const ValueKey('sync-status')), findsOneWidget);
       });
 
       testWidgets('is off by default and shows no status until turned on', (
@@ -1615,6 +1649,7 @@ void main() {
           find.byKey(const ValueKey('settings-nav-experimental')),
         );
         await tester.pumpAndSettle();
+        await _expandSyncSection(tester);
       }
 
       Future<void> enableAndOpenPairing(
@@ -1861,6 +1896,118 @@ void main() {
           expect(await harness.repos.settings.get('sync_id'), isNull);
         },
       );
+
+      testWidgets('offers a generated phrase that carries no weakness '
+          'warning, and lets the user replace it', (tester) async {
+        await enableAndOpenPairing(tester);
+        await tester.tap(find.byKey(const ValueKey('sync-pairing-create')));
+        await tester.pumpAndSettle();
+
+        final field = tester.widget<TextField>(
+          find.byKey(const ValueKey('sync-pairing-phrase')),
+        );
+        final generated = field.controller!.text;
+        expect(SyncId.tryParse(generated), isNotNull);
+        expect(generated.split('-'), hasLength(4));
+        expect(
+          find.byKey(const ValueKey('sync-pairing-weak-phrase-warning')),
+          findsNothing,
+        );
+
+        await tester.enterText(
+          find.byKey(const ValueKey('sync-pairing-phrase')),
+          'password-qwerty-dragon-monkey',
+        );
+        await tester.pump();
+        expect(
+          find.byKey(const ValueKey('sync-pairing-weak-phrase-warning')),
+          findsOneWidget,
+          reason: 'spec §8 requires an advisory warning below the reference',
+        );
+
+        await tester.tap(find.byKey(const ValueKey('sync-pairing-regenerate')));
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('sync-pairing-weak-phrase-warning')),
+          findsNothing,
+        );
+      });
+
+      testWidgets('creates with a weak chosen phrase anyway: the warning never '
+          'blocks (spec §8)', (tester) async {
+        String? created;
+        _pairingProbeFactory = (syncId, endpoint) {
+          created = syncId;
+          return SyncPairingProbe(
+            getStore: ({required previouslyUsed}) async =>
+                throw StateError('create must not GET'),
+            createStore: () async => const SyncHttpResponse(
+              statusCode: 201,
+              kind: SyncResponseKind.created,
+              headers: {},
+              body: [],
+            ),
+          );
+        };
+        final harness = await _pumpSettings(tester);
+        await openExperimental(tester);
+        await tester.tap(find.byKey(const ValueKey('sync-enabled-toggle')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('sync-connect')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('sync-pairing-create')));
+        await tester.pumpAndSettle();
+        // Mixed case and padding: the stored ID is the normalised one.
+        await tester.enterText(
+          find.byKey(const ValueKey('sync-pairing-phrase')),
+          '  Password-QWERTY-Dragon-Monkey  ',
+        );
+        await tester.pump();
+        expect(
+          find.byKey(const ValueKey('sync-pairing-weak-phrase-warning')),
+          findsOneWidget,
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('sync-pairing-backup-skip')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('sync-pairing-continue')));
+        await tester.pumpAndSettle();
+
+        expect(created, 'password-qwerty-dragon-monkey');
+        expect(
+          await harness.repos.settings.get('sync_id'),
+          'password-qwerty-dragon-monkey',
+        );
+      });
+
+      testWidgets('a chosen phrase that is not four words is rejected before '
+          'any network call', (tester) async {
+        var probeBuilt = false;
+        _pairingProbeFactory = (syncId, endpoint) {
+          probeBuilt = true;
+          throw StateError('must not be reached for an invalid phrase');
+        };
+        await enableAndOpenPairing(tester);
+        await tester.tap(find.byKey(const ValueKey('sync-pairing-create')));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const ValueKey('sync-pairing-phrase')),
+          'only-three-words',
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('sync-pairing-backup-skip')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('sync-pairing-continue')));
+        await tester.pumpAndSettle();
+
+        expect(probeBuilt, isFalse);
+        expect(
+          find.text("That doesn't look like a complete sync phrase."),
+          findsOneWidget,
+        );
+      });
 
       testWidgets('an incomplete phrase is rejected before any network call', (
         tester,
@@ -2190,6 +2337,7 @@ void main() {
           find.byKey(const ValueKey('settings-nav-experimental')),
         );
         await tester.pumpAndSettle();
+        await _expandSyncSection(tester);
       }
 
       setUp(() {
