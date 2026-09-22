@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show SystemChannels;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
@@ -1613,6 +1614,162 @@ void main() {
           expect(find.textContaining('may have expired'), findsNothing);
         },
       );
+
+      group('the sync phrase on the status surface', () {
+        const phrase = 'alpha-bravo-charlie-delta';
+        const mask =
+            '••••-••••'
+            '-••••-••••';
+
+        Future<SyncController> pumpPaired(
+          WidgetTester tester, {
+          String syncId = phrase,
+        }) async {
+          final harness = await _pumpSettings(tester);
+          await harness.repos.settings.set('sync_id', syncId);
+          final controller = SyncScope.of(
+            tester.element(find.byType(SettingsScreen)),
+          );
+          await controller.setEnabled(true);
+          await controller.load();
+          await openExperimental(tester);
+          return controller;
+        }
+
+        testWidgets('is the first row under Status, masked until asked for', (
+          tester,
+        ) async {
+          await pumpPaired(tester);
+
+          final row = find.byKey(const ValueKey('sync-id'));
+          expect(row, findsOneWidget);
+          expect(
+            tester.getTopLeft(row).dy,
+            lessThan(
+              tester.getTopLeft(find.byKey(const ValueKey('sync-status'))).dy,
+            ),
+            reason: 'it opens the Status section',
+          );
+          expect(
+            tester
+                .widget<Text>(find.byKey(const ValueKey('sync-id-value')))
+                .data,
+            mask,
+          );
+          expect(find.text(phrase), findsNothing);
+          expect(find.byKey(const ValueKey('sync-id-caution')), findsOneWidget);
+        });
+
+        testWidgets('Show reveals it and hides it again', (tester) async {
+          await pumpPaired(tester);
+
+          await tester.tap(find.byKey(const ValueKey('sync-id-reveal')));
+          await tester.pumpAndSettle();
+          expect(
+            tester
+                .widget<Text>(find.byKey(const ValueKey('sync-id-value')))
+                .data,
+            phrase,
+          );
+
+          await tester.tap(find.byKey(const ValueKey('sync-id-reveal')));
+          await tester.pumpAndSettle();
+          expect(
+            tester
+                .widget<Text>(find.byKey(const ValueKey('sync-id-value')))
+                .data,
+            mask,
+          );
+        });
+
+        testWidgets('copies the phrase without putting it on screen', (
+          tester,
+        ) async {
+          String? clipboardText;
+          tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            SystemChannels.platform,
+            (call) async {
+              if (call.method == 'Clipboard.setData') {
+                clipboardText = (call.arguments as Map)['text'] as String?;
+              }
+              return null;
+            },
+          );
+          addTearDown(
+            () => tester.binding.defaultBinaryMessenger
+                .setMockMethodCallHandler(SystemChannels.platform, null),
+          );
+          await pumpPaired(tester);
+
+          await tester.tap(find.byKey(const ValueKey('sync-id-copy')));
+          await tester.pumpAndSettle();
+
+          expect(clipboardText, phrase);
+          expect(
+            tester
+                .widget<Text>(find.byKey(const ValueKey('sync-id-value')))
+                .data,
+            mask,
+            reason: 'copying is the whole point; revealing is not required',
+          );
+          expect(find.byKey(const ValueKey('sync-id-copied')), findsOneWidget);
+        });
+
+        testWidgets('a revealed phrase is re-masked when the phrase changes '
+            'underneath it', (tester) async {
+          final controller = await pumpPaired(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-id-reveal')));
+          await tester.pumpAndSettle();
+          expect(find.text(phrase), findsOneWidget);
+
+          // Detaching and attaching to a different store must not leave the
+          // new store's phrase on screen because the old one was revealed.
+          await controller.detach();
+          await tester.pumpAndSettle();
+          await controller.completePairing(
+            'echo-foxtrot-golf-hotel',
+            Uri.parse(kDefaultSyncEndpoint),
+          );
+          await tester.pumpAndSettle();
+
+          expect(
+            tester
+                .widget<Text>(find.byKey(const ValueKey('sync-id-value')))
+                .data,
+            mask,
+          );
+          expect(find.text('echo-foxtrot-golf-hotel'), findsNothing);
+        });
+
+        testWidgets('lays out on a phone-width screen', (tester) async {
+          // Two trailing buttons beside a label that is far longer in every
+          // other locale is exactly the shape that overflows on a narrow
+          // screen, and Experimental is a pane a caller opens on a phone.
+          final harness = await _pumpSettings(
+            tester,
+            surfaceSize: const Size(360, 1400),
+          );
+          await harness.repos.settings.set('sync_id', phrase);
+          final controller = SyncScope.of(
+            tester.element(find.byType(SettingsScreen)),
+          );
+          await controller.setEnabled(true);
+          await controller.load();
+          await openExperimental(tester);
+
+          expect(find.byKey(const ValueKey('sync-id')), findsOneWidget);
+          expect(tester.takeException(), isNull);
+        });
+
+        testWidgets('is absent until a store is connected', (tester) async {
+          await _pumpSettings(tester);
+          await openExperimental(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-enabled-toggle')));
+          await tester.pumpAndSettle();
+
+          expect(find.byKey(const ValueKey('sync-id')), findsNothing);
+        });
+      });
 
       group('disconnect (spec glossary: detach)', () {
         Future<CompendiumRepositories> pumpPaired(WidgetTester tester) async {
