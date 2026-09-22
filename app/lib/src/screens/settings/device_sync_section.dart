@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/backup_io.dart';
 import '../../sync/sync_controller.dart';
+import '../../sync/sync_coordinator.dart' show SyncPassStatus;
 import '../../sync/sync_scope.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/section_header.dart';
@@ -157,20 +158,41 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
             onChanged: controller.setWifiOnly,
           ),
           SectionHeader(title: l10n.settingsSyncStatusHeader),
-          ListTile(
-            key: const ValueKey('sync-status'),
-            leading: const Icon(Icons.info_outline),
-            title: Text(_statusText(context, controller)),
-            trailing: controller.paired
-                ? null
-                : FilledButton(
-                    key: const ValueKey('sync-connect'),
-                    onPressed: () => showSyncPairingScreen(
-                      context,
-                      backupSaver: widget.backupSaver,
-                    ),
-                    child: Text(l10n.settingsSyncConnectTitle),
-                  ),
+          Builder(
+            builder: (tileContext) {
+              final failureText = _failureText(l10n, controller);
+              final lastSuccess = controller.lastSuccessAt;
+              return ListTile(
+                key: const ValueKey('sync-status'),
+                leading: Icon(
+                  failureText != null
+                      ? Icons.error_outline
+                      : Icons.info_outline,
+                  color: failureText != null ? theme.colorScheme.error : null,
+                ),
+                title: Text(
+                  failureText ?? _statusText(tileContext, controller),
+                ),
+                subtitle: failureText != null && lastSuccess != null
+                    ? Text(
+                        l10n.settingsSyncStatusLastSynced(
+                          _formatWhen(tileContext, lastSuccess),
+                        ),
+                        key: const ValueKey('sync-status-last-success'),
+                      )
+                    : null,
+                trailing: controller.paired
+                    ? null
+                    : FilledButton(
+                        key: const ValueKey('sync-connect'),
+                        onPressed: () => showSyncPairingScreen(
+                          tileContext,
+                          backupSaver: widget.backupSaver,
+                        ),
+                        child: Text(l10n.settingsSyncConnectTitle),
+                      ),
+              );
+            },
           ),
           Padding(
             padding: gutter,
@@ -210,9 +232,37 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
     if (!controller.paired) return l10n.settingsSyncStatusNotPaired;
     final last = controller.lastSuccessAt;
     if (last == null) return l10n.settingsSyncStatusNeverSynced;
-    final when = DateFormat.yMMMd(
-      Localizations.localeOf(context).toString(),
-    ).add_jm().format(last.toLocal());
-    return l10n.settingsSyncStatusLastSynced(when);
+    return l10n.settingsSyncStatusLastSynced(_formatWhen(context, last));
+  }
+
+  String _formatWhen(BuildContext context, DateTime when) => DateFormat.yMMMd(
+    Localizations.localeOf(context).toString(),
+  ).add_jm().format(when.toLocal());
+
+  /// The line for the last completed trigger attempt when it was not a
+  /// success, or null when the last attempt succeeded, nothing has run yet in
+  /// this session, or a pass is currently running (the syncing status on
+  /// [_statusText] takes priority over a stale failure from an earlier pass).
+  ///
+  /// The two missing-store outcomes are deliberately kept apart, as spec §6.2
+  /// and the pairing flow keep them apart: `replacementRequired` is a store
+  /// this device *had* used and that has since gone, so it may have expired
+  /// or been removed — never claimed as either, per §6.14 item 6 — and the
+  /// replacement dialog owns the decision; `firstTimeStoreRequired` is a
+  /// stored phrase no store has ever answered to, which is the mistyped or
+  /// never-created case, and saying "expired" there would explain a store
+  /// that never existed. A stale epoch needs no action: the next pass
+  /// fresh-attaches to the replaced store on its own.
+  String? _failureText(AppLocalizations l10n, SyncController controller) {
+    if (controller.running || !controller.paired) return null;
+    return switch (controller.lastResult?.status) {
+      SyncPassStatus.failed => l10n.settingsSyncStatusFailed,
+      SyncPassStatus.staleEpoch => l10n.settingsSyncStatusStaleStore,
+      SyncPassStatus.replacementRequired =>
+        l10n.settingsSyncStatusStoreUnavailable,
+      SyncPassStatus.firstTimeStoreRequired =>
+        l10n.settingsSyncStatusStoreNotFound,
+      _ => null,
+    };
   }
 }

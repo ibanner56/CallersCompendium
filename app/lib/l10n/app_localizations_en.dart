@@ -232,6 +232,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSyncStatusSyncing => 'Syncing…';
 
   @override
+  String get settingsSyncStatusFailed => 'Last sync failed.';
+
+  @override
+  String get settingsSyncStatusStaleStore =>
+      'This store was replaced by another device since your last sync. The next sync will join the new one.';
+
+  @override
+  String get settingsSyncStatusStoreUnavailable =>
+      'This store may have expired from inactivity or been removed.';
+
+  @override
+  String get settingsSyncStatusStoreNotFound =>
+      'No store has this sync phrase. Check it against your other device.';
+
+  @override
   String get settingsSyncNotBackup =>
       'Sync is not a backup. A store that goes unused for 30 days is removed, so keep making file backups.';
 
