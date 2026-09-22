@@ -1,0 +1,9 @@
+{
+  "id": "sync-detach",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "You can disconnect a device from its Device Sync store with Disconnect this device. It forgets the phrase and stops syncing on that device only, without changing your library, the store, or your other devices. Turning Device Sync off and on still keeps you connected."
+    ]
+  }
+}

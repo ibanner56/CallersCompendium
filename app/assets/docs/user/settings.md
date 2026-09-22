@@ -504,6 +504,15 @@ store, and the only fix for a leaked phrase is moving every device to a new
 one. Before connecting, you're offered an optional one-time backup of your
 library — accepting or skipping it doesn't change what connecting does.
 
+**Disconnecting.** To stop syncing on this device without turning Device Sync
+off, tap **Disconnect this device** and confirm. The device forgets its phrase
+and stops syncing, but nothing else changes: your library here stays as it is,
+the store keeps everything, and your other devices carry on syncing. Nothing
+is sent when you disconnect. To reconnect — to the same store or a different
+one — tap **Connect** again; you'll need the phrase, so keep it somewhere safe.
+Turning **Device Sync** off and on again, by contrast, keeps this device
+connected.
+
 If a store this device used to sync with is no longer there, the app asks
 before creating a replacement: it may have gone unused past its 30-day limit,
 or it may have been removed — the app can't tell which. Declining makes no

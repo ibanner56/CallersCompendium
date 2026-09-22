@@ -271,6 +271,27 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsSyncNowTitle => 'Jetzt synchronisieren';
 
   @override
+  String get settingsSyncDisconnectTitle => 'Dieses Gerät trennen';
+
+  @override
+  String get settingsSyncDisconnectSubtitle =>
+      'Die Synchronisierung hier beenden. Der Speicher und deine anderen Geräte bleiben unverändert.';
+
+  @override
+  String get settingsSyncDisconnectConfirmTitle => 'Dieses Gerät trennen?';
+
+  @override
+  String get settingsSyncDisconnectConfirmBody =>
+      'Dieses Gerät synchronisiert dann nicht mehr und vergisst seine Synchronisierungsphrase. Deine Bibliothek auf diesem Gerät bleibt, wie sie ist, und der Speicher sowie deine anderen Geräte sind nicht betroffen. Um dich später wieder zu verbinden, brauchst du die Phrase – stell also sicher, dass du sie hast.';
+
+  @override
+  String get settingsSyncDisconnectConfirmAction => 'Trennen';
+
+  @override
+  String get settingsSyncDisconnectFailed =>
+      'Dieses Gerät konnte nicht getrennt werden. Es ist weiterhin verbunden; versuche es erneut.';
+
+  @override
   String get settingsSyncMeteredRouted =>
       'Du nutzt mobile Daten und „Nur über WLAN synchronisieren“ ist an. Schalte diese Einstellung unten aus, um jetzt zu synchronisieren.';
 

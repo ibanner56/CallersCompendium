@@ -260,6 +260,27 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsSyncNowTitle => '今すぐ同期';
 
   @override
+  String get settingsSyncDisconnectTitle => 'このデバイスの接続を解除';
+
+  @override
+  String get settingsSyncDisconnectSubtitle =>
+      'このデバイスでの同期を停止します。ストアや他のデバイスは変更されません。';
+
+  @override
+  String get settingsSyncDisconnectConfirmTitle => 'このデバイスの接続を解除しますか?';
+
+  @override
+  String get settingsSyncDisconnectConfirmBody =>
+      'このデバイスは同期を停止し、同期フレーズを削除します。このデバイスのライブラリはそのまま残り、ストアや他のデバイスには影響しません。後で再接続するにはフレーズが必要なので、手元にあることを確認してください。';
+
+  @override
+  String get settingsSyncDisconnectConfirmAction => '接続を解除';
+
+  @override
+  String get settingsSyncDisconnectFailed =>
+      'このデバイスの接続を解除できませんでした。接続はまだ有効です。もう一度お試しください。';
+
+  @override
   String get settingsSyncMeteredRouted =>
       'モバイルデータ通信中で、「WiFi接続時のみ同期」がオンです。今すぐ同期するには、下のこの設定をオフにしてください。';
 

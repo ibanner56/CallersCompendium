@@ -265,6 +265,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSyncNowTitle => 'Sync now';
 
   @override
+  String get settingsSyncDisconnectTitle => 'Disconnect this device';
+
+  @override
+  String get settingsSyncDisconnectSubtitle =>
+      'Stop syncing here. The store and your other devices are not changed.';
+
+  @override
+  String get settingsSyncDisconnectConfirmTitle => 'Disconnect this device?';
+
+  @override
+  String get settingsSyncDisconnectConfirmBody =>
+      'This device will stop syncing and forget its sync phrase. Your library on this device stays as it is, and the store and your other devices aren\'t affected. To reconnect later you\'ll need the phrase, so make sure you have it.';
+
+  @override
+  String get settingsSyncDisconnectConfirmAction => 'Disconnect';
+
+  @override
+  String get settingsSyncDisconnectFailed =>
+      'Couldn\'t disconnect this device. It is still connected; try again.';
+
+  @override
   String get settingsSyncMeteredRouted =>
       'You are on a mobile-data connection and Sync only on WiFi is on. Turn that setting off below to sync now.';
 

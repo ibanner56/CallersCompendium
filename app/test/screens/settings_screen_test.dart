@@ -115,6 +115,7 @@ _pumpSettings(
   await updateController.load();
   final syncController = SyncController(
     settings: repos.settings,
+    syncLocal: repos.syncLocal,
     coordinator: () => _syncCoordinator,
     reconfigure: () async {},
     endpoint: Uri.parse('https://sync.example.test'),
@@ -1579,6 +1580,68 @@ void main() {
           expect(find.textContaining('may have expired'), findsNothing);
         },
       );
+
+      group('disconnect (spec glossary: detach)', () {
+        Future<CompendiumRepositories> pumpPaired(WidgetTester tester) async {
+          final harness = await _pumpSettings(tester);
+          await harness.repos.settings.set(
+            'sync_id',
+            'alpha-bravo-charlie-delta',
+          );
+          final controller = SyncScope.of(
+            tester.element(find.byType(SettingsScreen)),
+          );
+          await controller.setEnabled(true);
+          await controller.load();
+          await openExperimental(tester);
+          return harness.repos;
+        }
+
+        testWidgets('is offered only while paired', (tester) async {
+          await _pumpSettings(tester);
+          await openExperimental(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-enabled-toggle')));
+          await tester.pumpAndSettle();
+          expect(find.byKey(const ValueKey('sync-disconnect')), findsNothing);
+        });
+
+        testWidgets('cancelling changes nothing', (tester) async {
+          final repos = await pumpPaired(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-disconnect')));
+          await tester.pumpAndSettle();
+          expect(
+            find.byKey(const ValueKey('sync-disconnect-dialog')),
+            findsOneWidget,
+          );
+          await tester.tap(
+            find.byKey(const ValueKey('sync-disconnect-cancel')),
+          );
+          await tester.pumpAndSettle();
+
+          expect(find.byKey(const ValueKey('sync-disconnect')), findsOneWidget);
+          expect(
+            await repos.settings.get('sync_id'),
+            'alpha-bravo-charlie-delta',
+          );
+        });
+
+        testWidgets('confirming forgets the phrase, offers Connect again, and '
+            'leaves sync turned on', (tester) async {
+          final repos = await pumpPaired(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-disconnect')));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('sync-disconnect-confirm')),
+          );
+          await tester.pumpAndSettle();
+
+          expect(await repos.settings.contains('sync_id'), isFalse);
+          expect(find.byKey(const ValueKey('sync-disconnect')), findsNothing);
+          expect(find.byKey(const ValueKey('sync-connect')), findsOneWidget);
+          expect(await repos.settings.get('sync_enabled'), isTrue);
+          expect(find.text('Not connected to a store yet.'), findsOneWidget);
+        });
+      });
 
       testWidgets(
         'a crashing sync pass is reported as failed, not an unhandled error',

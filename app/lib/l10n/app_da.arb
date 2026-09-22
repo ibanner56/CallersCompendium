@@ -288,6 +288,30 @@
   "@settingsSyncNowTitle": {
     "x-sourceSha256": "885e8f48bd70af10c21ee1046c5762dae06945145bf5c95885648e4ac308c0bf"
   },
+  "settingsSyncDisconnectTitle": "Afbryd forbindelsen på denne enhed",
+  "@settingsSyncDisconnectTitle": {
+    "x-sourceSha256": "5b0463da95797a1078c49e57743fa8e7ece0b2101bae8d4f6f5b64794c3dd159"
+  },
+  "settingsSyncDisconnectSubtitle": "Stop synkroniseringen her. Lageret og dine andre enheder ændres ikke.",
+  "@settingsSyncDisconnectSubtitle": {
+    "x-sourceSha256": "66b3c050d9b3ce7bfaf6ab7c42b26081e8bc2ea6e0cb31c67a91e4c3b99ed2b9"
+  },
+  "settingsSyncDisconnectConfirmTitle": "Afbryd forbindelsen på denne enhed?",
+  "@settingsSyncDisconnectConfirmTitle": {
+    "x-sourceSha256": "368f30952240db8e8850a97232ef46e89fc0d0ec2facc04576d0c33d946f9fdd"
+  },
+  "settingsSyncDisconnectConfirmBody": "Denne enhed stopper med at synkronisere og glemmer sin synkroniseringssætning. Dit bibliotek på denne enhed forbliver, som det er, og lageret og dine andre enheder påvirkes ikke. For at forbinde igen senere skal du bruge sætningen, så sørg for, at du har den.",
+  "@settingsSyncDisconnectConfirmBody": {
+    "x-sourceSha256": "ef8fe8eddad993cbb235762e998a058f013d6d39a888d9561b3e8abbfd2dfc9b"
+  },
+  "settingsSyncDisconnectConfirmAction": "Afbryd",
+  "@settingsSyncDisconnectConfirmAction": {
+    "x-sourceSha256": "acfc5be785a9bb3da11c9f05adb69bd5633096f09002aa44813a1b3207e912ad"
+  },
+  "settingsSyncDisconnectFailed": "Forbindelsen på denne enhed kunne ikke afbrydes. Den er stadig forbundet; prøv igen.",
+  "@settingsSyncDisconnectFailed": {
+    "x-sourceSha256": "23a506ff584ec8b81da1a4dfdefe90d6572957feabcfee2aa2614e3b68b0b3c8"
+  },
   "settingsSyncMeteredRouted": "Du bruger mobildata, og Synkronisér kun på WiFi er slået til. Slå den indstilling fra nedenfor for at synkronisere nu.",
   "@settingsSyncMeteredRouted": {
     "x-sourceSha256": "213bed8509f57aef35ba73781fca3267d5e5f7d16ef7b46f83b28c82ee833777"

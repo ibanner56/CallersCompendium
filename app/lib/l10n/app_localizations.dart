@@ -538,6 +538,42 @@ abstract class AppLocalizations {
   /// **'Sync now'**
   String get settingsSyncNowTitle;
 
+  /// Status-surface action that detaches this device from its Device Sync store (spec: detach). Local only.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect this device'**
+  String get settingsSyncDisconnectTitle;
+
+  /// Subtitle under the Device Sync disconnect action.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop syncing here. The store and your other devices are not changed.'**
+  String get settingsSyncDisconnectSubtitle;
+
+  /// Title of the confirmation dialog before detaching this device from its Device Sync store.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect this device?'**
+  String get settingsSyncDisconnectConfirmTitle;
+
+  /// Body of the Device Sync disconnect confirmation: local-only, keeps the library, needs the phrase to reconnect (spec §6.14 item 2: no recovery).
+  ///
+  /// In en, this message translates to:
+  /// **'This device will stop syncing and forget its sync phrase. Your library on this device stays as it is, and the store and your other devices aren\'t affected. To reconnect later you\'ll need the phrase, so make sure you have it.'**
+  String get settingsSyncDisconnectConfirmBody;
+
+  /// Confirm button of the Device Sync disconnect dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect'**
+  String get settingsSyncDisconnectConfirmAction;
+
+  /// Snackbar shown when detaching from the Device Sync store fails; the device stays attached.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t disconnect this device. It is still connected; try again.'**
+  String get settingsSyncDisconnectFailed;
+
   /// Message shown when a manual sync is attempted on a metered connection, pointing at the WiFi-only setting.
   ///
   /// In en, this message translates to:

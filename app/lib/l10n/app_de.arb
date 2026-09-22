@@ -288,6 +288,30 @@
   "@settingsSyncNowTitle": {
     "x-sourceSha256": "885e8f48bd70af10c21ee1046c5762dae06945145bf5c95885648e4ac308c0bf"
   },
+  "settingsSyncDisconnectTitle": "Dieses Gerät trennen",
+  "@settingsSyncDisconnectTitle": {
+    "x-sourceSha256": "5b0463da95797a1078c49e57743fa8e7ece0b2101bae8d4f6f5b64794c3dd159"
+  },
+  "settingsSyncDisconnectSubtitle": "Die Synchronisierung hier beenden. Der Speicher und deine anderen Geräte bleiben unverändert.",
+  "@settingsSyncDisconnectSubtitle": {
+    "x-sourceSha256": "66b3c050d9b3ce7bfaf6ab7c42b26081e8bc2ea6e0cb31c67a91e4c3b99ed2b9"
+  },
+  "settingsSyncDisconnectConfirmTitle": "Dieses Gerät trennen?",
+  "@settingsSyncDisconnectConfirmTitle": {
+    "x-sourceSha256": "368f30952240db8e8850a97232ef46e89fc0d0ec2facc04576d0c33d946f9fdd"
+  },
+  "settingsSyncDisconnectConfirmBody": "Dieses Gerät synchronisiert dann nicht mehr und vergisst seine Synchronisierungsphrase. Deine Bibliothek auf diesem Gerät bleibt, wie sie ist, und der Speicher sowie deine anderen Geräte sind nicht betroffen. Um dich später wieder zu verbinden, brauchst du die Phrase – stell also sicher, dass du sie hast.",
+  "@settingsSyncDisconnectConfirmBody": {
+    "x-sourceSha256": "ef8fe8eddad993cbb235762e998a058f013d6d39a888d9561b3e8abbfd2dfc9b"
+  },
+  "settingsSyncDisconnectConfirmAction": "Trennen",
+  "@settingsSyncDisconnectConfirmAction": {
+    "x-sourceSha256": "acfc5be785a9bb3da11c9f05adb69bd5633096f09002aa44813a1b3207e912ad"
+  },
+  "settingsSyncDisconnectFailed": "Dieses Gerät konnte nicht getrennt werden. Es ist weiterhin verbunden; versuche es erneut.",
+  "@settingsSyncDisconnectFailed": {
+    "x-sourceSha256": "23a506ff584ec8b81da1a4dfdefe90d6572957feabcfee2aa2614e3b68b0b3c8"
+  },
   "settingsSyncMeteredRouted": "Du nutzt mobile Daten und „Nur über WLAN synchronisieren“ ist an. Schalte diese Einstellung unten aus, um jetzt zu synchronisieren.",
   "@settingsSyncMeteredRouted": {
     "x-sourceSha256": "213bed8509f57aef35ba73781fca3267d5e5f7d16ef7b46f83b28c82ee833777"

@@ -288,6 +288,30 @@
   "@settingsSyncNowTitle": {
     "x-sourceSha256": "885e8f48bd70af10c21ee1046c5762dae06945145bf5c95885648e4ac308c0bf"
   },
+  "settingsSyncDisconnectTitle": "このデバイスの接続を解除",
+  "@settingsSyncDisconnectTitle": {
+    "x-sourceSha256": "5b0463da95797a1078c49e57743fa8e7ece0b2101bae8d4f6f5b64794c3dd159"
+  },
+  "settingsSyncDisconnectSubtitle": "このデバイスでの同期を停止します。ストアや他のデバイスは変更されません。",
+  "@settingsSyncDisconnectSubtitle": {
+    "x-sourceSha256": "66b3c050d9b3ce7bfaf6ab7c42b26081e8bc2ea6e0cb31c67a91e4c3b99ed2b9"
+  },
+  "settingsSyncDisconnectConfirmTitle": "このデバイスの接続を解除しますか?",
+  "@settingsSyncDisconnectConfirmTitle": {
+    "x-sourceSha256": "368f30952240db8e8850a97232ef46e89fc0d0ec2facc04576d0c33d946f9fdd"
+  },
+  "settingsSyncDisconnectConfirmBody": "このデバイスは同期を停止し、同期フレーズを削除します。このデバイスのライブラリはそのまま残り、ストアや他のデバイスには影響しません。後で再接続するにはフレーズが必要なので、手元にあることを確認してください。",
+  "@settingsSyncDisconnectConfirmBody": {
+    "x-sourceSha256": "ef8fe8eddad993cbb235762e998a058f013d6d39a888d9561b3e8abbfd2dfc9b"
+  },
+  "settingsSyncDisconnectConfirmAction": "接続を解除",
+  "@settingsSyncDisconnectConfirmAction": {
+    "x-sourceSha256": "acfc5be785a9bb3da11c9f05adb69bd5633096f09002aa44813a1b3207e912ad"
+  },
+  "settingsSyncDisconnectFailed": "このデバイスの接続を解除できませんでした。接続はまだ有効です。もう一度お試しください。",
+  "@settingsSyncDisconnectFailed": {
+    "x-sourceSha256": "23a506ff584ec8b81da1a4dfdefe90d6572957feabcfee2aa2614e3b68b0b3c8"
+  },
   "settingsSyncMeteredRouted": "モバイルデータ通信中で、「WiFi接続時のみ同期」がオンです。今すぐ同期するには、下のこの設定をオフにしてください。",
   "@settingsSyncMeteredRouted": {
     "x-sourceSha256": "213bed8509f57aef35ba73781fca3267d5e5f7d16ef7b46f83b28c82ee833777"
