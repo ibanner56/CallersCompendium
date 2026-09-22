@@ -614,6 +614,104 @@ void main() {
       expect(controller.notices, isEmpty);
     });
 
+    // A pass that stops part-way still returns whatever it had accumulated —
+    // the coordinator's blob-publication and manifest-publication failures
+    // all carry `reports: reports.reports`. Replacing the set from one of
+    // those would retract a divergence the pass never re-examined, which is
+    // the same silence this surface exists to end.
+    test('a pass that did not complete adds its own reports without '
+        'retracting the ones it never re-checked', () async {
+      var result = const SyncPassResult(
+        SyncPassStatus.completed,
+        reports: [tie],
+      );
+      coordinator = reporting(() => result);
+      final controller = await paired();
+      await controller.syncNow();
+
+      result = const SyncPassResult(
+        SyncPassStatus.failed,
+        reports: [
+          SyncReport(
+            code: SyncReportCode.unresolvedBlob,
+            kind: SyncRecordKind.dance,
+            recordId: 'dance-2',
+            peerId: 'peer-1',
+            message: 'Blob returned 500.',
+          ),
+        ],
+      );
+      await controller.syncNow();
+
+      expect(controller.notices.map((r) => r.code).toSet(), {
+        SyncReportCode.equalUpdatedAt,
+        SyncReportCode.unresolvedBlob,
+      });
+    });
+
+    // The engine reports a rejected peer record once per session: its wire
+    // hash enters `SyncPeerManifestCache.rejectedHashes` and later passes skip
+    // it. `sync_coordinator_test.dart` pins exactly that — the same
+    // still-present record reports on the first pass and not the second — so
+    // a later silent completed pass is not evidence the record is gone.
+    test('a completed pass that raises nothing keeps a notice the engine only '
+        'reports once per session, while clearing the rest', () async {
+      const peerQuarantine = SyncReport(
+        code: SyncReportCode.quarantinedRecord,
+        kind: SyncRecordKind.dance,
+        recordId: 'dance-3',
+        peerId: 'peer-1',
+        message: 'Inbound record timestamp exceeded the local clock window.',
+      );
+      var result = const SyncPassResult(
+        SyncPassStatus.completed,
+        reports: [tie, peerQuarantine],
+      );
+      coordinator = reporting(() => result);
+      final controller = await paired();
+      await controller.syncNow();
+
+      result = const SyncPassResult(SyncPassStatus.completed);
+      await controller.syncNow();
+
+      expect(
+        controller.notices.map((r) => r.code),
+        [SyncReportCode.quarantinedRecord],
+        reason:
+            'the tie was re-examined and is gone; the rejected peer '
+            'record was never re-reported, so silence proves nothing',
+      );
+    });
+
+    // The local quarantine sweep shares the code but not the suppression: it
+    // has no peer id and is recomputed every pass, so silence about it is
+    // real evidence and its notice must clear.
+    test(
+      'a locally quarantined record clears like any other condition',
+      () async {
+        var result = const SyncPassResult(
+          SyncPassStatus.completed,
+          reports: [
+            SyncReport(
+              code: SyncReportCode.quarantinedRecord,
+              kind: SyncRecordKind.dance,
+              recordId: 'dance-4',
+              message: 'Record remained quarantined after peer-only repair.',
+            ),
+          ],
+        );
+        coordinator = reporting(() => result);
+        final controller = await paired();
+        await controller.syncNow();
+        expect(controller.notices, isNotEmpty);
+
+        result = const SyncPassResult(SyncPassStatus.completed);
+        await controller.syncNow();
+
+        expect(controller.notices, isEmpty);
+      },
+    );
+
     test('a pass that did not complete leaves the notices standing', () async {
       var result = const SyncPassResult(
         SyncPassStatus.completed,

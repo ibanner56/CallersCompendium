@@ -294,6 +294,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Something created on this device would have been removed by another device that had never seen it. It was kept here instead.';
 
   @override
+  String get settingsSyncNoticeQuarantinedLocal =>
+      'Some items on this device have a date the app can\'t trust, so they aren\'t being sent to your other devices. Check this device\'s date and time, then edit one of the items to give it a fresh date.';
+
+  @override
   String get settingsSyncNoticeSkippedRecord =>
       'Some records from another device couldn\'t be used and were skipped. Check that your other devices are running the same app version, then sync again.';
 

@@ -320,6 +320,10 @@
   "@settingsSyncNoticeKeptLocalCreation": {
     "x-sourceSha256": "d9d16487d769490ae080e5d0ef4715f69c825e99c7e040b6ac10d0bc5093907e"
   },
+  "settingsSyncNoticeQuarantinedLocal": "Sommige items op dit apparaat hebben een datum die de app niet kan vertrouwen, dus ze worden niet naar je andere apparaten gestuurd. Controleer de datum en tijd op dit apparaat en bewerk daarna een van de items om het een nieuwe datum te geven.",
+  "@settingsSyncNoticeQuarantinedLocal": {
+    "x-sourceSha256": "3634a80939d6da514d886f89bbb4a9c38e5dafaaa86c1db56766b2bccd3af851"
+  },
   "settingsSyncNoticeSkippedRecord": "Sommige records van een ander apparaat konden niet worden gebruikt en zijn overgeslagen. Controleer of je andere apparaten dezelfde app-versie gebruiken en synchroniseer opnieuw.",
   "@settingsSyncNoticeSkippedRecord": {
     "x-sourceSha256": "810e587b9c60b4b432183640a0295d35a70a59a9ce5f3825436d2b666600afd3"

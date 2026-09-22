@@ -159,6 +159,12 @@ class SyncController extends ChangeNotifier {
   /// so a list that emptied at the end of each pass would show it only for
   /// the instant between two triggers.
   ///
+  /// A **completed** pass replaces the set, because it re-examined
+  /// everything; a pass that ended any other way merges into it, because it
+  /// stopped part-way and its reports are a subset rather than a survey. The
+  /// one exception to replacement is [_isSessionSuppressed], for conditions
+  /// the engine reports only once per session.
+  ///
   /// In memory only, and not persisted: this is the same lifetime
   /// [lastResult] already has, and no clause requires a notice to survive a
   /// restart — the conditions that persist are re-raised by the app-start
@@ -370,23 +376,25 @@ class SyncController extends ChangeNotifier {
     // store being forgotten; recording it would restore its last-success time.
     if (_detaching) return;
     _lastResult = result;
-    if (result.reports.isNotEmpty) {
-      // Coalesced here rather than trusted from the engine: `SyncReportSink`
-      // deduplicates within one sink, but a fresh attach that continues into
-      // a steady-state pass concatenates two sinks' output verbatim, so one
-      // result can carry the same condition twice.
-      final byKey = <String, SyncReport>{};
-      for (final report in result.reports) {
-        byKey.putIfAbsent(report.coalescingKey, () => report);
-      }
-      _notices = List.unmodifiable(byKey.values);
-    } else if (result.status == SyncPassStatus.completed) {
-      // Only a pass that ran to completion is evidence that a condition is
-      // gone. A `failed`, `paused` or `replacementRequired` result never
-      // reached the merge, so clearing on it would retract a standing
-      // divergence for an unrelated network failure — the same silence this
-      // whole surface exists to end.
-      _notices = const [];
+    if (result.status == SyncPassStatus.completed) {
+      // A completed pass re-examined everything, so what it raises replaces
+      // what stood — with one carve-out. A rejected peer record's wire hash
+      // enters `SyncPeerManifestCache.rejectedHashes` on the pass that reports
+      // it and is skipped on every later pass of the same session, so a silent
+      // completed pass is not evidence that record is gone. Those notices are
+      // carried forward: they live exactly as long as the suppression that
+      // hides them, and both end when the sync session does.
+      _notices = _coalesce([
+        ...result.reports,
+        ..._notices.where(_isSessionSuppressed),
+      ]);
+    } else if (result.reports.isNotEmpty) {
+      // A pass that did not complete stopped part-way, so its reports are
+      // whatever had accumulated by then — a subset, never a survey. Merging
+      // keeps what it did find without retracting what it never re-checked;
+      // replacing here would let a partial failure silently drop a standing
+      // divergence, which is the same silence this surface exists to end.
+      _notices = _coalesce([..._notices, ...result.reports]);
     }
     if (result.status == SyncPassStatus.completed) {
       final at = _now();
@@ -395,6 +403,32 @@ class SyncController extends ChangeNotifier {
       await _settings.set(kSyncLastSuccessAtKey, at.toIso8601String());
     }
   }
+
+  /// Deduplicates by [SyncReport.coalescingKey], keeping the first of each.
+  ///
+  /// Done here rather than trusted from the engine: `SyncReportSink`
+  /// deduplicates within one sink, but a fresh attach that continues into a
+  /// steady-state pass concatenates two sinks' output verbatim, so one result
+  /// can carry the same condition twice.
+  static List<SyncReport> _coalesce(Iterable<SyncReport> reports) {
+    final byKey = <String, SyncReport>{};
+    for (final report in reports) {
+      byKey.putIfAbsent(report.coalescingKey, () => report);
+    }
+    return List.unmodifiable(byKey.values);
+  }
+
+  /// Whether the engine reports this condition only once per sync session, so
+  /// a later silent pass says nothing about whether it still holds.
+  ///
+  /// Exactly one report is suppressed this way: a quarantined record received
+  /// from a peer, gated on `SyncPeerManifestCache.rejectedHashes` in
+  /// `sync_coordinator.dart`. `sync_coordinator_test.dart` pins that behaviour
+  /// — the same still-present record reports on the first pass of a session
+  /// and not the second. The local quarantine sweep shares the code but not
+  /// the suppression: it has no `peerId` and is recomputed every pass.
+  static bool _isSessionSuppressed(SyncReport report) =>
+      report.code == SyncReportCode.quarantinedRecord && report.peerId != null;
 
   /// Attaches to the live coordinator's replacement-required stream so the
   /// status surface can show the §6.14 item 6 explanation. Called by the app

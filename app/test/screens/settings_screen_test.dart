@@ -1769,7 +1769,13 @@ void main() {
           for (final code in codes) {
             result = SyncPassResult(
               SyncPassStatus.completed,
-              reports: [SyncReport(code: code, message: 'skipped')],
+              // Every code in this group describes an *inbound* record, so
+              // each carries the peer it came from. `quarantinedRecord`
+              // without one is a different condition entirely — see the
+              // local-quarantine test below.
+              reports: [
+                SyncReport(code: code, message: 'skipped', peerId: 'peer-1'),
+              ],
             );
             await syncNow(tester);
             expect(
@@ -1778,6 +1784,47 @@ void main() {
               reason: '$code must reach the skipped-record notice',
             );
           }
+        });
+
+        // `quarantinedRecord` is raised for two different conditions and
+        // `peerId` is the only thing that tells them apart: an inbound record
+        // held back (peer id set), and a local row peer-only repair could not
+        // rescue, withheld from publication with its dependents (peer id
+        // null). Showing "records from another device … check their app
+        // version" for the local case is the reported defect in miniature —
+        // sending the user to the wrong device.
+        testWidgets('a locally quarantined record is not reported as another '
+            "device's skipped record", (tester) async {
+          var result = const SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [
+              SyncReport(
+                code: SyncReportCode.quarantinedRecord,
+                kind: SyncRecordKind.dance,
+                recordId: 'dance-9',
+                message:
+                    'Record remained quarantined after peer-only timestamp '
+                    'repair; 2 database-FK dependents withheld.',
+              ),
+            ],
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          expect(
+            find.byKey(const ValueKey('sync-notice-quarantinedLocal')),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-notice-skippedRecord')),
+            findsNothing,
+            reason: 'nothing was received, so nothing was skipped',
+          );
+          expect(
+            find.textContaining('another device'),
+            findsNothing,
+            reason: 'the remedy is this device, not another one',
+          );
         });
 
         testWidgets('a suspect peer clock is surfaced', (tester) async {

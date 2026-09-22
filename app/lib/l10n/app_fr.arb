@@ -320,6 +320,10 @@
   "@settingsSyncNoticeKeptLocalCreation": {
     "x-sourceSha256": "d9d16487d769490ae080e5d0ef4715f69c825e99c7e040b6ac10d0bc5093907e"
   },
+  "settingsSyncNoticeQuarantinedLocal": "Certains éléments de cet appareil portent une date à laquelle l’application ne peut pas se fier ; ils ne sont donc pas envoyés à vos autres appareils. Vérifiez la date et l’heure de cet appareil, puis modifiez l’un des éléments pour lui donner une date récente.",
+  "@settingsSyncNoticeQuarantinedLocal": {
+    "x-sourceSha256": "3634a80939d6da514d886f89bbb4a9c38e5dafaaa86c1db56766b2bccd3af851"
+  },
   "settingsSyncNoticeSkippedRecord": "Certaines fiches provenant d’un autre appareil n’ont pas pu être utilisées et ont été ignorées. Vérifiez que vos autres appareils utilisent la même version de l’application, puis synchronisez à nouveau.",
   "@settingsSyncNoticeSkippedRecord": {
     "x-sourceSha256": "810e587b9c60b4b432183640a0295d35a70a59a9ce5f3825436d2b666600afd3"

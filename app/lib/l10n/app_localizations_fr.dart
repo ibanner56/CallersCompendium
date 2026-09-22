@@ -305,6 +305,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Un élément créé sur cet appareil aurait été supprimé par un autre appareil qui ne l’avait jamais vu. Il a été conservé ici à la place.';
 
   @override
+  String get settingsSyncNoticeQuarantinedLocal =>
+      'Certains éléments de cet appareil portent une date à laquelle l’application ne peut pas se fier ; ils ne sont donc pas envoyés à vos autres appareils. Vérifiez la date et l’heure de cet appareil, puis modifiez l’un des éléments pour lui donner une date récente.';
+
+  @override
   String get settingsSyncNoticeSkippedRecord =>
       'Certaines fiches provenant d’un autre appareil n’ont pas pu être utilisées et ont été ignorées. Vérifiez que vos autres appareils utilisent la même version de l’application, puis synchronisez à nouveau.';
 

@@ -289,6 +289,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'このデバイスで作成された項目が、それを一度も見ていない別のデバイスによって削除されるところでした。代わりにこのデバイスで保持しました。';
 
   @override
+  String get settingsSyncNoticeQuarantinedLocal =>
+      'このデバイス上の一部の項目には、アプリが信頼できない日付が付いているため、他のデバイスに送信されていません。このデバイスの日付と時刻を確認してから、いずれかの項目を編集して新しい日付を付けてください。';
+
+  @override
   String get settingsSyncNoticeSkippedRecord =>
       '別のデバイスからの一部のレコードは使用できず、スキップされました。他のデバイスが同じアプリのバージョンかどうか確認してから、もう一度同期してください。';
 

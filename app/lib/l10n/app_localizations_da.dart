@@ -299,6 +299,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Noget, der blev oprettet på denne enhed, ville være blevet fjernet af en anden enhed, der aldrig havde set det. Det blev beholdt her i stedet.';
 
   @override
+  String get settingsSyncNoticeQuarantinedLocal =>
+      'Nogle elementer på denne enhed har en dato, appen ikke kan stole på, så de bliver ikke sendt til dine andre enheder. Tjek dato og klokkeslæt på denne enhed, og rediger derefter et af elementerne for at give det en ny dato.';
+
+  @override
   String get settingsSyncNoticeSkippedRecord =>
       'Nogle poster fra en anden enhed kunne ikke bruges og blev sprunget over. Tjek, at dine andre enheder kører den samme appversion, og synkronisér igen.';
 

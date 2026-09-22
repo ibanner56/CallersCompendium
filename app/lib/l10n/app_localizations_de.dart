@@ -300,6 +300,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Etwas, das auf diesem Gerät erstellt wurde, wäre von einem anderen Gerät entfernt worden, das es nie gesehen hatte. Es wurde stattdessen hier behalten.';
 
   @override
+  String get settingsSyncNoticeQuarantinedLocal =>
+      'Einige Einträge auf diesem Gerät haben ein Datum, dem die App nicht trauen kann, und werden deshalb nicht an deine anderen Geräte gesendet. Prüfe Datum und Uhrzeit dieses Geräts und bearbeite dann einen der Einträge, damit er ein frisches Datum bekommt.';
+
+  @override
   String get settingsSyncNoticeSkippedRecord =>
       'Einige Einträge von einem anderen Gerät konnten nicht verwendet werden und wurden übersprungen. Prüfe, ob deine anderen Geräte dieselbe App-Version verwenden, und synchronisiere erneut.';
 

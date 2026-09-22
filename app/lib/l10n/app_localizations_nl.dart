@@ -300,6 +300,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Iets dat op dit apparaat is gemaakt, zou zijn verwijderd door een ander apparaat dat het nooit had gezien. Het is hier in plaats daarvan bewaard.';
 
   @override
+  String get settingsSyncNoticeQuarantinedLocal =>
+      'Sommige items op dit apparaat hebben een datum die de app niet kan vertrouwen, dus ze worden niet naar je andere apparaten gestuurd. Controleer de datum en tijd op dit apparaat en bewerk daarna een van de items om het een nieuwe datum te geven.';
+
+  @override
   String get settingsSyncNoticeSkippedRecord =>
       'Sommige records van een ander apparaat konden niet worden gebruikt en zijn overgeslagen. Controleer of je andere apparaten dezelfde app-versie gebruiken en synchroniseer opnieuw.';
 

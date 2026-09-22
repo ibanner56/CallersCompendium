@@ -380,9 +380,13 @@
   "@settingsSyncNoticeKeptLocalCreation": {
     "description": "Non-blocking notice for spec §6.4: a record created locally and never observed by any peer must be reported rather than resolved out of existence. Informational — the record is safe and no action is required."
   },
+  "settingsSyncNoticeQuarantinedLocal": "Some items on this device have a date the app can't trust, so they aren't being sent to your other devices. Check this device's date and time, then edit one of the items to give it a fresh date.",
+  "@settingsSyncNoticeQuarantinedLocal": {
+    "description": "Non-blocking notice for a record on THIS device left quarantined after peer-only timestamp repair and withheld from publication along with its dependents. Deliberately distinct from the skipped-record notice, which is about records received from another device: nothing was received here, so the remedy is this device's clock rather than another device's app version. The two share a report code and are told apart by whether the report carries a peer id."
+  },
   "settingsSyncNoticeSkippedRecord": "Some records from another device couldn't be used and were skipped. Check that your other devices are running the same app version, then sync again.",
   "@settingsSyncNoticeSkippedRecord": {
-    "description": "Non-blocking notice covering every condition that leaves one inbound record unusable: malformed or non-canonical body, a non-shareable field, a missing or mismatched blob, an unresolved reference, or a quarantined implausible timestamp. Grouped deliberately — the spec requires the report not be a per-record prompt."
+    "description": "Non-blocking notice covering every condition that leaves one INBOUND record unusable: malformed or non-canonical body, a non-shareable field, a missing or mismatched blob, an unresolved reference, or a quarantined implausible timestamp on a record received from a peer. Grouped deliberately — the spec requires the report not be a per-record prompt. A local record quarantined on this device uses settingsSyncNoticeQuarantinedLocal instead."
   },
   "settingsSyncNoticeClock": "Another device's clock looks far off from this one's. Check the date and time on your devices — sync uses them to decide which edit is newer.",
   "@settingsSyncNoticeClock": {
