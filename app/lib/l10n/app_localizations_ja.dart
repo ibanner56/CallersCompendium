@@ -189,6 +189,65 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsExperimentalPlaceholder => '開発中の新機能がここに表示される場合があります。';
 
   @override
+  String get settingsSyncHeader => 'デバイス同期';
+
+  @override
+  String get settingsSyncIntro =>
+      'お手持ちのデバイス間でライブラリを同じ状態に保ちます。デバイス同期は、オンにするまでオフのままで、オフの間は何も送信されません。';
+
+  @override
+  String get settingsSyncEnableTitle => 'デバイス同期をオンにする';
+
+  @override
+  String get settingsSyncEnableSubtitle =>
+      '初期設定ではオフです。オンにしても、ストアを接続するまで何も送信されません。';
+
+  @override
+  String get settingsSyncWifiOnlyTitle => 'WiFi接続時のみ同期';
+
+  @override
+  String get settingsSyncWifiOnlySubtitle =>
+      '初期設定ではオンです。モバイルデータ通信中は、WiFiに接続するまで同期を待機します。';
+
+  @override
+  String get settingsSyncStatusHeader => 'ステータス';
+
+  @override
+  String get settingsSyncStatusNotPaired => 'まだストアに接続されていません。';
+
+  @override
+  String get settingsSyncStatusNeverSynced => '接続済みです。まだ同期されていません。';
+
+  @override
+  String settingsSyncStatusLastSynced(String when) {
+    return '最終同期: $when';
+  }
+
+  @override
+  String get settingsSyncStatusSyncing => '同期中…';
+
+  @override
+  String get settingsSyncNotBackup =>
+      '同期はバックアップではありません。30日間使われなかったストアは削除されるため、ファイルのバックアップは引き続き取ってください。';
+
+  @override
+  String get settingsSyncExpiryWarning =>
+      'このストアはしばらく同期されておらず、30日間使われないと削除されます。接続済みのデバイスでアプリを開いて同期すると、保持できます。';
+
+  @override
+  String get settingsSyncNowTitle => '今すぐ同期';
+
+  @override
+  String get settingsSyncMeteredRouted =>
+      'モバイルデータ通信中で、「WiFi接続時のみ同期」がオンです。今すぐ同期するには、下のこの設定をオフにしてください。';
+
+  @override
+  String get settingsSyncOffline => '現在接続がありません。次の機会に同期が実行されます。';
+
+  @override
+  String get settingsSyncNotPairedNow => '同期する前にストアを接続してください。';
+
+  @override
   String get settingsAboutTitle => '情報';
 
   @override

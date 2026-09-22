@@ -196,6 +196,69 @@ class AppLocalizationsNl extends AppLocalizations {
       'Nieuwe functies kunnen hier verschijnen terwijl ze nog in ontwikkeling zijn.';
 
   @override
+  String get settingsSyncHeader => 'Apparaatsynchronisatie';
+
+  @override
+  String get settingsSyncIntro =>
+      'Houd je bibliotheek gelijk op je eigen apparaten. Apparaatsynchronisatie staat uit totdat je het aanzet, en er wordt niets verzonden zolang het uit staat.';
+
+  @override
+  String get settingsSyncEnableTitle => 'Apparaatsynchronisatie aanzetten';
+
+  @override
+  String get settingsSyncEnableSubtitle =>
+      'Standaard uit. Als je het aanzet, wordt er niets verzonden totdat je een opslag hebt gekoppeld.';
+
+  @override
+  String get settingsSyncWifiOnlyTitle => 'Alleen synchroniseren via wifi';
+
+  @override
+  String get settingsSyncWifiOnlySubtitle =>
+      'Standaard aan. Bij mobiele data wacht de synchronisatie tot je op wifi zit.';
+
+  @override
+  String get settingsSyncStatusHeader => 'Status';
+
+  @override
+  String get settingsSyncStatusNotPaired =>
+      'Nog niet gekoppeld aan een opslag.';
+
+  @override
+  String get settingsSyncStatusNeverSynced =>
+      'Gekoppeld. Nog niet gesynchroniseerd.';
+
+  @override
+  String settingsSyncStatusLastSynced(String when) {
+    return 'Laatst gesynchroniseerd: $when';
+  }
+
+  @override
+  String get settingsSyncStatusSyncing => 'Synchroniseren…';
+
+  @override
+  String get settingsSyncNotBackup =>
+      'Synchronisatie is geen back-up. Een opslag die 30 dagen niet wordt gebruikt, wordt verwijderd, dus blijf bestandsback-ups maken.';
+
+  @override
+  String get settingsSyncExpiryWarning =>
+      'Deze opslag is al een tijdje niet gesynchroniseerd en wordt na 30 dagen zonder gebruik verwijderd. Open de app op een gekoppeld apparaat en synchroniseer om hem te behouden.';
+
+  @override
+  String get settingsSyncNowTitle => 'Nu synchroniseren';
+
+  @override
+  String get settingsSyncMeteredRouted =>
+      'Je gebruikt mobiele data en ‘Alleen synchroniseren via wifi’ staat aan. Zet die instelling hieronder uit om nu te synchroniseren.';
+
+  @override
+  String get settingsSyncOffline =>
+      'Geen verbinding op dit moment. De synchronisatie draait bij de eerste kans.';
+
+  @override
+  String get settingsSyncNotPairedNow =>
+      'Koppel een opslag voordat je synchroniseert.';
+
+  @override
   String get settingsAboutTitle => 'Over';
 
   @override

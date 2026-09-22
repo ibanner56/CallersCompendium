@@ -256,6 +256,80 @@
   "@settingsExperimentalPlaceholder": {
     "description": "Placeholder text explaining that the Experimental settings section will contain features still in development."
   },
+  "settingsSyncHeader": "Device Sync",
+  "@settingsSyncHeader": {
+    "description": "Header of the Device Sync group in the Experimental settings section."
+  },
+  "settingsSyncIntro": "Keep your library in step across your own devices. Device Sync is off until you turn it on, and nothing is sent anywhere while it is off.",
+  "@settingsSyncIntro": {
+    "description": "Explains that Device Sync is opt-in and makes no network calls while off."
+  },
+  "settingsSyncEnableTitle": "Turn on Device Sync",
+  "@settingsSyncEnableTitle": {
+    "description": "Title of the switch that enables Device Sync."
+  },
+  "settingsSyncEnableSubtitle": "Off by default. Turning this on does not send anything until you connect a store.",
+  "@settingsSyncEnableSubtitle": {
+    "description": "Subtitle of the Device Sync enable switch."
+  },
+  "settingsSyncWifiOnlyTitle": "Sync only on WiFi",
+  "@settingsSyncWifiOnlyTitle": {
+    "description": "Title of the switch limiting automatic sync to unmetered connections."
+  },
+  "settingsSyncWifiOnlySubtitle": "On by default. On a mobile-data connection sync waits until you are on WiFi.",
+  "@settingsSyncWifiOnlySubtitle": {
+    "description": "Subtitle of the sync-only-on-WiFi switch."
+  },
+  "settingsSyncStatusHeader": "Status",
+  "@settingsSyncStatusHeader": {
+    "description": "Header of the Device Sync status group."
+  },
+  "settingsSyncStatusNotPaired": "Not connected to a store yet.",
+  "@settingsSyncStatusNotPaired": {
+    "description": "Status shown when Device Sync is on but no sync store is connected."
+  },
+  "settingsSyncStatusNeverSynced": "Connected. Not synced yet.",
+  "@settingsSyncStatusNeverSynced": {
+    "description": "Status shown when a store is connected but no sync has completed on this device."
+  },
+  "settingsSyncStatusLastSynced": "Last synced {when}",
+  "@settingsSyncStatusLastSynced": {
+    "description": "Status line naming the time of the last completed sync; {when} is a localized date and time.",
+    "placeholders": {
+      "when": {
+        "type": "String",
+        "example": "Sep 21, 2026, 3:04 PM"
+      }
+    }
+  },
+  "settingsSyncStatusSyncing": "Syncing…",
+  "@settingsSyncStatusSyncing": {
+    "description": "Status shown while a sync is running."
+  },
+  "settingsSyncNotBackup": "Sync is not a backup. A store that goes unused for 30 days is removed, so keep making file backups.",
+  "@settingsSyncNotBackup": {
+    "description": "Disclosure shown wherever Device Sync reports its status, stating that sync does not replace a file backup."
+  },
+  "settingsSyncExpiryWarning": "This store has not synced for a while and will be removed after 30 days without use. Open the app on a connected device and sync to keep it.",
+  "@settingsSyncExpiryWarning": {
+    "description": "Warning that the sync store is approaching its 30-day disuse expiry."
+  },
+  "settingsSyncNowTitle": "Sync now",
+  "@settingsSyncNowTitle": {
+    "description": "Title of the button that starts a manual sync."
+  },
+  "settingsSyncMeteredRouted": "You are on a mobile-data connection and Sync only on WiFi is on. Turn that setting off below to sync now.",
+  "@settingsSyncMeteredRouted": {
+    "description": "Message shown when a manual sync is attempted on a metered connection, pointing at the WiFi-only setting."
+  },
+  "settingsSyncOffline": "No connection right now. Sync will run at the next opportunity.",
+  "@settingsSyncOffline": {
+    "description": "Message shown when a manual sync is attempted with no network connection."
+  },
+  "settingsSyncNotPairedNow": "Connect a store before syncing.",
+  "@settingsSyncNotPairedNow": {
+    "description": "Message shown when a manual sync is attempted with no store connected."
+  },
   "settingsAboutTitle": "About",
   "@settingsAboutTitle": {
     "description": "Settings section navigation title (sidebar/app bar) for app version, license, and help links."

@@ -5,7 +5,7 @@ import 'package:compendium_core/compendium_core.dart';
 
 import '../data/app_database.dart' show resolveDatabaseFile;
 import '../screens/settings/settings_keys.dart'
-    show kSyncDeviceIdKey, kSyncIdKey;
+    show kSyncDeviceIdKey, kSyncEnabledKey, kSyncIdKey;
 import 'sync_coordinator.dart';
 import 'sync_http_client.dart';
 import 'sync_isolate.dart';
@@ -14,7 +14,10 @@ import 'sync_invalidation.dart';
 /// Builds the production coordinator after the database-backed settings are
 /// available.
 ///
-/// A missing sync ID is the disabled state. The device identifier is generated
+/// Sync is off until the user turns it on (spec §6.1): the coordinator is built
+/// only when `sync_enabled` is exactly `true`, so an unconfigured or disabled
+/// installation constructs no client and makes no sync-related network call.
+/// A missing sync ID is also the disabled state. The device identifier is generated
 /// once when a user enables sync and is never taken from a peer or a backup.
 final class ConfiguredSyncCoordinatorFactory {
   const ConfiguredSyncCoordinatorFactory({required this.endpoint});
@@ -29,6 +32,7 @@ final class ConfiguredSyncCoordinatorFactory {
   final Uri? endpoint;
 
   Future<SyncCoordinator?> call(CompendiumRepositories repositories) async {
+    if (await repositories.settings.get(kSyncEnabledKey) != true) return null;
     final rawSyncId = await repositories.settings.get(kSyncIdKey);
     if (rawSyncId == null) return null;
     if (rawSyncId is! String) {

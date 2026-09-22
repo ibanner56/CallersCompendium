@@ -11,7 +11,14 @@ import 'custom_theme.dart';
 import 'custom_themes_controller.dart';
 import 'dialect_library_controller.dart';
 import '../screens/settings/settings_keys.dart'
-    show kSyncDeviceIdKey, kSyncIdKey, kSyncLastUsedFingerprintKey;
+    show
+        kSyncDeviceIdKey,
+        kSyncEnabledKey,
+        kSyncExcludeImportsKey,
+        kSyncIdKey,
+        kSyncLastSuccessAtKey,
+        kSyncLastUsedFingerprintKey,
+        kSyncWifiOnlyKey;
 import 'window_service.dart' show kWindowFrameKey;
 
 /// App-side declaration used by the settings classification ratchet. The
@@ -58,6 +65,10 @@ const String kCallersBoxRollAwayRoleRepairDoneKey =
 ///   must never be copied through a backup, even though their transport-specific
 ///   privacy classes are not [EgressClass.deviceLocal]:
 ///   [kSyncIdKey], [kSyncDeviceIdKey], [kSyncLastUsedFingerprintKey].
+/// - **sync consent and preferences** — consent given on one device is not
+///   consent on another, so a restore must leave sync off (spec §6.1):
+///   [kSyncEnabledKey], [kSyncWifiOnlyKey], [kSyncExcludeImportsKey],
+///   [kSyncLastSuccessAtKey].
 const Set<String> kBackupSettingsDenylist = {
   kCustomDialectsKey,
   kActiveDialectRefKey,
@@ -75,6 +86,10 @@ const Set<String> kBackupSettingsDenylist = {
   kSyncIdKey,
   kSyncDeviceIdKey,
   kSyncLastUsedFingerprintKey,
+  kSyncEnabledKey,
+  kSyncWifiOnlyKey,
+  kSyncExcludeImportsKey,
+  kSyncLastSuccessAtKey,
 };
 
 /// Key *prefixes* excluded from backups. Some settings-table keys are dynamic

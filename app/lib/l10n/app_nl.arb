@@ -208,6 +208,74 @@
   "@settingsExperimentalPlaceholder": {
     "x-sourceSha256": "a268657b05fd60bc06b7df9f6abc968d3f880d899c7599cf0c000ff6dce634f5"
   },
+  "settingsSyncHeader": "Apparaatsynchronisatie",
+  "@settingsSyncHeader": {
+    "x-sourceSha256": "ee5820500cbfd273ba87eb1b5096235bc96c5e960e83eeaecb4b9eb339537bdf"
+  },
+  "settingsSyncIntro": "Houd je bibliotheek gelijk op je eigen apparaten. Apparaatsynchronisatie staat uit totdat je het aanzet, en er wordt niets verzonden zolang het uit staat.",
+  "@settingsSyncIntro": {
+    "x-sourceSha256": "da85277e12ccb9b511277697c26ebfc7416a9c9d958389ae1f4ade165e0753b1"
+  },
+  "settingsSyncEnableTitle": "Apparaatsynchronisatie aanzetten",
+  "@settingsSyncEnableTitle": {
+    "x-sourceSha256": "4921c5245d4766d1f245acc5fcc43f714fc78550bdb0a0c40da60e21c17cb171"
+  },
+  "settingsSyncEnableSubtitle": "Standaard uit. Als je het aanzet, wordt er niets verzonden totdat je een opslag hebt gekoppeld.",
+  "@settingsSyncEnableSubtitle": {
+    "x-sourceSha256": "3982985012de05654896a7ea98ff8e886711ebe060bd24cc7562d07705b2992d"
+  },
+  "settingsSyncWifiOnlyTitle": "Alleen synchroniseren via wifi",
+  "@settingsSyncWifiOnlyTitle": {
+    "x-sourceSha256": "b4860c1a82e38e5b5c2a0214fd48858147978aa1c0bc433e65aa70897f942824"
+  },
+  "settingsSyncWifiOnlySubtitle": "Standaard aan. Bij mobiele data wacht de synchronisatie tot je op wifi zit.",
+  "@settingsSyncWifiOnlySubtitle": {
+    "x-sourceSha256": "281c955643110d523c1f0e6616ac917e4c1eb62c95d3c9f7fe25e6e875e6dc4c"
+  },
+  "settingsSyncStatusHeader": "Status",
+  "@settingsSyncStatusHeader": {
+    "x-sourceSha256": "920e413c7d411b61ef3e8c63b1cb6ad058d5f95f8b481dbafe60248387d8c355"
+  },
+  "settingsSyncStatusNotPaired": "Nog niet gekoppeld aan een opslag.",
+  "@settingsSyncStatusNotPaired": {
+    "x-sourceSha256": "fab16a97ef73852d7919983bfc66ae8218e9c7b75c80c7f9e3982353ffd082ed"
+  },
+  "settingsSyncStatusNeverSynced": "Gekoppeld. Nog niet gesynchroniseerd.",
+  "@settingsSyncStatusNeverSynced": {
+    "x-sourceSha256": "22887e1836df5c3e0893284c74610495f0ef3da45bd71d4d405786f765a8da86"
+  },
+  "settingsSyncStatusLastSynced": "Laatst gesynchroniseerd: {when}",
+  "@settingsSyncStatusLastSynced": {
+    "x-sourceSha256": "2e4722e81e7b673034a549b3c14f93881ca876d8726d7c8bea8cd9ec33af02b7"
+  },
+  "settingsSyncStatusSyncing": "Synchroniseren…",
+  "@settingsSyncStatusSyncing": {
+    "x-sourceSha256": "8a046cc90ab0a981f95cbf2c9c609309e0cfda272d8c01fdffecdb8286877e91"
+  },
+  "settingsSyncNotBackup": "Synchronisatie is geen back-up. Een opslag die 30 dagen niet wordt gebruikt, wordt verwijderd, dus blijf bestandsback-ups maken.",
+  "@settingsSyncNotBackup": {
+    "x-sourceSha256": "11cd21133a59a470d73d8b582f2307c314309fe99564283639556d8afcfd4fa3"
+  },
+  "settingsSyncExpiryWarning": "Deze opslag is al een tijdje niet gesynchroniseerd en wordt na 30 dagen zonder gebruik verwijderd. Open de app op een gekoppeld apparaat en synchroniseer om hem te behouden.",
+  "@settingsSyncExpiryWarning": {
+    "x-sourceSha256": "d8fdf28004e03c46f276feafa3bb34ac65d8f5880f1739e6343eefab3d9f2649"
+  },
+  "settingsSyncNowTitle": "Nu synchroniseren",
+  "@settingsSyncNowTitle": {
+    "x-sourceSha256": "885e8f48bd70af10c21ee1046c5762dae06945145bf5c95885648e4ac308c0bf"
+  },
+  "settingsSyncMeteredRouted": "Je gebruikt mobiele data en ‘Alleen synchroniseren via wifi’ staat aan. Zet die instelling hieronder uit om nu te synchroniseren.",
+  "@settingsSyncMeteredRouted": {
+    "x-sourceSha256": "213bed8509f57aef35ba73781fca3267d5e5f7d16ef7b46f83b28c82ee833777"
+  },
+  "settingsSyncOffline": "Geen verbinding op dit moment. De synchronisatie draait bij de eerste kans.",
+  "@settingsSyncOffline": {
+    "x-sourceSha256": "28761c4463c6e1ae38a895bb0c27ddee33e3b5aa0b1648cec2aec127a577a8c3"
+  },
+  "settingsSyncNotPairedNow": "Koppel een opslag voordat je synchroniseert.",
+  "@settingsSyncNotPairedNow": {
+    "x-sourceSha256": "fcee7c4478b4432bd151cb68def6a130526f17ad8725c53964026a8213b54cc4"
+  },
   "settingsAboutTitle": "Over",
   "@settingsAboutTitle": {
     "x-sourceSha256": "4efca0d10c5feb8e9b35eb1d994f2905bb71714e6a271f511d713b539ea5faa1"

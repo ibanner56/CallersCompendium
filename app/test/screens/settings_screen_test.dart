@@ -20,16 +20,30 @@ import 'package:compendium_app/src/data/track_history_for_all_callers_scope.dart
 import 'package:compendium_app/src/data/walkthrough_snippet_library_controller.dart';
 import 'package:compendium_app/src/data/walkthrough_snippet_library_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
+import 'package:compendium_app/src/sync/sync_controller.dart';
+import 'package:compendium_app/src/sync/sync_coordinator.dart';
+import 'package:compendium_app/src/sync/sync_network.dart';
+import 'package:compendium_app/src/sync/sync_scope.dart';
 import 'package:compendium_app/src/update/update_controller.dart';
 import 'package:compendium_app/src/update/update_scope.dart';
 import 'package:compendium_app/src/widgets/section_header.dart';
 
+import '../support/noop_sync_transport.dart';
 import '../support/test_repositories.dart';
 import '../support/l10n_harness.dart';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+final class _SyncNetwork implements SyncNetworkClassifier {
+  SyncNetworkKind kind = SyncNetworkKind.unmetered;
+  @override
+  Future<SyncNetworkKind> current() async => kind;
+}
+
+final _syncNetwork = _SyncNetwork();
+SyncCoordinator? _syncCoordinator;
 
 Future<
   ({
@@ -92,6 +106,13 @@ _pumpSettings(
   final canonicalDiscouragedTermsNotifier = ValueNotifier<bool>(true);
   final updateController = UpdateController(repos.settings);
   await updateController.load();
+  final syncController = SyncController(
+    settings: repos.settings,
+    coordinator: () => _syncCoordinator,
+    reconfigure: () async {},
+    classifier: _syncNetwork,
+  );
+  await syncController.load();
 
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -109,6 +130,7 @@ _pumpSettings(
   addTearDown(trackHistoryForAllCallersNotifier.dispose);
   addTearDown(canonicalDiscouragedTermsNotifier.dispose);
   addTearDown(updateController.dispose);
+  addTearDown(syncController.dispose);
 
   await tester.pumpWidget(
     MaterialApp(
@@ -134,11 +156,14 @@ _pumpSettings(
                         notifier: sortIgnoreArticlesNotifier,
                         child: UpdateScope(
                           controller: updateController,
-                          child: ShorthandMappingsScope(
-                            controller: shorthandMappings,
-                            child: WalkthroughSnippetLibraryScope(
-                              controller: walkthroughSnippets,
-                              child: child!,
+                          child: SyncScope(
+                            controller: syncController,
+                            child: ShorthandMappingsScope(
+                              controller: shorthandMappings,
+                              child: WalkthroughSnippetLibraryScope(
+                                controller: walkthroughSnippets,
+                                child: child!,
+                              ),
                             ),
                           ),
                         ),
@@ -1240,6 +1265,146 @@ void main() {
       expect(
         find.widgetWithText(SectionHeader, 'Custom themes'),
         findsOneWidget,
+      );
+    });
+    group('SettingsScreen — Device Sync (ADR-004/W13)', () {
+      Future<void> openExperimental(WidgetTester tester) async {
+        await tester.tap(
+          find.byKey(const ValueKey('settings-nav-experimental')),
+        );
+        await tester.pumpAndSettle();
+      }
+
+      setUp(() {
+        _syncNetwork.kind = SyncNetworkKind.unmetered;
+        _syncCoordinator = null;
+      });
+
+      testWidgets('lives under Experimental, not as its own settings section', (
+        tester,
+      ) async {
+        await _pumpSettings(tester);
+        // The section list is the navigation; Device Sync must not be an entry.
+        expect(find.text('Device Sync'), findsNothing);
+
+        await openExperimental(tester);
+        expect(find.text('Device Sync'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('sync-enabled-toggle')),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('is off by default and shows no status until turned on', (
+        tester,
+      ) async {
+        final harness = await _pumpSettings(tester);
+        await openExperimental(tester);
+
+        expect(
+          tester
+              .widget<SwitchListTile>(
+                find.byKey(const ValueKey('sync-enabled-toggle')),
+              )
+              .value,
+          isFalse,
+        );
+        expect(find.byKey(const ValueKey('sync-status')), findsNothing);
+        expect(find.byKey(const ValueKey('sync-now')), findsNothing);
+        expect(await harness.repos.settings.get('sync_enabled'), isNull);
+      });
+
+      testWidgets('turning it on persists consent and shows WiFi-only on', (
+        tester,
+      ) async {
+        final harness = await _pumpSettings(tester);
+        await openExperimental(tester);
+
+        await tester.tap(find.byKey(const ValueKey('sync-enabled-toggle')));
+        await tester.pumpAndSettle();
+
+        expect(await harness.repos.settings.get('sync_enabled'), isTrue);
+        expect(find.text('Sync only on WiFi'), findsOneWidget);
+        final wifi = tester.widget<SwitchListTile>(
+          find.widgetWithText(SwitchListTile, 'Sync only on WiFi'),
+        );
+        expect(wifi.value, isTrue);
+        expect(find.text('Not connected to a store yet.'), findsOneWidget);
+      });
+
+      testWidgets('the not-a-backup disclosure is on the status surface', (
+        tester,
+      ) async {
+        await _pumpSettings(tester);
+        await openExperimental(tester);
+        await tester.tap(find.byKey(const ValueKey('sync-enabled-toggle')));
+        await tester.pumpAndSettle();
+
+        final status = find.byKey(const ValueKey('sync-status'));
+        final disclosure = find.byKey(const ValueKey('sync-not-a-backup'));
+        expect(status, findsOneWidget);
+        expect(disclosure, findsOneWidget);
+        expect(
+          tester.widget<Text>(disclosure).data,
+          contains('Sync is not a backup'),
+        );
+      });
+
+      testWidgets('warns as the disuse expiry approaches', (tester) async {
+        final harness = await _pumpSettings(tester);
+        await harness.repos.settings.set('sync_id', 'correct horse battery');
+        final controller = SyncScope.of(
+          tester.element(find.byType(SettingsScreen)),
+        );
+        await controller.setEnabled(true);
+        await harness.repos.settings.set(
+          'sync_last_success_at',
+          DateTime.now()
+              .toUtc()
+              .subtract(const Duration(days: 22))
+              .toIso8601String(),
+        );
+        await controller.load();
+        await openExperimental(tester);
+
+        expect(
+          find.byKey(const ValueKey('sync-expiry-warning')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const ValueKey('sync-not-a-backup')), findsOneWidget);
+      });
+
+      testWidgets(
+        'a manual sync on a metered connection explains and routes to '
+        'the WiFi setting',
+        (tester) async {
+          final harness = await _pumpSettings(tester);
+          await harness.repos.settings.set('sync_id', 'correct horse battery');
+          final controller = SyncScope.of(
+            tester.element(find.byType(SettingsScreen)),
+          );
+          await controller.setEnabled(true);
+          await controller.load();
+          _syncCoordinator = SyncCoordinator(
+            syncId: 'configured',
+            deviceId: 'device',
+            store: CompendiumSyncCoordinatorStore(harness.repos),
+            transport: NoopSyncCoordinatorTransport(),
+            passOperation: ({initialStore}) async =>
+                throw StateError('a metered manual sync must not run a pass'),
+          );
+          addTearDown(_syncCoordinator!.dispose);
+          _syncNetwork.kind = SyncNetworkKind.metered;
+          await openExperimental(tester);
+
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+
+          expect(
+            find.textContaining('Sync only on WiFi is on'),
+            findsOneWidget,
+          );
+        },
       );
     });
   });

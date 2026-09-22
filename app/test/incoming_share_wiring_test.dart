@@ -13,6 +13,7 @@ import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/screens/contradb_program_import_screen.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';
+import 'package:compendium_app/src/screens/settings/settings_keys.dart';
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_core/compendium_core.dart';
@@ -21,6 +22,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 import 'support/noop_sync_transport.dart';
+import 'support/sync_test_network.dart';
 import 'support/test_repositories.dart';
 
 /// A [WindowService] whose restore does nothing (no real window under test).
@@ -198,6 +200,7 @@ void main() {
       );
     }
 
+    await appData.repositories.settings.set(kSyncEnabledKey, true);
     await tester.pumpWidget(
       CompendiumApp(
         appData: appData,
@@ -207,6 +210,7 @@ void main() {
         ),
         incomingFileReader: _readerFor(_validBundleJson()),
         syncCoordinatorFactory: factory,
+        syncNetworkClassifier: const UnmeteredSyncNetwork(),
       ),
     );
     await tester.pumpAndSettle();

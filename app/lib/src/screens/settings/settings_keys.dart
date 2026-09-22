@@ -135,3 +135,21 @@ const String kSyncDeviceIdKey = 'sync_device_id';
 /// identity that completed a publication. It is never included in backups or
 /// sync record content.
 const String kSyncLastUsedFingerprintKey = 'sync_last_used_fingerprint';
+
+/// Whether the user has turned Device Sync on. Absent means off. This is
+/// per-installation consent: it never syncs and never travels in a backup, so
+/// a restore on any device leaves sync off (spec §6.1).
+const String kSyncEnabledKey = 'sync_enabled';
+
+/// *Sync only on WiFi*. Absent means on (spec §6.12). Device-local, never
+/// synced and never backed up.
+const String kSyncWifiOnlyKey = 'sync_wifi_only';
+
+/// Per-device upload-budget toggle for imported dances (spec §6.1). Absent
+/// means off. Device-local, never synced and never backed up.
+const String kSyncExcludeImportsKey = 'sync_exclude_imports';
+
+/// UTC ISO-8601 time of this installation's last completed sync pass, shown on
+/// the status surface and used for the approaching-expiry warning. Device-local,
+/// never synced and never backed up.
+const String kSyncLastSuccessAtKey = 'sync_last_success_at';

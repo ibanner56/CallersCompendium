@@ -1,0 +1,14 @@
+{
+  "id": "adr-004-w13-sync-enablement",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Experimental settings now include Device Sync, which is off until you turn it on. It shows sync status, waits for WiFi by default, and reminds you that sync is not a backup."
+    ]
+  },
+  "core": {
+    "added": [
+      "Classify the Device Sync consent, WiFi-only, import-exclusion and last-success settings as device-scoped so they never sync."
+    ]
+  }
+}

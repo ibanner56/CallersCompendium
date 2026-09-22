@@ -197,6 +197,68 @@ class AppLocalizationsDa extends AppLocalizations {
       'Nye funktioner vises muligvis her, mens de stadig er under udvikling.';
 
   @override
+  String get settingsSyncHeader => 'Enhedssynkronisering';
+
+  @override
+  String get settingsSyncIntro =>
+      'Hold dit bibliotek ajour på tværs af dine egne enheder. Enhedssynkronisering er slået fra, indtil du slår det til, og der sendes intet nogen steder hen, mens det er slået fra.';
+
+  @override
+  String get settingsSyncEnableTitle => 'Slå enhedssynkronisering til';
+
+  @override
+  String get settingsSyncEnableSubtitle =>
+      'Slået fra som standard. Når du slår det til, sendes intet, før du har tilsluttet et lager.';
+
+  @override
+  String get settingsSyncWifiOnlyTitle => 'Synkronisér kun på WiFi';
+
+  @override
+  String get settingsSyncWifiOnlySubtitle =>
+      'Slået til som standard. På en mobildataforbindelse venter synkroniseringen, til du er på WiFi.';
+
+  @override
+  String get settingsSyncStatusHeader => 'Status';
+
+  @override
+  String get settingsSyncStatusNotPaired => 'Ikke tilsluttet et lager endnu.';
+
+  @override
+  String get settingsSyncStatusNeverSynced =>
+      'Tilsluttet. Endnu ikke synkroniseret.';
+
+  @override
+  String settingsSyncStatusLastSynced(String when) {
+    return 'Sidst synkroniseret $when';
+  }
+
+  @override
+  String get settingsSyncStatusSyncing => 'Synkroniserer …';
+
+  @override
+  String get settingsSyncNotBackup =>
+      'Synkronisering er ikke en sikkerhedskopi. Et lager, der ikke bruges i 30 dage, bliver fjernet, så bliv ved med at lave filsikkerhedskopier.';
+
+  @override
+  String get settingsSyncExpiryWarning =>
+      'Dette lager har ikke været synkroniseret i et stykke tid og fjernes efter 30 dage uden brug. Åbn appen på en tilsluttet enhed, og synkronisér for at beholde det.';
+
+  @override
+  String get settingsSyncNowTitle => 'Synkronisér nu';
+
+  @override
+  String get settingsSyncMeteredRouted =>
+      'Du bruger mobildata, og Synkronisér kun på WiFi er slået til. Slå den indstilling fra nedenfor for at synkronisere nu.';
+
+  @override
+  String get settingsSyncOffline =>
+      'Ingen forbindelse lige nu. Synkroniseringen kører ved næste mulighed.';
+
+  @override
+  String get settingsSyncNotPairedNow =>
+      'Tilslut et lager, før du synkroniserer.';
+
+  @override
   String get settingsAboutTitle => 'Om';
 
   @override

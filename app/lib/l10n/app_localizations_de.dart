@@ -196,6 +196,69 @@ class AppLocalizationsDe extends AppLocalizations {
       'Neue Funktionen können hier erscheinen, während sie sich noch in Entwicklung befinden.';
 
   @override
+  String get settingsSyncHeader => 'Gerätesynchronisierung';
+
+  @override
+  String get settingsSyncIntro =>
+      'Halte deine Bibliothek auf deinen eigenen Geräten auf dem gleichen Stand. Die Gerätesynchronisierung ist ausgeschaltet, bis du sie einschaltest, und solange sie aus ist, wird nichts gesendet.';
+
+  @override
+  String get settingsSyncEnableTitle => 'Gerätesynchronisierung einschalten';
+
+  @override
+  String get settingsSyncEnableSubtitle =>
+      'Standardmäßig aus. Wenn du sie einschaltest, wird nichts gesendet, bis du einen Speicher verbunden hast.';
+
+  @override
+  String get settingsSyncWifiOnlyTitle => 'Nur über WLAN synchronisieren';
+
+  @override
+  String get settingsSyncWifiOnlySubtitle =>
+      'Standardmäßig an. Bei mobilen Daten wartet die Synchronisierung, bis du im WLAN bist.';
+
+  @override
+  String get settingsSyncStatusHeader => 'Status';
+
+  @override
+  String get settingsSyncStatusNotPaired =>
+      'Noch nicht mit einem Speicher verbunden.';
+
+  @override
+  String get settingsSyncStatusNeverSynced =>
+      'Verbunden. Noch nicht synchronisiert.';
+
+  @override
+  String settingsSyncStatusLastSynced(String when) {
+    return 'Zuletzt synchronisiert: $when';
+  }
+
+  @override
+  String get settingsSyncStatusSyncing => 'Synchronisiert …';
+
+  @override
+  String get settingsSyncNotBackup =>
+      'Synchronisierung ist kein Backup. Ein Speicher, der 30 Tage lang nicht genutzt wird, wird entfernt. Erstelle also weiterhin Dateisicherungen.';
+
+  @override
+  String get settingsSyncExpiryWarning =>
+      'Dieser Speicher wurde länger nicht synchronisiert und wird nach 30 Tagen ohne Nutzung entfernt. Öffne die App auf einem verbundenen Gerät und synchronisiere, um ihn zu behalten.';
+
+  @override
+  String get settingsSyncNowTitle => 'Jetzt synchronisieren';
+
+  @override
+  String get settingsSyncMeteredRouted =>
+      'Du nutzt mobile Daten und „Nur über WLAN synchronisieren“ ist an. Schalte diese Einstellung unten aus, um jetzt zu synchronisieren.';
+
+  @override
+  String get settingsSyncOffline =>
+      'Gerade keine Verbindung. Die Synchronisierung läuft bei der nächsten Gelegenheit.';
+
+  @override
+  String get settingsSyncNotPairedNow =>
+      'Verbinde einen Speicher, bevor du synchronisierst.';
+
+  @override
   String get settingsAboutTitle => 'Über';
 
   @override

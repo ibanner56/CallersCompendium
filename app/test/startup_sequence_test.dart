@@ -15,17 +15,40 @@ import 'package:compendium_app/src/data/editor_draft_shutdown_scope.dart';
 import 'package:compendium_app/src/data/sync_writer_lifecycle_scope.dart';
 import 'package:compendium_app/src/data/migration_guard.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
+import 'package:compendium_app/src/screens/settings/settings_keys.dart';
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
+import 'package:compendium_app/src/sync/sync_scope.dart';
 import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_app/src/data/window_service.dart';
 import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
 import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
-import 'package:compendium_app/src/screens/settings_screen.dart'
-    show kAppThemeKey, kRequirePerformedForHistoryKey;
 
 import 'support/test_repositories.dart';
 import 'support/noop_sync_transport.dart';
+import 'support/sync_test_network.dart';
+
+class _TrackingSyncCoordinator extends SyncCoordinator {
+  _TrackingSyncCoordinator(
+    CompendiumRepositories repositories, {
+    required this.onDispose,
+  }) : super(
+         syncId: 'configured',
+         deviceId: 'device',
+         store: CompendiumSyncCoordinatorStore(repositories),
+         transport: NoopSyncCoordinatorTransport(),
+         passOperation: ({initialStore}) async =>
+             const SyncPassResult(SyncPassStatus.completed),
+       );
+
+  final void Function(SyncCoordinator) onDispose;
+
+  @override
+  Future<void> dispose() {
+    onDispose(this);
+    return super.dispose();
+  }
+}
 
 /// A [WindowService] whose restore does nothing — the plugin glue is untestable
 /// under `flutter test` (no real window), and these tests only care about the
@@ -353,6 +376,149 @@ void main() {
   });
 
   testWidgets(
+    'a shareable-settings write schedules a pass; the controller\'s own '
+    'bookkeeping write does not (routed through the real change stream)',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+      var passes = 0;
+      final passStarted = <Completer<void>>[];
+
+      Future<SyncCoordinator?> factory(
+        CompendiumRepositories repositories,
+      ) async => SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device',
+        store: CompendiumSyncCoordinatorStore(repositories),
+        transport: NoopSyncCoordinatorTransport(),
+        passOperation: ({initialStore}) async {
+          passes++;
+          passStarted.removeAt(0).complete();
+          return const SyncPassResult(SyncPassStatus.completed);
+        },
+      );
+
+      await appData.repositories.settings.set(kSyncEnabledKey, true);
+      passStarted.add(Completer<void>());
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          integrityCheck: () async => true,
+          syncCoordinatorFactory: factory,
+          syncNetworkClassifier: const UnmeteredSyncNetwork(),
+          syncDebounce: const Duration(milliseconds: 20),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(passes, 1, reason: 'the app-start pass');
+
+      // A shareable preference write is a real sync record (its own emitted
+      // `settings` write) and must schedule the debounced pass.
+      passStarted.add(Completer<void>());
+      await appData.repositories.settings.set(kAppThemeKey, 'dark');
+      await tester.pump(const Duration(milliseconds: 30));
+      await tester.pumpAndSettle();
+      expect(passes, 2);
+
+      // A sync-internal bookkeeping write to a sync-local table (no other
+      // table touched) must not schedule another pass.
+      await appData.repositories.syncLocal.markPublished(
+        kind: SyncRecordKind.dance,
+        recordId: 'irrelevant',
+      );
+      await tester.pump(const Duration(milliseconds: 30));
+      await tester.pumpAndSettle();
+      expect(passes, 2, reason: 'bookkeeping alone must not trigger a pass');
+    },
+  );
+
+  testWidgets(
+    'overlapping sync reconfigurations run one at a time and the last wins',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+      final gates = <Completer<void>>[];
+      var factoryCalls = 0;
+      var running = 0;
+      var maxRunning = 0;
+      final created = <SyncCoordinator>[];
+      final disposed = <SyncCoordinator>[];
+
+      Future<SyncCoordinator?> factory(
+        CompendiumRepositories repositories,
+      ) async {
+        factoryCalls++;
+        final isStartup = factoryCalls == 1;
+        running++;
+        if (running > maxRunning) maxRunning = running;
+        if (!isStartup) {
+          final gate = Completer<void>();
+          gates.add(gate);
+          await gate.future;
+        }
+        running--;
+        final coordinator = _TrackingSyncCoordinator(
+          repositories,
+          onDispose: disposed.add,
+        );
+        created.add(coordinator);
+        return coordinator;
+      }
+
+      await appData.repositories.settings.set(kSyncEnabledKey, true);
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          integrityCheck: () async => true,
+          syncCoordinatorFactory: factory,
+          syncNetworkClassifier: const UnmeteredSyncNetwork(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(AppShell), findsOneWidget);
+      expect(created, hasLength(1), reason: 'startup created one coordinator');
+
+      // Disable then re-enable before either reconfiguration's factory call
+      // has resolved.
+      final controller = SyncScope.of(tester.element(find.byType(AppShell)));
+      final off = controller.setEnabled(false);
+      await tester.pump();
+      final on = controller.setEnabled(true);
+      await tester.pump(const Duration(milliseconds: 10));
+      expect(
+        gates,
+        hasLength(1),
+        reason: 'the second reconfiguration waits for the first to finish',
+      );
+
+      // Release the disable's factory call; only then may the enable's begin.
+      gates[0].complete();
+      await off;
+      while (gates.length < 2) {
+        await tester.pump(const Duration(milliseconds: 10));
+      }
+      gates[1].complete();
+      await on;
+      await tester.pumpAndSettle();
+
+      expect(maxRunning, 1, reason: 'reconfigurations never overlap');
+      expect(created, hasLength(3));
+      expect(
+        disposed.toSet(),
+        created.take(2).toSet(),
+        reason: 'every superseded coordinator is disposed, the last is kept',
+      );
+      addTearDown(() => created.last.dispose());
+    },
+  );
+
+  testWidgets(
     'a failing sync configuration does not block startup and is logged',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
@@ -432,12 +598,17 @@ void main() {
         await replacement?.dispose();
       });
 
+      // A production coordinator exists only once the user has turned sync on
+      // (spec §6.1); the app-start trigger honors that consent.
+      await appData.repositories.settings.set(kSyncEnabledKey, true);
+
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
           windowService: _NoopWindowService(appData.repositories.settings),
           integrityCheck: () async => true,
           syncCoordinatorFactory: factory,
+          syncNetworkClassifier: const UnmeteredSyncNetwork(),
         ),
       );
       await tester.pumpAndSettle();
@@ -512,6 +683,8 @@ void main() {
         return coordinator;
       }
 
+      await appData.repositories.settings.set(kSyncEnabledKey, true);
+
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
@@ -519,6 +692,7 @@ void main() {
           applicationShutdownController: shutdownController,
           integrityCheck: () async => true,
           syncCoordinatorFactory: factory,
+          syncNetworkClassifier: const UnmeteredSyncNetwork(),
         ),
       );
       await tester.pumpAndSettle();

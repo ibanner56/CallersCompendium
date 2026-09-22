@@ -200,6 +200,70 @@ class AppLocalizationsFr extends AppLocalizations {
       'De nouvelles fonctionnalités peuvent apparaître ici pendant qu’elles sont encore en développement.';
 
   @override
+  String get settingsSyncHeader => 'Synchronisation des appareils';
+
+  @override
+  String get settingsSyncIntro =>
+      'Gardez votre bibliothèque à jour sur vos propres appareils. La synchronisation est désactivée tant que vous ne l’activez pas, et rien n’est envoyé pendant qu’elle est désactivée.';
+
+  @override
+  String get settingsSyncEnableTitle =>
+      'Activer la synchronisation des appareils';
+
+  @override
+  String get settingsSyncEnableSubtitle =>
+      'Désactivée par défaut. L’activer n’envoie rien tant que vous n’avez pas connecté un espace de stockage.';
+
+  @override
+  String get settingsSyncWifiOnlyTitle => 'Synchroniser uniquement en WiFi';
+
+  @override
+  String get settingsSyncWifiOnlySubtitle =>
+      'Activé par défaut. Avec les données mobiles, la synchronisation attend que vous soyez en WiFi.';
+
+  @override
+  String get settingsSyncStatusHeader => 'État';
+
+  @override
+  String get settingsSyncStatusNotPaired =>
+      'Pas encore connecté à un espace de stockage.';
+
+  @override
+  String get settingsSyncStatusNeverSynced =>
+      'Connecté. Pas encore synchronisé.';
+
+  @override
+  String settingsSyncStatusLastSynced(String when) {
+    return 'Dernière synchronisation : $when';
+  }
+
+  @override
+  String get settingsSyncStatusSyncing => 'Synchronisation…';
+
+  @override
+  String get settingsSyncNotBackup =>
+      'La synchronisation n’est pas une sauvegarde. Un espace inutilisé pendant 30 jours est supprimé : continuez à faire des sauvegardes de fichiers.';
+
+  @override
+  String get settingsSyncExpiryWarning =>
+      'Cet espace n’a pas été synchronisé depuis un moment et sera supprimé après 30 jours sans utilisation. Ouvrez l’application sur un appareil connecté et synchronisez pour le conserver.';
+
+  @override
+  String get settingsSyncNowTitle => 'Synchroniser maintenant';
+
+  @override
+  String get settingsSyncMeteredRouted =>
+      'Vous utilisez les données mobiles et « Synchroniser uniquement en WiFi » est activé. Désactivez ce réglage ci-dessous pour synchroniser maintenant.';
+
+  @override
+  String get settingsSyncOffline =>
+      'Pas de connexion pour le moment. La synchronisation aura lieu à la prochaine occasion.';
+
+  @override
+  String get settingsSyncNotPairedNow =>
+      'Connectez un espace de stockage avant de synchroniser.';
+
+  @override
   String get settingsAboutTitle => 'À propos';
 
   @override

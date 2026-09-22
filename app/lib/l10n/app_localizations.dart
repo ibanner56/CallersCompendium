@@ -418,6 +418,108 @@ abstract class AppLocalizations {
   /// **'New features may appear here while they are still in development.'**
   String get settingsExperimentalPlaceholder;
 
+  /// Header of the Device Sync group in the Experimental settings section.
+  ///
+  /// In en, this message translates to:
+  /// **'Device Sync'**
+  String get settingsSyncHeader;
+
+  /// Explains that Device Sync is opt-in and makes no network calls while off.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep your library in step across your own devices. Device Sync is off until you turn it on, and nothing is sent anywhere while it is off.'**
+  String get settingsSyncIntro;
+
+  /// Title of the switch that enables Device Sync.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on Device Sync'**
+  String get settingsSyncEnableTitle;
+
+  /// Subtitle of the Device Sync enable switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Off by default. Turning this on does not send anything until you connect a store.'**
+  String get settingsSyncEnableSubtitle;
+
+  /// Title of the switch limiting automatic sync to unmetered connections.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync only on WiFi'**
+  String get settingsSyncWifiOnlyTitle;
+
+  /// Subtitle of the sync-only-on-WiFi switch.
+  ///
+  /// In en, this message translates to:
+  /// **'On by default. On a mobile-data connection sync waits until you are on WiFi.'**
+  String get settingsSyncWifiOnlySubtitle;
+
+  /// Header of the Device Sync status group.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get settingsSyncStatusHeader;
+
+  /// Status shown when Device Sync is on but no sync store is connected.
+  ///
+  /// In en, this message translates to:
+  /// **'Not connected to a store yet.'**
+  String get settingsSyncStatusNotPaired;
+
+  /// Status shown when a store is connected but no sync has completed on this device.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected. Not synced yet.'**
+  String get settingsSyncStatusNeverSynced;
+
+  /// Status line naming the time of the last completed sync; {when} is a localized date and time.
+  ///
+  /// In en, this message translates to:
+  /// **'Last synced {when}'**
+  String settingsSyncStatusLastSynced(String when);
+
+  /// Status shown while a sync is running.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing…'**
+  String get settingsSyncStatusSyncing;
+
+  /// Disclosure shown wherever Device Sync reports its status, stating that sync does not replace a file backup.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync is not a backup. A store that goes unused for 30 days is removed, so keep making file backups.'**
+  String get settingsSyncNotBackup;
+
+  /// Warning that the sync store is approaching its 30-day disuse expiry.
+  ///
+  /// In en, this message translates to:
+  /// **'This store has not synced for a while and will be removed after 30 days without use. Open the app on a connected device and sync to keep it.'**
+  String get settingsSyncExpiryWarning;
+
+  /// Title of the button that starts a manual sync.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync now'**
+  String get settingsSyncNowTitle;
+
+  /// Message shown when a manual sync is attempted on a metered connection, pointing at the WiFi-only setting.
+  ///
+  /// In en, this message translates to:
+  /// **'You are on a mobile-data connection and Sync only on WiFi is on. Turn that setting off below to sync now.'**
+  String get settingsSyncMeteredRouted;
+
+  /// Message shown when a manual sync is attempted with no network connection.
+  ///
+  /// In en, this message translates to:
+  /// **'No connection right now. Sync will run at the next opportunity.'**
+  String get settingsSyncOffline;
+
+  /// Message shown when a manual sync is attempted with no store connected.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect a store before syncing.'**
+  String get settingsSyncNotPairedNow;
+
   /// Settings section navigation title (sidebar/app bar) for app version, license, and help links.
   ///
   /// In en, this message translates to:
