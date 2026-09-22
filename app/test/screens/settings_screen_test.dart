@@ -1685,6 +1685,40 @@ void main() {
           expect(exportCalls, 1);
         },
       );
+
+      testWidgets(
+        'skipping the backup offer exports nothing (spec §6.14 item 3)',
+        (tester) async {
+          var exportCalls = 0;
+          Future<bool> saver(String json, String name) async {
+            exportCalls++;
+            return true;
+          }
+
+          _pairingProbeFactory = (syncId) => SyncPairingProbe(
+            getStore: ({required previouslyUsed}) async =>
+                throw UnimplementedError(),
+            createStore: () async => const SyncHttpResponse(
+              statusCode: 201,
+              kind: SyncResponseKind.created,
+              headers: {},
+              body: [],
+            ),
+          );
+          await enableAndOpenPairing(tester, backupSaver: saver);
+          await tester.tap(find.byKey(const ValueKey('sync-pairing-create')));
+          await tester.pumpAndSettle();
+
+          await tester.tap(
+            find.byKey(const ValueKey('sync-pairing-backup-skip')),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('sync-pairing-continue')));
+          await tester.pumpAndSettle();
+
+          expect(exportCalls, 0);
+        },
+      );
     });
 
     group('Replacement dialog (ADR-004/W13 PR2, spec §6.14 item 6)', () {
