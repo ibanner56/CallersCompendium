@@ -1756,6 +1756,31 @@ void main() {
       expect((await repo.getById('p1'))!.venueId, 'ghost-venue');
     });
 
+    // The combined writeFromSyncParent + writeFromSyncRelations test above
+    // cannot, by itself, prove writeFromSyncRelations's own guard is
+    // disabled: the parent call already stores the dangling `ghost-venue`
+    // id, so the interactive-update tolerance (a stored venueId unchanged by
+    // this write) would let the relations call pass even if its
+    // `enforceVenueExists` were re-enabled. Here the parent row is written
+    // separately with venueId left null (via [ProgramRepository.create]), so
+    // a guard re-enabled on this path would see `storedVenueId` (null) !=
+    // `venueId` ('ghost-venue') and throw.
+    test(
+      'writeFromSyncRelations skips the live-venue guard even against a '
+      'parent whose stored venueId is null',
+      () async {
+        await repo.create(sampleProgram());
+        final program = sampleProgram().copyWith(venueId: 'ghost-venue');
+
+        await repo.writeFromSyncRelations(program);
+
+        // writeFromSyncRelations writes only dependent rows, so the parent's
+        // stored venueId is untouched by this call — it stays null. The
+        // assertion that matters is that the call above did not throw.
+        expect((await repo.getById('p1'))!.venueId, isNull);
+      },
+    );
+
     // An inbound sync apply can leave a program pointing at a venue this
     // device does not have. The user must still be able to interactively
     // save that program — an unrelated edit, or simply re-saving it — without
