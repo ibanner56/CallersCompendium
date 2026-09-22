@@ -473,7 +473,7 @@ heading to open or close it.
 until you turn it on**, and while it is off the app sends nothing anywhere.
 Turning it on does not send anything by itself; nothing is exchanged until you
 connect a store. The section starts closed while Device Sync is off and open
-while it is on, so its status is always in view once you use it.
+while it is on. You can tap its heading to open or close it.
 
 - **Sync only on WiFi** is on by default. On a mobile-data connection automatic
   sync waits, and pressing **Sync now** tells you why and points at this setting.
