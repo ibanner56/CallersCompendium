@@ -67,6 +67,7 @@ void main() {
       kModifierContainerCanonicalRebuildDoneKey,
       taxonomyV35FigureNormalizationDoneKey,
       callersBoxRollAwayRoleRepairDoneKey,
+      normalisationDerivedIndexRepairDoneKey,
       'sync_last_used_fingerprint',
       'sync_enabled',
       'sync_endpoint',
