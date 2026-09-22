@@ -96,6 +96,9 @@
 - name: "area: docs"
   color: "4AC26B"
   description: "Documentation and help content"
+- name: "area: sync"
+  color: "1A7F37"
+  description: "Device Sync and the Athenaeum sync server"
 
 # --- status: where the issue is in its lifecycle (purple) --------------------
 - name: "status: triage"
