@@ -292,6 +292,34 @@
   "@settingsSyncStatusHeader": {
     "description": "Header of the Device Sync status group."
   },
+  "settingsSyncIdTitle": "Your sync phrase",
+  "@settingsSyncIdTitle": {
+    "description": "Label of the status-surface row that shows the sync phrase this device is connected with, so it can be entered on another device."
+  },
+  "settingsSyncIdMasked": "Hidden",
+  "@settingsSyncIdMasked": {
+    "description": "Accessibility label for the sync-phrase row while the phrase is hidden; the row itself shows bullets."
+  },
+  "settingsSyncIdShow": "Show sync phrase",
+  "@settingsSyncIdShow": {
+    "description": "Tooltip of the button that reveals the hidden sync phrase on the status surface."
+  },
+  "settingsSyncIdHide": "Hide sync phrase",
+  "@settingsSyncIdHide": {
+    "description": "Tooltip of the button that hides the revealed sync phrase on the status surface."
+  },
+  "settingsSyncIdCopy": "Copy sync phrase",
+  "@settingsSyncIdCopy": {
+    "description": "Tooltip of the button that copies the sync phrase to the clipboard."
+  },
+  "settingsSyncIdCopied": "Sync phrase copied. It unlocks your store, so paste it only on a device you own.",
+  "@settingsSyncIdCopied": {
+    "description": "Snackbar confirming the sync phrase was copied, restating that it is a bearer credential (spec §6.14 item 2)."
+  },
+  "settingsSyncIdCaution": "Enter this on your other device to connect it. Anyone who has it can read and change everything you sync, and it can't be changed without moving every device to a new phrase.",
+  "@settingsSyncIdCaution": {
+    "description": "Caution under the sync-phrase row: what it is for, and that it is an unrevocable bearer credential (spec §6.14 item 2)."
+  },
   "settingsSyncStatusNotPaired": "Not connected to a store yet.",
   "@settingsSyncStatusNotPaired": {
     "description": "Status shown when Device Sync is on but no sync store is connected."

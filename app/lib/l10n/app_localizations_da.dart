@@ -229,6 +229,29 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsSyncStatusHeader => 'Status';
 
   @override
+  String get settingsSyncIdTitle => 'Din synkroniseringssætning';
+
+  @override
+  String get settingsSyncIdMasked => 'Skjult';
+
+  @override
+  String get settingsSyncIdShow => 'Vis synkroniseringssætning';
+
+  @override
+  String get settingsSyncIdHide => 'Skjul synkroniseringssætning';
+
+  @override
+  String get settingsSyncIdCopy => 'Kopiér synkroniseringssætning';
+
+  @override
+  String get settingsSyncIdCopied =>
+      'Synkroniseringssætning kopieret. Den giver adgang til dit lager, så indsæt den kun på en enhed, du selv ejer.';
+
+  @override
+  String get settingsSyncIdCaution =>
+      'Indtast den på din anden enhed for at forbinde den. Alle, der har den, kan læse og ændre alt, hvad du synkroniserer, og den kan kun ændres ved at flytte alle enheder til en ny sætning.';
+
+  @override
   String get settingsSyncStatusNotPaired => 'Ikke tilsluttet et lager endnu.';
 
   @override

@@ -23,7 +23,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from _bash import find_bash
+from _bash import bash_environ, find_bash
 
 SCRIPT = Path(__file__).resolve().parent / "publish_pages_manifest.sh"
 REMOTE_BRANCH = "gh-pages"
@@ -58,7 +58,7 @@ def _publish(checkout: Path, worktree: Path, manifest_path: Path,
              signature_path: Path | None = None,
              *, signed: bool = True) -> subprocess.CompletedProcess:
     """Run the publisher from within ``checkout`` (a working clone of origin)."""
-    env = dict(os.environ)
+    env = bash_environ()
     env.update(
         REMOTE="origin",
         BRANCH=REMOTE_BRANCH,

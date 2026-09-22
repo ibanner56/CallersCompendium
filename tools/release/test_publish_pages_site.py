@@ -32,7 +32,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from _bash import find_bash
+from _bash import bash_environ, find_bash
 
 HERE = Path(__file__).resolve().parent
 SITE_SCRIPT = HERE / "publish_pages_site.sh"
@@ -99,7 +99,7 @@ def _make_site(root: Path, marker: str) -> Path:
 
 def _publish_site(checkout: Path, worktree: Path, site: Path,
                   source_ref: str = "testsha") -> subprocess.CompletedProcess:
-    env = dict(os.environ)
+    env = bash_environ()
     env.update(
         REMOTE="origin",
         BRANCH=REMOTE_BRANCH,
@@ -118,7 +118,7 @@ def _publish_site(checkout: Path, worktree: Path, site: Path,
 def _publish_manifest(checkout: Path, worktree: Path, manifest: Path,
                       channel: str, tag: str,
                       signature: Path | None = None) -> subprocess.CompletedProcess:
-    env = dict(os.environ)
+    env = bash_environ()
     env.update(
         REMOTE="origin", BRANCH=REMOTE_BRANCH, WORKTREE=str(worktree),
         PAGES_USER_NAME="Test Bot", PAGES_USER_EMAIL="test@example.com",
