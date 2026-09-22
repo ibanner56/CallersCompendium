@@ -43,17 +43,16 @@ final class ConnectivityPlusNetworkClassifier implements SyncNetworkClassifier {
 
 /// Maps the platform's connectivity results onto [SyncNetworkKind]. Any
 /// unmetered transport wins over a metered one, because the OS routes over the
-/// unmetered link when both are up.
+/// unmetered link when both are up. A VPN is an overlay and says nothing about
+/// the link beneath it, so it is not evidence of an unmetered connection: with a
+/// reported mobile transport the connection is metered, and a VPN alone is
+/// unknown.
 SyncNetworkKind classifyConnectivity(List<ConnectivityResult> results) {
   if (results.isEmpty) return SyncNetworkKind.unknown;
   if (results.every((r) => r == ConnectivityResult.none)) {
     return SyncNetworkKind.offline;
   }
-  const unmetered = {
-    ConnectivityResult.wifi,
-    ConnectivityResult.ethernet,
-    ConnectivityResult.vpn,
-  };
+  const unmetered = {ConnectivityResult.wifi, ConnectivityResult.ethernet};
   if (results.any(unmetered.contains)) return SyncNetworkKind.unmetered;
   if (results.contains(ConnectivityResult.mobile)) {
     return SyncNetworkKind.metered;

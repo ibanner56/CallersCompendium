@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_app/src/screens/settings/settings_keys.dart';
 import 'package:compendium_app/src/sync/sync_controller.dart';
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
@@ -230,6 +232,96 @@ void main() {
     });
   });
 
+  group('in-flight bookkeeping and change notifications', () {
+    test(
+      'status stays running until every overlapping trigger has finished',
+      () async {
+        final gate = Completer<void>();
+        coordinator = SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device',
+          store: CompendiumSyncCoordinatorStore(repos),
+          transport: NoopSyncCoordinatorTransport(),
+          passOperation: ({initialStore}) async {
+            passes.add(1);
+            await gate.future;
+            return const SyncPassResult(SyncPassStatus.completed);
+          },
+        );
+        addTearDown(coordinator!.dispose);
+        final controller = build();
+        await controller.load();
+        await controller.setEnabled(true);
+
+        final first = controller.syncNow();
+        await Future<void>.delayed(Duration.zero);
+        final second = controller.trigger(SyncTrigger.debouncedChange);
+        await Future<void>.delayed(Duration.zero);
+        expect(controller.running, isTrue);
+
+        // Release the first pass; the coalesced follow-up is still outstanding
+        // for the second trigger, so the surface must not report idle yet.
+        gate.complete();
+        await first;
+        if (passes.length < 2) {
+          expect(controller.running, isTrue);
+        }
+        await second;
+        expect(controller.running, isFalse);
+      },
+    );
+
+    test('an edit during a pass is queued as one follow-up pass', () async {
+      final controller = build(debounce: const Duration(milliseconds: 10));
+      final gate = Completer<void>();
+      coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device',
+        store: CompendiumSyncCoordinatorStore(repos),
+        transport: NoopSyncCoordinatorTransport(),
+        passOperation: ({initialStore}) async {
+          passes.add(1);
+          if (passes.length == 1) await gate.future;
+          return const SyncPassResult(SyncPassStatus.completed);
+        },
+      );
+      addTearDown(coordinator!.dispose);
+      await controller.load();
+      await controller.setEnabled(true);
+
+      final pass = controller.syncNow();
+      await Future<void>.delayed(Duration.zero);
+      controller
+        ..notifyLocalChange()
+        ..notifyLocalChange();
+      gate.complete();
+      await pass;
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+      expect(passes, hasLength(2));
+    });
+
+    test('a shareable-settings change schedules a pass, but the controller\'s '
+        'own bookkeeping write does not', () async {
+      final controller = build(debounce: const Duration(milliseconds: 10));
+      await controller.load();
+      await controller.setEnabled(true);
+      clock = clock.add(const Duration(minutes: 5));
+
+      controller.notifyLocalChange(settingsOnly: true);
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      expect(passes, hasLength(1), reason: 'a user preference is a record');
+
+      // The pass just recorded its own success; that settings write is not a
+      // user edit and must not start another pass.
+      passes.clear();
+      await controller.syncNow();
+      passes.clear();
+      controller.notifyLocalChange(settingsOnly: true);
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      expect(passes, isEmpty);
+    });
+  });
+
   group('§6.14 item 4 expiry warning', () {
     test('warns once the last success is 21 days old, not before', () async {
       final controller = build();
@@ -271,6 +363,18 @@ void main() {
           ConnectivityResult.wifi,
         ]),
         SyncNetworkKind.unmetered,
+      );
+      expect(
+        classifyConnectivity([
+          ConnectivityResult.mobile,
+          ConnectivityResult.vpn,
+        ]),
+        SyncNetworkKind.metered,
+        reason: 'a VPN overlay must not hide a cellular link',
+      );
+      expect(
+        classifyConnectivity([ConnectivityResult.vpn]),
+        SyncNetworkKind.unknown,
       );
       expect(
         classifyConnectivity([ConnectivityResult.none]),

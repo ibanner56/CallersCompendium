@@ -220,6 +220,9 @@ Future<void> main() async {
 /// bootstrap future completes so no screen reads stale data, and an error
 /// screen with retry is shown if any step fails — including a database that
 /// won't open during the window restore.
+/// Sync-local tables whose writes are not user edits.
+const _syncBookkeepingTables = {'published_records', 'id_aliases'};
+
 class CompendiumApp extends StatefulWidget {
   const CompendiumApp({
     super.key,
@@ -559,15 +562,19 @@ class _CompendiumAppState extends State<CompendiumApp> {
       reconfigure: _configureSyncCoordinator,
       classifier: widget.syncNetworkClassifier,
     );
-    // Local writes schedule one debounced automatic pass (spec §6.12). The
-    // controller drops them while sync is off; settings-only writes are the
-    // sync feature's own bookkeeping and are not user edits.
+    // Local writes schedule one debounced automatic pass (spec §6.12). Settings
+    // rows are reported separately because shareable preferences are sync
+    // records too, while the controller's own bookkeeping writes to that table
+    // must not re-trigger a pass.
     _syncChangeSubscription = _appData.repositories.db.tableUpdates().listen((
       updates,
     ) {
-      if (updates.any((u) => u.table != 'settings')) {
-        _syncController.notifyLocalChange();
-      }
+      final tables = {for (final u in updates) u.table}
+        ..removeAll(_syncBookkeepingTables);
+      if (tables.isEmpty) return;
+      _syncController.notifyLocalChange(
+        settingsOnly: tables.length == 1 && tables.contains('settings'),
+      );
     });
   }
 
@@ -1211,7 +1218,20 @@ class _CompendiumAppState extends State<CompendiumApp> {
     unawaited(_updateController.maybeAutoCheck());
   }
 
-  Future<void> _configureSyncCoordinator() async {
+  /// Reconfigurations run one at a time, in request order. An enable that is
+  /// still resolving its factory cannot then install a coordinator after a
+  /// later disable has already returned, and the last request always wins.
+  Future<void> _syncConfigureTail = Future<void>.value();
+
+  Future<void> _configureSyncCoordinator() {
+    final run = _syncConfigureTail.then((_) => _configureSyncCoordinatorNow());
+    _syncConfigureTail = run.catchError((Object error, StackTrace stackTrace) {
+      logCaughtError(error, stackTrace, source: 'main.sync-configure-queue');
+    });
+    return run;
+  }
+
+  Future<void> _configureSyncCoordinatorNow() async {
     await _disposeSyncCoordinator();
 
     final factory = widget.syncCoordinatorFactory;

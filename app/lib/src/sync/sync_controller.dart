@@ -62,8 +62,9 @@ class SyncController extends ChangeNotifier {
   bool _excludeImports = false;
   DateTime? _lastSuccessAt;
   SyncPassResult? _lastResult;
-  bool _running = false;
-  DateTime? _quietUntil;
+  int _inFlight = 0;
+  bool _dirty = false;
+  DateTime? _selfWriteUntil;
   Timer? _debounceTimer;
   bool _disposed = false;
 
@@ -77,7 +78,7 @@ class SyncController extends ChangeNotifier {
   bool get excludeImports => _excludeImports;
   DateTime? get lastSuccessAt => _lastSuccessAt;
   SyncPassResult? get lastResult => _lastResult;
-  bool get running => _running;
+  bool get running => _inFlight > 0;
 
   /// Whether the status surface should warn that the store is approaching the
   /// disuse expiry.
@@ -104,6 +105,7 @@ class SyncController extends ChangeNotifier {
   Future<void> setEnabled(bool value) async {
     if (value == _enabled) return;
     _enabled = value;
+    _selfWriteUntil = _now().add(const Duration(seconds: 2));
     await _settings.set(kSyncEnabledKey, value);
     if (!value) _debounceTimer?.cancel();
     _notify();
@@ -113,6 +115,7 @@ class SyncController extends ChangeNotifier {
   Future<void> setWifiOnly(bool value) async {
     if (value == _wifiOnly) return;
     _wifiOnly = value;
+    _selfWriteUntil = _now().add(const Duration(seconds: 2));
     await _settings.set(kSyncWifiOnlyKey, value);
     _notify();
   }
@@ -122,10 +125,25 @@ class SyncController extends ChangeNotifier {
 
   /// Tells the controller a local write happened. Schedules one debounced
   /// automatic pass; repeated changes inside the window share it.
-  void notifyLocalChange() {
+  ///
+  /// A change that lands while a pass is running was not in that pass's
+  /// snapshot, so it is remembered and one follow-up pass is scheduled when the
+  /// last running pass ends. [settingsOnly] marks a write that touched only the
+  /// settings table; those are ignored inside the short window that follows the
+  /// controller's own bookkeeping writes, because a pass that records its own
+  /// success would otherwise re-trigger itself forever.
+  void notifyLocalChange({bool settingsOnly = false}) {
     if (_disposed || !_enabled) return;
-    final quiet = _quietUntil;
-    if (_running || (quiet != null && _now().isBefore(quiet))) return;
+    final own = _selfWriteUntil;
+    if (settingsOnly && own != null && _now().isBefore(own)) return;
+    if (_inFlight > 0) {
+      _dirty = true;
+      return;
+    }
+    _scheduleDebounced();
+  }
+
+  void _scheduleDebounced() {
     _debounceTimer?.cancel();
     _debounceTimer = Timer(_debounce, () {
       unawaited(trigger(SyncTrigger.debouncedChange));
@@ -150,7 +168,7 @@ class SyncController extends ChangeNotifier {
       return SyncGateOutcome.suppressedMetered;
     }
 
-    _running = true;
+    _inFlight++;
     _notify();
     try {
       final result = await coordinator.trigger(trigger);
@@ -158,14 +176,16 @@ class SyncController extends ChangeNotifier {
       if (result.status == SyncPassStatus.completed) {
         final at = _now();
         _lastSuccessAt = at;
+        _selfWriteUntil = at.add(const Duration(seconds: 2));
         await _settings.set(kSyncLastSuccessAtKey, at.toIso8601String());
       }
       return SyncGateOutcome.ran;
     } finally {
-      _running = false;
-      // The pass's own applied rows and its status write reach the change
-      // stream after it returns; they are not user edits.
-      _quietUntil = _now().add(const Duration(seconds: 2));
+      _inFlight--;
+      if (_inFlight == 0 && _dirty) {
+        _dirty = false;
+        if (_enabled && !_disposed) _scheduleDebounced();
+      }
       _notify();
     }
   }
