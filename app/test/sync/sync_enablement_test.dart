@@ -12,9 +12,7 @@ import '../support/test_repositories.dart';
 /// coordinator is constructed" is the no-network property.
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-  final factory = ConfiguredSyncCoordinatorFactory(
-    endpoint: Uri.parse('https://sync.example.test'),
-  );
+  final factory = ConfiguredSyncCoordinatorFactory();
 
   test('a fresh installation constructs no coordinator', () async {
     final repos = openTestRepositories();
@@ -36,6 +34,23 @@ void main() {
     expect(await factory(repos), isNull);
   });
 
+  test('a sync ID without a recorded endpoint constructs no coordinator, '
+      'rather than silently using the default server', () async {
+    final repos = openTestRepositories();
+    await repos.settings.set(kSyncEnabledKey, true);
+    await repos.settings.set(kSyncIdKey, 'correct horse battery staple');
+    expect(await factory(repos), isNull);
+  });
+
+  test('a stored endpoint that fails entry validation is refused, not '
+      'silently replaced with the default', () async {
+    final repos = openTestRepositories();
+    await repos.settings.set(kSyncEnabledKey, true);
+    await repos.settings.set(kSyncIdKey, 'correct horse battery staple');
+    await repos.settings.set(kSyncEndpointKey, 'http://sync.example.test/');
+    await expectLater(factory(repos), throwsFormatException);
+  });
+
   test('a non-boolean enabled value is not consent', () async {
     final repos = openTestRepositories();
     await repos.settings.set(kSyncIdKey, 'correct horse battery staple');
@@ -47,6 +62,7 @@ void main() {
       'no device ID and stores no credential', () async {
     final source = openTestRepositories();
     await source.settings.set(kSyncEnabledKey, true);
+    await source.settings.set(kSyncEndpointKey, 'https://sync.example.test/');
     await source.settings.set(kSyncWifiOnlyKey, false);
     await source.settings.set(kSyncExcludeImportsKey, true);
     await source.settings.set(kSyncIdKey, 'correct horse battery staple');
@@ -57,6 +73,7 @@ void main() {
 
     for (final key in [
       'sync_enabled',
+      'sync_endpoint',
       'sync_wifi_only',
       'sync_exclude_imports',
       'sync_id',
@@ -72,6 +89,7 @@ void main() {
     expect(outcome.applied, isTrue);
 
     expect(await target.settings.get(kSyncEnabledKey), isNull);
+    expect(await target.settings.get(kSyncEndpointKey), isNull);
     expect(await target.settings.get(kSyncWifiOnlyKey), isNull);
     expect(await target.settings.get(kSyncExcludeImportsKey), isNull);
     expect(await target.settings.get(kSyncIdKey), isNull);

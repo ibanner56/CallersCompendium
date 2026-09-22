@@ -241,6 +241,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String settingsSyncCustomEndpointStatus(String host) {
+    return 'Synchroniseert met een aangepaste server: $host';
+  }
+
+  @override
   String get settingsSyncStatusSyncing => 'Synchroniseren…';
 
   @override
@@ -320,8 +325,19 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsSyncPairingEnterPhraseHint => 'woord-woord-woord-woord';
 
   @override
+  String get settingsSyncPairingEndpointLabel => 'Server';
+
+  @override
+  String get settingsSyncPairingEndpointHelper =>
+      'Laat dit ongewijzigd, tenzij je een eigen synchronisatieserver gebruikt.';
+
+  @override
   String get settingsSyncPairingInvalidPhrase =>
       'Dat lijkt niet op een volledige synchronisatiezin.';
+
+  @override
+  String get settingsSyncPairingInvalidEndpoint =>
+      'Dat is geen geldig serveradres. Gebruik een https://-adres zonder gebruikersnaam en zonder ?- of #-deel (gewone http:// werkt alleen voor localhost of 127.0.0.1).';
 
   @override
   String get settingsSyncPairingNotFound =>
@@ -334,6 +350,15 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get settingsSyncPairingUnreachable =>
       'Apparaatsynchronisatie is nu niet beschikbaar. Controleer je verbinding en probeer het opnieuw.';
+
+  @override
+  String settingsSyncPairingCustomEndpointTitle(String host) {
+    return 'Aangepaste server: $host';
+  }
+
+  @override
+  String get settingsSyncPairingCustomEndpointBody =>
+      'Dit is niet de standaardserver voor apparaatsynchronisatie. Wie deze server beheert, kan alles wat je synchroniseert lezen, wijzigen en verwijderen. Gebruik dus alleen een server die je vertrouwt.';
 
   @override
   String get settingsSyncPairingSharingTitle => 'Delen is geen samenwerking';

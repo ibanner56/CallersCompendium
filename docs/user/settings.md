@@ -495,6 +495,13 @@ connect a store.
 (you get a phrase — read it aloud or share it with your other device) or
 **connect to an existing one** (enter the phrase shown on the device you
 already set up). The screen tells you which you're doing; it never guesses.
+The **Server** field is pre-filled with the Caller's Compendium sync server,
+`https://athenaeum.callerscompendium.com/`; leave it alone unless you run your
+own. If you change it, the screen warns you that whoever runs that server can
+read, change, and delete everything you sync, and once you're connected the
+status keeps showing which server you're using. The address must start with
+`https://` (plain `http://` is accepted only for `localhost` or `127.0.0.1`,
+for testing a server on the same machine).
 Along the way it explains two things worth knowing before you commit to
 sharing a phrase: a second device using the same phrase can edit the same
 records, and if both of you touch the same dance or program at once, one

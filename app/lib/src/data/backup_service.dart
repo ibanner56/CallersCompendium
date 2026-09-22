@@ -14,6 +14,7 @@ import '../screens/settings/settings_keys.dart'
     show
         kSyncDeviceIdKey,
         kSyncEnabledKey,
+        kSyncEndpointKey,
         kSyncExcludeImportsKey,
         kSyncIdKey,
         kSyncLastSuccessAtKey,
@@ -67,8 +68,8 @@ const String kCallersBoxRollAwayRoleRepairDoneKey =
 ///   [kSyncIdKey], [kSyncDeviceIdKey], [kSyncLastUsedFingerprintKey].
 /// - **sync consent and preferences** — consent given on one device is not
 ///   consent on another, so a restore must leave sync off (spec §6.1):
-///   [kSyncEnabledKey], [kSyncWifiOnlyKey], [kSyncExcludeImportsKey],
-///   [kSyncLastSuccessAtKey].
+///   [kSyncEnabledKey], [kSyncEndpointKey], [kSyncWifiOnlyKey],
+///   [kSyncExcludeImportsKey], [kSyncLastSuccessAtKey].
 const Set<String> kBackupSettingsDenylist = {
   kCustomDialectsKey,
   kActiveDialectRefKey,
@@ -87,6 +88,7 @@ const Set<String> kBackupSettingsDenylist = {
   kSyncDeviceIdKey,
   kSyncLastUsedFingerprintKey,
   kSyncEnabledKey,
+  kSyncEndpointKey,
   kSyncWifiOnlyKey,
   kSyncExcludeImportsKey,
   kSyncLastSuccessAtKey,
