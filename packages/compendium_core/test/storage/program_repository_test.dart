@@ -1765,21 +1765,18 @@ void main() {
     // separately with venueId left null (via [ProgramRepository.create]), so
     // a guard re-enabled on this path would see `storedVenueId` (null) !=
     // `venueId` ('ghost-venue') and throw.
-    test(
-      'writeFromSyncRelations skips the live-venue guard even against a '
-      'parent whose stored venueId is null',
-      () async {
-        await repo.create(sampleProgram());
-        final program = sampleProgram().copyWith(venueId: 'ghost-venue');
+    test('writeFromSyncRelations skips the live-venue guard even against a '
+        'parent whose stored venueId is null', () async {
+      await repo.create(sampleProgram());
+      final program = sampleProgram().copyWith(venueId: 'ghost-venue');
 
-        await repo.writeFromSyncRelations(program);
+      await repo.writeFromSyncRelations(program);
 
-        // writeFromSyncRelations writes only dependent rows, so the parent's
-        // stored venueId is untouched by this call — it stays null. The
-        // assertion that matters is that the call above did not throw.
-        expect((await repo.getById('p1'))!.venueId, isNull);
-      },
-    );
+      // writeFromSyncRelations writes only dependent rows, so the parent's
+      // stored venueId is untouched by this call — it stays null. The
+      // assertion that matters is that the call above did not throw.
+      expect((await repo.getById('p1'))!.venueId, isNull);
+    });
 
     // An inbound sync apply can leave a program pointing at a venue this
     // device does not have. The user must still be able to interactively

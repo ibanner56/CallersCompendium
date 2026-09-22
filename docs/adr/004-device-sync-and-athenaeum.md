@@ -1166,13 +1166,14 @@ makes self-hosting materially harder, which constraint 4 forbids.
   locally available, it is uploaded before the manifest is published.
   No-fallback withholding is computed as a fixpoint over the publish set, since
   the citation graph is multi-hop, and excludes `Programs.venueId`, which is not
-  a database foreign key. A dangling value is handled differently by the two
-  paths that can produce one: the archive restorer's import paths resolve-or-null
-  it, while the inbound sync apply persists it verbatim and reports it, since
-  nulling a peer's content without advancing its `updatedAt` is not I1's one
-  content-derived exception and would leave the record at an unresolvable
-  equal-`updatedAt` conflict on every later pass (sync-spec.md §6.5, §6.7). That
-  withholding does not
+  a database foreign key. A dangling value is handled differently depending on
+  how a program reaches this device: the archive restorer's import paths
+  resolve-or-null it before persisting, so a restored program never actually
+  carries one, while the inbound sync apply persists it verbatim and reports
+  it, since nulling a peer's content without advancing its `updatedAt` is not
+  I1's one content-derived exception and would leave the record at an
+  unresolvable equal-`updatedAt` conflict on every later pass (sync-spec.md
+  §6.5, §6.7). That withholding does not
   resolve itself: an entity created while a clock was broken has no peer copy
   to repair against, so it and everything citing it stay unsynced until the
   user writes to it again. The report says how many records each one holds

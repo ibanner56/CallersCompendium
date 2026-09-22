@@ -106,8 +106,10 @@ licensed exactly the resurrection this section exists to prevent.
 `hardDelete` MUST also retain any row still referenced by a surviving record,
 including a tombstoned one. `programs.venue_id` is not a foreign key, so
 nothing at the database level rejects erasing a venue a tombstoned program
-still names, and the program writer refuses a program whose non-null `venueId`
-has no matching venue — the program becomes unrestorable.
+still names — but that reference is user-visible data on the program (the
+venue it names), and erasing the venue out from under it would silently
+orphan the reference, with nothing to tell the user their program's venue
+disappeared.
 
 **The generic hard-delete hatch.** The shipped migration also added a
 `permanent: true` parameter to `delete()`/`remove()` on five repositories —

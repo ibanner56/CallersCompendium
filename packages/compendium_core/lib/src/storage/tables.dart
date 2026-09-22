@@ -250,14 +250,21 @@ class Programs extends Table {
   /// guard rejects an *interactive* `create`/`update` whose non-null `venueId`
   /// newly names a venue that does not exist (checked inside the write
   /// transaction; a save that leaves an already-dangling `venueId` unchanged is
-  /// tolerated), and `VenueRepository.delete` atomically refuses to remove a
-  /// venue any program still references. Two paths can still leave this column
-  /// dangling: the archive restorer's import paths resolve-or-null a dangling
-  /// `venueId` before persisting, while `ProgramRepository.writeFromSync` and
-  /// its two-phase siblings — the inbound Device Sync write paths — do not run
-  /// the guard at all and persist a peer's `venueId` verbatim, because nulling
-  /// it would change the peer's serialised content without advancing
-  /// `updatedAt` (sync-spec.md §6.5, §6.7).
+  /// tolerated), and `VenueRepository.delete`'s guard atomically refuses to
+  /// remove a venue any *live* program still references.
+  ///
+  /// That live-only guard is exactly why this column can end up dangling by
+  /// the ordinary path: soft-delete a program, then delete the venue it named
+  /// — the tombstoned program keeps its `venueId`, and nothing stops the venue
+  /// from going. Device Sync's inbound write paths
+  /// (`ProgramRepository.writeFromSync` and its two-phase siblings) can also
+  /// persist a dangling `venueId`, but by design rather than by gap: they skip
+  /// the guard entirely and write a peer's body verbatim, because nulling a
+  /// dangling reference there would change the peer's serialised content
+  /// without advancing its `updatedAt` (sync-spec.md §6.5, §6.7). The archive
+  /// restorer's import paths are not a third dangling-producing path — they
+  /// resolve-or-null a dangling `venueId` before persisting, so a restored
+  /// program never carries one.
   TextColumn get venueId => text().nullable()();
   TextColumn get band => text().nullable()();
   TextColumn get caller => text().nullable()();
