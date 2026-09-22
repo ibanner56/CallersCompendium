@@ -188,14 +188,15 @@ class SyncController extends ChangeNotifier {
   Future<void> setEnabled(bool value) async {
     if (value == _enabled) return;
     _enabled = value;
-    // A disable's own bookkeeping write is never observed: once `_enabled` is
-    // false, `notifyLocalChange` returns before it ever inspects
-    // `_pendingSelfWrites`, so an expectation queued here would sit forever
-    // and swallow the first genuine settings-only edit after the next enable.
-    // Resetting on every transition — rather than only skipping the disable
-    // side — also clears anything a prior leak already left behind, so the
-    // counter can never carry state across an enable/disable cycle.
+    // Both pending counters are reset on every transition so nothing can
+    // carry across an enable/disable cycle: an expectation armed in one
+    // session must not swallow the first genuine edit of the next.
+    // `notifyLocalChange` does consume a pending expectation while disabled
+    // (so the disable's own settings write is accounted for if its event
+    // arrives), but an event that never arrives — a coordinator torn down
+    // mid-pass — would otherwise leave the counter armed indefinitely.
     _pendingSelfWrites = 0;
+    _pendingSyncAppliedInvalidations = 0;
     if (value) _expectSelfWrite();
     await _settings.set(kSyncEnabledKey, value);
     if (!value) _debounceTimer?.cancel();
