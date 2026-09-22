@@ -6895,7 +6895,8 @@ void main() {
         expect(
           stored!.venueId,
           'venue-not-here',
-          reason: 'I1 forbids altering the peer\'s body; the dangling '
+          reason:
+              'I1 forbids altering the peer\'s body; the dangling '
               'reference must be stored, not nulled',
         );
 
@@ -6908,114 +6909,117 @@ void main() {
         expect(
           publication!.wireHash,
           candidate.wireHash,
-          reason: 'a nulled venueId would republish a different body under '
+          reason:
+              'a nulled venueId would republish a different body under '
               'the same updatedAt, producing an unresolvable equal-updatedAt '
               'conflict on the next pass',
         );
       },
     );
 
-    test(
-      'a venue tombstone and the program tombstone citing it apply in one '
-      'batch with the program publishing the peer\'s exact body',
-      () async {
-        final liveStamp = DateTime.utc(2025, 3, 1, 12);
-        final deleteStamp = DateTime.utc(2025, 3, 2, 12);
+    test('a venue tombstone and the program tombstone citing it apply in one '
+        'batch with the program publishing the peer\'s exact body', () async {
+      final liveStamp = DateTime.utc(2025, 3, 1, 12);
+      final deleteStamp = DateTime.utc(2025, 3, 2, 12);
 
-        // This device already holds the venue and a program linked to it.
-        await repositories.venues.upsert(
-          Venue(id: 'venue-v1', name: 'Grange Hall'),
-          at: liveStamp,
-        );
-        await repositories.programs.create(
-          Program(
-            id: 'program-p1',
-            title: 'Barn Dance',
-            venueId: 'venue-v1',
-            createdAt: liveStamp,
-            updatedAt: liveStamp,
-          ),
-        );
-
-        // A peer deleted the program (its tombstone still carries the venue
-        // link it had at deletion time), then deleted the now-unreferenced
-        // venue. Both tombstones arrive in the same batch.
-        final tombstonedVenue = Venue(id: 'venue-v1', name: 'Grange Hall');
-        final venueCandidate = SyncMergeCandidate(
-          blob: SyncRecordBlob(
-            kind: SyncRecordKind.venue,
-            id: tombstonedVenue.id,
-            updatedAt: deleteStamp,
-            deletedAt: deleteStamp,
-            existenceAt: deleteStamp,
-            body: syncBodyForEntity(SyncRecordKind.venue, tombstonedVenue),
-          ),
-        );
-        final tombstonedProgram = Program(
+      // This device already holds the venue and a program linked to it.
+      await repositories.venues.upsert(
+        Venue(id: 'venue-v1', name: 'Grange Hall'),
+        at: liveStamp,
+      );
+      await repositories.programs.create(
+        Program(
           id: 'program-p1',
           title: 'Barn Dance',
           venueId: 'venue-v1',
           createdAt: liveStamp,
+          updatedAt: liveStamp,
+        ),
+      );
+
+      // A peer deleted the program (its tombstone still carries the venue
+      // link it had at deletion time), then deleted the now-unreferenced
+      // venue. Both tombstones arrive in the same batch.
+      final tombstonedVenue = Venue(id: 'venue-v1', name: 'Grange Hall');
+      final venueCandidate = SyncMergeCandidate(
+        blob: SyncRecordBlob(
+          kind: SyncRecordKind.venue,
+          id: tombstonedVenue.id,
           updatedAt: deleteStamp,
           deletedAt: deleteStamp,
-        );
-        final programCandidate = SyncMergeCandidate(
-          blob: SyncRecordBlob(
-            kind: SyncRecordKind.program,
-            id: tombstonedProgram.id,
-            updatedAt: deleteStamp,
-            deletedAt: deleteStamp,
-            existenceAt: deleteStamp,
-            body: syncBodyForEntity(SyncRecordKind.program, tombstonedProgram),
-          ),
-        );
+          existenceAt: deleteStamp,
+          body: syncBodyForEntity(SyncRecordKind.venue, tombstonedVenue),
+        ),
+      );
+      final tombstonedProgram = Program(
+        id: 'program-p1',
+        title: 'Barn Dance',
+        venueId: 'venue-v1',
+        createdAt: liveStamp,
+        updatedAt: deleteStamp,
+        deletedAt: deleteStamp,
+      );
+      final programCandidate = SyncMergeCandidate(
+        blob: SyncRecordBlob(
+          kind: SyncRecordKind.program,
+          id: tombstonedProgram.id,
+          updatedAt: deleteStamp,
+          deletedAt: deleteStamp,
+          existenceAt: deleteStamp,
+          body: syncBodyForEntity(SyncRecordKind.program, tombstonedProgram),
+        ),
+      );
 
-        final result = await const SyncApplyEngine().apply(
-          candidates: [venueCandidate, programCandidate],
-          storage: storage,
-        );
+      final result = await const SyncApplyEngine().apply(
+        candidates: [venueCandidate, programCandidate],
+        storage: storage,
+      );
 
-        expect(result.applied, unorderedEquals([
+      expect(
+        result.applied,
+        unorderedEquals([
           (kind: SyncRecordKind.venue, recordId: tombstonedVenue.id),
           (kind: SyncRecordKind.program, recordId: tombstonedProgram.id),
-        ]));
-        expect(
-          result.reports
-              .where((r) => r.code == SyncReportCode.unresolvedReference)
-              .length,
-          1,
-        );
+        ]),
+      );
+      expect(
+        result.reports
+            .where((r) => r.code == SyncReportCode.unresolvedReference)
+            .length,
+        1,
+      );
 
-        final storedProgram = await repositories.programs.getById(
-          tombstonedProgram.id,
-          includeDeleted: true,
-        );
-        expect(storedProgram, isNotNull);
-        expect(storedProgram!.deletedAt, deleteStamp);
-        expect(
-          storedProgram.venueId,
-          'venue-v1',
-          reason: 'the venue tombstone applies first (venues sort before '
-              'programs), so the program write sees a non-live venue and '
-              'must still keep the peer\'s venueId rather than null it',
-        );
+      final storedProgram = await repositories.programs.getById(
+        tombstonedProgram.id,
+        includeDeleted: true,
+      );
+      expect(storedProgram, isNotNull);
+      expect(storedProgram!.deletedAt, deleteStamp);
+      expect(
+        storedProgram.venueId,
+        'venue-v1',
+        reason:
+            'the venue tombstone applies first (venues sort before '
+            'programs), so the program write sees a non-live venue and '
+            'must still keep the peer\'s venueId rather than null it',
+      );
 
-        final publication =
-            (await storage.snapshot()).publication[(
-              kind: SyncRecordKind.program,
-              recordId: tombstonedProgram.id,
-            )];
-        expect(publication, isNotNull);
-        expect(
-          publication!.wireHash,
-          programCandidate.wireHash,
-          reason: 'the republished tombstone must hash identically to the '
-              'peer\'s, or every later pass reports an unresolvable '
-              'equal-updatedAt conflict on a record that can never be '
-              'edited again',
-        );
-      },
-    );
+      final publication =
+          (await storage.snapshot()).publication[(
+            kind: SyncRecordKind.program,
+            recordId: tombstonedProgram.id,
+          )];
+      expect(publication, isNotNull);
+      expect(
+        publication!.wireHash,
+        programCandidate.wireHash,
+        reason:
+            'the republished tombstone must hash identically to the '
+            'peer\'s, or every later pass reports an unresolvable '
+            'equal-updatedAt conflict on a record that can never be '
+            'edited again',
+      );
+    });
   });
 }
 

@@ -423,11 +423,12 @@ class ProgramRepository {
                     .getSingleOrNull() !=
                 null;
       if (!venueExists) {
-        final storedVenueId = await (_db.selectOnly(_db.programs)
-              ..addColumns([_db.programs.venueId])
-              ..where(_db.programs.id.equals(program.id)))
-            .map((row) => row.read(_db.programs.venueId))
-            .getSingleOrNull();
+        final storedVenueId =
+            await (_db.selectOnly(_db.programs)
+                  ..addColumns([_db.programs.venueId])
+                  ..where(_db.programs.id.equals(program.id)))
+                .map((row) => row.read(_db.programs.venueId))
+                .getSingleOrNull();
         if (storedVenueId != venueId) {
           throw StateError(
             'cannot save program "${program.id}": venueId "$venueId" '

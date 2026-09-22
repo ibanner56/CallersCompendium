@@ -1746,40 +1746,34 @@ void main() {
       },
     );
 
-    test(
-      'writeFromSyncParent stores a dangling venueId without the '
-      'live-venue guard',
-      () async {
-        final program = sampleProgram().copyWith(venueId: 'ghost-venue');
+    test('writeFromSyncParent stores a dangling venueId without the '
+        'live-venue guard', () async {
+      final program = sampleProgram().copyWith(venueId: 'ghost-venue');
 
-        await repo.writeFromSyncParent(program);
-        await repo.writeFromSyncRelations(program);
+      await repo.writeFromSyncParent(program);
+      await repo.writeFromSyncRelations(program);
 
-        expect((await repo.getById('p1'))!.venueId, 'ghost-venue');
-      },
-    );
+      expect((await repo.getById('p1'))!.venueId, 'ghost-venue');
+    });
 
     // An inbound sync apply can leave a program pointing at a venue this
     // device does not have. The user must still be able to interactively
     // save that program — an unrelated edit, or simply re-saving it — without
     // first being forced to unlink the venue; only a *newly chosen*
     // non-existent venue is refused.
-    test(
-      'tolerates an interactive update that leaves a pre-existing dangling '
-      'venueId unchanged',
-      () async {
-        await repo.writeFromSync(
-          sampleProgram().copyWith(venueId: 'ghost-venue'),
-        );
+    test('tolerates an interactive update that leaves a pre-existing dangling '
+        'venueId unchanged', () async {
+      await repo.writeFromSync(
+        sampleProgram().copyWith(venueId: 'ghost-venue'),
+      );
 
-        final stored = await repo.getById('p1');
-        await repo.update(stored!.copyWith(title: 'Renamed Dance'));
+      final stored = await repo.getById('p1');
+      await repo.update(stored!.copyWith(title: 'Renamed Dance'));
 
-        final after = await repo.getById('p1');
-        expect(after!.venueId, 'ghost-venue');
-        expect(after.title, 'Renamed Dance');
-      },
-    );
+      final after = await repo.getById('p1');
+      expect(after!.venueId, 'ghost-venue');
+      expect(after.title, 'Renamed Dance');
+    });
 
     test(
       'still rejects an interactive update that repoints an already-dangling '
