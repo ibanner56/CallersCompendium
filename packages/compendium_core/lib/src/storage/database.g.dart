@@ -3621,12 +3621,18 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
   /// schema v14. A deliberately un-constrained soft reference (no drift
   /// `.references()`/FK): the free-text [venue] label and this entity link
   /// coexist non-destructively. Referential integrity is enforced at the app
-  /// layer instead of by a DB constraint — `ProgramRepository` rejects a write
-  /// whose non-null `venueId` has no matching venue (checked inside the write
-  /// transaction), and `VenueRepository.delete` atomically refuses to remove a
-  /// venue any program still references. Import paths resolve-or-null a dangling
-  /// `venueId` before persisting, so a bundle can carry a program whose venue
-  /// record is absent without tripping the write-time check.
+  /// layer instead of by a DB constraint — `ProgramRepository`'s live-venue
+  /// guard rejects an *interactive* `create`/`update` whose non-null `venueId`
+  /// newly names a venue that does not exist (checked inside the write
+  /// transaction; a save that leaves an already-dangling `venueId` unchanged is
+  /// tolerated), and `VenueRepository.delete` atomically refuses to remove a
+  /// venue any program still references. Two paths can still leave this column
+  /// dangling: the archive restorer's import paths resolve-or-null a dangling
+  /// `venueId` before persisting, while `ProgramRepository.writeFromSync` and
+  /// its two-phase siblings — the inbound Device Sync write paths — do not run
+  /// the guard at all and persist a peer's `venueId` verbatim, because nulling
+  /// it would change the peer's serialised content without advancing
+  /// `updatedAt` (sync-spec.md §6.5, §6.7).
   final String? venueId;
   final String? band;
   final String? caller;
@@ -9886,9 +9892,11 @@ class VenueRow extends DataClass implements Insertable<VenueRow> {
 
   /// Sync timestamp triple; see the note at the top of this file. Added in
   /// schema v25 (issue #898), which also converted `VenueRepository.delete`
-  /// from a hard delete to a tombstone. [VenueRepository.hardDelete] stays a
-  /// hard delete: it exists solely to roll back a just-committed import, and a
-  /// rollback must leave no trace to publish.
+  /// from a hard delete to a tombstone. [VenueRepository.hardDelete] still
+  /// erases, because it exists solely to roll back a just-committed import and
+  /// a rollback should leave no trace to publish — but only for a venue that
+  /// was never published and that no surviving program still names. A
+  /// published venue is tombstoned instead (sync-spec.md §3.1 forfeiture).
   final DateTime? updatedAt;
   final DateTime? deletedAt;
   final DateTime? existenceAt;

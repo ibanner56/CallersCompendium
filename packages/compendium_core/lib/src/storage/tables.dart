@@ -246,12 +246,18 @@ class Programs extends Table {
   /// schema v14. A deliberately un-constrained soft reference (no drift
   /// `.references()`/FK): the free-text [venue] label and this entity link
   /// coexist non-destructively. Referential integrity is enforced at the app
-  /// layer instead of by a DB constraint — `ProgramRepository` rejects a write
-  /// whose non-null `venueId` has no matching venue (checked inside the write
-  /// transaction), and `VenueRepository.delete` atomically refuses to remove a
-  /// venue any program still references. Import paths resolve-or-null a dangling
-  /// `venueId` before persisting, so a bundle can carry a program whose venue
-  /// record is absent without tripping the write-time check.
+  /// layer instead of by a DB constraint — `ProgramRepository`'s live-venue
+  /// guard rejects an *interactive* `create`/`update` whose non-null `venueId`
+  /// newly names a venue that does not exist (checked inside the write
+  /// transaction; a save that leaves an already-dangling `venueId` unchanged is
+  /// tolerated), and `VenueRepository.delete` atomically refuses to remove a
+  /// venue any program still references. Two paths can still leave this column
+  /// dangling: the archive restorer's import paths resolve-or-null a dangling
+  /// `venueId` before persisting, while `ProgramRepository.writeFromSync` and
+  /// its two-phase siblings — the inbound Device Sync write paths — do not run
+  /// the guard at all and persist a peer's `venueId` verbatim, because nulling
+  /// it would change the peer's serialised content without advancing
+  /// `updatedAt` (sync-spec.md §6.5, §6.7).
   TextColumn get venueId => text().nullable()();
   TextColumn get band => text().nullable()();
   TextColumn get caller => text().nullable()();

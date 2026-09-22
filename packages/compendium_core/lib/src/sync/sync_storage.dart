@@ -3591,13 +3591,17 @@ final class CompendiumSyncStorage
     if (kind == SyncRecordKind.program) {
       final program = entity as Program;
       if (program.venueId != null && !(await _isLiveVenue(program.venueId!))) {
-        entityToWrite = program.copyWith(clearVenueId: true);
+        // I1 forbids changing a peer's serialised content without advancing
+        // `updatedAt` (§6.5), so the dangling reference is stored verbatim —
+        // not nulled — and only reported. `programs.venue_id` is not a
+        // database foreign key, so a dangling value can be persisted; see
+        // `ProgramRepository._upsert` for the corresponding write-path
+        // tolerance and every reader of the column for null-venue handling.
         report = SyncReport(
           code: SyncReportCode.unresolvedReference,
           kind: kind,
           recordId: record.address.recordId,
-          message:
-              'Program venue reference was cleared because the venue is missing.',
+          message: 'Program venue reference is missing locally.',
         );
       }
     }
@@ -3860,14 +3864,16 @@ final class CompendiumSyncStorage
     if (program.venueId == null || await _isLiveVenue(program.venueId!)) {
       return (entity: program, report: null);
     }
+    // See `writeWithReport`: the peer's body — including the dangling
+    // `venueId` — is stored verbatim, not nulled, so republishing this record
+    // reproduces the same wire hash under the same `updatedAt` (I1).
     return (
-      entity: program.copyWith(clearVenueId: true),
+      entity: program,
       report: SyncReport(
         code: SyncReportCode.unresolvedReference,
         kind: kind,
         recordId: record.address.recordId,
-        message:
-            'Program venue reference was cleared because the venue is missing.',
+        message: 'Program venue reference is missing locally.',
       ),
     );
   }

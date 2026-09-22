@@ -1170,11 +1170,18 @@ other copies actually hold:
     schema.
 
     **`Programs.venueId` is exempt**, because the justification does not reach it:
-    it is deliberately not a database foreign key — integrity is enforced at the
-    app layer, and import paths already resolve-or-null a dangling `venueId`
-    before persisting. The test is simply **whether the reference is a
-    database-enforced foreign key**: `ProgramSlots.danceId` and
-    `DanceLinks.targetDanceId` are, `Programs.venueId` is not.
+    it is deliberately not a database foreign key, so a dangling value never
+    fails a peer's COMMIT — integrity is enforced at the app layer instead, and
+    the two write paths that can leave it dangling handle it differently. The
+    archive restorer's import paths resolve-or-null it before persisting; the
+    inbound sync apply MUST NOT — it persists the peer's `venueId` verbatim and
+    reports it (sync-spec.md §6.7), because nulling a peer's content without
+    advancing its `updatedAt` is not I1's one content-derived exception
+    (sync-spec.md §6.5) and would leave the record at an unresolvable
+    equal-`updatedAt` conflict on every later pass. The test for withholding is
+    simply **whether the reference is a database-enforced foreign key**:
+    `ProgramSlots.danceId` and `DanceLinks.targetDanceId` are, `Programs.venueId`
+    is not.
 
     A draft narrowed that to FKs "with cascade or restrict semantics", which is
     wrong twice. `KeyAction.restrict` appears nowhere in this schema, and both
@@ -4472,11 +4479,13 @@ must say this plainly rather than implying sync is opaque to us.
   dance is withheld but not quarantined, so the program publishes and its peer's
   batch fails on the same foreign key the rule exists to protect.
 - **A program citing a quarantined venue still publishes** — assert the venue
-  exemption holds, that the receiving peer nulls the dangling `venueId` before
-  the write, and that the program applies with the rest of its content intact.
+  exemption holds, that the receiving peer persists the dangling `venueId`
+  verbatim (never nulls it) and reports it, and that the program applies with
+  the rest of its content intact and its rebuilt wire hash equal to the peer's.
   Mutation-proved two ways: withhold the program, which costs a caller their set
-  list because one venue has not arrived; or apply it without the resolve-or-null
-  step, which throws in `ProgramRepository` and aborts the record.
+  list because one venue has not arrived; or null the dangling reference on
+  apply, which republishes a different body under the peer's unchanged
+  `updatedAt` and produces a permanent equal-`updatedAt` conflict.
 - **Withholding is scoped by whether the reference is a database FK** — assert
   `ProgramSlots.danceId` and `DanceLinks.targetDanceId` trigger withholding and
   `Programs.venueId` does not. Mutation-proved by scoping on `onDelete`
