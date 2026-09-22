@@ -572,8 +572,7 @@ final class CompendiumSyncStorage
 
     final reached = <SyncRecordAddress>{
       for (final entry in publication.entries)
-        if (entry.value != null && !withholdable.contains(entry.key))
-          entry.key,
+        if (entry.value != null && !withholdable.contains(entry.key)) entry.key,
     };
     final pending = <SyncRecordAddress>[...reached];
     for (var index = 0; index < pending.length; index++) {
