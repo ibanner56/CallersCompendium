@@ -293,6 +293,38 @@ class AppLocalizationsFr extends AppLocalizations {
       'Aucun espace ne correspond à cette phrase de synchronisation. Vérifiez-la sur votre autre appareil.';
 
   @override
+  String get settingsSyncStatusPaused =>
+      'La synchronisation est en pause car l’espace utilisé par cet appareil n’existe plus. Touchez Synchroniser maintenant pour décider à nouveau.';
+
+  @override
+  String get settingsSyncNoticeDivergence =>
+      'Certaines fiches ont été modifiées sur deux appareils au même instant. Aucune version n’a été retenue, vos appareils restent donc différents. Modifiez l’une d’elles pour trancher.';
+
+  @override
+  String get settingsSyncNoticeKeptLocalCreation =>
+      'Un élément créé sur cet appareil aurait été supprimé par un autre appareil qui ne l’avait jamais vu. Il a été conservé ici à la place.';
+
+  @override
+  String get settingsSyncNoticeQuarantinedLocal =>
+      'Certains éléments de cet appareil portent une date à laquelle l’application ne peut pas se fier ; ils ne sont donc pas envoyés à vos autres appareils. Vérifiez la date et l’heure de cet appareil, puis modifiez l’un des éléments pour lui donner une date récente.';
+
+  @override
+  String get settingsSyncNoticeSkippedRecord =>
+      'Certaines fiches provenant d’un autre appareil n’ont pas pu être utilisées et ont été ignorées. Vérifiez que vos autres appareils utilisent la même version de l’application, puis synchronisez à nouveau.';
+
+  @override
+  String get settingsSyncNoticeClock =>
+      'L’horloge d’un autre appareil semble très éloignée de celle-ci. Vérifiez la date et l’heure de vos appareils : la synchronisation s’en sert pour déterminer quelle modification est la plus récente.';
+
+  @override
+  String get settingsSyncNoticeDeferredInbound =>
+      'Une mise à jour venant d’un autre appareil est arrivée pendant que vous modifiiez la même fiche ; elle n’a donc pas été appliquée. La prochaine synchronisation la reprendra.';
+
+  @override
+  String get settingsSyncNoticeUnreflectedPublication =>
+      'Les modifications faites sur cet appareil ne sont pas apparues sur vos autres appareils après plusieurs synchronisations. Ouvrez-y l’application et synchronisez.';
+
+  @override
   String get settingsSyncNotBackup =>
       'La synchronisation n’est pas une sauvegarde. Un espace inutilisé pendant 30 jours est supprimé : continuez à faire des sauvegardes de fichiers.';
 
