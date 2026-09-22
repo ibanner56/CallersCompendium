@@ -1,0 +1,14 @@
+{
+  "id": "1347-normalisation-json-skip",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A dance or custom field whose stored JSON cannot be read no longer stops the one-time text clean-up, so the app still opens instead of showing the startup error screen."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "The shareable-text normalisation pass records a skip and continues when a JSON column's stored value is malformed or has keys that normalise to the same string, instead of letting the exception abort ensureMigrated()."
+    ]
+  }
+}
