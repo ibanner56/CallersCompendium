@@ -233,6 +233,29 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsSyncStatusHeader => 'État';
 
   @override
+  String get settingsSyncIdTitle => 'Votre phrase de synchronisation';
+
+  @override
+  String get settingsSyncIdMasked => 'Masquée';
+
+  @override
+  String get settingsSyncIdShow => 'Afficher la phrase de synchronisation';
+
+  @override
+  String get settingsSyncIdHide => 'Masquer la phrase de synchronisation';
+
+  @override
+  String get settingsSyncIdCopy => 'Copier la phrase de synchronisation';
+
+  @override
+  String get settingsSyncIdCopied =>
+      'Phrase de synchronisation copiée. Elle donne accès à votre espace : ne la collez que sur un appareil qui vous appartient.';
+
+  @override
+  String get settingsSyncIdCaution =>
+      'Saisissez-la sur votre autre appareil pour le connecter. Quiconque la détient peut lire et modifier tout ce que vous synchronisez, et elle ne peut être changée qu\'en faisant passer tous vos appareils à une nouvelle phrase.';
+
+  @override
   String get settingsSyncStatusNotPaired =>
       'Pas encore connecté à un espace de stockage.';
 

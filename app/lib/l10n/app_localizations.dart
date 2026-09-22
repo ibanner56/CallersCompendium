@@ -472,6 +472,48 @@ abstract class AppLocalizations {
   /// **'Status'**
   String get settingsSyncStatusHeader;
 
+  /// Label of the status-surface row that shows the sync phrase this device is connected with, so it can be entered on another device.
+  ///
+  /// In en, this message translates to:
+  /// **'Your sync phrase'**
+  String get settingsSyncIdTitle;
+
+  /// Accessibility label for the sync-phrase row while the phrase is hidden; the row itself shows bullets.
+  ///
+  /// In en, this message translates to:
+  /// **'Hidden'**
+  String get settingsSyncIdMasked;
+
+  /// Tooltip of the button that reveals the hidden sync phrase on the status surface.
+  ///
+  /// In en, this message translates to:
+  /// **'Show sync phrase'**
+  String get settingsSyncIdShow;
+
+  /// Tooltip of the button that hides the revealed sync phrase on the status surface.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide sync phrase'**
+  String get settingsSyncIdHide;
+
+  /// Tooltip of the button that copies the sync phrase to the clipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy sync phrase'**
+  String get settingsSyncIdCopy;
+
+  /// Snackbar confirming the sync phrase was copied, restating that it is a bearer credential (spec §6.14 item 2).
+  ///
+  /// In en, this message translates to:
+  /// **'Sync phrase copied. It unlocks your store, so paste it only on a device you own.'**
+  String get settingsSyncIdCopied;
+
+  /// Caution under the sync-phrase row: what it is for, and that it is an unrevocable bearer credential (spec §6.14 item 2).
+  ///
+  /// In en, this message translates to:
+  /// **'Enter this on your other device to connect it. Anyone who has it can read and change everything you sync, and it can\'t be changed without moving every device to a new phrase.'**
+  String get settingsSyncIdCaution;
+
   /// Status shown when Device Sync is on but no sync store is connected.
   ///
   /// In en, this message translates to:

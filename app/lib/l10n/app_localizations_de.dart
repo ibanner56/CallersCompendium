@@ -228,6 +228,29 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsSyncStatusHeader => 'Status';
 
   @override
+  String get settingsSyncIdTitle => 'Deine Synchronisierungsphrase';
+
+  @override
+  String get settingsSyncIdMasked => 'Ausgeblendet';
+
+  @override
+  String get settingsSyncIdShow => 'Synchronisierungsphrase anzeigen';
+
+  @override
+  String get settingsSyncIdHide => 'Synchronisierungsphrase ausblenden';
+
+  @override
+  String get settingsSyncIdCopy => 'Synchronisierungsphrase kopieren';
+
+  @override
+  String get settingsSyncIdCopied =>
+      'Synchronisierungsphrase kopiert. Sie öffnet deinen Speicher – füge sie nur auf einem Gerät ein, das dir gehört.';
+
+  @override
+  String get settingsSyncIdCaution =>
+      'Gib sie auf deinem anderen Gerät ein, um es zu verbinden. Wer sie hat, kann alles lesen und ändern, was du synchronisierst, und sie lässt sich nur ändern, indem du alle Geräte auf eine neue Phrase umstellst.';
+
+  @override
   String get settingsSyncStatusNotPaired =>
       'Noch nicht mit einem Speicher verbunden.';
 
