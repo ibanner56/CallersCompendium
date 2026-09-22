@@ -342,6 +342,114 @@ void main() {
       expect(passes, hasLength(2));
     });
 
+    test("a pass's own applied-kinds invalidation does not schedule a "
+        'follow-up pass', () async {
+      // Mirrors production timing exactly: the isolate boundary's
+      // `onAppliedKinds` hook (wired through `main.dart` to
+      // `expectSyncAppliedInvalidation`) fires, and the resulting
+      // `tableUpdates()` notification reaches `notifyLocalChange` — all
+      // before the pass's own `passOperation` returns, i.e. while this
+      // trigger's `coordinator.trigger()` call is still unresolved.
+      final controller = build(debounce: const Duration(milliseconds: 10));
+      coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device',
+        store: CompendiumSyncCoordinatorStore(repos),
+        transport: NoopSyncCoordinatorTransport(),
+        passOperation: ({initialStore}) async {
+          passes.add(1);
+          controller.expectSyncAppliedInvalidation();
+          controller.notifyLocalChange();
+          return const SyncPassResult(
+            SyncPassStatus.completed,
+            appliedKinds: [SyncRecordKind.dance],
+          );
+        },
+      );
+      addTearDown(coordinator!.dispose);
+      await controller.load();
+      await controller.setEnabled(true);
+
+      await controller.syncNow();
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+      expect(
+        passes,
+        hasLength(1),
+        reason:
+            'the pass reporting its own applied kinds must not queue a '
+            'redundant follow-up pass',
+      );
+    });
+
+    test('a user edit during a pass whose own applied-kinds invalidation also '
+        'fires still schedules exactly one follow-up pass', () async {
+      final controller = build(debounce: const Duration(milliseconds: 10));
+      coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device',
+        store: CompendiumSyncCoordinatorStore(repos),
+        transport: NoopSyncCoordinatorTransport(),
+        passOperation: ({initialStore}) async {
+          passes.add(1);
+          if (passes.length == 1) {
+            // The pass's own self-invalidation...
+            controller.expectSyncAppliedInvalidation();
+            controller.notifyLocalChange();
+            // ...and an independent, genuine local edit landing in the
+            // same instant. Only the latter is a reason to run again.
+            controller.notifyLocalChange();
+          }
+          return const SyncPassResult(
+            SyncPassStatus.completed,
+            appliedKinds: [SyncRecordKind.dance],
+          );
+        },
+      );
+      addTearDown(coordinator!.dispose);
+      await controller.load();
+      await controller.setEnabled(true);
+
+      await controller.syncNow();
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+      expect(
+        passes,
+        hasLength(2),
+        reason: 'the genuine edit still earns exactly one follow-up pass',
+      );
+    });
+
+    test('an applied-kinds invalidation left pending across a disable does not '
+        'swallow the next genuine edit after re-enabling', () async {
+      final controller = build(debounce: const Duration(milliseconds: 10));
+      await controller.load();
+      await controller.setEnabled(true);
+
+      // The hook fires (as it would from a pass's own applied-kinds
+      // invalidation)...
+      controller.expectSyncAppliedInvalidation();
+      // ...but sync is disabled before the resulting table invalidation
+      // reaches `notifyLocalChange` (e.g. the applying pass is torn down
+      // mid-apply). The early return for a disabled controller must not
+      // skip consuming the counter, or it outlives this pass entirely.
+      await controller.setEnabled(false);
+      controller.notifyLocalChange();
+
+      await controller.setEnabled(true);
+      passes.clear();
+
+      // A genuine edit after re-enabling must schedule a pass, not be
+      // mistaken for the invalidation that was already accounted for.
+      controller.notifyLocalChange();
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      expect(
+        passes,
+        hasLength(1),
+        reason:
+            'a stale pending-invalidation counter must not survive a '
+            'disable/re-enable cycle and swallow a real edit',
+      );
+    });
+
     test('a shareable-settings change schedules a pass, but the controller\'s '
         'own bookkeeping write does not', () async {
       final controller = build(debounce: const Duration(milliseconds: 10));

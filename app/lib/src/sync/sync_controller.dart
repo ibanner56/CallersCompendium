@@ -114,6 +114,7 @@ class SyncController extends ChangeNotifier {
   int _inFlight = 0;
   bool _dirty = false;
   int _pendingSelfWrites = 0;
+  int _pendingSyncAppliedInvalidations = 0;
   bool _replacementPending = false;
   Timer? _debounceTimer;
   StreamSubscription<SyncReplacementRequiredEvent>? _replacementSubscription;
@@ -150,6 +151,26 @@ class SyncController extends ChangeNotifier {
   /// observed, and this cannot mistake it for that recording.
   void _expectSelfWrite() => _pendingSelfWrites++;
 
+  /// Marks that a table invalidation the controller is about to observe is
+  /// the direct result of applying inbound records during the pass currently
+  /// running — the isolate boundary's `onAppliedKinds` hook, wired through
+  /// `main.dart` — not a local edit.
+  ///
+  /// The invalidation reaches the main connection's live queries (and hence
+  /// this controller's [notifyLocalChange]) before the pass's own
+  /// `coordinator.trigger()` call returns, so without this the controller
+  /// sees `_inFlight > 0` and schedules a pointless follow-up pass after
+  /// every pass that applied anything. Unlike [_expectSelfWrite], this is not
+  /// scoped to settings-only writes: applying an inbound record can touch any
+  /// table. A genuine local edit landing in the same window still calls
+  /// [notifyLocalChange] on its own and is unaffected — each call here
+  /// consumes exactly one matching notification, so it cannot swallow an
+  /// edit it wasn't meant for.
+  void expectSyncAppliedInvalidation() {
+    if (_disposed) return;
+    _pendingSyncAppliedInvalidations++;
+  }
+
   /// Reads the persisted state. Absent keys mean the documented defaults: sync
   /// off, WiFi-only on, import exclusion off.
   Future<void> load() async {
@@ -167,14 +188,15 @@ class SyncController extends ChangeNotifier {
   Future<void> setEnabled(bool value) async {
     if (value == _enabled) return;
     _enabled = value;
-    // A disable's own bookkeeping write is never observed: once `_enabled` is
-    // false, `notifyLocalChange` returns before it ever inspects
-    // `_pendingSelfWrites`, so an expectation queued here would sit forever
-    // and swallow the first genuine settings-only edit after the next enable.
-    // Resetting on every transition — rather than only skipping the disable
-    // side — also clears anything a prior leak already left behind, so the
-    // counter can never carry state across an enable/disable cycle.
+    // Both pending counters are reset on every transition so nothing can
+    // carry across an enable/disable cycle: an expectation armed in one
+    // session must not swallow the first genuine edit of the next.
+    // `notifyLocalChange` does consume a pending expectation while disabled
+    // (so the disable's own settings write is accounted for if its event
+    // arrives), but an event that never arrives — a coordinator torn down
+    // mid-pass — would otherwise leave the counter armed indefinitely.
     _pendingSelfWrites = 0;
+    _pendingSyncAppliedInvalidations = 0;
     if (value) _expectSelfWrite();
     await _settings.set(kSyncEnabledKey, value);
     if (!value) _debounceTimer?.cancel();
@@ -214,11 +236,24 @@ class SyncController extends ChangeNotifier {
   /// controller's own bookkeeping writes, because a pass that records its own
   /// success would otherwise re-trigger itself forever.
   void notifyLocalChange({bool settingsOnly = false}) {
-    if (_disposed || !_enabled) return;
+    if (_disposed) return;
+    // Consumed before the disabled check below: the matching
+    // `expectSyncAppliedInvalidation()`/`_expectSelfWrite()` call already
+    // happened (possibly while still enabled, or as part of the very
+    // `setEnabled` call that disabled this controller), so the invalidation
+    // it is paired with must be accounted for regardless of the *current*
+    // `_enabled` value. Otherwise a disable landing between the hook firing
+    // and its table event reaching here strands the counter, and it wrongly
+    // swallows the first genuine edit once sync is re-enabled.
     if (settingsOnly && _pendingSelfWrites > 0) {
       _pendingSelfWrites--;
       return;
     }
+    if (_pendingSyncAppliedInvalidations > 0) {
+      _pendingSyncAppliedInvalidations--;
+      return;
+    }
+    if (!_enabled) return;
     if (_inFlight > 0) {
       _dirty = true;
       return;
