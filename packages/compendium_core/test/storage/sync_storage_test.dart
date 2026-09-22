@@ -1307,66 +1307,62 @@ void main() {
     },
   );
 
-  test(
-    'derives the slow identity verifier at most once per pass, for an '
-    'identity already marked used before the pass began',
-    () async {
-      // Simulates the identity having completed a publication in an earlier
-      // pass: the verifier is already durably stored before the storage
-      // instance under test (which stands in for one worker pass) exists.
-      await storage.markSyncUsed('sync-a');
+  test('derives the slow identity verifier at most once per pass, for an '
+      'identity already marked used before the pass began', () async {
+    // Simulates the identity having completed a publication in an earlier
+    // pass: the verifier is already durably stored before the storage
+    // instance under test (which stands in for one worker pass) exists.
+    await storage.markSyncUsed('sync-a');
 
-      // A fresh instance per pass, per CompendiumSyncStorage's contract, so
-      // its per-instance memo starts empty and the first check below must
-      // still derive once.
-      final passStorage = CompendiumSyncStorage(repositories);
-      syncIdentityVerifierDerivationCount = 0;
+    // A fresh instance per pass, per CompendiumSyncStorage's contract, so
+    // its per-instance memo starts empty and the first check below must
+    // still derive once.
+    final passStorage = CompendiumSyncStorage(repositories);
+    syncIdentityVerifierDerivationCount = 0;
 
-      // A single coordinator pass calls `snapshot()` several times: once up
-      // front, again after any §6.9 repairs, again inside
-      // `buildPublicationState` (sometimes twice), plus the
-      // `snapshotCandidates()` concurrency-guard read that calls `snapshot()`
-      // with no sync ID at all. None of those later calls change the
-      // answer, so none of them should re-derive.
-      expect(
-        (await passStorage.snapshot(syncId: 'sync-a')).previouslyUsed,
-        isTrue,
-      );
-      await passStorage.snapshot(); // snapshotCandidates()'s no-id read
-      expect(
-        (await passStorage.snapshot(syncId: 'sync-a')).previouslyUsed,
-        isTrue,
-      );
-      expect(
-        (await passStorage.snapshot(syncId: 'sync-a')).previouslyUsed,
-        isTrue,
-      );
-      expect(
-        (await passStorage.snapshot(syncId: 'sync-a')).previouslyUsed,
-        isTrue,
-      );
+    // A single coordinator pass calls `snapshot()` several times: once up
+    // front, again after any §6.9 repairs, again inside
+    // `buildPublicationState` (sometimes twice), plus the
+    // `snapshotCandidates()` concurrency-guard read that calls `snapshot()`
+    // with no sync ID at all. None of those later calls change the
+    // answer, so none of them should re-derive.
+    expect(
+      (await passStorage.snapshot(syncId: 'sync-a')).previouslyUsed,
+      isTrue,
+    );
+    await passStorage.snapshot(); // snapshotCandidates()'s no-id read
+    expect(
+      (await passStorage.snapshot(syncId: 'sync-a')).previouslyUsed,
+      isTrue,
+    );
+    expect(
+      (await passStorage.snapshot(syncId: 'sync-a')).previouslyUsed,
+      isTrue,
+    );
+    expect(
+      (await passStorage.snapshot(syncId: 'sync-a')).previouslyUsed,
+      isTrue,
+    );
 
-      expect(
-        syncIdentityVerifierDerivationCount,
-        1,
-        reason:
-            'four snapshot() calls for the same already-used sync id in one '
-            'pass must derive the slow verifier only once',
-      );
+    expect(
+      syncIdentityVerifierDerivationCount,
+      1,
+      reason:
+          'four snapshot() calls for the same already-used sync id in one '
+          'pass must derive the slow verifier only once',
+    );
 
-      // markPublicationAttempt's markSyncUsed runs last, inside the write
-      // transaction. Since the identity is already known-used from the
-      // snapshot checks above, it must short-circuit without deriving again.
-      await passStorage.markSyncUsed('sync-a');
+    // markPublicationAttempt's markSyncUsed runs last, inside the write
+    // transaction. Since the identity is already known-used from the
+    // snapshot checks above, it must short-circuit without deriving again.
+    await passStorage.markSyncUsed('sync-a');
 
-      expect(
-        syncIdentityVerifierDerivationCount,
-        1,
-        reason:
-            'markSyncUsed after a positive match must not derive again',
-      );
-    },
-  );
+    expect(
+      syncIdentityVerifierDerivationCount,
+      1,
+      reason: 'markSyncUsed after a positive match must not derive again',
+    );
+  });
 
   test(
     'skips an inbound record with an unavailable reference and applies peers',
