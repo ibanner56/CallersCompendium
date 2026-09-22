@@ -283,7 +283,13 @@ class SyncController extends ChangeNotifier {
     try {
       final result = await coordinator.confirmReplacement();
       await _recordResult(result);
-      if (result.status != SyncPassStatus.freshAttachRequired) {
+      // Only a genuinely completed confirmation resolves the decision. A
+      // failure (e.g. a 500 from `POST /v1/store`) leaves the coordinator's
+      // own replacement-pending state untouched — it never emits a fresh
+      // `replacementRequired` event to bring this back — so clearing the
+      // flag here on any other status would hide a decision that is still
+      // open and unrecoverable without a full re-trigger.
+      if (result.status == SyncPassStatus.completed) {
         _replacementPending = false;
       }
       return result;
@@ -304,12 +310,20 @@ class SyncController extends ChangeNotifier {
   /// Persists a sync ID chosen by the create-or-connect pairing flow, after
   /// the caller has already validated it against the store (spec §6.2,
   /// §6.14 item 5), and asks the app to build the coordinator.
+  ///
+  /// Also runs the resulting fresh-attach pass to completion (subject to the
+  /// usual §6.12 gating) so [lastResult] carries the real W8 duplicate count
+  /// by the time this returns — `reconfigure` alone only awaits the
+  /// coordinator's construction, not the app-start pass it schedules
+  /// unawaited, which would otherwise leave the caller reading a stale or
+  /// empty result.
   Future<void> completePairing(String syncId) async {
     _expectSelfWrite();
     await _settings.set(kSyncIdKey, syncId);
     _paired = true;
     _notify();
     await _reconfigure();
+    await trigger(SyncTrigger.appStart);
   }
 
   void _notify() {

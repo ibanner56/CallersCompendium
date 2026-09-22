@@ -49,6 +49,7 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
   final _connectController = TextEditingController();
   String? _fieldError;
   bool _backupOffered = false;
+  bool _backupInProgress = false;
   bool _busy = false;
   SyncPairingProbe? _probe;
 
@@ -72,6 +73,8 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
   void _regenerate() => setState(() => _candidateId = generateSyncId().value);
 
   Future<void> _offerBackup(bool accept) async {
+    if (_backupInProgress) return;
+    setState(() => _backupInProgress = true);
     if (accept) {
       final repos = RepositoriesScope.of(context);
       final messenger = ScaffoldMessenger.of(context);
@@ -95,7 +98,12 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
         }
       }
     }
-    if (mounted) setState(() => _backupOffered = true);
+    if (mounted) {
+      setState(() {
+        _backupOffered = true;
+        _backupInProgress = false;
+      });
+    }
   }
 
   Future<void> _submit(SyncController controller) async {
@@ -129,7 +137,14 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
     // long as that dialog is open.
     try {
       if (mode == SyncPairingMode.create) {
-        final response = await probe.createStore();
+        final SyncHttpResponse response;
+        try {
+          response = await probe.createStore();
+        } on Object catch (e, st) {
+          logCaughtError(e, st, source: 'sync_pairing_screen._submit.create');
+          setState(() => _fieldError = l10n.settingsSyncPairingUnreachable);
+          return;
+        }
         if (response.kind == SyncResponseKind.conflict) {
           setState(() => _fieldError = l10n.settingsSyncPairingAlreadyInUse);
           return;
@@ -141,7 +156,14 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
       } else {
         // Connecting never infers creation from a missing store (spec §5.2,
         // §6.14 item 5): a 404 is reported and the request stops here.
-        final result = await probe.getStore(previouslyUsed: false);
+        final SyncStoreResult result;
+        try {
+          result = await probe.getStore(previouslyUsed: false);
+        } on Object catch (e, st) {
+          logCaughtError(e, st, source: 'sync_pairing_screen._submit.connect');
+          setState(() => _fieldError = l10n.settingsSyncPairingUnreachable);
+          return;
+        }
         if (result.isMissing) {
           setState(() => _fieldError = l10n.settingsSyncPairingNotFound);
           return;
@@ -305,14 +327,26 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
                     children: [
                       TextButton(
                         key: const ValueKey('sync-pairing-backup-skip'),
-                        onPressed: () => _offerBackup(false),
+                        onPressed: _backupInProgress
+                            ? null
+                            : () => _offerBackup(false),
                         child: Text(l10n.settingsSyncPairingBackupOfferSkip),
                       ),
                       const SizedBox(width: AppSpacing.xs),
                       FilledButton(
                         key: const ValueKey('sync-pairing-backup-accept'),
-                        onPressed: () => _offerBackup(true),
-                        child: Text(l10n.settingsSyncPairingBackupOfferAccept),
+                        onPressed: _backupInProgress
+                            ? null
+                            : () => _offerBackup(true),
+                        child: _backupInProgress
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(l10n.settingsSyncPairingBackupOfferAccept),
                       ),
                     ],
                   ),

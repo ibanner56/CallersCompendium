@@ -45,7 +45,14 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
       _controller = controller
         ..wifiSettingRequests.addListener(_routeToWifiSetting)
         ..addListener(_maybeShowReplacementDialog);
-      _maybeShowReplacementDialog();
+      // Deferred to after this frame: replacementPending can already be true
+      // here (e.g. a startup sync found the missing store before the user
+      // opened Experimental), and showDialog pushing a route during build
+      // trips Flutter's "markNeedsBuild called during build" assertion.
+      // A later, listener-driven call runs outside build and stays immediate.
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _maybeShowReplacementDialog(),
+      );
     }
   }
 
@@ -61,7 +68,8 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
   /// requires confirmation before replacing it. Cancel makes no network call.
   void _maybeShowReplacementDialog() {
     final controller = _controller;
-    if (controller == null ||
+    if (!mounted ||
+        controller == null ||
         !controller.replacementPending ||
         _replacementDialogShowing) {
       return;
