@@ -464,14 +464,16 @@ useful thing you can send.
 
 The **Experimental** section is a home for features that are still in
 development. It may be empty, and anything that appears there can change before
-it becomes a regular setting.
+it becomes a regular setting. Each feature sits in its own section: tap its
+heading to open or close it.
 
 ### Device Sync
 
 **Device Sync** keeps your library in step across your own devices. It is **off
 until you turn it on**, and while it is off the app sends nothing anywhere.
 Turning it on does not send anything by itself; nothing is exchanged until you
-connect a store.
+connect a store. The section starts closed while Device Sync is off and open
+while it is on. You can tap its heading to open or close it.
 
 - **Sync only on WiFi** is on by default. On a mobile-data connection automatic
   sync waits, and pressing **Sync now** tells you why and points at this setting.
@@ -492,7 +494,9 @@ connect a store.
   turns sync on.
 
 **Connecting.** Once enabled, tap **Connect** to either **create a new store**
-(you get a phrase — read it aloud or share it with your other device) or
+(you get a phrase — read it aloud or share it with your other device, or
+replace it with one of your own: four words separated by hyphens. If the phrase
+you choose looks easy to guess, the screen says so but still lets you use it) or
 **connect to an existing one** (enter the phrase shown on the device you
 already set up). The screen tells you which you're doing; it never guesses.
 The **Server** field is pre-filled with the Caller's Compendium sync server,

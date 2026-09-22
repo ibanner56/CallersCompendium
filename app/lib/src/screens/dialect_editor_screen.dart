@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/validation_issue_labels.dart';
 import '../search/facet_labels.dart' show humanizeToken;
+import '../widgets/collapsible_section.dart';
 
 /// Full-screen term editor for a single named [Dialect] (`docs/design/ux.md`
 /// §6). Edits the pieces a dialect can set — role terms (gendered terms live
@@ -569,7 +570,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
           style: TextStyle(color: Theme.of(context).colorScheme.error),
         ),
       ),
-    () => _EditorSection(
+    () => CollapsibleSection(
       sectionKey: const ValueKey('dialect-roles-toggle'),
       title: l10n.dialectEditorSectionRoleTerms,
       expanded: _showRoles,
@@ -582,7 +583,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
         onChanged: _onEdited,
       ),
     ),
-    () => _EditorSection(
+    () => CollapsibleSection(
       sectionKey: const ValueKey('dialect-moves-toggle'),
       title: l10n.dialectEditorSectionMoveSubs,
       expanded: _showMoves,
@@ -594,7 +595,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
         onRemove: _removeMoveSubstitution,
       ),
     ),
-    () => _EditorSection(
+    () => CollapsibleSection(
       sectionKey: const ValueKey('dialect-dancers-toggle'),
       title: l10n.dialectEditorSectionDancerSubs,
       expanded: _showDancers,
@@ -607,7 +608,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
         onRemove: _removeDancerSubstitution,
       ),
     ),
-    () => _EditorSection(
+    () => CollapsibleSection(
       sectionKey: const ValueKey('dialect-wordings-toggle'),
       title: l10n.dialectEditorSectionMoveWordings,
       expanded: _showWordings,
@@ -624,7 +625,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
         onRestoreDefaults: _confirmRestoreMoveWordings,
       ),
     ),
-    () => _EditorSection(
+    () => CollapsibleSection(
       sectionKey: const ValueKey('dialect-discouraged-toggle'),
       title: l10n.dialectEditorSectionDiscouraged,
       expanded: _showDiscouraged,
@@ -660,41 +661,6 @@ class _EditorHeader extends StatelessWidget {
           color: theme.colorScheme.primary,
         ),
       ),
-    );
-  }
-}
-
-class _EditorSection extends StatelessWidget {
-  const _EditorSection({
-    required this.sectionKey,
-    required this.title,
-    required this.expanded,
-    required this.onExpansionChanged,
-    required this.child,
-  });
-
-  final Key sectionKey;
-  final String title;
-  final bool expanded;
-  final ValueChanged<bool> onExpansionChanged;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return ExpansionTile(
-      key: sectionKey,
-      shape: const Border(),
-      collapsedShape: const Border(),
-      initiallyExpanded: expanded,
-      onExpansionChanged: onExpansionChanged,
-      title: Text(
-        title.toUpperCase(),
-        style: theme.textTheme.labelLarge?.copyWith(
-          color: theme.colorScheme.primary,
-        ),
-      ),
-      children: [child],
     );
   }
 }

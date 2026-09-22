@@ -338,7 +338,19 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsSyncPairingYourPhrase => 'Din synkroniseringssætning';
 
   @override
+  String get settingsSyncPairingYourPhraseHelper =>
+      'Fire ord adskilt af bindestreger. Behold den genererede sætning, eller skriv din egen.';
+
+  @override
   String get settingsSyncPairingRegenerate => 'Generér en anden sætning';
+
+  @override
+  String get settingsSyncPairingWeakPhraseTitle =>
+      'Denne sætning kan være nem at gætte';
+
+  @override
+  String get settingsSyncPairingWeakPhraseBody =>
+      'Enhver, der gætter den, kan læse og ændre alt, hvad du synkroniserer. En genereret sætning er meget sværere at gætte. Du kan bruge denne alligevel.';
 
   @override
   String get settingsSyncPairingEnterPhrase => 'Synkroniseringssætning';

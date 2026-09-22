@@ -360,9 +360,21 @@
   "@settingsSyncPairingYourPhrase": {
     "x-sourceSha256": "5d1bff416b1249fb0f1026ae51f86414e77c04b4ef40fd580b76581f4f5ee31a"
   },
+  "settingsSyncPairingYourPhraseHelper": "Fire ord adskilt af bindestreger. Behold den genererede sætning, eller skriv din egen.",
+  "@settingsSyncPairingYourPhraseHelper": {
+    "x-sourceSha256": "7488212dfb907e6fa631f51d660202cd7793499bba3ee824affb054013f0f631"
+  },
   "settingsSyncPairingRegenerate": "Generér en anden sætning",
   "@settingsSyncPairingRegenerate": {
     "x-sourceSha256": "0fedb816d3ffdc13964c8fa7d6c53198a3c8de979c182c17096f111c564c0dd6"
+  },
+  "settingsSyncPairingWeakPhraseTitle": "Denne sætning kan være nem at gætte",
+  "@settingsSyncPairingWeakPhraseTitle": {
+    "x-sourceSha256": "565f68f91b940dfa3a68e738d27915fca5d435cacbc83bec43e85ffe0b172646"
+  },
+  "settingsSyncPairingWeakPhraseBody": "Enhver, der gætter den, kan læse og ændre alt, hvad du synkroniserer. En genereret sætning er meget sværere at gætte. Du kan bruge denne alligevel.",
+  "@settingsSyncPairingWeakPhraseBody": {
+    "x-sourceSha256": "aab84de34f8d82d06579432a65e06ff5b7618f485e6b7f5d7c6b78ad53ee729f"
   },
   "settingsSyncPairingEnterPhrase": "Synkroniseringssætning",
   "@settingsSyncPairingEnterPhrase": {

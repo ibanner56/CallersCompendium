@@ -343,7 +343,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsSyncPairingYourPhrase => 'Votre phrase de synchronisation';
 
   @override
+  String get settingsSyncPairingYourPhraseHelper =>
+      'Quatre mots séparés par des traits d\'union. Gardez la phrase générée ou saisissez la vôtre.';
+
+  @override
   String get settingsSyncPairingRegenerate => 'Générer une autre phrase';
+
+  @override
+  String get settingsSyncPairingWeakPhraseTitle =>
+      'Cette phrase peut être facile à deviner';
+
+  @override
+  String get settingsSyncPairingWeakPhraseBody =>
+      'Quiconque la devine peut lire et modifier tout ce que vous synchronisez. Une phrase générée est bien plus difficile à deviner. Vous pouvez tout de même utiliser celle-ci.';
 
   @override
   String get settingsSyncPairingEnterPhrase => 'Phrase de synchronisation';
