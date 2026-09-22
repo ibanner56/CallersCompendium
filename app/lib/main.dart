@@ -506,17 +506,24 @@ class _CompendiumAppState extends State<CompendiumApp> {
   Future<void>? _syncCoordinatorDisposeFuture;
   Future<void>? _syncWriterTail;
 
-  /// `true` for the span between a writer boundary ([_runSyncWriter]) taking
-  /// ownership (disposing whatever coordinator exists) and its own
-  /// post-operation reconfigure completing. A sync reconfiguration
-  /// ([_configureSyncCoordinatorNow]) that resolves its factory while this is
-  /// true must not install (or start a pass on) the coordinator it just
-  /// built: the writer already owns exclusivity, and the writer's own
-  /// `finally` reconfigures once it is safe. Without this check, a reconfigure
-  /// still awaiting `factory(...)` when a writer starts finds nothing to
-  /// dispose (the coordinator isn't installed yet), so the writer's operation
-  /// (e.g. a backup restore) can run concurrently with a pass the
-  /// just-resolved factory starts — the race spec §6.11 forbids.
+  /// `true` for the span between a writer boundary ([_runSyncWriter]) claiming
+  /// exclusivity (just before disposing whatever coordinator exists) and its
+  /// own `operation()` returning. Cleared in the writer's `finally` *before*
+  /// that same `finally` calls the writer's post-operation reconfigure, not
+  /// after that reconfigure completes: the hazard this flag closes is a sync
+  /// pass running concurrently with the writer's `operation()` itself (e.g. a
+  /// backup restore's raw writes), and that hazard is over the instant
+  /// `operation()` returns, so the flag does not need to — and does not —
+  /// survive into the writer's own reconfigure.
+  ///
+  /// A sync reconfiguration ([_configureSyncCoordinatorNow]) that resolves its
+  /// factory while this is true must not install (or start a pass on) the
+  /// coordinator it just built: the writer already owns exclusivity, and the
+  /// writer's own `finally` reconfigures once it is safe. Without this check,
+  /// a reconfigure still awaiting `factory(...)` when a writer starts finds
+  /// nothing to dispose (the coordinator isn't installed yet), so the
+  /// writer's operation (e.g. a backup restore) can run concurrently with a
+  /// pass the just-resolved factory starts — the race spec §6.11 forbids.
   bool _syncWriterExclusive = false;
   bool _shutdownRequested = false;
 
