@@ -276,6 +276,130 @@
   "@settingsSyncNotPairedNow": {
     "x-sourceSha256": "fcee7c4478b4432bd151cb68def6a130526f17ad8725c53964026a8213b54cc4"
   },
+  "settingsSyncConnectTitle": "Verbinden",
+  "@settingsSyncConnectTitle": {
+    "x-sourceSha256": "1a2303ede07493acc7caaa7c737f3c52bcc9cf04372be19ed1b0af6b9f2c791e"
+  },
+  "settingsSyncPairingTitle": "Apparaatsynchronisatie verbinden",
+  "@settingsSyncPairingTitle": {
+    "x-sourceSha256": "fd23f041c2b9365a68eb2cd4a1903860c38303ce98c1e668199c955de1d84ecf"
+  },
+  "settingsSyncPairingChooseHeading": "Is dit het eerste apparaat, of voeg je er nog een toe?",
+  "@settingsSyncPairingChooseHeading": {
+    "x-sourceSha256": "4c4f3a8d09068ad5168a30be5c10a50569703e1c4d060778be4dd3ae54078974"
+  },
+  "settingsSyncPairingCreateTitle": "Nieuwe opslag maken",
+  "@settingsSyncPairingCreateTitle": {
+    "x-sourceSha256": "fc5a739049e9ebffd3422a787250fbfe34775b06e9b48a0c889e839ab1cc2797"
+  },
+  "settingsSyncPairingCreateSubtitle": "Begin opnieuw. Je krijgt een zin om aan je andere apparaten voor te lezen.",
+  "@settingsSyncPairingCreateSubtitle": {
+    "x-sourceSha256": "23bd6f5f4433d38034714af64fc80a2ffb9aa26a9ddace529125b96adbfaaf86"
+  },
+  "settingsSyncPairingConnectTitle": "Verbinden met bestaande opslag",
+  "@settingsSyncPairingConnectTitle": {
+    "x-sourceSha256": "b36ab8be72f14e0b286c8c13aff9f367948fe5922c3ab1b4d1b46acd87c3086a"
+  },
+  "settingsSyncPairingConnectSubtitle": "Voer de zin in die op het al ingestelde apparaat wordt getoond.",
+  "@settingsSyncPairingConnectSubtitle": {
+    "x-sourceSha256": "b04ab91fe4a2b5cc74daa682e7c34945d0714d40ddc5c8e8d5ecd514c83b5435"
+  },
+  "settingsSyncPairingYourPhrase": "Je synchronisatiezin",
+  "@settingsSyncPairingYourPhrase": {
+    "x-sourceSha256": "5d1bff416b1249fb0f1026ae51f86414e77c04b4ef40fd580b76581f4f5ee31a"
+  },
+  "settingsSyncPairingRegenerate": "Andere zin genereren",
+  "@settingsSyncPairingRegenerate": {
+    "x-sourceSha256": "0fedb816d3ffdc13964c8fa7d6c53198a3c8de979c182c17096f111c564c0dd6"
+  },
+  "settingsSyncPairingEnterPhrase": "Synchronisatiezin",
+  "@settingsSyncPairingEnterPhrase": {
+    "x-sourceSha256": "7c4581adb8b6da5f2ac79f8bf09ba2e1d3803d1e702c81cd2e954f13e25516f5"
+  },
+  "settingsSyncPairingEnterPhraseHint": "woord-woord-woord-woord",
+  "@settingsSyncPairingEnterPhraseHint": {
+    "x-sourceSha256": "26d1f0702fbc299d5983bb679ad99b637f8fc562afc8d361e66df171d0226a32"
+  },
+  "settingsSyncPairingInvalidPhrase": "Dat lijkt niet op een volledige synchronisatiezin.",
+  "@settingsSyncPairingInvalidPhrase": {
+    "x-sourceSha256": "21b4b4c5a41a1b892fdbd68fd465d4fbc8d30539f14a55706792065d4f76ada8"
+  },
+  "settingsSyncPairingNotFound": "Geen opslag heeft die zin. Vergelijk hem met het andere apparaat en probeer het opnieuw.",
+  "@settingsSyncPairingNotFound": {
+    "x-sourceSha256": "4b830f04d0bc60a3764679954454a7461694ed9746759934bfaee2098d6a6e29"
+  },
+  "settingsSyncPairingAlreadyInUse": "Die zin is al in gebruik door een andere opslag. Genereer een andere.",
+  "@settingsSyncPairingAlreadyInUse": {
+    "x-sourceSha256": "a36988588079609c9bf3ae1c4c6d9f3195f235b388f61041b990c2bb47099f1c"
+  },
+  "settingsSyncPairingUnreachable": "Apparaatsynchronisatie is nu niet beschikbaar. Controleer je verbinding en probeer het opnieuw.",
+  "@settingsSyncPairingUnreachable": {
+    "x-sourceSha256": "6b46c1f7e1eaefe2de8cff490ba510bd32a56d8978f101b56f17263fd184ce00"
+  },
+  "settingsSyncPairingSharingTitle": "Delen is geen samenwerking",
+  "@settingsSyncPairingSharingTitle": {
+    "x-sourceSha256": "a548ef1b356aecc00f474bccd2b37174449f06c5f7e4e807a43c9b2abe47ab07"
+  },
+  "settingsSyncPairingSharingBody": "Een tweede persoon kan dezelfde zin op zijn apparaat gebruiken. Als jullie tegelijk dezelfde dans of hetzelfde programma bewerken, overschrijft de ene bewerking stilzwijgend de andere — er is geen waarschuwing en geen manier om ze te combineren.",
+  "@settingsSyncPairingSharingBody": {
+    "x-sourceSha256": "a98a2f3493bfcb71d5e1c5020747752924342c3821a4aa3ca1b4cca5b4c195d1"
+  },
+  "settingsSyncPairingCredentialTitle": "Deze zin kan niet worden hersteld of ingetrokken",
+  "@settingsSyncPairingCredentialTitle": {
+    "x-sourceSha256": "c6abbeba15319ec950ff3d20957906a07104aed09b1e6570eb73a191f7f6fb93"
+  },
+  "settingsSyncPairingCredentialBody": "Als je deze zin kwijtraakt, wordt je opslag onbereikbaar — er is geen wachtwoordherstel. Als hij uitlekt, is de enige oplossing om alle apparaten naar een nieuwe zin te verplaatsen.",
+  "@settingsSyncPairingCredentialBody": {
+    "x-sourceSha256": "8cefe91d1bf18c0df7147a7ce772b9806ad0190dbdef49e2c988a88b5dc29b06"
+  },
+  "settingsSyncPairingBackupOfferTitle": "Eerst je bibliotheek back-uppen?",
+  "@settingsSyncPairingBackupOfferTitle": {
+    "x-sourceSha256": "24b757c0b07a4d48d526b0b6209c02df4f0c0feb3c2653db25f715cf23b97426"
+  },
+  "settingsSyncPairingBackupOfferBody": "Dit is optioneel en alleen voor je eigen veiligheid — verbinden zelf maakt geen back-up.",
+  "@settingsSyncPairingBackupOfferBody": {
+    "x-sourceSha256": "5ae08149f55bb36e3c45f515fe4ec91824a12bfec3c9cb7a555bbc209f20db1d"
+  },
+  "settingsSyncPairingBackupOfferAccept": "Nu back-uppen",
+  "@settingsSyncPairingBackupOfferAccept": {
+    "x-sourceSha256": "02a2840b598b6b1c12d103f05f593fb633510c11b148ea6d1de57438ceca89e3"
+  },
+  "settingsSyncPairingBackupOfferSkip": "Overslaan",
+  "@settingsSyncPairingBackupOfferSkip": {
+    "x-sourceSha256": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06"
+  },
+  "settingsSyncPairingContinue": "Doorgaan",
+  "@settingsSyncPairingContinue": {
+    "x-sourceSha256": "31fbef162594de01bab0cd525c51f74de7bcb15063029fa1a54b2cf5944c80d8"
+  },
+  "settingsSyncPairingComplete": "Verbonden",
+  "@settingsSyncPairingComplete": {
+    "x-sourceSha256": "22965568d22a14ee17af055d2870b50afcfe9fd94a83eec3196e266932297bb2"
+  },
+  "settingsSyncPairingCompleteBody": "Je bibliotheek is verbonden. De eerste synchronisatie loopt nu.",
+  "@settingsSyncPairingCompleteBody": {
+    "x-sourceSha256": "750a225daf2a7bd882f9647303a4ca3c869b1ce0bd820a69c4bfa960293b72ad"
+  },
+  "settingsSyncPairingCompleteDuplicates": "{count, plural, one {{count} dubbele dans gevonden en samengevoegd.} other {{count} dubbele dansen gevonden en samengevoegd.}}",
+  "@settingsSyncPairingCompleteDuplicates": {
+    "x-sourceSha256": "f3420d8fa206527f49c22fec0d183d6d67d54ddb0fa188597b4c169dfe5784d5"
+  },
+  "settingsSyncReplacementTitle": "Deze opslag opnieuw verbinden?",
+  "@settingsSyncReplacementTitle": {
+    "x-sourceSha256": "f89fdb596df9ab804d25c9d81cdcb95707abeeb722b1a682329b6dae9434e3a0"
+  },
+  "settingsSyncReplacementBody": "De opslag waarmee dit apparaat synchroniseerde, bestaat niet meer. Mogelijk is deze verlopen door inactiviteit, of is deze verwijderd. Opnieuw verbinden maakt een nieuwe opslag met dezelfde zin en synchroniseert helemaal opnieuw.",
+  "@settingsSyncReplacementBody": {
+    "x-sourceSha256": "07cb10775fa00e7289a2eb07b808633107fa1dac86c31f3cf54d9470f32a8806"
+  },
+  "settingsSyncReplacementConfirm": "Opnieuw verbinden",
+  "@settingsSyncReplacementConfirm": {
+    "x-sourceSha256": "bf8a9eab9e7e141bfb81f0ca9244a5f68f476ed0b57f03538410417298169d18"
+  },
+  "settingsSyncReplacementCancel": "Niet nu",
+  "@settingsSyncReplacementCancel": {
+    "x-sourceSha256": "a0e63d7c7125d29af84d6919af5550529be77c327324940c98c4b2cb13a99c8c"
+  },
   "settingsAboutTitle": "Over",
   "@settingsAboutTitle": {
     "x-sourceSha256": "4efca0d10c5feb8e9b35eb1d994f2905bb71714e6a271f511d713b539ea5faa1"

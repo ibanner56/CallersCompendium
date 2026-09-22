@@ -192,6 +192,7 @@ Future<void> main() async {
         applicationShutdownController: shutdownController,
         syncCoordinatorFactory: syncCoordinatorFactory.call,
         productionSyncCoordinatorFactory: syncCoordinatorFactory,
+        syncEndpoint: syncCoordinatorFactory.endpoint,
         editorDraftShutdownController: editorDraftShutdownController,
         crashReporter: crashReporter,
         migrationPreflight: (onSnapshotFailure) => runMigrationPreflightForApp(
@@ -252,6 +253,8 @@ class CompendiumApp extends StatefulWidget {
     this.productionSyncCoordinatorFactory,
     this.syncNetworkClassifier = const ConnectivityPlusNetworkClassifier(),
     this.syncDebounce = kSyncChangeDebounce,
+    this.syncEndpoint,
+    this.syncPairingProbeFactory,
     this.editorDraftShutdownController,
   });
 
@@ -293,6 +296,14 @@ class CompendiumApp extends StatefulWidget {
   /// Widget tests override this to something small; production uses the
   /// documented default.
   final Duration syncDebounce;
+
+  /// The release-configured sync endpoint pairing probes against. Mirrors
+  /// [syncCoordinatorFactory]'s own endpoint so the two never disagree.
+  final Uri? syncEndpoint;
+
+  /// Test seam for the pairing screen's create/connect probe; production
+  /// builds a live [SyncHttpClient] from [syncEndpoint].
+  final SyncPairingProbeFactory? syncPairingProbeFactory;
 
   /// Coordinates final draft persistence before ordinary application
   /// termination. The reset flow deliberately bypasses this coordinator while
@@ -594,6 +605,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
       settings: _appData.repositories.settings,
       coordinator: () => _syncCoordinator,
       reconfigure: _configureSyncCoordinator,
+      endpoint: widget.syncEndpoint,
+      pairingProbeFactory: widget.syncPairingProbeFactory,
       classifier: widget.syncNetworkClassifier,
       debounce: widget.syncDebounce,
     );
@@ -656,6 +669,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
 
     final coordinator = _syncCoordinator;
     _syncCoordinator = null;
+    _syncController.attachCoordinator(null);
     final future = Future<void>.sync(() async {
       await coordinator?.dispose();
     });
@@ -1305,6 +1319,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
       return;
     }
     _syncCoordinator = coordinator;
+    _syncController.attachCoordinator(coordinator);
     if (coordinator == null) return;
     unawaited(_runSyncStart());
   }

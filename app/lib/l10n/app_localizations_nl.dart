@@ -259,6 +259,122 @@ class AppLocalizationsNl extends AppLocalizations {
       'Koppel een opslag voordat je synchroniseert.';
 
   @override
+  String get settingsSyncConnectTitle => 'Verbinden';
+
+  @override
+  String get settingsSyncPairingTitle => 'Apparaatsynchronisatie verbinden';
+
+  @override
+  String get settingsSyncPairingChooseHeading =>
+      'Is dit het eerste apparaat, of voeg je er nog een toe?';
+
+  @override
+  String get settingsSyncPairingCreateTitle => 'Nieuwe opslag maken';
+
+  @override
+  String get settingsSyncPairingCreateSubtitle =>
+      'Begin opnieuw. Je krijgt een zin om aan je andere apparaten voor te lezen.';
+
+  @override
+  String get settingsSyncPairingConnectTitle =>
+      'Verbinden met bestaande opslag';
+
+  @override
+  String get settingsSyncPairingConnectSubtitle =>
+      'Voer de zin in die op het al ingestelde apparaat wordt getoond.';
+
+  @override
+  String get settingsSyncPairingYourPhrase => 'Je synchronisatiezin';
+
+  @override
+  String get settingsSyncPairingRegenerate => 'Andere zin genereren';
+
+  @override
+  String get settingsSyncPairingEnterPhrase => 'Synchronisatiezin';
+
+  @override
+  String get settingsSyncPairingEnterPhraseHint => 'woord-woord-woord-woord';
+
+  @override
+  String get settingsSyncPairingInvalidPhrase =>
+      'Dat lijkt niet op een volledige synchronisatiezin.';
+
+  @override
+  String get settingsSyncPairingNotFound =>
+      'Geen opslag heeft die zin. Vergelijk hem met het andere apparaat en probeer het opnieuw.';
+
+  @override
+  String get settingsSyncPairingAlreadyInUse =>
+      'Die zin is al in gebruik door een andere opslag. Genereer een andere.';
+
+  @override
+  String get settingsSyncPairingUnreachable =>
+      'Apparaatsynchronisatie is nu niet beschikbaar. Controleer je verbinding en probeer het opnieuw.';
+
+  @override
+  String get settingsSyncPairingSharingTitle => 'Delen is geen samenwerking';
+
+  @override
+  String get settingsSyncPairingSharingBody =>
+      'Een tweede persoon kan dezelfde zin op zijn apparaat gebruiken. Als jullie tegelijk dezelfde dans of hetzelfde programma bewerken, overschrijft de ene bewerking stilzwijgend de andere — er is geen waarschuwing en geen manier om ze te combineren.';
+
+  @override
+  String get settingsSyncPairingCredentialTitle =>
+      'Deze zin kan niet worden hersteld of ingetrokken';
+
+  @override
+  String get settingsSyncPairingCredentialBody =>
+      'Als je deze zin kwijtraakt, wordt je opslag onbereikbaar — er is geen wachtwoordherstel. Als hij uitlekt, is de enige oplossing om alle apparaten naar een nieuwe zin te verplaatsen.';
+
+  @override
+  String get settingsSyncPairingBackupOfferTitle =>
+      'Eerst je bibliotheek back-uppen?';
+
+  @override
+  String get settingsSyncPairingBackupOfferBody =>
+      'Dit is optioneel en alleen voor je eigen veiligheid — verbinden zelf maakt geen back-up.';
+
+  @override
+  String get settingsSyncPairingBackupOfferAccept => 'Nu back-uppen';
+
+  @override
+  String get settingsSyncPairingBackupOfferSkip => 'Overslaan';
+
+  @override
+  String get settingsSyncPairingContinue => 'Doorgaan';
+
+  @override
+  String get settingsSyncPairingComplete => 'Verbonden';
+
+  @override
+  String get settingsSyncPairingCompleteBody =>
+      'Je bibliotheek is verbonden. De eerste synchronisatie loopt nu.';
+
+  @override
+  String settingsSyncPairingCompleteDuplicates(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dubbele dansen gevonden en samengevoegd.',
+      one: '$count dubbele dans gevonden en samengevoegd.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsSyncReplacementTitle => 'Deze opslag opnieuw verbinden?';
+
+  @override
+  String get settingsSyncReplacementBody =>
+      'De opslag waarmee dit apparaat synchroniseerde, bestaat niet meer. Mogelijk is deze verlopen door inactiviteit, of is deze verwijderd. Opnieuw verbinden maakt een nieuwe opslag met dezelfde zin en synchroniseert helemaal opnieuw.';
+
+  @override
+  String get settingsSyncReplacementConfirm => 'Opnieuw verbinden';
+
+  @override
+  String get settingsSyncReplacementCancel => 'Niet nu';
+
+  @override
   String get settingsAboutTitle => 'Over';
 
   @override

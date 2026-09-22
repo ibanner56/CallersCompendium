@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:compendium_app/src/screens/settings/settings_keys.dart';
 import 'package:compendium_app/src/sync/sync_controller.dart';
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
+import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_app/src/sync/sync_network.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/controllable_sync_transport.dart';
 import '../support/noop_sync_transport.dart';
 import '../support/test_repositories.dart';
 
@@ -468,6 +470,230 @@ void main() {
         classifyConnectivity([ConnectivityResult.other]),
         SyncNetworkKind.unknown,
       );
+    });
+  });
+
+  group('pairing (spec §6.2, §6.14 items 1, 2, 5)', () {
+    test('probeFor returns null without a configured endpoint or factory', () {
+      final controller = build();
+      expect(controller.probeFor('correct horse battery staple'), isNull);
+    });
+
+    test('probeFor uses the injected factory over the real client', () {
+      final probe = SyncPairingProbe(
+        getStore: ({required previouslyUsed}) async =>
+            throw UnimplementedError(),
+        createStore: () async => throw UnimplementedError(),
+      );
+      final controller = SyncController(
+        settings: repos.settings,
+        coordinator: () => coordinator,
+        reconfigure: () async {},
+        endpoint: Uri.parse('https://sync.example.test'),
+        pairingProbeFactory: (syncId) => probe,
+        classifier: network,
+      );
+      addTearDown(controller.dispose);
+      expect(
+        identical(controller.probeFor('correct horse battery staple'), probe),
+        isTrue,
+      );
+    });
+
+    test('completePairing persists the ID, marks paired, and asks for '
+        'reconfiguration exactly once', () async {
+      var reconfigured = 0;
+      final controller = SyncController(
+        settings: repos.settings,
+        coordinator: () => coordinator,
+        reconfigure: () async => reconfigured++,
+        classifier: network,
+      );
+      addTearDown(controller.dispose);
+      await controller.load();
+      expect(controller.paired, isFalse);
+
+      await controller.completePairing('correct horse battery staple');
+
+      expect(controller.paired, isTrue);
+      expect(
+        await repos.settings.get(kSyncIdKey),
+        'correct horse battery staple',
+      );
+      expect(reconfigured, 1);
+    });
+
+    test('completePairing awaits the fresh-attach pass so lastResult carries '
+        'the real W8 duplicate count', () async {
+      coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device',
+        store: CompendiumSyncCoordinatorStore(repos),
+        transport: NoopSyncCoordinatorTransport(),
+        passOperation: ({initialStore}) async =>
+            const SyncPassResult(SyncPassStatus.completed, duplicateCount: 5),
+      );
+      addTearDown(() => coordinator?.dispose());
+      final controller = build();
+      await controller.load();
+      await controller.setEnabled(true);
+
+      await controller.completePairing('correct horse battery staple');
+
+      expect(
+        controller.lastResult?.duplicateCount,
+        5,
+        reason:
+            'reconfigure alone only awaits coordinator construction, not '
+            'the app-start pass it schedules unawaited',
+      );
+    });
+  });
+
+  group('replacement (spec §6.3 step 1, §6.14 item 6)', () {
+    /// A coordinator that reports a missing previously used store on every
+    /// trigger until the confirmation's own `POST /v1/store` has actually
+    /// happened — so a retried trigger before that reproduces the same
+    /// condition, and only a real confirm resolves it.
+    SyncCoordinator replacementCoordinator(
+      ControllableSyncTransport transport,
+    ) => SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device',
+      store: CompendiumSyncCoordinatorStore(repos),
+      transport: transport,
+      passOperation: ({initialStore}) async {
+        if (transport.createStoreCalls == 0) {
+          return const SyncPassResult(SyncPassStatus.replacementRequired);
+        }
+        return const SyncPassResult(
+          SyncPassStatus.completed,
+          duplicateCount: 3,
+        );
+      },
+    );
+
+    test('replacementPending turns on when the coordinator reports a missing '
+        'previously used store', () async {
+      final transport = ControllableSyncTransport();
+      coordinator = replacementCoordinator(transport);
+      final controller = build();
+      addTearDown(() => coordinator?.dispose());
+      controller.attachCoordinator(coordinator);
+      await controller.load();
+      await controller.setEnabled(true);
+
+      expect(controller.replacementPending, isFalse);
+      await controller.syncNow();
+      expect(controller.replacementPending, isTrue);
+    });
+
+    test(
+      'confirm creates once and records the fresh-attach duplicate count',
+      () async {
+        final transport = ControllableSyncTransport();
+        coordinator = replacementCoordinator(transport);
+        final controller = build();
+        addTearDown(() => coordinator?.dispose());
+        controller.attachCoordinator(coordinator);
+        await controller.load();
+        await controller.setEnabled(true);
+        await controller.syncNow();
+        expect(controller.replacementPending, isTrue);
+
+        // A double tap must still issue exactly one `POST /v1/store`: the
+        // coordinator's own single-flight confirmation guard, exercised
+        // through the controller.
+        final first = controller.confirmReplacement();
+        final second = controller.confirmReplacement();
+        final results = await Future.wait([first, second]);
+
+        expect(transport.createStoreCalls, 1);
+        expect(controller.replacementPending, isFalse);
+        expect(
+          results.every((r) => r?.status == SyncPassStatus.completed),
+          isTrue,
+        );
+        expect(controller.lastResult?.duplicateCount, 3);
+      },
+    );
+
+    test(
+      'decline issues no POST and leaves the decision available later',
+      () async {
+        final transport = ControllableSyncTransport();
+        coordinator = replacementCoordinator(transport);
+        final controller = build();
+        addTearDown(() => coordinator?.dispose());
+        controller.attachCoordinator(coordinator);
+        await controller.load();
+        await controller.setEnabled(true);
+        await controller.syncNow();
+        expect(controller.replacementPending, isTrue);
+
+        controller.declineReplacement();
+
+        expect(transport.createStoreCalls, 0);
+        expect(controller.replacementPending, isFalse);
+
+        // The decision is still available: a later manual sync re-offers it
+        // rather than silently having resolved it.
+        await controller.syncNow();
+        expect(controller.replacementPending, isTrue);
+      },
+    );
+
+    test(
+      'a failed confirmation leaves the decision pending and retryable',
+      () async {
+        final transport = ControllableSyncTransport()
+          ..createStoreResponse = const SyncHttpResponse(
+            statusCode: 500,
+            kind: SyncResponseKind.serverError,
+            headers: {},
+            body: [],
+          );
+        coordinator = replacementCoordinator(transport);
+        final controller = build();
+        addTearDown(() => coordinator?.dispose());
+        controller.attachCoordinator(coordinator);
+        await controller.load();
+        await controller.setEnabled(true);
+        await controller.syncNow();
+        expect(controller.replacementPending, isTrue);
+
+        final result = await controller.confirmReplacement();
+
+        expect(result?.status, SyncPassStatus.failed);
+        expect(
+          controller.replacementPending,
+          isTrue,
+          reason:
+              'the coordinator never emits a fresh replacementRequired event '
+              'for a still-pending decision, so clearing this on a failure '
+              'would hide it permanently',
+        );
+
+        // The decision is retryable once the transport recovers.
+        transport.createStoreResponse = const SyncHttpResponse(
+          statusCode: 201,
+          kind: SyncResponseKind.created,
+          headers: {},
+          body: [],
+        );
+        final retry = await controller.confirmReplacement();
+        expect(retry?.status, SyncPassStatus.completed);
+        expect(controller.replacementPending, isFalse);
+      },
+    );
+
+    test('attachCoordinator(null) detaches from a disposed coordinator', () {
+      final controller = build();
+      controller.attachCoordinator(coordinator);
+      controller.attachCoordinator(null);
+      // No StreamSubscription leak assertion is possible from the outside;
+      // this only proves the call is safe to make with no coordinator.
+      expect(controller.replacementPending, isFalse);
     });
   });
 }
