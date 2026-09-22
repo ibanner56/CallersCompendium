@@ -232,13 +232,13 @@
   "@settingsSyncWifiOnlySubtitle": {
     "x-sourceSha256": "281c955643110d523c1f0e6616ac917e4c1eb62c95d3c9f7fe25e6e875e6dc4c"
   },
-  "settingsSyncExcludeImportsTitle": "Geïmporteerde dansen overslaan die in geen enkel programma staan",
+  "settingsSyncExcludeImportsTitle": "Ongebruikte geïmporteerde dansen overslaan",
   "@settingsSyncExcludeImportsTitle": {
-    "x-sourceSha256": "66608fdb27f257a3afbe4a4990f441894f6538732b5a741bf38a0d7908185490"
+    "x-sourceSha256": "13a7925e9cdd2fc7f1329229f1ad3416bdd1f24f9edba254e9c3bd209e576ccb"
   },
-  "settingsSyncExcludeImportsSubtitle": "Standaard uit. Vermindert wat dit apparaat uploadt als je een grote geïmporteerde verzameling hebt; een dans in een van je programma's wordt altijd meegenomen. Er wordt niets van je andere apparaten verwijderd.",
+  "settingsSyncExcludeImportsSubtitle": "Standaard uit. Vermindert wat dit apparaat uploadt als je een grote geïmporteerde verzameling hebt; een dans die in een programma wordt gebruikt of vanuit een andere dans is gelinkt, wordt altijd meegenomen. Er wordt niets van je andere apparaten verwijderd.",
   "@settingsSyncExcludeImportsSubtitle": {
-    "x-sourceSha256": "75f6270b800a8fedabb788035ef0142dde3e9b67f739af7fe3ea76a47e31ee26"
+    "x-sourceSha256": "c00077f0d45dcef13c082a204103353bb4a1b23be4932c20548416ae20746a0d"
   },
   "settingsSyncStatusHeader": "Status",
   "@settingsSyncStatusHeader": {

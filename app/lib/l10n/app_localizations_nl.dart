@@ -218,11 +218,11 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSyncExcludeImportsTitle =>
-      'Geïmporteerde dansen overslaan die in geen enkel programma staan';
+      'Ongebruikte geïmporteerde dansen overslaan';
 
   @override
   String get settingsSyncExcludeImportsSubtitle =>
-      'Standaard uit. Vermindert wat dit apparaat uploadt als je een grote geïmporteerde verzameling hebt; een dans in een van je programma\'s wordt altijd meegenomen. Er wordt niets van je andere apparaten verwijderd.';
+      'Standaard uit. Vermindert wat dit apparaat uploadt als je een grote geïmporteerde verzameling hebt; een dans die in een programma wordt gebruikt of vanuit een andere dans is gelinkt, wordt altijd meegenomen. Er wordt niets van je andere apparaten verwijderd.';
 
   @override
   String get settingsSyncStatusHeader => 'Status';

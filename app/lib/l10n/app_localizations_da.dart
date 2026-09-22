@@ -219,11 +219,11 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncExcludeImportsTitle =>
-      'Spring importerede danse over, der ikke er i et program';
+      'Spring ubrugte importerede danse over';
 
   @override
   String get settingsSyncExcludeImportsSubtitle =>
-      'Fra som standard. Reducerer, hvad denne enhed uploader, hvis du har en stor importeret samling; en dans i et af dine programmer er altid inkluderet. Intet fjernes fra dine andre enheder.';
+      'Slået fra som standard. Reducerer, hvad denne enhed uploader, hvis du har en stor importeret samling; en dans, der bruges i et program eller er linket fra en anden dans, er altid inkluderet. Intet fjernes fra dine andre enheder.';
 
   @override
   String get settingsSyncStatusHeader => 'Status';

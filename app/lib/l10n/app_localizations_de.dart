@@ -218,11 +218,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncExcludeImportsTitle =>
-      'Importierte Tänze überspringen, die in keinem Programm sind';
+      'Ungenutzte importierte Tänze überspringen';
 
   @override
   String get settingsSyncExcludeImportsSubtitle =>
-      'Standardmäßig aus. Reduziert, was dieses Gerät hochlädt, wenn du eine große importierte Sammlung hast; ein Tanz in einem deiner Programme ist immer enthalten. Auf deinen anderen Geräten wird nichts entfernt.';
+      'Standardmäßig aus. Reduziert, was dieses Gerät hochlädt, wenn du eine große importierte Sammlung hast; ein Tanz, der in einem Programm verwendet oder von einem anderen Tanz verlinkt wird, ist immer enthalten. Auf deinen anderen Geräten wird nichts entfernt.';
 
   @override
   String get settingsSyncStatusHeader => 'Status';

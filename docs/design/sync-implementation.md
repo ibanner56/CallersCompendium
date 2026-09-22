@@ -865,7 +865,15 @@ owed before public release (C7).
 All three PRs are complete: #1331 (enablement/status), #1332 (pairing/
 disclosures/replacement), and the `sync_exclude_imports` filter and §6.13
 hint. The filter withholds an imported dance from a device's own manifest
-only when no currently published record cites it, computed once per
+only when it is not reachable, directly or transitively, from any record
+published independently of the filter (a non-imported dance, a program, or
+any other kind), walking citation edges forward from those roots — the
+reverse direction of `syncQuarantineClosure`'s dependents walk. This means an
+imported-only citation chain or cycle with no outside citer is withheld in
+full rather than only at its root, since none of its members is ever reached
+from a root. A tombstone is exempt regardless of provenance, since soft
+deletion leaves the dance's provenance row in place and deletion is not an
+upload-budget decision. Computed once per
 [`CompendiumSyncStorage.snapshot`](../../packages/compendium_core/lib/src/sync/sync_storage.dart)
 call and applied to `publication` only — `local` (inbound merge comparison)
 is untouched, which is also why a peer's imported dance is still applied

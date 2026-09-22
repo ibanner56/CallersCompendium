@@ -477,12 +477,12 @@ connect a store.
   sync waits, and pressing **Sync now** tells you why and points at this setting.
   A pass that was skipped runs the next time sync is triggered; you do not need
   to do anything.
-- **Skip imported dances not in a program** is off by default. If you have a
-  large imported collection, turning it on cuts what this device uploads —
-  but a dance that's actually in one of your programs is always included, so
-  none of your programs lose anything. Turning it on removes nothing already
-  on your other devices; this device just stops advertising the rest. Turning
-  it back off republishes them.
+- **Skip unused imported dances** is off by default. If you have a large
+  imported collection, turning it on cuts what this device uploads — but a
+  dance that's actually used in one of your programs, or linked from another
+  dance, is always included, so nothing that's still in use loses anything.
+  Turning it on removes nothing already on your other devices; this device
+  just stops advertising the rest. Turning it back off republishes them.
 - **Status** shows when this device last synced. **Sync is not a backup:** a
   store that goes unused for 30 days is removed, so keep making file backups.
   From three weeks of disuse the status also warns that the store is close to
