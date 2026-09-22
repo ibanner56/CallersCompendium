@@ -443,7 +443,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared in `app/lib`; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**78 settings keys**: 57 shareable, 7 device-local, 12 device-scoped, 1 protocol-identifier, 1 access-control-data. 4 personal data by category.
+**79 settings keys**: 57 shareable, 7 device-local, 13 device-scoped, 1 protocol-identifier, 1 access-control-data. 4 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -510,6 +510,7 @@ Declared in `app/lib`; classified here so the catalogue has one source of truth.
 | `sort_ignore_articles` | `dpv:NonPersonalData` | app user | shareable |  |
 | `sync_device_id` | `dpv:NonPersonalData` | — | **protocol-identifier** | Opaque per-installation routing identifier. It must travel in protocol metadata but must never be adopted from another device or restored from a backup. |
 | `sync_enabled` | `dpv:NonPersonalData` | — | device-scoped | Per-installation Device Sync consent. Never synced and never restored from a backup: consent given on one device is not consent on another. |
+| `sync_endpoint` | `dpv:NonPersonalData` | — | device-scoped | The Athenaeum server this installation pairs and syncs with. Never synced, because a synced endpoint would let one device silently redirect another, and never restored from a backup. |
 | `sync_exclude_imports` | `dpv:NonPersonalData` | — | device-scoped | Per-installation toggle that trims what this device publishes. It is a statement about this device's upload budget, not the library, so it never syncs or travels in a backup. |
 | `sync_id` | `dpv:PersonalData` | app user | **access-control-data** | User-entered bearer credential. It may contain personal information, travels only in Authorization to the configured sync origin, and is never recoverably retained or logged by the server or a proxy; local persistence is governed by this settings classification. |
 | `sync_last_success_at` | `dpv:NonPersonalData` | — | device-scoped | Time of this installation's last completed sync pass, used only for the local status surface and expiry warning. Never synced or restored from a backup. |

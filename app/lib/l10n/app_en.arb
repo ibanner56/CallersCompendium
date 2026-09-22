@@ -310,6 +310,16 @@
       }
     }
   },
+  "settingsSyncCustomEndpointStatus": "Syncing with a custom server: {host}",
+  "@settingsSyncCustomEndpointStatus": {
+    "description": "Status line shown when this device is paired with a server other than the default Device Sync server (spec §8).",
+    "placeholders": {
+      "host": {
+        "type": "String",
+        "example": "sync.example.org"
+      }
+    }
+  },
   "settingsSyncStatusSyncing": "Syncing…",
   "@settingsSyncStatusSyncing": {
     "description": "Status shown while a sync is running."
@@ -410,9 +420,21 @@
   "@settingsSyncPairingEnterPhraseHint": {
     "description": "Placeholder text in the sync-phrase entry field showing its shape."
   },
+  "settingsSyncPairingEndpointLabel": "Server",
+  "@settingsSyncPairingEndpointLabel": {
+    "description": "Text field label for the Device Sync server address, pre-filled with the default server during pairing."
+  },
+  "settingsSyncPairingEndpointHelper": "Leave this as it is unless you run your own sync server.",
+  "@settingsSyncPairingEndpointHelper": {
+    "description": "Helper text under the Device Sync server field during pairing."
+  },
   "settingsSyncPairingInvalidPhrase": "That doesn't look like a complete sync phrase.",
   "@settingsSyncPairingInvalidPhrase": {
     "description": "Error shown when the entered sync ID fails structural validation."
+  },
+  "settingsSyncPairingInvalidEndpoint": "That isn't a valid server address. Use an https:// address with no username, ? or # part (plain http:// works only for localhost or 127.0.0.1).",
+  "@settingsSyncPairingInvalidEndpoint": {
+    "description": "Error shown when the entered Device Sync server address fails validation (must be https, or http only for localhost/127.0.0.1; no username, query or fragment)."
   },
   "settingsSyncPairingNotFound": "No store has that phrase. Check it against the other device and try again.",
   "@settingsSyncPairingNotFound": {
@@ -425,6 +447,20 @@
   "settingsSyncPairingUnreachable": "Device Sync isn't available right now. Check your connection and try again.",
   "@settingsSyncPairingUnreachable": {
     "description": "Error shown when the pairing request fails for a reason other than 404/409 (network, server)."
+  },
+  "settingsSyncPairingCustomEndpointTitle": "Custom server: {host}",
+  "@settingsSyncPairingCustomEndpointTitle": {
+    "description": "Heading of the warning shown during pairing when the server address is not the default Device Sync server (spec §8).",
+    "placeholders": {
+      "host": {
+        "type": "String",
+        "example": "sync.example.org"
+      }
+    }
+  },
+  "settingsSyncPairingCustomEndpointBody": "This is not the default Device Sync server. Whoever runs it can read, change and delete everything you sync, so only use a server you trust.",
+  "@settingsSyncPairingCustomEndpointBody": {
+    "description": "Body of the custom-server warning shown during pairing (spec §8: a custom endpoint is a deliberate trust decision)."
   },
   "settingsSyncPairingSharingTitle": "Sharing is not collaboration",
   "@settingsSyncPairingSharingTitle": {

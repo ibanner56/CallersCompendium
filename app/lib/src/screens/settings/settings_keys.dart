@@ -127,6 +127,12 @@ const String kProgramMatrixColumnsKey = 'program_matrix_columns';
 /// entered locally and is never included in backups or sync record content.
 const String kSyncIdKey = 'sync_id';
 
+/// The Athenaeum server this installation pairs and syncs with, chosen in the
+/// pairing form. Absent means not paired. Device-local, never synced
+/// (a synced endpoint would let one device silently redirect another) and
+/// never backed up.
+const String kSyncEndpointKey = 'sync_endpoint';
+
 /// Key used to persist this installation's Device Sync routing identifier. It
 /// is minted locally and is never adopted from a peer or included in backups.
 const String kSyncDeviceIdKey = 'sync_device_id';

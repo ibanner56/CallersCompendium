@@ -231,6 +231,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String settingsSyncCustomEndpointStatus(String host) {
+    return 'カスタムサーバーと同期中: $host';
+  }
+
+  @override
   String get settingsSyncStatusSyncing => '同期中…';
 
   @override
@@ -317,7 +322,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsSyncPairingEnterPhraseHint => '単語-単語-単語-単語';
 
   @override
+  String get settingsSyncPairingEndpointLabel => 'サーバー';
+
+  @override
+  String get settingsSyncPairingEndpointHelper =>
+      '独自の同期サーバーを運用している場合を除き、このままにしてください。';
+
+  @override
   String get settingsSyncPairingInvalidPhrase => '完全な同期フレーズのようには見えません。';
+
+  @override
+  String get settingsSyncPairingInvalidEndpoint =>
+      'このサーバーアドレスは無効です。ユーザー名や ?・# 以降の部分を含まない https:// のアドレスを使用してください(http:// は localhost または 127.0.0.1 の場合のみ使用できます)。';
 
   @override
   String get settingsSyncPairingNotFound =>
@@ -330,6 +346,15 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsSyncPairingUnreachable =>
       'デバイス同期は現在利用できません。接続を確認して、もう一度お試しください。';
+
+  @override
+  String settingsSyncPairingCustomEndpointTitle(String host) {
+    return 'カスタムサーバー: $host';
+  }
+
+  @override
+  String get settingsSyncPairingCustomEndpointBody =>
+      'これはデフォルトのデバイス同期サーバーではありません。このサーバーの運営者は、同期するすべてのデータを閲覧・変更・削除できます。信頼できるサーバーのみを使用してください。';
 
   @override
   String get settingsSyncPairingSharingTitle => '共有は共同編集ではありません';

@@ -241,6 +241,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String settingsSyncCustomEndpointStatus(String host) {
+    return 'Synkroniserer med en brugerdefineret server: $host';
+  }
+
+  @override
   String get settingsSyncStatusSyncing => 'Synkroniserer …';
 
   @override
@@ -331,8 +336,19 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsSyncPairingEnterPhraseHint => 'ord-ord-ord-ord';
 
   @override
+  String get settingsSyncPairingEndpointLabel => 'Server';
+
+  @override
+  String get settingsSyncPairingEndpointHelper =>
+      'Lad dette være, medmindre du kører din egen synkroniseringsserver.';
+
+  @override
   String get settingsSyncPairingInvalidPhrase =>
       'Det ligner ikke en fuldstændig synkroniseringssætning.';
+
+  @override
+  String get settingsSyncPairingInvalidEndpoint =>
+      'Det er ikke en gyldig serveradresse. Brug en https://-adresse uden brugernavn og uden ?- eller #-del (almindelig http:// virker kun for localhost eller 127.0.0.1).';
 
   @override
   String get settingsSyncPairingNotFound =>
@@ -345,6 +361,15 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get settingsSyncPairingUnreachable =>
       'Enhedssynkronisering er ikke tilgængelig lige nu. Tjek din forbindelse, og prøv igen.';
+
+  @override
+  String settingsSyncPairingCustomEndpointTitle(String host) {
+    return 'Brugerdefineret server: $host';
+  }
+
+  @override
+  String get settingsSyncPairingCustomEndpointBody =>
+      'Dette er ikke standardserveren til enhedssynkronisering. Den, der driver den, kan læse, ændre og slette alt, hvad du synkroniserer, så brug kun en server, du stoler på.';
 
   @override
   String get settingsSyncPairingSharingTitle => 'Deling er ikke samarbejde';

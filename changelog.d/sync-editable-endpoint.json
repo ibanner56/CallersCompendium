@@ -1,0 +1,17 @@
+{
+  "id": "sync-editable-endpoint",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "When you connect Device Sync, a Server field shows which sync server you're using. It's pre-filled with the Caller's Compendium server, and you can change it if you run your own. The app warns you before you use a different server and keeps showing it on the sync status."
+    ],
+    "fixed": [
+      "Connecting Device Sync no longer fails with \"Device Sync isn't available right now\" on builds that were never given a sync server address."
+    ]
+  },
+  "core": {
+    "added": [
+      "Classify the `sync_endpoint` setting as device-scoped, so it never syncs or travels in a backup."
+    ]
+  }
+}

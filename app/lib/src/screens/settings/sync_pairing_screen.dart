@@ -47,6 +47,7 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
   SyncPairingMode? _mode;
   final _createController = TextEditingController();
   final _connectController = TextEditingController();
+  final _endpointController = TextEditingController(text: kDefaultSyncEndpoint);
   String? _fieldError;
   bool _backupOffered = false;
   bool _backupInProgress = false;
@@ -64,6 +65,7 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
     _probe?.close?.call();
     _createController.dispose();
     _connectController.dispose();
+    _endpointController.dispose();
     super.dispose();
   }
 
@@ -78,6 +80,14 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
   /// strength warning. A phrase the user typed may be weak; §8 requires the
   /// client to warn and forbids it from blocking, so this drives copy only.
   SyncId? get _createCandidate => SyncId.tryParse(_createController.text);
+
+  /// The entered endpoint when it is valid and not the project-operated
+  /// server — a deliberate trust decision the form must warn about (spec §8).
+  Uri? get _customEndpoint {
+    final endpoint = tryParseSyncEndpoint(_endpointController.text);
+    if (endpoint == null || isDefaultSyncEndpoint(endpoint)) return null;
+    return endpoint;
+  }
 
   Future<void> _offerBackup(bool accept) async {
     if (_backupInProgress) return;
@@ -126,12 +136,13 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
       return;
     }
     final candidate = parsed.value;
-
-    final probe = controller.probeFor(candidate);
-    if (probe == null) {
-      setState(() => _fieldError = l10n.settingsSyncPairingUnreachable);
+    final endpoint = tryParseSyncEndpoint(_endpointController.text);
+    if (endpoint == null) {
+      setState(() => _fieldError = l10n.settingsSyncPairingInvalidEndpoint);
       return;
     }
+
+    final probe = controller.probeFor(candidate, endpoint);
     _probe = probe;
     setState(() {
       _busy = true;
@@ -180,7 +191,7 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
         }
       }
 
-      await controller.completePairing(candidate);
+      await controller.completePairing(candidate, endpoint);
     } finally {
       _probe?.close?.call();
       _probe = null;
@@ -310,6 +321,29 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
               labelText: l10n.settingsSyncPairingEnterPhrase,
               hintText: l10n.settingsSyncPairingEnterPhraseHint,
             ),
+          ),
+        ],
+        const SizedBox(height: AppSpacing.md),
+        TextField(
+          key: const ValueKey('sync-pairing-endpoint-field'),
+          controller: _endpointController,
+          enabled: !_busy,
+          keyboardType: TextInputType.url,
+          autocorrect: false,
+          onChanged: (_) => setState(() {}),
+          decoration: InputDecoration(
+            labelText: l10n.settingsSyncPairingEndpointLabel,
+            helperText: l10n.settingsSyncPairingEndpointHelper,
+          ),
+        ),
+        if (_customEndpoint case final custom?) ...[
+          const SizedBox(height: AppSpacing.sm),
+          _Disclosure(
+            key: const ValueKey('sync-pairing-custom-endpoint-warning'),
+            icon: Icons.warning_amber_outlined,
+            iconColor: theme.colorScheme.error,
+            title: l10n.settingsSyncPairingCustomEndpointTitle(custom.host),
+            body: l10n.settingsSyncPairingCustomEndpointBody,
           ),
         ],
         const SizedBox(height: AppSpacing.lg),

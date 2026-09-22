@@ -8,6 +8,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../data/backup_io.dart';
 import '../../sync/sync_controller.dart';
 import '../../sync/sync_coordinator.dart' show SyncPassStatus;
+import '../../sync/sync_http_client.dart' show isDefaultSyncEndpoint;
 import '../../sync/sync_scope.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/section_header.dart';
@@ -202,6 +203,18 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
               );
             },
           ),
+          if (controller.paired &&
+              controller.endpoint != null &&
+              !isDefaultSyncEndpoint(controller.endpoint!))
+            ListTile(
+              key: const ValueKey('sync-custom-endpoint'),
+              leading: Icon(Icons.dns_outlined, color: theme.colorScheme.error),
+              title: Text(
+                l10n.settingsSyncCustomEndpointStatus(
+                  controller.endpoint!.host,
+                ),
+              ),
+            ),
           Padding(
             padding: gutter,
             child: Text(
