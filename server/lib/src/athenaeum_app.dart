@@ -542,7 +542,13 @@ class AthenaeumApp {
       } on StoreQuotaExceeded catch (error) {
         throw _RequestFailure(507, error.message);
       } on StoreEpochMismatch {
-        throw const _RequestFailure(409, 'stale blob epoch');
+        // The store row was reaped or deleted between the lookup above and this
+        // quota preflight. §7.1 reserves `409` for a stale-epoch manifest `PUT`
+        // and a duplicate `POST /v1/store`, so a blob upload reports the
+        // store-not-found outcome it actually had — and through
+        // `_failedResolution`, so §5.4 counts it like every other unresolved
+        // store request.
+        return _failedResolution(request, 404, 'store not found');
       }
       if (request.headers['content-encoding']?.toLowerCase() != 'gzip' &&
           _declaredLengthExceeds(request, quotaLimit)) {
@@ -570,10 +576,11 @@ class AthenaeumApp {
       } on StoreQuotaExceeded catch (error) {
         throw _RequestFailure(507, error.message);
       } on StoreEpochMismatch {
-        if (store.lookup(identity.idKey) == null) {
-          return _failedResolution(request, 404, 'store not found');
-        }
-        throw const _RequestFailure(409, 'stale blob epoch');
+        // Either the store is gone, or it was deleted and re-created at a new
+        // epoch while this upload was in flight. Both mean this epoch's store
+        // no longer exists to accept the blob, and no blob route may answer
+        // `409` (§7.1), so both report the counted `404`.
+        return _failedResolution(request, 404, 'store not found');
       }
       return Response(created ? 201 : 200);
     }
