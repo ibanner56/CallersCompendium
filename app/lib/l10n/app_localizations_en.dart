@@ -329,7 +329,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSyncPairingInvalidEndpoint =>
-      'That server address isn\'t valid. It must start with https://.';
+      'That isn\'t a valid server address. Use an https:// address with no username, ? or # part (plain http:// works only for localhost or 127.0.0.1).';
 
   @override
   String get settingsSyncPairingNotFound =>

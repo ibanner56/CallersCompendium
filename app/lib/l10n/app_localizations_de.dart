@@ -337,7 +337,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncPairingInvalidEndpoint =>
-      'Diese Serveradresse ist ungültig. Sie muss mit https:// beginnen.';
+      'Das ist keine gültige Serveradresse. Verwende eine https://-Adresse ohne Benutzernamen und ohne ?- oder #-Teil (einfaches http:// funktioniert nur für localhost oder 127.0.0.1).';
 
   @override
   String get settingsSyncPairingNotFound =>

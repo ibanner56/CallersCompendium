@@ -649,7 +649,7 @@ abstract class AppLocalizations {
   /// Error shown when the entered Device Sync server address fails validation (must be https, or http only for localhost/127.0.0.1; no username, query or fragment).
   ///
   /// In en, this message translates to:
-  /// **'That server address isn\'t valid. It must start with https://.'**
+  /// **'That isn\'t a valid server address. Use an https:// address with no username, ? or # part (plain http:// works only for localhost or 127.0.0.1).'**
   String get settingsSyncPairingInvalidEndpoint;
 
   /// Error shown when connecting to a sync ID that has no store (404).

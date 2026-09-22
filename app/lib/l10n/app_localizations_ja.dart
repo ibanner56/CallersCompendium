@@ -322,7 +322,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsSyncPairingInvalidEndpoint =>
-      'このサーバーアドレスは無効です。https:// で始まる必要があります。';
+      'このサーバーアドレスは無効です。ユーザー名や ?・# 以降の部分を含まない https:// のアドレスを使用してください(http:// は localhost または 127.0.0.1 の場合のみ使用できます)。';
 
   @override
   String get settingsSyncPairingNotFound =>

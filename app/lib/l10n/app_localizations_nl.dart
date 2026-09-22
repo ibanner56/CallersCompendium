@@ -337,7 +337,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSyncPairingInvalidEndpoint =>
-      'Dat serveradres is niet geldig. Het moet beginnen met https://.';
+      'Dat is geen geldig serveradres. Gebruik een https://-adres zonder gebruikersnaam en zonder ?- of #-deel (gewone http:// werkt alleen voor localhost of 127.0.0.1).';
 
   @override
   String get settingsSyncPairingNotFound =>

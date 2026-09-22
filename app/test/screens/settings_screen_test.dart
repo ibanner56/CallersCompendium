@@ -1953,24 +1953,35 @@ void main() {
         await enableAndOpenPairing(tester);
         await tester.tap(find.byKey(const ValueKey('sync-pairing-create')));
         await tester.pumpAndSettle();
-        await tester.enterText(
-          find.byKey(const ValueKey('sync-pairing-endpoint-field')),
-          'http://sync.example.test/',
-        );
         await tester.tap(
           find.byKey(const ValueKey('sync-pairing-backup-skip')),
         );
         await tester.pumpAndSettle();
-        await tester.tap(find.byKey(const ValueKey('sync-pairing-continue')));
-        await tester.pumpAndSettle();
 
-        expect(probeBuilt, isFalse);
-        expect(
-          find.text(
-            "That server address isn't valid. It must start with https://.",
-          ),
-          findsOneWidget,
-        );
+        // Plaintext to a non-loopback host, and an https address carrying a
+        // query: the one message must be accurate for both.
+        for (final rejected in [
+          'http://sync.example.test/',
+          'https://sync.example.test/?q=1',
+        ]) {
+          await tester.enterText(
+            find.byKey(const ValueKey('sync-pairing-endpoint-field')),
+            rejected,
+          );
+          await tester.tap(find.byKey(const ValueKey('sync-pairing-continue')));
+          await tester.pumpAndSettle();
+
+          expect(probeBuilt, isFalse, reason: rejected);
+          expect(
+            find.text(
+              "That isn't a valid server address. Use an https:// address "
+              'with no username, ? or # part (plain http:// works only for '
+              'localhost or 127.0.0.1).',
+            ),
+            findsOneWidget,
+            reason: rejected,
+          );
+        }
       });
 
       testWidgets('connecting to a custom server probes that server, persists '

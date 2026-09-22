@@ -360,9 +360,9 @@
   "@settingsSyncPairingInvalidPhrase": {
     "x-sourceSha256": "21b4b4c5a41a1b892fdbd68fd465d4fbc8d30539f14a55706792065d4f76ada8"
   },
-  "settingsSyncPairingInvalidEndpoint": "Diese Serveradresse ist ungültig. Sie muss mit https:// beginnen.",
+  "settingsSyncPairingInvalidEndpoint": "Das ist keine gültige Serveradresse. Verwende eine https://-Adresse ohne Benutzernamen und ohne ?- oder #-Teil (einfaches http:// funktioniert nur für localhost oder 127.0.0.1).",
   "@settingsSyncPairingInvalidEndpoint": {
-    "x-sourceSha256": "07dfffa05b422fca32646f628ddacb5e73f0fec4b5e1984773fe7a38dfcef671"
+    "x-sourceSha256": "e06e4c0766ac602296f6f38d5f95fed7d170341caa4d45871ac3916a2ffdd345"
   },
   "settingsSyncPairingNotFound": "Kein Speicher hat diese Phrase. Vergleiche sie mit dem anderen Gerät und versuche es erneut.",
   "@settingsSyncPairingNotFound": {

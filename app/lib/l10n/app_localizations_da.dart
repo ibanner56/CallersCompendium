@@ -336,7 +336,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncPairingInvalidEndpoint =>
-      'Den serveradresse er ikke gyldig. Den skal starte med https://.';
+      'Det er ikke en gyldig serveradresse. Brug en https://-adresse uden brugernavn og uden ?- eller #-del (almindelig http:// virker kun for localhost eller 127.0.0.1).';
 
   @override
   String get settingsSyncPairingNotFound =>

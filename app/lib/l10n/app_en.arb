@@ -420,7 +420,7 @@
   "@settingsSyncPairingInvalidPhrase": {
     "description": "Error shown when the entered sync ID fails structural validation."
   },
-  "settingsSyncPairingInvalidEndpoint": "That server address isn't valid. It must start with https://.",
+  "settingsSyncPairingInvalidEndpoint": "That isn't a valid server address. Use an https:// address with no username, ? or # part (plain http:// works only for localhost or 127.0.0.1).",
   "@settingsSyncPairingInvalidEndpoint": {
     "description": "Error shown when the entered Device Sync server address fails validation (must be https, or http only for localhost/127.0.0.1; no username, query or fragment)."
   },

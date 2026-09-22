@@ -343,7 +343,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncPairingInvalidEndpoint =>
-      'Cette adresse de serveur n\'est pas valide. Elle doit commencer par https://.';
+      'Cette adresse de serveur n\'est pas valide. Utilisez une adresse https:// sans nom d\'utilisateur, ni partie ? ou # (http:// simple n\'est accepté que pour localhost ou 127.0.0.1).';
 
   @override
   String get settingsSyncPairingNotFound =>
