@@ -9,7 +9,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from _bash import find_bash
+from _bash import bash_environ, find_bash
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -115,10 +115,9 @@ def _run_guard_script(
         )
         for name in ("gh", "curl"):
             (fake_bin / name).chmod(0o755)
-        environment = os.environ.copy()
+        environment = bash_environ(stub_dir=fake_bin)
         environment.update(
             {
-                "PATH": f"{fake_bin}{os.pathsep}{environment.get('PATH', '')}",
                 "CALLS": str(calls),
                 "IS_DRAFT": is_draft,
                 "CURL_OK": "1" if curl_ok else "0",
@@ -217,10 +216,9 @@ esac
         )
         fake_gh.chmod(0o755)
 
-        environment = os.environ.copy()
+        environment = bash_environ(stub_dir=fake_bin)
         environment.update(
             {
-                "PATH": f"{fake_bin}{os.pathsep}{environment.get('PATH', '')}",
                 "GH_CALLS": str(calls_path),
                 "GH_ACTIONS": str(actions_path),
                 "RELEASE_STATE": release_state,

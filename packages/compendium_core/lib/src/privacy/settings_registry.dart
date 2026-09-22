@@ -127,9 +127,14 @@ final Map<String, DataClassification> settingsClassifications = {
     egress: EgressClass.accessControlData,
     note:
         'User-entered bearer credential. It may contain personal information, '
-        'travels only in Authorization to the configured sync origin, and is '
-        'never recoverably retained or logged by the server or a proxy; local '
-        'persistence is governed by this settings classification.',
+        'leaves the device over the network only in Authorization to the '
+        'configured sync origin, and is never recoverably retained or logged '
+        'by the server or a proxy; local persistence is governed by this '
+        'settings classification. The status surface can also show it and '
+        'copy it to the system clipboard when the user asks, so the '
+        'device that holds it can be joined by another without the phrase '
+        'having been written down at pairing; that path is user-initiated, '
+        'stays on the device, and is masked until asked for.',
   ),
   'sync_device_id': const DataClassification(
     term: DpvTerm.nonPersonal,

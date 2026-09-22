@@ -220,6 +220,29 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsSyncStatusHeader => 'ステータス';
 
   @override
+  String get settingsSyncIdTitle => '同期フレーズ';
+
+  @override
+  String get settingsSyncIdMasked => '非表示';
+
+  @override
+  String get settingsSyncIdShow => '同期フレーズを表示';
+
+  @override
+  String get settingsSyncIdHide => '同期フレーズを非表示';
+
+  @override
+  String get settingsSyncIdCopy => '同期フレーズをコピー';
+
+  @override
+  String get settingsSyncIdCopied =>
+      '同期フレーズをコピーしました。ストアを開けるものなので、自分のデバイスにのみ貼り付けてください。';
+
+  @override
+  String get settingsSyncIdCaution =>
+      'もう一方のデバイスでこれを入力すると接続できます。これを持つ人は同期しているすべての内容を読み書きでき、変更するにはすべてのデバイスを新しいフレーズに移行するしかありません。';
+
+  @override
   String get settingsSyncStatusNotPaired => 'まだストアに接続されていません。';
 
   @override
