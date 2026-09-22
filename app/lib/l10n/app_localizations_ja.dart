@@ -248,6 +248,117 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsSyncNotPairedNow => '同期する前にストアを接続してください。';
 
   @override
+  String get settingsSyncConnectTitle => '接続';
+
+  @override
+  String get settingsSyncPairingTitle => 'デバイス同期を接続';
+
+  @override
+  String get settingsSyncPairingChooseHeading =>
+      'これは最初のデバイスですか、それとも追加のデバイスですか?';
+
+  @override
+  String get settingsSyncPairingCreateTitle => '新しいストアを作成';
+
+  @override
+  String get settingsSyncPairingCreateSubtitle =>
+      '最初から始めます。他のデバイスに読み上げるためのフレーズが表示されます。';
+
+  @override
+  String get settingsSyncPairingConnectTitle => '既存のストアに接続';
+
+  @override
+  String get settingsSyncPairingConnectSubtitle =>
+      'すでに設定済みのデバイスに表示されているフレーズを入力してください。';
+
+  @override
+  String get settingsSyncPairingYourPhrase => '同期フレーズ';
+
+  @override
+  String get settingsSyncPairingRegenerate => '別のフレーズを生成';
+
+  @override
+  String get settingsSyncPairingEnterPhrase => '同期フレーズ';
+
+  @override
+  String get settingsSyncPairingEnterPhraseHint => '単語-単語-単語-単語';
+
+  @override
+  String get settingsSyncPairingInvalidPhrase => '完全な同期フレーズのようには見えません。';
+
+  @override
+  String get settingsSyncPairingNotFound =>
+      'そのフレーズに一致するストアがありません。もう一方のデバイスと照合して、もう一度お試しください。';
+
+  @override
+  String get settingsSyncPairingAlreadyInUse =>
+      'そのフレーズはすでに別のストアで使用されています。別のフレーズを生成してください。';
+
+  @override
+  String get settingsSyncPairingUnreachable =>
+      'デバイス同期は現在利用できません。接続を確認して、もう一度お試しください。';
+
+  @override
+  String get settingsSyncPairingSharingTitle => '共有は共同編集ではありません';
+
+  @override
+  String get settingsSyncPairingSharingBody =>
+      'もう一人が同じフレーズを自分のデバイスで使用できます。同じダンスやプログラムを同時に編集すると、一方の編集がもう一方を警告なく静かに上書きし、両方を統合する方法はありません。';
+
+  @override
+  String get settingsSyncPairingCredentialTitle => 'このフレーズは復元も無効化もできません';
+
+  @override
+  String get settingsSyncPairingCredentialBody =>
+      'このフレーズを紛失すると、ストアに到達できなくなります — パスワードのリセットはありません。漏えいした場合、唯一の対処法はすべてのデバイスを新しいフレーズに移行することです。';
+
+  @override
+  String get settingsSyncPairingBackupOfferTitle => '先にライブラリをバックアップしますか?';
+
+  @override
+  String get settingsSyncPairingBackupOfferBody =>
+      'これは任意で、あくまでご自身の安全のためのものです — 接続自体は何もバックアップしません。';
+
+  @override
+  String get settingsSyncPairingBackupOfferAccept => '今すぐバックアップ';
+
+  @override
+  String get settingsSyncPairingBackupOfferSkip => 'スキップ';
+
+  @override
+  String get settingsSyncPairingContinue => '続ける';
+
+  @override
+  String get settingsSyncPairingComplete => '接続しました';
+
+  @override
+  String get settingsSyncPairingCompleteBody =>
+      'ライブラリが接続されました。最初の同期が今実行されています。';
+
+  @override
+  String settingsSyncPairingCompleteDuplicates(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '重複するダンスを$count件見つけて統合しました。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsSyncReplacementTitle => 'このストアに再接続しますか?';
+
+  @override
+  String get settingsSyncReplacementBody =>
+      'このデバイスが同期していたストアはもう存在しません。非アクティブにより期限切れになったか、削除された可能性があります。再接続すると、同じフレーズで新しいストアが作成され、最初から再同期します。';
+
+  @override
+  String get settingsSyncReplacementConfirm => '再接続';
+
+  @override
+  String get settingsSyncReplacementCancel => '今はしない';
+
+  @override
   String get settingsAboutTitle => '情報';
 
   @override

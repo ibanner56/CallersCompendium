@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/backup_io.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/custom_theme.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
@@ -22,12 +25,14 @@ import 'package:compendium_app/src/data/walkthrough_snippet_library_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
 import 'package:compendium_app/src/sync/sync_controller.dart';
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
+import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_app/src/sync/sync_network.dart';
 import 'package:compendium_app/src/sync/sync_scope.dart';
 import 'package:compendium_app/src/update/update_controller.dart';
 import 'package:compendium_app/src/update/update_scope.dart';
 import 'package:compendium_app/src/widgets/section_header.dart';
 
+import '../support/controllable_sync_transport.dart';
 import '../support/noop_sync_transport.dart';
 import '../support/test_repositories.dart';
 import '../support/l10n_harness.dart';
@@ -44,6 +49,7 @@ final class _SyncNetwork implements SyncNetworkClassifier {
 
 final _syncNetwork = _SyncNetwork();
 SyncCoordinator? _syncCoordinator;
+SyncPairingProbeFactory? _pairingProbeFactory;
 
 Future<
   ({
@@ -65,6 +71,7 @@ _pumpSettings(
   bool initialSortIgnoreArticles = true,
   bool initialTrackHistoryForAllCallers = false,
   Size surfaceSize = const Size(1000, 2600),
+  BackupSaver? backupSaver,
 }) async {
   final repos = openTestRepositories();
   await repos.ensureMigrated();
@@ -110,6 +117,8 @@ _pumpSettings(
     settings: repos.settings,
     coordinator: () => _syncCoordinator,
     reconfigure: () async {},
+    endpoint: Uri.parse('https://sync.example.test'),
+    pairingProbeFactory: _pairingProbeFactory,
     classifier: _syncNetwork,
   );
   await syncController.load();
@@ -176,7 +185,7 @@ _pumpSettings(
           ),
         ),
       ),
-      home: const SettingsScreen(),
+      home: SettingsScreen(backupSaver: backupSaver),
     ),
   );
   await tester.pumpAndSettle();
@@ -1278,6 +1287,7 @@ void main() {
       setUp(() {
         _syncNetwork.kind = SyncNetworkKind.unmetered;
         _syncCoordinator = null;
+        _pairingProbeFactory = null;
       });
 
       testWidgets('lives under Experimental, not as its own settings section', (
@@ -1402,6 +1412,554 @@ void main() {
 
           expect(
             find.textContaining('Sync only on WiFi is on'),
+            findsOneWidget,
+          );
+        },
+      );
+    });
+
+    group('SyncPairingScreen (ADR-004/W13 PR2)', () {
+      Future<void> openExperimental(WidgetTester tester) async {
+        await tester.tap(
+          find.byKey(const ValueKey('settings-nav-experimental')),
+        );
+        await tester.pumpAndSettle();
+      }
+
+      Future<void> enableAndOpenPairing(
+        WidgetTester tester, {
+        BackupSaver? backupSaver,
+      }) async {
+        await _pumpSettings(tester, backupSaver: backupSaver);
+        await openExperimental(tester);
+        await tester.tap(find.byKey(const ValueKey('sync-enabled-toggle')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('sync-connect')));
+        await tester.pumpAndSettle();
+      }
+
+      setUp(() {
+        _syncNetwork.kind = SyncNetworkKind.unmetered;
+        _syncCoordinator = null;
+        _pairingProbeFactory = null;
+      });
+
+      testWidgets('the connect button opens the create-or-connect choice, '
+          'never inferring either (spec §6.14 item 5)', (tester) async {
+        await enableAndOpenPairing(tester);
+
+        expect(
+          find.byKey(const ValueKey('sync-pairing-create')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('sync-pairing-connect')),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets(
+        'the completion dialog reports the real fresh-attach duplicate '
+        'count once the first pass has actually run',
+        (tester) async {
+          _pairingProbeFactory = (syncId) => SyncPairingProbe(
+            getStore: ({required previouslyUsed}) async =>
+                throw UnimplementedError(),
+            createStore: () async => const SyncHttpResponse(
+              statusCode: 201,
+              kind: SyncResponseKind.created,
+              headers: {},
+              body: [],
+            ),
+          );
+          final harness = await _pumpSettings(tester);
+          await harness.repos.ensureMigrated();
+          _syncCoordinator = SyncCoordinator(
+            syncId: 'configured',
+            deviceId: 'device',
+            store: CompendiumSyncCoordinatorStore(harness.repos),
+            transport: NoopSyncCoordinatorTransport(),
+            passOperation: ({initialStore}) async => const SyncPassResult(
+              SyncPassStatus.completed,
+              duplicateCount: 2,
+            ),
+          );
+          addTearDown(_syncCoordinator!.dispose);
+          await openExperimental(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-enabled-toggle')));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('sync-connect')));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('sync-pairing-create')));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('sync-pairing-backup-skip')),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('sync-pairing-continue')));
+          await tester.pumpAndSettle();
+
+          expect(
+            find.text('Found and merged 2 duplicate dances.'),
+            findsOneWidget,
+          );
+        },
+      );
+
+      testWidgets(
+        'creating shows the sharing and no-recovery disclosures, offers a '
+        'skippable backup, and reports success once connected',
+        (tester) async {
+          var createCalls = 0;
+          _pairingProbeFactory = (syncId) => SyncPairingProbe(
+            getStore: ({required previouslyUsed}) async =>
+                throw UnimplementedError('create must not GET'),
+            createStore: () async {
+              createCalls++;
+              return const SyncHttpResponse(
+                statusCode: 201,
+                kind: SyncResponseKind.created,
+                headers: {},
+                body: [],
+              );
+            },
+          );
+          await enableAndOpenPairing(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-pairing-create')));
+          await tester.pumpAndSettle();
+
+          expect(
+            find.byKey(const ValueKey('sync-pairing-sharing-disclosure')),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-pairing-credential-disclosure')),
+            findsOneWidget,
+          );
+          expect(find.text('Sharing is not collaboration'), findsOneWidget);
+          expect(
+            find.text("This phrase can't be recovered or revoked"),
+            findsOneWidget,
+          );
+
+          await tester.tap(
+            find.byKey(const ValueKey('sync-pairing-backup-skip')),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('sync-pairing-continue')));
+          await tester.pumpAndSettle();
+
+          expect(createCalls, 1);
+          expect(
+            find.byKey(const ValueKey('sync-pairing-complete-dialog')),
+            findsOneWidget,
+          );
+          expect(find.text('Connected'), findsOneWidget);
+
+          await tester.tap(
+            find.byKey(const ValueKey('sync-pairing-complete-ok')),
+          );
+          await tester.pumpAndSettle();
+
+          // Back on Settings: paired, and the sync ID is persisted.
+          expect(
+            find.byKey(const ValueKey('sync-pairing-create')),
+            findsNothing,
+          );
+          expect(find.text('Connected. Not synced yet.'), findsOneWidget);
+        },
+      );
+
+      testWidgets(
+        'creating a phrase that is already in use reports it and starts '
+        'nothing (spec §6.14 item 5)',
+        (tester) async {
+          _pairingProbeFactory = (syncId) => SyncPairingProbe(
+            getStore: ({required previouslyUsed}) async =>
+                throw UnimplementedError('create must not GET'),
+            createStore: () async => const SyncHttpResponse(
+              statusCode: 409,
+              kind: SyncResponseKind.conflict,
+              headers: {},
+              body: [],
+            ),
+          );
+          final harness = await _pumpSettings(tester);
+          await openExperimental(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-enabled-toggle')));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('sync-connect')));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('sync-pairing-create')));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('sync-pairing-backup-skip')),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('sync-pairing-continue')));
+          await tester.pumpAndSettle();
+
+          expect(
+            find.text(
+              'That phrase is already in use by another store. Generate a '
+              'different one.',
+            ),
+            findsOneWidget,
+          );
+          expect(await harness.repos.settings.get('sync_id'), isNull);
+        },
+      );
+
+      testWidgets(
+        'connecting to a phrase with no store reports it and never creates '
+        'one (spec §6.2 step 2, §6.14 item 5)',
+        (tester) async {
+          var getStoreCalls = 0;
+          var createStoreCalls = 0;
+          _pairingProbeFactory = (syncId) => SyncPairingProbe(
+            getStore: ({required previouslyUsed}) async {
+              getStoreCalls++;
+              expect(
+                previouslyUsed,
+                isFalse,
+                reason: 'a fresh pairing attempt has no local baseline',
+              );
+              return SyncStoreResult(
+                response: const SyncHttpResponse(
+                  statusCode: 404,
+                  kind: SyncResponseKind.notFound,
+                  headers: {},
+                  body: [],
+                ),
+                missingKind: SyncStoreMissingKind.firstTime,
+              );
+            },
+            createStore: () async {
+              createStoreCalls++;
+              throw StateError('connect must never POST');
+            },
+          );
+          final harness = await _pumpSettings(tester);
+          await openExperimental(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-enabled-toggle')));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('sync-connect')));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('sync-pairing-connect')));
+          await tester.pumpAndSettle();
+          await tester.enterText(
+            find.byKey(const ValueKey('sync-pairing-phrase-field')),
+            'alpha-bravo-charlie-delta',
+          );
+          await tester.tap(
+            find.byKey(const ValueKey('sync-pairing-backup-skip')),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('sync-pairing-continue')));
+          await tester.pumpAndSettle();
+
+          expect(getStoreCalls, 1);
+          expect(createStoreCalls, 0);
+          expect(
+            find.text(
+              "No store has that phrase. Check it against the other device "
+              "and try again.",
+            ),
+            findsOneWidget,
+          );
+          expect(await harness.repos.settings.get('sync_id'), isNull);
+        },
+      );
+
+      testWidgets('an incomplete phrase is rejected before any network call', (
+        tester,
+      ) async {
+        var probeBuilt = false;
+        _pairingProbeFactory = (syncId) {
+          probeBuilt = true;
+          throw StateError('must not be reached for an invalid phrase');
+        };
+        await enableAndOpenPairing(tester);
+        await tester.tap(find.byKey(const ValueKey('sync-pairing-connect')));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const ValueKey('sync-pairing-phrase-field')),
+          'only-three-words',
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('sync-pairing-backup-skip')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('sync-pairing-continue')));
+        await tester.pumpAndSettle();
+
+        expect(probeBuilt, isFalse);
+        expect(
+          find.text("That doesn't look like a complete sync phrase."),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets(
+        'a transport failure while creating is reported, not left to crash '
+        'the button callback',
+        (tester) async {
+          _pairingProbeFactory = (syncId) => SyncPairingProbe(
+            getStore: ({required previouslyUsed}) async =>
+                throw UnimplementedError(),
+            createStore: () async =>
+                throw const SyncTransportException('simulated timeout'),
+          );
+          await enableAndOpenPairing(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-pairing-create')));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('sync-pairing-backup-skip')),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('sync-pairing-continue')));
+          await tester.pumpAndSettle();
+
+          expect(tester.takeException(), isNull);
+          expect(
+            find.text(
+              "Device Sync isn't available right now. Check your "
+              "connection and try again.",
+            ),
+            findsOneWidget,
+          );
+        },
+      );
+
+      testWidgets(
+        'the backup offer never starts automatically: skip exports nothing, '
+        'accept exports exactly once (spec §6.14 item 3)',
+        (tester) async {
+          var exportCalls = 0;
+          Future<bool> saver(String json, String name) async {
+            exportCalls++;
+            return true;
+          }
+
+          _pairingProbeFactory = (syncId) => SyncPairingProbe(
+            getStore: ({required previouslyUsed}) async =>
+                throw UnimplementedError(),
+            createStore: () async => const SyncHttpResponse(
+              statusCode: 201,
+              kind: SyncResponseKind.created,
+              headers: {},
+              body: [],
+            ),
+          );
+          await enableAndOpenPairing(tester, backupSaver: saver);
+          await tester.tap(find.byKey(const ValueKey('sync-pairing-create')));
+          await tester.pumpAndSettle();
+
+          // The backup offer is shown but nothing has been exported yet.
+          expect(exportCalls, 0);
+
+          await tester.tap(
+            find.byKey(const ValueKey('sync-pairing-backup-accept')),
+          );
+          await tester.pumpAndSettle();
+
+          expect(exportCalls, 1);
+        },
+      );
+
+      testWidgets(
+        'skipping the backup offer exports nothing (spec §6.14 item 3)',
+        (tester) async {
+          var exportCalls = 0;
+          Future<bool> saver(String json, String name) async {
+            exportCalls++;
+            return true;
+          }
+
+          _pairingProbeFactory = (syncId) => SyncPairingProbe(
+            getStore: ({required previouslyUsed}) async =>
+                throw UnimplementedError(),
+            createStore: () async => const SyncHttpResponse(
+              statusCode: 201,
+              kind: SyncResponseKind.created,
+              headers: {},
+              body: [],
+            ),
+          );
+          await enableAndOpenPairing(tester, backupSaver: saver);
+          await tester.tap(find.byKey(const ValueKey('sync-pairing-create')));
+          await tester.pumpAndSettle();
+
+          await tester.tap(
+            find.byKey(const ValueKey('sync-pairing-backup-skip')),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('sync-pairing-continue')));
+          await tester.pumpAndSettle();
+
+          expect(exportCalls, 0);
+        },
+      );
+
+      testWidgets('a rapid double tap on backup accept starts only one export '
+          '(spec §6.14 item 3)', (tester) async {
+        var exportCalls = 0;
+        final gate = Completer<bool>();
+        Future<bool> saver(String json, String name) {
+          exportCalls++;
+          return gate.future;
+        }
+
+        _pairingProbeFactory = (syncId) => SyncPairingProbe(
+          getStore: ({required previouslyUsed}) async =>
+              throw UnimplementedError(),
+          createStore: () async => const SyncHttpResponse(
+            statusCode: 201,
+            kind: SyncResponseKind.created,
+            headers: {},
+            body: [],
+          ),
+        );
+        await enableAndOpenPairing(tester, backupSaver: saver);
+        await tester.tap(find.byKey(const ValueKey('sync-pairing-create')));
+        await tester.pumpAndSettle();
+
+        final accept = find.byKey(const ValueKey('sync-pairing-backup-accept'));
+        await tester.tap(accept);
+        await tester.pump();
+        // The first export is still pending on `gate`; a second tap while
+        // the button is disabled must have no effect.
+        await tester.tap(accept);
+        await tester.pump();
+
+        gate.complete(true);
+        await tester.pumpAndSettle();
+
+        expect(exportCalls, 1);
+      });
+    });
+
+    group('Replacement dialog (ADR-004/W13 PR2, spec §6.14 item 6)', () {
+      Future<void> openExperimental(WidgetTester tester) async {
+        await tester.tap(
+          find.byKey(const ValueKey('settings-nav-experimental')),
+        );
+        await tester.pumpAndSettle();
+      }
+
+      setUp(() {
+        _syncNetwork.kind = SyncNetworkKind.unmetered;
+        _syncCoordinator = null;
+        _pairingProbeFactory = null;
+      });
+
+      testWidgets(
+        'explains the missing store without asserting a cause, and confirm '
+        'issues exactly one POST while cancel issues none',
+        (tester) async {
+          final transport = ControllableSyncTransport();
+          final harness = await _pumpSettings(tester);
+          await harness.repos.settings.set('sync_id', 'configured-store-id-x');
+          final controller = SyncScope.of(
+            tester.element(find.byType(SettingsScreen)),
+          );
+          await controller.setEnabled(true);
+          await controller.load();
+
+          _syncCoordinator = SyncCoordinator(
+            syncId: 'configured',
+            deviceId: 'device',
+            store: CompendiumSyncCoordinatorStore(harness.repos),
+            transport: transport,
+            passOperation: ({initialStore}) async {
+              if (transport.createStoreCalls == 0) {
+                return const SyncPassResult(SyncPassStatus.replacementRequired);
+              }
+              return const SyncPassResult(SyncPassStatus.completed);
+            },
+          );
+          addTearDown(_syncCoordinator!.dispose);
+          controller.attachCoordinator(_syncCoordinator);
+          await openExperimental(tester);
+
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+
+          expect(
+            find.byKey(const ValueKey('sync-replacement-dialog')),
+            findsOneWidget,
+          );
+          final body = tester
+              .widget<Text>(
+                find.descendant(
+                  of: find.byKey(const ValueKey('sync-replacement-dialog')),
+                  matching: find.textContaining('may have expired'),
+                ),
+              )
+              .data!;
+          expect(body, contains('or it may have been removed'));
+
+          // Cancel: no POST, and the dialog can reappear later.
+          await tester.tap(
+            find.byKey(const ValueKey('sync-replacement-cancel')),
+          );
+          await tester.pumpAndSettle();
+          expect(transport.createStoreCalls, 0);
+          expect(
+            find.byKey(const ValueKey('sync-replacement-dialog')),
+            findsNothing,
+          );
+
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+          expect(
+            find.byKey(const ValueKey('sync-replacement-dialog')),
+            findsOneWidget,
+          );
+
+          // Confirm: exactly one POST even if the dialog were tapped twice.
+          await tester.tap(
+            find.byKey(const ValueKey('sync-replacement-confirm')),
+          );
+          await tester.pumpAndSettle();
+          expect(transport.createStoreCalls, 1);
+        },
+      );
+
+      testWidgets(
+        'a replacement already pending when the section first builds still '
+        'shows the dialog, without a during-build assertion',
+        (tester) async {
+          final transport = ControllableSyncTransport();
+          final harness = await _pumpSettings(tester);
+          await harness.repos.settings.set('sync_id', 'configured-store-id-y');
+          final controller = SyncScope.of(
+            tester.element(find.byType(SettingsScreen)),
+          );
+          await controller.setEnabled(true);
+          await controller.load();
+
+          _syncCoordinator = SyncCoordinator(
+            syncId: 'configured',
+            deviceId: 'device',
+            store: CompendiumSyncCoordinatorStore(harness.repos),
+            transport: transport,
+            passOperation: ({initialStore}) async =>
+                const SyncPassResult(SyncPassStatus.replacementRequired),
+          );
+          addTearDown(_syncCoordinator!.dispose);
+          controller.attachCoordinator(_syncCoordinator);
+
+          // Make the decision pending before DeviceSyncSection has ever been
+          // built for this controller — the app is still on Appearance.
+          await controller.syncNow();
+          expect(controller.replacementPending, isTrue);
+
+          await openExperimental(tester);
+
+          expect(tester.takeException(), isNull);
+          expect(
+            find.byKey(const ValueKey('sync-replacement-dialog')),
             findsOneWidget,
           );
         },
