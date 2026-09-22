@@ -523,14 +523,26 @@ final class CompendiumSyncStorage
   /// Applies the per-device `sync_exclude_imports` upload-budget filter (spec
   /// §6.1) to a fully built publication candidate map, in place.
   ///
-  /// Scope is exactly "a dance carrying import provenance that no published
-  /// record cites" — provenance alone decides it, and the citation check runs
-  /// once over the whole candidate set before anything is withheld, so a
-  /// program (or another dance's link) that cites an imported dance keeps it
-  /// published regardless of how heavily it was edited after import. This is
-  /// the §6.9 withholding fixpoint run in reverse: withholding every imported
-  /// dance outright would, via [planSyncPublication]'s own reference-integrity
-  /// closure, silently drag every citing program out of sync too.
+  /// Scope is exactly "a dance carrying import provenance that nothing
+  /// surviving this filter cites, directly or transitively" — provenance
+  /// alone decides eligibility, but survival is a forward reachability walk
+  /// from every record that is published independently of this filter (any
+  /// non-imported dance, program, or other kind) across citation edges
+  /// (citer → citee), so a program (or another dance's link) that cites an
+  /// imported dance keeps it published, and that imported dance's own
+  /// citations of further imported dances keep those published too. This is
+  /// the §6.9 withholding fixpoint run in reverse, and in the opposite
+  /// direction of [syncQuarantineClosure] (which walks dependents of a
+  /// blocked root; this walks references reachable from a kept root): an
+  /// imported-only citation cycle with no citer outside it is withheld in
+  /// full, never partially retained, because none of its members is ever
+  /// reached from a root.
+  ///
+  /// A tombstone is never withheld by this filter regardless of provenance:
+  /// deletion is not an upload-budget decision, and soft deletion leaves the
+  /// dance's provenance row in place, so excluding tombstones here would
+  /// silently drop a previously published imported dance's deletion from the
+  /// manifest and leave peers holding the live record forever.
   ///
   /// Upload-only: [local] (used for merge comparison against inbound peer
   /// data) is never touched here, so a peer's imported dance is still applied
@@ -546,19 +558,36 @@ final class CompendiumSyncStorage
     final provenanceRows = await _db.select(_db.provenance).get();
     if (provenanceRows.isEmpty) return;
 
-    final citedDances = <SyncRecordAddress>{};
-    for (final candidate in publication.values) {
+    final imported = <SyncRecordAddress>{
+      for (final row in provenanceRows)
+        (kind: SyncRecordKind.dance, recordId: row.danceId),
+    };
+    final withholdable = <SyncRecordAddress>{
+      for (final address in imported)
+        if (publication[address] != null &&
+            publication[address]!.blob.deletedAt == null)
+          address,
+    };
+    if (withholdable.isEmpty) return;
+
+    final reached = <SyncRecordAddress>{
+      for (final entry in publication.entries)
+        if (entry.value != null && !withholdable.contains(entry.key))
+          entry.key,
+    };
+    final pending = <SyncRecordAddress>[...reached];
+    for (var index = 0; index < pending.length; index++) {
+      final candidate = publication[pending[index]];
       if (candidate == null) continue;
       for (final reference in syncRecordReferences(candidate)) {
-        if (reference.kind == SyncRecordKind.dance) {
-          citedDances.add(reference);
+        if (reached.add(reference)) {
+          pending.add(reference);
         }
       }
     }
 
-    for (final row in provenanceRows) {
-      final address = (kind: SyncRecordKind.dance, recordId: row.danceId);
-      if (publication[address] != null && !citedDances.contains(address)) {
+    for (final address in withholdable) {
+      if (!reached.contains(address)) {
         publication[address] = null;
       }
     }
