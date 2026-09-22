@@ -454,6 +454,18 @@ abstract class AppLocalizations {
   /// **'On by default. On a mobile-data connection sync waits until you are on WiFi.'**
   String get settingsSyncWifiOnlySubtitle;
 
+  /// Title of the switch that stops this device from uploading an imported dance that nothing else it publishes currently references.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip unused imported dances'**
+  String get settingsSyncExcludeImportsTitle;
+
+  /// Subtitle of the exclude-imports switch: off by default, upload-only, dances referenced by a program or a dance link are exempt, and turning it on deletes nothing already synced.
+  ///
+  /// In en, this message translates to:
+  /// **'Off by default. Cuts what this device uploads if you have a large imported collection; a dance used in a program or linked from another dance is always included. Nothing is removed from your other devices.'**
+  String get settingsSyncExcludeImportsSubtitle;
+
   /// Header of the Device Sync status group.
   ///
   /// In en, this message translates to:
@@ -10655,6 +10667,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A venue is shared across every program held here, so edits to its address, contacts, or schedule show up on all of them.'**
   String get venueEditorSharedNote;
+
+  /// Persistent hint in the venue editor sheet, shown while Device Sync is on and this venue's address/contact fields are all empty (spec §6.13): names the fields that never sync, and warns that Notes is different because it does sync.
+  ///
+  /// In en, this message translates to:
+  /// **'This venue\'s address and contact fields below stay on this device — Device Sync does not carry them to your other devices, so they may be blank there. The Notes field does sync, so avoid putting contact details there if you\'d rather keep them private to this device.'**
+  String get venueEditorPartialSyncHint;
 
   /// Required venue name field label; the asterisk marks the field as required.
   ///

@@ -222,6 +222,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Activé par défaut. Avec les données mobiles, la synchronisation attend que vous soyez en WiFi.';
 
   @override
+  String get settingsSyncExcludeImportsTitle =>
+      'Ignorer les danses importées inutilisées';
+
+  @override
+  String get settingsSyncExcludeImportsSubtitle =>
+      'Désactivé par défaut. Réduit ce que cet appareil envoie si vous avez une grande collection importée ; une danse utilisée dans un programme ou liée depuis une autre danse est toujours incluse. Rien n\'est supprimé de vos autres appareils.';
+
+  @override
   String get settingsSyncStatusHeader => 'État';
 
   @override
@@ -7118,6 +7126,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get venueEditorSharedNote =>
       'Un lieu est partagé entre tous les programmes qui y ont lieu ; les modifications de son adresse, contacts ou calendrier apparaissent sur tous.';
+
+  @override
+  String get venueEditorPartialSyncHint =>
+      'Les champs d\'adresse et de contact ci-dessous de ce lieu restent sur cet appareil — la synchronisation des appareils ne les transmet pas à vos autres appareils, ils peuvent donc y être vides. Le champ Notes, lui, se synchronise : évitez d\'y mettre des coordonnées si vous préférez les garder privées sur cet appareil.';
 
   @override
   String get venueEditorNameLabel => 'Nom *';

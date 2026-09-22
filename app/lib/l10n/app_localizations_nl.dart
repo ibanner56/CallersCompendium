@@ -217,6 +217,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'Standaard aan. Bij mobiele data wacht de synchronisatie tot je op wifi zit.';
 
   @override
+  String get settingsSyncExcludeImportsTitle =>
+      'Ongebruikte geïmporteerde dansen overslaan';
+
+  @override
+  String get settingsSyncExcludeImportsSubtitle =>
+      'Standaard uit. Vermindert wat dit apparaat uploadt als je een grote geïmporteerde verzameling hebt; een dans die in een programma wordt gebruikt of vanuit een andere dans is gelinkt, wordt altijd meegenomen. Er wordt niets van je andere apparaten verwijderd.';
+
+  @override
   String get settingsSyncStatusHeader => 'Status';
 
   @override
@@ -7063,6 +7071,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get venueEditorSharedNote =>
       'Een locatie is gedeeld over elk programma dat hier wordt gehouden, dus bewerkingen van het adres, contacten of schema zijn zichtbaar op al die programma’s.';
+
+  @override
+  String get venueEditorPartialSyncHint =>
+      'De adres- en contactvelden van deze locatie hieronder blijven op dit apparaat — Apparaatsynchronisatie draagt ze niet over naar je andere apparaten, dus daar kunnen ze leeg zijn. Het veld Notities synchroniseert wel, dus vermijd daar contactgegevens als je die liever privé op dit apparaat houdt.';
 
   @override
   String get venueEditorNameLabel => 'Naam *';

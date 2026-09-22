@@ -2,6 +2,8 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../sync/sync_scope.dart';
+import '../theme/app_spacing.dart';
 
 /// A modal bottom sheet for creating or editing a reusable [Venue].
 ///
@@ -123,10 +125,39 @@ class _VenueEditorSheetState extends State<VenueEditorSheet> {
       _contact2Email,
       _notes,
     ];
+    // The partial-venue hint (spec §6.13) is derived, not stored: it reacts
+    // live to these fields rather than to the venue as it was when the sheet
+    // opened, so filling one in makes the hint go away without a re-open.
+    for (final controller in _deviceLocalControllers) {
+      controller.addListener(_updateHintVisibility);
+    }
   }
+
+  /// The address block and both contact blocks (spec §6.13): device-local
+  /// fields that never travel through Device Sync.
+  List<TextEditingController> get _deviceLocalControllers => [
+    _address1,
+    _address2,
+    _city,
+    _stateProv,
+    _country,
+    _postalCode,
+    _plus4,
+    _contact1Name,
+    _contact1Phone,
+    _contact1Email,
+    _contact2Name,
+    _contact2Phone,
+    _contact2Email,
+  ];
+
+  void _updateHintVisibility() => setState(() {});
 
   @override
   void dispose() {
+    for (final controller in _deviceLocalControllers) {
+      controller.removeListener(_updateHintVisibility);
+    }
     for (final c in _all) {
       c.dispose();
     }
@@ -208,6 +239,10 @@ class _VenueEditorSheetState extends State<VenueEditorSheet> {
                         l10n.venueEditorSharedNote,
                         style: theme.textTheme.bodySmall,
                       ),
+                      if (_showPartialVenueHint(context)) ...[
+                        const SizedBox(height: 12),
+                        _partialVenueHint(theme, l10n),
+                      ],
                       const SizedBox(height: 16),
                       _field(
                         keyName: 'venue-name-field',
@@ -367,6 +402,47 @@ class _VenueEditorSheetState extends State<VenueEditorSheet> {
       text,
       style: theme.textTheme.titleSmall?.copyWith(
         color: theme.colorScheme.primary,
+      ),
+    ),
+  );
+
+  /// Whether the §6.13 partial-venue hint applies: derived live from Device
+  /// Sync being on and every address/contact field currently being empty —
+  /// never stored, so it needs no column, marker or provenance (spec §6.13
+  /// requirement 2). Filling in any one of those fields makes it go away
+  /// without reopening the sheet, and it applies the same way whether this
+  /// venue is new or already existed: nothing here can tell "just arrived via
+  /// sync with blank fields" apart from "never filled in locally", and the
+  /// spec deliberately does not ask it to.
+  bool _showPartialVenueHint(BuildContext context) {
+    if (SyncScope.maybeOf(context)?.enabled != true) return false;
+    return _deviceLocalControllers.every(
+      (controller) => controller.text.trim().isEmpty,
+    );
+  }
+
+  /// Persistent, not a snackbar (spec §6.13 requirement 1): stays on screen
+  /// for as long as the condition holds. Names the address and contact
+  /// *fields* that stay on this device — it must not say "contact details
+  /// stay on this device", because Notes is shareable and free text, so a
+  /// user's own contact info typed there does travel (requirement 3).
+  Widget _partialVenueHint(ThemeData theme, AppLocalizations l10n) => Card(
+    key: const ValueKey('venue-partial-sync-hint'),
+    color: theme.colorScheme.surfaceContainerHighest,
+    child: Padding(
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, color: theme.colorScheme.onSurfaceVariant),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              l10n.venueEditorPartialSyncHint,
+              style: theme.textTheme.bodySmall,
+            ),
+          ),
+        ],
       ),
     ),
   );

@@ -210,6 +210,13 @@ class AppLocalizationsJa extends AppLocalizations {
       '初期設定ではオンです。モバイルデータ通信中は、WiFiに接続するまで同期を待機します。';
 
   @override
+  String get settingsSyncExcludeImportsTitle => '未使用の取り込んだダンスをスキップ';
+
+  @override
+  String get settingsSyncExcludeImportsSubtitle =>
+      '初期設定ではオフです。取り込んだコレクションが多い場合に、このデバイスがアップロードする内容を減らします。プログラムで使われているか、他のダンスからリンクされているダンスは常に含まれます。他のデバイスから何かが削除されることはありません。';
+
+  @override
   String get settingsSyncStatusHeader => 'ステータス';
 
   @override
@@ -6759,6 +6766,10 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get venueEditorSharedNote =>
       '会場はここで開催されるすべてのプログラムで共有されます。住所、連絡先、スケジュールを編集するとすべてに反映されます。';
+
+  @override
+  String get venueEditorPartialSyncHint =>
+      'この会場の下にある住所と連絡先の項目はこのデバイスにのみ残ります — デバイス同期はそれらを他のデバイスに伝えないため、他のデバイスでは空欄になることがあります。メモ欄は同期されるので、連絡先情報をこのデバイスだけに留めたい場合はメモに書かないようにしてください。';
 
   @override
   String get venueEditorNameLabel => '名前 *';

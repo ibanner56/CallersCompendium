@@ -6908,6 +6908,274 @@ void main() {
     );
   });
 
+  group('sync_exclude_imports publish-set filter (spec §6.1, ADR-004/W13)', () {
+    final stamp = DateTime.utc(2026, 1, 1, 12);
+
+    Future<void> createImportedDance(String id, {String title = 'Imported'}) =>
+        repositories.dances.create(
+          Dance(
+            id: id,
+            title: title,
+            createdAt: stamp,
+            updatedAt: stamp,
+            provenance: Provenance(
+              source: ProvenanceSource.callersbox,
+              importedAt: stamp,
+            ),
+          ),
+        );
+
+    test('an uncited imported dance is withheld from publication when the '
+        'setting is on', () async {
+      await createImportedDance('excl-uncited');
+      await repositories.settings.set(syncExcludeImportsKey, true);
+
+      final snapshot = await storage.snapshot();
+      final address = (kind: SyncRecordKind.dance, recordId: 'excl-uncited');
+      expect(snapshot.publication[address], isNull);
+    });
+
+    test('the setting off (the default) publishes an imported dance regardless '
+        'of citation', () async {
+      await createImportedDance('excl-default-off');
+
+      final snapshot = await storage.snapshot();
+      final address = (
+        kind: SyncRecordKind.dance,
+        recordId: 'excl-default-off',
+      );
+      expect(snapshot.publication[address], isNotNull);
+    });
+
+    test(
+      'an imported dance cited by a published program stays published — '
+      'provenance alone does not decide it once something cites it',
+      () async {
+        await createImportedDance('excl-cited');
+        await repositories.programs.create(
+          Program(
+            id: 'excl-citing-program',
+            title: 'Citing program',
+            slots: [
+              ProgramSlot(
+                id: 'excl-citing-slot',
+                position: 0,
+                danceId: 'excl-cited',
+              ),
+            ],
+            createdAt: stamp,
+            updatedAt: stamp,
+          ),
+        );
+        await repositories.settings.set(syncExcludeImportsKey, true);
+
+        final snapshot = await storage.snapshot();
+        final danceAddress = (
+          kind: SyncRecordKind.dance,
+          recordId: 'excl-cited',
+        );
+        final programAddress = (
+          kind: SyncRecordKind.program,
+          recordId: 'excl-citing-program',
+        );
+        expect(
+          snapshot.publication[danceAddress],
+          isNotNull,
+          reason:
+              'a program cites it, so provenance alone must not withhold it',
+        );
+        expect(snapshot.publication[programAddress], isNotNull);
+      },
+    );
+
+    test(
+      'a non-imported dance is never withheld regardless of the setting',
+      () async {
+        await repositories.dances.create(
+          Dance(
+            id: 'excl-not-imported',
+            title: 'Homegrown',
+            createdAt: stamp,
+            updatedAt: stamp,
+          ),
+        );
+        await repositories.settings.set(syncExcludeImportsKey, true);
+
+        final snapshot = await storage.snapshot();
+        final address = (
+          kind: SyncRecordKind.dance,
+          recordId: 'excl-not-imported',
+        );
+        expect(snapshot.publication[address], isNotNull);
+      },
+    );
+
+    test(
+      'the filter is upload-only: local (merge comparison) still carries the '
+      'withheld dance so a peer publishing it is still applied',
+      () async {
+        await createImportedDance('excl-local-unaffected');
+        await repositories.settings.set(syncExcludeImportsKey, true);
+
+        final snapshot = await storage.snapshot();
+        final address = (
+          kind: SyncRecordKind.dance,
+          recordId: 'excl-local-unaffected',
+        );
+        expect(
+          snapshot.local[address],
+          isNotNull,
+          reason:
+              'the setting governs upload only (spec §6.1); local merge '
+              'comparison must be unaffected',
+        );
+        expect(snapshot.publication[address], isNull);
+      },
+    );
+
+    test(
+      'a dance link citing an imported dance also keeps it published',
+      () async {
+        await createImportedDance('excl-link-target');
+        await repositories.dances.create(
+          Dance(
+            id: 'excl-linking-dance',
+            title: 'Links to the imported one',
+            createdAt: stamp,
+            updatedAt: stamp,
+            links: [
+              DanceLink(
+                id: 'excl-link-id',
+                kind: LinkKind.relatedDance,
+                targetDanceId: 'excl-link-target',
+              ),
+            ],
+          ),
+        );
+        await repositories.settings.set(syncExcludeImportsKey, true);
+
+        final snapshot = await storage.snapshot();
+        final address = (
+          kind: SyncRecordKind.dance,
+          recordId: 'excl-link-target',
+        );
+        expect(snapshot.publication[address], isNotNull);
+      },
+    );
+
+    test('an imported-only citation chain with no outside citer is withheld '
+        'in full, not just its root', () async {
+      await createImportedDance('excl-chain-a', title: 'Chain A');
+      await createImportedDance('excl-chain-b', title: 'Chain B');
+      await repositories.dances.update(
+        (await repositories.dances.getById('excl-chain-a'))!.copyWith(
+          links: [
+            DanceLink(
+              id: 'excl-chain-link',
+              kind: LinkKind.relatedDance,
+              targetDanceId: 'excl-chain-b',
+            ),
+          ],
+          updatedAt: stamp.add(const Duration(minutes: 1)),
+        ),
+      );
+      await repositories.settings.set(syncExcludeImportsKey, true);
+
+      final snapshot = await storage.snapshot();
+      expect(
+        snapshot.publication[(
+          kind: SyncRecordKind.dance,
+          recordId: 'excl-chain-a',
+        )],
+        isNull,
+        reason:
+            'nothing outside the chain cites A, and a citation from a '
+            'dance this filter itself withholds must not count',
+      );
+      expect(
+        snapshot.publication[(
+          kind: SyncRecordKind.dance,
+          recordId: 'excl-chain-b',
+        )],
+        isNull,
+        reason:
+            'B is cited only by A, which is withheld, so B has no '
+            'surviving citer either',
+      );
+    });
+
+    test('an imported-only citation cycle with no outside citer is withheld '
+        'in full', () async {
+      await createImportedDance('excl-cycle-a', title: 'Cycle A');
+      await createImportedDance('excl-cycle-b', title: 'Cycle B');
+      await repositories.dances.update(
+        (await repositories.dances.getById('excl-cycle-a'))!.copyWith(
+          links: [
+            DanceLink(
+              id: 'excl-cycle-link-a',
+              kind: LinkKind.relatedDance,
+              targetDanceId: 'excl-cycle-b',
+            ),
+          ],
+          updatedAt: stamp.add(const Duration(minutes: 1)),
+        ),
+      );
+      await repositories.dances.update(
+        (await repositories.dances.getById('excl-cycle-b'))!.copyWith(
+          links: [
+            DanceLink(
+              id: 'excl-cycle-link-b',
+              kind: LinkKind.relatedDance,
+              targetDanceId: 'excl-cycle-a',
+            ),
+          ],
+          updatedAt: stamp.add(const Duration(minutes: 2)),
+        ),
+      );
+      await repositories.settings.set(syncExcludeImportsKey, true);
+
+      final snapshot = await storage.snapshot();
+      expect(
+        snapshot.publication[(
+          kind: SyncRecordKind.dance,
+          recordId: 'excl-cycle-a',
+        )],
+        isNull,
+        reason:
+            'A and B cite only each other; a mutual reference must not '
+            'be treated as an outside citer for either',
+      );
+      expect(
+        snapshot.publication[(
+          kind: SyncRecordKind.dance,
+          recordId: 'excl-cycle-b',
+        )],
+        isNull,
+      );
+    });
+
+    test('a tombstoned imported dance is never withheld, even when nothing '
+        'cites it', () async {
+      await createImportedDance('excl-tombstoned');
+      await repositories.dances.softDelete(
+        'excl-tombstoned',
+        at: stamp.add(const Duration(minutes: 1)),
+      );
+      await repositories.settings.set(syncExcludeImportsKey, true);
+
+      final snapshot = await storage.snapshot();
+      final address = (kind: SyncRecordKind.dance, recordId: 'excl-tombstoned');
+      expect(
+        snapshot.publication[address],
+        isNotNull,
+        reason:
+            'deletion is not an upload-budget decision; withholding a '
+            'tombstone would leave peers holding the live record forever',
+      );
+      expect(snapshot.publication[address]!.blob.deletedAt, isNotNull);
+    });
+  });
+
   // I1 (sync-spec.md §6.5) forbids changing a peer's serialised content
   // without advancing its `updatedAt`. `Programs.venueId` is not a database
   // foreign key (sync-spec.md §6.7), so a dangling reference must be stored

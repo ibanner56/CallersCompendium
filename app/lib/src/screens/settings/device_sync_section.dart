@@ -157,6 +157,14 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
             value: controller.wifiOnly,
             onChanged: controller.setWifiOnly,
           ),
+          SwitchListTile(
+            key: const ValueKey('sync-exclude-imports-toggle'),
+            secondary: const Icon(Icons.filter_alt_outlined),
+            title: Text(l10n.settingsSyncExcludeImportsTitle),
+            subtitle: Text(l10n.settingsSyncExcludeImportsSubtitle),
+            value: controller.excludeImports,
+            onChanged: controller.setExcludeImports,
+          ),
           SectionHeader(title: l10n.settingsSyncStatusHeader),
           Builder(
             builder: (tileContext) {

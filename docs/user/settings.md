@@ -477,6 +477,12 @@ connect a store.
   sync waits, and pressing **Sync now** tells you why and points at this setting.
   A pass that was skipped runs the next time sync is triggered; you do not need
   to do anything.
+- **Skip unused imported dances** is off by default. If you have a large
+  imported collection, turning it on cuts what this device uploads — but a
+  dance that's actually used in one of your programs, or linked from another
+  dance, is always included, so nothing that's still in use loses anything.
+  Turning it on removes nothing already on your other devices; this device
+  just stops advertising the rest. Turning it back off republishes them.
 - **Status** shows when this device last synced. **Sync is not a backup:** a
   store that goes unused for 30 days is removed, so keep making file backups.
   From three weeks of disuse the status also warns that the store is close to
@@ -502,6 +508,14 @@ If a store this device used to sync with is no longer there, the app asks
 before creating a replacement: it may have gone unused past its 30-day limit,
 or it may have been removed — the app can't tell which. Declining makes no
 network request and leaves the choice for later.
+
+**Venues sync partially.** A venue's name, website, schedule, and notes sync
+like everything else, but its address and both contact blocks stay on each
+device — there's no channel for them to travel through. While Device Sync is
+on, the [venue](./glossary.md#venue) editor shows a note on a venue whose
+address and contact fields are blank, naming exactly those fields. (Notes
+does sync — if you've put contact information there, it travels with the
+note.)
 
 ## About
 

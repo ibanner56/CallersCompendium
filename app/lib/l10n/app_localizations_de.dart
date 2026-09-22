@@ -217,6 +217,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Standardmäßig an. Bei mobilen Daten wartet die Synchronisierung, bis du im WLAN bist.';
 
   @override
+  String get settingsSyncExcludeImportsTitle =>
+      'Ungenutzte importierte Tänze überspringen';
+
+  @override
+  String get settingsSyncExcludeImportsSubtitle =>
+      'Standardmäßig aus. Reduziert, was dieses Gerät hochlädt, wenn du eine große importierte Sammlung hast; ein Tanz, der in einem Programm verwendet oder von einem anderen Tanz verlinkt wird, ist immer enthalten. Auf deinen anderen Geräten wird nichts entfernt.';
+
+  @override
   String get settingsSyncStatusHeader => 'Status';
 
   @override
@@ -7101,6 +7109,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get venueEditorSharedNote =>
       'Ein Veranstaltungsort wird für alle hier stattfindenden Programme geteilt, sodass Änderungen an Adresse, Kontakten oder Zeitplan bei allen angezeigt werden.';
+
+  @override
+  String get venueEditorPartialSyncHint =>
+      'Die Adress- und Kontaktfelder dieses Veranstaltungsorts unten bleiben auf diesem Gerät — die Gerätesynchronisierung überträgt sie nicht auf deine anderen Geräte, daher können sie dort leer sein. Das Notizfeld wird synchronisiert. Vermeide dort also Kontaktdaten, wenn du sie lieber privat auf diesem Gerät behalten möchtest.';
 
   @override
   String get venueEditorNameLabel => 'Name *';

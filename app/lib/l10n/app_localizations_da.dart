@@ -218,6 +218,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'Slået til som standard. På en mobildataforbindelse venter synkroniseringen, til du er på WiFi.';
 
   @override
+  String get settingsSyncExcludeImportsTitle =>
+      'Spring ubrugte importerede danse over';
+
+  @override
+  String get settingsSyncExcludeImportsSubtitle =>
+      'Slået fra som standard. Reducerer, hvad denne enhed uploader, hvis du har en stor importeret samling; en dans, der bruges i et program eller er linket fra en anden dans, er altid inkluderet. Intet fjernes fra dine andre enheder.';
+
+  @override
   String get settingsSyncStatusHeader => 'Status';
 
   @override
@@ -7010,6 +7018,10 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get venueEditorSharedNote =>
       'Et spillested deles på tværs af alle programmer afholdt her, så redigering af dets adresse, kontakter eller tidsplan opdaterer alle disse programmer på én gang.';
+
+  @override
+  String get venueEditorPartialSyncHint =>
+      'Denne mødesteds adresse- og kontaktfelter nedenfor bliver på denne enhed — enhedssynkronisering overfører dem ikke til dine andre enheder, så de kan være tomme der. Feltet Noter synkroniseres, så undgå at skrive kontaktoplysninger der, hvis du hellere vil holde dem private for denne enhed.';
 
   @override
   String get venueEditorNameLabel => 'Navn *';

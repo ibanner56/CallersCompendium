@@ -232,6 +232,14 @@
   "@settingsSyncWifiOnlySubtitle": {
     "x-sourceSha256": "281c955643110d523c1f0e6616ac917e4c1eb62c95d3c9f7fe25e6e875e6dc4c"
   },
+  "settingsSyncExcludeImportsTitle": "Ongebruikte geïmporteerde dansen overslaan",
+  "@settingsSyncExcludeImportsTitle": {
+    "x-sourceSha256": "13a7925e9cdd2fc7f1329229f1ad3416bdd1f24f9edba254e9c3bd209e576ccb"
+  },
+  "settingsSyncExcludeImportsSubtitle": "Standaard uit. Vermindert wat dit apparaat uploadt als je een grote geïmporteerde verzameling hebt; een dans die in een programma wordt gebruikt of vanuit een andere dans is gelinkt, wordt altijd meegenomen. Er wordt niets van je andere apparaten verwijderd.",
+  "@settingsSyncExcludeImportsSubtitle": {
+    "x-sourceSha256": "c00077f0d45dcef13c082a204103353bb4a1b23be4932c20548416ae20746a0d"
+  },
   "settingsSyncStatusHeader": "Status",
   "@settingsSyncStatusHeader": {
     "x-sourceSha256": "920e413c7d411b61ef3e8c63b1cb6ad058d5f95f8b481dbafe60248387d8c355"
@@ -6991,6 +6999,10 @@
   "venueEditorSharedNote": "Een locatie is gedeeld over elk programma dat hier wordt gehouden, dus bewerkingen van het adres, contacten of schema zijn zichtbaar op al die programma’s.",
   "@venueEditorSharedNote": {
     "x-sourceSha256": "4d048ad644a9c5f9e11abdd572cd76096caa35733d56f6295aa43a866b42c407"
+  },
+  "venueEditorPartialSyncHint": "De adres- en contactvelden van deze locatie hieronder blijven op dit apparaat — Apparaatsynchronisatie draagt ze niet over naar je andere apparaten, dus daar kunnen ze leeg zijn. Het veld Notities synchroniseert wel, dus vermijd daar contactgegevens als je die liever privé op dit apparaat houdt.",
+  "@venueEditorPartialSyncHint": {
+    "x-sourceSha256": "d52232511ecaada9223a7115219345b13a4fe2c368b92b48330d533d3f3efba0"
   },
   "venueEditorNameLabel": "Naam *",
   "@venueEditorNameLabel": {

@@ -1,0 +1,14 @@
+{
+  "id": "adr-004-w13-sync-publish-filter-hint",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Device Sync gains a 'Skip unused imported dances' setting to trim what a device with a large imported collection uploads (a dance used in a program or linked from another dance is always included), and a note on a venue whose address and contact details didn't come across when it synced from another device."
+    ]
+  },
+  "core": {
+    "added": [
+      "Implement the sync_exclude_imports publish-set filter: an imported dance no published record cites, directly or transitively, is withheld from this device's manifest, while a cited one stays published; a tombstone is never withheld."
+    ]
+  }
+}
