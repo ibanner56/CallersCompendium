@@ -1170,10 +1170,17 @@ other copies actually hold:
     schema.
 
     **`Programs.venueId` is exempt**, because the justification does not reach it:
-    it is deliberately not a database foreign key — integrity is enforced at the
-    app layer, and import paths already resolve-or-null a dangling `venueId`
-    before persisting. The test is simply **whether the reference is a
-    database-enforced foreign key**: `ProgramSlots.danceId` and
+    it is deliberately not a database foreign key, so a dangling value never
+    fails a peer's COMMIT — integrity is enforced at the app layer instead. Two
+    paths can encounter a dangling `venueId` and handle it differently: the
+    archive restorer's import paths resolve-or-null it before persisting, so a
+    restored program never actually carries one, while the inbound sync apply
+    MUST NOT — it persists the peer's `venueId` verbatim and reports it
+    (sync-spec.md §6.7), because nulling a peer's content without advancing its
+    `updatedAt` is not I1's one content-derived exception (sync-spec.md §6.5)
+    and would leave the record at an unresolvable equal-`updatedAt` conflict on
+    every later pass. The test for withholding is simply **whether the
+    reference is a database-enforced foreign key**: `ProgramSlots.danceId` and
     `DanceLinks.targetDanceId` are, `Programs.venueId` is not.
 
     A draft narrowed that to FKs "with cascade or restrict semantics", which is
@@ -3596,24 +3603,29 @@ Apply therefore proceeds in dependency order within the transaction:
 A record whose reference cannot be resolved is skipped and reported, never
 applied with a dangling id.
 
-**`Programs.venueId` is the one exception, and it is resolved rather than
-skipped.** It is a soft reference — no database foreign key, integrity enforced
-at the app layer — so a dangling value cannot corrupt the batch, and skipping the
-program would withhold a caller's whole set list because one venue has not
-arrived. Apply therefore **nulls a `venueId` with no matching local venue before
-the program reaches the repository**, exactly as the import path already does,
-and reports it; the program arrives complete apart from its venue link, and a
-later pass carrying the venue does not restore the link automatically.
+**`Programs.venueId` is the one exception, and it is persisted verbatim rather
+than skipped or resolved.** It is a soft reference — no database foreign key,
+integrity enforced at the app layer only for interactive writes — so a
+dangling value cannot corrupt the batch, and skipping the program would
+withhold a caller's whole set list because one venue has not arrived. Apply
+therefore writes the program with the peer's `venueId` exactly as received,
+dangling or not, and reports it as an unresolved reference; the program
+arrives complete, including a venue link this device cannot yet resolve, and a
+later pass carrying the venue needs no repair step because the link was never
+broken.
 
-This step is required rather than optional. `ProgramRepository` **throws** on a
-non-null `venueId` with no matching venue — it is the only write path for
-programs — so an apply that passed one through would abort. The precedent is
-exact: `ArchiveRestorer` already clears a dangling `venueId` before writing a
-program from an untrusted bundle, for the same reason and with the same effect.
-A draft asserted that such a program "commits fine and simply arrives without its
-venue link", which was true of neither the repository nor the skipped-and-reported
-rule above it: three sections gave three different answers, and only this one is
-implementable.
+This step is required rather than optional, for the opposite reason a null or
+a skip would be: I1 forbids changing a peer's serialised content — including
+silently nulling a field it set — without advancing that peer's `updatedAt`
+(§6.5). Nulling a dangling `venueId` here would fabricate a body the peer never
+sent and republish it under the peer's unchanged `updatedAt`, producing a
+permanent equal-`updatedAt`, differing-hash conflict the origin device could
+never resolve by re-syncing. `ProgramRepository`'s live-venue guard therefore
+does not run on the inbound sync write path (`writeFromSync` and its two-phase
+siblings; see sync-spec.md §6.7). This is unlike `ArchiveRestorer`, which still
+resolves-or-nulls a dangling `venueId` before writing a program from an
+untrusted bundle: a restored bundle carries no peer `updatedAt` to preserve, so
+nulling there orphans nothing sync would need to reconcile.
 
 ### Failure and offline
 
@@ -4472,11 +4484,13 @@ must say this plainly rather than implying sync is opaque to us.
   dance is withheld but not quarantined, so the program publishes and its peer's
   batch fails on the same foreign key the rule exists to protect.
 - **A program citing a quarantined venue still publishes** — assert the venue
-  exemption holds, that the receiving peer nulls the dangling `venueId` before
-  the write, and that the program applies with the rest of its content intact.
+  exemption holds, that the receiving peer persists the dangling `venueId`
+  verbatim (never nulls it) and reports it, and that the program applies with
+  the rest of its content intact and its rebuilt wire hash equal to the peer's.
   Mutation-proved two ways: withhold the program, which costs a caller their set
-  list because one venue has not arrived; or apply it without the resolve-or-null
-  step, which throws in `ProgramRepository` and aborts the record.
+  list because one venue has not arrived; or null the dangling reference on
+  apply, which republishes a different body under the peer's unchanged
+  `updatedAt` and produces a permanent equal-`updatedAt` conflict.
 - **Withholding is scoped by whether the reference is a database FK** — assert
   `ProgramSlots.danceId` and `DanceLinks.targetDanceId` trigger withholding and
   `Programs.venueId` does not. Mutation-proved by scoping on `onDelete`

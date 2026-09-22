@@ -279,16 +279,33 @@ class ProgramRepository {
 
   /// Persists an inbound sync body without stamping performed slots as a local
   /// status-transition side effect.
+  ///
+  /// Does not run the live-venue guard (see [_upsert]'s `enforceVenueExists`):
+  /// a peer's `venueId` is persisted exactly as received, dangling or not.
+  /// Device Sync's I1 forbids changing a peer's serialised content without
+  /// advancing its `updatedAt` (sync-spec.md §6.5), and nulling a dangling
+  /// reference here would do exactly that; `SyncStorage` reports the missing
+  /// venue separately instead (sync-spec.md §6.7).
   Future<void> writeFromSync(Program program) =>
-      _upsert(program, stampPerformedSlots: false);
+      _upsert(program, stampPerformedSlots: false, enforceVenueExists: false);
 
-  /// Persists only the program row for a two-phase inbound sync write.
-  Future<void> writeFromSyncParent(Program program) =>
-      _upsert(program, stampPerformedSlots: false, writeRelations: false);
+  /// Persists only the program row for a two-phase inbound sync write. See
+  /// [writeFromSync] for why the live-venue guard does not run here.
+  Future<void> writeFromSyncParent(Program program) => _upsert(
+    program,
+    stampPerformedSlots: false,
+    writeRelations: false,
+    enforceVenueExists: false,
+  );
 
   /// Persists only the program's dependent rows for a two-phase inbound write.
-  Future<void> writeFromSyncRelations(Program program) =>
-      _upsert(program, stampPerformedSlots: false, writeParent: false);
+  /// See [writeFromSync] for why the live-venue guard does not run here.
+  Future<void> writeFromSyncRelations(Program program) => _upsert(
+    program,
+    stampPerformedSlots: false,
+    writeParent: false,
+    enforceVenueExists: false,
+  );
 
   /// Clears performed stamps created by one bulk mark action.
   ///
@@ -354,6 +371,7 @@ class ProgramRepository {
     bool stampPerformedSlots = true,
     bool writeParent = true,
     bool writeRelations = true,
+    bool enforceVenueExists = true,
   }) => _db.transaction(() async {
     assertUtc(program.createdAt, 'program.createdAt');
     assertUtc(program.updatedAt, 'program.updatedAt');
@@ -375,8 +393,23 @@ class ProgramRepository {
     // identical at the time of validation: an unknown or tombstoned `venueId`
     // throws. A preloaded snapshot is point-in-time; callers that need atomic
     // liveness must use the transactional single-write path.
+    //
+    // [enforceVenueExists] disables this guard entirely for the inbound sync
+    // write paths ([writeFromSync] and its two-phase siblings): I1 forbids
+    // altering a peer's serialised content without advancing its `updatedAt`
+    // (sync-spec.md §6.5), so a dangling `venueId` from a peer MUST be
+    // persisted verbatim rather than refused or nulled — `SyncStorage` reports
+    // it separately (sync-spec.md §6.7).
+    //
+    // For every other caller (interactive `create`/`update`) the guard still
+    // runs, but tolerates a `venueId` that was already dangling on the stored
+    // row when this write does not change it: an inbound sync apply can leave
+    // a program pointing at a venue this device no longer has, and the user
+    // must still be able to save an otherwise-unrelated edit to that program
+    // (or simply re-save it) without first being forced to unlink the venue.
+    // Only a *newly chosen* non-existent venue is refused.
     final venueId = program.venueId;
-    if (venueId != null) {
+    if (venueId != null && enforceVenueExists) {
       final venueExists = knownVenueIds != null
           ? knownVenueIds.contains(venueId)
           // `deleted_at IS NULL` since schema v25 (#898): a tombstoned venue
@@ -390,10 +423,18 @@ class ProgramRepository {
                     .getSingleOrNull() !=
                 null;
       if (!venueExists) {
-        throw StateError(
-          'cannot save program "${program.id}": venueId "$venueId" '
-          'references a venue that does not exist or is soft-deleted',
-        );
+        final storedVenueId =
+            await (_db.selectOnly(_db.programs)
+                  ..addColumns([_db.programs.venueId])
+                  ..where(_db.programs.id.equals(program.id)))
+                .map((row) => row.read(_db.programs.venueId))
+                .getSingleOrNull();
+        if (storedVenueId != venueId) {
+          throw StateError(
+            'cannot save program "${program.id}": venueId "$venueId" '
+            'references a venue that does not exist or is soft-deleted',
+          );
+        }
       }
     }
     // Auto-stamp performed slots on a status transition to `performed`
