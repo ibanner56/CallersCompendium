@@ -77,11 +77,12 @@ the full picture.
   couldn't settle on its own, and choose how each one is resolved. Two kinds of
   conflict currently offer a decision:
   - **A device deleted something another device still has.** One of your
-    devices deleted a record — a dance, choreographer, tag, and so on — that
-    this device had already created on its own, before either device had seen
-    the other's copy. **Merge** accepts the deletion and keeps this device's
-    record. **Keep both** gives this device's record a new, distinct name so it
-    survives alongside the deletion.
+    devices deleted a choreographer, tag, custom field, or difficulty level
+    that this device had already created on its own under the same name,
+    before either device had seen the other's copy. **Merge** accepts the
+    deletion, so this device's copy goes too. **Keep both** gives this
+    device's record a new, distinct name so it survives alongside the
+    deletion. Dances never enter this decision; they use the next one.
   - **Two devices independently created dances with the same title but
     different choreography.** This turns up when a device first connects to a
     store that already has dances in it. **Merge** combines the two dances into
@@ -483,6 +484,24 @@ connect a store.
 - These settings belong to this device. They are not synced to your other
   devices, and they are not included in a backup, so restoring a backup never
   turns sync on.
+
+**Connecting.** Once enabled, tap **Connect** to either **create a new store**
+(you get a phrase — read it aloud or share it with your other device) or
+**connect to an existing one** (enter the phrase shown on the device you
+already set up). The screen tells you which you're doing; it never guesses.
+Along the way it explains two things worth knowing before you commit to
+sharing a phrase: a second device using the same phrase can edit the same
+records, and if both of you touch the same dance or program at once, one
+edit silently wins — there is no merge and no warning. It also explains that
+the phrase itself has no password reset: losing it locks you out of that
+store, and the only fix for a leaked phrase is moving every device to a new
+one. Before connecting, you're offered an optional one-time backup of your
+library — accepting or skipping it doesn't change what connecting does.
+
+If a store this device used to sync with is no longer there, the app asks
+before creating a replacement: it may have gone unused past its 30-day limit,
+or it may have been removed — the app can't tell which. Declining makes no
+network request and leaves the choice for later.
 
 ## About
 

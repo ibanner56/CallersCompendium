@@ -256,13 +256,17 @@
   "@settingsSyncStatusFailed": {
     "x-sourceSha256": "53fa99d78ec8627b66d1f608b171626f6d73f1d7d70a1c3eab42afa83106af14"
   },
-  "settingsSyncStatusStaleStore": "Dieser Speicher hat sich seit deiner letzten Synchronisierung geändert. Eine erneute Verbindung ist noch nicht möglich.",
+  "settingsSyncStatusStaleStore": "Dieser Speicher wurde seit deiner letzten Synchronisierung von einem anderen Gerät ersetzt. Die nächste Synchronisierung verbindet sich mit dem neuen.",
   "@settingsSyncStatusStaleStore": {
-    "x-sourceSha256": "bdd558cc5ff745fd83b115d7a2ccf5061b23d30a1b622e07a5188fb574a0621d"
+    "x-sourceSha256": "7e0535051294ba8f0749e72c2fd6b08430fedf9cddd44531793bb00c568c7f4f"
   },
-  "settingsSyncStatusStoreUnavailable": "Dieser Speicher ist möglicherweise durch Inaktivität abgelaufen oder wurde entfernt. Eine erneute Verbindung ist noch nicht möglich.",
+  "settingsSyncStatusStoreUnavailable": "Dieser Speicher ist möglicherweise durch Inaktivität abgelaufen oder wurde entfernt.",
   "@settingsSyncStatusStoreUnavailable": {
-    "x-sourceSha256": "2f80067e35662f23f49e7b2c5e7febe52a30166aa4cd5bb93c9b1ed2cbe4c867"
+    "x-sourceSha256": "10aa2d5b626d50a6a7e00bac6cd2082c5484d16d2ae168658b1b4ea36a8cf6eb"
+  },
+  "settingsSyncStatusStoreNotFound": "Kein Speicher hat diese Synchronisierungsphrase. Vergleiche sie mit deinem anderen Gerät.",
+  "@settingsSyncStatusStoreNotFound": {
+    "x-sourceSha256": "7eb8a9fcc42e8368f1b00c025755d94b46f4d1462fe1c5c79268e8e7f3f563ac"
   },
   "settingsSyncNotBackup": "Synchronisierung ist kein Backup. Ein Speicher, der 30 Tage lang nicht genutzt wird, wird entfernt. Erstelle also weiterhin Dateisicherungen.",
   "@settingsSyncNotBackup": {
@@ -287,6 +291,130 @@
   "settingsSyncNotPairedNow": "Verbinde einen Speicher, bevor du synchronisierst.",
   "@settingsSyncNotPairedNow": {
     "x-sourceSha256": "fcee7c4478b4432bd151cb68def6a130526f17ad8725c53964026a8213b54cc4"
+  },
+  "settingsSyncConnectTitle": "Verbinden",
+  "@settingsSyncConnectTitle": {
+    "x-sourceSha256": "1a2303ede07493acc7caaa7c737f3c52bcc9cf04372be19ed1b0af6b9f2c791e"
+  },
+  "settingsSyncPairingTitle": "Gerätesynchronisierung verbinden",
+  "@settingsSyncPairingTitle": {
+    "x-sourceSha256": "fd23f041c2b9365a68eb2cd4a1903860c38303ce98c1e668199c955de1d84ecf"
+  },
+  "settingsSyncPairingChooseHeading": "Ist das das erste Gerät, oder fügst du ein weiteres hinzu?",
+  "@settingsSyncPairingChooseHeading": {
+    "x-sourceSha256": "4c4f3a8d09068ad5168a30be5c10a50569703e1c4d060778be4dd3ae54078974"
+  },
+  "settingsSyncPairingCreateTitle": "Neuen Speicher erstellen",
+  "@settingsSyncPairingCreateTitle": {
+    "x-sourceSha256": "fc5a739049e9ebffd3422a787250fbfe34775b06e9b48a0c889e839ab1cc2797"
+  },
+  "settingsSyncPairingCreateSubtitle": "Ganz neu beginnen. Du erhältst eine Phrase, die du deinen anderen Geräten vorlesen kannst.",
+  "@settingsSyncPairingCreateSubtitle": {
+    "x-sourceSha256": "23bd6f5f4433d38034714af64fc80a2ffb9aa26a9ddace529125b96adbfaaf86"
+  },
+  "settingsSyncPairingConnectTitle": "Mit vorhandenem Speicher verbinden",
+  "@settingsSyncPairingConnectTitle": {
+    "x-sourceSha256": "b36ab8be72f14e0b286c8c13aff9f367948fe5922c3ab1b4d1b46acd87c3086a"
+  },
+  "settingsSyncPairingConnectSubtitle": "Gib die Phrase ein, die auf dem bereits eingerichteten Gerät angezeigt wird.",
+  "@settingsSyncPairingConnectSubtitle": {
+    "x-sourceSha256": "b04ab91fe4a2b5cc74daa682e7c34945d0714d40ddc5c8e8d5ecd514c83b5435"
+  },
+  "settingsSyncPairingYourPhrase": "Deine Synchronisierungsphrase",
+  "@settingsSyncPairingYourPhrase": {
+    "x-sourceSha256": "5d1bff416b1249fb0f1026ae51f86414e77c04b4ef40fd580b76581f4f5ee31a"
+  },
+  "settingsSyncPairingRegenerate": "Andere Phrase erzeugen",
+  "@settingsSyncPairingRegenerate": {
+    "x-sourceSha256": "0fedb816d3ffdc13964c8fa7d6c53198a3c8de979c182c17096f111c564c0dd6"
+  },
+  "settingsSyncPairingEnterPhrase": "Synchronisierungsphrase",
+  "@settingsSyncPairingEnterPhrase": {
+    "x-sourceSha256": "7c4581adb8b6da5f2ac79f8bf09ba2e1d3803d1e702c81cd2e954f13e25516f5"
+  },
+  "settingsSyncPairingEnterPhraseHint": "wort-wort-wort-wort",
+  "@settingsSyncPairingEnterPhraseHint": {
+    "x-sourceSha256": "26d1f0702fbc299d5983bb679ad99b637f8fc562afc8d361e66df171d0226a32"
+  },
+  "settingsSyncPairingInvalidPhrase": "Das sieht nicht nach einer vollständigen Synchronisierungsphrase aus.",
+  "@settingsSyncPairingInvalidPhrase": {
+    "x-sourceSha256": "21b4b4c5a41a1b892fdbd68fd465d4fbc8d30539f14a55706792065d4f76ada8"
+  },
+  "settingsSyncPairingNotFound": "Kein Speicher hat diese Phrase. Vergleiche sie mit dem anderen Gerät und versuche es erneut.",
+  "@settingsSyncPairingNotFound": {
+    "x-sourceSha256": "4b830f04d0bc60a3764679954454a7461694ed9746759934bfaee2098d6a6e29"
+  },
+  "settingsSyncPairingAlreadyInUse": "Diese Phrase wird bereits von einem anderen Speicher verwendet. Erzeuge eine andere.",
+  "@settingsSyncPairingAlreadyInUse": {
+    "x-sourceSha256": "a36988588079609c9bf3ae1c4c6d9f3195f235b388f61041b990c2bb47099f1c"
+  },
+  "settingsSyncPairingUnreachable": "Die Gerätesynchronisierung ist gerade nicht verfügbar. Prüfe deine Verbindung und versuche es erneut.",
+  "@settingsSyncPairingUnreachable": {
+    "x-sourceSha256": "6b46c1f7e1eaefe2de8cff490ba510bd32a56d8978f101b56f17263fd184ce00"
+  },
+  "settingsSyncPairingSharingTitle": "Teilen ist keine Zusammenarbeit",
+  "@settingsSyncPairingSharingTitle": {
+    "x-sourceSha256": "a548ef1b356aecc00f474bccd2b37174449f06c5f7e4e807a43c9b2abe47ab07"
+  },
+  "settingsSyncPairingSharingBody": "Eine zweite Person kann dieselbe Phrase auf ihrem Gerät verwenden. Wenn ihr beide gleichzeitig denselben Tanz oder dasselbe Programm bearbeitet, überschreibt eine Änderung die andere stillschweigend — es gibt keine Warnung und keine Möglichkeit, sie zu kombinieren.",
+  "@settingsSyncPairingSharingBody": {
+    "x-sourceSha256": "a98a2f3493bfcb71d5e1c5020747752924342c3821a4aa3ca1b4cca5b4c195d1"
+  },
+  "settingsSyncPairingCredentialTitle": "Diese Phrase kann weder wiederhergestellt noch widerrufen werden",
+  "@settingsSyncPairingCredentialTitle": {
+    "x-sourceSha256": "c6abbeba15319ec950ff3d20957906a07104aed09b1e6570eb73a191f7f6fb93"
+  },
+  "settingsSyncPairingCredentialBody": "Verlierst du diese Phrase, wird dein Speicher unerreichbar — es gibt kein Zurücksetzen. Falls sie durchsickert, ist die einzige Lösung, alle Geräte auf eine neue Phrase umzustellen.",
+  "@settingsSyncPairingCredentialBody": {
+    "x-sourceSha256": "8cefe91d1bf18c0df7147a7ce772b9806ad0190dbdef49e2c988a88b5dc29b06"
+  },
+  "settingsSyncPairingBackupOfferTitle": "Zuerst deine Bibliothek sichern?",
+  "@settingsSyncPairingBackupOfferTitle": {
+    "x-sourceSha256": "24b757c0b07a4d48d526b0b6209c02df4f0c0feb3c2653db25f715cf23b97426"
+  },
+  "settingsSyncPairingBackupOfferBody": "Das ist optional und dient nur deiner eigenen Sicherheit — das Verbinden selbst sichert nichts.",
+  "@settingsSyncPairingBackupOfferBody": {
+    "x-sourceSha256": "5ae08149f55bb36e3c45f515fe4ec91824a12bfec3c9cb7a555bbc209f20db1d"
+  },
+  "settingsSyncPairingBackupOfferAccept": "Jetzt sichern",
+  "@settingsSyncPairingBackupOfferAccept": {
+    "x-sourceSha256": "02a2840b598b6b1c12d103f05f593fb633510c11b148ea6d1de57438ceca89e3"
+  },
+  "settingsSyncPairingBackupOfferSkip": "Überspringen",
+  "@settingsSyncPairingBackupOfferSkip": {
+    "x-sourceSha256": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06"
+  },
+  "settingsSyncPairingContinue": "Weiter",
+  "@settingsSyncPairingContinue": {
+    "x-sourceSha256": "31fbef162594de01bab0cd525c51f74de7bcb15063029fa1a54b2cf5944c80d8"
+  },
+  "settingsSyncPairingComplete": "Verbunden",
+  "@settingsSyncPairingComplete": {
+    "x-sourceSha256": "22965568d22a14ee17af055d2870b50afcfe9fd94a83eec3196e266932297bb2"
+  },
+  "settingsSyncPairingCompleteBody": "Deine Bibliothek ist verbunden. Die erste Synchronisierung läuft jetzt.",
+  "@settingsSyncPairingCompleteBody": {
+    "x-sourceSha256": "750a225daf2a7bd882f9647303a4ca3c869b1ce0bd820a69c4bfa960293b72ad"
+  },
+  "settingsSyncPairingCompleteDuplicates": "{count, plural, one {{count} doppelten Tanz gefunden und zusammengeführt.} other {{count} doppelte Tänze gefunden und zusammengeführt.}}",
+  "@settingsSyncPairingCompleteDuplicates": {
+    "x-sourceSha256": "f3420d8fa206527f49c22fec0d183d6d67d54ddb0fa188597b4c169dfe5784d5"
+  },
+  "settingsSyncReplacementTitle": "Diesen Speicher neu verbinden?",
+  "@settingsSyncReplacementTitle": {
+    "x-sourceSha256": "f89fdb596df9ab804d25c9d81cdcb95707abeeb722b1a682329b6dae9434e3a0"
+  },
+  "settingsSyncReplacementBody": "Der Speicher, mit dem dieses Gerät synchronisiert hat, ist nicht mehr vorhanden. Er könnte durch Inaktivität abgelaufen oder entfernt worden sein. Erneutes Verbinden erstellt einen neuen Speicher mit derselben Phrase und synchronisiert von vorn.",
+  "@settingsSyncReplacementBody": {
+    "x-sourceSha256": "07cb10775fa00e7289a2eb07b808633107fa1dac86c31f3cf54d9470f32a8806"
+  },
+  "settingsSyncReplacementConfirm": "Neu verbinden",
+  "@settingsSyncReplacementConfirm": {
+    "x-sourceSha256": "bf8a9eab9e7e141bfb81f0ca9244a5f68f476ed0b57f03538410417298169d18"
+  },
+  "settingsSyncReplacementCancel": "Jetzt nicht",
+  "@settingsSyncReplacementCancel": {
+    "x-sourceSha256": "a0e63d7c7125d29af84d6919af5550529be77c327324940c98c4b2cb13a99c8c"
   },
   "settingsAboutTitle": "Über",
   "@settingsAboutTitle": {

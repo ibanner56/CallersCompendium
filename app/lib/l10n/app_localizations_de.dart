@@ -241,11 +241,15 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncStatusStaleStore =>
-      'Dieser Speicher hat sich seit deiner letzten Synchronisierung geändert. Eine erneute Verbindung ist noch nicht möglich.';
+      'Dieser Speicher wurde seit deiner letzten Synchronisierung von einem anderen Gerät ersetzt. Die nächste Synchronisierung verbindet sich mit dem neuen.';
 
   @override
   String get settingsSyncStatusStoreUnavailable =>
-      'Dieser Speicher ist möglicherweise durch Inaktivität abgelaufen oder wurde entfernt. Eine erneute Verbindung ist noch nicht möglich.';
+      'Dieser Speicher ist möglicherweise durch Inaktivität abgelaufen oder wurde entfernt.';
+
+  @override
+  String get settingsSyncStatusStoreNotFound =>
+      'Kein Speicher hat diese Synchronisierungsphrase. Vergleiche sie mit deinem anderen Gerät.';
 
   @override
   String get settingsSyncNotBackup =>
@@ -269,6 +273,123 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsSyncNotPairedNow =>
       'Verbinde einen Speicher, bevor du synchronisierst.';
+
+  @override
+  String get settingsSyncConnectTitle => 'Verbinden';
+
+  @override
+  String get settingsSyncPairingTitle => 'Gerätesynchronisierung verbinden';
+
+  @override
+  String get settingsSyncPairingChooseHeading =>
+      'Ist das das erste Gerät, oder fügst du ein weiteres hinzu?';
+
+  @override
+  String get settingsSyncPairingCreateTitle => 'Neuen Speicher erstellen';
+
+  @override
+  String get settingsSyncPairingCreateSubtitle =>
+      'Ganz neu beginnen. Du erhältst eine Phrase, die du deinen anderen Geräten vorlesen kannst.';
+
+  @override
+  String get settingsSyncPairingConnectTitle =>
+      'Mit vorhandenem Speicher verbinden';
+
+  @override
+  String get settingsSyncPairingConnectSubtitle =>
+      'Gib die Phrase ein, die auf dem bereits eingerichteten Gerät angezeigt wird.';
+
+  @override
+  String get settingsSyncPairingYourPhrase => 'Deine Synchronisierungsphrase';
+
+  @override
+  String get settingsSyncPairingRegenerate => 'Andere Phrase erzeugen';
+
+  @override
+  String get settingsSyncPairingEnterPhrase => 'Synchronisierungsphrase';
+
+  @override
+  String get settingsSyncPairingEnterPhraseHint => 'wort-wort-wort-wort';
+
+  @override
+  String get settingsSyncPairingInvalidPhrase =>
+      'Das sieht nicht nach einer vollständigen Synchronisierungsphrase aus.';
+
+  @override
+  String get settingsSyncPairingNotFound =>
+      'Kein Speicher hat diese Phrase. Vergleiche sie mit dem anderen Gerät und versuche es erneut.';
+
+  @override
+  String get settingsSyncPairingAlreadyInUse =>
+      'Diese Phrase wird bereits von einem anderen Speicher verwendet. Erzeuge eine andere.';
+
+  @override
+  String get settingsSyncPairingUnreachable =>
+      'Die Gerätesynchronisierung ist gerade nicht verfügbar. Prüfe deine Verbindung und versuche es erneut.';
+
+  @override
+  String get settingsSyncPairingSharingTitle =>
+      'Teilen ist keine Zusammenarbeit';
+
+  @override
+  String get settingsSyncPairingSharingBody =>
+      'Eine zweite Person kann dieselbe Phrase auf ihrem Gerät verwenden. Wenn ihr beide gleichzeitig denselben Tanz oder dasselbe Programm bearbeitet, überschreibt eine Änderung die andere stillschweigend — es gibt keine Warnung und keine Möglichkeit, sie zu kombinieren.';
+
+  @override
+  String get settingsSyncPairingCredentialTitle =>
+      'Diese Phrase kann weder wiederhergestellt noch widerrufen werden';
+
+  @override
+  String get settingsSyncPairingCredentialBody =>
+      'Verlierst du diese Phrase, wird dein Speicher unerreichbar — es gibt kein Zurücksetzen. Falls sie durchsickert, ist die einzige Lösung, alle Geräte auf eine neue Phrase umzustellen.';
+
+  @override
+  String get settingsSyncPairingBackupOfferTitle =>
+      'Zuerst deine Bibliothek sichern?';
+
+  @override
+  String get settingsSyncPairingBackupOfferBody =>
+      'Das ist optional und dient nur deiner eigenen Sicherheit — das Verbinden selbst sichert nichts.';
+
+  @override
+  String get settingsSyncPairingBackupOfferAccept => 'Jetzt sichern';
+
+  @override
+  String get settingsSyncPairingBackupOfferSkip => 'Überspringen';
+
+  @override
+  String get settingsSyncPairingContinue => 'Weiter';
+
+  @override
+  String get settingsSyncPairingComplete => 'Verbunden';
+
+  @override
+  String get settingsSyncPairingCompleteBody =>
+      'Deine Bibliothek ist verbunden. Die erste Synchronisierung läuft jetzt.';
+
+  @override
+  String settingsSyncPairingCompleteDuplicates(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count doppelte Tänze gefunden und zusammengeführt.',
+      one: '$count doppelten Tanz gefunden und zusammengeführt.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsSyncReplacementTitle => 'Diesen Speicher neu verbinden?';
+
+  @override
+  String get settingsSyncReplacementBody =>
+      'Der Speicher, mit dem dieses Gerät synchronisiert hat, ist nicht mehr vorhanden. Er könnte durch Inaktivität abgelaufen oder entfernt worden sein. Erneutes Verbinden erstellt einen neuen Speicher mit derselben Phrase und synchronisiert von vorn.';
+
+  @override
+  String get settingsSyncReplacementConfirm => 'Neu verbinden';
+
+  @override
+  String get settingsSyncReplacementCancel => 'Jetzt nicht';
 
   @override
   String get settingsAboutTitle => 'Über';

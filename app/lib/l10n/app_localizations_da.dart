@@ -240,11 +240,15 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncStatusStaleStore =>
-      'Dette lager er ændret siden din sidste synkronisering. Genoprettelse af forbindelse er endnu ikke muligt.';
+      'Dette lager er blevet erstattet af en anden enhed siden din sidste synkronisering. Næste synkronisering tilslutter sig det nye.';
 
   @override
   String get settingsSyncStatusStoreUnavailable =>
-      'Dette lager er muligvis udløbet på grund af inaktivitet eller er blevet fjernet. Genoprettelse af forbindelse er endnu ikke muligt.';
+      'Dette lager kan være udløbet på grund af inaktivitet eller være blevet fjernet.';
+
+  @override
+  String get settingsSyncStatusStoreNotFound =>
+      'Intet lager har denne synkroniseringssætning. Tjek den mod din anden enhed.';
 
   @override
   String get settingsSyncNotBackup =>
@@ -268,6 +272,122 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get settingsSyncNotPairedNow =>
       'Tilslut et lager, før du synkroniserer.';
+
+  @override
+  String get settingsSyncConnectTitle => 'Forbind';
+
+  @override
+  String get settingsSyncPairingTitle => 'Forbind enhedssynkronisering';
+
+  @override
+  String get settingsSyncPairingChooseHeading =>
+      'Er dette den første enhed, eller tilføjer du en til?';
+
+  @override
+  String get settingsSyncPairingCreateTitle => 'Opret et nyt lager';
+
+  @override
+  String get settingsSyncPairingCreateSubtitle =>
+      'Start forfra. Du får en sætning, du kan læse op for dine andre enheder.';
+
+  @override
+  String get settingsSyncPairingConnectTitle =>
+      'Forbind til et eksisterende lager';
+
+  @override
+  String get settingsSyncPairingConnectSubtitle =>
+      'Indtast sætningen, der vises på den enhed, du allerede har sat op.';
+
+  @override
+  String get settingsSyncPairingYourPhrase => 'Din synkroniseringssætning';
+
+  @override
+  String get settingsSyncPairingRegenerate => 'Generér en anden sætning';
+
+  @override
+  String get settingsSyncPairingEnterPhrase => 'Synkroniseringssætning';
+
+  @override
+  String get settingsSyncPairingEnterPhraseHint => 'ord-ord-ord-ord';
+
+  @override
+  String get settingsSyncPairingInvalidPhrase =>
+      'Det ligner ikke en fuldstændig synkroniseringssætning.';
+
+  @override
+  String get settingsSyncPairingNotFound =>
+      'Intet lager har den sætning. Tjek den mod den anden enhed, og prøv igen.';
+
+  @override
+  String get settingsSyncPairingAlreadyInUse =>
+      'Den sætning er allerede i brug af et andet lager. Generér en anden.';
+
+  @override
+  String get settingsSyncPairingUnreachable =>
+      'Enhedssynkronisering er ikke tilgængelig lige nu. Tjek din forbindelse, og prøv igen.';
+
+  @override
+  String get settingsSyncPairingSharingTitle => 'Deling er ikke samarbejde';
+
+  @override
+  String get settingsSyncPairingSharingBody =>
+      'En anden person kan bruge den samme sætning på deres enhed. Hvis I begge redigerer den samme dans eller det samme program på samme tid, overskriver den ene redigering stille den anden — der er ingen advarsel og ingen måde at kombinere dem på.';
+
+  @override
+  String get settingsSyncPairingCredentialTitle =>
+      'Denne sætning kan ikke gendannes eller tilbagekaldes';
+
+  @override
+  String get settingsSyncPairingCredentialBody =>
+      'Mister du denne sætning, bliver dit lager utilgængeligt — der er ingen nulstilling af adgangskode. Hvis den lækkes, er den eneste løsning at flytte alle enheder til en ny sætning.';
+
+  @override
+  String get settingsSyncPairingBackupOfferTitle =>
+      'Vil du sikkerhedskopiere dit bibliotek først?';
+
+  @override
+  String get settingsSyncPairingBackupOfferBody =>
+      'Dette er valgfrit og kun til din egen sikkerhed — selve forbindelsen sikkerhedskopierer ikke noget.';
+
+  @override
+  String get settingsSyncPairingBackupOfferAccept => 'Sikkerhedskopiér nu';
+
+  @override
+  String get settingsSyncPairingBackupOfferSkip => 'Spring over';
+
+  @override
+  String get settingsSyncPairingContinue => 'Fortsæt';
+
+  @override
+  String get settingsSyncPairingComplete => 'Forbundet';
+
+  @override
+  String get settingsSyncPairingCompleteBody =>
+      'Dit bibliotek er forbundet. Den første synkronisering kører nu.';
+
+  @override
+  String settingsSyncPairingCompleteDuplicates(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Fandt og sammenlagde $count duplikerede danse.',
+      one: 'Fandt og sammenlagde $count duplikeret dans.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsSyncReplacementTitle => 'Genforbind dette lager?';
+
+  @override
+  String get settingsSyncReplacementBody =>
+      'Lageret, denne enhed plejede at synkronisere med, findes ikke længere. Det kan være udløbet på grund af inaktivitet, eller det kan være blevet fjernet. Genforbindelse opretter et nyt lager med samme sætning og synkroniserer forfra.';
+
+  @override
+  String get settingsSyncReplacementConfirm => 'Genforbind';
+
+  @override
+  String get settingsSyncReplacementCancel => 'Ikke nu';
 
   @override
   String get settingsAboutTitle => 'Om';

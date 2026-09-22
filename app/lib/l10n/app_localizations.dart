@@ -490,17 +490,23 @@ abstract class AppLocalizations {
   /// **'Last sync failed.'**
   String get settingsSyncStatusFailed;
 
-  /// Status shown when the last sync attempt found the connected store had moved on to a new epoch (e.g. another device confirmed a replacement). Reconnection UI does not exist yet, so this only reports the state.
+  /// Status shown when the last sync attempt found the connected store had moved on to a new epoch (another device confirmed a replacement). No action is needed: the next pass attaches to the replaced store on its own.
   ///
   /// In en, this message translates to:
-  /// **'This store has changed since your last sync. Reconnecting isn\'t available yet.'**
+  /// **'This store was replaced by another device since your last sync. The next sync will join the new one.'**
   String get settingsSyncStatusStaleStore;
 
-  /// Status shown when the last sync attempt found the previously connected store no longer exists. Per spec §6.14 item 6 this must not claim a specific cause the server did not give. Reconnection UI does not exist yet, so this only reports the state.
+  /// Status shown when the last sync attempt found that a store this device had previously used no longer exists. Per spec §6.14 item 6 this must not claim a specific cause the server did not give; the replacement dialog asks the user what to do.
   ///
   /// In en, this message translates to:
-  /// **'This store may have expired from inactivity or been removed. Reconnecting isn\'t available yet.'**
+  /// **'This store may have expired from inactivity or been removed.'**
   String get settingsSyncStatusStoreUnavailable;
+
+  /// Status shown when the stored sync phrase has never matched a store (the server answered not-found and this device never used the store before). Distinct from the expired-or-removed case: nothing existed to expire.
+  ///
+  /// In en, this message translates to:
+  /// **'No store has this sync phrase. Check it against your other device.'**
+  String get settingsSyncStatusStoreNotFound;
 
   /// Disclosure shown wherever Device Sync reports its status, stating that sync does not replace a file backup.
   ///
@@ -537,6 +543,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Connect a store before syncing.'**
   String get settingsSyncNotPairedNow;
+
+  /// Title of the button that opens Device Sync pairing when no store is connected.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect'**
+  String get settingsSyncConnectTitle;
+
+  /// App bar title of the Device Sync pairing screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect Device Sync'**
+  String get settingsSyncPairingTitle;
+
+  /// Heading of the create-vs-connect choice step of pairing.
+  ///
+  /// In en, this message translates to:
+  /// **'Is this the first device, or are you adding another?'**
+  String get settingsSyncPairingChooseHeading;
+
+  /// Title of the button to create a new sync store.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a new store'**
+  String get settingsSyncPairingCreateTitle;
+
+  /// Subtitle explaining the create option.
+  ///
+  /// In en, this message translates to:
+  /// **'Start fresh. You\'ll get a phrase to read to your other devices.'**
+  String get settingsSyncPairingCreateSubtitle;
+
+  /// Title of the button to connect to a store created on another device.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to an existing store'**
+  String get settingsSyncPairingConnectTitle;
+
+  /// Subtitle explaining the connect option.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the phrase shown on the device you already set up.'**
+  String get settingsSyncPairingConnectSubtitle;
+
+  /// Label above the generated sync ID shown during create.
+  ///
+  /// In en, this message translates to:
+  /// **'Your sync phrase'**
+  String get settingsSyncPairingYourPhrase;
+
+  /// Button to generate a new random sync ID before creating the store.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate a different phrase'**
+  String get settingsSyncPairingRegenerate;
+
+  /// Text field label for entering an existing sync ID to connect.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync phrase'**
+  String get settingsSyncPairingEnterPhrase;
+
+  /// Placeholder text in the sync-phrase entry field showing its shape.
+  ///
+  /// In en, this message translates to:
+  /// **'word-word-word-word'**
+  String get settingsSyncPairingEnterPhraseHint;
+
+  /// Error shown when the entered sync ID fails structural validation.
+  ///
+  /// In en, this message translates to:
+  /// **'That doesn\'t look like a complete sync phrase.'**
+  String get settingsSyncPairingInvalidPhrase;
+
+  /// Error shown when connecting to a sync ID that has no store (404).
+  ///
+  /// In en, this message translates to:
+  /// **'No store has that phrase. Check it against the other device and try again.'**
+  String get settingsSyncPairingNotFound;
+
+  /// Error shown when creating a store whose ID is already taken (409).
+  ///
+  /// In en, this message translates to:
+  /// **'That phrase is already in use by another store. Generate a different one.'**
+  String get settingsSyncPairingAlreadyInUse;
+
+  /// Error shown when the pairing request fails for a reason other than 404/409 (network, server).
+  ///
+  /// In en, this message translates to:
+  /// **'Device Sync isn\'t available right now. Check your connection and try again.'**
+  String get settingsSyncPairingUnreachable;
+
+  /// Heading of the sharing-not-collaboration disclosure shown during pairing.
+  ///
+  /// In en, this message translates to:
+  /// **'Sharing is not collaboration'**
+  String get settingsSyncPairingSharingTitle;
+
+  /// Body text of the sharing-not-collaboration disclosure (spec §6.14 item 1).
+  ///
+  /// In en, this message translates to:
+  /// **'A second person can use this same phrase on their device. If you both edit the same dance or program at the same time, one edit silently overwrites the other — there\'s no warning and no way to combine them.'**
+  String get settingsSyncPairingSharingBody;
+
+  /// Heading of the no-recovery/no-revocation disclosure shown during pairing.
+  ///
+  /// In en, this message translates to:
+  /// **'This phrase can\'t be recovered or revoked'**
+  String get settingsSyncPairingCredentialTitle;
+
+  /// Body text of the no-recovery/no-revocation disclosure (spec §6.14 item 2).
+  ///
+  /// In en, this message translates to:
+  /// **'Losing this phrase makes your store unreachable — there is no password reset. If it leaks, the only fix is moving every device to a new phrase.'**
+  String get settingsSyncPairingCredentialBody;
+
+  /// Heading of the pre-connection backup offer shown during pairing.
+  ///
+  /// In en, this message translates to:
+  /// **'Back up your library first?'**
+  String get settingsSyncPairingBackupOfferTitle;
+
+  /// Body text explaining the backup offer is optional and not part of connecting.
+  ///
+  /// In en, this message translates to:
+  /// **'This is optional and only for your own safekeeping — connecting itself does not back anything up.'**
+  String get settingsSyncPairingBackupOfferBody;
+
+  /// Button that exports a backup during the pairing backup offer.
+  ///
+  /// In en, this message translates to:
+  /// **'Back up now'**
+  String get settingsSyncPairingBackupOfferAccept;
+
+  /// Button that declines the pairing backup offer and continues.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get settingsSyncPairingBackupOfferSkip;
+
+  /// Button that proceeds from the pairing disclosures/backup step to the create-or-connect network request.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get settingsSyncPairingContinue;
+
+  /// Title of the dialog shown after pairing completes successfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected'**
+  String get settingsSyncPairingComplete;
+
+  /// Body of the pairing-complete dialog when no duplicates were found.
+  ///
+  /// In en, this message translates to:
+  /// **'Your library is connected. The first sync is running now.'**
+  String get settingsSyncPairingCompleteBody;
+
+  /// Body of the pairing-complete dialog reporting duplicates merged during the first attach (spec, W8).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {Found and merged {count} duplicate dance.} other {Found and merged {count} duplicate dances.}}'**
+  String settingsSyncPairingCompleteDuplicates(int count);
+
+  /// Title of the dialog shown when a previously used sync store is missing.
+  ///
+  /// In en, this message translates to:
+  /// **'Reconnect this store?'**
+  String get settingsSyncReplacementTitle;
+
+  /// Body of the missing-previously-used-collection dialog (spec §6.14 item 6): explains the collection may have expired or been removed, without asserting which.
+  ///
+  /// In en, this message translates to:
+  /// **'The store this device used to sync with is no longer there. It may have expired through inactivity, or it may have been removed. Reconnecting creates a new store with the same phrase and re-syncs from scratch.'**
+  String get settingsSyncReplacementBody;
+
+  /// Button that confirms replacement of a missing previously used store.
+  ///
+  /// In en, this message translates to:
+  /// **'Reconnect'**
+  String get settingsSyncReplacementConfirm;
+
+  /// Button that cancels replacement; makes no network call and leaves the decision available later.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get settingsSyncReplacementCancel;
 
   /// Settings section navigation title (sidebar/app bar) for app version, license, and help links.
   ///

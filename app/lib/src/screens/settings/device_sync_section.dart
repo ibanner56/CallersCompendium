@@ -1,13 +1,17 @@
 // Part of the Settings screen: the Device Sync group of the Experimental pane.
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../data/backup_io.dart';
 import '../../sync/sync_controller.dart';
 import '../../sync/sync_coordinator.dart' show SyncPassStatus;
 import '../../sync/sync_scope.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/section_header.dart';
+import 'sync_pairing_screen.dart';
 
 /// Device Sync settings and status (spec §6.1, §6.12, §6.14).
 ///
@@ -16,7 +20,11 @@ import '../../widgets/section_header.dart';
 /// the status surface itself, not only at pairing, because a "last synced" line
 /// is exactly what a user reads as "my data is safe" (spec §6.14 item 3).
 class DeviceSyncSection extends StatefulWidget {
-  const DeviceSyncSection({super.key});
+  const DeviceSyncSection({super.key, this.backupSaver});
+
+  /// Test seam forwarded to the pairing screen's backup offer; defaults to
+  /// [saveBackupToFile].
+  final BackupSaver? backupSaver;
 
   @override
   State<DeviceSyncSection> createState() => _DeviceSyncSectionState();
@@ -26,21 +34,76 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
   final _wifiTileKey = GlobalKey();
   SyncController? _controller;
 
+  bool _replacementDialogShowing = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final controller = SyncScope.of(context);
     if (!identical(controller, _controller)) {
       _controller?.wifiSettingRequests.removeListener(_routeToWifiSetting);
+      _controller?.removeListener(_maybeShowReplacementDialog);
       _controller = controller
-        ..wifiSettingRequests.addListener(_routeToWifiSetting);
+        ..wifiSettingRequests.addListener(_routeToWifiSetting)
+        ..addListener(_maybeShowReplacementDialog);
+      // Deferred to after this frame: replacementPending can already be true
+      // here (e.g. a startup sync found the missing store before the user
+      // opened Experimental), and showDialog pushing a route during build
+      // trips Flutter's "markNeedsBuild called during build" assertion.
+      // A later, listener-driven call runs outside build and stays immediate.
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _maybeShowReplacementDialog(),
+      );
     }
   }
 
   @override
   void dispose() {
     _controller?.wifiSettingRequests.removeListener(_routeToWifiSetting);
+    _controller?.removeListener(_maybeShowReplacementDialog);
     super.dispose();
+  }
+
+  /// Shown at the moment §6.3 step 1 finds a previously used store missing
+  /// (spec §6.14 item 6): explains it may have expired or been removed, and
+  /// requires confirmation before replacing it. Cancel makes no network call.
+  void _maybeShowReplacementDialog() {
+    final controller = _controller;
+    if (!mounted ||
+        controller == null ||
+        !controller.replacementPending ||
+        _replacementDialogShowing) {
+      return;
+    }
+    _replacementDialogShowing = true;
+    final l10n = AppLocalizations.of(context);
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        key: const ValueKey('sync-replacement-dialog'),
+        title: Text(l10n.settingsSyncReplacementTitle),
+        content: Text(l10n.settingsSyncReplacementBody),
+        actions: [
+          TextButton(
+            key: const ValueKey('sync-replacement-cancel'),
+            onPressed: () {
+              controller.declineReplacement();
+              Navigator.of(dialogContext).pop();
+            },
+            child: Text(l10n.settingsSyncReplacementCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('sync-replacement-confirm'),
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              unawaited(controller.confirmReplacement());
+            },
+            child: Text(l10n.settingsSyncReplacementConfirm),
+          ),
+        ],
+      ),
+    ).whenComplete(() => _replacementDialogShowing = false);
   }
 
   /// A manual attempt on a metered connection is routed to the setting rather
@@ -118,6 +181,16 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
                         key: const ValueKey('sync-status-last-success'),
                       )
                     : null,
+                trailing: controller.paired
+                    ? null
+                    : FilledButton(
+                        key: const ValueKey('sync-connect'),
+                        onPressed: () => showSyncPairingScreen(
+                          tileContext,
+                          backupSaver: widget.backupSaver,
+                        ),
+                        child: Text(l10n.settingsSyncConnectTitle),
+                      ),
               );
             },
           ),
@@ -140,13 +213,14 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
                 ),
               ),
             ),
-          ListTile(
-            key: const ValueKey('sync-now'),
-            leading: const Icon(Icons.sync),
-            title: Text(l10n.settingsSyncNowTitle),
-            enabled: !controller.running,
-            onTap: controller.running ? null : () => _syncNow(controller),
-          ),
+          if (controller.paired)
+            ListTile(
+              key: const ValueKey('sync-now'),
+              leading: const Icon(Icons.sync),
+              title: Text(l10n.settingsSyncNowTitle),
+              enabled: !controller.running,
+              onTap: controller.running ? null : () => _syncNow(controller),
+            ),
         ],
       ],
     );
@@ -170,19 +244,24 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
   /// this session, or a pass is currently running (the syncing status on
   /// [_statusText] takes priority over a stale failure from an earlier pass).
   ///
-  /// `staleEpoch` and the store-gone statuses are reported honestly rather
-  /// than offered a fix: pairing and replacement-confirmation UI are later
-  /// work (docs/design/sync-implementation.md, W13's three dependency-ordered
-  /// PRs), so this only names what happened, per spec §6.14 item 6 — never
-  /// claiming a cause the server did not give for a missing store.
+  /// The two missing-store outcomes are deliberately kept apart, as spec §6.2
+  /// and the pairing flow keep them apart: `replacementRequired` is a store
+  /// this device *had* used and that has since gone, so it may have expired
+  /// or been removed — never claimed as either, per §6.14 item 6 — and the
+  /// replacement dialog owns the decision; `firstTimeStoreRequired` is a
+  /// stored phrase no store has ever answered to, which is the mistyped or
+  /// never-created case, and saying "expired" there would explain a store
+  /// that never existed. A stale epoch needs no action: the next pass
+  /// fresh-attaches to the replaced store on its own.
   String? _failureText(AppLocalizations l10n, SyncController controller) {
     if (controller.running || !controller.paired) return null;
     return switch (controller.lastResult?.status) {
       SyncPassStatus.failed => l10n.settingsSyncStatusFailed,
       SyncPassStatus.staleEpoch => l10n.settingsSyncStatusStaleStore,
-      SyncPassStatus.replacementRequired ||
-      SyncPassStatus.firstTimeStoreRequired =>
+      SyncPassStatus.replacementRequired =>
         l10n.settingsSyncStatusStoreUnavailable,
+      SyncPassStatus.firstTimeStoreRequired =>
+        l10n.settingsSyncStatusStoreNotFound,
       _ => null,
     };
   }

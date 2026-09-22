@@ -1,0 +1,9 @@
+{
+  "id": "adr-004-w13-sync-pairing",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Device Sync now has a Connect flow: create a new store or connect to an existing one by phrase, with an optional one-time backup offer and clear disclosures about sharing and the phrase's no-recovery guarantee. If a previously connected store has gone missing, you're asked before it's replaced."
+    ]
+  }
+}

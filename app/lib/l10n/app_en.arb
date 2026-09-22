@@ -310,13 +310,17 @@
   "@settingsSyncStatusFailed": {
     "description": "Status shown when the most recent sync attempt did not complete. The time of the last successful sync, if any, is shown separately below this line."
   },
-  "settingsSyncStatusStaleStore": "This store has changed since your last sync. Reconnecting isn't available yet.",
+  "settingsSyncStatusStaleStore": "This store was replaced by another device since your last sync. The next sync will join the new one.",
   "@settingsSyncStatusStaleStore": {
-    "description": "Status shown when the last sync attempt found the connected store had moved on to a new epoch (e.g. another device confirmed a replacement). Reconnection UI does not exist yet, so this only reports the state."
+    "description": "Status shown when the last sync attempt found the connected store had moved on to a new epoch (another device confirmed a replacement). No action is needed: the next pass attaches to the replaced store on its own."
   },
-  "settingsSyncStatusStoreUnavailable": "This store may have expired from inactivity or been removed. Reconnecting isn't available yet.",
+  "settingsSyncStatusStoreUnavailable": "This store may have expired from inactivity or been removed.",
   "@settingsSyncStatusStoreUnavailable": {
-    "description": "Status shown when the last sync attempt found the previously connected store no longer exists. Per spec §6.14 item 6 this must not claim a specific cause the server did not give. Reconnection UI does not exist yet, so this only reports the state."
+    "description": "Status shown when the last sync attempt found that a store this device had previously used no longer exists. Per spec §6.14 item 6 this must not claim a specific cause the server did not give; the replacement dialog asks the user what to do."
+  },
+  "settingsSyncStatusStoreNotFound": "No store has this sync phrase. Check it against your other device.",
+  "@settingsSyncStatusStoreNotFound": {
+    "description": "Status shown when the stored sync phrase has never matched a store (the server answered not-found and this device never used the store before). Distinct from the expired-or-removed case: nothing existed to expire."
   },
   "settingsSyncNotBackup": "Sync is not a backup. A store that goes unused for 30 days is removed, so keep making file backups.",
   "@settingsSyncNotBackup": {
@@ -341,6 +345,136 @@
   "settingsSyncNotPairedNow": "Connect a store before syncing.",
   "@settingsSyncNotPairedNow": {
     "description": "Message shown when a manual sync is attempted with no store connected."
+  },
+  "settingsSyncConnectTitle": "Connect",
+  "@settingsSyncConnectTitle": {
+    "description": "Title of the button that opens Device Sync pairing when no store is connected."
+  },
+  "settingsSyncPairingTitle": "Connect Device Sync",
+  "@settingsSyncPairingTitle": {
+    "description": "App bar title of the Device Sync pairing screen."
+  },
+  "settingsSyncPairingChooseHeading": "Is this the first device, or are you adding another?",
+  "@settingsSyncPairingChooseHeading": {
+    "description": "Heading of the create-vs-connect choice step of pairing."
+  },
+  "settingsSyncPairingCreateTitle": "Create a new store",
+  "@settingsSyncPairingCreateTitle": {
+    "description": "Title of the button to create a new sync store."
+  },
+  "settingsSyncPairingCreateSubtitle": "Start fresh. You'll get a phrase to read to your other devices.",
+  "@settingsSyncPairingCreateSubtitle": {
+    "description": "Subtitle explaining the create option."
+  },
+  "settingsSyncPairingConnectTitle": "Connect to an existing store",
+  "@settingsSyncPairingConnectTitle": {
+    "description": "Title of the button to connect to a store created on another device."
+  },
+  "settingsSyncPairingConnectSubtitle": "Enter the phrase shown on the device you already set up.",
+  "@settingsSyncPairingConnectSubtitle": {
+    "description": "Subtitle explaining the connect option."
+  },
+  "settingsSyncPairingYourPhrase": "Your sync phrase",
+  "@settingsSyncPairingYourPhrase": {
+    "description": "Label above the generated sync ID shown during create."
+  },
+  "settingsSyncPairingRegenerate": "Generate a different phrase",
+  "@settingsSyncPairingRegenerate": {
+    "description": "Button to generate a new random sync ID before creating the store."
+  },
+  "settingsSyncPairingEnterPhrase": "Sync phrase",
+  "@settingsSyncPairingEnterPhrase": {
+    "description": "Text field label for entering an existing sync ID to connect."
+  },
+  "settingsSyncPairingEnterPhraseHint": "word-word-word-word",
+  "@settingsSyncPairingEnterPhraseHint": {
+    "description": "Placeholder text in the sync-phrase entry field showing its shape."
+  },
+  "settingsSyncPairingInvalidPhrase": "That doesn't look like a complete sync phrase.",
+  "@settingsSyncPairingInvalidPhrase": {
+    "description": "Error shown when the entered sync ID fails structural validation."
+  },
+  "settingsSyncPairingNotFound": "No store has that phrase. Check it against the other device and try again.",
+  "@settingsSyncPairingNotFound": {
+    "description": "Error shown when connecting to a sync ID that has no store (404)."
+  },
+  "settingsSyncPairingAlreadyInUse": "That phrase is already in use by another store. Generate a different one.",
+  "@settingsSyncPairingAlreadyInUse": {
+    "description": "Error shown when creating a store whose ID is already taken (409)."
+  },
+  "settingsSyncPairingUnreachable": "Device Sync isn't available right now. Check your connection and try again.",
+  "@settingsSyncPairingUnreachable": {
+    "description": "Error shown when the pairing request fails for a reason other than 404/409 (network, server)."
+  },
+  "settingsSyncPairingSharingTitle": "Sharing is not collaboration",
+  "@settingsSyncPairingSharingTitle": {
+    "description": "Heading of the sharing-not-collaboration disclosure shown during pairing."
+  },
+  "settingsSyncPairingSharingBody": "A second person can use this same phrase on their device. If you both edit the same dance or program at the same time, one edit silently overwrites the other — there's no warning and no way to combine them.",
+  "@settingsSyncPairingSharingBody": {
+    "description": "Body text of the sharing-not-collaboration disclosure (spec §6.14 item 1)."
+  },
+  "settingsSyncPairingCredentialTitle": "This phrase can't be recovered or revoked",
+  "@settingsSyncPairingCredentialTitle": {
+    "description": "Heading of the no-recovery/no-revocation disclosure shown during pairing."
+  },
+  "settingsSyncPairingCredentialBody": "Losing this phrase makes your store unreachable — there is no password reset. If it leaks, the only fix is moving every device to a new phrase.",
+  "@settingsSyncPairingCredentialBody": {
+    "description": "Body text of the no-recovery/no-revocation disclosure (spec §6.14 item 2)."
+  },
+  "settingsSyncPairingBackupOfferTitle": "Back up your library first?",
+  "@settingsSyncPairingBackupOfferTitle": {
+    "description": "Heading of the pre-connection backup offer shown during pairing."
+  },
+  "settingsSyncPairingBackupOfferBody": "This is optional and only for your own safekeeping — connecting itself does not back anything up.",
+  "@settingsSyncPairingBackupOfferBody": {
+    "description": "Body text explaining the backup offer is optional and not part of connecting."
+  },
+  "settingsSyncPairingBackupOfferAccept": "Back up now",
+  "@settingsSyncPairingBackupOfferAccept": {
+    "description": "Button that exports a backup during the pairing backup offer."
+  },
+  "settingsSyncPairingBackupOfferSkip": "Skip",
+  "@settingsSyncPairingBackupOfferSkip": {
+    "description": "Button that declines the pairing backup offer and continues."
+  },
+  "settingsSyncPairingContinue": "Continue",
+  "@settingsSyncPairingContinue": {
+    "description": "Button that proceeds from the pairing disclosures/backup step to the create-or-connect network request."
+  },
+  "settingsSyncPairingComplete": "Connected",
+  "@settingsSyncPairingComplete": {
+    "description": "Title of the dialog shown after pairing completes successfully."
+  },
+  "settingsSyncPairingCompleteBody": "Your library is connected. The first sync is running now.",
+  "@settingsSyncPairingCompleteBody": {
+    "description": "Body of the pairing-complete dialog when no duplicates were found."
+  },
+  "settingsSyncPairingCompleteDuplicates": "{count, plural, one {Found and merged {count} duplicate dance.} other {Found and merged {count} duplicate dances.}}",
+  "@settingsSyncPairingCompleteDuplicates": {
+    "description": "Body of the pairing-complete dialog reporting duplicates merged during the first attach (spec, W8).",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "settingsSyncReplacementTitle": "Reconnect this store?",
+  "@settingsSyncReplacementTitle": {
+    "description": "Title of the dialog shown when a previously used sync store is missing."
+  },
+  "settingsSyncReplacementBody": "The store this device used to sync with is no longer there. It may have expired through inactivity, or it may have been removed. Reconnecting creates a new store with the same phrase and re-syncs from scratch.",
+  "@settingsSyncReplacementBody": {
+    "description": "Body of the missing-previously-used-collection dialog (spec §6.14 item 6): explains the collection may have expired or been removed, without asserting which."
+  },
+  "settingsSyncReplacementConfirm": "Reconnect",
+  "@settingsSyncReplacementConfirm": {
+    "description": "Button that confirms replacement of a missing previously used store."
+  },
+  "settingsSyncReplacementCancel": "Not now",
+  "@settingsSyncReplacementCancel": {
+    "description": "Button that cancels replacement; makes no network call and leaves the decision available later."
   },
   "settingsAboutTitle": "About",
   "@settingsAboutTitle": {
