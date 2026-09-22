@@ -1484,7 +1484,7 @@ void main() {
           await tester.tap(find.byKey(const ValueKey('sync-now')));
           await tester.pumpAndSettle();
 
-          expect(find.textContaining('has changed'), findsOneWidget);
+          expect(find.textContaining('was replaced'), findsOneWidget);
         },
       );
 
