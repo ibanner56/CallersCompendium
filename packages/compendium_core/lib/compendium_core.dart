@@ -138,6 +138,7 @@ export 'src/storage/database.dart'
         taxonomyV35FigureNormalizationDoneKey,
         callersBoxRollAwayRoleRepairDoneKey,
         shareableTextNormalisationScopeKey,
+        normalisationDerivedIndexRepairDoneKey,
         kSectionRuleVersion,
         kCompendiumSchemaVersion,
         kMinSupportedSchemaVersion;

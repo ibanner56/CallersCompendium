@@ -276,6 +276,27 @@ const String callersBoxRollAwayRoleRepairDoneKey =
 const String shareableTextNormalisationScopeKey =
     '__shareable_text_normalisation_scope__';
 
+/// Settings key marking that this database has had the one-time derived-index
+/// repair owed by the normalization pass's dance-only rebuild condition
+/// (#1346).
+///
+/// Between v0.2.0-beta and this fix the pass set its rebuild flag only when the
+/// rewritten row was in `dances`, so a pass that repaired
+/// `choreographers.name`, `published_sources.title`/`.author` or
+/// `custom_field_values.value_text` left `dance_fts` / `dance_substring_fts`
+/// holding pre-normalization text and wrote its completion marker anyway.
+/// Bumping the algorithm version would not repair those installs: the re-run
+/// finds every row already normalized, rewrites nothing, sets no flag and so
+/// rebuilds nothing. The index has to be repaired directly, once.
+///
+/// Only owed by an install that completed the pass under the old code, which is
+/// why the sweep is gated on the scope marker's presence rather than run
+/// unconditionally: a database that has never completed the pass has no
+/// pre-fix rewrite to have missed, and the pass itself now rebuilds on any
+/// rewrite.
+const String normalisationDerivedIndexRepairDoneKey =
+    '__normalisation_derived_index_repair_done__';
+
 /// Records the address of a row the normalization pass left as stored, so the
 /// pass can re-attempt it later.
 ///
@@ -293,6 +314,36 @@ Future<void> recordNormalisationSkip(
 }) => db.customStatement(
   'INSERT OR REPLACE INTO normalisation_skips '
   '(table_name, column_name, record_id) VALUES (?, ?, ?)',
+  [table, column, recordId],
+);
+
+/// Removes the entry [recordNormalisationSkip] wrote, once the row it names no
+/// longer needs re-attempting.
+///
+/// `docs/design/sync-spec.md` §4.1 requires the pass to "re-attempt the
+/// recorded rows on each subsequent open, **clearing an entry once its row is
+/// written**", because the entry is what keeps the pass from taking its early
+/// return: while any entry remains, every launch re-scans the whole library
+/// (#1346).
+///
+/// Paired with [recordNormalisationSkip] here rather than written out at each
+/// call site so the two writers cannot spell the address differently. §4.1
+/// (`:600`–`:619`) requires the `(table, column)` spelling be pinned to one
+/// source for exactly that reason — a record and a clear that disagree about
+/// the spelling would leave an entry nothing can ever remove.
+///
+/// **There is no single "is it clear-able?" predicate**, and assuming one is
+/// the mistake to avoid. The three things that record an entry fail for three
+/// different reasons and become writable under three different conditions — see
+/// `_normaliseShareableTextIfNeeded`, which applies each separately.
+Future<void> clearNormalisationSkip(
+  CompendiumDatabase db, {
+  required String table,
+  required String column,
+  required String recordId,
+}) => db.customStatement(
+  'DELETE FROM normalisation_skips WHERE table_name = ? '
+  'AND column_name = ? AND record_id = ?',
   [table, column, recordId],
 );
 
