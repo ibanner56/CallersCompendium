@@ -215,7 +215,15 @@ class SyncController extends ChangeNotifier {
   /// controller's own bookkeeping writes, because a pass that records its own
   /// success would otherwise re-trigger itself forever.
   void notifyLocalChange({bool settingsOnly = false}) {
-    if (_disposed || !_enabled) return;
+    if (_disposed) return;
+    // Consumed before the disabled check below: the matching
+    // `expectSyncAppliedInvalidation()`/`_expectSelfWrite()` call already
+    // happened (possibly while still enabled, or as part of the very
+    // `setEnabled` call that disabled this controller), so the invalidation
+    // it is paired with must be accounted for regardless of the *current*
+    // `_enabled` value. Otherwise a disable landing between the hook firing
+    // and its table event reaching here strands the counter, and it wrongly
+    // swallows the first genuine edit once sync is re-enabled.
     if (settingsOnly && _pendingSelfWrites > 0) {
       _pendingSelfWrites--;
       return;
@@ -224,6 +232,7 @@ class SyncController extends ChangeNotifier {
       _pendingSyncAppliedInvalidations--;
       return;
     }
+    if (!_enabled) return;
     if (_inFlight > 0) {
       _dirty = true;
       return;
