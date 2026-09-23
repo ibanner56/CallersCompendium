@@ -1752,7 +1752,16 @@ class SyncCoordinator {
     SyncStoreResult? attached;
     if (!_replacementCreated) {
       final created = await transport.createStore();
-      if (!created.isSuccess) {
+      // A `409` is not a failure here: per §5.2 it means only that a store
+      // already exists for this `id_key`, and the sole way that can be true is
+      // that another holder of *this device's own phrase* recreated it first —
+      // or that this device's own `201` was lost to a timeout. Either way the
+      // store the user asked for is there, so adopt it and continue into the
+      // ordinary fresh attach with no second `POST` and no re-prompt; the
+      // stale-epoch path already joins such a store without asking. Treating
+      // it as a failure left the decision pending and re-POSTed into the same
+      // conflict on every confirm, forever. Any other non-2xx still fails.
+      if (!created.isSuccess && created.kind != SyncResponseKind.conflict) {
         return SyncPassResult(
           SyncPassStatus.failed,
           message:

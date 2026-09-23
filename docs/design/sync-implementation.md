@@ -673,9 +673,11 @@ deletion silently reverts".
   never puts the ID in a URL; and typed status handling — a first-time missing
   store is distinct from a previously successful ID whose store disappeared,
   and neither outcome creates a store; a **stale-epoch `409` from a manifest
-  `PUT`** forces fresh attach, while a `409` from `POST /v1/store` is reported
-  and stops and is never joined; `422` is surfaced and **never retried**; `429`
-  honours `Retry-After`.
+  `PUT`** forces fresh attach, while a `409` from a *pairing* `POST /v1/store`
+  is reported and stops and is never joined — on the §6.3 step 1 replacement
+  path the only possible creator is another holder of this device's own sync
+  ID, so there a `409` is adopted and fresh-attached instead; `422` is surfaced
+  and **never retried**; `429` honours `Retry-After`.
 
   W5 also owns **`sync_id` and `sync_device_id` as persisted settings keys, with
   their classifications** — `accessControlData` and `protocolIdentifier` — and

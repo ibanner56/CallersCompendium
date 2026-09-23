@@ -513,6 +513,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsSyncReplacementCancel => 'Ikke nu';
 
   @override
+  String get settingsSyncReplacementFailed =>
+      'Sidste forsøg på at genforbinde gik ikke igennem. Du kan prøve igen eller vælge Ikke nu og tage stilling senere.';
+
+  @override
   String get settingsAboutTitle => 'Om';
 
   @override

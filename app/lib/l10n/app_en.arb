@@ -616,6 +616,10 @@
   "@settingsSyncReplacementCancel": {
     "description": "Button that cancels replacement; makes no network call and leaves the decision available later."
   },
+  "settingsSyncReplacementFailed": "The last attempt to reconnect did not go through. You can try again, or choose Not now and decide later.",
+  "@settingsSyncReplacementFailed": {
+    "description": "Line added to the missing-previously-used-store dialog when the previous confirmation failed, so a dialog that reappears explains itself rather than looking like it was ignored."
+  },
   "settingsAboutTitle": "About",
   "@settingsAboutTitle": {
     "description": "Settings section navigation title (sidebar/app bar) for app version, license, and help links."
