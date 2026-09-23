@@ -1,0 +1,9 @@
+{
+  "id": "1347-figure-source",
+  "user_visible": false,
+  "core": {
+    "changed": [
+      "A dance's transcription is now held as a FigureSource sum type rather than a bare figure list, so a future case for an undecodable transcription cannot be read as an empty list by accident. No behaviour change."
+    ]
+  }
+}
