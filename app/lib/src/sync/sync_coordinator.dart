@@ -1156,20 +1156,13 @@ class SyncCoordinator {
       );
       normalizedPendingLive = await _normalizeCandidates(snapshot.pendingLive);
       // The pending views are derived from the same snapshot, so they go stale
-      // with it. A repaired tombstone left behind as its pre-repair copy stays
-      // filtered out as quarantined, and a stale peer live copy then wins the
-      // merge the repair was supposed to make it lose.
+      // with it. A repaired tombstone left behind as its pre-repair copy still
+      // reads as quarantined, which excludes it from the merge table (§6.3) and
+      // so drops the decision the repair was made to win. Rebuilding is what
+      // lets the repaired copy stand as this device's candidate.
       await rebuildPendingViews();
     }
 
-    // Both maps, because both are about to be merged. Resolving only
-    // `normalizedLocal` left a pending tombstone's references unaliased, so a
-    // reference to a losing ID could not be connected to its survivor and the
-    // quarantine closure could not reach the dependent.
-    final localReferenceAliases = await _resolveReferenceAliases([
-      normalizedLocal,
-      normalizedPendingTombstones,
-    ]);
     // A pending tombstone is this device's copy for the merge's purposes, even
     // though the row it names is still live locally. `snapshot.local` strips
     // those addresses out — the row must not be offered as live — so without
@@ -1186,11 +1179,47 @@ class SyncCoordinator {
     // device's own candidate, so the pass uploads rather than downloads and the
     // live row stays untouched (§6.8). A peer revival stamped above the
     // tombstone still wins and still downloads, exactly as before.
-    final mergeLocal = filterSyncQuarantinedCandidates(
-      {...normalizedLocal, ...normalizedPendingTombstones},
+    final mergeLocalCandidates = {
+      ...normalizedLocal,
+      ...normalizedPendingTombstones,
+    };
+    // §6.3 step 4 and §6.9 exclude *a quarantined record* from the merge table,
+    // and nothing further: the citation closure is §6.9's publication rule,
+    // applied by `planSyncPublication` only to a root with no usable fallback.
+    // Excluding a quarantined root's dependents here froze them one way — they
+    // kept publishing against the agreed fallback while no peer's edit or
+    // tombstone for them was ever applied — on a clock §6.9 says does not
+    // self-heal. Inbound dependents stay guarded per record by
+    // `validateInboundReferences`, which is where the spec puts that check.
+    //
+    // The roots are taken over the pending-tombstone overlay too, not just
+    // `normalizedLocal`. A quarantined pending tombstone is a quarantined
+    // record, and §6.3 states the exclusion without an exception for one; the
+    // narrower reading left it filtered out of the local side but still merged,
+    // so a peer's stale *live* copy won by default and silently reversed the
+    // deletion.
+    final mergeQuarantined = syncQuarantinedAddresses(
+      mergeLocalCandidates,
       windowEnd: windowEnd,
-      resolveAlias: (address) => localReferenceAliases[address] ?? address,
     );
+    // Excluded from the merge table means excluded from `unresolved` as well as
+    // from the local side. Dropping a root from `local` alone would leave the
+    // engine deciding it with no local candidate, where a peer's copy wins
+    // unconditionally (`SyncMergeEngine._resolve`) and, with no peer holding it,
+    // its baseline entry is dropped.
+    final mergeLocal = {
+      for (final entry in mergeLocalCandidates.entries)
+        if (!mergeQuarantined.contains(entry.key)) entry.key: entry.value,
+    };
+    // §6.9's inbound rejection is scoped to the offending blob: "one record
+    // skipped, batch intact". Each peer's map is filtered on its own, which
+    // drops that peer's refused copies and whatever only those copies let this
+    // device reach, so a valid copy of the same address on another peer still
+    // resolves. Adding the refused addresses to `unresolved` as well suppressed
+    // the address for *every* peer — and only when this device did not already
+    // hold it, so the same record merged normally once held. §4.5 and §6.3 say
+    // absence from a manifest is not evidence, and a refused copy is absence
+    // from that peer.
     final mergePeers = [
       for (var index = 0; index < rawPeerMaps.length; index++)
         filterSyncQuarantinedCandidates(
@@ -1200,31 +1229,6 @@ class SyncCoordinator {
               peerReferenceAliases[index][address] ?? address,
         ),
     ];
-    final localQuarantined = syncQuarantineClosure(
-      candidates: normalizedLocal,
-      quarantined: syncQuarantinedAddresses(
-        normalizedLocal,
-        windowEnd: windowEnd,
-      ),
-      resolveAlias: (address) => localReferenceAliases[address] ?? address,
-    );
-    final peerQuarantined = <SyncRecordAddress>{};
-    for (var index = 0; index < rawPeerMaps.length; index++) {
-      final peer = rawPeerMaps[index];
-      peerQuarantined.addAll(
-        syncQuarantineClosure(
-          candidates: peer,
-          quarantined: syncQuarantinedAddresses(peer, windowEnd: windowEnd),
-          resolveAlias: (address) =>
-              peerReferenceAliases[index][address] ?? address,
-        ),
-      );
-    }
-    final mergeQuarantined = {
-      ...localQuarantined,
-      for (final address in peerQuarantined)
-        if (normalizedLocal[address] == null) address,
-    };
     final mergeBaseline =
         freshAttach
               ? <SyncRecordAddress, SyncBaselineEntry>{}

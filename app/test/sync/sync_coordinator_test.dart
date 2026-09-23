@@ -755,6 +755,392 @@ void main() {
   );
 
   test(
+    'resolves an address from the peers that did not send it out of window',
+    () async {
+      final now = DateTime.utc(2026, 7, 15, 12);
+      final validRoot = SyncMergeCandidate.fromBlob(
+        _choreographer('author-r', 'In window', updatedAt: now),
+      );
+      final futureRoot = SyncMergeCandidate.fromBlob(
+        _choreographer(
+          'author-r',
+          'Out of window',
+          updatedAt: now.add(const Duration(hours: 25)),
+        ),
+      );
+      final dependent = SyncMergeCandidate.fromBlob(
+        _danceCiting('dance-d', 'author-r', updatedAt: now),
+      );
+      final transport = _FakeTransport(
+        devices: ['peer-b', 'peer-c'],
+        peerManifests: {
+          'peer-b': _manifest(
+            deviceId: 'peer-b',
+            records: {
+              SyncRecordKind.choreographer: {'author-r': validRoot.wireHash},
+              SyncRecordKind.dance: {'dance-d': dependent.wireHash},
+            },
+          ),
+          'peer-c': _manifest(
+            deviceId: 'peer-c',
+            records: {
+              SyncRecordKind.choreographer: {'author-r': futureRoot.wireHash},
+              SyncRecordKind.dance: {'dance-d': dependent.wireHash},
+            },
+          ),
+        },
+        blobResponses: _blobs([validRoot, futureRoot, dependent]),
+      );
+      final store = _FakeStore();
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+        now: () => now,
+      );
+      addTearDown(coordinator.dispose);
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      // Peer C's copy is refused; peer B's valid copy still resolves, and so
+      // does the dance citing it. §6.9 refuses the blob, not the address.
+      final written = {
+        for (final write in store.writes) write.address: write.body,
+      };
+      expect(written.keys, contains(validRoot.address));
+      expect(written[validRoot.address]?['name'], 'In window');
+      expect(written.keys, contains(dependent.address));
+      final quarantined = result.reports
+          .where((report) => report.code == SyncReportCode.quarantinedRecord)
+          .toList();
+      expect(quarantined, hasLength(1));
+      expect(quarantined.single.peerId, 'peer-c');
+      expect(quarantined.single.recordId, 'author-r');
+    },
+  );
+
+  test(
+    'an address every peer sent out of window is still not downloaded',
+    () async {
+      final now = DateTime.utc(2026, 7, 15, 12);
+      final futureRoot = SyncMergeCandidate.fromBlob(
+        _choreographer(
+          'author-r',
+          'Out of window',
+          updatedAt: now.add(const Duration(hours: 25)),
+        ),
+      );
+      final transport = _FakeTransport(
+        devices: ['peer-c'],
+        peerManifest: _manifest(
+          deviceId: 'peer-c',
+          records: {
+            SyncRecordKind.choreographer: {'author-r': futureRoot.wireHash},
+          },
+        ),
+        blobResponses: _blobs([futureRoot]),
+      );
+      final store = _FakeStore();
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+        now: () => now,
+      );
+      addTearDown(coordinator.dispose);
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(store.writes, isEmpty);
+      final quarantined = result.reports.where(
+        (report) => report.code == SyncReportCode.quarantinedRecord,
+      );
+      expect(quarantined, hasLength(1));
+      expect(quarantined.single.peerId, 'peer-c');
+    },
+  );
+
+  test(
+    'a held address still resolves from the peers that sent it in window',
+    () async {
+      final now = DateTime.utc(2026, 7, 15, 12);
+      final held = SyncMergeCandidate.fromBlob(
+        _choreographer('author-r', 'Held locally', updatedAt: now),
+      );
+      final newer = SyncMergeCandidate.fromBlob(
+        _choreographer(
+          'author-r',
+          'Newer on B',
+          updatedAt: now.add(const Duration(hours: 1)),
+        ),
+      );
+      final future = SyncMergeCandidate.fromBlob(
+        _choreographer(
+          'author-r',
+          'Out of window',
+          updatedAt: now.add(const Duration(hours: 25)),
+        ),
+      );
+      final store = _FakeStore(
+        local: {held.address: held},
+        baseline: {
+          held.address: SyncBaselineEntry(
+            kind: held.address.kind,
+            recordId: held.address.recordId,
+            wireHash: held.wireHash,
+          ),
+        },
+      );
+      final transport = _FakeTransport(
+        devices: ['peer-b', 'peer-c'],
+        peerManifests: {
+          'peer-b': _manifest(
+            deviceId: 'peer-b',
+            records: {
+              SyncRecordKind.choreographer: {'author-r': newer.wireHash},
+            },
+          ),
+          'peer-c': _manifest(
+            deviceId: 'peer-c',
+            records: {
+              SyncRecordKind.choreographer: {'author-r': future.wireHash},
+            },
+          ),
+        },
+        blobResponses: _blobs([held, newer, future]),
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+        now: () => now,
+      );
+      addTearDown(coordinator.dispose);
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      // The mirror of the test above: this path was already correct, and a
+      // peer-side exclusion that ignored whether the device holds the record
+      // would break it.
+      expect(store.writes.map((write) => write.address), [newer.address]);
+      expect(store.writes.single.body['name'], 'Newer on B');
+    },
+  );
+
+  test('applies a peer edit to a dependent of a quarantined root', () async {
+    final now = DateTime.utc(2026, 7, 15, 12);
+    final root = SyncMergeCandidate.fromBlob(
+      _choreographer(
+        'author-x',
+        'Author',
+        updatedAt: now.add(const Duration(hours: 25)),
+        existenceAt: now,
+      ),
+    );
+    final dependent = SyncMergeCandidate.fromBlob(
+      _danceCiting('dance-d', 'author-x', updatedAt: now),
+    );
+    final peerDependent = SyncMergeCandidate.fromBlob(
+      _danceCiting(
+        'dance-d',
+        'author-x',
+        updatedAt: now.add(const Duration(hours: 1)),
+        title: 'Edited on B',
+      ),
+    );
+    final store = _FakeStore(
+      local: {root.address: root, dependent.address: dependent},
+      baseline: {
+        root.address: SyncBaselineEntry(
+          kind: root.address.kind,
+          recordId: root.address.recordId,
+          wireHash: _hash('a'),
+        ),
+        dependent.address: SyncBaselineEntry(
+          kind: dependent.address.kind,
+          recordId: dependent.address.recordId,
+          wireHash: dependent.wireHash,
+        ),
+      },
+    );
+    final transport = _FakeTransport(
+      devices: ['peer-b'],
+      peerManifest: _manifest(
+        deviceId: 'peer-b',
+        records: {
+          SyncRecordKind.dance: {'dance-d': peerDependent.wireHash},
+        },
+      ),
+      blobResponses: _blobs([peerDependent]),
+    );
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: store,
+      transport: transport,
+      now: () => now,
+    );
+    addTearDown(coordinator.dispose);
+
+    final result = await coordinator.syncNow();
+
+    expect(result.status, SyncPassStatus.completed);
+    // §6.3 excludes the quarantined record, not everything citing it: the
+    // dance keeps receiving inbound decisions while the root sits out.
+    expect(store.writes.map((write) => write.address), [dependent.address]);
+    expect(store.writes.single.body['title'], 'Edited on B');
+    final published = decodeSyncManifest(
+      utf8.decode(transport.manifestBodies.single),
+    );
+    expect(
+      published.records[SyncRecordKind.choreographer]?['author-x'],
+      _hash('a'),
+    );
+  });
+
+  test('keeps a quarantined root out of the merge after repair fails', () async {
+    final now = DateTime.utc(2026, 7, 15, 12);
+    final root = SyncMergeCandidate.fromBlob(
+      _choreographer(
+        'author-x',
+        'Local body',
+        updatedAt: now.add(const Duration(hours: 25)),
+        existenceAt: now,
+      ),
+    );
+    // In window, so repair considers it, but a different body under a non-null
+    // baseline takes the "do not stamp a different body over it" branch, which
+    // leaves the root quarantined for the merge that follows.
+    final peerRoot = SyncMergeCandidate.fromBlob(
+      _choreographer('author-x', 'Peer body', updatedAt: now),
+    );
+    final store = _FakeStore(
+      local: {root.address: root},
+      baseline: {
+        root.address: SyncBaselineEntry(
+          kind: root.address.kind,
+          recordId: root.address.recordId,
+          wireHash: _hash('a'),
+        ),
+      },
+    );
+    final transport = _FakeTransport(
+      devices: ['peer-b'],
+      peerManifest: _manifest(
+        deviceId: 'peer-b',
+        records: {
+          SyncRecordKind.choreographer: {'author-x': peerRoot.wireHash},
+        },
+      ),
+      blobResponses: _blobs([peerRoot]),
+    );
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: store,
+      transport: transport,
+      now: () => now,
+    );
+    addTearDown(coordinator.dispose);
+
+    final result = await coordinator.syncNow();
+
+    expect(result.status, SyncPassStatus.completed);
+    expect(store.writes, isEmpty);
+    final quarantined = result.reports.where(
+      (report) =>
+          report.code == SyncReportCode.quarantinedRecord &&
+          report.peerId == null,
+    );
+    expect(quarantined, hasLength(1));
+    expect(quarantined.single.recordId, 'author-x');
+  });
+
+  test(
+    'a dependent withheld from publication still receives a peer edit',
+    () async {
+      final now = DateTime.utc(2026, 7, 15, 12);
+      final root = SyncMergeCandidate.fromBlob(
+        _choreographer(
+          'author-x',
+          'Author',
+          updatedAt: now.add(const Duration(hours: 25)),
+          existenceAt: now,
+        ),
+      );
+      final dependent = SyncMergeCandidate.fromBlob(
+        _danceCiting('dance-d', 'author-x', updatedAt: now),
+      );
+      final peerDependent = SyncMergeCandidate.fromBlob(
+        _danceCiting(
+          'dance-d',
+          'author-x',
+          updatedAt: now.add(const Duration(hours: 1)),
+          title: 'Edited on B',
+        ),
+      );
+      final store = _FakeStore(
+        local: {root.address: root, dependent.address: dependent},
+        baseline: {
+          dependent.address: SyncBaselineEntry(
+            kind: dependent.address.kind,
+            recordId: dependent.address.recordId,
+            wireHash: dependent.wireHash,
+          ),
+        },
+      );
+      final transport = _FakeTransport(
+        devices: ['peer-b'],
+        peerManifest: _manifest(
+          deviceId: 'peer-b',
+          records: {
+            SyncRecordKind.dance: {'dance-d': peerDependent.wireHash},
+          },
+        ),
+        blobResponses: _blobs([peerDependent]),
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+        now: () => now,
+      );
+      addTearDown(coordinator.dispose);
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      // Publication is unchanged: the root has no fallback, so the dance is
+      // still withheld from the manifest.
+      final published = decodeSyncManifest(
+        utf8.decode(transport.manifestBodies.single),
+      );
+      expect(published.records[SyncRecordKind.dance] ?? const {}, isEmpty);
+      expect(
+        published.records[SyncRecordKind.choreographer] ?? const {},
+        isEmpty,
+      );
+      final quarantined = result.reports.where(
+        (report) =>
+            report.code == SyncReportCode.quarantinedRecord &&
+            report.peerId == null,
+      );
+      expect(quarantined, hasLength(1));
+      expect(quarantined.single.message, contains('1 database-FK dependent'));
+      // Withheld from publication is not withheld from the merge.
+      expect(store.writes.map((write) => write.address), [dependent.address]);
+      expect(store.writes.single.body['title'], 'Edited on B');
+    },
+  );
+
+  test(
     'does not report an uploaded publication as unreflected when its peer blob is unavailable',
     () async {
       final candidate = SyncMergeCandidate.fromBlob(
@@ -2779,8 +3165,17 @@ void main() {
       final result = await coordinator.syncNow();
 
       expect(result.status, SyncPassStatus.completed);
-      expect(store.writes, hasLength(2));
-      expect(store.writes.map((write) => write.address), [address, address]);
+      // One write: the repair. This fake's snapshot is constant, so the merge
+      // that follows still sees the *pre-repair*, out-of-window tombstone, and
+      // §6.3 excludes a quarantined record from the merge table entirely. It
+      // used to be dropped from the local side only, which left the engine
+      // deciding the address with no local candidate and applying the peer's
+      // copy on top — the second write this test once asserted. A real store
+      // never produced it either: there the post-repair snapshot carries the
+      // repaired tombstone, whose `updatedAt` outranks the peer's, so the
+      // decision is upload.
+      expect(store.writes, hasLength(1));
+      expect(store.writes.map((write) => write.address), [address]);
       expect(store.writes.first.sourceBlob?.body['value'], 'pending');
       expect(
         store.writes.first.sourceBlob!.updatedAt.isAfter(
@@ -2788,11 +3183,120 @@ void main() {
         ),
         isTrue,
       );
-      expect(store.writes.last.sourceBlob?.body['value'], 'peer');
       expect(
         result.reports.map((report) => report.code),
         isNot(contains(SyncReportCode.concurrentLocalChange)),
       );
+    },
+  );
+
+  test(
+    'a stale peer live copy does not reverse an unrepairable pending tombstone',
+    () async {
+      final now = DateTime.utc(2026, 7, 15, 12);
+      final address = (
+        kind: SyncRecordKind.setting,
+        recordId: 'custom_dialects',
+      );
+      // Out of window on `updatedAt` only, so repair is attempted and the
+      // existence half is left alone.
+      final localTombstone = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: address.kind,
+          id: address.recordId,
+          updatedAt: now.add(const Duration(hours: 25)),
+          deletedAt: now,
+          existenceAt: now,
+          body: const {'value': 'pending'},
+        ),
+      );
+      // In window, so `repairSyncCandidate` considers it, but a different body
+      // under a non-null baseline takes the "do not stamp a different body over
+      // it" branch. The tombstone therefore reaches the merge still
+      // quarantined, which is the path this test exists for. Its `existenceAt`
+      // is older than the tombstone's, so it must lose on §6.4 even if it were
+      // considered at all.
+      final peerLive = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: address.kind,
+          id: address.recordId,
+          updatedAt: now,
+          deletedAt: null,
+          existenceAt: now.subtract(const Duration(minutes: 1)),
+          body: const {'value': 'peer'},
+        ),
+      );
+      final pendingLive = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: address.kind,
+          id: address.recordId,
+          updatedAt: now,
+          deletedAt: null,
+          existenceAt: now,
+          body: const {'value': 'pending'},
+        ),
+      );
+      final store = _FakeStore(
+        snapshotBuilder: (_) => SyncCoordinatorSnapshot(
+          epoch: 'epoch-1',
+          previouslyUsed: false,
+          local: const {},
+          publication: {address: localTombstone},
+          pendingLive: {address: pendingLive},
+          pending: {address},
+          baseline: {
+            address: SyncBaselineEntry(
+              kind: address.kind,
+              recordId: address.recordId,
+              wireHash: _hash('a'),
+            ),
+          },
+        ),
+        currentCandidatesBuilder: () => {address: pendingLive},
+      );
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        peerManifest: _manifest(
+          deviceId: 'peer',
+          records: {
+            SyncRecordKind.setting: {address.recordId: peerLive.wireHash},
+          },
+        ),
+        blobResponses: _blobs([peerLive]),
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+        now: () => now,
+      );
+      addTearDown(coordinator.dispose);
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      // A quarantined pending tombstone is a quarantined record, so §6.3
+      // excludes it from the merge table entirely. Dropping it from the local
+      // side alone would leave the engine deciding the address with no local
+      // candidate, where the peer's live copy wins unconditionally and the
+      // deferred deletion is silently reversed.
+      expect(
+        store.writes.where((write) => write.address == address),
+        isEmpty,
+        reason:
+            'a stale peer live copy must not be applied over a pending deletion',
+      );
+      expect(store.writes, isEmpty);
+      // Nothing was applied, so the pending deletion still stands.
+      expect(result.appliedKinds, isNot(contains(SyncRecordKind.setting)));
+      final quarantined = result.reports.where(
+        (report) =>
+            report.code == SyncReportCode.quarantinedRecord &&
+            report.peerId == null,
+      );
+      expect(quarantined, hasLength(1));
+      expect(quarantined.single.recordId, address.recordId);
     },
   );
 
@@ -4100,5 +4604,46 @@ SyncRecordBlob _tag(String id, String name, {int seconds = 0}) {
     body: {'id': id, 'name': name},
   );
 }
+
+SyncRecordBlob _choreographer(
+  String id,
+  String name, {
+  required DateTime updatedAt,
+  DateTime? existenceAt,
+}) => SyncRecordBlob(
+  kind: SyncRecordKind.choreographer,
+  id: id,
+  updatedAt: updatedAt,
+  deletedAt: null,
+  existenceAt: existenceAt ?? updatedAt,
+  body: {'id': id, 'name': name},
+);
+
+SyncRecordBlob _danceCiting(
+  String id,
+  String authorId, {
+  required DateTime updatedAt,
+  String title = 'Dance',
+}) => SyncRecordBlob(
+  kind: SyncRecordKind.dance,
+  id: id,
+  updatedAt: updatedAt,
+  deletedAt: null,
+  existenceAt: updatedAt,
+  body: {
+    'id': id,
+    'title': title,
+    'authorIds': [authorId],
+  },
+);
+
+Map<String, SyncHttpResponse> _blobs(Iterable<SyncMergeCandidate> candidates) =>
+    {
+      for (final candidate in candidates)
+        candidate.wireHash: _FakeTransport.response(
+          200,
+          body: utf8.encode(encodeSyncRecordBlob(candidate.blob)),
+        ),
+    };
 
 String _hash(String character) => List.filled(64, character).join();
