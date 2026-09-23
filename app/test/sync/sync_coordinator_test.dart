@@ -3165,6 +3165,116 @@ void main() {
     },
   );
 
+  test(
+    'a stale peer live copy does not reverse an unrepairable pending tombstone',
+    () async {
+      final now = DateTime.utc(2026, 7, 15, 12);
+      final address = (
+        kind: SyncRecordKind.setting,
+        recordId: 'custom_dialects',
+      );
+      // Out of window on `updatedAt` only, so repair is attempted and the
+      // existence half is left alone.
+      final localTombstone = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: address.kind,
+          id: address.recordId,
+          updatedAt: now.add(const Duration(hours: 25)),
+          deletedAt: now,
+          existenceAt: now,
+          body: const {'value': 'pending'},
+        ),
+      );
+      // In window, so `repairSyncCandidate` considers it, but a different body
+      // under a non-null baseline takes the "do not stamp a different body over
+      // it" branch. The tombstone therefore reaches the merge still
+      // quarantined, which is the path this test exists for. Its `existenceAt`
+      // is older than the tombstone's, so it must lose on §6.4 even if it were
+      // considered at all.
+      final peerLive = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: address.kind,
+          id: address.recordId,
+          updatedAt: now,
+          deletedAt: null,
+          existenceAt: now.subtract(const Duration(minutes: 1)),
+          body: const {'value': 'peer'},
+        ),
+      );
+      final pendingLive = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: address.kind,
+          id: address.recordId,
+          updatedAt: now,
+          deletedAt: null,
+          existenceAt: now,
+          body: const {'value': 'pending'},
+        ),
+      );
+      final store = _FakeStore(
+        snapshotBuilder: (_) => SyncCoordinatorSnapshot(
+          epoch: 'epoch-1',
+          previouslyUsed: false,
+          local: const {},
+          publication: {address: localTombstone},
+          pendingLive: {address: pendingLive},
+          pending: {address},
+          baseline: {
+            address: SyncBaselineEntry(
+              kind: address.kind,
+              recordId: address.recordId,
+              wireHash: _hash('a'),
+            ),
+          },
+        ),
+        currentCandidatesBuilder: () => {address: pendingLive},
+      );
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        peerManifest: _manifest(
+          deviceId: 'peer',
+          records: {
+            SyncRecordKind.setting: {address.recordId: peerLive.wireHash},
+          },
+        ),
+        blobResponses: _blobs([peerLive]),
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+        now: () => now,
+      );
+      addTearDown(coordinator.dispose);
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      // A quarantined pending tombstone is a quarantined record, so §6.3
+      // excludes it from the merge table entirely. Dropping it from the local
+      // side alone would leave the engine deciding the address with no local
+      // candidate, where the peer's live copy wins unconditionally and the
+      // deferred deletion is silently reversed.
+      expect(
+        store.writes.where((write) => write.address == address),
+        isEmpty,
+        reason:
+            'a stale peer live copy must not be applied over a pending deletion',
+      );
+      expect(store.writes, isEmpty);
+      // Nothing was applied, so the pending deletion still stands.
+      expect(result.appliedKinds, isNot(contains(SyncRecordKind.setting)));
+      final quarantined = result.reports.where(
+        (report) =>
+            report.code == SyncReportCode.quarantinedRecord &&
+            report.peerId == null,
+      );
+      expect(quarantined, hasLength(1));
+      expect(quarantined.single.recordId, address.recordId);
+    },
+  );
+
   test('uploads only blobs retained by the final manifest', () async {
     final local = SyncMergeCandidate.fromBlob(
       _setting('custom_dialects', 'local'),
