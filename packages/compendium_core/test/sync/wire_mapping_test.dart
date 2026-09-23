@@ -68,6 +68,23 @@ void main() {
       'tags': SyncRecordKind.tag,
       'venues': SyncRecordKind.venue,
     };
+    // The loop below only inspects the keys `archiveKinds` names, so a root key
+    // it does not name would be an egress surface this test walks straight
+    // past. Pin the whole root instead.
+    //
+    // What that pins, beyond coverage of this test: the archive carries entity
+    // rows and nothing else — no settings array, which is why `setting` is
+    // excluded from `_entityKinds` above. §9's classification paragraph claims
+    // "no blob, manifest or export carries [a `storeAddress` value] (mutation:
+    // classify it `shareable`)", and the export half needs no guard under that
+    // mutation because an archive cannot carry a settings value of any class
+    // (#1383). A `settings` key appearing here would make that true only by
+    // accident of what the settings registry says today.
+    expect(root.keys.toSet(), {
+      'schemaVersion',
+      'exportedAt',
+      ...archiveKinds.keys,
+    });
     var observedRecords = 0;
     for (final MapEntry(key: archiveKey, value: kind) in archiveKinds.entries) {
       final records = root[archiveKey] as List<Object?>;
