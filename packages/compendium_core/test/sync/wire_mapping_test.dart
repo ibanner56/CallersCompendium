@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/src/serialization/archive_entity_codec.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
 
 import '../../tool/generate_sync_allow_list.dart' as generator;
@@ -188,9 +189,7 @@ void main() {
       if (column == 'custom_field_defs.shareable') continue;
       final shareable =
           fieldClassifications[column]!.egress == EgressClass.shareable;
-      final expected = shareable
-          ? _pathsDeclaring(column)
-          : const <_Target>{};
+      final expected = shareable ? _pathsDeclaring(column) : const <_Target>{};
       final actual = _changedPaths(column, projected: true);
       if (!_sameTargets(actual, expected)) {
         leaks.add(
@@ -210,7 +209,7 @@ void main() {
           'does reach its path\nBEFORE projection, so a column that stops '
           'mattering here was really\nwithheld rather than never seeded.'
           '\n\n${leaks.join('\n')}\n',
-      );
+    );
   });
 
   // The two tests above prove the wire half of the chain: wire path P carries
@@ -355,8 +354,10 @@ void main() {
       allowedCustomFieldIds: fixture.allowedCustomFieldIds,
     );
     expect(projected, isNotEmpty);
-    expect(validateShareableRecordBody(SyncRecordKind.dance, projected).isValid,
-        isTrue);
+    expect(
+      validateShareableRecordBody(SyncRecordKind.dance, projected).isValid,
+      isTrue,
+    );
 
     // A value whose definition is not in the allowed set is dropped even though
     // `customFields.value` is an admitted path.
@@ -486,8 +487,7 @@ typedef _Target = ({SyncRecordKind kind, String path});
 Set<_Target> _pathsDeclaring(String column) => {
   for (final kind in _entityKinds)
     for (final field in syncWireFields[kind]!)
-      if (field.sourceFields.contains(column))
-        (kind: kind, path: field.path),
+      if (field.sourceFields.contains(column)) (kind: kind, path: field.path),
 };
 
 /// The wire paths whose value changes when only [column] changes.
@@ -598,7 +598,10 @@ Map<String, Object?> _archiveBody(SyncRecordKind kind, Object entity) =>
 /// `figures`, `tunes`, `choices` — is compared whole rather than walked into.
 /// List elements collapse onto the container's path, which is how the mapping
 /// addresses them (`links.url`, not `links.0.url`).
-Map<String, Object?> _leafValues(SyncRecordKind kind, Map<String, Object?> body) {
+Map<String, Object?> _leafValues(
+  SyncRecordKind kind,
+  Map<String, Object?> body,
+) {
   final values = <String, List<Object?>>{};
   void walk(String path, Object? value) {
     if (value is List && _isContainer(kind, path)) {
@@ -610,9 +613,7 @@ Map<String, Object?> _leafValues(SyncRecordKind kind, Map<String, Object?> body)
     if (value is Map && _isContainer(kind, path)) {
       for (final entry in value.entries) {
         if (entry.key is! String) continue;
-        final child = path.isEmpty
-            ? entry.key as String
-            : '$path.${entry.key}';
+        final child = path.isEmpty ? entry.key as String : '$path.${entry.key}';
         walk(child, entry.value);
       }
       return;
@@ -948,8 +949,17 @@ class _Fixture {
     ),
     progression: Progression.values.byName(_str('dances.progression')),
     phraseStructure: _str('dances.phrase_structure'),
+    // The seed rides in `note`, which is free text, so the figure stays valid
+    // under the taxonomy while still varying the encoded `figures_json`.
+    // `testFigure` is required rather than `Figure` because a fixture built
+    // from variables cannot be checked by reading the source — see the figure
+    // fixture ratchet in `package:compendium_core/testing.dart`.
     figures: [
-      Figure(move: 'swing', params: {'who': _str('dances.figures_json')}),
+      testFigure(
+        move: 'swing',
+        params: const {'who': 'partners'},
+        note: _str('dances.figures_json'),
+      ),
     ],
     hook: _str('dances.hook'),
     callingNotes: _str('dances.calling_notes'),
@@ -1121,10 +1131,7 @@ CompendiumArchive _sampleArchive() {
     exportedAt: _now,
     dances: [fixture.dance()],
     programs: [fixture.program()],
-    choreographers: [
-      fixture.choreographer(),
-      ...fixture.auxChoreographers(),
-    ],
+    choreographers: [fixture.choreographer(), ...fixture.auxChoreographers()],
     publishedSources: [
       fixture.publishedSource(),
       ...fixture.auxPublishedSources(),

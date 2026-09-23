@@ -1368,8 +1368,10 @@ void main() {
     // store-loss stages are the only requests that reach those branches, so
     // they are part of the sweep rather than a separate concern.
     final statuses = <String, int>{};
-    Future<void> record(String label, Future<HttpClientResponse> response) async
-        => statuses[label] = (await response).statusCode;
+    Future<void> record(
+      String label,
+      Future<HttpClientResponse> response,
+    ) async => statuses[label] = (await response).statusCode;
 
     await record(
       'put',

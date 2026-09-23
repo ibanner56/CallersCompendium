@@ -75,7 +75,9 @@ void main() {
           if (RegExp(
             r'\b(?:String|int|bool|double)\.fromEnvironment\s*\(',
           ).hasMatch(lines[index])) {
-            offenders.add('${entity.path}:${index + 1}: ${lines[index].trim()}');
+            offenders.add(
+              '${entity.path}:${index + 1}: ${lines[index].trim()}',
+            );
           }
         }
       }
