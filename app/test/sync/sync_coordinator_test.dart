@@ -1116,49 +1116,52 @@ void main() {
   // device's own `201` was lost. So the device adopts it and continues into
   // the ordinary fresh attach. Reporting it as a failure left the decision
   // pending and re-POSTed into the same conflict on every confirm, forever.
-  test('create conflict adopts the existing store and fresh-attaches', () async {
-    final transport = _FakeTransport(
-      missingKind: SyncStoreMissingKind.replacementRequired,
-      createResponses: [_FakeTransport.response(409)],
-    );
-    final store = _FakeStore(
-      previouslyUsed: true,
-      snapshotEpochs: [null, null, 'epoch-1'],
-    );
-    final coordinator = SyncCoordinator(
-      syncId: 'configured',
-      deviceId: 'device-a',
-      store: store,
-      transport: transport,
-    );
-    addTearDown(coordinator.dispose);
+  test(
+    'create conflict adopts the existing store and fresh-attaches',
+    () async {
+      final transport = _FakeTransport(
+        missingKind: SyncStoreMissingKind.replacementRequired,
+        createResponses: [_FakeTransport.response(409)],
+      );
+      final store = _FakeStore(
+        previouslyUsed: true,
+        snapshotEpochs: [null, null, 'epoch-1'],
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+      );
+      addTearDown(coordinator.dispose);
 
-    await coordinator.onAppStart();
-    final result = await coordinator.confirmReplacement();
+      await coordinator.onAppStart();
+      final result = await coordinator.confirmReplacement();
 
-    expect(result.status, SyncPassStatus.completed);
-    expect(
-      transport.createCalls,
-      1,
-      reason: 'adopting must not send a second POST',
-    );
-    expect(transport.requestLog, [
-      'store', // §6.3 step 1 found the store gone
-      'create', // the one POST — answered 409
-      'store', // the adopted store, read exactly as after a 201
-      'store', // the fresh-attach pass's own lookup
-      'manifest-put',
-    ]);
+      expect(result.status, SyncPassStatus.completed);
+      expect(
+        transport.createCalls,
+        1,
+        reason: 'adopting must not send a second POST',
+      );
+      expect(transport.requestLog, [
+        'store', // §6.3 step 1 found the store gone
+        'create', // the one POST — answered 409
+        'store', // the adopted store, read exactly as after a 201
+        'store', // the fresh-attach pass's own lookup
+        'manifest-put',
+      ]);
 
-    // And the decision is resolved: a later trigger runs an ordinary pass
-    // instead of re-raising the dialog.
-    expect(
-      (await coordinator.syncNow()).status,
-      SyncPassStatus.completed,
-      reason: 'no re-prompt — the replacement decision is done',
-    );
-    expect(transport.createCalls, 1);
-  });
+      // And the decision is resolved: a later trigger runs an ordinary pass
+      // instead of re-raising the dialog.
+      expect(
+        (await coordinator.syncNow()).status,
+        SyncPassStatus.completed,
+        reason: 'no re-prompt — the replacement decision is done',
+      );
+      expect(transport.createCalls, 1);
+    },
+  );
 
   test('declining replacement keeps configured sync paused', () async {
     final transport = _FakeTransport(

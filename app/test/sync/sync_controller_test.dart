@@ -1234,29 +1234,32 @@ void main() {
       },
     );
 
-    test('offline defers the confirmation without routing to the setting', () async {
-      final transport = ControllableSyncTransport();
-      coordinator = replacementCoordinator(transport);
-      final controller = build();
-      addTearDown(() => coordinator?.dispose());
-      controller.attachCoordinator(coordinator);
-      await controller.load();
-      await controller.setEnabled(true);
-      await controller.syncNow();
-      expect(controller.replacementPending, isTrue);
-      network.kind = SyncNetworkKind.offline;
+    test(
+      'offline defers the confirmation without routing to the setting',
+      () async {
+        final transport = ControllableSyncTransport();
+        coordinator = replacementCoordinator(transport);
+        final controller = build();
+        addTearDown(() => coordinator?.dispose());
+        controller.attachCoordinator(coordinator);
+        await controller.load();
+        await controller.setEnabled(true);
+        await controller.syncNow();
+        expect(controller.replacementPending, isTrue);
+        network.kind = SyncNetworkKind.offline;
 
-      final outcome = await controller.confirmReplacement();
+        final outcome = await controller.confirmReplacement();
 
-      expect(outcome, SyncGateOutcome.suppressedOffline);
-      expect(transport.createStoreCalls, 0);
-      expect(
-        controller.wifiSettingRequests.value,
-        0,
-        reason: 'no WiFi setting would help while there is no connection',
-      );
-      expect(controller.replacementPending, isTrue);
-    });
+        expect(outcome, SyncGateOutcome.suppressedOffline);
+        expect(transport.createStoreCalls, 0);
+        expect(
+          controller.wifiSettingRequests.value,
+          0,
+          reason: 'no WiFi setting would help while there is no connection',
+        );
+        expect(controller.replacementPending, isTrue);
+      },
+    );
 
     // The gate reads the *setting*, not just the classifier: a metered
     // connection alone must not stop a user who has turned WiFi-only off.
