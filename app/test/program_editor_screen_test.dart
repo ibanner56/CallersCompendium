@@ -1066,6 +1066,16 @@ void main() {
     await tester.tap(find.byTooltip('Cut Second'));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('slot-cut-banner')), findsNothing);
+    // Renumbered in the builder's own state, before any save: every save path
+    // renumbers again, so the persisted positions below cannot show this.
+    expect(
+      tester
+          .widget<ProgramSlotListEditor>(find.byType(ProgramSlotListEditor))
+          .slots
+          .map((s) => s.position)
+          .toList(),
+      [0, 1],
+    );
 
     await tester.tap(find.byKey(const ValueKey('save-program')));
     await tester.pumpAndSettle();
