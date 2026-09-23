@@ -225,7 +225,7 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
 
   /// Copies the sync phrase for entry on another device. The confirmation
   /// restates what the phrase is, because a clipboard is a shared surface and
-  /// the copy is the moment the credential leaves this app.
+  /// the copy is the moment the store's address leaves this app.
   Future<void> _copySyncId(String syncId) async {
     final messenger = ScaffoldMessenger.maybeOf(context);
     final l10n = AppLocalizations.of(context);
@@ -572,13 +572,14 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
 /// user can enter it on another device without having written it down at
 /// pairing (spec §6.14 item 2: it cannot be recovered from the server).
 ///
-/// Masked until the user asks for it. The phrase is a bearer credential with
-/// no revocation, so a settings pane that displays it unprompted hands it to
-/// anyone who is shown the screen — a screenshot sent to support, a shared
-/// display, someone standing behind the caller at a dance. Copying works
-/// while it is masked, because the common case is moving it to another device
-/// and that never needs it on screen. The reveal is per-visit state and is
-/// deliberately not persisted.
+/// Masked until the user asks for it. Knowing the address is all it takes to
+/// reach the store, and there is no revoking it afterwards, so a settings pane
+/// that displays the phrase unprompted shares the store with everyone who can
+/// see the screen — a screenshot sent to support, a shared display, someone
+/// standing behind the caller at a dance. Copying works while it is masked,
+/// because the common case is moving it to another device and that never needs
+/// it on screen. The reveal is per-visit state and is deliberately not
+/// persisted.
 class _SyncIdTile extends StatelessWidget {
   const _SyncIdTile({
     required this.syncId,

@@ -754,7 +754,7 @@ class SyncController extends ChangeNotifier {
   /// Shared by [detach] and [wipeStore]: the local half of forgetting a store
   /// is identical whether the store still exists or has just been destroyed.
   /// The sync ID is erased rather than tombstoned, since a tombstone keeps the
-  /// credential on disk.
+  /// phrase on disk.
   Future<void> _clearAttachment() => _syncLocal.transaction((tx) async {
     await tx.clearOnDetach();
     await _settings.remove(kSyncIdKey, permanent: true);
