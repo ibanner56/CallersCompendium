@@ -387,7 +387,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         final tagIds = <String, String>{};
         for (final tag in _controller.stagedTags.values) {
           if (!dance.tagIds.contains(tag.id)) continue;
-          tagIds[tag.id] = await _repos.tags.upsertStaged(tag);
+          tagIds[tag.id] = await _repos.tags.upsertStaged(tag, localUserEdit: true);
         }
         final committedTagIds = <String>[];
         final seenTagIds = <String>{};
@@ -549,7 +549,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     // not exist, and `dance_authors.choreographer_id` is a real FK, so the save
     // fails rather than corrupting — but it fails on an ordinary action: delete a
     // choreographer, then type that name again.
-    final id = await _repos.choreographers.upsert(minted);
+    final id = await _repos.choreographers.upsert(minted, localUserEdit: true);
     final choreographer = minted.id == id
         ? minted
         : Choreographer(id: id, name: minted.name);
@@ -578,7 +578,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     // `existing` row. No fresh UUID is minted here, so tombstone adoption
     // cannot redirect the id; the returned id is always identical to updated.id.
     // ignore: unused_result
-    await _repos.choreographers.upsert(updated);
+    await _repos.choreographers.upsert(updated, localUserEdit: true);
     if (!mounted) return;
     setState(() {
       // Replace the existing cache entry, or append if the author wasn't
@@ -611,7 +611,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     final draft = PublishedSource(id: uuidV4(), title: title.trim());
     final created = await PublishedSourceDetailsDialog.show(context, draft);
     if (created == null || !mounted) return null;
-    await _repos.publishedSources.upsert(created);
+    await _repos.publishedSources.upsert(created, localUserEdit: true);
     if (!mounted) return null;
     setState(() {
       _publishedSources = [
@@ -635,7 +635,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     if (existing == null) return;
     final updated = await PublishedSourceDetailsDialog.show(context, existing);
     if (updated == null || !mounted) return;
-    await _repos.publishedSources.upsert(updated);
+    await _repos.publishedSources.upsert(updated, localUserEdit: true);
     if (!mounted) return;
     setState(() {
       _publishedSources = [

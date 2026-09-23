@@ -48,9 +48,15 @@ class TagRepository {
   /// (see [adoptTombstonedNaturalKey]). Callers minting a fresh UUID must use
   /// the returned id rather than the one they generated, or they will reference
   /// a row that does not exist.
+  ///
+  /// Pass `localUserEdit: true` only when the person using the app deliberately
+  /// edited this record: that cancels a peer's pending tombstone for it
+  /// (sync-spec §6.8, [cancelPendingSyncDeletionForLocalEdit]). It defaults to
+  /// false because imports, archive restore and automatic writes share this
+  /// method, and a cancellation they did not intend reverses a peer's deletion.
   @useResult
-  Future<String> upsert(Tag tag, {DateTime? at}) =>
-      _write(tag, at: at, fromSync: false);
+  Future<String> upsert(Tag tag, {DateTime? at, bool localUserEdit = false}) =>
+      _write(tag, at: at, fromSync: false, localUserEdit: localUserEdit);
 
   /// Applies a validated inbound sync record.
   ///
@@ -63,13 +69,14 @@ class TagRepository {
   /// (§6.7 refuses a record rather than storing an altered copy), and it does
   /// not seed `existence_at`, which the envelope owns.
   Future<void> writeFromSync(Tag tag, {DateTime? at}) async {
-    final _ = await _write(tag, at: at, fromSync: true);
+    final _ = await _write(tag, at: at, fromSync: true, localUserEdit: false);
   }
 
   Future<String> _write(
     Tag tag, {
     required DateTime? at,
     required bool fromSync,
+    required bool localUserEdit,
   }) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
@@ -146,13 +153,24 @@ class TagRepository {
   /// tombstoned match is passed to [upsert], which revives it and returns the
   /// adopted id. This keeps provisional ids out of dance-tag joins in both
   /// cases.
+  ///
+  /// [localUserEdit] forwards to [upsert] on the branches that reach it. The
+  /// live-match branch returns before any write, which is correct: attaching an
+  /// existing tag to a dance adds a citation rather than editing the tag, and
+  /// §6.8 defers a held deletion precisely until the citations are gone.
   @useResult
-  Future<String> upsertStaged(Tag tag, {DateTime? at}) async {
+  Future<String> upsertStaged(
+    Tag tag, {
+    DateTime? at,
+    bool localUserEdit = false,
+  }) async {
     final live = await idByName(tag.name);
     if (live != null) return live;
 
     final existingId = await idByName(tag.name, includeDeleted: true);
-    if (existingId == null) return upsert(tag, at: at);
+    if (existingId == null) {
+      return upsert(tag, at: at, localUserEdit: localUserEdit);
+    }
 
     // Preserve the incumbent's spelling so a legacy case-only duplicate is
     // adopted through the existing exact-key path. A different staged ID is
@@ -165,11 +183,13 @@ class TagRepository {
       return upsert(
         Tag(id: existing.id, name: existing.name, color: tag.color),
         at: at,
+        localUserEdit: localUserEdit,
       );
     }
     return upsert(
       Tag(id: tag.id, name: existing.name, color: tag.color),
       at: at,
+      localUserEdit: localUserEdit,
     );
   }
 

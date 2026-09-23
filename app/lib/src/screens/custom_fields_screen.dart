@@ -157,7 +157,7 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
       // `result` would reintroduce the bug the original comment warned about,
       // because `result` carries the pre-adoption id.
       // ignore: unused_result
-      await _repos.customFieldDefs.upsert(result);
+      await _repos.customFieldDefs.upsert(result, localUserEdit: true);
       // Show the one-time sharing disclosure when the user creates their very
       // first custom field. The latch is set before the dialog is awaited so a
       // crash during the dialog never re-shows it on next launch.

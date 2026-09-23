@@ -969,7 +969,10 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
     try {
       await RepositoriesScope.of(
         context,
-      ).difficultyLevels.upsert(level.copyWith(label: label));
+      ).difficultyLevels.upsert(
+        level.copyWith(label: label),
+        localUserEdit: true,
+      );
       await _reload();
     } catch (error, stackTrace) {
       _labelControllers[level.id]?.text = level.label;

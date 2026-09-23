@@ -254,12 +254,19 @@ Future<void> saveDanceWithRelatedLinks(
 
     // Ensure a changed source is always written, while avoiding writes for
     // unaffected members and preserving the repository's update transaction.
+    //
+    // Only the first branch is the user's own edit, and `localUserEdit` says so
+    // (sync-spec §6.8). The second branch writes *other* dances, whose reverse
+    // links this function back-populated without anyone opening them — so a
+    // cancellation there would silently reverse a peer's deletion of a record
+    // the user never touched, which is the outcome ADR-004 ranks worst. The two
+    // branches share a method and must not share the flag.
     for (final entry in next.entries) {
       if (entry.key == dance.id) {
         if (original == null) {
           await repos.dances.create(entry.value);
         } else {
-          await repos.dances.update(entry.value);
+          await repos.dances.update(entry.value, localUserEdit: true);
         }
       } else {
         final current = await load(entry.key);

@@ -29,6 +29,7 @@ Future<DanceReimportResult> replaceDanceChoreography(
         progression: incoming.progression,
         updatedAt: now ?? DateTime.now().toUtc(),
       ),
+      localUserEdit: true,
     );
     return DanceReimportResult.replaced;
   });

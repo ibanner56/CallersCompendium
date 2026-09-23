@@ -39,8 +39,17 @@ class VenueRepository {
   static String? _normalize(String? value) =>
       value == null ? null : normalizeShareableText(value);
 
-  Future<void> upsert(Venue v, {DateTime? at}) =>
-      _write(v, at: at, fromSync: false);
+  ///
+  /// Pass `localUserEdit: true` only when the person using the app deliberately
+  /// edited this record: that cancels a peer's pending tombstone for it
+  /// (sync-spec §6.8, [cancelPendingSyncDeletionForLocalEdit]). It defaults to
+  /// false because imports, archive restore and automatic writes share this
+  /// method, and a cancellation they did not intend reverses a peer's deletion.
+  Future<void> upsert(
+    Venue v, {
+    DateTime? at,
+    bool localUserEdit = false,
+  }) => _write(v, at: at, fromSync: false, localUserEdit: localUserEdit);
 
   /// Applies a validated inbound sync record.
   ///
@@ -51,12 +60,13 @@ class VenueRepository {
   /// the overlay hands this writer the peer's value or the local one it
   /// preserved.
   Future<void> writeFromSync(Venue v, {DateTime? at}) =>
-      _write(v, at: at, fromSync: true);
+      _write(v, at: at, fromSync: true, localUserEdit: false);
 
   Future<void> _write(
     Venue v, {
     required DateTime? at,
     required bool fromSync,
+    required bool localUserEdit,
   }) {
     final now = resolveStamp(at);
     return _db.transaction(() async {

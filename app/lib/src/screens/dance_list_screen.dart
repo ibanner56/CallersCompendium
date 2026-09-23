@@ -1312,7 +1312,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
             tag.name,
             includeDeleted: true,
           );
-          tagIds[tag.id] = await _repos.tags.upsertStaged(tag);
+          tagIds[tag.id] = await _repos.tags.upsertStaged(tag, localUserEdit: true);
           if (existed == null) newlyCreatedTagIds.add(tagIds[tag.id]!);
         }
         for (final (:dance, :next) in pending) {
@@ -1328,6 +1328,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
               tagIds: committedTagIds,
               updatedAt: DateTime.now().toUtc(),
             ),
+            localUserEdit: true,
           );
         }
       });
@@ -1400,6 +1401,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
             tagIds: entry.value,
             updatedAt: DateTime.now().toUtc(),
           ),
+          localUserEdit: true,
         );
       }
       for (final id in newlyCreatedTagIds) {
@@ -1495,6 +1497,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
           clearDifficultyLevel: entry.value == null,
           updatedAt: DateTime.now().toUtc(),
         ),
+        localUserEdit: true,
       );
     }
   }
@@ -1591,6 +1594,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
           clearRating: entry.value == null,
           updatedAt: DateTime.now().toUtc(),
         ),
+        localUserEdit: true,
       );
     }
   }
@@ -1701,6 +1705,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
       if (dance == null) continue;
       await _repos.dances.update(
         dance.copyWith(tunes: entry.value, updatedAt: DateTime.now().toUtc()),
+        localUserEdit: true,
       );
     }
   }
@@ -1780,6 +1785,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
           customFields: entry.value,
           updatedAt: DateTime.now().toUtc(),
         ),
+        localUserEdit: true,
       );
     }
   }
@@ -2189,6 +2195,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
       now: now,
     );
     final newTitle = l10n.commonDuplicateTitleSuffix(copy.title);
+    // No `localUserEdit`: the copy carries a freshly minted id, so no peer can
+    // hold a tombstone for it and there is nothing for §6.8 to cancel.
     await _repos.dances.update(copy.copyWith(title: newTitle, updatedAt: now));
     if (!mounted) return;
     await _boot();
