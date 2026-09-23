@@ -333,8 +333,23 @@ class FilterCompiler {
       );
     }
     final opPred = _customFieldOp(f, binds);
+    // Joined to `custom_field_defs` (#1358) so a tombstoned definition matches
+    // nothing, exactly as the author, source, tag and level leaves above
+    // already do. Soft-deleting a definition fires no FK cascade, so its
+    // `custom_field_values` rows survive and the bare subquery kept returning
+    // dances for a field the user deleted — while hydration
+    // (`DanceRepository._customFieldsForMany`) inner-joins the definition and
+    // hides those same values, so search and the record disagreed.
+    //
+    // Deliberately a JOIN rather than a second EXISTS: the shape
+    // `tools/ci/check_sync_invariants.py` ratchets is "every join through a
+    // soft-deletable parent carries `deleted_at IS NULL`", and a subquery with
+    // no join is invisible to it. The join binds nothing, so the bind order
+    // (`field_id`, then the operator's values) is unchanged.
     return 'EXISTS (SELECT 1 FROM custom_field_values v '
-        'WHERE v.dance_id = dances.id AND v.field_id = ? AND $opPred)';
+        'JOIN custom_field_defs d ON d.id = v.field_id '
+        'WHERE v.dance_id = dances.id AND v.field_id = ? '
+        'AND d.deleted_at IS NULL AND $opPred)';
   }
 
   String _customFieldOp(CustomFieldFilter f, List<Object?> binds) {

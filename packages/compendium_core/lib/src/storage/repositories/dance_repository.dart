@@ -843,14 +843,21 @@ class DanceRepository {
   /// caller. Extracted from [_rebuildDerived] so the bulk rebuild can re-insert
   /// after a one-shot clear instead of a per-dance delete+insert.
   ///
-  /// [authorNames] (choreographer id → name) and [sources] (published-source id
-  /// → row) let the bulk rebuild pass prefetched lookups so author/source
-  /// resolution doesn't fan out into a per-dance N+1 of single-row selects;
-  /// when omitted (the single-write path) they are resolved on demand.
+  /// [authorNames] (choreographer id → name), [sources] (published-source id
+  /// → row) and [liveFieldIds] (custom-field definition ids) let the bulk
+  /// rebuild pass prefetched lookups so author/source/definition resolution
+  /// doesn't fan out into a per-dance N+1 of single-row selects; when omitted
+  /// (the single-write path) they are resolved on demand.
+  ///
+  /// All three prefetches are **live-only**: a soft-deleted author, source or
+  /// field definition must contribute no searchable text (#898, #1358). The
+  /// on-demand counterparts filter the same way, so the two paths cannot
+  /// disagree about what a tombstoned parent contributes.
   Future<void> _insertDerivedRows(
     Dance dance, {
     Map<String, String>? authorNames,
     Map<String, PublishedSourceRow>? sources,
+    Set<String>? liveFieldIds,
   }) async {
     final canonicalTexts = <String>[];
     final sectioned = dance.sectionedFigures;
@@ -904,9 +911,10 @@ class DanceRepository {
     }
 
     final resolvedAuthors = await _resolveAuthorNames(dance, authorNames);
-    final customValueText = dance.customFields
-        .map((v) => v.value.toString())
-        .join(' ');
+    final customValueText = (await _resolveCustomValueTexts(
+      dance,
+      liveFieldIds,
+    )).join(' ');
     final sourceTexts = await _resolveSourceTexts(dance, sources);
     final values = [
       dance.id,
@@ -937,6 +945,12 @@ class DanceRepository {
   /// Author display names for [dance]'s `authorIds`, in position order. Uses
   /// [prefetched] (choreographer id → name) when the caller supplied it,
   /// otherwise reads each choreographer row on demand.
+  ///
+  /// Tombstoned choreographers are skipped on both paths (#1358). The bulk
+  /// rebuild's prefetch has always been live-only; the on-demand read was not,
+  /// so a write naming an already-tombstoned author wrote that author's name
+  /// into the index — text the dance's own detail view does not show, because
+  /// hydration inner-joins the live choreographer.
   Future<List<String>> _resolveAuthorNames(
     Dance dance,
     Map<String, String>? prefetched,
@@ -950,9 +964,11 @@ class DanceRepository {
       return names;
     }
     for (final authorId in dance.authorIds) {
-      final row = await (_db.select(
-        _db.choreographers,
-      )..where((t) => t.id.equals(authorId))).getSingleOrNull();
+      final row =
+          await (_db.select(_db.choreographers)..where(
+                (t) => t.id.equals(authorId) & t.deletedAt.isNull(),
+              ))
+              .getSingleOrNull();
       if (row != null) names.add(row.name);
     }
     return names;
@@ -961,6 +977,9 @@ class DanceRepository {
   /// Searchable source text (title, then author when present) for [dance]'s
   /// citations, in citation order. Uses [prefetched] (published-source id →
   /// row) when supplied, otherwise batch-reads exactly the cited rows.
+  ///
+  /// Tombstoned sources are skipped on both paths, for the reason given on
+  /// [_resolveAuthorNames] (#1358).
   Future<List<String>> _resolveSourceTexts(
     Dance dance,
     Map<String, PublishedSourceRow>? prefetched,
@@ -971,9 +990,11 @@ class DanceRepository {
       byId = prefetched;
     } else {
       final sourceIds = dance.sourceCitations.map((c) => c.sourceId).toList();
-      final rows = await (_db.select(
-        _db.publishedSources,
-      )..where((t) => t.id.isIn(sourceIds))).get();
+      final rows =
+          await (_db.select(_db.publishedSources)..where(
+                (t) => t.id.isIn(sourceIds) & t.deletedAt.isNull(),
+              ))
+              .get();
       byId = {for (final r in rows) r.id: r};
     }
     final texts = <String>[];
@@ -984,6 +1005,38 @@ class DanceRepository {
       if (row.author != null) texts.add(row.author!);
     }
     return texts;
+  }
+
+  /// Searchable custom-field text for [dance], in the model's value order,
+  /// excluding any value whose definition is tombstoned (#1358).
+  ///
+  /// [prefetchedLiveIds] is the set of live definition ids when the caller has
+  /// one (the bulk rebuild); otherwise exactly the cited definitions are
+  /// batch-read live-only. Matching the filter that hydration already applies
+  /// (`_customFieldsForMany` inner-joins `custom_field_defs` on
+  /// `deleted_at IS NULL`) is what keeps the index and the detail view
+  /// agreeing about which values exist.
+  Future<List<String>> _resolveCustomValueTexts(
+    Dance dance,
+    Set<String>? prefetchedLiveIds,
+  ) async {
+    if (dance.customFields.isEmpty) return const [];
+    final Set<String> liveIds;
+    if (prefetchedLiveIds != null) {
+      liveIds = prefetchedLiveIds;
+    } else {
+      final fieldIds = dance.customFields.map((v) => v.fieldId).toList();
+      final rows =
+          await (_db.select(_db.customFieldDefs)..where(
+                (t) => t.id.isIn(fieldIds) & t.deletedAt.isNull(),
+              ))
+              .get();
+      liveIds = {for (final r in rows) r.id};
+    }
+    return [
+      for (final value in dance.customFields)
+        if (liveIds.contains(value.fieldId)) value.value.toString(),
+    ];
   }
 
   /// Number of dances rebuilt per transaction in [rebuildAllDerived]. Bounds
@@ -1035,10 +1088,14 @@ class DanceRepository {
     // instead of an N+1 of single-row author/source selects. These tables are
     // small relative to the dance collection.
     // Tombstoned rows are excluded (schema v25, issue #898): a soft-deleted
-    // author or source must not contribute searchable text, exactly as it no
-    // longer contributes a displayed credit or citation. Both kinds are
-    // referentially guarded, so a tombstone here can only exist once nothing
-    // cites it — the filter is what keeps that true if a guard is ever relaxed.
+    // author, source or field definition must not contribute searchable text,
+    // exactly as it no longer contributes a displayed credit, citation or
+    // value. All three kinds are referentially guarded, so a tombstone here
+    // can only exist once nothing *live* cites it — the filter is what keeps
+    // that true if a guard is ever relaxed. #1328 relaxed exactly those
+    // guards (a parent may now be deleted while only a soft-deleted dance
+    // cites it), which is why the same filtering now also runs on the
+    // single-write path and on restore (#1358).
     final authorNames = {
       for (final row in await (_db.select(
         _db.choreographers,
@@ -1050,6 +1107,12 @@ class DanceRepository {
         _db.publishedSources,
       )..where((t) => t.deletedAt.isNull())).get())
         row.id: row,
+    };
+    final liveFieldIds = {
+      for (final row in await (_db.select(
+        _db.customFieldDefs,
+      )..where((t) => t.deletedAt.isNull())).get())
+        row.id,
     };
 
     // One-shot bulk clear instead of N per-dance delete-by-scans. Both FTS5
@@ -1074,6 +1137,7 @@ class DanceRepository {
             dance,
             authorNames: authorNames,
             sources: sources,
+            liveFieldIds: liveFieldIds,
           );
         }
       });
@@ -1228,12 +1292,38 @@ class DanceRepository {
   /// `existence_at`: leaving it at the tombstone's value would tie, and a tie
   /// resolves in favour of the tombstone, so a peer would delete the restored
   /// dance straight back.
+  ///
+  /// Also refreshes this dance's derived rows (#1358). The FTS row was written
+  /// when the dance was last saved, from the parents that were live *then*;
+  /// since #1328 a choreographer, published source or custom-field definition
+  /// may be deleted while the only dance citing it is itself soft-deleted, and
+  /// nothing rewrites the index in between. Restore is the single point where
+  /// such a stale row becomes visible again — deleted dances are filtered out
+  /// of every search — so it is where the index is brought back into agreement
+  /// with what the dance actually shows. Refreshing every citing dance at the
+  /// moment the parent is tombstoned was rejected: it would have to touch
+  /// soft-deleted dances too, for a staleness no search can observe yet.
+  ///
+  /// The rebuild is unconditional. Skipping it when no cited parent is
+  /// tombstoned would save two FTS delete-by-scans on a single-dance user
+  /// action, at the cost of a second code path that can drift from this one.
+  ///
+  /// [getById] hydrates, so this decodes `figures_json`; a row that cannot be
+  /// decoded makes restore throw where it previously succeeded. That row is
+  /// already unreadable everywhere else — the Recently deleted list itself
+  /// hydrates every dance to render, so it throws before a restore can be
+  /// offered — and #1347's remaining work gives such a row an explicit
+  /// unreadable representation so the load path stops throwing at all. Failing
+  /// loudly is deliberate in the meantime: swallowing it would leave the stale
+  /// index in place with no signal, which is the failure this fix removes.
   Future<void> restore(
     String id, {
     required DateTime at,
     bool clearPending = true,
   }) => _db.transaction(() async {
     await _stampExistence(id, at: at, deleted: false);
+    final restored = await getById(id, includeDeleted: true);
+    if (restored != null) await _rebuildDerived(restored);
     if (clearPending) {
       await clearPendingSyncDeletion(
         _db,
