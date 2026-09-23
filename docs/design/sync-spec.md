@@ -2764,41 +2764,68 @@ is reachable in ordinary use: two devices that separately entered or imported
 the same dance carry different UUIDs, and their last edits need only land in
 the same second.
 
-Everything else `DedupeIndex` flags is deferred to `review_queue`. Queuing MUST
-be idempotent under the canonical tie-break ordering, MUST carry an immutable
-candidate blob and hash, and actionable rows MUST carry the queue-time local
-wire hash. A queued pair MUST NOT be re-resolved while pending. Baseline rows
-use immutable insertion; only the explicit dance reconciliation path may
-delete and reinsert derived pairs. The queue MUST NOT denormalise contact
-fields.
+**Fresh-attach dedupe is the exact-normalized-title tier, and only that
+tier.** Live dances are grouped by exact `normalizeTitle`; within a group,
+equal `choreographyFingerprint` merges silently under the rules above, and a
+group whose choreography differs is deferred to `review_queue` as a
+same-title ambiguity. Pairs whose titles are merely *similar* are not compared
+and not queued: after attach they simply remain two dances, visible in the
+collection and mergeable by hand.
 
-That deferral is a distinct tier with its own rules, and "everything else" is
-what the exact-title tier above does not already own:
+Rows this section does queue MUST be idempotent under the canonical tie-break
+ordering, MUST carry an immutable candidate blob and hash, and actionable rows
+MUST carry the queue-time local wire hash. A queued pair MUST NOT be
+re-resolved while pending. Baseline rows use immutable insertion; only the
+explicit dance reconciliation path may delete and reinsert derived pairs. The
+queue MUST NOT denormalise contact fields.
 
-- The fuzzy tier MUST run over the **post-merge** library. A record the
-  exact-title tier has just merged away no longer exists and MUST NOT be
-  offered as a near-duplicate partner; its survivor is the record the user is
-  asked about.
-- A pair whose normalized titles are **equal** MUST NOT be queued here. Such a
-  pair either merged silently or is already queued as the same-title
-  choreography ambiguity, and queueing it again would put one pair in the queue
-  twice under two reasons. It follows that every pair queued by this tier has
-  two different titles, so its **keep both** resolution renames nothing.
-- The pairing summary counts **merges only**. A deferred pair is a question,
-  not a duplicate removed.
-- Discovery is a fresh-attach operation. A steady-state pass MAY revalidate the
-  pairs already queued — dropping those that no longer qualify and refreshing
-  the hashes of those that do, which is what keeps them resolvable — but MUST
-  NOT scan the collection for new pairs. This is what satisfies the
-  review-wall caution structurally rather than by tuning the threshold, which
-  MUST NOT be raised to control queue volume.
+#### Why there is no fuzzy tier (amended 2026-09-22)
 
-An implementation MAY skip offering `DedupeIndex` a pair it can prove cannot
-reach the threshold — comparing every pair is quadratic in the library size —
-but any such bound MUST be derived from the scorer's own weights, MUST drop no
-pair the scorer would flag, and MUST NOT become a second definition of what
-counts as a near-duplicate. The scorer named in this section stays the only
-authority on that question.
+Until this amendment this section read "Everything else `DedupeIndex` flags is
+deferred to `review_queue`", and ADR-004 said fresh attach runs `DedupeIndex`'s
+fuzzy title-and-author matching. No implementation ever did. The requirement
+was implemented against #1355, measured, and **removed by decision** — recorded
+here rather than dropped, so a later reader does not restore it believing it
+was merely forgotten.
+
+The motivating case in ADR-004 is the same source imported separately on two
+devices before pairing. That produces **identical** titles, which the
+exact-title tier above already handles: identical content merges silently,
+divergent content goes to review. A fuzzy tier adds only independently-arising
+near-title variants, which is a narrow slice of real duplicates.
+
+Its cost was not narrow. Comparing every pair is quadratic in the library size,
+and the obvious sound prefilter — skipping pairs whose normalized titles differ
+too much in length to reach the threshold — prunes almost nothing here, because
+dance titles cluster in length. Measured over a synthetic corpus of generated
+`<adjective> <noun>` titles, at `DedupeIndex.defaultThreshold`, counting
+distinct unordered pairs and excluding equal normalized titles:
+
+| library size | pairs offered to the scorer | pairs flagged | wall time |
+| --- | --- | --- | --- |
+| 1 000 | 476 028 of 499 500 (95.3%) | 660 | 4.9 s |
+| 4 000 | 7 630 165 of 7 998 000 (95.4%) | 3 642 | 102.2 s |
+| 11 500 | 62 452 828 of 66 119 250 (94.5%) | 17 112 | 912.8 s |
+
+Fifteen minutes inside the fresh-attach transaction at the 11 500-dance figure
+ADR-004 itself uses. Roughly 93% of that is `DedupeIndex.fuzzyMatches`
+re-normalizing every indexed title and author set on every call — n² times
+across a sweep rather than n — so removing that repetition would bring 11 500
+dances to about 70 seconds. Still quadratic, still inside the transaction.
+
+The queue volume is the other half. **The 17 112 figure above overstates a real
+library and should not be quoted as a prediction**: the corpus generator
+exhausts its 60×60 vocabulary grid at 3 600 titles and then emits
+deliberately self-similar variants, so every measurement above 3 600 is
+inflated by titles manufactured to be near-duplicates. The defensible figure is
+the ~0.64 rows per dance measured inside the base grid, which still puts a
+3 000-dance library at roughly 1 900 review rows — the "wall" ADR-004 warns
+against, against a review surface with no pagination.
+
+Raising the threshold to control that volume was rejected: it silently narrows
+a stated guarantee. Deferring above a library-size cutoff was rejected: it
+makes the guarantee stop applying on exactly the libraries it was written for,
+without saying so.
 
 ### 6.11 Restore
 

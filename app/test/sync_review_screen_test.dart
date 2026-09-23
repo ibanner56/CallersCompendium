@@ -141,33 +141,6 @@ Future<void> _seedRenameCollision(CompendiumRepositories repos) async {
   );
 }
 
-/// Seeds a §6.10 fuzzy near-duplicate pair: above the score threshold, with
-/// titles that are *not* equal, so keeping both needs no rename.
-Future<void> _seedFuzzyDuplicate(CompendiumRepositories repos) async {
-  final _ = await repos.choreographers.upsert(
-    Choreographer(id: 'shared-author', name: 'Sam Jones'),
-    at: _stamp,
-  );
-  for (final entry in const [
-    (id: 'a-rory', title: "Rory O'More", hand: 'left'),
-    (id: 'z-rory', title: "Rory O'Moore", hand: 'right'),
-  ]) {
-    await repos.dances.create(
-      Dance(
-        id: entry.id,
-        title: entry.title,
-        authorIds: const ['shared-author'],
-        figures: [
-          testFigure(move: 'balance', params: {'hand': entry.hand}),
-        ],
-        createdAt: _stamp,
-        updatedAt: _stamp,
-      ),
-    );
-  }
-  await CompendiumSyncStorage(repos).deduplicateFreshAttach();
-}
-
 Future<void> _pumpScreen(
   WidgetTester tester,
   CompendiumRepositories repos,
@@ -337,35 +310,6 @@ void main() {
     final survivor = await repos.choreographers.getById('aaa-author');
     expect(survivor!.name, 'Sam Jones');
     expect(survivor.email, 'aaa-author@example.com');
-  });
-
-  testWidgets('keeps both fuzzy duplicates without asking for a name', (
-    tester,
-  ) async {
-    final repos = openTestRepositories();
-    await _seedFuzzyDuplicate(repos);
-
-    await _pumpScreen(tester, repos);
-
-    expect(
-      find.text(
-        'These dances look like the same dance under slightly different '
-        'titles.',
-      ),
-      findsOneWidget,
-    );
-    await tester.tap(
-      find.byKey(const ValueKey('sync-review-keep-both-dance:a-rory:z-rory')),
-    );
-    await tester.pumpAndSettle();
-
-    // No name dialog: the two titles already differ, which is exactly what
-    // kept this pair out of the exact-title tier. Prompting would be asking
-    // the user to invent a problem.
-    expect(find.byType(TextFormField), findsNothing);
-    expect(find.byKey(const ValueKey('sync-review-empty')), findsOneWidget);
-    expect(await repos.dances.getById('a-rory'), isNotNull);
-    expect(await repos.dances.getById('z-rory'), isNotNull);
   });
 
   testWidgets('retains unsupported rows without exposing actions', (

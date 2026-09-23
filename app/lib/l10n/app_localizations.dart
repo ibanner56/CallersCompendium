@@ -2685,12 +2685,6 @@ abstract class AppLocalizations {
   /// **'Live dances have the same title but different choreography.'**
   String get syncReviewDanceAmbiguityReason;
 
-  /// Reason shown when fresh attach finds live dances that are near-duplicates by title and author without their titles matching exactly.
-  ///
-  /// In en, this message translates to:
-  /// **'These dances look like the same dance under slightly different titles.'**
-  String get syncReviewDanceFuzzyDuplicateReason;
-
   /// Reason shown for a sync-spec 6.6 step-1 natural-key rename collision between two records that both already exist on this device.
   ///
   /// In en, this message translates to:

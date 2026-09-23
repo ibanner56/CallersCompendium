@@ -1715,11 +1715,7 @@
   "syncReviewDanceAmbiguityReason": "ライブのダンスは同じタイトルですが、振り付けが異なります。",
   "@syncReviewDanceAmbiguityReason": {
     "x-sourceSha256": "4adede982e807d2622c96688129b256f04f230f759b6b07585c0ea726a501730"
-  },
-  "syncReviewDanceFuzzyDuplicateReason": "これらのダンスは、少し異なるタイトルの同じダンスのようです。",
-  "@syncReviewDanceFuzzyDuplicateReason": {
-    "x-sourceSha256": "6c669675f120b0f8515d169218e274238b087c876367aa2a27ad80da934e6a3c"
-  },
+  },
   "syncReviewRenameCollisionReason": "別のデバイスがこのレコードの名前を、ここにある別のレコードがすでに使用している名前に変更しました。",
   "@syncReviewRenameCollisionReason": {
     "x-sourceSha256": "e5a9e0b5844f13cb9c4f4a65f511c19a1636659ace7f4ef950335bee2ca54e53"

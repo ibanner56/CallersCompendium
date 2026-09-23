@@ -1497,10 +1497,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get syncReviewDanceAmbiguityReason => 'ライブのダンスは同じタイトルですが、振り付けが異なります。';
 
   @override
-  String get syncReviewDanceFuzzyDuplicateReason =>
-      'これらのダンスは、少し異なるタイトルの同じダンスのようです。';
-
-  @override
   String get syncReviewRenameCollisionReason =>
       '別のデバイスがこのレコードの名前を、ここにある別のレコードがすでに使用している名前に変更しました。';
 

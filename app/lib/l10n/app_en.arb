@@ -1916,10 +1916,6 @@
   "@syncReviewDanceAmbiguityReason": {
     "description": "Reason shown when fresh attach finds live dances with matching titles but different choreography."
   },
-  "syncReviewDanceFuzzyDuplicateReason": "These dances look like the same dance under slightly different titles.",
-  "@syncReviewDanceFuzzyDuplicateReason": {
-    "description": "Reason shown when fresh attach finds live dances that are near-duplicates by title and author without their titles matching exactly."
-  },
   "syncReviewRenameCollisionReason": "Another device renamed this record to a name a different record here already uses.",
   "@syncReviewRenameCollisionReason": {
     "description": "Reason shown for a sync-spec 6.6 step-1 natural-key rename collision between two records that both already exist on this device."

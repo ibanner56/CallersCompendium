@@ -1560,10 +1560,6 @@ class AppLocalizationsDa extends AppLocalizations {
       'Levende danse har samme titel, men forskellig koreografi.';
 
   @override
-  String get syncReviewDanceFuzzyDuplicateReason =>
-      'Disse danse ser ud til at være den samme dans under lidt forskellige titler.';
-
-  @override
   String get syncReviewRenameCollisionReason =>
       'En anden enhed har omdøbt denne post til et navn, som en anden post her allerede bruger.';
 

@@ -1581,10 +1581,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Live-Tänze haben denselben Titel, aber eine unterschiedliche Choreografie.';
 
   @override
-  String get syncReviewDanceFuzzyDuplicateReason =>
-      'Diese Tänze scheinen derselbe Tanz unter leicht unterschiedlichen Titeln zu sein.';
-
-  @override
   String get syncReviewRenameCollisionReason =>
       'Ein anderes Gerät hat diesen Datensatz in einen Namen umbenannt, den hier bereits ein anderer Datensatz verwendet.';
 

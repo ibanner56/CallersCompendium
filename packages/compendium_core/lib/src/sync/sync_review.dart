@@ -15,18 +15,6 @@ const String syncBaselineAbsenceTombstoneReason =
 const String syncDanceChoreographyAmbiguityReason =
     'live dances share a normalized title but have different choreography';
 
-/// The review reason produced when fresh attach finds live dances that
-/// `DedupeIndex` flags as near-duplicates without their titles being equal.
-///
-/// Sync-spec §6.10 defers "everything else `DedupeIndex` flags" here. The
-/// exact-title tier owns equal titles — it merges an equal-choreography pair
-/// silently and queues a differing one as
-/// [syncDanceChoreographyAmbiguityReason] — so a pair carrying this reason
-/// always has two *different* normalized titles, which is why its keep-both
-/// resolution needs no rename.
-const String syncDanceFuzzyDuplicateReason =
-    'live dances are near-duplicates by title and author';
-
 /// The sync-spec §6.6 step-1 reason: a record whose UUID this device already
 /// knows arrived carrying a natural key another local row holds.
 ///
@@ -107,21 +95,8 @@ class SyncReviewQueueItem {
   bool get isDanceAmbiguity =>
       row.reason == syncDanceChoreographyAmbiguityReason;
 
-  bool get isDanceFuzzyDuplicate => row.reason == syncDanceFuzzyDuplicateReason;
-
   bool get isNaturalKeyRenameCollision =>
       syncNaturalKeyRenameCollisionReasons.contains(row.reason);
-
-  /// Whether resolving this row with [SyncReviewAction.keepBoth] needs a new
-  /// name from the user.
-  ///
-  /// Every reason but [syncDanceFuzzyDuplicateReason] keeps two rows apart
-  /// that currently share one natural key, and the `UNIQUE` index is not
-  /// filtered on `deleted_at`, so without a rename the resolution simply fails
-  /// to write. A fuzzy duplicate pair already has two different titles — the
-  /// exact-title tier owns equal ones — so there is nothing to rename and
-  /// prompting for a name would be asking the user to invent a problem.
-  bool get keepBothNeedsNewName => !isDanceFuzzyDuplicate;
 
   /// Whether [SyncReviewAction.merge] would discard device-local contact
   /// fields that are held nowhere else.
@@ -196,8 +171,7 @@ class SyncReviewQueueItem {
           syncNaturalKeyKinds.contains(row.kind) &&
           naturalKey != null;
     }
-    return (row.reason == syncDanceChoreographyAmbiguityReason ||
-            row.reason == syncDanceFuzzyDuplicateReason) &&
+    return row.reason == syncDanceChoreographyAmbiguityReason &&
         value.kind == SyncRecordKind.dance &&
         value.deletedAt == null &&
         naturalKey != null &&

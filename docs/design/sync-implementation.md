@@ -908,20 +908,17 @@ backup taken on a syncing device leaves sync off and makes no network call.
   is the scope control on this unit. Mutating **merge** and **keep both**
   actions are exposed for the §6.6 baseline-absence tombstone reason, the §6.6
   **step-1** natural-key rename collisions (both the ordinary and the
-  shipped-difficulty variant), and W8's two live-dance tiers — the
-  choreography ambiguity and the §6.10 fuzzy near-duplicate. Other current or
-  future reasons remain visible as retained/unsupported rows with no mutating
-  action. For the four `UNIQUE` natural-key kinds, resolving **keep both** MUST
+  shipped-difficulty variant), and W8's live-dance choreography ambiguity.
+  Other current or future reasons remain visible as retained/unsupported rows
+  with no mutating action. For the four `UNIQUE` natural-key kinds, resolving **keep both** MUST
   rename a live row before the counterpart record is applied: the surviving
   local row for a tombstone (§6.6 step 2), and the row that *holds the
   colliding name* for a step-1 collision — which is `counterpart_id` there, not
   `record_id`, because a step-1 row stores the candidate under `record_id`. A
   W8 dance ambiguity's **keep both** similarly renames the local live dance.
   The index is not filtered on `deleted_at`, so without the rename the
-  resolution simply fails to write. A §6.10 fuzzy pair is the one exception and
-  needs no name: its two titles already differ, which is what kept it out of
-  the exact-title tier. These are name prompts on an otherwise kind-agnostic
-  surface, not per-kind editors.
+  resolution simply fails to write. These are name prompts on an otherwise
+  kind-agnostic surface, not per-kind editors.
 
   **Step-1 merge does not coalesce** (§6.6). Two pre-existing local rows are
   involved, so the losing row's `deviceLocal` fields — a choreographer's email,
@@ -1212,26 +1209,23 @@ content conflict for W6's table rather than a reconciliation for this unit.
   successful `POST`; and the after-the-fact count
   ("merged 412 duplicates"), which is the mitigation rather than a prompt.
 
-  Dedupe has **two tiers**, and §6.10 requires both. The exact-title tier above
-  decides what merges silently. Everything else `DedupeIndex` flags — fuzzy
-  title-and-author near-matches, and the confident-match rule from #685 — is
-  deferred to `review_queue` and never merged silently. The fuzzy tier runs
-  over the **post-merge** library so a record the exact-title tier has just
-  merged away cannot be offered as a partner, and it skips any pair whose
-  normalized titles are equal, because those belong to the tier above and would
-  otherwise be queued twice under two reasons.
+  Dedupe is the **exact normalized-title tier only**. Within a title group,
+  equal `choreographyFingerprint` merges silently and differing choreography is
+  deferred to `review_queue`; titles that are merely similar are not compared,
+  and those pairs simply remain two dances after attach.
 
   The count reports **merges only**. A deferred pair is a question, not a
   duplicate removed, so it must not inflate "merged N duplicates".
 
-  Discovery is a fresh-attach operation. A steady-state pass revalidates the
-  pairs already queued — dropping ones that no longer qualify and refreshing
-  the hashes of ones that do — but never scans the collection for new pairs,
-  which is what keeps the ADR's "review wall" caution satisfied by
-  construction rather than by tuning. Comparing every pair is quadratic, so the
-  sweep offers `DedupeIndex` only pairs within `DedupeIndex.maxTitleLengthGap`;
-  that bound is derived from the scorer's own weights and drops no pair the
-  scorer would flag.
+  **A fuzzy title-and-author tier was specified, built, measured and removed**
+  (#1355). It caught only independently-arising near-title variants — the
+  motivating case is identical titles, which the tier above already handles —
+  and cost a measured 912.8 s over 11,500 dances inside the attach transaction,
+  plus roughly 0.64 review rows per dance. Spec §6.10 carries the measurement,
+  its counting rule, and the rejected alternatives; ADR-004's fresh-attach
+  section carries the amendment. Do not reinstate it from the older wording in
+  either document without reading those.
+
 - **Unblocks** **W13's attach-completion report only**. The count is surfaced
   at the end of pairing, and pairing is W13's. This is the "what the user is
   told" contract the serialisation rules already name between these two units;

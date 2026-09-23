@@ -8,8 +8,8 @@ import '../theme/app_spacing.dart';
 
 /// Displays persisted sync decisions and exposes merge / keep-both actions for
 /// every reason the resolver supports: the §6.6 baseline-absence tombstone,
-/// §6.6 step-1 natural-key rename collisions, and fresh attach's two
-/// dance-pair tiers. Reasons with no defined resolution stay visible as
+/// §6.6 step-1 natural-key rename collisions, and fresh attach's live-dance
+/// choreography ambiguity. Reasons with no defined resolution stay visible as
 /// retained rows with no mutating action.
 class SyncReviewScreen extends StatefulWidget {
   const SyncReviewScreen({super.key});
@@ -121,14 +121,10 @@ class _SyncReviewScreenState extends State<SyncReviewScreen> {
       if (!await _confirmContactFieldLoss(context)) return;
       if (!mounted) return;
     }
-    // A fuzzy duplicate pair already has two different titles, so keeping both
-    // needs no rename and asking for one would invent a problem.
-    final needsName =
-        action == SyncReviewAction.keepBoth && item.keepBothNeedsNewName;
-    final distinctName = needsName
+    final distinctName = action == SyncReviewAction.keepBoth
         ? await _askForDistinctName(context, item)
         : null;
-    if (needsName && distinctName == null) return;
+    if (action == SyncReviewAction.keepBoth && distinctName == null) return;
     if (!mounted) return;
 
     final key = _itemKey(item);
@@ -186,9 +182,6 @@ class _SyncReviewScreenState extends State<SyncReviewScreen> {
   /// above it.
   String _reasonLabel(AppLocalizations l10n, SyncReviewQueueItem item) {
     if (item.isDanceAmbiguity) return l10n.syncReviewDanceAmbiguityReason;
-    if (item.isDanceFuzzyDuplicate) {
-      return l10n.syncReviewDanceFuzzyDuplicateReason;
-    }
     if (item.isNaturalKeyRenameCollision) {
       return l10n.syncReviewRenameCollisionReason;
     }

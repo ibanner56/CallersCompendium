@@ -1569,10 +1569,6 @@ class AppLocalizationsNl extends AppLocalizations {
       'Live dansen hebben dezelfde titel, maar een andere choreografie.';
 
   @override
-  String get syncReviewDanceFuzzyDuplicateReason =>
-      'Deze dansen lijken dezelfde dans te zijn onder iets verschillende titels.';
-
-  @override
   String get syncReviewRenameCollisionReason =>
       'Een ander apparaat heeft dit record hernoemd naar een naam die een ander record hier al gebruikt.';
 

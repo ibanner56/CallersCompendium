@@ -1591,10 +1591,6 @@ class AppLocalizationsFr extends AppLocalizations {
       'Les danses actives portent le même titre, mais ont une chorégraphie différente.';
 
   @override
-  String get syncReviewDanceFuzzyDuplicateReason =>
-      'Ces danses semblent être la même danse sous des titres légèrement différents.';
-
-  @override
   String get syncReviewRenameCollisionReason =>
       'Un autre appareil a renommé cet élément avec un nom qu’un autre élément utilise déjà ici.';
 

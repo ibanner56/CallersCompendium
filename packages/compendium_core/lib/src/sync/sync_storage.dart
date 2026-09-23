@@ -601,29 +601,20 @@ final class CompendiumSyncStorage
   Future<SyncFreshAttachDedupeResult> deduplicateFreshAttach() =>
       repositories.transaction(() async {
         final plan = await _danceDedupePlan();
-        await _refreshDanceReviews(
-          plan.ambiguities,
-          reason: syncDanceChoreographyAmbiguityReason,
-        );
+        await _refreshDanceAmbiguityReviews(plan.ambiguities);
         final reports = _reportsForDanceAmbiguities(plan.ambiguities);
 
+        if (plan.merges.isEmpty) {
+          return SyncFreshAttachDedupeResult(
+            duplicateCount: 0,
+            reports: List.unmodifiable(reports),
+          );
+        }
         for (final merge in plan.merges) {
           await _applyDanceDedupeMerge(merge, plan.aliases);
         }
-        if (plan.merges.isNotEmpty) {
-          await rebuildDerivedIndexes();
-        }
-        // §6.10's fuzzy tier runs over the **post-merge** library. A dance the
-        // exact-title tier has just merged away must not be offered as a
-        // near-duplicate partner — its row is gone — and the survivor is the
-        // record the user will actually be asked about.
-        await _refreshDanceReviews(
-          await _danceFuzzyDuplicates(),
-          reason: syncDanceFuzzyDuplicateReason,
-        );
+        await rebuildDerivedIndexes();
         return SyncFreshAttachDedupeResult(
-          // Deliberately merges only. A fuzzy pair is queued, never merged, so
-          // it must not inflate the "merged N duplicates" pairing summary.
           duplicateCount: plan.merges.fold<int>(
             0,
             (count, merge) => count + merge.losingIds.length,
@@ -637,24 +628,21 @@ final class CompendiumSyncStorage
   /// discover new same-title pairs during steady-state sync.
   Future<SyncFreshAttachDedupeResult> refreshDanceAmbiguityReviews() =>
       repositories.transaction(() async {
-        final rows = await repositories.syncLocal.listReviewQueue();
+        final queuedRows = (await repositories.syncLocal.listReviewQueue())
+            .where(
+              (row) =>
+                  row.kind == SyncRecordKind.dance &&
+                  row.reason == syncDanceChoreographyAmbiguityReason,
+            );
         final pendingDanceIds = {
           for (final pending
               in await repositories.syncLocal.listPendingDeletions())
             if (pending.kind == SyncRecordKind.dance) pending.recordId,
         };
-        final authorNames = await _danceAuthorNames();
-        final survivors = <String, List<SyncDanceDedupeAmbiguity>>{
-          syncDanceChoreographyAmbiguityReason: [],
-          syncDanceFuzzyDuplicateReason: [],
-        };
+        final ambiguities = <SyncDanceDedupeAmbiguity>[];
         final seenPairs = <String>{};
-        for (final row in rows) {
-          final retained = survivors[row.reason];
-          if (row.kind != SyncRecordKind.dance || retained == null) continue;
-          final pairKey =
-              '${row.reason} '
-              '${_danceReviewPairKey(row.recordId, row.counterpartId)}';
+        for (final row in queuedRows) {
+          final pairKey = _danceReviewPairKey(row.recordId, row.counterpartId);
           if (!seenPairs.add(pairKey) ||
               row.recordId == row.counterpartId ||
               pendingDanceIds.contains(row.recordId) ||
@@ -664,22 +652,12 @@ final class CompendiumSyncStorage
           final left = await _danceCandidate(row.recordId);
           final right = await _danceCandidate(row.counterpartId);
           if (left == null || right == null) continue;
-          // Revalidation only. Both tiers re-derive the pair they already hold
-          // and keep it if it still qualifies; neither scans the collection,
-          // so a steady-state pass cannot discover a new pair and cannot flood
-          // the queue. Discovery stays a fresh-attach operation.
-          final derived = row.reason == syncDanceChoreographyAmbiguityReason
-              ? planFreshAttachDedupe([left, right]).ambiguities
-              : planFreshAttachFuzzyDuplicates([
-                  left,
-                  right,
-                ], authorNamesByDanceId: authorNames);
-          if (derived.length == 1) retained.add(derived.single);
+          final pairPlan = planFreshAttachDedupe([left, right]);
+          if (pairPlan.ambiguities.length == 1) {
+            ambiguities.add(pairPlan.ambiguities.single);
+          }
         }
-        for (final entry in survivors.entries) {
-          await _refreshDanceReviews(entry.value, reason: entry.key);
-        }
-        final ambiguities = survivors[syncDanceChoreographyAmbiguityReason]!;
+        await _refreshDanceAmbiguityReviews(ambiguities);
         return SyncFreshAttachDedupeResult(
           duplicateCount: 0,
           reports: List.unmodifiable(_reportsForDanceAmbiguities(ambiguities)),
@@ -702,31 +680,17 @@ final class CompendiumSyncStorage
         ),
   ];
 
-  /// Brings the stored rows of one dance-pair [reason] into line with
-  /// [ambiguities], leaving every other reason alone.
-  ///
-  /// Shared by the choreography-ambiguity and fuzzy-duplicate tiers so the two
-  /// cannot drift on the property that matters: a row is retained only while
-  /// both its hashes still describe the live records, and an unchanged row
-  /// keeps its original `queued_at` so re-observing a pair does not reorder
-  /// the queue.
-  ///
-  /// Note that plain re-insertion would not achieve this. `enqueueReview` is
-  /// `insertOrIgnore`, so a second write of the same `(kind, record, counterpart)`
-  /// key is silently dropped — the row count would look right while the stored
-  /// hashes went stale, and a stale `local_hash` makes the row permanently
-  /// unresolvable.
-  Future<void> _refreshDanceReviews(
-    Iterable<SyncDanceDedupeAmbiguity> ambiguities, {
-    required String reason,
-  }) async {
+  Future<void> _refreshDanceAmbiguityReviews(
+    Iterable<SyncDanceDedupeAmbiguity> ambiguities,
+  ) async {
     final expected = <String, SyncDanceDedupeAmbiguity>{
       for (final ambiguity in ambiguities)
         _danceReviewPairKey(ambiguity.firstId, ambiguity.secondId): ambiguity,
     };
     final existingRows = await repositories.syncLocal.listReviewQueue();
     for (final row in existingRows) {
-      if (row.kind != SyncRecordKind.dance || row.reason != reason) {
+      if (row.kind != SyncRecordKind.dance ||
+          row.reason != syncDanceChoreographyAmbiguityReason) {
         continue;
       }
       final ambiguity =
@@ -758,13 +722,7 @@ final class CompendiumSyncStorage
       // The local hash is part of what makes a row current: resolution refuses
       // a decision whose local record moved after enqueue, so a row kept with
       // a stale hash would stay actionable and never be resolvable.
-      //
-      // The reason is compared too. `review_queue`'s primary key is
-      // `(kind, record_id, counterpart_id)` with no reason column in it, so a
-      // row already standing at this key under a different reason must be
-      // replaced rather than mistaken for a current one.
       if (existing != null &&
-          existing.reason == reason &&
           existing.candidateHash == candidate.wireHash &&
           existing.candidateBlob == candidateBlob &&
           existing.localHash == local.wireHash) {
@@ -781,7 +739,7 @@ final class CompendiumSyncStorage
         kind: SyncRecordKind.dance,
         recordId: ambiguity.firstId,
         counterpartId: ambiguity.secondId,
-        reason: reason,
+        reason: syncDanceChoreographyAmbiguityReason,
         candidateBlob: candidateBlob,
         candidateHash: candidate.wireHash,
         localHash: local.wireHash,
@@ -796,37 +754,7 @@ final class CompendiumSyncStorage
     return canonicalJson([first, second]);
   }
 
-  Future<SyncFreshAttachDedupePlan> _danceDedupePlan() async =>
-      planFreshAttachDedupe(await _liveDanceCandidates());
-
-  /// The §6.10 fuzzy tier over the current live library.
-  ///
-  /// Author display **names** are what `DedupeIndex` matches on, and a sync
-  /// body carries author ids only, so they are resolved here the same way
-  /// `ImportPipeline.buildDedupeIndex` resolves them for imports.
-  Future<List<SyncDanceDedupeAmbiguity>> _danceFuzzyDuplicates() async {
-    final candidates = await _liveDanceCandidates();
-    if (candidates.length < 2) return const [];
-    return planFreshAttachFuzzyDuplicates(
-      candidates,
-      authorNamesByDanceId: await _danceAuthorNames(),
-    );
-  }
-
-  Future<Map<String, List<String>>> _danceAuthorNames() async {
-    final authors = await repositories.choreographers.listAll();
-    final nameById = {for (final author in authors) author.id: author.name};
-    final dances = await repositories.dances.listAll();
-    return {
-      for (final dance in dances)
-        dance.id: [
-          for (final id in dance.authorIds)
-            if (nameById[id] != null) nameById[id]!,
-        ],
-    };
-  }
-
-  Future<List<SyncMergeCandidate>> _liveDanceCandidates() async {
+  Future<SyncFreshAttachDedupePlan> _danceDedupePlan() async {
     final customFields = await repositories.customFieldDefs
         .listAllWithDeleted();
     final allowedCustomFieldIds = {
@@ -857,7 +785,7 @@ final class CompendiumSyncStorage
       );
       if (blob != null) candidates.add(SyncMergeCandidate(blob: blob));
     }
-    return candidates;
+    return planFreshAttachDedupe(candidates);
   }
 
   Future<void> _applyDanceDedupeMerge(
@@ -921,26 +849,17 @@ final class CompendiumSyncStorage
     );
   }
 
-  /// Remaps or drops the dance-pair rows a merge has just invalidated.
-  ///
-  /// Both dance-pair reasons are handled. A fuzzy-duplicate row left pointing
-  /// at a merged-away id would be unresolvable for the same reason a stale
-  /// hash is: the record it names no longer exists. Each row is re-derived
-  /// through its *own* tier, because a pair that still qualifies as one kind
-  /// of near-duplicate may not qualify as the other.
   Future<void> _reconcileDanceReviewQueue({
     required String survivorId,
     required Set<String> losingIds,
   }) async {
     final affectedIds = {...losingIds, survivorId};
-    final authorNames = await _danceAuthorNames();
     final rows =
         (await repositories.syncLocal.listReviewQueue())
             .where(
               (row) =>
                   row.kind == SyncRecordKind.dance &&
-                  (row.reason == syncDanceChoreographyAmbiguityReason ||
-                      row.reason == syncDanceFuzzyDuplicateReason) &&
+                  row.reason == syncDanceChoreographyAmbiguityReason &&
                   (affectedIds.contains(row.recordId) ||
                       affectedIds.contains(row.counterpartId)),
             )
@@ -974,10 +893,7 @@ final class CompendiumSyncStorage
           ? recordId
           : counterpartId;
       final rightId = leftId == recordId ? counterpartId : recordId;
-      // Keyed by reason as well as by pair: `review_queue`'s primary key has
-      // no reason column, so two tiers claiming one pair would collide, and
-      // the retained set must not let one mask the other.
-      final pairKey = '${row.reason} ${_danceReviewPairKey(leftId, rightId)}';
+      final pairKey = _danceReviewPairKey(leftId, rightId);
       if (retainedPairs.contains(pairKey)) continue;
 
       final left = await _danceCandidate(leftId);
@@ -988,20 +904,15 @@ final class CompendiumSyncStorage
           right.blob.deletedAt != null) {
         continue;
       }
-      final derived = row.reason == syncDanceChoreographyAmbiguityReason
-          ? planFreshAttachDedupe([left, right]).ambiguities
-          : planFreshAttachFuzzyDuplicates([
-              left,
-              right,
-            ], authorNamesByDanceId: authorNames);
-      if (derived.length != 1) continue;
+      final plan = planFreshAttachDedupe([left, right]);
+      if (plan.ambiguities.length != 1) continue;
 
       retainedPairs.add(pairKey);
       await repositories.syncLocal.enqueueReview(
         kind: SyncRecordKind.dance,
         recordId: leftId,
         counterpartId: rightId,
-        reason: row.reason,
+        reason: syncDanceChoreographyAmbiguityReason,
         candidateBlob: encodeSyncRecordBlob(right.blob),
         candidateHash: right.wireHash,
         localHash: left.wireHash,
@@ -1325,8 +1236,7 @@ final class CompendiumSyncStorage
     if (currentRow == null || !_sameReviewQueueRow(currentRow, expectedRow)) {
       throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
     }
-    if (currentRow.reason == syncDanceChoreographyAmbiguityReason ||
-        currentRow.reason == syncDanceFuzzyDuplicateReason) {
+    if (currentRow.reason == syncDanceChoreographyAmbiguityReason) {
       await _resolveDanceAmbiguity(
         currentRow: currentRow,
         action: action,
@@ -1798,17 +1708,9 @@ final class CompendiumSyncStorage
 
     final localTitle = local.blob.body['title'];
     final candidateTitle = currentCandidate.blob.body['title'];
-    if (localTitle is! String || candidateTitle is! String) {
-      throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
-    }
-    final isFuzzyDuplicate = currentRow.reason == syncDanceFuzzyDuplicateReason;
-    // The two tiers are distinguished by exactly this: the choreography
-    // ambiguity is the equal-title case, and the fuzzy tier is everything
-    // `DedupeIndex` flags that the equal-title tier does not own. Each refuses
-    // a pair that has drifted into the other's territory since it was queued,
-    // rather than resolving a row under the wrong rules.
-    if ((normalizeTitle(localTitle) == normalizeTitle(candidateTitle)) ==
-        isFuzzyDuplicate) {
+    if (localTitle is! String ||
+        candidateTitle is! String ||
+        normalizeTitle(localTitle) != normalizeTitle(candidateTitle)) {
       throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
     }
 
@@ -1821,13 +1723,6 @@ final class CompendiumSyncStorage
         };
         await _applyDanceDedupeMerge(merge, aliases);
       case SyncReviewAction.keepBoth:
-        if (isFuzzyDuplicate) {
-          // Nothing to rename: the titles already differ, which is what put
-          // the pair in this tier rather than the ambiguity tier. Deleting the
-          // row below is the whole resolution, and no rename means no
-          // `updatedAt` bump and so nothing republished to peers.
-          break;
-        }
         final renamedTitle = _validatedDanceTitle(
           newNaturalKey,
           currentKey: normalizeTitle(candidateTitle),
