@@ -977,8 +977,11 @@ makes self-hosting materially harder, which constraint 4 forbids.
   people edit the same dance, one edit disappears silently. This must be said at
   pairing time, not discovered.
 - **A bearer credential has no recovery and no revocation.** Lose the ID and the
-  store is unreachable; leak it and the only remedy is to move to a new ID on
-  every device.
+  store is unreachable; leak it and there is no way to take the ID back, so
+  continuing to sync means moving to a new ID on every device. That alone does
+  not answer the leak, because it leaves the old store readable by whoever holds
+  the phrase — wipe is what removes the content, and it is the only remedy that
+  acts at once (§5.3). The two are complementary, not alternatives.
 - **Device Sync is not backup.** With a 30-day-of-disuse TTL the store is a relay with
   a grace period, not an archive. The file backup remains the recovery path and the UI
   must say so.
@@ -1323,7 +1326,9 @@ makes self-hosting materially harder, which constraint 4 forbids.
   with equal confidence and a reader deserves to see which way the decision went.
   Its one residue is operational and disclosed: a device that stops syncing
   without being removed pins its aliases indefinitely, so pruning depends in
-  practice on dead devices being removed via `DELETE /v1/manifests/{deviceId}`.
+  practice on dead devices being removed. Settings ▸ Device Sync ▸ *Other
+  devices* is where a user does that, issuing `DELETE /v1/manifests/{deviceId}`
+  for the peer they pick (issue #1360).
 - **Applying an inbound record must not erase what it omits.** A blob correctly
   omits `deviceLocal` fields — and the repositories' `upsert` methods write
   *every* column, which is right for a local restore and destructive here. A

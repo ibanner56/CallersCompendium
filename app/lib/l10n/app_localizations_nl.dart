@@ -352,6 +352,75 @@ class AppLocalizationsNl extends AppLocalizations {
       'Kan dit apparaat niet loskoppelen. Het is nog steeds verbonden; probeer het opnieuw.';
 
   @override
+  String get settingsSyncDevicesTitle => 'Andere apparaten';
+
+  @override
+  String get settingsSyncDevicesSubtitle =>
+      'Bekijk wat er nog meer met deze opslag verbonden is, en verwijder een apparaat dat je niet meer gebruikt.';
+
+  @override
+  String get settingsSyncDevicesScreenTitle => 'Andere apparaten';
+
+  @override
+  String get settingsSyncDevicesCaution =>
+      'De server kent elk apparaat alleen aan een identificatie die hij zelf heeft bedacht, dus er staan hier geen apparaatnamen en dit apparaat staat niet in de lijst. Weet je niet zeker welk apparaat je moet verwijderen, dan kun je het veilig laten staan: een apparaat dat je verwijdert, kan met de synchronisatiezin opnieuw verbinden.';
+
+  @override
+  String get settingsSyncDevicesEmpty =>
+      'Er zijn geen andere apparaten met deze opslag verbonden.';
+
+  @override
+  String get settingsSyncDevicesFailed =>
+      'Kan de apparatenlijst niet laden. Controleer je verbinding en probeer het opnieuw.';
+
+  @override
+  String get settingsSyncDevicesStoreMissing =>
+      'Deze opslag staat niet meer op de server, dus er zijn geen apparaten om te tonen.';
+
+  @override
+  String get settingsSyncDevicesRetry => 'Opnieuw proberen';
+
+  @override
+  String get settingsSyncDeviceRemoveTooltip => 'Dit apparaat verwijderen';
+
+  @override
+  String get settingsSyncDeviceRemoveTitle => 'Dit apparaat verwijderen?';
+
+  @override
+  String get settingsSyncDeviceRemoveBody =>
+      'De opslag bewaart de kopie van wat dit apparaat heeft gedeeld niet langer, en het apparaat stopt met synchroniseren. Er wordt niets van dat apparaat verwijderd, en er wordt niets van het jouwe verwijderd. Het kan later met de synchronisatiezin opnieuw verbinding maken met deze opslag.';
+
+  @override
+  String get settingsSyncDeviceRemoveAction => 'Verwijderen';
+
+  @override
+  String get settingsSyncDeviceRemoveFailed =>
+      'Kan dat apparaat niet verwijderen. Het is nog steeds verbonden; probeer het opnieuw.';
+
+  @override
+  String get settingsSyncWipeTitle =>
+      'Alle apparaten loskoppelen en de opslag verwijderen';
+
+  @override
+  String get settingsSyncWipeSubtitle =>
+      'Verwijder alles wat deze opslag bevat, voor alle apparaten tegelijk. Dit kan niet ongedaan worden gemaakt.';
+
+  @override
+  String get settingsSyncWipeConfirmTitle =>
+      'Deze opslag van de server verwijderen?';
+
+  @override
+  String get settingsSyncWipeConfirmBody =>
+      'Alles wat de opslag bevat wordt van de server verwijderd, voor alle apparaten tegelijk, en dit kan niet ongedaan worden gemaakt. Je bibliotheek blijft op dit apparaat en op elk van je andere apparaten staan — maar alles wat alleen via synchronisatie op een ander apparaat terecht was gekomen, komt hier niet aan. Dit apparaat wordt losgekoppeld en vergeet zijn synchronisatiezin; je andere apparaten zullen bij de volgende synchronisatie merken dat de opslag weg is en vragen of er een nieuwe moet komen. Gebruik dit als iemand anders je synchronisatiezin heeft gezien: het is het enige dat meteen weghaalt wat die persoon kan lezen.';
+
+  @override
+  String get settingsSyncWipeConfirmAction => 'Opslag verwijderen';
+
+  @override
+  String get settingsSyncWipeFailed =>
+      'Kan de opslag niet verwijderen. Er is niets gewijzigd en dit apparaat is nog steeds verbonden; probeer het opnieuw.';
+
+  @override
   String get settingsSyncMeteredRouted =>
       'Je gebruikt mobiele data en ‘Alleen synchroniseren via wifi’ staat aan. Zet die instelling hieronder uit om nu te synchroniseren.';
 

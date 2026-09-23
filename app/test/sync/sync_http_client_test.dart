@@ -481,6 +481,95 @@ void main() {
       expect(requests.single.headers.value('x-sync-epoch'), isNull);
     });
 
+    test('removes one device manifest with a single DELETE at the encoded '
+        'path', () async {
+      final requests = <HttpRequest>[];
+      final server = await _startServer((request) async {
+        requests.add(request);
+        request.response.statusCode = HttpStatus.noContent;
+        await request.response.close();
+      });
+      addTearDown(() => server.close(force: true));
+
+      final client = SyncHttpClient(
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
+        syncId: 'one-two-three-four',
+      );
+      addTearDown(client.close);
+
+      // A device id is server-minted base64url, but it arrives here as an
+      // opaque string the user picked off a list, so the path segment is
+      // encoded rather than trusted: an unencoded `/` would address a
+      // different route entirely.
+      final response = await client.deleteManifest('peer/a b');
+
+      expect(response.kind, SyncResponseKind.success);
+      expect(requests, hasLength(1));
+      expect(requests.single.method, 'DELETE');
+      expect(requests.single.uri.path, '/v1/manifests/peer%2Fa%20b');
+      expect(
+        requests.single.headers.value('authorization'),
+        isNotNull,
+        reason: 'a removal is authenticated like every other request',
+      );
+
+      // `Uri.encodeComponent` leaves dots alone, so a traversal attempt
+      // survives encoding as literal `..` — and `_uri`'s whole-path check
+      // rejects it before anything is sent. A server-minted id is base64url
+      // and can never contain a dot, so this costs nothing real.
+      await expectLater(
+        client.deleteManifest('peer/../store'),
+        throwsArgumentError,
+      );
+      expect(requests, hasLength(1), reason: 'nothing more was sent');
+    });
+
+    test('deletes the whole store with a single DELETE', () async {
+      final requests = <HttpRequest>[];
+      final server = await _startServer((request) async {
+        requests.add(request);
+        request.response.statusCode = HttpStatus.noContent;
+        await request.response.close();
+      });
+      addTearDown(() => server.close(force: true));
+
+      final client = SyncHttpClient(
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
+        syncId: 'one-two-three-four',
+      );
+      addTearDown(client.close);
+
+      final response = await client.deleteStore();
+
+      expect(response.kind, SyncResponseKind.success);
+      expect(requests, hasLength(1));
+      expect(requests.single.method, 'DELETE');
+      expect(requests.single.uri.path, '/v1/store');
+    });
+
+    test(
+      'a wipe against a store that is already gone reads as notFound',
+      () async {
+        final server = await _startServer((request) async {
+          request.response.statusCode = HttpStatus.notFound;
+          await request.response.close();
+        });
+        addTearDown(() => server.close(force: true));
+
+        final client = SyncHttpClient(
+          endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
+          syncId: 'one-two-three-four',
+        );
+        addTearDown(client.close);
+
+        expect(
+          (await client.deleteStore()).kind,
+          SyncResponseKind.notFound,
+          reason: 'the controller treats this as the end state, not a failure',
+        );
+      },
+    );
+
     test('posts the bounded missing-blob request as JSON', () async {
       final requests = <HttpRequest>[];
       final bodies = <Object?>[];

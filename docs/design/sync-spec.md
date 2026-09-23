@@ -363,9 +363,12 @@ alive — indefinitely, for a user who goes on syncing. Per-device manifest
 expiry would bound it per device, and is deliberately not specified: retiring a
 merely *dormant* device's manifest retires an alias it still needs, which
 `sync.md` records as the sharper of the two failures. The conforming statement
-is therefore that the identifier lives for the life of the store, with
-`DELETE /v1/manifests/{deviceId}` as the remedy for a device that is genuinely
-gone. A disclosure implying a fixed per-device window would be false.
+is therefore that the identifier lives for the life of the store, with removal
+as the remedy for a device that is genuinely gone — offered in the app as
+Settings ▸ Device Sync ▸ *Other devices*, which issues
+`DELETE /v1/manifests/{deviceId}` for the peer the user picks, behind a warning
+that the removed device can pair again later. A disclosure implying a fixed
+per-device window would be false.
 
 **`accessControlData` is a sixth `EgressClass`, added by this programme.** It
 covers a value whose transmission *is* the authorisation for the request

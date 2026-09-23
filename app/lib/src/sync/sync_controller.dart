@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
@@ -34,6 +35,74 @@ class SyncPairingProbe {
 /// the pairing form. Defaults to a live [SyncHttpClient]; tests inject a fake.
 typedef SyncPairingProbeFactory =
     SyncPairingProbe Function(String syncId, Uri endpoint);
+
+/// The subset of [SyncHttpClient] the device-management surface needs: the two
+/// server-side removals ADR-004 relies on, plus the store read that carries the
+/// peer set.
+///
+/// Deliberately *not* folded into [SyncCoordinatorTransport]: these are owner
+/// actions taken from Settings, not steps of a pass, and putting them on the
+/// pass seam would oblige every coordinator fake to implement operations no
+/// pass ever issues. Shaped like [SyncPairingProbe], for the same reason — a
+/// test supplies plain closures rather than a whole transport.
+class SyncDeviceAdmin {
+  const SyncDeviceAdmin({
+    required this.getStore,
+    required this.deleteManifest,
+    required this.deleteStore,
+    this.close,
+  });
+
+  /// `GET /v1/store`, read for its `devices` list (spec §5, `devices`).
+  final Future<SyncStoreResult> Function({required bool previouslyUsed})
+  getStore;
+
+  /// `DELETE /v1/manifests/{deviceId}` — removes one peer (spec §3.3).
+  final Future<SyncHttpResponse> Function(String deviceId) deleteManifest;
+
+  /// `DELETE /v1/store` — wipe (spec glossary *wipe*, §5.3).
+  final Future<SyncHttpResponse> Function() deleteStore;
+
+  final void Function()? close;
+}
+
+/// Builds the device-management client for the store this device is attached
+/// to. Defaults to a live [SyncHttpClient]; tests inject a fake.
+typedef SyncDeviceAdminFactory =
+    SyncDeviceAdmin Function(String syncId, Uri endpoint);
+
+/// What one device-management action did.
+enum SyncAdminOutcome {
+  /// The server accepted it and any local consequence has been applied.
+  done,
+
+  /// This device is not attached to a store, so there was nothing to act on.
+  /// Nothing was requested.
+  notPaired,
+
+  /// The store itself is gone. For a removal this means the peer's manifest
+  /// went with it; for a listing there is nothing to list.
+  storeMissing,
+
+  /// Refused before any request: a removal naming this device's own id.
+  refused,
+
+  /// The request was made and did not succeed. Nothing local was changed.
+  failed,
+}
+
+/// The other devices attached to this store, or why they could not be listed.
+class SyncDeviceListResult {
+  const SyncDeviceListResult({required this.outcome, this.devices = const []});
+
+  final SyncAdminOutcome outcome;
+
+  /// The store's device ids **excluding this device's own** (spec
+  /// §5: "A client MUST exclude its own id"). Empty unless [outcome] is
+  /// [SyncAdminOutcome.done] — and legitimately empty then, when this is the
+  /// only device that has published.
+  final List<String> devices;
+}
 
 /// How long before the 30-day disuse reap (spec §7.3) the status surface starts
 /// warning that the store is approaching expiry (spec §6.14 item 4).
@@ -75,6 +144,7 @@ class SyncController extends ChangeNotifier {
     required this._syncLocal,
     this._runExclusive = _runDirectly,
     this._pairingProbeFactory,
+    this._deviceAdminFactory,
     this._classifier = const ConnectivityPlusNetworkClassifier(),
     DateTime Function()? now,
     this._debounce = kSyncChangeDebounce,
@@ -96,6 +166,7 @@ class SyncController extends ChangeNotifier {
   final DateTime Function() _now;
   final Duration _debounce;
   final SyncPairingProbeFactory? _pairingProbeFactory;
+  final SyncDeviceAdminFactory? _deviceAdminFactory;
 
   /// Builds the probe for a pairing attempt. [endpoint] must already have
   /// passed [validateSyncEndpoint] and [syncId] must be a well-formed ID.
@@ -106,6 +177,23 @@ class SyncController extends ChangeNotifier {
     return SyncPairingProbe(
       getStore: client.getStore,
       createStore: client.createStore,
+      close: client.close,
+    );
+  }
+
+  /// Builds a device-management client for the store this device is attached
+  /// to, or null when it is not attached. The caller owns [SyncDeviceAdmin.close].
+  SyncDeviceAdmin? _deviceAdmin() {
+    final syncId = _syncId;
+    final endpoint = _endpoint;
+    if (syncId == null || endpoint == null) return null;
+    final factory = _deviceAdminFactory;
+    if (factory != null) return factory(syncId, endpoint);
+    final client = SyncHttpClient(endpoint: endpoint, syncId: syncId);
+    return SyncDeviceAdmin(
+      getStore: client.getStore,
+      deleteManifest: client.deleteManifest,
+      deleteStore: client.deleteStore,
       close: client.close,
     );
   }
@@ -564,31 +652,43 @@ class SyncController extends ChangeNotifier {
   /// device's manifest and every peer are untouched. Leaves sync enabled, the
   /// device ID, the used-identity verifiers, publication history and
   /// normalisation skips in place, as the spec requires; the next pairing is a
-  /// fresh attach.
-  ///
-  /// The sync ID is erased rather than tombstoned, since a tombstone keeps
-  /// the credential on disk, and it goes in the same transaction as the
-  /// store-scoped state so a failure leaves the device fully attached.
+  /// fresh attach. Contrast [wipeStore], which destroys the store for every
+  /// device; the local half of the two is shared ([_clearAttachment]) and the
+  /// difference is entirely in what is sent.
   Future<void> detach() async {
     if (!paired || _detaching) return;
     _detaching = true;
     _debounceTimer?.cancel();
     _dirty = false;
     try {
-      await _runExclusive(
-        () => _syncLocal.transaction((tx) async {
-          await tx.clearOnDetach();
-          await _settings.remove(kSyncIdKey, permanent: true);
-          await _settings.remove(kSyncEndpointKey, permanent: true);
-          await _settings.remove(kSyncLastSuccessAtKey, permanent: true);
-        }),
-      );
+      await _runExclusive(_clearAttachment);
     } finally {
       _detaching = false;
     }
-    // Only now: while the clear is still pending the device is still attached,
-    // and reporting otherwise would offer *Connect* — a pairing completing in
-    // that window would have the sync ID it just wrote deleted by this clear.
+    _forgetAttachment();
+  }
+
+  /// Erases everything that ties this device to its store, in one transaction
+  /// so a failure leaves the device fully attached.
+  ///
+  /// Shared by [detach] and [wipeStore]: the local half of forgetting a store
+  /// is identical whether the store still exists or has just been destroyed.
+  /// The sync ID is erased rather than tombstoned, since a tombstone keeps the
+  /// credential on disk.
+  Future<void> _clearAttachment() => _syncLocal.transaction((tx) async {
+    await tx.clearOnDetach();
+    await _settings.remove(kSyncIdKey, permanent: true);
+    await _settings.remove(kSyncEndpointKey, permanent: true);
+    await _settings.remove(kSyncLastSuccessAtKey, permanent: true);
+  });
+
+  /// Drops the in-memory state belonging to the store just forgotten.
+  ///
+  /// Called only after [_clearAttachment] has committed: while the clear is
+  /// still pending the device is still attached, and reporting otherwise would
+  /// offer *Connect* — a pairing completing in that window would have the sync
+  /// ID it just wrote deleted by the clear.
+  void _forgetAttachment() {
     _syncId = null;
     _endpoint = null;
     _lastSuccessAt = null;
@@ -596,6 +696,189 @@ class SyncController extends ChangeNotifier {
     _notices = const [];
     _replacementPending = false;
     _notify();
+  }
+
+  /// This device's own protocol identifier, or null when none has been minted.
+  ///
+  /// Minted lazily by `ConfiguredSyncCoordinatorFactory` the first time a
+  /// coordinator is built, and deliberately left in place by [detach]. A null
+  /// here means this device has never published a manifest, so its id cannot
+  /// appear in the store's `devices` either — which is why the exclusion below
+  /// is still correct when it excludes nothing.
+  Future<String?> _selfDeviceId() async {
+    final raw = await _settings.get(kSyncDeviceIdKey);
+    return raw is String && raw.isNotEmpty ? raw : null;
+  }
+
+  /// The other devices attached to this store (spec §3.3, §5).
+  ///
+  /// A read, so it does **not** take the writer boundary: a pass running
+  /// concurrently changes nothing this fetch decides, and the list is re-read
+  /// on every visit rather than cached, so a removal made elsewhere shows up.
+  Future<SyncDeviceListResult> listStoreDevices() async {
+    final admin = _deviceAdmin();
+    if (admin == null) {
+      return const SyncDeviceListResult(outcome: SyncAdminOutcome.notPaired);
+    }
+    try {
+      final response = (await admin.getStore(previouslyUsed: true)).response;
+      if (response.kind == SyncResponseKind.notFound) {
+        return const SyncDeviceListResult(
+          outcome: SyncAdminOutcome.storeMissing,
+        );
+      }
+      if (!response.isSuccess) {
+        return const SyncDeviceListResult(outcome: SyncAdminOutcome.failed);
+      }
+      final devices = _decodeDeviceIds(response.body);
+      if (devices == null) {
+        return const SyncDeviceListResult(outcome: SyncAdminOutcome.failed);
+      }
+      final self = await _selfDeviceId();
+      return SyncDeviceListResult(
+        outcome: SyncAdminOutcome.done,
+        devices: List.unmodifiable(devices.where((id) => id != self)),
+      );
+    } on Object catch (error, stack) {
+      // Type only, as `trigger` does: a transport failure's message can carry
+      // the request URI, and the diagnostics redactor keeps HTTPS URLs, so the
+      // message would put the sync endpoint into an exported bundle.
+      logCaughtErrorTypeOnly(
+        error,
+        stack,
+        source: 'sync_controller.listStoreDevices',
+      );
+      return const SyncDeviceListResult(outcome: SyncAdminOutcome.failed);
+    } finally {
+      admin.close?.call();
+    }
+  }
+
+  /// Removes one peer's manifest from the store (spec §3.3), freeing its device
+  /// slot and letting the aliases only it listed retire on the next pass.
+  ///
+  /// Runs inside the writer boundary, and that is load-bearing rather than
+  /// tidy: a pass in step 3 fetches every peer manifest in `devices`, and a
+  /// `DELETE` landing mid-pass makes that fetch answer `404`, which the
+  /// coordinator reports to the user as a malformed peer manifest. Gating the
+  /// control on [running] does not close this — [running] tracks this
+  /// controller's own in-flight count, while the boundary disposes the
+  /// coordinator and awaits whatever pass the isolate is actually running.
+  ///
+  /// Not gated on the §6.12 connection policy: this is a single small request
+  /// the user just asked for, not a pass, and deferring it to WiFi would leave
+  /// a device the user is trying to retire in the store.
+  Future<SyncAdminOutcome> removeDevice(String deviceId) async {
+    if (deviceId.isEmpty) return SyncAdminOutcome.refused;
+    // Belt and braces behind the list's own exclusion: removing this device's
+    // manifest is a different action with a different meaning (it does not
+    // detach, and the next pass would republish it), so it is refused here
+    // rather than quietly done.
+    if (deviceId == await _selfDeviceId()) return SyncAdminOutcome.refused;
+    final admin = _deviceAdmin();
+    if (admin == null) return SyncAdminOutcome.notPaired;
+    var outcome = SyncAdminOutcome.failed;
+    try {
+      await _runExclusive(() async {
+        final response = await admin.deleteManifest(deviceId);
+        outcome = switch (response.kind) {
+          // The server answers 204 whether or not the manifest was there, so a
+          // repeat of a removal that already happened is a success, not an
+          // error the user should be asked to retry.
+          SyncResponseKind.success => SyncAdminOutcome.done,
+          // A 404 on this route means the *store* is gone, not the manifest.
+          SyncResponseKind.notFound => SyncAdminOutcome.storeMissing,
+          _ => SyncAdminOutcome.failed,
+        };
+      });
+    } on Object catch (error, stack) {
+      logCaughtErrorTypeOnly(
+        error,
+        stack,
+        source: 'sync_controller.removeDevice',
+      );
+      return SyncAdminOutcome.failed;
+    } finally {
+      admin.close?.call();
+    }
+    return outcome;
+  }
+
+  /// Destroys the whole store server-side and detaches this device (spec
+  /// glossary *wipe*, §5.3, §7.3). Not reversible, and it affects every device
+  /// at once.
+  ///
+  /// The local clear is part of the contract, not a convenience: wipe's
+  /// headline purpose is the remedy for a leaked sync phrase, and a device left
+  /// attached would find the store missing on its very next pass and be offered
+  /// the §6.3 replacement dialog — that is, offered to re-create the store under
+  /// the phrase that leaked. Peers still follow the §6.3 missing-store flow,
+  /// which is the intended behaviour for them.
+  ///
+  /// A failed wipe changes nothing locally: the device stays attached, so the
+  /// user can try again. Between the successful `DELETE` and the local clear
+  /// there is no atomicity — a crash there leaves the store gone and this
+  /// device attached, which the next pass resolves into the ordinary
+  /// missing-store flow.
+  ///
+  /// Like [removeDevice], not gated on the §6.12 connection policy: a wipe
+  /// prompted by a leaked phrase must not wait for WiFi. It is deliberately
+  /// offered beside *Disconnect this device* rather than from any quota or
+  /// error surface — spec §5.3 requires that a destructive wipe never be the
+  /// first thing offered in response to a `507`.
+  Future<SyncAdminOutcome> wipeStore() async {
+    if (!paired || _detaching) return SyncAdminOutcome.notPaired;
+    final admin = _deviceAdmin();
+    if (admin == null) return SyncAdminOutcome.notPaired;
+    // Held for the same reason [detach] holds it: a pass that finishes while
+    // this runs belongs to the store being destroyed, and recording it would
+    // restore a last-success time for a store that no longer exists.
+    _detaching = true;
+    _debounceTimer?.cancel();
+    _dirty = false;
+    var wiped = false;
+    try {
+      await _runExclusive(() async {
+        final response = await admin.deleteStore();
+        // A store that is already gone is the end state the user asked for,
+        // so it detaches too rather than reporting a failure they cannot act
+        // on. This is the first production consumer of `notFound`.
+        wiped =
+            response.kind == SyncResponseKind.success ||
+            response.kind == SyncResponseKind.notFound;
+        if (!wiped) return;
+        await _clearAttachment();
+      });
+    } on Object catch (error, stack) {
+      logCaughtErrorTypeOnly(error, stack, source: 'sync_controller.wipeStore');
+      return SyncAdminOutcome.failed;
+    } finally {
+      _detaching = false;
+      admin.close?.call();
+    }
+    if (!wiped) return SyncAdminOutcome.failed;
+    _forgetAttachment();
+    return SyncAdminOutcome.done;
+  }
+
+  /// The `devices` array from a `GET /v1/store` body, or null when the body is
+  /// not the documented shape. Validated exactly as the coordinator validates
+  /// the same field, so a malformed store answer cannot reach the surface as a
+  /// list of anything.
+  static List<String>? _decodeDeviceIds(List<int> body) {
+    try {
+      final decoded = jsonDecode(utf8.decode(body, allowMalformed: false));
+      if (decoded is! Map) return null;
+      final devices = decoded['devices'];
+      if (devices is! List || devices.any((device) => device is! String)) {
+        return null;
+      }
+      return [for (final device in devices) device as String];
+    } on FormatException {
+      // diagnostics: silent — a malformed store answer is surfaced to the user
+      // as a failed listing, which is the only thing they can act on.
+      return null;
+    }
   }
 
   void _notify() {
