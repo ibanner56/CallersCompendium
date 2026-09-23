@@ -570,13 +570,18 @@ connected.
 
 **Your other devices.** **Other devices** lists everything else connected to
 this store, and lets you remove one you no longer use — a phone you've replaced,
-or one that's been lost. Removing a device stops the store keeping its copy of
-what it shared and frees the place it was taking up; a store holds 32 devices,
-so a run of replaced phones can eventually leave no room for a new one.
+or one that's been lost. Removing a device frees the place it was taking up
+straight away; a store holds 32 devices, so a run of replaced phones can
+eventually leave no room for a new one. The store also drops that device's list
+of what it shared, though the shared items themselves are cleared up later, in
+the server's own time, so the space they use doesn't come back immediately.
 Nothing is deleted from the removed device, and nothing is deleted from yours.
-It isn't a ban either: that device can connect to this store again with the
-phrase, and a device that was only dormant rather than gone simply picks up
-again the next time it syncs.
+
+Removing is for a device that's genuinely gone. It doesn't disconnect anything
+and it isn't a ban: a device that's still running will publish its list again
+the next time it syncs and reappear in this list, and any device can connect to
+this store again with the phrase. To stop a device syncing you have to
+disconnect it on that device.
 
 The list shows the identifiers the server made up for each device, because
 that's all the server knows — there are no device names, and this device isn't

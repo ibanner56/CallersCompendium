@@ -416,9 +416,9 @@
   "@settingsSyncDeviceRemoveTitle": {
     "x-sourceSha256": "7be0603b6c40ef172609549712c82f68208568bd3874ed44e0a822b320b66688"
   },
-  "settingsSyncDeviceRemoveBody": "そのデバイスが共有した内容のコピーがストアから削除され、そのデバイスは同期を停止します。そのデバイスからも、このデバイスからも、データは削除されません。同期フレーズがあれば、後でこのストアに再び接続できます。",
+  "settingsSyncDeviceRemoveBody": "そのデバイスが共有した内容の一覧がストアから削除され、使っていた枠が解放されます。そのデバイスからも、このデバイスからも、データは削除されません。これは完全に使わなくなったデバイス向けの操作です。削除してもそのデバイスの接続は解除されないため、まだ動作しているデバイスは次回の同期で一覧を再び公開します。また、どのデバイスも同期フレーズがあれば再接続できます。",
   "@settingsSyncDeviceRemoveBody": {
-    "x-sourceSha256": "86fee0f332c2e9a006ad4321bf68e3fefaf121198bbcc0863d20de19246ac178"
+    "x-sourceSha256": "037bb8e581c8add340fefd329bf63a55076355ef7fa29d4aa8f400b053096b3b"
   },
   "settingsSyncDeviceRemoveAction": "削除",
   "@settingsSyncDeviceRemoveAction": {
@@ -448,9 +448,13 @@
   "@settingsSyncWipeConfirmAction": {
     "x-sourceSha256": "295bf35e749e744ea715d9b91ebdeb23045b26e4ad24f4c138e2bca498605461"
   },
-  "settingsSyncWipeFailed": "ストアを削除できませんでした。何も変更されておらず、このデバイスはまだ接続されています。もう一度お試しください。",
+  "settingsSyncWipeFailed": "ストアを削除できなかったか、削除されたことを確認できませんでした。このデバイスはまだ接続されています。もう一度試す前に、他のデバイスを確認してください。",
   "@settingsSyncWipeFailed": {
-    "x-sourceSha256": "d92d4e88e22770bf1ee00d53c29f050f8bcf7632dcd8a8f9eaa3ef875d003bce"
+    "x-sourceSha256": "f19f64fc8215946c6367ba858ba3517bd80ec370c67a1bfb67c296e8dab792cd"
+  },
+  "settingsSyncWipeDetachFailed": "ストアはサーバーから削除されましたが、このデバイスの接続を解除できませんでした。ストアは失われ、元に戻すことはできません。「このデバイスの接続を解除」で完了してください。",
+  "@settingsSyncWipeDetachFailed": {
+    "x-sourceSha256": "ac763fba9e00e2a235a8877b2058b006c655d5e1afb26a7009b2a925794f173f"
   },
   "settingsSyncMeteredRouted": "モバイルデータ通信中で、「WiFi接続時のみ同期」がオンです。今すぐ同期するには、下のこの設定をオフにしてください。",
   "@settingsSyncMeteredRouted": {

@@ -416,9 +416,9 @@
   "@settingsSyncDeviceRemoveTitle": {
     "x-sourceSha256": "7be0603b6c40ef172609549712c82f68208568bd3874ed44e0a822b320b66688"
   },
-  "settingsSyncDeviceRemoveBody": "L'espace cesse de conserver la copie de ce que cet appareil a partagé, et celui-ci arrête de se synchroniser. Rien n'est supprimé sur cet appareil, et rien n'est supprimé sur le vôtre. Il pourra se reconnecter à cet espace plus tard avec la phrase de synchronisation.",
+  "settingsSyncDeviceRemoveBody": "L'espace abandonne la liste de ce que cet appareil a partagé et libère la place qu'il occupait. Rien n'est supprimé sur cet appareil, et rien n'est supprimé sur le vôtre. C'est prévu pour un appareil vraiment disparu : le retirer ne le déconnecte pas, donc un appareil encore en service republiera sa liste à sa prochaine synchronisation, et n'importe quel appareil peut se reconnecter avec la phrase de synchronisation.",
   "@settingsSyncDeviceRemoveBody": {
-    "x-sourceSha256": "86fee0f332c2e9a006ad4321bf68e3fefaf121198bbcc0863d20de19246ac178"
+    "x-sourceSha256": "037bb8e581c8add340fefd329bf63a55076355ef7fa29d4aa8f400b053096b3b"
   },
   "settingsSyncDeviceRemoveAction": "Retirer",
   "@settingsSyncDeviceRemoveAction": {
@@ -448,9 +448,13 @@
   "@settingsSyncWipeConfirmAction": {
     "x-sourceSha256": "295bf35e749e744ea715d9b91ebdeb23045b26e4ad24f4c138e2bca498605461"
   },
-  "settingsSyncWipeFailed": "Impossible de supprimer l'espace. Rien n'a été modifié et cet appareil est toujours connecté ; réessayez.",
+  "settingsSyncWipeFailed": "Impossible de supprimer l'espace, ou impossible de confirmer sa suppression. Cet appareil est toujours connecté. Vérifiez vos autres appareils avant de réessayer.",
   "@settingsSyncWipeFailed": {
-    "x-sourceSha256": "d92d4e88e22770bf1ee00d53c29f050f8bcf7632dcd8a8f9eaa3ef875d003bce"
+    "x-sourceSha256": "f19f64fc8215946c6367ba858ba3517bd80ec370c67a1bfb67c296e8dab792cd"
+  },
+  "settingsSyncWipeDetachFailed": "L'espace a été supprimé du serveur, mais cet appareil n'a pas pu s'en déconnecter. L'espace a disparu et ne peut pas être récupéré. Utilisez Déconnecter cet appareil pour terminer.",
+  "@settingsSyncWipeDetachFailed": {
+    "x-sourceSha256": "ac763fba9e00e2a235a8877b2058b006c655d5e1afb26a7009b2a925794f173f"
   },
   "settingsSyncMeteredRouted": "Vous utilisez les données mobiles et « Synchroniser uniquement en WiFi » est activé. Désactivez ce réglage ci-dessous pour synchroniser maintenant.",
   "@settingsSyncMeteredRouted": {
