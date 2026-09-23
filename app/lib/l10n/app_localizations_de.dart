@@ -3402,29 +3402,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Noch keine Slots. Fügen Sie einen Tanz oder eine Notiz hinzu, um loszulegen.';
 
   @override
-  String get programsSlotMoved => 'Slot verschoben.';
-
-  @override
   String get programsSlotMovedUp => 'Slot nach oben verschoben.';
 
   @override
   String get programsSlotMovedDown => 'Slot nach unten verschoben.';
-
-  @override
-  String programsSlotCutBanner(String name) {
-    return '„$name“ wurde ausgeschnitten – tippen Sie auf Einfügen, um ihn zu platzieren.';
-  }
-
-  @override
-  String get programsPasteBeforeFirst => 'Vor dem ersten Slot einfügen';
-
-  @override
-  String programsPasteAfter(String title) {
-    return 'Nach $title einfügen';
-  }
-
-  @override
-  String get programsPasteHere => 'Hier einfügen';
 
   @override
   String get programsMarkedPrimary => 'Als primär markiert.';
@@ -3493,9 +3474,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String programsCreatedDanceFromNoteAnnounce(String title) {
     return '„$title“ wurde erstellt und mit diesem Programmpunkt verknüpft.';
   }
-
-  @override
-  String get programsRemoveSlotMenu => 'Slot entfernen';
 
   @override
   String get programsSlotTextRequiredError =>

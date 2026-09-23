@@ -8,10 +8,30 @@
 ## 1. Status
 
 **ADR-004 is `Accepted`; S1's prerequisite is satisfied.** The maintainer's
-ruling is recorded in the ADR. **No sync client, server or network code
-exists**, but the statement "everything apart from the schema migration is
-unstarted" is no longer true, and treating it as true would schedule the
-creation of artefacts that are already on `main`.
+ruling is recorded in the ADR.
+
+**Every work unit W0–W18 has landed.** The engine, the client
+(`app/lib/src/sync/`) and the Athenaeum server (`server/lib/src/`) are on
+`main`, merged via #1328 and the per-unit PRs behind it, and Device Sync is
+reachable from Settings ▸ Experimental. **`.github/tracking/adr-004/units/` is
+the per-unit record** — each unit's completion conditions, evidence and PRs live
+there, and this document deliberately does not keep a second copy that would
+drift from it.
+
+What remains is the checkpoint side, not the build: **C6** (beta) and **C7**
+(the ship gate) are outstanding. The checkpoint table below states what each
+requires; C7 in particular needs the server deployed ahead of the client
+release (S3).
+
+Nothing below should be read as scheduling work that is already on `main`.
+The unit cards are retained as the record of what each unit had to satisfy and
+why — they are the contract a reviewer checks the landed code against, not a
+queue.
+
+*Amended 2026-09-23 (#1345): this section used to state that none of the sync
+client, the server or the network code existed, which contradicted its own W13
+card below and would have scheduled the creation of artefacts already on `main`
+— the exact failure the sentence beside it warned about.*
 
 The §3.1 schema migration shipped first, tracked as
 [#898](https://github.com/ibanner56/CallersCompendium/issues/898) and delivered
@@ -20,14 +40,19 @@ serialised*, **S6**. That unit shipped its *migration* cleanly but not its
 *invariant*: §3.1's soft-delete join rule was violated in `main` when **W17**
 was written, which is why W17 exists.
 
-Three further pieces landed while this document was in review, each closing a
-repair issue raised by the review of this design:
+Three further units landed out of order, while this document was still in
+review, each closing a repair issue raised by the review of this design. They
+are called out here because their *order* is the part that is not inferable —
+not because they are the only units that have landed:
 
-| Landed | Closes | Unit | State |
-| --- | --- | --- | --- |
-| #1115 | #1109 | **W15** | Substantially done. Both policy files carry the operator-visibility and logged break-glass disclosures §8 requires. |
-| #1118 and follow-up W17 ratchet work | #1110 | **W17** | Complete: the soft-delete join rule, I1/I2 over raw and typed writes, certificate-hatch scan, shared-normalizer source scans, and the standing write-path routing gate are mutation-proven. |
-| #1119, #1124, #1137, #1143 | #1111, #1123 | **W18** | Complete: implementation and repository-backed tracking are complete; its write-path routing guard is retained as a W17-owned standing gate. |
+| Landed | Closes | Unit |
+| --- | --- | --- |
+| #1115, #1330 | #1109 | **W15** — the privacy-policy amendment |
+| #1118 and follow-up W17 ratchet work | #1110 | **W17** — the standing-invariant ratchets |
+| #1119, #1124, #1137, #1143 | #1111, #1123 | **W18** — shareable-text normalisation |
+
+All three are complete, as are the other sixteen; `.github/tracking/adr-004/`
+carries each one's conditions and evidence.
 
 **W18's final delta was corrective, not additive**, and that is the entry most
 likely to be misread. Its card below records the delivered implementation and

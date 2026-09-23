@@ -137,8 +137,18 @@ the canonical identity when present, even if its label was renamed locally;
 unknown custom IDs with the same normalized label reconcile to the existing
 entry, and all affected dance references follow the surviving ID.
 
-Step 2 is **silent** — no prompt, no review queue. At beta scale the collision is
-routine and per-entity prompts would be noise.
+Step 2 is **silent in the common case** — no prompt, no review queue. At beta
+scale the collision is routine and per-entity prompts would be noise.
+
+It is not silent where the reconciliation would resolve a local row **out of
+existence** and no peer manifest was ever observed to carry it. That pair routes
+to the review queue instead (spec §6.6). A report would not do: the live local
+row still holds the `UNIQUE` name the peer's tombstone needs, so the tombstone
+has nowhere to be stored, and the baseline never advances for a record this
+device did not store — so the identical pair would be raised again on every pass
+for the life of the install, offering a choice the report cannot carry. The
+choice is a real one and only the user holds it: whether the name they created
+here is the record they deleted on the other device.
 
 #### The canonical tie-break
 
@@ -756,27 +766,39 @@ covered by the existing guard and the ratchet's scope must be widened.
 All payloads are UTF-8 JSON. All requests and responses may use
 `Content-Encoding: gzip`.
 
-**Timestamps are emitted at one-tick precision, and truncated to a tick on
-ingest.** The receiver truncates rather than trusting the sender, and does so
-before storing *and* before hashing.
+**Timestamps are emitted at one-tick precision, and rejected on ingest if they
+are not.** The receiver does not trust the sender — but it also does not repair
+it. A blob or manifest carrying a stray fractional second is refused as
+malformed, before storing and before hashing.
 
-That asymmetry is deliberate, because the failure it prevents is remotely
-triggerable and permanent. The content hash is computed over each device's
-**own** re-serialisation of a record, not over the bytes it received. So a peer
-emitting a sub-tick value the local column cannot represent gets it stored
-truncated, re-serialised differently, and advertised under a hash that disagrees
-with the sender's — on every subsequent pass. The merge table reads that as
-`changed`/`changed` in perpetuity and the record never converges. One value with
-a stray fractional second is enough, from a buggy peer or a hostile store, and
-nothing downstream would ever repair it because both sides are behaving
-correctly by their own lights.
+Rejecting rather than repairing matters, because the failure it prevents is
+remotely triggerable and permanent. The content hash is computed over each
+device's **own** re-serialisation of a record, not over the bytes it received.
+So a peer emitting a sub-tick value the local column cannot represent would get
+it stored truncated, re-serialised differently, and advertised under a hash that
+disagrees with the sender's — on every subsequent pass. The merge table reads
+that as `changed`/`changed` in perpetuity and the record never converges. One
+value with a stray fractional second is enough, from a buggy peer or a hostile
+store, and nothing downstream would ever repair it because both sides are
+behaving correctly by their own lights.
 
-Truncating on ingest closes the round-trip: every value that reaches storage is
-already at the precision storage keeps, so re-serialisation is a fixed point.
-This is the same class of defect as the `+ 1ms` no-op — an assumption about
-timestamp precision that was never checked against what the database actually
-stores — and it is why the canonicalisation rules now state precision explicitly
-instead of leaving it to whatever `toIso8601String` happens to emit.
+A truncating receiver is what creates that state, so the rule cannot be
+truncation. It is the same trade this design makes for NaN, for `±Infinity` and
+for a lone surrogate: a value the storage representation cannot hold is refused
+and the sender is told to update, never quietly rewritten into something the
+sender never sent. The sending device is the only side that can fix it, and a
+rejection is what tells it so; a silent truncation tells nobody anything and
+leaves the pair diverged forever.
+
+This is still the same class of defect as the `+ 1ms` no-op — an assumption
+about timestamp precision that was never checked against what the database
+actually stores — and it is why the canonicalisation rules now state precision
+explicitly instead of leaving it to whatever `toIso8601String` happens to emit.
+
+*Amended 2026-09-22 (maintainer ruling): this section said the receiver
+truncates on ingest. The codec rejects, and rejection is the contract. Everything
+above about why the round trip must be a fixed point is unchanged; what was wrong
+was the conclusion drawn from it.*
 
 ### Record blob
 
@@ -2156,17 +2178,19 @@ normalisation, which JCS explicitly puts out of scope, and the JSON-inexpressibl
 floats. NFC matters because titles are arbitrary user text — the same title
 pasted from a macOS filename (NFD) and typed on Android (NFC) displays
 identically and hashes differently, which is the same permanent non-convergence
-tick truncation was introduced to close, arriving by a different door. NaN and
+the sub-tick timestamp rule exists to close, arriving by a different door. NaN and
 ±Infinity matter because SQLite `REAL` admits both and JSON encodes neither; the
 tempting coercion to `null` or `0` would silently alter a user's data *and*
 still not converge, so rejection is the only answer that is honest.
 
 **Where NFC applies was wrong for thirty rounds, in a way the analogy caused.**
 The rule was originally written as "normalised on ingest as timestamps are", and
-the comparison is what hid the defect: for timestamps, ingest-scoping really is
-sufficient, because a `DateTimeColumn` persists as unix seconds and sub-tick
-precision cannot survive *any* write, local or remote. The representation
-enforces the invariant. A TEXT column enforces nothing, so the same scoping
+the comparison is what hid the defect: for timestamps, an ingest-scoped rule
+really is enough, because a `DateTimeColumn` persists as unix seconds and
+sub-tick precision cannot survive *any* write, local or remote. The
+representation enforces the invariant — which is also why an inbound sub-tick
+value is now refused outright rather than normalised; there is nothing left for
+a later pass to find. A TEXT column enforces nothing, so the same scoping
 applied to strings leaves the largest population of strings in the app — the
 user's pre-existing library, which never arrived through a sync path — never
 normalised at all. §6.2 step 4 uploads it verbatim; the device re-serialises
@@ -3211,7 +3235,7 @@ records look like the same choreographer; keep both, or merge* — with no per-k
 editors. That is genuinely new UI, and it is named as such rather than folded
 into "storage".
 
-**A queued item carries an immutable candidate, not just a pair of ids.** The
+**A queued item carries the candidate itself, not just a pair of ids.** The
 rename case cannot otherwise be represented: incoming X renamed to "Bob" collides
 with local Y "Bob", and X *cannot* be written locally because of the `UNIQUE`
 constraint — so the version the user is being asked to judge exists nowhere. The
@@ -3229,7 +3253,10 @@ one-shot:
   lexicographically smaller UUID first. Without a canonical order the same
   collision discovered with the roles swapped inserts a second row, which is
   precisely the duplication the idempotency exists to prevent. With it, an
-  unresolved collision updates its existing row on every later pass.
+  unresolved collision updates its existing row on every later pass — refreshing
+  the stored candidate and local hashes when they have moved, and touching
+  nothing when they have not, so the row stays answerable rather than pinned to
+  a version of the pair that no longer exists.
 - **A queued pair is not re-resolved behind the user's back.** While an item is
   pending, neither record is silently merged or dropped by a later pass; the
   deferral holds until it is answered.
@@ -3909,8 +3936,11 @@ a server that never emits `409` at all.
 
 Two facts belong to the server alone. A client cannot mint an epoch, because
 two devices creating the same store concurrently would choose different values
-and each would read the other as a reset; the atomic upsert that resolves the
-creation race must hand *both* callers the same row. And every re-creation must
+and each would read the other as a reset; the atomic creation that resolves the
+race must leave *both* callers on the same epoch. Exactly one receives `201`;
+the other receives `409` and mints nothing, then reads the winner's epoch back
+with `GET /v1/store`. What must not happen is two epochs, not two response
+codes. And every re-creation must
 mint a **fresh** value — first contact, after `DELETE /v1/store`, and after a
 TTL reap — never derived from the sync ID and never reused.
 

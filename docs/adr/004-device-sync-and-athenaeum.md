@@ -19,24 +19,21 @@
   exception**: W0, the v25 schema migration, shipped deliberately ahead of
   acceptance because its soft-delete columns must hydrate across a user's
   devices before any sync code depends on them. *Implementation status* below
-  records that, and the three repairs that have landed since.
+  records that, the three repairs that landed since, and what has shipped since
+  acceptance.
 
 ## Implementation status
 
 **The schema migration shipped before this ADR was accepted. That was
-deliberate. Three prerequisite repairs have since shipped as well; no sync
-client, server or network code has.**
+deliberate. Three prerequisite repairs followed it, and the engine, the client
+and the Athenaeum server have since shipped behind an experimental setting. The
+remaining gates are the checkpoints, not the code.**
 
 Schema **v25** is on `main` — the sync timestamp triple across eight tables,
 twenty columns, six entity-level hard deletes converted to tombstones, and every
-new column classified. Delivered by [#901] and [#903], closing [#898]. No sync
-client, no server, no network code exists, and nothing reads `existence_at`
-**for a merge decision** yet. The qualifier is load-bearing:
-`storage/existence.dart` does read the column — it advances the stamp past the
-row's own current value — so the flat claim "nothing reads it" is false against
-the tree, and a reader checking it would find the opposite of what was meant.
+new column classified. Delivered by [#901] and [#903], closing [#898].
 
-Landed since, each closing a repair issue this design filed: the
+Landed next, each closing a repair issue this design filed: the
 **privacy-policy amendment** ([#1115], closing [#1109]) — both policy files now
 carry the operator-visibility and logged break-glass disclosures §8 requires;
 the **standing-invariant ratchets** ([#1118], closing [#1110]) — the
@@ -44,10 +41,35 @@ soft-delete join rule, I1/I2 over raw and typed writes, and the
 certificate-hatch scan; and **shareable-text normalisation on every write
 path** with schema **v29** ([#1119], closing [#1111]).
 
-The third landed with two defects against this design. One has since been
-fixed: [#1124](https://github.com/ibanner56/CallersCompendium/pull/1124)
-removed `normalisation_skips.target_value` in schema v30. The reversed
-sanitisation/NFC composition remains corrective work owned by W18.
+The third landed with two defects against this design. Both have since been
+fixed: [#1124] removed `normalisation_skips.target_value` in schema v30, and
+[#1137] corrected the reversed sanitisation/NFC composition to
+`NFC(sanitizeImportedText(s))`, bumping the repair pass's algorithm version to 2
+so that rows written in the former order are revisited rather than skipped as
+done. W18 is closed on that evidence.
+
+**The implementation has shipped.** The sync engine, the client
+(`app/lib/src/sync/`) and the Athenaeum server (`server/lib/src/`) merged onto
+`main` via [#1328] and the per-unit PRs behind it. Every work unit W0–W18
+records `complete: true` in `.github/tracking/adr-004/units/`, which is the
+per-unit record; this section is deliberately not a second copy of it. Device
+Sync is reachable from Settings ▸ Experimental, so any behaviour this document
+describes is live for a user who has paired a device — it is not gated by build
+flavour.
+
+What is **not** done is the acceptance side: **C6** (beta) and **C7** (the ship
+gate) are both outstanding, and C7 requires the server to be deployed ahead of
+the client release. Their contents are in the execution plan's checkpoint table;
+that table, and not this paragraph, is the authority on what they require.
+
+> **Amended 2026-09-23 (#1345).** This section used to state that none of the
+> sync client, the server or the network code had shipped, and carried a
+> qualified claim that nothing read `existence_at` for a merge decision. Both
+> were true when written and are false
+> against `main`: the client and server merged in #1328, and
+> `sync/sync_merge.dart` orders existence by `existenceAt` when it picks an
+> existence winner. The header above still points readers here as the record of
+> what shipped, so a stale answer here is worse than none.
 
 **Why it went first, ahead of acceptance.** Several kinds had to move from hard
 delete to soft delete, and that change needs a **hydration buffer**: time for
@@ -103,6 +125,9 @@ not merely about the code.
 [#1115]: https://github.com/ibanner56/CallersCompendium/pull/1115
 [#1118]: https://github.com/ibanner56/CallersCompendium/pull/1118
 [#1119]: https://github.com/ibanner56/CallersCompendium/pull/1119
+[#1124]: https://github.com/ibanner56/CallersCompendium/pull/1124
+[#1137]: https://github.com/ibanner56/CallersCompendium/pull/1137
+[#1328]: https://github.com/ibanner56/CallersCompendium/pull/1328
 
 ## Context
 
@@ -257,7 +282,7 @@ read in isolation cannot lead an implementer to persist the address it is
 resolving.
 
 A **manifest** maps **kind, then record id**, to content hashes. The two levels
-are normative (spec §4.3): record ids are unique only within their kind, so a
+are normative (spec §4.5): record ids are unique only within their kind, so a
 flat map lets two records of different kinds sharing an id displace one
 another. A device writes only its own
 manifest and reads every sibling. Records are stored as **content-addressed
@@ -340,11 +365,11 @@ First-class costs a larger migration and buys all of that back.
 Records sync under their existing UUID. Identity is therefore stable across
 renames — the name is a field, not the key.
 
-Three kinds carry `UNIQUE` natural keys (`choreographers.name`, `tags.name`,
-`custom_field_defs.key`), so two devices that independently created "Bob Smith"
-hold one person under two UUIDs. Inserting the second violates the constraint and
-fails the whole apply transaction, so applying a record of those kinds
-reconciles:
+Four kinds carry `UNIQUE` natural keys (`choreographers.name`, `tags.name`,
+`custom_field_defs.key`, and `difficulty_levels.label`), so two devices that
+independently created "Bob Smith" hold one person under two UUIDs. Inserting the
+second violates the constraint and fails the whole apply transaction, so
+applying a record of those kinds reconciles:
 
 1. **UUID known locally** → update, last-writer-wins on `updatedAt` — unless the
    update would move the natural key onto a name another local row already holds.
@@ -357,6 +382,18 @@ reconciles:
    created independently on both devices. Reconcile silently to one UUID, remap
    every reference, drop the loser. One-time; the two devices agree from then on.
 3. **Neither** → insert.
+
+**Difficulty levels have one wrinkle the other three do not.** The three shipped
+levels carry fixed ids, and a shipped id is the canonical identity when present
+even if its label was renamed locally — so reconciliation by label reaches only
+custom levels (spec §6.6).
+
+> **Amended 2026-09-23 (#1345).** This section's opening paragraph named three
+> kinds (`choreographers.name`, `tags.name`, `custom_field_defs.key`). Difficulty
+> levels gained a `UNIQUE` label in
+> [ADR-005](005-custom-dance-difficulty-vocabulary.md), after this section was
+> written, and the identity discussion here was never revisited. The spec lists
+> four and the implementation reconciles four; this was the stale side.
 
 **The survivor is the lexicographically smaller UUID** — one canonical rule, used
 by every "which record survives" decision in the design, including the
@@ -385,7 +422,8 @@ design now states normatively: *any operation that changes a record's serialised
 content must advance its `updatedAt`.* Two separate mechanisms have broken it, so
 it is written down rather than left to be rediscovered.
 
-Natural-key reconciliation is **silent**. No prompt, no review queue: at beta
+Natural-key reconciliation is silent **in the common case** — no prompt, no
+review queue, and the carve-outs where it is not silent are below. At beta
 scale the collision is common (any two devices that both typed "Cary Ravitz")
 and a prompt per entity would be noise. Silence is defensible here because **the
 schema already makes the same assumption**: `choreographers.name` is `UNIQUE`,
@@ -405,15 +443,25 @@ and a mint can never collide with an existing key.
 
 **Where the silence stops is normative, and §6.6 fixes it.** A matching UUID
 whose natural keys differ MUST NOT merge silently; a step-2 resolution to
-non-existence that no peer manifest ever observed MUST be reported, so that a
-record cannot vanish from a user's device unannounced; and a renamed key that
-still collides after its suffix MUST route to the review queue rather than
-rename again. The claim above is that the *common* case is silent, not that this
-design never prompts — a reader who took it for the latter would build a merge
-path with no review queue in it at all.
+non-existence that no peer manifest ever observed MUST route to the review queue
+(§6.6), so that a record cannot vanish from a user's device unannounced; and a
+renamed key that still collides after its suffix MUST route to the review queue
+rather than rename again. The claim above is that the *common* case is silent,
+not that this design never prompts — a reader who took it for the latter would
+build a merge path with no review queue in it at all.
+
+> **Amended 2026-09-23 (#1345).** The middle clause originally said such a
+> resolution "MUST be reported". The spec is the normative contract, and §6.6
+> requires the review queue instead, for a reason a report cannot meet: none of
+> the four natural keys is filtered on `deleted_at`, so the live local row holds
+> the name the peer's tombstone would need, and §6.3 step 9 never advances the
+> baseline for a record this device did not store. A report would therefore
+> re-raise the identical pair on every pass for the life of the install, over a
+> choice no report offers. Routing to the queue is what makes the outcome
+> terminate; the obligation not to let a record vanish unannounced is unchanged.
 
 `venues` and `published_sources` have **no** `UNIQUE` natural key —
-`venues.name` and `published_sources.title` are plain `text()`, unlike the three
+`venues.name` and `published_sources.title` are plain `text()`, unlike the four
 above — so their UUIDs cannot collide destructively; two records simply coexist.
 They are therefore inserted without reconciliation, and a user who created the
 same hall, or cited the same book, on two devices will see it twice. Choosing a
