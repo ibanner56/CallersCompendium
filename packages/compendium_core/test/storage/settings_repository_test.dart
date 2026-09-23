@@ -37,15 +37,32 @@ void main() {
     });
   });
 
-  test('rejects colliding normalized object keys without writing', () async {
+  test('keeps colliding normalized object keys and records them', () async {
+    // §4.1: "a user's edit is never rejected to satisfy a normalisation
+    // rule". Until #1348 this threw [ShareableJsonKeyCollision] out of `set`
+    // and the save simply failed — while the one-time pass, handed the
+    // identical condition, had always skipped the value and recorded it.
+    final value = {'café': 'first', 'café': 'second'};
+
+    await repo.set('custom_dialects', value);
+
     expect(
-      () => repo.set('custom_dialects', {
-        'café': 'first',
-        'cafe\u0301': 'second',
-      }),
-      throwsA(isA<ShareableJsonKeyCollision>()),
+      await repo.get('custom_dialects'),
+      value,
+      reason:
+          'both entries survive; normalizing key by key would drop whichever '
+          'was written second, which is the silent loss §4.1 skips to avoid',
     );
-    expect(await repo.get('custom_dialects'), isNull);
+    final skip = await db
+        .customSelect(
+          'SELECT table_name, column_name, record_id FROM normalisation_skips',
+        )
+        .getSingle();
+    expect(skip.data, {
+      'table_name': 'settings',
+      'column_name': 'value_json',
+      'record_id': 'custom_dialects',
+    });
   });
 
   test('returns null for an unset key', () async {

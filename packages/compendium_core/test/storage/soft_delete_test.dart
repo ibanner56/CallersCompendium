@@ -536,23 +536,16 @@ void main() {
       },
     );
 
-    test('a RENAME onto a tombstoned name preserves the edited row', () async {
+    test('a RENAME onto a tombstoned name is refused, not absorbed', () async {
       // ignore: unused_result
-      await repos.tags.upsert(
-        Tag(id: 'T9', name: 'Easy'),
-        at: t0,
-      );
+      await repos.tags.upsert(Tag(id: 'T9', name: 'Easy'), at: t0);
       await repos.tags.delete('T9', at: t0);
       // ignore: unused_result
-      await repos.tags.upsert(
-        Tag(id: 'T1', name: 'Hard'),
-        at: t0,
-      );
+      await repos.tags.upsert(Tag(id: 'T1', name: 'Hard'), at: t0);
 
-      // ignore: unused_result
-      await repos.tags.upsert(
-        Tag(id: 'T1', name: 'Easy'),
-        at: t0,
+      await expectLater(
+        repos.tags.upsert(Tag(id: 'T1', name: 'Easy'), at: t0),
+        throwsA(isA<DuplicateNaturalKeyError>()),
       );
 
       final live = await repos.tags.listAll();
@@ -560,45 +553,35 @@ void main() {
         [for (final t in live) '${t.id}/${t.name}'],
         ['T1/Hard'],
         reason:
-            'the edited row keeps its natural-key spelling and the tombstoned '
-            'tag stays dead',
+            'the edited row is not relocated onto the tombstone, and the '
+            'tombstoned tag stays dead',
       );
-      final skip = await db
-          .customSelect(
-            'SELECT table_name, column_name, record_id FROM normalisation_skips '
-            'WHERE table_name = ? '
-            'AND column_name = ? AND record_id = ?',
-            variables: [
-              Variable.withString('tags'),
-              Variable.withString('name'),
-              Variable.withString('T1'),
-            ],
-          )
-          .getSingle();
-      expect(skip.data, {
-        'table_name': 'tags',
-        'column_name': 'name',
-        'record_id': 'T1',
-      });
+      // Until #1348 this wrote the OLD name back and recorded a skip, so the
+      // editor showed a rename the database never took and an entry was left
+      // behind for a row that is perfectly normalised.
+      expect(
+        await db.customSelect('SELECT 1 FROM normalisation_skips').get(),
+        isEmpty,
+      );
     });
 
-    test('renaming onto a LIVE name preserves the edited row', () async {
+    test('renaming onto a LIVE name is refused, not silently dropped', () async {
       // ignore: unused_result
-      await repos.tags.upsert(
-        Tag(id: 'T9', name: 'Easy'),
-        at: t0,
-      );
+      await repos.tags.upsert(Tag(id: 'T9', name: 'Easy'), at: t0);
       // ignore: unused_result
-      await repos.tags.upsert(
-        Tag(id: 'T1', name: 'Hard'),
-        at: t0,
+      await repos.tags.upsert(Tag(id: 'T1', name: 'Hard'), at: t0);
+
+      await expectLater(
+        repos.tags.upsert(Tag(id: 'T1', name: 'Easy'), at: t0),
+        throwsA(isA<DuplicateNaturalKeyError>()),
       );
-      // ignore: unused_result
-      await repos.tags.upsert(
-        Tag(id: 'T1', name: 'Easy'),
-        at: t0,
-      );
+
       expect((await repos.tags.getById('T1'))!.name, 'Hard');
+      expect((await repos.tags.getById('T9'))!.name, 'Easy');
+      expect(
+        await db.customSelect('SELECT 1 FROM normalisation_skips').get(),
+        isEmpty,
+      );
     });
 
     test(
