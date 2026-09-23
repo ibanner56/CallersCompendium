@@ -248,7 +248,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSyncIdCaution =>
-      'Voer hem in op je andere apparaat om dat te verbinden. Iedereen die hem heeft, kan alles lezen wat je synchroniseert, daarvan op elk verbonden apparaat iets wijzigen of verwijderen, en de hele opslag van de server verwijderen, en hij kan alleen worden gewijzigd door alle apparaten naar een nieuwe zin te verplaatsen.';
+      'Voer hem in op je andere apparaat om dat te verbinden. Daar staat je gedeelde bibliotheek, dus iedereen die hem heeft, kan die bibliotheek openen: alles lezen wat je synchroniseert, daarvan op elk verbonden apparaat iets wijzigen of verwijderen, en de hele opslag van de server verwijderen. Overstappen op een andere zin betekent alle apparaten ernaartoe verplaatsen.';
 
   @override
   String get settingsSyncStatusNotPaired =>
@@ -489,7 +489,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSyncPairingPersonalInfoBody =>
-      'Als je je eigen zin typt, houd er dan namen, adressen, geboortedata en al het andere over jezelf uit. De zin wordt bij elk verzoek naar de server gestuurd en wordt op elk apparaat dat je verbindt voorgelezen of ingetypt, dus het is de verkeerde plek voor iets persoonlijks.';
+      'Als je je eigen zin typt, houd er dan namen, adressen, geboortedata en al het andere over jezelf uit. De zin gaat bij elk verzoek naar de server en wordt op elk apparaat dat je verbindt voorgelezen of ingetypt, dus behandel hem als iets dat aan de buitenkant van een doos staat, niet als plek voor privégegevens.';
 
   @override
   String get settingsSyncPairingWeakPhraseTitle =>
@@ -550,19 +550,19 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSyncPairingBearerTitle =>
-      'Iedereen met deze zin heeft volledige toegang';
+      'Iedereen met deze zin kan je bibliotheek openen';
 
   @override
   String get settingsSyncPairingBearerBody =>
-      'De zin is de enige sleutel en is niet aan een account gekoppeld. Wie hem heeft, kan alles lezen wat je synchroniseert, daarvan op elk verbonden apparaat iets wijzigen of verwijderen, en de hele opslag van de server verwijderen. Er is geen manier om te beperken wat een zin kan.';
+      'De zin is waar je gedeelde bibliotheek staat, geen wachtwoord ervoor — er is nergens om in te loggen. Iedereen aan wie je hem geeft, en iedereen die hem zomaar tegenkomt, kan die bibliotheek vanaf zijn eigen apparaat openen: alles lezen wat je synchroniseert, daarvan overal waar het terecht is gekomen iets wijzigen of verwijderen, en het geheel van de server verwijderen. Er bestaat geen versie van een zin die minder kan.';
 
   @override
   String get settingsSyncPairingCredentialTitle =>
-      'Deze zin kan niet worden hersteld of ingetrokken';
+      'Er is geen kopie van deze zin, en terugnemen kan niet';
 
   @override
   String get settingsSyncPairingCredentialBody =>
-      'Als je deze zin kwijtraakt, wordt je opslag onbereikbaar — er is geen wachtwoordherstel. Een zin die is uitgelekt, kun je niet terugnemen. Alle apparaten naar een nieuwe zin verplaatsen stopt wat je daarna synchroniseert, maar wie de oude heeft, kan de oude opslag nog steeds lezen en wijzigen; alleen de opslag verwijderen haalt dat er meteen weg.';
+      'Nergens anders is deze zin bekend, dus als je hem kwijtraakt, blijft de bibliotheek liggen waar hij staat en kan niemand er nog bij. Iemand de zin vertellen valt evenmin ongedaan te maken. Je apparaten naar een nieuwe zin verplaatsen begint alleen een tweede bibliotheek ergens anders: de eerste staat er nog, en wie de oude zin heeft bewaard, kan die nog steeds openen en wijzigen. Alleen de opslag verwijderen haalt hem er meteen weg.';
 
   @override
   String get settingsSyncPairingBackupOfferTitle =>

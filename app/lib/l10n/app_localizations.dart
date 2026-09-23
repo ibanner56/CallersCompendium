@@ -508,10 +508,10 @@ abstract class AppLocalizations {
   /// **'Sync phrase copied. It unlocks your store, so paste it only on a device you own.'**
   String get settingsSyncIdCopied;
 
-  /// Caution under the sync-phrase row: what it is for, and that it is an unrevocable bearer credential (spec §6.14 item 2) carrying the full §8 capability. Must name deletion and the store-wide wipe as well as reading and writing — this is the same disclosure the pairing flow makes, on the surface that shows the phrase itself, and the two must not drift.
+  /// Caution under the sync-phrase row: what it is for, and what having it lets anyone do (spec §6.14 item 2, §8). Must name deletion and the store-wide wipe as well as reading and changing — this is the same disclosure the pairing flow makes, on the surface that shows the phrase itself, and the two must not drift. Keep the same framing as the pairing disclosures: the phrase is where the library is, not a password guarding it. Describe behaviour only; say nothing about how the value is classified internally.
   ///
   /// In en, this message translates to:
-  /// **'Enter this on your other device to connect it. Anyone who has it can read everything you sync, change or delete any of it on every connected device, and delete the whole store from the server, and it can\'t be changed without moving every device to a new phrase.'**
+  /// **'Enter this on your other device to connect it. It is where your shared library lives, so anyone who has it can open that library: read everything you sync, change or delete any of it on every connected device, and delete the whole store from the server. Moving to a different phrase means moving every device to it.'**
   String get settingsSyncIdCaution;
 
   /// Status shown when Device Sync is on but no sync store is connected.
@@ -883,7 +883,7 @@ abstract class AppLocalizations {
   /// Body of the personal-information warning on the create path. Always shown while creating, not only once the generated phrase has been edited: a warning that appears after the user has already typed their name into the field has arrived too late, and ADR-004 places it behind the offer to replace rather than after the replacement. Advisory only; it never blocks creation.
   ///
   /// In en, this message translates to:
-  /// **'If you type your own phrase, keep names, addresses, birthdays and anything else about you out of it. The phrase is sent to the server on every request and is read aloud or typed on each device you connect, so it is the wrong place for anything private.'**
+  /// **'If you type your own phrase, keep names, addresses, birthdays and anything else about you out of it. The phrase goes to the server with every request, and it gets read aloud or typed on each device you connect, so treat it like something written on the outside of a box rather than anywhere to put private details.'**
   String get settingsSyncPairingPersonalInfoBody;
 
   /// Heading of the advisory warning shown when a user-chosen sync phrase scores below the reference strength (spec §8). Advisory only; it never blocks.
@@ -976,28 +976,28 @@ abstract class AppLocalizations {
   /// **'A second person can use this same phrase on their device. If you both edit the same dance or program at the same time, one edit silently overwrites the other — there\'s no warning and no way to combine them.'**
   String get settingsSyncPairingSharingBody;
 
-  /// Heading of the bearer threat-model disclosure shown on both pairing paths (spec §8: the sync ID is simultaneously the store address and the entire read, write and DELETE capability, and this MUST be disclosed).
+  /// Heading of the disclosure spec §8 requires, shown on both pairing paths. The phrase names WHERE the shared library is, so an address framing is the accurate one; do not write 'access', 'key', 'account' or 'password' here.
   ///
   /// In en, this message translates to:
-  /// **'Anyone with this phrase has full access'**
+  /// **'Anyone with this phrase can open your library'**
   String get settingsSyncPairingBearerTitle;
 
-  /// Body of the bearer disclosure (spec §8 threat model; ADR-004 states the write and wipe case as explicitly as the read case because it is the one that destroys data). Must name all three capabilities — read, change or delete records, and delete the store — since the sharing and no-recovery disclosures cover neither deletion nor the store-wide wipe.
+  /// Body of the §8 disclosure. Every fact here is required and none may be softened: read everything, change or delete anything on every connected device, delete the whole store, and no way to narrow what a phrase permits — ADR-004 states the write and wipe case as explicitly as the read case because it is the one that destroys data. Frame it as somewhere the library lives rather than a secret guarding it: that is what makes the absence of revocation intuitive, since somewhere you have told people about cannot be un-told. Describe behaviour only; say nothing about how the value is classified internally.
   ///
   /// In en, this message translates to:
-  /// **'The phrase is the only key, and it is not tied to an account. Whoever has it can read everything you sync, change or delete any of it on every connected device, and delete the whole store from the server. There is no way to limit what a phrase can do.'**
+  /// **'The phrase is where your shared library lives, not a password in front of it — there is nothing to sign in to. Anyone you give it to, and anyone who simply comes by it, can open that library from their own device: read everything you sync, change or delete any of it everywhere it has reached, and delete the whole thing from the server. There is no version of a phrase that does less.'**
   String get settingsSyncPairingBearerBody;
 
-  /// Heading of the no-recovery/no-revocation disclosure shown during pairing.
+  /// Heading of the no-recovery/no-undo disclosure shown during pairing. Avoid 'recovered'/'revoked', which imply an account that could reset or withdraw something; the point is that nothing anywhere else records the phrase and sharing it cannot be undone. Key name says 'Credential' for historical reasons — do not let it pull the copy back towards password framing.
   ///
   /// In en, this message translates to:
-  /// **'This phrase can\'t be recovered or revoked'**
+  /// **'There is no copy of this phrase, and no taking it back'**
   String get settingsSyncPairingCredentialTitle;
 
-  /// Body text of the no-recovery/no-revocation disclosure (spec §6.14 item 2). Must NOT say that moving every device to a new phrase is the only fix for a leak: that was true before Device Sync could delete the store, and it leaves the old store readable by whoever holds the leaked phrase. Wipe is the only in-band remedy that acts at once (spec §5.3); the two are complementary, not alternatives.
+  /// Body of the no-recovery/no-undo disclosure (spec §6.14 item 2). Must NOT say moving every device to a new phrase is the only fix for a leaked one: that was true before Device Sync could delete the store, and it leaves the old store readable by whoever kept the old phrase. Wipe is the only in-band remedy that acts at once (spec §5.3); the two are complementary, not alternatives. Avoid 'password reset' and any other account vocabulary — the phrase is where the library is, not a secret in front of it. Key name says 'Credential' for historical reasons; do not follow it.
   ///
   /// In en, this message translates to:
-  /// **'Losing this phrase makes your store unreachable — there is no password reset. A phrase that leaks can\'t be taken back. Moving every device to a new phrase stops what you sync from then on, but whoever has the old one can still read and change the old store, so deleting the store is the only thing that removes that straight away.'**
+  /// **'Nothing else anywhere knows this phrase, so if you lose it the library at that address stays where it is and no one can reach it again. Telling someone the phrase also can\'t be untold. Moving your devices to a new phrase only starts a second library somewhere else: the first one is still there, and anyone who kept the old phrase can still open and change it. Deleting the store is the only thing that takes it away at once.'**
   String get settingsSyncPairingCredentialBody;
 
   /// Heading of the pre-connection backup offer shown during pairing.

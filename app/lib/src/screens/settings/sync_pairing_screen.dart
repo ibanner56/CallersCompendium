@@ -429,23 +429,31 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
           body: l10n.settingsSyncPairingSharingBody,
         ),
         const SizedBox(height: AppSpacing.sm),
-        // Spec §8's threat model, which MUST be disclosed: the phrase is the
-        // whole read, write and DELETE capability. Outside the create/connect
-        // branch above because it is true of a phrase however this device came
-        // by it, and neither neighbouring card covers it — sharing is about
-        // two collaborators overwriting each other, and the credential card is
-        // about recovery and revocation.
+        // Spec §8's threat model, which MUST be disclosed: whoever holds the
+        // phrase can read, write and DELETE. Outside the create/connect branch
+        // above because it is true of a phrase however this device came by it,
+        // and neither neighbouring card covers it — sharing is about two
+        // collaborators overwriting each other, and the card below is about
+        // the phrase being unrecoverable and impossible to take back.
+        //
+        // The icon is deliberately neither a lock nor a key. The phrase is
+        // where the shared library lives, not a secret in front of it, and a
+        // padlock would reinstate exactly the password reading this copy
+        // exists to correct.
         _Disclosure(
           key: const ValueKey('sync-pairing-bearer-disclosure'),
-          icon: Icons.lock_open_outlined,
+          icon: Icons.folder_shared_outlined,
           iconColor: theme.colorScheme.error,
           title: l10n.settingsSyncPairingBearerTitle,
           body: l10n.settingsSyncPairingBearerBody,
         ),
         const SizedBox(height: AppSpacing.sm),
+        // Same reasoning as above for the icon: this card says the phrase is
+        // recorded nowhere else and cannot be untold, which is about a one-way
+        // door rather than a key that no longer turns.
         _Disclosure(
           key: const ValueKey('sync-pairing-credential-disclosure'),
-          icon: Icons.key_off_outlined,
+          icon: Icons.report_outlined,
           title: l10n.settingsSyncPairingCredentialTitle,
           body: l10n.settingsSyncPairingCredentialBody,
         ),

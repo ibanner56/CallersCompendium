@@ -268,9 +268,9 @@
   "@settingsSyncIdCopied": {
     "x-sourceSha256": "81d9cf47c8df0aa7ab1264a4810a2a14b4eb11efcb8fb40108d0095f52be1c17"
   },
-  "settingsSyncIdCaution": "Saisissez-la sur votre autre appareil pour le connecter. Quiconque la détient peut lire tout ce que vous synchronisez, en modifier ou en supprimer n'importe quelle partie sur tous les appareils connectés, et supprimer l'espace entier du serveur ; et elle ne peut être changée qu'en faisant passer tous vos appareils à une nouvelle phrase.",
+  "settingsSyncIdCaution": "Saisissez-la sur votre autre appareil pour le connecter. C'est là que se trouve votre bibliothèque partagée : quiconque la détient peut donc ouvrir cette bibliothèque, lire tout ce que vous synchronisez, en modifier ou en supprimer n'importe quelle partie sur tous les appareils connectés, et supprimer l'espace entier du serveur. Changer de phrase suppose de faire passer tous les appareils à la nouvelle.",
   "@settingsSyncIdCaution": {
-    "x-sourceSha256": "e9e52d43d25466d5055de904c810a3d82a9a9c3a764c14fb2953eb56d002165b"
+    "x-sourceSha256": "6b1c3d9041b3824b166fb6a6152c973e16dddf7fa17300a24eb677c3a71482e3"
   },
   "settingsSyncStatusNotPaired": "Pas encore connecté à un espace de stockage.",
   "@settingsSyncStatusNotPaired": {
@@ -516,9 +516,9 @@
   "@settingsSyncPairingPersonalInfoTitle": {
     "x-sourceSha256": "fb0e2cbd0c4bfd6ddfe49b8d0885f41492d738229a1011c2f1e059ff255147e0"
   },
-  "settingsSyncPairingPersonalInfoBody": "Si vous saisissez votre propre phrase, n'y mettez ni noms, ni adresses, ni dates de naissance, ni quoi que ce soit d'autre vous concernant. La phrase est envoyée au serveur à chaque requête et elle est lue à voix haute ou saisie sur chaque appareil que vous connectez : ce n'est pas un endroit pour quelque chose de privé.",
+  "settingsSyncPairingPersonalInfoBody": "Si vous saisissez votre propre phrase, n'y mettez ni noms, ni adresses, ni dates de naissance, ni quoi que ce soit d'autre vous concernant. La phrase part vers le serveur à chaque requête et elle est lue à voix haute ou saisie sur chaque appareil que vous connectez : considérez-la comme ce qui est écrit sur le dessus d'un carton, pas comme un endroit où mettre des informations privées.",
   "@settingsSyncPairingPersonalInfoBody": {
-    "x-sourceSha256": "a1562b3ee8d758f462cf8c9999c35ae04dec02c732c6c02e1c78972dd09f2fae"
+    "x-sourceSha256": "843baaa107338c8fbfba60e77c42edaa6fcf76602f0bf47f1563ea5c6919968a"
   },
   "settingsSyncPairingWeakPhraseTitle": "Cette phrase peut être facile à deviner",
   "@settingsSyncPairingWeakPhraseTitle": {
@@ -580,21 +580,21 @@
   "@settingsSyncPairingSharingBody": {
     "x-sourceSha256": "a98a2f3493bfcb71d5e1c5020747752924342c3821a4aa3ca1b4cca5b4c195d1"
   },
-  "settingsSyncPairingBearerTitle": "Quiconque a cette phrase a un accès complet",
+  "settingsSyncPairingBearerTitle": "Quiconque a cette phrase peut ouvrir votre bibliothèque",
   "@settingsSyncPairingBearerTitle": {
-    "x-sourceSha256": "bdd8b176d1e51b245ca58911160588cccc5cbf10f6da0ecf626a28a98e79aad4"
+    "x-sourceSha256": "45858e1bf94c0decbeb0f3870a62926a932f62bd361bc394dda6c5c07f7ebb81"
   },
-  "settingsSyncPairingBearerBody": "La phrase est la seule clé, et elle n'est liée à aucun compte. Quiconque la possède peut lire tout ce que vous synchronisez, en modifier ou en supprimer n'importe quelle partie sur tous les appareils connectés, et supprimer l'espace entier du serveur. Il n'existe aucun moyen de limiter ce qu'une phrase permet de faire.",
+  "settingsSyncPairingBearerBody": "La phrase est l'endroit où se trouve votre bibliothèque partagée, pas un mot de passe placé devant : il n'y a rien où se connecter. Toute personne à qui vous la donnez, et toute personne qui tombe simplement dessus, peut ouvrir cette bibliothèque depuis son propre appareil : lire tout ce que vous synchronisez, en modifier ou en supprimer n'importe quelle partie partout où elle est arrivée, et supprimer l'ensemble du serveur. Il n'existe pas de version d'une phrase qui en permette moins.",
   "@settingsSyncPairingBearerBody": {
-    "x-sourceSha256": "c884f400c4e19c3f38dd8c1d4fa7c8dbcc56feb4c2b268f5f59c680ce4cbd800"
+    "x-sourceSha256": "d891d4e75ca3b4c4380a99d41a68416e96b015b5b8150baad9cac1cb56e312f6"
   },
-  "settingsSyncPairingCredentialTitle": "Cette phrase ne peut être ni récupérée ni révoquée",
+  "settingsSyncPairingCredentialTitle": "Il n'existe aucune copie de cette phrase, et elle ne se reprend pas",
   "@settingsSyncPairingCredentialTitle": {
-    "x-sourceSha256": "c6abbeba15319ec950ff3d20957906a07104aed09b1e6570eb73a191f7f6fb93"
+    "x-sourceSha256": "e16277566dc4bddb09274f24707f2825a2f4a162d467f22b2b0898ab82b96dc8"
   },
-  "settingsSyncPairingCredentialBody": "Si vous perdez cette phrase, votre espace devient inaccessible — il n'y a pas de réinitialisation. Une phrase qui a fuité ne peut pas être reprise. Faire passer tous les appareils à une nouvelle phrase arrête ce que vous synchronisez ensuite, mais celui qui détient l'ancienne peut toujours lire et modifier l'ancien espace : seule la suppression de l'espace le retire immédiatement.",
+  "settingsSyncPairingCredentialBody": "Rien d'autre nulle part ne connaît cette phrase : si vous la perdez, la bibliothèque reste là où elle est et plus personne ne peut l'atteindre. Dire la phrase à quelqu'un ne se défait pas non plus. Faire passer vos appareils à une nouvelle phrase ne fait que commencer une deuxième bibliothèque ailleurs : la première est toujours là, et quiconque a gardé l'ancienne phrase peut encore l'ouvrir et la modifier. Seule la suppression de l'espace la retire immédiatement.",
   "@settingsSyncPairingCredentialBody": {
-    "x-sourceSha256": "de06d58fb41abf3eb92e102323b3e73d30f07b3e1dcc21d1392a6fd89b03915d"
+    "x-sourceSha256": "a17138ff1230ef39c2340d60de66280c2bfa4fb66bbe315d72da7804fbe93e3a"
   },
   "settingsSyncPairingBackupOfferTitle": "Sauvegarder votre bibliothèque d'abord ?",
   "@settingsSyncPairingBackupOfferTitle": {

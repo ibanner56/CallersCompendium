@@ -2287,7 +2287,7 @@ void main() {
           expect(find.text(phrase), findsNothing);
           expect(find.byKey(const ValueKey('sync-id-caution')), findsOneWidget);
           // The same §8 capability the pairing flow discloses. This tile shows
-          // the credential itself, so it must not describe it as less than it
+          // the phrase itself, so it must not describe it as less than it
           // is — and the user guide's account of this tile names all three.
           final caution = tester
               .widget<Text>(find.byKey(const ValueKey('sync-id-caution')))
@@ -2875,7 +2875,7 @@ void main() {
           );
           expect(find.text('Sharing is not collaboration'), findsOneWidget);
           expect(
-            find.text("This phrase can't be recovered or revoked"),
+            find.text('There is no copy of this phrase, and no taking it back'),
             findsOneWidget,
           );
 
@@ -3521,15 +3521,20 @@ void main() {
                     of: find.byKey(
                       const ValueKey('sync-pairing-bearer-disclosure'),
                     ),
-                    matching: find.textContaining('Whoever has it'),
+                    matching: find.textContaining('can open that library'),
                   ),
                 )
                 .data!;
-            // All three capabilities, named. Neither neighbouring card covers
-            // deletion or the store-wide wipe, which is the whole finding.
+            // All three things it lets someone do, named. Neither
+            // neighbouring card covers deletion or the store-wide wipe, which
+            // is the whole finding.
             expect(body, contains('read everything you sync'));
-            expect(body, contains('delete'));
-            expect(body, contains('delete the whole store'));
+            expect(body, contains('change or delete any of it'));
+            expect(body, contains('delete the whole thing from the server'));
+            // The framing is load-bearing, not decoration: a phrase described
+            // as a password implies an account that could reset or revoke it,
+            // and neither exists.
+            expect(body, contains('not a password'));
 
             await tester.pageBack();
             await tester.pumpAndSettle();

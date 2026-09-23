@@ -268,9 +268,9 @@
   "@settingsSyncIdCopied": {
     "x-sourceSha256": "81d9cf47c8df0aa7ab1264a4810a2a14b4eb11efcb8fb40108d0095f52be1c17"
   },
-  "settingsSyncIdCaution": "Indtast den på din anden enhed for at forbinde den. Alle, der har den, kan læse alt, hvad du synkroniserer, ændre eller slette hvad som helst af det på alle forbundne enheder og slette hele lageret fra serveren, og den kan kun ændres ved at flytte alle enheder til en ny sætning.",
+  "settingsSyncIdCaution": "Indtast den på din anden enhed for at forbinde den. Det er dér, dit delte bibliotek ligger, så enhver, der har den, kan åbne det bibliotek: læse alt, hvad du synkroniserer, ændre eller slette hvad som helst af det på alle forbundne enheder og slette hele lageret fra serveren. At skifte til en anden sætning betyder at flytte alle enheder til den.",
   "@settingsSyncIdCaution": {
-    "x-sourceSha256": "e9e52d43d25466d5055de904c810a3d82a9a9c3a764c14fb2953eb56d002165b"
+    "x-sourceSha256": "6b1c3d9041b3824b166fb6a6152c973e16dddf7fa17300a24eb677c3a71482e3"
   },
   "settingsSyncStatusNotPaired": "Ikke tilsluttet et lager endnu.",
   "@settingsSyncStatusNotPaired": {
@@ -516,9 +516,9 @@
   "@settingsSyncPairingPersonalInfoTitle": {
     "x-sourceSha256": "fb0e2cbd0c4bfd6ddfe49b8d0885f41492d738229a1011c2f1e059ff255147e0"
   },
-  "settingsSyncPairingPersonalInfoBody": "Hvis du skriver din egen sætning, så hold navne, adresser, fødselsdatoer og alt andet om dig selv ude af den. Sætningen sendes til serveren ved hver forespørgsel og læses højt eller tastes ind på hver enhed, du forbinder, så den er det forkerte sted til noget privat.",
+  "settingsSyncPairingPersonalInfoBody": "Hvis du skriver din egen sætning, så hold navne, adresser, fødselsdatoer og alt andet om dig selv ude af den. Sætningen sendes til serveren ved hver forespørgsel, og den læses højt eller tastes ind på hver enhed, du forbinder, så betragt den som noget, der står uden på en kasse, snarere end et sted til private oplysninger.",
   "@settingsSyncPairingPersonalInfoBody": {
-    "x-sourceSha256": "a1562b3ee8d758f462cf8c9999c35ae04dec02c732c6c02e1c78972dd09f2fae"
+    "x-sourceSha256": "843baaa107338c8fbfba60e77c42edaa6fcf76602f0bf47f1563ea5c6919968a"
   },
   "settingsSyncPairingWeakPhraseTitle": "Denne sætning kan være nem at gætte",
   "@settingsSyncPairingWeakPhraseTitle": {
@@ -580,21 +580,21 @@
   "@settingsSyncPairingSharingBody": {
     "x-sourceSha256": "a98a2f3493bfcb71d5e1c5020747752924342c3821a4aa3ca1b4cca5b4c195d1"
   },
-  "settingsSyncPairingBearerTitle": "Enhver med denne sætning har fuld adgang",
+  "settingsSyncPairingBearerTitle": "Enhver med denne sætning kan åbne dit bibliotek",
   "@settingsSyncPairingBearerTitle": {
-    "x-sourceSha256": "bdd8b176d1e51b245ca58911160588cccc5cbf10f6da0ecf626a28a98e79aad4"
+    "x-sourceSha256": "45858e1bf94c0decbeb0f3870a62926a932f62bd361bc394dda6c5c07f7ebb81"
   },
-  "settingsSyncPairingBearerBody": "Sætningen er den eneste nøgle, og den er ikke knyttet til en konto. Enhver, der har den, kan læse alt, hvad du synkroniserer, ændre eller slette hvad som helst af det på alle forbundne enheder og slette hele lageret fra serveren. Der er ingen måde at begrænse, hvad en sætning kan.",
+  "settingsSyncPairingBearerBody": "Sætningen er dér, hvor dit delte bibliotek ligger — ikke en adgangskode foran det. Der er intet at logge ind på. Enhver, du giver den til, og enhver, der tilfældigvis får fat i den, kan åbne det bibliotek fra sin egen enhed: læse alt, hvad du synkroniserer, ændre eller slette hvad som helst af det, overalt hvor det er nået hen, og slette det hele fra serveren. Der findes ikke en udgave af en sætning, der kan mindre.",
   "@settingsSyncPairingBearerBody": {
-    "x-sourceSha256": "c884f400c4e19c3f38dd8c1d4fa7c8dbcc56feb4c2b268f5f59c680ce4cbd800"
+    "x-sourceSha256": "d891d4e75ca3b4c4380a99d41a68416e96b015b5b8150baad9cac1cb56e312f6"
   },
-  "settingsSyncPairingCredentialTitle": "Denne sætning kan ikke gendannes eller tilbagekaldes",
+  "settingsSyncPairingCredentialTitle": "Der findes ingen kopi af denne sætning, og den kan ikke tages tilbage",
   "@settingsSyncPairingCredentialTitle": {
-    "x-sourceSha256": "c6abbeba15319ec950ff3d20957906a07104aed09b1e6570eb73a191f7f6fb93"
+    "x-sourceSha256": "e16277566dc4bddb09274f24707f2825a2f4a162d467f22b2b0898ab82b96dc8"
   },
-  "settingsSyncPairingCredentialBody": "Mister du denne sætning, bliver dit lager utilgængeligt — der er ingen nulstilling af adgangskode. En sætning, der er lækket, kan ikke tages tilbage. At flytte alle enheder til en ny sætning stopper det, du synkroniserer fremover, men den, der har den gamle, kan stadig læse og ændre det gamle lager, så kun sletning af lageret fjerner det med det samme.",
+  "settingsSyncPairingCredentialBody": "Intet andet noget sted kender denne sætning, så mister du den, bliver biblioteket på den adresse liggende, uden at nogen kan nå det igen. At fortælle nogen sætningen kan heller ikke gøres om. Flytter du dine enheder til en ny sætning, starter du blot endnu et bibliotek et andet sted: det første ligger der stadig, og enhver, der har beholdt den gamle sætning, kan stadig åbne og ændre det. Kun sletning af lageret fjerner det med det samme.",
   "@settingsSyncPairingCredentialBody": {
-    "x-sourceSha256": "de06d58fb41abf3eb92e102323b3e73d30f07b3e1dcc21d1392a6fd89b03915d"
+    "x-sourceSha256": "a17138ff1230ef39c2340d60de66280c2bfa4fb66bbe315d72da7804fbe93e3a"
   },
   "settingsSyncPairingBackupOfferTitle": "Vil du sikkerhedskopiere dit bibliotek først?",
   "@settingsSyncPairingBackupOfferTitle": {

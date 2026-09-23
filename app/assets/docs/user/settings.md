@@ -502,10 +502,10 @@ while it is on. You can tap its heading to open or close it.
   it down when you first connected. It stays hidden behind bullets until you
   tap the eye button, and **Copy** puts it on the clipboard without showing it,
   which is all you need to type or paste it into the other device. Keep it to
-  yourself: anyone who has the phrase can read everything you sync, change or
-  delete any of it on every connected device, and delete the whole store from
-  the server. The only way to change the phrase is to move every device to a
-  new one.
+  yourself: the phrase is where your shared library lives, so anyone who has it
+  can open that library — read everything you sync, change or delete any of it
+  on every connected device, and delete the whole store from the server.
+  Changing the phrase means moving every device to a new one.
 - **Status** names the server this device is syncing with, written out in full
   as an address. That's the Caller's Compendium server unless you set your own
   when you connected; a server that isn't the default one is flagged, because
@@ -568,17 +568,18 @@ for testing a server on the same machine).
 Along the way it explains three things worth knowing before you commit to
 sharing a phrase. A second device using the same phrase can edit the same
 records, and if both of you touch the same dance or program at once, one
-edit silently wins — there is no merge and no warning. The phrase is the only
-key and it isn't attached to any account, so anyone who has it can read
-everything you sync, change or delete any of it on every device you've
-connected, and delete the whole store off the server; there is no way to hand
-out a phrase that can do less. And the phrase itself has no password reset:
-losing it locks you out of that store, and a phrase that has leaked can't be
-taken back, so carrying on syncing means moving every device to a new phrase.
-That does not remove what the old phrase still opens — see **Deleting the
-store** below. Before connecting, you're offered an optional one-time backup
-of your library — accepting or skipping it doesn't change what connecting
-does.
+edit silently wins — there is no merge and no warning. The phrase is where your
+shared library lives rather than a password in front of it — there's nothing to
+sign in to — so anyone you give it to, and anyone who simply comes by it, can
+open that library: read everything you sync, change or delete any of it on
+every device you've connected, and delete the whole store off the server. There
+is no version of a phrase that does less. And nothing anywhere else records it:
+lose it and the library stays where it is with no way back to it, and telling
+someone the phrase can't be untold. Moving every device to a new phrase just
+starts a second library elsewhere; the first one is still there for anyone who
+kept the old phrase — see **Deleting the store** below. Before connecting,
+you're offered an optional one-time backup of your library — accepting or
+skipping it doesn't change what connecting does.
 
 When connecting finishes, the app says so and tells you what actually happened
 to the first sync: that it has finished, that it didn't finish and will try

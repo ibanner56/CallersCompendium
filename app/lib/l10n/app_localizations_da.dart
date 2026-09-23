@@ -249,7 +249,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncIdCaution =>
-      'Indtast den på din anden enhed for at forbinde den. Alle, der har den, kan læse alt, hvad du synkroniserer, ændre eller slette hvad som helst af det på alle forbundne enheder og slette hele lageret fra serveren, og den kan kun ændres ved at flytte alle enheder til en ny sætning.';
+      'Indtast den på din anden enhed for at forbinde den. Det er dér, dit delte bibliotek ligger, så enhver, der har den, kan åbne det bibliotek: læse alt, hvad du synkroniserer, ændre eller slette hvad som helst af det på alle forbundne enheder og slette hele lageret fra serveren. At skifte til en anden sætning betyder at flytte alle enheder til den.';
 
   @override
   String get settingsSyncStatusNotPaired => 'Ikke tilsluttet et lager endnu.';
@@ -488,7 +488,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncPairingPersonalInfoBody =>
-      'Hvis du skriver din egen sætning, så hold navne, adresser, fødselsdatoer og alt andet om dig selv ude af den. Sætningen sendes til serveren ved hver forespørgsel og læses højt eller tastes ind på hver enhed, du forbinder, så den er det forkerte sted til noget privat.';
+      'Hvis du skriver din egen sætning, så hold navne, adresser, fødselsdatoer og alt andet om dig selv ude af den. Sætningen sendes til serveren ved hver forespørgsel, og den læses højt eller tastes ind på hver enhed, du forbinder, så betragt den som noget, der står uden på en kasse, snarere end et sted til private oplysninger.';
 
   @override
   String get settingsSyncPairingWeakPhraseTitle =>
@@ -549,19 +549,19 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncPairingBearerTitle =>
-      'Enhver med denne sætning har fuld adgang';
+      'Enhver med denne sætning kan åbne dit bibliotek';
 
   @override
   String get settingsSyncPairingBearerBody =>
-      'Sætningen er den eneste nøgle, og den er ikke knyttet til en konto. Enhver, der har den, kan læse alt, hvad du synkroniserer, ændre eller slette hvad som helst af det på alle forbundne enheder og slette hele lageret fra serveren. Der er ingen måde at begrænse, hvad en sætning kan.';
+      'Sætningen er dér, hvor dit delte bibliotek ligger — ikke en adgangskode foran det. Der er intet at logge ind på. Enhver, du giver den til, og enhver, der tilfældigvis får fat i den, kan åbne det bibliotek fra sin egen enhed: læse alt, hvad du synkroniserer, ændre eller slette hvad som helst af det, overalt hvor det er nået hen, og slette det hele fra serveren. Der findes ikke en udgave af en sætning, der kan mindre.';
 
   @override
   String get settingsSyncPairingCredentialTitle =>
-      'Denne sætning kan ikke gendannes eller tilbagekaldes';
+      'Der findes ingen kopi af denne sætning, og den kan ikke tages tilbage';
 
   @override
   String get settingsSyncPairingCredentialBody =>
-      'Mister du denne sætning, bliver dit lager utilgængeligt — der er ingen nulstilling af adgangskode. En sætning, der er lækket, kan ikke tages tilbage. At flytte alle enheder til en ny sætning stopper det, du synkroniserer fremover, men den, der har den gamle, kan stadig læse og ændre det gamle lager, så kun sletning af lageret fjerner det med det samme.';
+      'Intet andet noget sted kender denne sætning, så mister du den, bliver biblioteket på den adresse liggende, uden at nogen kan nå det igen. At fortælle nogen sætningen kan heller ikke gøres om. Flytter du dine enheder til en ny sætning, starter du blot endnu et bibliotek et andet sted: det første ligger der stadig, og enhver, der har beholdt den gamle sætning, kan stadig åbne og ændre det. Kun sletning af lageret fjerner det med det samme.';
 
   @override
   String get settingsSyncPairingBackupOfferTitle =>

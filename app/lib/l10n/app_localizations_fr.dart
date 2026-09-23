@@ -253,7 +253,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncIdCaution =>
-      'Saisissez-la sur votre autre appareil pour le connecter. Quiconque la détient peut lire tout ce que vous synchronisez, en modifier ou en supprimer n\'importe quelle partie sur tous les appareils connectés, et supprimer l\'espace entier du serveur ; et elle ne peut être changée qu\'en faisant passer tous vos appareils à une nouvelle phrase.';
+      'Saisissez-la sur votre autre appareil pour le connecter. C\'est là que se trouve votre bibliothèque partagée : quiconque la détient peut donc ouvrir cette bibliothèque, lire tout ce que vous synchronisez, en modifier ou en supprimer n\'importe quelle partie sur tous les appareils connectés, et supprimer l\'espace entier du serveur. Changer de phrase suppose de faire passer tous les appareils à la nouvelle.';
 
   @override
   String get settingsSyncStatusNotPaired =>
@@ -495,7 +495,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncPairingPersonalInfoBody =>
-      'Si vous saisissez votre propre phrase, n\'y mettez ni noms, ni adresses, ni dates de naissance, ni quoi que ce soit d\'autre vous concernant. La phrase est envoyée au serveur à chaque requête et elle est lue à voix haute ou saisie sur chaque appareil que vous connectez : ce n\'est pas un endroit pour quelque chose de privé.';
+      'Si vous saisissez votre propre phrase, n\'y mettez ni noms, ni adresses, ni dates de naissance, ni quoi que ce soit d\'autre vous concernant. La phrase part vers le serveur à chaque requête et elle est lue à voix haute ou saisie sur chaque appareil que vous connectez : considérez-la comme ce qui est écrit sur le dessus d\'un carton, pas comme un endroit où mettre des informations privées.';
 
   @override
   String get settingsSyncPairingWeakPhraseTitle =>
@@ -557,19 +557,19 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncPairingBearerTitle =>
-      'Quiconque a cette phrase a un accès complet';
+      'Quiconque a cette phrase peut ouvrir votre bibliothèque';
 
   @override
   String get settingsSyncPairingBearerBody =>
-      'La phrase est la seule clé, et elle n\'est liée à aucun compte. Quiconque la possède peut lire tout ce que vous synchronisez, en modifier ou en supprimer n\'importe quelle partie sur tous les appareils connectés, et supprimer l\'espace entier du serveur. Il n\'existe aucun moyen de limiter ce qu\'une phrase permet de faire.';
+      'La phrase est l\'endroit où se trouve votre bibliothèque partagée, pas un mot de passe placé devant : il n\'y a rien où se connecter. Toute personne à qui vous la donnez, et toute personne qui tombe simplement dessus, peut ouvrir cette bibliothèque depuis son propre appareil : lire tout ce que vous synchronisez, en modifier ou en supprimer n\'importe quelle partie partout où elle est arrivée, et supprimer l\'ensemble du serveur. Il n\'existe pas de version d\'une phrase qui en permette moins.';
 
   @override
   String get settingsSyncPairingCredentialTitle =>
-      'Cette phrase ne peut être ni récupérée ni révoquée';
+      'Il n\'existe aucune copie de cette phrase, et elle ne se reprend pas';
 
   @override
   String get settingsSyncPairingCredentialBody =>
-      'Si vous perdez cette phrase, votre espace devient inaccessible — il n\'y a pas de réinitialisation. Une phrase qui a fuité ne peut pas être reprise. Faire passer tous les appareils à une nouvelle phrase arrête ce que vous synchronisez ensuite, mais celui qui détient l\'ancienne peut toujours lire et modifier l\'ancien espace : seule la suppression de l\'espace le retire immédiatement.';
+      'Rien d\'autre nulle part ne connaît cette phrase : si vous la perdez, la bibliothèque reste là où elle est et plus personne ne peut l\'atteindre. Dire la phrase à quelqu\'un ne se défait pas non plus. Faire passer vos appareils à une nouvelle phrase ne fait que commencer une deuxième bibliothèque ailleurs : la première est toujours là, et quiconque a gardé l\'ancienne phrase peut encore l\'ouvrir et la modifier. Seule la suppression de l\'espace la retire immédiatement.';
 
   @override
   String get settingsSyncPairingBackupOfferTitle =>

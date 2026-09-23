@@ -245,7 +245,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSyncIdCaution =>
-      'Enter this on your other device to connect it. Anyone who has it can read everything you sync, change or delete any of it on every connected device, and delete the whole store from the server, and it can\'t be changed without moving every device to a new phrase.';
+      'Enter this on your other device to connect it. It is where your shared library lives, so anyone who has it can open that library: read everything you sync, change or delete any of it on every connected device, and delete the whole store from the server. Moving to a different phrase means moving every device to it.';
 
   @override
   String get settingsSyncStatusNotPaired => 'Not connected to a store yet.';
@@ -481,7 +481,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSyncPairingPersonalInfoBody =>
-      'If you type your own phrase, keep names, addresses, birthdays and anything else about you out of it. The phrase is sent to the server on every request and is read aloud or typed on each device you connect, so it is the wrong place for anything private.';
+      'If you type your own phrase, keep names, addresses, birthdays and anything else about you out of it. The phrase goes to the server with every request, and it gets read aloud or typed on each device you connect, so treat it like something written on the outside of a box rather than anywhere to put private details.';
 
   @override
   String get settingsSyncPairingWeakPhraseTitle =>
@@ -542,19 +542,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSyncPairingBearerTitle =>
-      'Anyone with this phrase has full access';
+      'Anyone with this phrase can open your library';
 
   @override
   String get settingsSyncPairingBearerBody =>
-      'The phrase is the only key, and it is not tied to an account. Whoever has it can read everything you sync, change or delete any of it on every connected device, and delete the whole store from the server. There is no way to limit what a phrase can do.';
+      'The phrase is where your shared library lives, not a password in front of it — there is nothing to sign in to. Anyone you give it to, and anyone who simply comes by it, can open that library from their own device: read everything you sync, change or delete any of it everywhere it has reached, and delete the whole thing from the server. There is no version of a phrase that does less.';
 
   @override
   String get settingsSyncPairingCredentialTitle =>
-      'This phrase can\'t be recovered or revoked';
+      'There is no copy of this phrase, and no taking it back';
 
   @override
   String get settingsSyncPairingCredentialBody =>
-      'Losing this phrase makes your store unreachable — there is no password reset. A phrase that leaks can\'t be taken back. Moving every device to a new phrase stops what you sync from then on, but whoever has the old one can still read and change the old store, so deleting the store is the only thing that removes that straight away.';
+      'Nothing else anywhere knows this phrase, so if you lose it the library at that address stays where it is and no one can reach it again. Telling someone the phrase also can\'t be untold. Moving your devices to a new phrase only starts a second library somewhere else: the first one is still there, and anyone who kept the old phrase can still open and change it. Deleting the store is the only thing that takes it away at once.';
 
   @override
   String get settingsSyncPairingBackupOfferTitle =>

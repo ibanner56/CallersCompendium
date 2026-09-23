@@ -268,9 +268,9 @@
   "@settingsSyncIdCopied": {
     "x-sourceSha256": "81d9cf47c8df0aa7ab1264a4810a2a14b4eb11efcb8fb40108d0095f52be1c17"
   },
-  "settingsSyncIdCaution": "もう一方のデバイスでこれを入力すると接続できます。これを持つ人は、同期しているすべての内容を閲覧し、接続されたすべてのデバイス上でその内容を変更または削除し、ストア全体をサーバーから削除できます。変更するにはすべてのデバイスを新しいフレーズに移行するしかありません。",
+  "settingsSyncIdCaution": "もう一方のデバイスでこれを入力すると接続できます。共有ライブラリはそこにあるため、これを持つ人は誰でもそのライブラリを開き、同期しているすべての内容を閲覧し、接続されたすべてのデバイス上でその内容を変更または削除し、ストア全体をサーバーから削除できます。別のフレーズに変えるには、すべてのデバイスをそちらへ移す必要があります。",
   "@settingsSyncIdCaution": {
-    "x-sourceSha256": "e9e52d43d25466d5055de904c810a3d82a9a9c3a764c14fb2953eb56d002165b"
+    "x-sourceSha256": "6b1c3d9041b3824b166fb6a6152c973e16dddf7fa17300a24eb677c3a71482e3"
   },
   "settingsSyncStatusNotPaired": "まだストアに接続されていません。",
   "@settingsSyncStatusNotPaired": {
@@ -516,9 +516,9 @@
   "@settingsSyncPairingPersonalInfoTitle": {
     "x-sourceSha256": "fb0e2cbd0c4bfd6ddfe49b8d0885f41492d738229a1011c2f1e059ff255147e0"
   },
-  "settingsSyncPairingPersonalInfoBody": "自分でフレーズを入力する場合は、氏名、住所、生年月日など自分に関する情報を含めないでください。フレーズはリクエストのたびにサーバーへ送信され、接続する各デバイスで読み上げたり入力したりするため、私的な情報を入れる場所としては適していません。",
+  "settingsSyncPairingPersonalInfoBody": "自分でフレーズを入力する場合は、氏名、住所、生年月日など自分に関する情報を含めないでください。フレーズはリクエストのたびにサーバーへ送られ、接続する各デバイスで読み上げたり入力したりします。私的な情報を書き込む場所ではなく、箱の外側に書く宛名のようなものだと考えてください。",
   "@settingsSyncPairingPersonalInfoBody": {
-    "x-sourceSha256": "a1562b3ee8d758f462cf8c9999c35ae04dec02c732c6c02e1c78972dd09f2fae"
+    "x-sourceSha256": "843baaa107338c8fbfba60e77c42edaa6fcf76602f0bf47f1563ea5c6919968a"
   },
   "settingsSyncPairingWeakPhraseTitle": "このフレーズは推測されやすい可能性があります",
   "@settingsSyncPairingWeakPhraseTitle": {
@@ -580,21 +580,21 @@
   "@settingsSyncPairingSharingBody": {
     "x-sourceSha256": "a98a2f3493bfcb71d5e1c5020747752924342c3821a4aa3ca1b4cca5b4c195d1"
   },
-  "settingsSyncPairingBearerTitle": "このフレーズを持つ人は誰でも全権限を持ちます",
+  "settingsSyncPairingBearerTitle": "このフレーズを持つ人は誰でもライブラリを開けます",
   "@settingsSyncPairingBearerTitle": {
-    "x-sourceSha256": "bdd8b176d1e51b245ca58911160588cccc5cbf10f6da0ecf626a28a98e79aad4"
+    "x-sourceSha256": "45858e1bf94c0decbeb0f3870a62926a932f62bd361bc394dda6c5c07f7ebb81"
   },
-  "settingsSyncPairingBearerBody": "フレーズが唯一の鍵であり、アカウントには結び付いていません。フレーズを持つ人は、同期しているすべてのデータを閲覧し、接続されたすべてのデバイス上でその内容を変更または削除し、ストア全体をサーバーから削除できます。フレーズでできることを制限する方法はありません。",
+  "settingsSyncPairingBearerBody": "フレーズは共有ライブラリの置き場所であり、その手前にあるパスワードではありません。サインインするものは何もありません。フレーズを渡した相手も、たまたま知った人も、自分のデバイスからそのライブラリを開けます。同期しているすべての内容を閲覧し、届いている場所すべてでその内容を変更または削除し、全体をサーバーから削除できます。できることを絞ったフレーズというものは存在しません。",
   "@settingsSyncPairingBearerBody": {
-    "x-sourceSha256": "c884f400c4e19c3f38dd8c1d4fa7c8dbcc56feb4c2b268f5f59c680ce4cbd800"
+    "x-sourceSha256": "d891d4e75ca3b4c4380a99d41a68416e96b015b5b8150baad9cac1cb56e312f6"
   },
-  "settingsSyncPairingCredentialTitle": "このフレーズは復元も無効化もできません",
+  "settingsSyncPairingCredentialTitle": "このフレーズの控えはどこにもなく、取り消すこともできません",
   "@settingsSyncPairingCredentialTitle": {
-    "x-sourceSha256": "c6abbeba15319ec950ff3d20957906a07104aed09b1e6570eb73a191f7f6fb93"
+    "x-sourceSha256": "e16277566dc4bddb09274f24707f2825a2f4a162d467f22b2b0898ab82b96dc8"
   },
-  "settingsSyncPairingCredentialBody": "このフレーズを紛失すると、ストアに到達できなくなります — パスワードのリセットはありません。漏えいしたフレーズを取り消すことはできません。すべてのデバイスを新しいフレーズに移行すれば、それ以降に同期する内容は守られますが、古いフレーズを持つ人は古いストアを引き続き閲覧・変更できます。それをただちに取り除けるのはストアの削除だけです。",
+  "settingsSyncPairingCredentialBody": "このフレーズを知っているものは他にどこにもありません。紛失すると、その場所にあるライブラリはそのまま残り、誰も再び到達できなくなります。誰かにフレーズを伝えたことも、なかったことにはできません。すべてのデバイスを新しいフレーズに移しても、別の場所に2つ目のライブラリを作るだけです。最初のライブラリはそのまま残り、古いフレーズを持ち続けている人はそれを開いて変更できます。それをただちに取り除けるのはストアの削除だけです。",
   "@settingsSyncPairingCredentialBody": {
-    "x-sourceSha256": "de06d58fb41abf3eb92e102323b3e73d30f07b3e1dcc21d1392a6fd89b03915d"
+    "x-sourceSha256": "a17138ff1230ef39c2340d60de66280c2bfa4fb66bbe315d72da7804fbe93e3a"
   },
   "settingsSyncPairingBackupOfferTitle": "先にライブラリをバックアップしますか?",
   "@settingsSyncPairingBackupOfferTitle": {

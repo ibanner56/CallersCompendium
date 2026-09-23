@@ -248,7 +248,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncIdCaution =>
-      'Gib sie auf deinem anderen Gerät ein, um es zu verbinden. Wer sie hat, kann alles lesen, was du synchronisierst, davon auf jedem verbundenen Gerät beliebiges ändern oder löschen und den gesamten Speicher vom Server löschen, und sie lässt sich nur ändern, indem du alle Geräte auf eine neue Phrase umstellst.';
+      'Gib sie auf deinem anderen Gerät ein, um es zu verbinden. Dort liegt deine geteilte Bibliothek, also kann jeder, der sie hat, diese Bibliothek öffnen: alles lesen, was du synchronisierst, davon auf jedem verbundenen Gerät beliebiges ändern oder löschen und den gesamten Speicher vom Server löschen. Zu einer anderen Phrase zu wechseln heißt, alle Geräte auf sie umzustellen.';
 
   @override
   String get settingsSyncStatusNotPaired =>
@@ -489,7 +489,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncPairingPersonalInfoBody =>
-      'Wenn du deine eigene Phrase eingibst, lass Namen, Adressen, Geburtstage und alles andere über dich heraus. Die Phrase wird bei jeder Anfrage an den Server gesendet und auf jedem Gerät, das du verbindest, vorgelesen oder eingetippt — für Privates ist sie also der falsche Ort.';
+      'Wenn du deine eigene Phrase eingibst, lass Namen, Adressen, Geburtstage und alles andere über dich heraus. Die Phrase geht bei jeder Anfrage an den Server und wird auf jedem Gerät, das du verbindest, vorgelesen oder eingetippt — behandle sie also wie etwas, das außen auf einer Kiste steht, und nicht als Ort für Privates.';
 
   @override
   String get settingsSyncPairingWeakPhraseTitle =>
@@ -551,19 +551,19 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncPairingBearerTitle =>
-      'Wer diese Phrase hat, hat vollen Zugriff';
+      'Wer diese Phrase hat, kann deine Bibliothek öffnen';
 
   @override
   String get settingsSyncPairingBearerBody =>
-      'Die Phrase ist der einzige Schlüssel und an kein Konto gebunden. Wer sie hat, kann alles lesen, was du synchronisierst, davon auf jedem verbundenen Gerät beliebiges ändern oder löschen und den gesamten Speicher vom Server löschen. Es gibt keine Möglichkeit einzuschränken, was eine Phrase darf.';
+      'Die Phrase ist der Ort, an dem deine geteilte Bibliothek liegt — kein Passwort davor. Es gibt nichts, wo man sich anmeldet. Jeder, dem du sie gibst, und jeder, der sie einfach in die Hände bekommt, kann diese Bibliothek vom eigenen Gerät aus öffnen: alles lesen, was du synchronisierst, davon überall, wo es angekommen ist, beliebiges ändern oder löschen und das Ganze vom Server löschen. Es gibt keine Variante einer Phrase, die weniger kann.';
 
   @override
   String get settingsSyncPairingCredentialTitle =>
-      'Diese Phrase kann weder wiederhergestellt noch widerrufen werden';
+      'Von dieser Phrase gibt es keine Kopie, und zurückholen lässt sie sich nicht';
 
   @override
   String get settingsSyncPairingCredentialBody =>
-      'Verlierst du diese Phrase, wird dein Speicher unerreichbar — es gibt kein Zurücksetzen. Eine durchgesickerte Phrase lässt sich nicht zurückholen. Alle Geräte auf eine neue Phrase umzustellen beendet zwar, was du künftig synchronisierst, aber wer die alte hat, kann den alten Speicher weiterhin lesen und ändern — nur das Löschen des Speichers nimmt das sofort weg.';
+      'Nichts sonst kennt diese Phrase irgendwo. Verlierst du sie, bleibt die Bibliothek an dieser Stelle liegen und niemand kommt mehr heran. Jemandem die Phrase zu nennen, lässt sich ebenso wenig rückgängig machen. Stellst du deine Geräte auf eine neue Phrase um, beginnst du damit nur eine zweite Bibliothek an anderer Stelle: die erste liegt weiterhin dort, und wer die alte Phrase behalten hat, kann sie weiterhin öffnen und ändern. Nur das Löschen des Speichers nimmt sie sofort weg.';
 
   @override
   String get settingsSyncPairingBackupOfferTitle =>
