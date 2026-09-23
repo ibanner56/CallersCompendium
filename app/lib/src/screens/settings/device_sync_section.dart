@@ -42,13 +42,19 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
 
   bool _replacementDialogShowing = false;
 
-  /// Whether the user has already confirmed a replacement on this surface.
-  /// Set before the call, not after it: the controller notifies from its
-  /// `finally` and re-shows the dialog before an awaited result comes back, so
-  /// a flag written afterwards would arrive too late for the dialog it is
-  /// meant to explain. It only qualifies [SyncController.lastResult], so a
-  /// failure from some earlier, unrelated pass cannot be reported as this
-  /// dialog's.
+  /// Whether a confirmation that actually reached the coordinator is the most
+  /// recent thing this surface did.
+  ///
+  /// Armed before the call rather than after it, because the controller
+  /// notifies from its own `finally` and re-shows the dialog before an awaited
+  /// result comes back — a flag written afterwards would arrive too late for
+  /// the dialog it is meant to explain. Disarmed again when the §6.12 gate
+  /// deferred the attempt: a deferral runs no pass, so leaving it armed would
+  /// let [SyncController.lastResult] — still the pass that raised the dialog —
+  /// be read as this confirmation's outcome.
+  ///
+  /// It only ever *qualifies* that result, so a failure from some earlier,
+  /// unrelated pass can never be reported as this dialog's.
   bool _replacementConfirmAttempted = false;
 
   /// The sync phrase currently shown in the clear, or null while it is
@@ -118,9 +124,27 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
         content: ListenableBuilder(
           listenable: controller,
           builder: (builderContext, _) {
+            // Every attempted confirmation that did not *complete* leaves the
+            // decision pending and brings this dialog back, and they are
+            // indistinguishable to the user — a tap that did nothing. A plain
+            // `failed` is only one of them: the fresh attach's continuation
+            // can have its manifest `PUT` answered `409` and end at
+            // `staleEpoch`, and the store this device just created or adopted
+            // can disappear again before the continuation reads it, ending at
+            // `replacementRequired`. Testing for `failed` alone left exactly
+            // those races unexplained — the same defect this line exists to
+            // fix, one layer in.
+            //
+            // `running` excludes the notification the controller sends when it
+            // *takes* the pass in flight: `lastResult` is still the pass that
+            // raised this dialog at that point, and reporting it would call
+            // the attempt failed while it is still running.
+            final result = controller.lastResult;
             final lastAttemptFailed =
                 _replacementConfirmAttempted &&
-                controller.lastResult?.status == SyncPassStatus.failed;
+                !controller.running &&
+                result != null &&
+                result.status != SyncPassStatus.completed;
             return Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -172,9 +196,16 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
   Future<void> _confirmReplacement(SyncController controller) async {
     final messenger = ScaffoldMessenger.maybeOf(context);
     final l10n = AppLocalizations.of(context);
+    // Armed before the call and disarmed again if the gate stopped it. The
+    // controller notifies from inside the attempt, so a flag set afterwards
+    // would arrive too late; but a suppressed attempt ran no pass, so leaving
+    // it armed would let a later notification report the *previous* pass's
+    // outcome as this confirmation's. A deferral is explained by the routing
+    // message below, never by the failure line.
     _replacementConfirmAttempted = true;
     final outcome = await controller.confirmReplacement();
     if (!mounted) return;
+    if (outcome != SyncGateOutcome.ran) _replacementConfirmAttempted = false;
     final message = _gateMessage(l10n, outcome);
     if (message != null) {
       messenger?.showSnackBar(SnackBar(content: Text(message)));
