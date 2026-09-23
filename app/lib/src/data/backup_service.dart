@@ -45,6 +45,19 @@ const String kModifierContainerCanonicalRebuildDoneKey =
 const String kCallersBoxRollAwayRoleRepairDoneKey =
     '__callersbox_roll_away_role_repair_done__';
 
+/// App-side declaration for the storage-owned one-shot derived-index repair
+/// marker (#1346). The core constant
+/// ([normalisationDerivedIndexRepairDoneKey]) remains the migration source of
+/// truth; the duplicate literal is what keeps the settings classification
+/// ratchet aware of this app-level backup policy.
+///
+/// Denylisted for the same reason as its siblings, and with one extra
+/// consequence worth naming: the repair recomputes *derived* rows from the
+/// source rows in the same database. Carrying the marker into a restore would
+/// tell a machine that has never run the repair that it already has.
+const String kNormalisationDerivedIndexRepairDoneKey =
+    '__normalisation_derived_index_repair_done__';
+
 /// Settings keys that are NOT carried in a backup's `app.settings` map.
 ///
 /// Four reasons a key is excluded:
@@ -61,7 +74,8 @@ const String kCallersBoxRollAwayRoleRepairDoneKey =
 ///   [kTaxonomyV34CanonicalRebuildDoneKey],
 ///   [kModifierContainerCanonicalRebuildDoneKey],
 ///   [kTaxonomyV35FigureNormalizationDoneKey],
-///   [kCallersBoxRollAwayRoleRepairDoneKey].
+///   [kCallersBoxRollAwayRoleRepairDoneKey],
+///   [kNormalisationDerivedIndexRepairDoneKey].
 /// - **sync security state** — credentials and per-installation routing state
 ///   must never be copied through a backup, even though their transport-specific
 ///   privacy classes are not [EgressClass.deviceLocal]:
@@ -84,6 +98,7 @@ const Set<String> kBackupSettingsDenylist = {
   kModifierContainerCanonicalRebuildDoneKey,
   kTaxonomyV35FigureNormalizationDoneKey,
   kCallersBoxRollAwayRoleRepairDoneKey,
+  kNormalisationDerivedIndexRepairDoneKey,
   kSyncIdKey,
   kSyncDeviceIdKey,
   kSyncLastUsedFingerprintKey,
