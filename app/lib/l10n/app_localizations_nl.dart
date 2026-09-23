@@ -5999,6 +5999,11 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorSaveError => 'De dans kon niet worden opgeslagen.';
 
   @override
+  String danceEditorChoreographerDuplicate(String name) {
+    return 'Een choreograaf met de naam “$name” bestaat al. De naam is niet gewijzigd.';
+  }
+
+  @override
   String get danceEditorFallbackDanceTitle => 'Dans';
 
   @override
@@ -6910,6 +6915,11 @@ class AppLocalizationsNl extends AppLocalizations {
       one: '1 dans',
     );
     return '“$label” kan niet worden verwijderd: nog in gebruik door $_temp0. Verwijder de waarde eerst van alle dansen.';
+  }
+
+  @override
+  String customFieldsKeyDuplicate(String key) {
+    return 'Een veld met de sleutel “$key” bestaat al. De sleutel is niet gewijzigd.';
   }
 
   @override

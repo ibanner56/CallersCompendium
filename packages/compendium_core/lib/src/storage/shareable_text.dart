@@ -21,7 +21,25 @@ class ShareableJsonKeyCollision implements Exception {
 /// input has one stored representation after the removed characters no longer
 /// interrupt combining sequences.
 String normalizeShareableText(String value) =>
-    nfc(sanitizeImportedText(value, allowLineBreaks: true));
+    nfc(sanitizeShareableText(value));
+
+/// The first half of [normalizeShareableText]: sanitized, but **not** composed.
+///
+/// This is what §4.1's collision carve-out means by storing a value
+/// "un-normalised". Composition is what the carve-out defers — a row whose NFC
+/// target another row already holds keeps its own bytes — and nothing else is.
+/// Sanitisation is a different rule with no carve-out: `docs/design/sync-spec.md`
+/// §4.6 binds it to *every* write path, on the grounds that a record's hash
+/// must identify its visible text. Writing the caller's raw string instead would
+/// let a normalisation collision smuggle a `U+200B` past the sanitiser, which is
+/// a second defect wearing the first one's excuse.
+///
+/// Because [normalizeShareableText] is defined over this function, a value
+/// stored through it always derives the same target it would have been
+/// normalized to. That relationship is what makes the skip recorded alongside
+/// it re-attemptable: the pass re-derives the target from the stored bytes.
+String sanitizeShareableText(String value) =>
+    sanitizeImportedText(value, allowLineBreaks: true);
 
 /// Recursively canonicalizes JSON-compatible values, including object keys.
 Object? normalizeShareableJson(Object? value) {
@@ -45,6 +63,46 @@ Object? normalizeShareableJson(Object? value) {
       normalized[key] = normalizeShareableJson(entry.value);
     }
     return normalized;
+  }
+  return value;
+}
+
+/// [normalizeShareableJson] with composition deferred: every string —
+/// including every object key — is sanitized, none is NFC-composed.
+///
+/// What a `shareable` settings value is stored as when its keys collide only
+/// under NFC. §4.1's carve-out defers **composition**; §4.6 binds the sanitiser
+/// to every write path with no carve-out at all, so keeping the caller's object
+/// verbatim would persist a `U+200B` under a rule that says nothing about
+/// invisible characters. Same relationship as [sanitizeShareableText] to
+/// [normalizeShareableText], one level up.
+///
+/// Still throws [ShareableJsonKeyCollision] when two keys collide under the
+/// **sanitiser alone** — a pair differing only by an invisible character. That
+/// is not a normalisation collision and §4.1's carve-out does not reach it:
+/// there is no sanitised form of the object that keeps both entries, so the
+/// caller learns rather than silently losing one.
+Object? sanitizeShareableJson(Object? value) {
+  if (value is String) return sanitizeShareableText(value);
+  if (value is List) {
+    return [for (final item in value) sanitizeShareableJson(item)];
+  }
+  if (value is Map) {
+    final sanitized = <String, Object?>{};
+    for (final entry in value.entries) {
+      final key = entry.key is String
+          ? sanitizeShareableText(entry.key as String)
+          : throw ArgumentError.value(
+              entry.key,
+              'key',
+              'JSON object keys must be strings',
+            );
+      if (sanitized.containsKey(key)) {
+        throw ShareableJsonKeyCollision(key);
+      }
+      sanitized[key] = sanitizeShareableJson(entry.value);
+    }
+    return sanitized;
   }
   return value;
 }

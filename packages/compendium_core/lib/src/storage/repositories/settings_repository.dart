@@ -69,12 +69,38 @@ class SettingsRepository {
   /// again. Drift's untargeted `ON CONFLICT DO UPDATE` only writes the columns
   /// the companion names, so without this the value would be stored and then
   /// filtered straight back out of every read.
+  ///
+  /// A `shareable` value whose object keys normalize to one key is stored
+  /// **whole and un-composed** and recorded in `normalisation_skips`, rather
+  /// than raising [ShareableJsonKeyCollision] out of the save. That is §4.1's
+  /// write-path rule — "a user's edit is never rejected to satisfy a
+  /// normalisation rule" — and the one-time pass has always handled the
+  /// identical condition this way; only the write path let the exception escape
+  /// (#1348). Recording the key is what makes the value re-attemptable once the
+  /// user renames or deletes one of the colliding keys.
+  ///
+  /// "Un-composed" is the whole of the carve-out: the value is still sanitised
+  /// ([sanitizeShareableJson]), because §4.6 binds the sanitiser to every write
+  /// path and says nothing about normalisation. Only a pair of keys that
+  /// collides under the **sanitiser** still raises, since no sanitised form of
+  /// the object keeps both entries.
   Future<void> set(String key, Object? value, {DateTime? at}) {
     final now = resolveStamp(at);
-    final storedValue =
-        classifySettingsKey(key)?.egress == EgressClass.shareable
-        ? normalizeShareableJson(value)
-        : value;
+    var storedValue = value;
+    var collided = false;
+    if (classifySettingsKey(key)?.egress == EgressClass.shareable) {
+      try {
+        storedValue = normalizeShareableJson(value);
+      } on ShareableJsonKeyCollision {
+        // Kept whole — normalizing key by key instead would drop whichever
+        // entry was written second, which is the silent loss §4.1 skips the
+        // whole value to avoid — and sanitised all the same, because only
+        // composition is carved out. Restoring the caller's own object here
+        // would persist a `U+200B` under a rule that is about NFC.
+        storedValue = sanitizeShareableJson(value);
+        collided = true;
+      }
+    }
     return _db.transaction(() async {
       await _db
           .into(_db.settings)
@@ -85,6 +111,13 @@ class SettingsRepository {
               updatedAt: Value(now),
             ),
           );
+      if (collided) {
+        await recordNormalisationSkipAt(
+          _db,
+          settingsValueNormalisation,
+          recordId: key,
+        );
+      }
       await applyUpsertExistence(
         _db,
         table: _db.settings,

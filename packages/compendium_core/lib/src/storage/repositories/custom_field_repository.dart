@@ -7,6 +7,7 @@ import '../../model/custom_field.dart';
 import '../../model/enums.dart';
 import '../../sync/sync_record_kind.dart';
 import '../database.dart';
+import '../duplicate_natural_key.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
 import 'sync_local_repository.dart';
@@ -34,6 +35,11 @@ class CustomFieldDefRepository {
   /// (sync-spec §6.8, [cancelPendingSyncDeletionForLocalEdit]). It defaults to
   /// false because imports, archive restore and automatic writes share this
   /// method, and a cancellation they did not intend reverses a peer's deletion.
+  ///
+  /// Throws [DuplicateNaturalKeyError] when the write would move this
+  /// definition onto a key another row already holds; see
+  /// [resolveNaturalKeyCollision] for when that happens rather than §4.1's
+  /// store-un-normalised carve-out (#1348).
   Future<String> upsert(
     CustomFieldDef def, {
     DateTime? at,
@@ -47,9 +53,10 @@ class CustomFieldDefRepository {
   /// are wrong for a peer's: it does not adopt a tombstoned row's identity
   /// (identity is reconciliation's decision, and silently relocating the
   /// record would store it under an id the peer never named), it does not
-  /// substitute the local name when another row holds the incoming one
-  /// (§6.7 refuses a record rather than storing an altered copy), and it does
-  /// not seed `existence_at`, which the envelope owns.
+  /// take §4.1's collision carve-out when another row holds the incoming value
+  /// (§6.7 refuses the record to reconciliation rather than storing an altered
+  /// copy — or, since #1348, an un-normalised one), and it does not seed
+  /// `existence_at`, which the envelope owns.
   Future<void> writeFromSync(CustomFieldDef def, {DateTime? at}) async {
     final _ = await _write(def, at: at, fromSync: true, localUserEdit: false);
   }
@@ -77,6 +84,19 @@ class CustomFieldDefRepository {
           current != null &&
           incumbent != null &&
           incumbent.id != def.id;
+      // §4.1's carve-out value, resolved before anything is written: either
+      // the un-normalised form this row keeps, or a throw for a genuine
+      // duplicate (#1348). See [resolveNaturalKeyCollision].
+      final deferredKey = collidingEdit
+          ? await resolveNaturalKeyCollision(
+              _db,
+              address: customFieldKeyNormalisation,
+              recordId: def.id,
+              storedValue: current.key,
+              incomingValue: def.key,
+              incumbentId: incumbent.id,
+            )
+          : null;
       if (fromSync && incumbent != null && incumbent.id != def.id) {
         // Refuse rather than guess: reconciliation owns natural-key
         // identity, so reaching the writer with the key held by another
@@ -104,9 +124,9 @@ class CustomFieldDefRepository {
           .insertOnConflictUpdate(
             CustomFieldDefsCompanion.insert(
               id: id,
-              key: collidingEdit
-                  ? current.key
-                  : normalizeShareableText(def.key),
+              // The carve-out stores the *user's* value with NFC deferred,
+              // not the row's previous one (#1348).
+              key: deferredKey ?? normalizeShareableText(def.key),
               label: normalizeShareableText(def.label),
               type: def.type,
               choicesJson: Value(choices == null ? null : jsonEncode(choices)),
@@ -117,10 +137,9 @@ class CustomFieldDefRepository {
             ),
           );
       if (collidingEdit) {
-        await recordNormalisationSkip(
+        await recordNormalisationSkipAt(
           _db,
-          table: 'custom_field_defs',
-          column: 'key',
+          customFieldKeyNormalisation,
           recordId: def.id,
         );
       }

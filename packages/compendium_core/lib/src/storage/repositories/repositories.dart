@@ -278,11 +278,13 @@ class CompendiumRepositories {
     return columns;
   }
 
-  static const _naturalKeys = <(String, String)>[
-    ('choreographers', 'name'),
-    ('tags', 'name'),
-    ('difficulty_levels', 'label'),
-    ('custom_field_defs', 'key'),
+  /// Derived from [naturalKeyNormalisationColumns] rather than re-typed, so the
+  /// pass's grouping set and the four write-path carve-outs are the same
+  /// objects. §4.1 requires exactly this: two writers that spell one column
+  /// differently stop correlating with no error raised anywhere (#1348).
+  static final _naturalKeys = <(String, String)>[
+    for (final column in naturalKeyNormalisationColumns)
+      (column.table, column.column),
   ];
 
   /// Emits once whenever anything the Collection's reference/vocabulary data is
@@ -982,7 +984,8 @@ class CompendiumRepositories {
         final (table, column) = group.key;
         final recordIds = group.value;
 
-        if (table == 'settings' && column == 'value_json') {
+        if (table == settingsValueNormalisation.table &&
+            column == settingsValueNormalisation.column) {
           for (final key in recordIds) {
             if (await _retryRecordedSettingsKey(key)) otherRewrite = true;
           }
@@ -1201,12 +1204,8 @@ class CompendiumRepositories {
 
   /// Re-attempts one recorded settings key. Returns whether it was rewritten.
   Future<bool> _retryRecordedSettingsKey(String key) async {
-    Future<void> clear() => clearNormalisationSkip(
-      db,
-      table: 'settings',
-      column: 'value_json',
-      recordId: key,
-    );
+    Future<void> clear() =>
+        clearNormalisationSkipAt(db, settingsValueNormalisation, recordId: key);
 
     // A key reclassified out of `shareable` is out of the pass's scope, on the
     // same reasoning as an out-of-scope column above: the scan would no longer
@@ -1416,10 +1415,9 @@ class CompendiumRepositories {
         // stored value's content, the same defect as #1347's JSON columns.
         final encoded = _normaliseSettingsValue(raw);
         if (encoded == null) {
-          await recordNormalisationSkip(
+          await recordNormalisationSkipAt(
             db,
-            table: 'settings',
-            column: 'value_json',
+            settingsValueNormalisation,
             recordId: key,
           );
           continue;
@@ -1433,10 +1431,9 @@ class CompendiumRepositories {
           );
           markRewrite('settings');
         }
-        await clearNormalisationSkip(
+        await clearNormalisationSkipAt(
           db,
-          table: 'settings',
-          column: 'value_json',
+          settingsValueNormalisation,
           recordId: key,
         );
       }

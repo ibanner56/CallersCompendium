@@ -2539,6 +2539,36 @@ is not a subset of the recorded one — catches both triggers with one mechanism
 **A rule keyed to a mechanism silently excludes every path that reaches the same
 state by another route.**
 
+**Two outcomes, not one: the carve-out cannot absorb a genuine duplicate
+(#1348).** §4.1 says a write whose normalised target is occupied stores the
+value un-normalised, and that a user's edit is never rejected to satisfy a
+normalisation rule. Read as one rule it is unimplementable, and the first
+implementation showed what happens when you try: three repositories wrote the
+row's **old** value back, recorded a skip and raised nothing, so the editor went
+on showing a rename the database had not taken. The remedy §4.1 names is only
+available while the user's own bytes differ from the incumbent's; when the user
+types the incumbent's exact name there is no un-normalised form left to store,
+because storing it is the `UNIQUE` violation. So the collision splits into two
+questions — *did the value change?* and *would the deferred form still
+collide?* — and the answers are a visible refusal with **no** skip recorded, or
+§4.1's carve-out unchanged. Recording a skip for the refusal would be the worse
+half of the old behaviour surviving the fix: nothing was left un-normalised, so
+the bounded retry would carry an entry it can never discharge on the strength of
+a collision that ends the moment the user picks another name. Merging the two
+records was rejected on §6.6 step 1's grounds — whether two similarly named
+records are one entity is a judgement this design keeps out of automatic paths,
+and a merge touches every citing dance.
+
+**The deferral is of composition only, never of sanitisation.** The carve-out
+stores the user's value with NFC deferred; it does **not** store the raw string.
+§4.6 binds the sanitiser to every write path with no carve-out at all, on the
+grounds that a record's hash must identify its visible text, so a write that
+skipped it would let a normalisation collision smuggle a `U+200B` past a rule
+that has nothing to do with normalisation. Expressing the composing transform
+over the sanitising one, rather than beside it, is what makes that structural:
+the deferred form is by construction a value that derives the same target, which
+is also what lets the pass re-attempt it from the stored bytes alone.
+
 **Two writers of one table need a pinned spelling, not just a pinned shape.**
 The primary key's *columns* were specified exactly; the *strings* that go in
 them were not, and the table has two independent writers whose entries retry
@@ -4836,9 +4866,13 @@ must say this plainly rather than implying sync is opaque to us.
   against an index that does not filter `deleted_at`; and by treating the skip
   as final, which leaves a live row blocked forever by a record the user cannot
   see, list or act on.
-- **Editing a blocked row succeeds** — mutation-proved by applying the write-path
-  normalisation rule unconditionally, which rejects the user's edit to satisfy
-  an internal invariant.
+- **Editing a blocked row succeeds when the value is unchanged, and a rename
+  onto a value another row holds is refused where the user can see it** — see
+  "Two outcomes, not one" above. Mutation-proved twice: by applying the
+  write-path normalisation rule unconditionally, which rejects the unchanged
+  re-save to satisfy an internal invariant; and by taking the carve-out for
+  every collision, which writes the row's **old** value back and records a skip
+  for an edit that never happened.
 - **A retry is judged against the live column, not the recorded group** — record
   a skipped pair, create a third row holding the target in NFC, rename one
   member, re-open. Mutation-proved by judging membership: the group is down to

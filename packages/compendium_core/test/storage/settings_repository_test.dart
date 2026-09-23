@@ -37,12 +37,55 @@ void main() {
     });
   });
 
-  test('rejects colliding normalized object keys without writing', () async {
+  test('keeps colliding normalized object keys and records them', () async {
+    // §4.1: "a user's edit is never rejected to satisfy a normalisation
+    // rule". Until #1348 this threw [ShareableJsonKeyCollision] out of `set`
+    // and the save simply failed — while the one-time pass, handed the
+    // identical condition, had always skipped the value and recorded it.
+    final value = {'café': 'first', 'café': 'second'};
+
+    await repo.set('custom_dialects', value);
+
     expect(
-      () => repo.set('custom_dialects', {
-        'café': 'first',
-        'cafe\u0301': 'second',
-      }),
+      await repo.get('custom_dialects'),
+      value,
+      reason:
+          'both entries survive; normalizing key by key would drop whichever '
+          'was written second, which is the silent loss §4.1 skips to avoid',
+    );
+    final skip = await db
+        .customSelect(
+          'SELECT table_name, column_name, record_id FROM normalisation_skips',
+        )
+        .getSingle();
+    expect(skip.data, {
+      'table_name': 'settings',
+      'column_name': 'value_json',
+      'record_id': 'custom_dialects',
+    });
+  });
+
+  test('a kept colliding value is still sanitised', () async {
+    // §4.1 carves out COMPOSITION, not §4.6's sanitiser — which binds every
+    // write path with no carve-out at all. Storing the caller's object verbatim
+    // would let a normalisation collision persist a zero-width space under a
+    // rule that says nothing about invisible characters.
+    await repo.set('custom_dialects', {'café': 'a​b', 'café': 'c​d'});
+
+    expect(await repo.get('custom_dialects'), {'café': 'ab', 'café': 'cd'});
+    expect(
+      (await db.customSelect('SELECT 1 FROM normalisation_skips').get()),
+      hasLength(1),
+    );
+  });
+
+  test('two keys that collide under the sanitiser alone still raise', () async {
+    // Not a normalisation collision: no sanitised form of this object keeps
+    // both entries, so there is nothing for §4.1's carve-out to store.
+    // Raised before the write is scheduled, so the closure form is required:
+    // `set` is not `async`, and a synchronous throw never becomes a Future.
+    expect(
+      () => repo.set('custom_dialects', {'ab': 1, 'a​b': 2}),
       throwsA(isA<ShareableJsonKeyCollision>()),
     );
     expect(await repo.get('custom_dialects'), isNull);

@@ -178,6 +178,44 @@ void main() {
       expect(find.text('Notes'), findsNothing);
     });
 
+    testWidgets('refuses a rename onto a key another field holds', (
+      tester,
+    ) async {
+      // Issue #1348: the repository used to keep the old key, raise nothing and
+      // record a normalisation skip. The screen re-reads from the database, so
+      // the un-renamed field simply reappeared with no explanation.
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f1',
+          key: 'notes',
+          label: 'Notes',
+          type: CustomFieldType.text,
+        ),
+      );
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f2',
+          key: 'remarks',
+          label: 'Remarks',
+          type: CustomFieldType.text,
+        ),
+      );
+      await _pumpScreen(tester, repos);
+      await _openEditForm(tester, 'Remarks');
+      await tester.enterText(find.byKey(const ValueKey('cf-key')), 'notes');
+      await tester.tap(find.byKey(const ValueKey('cf-form-save')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('field-key-duplicate-snackbar')),
+        findsOneWidget,
+      );
+      expect((await repos.customFieldDefs.getById('f2'))!.key, 'remarks');
+    });
+
     testWidgets('deletes an unused field after confirmation', (tester) async {
       final repos = openTestRepositories();
       // ignore: unused_result

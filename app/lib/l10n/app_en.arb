@@ -7719,6 +7719,15 @@
   "@danceEditorSaveError": {
     "description": "Clean snackbar shown when saving a dance fails; the raw exception is logged instead of shown (CWE-209)."
   },
+  "danceEditorChoreographerDuplicate": "A choreographer named \"{name}\" already exists. The name wasn't changed.",
+  "@danceEditorChoreographerDuplicate": {
+    "description": "Snackbar shown when renaming a choreographer to a name another choreographer already holds. The edit is refused rather than silently dropped (sync-spec 4.1, issue #1348); the raw exception is logged, never shown (CWE-209). {name} is untrusted user-entered text, rendered as plain text.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "danceEditorFallbackDanceTitle": "Dance",
   "@danceEditorFallbackDanceTitle": {
     "description": "Fallback dance title used when deleting a dance whose original title is unavailable."
@@ -8941,6 +8950,15 @@
       },
       "count": {
         "type": "int"
+      }
+    }
+  },
+  "customFieldsKeyDuplicate": "A field with the key \"{key}\" already exists. The key wasn't changed.",
+  "@customFieldsKeyDuplicate": {
+    "description": "Snackbar shown when saving a custom field with a key another definition already holds. The edit is refused rather than silently dropped (sync-spec 4.1, issue #1348); the raw exception is logged, never shown (CWE-209). {key} is untrusted user-entered text, rendered as plain text.",
+    "placeholders": {
+      "key": {
+        "type": "String"
       }
     }
   },

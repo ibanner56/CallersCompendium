@@ -303,6 +303,80 @@ const String shareableTextNormalisationScopeKey =
 const String normalisationDerivedIndexRepairDoneKey =
     '__normalisation_derived_index_repair_done__';
 
+/// The `(table, column)` address of a column both writers of
+/// `normalisation_skips` can record against.
+///
+/// `docs/design/sync-spec.md` §4.1 requires the spelling to "come from a single
+/// generated source shared by both writers", and says why: retry's condition (a)
+/// correlates entries by grouping on `(table, column)`, so if the one-time pass
+/// and the write-path carve-out spell a column differently their entries never
+/// group, collision detection silently degrades, and nothing anywhere raises.
+/// Until issue #1348 the carve-out sites each hand-typed their own pair of
+/// string literals.
+///
+/// [address] is the snake_case `table.column` form the classification registry
+/// already keys on (`'choreographers.name'`), which is the spelling §4.1 pins —
+/// the in-scope column set is defined over it.
+class NormalisationSkipColumn {
+  const NormalisationSkipColumn(this.table, this.column);
+
+  /// The snake_case table name, as `normalisation_skips.table_name` stores it.
+  final String table;
+
+  /// The snake_case column name, as `normalisation_skips.column_name` stores
+  /// it.
+  final String column;
+
+  /// The `table.column` spelling `fieldClassifications` is keyed on.
+  String get address => '$table.$column';
+
+  @override
+  String toString() => address;
+}
+
+/// `choreographers.name` — one of the four `UNIQUE` natural keys §4.1 groups
+/// before writing.
+const choreographerNameNormalisation = NormalisationSkipColumn(
+  'choreographers',
+  'name',
+);
+
+/// `tags.name` — one of the four `UNIQUE` natural keys §4.1 groups before
+/// writing.
+const tagNameNormalisation = NormalisationSkipColumn('tags', 'name');
+
+/// `difficulty_levels.label` — one of the four `UNIQUE` natural keys §4.1
+/// groups before writing.
+const difficultyLevelLabelNormalisation = NormalisationSkipColumn(
+  'difficulty_levels',
+  'label',
+);
+
+/// `custom_field_defs.key` — one of the four `UNIQUE` natural keys §4.1 groups
+/// before writing.
+const customFieldKeyNormalisation = NormalisationSkipColumn(
+  'custom_field_defs',
+  'key',
+);
+
+/// Every natural-key column in §4.1's scope, in one list so the pass's grouping
+/// set and the four repositories' carve-outs cannot diverge.
+const naturalKeyNormalisationColumns = <NormalisationSkipColumn>[
+  choreographerNameNormalisation,
+  tagNameNormalisation,
+  difficultyLevelLabelNormalisation,
+  customFieldKeyNormalisation,
+];
+
+/// `settings.value_json` — the settings half of the pass, whose collisions are
+/// between object keys inside one value rather than between sibling rows. §4.1
+/// names this address explicitly ("`table` `settings`, `column` `value_json`
+/// and `record_id` the settings key").
+const settingsValueNormalisation = NormalisationSkipColumn(
+  'settings',
+  'value_json',
+);
+
 /// Records the address of a row the normalization pass left as stored, so the
 /// pass can re-attempt it later.
 ///
@@ -321,6 +395,27 @@ Future<void> recordNormalisationSkip(
   'INSERT OR REPLACE INTO normalisation_skips '
   '(table_name, column_name, record_id) VALUES (?, ?, ?)',
   [table, column, recordId],
+);
+
+/// [recordNormalisationSkip] for a column whose address is fixed at compile
+/// time.
+///
+/// The write-path carve-outs use this rather than the string form so a call
+/// site cannot spell half an address itself — §4.1 asks for the identifiers to
+/// be "declared once … and imported at all four sites", and a helper taking the
+/// pair as one object is how that becomes unfalsifiable rather than a
+/// convention. The one-time pass keeps the string form because it walks a
+/// column set derived from the classification registry at runtime, which is the
+/// same single source by a different route.
+Future<void> recordNormalisationSkipAt(
+  CompendiumDatabase db,
+  NormalisationSkipColumn column, {
+  required String recordId,
+}) => recordNormalisationSkip(
+  db,
+  table: column.table,
+  column: column.column,
+  recordId: recordId,
 );
 
 /// Removes the entry [recordNormalisationSkip] wrote, once the row it names no
@@ -351,6 +446,19 @@ Future<void> clearNormalisationSkip(
   'DELETE FROM normalisation_skips WHERE table_name = ? '
   'AND column_name = ? AND record_id = ?',
   [table, column, recordId],
+);
+
+/// [clearNormalisationSkip] for a column whose address is fixed at compile
+/// time, so a clear cannot spell an address the matching record did not.
+Future<void> clearNormalisationSkipAt(
+  CompendiumDatabase db,
+  NormalisationSkipColumn column, {
+  required String recordId,
+}) => clearNormalisationSkip(
+  db,
+  table: column.table,
+  column: column.column,
+  recordId: recordId,
 );
 
 /// The current on-disk schema version of [CompendiumDatabase].

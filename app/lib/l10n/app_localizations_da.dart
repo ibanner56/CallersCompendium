@@ -5953,6 +5953,11 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorSaveError => 'Kunne ikke gemme dansen.';
 
   @override
+  String danceEditorChoreographerDuplicate(String name) {
+    return 'En koreograf ved navn „$name“ findes allerede. Navnet blev ikke ændret.';
+  }
+
+  @override
   String get danceEditorFallbackDanceTitle => 'Dans';
 
   @override
@@ -6860,6 +6865,11 @@ class AppLocalizationsDa extends AppLocalizations {
       one: '1 dans',
     );
     return 'Kan ikke slette „$label“: bruges stadig af $_temp0. Fjern værdien fra alle danse først.';
+  }
+
+  @override
+  String customFieldsKeyDuplicate(String key) {
+    return 'Et felt med nøglen „$key“ findes allerede. Nøglen blev ikke ændret.';
   }
 
   @override

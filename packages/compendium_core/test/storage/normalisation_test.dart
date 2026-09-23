@@ -1076,6 +1076,262 @@ void main() {
       expect(marker, isEmpty);
     },
   );
+
+  // §4.1's write-path rule, as issue #1348 settled it: a collision either takes
+  // the store-un-normalised carve-out or is refused where the user can see it.
+  // Never the third thing it used to do, which was to keep the old value, say
+  // nothing, and leave a skip entry behind for an edit that never happened.
+  group('a colliding write is carved out or refused, never dropped', () {
+    /// The `normalisation_skips` rows, as `table/column/record` strings.
+    Future<List<String>> skips() async {
+      final rows = await db
+          .customSelect(
+            'SELECT table_name, column_name, record_id FROM normalisation_skips '
+            'ORDER BY table_name, column_name, record_id',
+          )
+          .get();
+      return [
+        for (final row in rows)
+          '${row.read<String>('table_name')}/'
+              '${row.read<String>('column_name')}/'
+              '${row.read<String>('record_id')}',
+      ];
+    }
+
+    Future<String> storedText(String table, String column, String id) async {
+      final row = await db
+          .customSelect(
+            'SELECT $column FROM $table WHERE id = ?',
+            variables: [Variable<String>(id)],
+          )
+          .getSingle();
+      return row.read<String>(column);
+    }
+
+    /// Seeds a colliding pair — [first] stored NFD, [second] stored NFC — and
+    /// runs the one-time pass, which records both and rewrites neither.
+    ///
+    /// Raw inserts rather than repository writes on purpose: the pair has to
+    /// exist *before* anything judges it, which is the state a library carried
+    /// across the v0.2.0-beta normalisation change.
+    Future<void> seedRecordedPair(String table, String column) async {
+      await db.customStatement(
+        'INSERT INTO $table (id, $column${table == 'difficulty_levels' ? ', position' : ''}) '
+        'VALUES (?, ?${table == 'difficulty_levels' ? ', 100' : ''})',
+        ['r1', 'café'],
+      );
+      await db.customStatement(
+        'INSERT INTO $table (id, $column${table == 'difficulty_levels' ? ', position' : ''}) '
+        'VALUES (?, ?${table == 'difficulty_levels' ? ', 101' : ''})',
+        ['r2', 'café'],
+      );
+      if (table == 'custom_field_defs') {
+        await db.customStatement(
+          'UPDATE custom_field_defs SET label = key, type = ?',
+          ['text'],
+        );
+      }
+      await repos.ensureMigrated();
+      expect(await skips(), [
+        '$table/$column/r1',
+        '$table/$column/r2',
+      ], reason: 'precondition: the pass recorded the pair it left alone');
+    }
+
+    test('a choreographer rename onto another name is refused', () async {
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'c1', name: 'Pat Smith'),
+      );
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'c2', name: 'Sam Jones'),
+      );
+
+      await expectLater(
+        repos.choreographers.upsert(
+          Choreographer(id: 'c2', name: 'Pat Smith'),
+          localUserEdit: true,
+        ),
+        throwsA(isA<DuplicateNaturalKeyError>()),
+      );
+
+      expect((await repos.choreographers.getById('c2'))!.name, 'Sam Jones');
+      expect((await repos.choreographers.getById('c1'))!.name, 'Pat Smith');
+      expect(
+        await skips(),
+        isEmpty,
+        reason:
+            'nothing was left un-normalised, so there is nothing to re-attempt '
+            'and an entry here would pin §4.1\'s bounded retry open',
+      );
+    });
+
+    test('a tag rename onto another name is refused', () async {
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't1', name: 'Chestnut'));
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't2', name: 'Workshop'));
+
+      await expectLater(
+        repos.tags.upsert(Tag(id: 't2', name: 'Chestnut'), localUserEdit: true),
+        throwsA(isA<DuplicateNaturalKeyError>()),
+      );
+
+      expect((await repos.tags.getById('t2'))!.name, 'Workshop');
+      expect(await skips(), isEmpty);
+    });
+
+    test('a custom-field rename onto another key is refused', () async {
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f1',
+          key: 'venue_note',
+          label: 'Venue note',
+          type: CustomFieldType.text,
+        ),
+      );
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f2',
+          key: 'band_note',
+          label: 'Band note',
+          type: CustomFieldType.text,
+        ),
+      );
+
+      await expectLater(
+        repos.customFieldDefs.upsert(
+          CustomFieldDef(
+            id: 'f2',
+            key: 'venue_note',
+            label: 'Band note',
+            type: CustomFieldType.text,
+          ),
+          localUserEdit: true,
+        ),
+        throwsA(isA<DuplicateNaturalKeyError>()),
+      );
+
+      expect((await repos.customFieldDefs.getById('f2'))!.key, 'band_note');
+      expect(await skips(), isEmpty);
+    });
+
+    test('re-saving a recorded choreographer keeps the edit', () async {
+      await seedRecordedPair('choreographers', 'name');
+
+      // The archive-merge shape: the same id, the same stored bytes, written
+      // through the ordinary write path. Before #1348 the three natural-key
+      // repositories survived this by keeping the old value — which is the same
+      // bytes here, and a different value the moment the user changes anything.
+      // ignore: unused_result
+      final id = await repos.choreographers.upsert(
+        Choreographer(id: 'r1', name: 'café'),
+      );
+
+      expect(id, 'r1');
+      expect(await storedText('choreographers', 'name', 'r1'), 'café');
+      expect(await storedText('choreographers', 'name', 'r2'), 'café');
+      // Whole-table equality, not `contains`: the carve-out must record the row
+      // under the SAME `(table, column)` the pass used, and §4.1 requires one
+      // shared source for exactly that. A carve-out spelling it its own way
+      // (`'Name'`) adds a third entry here and changes nothing else — retry
+      // discharges the mis-spelled entry as out of scope and the row still
+      // normalises, so a test asserting only the row's value passes.
+      expect(await skips(), [
+        'choreographers/name/r1',
+        'choreographers/name/r2',
+      ]);
+    });
+
+    test('a carve-out write stores the value sanitised, not raw', () async {
+      await seedRecordedPair('choreographers', 'name');
+
+      // `U+200B` is stripped by §4.6's sanitiser, which has no carve-out: only
+      // NFC composition is deferred. Storing the caller's raw string would
+      // smuggle an invisible character past the sanitiser under §4.1's excuse.
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'r1', name: 'cafe​́'),
+        localUserEdit: true,
+      );
+
+      expect(
+        await storedText('choreographers', 'name', 'r1'),
+        'café',
+        reason: 'sanitised but not composed',
+      );
+      expect(await skips(), contains('choreographers/name/r1'));
+    });
+
+    test('a carve-out entry is still the pass\'s to discharge', () async {
+      await seedRecordedPair('choreographers', 'name');
+      // ignore: unused_result
+      await repos.choreographers.upsert(Choreographer(id: 'r1', name: 'café'));
+      // The collision goes away: the other member of the pair is renamed out of
+      // the way, so `r1`'s target is free on the next open.
+      await db.customStatement(
+        'UPDATE choreographers SET name = ? WHERE id = ?',
+        ['Someone else', 'r2'],
+      );
+
+      await CompendiumRepositories(db, contraTaxonomy).ensureMigrated();
+
+      // A carve-out does not make the entry permanent: the bounded retry still
+      // owns it, and discharges it once the target is free. Deliberately NOT
+      // the guard on the shared `(table, column)` spelling — the pass has
+      // already recorded this row correctly by the time the carve-out runs, so
+      // a mis-spelled carve-out entry is discharged beside the correct one and
+      // this test stays green. The whole-table equality above is what catches
+      // it.
+      expect(await storedText('choreographers', 'name', 'r1'), 'café');
+      expect(await skips(), isEmpty);
+    });
+
+    test('re-saving a recorded difficulty level keeps the edit', () async {
+      await seedRecordedPair('difficulty_levels', 'label');
+
+      // Exactly what an archive merge does per level
+      // (`archive_service.dart`: `_repos.difficultyLevels.upsert(level)`).
+      await repos.difficultyLevels.upsert(
+        DifficultyLevel(id: 'r1', label: 'café', position: 100),
+      );
+
+      expect(await storedText('difficulty_levels', 'label', 'r1'), 'café');
+      expect(await skips(), [
+        'difficulty_levels/label/r1',
+        'difficulty_levels/label/r2',
+      ]);
+    });
+
+    test(
+      'renaming a difficulty level onto another label still throws',
+      () async {
+        await seedRecordedPair('difficulty_levels', 'label');
+
+        await expectLater(
+          repos.difficultyLevels.upsert(
+            DifficultyLevel(id: 'r1', label: 'café', position: 100),
+            localUserEdit: true,
+          ),
+          throwsStateError,
+        );
+
+        expect(await storedText('difficulty_levels', 'label', 'r1'), 'café');
+      },
+    );
+
+    test('a shareable settings write with colliding keys is kept', () async {
+      final value = {'café': 1, 'café': 2};
+
+      await repos.settings.set('custom_dialects', value);
+
+      expect(await repos.settings.get('custom_dialects'), value);
+      expect(await skips(), ['settings/value_json/custom_dialects']);
+    });
+  });
 }
 
 /// Counts [CompendiumRepositories.runDerivedRebuild] calls without interfering
