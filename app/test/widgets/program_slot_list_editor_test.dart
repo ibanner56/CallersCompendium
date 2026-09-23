@@ -267,4 +267,146 @@ void main() {
 
     expect(changes, isEmpty);
   });
+
+  // Issue #1270: the scissors button removes the slot (it used to start a
+  // cut/paste reorder, leaving "Remove slot" only in the overflow menu). The
+  // tooltip keeps its "Cut …" wording by maintainer decision, so these tests
+  // find the button by that tooltip and not by key.
+  group('scissors button removes the slot (issue #1270)', () {
+    Future<void> pumpEditor(
+      WidgetTester tester, {
+      required List<ProgramSlot> slots,
+      required void Function(int index) onRemove,
+    }) => tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: ProgramSlotListEditor(
+            slots: slots,
+            danceTitles: (id) => 'Dance $id',
+            formationFor: (_) => null,
+            mixerFor: (_) => false,
+            onReorder: (_, _) {},
+            onSlotChanged: (_, _) {},
+            onPromoteAlternate: (_, _) {},
+            onRemove: onRemove,
+            onCreateDance: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    testWidgets('removes exactly the tapped slot and starts no cut/paste', (
+      tester,
+    ) async {
+      final removed = <int>[];
+      await pumpEditor(
+        tester,
+        slots: [
+          ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 's2', position: 1, danceId: 'd2'),
+          ProgramSlot(id: 's3', position: 2, danceId: 'd3'),
+        ],
+        onRemove: removed.add,
+      );
+
+      await tester.tap(find.byTooltip('Cut Dance d2'));
+      await tester.pumpAndSettle();
+
+      expect(removed, [1]);
+      expect(find.byKey(const ValueKey('slot-cut-banner')), findsNothing);
+      expect(find.text('Paste here'), findsNothing);
+      // The list stays reorderable: every row keeps a live drag handle (the
+      // icon alone would also render on an inert placeholder).
+      expect(find.byType(ReorderableListView), findsOneWidget);
+      expect(find.byType(ReorderableDragStartListener), findsNWidgets(3));
+    });
+
+    for (final (kind, slot, tooltip) in [
+      (
+        'dance',
+        ProgramSlot(id: 's', position: 0, danceId: 'd1'),
+        'Cut Dance d1',
+      ),
+      (
+        'free-text note',
+        ProgramSlot(id: 's', position: 0, text: 'Caller note'),
+        'Cut Caller note',
+      ),
+      (
+        'break',
+        ProgramSlot(id: 's', position: 0, text: Program.breakSlotText),
+        'Cut ${Program.breakSlotText}',
+      ),
+    ]) {
+      testWidgets('works for a $kind slot', (tester) async {
+        final removed = <int>[];
+        await pumpEditor(tester, slots: [slot], onRemove: removed.add);
+
+        await tester.tap(find.byTooltip(tooltip));
+        await tester.pumpAndSettle();
+
+        expect(removed, [0]);
+      });
+    }
+
+    testWidgets('the overflow menu no longer offers Remove slot', (
+      tester,
+    ) async {
+      await pumpEditor(
+        tester,
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        onRemove: (_) {},
+      );
+
+      await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Remove slot'), findsNothing);
+      // The rest of the menu is untouched.
+      expect(find.text('Edit slot'), findsOneWidget);
+      expect(find.text('Mark as alternate'), findsOneWidget);
+      expect(find.text('Mark performed'), findsOneWidget);
+    });
+
+    testWidgets('announces the removal by slot name', (tester) async {
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      final announcements = <String>[];
+      messenger.setMockMessageHandler(SystemChannels.accessibility.name, (
+        ByteData? message,
+      ) async {
+        final decoded = SystemChannels.accessibility.codec.decodeMessage(
+          message,
+        );
+        if (decoded is Map) {
+          final data = decoded['data'];
+          if (data is Map && data['message'] is String) {
+            announcements.add(data['message'] as String);
+          }
+        }
+        return null;
+      });
+      addTearDown(
+        () => messenger.setMockMessageHandler(
+          SystemChannels.accessibility.name,
+          null,
+        ),
+      );
+      await pumpEditor(
+        tester,
+        slots: [
+          ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 's2', position: 1, danceId: 'd2'),
+        ],
+        onRemove: (_) {},
+      );
+
+      await tester.tap(find.byTooltip('Cut Dance d2'));
+      await tester.pump();
+
+      expect(announcements, ['Removed Dance d2.']);
+    });
+  });
 }

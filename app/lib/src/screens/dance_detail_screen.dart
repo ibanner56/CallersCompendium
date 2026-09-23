@@ -1276,6 +1276,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         FigureTable(
           figures: switch (dance.figuresSource) {
             DecodedFigures(:final figures) => figures,
+            UnreadableFigures() => const <Figure>[],
           },
           phraseStructure: dance.phraseStructure,
           renderer: _renderer,

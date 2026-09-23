@@ -133,8 +133,8 @@ next and previous controls and the large edge zones, so you can use whichever
 suits you.
 
 **Reordering without dragging.** Anything that supports dragging — program slots,
-figures — also offers **move-up** and **move-down** actions, plus cut and paste.
-You never *need* to drag to reorder something.
+figures — also offers **move-up** and **move-down** actions. Figures additionally
+offer cut and paste. You never *need* to drag to reorder something.
 
 **Always know where you are.** Interactive controls show a visible focus outline
 as you move through them, so you can always see which control has focus.

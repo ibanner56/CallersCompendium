@@ -1,0 +1,12 @@
+{
+  "id": "1270-slot-scissors-removes",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "In the program builder, the scissors button on a slot now removes that slot from the program, and the redundant Remove slot entry has left the slot's ... menu. Removing a slot never deletes the dance from your collection."
+    ],
+    "removed": [
+      "Cut and paste reordering of program slots is gone; drag a slot by its handle, or use its move up and move down buttons, to reorder. Cut and paste for figures in the dance editor is unchanged."
+    ]
+  }
+}

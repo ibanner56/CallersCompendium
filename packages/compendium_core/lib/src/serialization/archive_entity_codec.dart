@@ -90,12 +90,22 @@ Map<String, Object?> archiveDanceToJson(
   ),
   'progression': d.progression.name,
   'phraseStructure': d.phraseStructure.raw,
-  'figures': [
-    for (final f in switch (d.figuresSource) {
-      DecodedFigures(:final figures) => figures,
-    })
-      figureToJson(f),
-  ],
+  // `figures` stays a well-formed array even when the stored transcription is
+  // not JSON at all — the raw text cannot go inside it without making the
+  // archive itself unparseable, which is why it travels in its own string-typed
+  // key below rather than here.
+  'figures': switch (d.figuresSource) {
+    DecodedFigures(:final figures) => [
+      for (final f in figures) figureToJson(f),
+    ],
+    UnreadableFigures() => const <Object?>[],
+  },
+  // Emitted ONLY for a transcription that could not be decoded, so an archive
+  // from a healthy library is byte-identical to what this encoder produced
+  // before the key existed — which is what keeps the schema stamp below
+  // conditional rather than universal (#1347).
+  if (d.figuresSource case UnreadableFigures(:final storedJson))
+    'figuresRaw': storedJson,
   'hook': d.hook,
   'callingNotes': d.callingNotes,
   'walkthrough': d.walkthrough,

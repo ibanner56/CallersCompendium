@@ -5533,12 +5533,6 @@ abstract class AppLocalizations {
   /// **'No slots yet. Add a dance or a note to get started.'**
   String get programsSlotEditorEmpty;
 
-  /// Accessibility announcement after a cut slot is pasted into a new position.
-  ///
-  /// In en, this message translates to:
-  /// **'Slot moved.'**
-  String get programsSlotMoved;
-
   /// Accessibility announcement after a slot is moved up one position.
   ///
   /// In en, this message translates to:
@@ -5550,30 +5544,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Slot moved down.'**
   String get programsSlotMovedDown;
-
-  /// Banner shown while a program slot is cut, prompting the user to paste it.
-  ///
-  /// In en, this message translates to:
-  /// **'\"{name}\" is cut — tap Paste to place it.'**
-  String programsSlotCutBanner(String name);
-
-  /// Accessible label for the paste affordance shown before the first program slot.
-  ///
-  /// In en, this message translates to:
-  /// **'Paste before first slot'**
-  String get programsPasteBeforeFirst;
-
-  /// Accessible label for the paste affordance shown after a given program slot.
-  ///
-  /// In en, this message translates to:
-  /// **'Paste after {title}'**
-  String programsPasteAfter(String title);
-
-  /// Label for the compact paste button shown between slots during a cut.
-  ///
-  /// In en, this message translates to:
-  /// **'Paste here'**
-  String get programsPasteHere;
 
   /// Accessibility announcement after a slot is changed from alternate to primary.
   ///
@@ -5629,7 +5599,7 @@ abstract class AppLocalizations {
   /// **'Move {title} down'**
   String programsMoveSlotDown(String title);
 
-  /// Tooltip for the button that cuts a program slot for repositioning.
+  /// Tooltip for the button that removes a program slot. The wording says Cut, matching the scissors icon.
   ///
   /// In en, this message translates to:
   /// **'Cut {title}'**
@@ -5682,12 +5652,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Created {title} and linked this slot to it.'**
   String programsCreatedDanceFromNoteAnnounce(String title);
-
-  /// Overflow menu item to remove a slot from the program.
-  ///
-  /// In en, this message translates to:
-  /// **'Remove slot'**
-  String get programsRemoveSlotMenu;
 
   /// Validation error when a free-text program slot is left empty.
   ///

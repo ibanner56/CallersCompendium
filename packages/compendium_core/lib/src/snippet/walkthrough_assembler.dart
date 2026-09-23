@@ -43,6 +43,7 @@ String assembleWalkthrough({
   final lines = <String>[];
   for (final figure in switch (dance.figuresSource) {
     DecodedFigures(:final figures) => figures,
+    UnreadableFigures() => const <Figure>[],
   }) {
     final text = resolveFigureSnippet(figure, library, taxonomy);
     if (text != null) lines.add(text);
@@ -63,6 +64,7 @@ bool danceHasAssemblableWalkthrough(
 ) {
   for (final figure in switch (dance.figuresSource) {
     DecodedFigures(:final figures) => figures,
+    UnreadableFigures() => const <Figure>[],
   }) {
     if (resolveFigureSnippet(figure, library, taxonomy) != null) return true;
   }

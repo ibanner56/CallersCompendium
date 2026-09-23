@@ -188,15 +188,27 @@ class ContraDbOnline implements OnlineSearchService {
           .danceId;
       final existing = await repos.dances.getById(candidateId);
       if (existing != null) {
-        final identical = figuresCanonicallyIdentical(
-          oldFigures: switch (existing.figuresSource) {
-            DecodedFigures(:final figures) => figures,
-          },
-          newFigures: switch (plan.draft.dance.figuresSource) {
-            DecodedFigures(:final figures) => figures,
-          },
-          taxonomy: contraTaxonomy,
-        );
+        // Mapping an undecodable side to an empty list was wrong: when the
+        // incoming dance legitimately has no figures, BOTH sides compare as
+        // empty, `figuresCanonicallyIdentical` returns true, and the flow skips
+        // confirmation on the strength of a comparison that was never possible.
+        // "Cannot read it" must never become "it is empty".
+        final oldFigures = switch (existing.figuresSource) {
+          DecodedFigures(:final figures) => figures,
+          UnreadableFigures() => null,
+        };
+        final newFigures = switch (plan.draft.dance.figuresSource) {
+          DecodedFigures(:final figures) => figures,
+          UnreadableFigures() => null,
+        };
+        final identical =
+            oldFigures != null &&
+            newFigures != null &&
+            figuresCanonicallyIdentical(
+              oldFigures: oldFigures,
+              newFigures: newFigures,
+              taxonomy: contraTaxonomy,
+            );
         if (!identical) {
           return OnlineImportResult(
             kind: OnlineImportKind.needsConfirmation,

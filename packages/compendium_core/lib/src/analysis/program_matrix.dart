@@ -755,6 +755,8 @@ ProgramMatrix buildProgramMatrix(
     final structure = dance.phraseStructure;
     final danceFigures = switch (dance.figuresSource) {
       DecodedFigures(:final figures) => figures,
+      // Nothing to read: an undecodable transcription contributes no figures.
+      UnreadableFigures() => const <Figure>[],
     };
     var beat = 0;
     for (final figure in danceFigures) {

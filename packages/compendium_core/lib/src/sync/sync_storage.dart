@@ -6,6 +6,7 @@ import 'package:drift/drift.dart';
 import 'package:meta/meta.dart';
 
 import '../model/choreographer.dart';
+import '../model/figure_source.dart';
 import '../model/custom_field.dart';
 import '../model/dance.dart';
 import '../model/difficulty_level.dart';
@@ -294,6 +295,18 @@ final class CompendiumSyncStorage
     for (final dance in dances) {
       final row = danceRowsById[dance.id];
       if (row == null) continue;
+      // Withheld exactly as [_readDanceBody] withholds, and this is the path
+      // that matters most: it builds `local` and the wire hashes. A body for an
+      // undecodable dance would carry the transcription as an empty array
+      // beside a `figuresRaw` sibling, which a peer that does not understand
+      // the key applies over its own readable copy (#1347). The hash would also
+      // fold `figuresRaw` in, which reaches dedupe and merge identity rather
+      // than display alone.
+      //
+      // Consequence, stated rather than implied: an undecodable dance is not
+      // published at all. Conservative in the same direction as the withhold —
+      // this device does not speak for a row it cannot read.
+      if (dance.figuresSource is UnreadableFigures) continue;
       await addEntity(
         kind: SyncRecordKind.dance,
         id: dance.id,
@@ -773,6 +786,19 @@ final class CompendiumSyncStorage
       // The live row is only retained until its inbound tombstone can apply.
       // It must not become a fresh-attach survivor or merge target.
       if (pendingDanceIds.contains(dance.id)) continue;
+      // Withheld for the same reason [_readDanceBody] withholds: this device
+      // cannot read the row it would be speaking for, and the body it would build
+      // carries the transcription as an empty array beside a `figuresRaw` sibling.
+      // A peer that does not understand `figuresRaw` applies the empty array over
+      // its own readable copy (#1347).
+      //
+      // These two paths do not go through [_readDanceBody], so they are not
+      // covered by its guard, and they became reachable only because this change
+      // made `listAll`/`getById` return such a dance instead of raising.
+      //
+      // Consequence, stated rather than implied: an undecodable dance is not
+      // offered as a dedupe match on a fresh attach.
+      if (dance.figuresSource is UnreadableFigures) continue;
       final row = rowsById[dance.id];
       if (row == null) continue;
       final blob = syncRecordBlobForEntity(
@@ -1786,6 +1812,20 @@ final class CompendiumSyncStorage
   Future<SyncMergeCandidate?> _danceCandidate(String id) async {
     final dance = await repositories.dances.getById(id, includeDeleted: true);
     if (dance == null) return null;
+    // Withheld for the same reason [_readDanceBody] withholds: this device
+    // cannot read the row it would be speaking for, and the body it would build
+    // carries the transcription as an empty array beside a `figuresRaw` sibling.
+    // A peer that does not understand `figuresRaw` applies the empty array over
+    // its own readable copy (#1347).
+    //
+    // These two paths do not go through [_readDanceBody], so they are not
+    // covered by its guard, and they became reachable only because this change
+    // made `listAll`/`getById` return such a dance instead of raising.
+    //
+    // Consequence, stated rather than implied: an undecodable dance is not
+    // offered as a merge candidate. Conservative in the same direction as the
+    // withhold — the record is simply not spoken for.
+    if (dance.figuresSource is UnreadableFigures) return null;
     final row = await (_db.select(
       _db.dances,
     )..where((table) => table.id.equals(id))).getSingleOrNull();
@@ -4906,11 +4946,24 @@ final class CompendiumSyncStorage
     message: 'Inbound record could not be decoded: $message.',
   );
 
+  /// The record body published for a dance, or `null` to publish nothing.
+  ///
+  /// **A dance whose stored transcription could not be decoded is withheld**
+  /// (#1347). The body would otherwise carry the transcription as an empty
+  /// array plus a `figuresRaw` sibling, and a peer that does not understand
+  /// `figuresRaw` would apply the empty array over its own copy — replacing a
+  /// transcription it can read with nothing, on the strength of a record this
+  /// device could not read in the first place. That is the one outcome this
+  /// whole change exists to prevent, so the record does not go out at all.
+  ///
+  /// Withholding is strictly conservative: a record that is never published
+  /// cannot overwrite anything, and the peer keeps whatever it already has. The
+  /// local copy is untouched either way — the bytes stay exactly as stored.
   Future<Map<String, Object?>?> _readDanceBody(String id) async {
     final dance = await repositories.dances.getById(id, includeDeleted: true);
-    return dance == null
-        ? null
-        : archiveDanceToJson(dance, const {}, includeOptionalFields: true);
+    if (dance == null) return null;
+    if (dance.figuresSource is UnreadableFigures) return null;
+    return archiveDanceToJson(dance, const {}, includeOptionalFields: true);
   }
 
   Future<Map<String, Object?>?> _readProgramBody(String id) async {
