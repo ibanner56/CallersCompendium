@@ -217,6 +217,23 @@ class SyncHttpClient {
     contentType: 'application/octet-stream',
   );
 
+  /// Removes one device's manifest from the store (spec §3.3): the remedy for
+  /// a device that is genuinely gone, so its identifier stops holding one of
+  /// the store's device slots and the aliases only it still lists can retire.
+  ///
+  /// Idempotent server-side — a manifest that is already absent still answers
+  /// `204` — so a repeated call is not an error. A `404` here means the
+  /// *store* is gone, not the manifest.
+  Future<SyncHttpResponse> deleteManifest(String deviceId) =>
+      request('DELETE', 'manifests/${Uri.encodeComponent(deviceId)}');
+
+  /// Destroys the whole store and everything under the sync ID (spec glossary
+  /// *wipe*, §5.3). Not reversible, and it affects every device at once.
+  ///
+  /// Answers `404` when no store exists for this sync ID, which is the end
+  /// state the caller asked for rather than a failure.
+  Future<SyncHttpResponse> deleteStore() => request('DELETE', 'store');
+
   /// Sends one authenticated request under `/v1`.
   ///
   /// Redirects are followed manually so authorization is never sent to a
