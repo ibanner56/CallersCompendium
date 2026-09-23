@@ -846,7 +846,9 @@ void main() {
         id: leftId,
         title: "Rory O'More",
         authorIds: const ['shared-author'],
-        figures: [testFigure(move: 'balance', params: const {'hand': 'left'})],
+        figures: [
+          testFigure(move: 'balance', params: const {'hand': 'left'}),
+        ],
         createdAt: stamp,
         updatedAt: stamp,
       ),
@@ -856,7 +858,9 @@ void main() {
         id: rightId,
         title: rightTitle,
         authorIds: const ['shared-author'],
-        figures: [testFigure(move: 'balance', params: const {'hand': 'right'})],
+        figures: [
+          testFigure(move: 'balance', params: const {'hand': 'right'}),
+        ],
         createdAt: stamp,
         updatedAt: stamp,
       ),
@@ -933,10 +937,10 @@ void main() {
     final rows = await repositories.syncLocal.listReviewQueue();
     expect(rows, hasLength(1));
     expect(rows.single.reason, syncDanceChoreographyAmbiguityReason);
-    expect((rows.single.recordId, rows.single.counterpartId), (
-      'a-ambiguous',
-      'z-ambiguous',
-    ));
+    expect(
+      (rows.single.recordId, rows.single.counterpartId),
+      ('a-ambiguous', 'z-ambiguous'),
+    );
   });
 
   test('re-running the pass refreshes a fuzzy row rather than duplicating or '
@@ -966,10 +970,7 @@ void main() {
     await storage.deduplicateFreshAttach();
     final refreshed = (await repositories.syncLocal.listReviewQueue()).single;
     expect(refreshed.reason, syncDanceFuzzyDuplicateReason);
-    expect((refreshed.recordId, refreshed.counterpartId), (
-      'a-rory',
-      'z-rory',
-    ));
+    expect((refreshed.recordId, refreshed.counterpartId), ('a-rory', 'z-rory'));
     expect(refreshed.localHash, isNot(first.localHash));
     expect(
       refreshed.localHash,
@@ -980,47 +981,49 @@ void main() {
     expect(SyncReviewQueueItem.fromRow(refreshed).isActionable, isTrue);
   });
 
-  test('a steady-state pass revalidates fuzzy rows but discovers none',
-      () async {
-    await seedFuzzyPair();
-    await storage.deduplicateFreshAttach();
-    expect(await repositories.syncLocal.listReviewQueue(), hasLength(1));
+  test(
+    'a steady-state pass revalidates fuzzy rows but discovers none',
+    () async {
+      await seedFuzzyPair();
+      await storage.deduplicateFreshAttach();
+      expect(await repositories.syncLocal.listReviewQueue(), hasLength(1));
 
-    // A second pair that a fresh attach would flag, introduced after pairing.
-    await seedFuzzyPair(
-      leftId: 'a-petronella',
-      rightId: 'z-petronella',
-      rightTitle: 'Petronela',
-    );
-    // ignore: unused_result
-    await repositories.dances.update(
-      (await repositories.dances.getById('a-petronella'))!.copyWith(
-        title: 'Petronella',
-      ),
-    );
+      // A second pair that a fresh attach would flag, introduced after pairing.
+      await seedFuzzyPair(
+        leftId: 'a-petronella',
+        rightId: 'z-petronella',
+        rightTitle: 'Petronela',
+      );
+      // ignore: unused_result
+      await repositories.dances.update(
+        (await repositories.dances.getById(
+          'a-petronella',
+        ))!.copyWith(title: 'Petronella'),
+      );
 
-    await storage.refreshDanceAmbiguityReviews();
+      await storage.refreshDanceAmbiguityReviews();
 
-    // Revalidated, not rediscovered: the original row survives and the new
-    // pair is not queued. This is what keeps a steady-state pass from
-    // accumulating a review wall.
-    final rows = await repositories.syncLocal.listReviewQueue();
-    expect(rows, hasLength(1));
-    expect((rows.single.recordId, rows.single.counterpartId), (
-      'a-rory',
-      'z-rory',
-    ));
+      // Revalidated, not rediscovered: the original row survives and the new
+      // pair is not queued. This is what keeps a steady-state pass from
+      // accumulating a review wall.
+      final rows = await repositories.syncLocal.listReviewQueue();
+      expect(rows, hasLength(1));
+      expect(
+        (rows.single.recordId, rows.single.counterpartId),
+        ('a-rory', 'z-rory'),
+      );
 
-    // A row whose pair no longer qualifies is dropped rather than left
-    // unresolvable.
-    await repositories.dances.update(
-      (await repositories.dances.getById(
-        'z-rory',
-      ))!.copyWith(title: 'Something Entirely Different'),
-    );
-    await storage.refreshDanceAmbiguityReviews();
-    expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
-  });
+      // A row whose pair no longer qualifies is dropped rather than left
+      // unresolvable.
+      await repositories.dances.update(
+        (await repositories.dances.getById(
+          'z-rory',
+        ))!.copyWith(title: 'Something Entirely Different'),
+      );
+      await storage.refreshDanceAmbiguityReviews();
+      expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+    },
+  );
 
   test('merging a fuzzy duplicate converges and rewires programs', () async {
     await seedFuzzyPair();
@@ -5748,10 +5751,7 @@ void main() {
     expect(
       item.row.localHash,
       (await storage.snapshot())
-          .local[(
-            kind: SyncRecordKind.choreographer,
-            recordId: 'aaa-author',
-          )]
+          .local[(kind: SyncRecordKind.choreographer, recordId: 'aaa-author')]
           ?.wireHash,
     );
     expect(item.isActionable, isTrue);
@@ -5912,8 +5912,11 @@ void main() {
 
     for (final action in SyncReviewAction.values) {
       await expectLater(
-        storage.resolveReviewQueue(expectedRow: item.row, action: action,
-            newNaturalKey: 'Sam Jones'),
+        storage.resolveReviewQueue(
+          expectedRow: item.row,
+          action: action,
+          newNaturalKey: 'Sam Jones',
+        ),
         throwsA(
           isA<SyncReviewException>().having(
             (error) => error.code,
@@ -6025,10 +6028,10 @@ void main() {
     final item = SyncReviewQueueItem.fromRow(
       (await repositories.syncLocal.listReviewQueue()).single,
     );
-    expect((item.row.recordId, item.row.counterpartId), (
-      'zzz-author',
-      'aaa-author',
-    ));
+    expect(
+      (item.row.recordId, item.row.counterpartId),
+      ('zzz-author', 'aaa-author'),
+    );
     expect(item.row.localHash, isNotNull);
     expect(item.isActionable, isTrue);
 
@@ -6391,10 +6394,7 @@ void main() {
       final snapshot = await storage.snapshot();
       expect(
         snapshot
-            .local[(
-              kind: SyncRecordKind.customFieldDef,
-              recordId: inbound.id,
-            )]
+            .local[(kind: SyncRecordKind.customFieldDef, recordId: inbound.id)]
             ?.wireHash,
         sha256Hex(encodeSyncRecordBlobUtf8(inboundBlob)),
       );

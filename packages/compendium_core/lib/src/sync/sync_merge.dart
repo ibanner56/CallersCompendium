@@ -304,9 +304,7 @@ List<SyncDanceDedupeAmbiguity> planFreshAttachFuzzyDuplicates(
     final byLength = normalizedTitle[left.blob.id]!.length.compareTo(
       normalizedTitle[right.blob.id]!.length,
     );
-    return byLength != 0
-        ? byLength
-        : left.blob.id.compareTo(right.blob.id);
+    return byLength != 0 ? byLength : left.blob.id.compareTo(right.blob.id);
   });
 
   final entries = [
@@ -329,10 +327,8 @@ List<SyncDanceDedupeAmbiguity> planFreshAttachFuzzyDuplicates(
     // is reached exactly once, from its shorter-titled side.
     var windowEnd = index + 1;
     while (windowEnd < liveDances.length) {
-      final otherLength = normalizedTitle[liveDances[windowEnd]
-          .blob
-          .id]!
-          .length;
+      final otherLength =
+          normalizedTitle[liveDances[windowEnd].blob.id]!.length;
       // The partner is the longer side here, so the bound scales with it.
       if (otherLength - subjectLength >
           DedupeIndex.maxTitleLengthGap(otherLength, threshold: threshold)) {

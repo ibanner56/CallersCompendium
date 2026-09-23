@@ -247,7 +247,11 @@ void main() {
     // (variation)") scores 0.619 and is NOT flagged; see the correction on
     // #1355. This pair scores 0.933.
     final left = _danceCandidate('a-rory', "Rory O'More", authors: ['author']);
-    final right = _danceCandidate('z-rory', "Rory O'Moore", authors: ['author']);
+    final right = _danceCandidate(
+      'z-rory',
+      "Rory O'Moore",
+      authors: ['author'],
+    );
 
     final pairs = planFreshAttachFuzzyDuplicates(
       [left, right],
@@ -283,10 +287,7 @@ void main() {
       ],
     );
 
-    expect(
-      planFreshAttachDedupe([left, right]).ambiguities,
-      hasLength(1),
-    );
+    expect(planFreshAttachDedupe([left, right]).ambiguities, hasLength(1));
     expect(
       planFreshAttachFuzzyDuplicates(
         [left, right],
@@ -308,10 +309,10 @@ void main() {
     );
 
     expect(
-      planFreshAttachFuzzyDuplicates(
-        [live, tombstoned],
-        authorNamesByDanceId: const {},
-      ),
+      planFreshAttachFuzzyDuplicates([
+        live,
+        tombstoned,
+      ], authorNamesByDanceId: const {}),
       isEmpty,
     );
   });
@@ -370,7 +371,10 @@ void main() {
     ]);
     final unbanded = <String>{};
     for (final entry in titles.entries) {
-      for (final match in index.fuzzyMatches(entry.value, authors[entry.key]!)) {
+      for (final match in index.fuzzyMatches(
+        entry.value,
+        authors[entry.key]!,
+      )) {
         if (match.danceId == entry.key) continue;
         if (normalizeTitle(titles[match.danceId]!) ==
             normalizeTitle(entry.value)) {

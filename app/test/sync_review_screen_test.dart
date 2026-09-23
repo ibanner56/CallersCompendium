@@ -157,7 +157,9 @@ Future<void> _seedFuzzyDuplicate(CompendiumRepositories repos) async {
         id: entry.id,
         title: entry.title,
         authorIds: const ['shared-author'],
-        figures: [testFigure(move: 'balance', params: {'hand': entry.hand})],
+        figures: [
+          testFigure(move: 'balance', params: {'hand': entry.hand}),
+        ],
         createdAt: _stamp,
         updatedAt: _stamp,
       ),
@@ -285,9 +287,7 @@ void main() {
       findsOneWidget,
     );
     const key = 'choreographer:aaa-author:zzz-author';
-    await tester.tap(
-      find.byKey(const ValueKey('sync-review-keep-both-$key')),
-    );
+    await tester.tap(find.byKey(const ValueKey('sync-review-keep-both-$key')));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextFormField), 'Sam Jones the second');
@@ -325,16 +325,11 @@ void main() {
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     expect(await repos.choreographers.getById('zzz-author'), isNotNull);
-    expect(
-      await repos.syncLocal.listReviewQueue(),
-      hasLength(1),
-    );
+    expect(await repos.syncLocal.listReviewQueue(), hasLength(1));
 
     await tester.tap(find.byKey(const ValueKey('sync-review-merge-$key')));
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(const ValueKey('sync-review-merge-confirm')),
-    );
+    await tester.tap(find.byKey(const ValueKey('sync-review-merge-confirm')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('sync-review-empty')), findsOneWidget);

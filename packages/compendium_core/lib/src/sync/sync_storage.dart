@@ -679,8 +679,7 @@ final class CompendiumSyncStorage
         for (final entry in survivors.entries) {
           await _refreshDanceReviews(entry.value, reason: entry.key);
         }
-        final ambiguities =
-            survivors[syncDanceChoreographyAmbiguityReason]!;
+        final ambiguities = survivors[syncDanceChoreographyAmbiguityReason]!;
         return SyncFreshAttachDedupeResult(
           duplicateCount: 0,
           reports: List.unmodifiable(_reportsForDanceAmbiguities(ambiguities)),
@@ -1802,8 +1801,7 @@ final class CompendiumSyncStorage
     if (localTitle is! String || candidateTitle is! String) {
       throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
     }
-    final isFuzzyDuplicate =
-        currentRow.reason == syncDanceFuzzyDuplicateReason;
+    final isFuzzyDuplicate = currentRow.reason == syncDanceFuzzyDuplicateReason;
     // The two tiers are distinguished by exactly this: the choreography
     // ambiguity is the equal-title case, and the fuzzy tier is everything
     // `DedupeIndex` flags that the equal-title tier does not own. Each refuses
