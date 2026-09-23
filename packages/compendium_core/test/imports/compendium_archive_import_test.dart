@@ -1565,6 +1565,60 @@ void main() {
       expect(await venues.getById(importedVenueId), isNotNull);
     });
 
+    test(
+      'undo retains an imported venue a TOMBSTONED program references (#1357)',
+      () async {
+        // The same scenario, except the surviving program has since been
+        // soft-deleted. `programs.venue_id` is not a foreign key, so a
+        // tombstoned program keeps it, and the venue is user-visible data on
+        // that program — restoring it with the venue erased would show a
+        // program pointing at a row that no longer exists.
+        //
+        // Undo used to call `VenueRepository.delete(permanent: true)`, whose
+        // guard #1328 narrowed to live programs, so the tombstoned program did
+        // not hold the venue back and it was erased. Undo now calls
+        // `hardDelete`, where the retention rule (sync-spec §3.1) lives.
+        final archive = bundleWithVenue(
+          programVenueId: 'orig-v1',
+          venues: [Venue(id: 'orig-v1', name: 'Guiding Star Grange')],
+        );
+        final result = await run(archive);
+        final importedVenueId = (await venues.listAll()).single.id;
+
+        await programs.create(
+          Program(
+            id: 'user-p1',
+            title: 'Local Dance',
+            venueId: importedVenueId,
+            status: ProgramStatus.draft,
+            slots: const [],
+            createdAt: DateTime.utc(2026, 5, 1),
+            updatedAt: DateTime.utc(2026, 5, 1),
+          ),
+        );
+        await programs.softDelete('user-p1', at: DateTime.utc(2026, 5, 2));
+
+        await importer.undo(result);
+
+        final tombstoned = await programs.getById(
+          'user-p1',
+          includeDeleted: true,
+        );
+        expect(tombstoned, isNotNull);
+        expect(tombstoned!.deletedAt, isNotNull);
+        expect(
+          tombstoned.venueId,
+          importedVenueId,
+          reason: 'the tombstoned program still names the venue',
+        );
+        expect(
+          await venues.getById(importedVenueId),
+          isNotNull,
+          reason: 'so undo must not erase it',
+        );
+      },
+    );
+
     test('collapses duplicate venue ids within one bundle (no orphan)', () async {
       // Untrusted input: two venue entries sharing the same original id must
       // collapse to a single minted row (last-seen content wins), never leaving

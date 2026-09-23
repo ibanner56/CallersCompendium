@@ -1569,7 +1569,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get syncReviewSettingsSubtitle =>
-      'Bekijk verwijderingen op het peerapparaat die conflicteren met records die op dit apparaat zijn gemaakt.';
+      'Bepaal hoe conflicten tussen je apparaten worden opgelost wanneer synchronisatie ze niet zelf kan beslechten.';
 
   @override
   String get syncReviewTitle => 'Synchronisatiebeslissingen';
@@ -1640,6 +1640,22 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get syncReviewDanceAmbiguityReason =>
       'Live dansen hebben dezelfde titel, maar een andere choreografie.';
+
+  @override
+  String get syncReviewRenameCollisionReason =>
+      'Een ander apparaat heeft dit record hernoemd naar een naam die een ander record hier al gebruikt.';
+
+  @override
+  String get syncReviewMergeDiscardsContactsTitle =>
+      'Deze choreografen samenvoegen?';
+
+  @override
+  String get syncReviewMergeDiscardsContactsBody =>
+      'Er wordt maar één record bewaard. Het e-mailadres, de locatie en de markering voor overleden van het andere staan alleen op dit apparaat en kunnen daarna niet meer worden hersteld.';
+
+  @override
+  String get syncReviewCounterpartDeleted =>
+      'Het andere record is verwijderd, dus deze twee kunnen niet worden samengevoegd. Gebruik \'Beide behouden\' om het een andere naam te geven.';
 
   @override
   String get syncReviewUnsupportedReason =>

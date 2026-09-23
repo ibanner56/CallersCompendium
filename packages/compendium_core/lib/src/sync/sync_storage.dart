@@ -1244,6 +1244,14 @@ final class CompendiumSyncStorage
       );
       return;
     }
+    if (syncNaturalKeyRenameCollisionReasons.contains(currentRow.reason)) {
+      await _resolveNaturalKeyRenameCollision(
+        currentRow: currentRow,
+        action: action,
+        newNaturalKey: newNaturalKey,
+      );
+      return;
+    }
     if (currentRow.reason != syncBaselineAbsenceTombstoneReason) {
       throw const SyncReviewException(SyncReviewFailureCode.unsupportedReason);
     }
@@ -1432,6 +1440,251 @@ final class CompendiumSyncStorage
       counterpartId: currentRow.counterpartId,
     );
   });
+
+  /// Resolves a sync-spec §6.6 **step-1** rename collision: a record whose
+  /// UUID this device already knows arrived carrying a natural key that
+  /// another local row holds.
+  ///
+  /// The identity layout is the mirror of every other queued reason, and that
+  /// is the whole reason this is a separate method rather than another branch
+  /// of [resolveReviewQueue]'s tombstone path. Here `record_id` is the local
+  /// row the candidate updates — and the candidate's own id — while
+  /// `counterpart_id` is the *other* local row, the one holding the colliding
+  /// name. The tombstone path assumes the opposite on both counts.
+  ///
+  /// Both sides being pre-existing local rows is also what forbids the silent
+  /// merge (§6.6, ADR-004: "they may be two different people"), and what makes
+  /// the merge action below pass a non-null `localIdentity` for the losing
+  /// side. [resolveReviewQueue]'s own merge passes `null` for its candidate,
+  /// correctly, because there the candidate is not a local row; copying that
+  /// here would leave `_rewriteLocalReferences` repointing join rows at an id
+  /// whose row is still standing under its own identity.
+  Future<void> _resolveNaturalKeyRenameCollision({
+    required ReviewQueueRow currentRow,
+    required SyncReviewAction action,
+    required String? newNaturalKey,
+  }) async {
+    final kind = currentRow.kind;
+    final SyncRecordBlob candidate;
+    try {
+      candidate = decodeSyncRecordBlob(currentRow.candidateBlob);
+    } on Object {
+      throw const SyncReviewException(SyncReviewFailureCode.candidateInvalid);
+    }
+    if (candidate.kind != kind ||
+        candidate.id != currentRow.recordId ||
+        candidate.body['id'] != candidate.id ||
+        candidate.deletedAt != null ||
+        currentRow.recordId == currentRow.counterpartId ||
+        currentRow.candidateHash !=
+            sha256Hex(encodeSyncRecordBlobUtf8(candidate)) ||
+        !syncNaturalKeyKinds.contains(kind) ||
+        syncNaturalKeyForBody(kind, candidate.body) == null ||
+        (currentRow.reason == syncShippedDifficultyRenameCollisionReason &&
+            kind != SyncRecordKind.difficultyLevel)) {
+      throw const SyncReviewException(SyncReviewFailureCode.candidateInvalid);
+    }
+    try {
+      validateSyncReviewCandidateBody(kind, candidate.body);
+    } on Object {
+      throw const SyncReviewException(SyncReviewFailureCode.candidateInvalid);
+    }
+    final candidateKey = syncNaturalKeyForBody(kind, candidate.body)!;
+
+    // §6.6's local-version check. The hash was captured at enqueue against
+    // this same row — the one the pass deliberately did not write — so a user
+    // edit since then invalidates the decision. A NULL legacy value fails the
+    // same way a mismatch does, rather than being treated as "no opinion".
+    final localTarget = await _localNaturalCandidate(
+      kind: kind,
+      id: currentRow.recordId,
+    );
+    final targetMetadata = await _naturalRecordMetadata(
+      kind,
+      currentRow.recordId,
+    );
+    if (localTarget == null ||
+        targetMetadata == null ||
+        targetMetadata.deletedAt != null) {
+      throw const SyncReviewException(SyncReviewFailureCode.targetMissing);
+    }
+    if (currentRow.localHash == null ||
+        localTarget.wireHash != currentRow.localHash) {
+      throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
+    }
+
+    final holder = await _localNaturalCandidate(
+      kind: kind,
+      id: currentRow.counterpartId,
+    );
+    final holderMetadata = await _naturalRecordMetadata(
+      kind,
+      currentRow.counterpartId,
+    );
+    if (holder == null || holderMetadata == null) {
+      throw const SyncReviewException(SyncReviewFailureCode.targetMissing);
+    }
+    // A **tombstoned** holder is not a missing one, and rejecting it as such
+    // reproduced this issue's own disease inside its fix: the row stayed
+    // queued and neither action could clear it.
+    //
+    // None of the four natural-key indexes is filtered on `deleted_at`
+    // (§4.1), so a tombstone keeps occupying its name — which is how this
+    // collision arises at all — and `_loadNaturalKeyIndex` selects every row,
+    // preferring a live one only when there is a live one to prefer. A peer
+    // renaming a known UUID onto a name that only a deleted row holds
+    // therefore reaches the step-1 guard with a deleted incumbent, and that
+    // guard does not filter on it either.
+    final holderDeleted = holderMetadata.deletedAt != null;
+    // The collision must still exist. Renaming one side by hand was the only
+    // workaround available before this action shipped, so it is a reachable
+    // state rather than a theoretical one, and applying the candidate then
+    // would be answering a question nobody is asking any more.
+    if (syncNaturalKeyForBody(kind, holder.blob.body) != candidateKey) {
+      throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
+    }
+    for (final id in [currentRow.recordId, currentRow.counterpartId]) {
+      if (await repositories.syncLocal.resolveAlias(kind: kind, recordId: id) !=
+          id) {
+        throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
+      }
+    }
+
+    var candidateForApply = candidate;
+    switch (action) {
+      case SyncReviewAction.merge:
+        if (holderDeleted) {
+          // Collapsing a live record and a tombstone into one row is an
+          // **existence** decision, which §6.4 and §6.6 step 2 settle by
+          // comparing `existenceAt`. Step 1 runs none of that machinery on
+          // purpose: it does not reconcile bodies at all, because the two rows
+          // may be different entities.
+          //
+          // So there is no sound thing to do here. Adopting the tombstone onto
+          // a live survivor resurrects a deletion the user made — its id would
+          // resolve through the alias to a live row — while letting the
+          // tombstone survive deletes the live row instead. Either way an
+          // existence question gets answered by a tie-break that was never
+          // meant to answer one. Keep both frees the name without deciding it,
+          // and stays available.
+          throw const SyncReviewException(
+            SyncReviewFailureCode.counterpartDeleted,
+          );
+        }
+        // A shipped difficulty ID outranks the lexicographic rule: it is part
+        // of the persisted relationship contract (§6.6), which is exactly what
+        // the shipped-difficulty variant of this reason exists to hold open.
+        final canonicalDifficultyId = kind == SyncRecordKind.difficultyLevel
+            ? _canonicalDifficultyId(
+                candidateKey,
+                candidateId: currentRow.recordId,
+                incumbentId: currentRow.counterpartId,
+              )
+            : null;
+        final survivorId = await repositories.syncLocal.resolveAlias(
+          kind: kind,
+          recordId:
+              canonicalDifficultyId ??
+              (currentRow.recordId.compareTo(currentRow.counterpartId) <= 0
+                  ? currentRow.recordId
+                  : currentRow.counterpartId),
+        );
+        final aliases = <SyncRecordKind, Map<String, String>>{};
+        for (final losingId in [
+          currentRow.recordId,
+          currentRow.counterpartId,
+        ]) {
+          if (losingId == survivorId) continue;
+          // §6.6: "Step 1 involves two pre-existing local rows and MUST NOT
+          // coalesce." `_adoptCollision` obliges on its own — with the
+          // survivor's row already standing it takes `_deleteIdentityRow`,
+          // which does not carry the loser's `deviceLocal` contact fields
+          // across. The identity is re-read per iteration because the previous
+          // iteration may have moved it.
+          await _adoptCollision(
+            kind: kind,
+            losingId: losingId,
+            survivingId: survivorId,
+            aliases: aliases,
+            localIdentity: await _recordIdentity(kind, losingId),
+          );
+        }
+        if (candidate.id != survivorId) {
+          candidateForApply = _rewriteCandidateIdentity(
+            SyncMergeCandidate(blob: candidate),
+            survivorId,
+            aliases,
+            preserveUpdatedAt: true,
+          ).blob;
+        }
+      case SyncReviewAction.keepBoth:
+        var renamedKey = _validatedReviewName(
+          newNaturalKey,
+          currentKey: candidateKey,
+        );
+        if (kind == SyncRecordKind.customFieldDef) {
+          renamedKey = renamedKey.trim();
+          if (!isValidCustomFieldKey(renamedKey)) {
+            throw const SyncReviewException(
+              SyncReviewFailureCode.invalidCustomFieldKey,
+            );
+          }
+        }
+        // Occupancy is tested against every row, not just the two in this
+        // decision: the natural-key indexes are not filtered on `deleted_at`,
+        // so a tombstoned row still holds its name and the rename would fail
+        // at the database rather than as a diagnosable review outcome.
+        final occupied = await _naturalKeyRow(
+          kind,
+          normalizeShareableText(renamedKey).toLowerCase(),
+        );
+        if (occupied != null) {
+          throw const SyncReviewException(
+            SyncReviewFailureCode.nameNotDistinct,
+          );
+        }
+        // The row being renamed is the *counterpart* — the one holding the
+        // name — so the candidate can then be applied to `record_id` unchanged.
+        //
+        // This works on a tombstoned holder too, and is the only action that
+        // does: freeing the name asks no question about which record exists,
+        // so nothing has to be decided that step 1 cannot decide. The rename
+        // does restamp the tombstone and republish it, which is the honest
+        // consequence of the user renaming a record — deleted or not.
+        await _renameLocalNaturalKey(
+          kind,
+          currentRow.counterpartId,
+          renamedKey,
+        );
+    }
+
+    final candidateAddress = (
+      kind: candidateForApply.kind,
+      recordId: candidateForApply.id,
+    );
+    final currentCandidateBody = Map<String, Object?>.from(
+      await read(candidateAddress) ?? const {},
+    );
+    final report = await writeWithReport(
+      SyncApplyRecord(
+        address: candidateAddress,
+        body: _overlay(currentCandidateBody, candidateForApply.body),
+        updatedAt: candidateForApply.updatedAt,
+        deletedAt: candidateForApply.deletedAt,
+        existenceAt: candidateForApply.existenceAt,
+        sourceBlob: candidateForApply,
+      ),
+    );
+    if (report != null) {
+      throw StateError(report.message);
+    }
+    await rebuildDerivedIndexes();
+    await repositories.syncLocal.deleteReview(
+      kind: currentRow.kind,
+      recordId: currentRow.recordId,
+      counterpartId: currentRow.counterpartId,
+    );
+  }
 
   Future<void> _resolveDanceAmbiguity({
     required ReviewQueueRow currentRow,
@@ -1897,9 +2150,7 @@ final class CompendiumSyncStorage
               await _enqueueCollisionReview(
                 candidate,
                 incumbent.id,
-                reason:
-                    'known UUID natural-key rename collides with '
-                    'the shipped difficulty row',
+                reason: syncShippedDifficultyRenameCollisionReason,
               );
               continue;
             }
@@ -1987,9 +2238,7 @@ final class CompendiumSyncStorage
             await _enqueueCollisionReview(
               candidate,
               incumbent.id,
-              reason:
-                  'known UUID natural-key rename collides with '
-                  'another local row',
+              reason: syncNaturalKeyRenameCollisionReason,
             );
             continue;
           } else if (incumbent != null &&
@@ -2006,15 +2255,27 @@ final class CompendiumSyncStorage
               );
               continue;
             }
-            final renamed = await _renameInboundCustomField(
+            // The *private local* definition is the one that yields its key.
+            //
+            // Renaming the inbound definition instead — which is what this did
+            // until #1355 — decides "which record survives" on local versus
+            // incoming, which ADR-004 and §6.6 forbid because it does not
+            // converge. It also stamped the renamed copy with this device's
+            // clock, so ordinary last-writer-wins republished it and every
+            // peer had its shared field renamed on account of a private row
+            // only this device holds.
+            //
+            // Renaming the private row is symmetric in effect rather than in
+            // form: a private definition never reaches the wire
+            // (`projectShareableRecordBody` returns an empty body for it), so
+            // no peer can observe the collision at all and every device agrees
+            // on the shared definition's bare key. The suffix therefore
+            // derives from the private definition's own UUID.
+            final renamed = await _renameLocalPrivateCustomField(
               candidate,
-              incumbent.id,
-              reason:
-                  'shareability mismatch cannot reconcile a private '
-                  'custom-field definition',
+              incumbent,
             );
-            if (renamed == null) continue;
-            candidate = renamed;
+            if (!renamed) continue;
           } else if (incumbent != null && incumbent.id != candidate.blob.id) {
             if (candidate.blob.deletedAt != null &&
                 !incumbent.deleted &&
@@ -2209,9 +2470,7 @@ final class CompendiumSyncStorage
               await _enqueueCollisionReview(
                 candidate,
                 previous.blob.id,
-                reason:
-                    'known UUID natural-key rename collides with '
-                    'another local row',
+                reason: syncNaturalKeyRenameCollisionReason,
               );
               continue;
             }
@@ -3001,15 +3260,27 @@ final class CompendiumSyncStorage
     );
   }
 
-  Future<SyncMergeCandidate?> _renameInboundCustomField(
+  /// Frees a shareable inbound definition's key by renaming the colliding
+  /// **private local** definition, per §6.6's shareability rule.
+  ///
+  /// Returns whether the inbound candidate may now be applied unchanged. The
+  /// suffix derives from the private definition's own UUID and is checked for
+  /// occupancy the same way [_reconcileCustomFieldTypeMismatch] checks its
+  /// own; when neither the eight-hex nor the full form is free there is no
+  /// deterministic answer, so the collision keeps its existing review-queue
+  /// fallback.
+  ///
+  /// The rename bumps the private row's `updatedAt`, which is inert: a private
+  /// definition is projected to an empty body and so never enters the
+  /// publication.
+  Future<bool> _renameLocalPrivateCustomField(
     SyncMergeCandidate candidate,
-    String counterpartId, {
-    required String reason,
-  }) async {
+    _NaturalKeyValue incumbent,
+  ) async {
     final key = candidate.blob.body['key'];
-    if (key is! String) return null;
-    final shortKey = syncCustomFieldSuffix(key, candidate.blob.id, full: false);
-    final fullKey = syncCustomFieldSuffix(key, candidate.blob.id, full: true);
+    if (key is! String) return false;
+    final shortKey = syncCustomFieldSuffix(key, incumbent.id, full: false);
+    final fullKey = syncCustomFieldSuffix(key, incumbent.id, full: true);
     final suffix =
         await _naturalKeyRow(
               SyncRecordKind.customFieldDef,
@@ -3025,20 +3296,17 @@ final class CompendiumSyncStorage
         ? fullKey
         : null;
     if (suffix == null) {
-      await _enqueueCollisionReview(candidate, counterpartId, reason: reason);
-      return null;
+      await _enqueueCollisionReview(
+        candidate,
+        incumbent.id,
+        reason:
+            'shareability mismatch cannot reconcile a private '
+            'custom-field definition',
+      );
+      return false;
     }
-    final body = Map<String, Object?>.from(candidate.blob.body)
-      ..['key'] = suffix;
-    return _candidateWithBody(
-      candidate,
-      candidate.blob.id,
-      body,
-      updatedAt: nextExistenceStamp(
-        now: DateTime.now().toUtc(),
-        current: candidate.blob.updatedAt,
-      ),
-    );
+    await _renameLocalCustomField(incumbent.id, suffix);
+    return true;
   }
 
   /// Queues, or re-queues, one collision for the persisted review surface.
@@ -3057,7 +3325,15 @@ final class CompendiumSyncStorage
     required String reason,
   }) async {
     final queuedRecordId = recordId ?? candidate.blob.id;
-    final localHash = reason == syncBaselineAbsenceTombstoneReason
+    // Only the reasons whose resolution re-validates staleness record a local
+    // hash; the rest stay NULL until they gain an action. For a §6.6 step-1
+    // reason `queuedRecordId` is the candidate's own id — the local row the
+    // peer's update targets, and the one this pass deliberately does not write
+    // — so the hash captured here still describes that row when the user
+    // eventually decides.
+    final localHash =
+        reason == syncBaselineAbsenceTombstoneReason ||
+            syncNaturalKeyRenameCollisionReasons.contains(reason)
         ? (await _localNaturalCandidate(
             kind: candidate.blob.kind,
             id: queuedRecordId,

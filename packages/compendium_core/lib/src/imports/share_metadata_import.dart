@@ -155,6 +155,22 @@ class ShareMetadataImporter {
     }
   }
 
+  /// Reverts a committed [result]: removes the definitions, sources and tags
+  /// this import created, and re-tombstones the ones it revived.
+  ///
+  /// Every `permanent` removal here is guarded **inside the repository's own
+  /// transaction** (issue #1357). The tag loop used to be the exception: it
+  /// read `tags.isInUse` first and skipped, which was check-then-act (this
+  /// method opens no transaction of its own, so nothing stopped a dance
+  /// acquiring the tag in the gap) and which no other caller of the tag hatch
+  /// would have inherited. The check now lives in `TagRepository.delete`, so
+  /// this loop catches [StateError] like its three neighbours.
+  ///
+  /// The **restored** loops keep their `isInUse` reads. Those call the ordinary
+  /// tombstoning `delete`, which is deliberately unguarded for tags, so the
+  /// check-then-act read is the only thing standing between a restored tag and
+  /// a live dance that has since adopted it. Dropping it there would tombstone
+  /// a tag out from under a live dance — the opposite of the fix.
   Future<void> undo(ShareMetadataImportResult result) async {
     for (final id in result.insertedFieldIds) {
       try {
@@ -185,10 +201,15 @@ class ShareMetadataImporter {
       }
     }
     for (final id in result.insertedTagIds) {
-      if (await tags.isInUse(id)) continue;
-      await tags.hardDelete([id]);
+      try {
+        await tags.hardDelete([id]);
+      } on StateError {
+        // A surviving live local dance may now carry this imported tag.
+      }
     }
     for (final id in result.restoredTagIds) {
+      // `delete` (non-permanent) tombstones and is deliberately unguarded, so
+      // this read is the guard. See the note on this method.
       if (await tags.isInUse(id)) continue;
       await tags.delete(id);
     }

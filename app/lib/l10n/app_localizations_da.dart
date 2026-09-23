@@ -1558,7 +1558,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get syncReviewSettingsSubtitle =>
-      'Gennemgå peer-sletninger, der er i konflikt med poster, som er oprettet på denne enhed.';
+      'Bestem, hvordan konflikter mellem dine enheder skal løses, når synkroniseringen ikke selv kan afgøre dem.';
 
   @override
   String get syncReviewTitle => 'Synkroniseringsbeslutninger';
@@ -1629,6 +1629,22 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get syncReviewDanceAmbiguityReason =>
       'Levende danse har samme titel, men forskellig koreografi.';
+
+  @override
+  String get syncReviewRenameCollisionReason =>
+      'En anden enhed har omdøbt denne post til et navn, som en anden post her allerede bruger.';
+
+  @override
+  String get syncReviewMergeDiscardsContactsTitle =>
+      'Vil du flette disse koreografer sammen?';
+
+  @override
+  String get syncReviewMergeDiscardsContactsBody =>
+      'Kun én post bevares. E-mailadressen, stedet og markeringen for afdød på den anden er kun gemt på denne enhed og kan ikke gendannes bagefter.';
+
+  @override
+  String get syncReviewCounterpartDeleted =>
+      'Den anden post er slettet, så de to kan ikke flettes sammen. Brug „Behold begge“ for at give den et andet navn.';
 
   @override
   String get syncReviewUnsupportedReason =>

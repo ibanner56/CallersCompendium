@@ -186,6 +186,16 @@ class ChoreographerRepository {
   /// just-committed import (`ImportPipeline.undo`). A published record is
   /// tombstoned instead so peers retain deletion evidence. The guard applies
   /// either way.
+  ///
+  /// [permanent] also **tombstones rather than erases** whenever any
+  /// `dance_authors` row still names this choreographer — the case the live
+  /// guard above lets through because every such dance is itself tombstoned
+  /// (issue #1357). `dance_authors` is `ON DELETE CASCADE`, so erasing here
+  /// would take the tombstoned dance's author credit with it, and restoring
+  /// that dance would bring it back with no author: data loss a rollback has no
+  /// business causing. A tombstone keeps the join row, keeps the choreographer
+  /// out of every live view (which is what `ImportPipeline.undo` needs of it),
+  /// and lets a later restore of both rows show the credit again.
   Future<void> delete(String id, {DateTime? at, bool permanent = false}) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
@@ -216,11 +226,21 @@ class ChoreographerRepository {
         );
       }
       if (permanent) {
-        if (await isPublishedSyncRecord(
-          _db,
-          kind: SyncRecordKind.choreographer,
-          recordId: id,
-        )) {
+        // Any surviving `dance_authors` row — necessarily a tombstoned dance's,
+        // since a live one threw above — downgrades the erase to a tombstone
+        // rather than cascading that dance's credit away (issue #1357).
+        final creditedBySurvivor =
+            await (_db.select(_db.danceAuthors)
+                  ..where((t) => t.choreographerId.equals(id))
+                  ..limit(1))
+                .getSingleOrNull() !=
+            null;
+        if (creditedBySurvivor ||
+            await isPublishedSyncRecord(
+              _db,
+              kind: SyncRecordKind.choreographer,
+              recordId: id,
+            )) {
           await stampExistenceTransition(
             _db,
             table: _db.choreographers,

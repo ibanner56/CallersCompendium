@@ -360,9 +360,14 @@ void main() {
     }
 
     test('a soft-deleted tag stops surfacing on its dances', () async {
-      // Tags are the reachable case: TagRepository has no referential guard, so
-      // a tag can be deleted while `dance_tags` rows still point at it. Hard
+      // Tags are the reachable case: the ordinary tombstoning
+      // `TagRepository.delete` this test calls has no referential guard, so a
+      // tag can be deleted while `dance_tags` rows still point at it. Hard
       // delete used to clear them by FK cascade; a tombstone fires no cascade.
+      // The `permanent: true` branch is guarded as of issue #1357 and would
+      // refuse this delete outright, which is why this test must keep using the
+      // non-permanent one — swapping it would make the test throw rather than
+      // assert what it says it asserts.
       await seedDanceWithEverything();
       expect((await repos.dances.getById('d1'))!.tagIds, ['t1']);
 

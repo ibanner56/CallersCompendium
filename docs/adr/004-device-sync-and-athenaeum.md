@@ -422,10 +422,35 @@ When a device has no baseline for a sync ID, the merge is **additive**: a device
 holding `{B, C}` joining a store holding `{A, B}` produces `{A, B, C}`. Only
 genuine record-id collisions fall through to last-writer-wins.
 
-Fresh attach also **runs the existing dedupe machinery** — `DedupeIndex`, fuzzy
-title-and-author matching, and the confident-match rule from #685. Without it, a
-caller who imported "Rory O'More" separately on a laptop and a phone before
-pairing gets two of everything, which is precisely the user we are building for.
+Fresh attach also **deduplicates the union on exact normalized title**. Without
+it, a caller who imported "Rory O'More" separately on a laptop and a phone
+before pairing gets two of everything, which is precisely the user we are
+building for — and that case produces two *identical* titles, which this tier
+catches.
+
+> **Amended 2026-09-22 (#1355).** This paragraph originally said fresh attach
+> runs "`DedupeIndex`, fuzzy title-and-author matching, and the confident-match
+> rule from #685", and §6.10 of the spec deferred "everything else `DedupeIndex`
+> flags" to the review queue. No implementation ever did. The fuzzy tier was
+> built against #1355, measured, and **removed by decision** rather than
+> deferred or forgotten.
+>
+> It caught only independently-arising near-title variants — the motivating case
+> above is already covered by exact-title matching — and cost a measured 912.8
+> seconds over an 11,500-dance library inside the fresh-attach transaction,
+> because comparing every pair is quadratic and dance titles cluster too tightly
+> in length for a sound length bound to prune more than ~5% of pairs. Removing
+> the repeated normalization inside `fuzzyMatches` would bring that to roughly
+> 70 seconds, still quadratic and still inside the transaction. It also produced
+> roughly 0.64 review rows per dance on a synthetic corpus — about 1,900 rows
+> for a 3,000-dance library — against a review surface with no pagination, which
+> is exactly the wall the next paragraph warns about. Raising the threshold or
+> skipping large libraries were both rejected as silent narrowings of a stated
+> guarantee.
+>
+> Near-title pairs now simply remain two dances after attach: visible in the
+> collection, harmless, and mergeable by hand. The measurement and its counting
+> rule are recorded in spec §6.10.
 
 **Obvious duplicates merge silently. Only genuine ambiguity is surfaced.**
 Asking a user to review 11,500 dances is not a review, it is a wall, and the

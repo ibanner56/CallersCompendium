@@ -1712,9 +1712,9 @@
   "@syncReviewSettingsTitle": {
     "x-sourceSha256": "691b69af17f63a161f53c0d188d596093053776abfd6d2fa0b4ffd91794382c3"
   },
-  "syncReviewSettingsSubtitle": "Gennemgå peer-sletninger, der er i konflikt med poster, som er oprettet på denne enhed.",
+  "syncReviewSettingsSubtitle": "Bestem, hvordan konflikter mellem dine enheder skal løses, når synkroniseringen ikke selv kan afgøre dem.",
   "@syncReviewSettingsSubtitle": {
-    "x-sourceSha256": "4884c7e38dbe512d28f75048575a092b8656535e484b82694f09361c20d693cb"
+    "x-sourceSha256": "fb18d5040b56ff91ba08fb4faccd65fd99a3a407157709c3f068ae860db0c3f7"
   },
   "syncReviewTitle": "Synkroniseringsbeslutninger",
   "@syncReviewTitle": {
@@ -1795,6 +1795,22 @@
   "syncReviewDanceAmbiguityReason": "Levende danse har samme titel, men forskellig koreografi.",
   "@syncReviewDanceAmbiguityReason": {
     "x-sourceSha256": "4adede982e807d2622c96688129b256f04f230f759b6b07585c0ea726a501730"
+  },
+  "syncReviewRenameCollisionReason": "En anden enhed har omdøbt denne post til et navn, som en anden post her allerede bruger.",
+  "@syncReviewRenameCollisionReason": {
+    "x-sourceSha256": "e5a9e0b5844f13cb9c4f4a65f511c19a1636659ace7f4ef950335bee2ca54e53"
+  },
+  "syncReviewMergeDiscardsContactsTitle": "Vil du flette disse koreografer sammen?",
+  "@syncReviewMergeDiscardsContactsTitle": {
+    "x-sourceSha256": "9dabfcdc02184c750782b3580760f87dae3ccc1209bb7e47c2a720b58f06a539"
+  },
+  "syncReviewMergeDiscardsContactsBody": "Kun én post bevares. E-mailadressen, stedet og markeringen for afdød på den anden er kun gemt på denne enhed og kan ikke gendannes bagefter.",
+  "@syncReviewMergeDiscardsContactsBody": {
+    "x-sourceSha256": "7b068cebe8dd826e8dde8a7b1a8c46e72d8429c856f46f1a151710f42e87550c"
+  },
+  "syncReviewCounterpartDeleted": "Den anden post er slettet, så de to kan ikke flettes sammen. Brug „Behold begge“ for at give den et andet navn.",
+  "@syncReviewCounterpartDeleted": {
+    "x-sourceSha256": "ee67d01915bb78e2fb0e9807b3bd8289011168db99a3123c411e1ec7083ee5df"
   },
   "syncReviewUnsupportedReason": "Denne synkroniseringskonflikt er bevaret indtil videre; ingen sikker handling er tilgængelig her.",
   "@syncReviewUnsupportedReason": {

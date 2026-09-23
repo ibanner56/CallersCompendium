@@ -111,11 +111,39 @@ venue it names), and erasing the venue out from under it would silently
 orphan the reference, with nothing to tell the user their program's venue
 disappeared.
 
+That retention outranks the forfeiture rule above, and "retain" means **leave
+the row alone**, not "tombstone it instead of erasing it". Every venue read
+filters `deleted_at IS NULL` and the program writer refuses to link a
+tombstoned venue, so a tombstone orphans the referencing program exactly as an
+erasure does; a published *and* still-referenced row is therefore kept live.
+Forfeiture exists to stop a peer re-downloading a row this device erased,
+which a row nobody deleted cannot trigger.
+
 **The generic hard-delete hatch.** The shipped migration also added a
-`permanent: true` parameter to `delete()`/`remove()` on five repositories —
-`settings`, `choreographers`, `published_sources`, `custom_field_defs` and
-`venues` — which bypasses the tombstone and removes the row outright. Two of
-those kinds (`venue`, `choreographer`) produce blobs (§4.3).
+`permanent: true` parameter to `delete()`/`remove()` on six repositories —
+`settings`, `choreographers`, `published_sources`, `custom_field_defs`,
+`tags` and `venues` — which bypasses the tombstone and removes the row
+outright. `TagRepository.hardDelete` and `DifficultyLevelRepository.hardDelete`
+are batch wrappers over the same hatch. Two of those kinds (`venue`,
+`choreographer`) produce blobs (§4.3). An earlier version of this paragraph
+named five repositories and omitted `tags`, which is how that hatch shipped
+from `v0.2.0-beta` with no referential guard at all (issue #1357).
+
+**Retention applies to every cascading hatch, not only to venues.**
+`dance_authors`, `dance_tags`, `dance_sources` and `custom_field_values` are
+all `ON DELETE CASCADE`, so erasing a choreographer, tag, published source or
+custom field definition that a **tombstoned** dance still references destroys
+that dance's credit, tag, citation or value, and the dance comes back without
+it on restore. Each of those hatches MUST therefore refuse the erasure when
+any join row still names the parent. Venues and the cascading parents resolve
+that refusal differently, and both are deliberate:
+
+| Hatch | Referenced only by a tombstoned owner |
+| --- | --- |
+| `venues` (soft reference, no FK) | retained **live** — the surviving program has no other way to show its venue |
+| cascading parents (FK cascade) | **tombstoned** — the join row survives for the owner's restore, and the parent still leaves every live view, which is what import rollback needs |
+
+A **live** owner blocks either kind outright, with a `StateError`.
 
 A hard delete is permitted **only** where the record can never have been
 published to a peer and has no conservative publication-attempt marker. A
@@ -173,11 +201,18 @@ cascades:
 - Every read that joins through to a soft-deletable parent MUST filter
   `parent.deleted_at IS NULL`. Soft delete does not fire the FK cascade that
   previously cleared `dance_tags`, `custom_field_values` and `dance_sources`.
-- The referential guards in `ChoreographerRepository`, `VenueRepository` and
-  `PublishedSourceRepository` MUST be kept. A tombstone applies only where the
-  entity is unreferenced; see §6.8.
+- The referential guards in `ChoreographerRepository`, `VenueRepository`,
+  `PublishedSourceRepository` and `CustomFieldDefRepository` MUST be kept, and
+  `TagRepository`'s erasing branch MUST carry one (it did not until issue
+  #1357). A **live** owner blocks the delete outright; see §6.8. A tombstoned
+  owner does not block it, but it does downgrade an erasure to a tombstone
+  under the §3.1 retention table — so a tombstone applies both where the entity
+  is unreferenced and where its only surviving references are held by
+  tombstoned owners.
 - Any purge added here MUST refuse to hard-delete an entity still referenced by
-  a live record.
+  a live record. Where the reference is a cascading join row held by a
+  *tombstoned* owner, the erasure MUST still be refused — the cascade would
+  destroy that owner's data — per the retention table in §3.1.
 
 ### 3.2 Sync-local tables
 
@@ -2316,6 +2351,36 @@ rule that decides on "local" versus "incoming" does not converge.
 `deviceLocal` coalescing applies to step 2 only. Step 1 involves two
 pre-existing local rows and MUST NOT coalesce.
 
+**A step-1 row's identity layout is the reverse of a tombstone row's, and the
+reversal is load-bearing.** The candidate is an update to a record this device
+already holds, so the queued row carries that record's id as `record_id` — the
+candidate blob's own id — and the *other* local row, the one currently holding
+the natural key, as `counterpart_id`. A tombstone row carries the live local
+row as `record_id` and the peer's tombstoned id as `counterpart_id`. An
+implementation that shares one identity precondition across both reasons
+rejects every step-1 row without saying so.
+
+**Step-1 rows MUST be resolvable**, by the generic keep-both-or-merge decision
+and by nothing kind-specific:
+
+- **Keep both** renames the row holding the name — `counterpart_id` — to a name
+  the user supplies, which MUST be rejected if any row already holds it
+  (including a tombstoned one, since the indexes are not filtered on
+  `deleted_at`), and then applies the candidate to `record_id` unchanged.
+- **Merge** adopts onto the lexicographically smaller of the two ids, except
+  that a canonical shipped difficulty ID outranks it where one applies, and
+  MUST NOT coalesce: the losing row's `deviceLocal` values are not carried
+  across. A client MUST tell the user before a merge that discards values held
+  nowhere else, which today means a choreographer's contact block.
+- Both actions MUST first re-validate the persisted candidate hash and the
+  `local_hash` rule below, and MUST refuse if the counterpart no longer holds
+  the colliding natural key — a user who renamed one side by hand has already
+  answered the question.
+
+Leaving these rows unresolvable is not a neutral omission. The peer's update is
+skipped on every pass while the row stands, so the record stops converging
+until the user happens to rename one side with nothing telling them to.
+
 **A record this device created and no peer has seen MUST NOT be reconciled out
 of existence silently.** Where step 2 resolves the survivor to non-existence
 and the losing local row is **absent from this device's baseline** — created
@@ -2375,9 +2440,9 @@ so no repair path reaches it. Without this rule the record the user created
 moments ago disappears from their own device, with nothing reported.
 
 **A persisted review also carries the local version that made the choice
-safe.** For every actionable baseline-absence tombstone row,
-`local_hash` MUST be the complete `wireHash` of `record_id` when the row is
-queued. Before any alias, rename, merge, tombstone, or candidate write, the
+safe.** For every actionable baseline-absence tombstone row **and every
+actionable step-1 rename-collision row**, `local_hash` MUST be the complete
+`wireHash` of `record_id` when the row is queued. Before any alias, rename, merge, tombstone, or candidate write, the
 resolver MUST reconstruct that local record inside the transaction and require
 that its current wire hash equals the non-NULL `local_hash`. A NULL legacy
 value or a mismatch MUST fail with the stale-candidate outcome and MUST retain
@@ -2423,6 +2488,24 @@ Distinct losing UUIDs cannot collide at full length. If the full-length key is
 *also* taken — reachable only if a user authored that exact key — the record
 MUST route to the review queue rather than renaming again, so the rule always
 terminates.
+
+**Shareability is the other custom-field collision, and it resolves the other
+way round.** Where an inbound `shareable` definition's `key` matches a local
+definition with a **different** UUID that is `shareable: false`, the *private
+local* definition MUST be the one renamed, under the same suffix derivation as
+above but keyed on its own UUID; the inbound definition is applied unchanged,
+keeping its bare key and its own `updatedAt`. If neither suffixed form is free,
+the record routes to the review queue as above.
+
+This is not an exception to the symmetric-survivor rule at the head of this
+section, and it must not be read as one. A private definition is projected to
+an empty body and never reaches the wire, so no peer can observe this collision
+at all: every device that *can* see it sees the identical pair and renames the
+identical row, which is the convergence the rule exists to produce. Choosing by
+smaller UUID here would instead rename a *shared* field on every peer whenever
+the shareable UUID happened to be the larger one — on account of a row only one
+device holds — which is the divergence the rule exists to prevent. Renaming the
+inbound definition, the third option, is device-relative and forbidden outright.
 
 The coordination-free property above covers the primary derivation only. Whether
 a key is "already taken" is decided against **local** state, and reconciliation
@@ -2726,13 +2809,68 @@ is reachable in ordinary use: two devices that separately entered or imported
 the same dance carry different UUIDs, and their last edits need only land in
 the same second.
 
-Everything else `DedupeIndex` flags is deferred to `review_queue`. Queuing MUST
-be idempotent under the canonical tie-break ordering, MUST carry an immutable
-candidate blob and hash, and actionable rows MUST carry the queue-time local
-wire hash. A queued pair MUST NOT be re-resolved while pending. Baseline rows
-use immutable insertion; only the explicit dance reconciliation path may
-delete and reinsert derived pairs. The queue MUST NOT denormalise contact
-fields.
+**Fresh-attach dedupe is the exact-normalized-title tier, and only that
+tier.** Live dances are grouped by exact `normalizeTitle`; within a group,
+equal `choreographyFingerprint` merges silently under the rules above, and a
+group whose choreography differs is deferred to `review_queue` as a
+same-title ambiguity. Pairs whose titles are merely *similar* are not compared
+and not queued: after attach they simply remain two dances, visible in the
+collection and mergeable by hand.
+
+Rows this section does queue MUST be idempotent under the canonical tie-break
+ordering, MUST carry an immutable candidate blob and hash, and actionable rows
+MUST carry the queue-time local wire hash. A queued pair MUST NOT be
+re-resolved while pending. Baseline rows use immutable insertion; only the
+explicit dance reconciliation path may delete and reinsert derived pairs. The
+queue MUST NOT denormalise contact fields.
+
+#### Why there is no fuzzy tier (amended 2026-09-22)
+
+Until this amendment this section read "Everything else `DedupeIndex` flags is
+deferred to `review_queue`", and ADR-004 said fresh attach runs `DedupeIndex`'s
+fuzzy title-and-author matching. No implementation ever did. The requirement
+was implemented against #1355, measured, and **removed by decision** — recorded
+here rather than dropped, so a later reader does not restore it believing it
+was merely forgotten.
+
+The motivating case in ADR-004 is the same source imported separately on two
+devices before pairing. That produces **identical** titles, which the
+exact-title tier above already handles: identical content merges silently,
+divergent content goes to review. A fuzzy tier adds only independently-arising
+near-title variants, which is a narrow slice of real duplicates.
+
+Its cost was not narrow. Comparing every pair is quadratic in the library size,
+and the obvious sound prefilter — skipping pairs whose normalized titles differ
+too much in length to reach the threshold — prunes almost nothing here, because
+dance titles cluster in length. Measured over a synthetic corpus of generated
+`<adjective> <noun>` titles, at `DedupeIndex.defaultThreshold`, counting
+distinct unordered pairs and excluding equal normalized titles:
+
+| library size | pairs offered to the scorer | pairs flagged | wall time |
+| --- | --- | --- | --- |
+| 1 000 | 476 028 of 499 500 (95.3%) | 660 | 4.9 s |
+| 4 000 | 7 630 165 of 7 998 000 (95.4%) | 3 642 | 102.2 s |
+| 11 500 | 62 452 828 of 66 119 250 (94.5%) | 17 112 | 912.8 s |
+
+Fifteen minutes inside the fresh-attach transaction at the 11 500-dance figure
+ADR-004 itself uses. Roughly 93% of that is `DedupeIndex.fuzzyMatches`
+re-normalizing every indexed title and author set on every call — n² times
+across a sweep rather than n — so removing that repetition would bring 11 500
+dances to about 70 seconds. Still quadratic, still inside the transaction.
+
+The queue volume is the other half. **The 17 112 figure above overstates a real
+library and should not be quoted as a prediction**: the corpus generator
+exhausts its 60×60 vocabulary grid at 3 600 titles and then emits
+deliberately self-similar variants, so every measurement above 3 600 is
+inflated by titles manufactured to be near-duplicates. The defensible figure is
+the ~0.64 rows per dance measured inside the base grid, which still puts a
+3 000-dance library at roughly 1 900 review rows — the "wall" ADR-004 warns
+against, against a review surface with no pagination.
+
+Raising the threshold to control that volume was rejected: it silently narrows
+a stated guarantee. Deferring above a library-size cutoff was rejected: it
+makes the guarantee stop applying on exactly the libraries it was written for,
+without saying so.
 
 ### 6.11 Restore
 
@@ -3953,8 +4091,10 @@ publishes.
 
 **Deletion.** Absence never deletes (mutation: make absence delete). A pending
 tombstone is never republished. A pending-held row is never advertised as live.
-A referenced entity cannot be tombstoned away. Purge refuses to cascade off live
-records. An epoch reset does not discard a pending deletion. A published record
+An entity referenced by a **live** owner cannot be tombstoned away; one whose
+only surviving references are held by tombstoned owners is tombstoned rather
+than erased, so the cascade cannot destroy the owner's data (§3.1). Purge
+refuses to cascade off live records. An epoch reset does not discard a pending deletion. A published record
 tombstones instead of hard-deleting (mutation: evaluate forfeiture against the
 baseline, which answers "never published" for a record `PUT` in the pass that no
 peer has confirmed yet). A detach-and-re-attach does not reverse a completed

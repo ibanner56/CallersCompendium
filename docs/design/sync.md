@@ -2041,11 +2041,18 @@ should not lean on a size claim that is not true.
 **A purge must not cascade off live records.** `DanceRepository.purgeDeleted`
 guards its hard delete with `_cleanupDanglingReferences` and a GC that never
 weakens the delete-guards. A choreographer or tag purged by its own repository
-has no such guard, and the hard delete would cascade `dance_authors` /
-`dance_tags` / `dance_sources` / `custom_field_values` off **live** dances
+*without* such a guard would cascade `dance_authors` / `dance_tags` /
+`dance_sources` / `custom_field_values` off **live** dances
 (the `DanceAuthors`, `DanceTags`, `DanceSources` and `CustomFieldValues` FKs in `tables.dart`) — silent loss of authorship, tags, citations
 and custom values. Every purge added here must refuse to hard-delete an entity
 still referenced by a live record.
+
+That requirement is now enforced in each repository rather than assumed: the
+tag hatch was the last one running no check at all, and gained one in issue
+#1357. The same issue extended the rule past live owners — an erasure is also
+refused, and downgraded to a tombstone, when the only surviving join rows
+belong to *tombstoned* dances, because the cascade destroys their data just as
+thoroughly and a restore cannot bring it back.
 
 #### Land the migration first, before any other sync work
 
@@ -4685,9 +4692,14 @@ must say this plainly rather than implying sync is opaque to us.
   bypassed on the `knownVenueIds` fast path. Neither a reviewer reading the
   class nor one reading the guard would see it. Mutation-proved by dropping the
   predicate from any one enumerated read.
-- **A referenced entity cannot be tombstoned away** — a device still crediting a
-  choreographer keeps it live and re-publishes; assert no dance is left citing a
-  tombstone.
+- **An entity a LIVE owner references cannot be tombstoned away** — a device
+  still crediting a choreographer from a live dance keeps it live and
+  re-publishes; assert no live dance is left citing a tombstone. Where the only
+  surviving references are held by *tombstoned* owners the entity is tombstoned
+  rather than erased (§3.1 retention, issue #1357), so a tombstoned dance
+  legitimately cites a tombstoned choreographer — that pair is what makes the
+  dance's restore able to recover the credit, and asserting it away would
+  re-introduce the erasure.
 - **Purge refuses to cascade off live records** — purge a tombstoned
   choreographer still credited by a live dance; assert the purge declines and the
   authorship survives.

@@ -1498,7 +1498,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get syncReviewSettingsTitle => '同期の判断';
 
   @override
-  String get syncReviewSettingsSubtitle => 'このデバイスで作成したレコードと競合するピア側の削除を確認します。';
+  String get syncReviewSettingsSubtitle =>
+      '同期だけでは解決できないデバイス間の競合について、解決方法を決めます。';
 
   @override
   String get syncReviewTitle => '同期の判断';
@@ -1563,6 +1564,21 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get syncReviewDanceAmbiguityReason => 'ライブのダンスは同じタイトルですが、振り付けが異なります。';
+
+  @override
+  String get syncReviewRenameCollisionReason =>
+      '別のデバイスがこのレコードの名前を、ここにある別のレコードがすでに使用している名前に変更しました。';
+
+  @override
+  String get syncReviewMergeDiscardsContactsTitle => 'これらの振付師を統合しますか?';
+
+  @override
+  String get syncReviewMergeDiscardsContactsBody =>
+      '保持されるレコードは 1 件だけです。もう一方のメールアドレス、場所、故人マークはこのデバイスにのみ保存されているため、統合後は復元できません。';
+
+  @override
+  String get syncReviewCounterpartDeleted =>
+      'もう一方のレコードは削除されているため、この 2 件は統合できません。「両方を保持」で別の名前を付けてください。';
 
   @override
   String get syncReviewUnsupportedReason =>

@@ -547,12 +547,26 @@ rather than deletions:
   `dance_tags`, `custom_field_values`, `dance_sources` and `dance_authors` rows
   a hard delete used to clear now outlive the delete. They are kept
   deliberately — clearing them would mean a revived tag came back with no
-  dances — so the reads filter instead. `tags` is the case that bites: it is the
-  only converted kind with no referential guard, so a tombstone with live join
-  rows is reachable by ordinary use rather than only defensively.
+  dances — so the reads filter instead. `tags` is the case that bites: its
+  ordinary tombstoning delete is the one converted kind's delete with no
+  referential guard, so a tombstone with live join rows is reachable by ordinary
+  use rather than only defensively. (That is safe precisely because it strands
+  nothing. The tag's *erasing* branch is a different matter, and has carried a
+  guard since issue #1357 — see below.)
 - **The referential guards stay.** Soft delete does not make it safe to remove
   an entity a live record still references, and a tombstone for a still-cited
   entity could not be applied by a peer anyway.
+- **An erasure must not cascade off a tombstoned owner either.** The four join
+  tables above are `ON DELETE CASCADE`, so a `permanent: true` erase of a
+  choreographer, tag, published source or custom field definition destroys the
+  join rows a *tombstoned* dance is still holding — and the dance comes back
+  without its author, tag, citation or value when the user restores it. Those
+  hatches therefore downgrade to a tombstone whenever any join row survives,
+  which keeps the association and still takes the parent out of every live view.
+  Venues are the one soft-reference case (`programs.venue_id` is not a foreign
+  key, so nothing cascades) and are kept **live** instead, because the
+  referencing program has no other way to show its venue. Issue #1357; the
+  ruling is stated in `sync-spec.md` §3.1.
 
 **A tombstone still occupies its UNIQUE natural key.** `choreographers.name`,
 `tags.name` and `custom_field_defs.key` are UNIQUE, and drift's upsert targets

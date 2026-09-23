@@ -1900,7 +1900,7 @@
   "@syncReviewSettingsTitle": {
     "description": "General settings row title that opens persisted sync conflict decisions."
   },
-  "syncReviewSettingsSubtitle": "Review peer deletions that conflict with records created on this device.",
+  "syncReviewSettingsSubtitle": "Decide how conflicts between your devices are resolved when sync cannot settle them on its own.",
   "@syncReviewSettingsSubtitle": {
     "description": "General settings row subtitle explaining the persisted sync decision queue."
   },
@@ -1995,6 +1995,22 @@
   "syncReviewDanceAmbiguityReason": "Live dances have the same title but different choreography.",
   "@syncReviewDanceAmbiguityReason": {
     "description": "Reason shown when fresh attach finds live dances with matching titles but different choreography."
+  },
+  "syncReviewRenameCollisionReason": "Another device renamed this record to a name a different record here already uses.",
+  "@syncReviewRenameCollisionReason": {
+    "description": "Reason shown for a sync-spec 6.6 step-1 natural-key rename collision between two records that both already exist on this device."
+  },
+  "syncReviewMergeDiscardsContactsTitle": "Merge these choreographers?",
+  "@syncReviewMergeDiscardsContactsTitle": {
+    "description": "Confirmation dialog title shown before merging two choreographer records held only on this device."
+  },
+  "syncReviewMergeDiscardsContactsBody": "Only one record will be kept. The email address, location, and deceased marker on the other one are stored only on this device, so they cannot be recovered afterwards.",
+  "@syncReviewMergeDiscardsContactsBody": {
+    "description": "Confirmation dialog body warning that merging two choreographers discards the losing record's device-local contact details."
+  },
+  "syncReviewCounterpartDeleted": "The other record was deleted, so these two cannot be merged. Use Keep both to give it a different name.",
+  "@syncReviewCounterpartDeleted": {
+    "description": "Failure message shown when a step-1 rename collision is merged while the record holding the colliding name is a tombstone; keep both remains available."
   },
   "syncReviewUnsupportedReason": "This sync conflict is retained for now; no safe action is available here.",
   "@syncReviewUnsupportedReason": {

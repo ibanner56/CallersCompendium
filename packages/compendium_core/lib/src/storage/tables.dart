@@ -368,10 +368,13 @@ class Tags extends Table {
 
   /// Sync timestamp triple; see the note at the top of this file. Added in
   /// schema v25 (issue #898), which also converted `TagRepository.delete` from
-  /// a hard delete to a tombstone. Tags are the one converted kind with **no**
-  /// referential guard, so this is also the one whose `dance_tags` rows now
-  /// outlive the delete — every read that joins through `tags` filters on
-  /// `deleted_at IS NULL` for that reason.
+  /// a hard delete to a tombstone. Its *tombstoning* path is the one converted
+  /// kind's delete with **no** referential guard, so this is the one whose
+  /// `dance_tags` rows outlive the delete by ordinary use — every read that
+  /// joins through `tags` filters on `deleted_at IS NULL` for that reason. Its
+  /// `permanent: true` path is guarded like every sibling as of issue #1357:
+  /// that one erases, and `dance_tags` is `ON DELETE CASCADE`, so an unguarded
+  /// erase stripped the tag from live dances too.
   DateTimeColumn get updatedAt => dateTime().nullable()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
   DateTimeColumn get existenceAt => dateTime().nullable()();
@@ -499,7 +502,11 @@ class Venues extends Table {
   /// erases, because it exists solely to roll back a just-committed import and
   /// a rollback should leave no trace to publish — but only for a venue that
   /// was never published and that no surviving program still names. A
-  /// published venue is tombstoned instead (sync-spec.md §3.1 forfeiture).
+  /// published venue is tombstoned instead (sync-spec.md §3.1 forfeiture),
+  /// **unless** a surviving program row still names it, in which case it is
+  /// left live: retention outranks forfeiture, because a tombstoned venue is
+  /// invisible to every venue read and orphans that program's `venue_id`
+  /// exactly as an erasure would (issue #1357).
   DateTimeColumn get updatedAt => dateTime().nullable()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
   DateTimeColumn get existenceAt => dateTime().nullable()();
