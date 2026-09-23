@@ -575,9 +575,17 @@ columns. The drift that matters needs no schema change at all.
 `UNIQUE` collision between two Unicode forms is a fact about this library, not
 about a store, so it survives an epoch reset and a detach. Clearing it on a
 `409` drops every owed repair while the completion marker still says the scan
-finished. Restore is the one event that clears it — along with the marker,
-because a restore brings in rows the scan never saw and no per-entry
+finished. Restore is the one event that clears the whole table — along with the
+marker, because a restore brings in rows the scan never saw and no per-entry
 revalidation can discover them.
+
+That is a statement about clearing the table *wholesale*, not about entries.
+Individual entries are discharged all the time and must be: the pass and its
+retry remove an entry once its row holds its target, and the retire-missing
+sweep removes one whose row was hard-deleted. Reading this paragraph as "only a
+restore ever removes a row from this table" is how #1346 shipped — with no entry
+ever cleared, so one recorded collision turned the one-time pass into a
+full-library scan on every launch.
 
 *The pass must be total, not all-or-nothing.* The existing one-time sweeps in
 `repositories.dart` write their completion marker only after the whole pass

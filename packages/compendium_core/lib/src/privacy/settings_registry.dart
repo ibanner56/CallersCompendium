@@ -256,6 +256,7 @@ final Map<String, DataClassification> settingsClassifications = {
   '__modifier_container_canonical_rebuild_done__': _installState,
   '__taxonomy_v35_figure_normalization_done__': _installState,
   '__callersbox_roll_away_role_repair_done__': _installState,
+  '__normalisation_derived_index_repair_done__': _installState,
 };
 
 /// Classification for settings keys that are *built at runtime* from a known
