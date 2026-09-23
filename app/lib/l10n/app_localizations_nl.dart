@@ -404,7 +404,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSyncDeviceRemoveBody =>
-      'De opslag bewaart de kopie van wat dit apparaat heeft gedeeld niet langer, en het apparaat stopt met synchroniseren. Er wordt niets van dat apparaat verwijderd, en er wordt niets van het jouwe verwijderd. Het kan later met de synchronisatiezin opnieuw verbinding maken met deze opslag.';
+      'De opslag laat de lijst van wat dit apparaat heeft gedeeld los en maakt de plek vrij die het innam. Er wordt niets van dat apparaat verwijderd, en er wordt niets van het jouwe verwijderd. Dit is bedoeld voor een apparaat dat echt weg is: verwijderen koppelt het niet los, dus een apparaat dat nog draait publiceert zijn lijst bij de volgende synchronisatie opnieuw, en elk apparaat kan met de synchronisatiezin opnieuw verbinden.';
 
   @override
   String get settingsSyncDeviceRemoveAction => 'Verwijderen';
@@ -434,7 +434,11 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSyncWipeFailed =>
-      'Kan de opslag niet verwijderen. Er is niets gewijzigd en dit apparaat is nog steeds verbonden; probeer het opnieuw.';
+      'Kan de opslag niet verwijderen, of kan niet bevestigen dat ze verwijderd is. Dit apparaat is nog steeds verbonden. Controleer je andere apparaten voordat je het opnieuw probeert.';
+
+  @override
+  String get settingsSyncWipeDetachFailed =>
+      'De opslag is van de server verwijderd, maar dit apparaat kon de verbinding ermee niet verbreken. De opslag is weg en kan niet worden teruggehaald. Gebruik Dit apparaat loskoppelen om het af te ronden.';
 
   @override
   String get settingsSyncMeteredRouted =>

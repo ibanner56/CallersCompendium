@@ -49,6 +49,17 @@ final class _SyncNetwork implements SyncNetworkClassifier {
   Future<SyncNetworkKind> current() async => kind;
 }
 
+/// A sync-local repository whose every transaction fails, so the local half of
+/// a wipe can be made to fail after the server half has already succeeded.
+final class _FailingSyncLocal extends SyncLocalRepository {
+  _FailingSyncLocal(super.db);
+
+  @override
+  Future<T> transaction<T>(
+    Future<T> Function(SyncLocalTransaction transaction) action,
+  ) => Future<T>.error(StateError('local clear failed'));
+}
+
 final _syncNetwork = _SyncNetwork();
 SyncCoordinator? _syncCoordinator;
 SyncPairingProbeFactory? _pairingProbeFactory;
@@ -75,6 +86,11 @@ _pumpSettings(
   bool initialTrackHistoryForAllCallers = false,
   Size surfaceSize = const Size(1000, 2600),
   BackupSaver? backupSaver,
+
+  /// Replaces the sync-local repository the controller writes through, so a
+  /// test can make the local half of a wipe fail after the server half has
+  /// already succeeded.
+  SyncLocalRepository Function(CompendiumRepositories)? syncLocalOverride,
 }) async {
   final repos = openTestRepositories();
   await repos.ensureMigrated();
@@ -118,7 +134,7 @@ _pumpSettings(
   await updateController.load();
   final syncController = SyncController(
     settings: repos.settings,
-    syncLocal: repos.syncLocal,
+    syncLocal: syncLocalOverride?.call(repos) ?? repos.syncLocal,
     coordinator: () => _syncCoordinator,
     reconfigure: ({bool startPass = true}) async {},
     pairingProbeFactory: _pairingProbeFactory,
@@ -2514,8 +2530,15 @@ void main() {
 
         tearDown(() => _deviceAdminFactory = null);
 
-        Future<CompendiumRepositories> pumpPaired(WidgetTester tester) async {
-          final harness = await _pumpSettings(tester);
+        Future<CompendiumRepositories> pumpPaired(
+          WidgetTester tester, {
+          SyncLocalRepository Function(CompendiumRepositories)?
+          syncLocalOverride,
+        }) async {
+          final harness = await _pumpSettings(
+            tester,
+            syncLocalOverride: syncLocalOverride,
+          );
           await harness.repos.settings.set(
             'sync_id',
             'alpha-bravo-charlie-delta',
@@ -2720,6 +2743,74 @@ void main() {
           expect(
             find.byKey(const ValueKey('sync-wipe-failed')),
             findsOneWidget,
+          );
+          // The DELETE may have been processed before the response was lost,
+          // so this must not tell the user nothing changed and so invite a
+          // retry of something irreversible that already happened.
+          expect(
+            find.textContaining("couldn't confirm it was deleted"),
+            findsOneWidget,
+          );
+          expect(find.textContaining('Nothing was changed'), findsNothing);
+        });
+
+        testWidgets('a wipe whose local clear fails says the store is gone, '
+            'not that it failed', (tester) async {
+          final repos = await pumpPaired(
+            tester,
+            syncLocalOverride: (repos) => _FailingSyncLocal(repos.db),
+          );
+          await tester.tap(find.byKey(const ValueKey('sync-wipe')));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('sync-wipe-confirm')));
+          await tester.pumpAndSettle();
+
+          expect(wipes, 1, reason: 'the store really was deleted');
+          expect(
+            find.byKey(const ValueKey('sync-wipe-detach-failed')),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-wipe-failed')),
+            findsNothing,
+            reason:
+                'reporting a plain failure would invite a retry of a deletion '
+                'that cannot be undone and has already happened',
+          );
+          expect(
+            find.textContaining('The store was deleted from the server'),
+            findsOneWidget,
+          );
+          // Still attached, and the surface must not pretend otherwise.
+          expect(
+            await repos.settings.get('sync_id'),
+            'alpha-bravo-charlie-delta',
+          );
+        });
+
+        testWidgets('the removal dialog does not claim the device stops '
+            'syncing', (tester) async {
+          await pumpPaired(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-devices')));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('sync-device-remove-peer_a')),
+          );
+          await tester.pumpAndSettle();
+
+          // Deleting a manifest frees the device slot; it does not disconnect
+          // the device, which republishes on its next pass (the coordinator
+          // puts its manifest at the end of every one).
+          expect(
+            find.textContaining(
+              'publish its list again the next time it syncs',
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.textContaining('it stops syncing'),
+            findsNothing,
+            reason: 'removal does not stop the removed device syncing',
           );
         });
       });

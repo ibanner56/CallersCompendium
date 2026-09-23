@@ -409,7 +409,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncDeviceRemoveBody =>
-      'L\'espace cesse de conserver la copie de ce que cet appareil a partagé, et celui-ci arrête de se synchroniser. Rien n\'est supprimé sur cet appareil, et rien n\'est supprimé sur le vôtre. Il pourra se reconnecter à cet espace plus tard avec la phrase de synchronisation.';
+      'L\'espace abandonne la liste de ce que cet appareil a partagé et libère la place qu\'il occupait. Rien n\'est supprimé sur cet appareil, et rien n\'est supprimé sur le vôtre. C\'est prévu pour un appareil vraiment disparu : le retirer ne le déconnecte pas, donc un appareil encore en service republiera sa liste à sa prochaine synchronisation, et n\'importe quel appareil peut se reconnecter avec la phrase de synchronisation.';
 
   @override
   String get settingsSyncDeviceRemoveAction => 'Retirer';
@@ -439,7 +439,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncWipeFailed =>
-      'Impossible de supprimer l\'espace. Rien n\'a été modifié et cet appareil est toujours connecté ; réessayez.';
+      'Impossible de supprimer l\'espace, ou impossible de confirmer sa suppression. Cet appareil est toujours connecté. Vérifiez vos autres appareils avant de réessayer.';
+
+  @override
+  String get settingsSyncWipeDetachFailed =>
+      'L\'espace a été supprimé du serveur, mais cet appareil n\'a pas pu s\'en déconnecter. L\'espace a disparu et ne peut pas être récupéré. Utilisez Déconnecter cet appareil pour terminer.';
 
   @override
   String get settingsSyncMeteredRouted =>

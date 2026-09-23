@@ -82,6 +82,17 @@ final class _Admin {
   );
 }
 
+/// A sync-local repository whose every transaction fails, standing in for the
+/// local clear failing after the server has already destroyed the store.
+final class _FailingSyncLocal extends SyncLocalRepository {
+  _FailingSyncLocal(super.db);
+
+  @override
+  Future<T> transaction<T>(
+    Future<T> Function(SyncLocalTransaction transaction) action,
+  ) => Future<T>.error(StateError('local clear failed'));
+}
+
 /// A coordinator whose pass operation counts calls and never reaches a network.
 SyncCoordinator _coordinator(
   CompendiumRepositories repos,
@@ -1280,6 +1291,12 @@ void main() {
     Future<SyncController> paired(
       _Admin fake, {
       Future<void> Function(Future<void> Function() operation)? runExclusive,
+      SyncLocalRepository? syncLocal,
+
+      /// Notified with the sync ID each time the controller asks for a
+      /// device-management client, so a test can assert on the credential the
+      /// controller *reached for* rather than only on what was finally sent.
+      void Function(String syncId)? onAdminRequested,
     }) async {
       await repos.settings.set(kSyncEnabledKey, true);
       await repos.settings.set(kSyncIdKey, 'correct horse battery staple');
@@ -1290,11 +1307,14 @@ void main() {
       await repos.syncLocal.replaceBaseline(epoch: 'epoch-1');
       final controller = SyncController(
         settings: repos.settings,
-        syncLocal: repos.syncLocal,
+        syncLocal: syncLocal ?? repos.syncLocal,
         coordinator: () => coordinator,
         reconfigure: ({bool startPass = true}) async {},
         runExclusive: runExclusive ?? (operation) => operation(),
-        deviceAdminFactory: (syncId, endpoint) => fake.admin,
+        deviceAdminFactory: (syncId, endpoint) {
+          onAdminRequested?.call(syncId);
+          return fake.admin;
+        },
         classifier: network,
         now: () => clock,
       );
@@ -1528,6 +1548,141 @@ void main() {
 
       expect(controller.lastSuccessAt, isNull);
       expect(await repos.settings.get(kSyncLastSuccessAtKey), isNull);
+    });
+
+    test('a removal queued behind a real detach never uses the old '
+        'credential', () async {
+      // Replaces an earlier version of this guard that called
+      // `controller.load()` from inside its fake boundary. Production detach
+      // never does that, so the old test cleared the cached fields itself and
+      // then checked they were clear — it could not have caught the race it
+      // was named for.
+      //
+      // This mirrors `main.dart`'s `_runSyncWriter` instead: writers run one
+      // at a time and the next is released in the OUTER finally, so it starts
+      // before the previous caller's own `await` resumes. Nothing here calls
+      // `load()`; the only thing that clears the controller's view is the
+      // production code under test.
+      final fake = _Admin();
+      final requestedCredentials = <String>[];
+      Future<void>? tail;
+      final detachHoldsBoundary = Completer<void>();
+      final releaseDetach = Completer<void>();
+      var first = true;
+
+      Future<void> writerBoundary(Future<void> Function() operation) async {
+        final prior = tail;
+        final release = Completer<void>();
+        tail = release.future;
+        try {
+          if (prior != null) await prior;
+          if (first) {
+            first = false;
+            detachHoldsBoundary.complete();
+            await releaseDetach.future;
+          }
+          await operation();
+        } finally {
+          if (!release.isCompleted) release.complete();
+        }
+      }
+
+      final controller = await paired(
+        fake,
+        runExclusive: writerBoundary,
+        onAdminRequested: requestedCredentials.add,
+      );
+
+      final detaching = controller.detach();
+      await detachHoldsBoundary.future;
+      // Queues behind the detach, as a user tapping Remove and then
+      // Disconnect would.
+      final removing = controller.removeDevice('peer_a');
+      await pumpEventQueue();
+      releaseDetach.complete();
+      final outcome = await removing;
+      await detaching;
+
+      expect(
+        requestedCredentials,
+        isEmpty,
+        reason:
+            'the detach committed first, so any credential built here would '
+            'name a store this device has left',
+      );
+      expect(fake.removed, isEmpty);
+      expect(outcome, SyncAdminOutcome.notPaired);
+      expect(controller.paired, isFalse);
+    });
+
+    test('a writer boundary that fails before the operation runs is a '
+        'failure, not notPaired', () async {
+      final fake = _Admin();
+      final controller = await paired(
+        fake,
+        // `_runSyncWriter` can throw before it ever calls the operation: it
+        // disposes the coordinator first, and refuses outright during
+        // shutdown. The device is still attached when that happens.
+        runExclusive: (operation) async =>
+            throw StateError('cannot start a database writer during shutdown'),
+      );
+
+      expect(
+        await controller.wipeStore(),
+        SyncAdminOutcome.failed,
+        reason:
+            'notPaired would tell the caller the attachment had already gone, '
+            'which is untrue and is the class of defect this change removes',
+      );
+      expect(fake.wipes, 0);
+      expect(controller.paired, isTrue);
+    });
+
+    test('a wipe whose local clear fails reports the store gone, never a '
+        'failure', () async {
+      final fake = _Admin();
+      final controller = await paired(
+        fake,
+        syncLocal: _FailingSyncLocal(repos.db),
+      );
+
+      expect(
+        await controller.wipeStore(),
+        SyncAdminOutcome.wipedButStillAttached,
+        reason:
+            'the DELETE succeeded, so the store is irreversibly gone; calling '
+            'this a failure invites a retry of something that already happened',
+      );
+
+      expect(fake.wipes, 1);
+      expect(
+        controller.paired,
+        isTrue,
+        reason: 'the clear failed, so this device really is still attached',
+      );
+      expect(
+        await repos.settings.get(kSyncIdKey),
+        'correct horse battery staple',
+        reason: 'the surface must not claim a phrase was forgotten',
+      );
+    });
+
+    test('a wipe whose boundary fails only after the clear committed is still '
+        'a success', () async {
+      final fake = _Admin();
+      final controller = await paired(
+        fake,
+        // The writer boundary reconfigures after the operation; a failure
+        // there happens once the store is gone and the clear has committed.
+        runExclusive: (operation) async {
+          await operation();
+          throw StateError('post-operation reconfigure failed');
+        },
+      );
+
+      expect(await controller.wipeStore(), SyncAdminOutcome.done);
+      expect(controller.paired, isFalse);
+      expect(await hasRow(kSyncIdKey), isFalse);
     });
 
     test('an unpaired device requests nothing', () async {

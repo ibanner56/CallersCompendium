@@ -398,7 +398,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSyncDeviceRemoveBody =>
-      'The store stops keeping this device\'s copy of what it shared, and it stops syncing. Nothing is deleted from that device, and nothing is deleted from yours. It can connect to this store again later with the sync phrase.';
+      'The store drops this device\'s list of what it shared and frees the place it was using. Nothing is deleted from that device, and nothing is deleted from yours. This is for a device that\'s genuinely gone: removing one doesn\'t disconnect it, so a device that\'s still running will publish its list again the next time it syncs, and any device can reconnect with the sync phrase.';
 
   @override
   String get settingsSyncDeviceRemoveAction => 'Remove';
@@ -428,7 +428,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSyncWipeFailed =>
-      'Couldn\'t delete the store. Nothing was changed and this device is still connected; try again.';
+      'Couldn\'t delete the store, or couldn\'t confirm it was deleted. This device is still connected. Check your other devices before trying again.';
+
+  @override
+  String get settingsSyncWipeDetachFailed =>
+      'The store was deleted from the server, but this device couldn\'t disconnect from it. The store is gone and can\'t be brought back. Use Disconnect this device to finish.';
 
   @override
   String get settingsSyncMeteredRouted =>

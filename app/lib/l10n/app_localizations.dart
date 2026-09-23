@@ -742,10 +742,10 @@ abstract class AppLocalizations {
   /// **'Remove this device?'**
   String get settingsSyncDeviceRemoveTitle;
 
-  /// Body of the remove-device confirmation: what removal does, and that the removed device can pair again later (it is not a ban).
+  /// Body of the remove-device confirmation. Removal deletes that device's manifest: it frees the device slot at once, but does not disconnect or block the device, and a still-running device republishes on its next pass (sync_coordinator.dart, putManifest at the end of every pass). Must not imply the removed device stops syncing.
   ///
   /// In en, this message translates to:
-  /// **'The store stops keeping this device\'s copy of what it shared, and it stops syncing. Nothing is deleted from that device, and nothing is deleted from yours. It can connect to this store again later with the sync phrase.'**
+  /// **'The store drops this device\'s list of what it shared and frees the place it was using. Nothing is deleted from that device, and nothing is deleted from yours. This is for a device that\'s genuinely gone: removing one doesn\'t disconnect it, so a device that\'s still running will publish its list again the next time it syncs, and any device can reconnect with the sync phrase.'**
   String get settingsSyncDeviceRemoveBody;
 
   /// Confirm button of the Device Sync remove-device dialog.
@@ -790,11 +790,17 @@ abstract class AppLocalizations {
   /// **'Delete the store'**
   String get settingsSyncWipeConfirmAction;
 
-  /// Snackbar shown when wiping the Device Sync store fails; the device stays attached.
+  /// Snackbar shown when the wipe did not report success. Deliberately does NOT claim nothing changed: the request may have timed out after the server had already processed the DELETE, so the store's state is unknown here.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t delete the store. Nothing was changed and this device is still connected; try again.'**
+  /// **'Couldn\'t delete the store, or couldn\'t confirm it was deleted. This device is still connected. Check your other devices before trying again.'**
   String get settingsSyncWipeFailed;
+
+  /// Snackbar for SyncAdminOutcome.wipedButStillAttached: the DELETE succeeded but the local clear did not, so the store is irreversibly gone while this device still holds its sync phrase. Must not read as a failure to delete.
+  ///
+  /// In en, this message translates to:
+  /// **'The store was deleted from the server, but this device couldn\'t disconnect from it. The store is gone and can\'t be brought back. Use Disconnect this device to finish.'**
+  String get settingsSyncWipeDetachFailed;
 
   /// Message shown when a manual sync is attempted on a metered connection, pointing at the WiFi-only setting.
   ///

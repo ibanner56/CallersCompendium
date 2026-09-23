@@ -424,9 +424,9 @@
   "@settingsSyncDeviceRemoveTitle": {
     "x-sourceSha256": "7be0603b6c40ef172609549712c82f68208568bd3874ed44e0a822b320b66688"
   },
-  "settingsSyncDeviceRemoveBody": "Lageret beholder ikke længere denne enheds kopi af det, den delte, og enheden holder op med at synkronisere. Der slettes intet fra den enhed, og der slettes intet fra din. Den kan forbinde til dette lager igen senere med synkroniseringssætningen.",
+  "settingsSyncDeviceRemoveBody": "Lageret dropper denne enheds liste over det, den delte, og frigør den plads, den brugte. Der slettes intet fra den enhed, og der slettes intet fra din. Det er til en enhed, der er helt væk: at fjerne en enhed afbryder den ikke, så en enhed, der stadig kører, offentliggør sin liste igen, næste gang den synkroniserer, og enhver enhed kan forbinde igen med synkroniseringssætningen.",
   "@settingsSyncDeviceRemoveBody": {
-    "x-sourceSha256": "86fee0f332c2e9a006ad4321bf68e3fefaf121198bbcc0863d20de19246ac178"
+    "x-sourceSha256": "037bb8e581c8add340fefd329bf63a55076355ef7fa29d4aa8f400b053096b3b"
   },
   "settingsSyncDeviceRemoveAction": "Fjern",
   "@settingsSyncDeviceRemoveAction": {
@@ -456,9 +456,13 @@
   "@settingsSyncWipeConfirmAction": {
     "x-sourceSha256": "295bf35e749e744ea715d9b91ebdeb23045b26e4ad24f4c138e2bca498605461"
   },
-  "settingsSyncWipeFailed": "Lageret kunne ikke slettes. Intet blev ændret, og denne enhed er stadig forbundet; prøv igen.",
+  "settingsSyncWipeFailed": "Lageret kunne ikke slettes, eller det kunne ikke bekræftes, at det blev slettet. Denne enhed er stadig forbundet. Tjek dine andre enheder, før du prøver igen.",
   "@settingsSyncWipeFailed": {
-    "x-sourceSha256": "d92d4e88e22770bf1ee00d53c29f050f8bcf7632dcd8a8f9eaa3ef875d003bce"
+    "x-sourceSha256": "f19f64fc8215946c6367ba858ba3517bd80ec370c67a1bfb67c296e8dab792cd"
+  },
+  "settingsSyncWipeDetachFailed": "Lageret blev slettet fra serveren, men denne enhed kunne ikke afbryde forbindelsen til det. Lageret er væk og kan ikke hentes tilbage. Brug Afbryd forbindelsen på denne enhed for at gøre det færdigt.",
+  "@settingsSyncWipeDetachFailed": {
+    "x-sourceSha256": "ac763fba9e00e2a235a8877b2058b006c655d5e1afb26a7009b2a925794f173f"
   },
   "settingsSyncMeteredRouted": "Du bruger mobildata, og Synkronisér kun på WiFi er slået til. Slå den indstilling fra nedenfor for at synkronisere nu.",
   "@settingsSyncMeteredRouted": {
