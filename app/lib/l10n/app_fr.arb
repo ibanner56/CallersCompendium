@@ -1715,7 +1715,7 @@
   "syncReviewDanceAmbiguityReason": "Les danses actives portent le même titre, mais ont une chorégraphie différente.",
   "@syncReviewDanceAmbiguityReason": {
     "x-sourceSha256": "4adede982e807d2622c96688129b256f04f230f759b6b07585c0ea726a501730"
-  },
+  },
   "syncReviewRenameCollisionReason": "Un autre appareil a renommé cet élément avec un nom qu’un autre élément utilise déjà ici.",
   "@syncReviewRenameCollisionReason": {
     "x-sourceSha256": "e5a9e0b5844f13cb9c4f4a65f511c19a1636659ace7f4ef950335bee2ca54e53"
