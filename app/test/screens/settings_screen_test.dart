@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
@@ -51,6 +52,7 @@ final class _SyncNetwork implements SyncNetworkClassifier {
 final _syncNetwork = _SyncNetwork();
 SyncCoordinator? _syncCoordinator;
 SyncPairingProbeFactory? _pairingProbeFactory;
+SyncDeviceAdminFactory? _deviceAdminFactory;
 
 Future<
   ({
@@ -120,6 +122,7 @@ _pumpSettings(
     coordinator: () => _syncCoordinator,
     reconfigure: () async {},
     pairingProbeFactory: _pairingProbeFactory,
+    deviceAdminFactory: _deviceAdminFactory,
     classifier: _syncNetwork,
   );
   await syncController.load();
@@ -2259,6 +2262,244 @@ void main() {
           expect(find.byKey(const ValueKey('sync-connect')), findsOneWidget);
           expect(await repos.settings.get('sync_enabled'), isTrue);
           expect(find.text('Not connected to a store yet.'), findsOneWidget);
+        });
+      });
+
+      group('device management (spec §3.3, glossary wipe)', () {
+        late List<String> removed;
+        late int wipes;
+        late SyncResponseKind wipeKind;
+
+        SyncHttpResponse response(SyncResponseKind kind, {String? body}) =>
+            SyncHttpResponse(
+              statusCode: kind == SyncResponseKind.success ? 204 : 500,
+              kind: kind,
+              headers: const {},
+              body: body == null ? const [] : utf8.encode(body),
+            );
+
+        setUp(() {
+          removed = [];
+          wipes = 0;
+          wipeKind = SyncResponseKind.success;
+          _syncNetwork.kind = SyncNetworkKind.unmetered;
+          _syncCoordinator = null;
+          _pairingProbeFactory = null;
+          // The server reports this device too; the surface must not.
+          _deviceAdminFactory = (syncId, endpoint) => SyncDeviceAdmin(
+            getStore: ({required previouslyUsed}) async => SyncStoreResult(
+              response: response(
+                SyncResponseKind.success,
+                body: jsonEncode({
+                  'epoch': 'epoch-1',
+                  'devices': ['this_device', 'peer_a'],
+                }),
+              ),
+            ),
+            deleteManifest: (deviceId) async {
+              removed.add(deviceId);
+              return response(SyncResponseKind.success);
+            },
+            deleteStore: () async {
+              wipes++;
+              return response(wipeKind);
+            },
+          );
+        });
+
+        tearDown(() => _deviceAdminFactory = null);
+
+        Future<CompendiumRepositories> pumpPaired(WidgetTester tester) async {
+          final harness = await _pumpSettings(tester);
+          await harness.repos.settings.set(
+            'sync_id',
+            'alpha-bravo-charlie-delta',
+          );
+          await harness.repos.settings.set(
+            'sync_endpoint',
+            'https://sync.example.test/',
+          );
+          await harness.repos.settings.set('sync_device_id', 'this_device');
+          final controller = SyncScope.of(
+            tester.element(find.byType(SettingsScreen)),
+          );
+          await controller.setEnabled(true);
+          await controller.load();
+          await openExperimental(tester);
+          return harness.repos;
+        }
+
+        testWidgets('neither action is offered until a store is connected', (
+          tester,
+        ) async {
+          await _pumpSettings(tester);
+          await openExperimental(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-enabled-toggle')));
+          await tester.pumpAndSettle();
+
+          expect(find.byKey(const ValueKey('sync-devices')), findsNothing);
+          expect(find.byKey(const ValueKey('sync-wipe')), findsNothing);
+        });
+
+        testWidgets('both are disabled while a pass is running', (
+          tester,
+        ) async {
+          final gate = Completer<void>();
+          final repos = await pumpPaired(tester);
+          _syncCoordinator = SyncCoordinator(
+            syncId: 'configured',
+            deviceId: 'this_device',
+            store: CompendiumSyncCoordinatorStore(repos),
+            transport: NoopSyncCoordinatorTransport(),
+            passOperation: ({initialStore}) async {
+              await gate.future;
+              return const SyncPassResult(SyncPassStatus.completed);
+            },
+          );
+          addTearDown(_syncCoordinator!.dispose);
+
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pump();
+
+          for (final key in ['sync-devices', 'sync-wipe']) {
+            expect(
+              tester.widget<ListTile>(find.byKey(ValueKey(key))).enabled,
+              isFalse,
+              reason: '$key must not be tappable mid-pass',
+            );
+          }
+
+          gate.complete();
+          await tester.pumpAndSettle();
+        });
+
+        testWidgets('the list shows the other devices and never this one', (
+          tester,
+        ) async {
+          await pumpPaired(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-devices')));
+          await tester.pumpAndSettle();
+
+          expect(
+            find.byKey(const ValueKey('sync-device-peer_a')),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-device-this_device')),
+            findsNothing,
+            reason: "the caller's own id is in `devices` and must be excluded",
+          );
+          expect(
+            find.byKey(const ValueKey('sync-devices-caution')),
+            findsOneWidget,
+          );
+        });
+
+        testWidgets('cancelling a removal requests nothing', (tester) async {
+          await pumpPaired(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-devices')));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('sync-device-remove-peer_a')),
+          );
+          await tester.pumpAndSettle();
+          expect(
+            find.byKey(const ValueKey('sync-device-remove-dialog')),
+            findsOneWidget,
+          );
+
+          await tester.tap(
+            find.byKey(const ValueKey('sync-device-remove-cancel')),
+          );
+          await tester.pumpAndSettle();
+
+          expect(removed, isEmpty);
+          expect(
+            find.byKey(const ValueKey('sync-device-peer_a')),
+            findsOneWidget,
+          );
+        });
+
+        testWidgets('confirming a removal deletes exactly that peer', (
+          tester,
+        ) async {
+          await pumpPaired(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-devices')));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('sync-device-remove-peer_a')),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('sync-device-remove-confirm')),
+          );
+          await tester.pumpAndSettle();
+
+          expect(removed, ['peer_a']);
+        });
+
+        testWidgets('cancelling the wipe sends nothing and stays connected', (
+          tester,
+        ) async {
+          final repos = await pumpPaired(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-wipe')));
+          await tester.pumpAndSettle();
+          expect(
+            find.byKey(const ValueKey('sync-wipe-dialog')),
+            findsOneWidget,
+          );
+
+          await tester.tap(find.byKey(const ValueKey('sync-wipe-cancel')));
+          await tester.pumpAndSettle();
+
+          expect(wipes, 0);
+          expect(
+            await repos.settings.get('sync_id'),
+            'alpha-bravo-charlie-delta',
+          );
+          expect(find.byKey(const ValueKey('sync-wipe')), findsOneWidget);
+        });
+
+        testWidgets('confirming the wipe deletes the store and disconnects '
+            'this device too', (tester) async {
+          final repos = await pumpPaired(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-wipe')));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('sync-wipe-confirm')));
+          await tester.pumpAndSettle();
+
+          expect(wipes, 1);
+          expect(
+            await repos.settings.contains('sync_id'),
+            isFalse,
+            reason:
+                'a device left attached would be offered the §6.3 replacement '
+                'dialog for the store it just destroyed',
+          );
+          expect(find.byKey(const ValueKey('sync-connect')), findsOneWidget);
+          expect(find.byKey(const ValueKey('sync-wipe')), findsNothing);
+          expect(await repos.settings.get('sync_enabled'), isTrue);
+        });
+
+        testWidgets('a wipe the server refuses says so and stays connected', (
+          tester,
+        ) async {
+          wipeKind = SyncResponseKind.serverError;
+          final repos = await pumpPaired(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-wipe')));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('sync-wipe-confirm')));
+          await tester.pumpAndSettle();
+
+          expect(wipes, 1);
+          expect(
+            await repos.settings.get('sync_id'),
+            'alpha-bravo-charlie-delta',
+          );
+          expect(
+            find.byKey(const ValueKey('sync-wipe-failed')),
+            findsOneWidget,
+          );
         });
       });
 
