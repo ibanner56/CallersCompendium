@@ -53,9 +53,10 @@ class CustomFieldDefRepository {
   /// are wrong for a peer's: it does not adopt a tombstoned row's identity
   /// (identity is reconciliation's decision, and silently relocating the
   /// record would store it under an id the peer never named), it does not
-  /// substitute the local name when another row holds the incoming one
-  /// (§6.7 refuses a record rather than storing an altered copy), and it does
-  /// not seed `existence_at`, which the envelope owns.
+  /// take §4.1's collision carve-out when another row holds the incoming value
+  /// (§6.7 refuses the record to reconciliation rather than storing an altered
+  /// copy — or, since #1348, an un-normalised one), and it does not seed
+  /// `existence_at`, which the envelope owns.
   Future<void> writeFromSync(CustomFieldDef def, {DateTime? at}) async {
     final _ = await _write(def, at: at, fromSync: true, localUserEdit: false);
   }

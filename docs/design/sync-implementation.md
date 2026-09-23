@@ -307,8 +307,10 @@ and program content — which is precisely what the editor-draft keys held until
   `derivedRebuildRequiredKey`, since the repair is performed by the generic
   pre-check that reads it and not by the sweep. Both writers of
   `normalisation_skips` MUST take their `(table, column)` spelling from
-  **constants declared once and imported at all four sites**, which must be
-  created — the registry's identifiers are inline map keys today; and a
+  **constants declared once and imported at all four sites** — built in #1348 as
+  `NormalisationSkipColumn` and the `naturalKeyNormalisationColumns` list in
+  `storage/database.dart`, which the one-time pass's grouping set is now derived
+  from rather than re-typed; and a
   **structural** ratchet asserting that write paths route through the choke
   point — **written here and owned by W17 thereafter** (see the parallelism
   hazards): it asserts a standing property over every write path built after

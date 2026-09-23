@@ -1238,6 +1238,12 @@ void main() {
       expect(id, 'r1');
       expect(await storedText('choreographers', 'name', 'r1'), 'café');
       expect(await storedText('choreographers', 'name', 'r2'), 'café');
+      // Whole-table equality, not `contains`: the carve-out must record the row
+      // under the SAME `(table, column)` the pass used, and §4.1 requires one
+      // shared source for exactly that. A carve-out spelling it its own way
+      // (`'Name'`) adds a third entry here and changes nothing else — retry
+      // discharges the mis-spelled entry as out of scope and the row still
+      // normalises, so a test asserting only the row's value passes.
       expect(await skips(), [
         'choreographers/name/r1',
         'choreographers/name/r2',
@@ -1279,10 +1285,13 @@ void main() {
 
       await CompendiumRepositories(db, contraTaxonomy).ensureMigrated();
 
-      // Only reachable if the carve-out and the pass spell `(table, column)`
-      // identically — §4.1 requires one shared source for exactly this, and a
-      // mismatch discharges the entry while leaving the row decomposed, with
-      // nothing raised anywhere.
+      // A carve-out does not make the entry permanent: the bounded retry still
+      // owns it, and discharges it once the target is free. Deliberately NOT
+      // the guard on the shared `(table, column)` spelling — the pass has
+      // already recorded this row correctly by the time the carve-out runs, so
+      // a mis-spelled carve-out entry is discharged beside the correct one and
+      // this test stays green. The whole-table equality above is what catches
+      // it.
       expect(await storedText('choreographers', 'name', 'r1'), 'café');
       expect(await skips(), isEmpty);
     });
