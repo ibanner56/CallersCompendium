@@ -5,6 +5,7 @@ import 'package:compendium_app/src/data/seed_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/test_repositories.dart';
+import 'figures_for_test.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -112,9 +113,9 @@ void main() {
     expect(dance.title, 'The Baby Rose');
     expect(dance.formation.shape, FormationShape.dupleImproper);
     expect(dance.provenance?.source, ProvenanceSource.contradb);
-    expect(dance.figures, hasLength(6));
-    expect(dance.figures.first.move, 'swing');
-    expect(dance.figures.last.progression, isTrue);
+    expect(figuresOf(dance), hasLength(6));
+    expect(figuresOf(dance).first.move, 'swing');
+    expect(figuresOf(dance).last.progression, isTrue);
   });
 }
 

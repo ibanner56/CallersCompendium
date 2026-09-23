@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 import 'package:compendium_core/testing.dart';
+import '../figures_for_test.dart';
 
 /// A comprehensive archive exercising every entity type and many edge cases
 /// (non-standard phrase structure, custom-only figures, metadata-only dances,
@@ -296,14 +297,14 @@ void main() {
       expect(d1.formation.detail, 'double progression');
       expect(d1.progression, Progression.double);
       expect(d1.phraseStructure.raw, '6*8*2');
-      expect(d1.figures, hasLength(2));
-      expect(d1.figures[1].params['travel'], 1.5);
-      expect(d1.figures[1].progression, isTrue);
+      expect(figuresOf(d1), hasLength(2));
+      expect(figuresOf(d1)[1].params['travel'], 1.5);
+      expect(figuresOf(d1)[1].progression, isTrue);
 
       // The customOrigin discriminator survives the archive/.ccshare path.
       final d2 = result.archive.dances.firstWhere((d) => d.id == 'd2');
-      expect(d2.figures[0].customOrigin, CustomOrigin.userEntered);
-      expect(d2.figures[1].customOrigin, CustomOrigin.importGap);
+      expect(figuresOf(d2)[0].customOrigin, CustomOrigin.userEntered);
+      expect(figuresOf(d2)[1].customOrigin, CustomOrigin.importGap);
       expect(d1.difficultyLevelId, DifficultyLevel.intermediateId);
       expect(d1.rating, 5);
       expect(d1.tunes, hasLength(2));
@@ -1370,7 +1371,7 @@ void main() {
       expect(d.callingNotes, 'line1\ndanger');
       expect(d.tunes, ['Tune']);
 
-      final f = d.figures.single;
+      final f = figuresOf(d).single;
       expect(f.params['text'], 'balance and swing');
       expect(f.note, 'note');
       // Non-string params are left untouched.
@@ -1488,7 +1489,7 @@ void main() {
       };
       final result = decodeArchive(jsonEncode(archive));
       expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
-      final figures = result.archive.dances.single.figures;
+      final figures = figuresOf(result.archive.dances.single);
       // Control/bidi stripped from the override, exactly like `note`.
       expect(figures[0].walkthroughOverride, 'Balance and swing.');
       expect(figures[0].wordingOverride, 'Robins pass right.');

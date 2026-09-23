@@ -15,6 +15,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 import '../support/test_repositories.dart';
+import '../figures_for_test.dart';
 
 /// A minimal Caller's Box per-dance JSON payload (trimmed to the fields
 /// [CallersBoxAdapter] reads), used by the load/import policy tests.
@@ -608,7 +609,7 @@ void main() {
         );
 
         expect(preview.detail.dance.title, 'Cabin Contra');
-        expect(preview.detail.dance.figures, isEmpty);
+        expect(figuresOf(preview.detail.dance), isEmpty);
         expect(
           preview.plan.draft.issues.map((i) => i.code),
           contains('callersbox_search_tier'),

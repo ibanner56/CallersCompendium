@@ -4,6 +4,7 @@ import 'package:compendium_core/testing.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/test_repositories.dart';
+import '../figures_for_test.dart';
 
 void main() {
   test(
@@ -54,7 +55,7 @@ void main() {
       expect(saved.rating, original.rating);
       expect(saved.formation, incoming.formation);
       expect(saved.progression, incoming.progression);
-      expect(saved.figures, incoming.figures);
+      expect(figuresOf(saved), figuresOf(incoming));
       expect(saved.updatedAt, DateTime.utc(2026, 2));
     },
   );

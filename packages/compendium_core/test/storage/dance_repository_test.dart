@@ -3,6 +3,7 @@ import 'package:test/test.dart';
 
 import 'fixtures.dart';
 import 'test_database.dart';
+import '../figures_for_test.dart';
 
 /// Reads the derived `dance_figures.params_json` string for the figure at
 /// [idx] of [danceId]. Used to assert the stored JSON has not drifted from the
@@ -82,7 +83,7 @@ void main() {
         // move + params verbatim.
         final loaded = await dances.getById(dance.id);
         expect(loaded, dance, reason: 'whole dance round-trips by value');
-        final reloadedUnknown = loaded!.figures[1];
+        final reloadedUnknown = figuresOf(loaded!)[1];
         expect(reloadedUnknown.move, 'a_move_from_the_future');
         expect(reloadedUnknown.params, {
           'beats': 12,
@@ -102,8 +103,8 @@ void main() {
           loaded.copyWith(updatedAt: DateTime.utc(2026, 3, 1)),
         );
         final resaved = await dances.getById(dance.id);
-        expect(resaved!.figures[1].move, 'a_move_from_the_future');
-        expect(resaved.figures[1].params, {
+        expect(figuresOf(resaved!)[1].move, 'a_move_from_the_future');
+        expect(figuresOf(resaved)[1].params, {
           'beats': 12,
           'flavor': 'spicy',
           'who': 'partners',
@@ -132,9 +133,9 @@ void main() {
 
       final loaded = await dances.getById(dance.id);
       expect(loaded, dance, reason: 'whole dance round-trips by value');
-      expect(loaded!.figures[1].customOrigin, CustomOrigin.importGap);
+      expect(figuresOf(loaded!)[1].customOrigin, CustomOrigin.importGap);
       // A user-entered figure stays userEntered.
-      expect(loaded.figures[0].customOrigin, CustomOrigin.userEntered);
+      expect(figuresOf(loaded)[0].customOrigin, CustomOrigin.userEntered);
 
       // Simulate a legacy row whose figures_json predates the discriminator:
       // it must read back as userEntered, never mislabeled as importGap.
@@ -145,7 +146,7 @@ void main() {
         [legacyJson, dance.id],
       );
       final legacy = await dances.getById(dance.id);
-      expect(legacy!.figures.single.customOrigin, CustomOrigin.userEntered);
+      expect(figuresOf(legacy!).single.customOrigin, CustomOrigin.userEntered);
     });
 
     test('round-trips a rating and its cleared (NULL) state', () async {
@@ -356,7 +357,7 @@ void main() {
 
       final loaded = await dances.getById(dance.id);
       expect(loaded!.tagIds, ['t2']);
-      expect(loaded.figures, [Figure(move: 'do_si_do')]);
+      expect(figuresOf(loaded), [Figure(move: 'do_si_do')]);
     });
   });
 

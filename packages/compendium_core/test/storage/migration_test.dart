@@ -47,6 +47,7 @@ import 'package:test/test.dart';
 
 import '../test_package_root.dart';
 import 'generated/schema.dart';
+import '../figures_for_test.dart';
 
 void main() {
   test('v35 review rows retain legacy null local hashes at v36', () async {
@@ -535,13 +536,13 @@ void main() {
             )
             .getSingle();
         expect(completed.read<String>('value_json'), '"done"');
-        expect(dance.figures.first.params['who'], ParamVocab.unspecified);
+        expect(figuresOf(dance).first.params['who'], ParamVocab.unspecified);
         expect(
-          dance.figures[1].subFigures.first.params['who'],
+          figuresOf(dance)[1].subFigures.first.params['who'],
           ParamVocab.unspecified,
         );
-        expect(dance.figures[2].params['who'], 'ones');
-        expect(dance.figures[2].assumedSubject, isTrue);
+        expect(figuresOf(dance)[2].params['who'], 'ones');
+        expect(figuresOf(dance)[2].assumedSubject, isTrue);
       },
     );
   });
@@ -693,14 +694,14 @@ void main() {
       await repos.ensureMigrated();
 
       final dance = (await repos.dances.getById('v35-normalization'))!;
-      expect(dance.figures[0].move, 'pull_by');
-      expect(dance.figures[0].params, {'who': 'partners', 'hand': 'left'});
-      final circle = dance.figures[1].subFigures.firstWhere(
-        (figure) => figure.move == 'circle',
-      );
+      expect(figuresOf(dance)[0].move, 'pull_by');
+      expect(figuresOf(dance)[0].params, {'who': 'partners', 'hand': 'left'});
+      final circle = figuresOf(
+        dance,
+      )[1].subFigures.firstWhere((figure) => figure.move == 'circle');
       expect(circle.params['direction'], 'left');
       expect(circle.params.containsKey('turn'), isFalse);
-      final modifier = dance.figures[2];
+      final modifier = figuresOf(dance)[2];
       expect(modifier.subFigures.first.move, 'pull_by');
       final nestedCircle = modifier.subFigures[1].subFigures.first;
       expect(nestedCircle.params['direction'], 'left');
@@ -750,8 +751,8 @@ void main() {
       await repos.ensureMigrated();
 
       final dance = (await repos.dances.getById('v35-absent-marker'))!;
-      expect(dance.figures.first.move, 'pull_by');
-      expect(dance.figures[1].params, {'direction': 'left'});
+      expect(figuresOf(dance).first.move, 'pull_by');
+      expect(figuresOf(dance)[1].params, {'direction': 'left'});
       final marker = await db
           .customSelect(
             'SELECT value_json FROM settings WHERE key = ? AND deleted_at IS NULL',
@@ -2290,12 +2291,12 @@ void main() {
         final repaired = await repos.dances.getById(affected.id);
         expect(repaired!.callingNotes, affected.callingNotes);
         expect(repaired.rating, affected.rating);
-        expect(repaired.figures[0].params, {
+        expect(figuresOf(repaired)[0].params, {
           'who': 'role2s',
           'whom': 'partners',
           'beats': 4,
         });
-        final repairedMeanwhile = repaired.figures[1];
+        final repairedMeanwhile = figuresOf(repaired)[1];
         expect(repairedMeanwhile.params['preserve'], 'container metadata');
         expect(repairedMeanwhile.subFigures[0].params, {
           'who': 'role1s',
@@ -2314,15 +2315,17 @@ void main() {
         ]) {
           final unchanged = await repos.dances.getById(id);
           expect(
-            unchanged!.figures,
-            ([
-              nonCallersBox,
-              absentProvenance,
-              alreadyCorrect,
-              divergentNote,
-              unsupportedRelationship,
-              assumedSubject,
-            ].firstWhere((dance) => dance.id == id)).figures,
+            figuresOf(unchanged!),
+            figuresOf(
+              ([
+                nonCallersBox,
+                absentProvenance,
+                alreadyCorrect,
+                divergentNote,
+                unsupportedRelationship,
+                assumedSubject,
+              ].firstWhere((dance) => dance.id == id)),
+            ),
             reason: '$id must not match the legacy repair predicate',
           );
         }
@@ -2330,7 +2333,7 @@ void main() {
           softDeleted.id,
           includeDeleted: true,
         );
-        expect(deleted!.figures.single.params, {
+        expect(figuresOf(deleted!).single.params, {
           'who': 'role2s',
           'whom': 'neighbors',
         });

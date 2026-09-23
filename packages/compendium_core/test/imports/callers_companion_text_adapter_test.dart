@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
+import '../figures_for_test.dart';
 
 /// Fixtures + tests for [CallersCompanionTextAdapter]: Caller's Companion's
 /// "copy formatted dance" clipboard/text export as a per-dance import source.
@@ -84,22 +85,22 @@ void main() {
       // Figures carry their beats + section; recognised moves now structure,
       // and the shared parser dialect-scrubs the text (design §2 fallback still
       // applies to anything unrecognised, e.g. the closing hey).
-      expect(dance.figures, hasLength(6));
-      expect(dance.figures.where((f) => f.isCustom), hasLength(1));
-      expect(dance.figures.first.beats, 8);
+      expect(figuresOf(dance), hasLength(6));
+      expect(figuresOf(dance).where((f) => f.isCustom), hasLength(1));
+      expect(figuresOf(dance).first.beats, 8);
       // "Neighbor balance and swing" → structured swing (balance prefix).
-      expect(dance.figures.first.move, 'swing');
-      expect(dance.figures.first.params['who'], 'neighbors');
-      expect(dance.figures.first.params['prefix'], 'balance');
-      final swing = dance.figures[2];
+      expect(figuresOf(dance).first.move, 'swing');
+      expect(figuresOf(dance).first.params['who'], 'neighbors');
+      expect(figuresOf(dance).first.params['prefix'], 'balance');
+      final swing = figuresOf(dance)[2];
       expect(swing.beats, 16);
       expect(swing.move, 'swing');
       expect(swing.params['who'], 'partners');
       // "Hey for four" is out of the recognised cut → custom fallback. The
       // section label is no longer prefixed (it derives from beats), so the
       // stored text is the clean scrubbed line.
-      expect(dance.figures.last.isCustom, isTrue);
-      expect(dance.figures.last.params['text'], 'Hey for four');
+      expect(figuresOf(dance).last.isCustom, isTrue);
+      expect(figuresOf(dance).last.params['text'], 'Hey for four');
     });
 
     test('quality reflects the mix of structured + custom figures', () async {
@@ -158,11 +159,11 @@ A1 Balance the ring
    (8) Petronella turn
 ''';
       final draft = (await _importAll(adapter, text)).single;
-      expect(draft.dance.figures, hasLength(2));
+      expect(figuresOf(draft.dance), hasLength(2));
       // "Balance the ring" → structured balance_the_ring, no beats prefix → 0.
-      expect(draft.dance.figures[0].beats, 0);
-      expect(draft.dance.figures[0].move, 'balance_the_ring');
-      expect(draft.dance.figures[1].beats, 8);
+      expect(figuresOf(draft.dance)[0].beats, 0);
+      expect(figuresOf(draft.dance)[0].move, 'balance_the_ring');
+      expect(figuresOf(draft.dance)[1].beats, 8);
     });
 
     test(
@@ -179,7 +180,7 @@ A1 Balance the ring
           draft.issues.where((i) => i.code == 'cc_missing_title'),
           hasLength(1),
         );
-        expect(draft.dance.figures, hasLength(2));
+        expect(figuresOf(draft.dance), hasLength(2));
       },
     );
 

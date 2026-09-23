@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import '../figures_for_test.dart';
 
 /// Unit coverage for issue #560: robust CC beat-prefix parsing. Exercises
 /// [splitCcBeatPrefix] directly (beats + residual text) across single, compound,
@@ -102,14 +103,16 @@ void main() {
   });
 
   group('compound-beat allocation (mapCallersCompanionDance)', () {
-    List<Figure> figuresFor(String line) => mapCallersCompanionDance(
-      CcDanceRecord(
-        name: 'D',
-        body: [
-          CcBodySection(label: 'A1', lines: [line]),
-        ],
-      ),
-    ).dance.figures;
+    List<Figure> figuresFor(String line) => figuresOf(
+      mapCallersCompanionDance(
+        CcDanceRecord(
+          name: 'D',
+          body: [
+            CcBodySection(label: 'A1', lines: [line]),
+          ],
+        ),
+      ).dance,
+    );
 
     test('a compound line that structures as ONE move carries the total', () {
       // Balance-and-swing is a single swing (balance is a prefix param), so the

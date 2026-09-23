@@ -32,6 +32,7 @@ import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import '../figures_for_test.dart';
 
 Map<String, Object?> _dance(List<Map<String, Object?>> phrases) => {
   'ID': '1',
@@ -51,7 +52,7 @@ Future<List<Figure>> _importTcb(List<String> lines) async {
   );
   final discovered = await adapter.discover(ImportRequest(payload: payload));
   final raw = await adapter.fetch(discovered.single);
-  return adapter.parse(raw).dance.figures;
+  return figuresOf(adapter.parse(raw).dance);
 }
 
 Future<Figure> _importTcbLine(String line) async =>

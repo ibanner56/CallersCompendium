@@ -6,6 +6,7 @@ import 'package:test/test.dart';
 
 import 'baby_rose_seed_generator.dart';
 import '../test_package_root.dart';
+import '../figures_for_test.dart';
 
 void main() {
   group('Baby Rose seed asset', () {
@@ -79,7 +80,7 @@ void main() {
       //   B1 (16) partners balance & swing
       //   B2 (8)  ladles chain
       //   B2 (8)  star left 4 places to new neighbors  (progression)
-      final figures = dance.figures;
+      final figures = figuresOf(dance);
       expect(figures, hasLength(6));
 
       expect(figures[0].move, 'swing');

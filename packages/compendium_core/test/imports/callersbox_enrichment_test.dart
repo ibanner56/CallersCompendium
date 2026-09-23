@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import '../figures_for_test.dart';
 
 /// Coverage for the CallersBox/TCB figure-recognition enrichment (issue #553):
 /// the additive Gap-1 recognizers (roll away, cross trails, figure eight, form
@@ -389,9 +390,9 @@ void main() {
               '[{"name":"A1","figures":["(1-8) Neighbor swing","(9-16) Partner swing"]}]}',
         ),
       );
-      final swings = figs.dance.figures
-          .where((f) => f.move == 'swing')
-          .toList();
+      final swings = figuresOf(
+        figs.dance,
+      ).where((f) => f.move == 'swing').toList();
       expect(swings, hasLength(2));
       expect(swings[0].params['beats'], 8);
       expect(swings[1].params['beats'], 8);
@@ -419,16 +420,16 @@ void main() {
         '(6) Go up the hall',
         '(2) Bend the line',
       ]);
-      expect(d.figures.map((f) => f.move), ['down_the_hall', 'up_the_hall']);
-      expect(d.figures[0].params['ender'], 'turnCouple');
-      expect(d.figures[0].params['beats'], 8); // 6 + 2 summed
-      expect(d.figures[1].params['ender'], 'bendTheLine');
+      expect(figuresOf(d).map((f) => f.move), ['down_the_hall', 'up_the_hall']);
+      expect(figuresOf(d)[0].params['ender'], 'turnCouple');
+      expect(figuresOf(d)[0].params['beats'], 8); // 6 + 2 summed
+      expect(figuresOf(d)[1].params['ender'], 'bendTheLine');
     });
 
     test('standalone turn as couples structures without a hall', () {
       final d = importA2(['(8) Neighbor turn as couples']);
-      expect(d.figures.single.move, 'turn_as_couples');
-      expect(d.figures.single.params['who'], 'neighbors');
+      expect(figuresOf(d).single.move, 'turn_as_couples');
+      expect(figuresOf(d).single.params['who'], 'neighbors');
     });
   });
 }

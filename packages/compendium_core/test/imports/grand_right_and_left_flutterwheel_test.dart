@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import '../figures_for_test.dart';
 
 /// Issue #295 — **grand right and left** and **flutterwheel** are compound
 /// SHORTHANDS, not taxonomy moves. Both decompose into moves the taxonomy
@@ -35,7 +36,7 @@ Future<StructuredDraft> _import(List<String> figures) async {
 }
 
 Future<List<Figure>> _figures(List<String> lines) async =>
-    (await _import(lines)).dance.figures;
+    figuresOf((await _import(lines)).dance);
 
 /// Parses ONE figure line the way the CallersBox adapter does.
 List<Figure> _line(String text, {int beats = 0}) =>
@@ -809,9 +810,9 @@ void main() {
     });
 
     test('both grand-right-and-lefts decompose to 2 pull-bys each', () {
-      final pullBys = draft.dance.figures
-          .where((f) => f.move == 'pull_by')
-          .toList();
+      final pullBys = figuresOf(
+        draft.dance,
+      ).where((f) => f.move == 'pull_by').toList();
       expect(pullBys.length, 4);
       expect(pullBys.map((f) => f.params['who']), [
         'neighbors',
@@ -829,12 +830,12 @@ void main() {
     });
 
     test('the dance still totals 64 beats (no drift from the fan-out)', () {
-      expect(_totalBeats(draft.dance.figures), 64);
+      expect(_totalBeats(figuresOf(draft.dance)), 64);
     });
 
     test('section placement is unchanged (A1/A2/B1/B2 all land on 16)', () {
       final sections = deriveSections(
-        draft.dance.figures,
+        figuresOf(draft.dance),
         PhraseStructure.standard,
       );
       final byLabel = <String, int>{};
@@ -855,8 +856,8 @@ void main() {
     });
 
     test('parse never fails and the draft is well structured', () {
-      expect(draft.dance.figures, isNotEmpty);
-      expect(draft.dance.figures.where((f) => f.isCustom), isEmpty);
+      expect(figuresOf(draft.dance), isNotEmpty);
+      expect(figuresOf(draft.dance).where((f) => f.isCustom), isEmpty);
       expect(draft.quality.score, greaterThan(0.5));
     });
   });

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
+import '../figures_for_test.dart';
 
 // ---------------------------------------------------------------------------
 // Test helpers for end-to-end adapter tests.
@@ -318,7 +319,7 @@ void main() {
             ),
           ),
         );
-        final a1 = draft.dance.figures;
+        final a1 = figuresOf(draft.dance);
         // The two lines must fold into a single figure.
         expect(a1, hasLength(1), reason: 'balance + box should fold into one');
         final merged = a1.single;
@@ -343,7 +344,7 @@ void main() {
             ),
           ),
         );
-        final merged = draft.dance.figures.single;
+        final merged = figuresOf(draft.dance).single;
         expect(merged.move, 'swat_the_flea');
         expect(merged.params['balance'], true);
         expect(merged.params['hand'], 'left');
@@ -362,9 +363,9 @@ void main() {
             ),
           ),
         );
-        final merged = draft.dance.figures
-            .where((f) => f.move == 'petronella')
-            .single;
+        final merged = figuresOf(
+          draft.dance,
+        ).where((f) => f.move == 'petronella').single;
         expect(merged.params['balance'], true);
         expect(
           merged.params.containsKey('hand'),

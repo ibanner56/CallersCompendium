@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import '../figures_for_test.dart';
 
 /// Fixtures + tests for [ContraDbHtmlAdapter].
 ///
@@ -377,7 +378,7 @@ void main() {
       'recognised rows structure; the rest stay custom with beats',
       () async {
         final draft = await _importOne(_page(_rendezvousBody));
-        final figures = draft.dance.figures;
+        final figures = figuresOf(draft.dance);
         expect(figures, hasLength(6));
         // "neighbors balance & swing" → structured swing (balance prefix).
         expect(figures[0].move, 'swing');
@@ -393,7 +394,7 @@ void main() {
 
     test('captures <u> and ⁋ progression markers on the figure', () async {
       final draft = await _importOne(_page(_rendezvousBody));
-      final figures = draft.dance.figures;
+      final figures = figuresOf(draft.dance);
       // Row 3: "… or <u>swing</u> to partner" — progression flag set, tag
       // unwrapped. The do si do now structures, with the trailing alternative
       // preserved verbatim as its note.
@@ -413,14 +414,14 @@ void main() {
       final draft = await _importOne(_page(_rendezvousBody));
       // "ladles" -> "role2s" (Row 3 continuation), carried onto the structured
       // do si do's subject.
-      expect(draft.dance.figures[2].move, 'do_si_do');
-      expect(draft.dance.figures[2].params['who'], 'role2s');
+      expect(figuresOf(draft.dance)[2].move, 'do_si_do');
+      expect(figuresOf(draft.dance)[2].params['who'], 'role2s');
     });
 
     test('repro dance 2254: "balance & Rory O\'More … (in long waves)" '
         'structures with the paren note (#578)', () async {
       final draft = await _importOne(_page(_rory2254Body));
-      final figures = draft.dance.figures;
+      final figures = figuresOf(draft.dance);
       expect(figures, hasLength(2));
       for (final f in figures) {
         expect(
@@ -449,7 +450,7 @@ void main() {
             '</tr></table>',
           ),
         );
-        final figs = draft.dance.figures;
+        final figs = figuresOf(draft.dance);
         expect(figs, hasLength(2));
         expect(figs[0].move, 'form_short_waves');
         expect(figs[0].params['center'], 'role2s');
@@ -473,8 +474,8 @@ void main() {
           '</tr></table>',
         ),
       );
-      expect(draft.dance.figures, hasLength(1));
-      expect(draft.dance.figures.single.move, 'form_short_waves');
+      expect(figuresOf(draft.dance), hasLength(1));
+      expect(figuresOf(draft.dance).single.move, 'form_short_waves');
     });
 
     test(
@@ -491,7 +492,7 @@ void main() {
         );
         // "gypsy" is scrubbed to "shoulder round", which the parser then
         // recognises as a structured shoulder_round with the neighbor role.
-        final fig = draft.dance.figures.single;
+        final fig = figuresOf(draft.dance).single;
         expect(fig.move, 'shoulder_round');
         expect(fig.params['who'], 'neighbors');
       },
@@ -506,7 +507,7 @@ void main() {
           '<td><div class="show-figure">balance</div></td></tr></table>',
         ),
       );
-      expect(_beats(draft.dance.figures.single), 0);
+      expect(_beats(figuresOf(draft.dance).single), 0);
       expect(
         draft.issues.any((i) => i.code == 'contradb_html_beats_unreadable'),
         isTrue,
@@ -520,7 +521,7 @@ void main() {
         _page('<h1 class="dance-show-title">Stub Dance</h1>'),
       );
       expect(draft.dance.title, 'Stub Dance');
-      expect(draft.dance.figures, isEmpty);
+      expect(figuresOf(draft.dance), isEmpty);
       expect(
         draft.issues.any((i) => i.code == 'contradb_html_no_figures_table'),
         isTrue,
@@ -542,9 +543,9 @@ void main() {
       );
       // Only the one well-formed, non-blank figure survives; "circle left" is
       // a recognised move → structured (the label/beats live on the figure).
-      expect(draft.dance.figures, hasLength(1));
-      expect(draft.dance.figures.single.move, 'circle');
-      expect(draft.dance.figures.single.params['direction'], 'left');
+      expect(figuresOf(draft.dance), hasLength(1));
+      expect(figuresOf(draft.dance).single.move, 'circle');
+      expect(figuresOf(draft.dance).single.params['direction'], 'left');
     });
 
     test('parse throws only when the payload is not a dance page', () {
@@ -571,7 +572,7 @@ void main() {
           (16, 'partners balance &amp; swing'),
         ]),
       );
-      final f = draft.dance.figures;
+      final f = figuresOf(draft.dance);
       expect(f, hasLength(7));
       expect(
         f.every((g) => !g.isCustom),
@@ -609,7 +610,7 @@ void main() {
           ),
         ]),
       );
-      final f = draft.dance.figures.single;
+      final f = figuresOf(draft.dance).single;
       expect(f.isCustom, isFalse);
       expect(f.move, 'hey');
       expect(f.params['rico3'], isTrue);
@@ -635,7 +636,7 @@ void main() {
           (4, 'next neighbors allemande right \u00BE'),
         ]),
       );
-      final f = draft.dance.figures;
+      final f = figuresOf(draft.dance);
       // 11 rows, but the ocean-wave-&-balance row splits into two figures.
       expect(f, hasLength(12));
       expect(

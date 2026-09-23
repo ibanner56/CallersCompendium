@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 import '../test_package_root.dart';
+import '../figures_for_test.dart';
 
 /// Issue #347 — The Caller's Box **compound-figure** convention + revolving-door
 /// text parity. TCB expresses a named figure as its indented component
@@ -70,7 +71,7 @@ void main() {
     });
 
     test('A1 collapses to ONE revolving door + neighbor swing (no split)', () {
-      final figs = draft.dance.figures;
+      final figs = figuresOf(draft.dance);
       // A1 is exactly two figures: the collapsed revolving door and the swing —
       // NOT four (the old bug emitted the two indented children as well).
       expect(figs[0].move, 'revolving_door');
@@ -84,7 +85,7 @@ void main() {
     });
 
     test('beats are accurate: revolving door 6, swing 10, A1 total 16', () {
-      final figs = draft.dance.figures;
+      final figs = figuresOf(draft.dance);
       // Parent beats (6), NOT the ContraDB 8 and NOT the child sum re-counted.
       expect(figs[0].beats, 6);
       expect(figs[1].beats, 10);
@@ -92,7 +93,7 @@ void main() {
     });
 
     test('the collapsed figure keeps the source decomposition in its note', () {
-      final door = draft.dance.figures.first;
+      final door = figuresOf(draft.dance).first;
       // The children are preserved (scrubbed) so the definition is not lost.
       expect(door.note, contains('(4)'));
       expect(door.note, contains('star promenade'));
@@ -106,7 +107,7 @@ void main() {
       'renders with parity to ContraDB (right hand + drop-off clarifier)',
       () {
         final renderer = FigureRenderer(contraTaxonomy);
-        final door = draft.dance.figures.first;
+        final door = figuresOf(draft.dance).first;
         // Right hand (was left), correct dancers, and the outcome clarifier,
         // now in ContraDB's verbatim base-line wording (PR2).
         final summary = renderer.renderSummary(door, Dialect.canonical);
@@ -116,7 +117,7 @@ void main() {
     );
 
     test('parse never fails: draft is valid and mostly structured', () {
-      expect(draft.dance.figures, isNotEmpty);
+      expect(figuresOf(draft.dance), isNotEmpty);
       expect(draft.quality.score, greaterThan(0.5));
     });
   });
@@ -132,11 +133,11 @@ void main() {
           '     (2) Women allemande right 1/2',
           '(10) Neighbor swing',
         ]);
-        expect(draft.dance.figures.map((f) => f.move), [
+        expect(figuresOf(draft.dance).map((f) => f.move), [
           'revolving_door',
           'swing',
         ]);
-        expect(draft.dance.figures.first.beats, 6);
+        expect(figuresOf(draft.dance).first.beats, 6);
       },
     );
 
@@ -148,7 +149,7 @@ void main() {
           '     (4) Do the first thing',
           '     (4) Do the second thing',
         ]);
-        final figs = draft.dance.figures;
+        final figs = figuresOf(draft.dance);
         expect(figs.length, 1);
         expect(figs.single.isCustom, isTrue);
         expect(figs.single.beats, 8);
@@ -170,7 +171,7 @@ void main() {
           '     (4) first part',
           '     (2) second part',
         ]);
-        final figs = draft.dance.figures;
+        final figs = figuresOf(draft.dance);
         expect(figs.length, 1);
         expect(figs.single.isCustom, isTrue);
         expect(figs.single.beats, 6);
@@ -186,8 +187,8 @@ void main() {
         '\t(4) first',
         '\t(4) second',
       ]);
-      expect(draft.dance.figures.length, 1);
-      expect(draft.dance.figures.single.beats, 8);
+      expect(figuresOf(draft.dance).length, 1);
+      expect(figuresOf(draft.dance).single.beats, 8);
     });
   });
 
@@ -202,7 +203,7 @@ void main() {
       ]);
       // Not a confident compound → each line parses independently (old path).
       // The parent stays its own figure and the children are still present.
-      expect(draft.dance.figures.length, greaterThan(2));
+      expect(figuresOf(draft.dance).length, greaterThan(2));
     });
 
     test('a colon parent with NO indented children is a normal line', () async {
@@ -212,8 +213,8 @@ void main() {
       ]);
       // No children → not a compound; the parent line parses on its own and
       // still recognizes as the revolving door move (trailing colon tolerated).
-      expect(draft.dance.figures.length, 2);
-      expect(draft.dance.figures[0].beats, 6);
+      expect(figuresOf(draft.dance).length, 2);
+      expect(figuresOf(draft.dance)[0].beats, 6);
     });
 
     test('non-numeric parent beats never crash', () async {
@@ -230,7 +231,7 @@ void main() {
       });
       // Must not throw; produces a valid draft.
       final draft = await _importTcb(payload);
-      expect(draft.dance.figures, isNotEmpty);
+      expect(figuresOf(draft.dance), isNotEmpty);
     });
 
     test('malformed indentation / missing beats degrade safely', () async {
@@ -240,14 +241,14 @@ void main() {
         '(10) Neighbor swing',
       ]);
       // The child has no (beats) prefix → not a valid child → decline collapse.
-      expect(draft.dance.figures.length, greaterThanOrEqualTo(2));
+      expect(figuresOf(draft.dance).length, greaterThanOrEqualTo(2));
     });
 
     test(
       'a zero-beat "(0) Section:" label is not treated as a compound',
       () async {
         final draft = await _importFigures(['(0) A1:', '(8) Neighbor balance']);
-        expect(draft.dance.figures, isNotEmpty);
+        expect(figuresOf(draft.dance), isNotEmpty);
       },
     );
   });
@@ -271,7 +272,7 @@ void main() {
     });
 
     test('revolving door is a SINGLE atomic figure (already no children)', () {
-      final door = draft.dance.figures.first;
+      final door = figuresOf(draft.dance).first;
       // ContraDB carries the descriptive clarifier inline; the whole sentence
       // is preserved (as clear text), never split or double-counted.
       final text = door.isCustom ? _text(door) : door.note ?? '';
@@ -283,7 +284,7 @@ void main() {
     });
 
     test('A1 totals 16 beats: revolving door 8 + neighbors swing 8', () {
-      final figs = draft.dance.figures;
+      final figs = figuresOf(draft.dance);
       expect(figs[0].beats, 8);
       expect(figs[1].move, 'swing');
       expect(figs[1].beats, 8);

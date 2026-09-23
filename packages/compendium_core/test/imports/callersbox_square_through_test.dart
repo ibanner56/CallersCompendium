@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import '../figures_for_test.dart';
 
 /// Issue #799 — The Caller's Box `Square through <n> (<pass list>)` lines.
 ///
@@ -42,7 +43,7 @@ Future<List<Figure>> _importedFigures(List<String> lines) async {
   final adapter = CallersBoxAdapter();
   final discovered = await adapter.discover(ImportRequest(payload: payload));
   final raw = await adapter.fetch(discovered.single);
-  return adapter.parse(raw).dance.figures;
+  return figuresOf(adapter.parse(raw).dance);
 }
 
 void main() {

@@ -26,6 +26,7 @@ import 'package:drift/drift.dart' show Variable;
 import 'package:test/test.dart';
 
 import 'test_database.dart';
+import '../figures_for_test.dart';
 
 void main() {
   late CompendiumDatabase db;
@@ -284,7 +285,7 @@ void main() {
 
       final reloaded = await repos.dances.getById('d-chain');
       expect(
-        reloaded!.figures.single.params['hand'],
+        figuresOf(reloaded!).single.params['hand'],
         'right',
         reason:
             'a tombstoned done-marker must not suppress the backfill, or the '
@@ -342,7 +343,7 @@ void main() {
     await repos.ensureMigrated();
 
     final reloaded = await repos.dances.getById('d-chain-both-owed');
-    expect(reloaded!.figures.single.params['hand'], 'right');
+    expect(figuresOf(reloaded!).single.params['hand'], 'right');
     expect(
       repos.rebuildAttempts,
       2,
@@ -387,7 +388,7 @@ void main() {
 
     final reloaded = await repos.dances.getById('d-chain-roleless');
     expect(
-      reloaded!.figures.single.params.containsKey('hand'),
+      figuresOf(reloaded!).single.params.containsKey('hand'),
       isFalse,
       reason:
           'a chain with no stored who has no role word to decode a hand '
