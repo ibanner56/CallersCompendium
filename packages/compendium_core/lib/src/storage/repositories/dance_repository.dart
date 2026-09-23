@@ -1625,7 +1625,11 @@ class DanceRepository {
   /// than erased** (sync-spec.md §3.1 forfeiture), so its `dance_authors` rows
   /// survive — a soft delete fires no FK cascade. Callers that erase a
   /// reference row's owner on the strength of that cascade must count only
-  /// *live* owners, as the referential guards do.
+  /// *live* owners when deciding whether to **refuse**, as the referential
+  /// guards do — but they must NOT erase merely because no live owner remains.
+  /// A surviving row held by a tombstoned owner downgrades the erasure to a
+  /// tombstone (issue #1357), because the cascade would otherwise destroy that
+  /// owner's authorship, tag, citation or field value for good.
   ///
   /// Intended for reverting a just-committed import batch (import-session
   /// undo); ordinary user deletes should go through [softDelete].
@@ -2480,12 +2484,13 @@ class DanceRepository {
   /// per-dance query the single-row path historically used.
   ///
   /// Joined to `tags` and filtered on `tags.deleted_at IS NULL` since schema
-  /// v25 (issue #898). Tags are the one soft-deletable kind with **no**
-  /// referential guard: deleting one used to clear its `dance_tags` rows by FK
-  /// cascade, and a tombstone fires no cascade, so without this filter every
-  /// dance would keep reporting a tag the user deleted. The join rows are
-  /// deliberately left in place rather than cleared, so a revived tag comes
-  /// back with its dances intact.
+  /// v25 (issue #898). The ordinary tombstoning `TagRepository.delete` is the
+  /// one soft-deletable kind's delete with **no** referential guard (its
+  /// erasing `permanent` branch has carried one since issue #1357): deleting a
+  /// tag used to clear its `dance_tags` rows by FK cascade, and a tombstone
+  /// fires no cascade, so without this filter every dance would keep reporting
+  /// a tag the user deleted. The join rows are deliberately left in place
+  /// rather than cleared, so a revived tag comes back with its dances intact.
   Future<Map<String, List<String>>> _tagsForMany(List<String> ids) async {
     if (ids.isEmpty) return const {};
     final byDance = <String, List<String>>{};

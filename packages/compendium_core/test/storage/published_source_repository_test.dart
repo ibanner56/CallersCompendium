@@ -139,13 +139,24 @@ void main() {
       );
     });
 
-    test('a restored dance keeps its citation', () async {
+    test('a restored dance keeps its citation, once the source is restored '
+        'too', () async {
+      // `_sourcesForMany` inner-joins on
+      // `published_sources.deleted_at IS NULL`, so the dance-only restore shows
+      // nothing. Asserted so the release note's two-row requirement cannot
+      // quietly become "restoring the dance is enough".
       await seedTombstonedCitation();
 
       await repo.delete('s1', permanent: true);
-      await repo.restore('s1', at: DateTime.utc(2026, 3));
-      await dances.restore('d1', at: DateTime.utc(2026, 3));
 
+      await dances.restore('d1', at: DateTime.utc(2026, 3));
+      expect(
+        (await dances.getById('d1'))!.sourceCitations,
+        isEmpty,
+        reason: 'a tombstoned source stays hidden until it is restored',
+      );
+
+      await repo.restore('s1', at: DateTime.utc(2026, 3));
       expect(
         (await dances.getById('d1'))!.sourceCitations.single.sourceId,
         's1',

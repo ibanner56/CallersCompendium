@@ -235,7 +235,14 @@ void main() {
       );
     });
 
-    test('a restored dance keeps its author credit', () async {
+    test('a restored dance keeps its author credit, once the author is '
+        'restored too', () async {
+      // Both halves asserted deliberately. `_authorsForMany` inner-joins on
+      // `choreographers.deleted_at IS NULL`, so restoring the DANCE alone shows
+      // nothing: the credit is recoverable, not automatically recovered. The
+      // release note says exactly that, and this is what stops it drifting back
+      // to "restoring the dance shows them again" — which is what it claimed
+      // until review caught it.
       // ignore: unused_result
       await repo.upsert(Choreographer(id: 'c1', name: 'Credited'));
       await dances.create(
@@ -250,9 +257,15 @@ void main() {
       await dances.softDelete('d1', at: DateTime.utc(2026, 2));
 
       await repo.delete('c1', permanent: true);
-      await repo.restore('c1', at: DateTime.utc(2026, 3));
-      await dances.restore('d1', at: DateTime.utc(2026, 3));
 
+      await dances.restore('d1', at: DateTime.utc(2026, 3));
+      expect(
+        (await dances.getById('d1'))!.authorIds,
+        isEmpty,
+        reason: 'a tombstoned author stays hidden until it is restored',
+      );
+
+      await repo.restore('c1', at: DateTime.utc(2026, 3));
       expect((await dances.getById('d1'))!.authorIds, ['c1']);
     });
 

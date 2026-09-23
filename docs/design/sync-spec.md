@@ -204,7 +204,11 @@ cascades:
 - The referential guards in `ChoreographerRepository`, `VenueRepository`,
   `PublishedSourceRepository` and `CustomFieldDefRepository` MUST be kept, and
   `TagRepository`'s erasing branch MUST carry one (it did not until issue
-  #1357). A tombstone applies only where the entity is unreferenced; see §6.8.
+  #1357). A **live** owner blocks the delete outright; see §6.8. A tombstoned
+  owner does not block it, but it does downgrade an erasure to a tombstone
+  under the §3.1 retention table — so a tombstone applies both where the entity
+  is unreferenced and where its only surviving references are held by
+  tombstoned owners.
 - Any purge added here MUST refuse to hard-delete an entity still referenced by
   a live record. Where the reference is a cascading join row held by a
   *tombstoned* owner, the erasure MUST still be refused — the cascade would
@@ -3974,8 +3978,10 @@ publishes.
 
 **Deletion.** Absence never deletes (mutation: make absence delete). A pending
 tombstone is never republished. A pending-held row is never advertised as live.
-A referenced entity cannot be tombstoned away. Purge refuses to cascade off live
-records. An epoch reset does not discard a pending deletion. A published record
+An entity referenced by a **live** owner cannot be tombstoned away; one whose
+only surviving references are held by tombstoned owners is tombstoned rather
+than erased, so the cascade cannot destroy the owner's data (§3.1). Purge
+refuses to cascade off live records. An epoch reset does not discard a pending deletion. A published record
 tombstones instead of hard-deleting (mutation: evaluate forfeiture against the
 baseline, which answers "never published" for a record `PUT` in the pass that no
 peer has confirmed yet). A detach-and-re-attach does not reverse a completed

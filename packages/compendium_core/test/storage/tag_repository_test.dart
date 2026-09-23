@@ -304,19 +304,29 @@ void main() {
     );
 
     test(
-      'a restored dance still shows a tag the rollback tombstoned',
+      'a restored dance shows the tombstoned tag once the tag is restored too',
       () async {
-        // The user-visible point of the tombstone: restore both rows and the
+        // The user-visible point of the tombstone: restore BOTH rows and the
         // dance is tagged again. Erasing the tag made this unrecoverable.
+        // `_tagsForMany` inner-joins on `tags.deleted_at IS NULL`, so the
+        // dance-only restore shows nothing — asserted so the release note's
+        // two-row requirement cannot quietly become "restoring the dance is
+        // enough".
         // ignore: unused_result
         await repo.upsert(Tag(id: 't1', name: 'chestnut'));
         await dances.create(buildDance(id: 'd1', tagIds: const ['t1']));
         await dances.softDelete('d1', at: DateTime.utc(2026, 2));
 
         await repo.delete('t1', permanent: true);
-        await repo.restore('t1', at: DateTime.utc(2026, 3));
-        await dances.restore('d1', at: DateTime.utc(2026, 3));
 
+        await dances.restore('d1', at: DateTime.utc(2026, 3));
+        expect(
+          (await dances.getById('d1'))!.tagIds,
+          isEmpty,
+          reason: 'a tombstoned tag stays hidden until it is restored',
+        );
+
+        await repo.restore('t1', at: DateTime.utc(2026, 3));
         expect((await dances.getById('d1'))!.tagIds, ['t1']);
       },
     );

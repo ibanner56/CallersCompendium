@@ -225,13 +225,24 @@ void main() {
       );
     });
 
-    test('a restored dance keeps its field value', () async {
+    test('a restored dance keeps its field value, once the definition is '
+        'restored too', () async {
+      // `_customFieldsForMany` inner-joins on
+      // `custom_field_defs.deleted_at IS NULL`, so the dance-only restore shows
+      // nothing. Asserted so the release note's two-row requirement cannot
+      // quietly become "restoring the dance is enough".
       await seedTombstonedValue();
 
       await repo.delete('f1', permanent: true);
-      await repo.restore('f1', at: DateTime.utc(2026, 3));
-      await dances.restore('d1', at: DateTime.utc(2026, 3));
 
+      await dances.restore('d1', at: DateTime.utc(2026, 3));
+      expect(
+        (await dances.getById('d1'))!.customFields,
+        isEmpty,
+        reason: 'a tombstoned definition stays hidden until it is restored',
+      );
+
+      await repo.restore('f1', at: DateTime.utc(2026, 3));
       final restored = (await dances.getById('d1'))!.customFields.single;
       expect(restored.fieldId, 'f1');
       expect(restored.value, 'some note');
