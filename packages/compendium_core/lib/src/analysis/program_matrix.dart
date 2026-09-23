@@ -1,6 +1,6 @@
 /// The programming matrix (figures × dances) — CC's Elements matrix, but
-/// **derived for free** from the structured [Dance.figures] we already store
-/// rather than a manually ticked checklist (CC's failure mode).
+/// **derived for free** from the structured [Dance.figuresSource] we already
+/// store rather than a manually ticked checklist (CC's failure mode).
 ///
 /// Pure, Flutter-free, and unit-tested: the UI (`ProgramMatrixTable` in the
 /// app) is a thin renderer over this model. Columns are the moves actually
@@ -711,7 +711,7 @@ MatrixColumn _splitColumn(String baseMoveId, String variant) => MatrixColumn(
 /// parameterized columns replace built-in membership; matching compound
 /// sequences add present-only boolean columns; and hidden/reordered ids are
 /// transformed at display time. Compound matching scans each dance's original
-/// [Dance.figures] for a strictly-adjacent run and never changes the routed
+/// [Dance.figuresSource] for a strictly-adjacent run and never changes the routed
 /// first figure. Presence, program-debut, collision, and first-figure analysis
 /// are computed over every routed/custom column and are independent of display
 /// hiding/reordering. [MatrixColumnConfig.renames] is a label-only override

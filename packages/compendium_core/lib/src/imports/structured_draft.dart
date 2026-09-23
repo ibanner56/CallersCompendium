@@ -35,7 +35,7 @@ class ImportIssue {
   /// instead (`app/lib/src/data/import_diagnostic_labels.dart`).
   final String message;
 
-  /// Index into [Dance.figures] this issue concerns, if figure-specific.
+  /// Index into [Dance.figuresSource] this issue concerns, if figure-specific.
   final int? figureIndex;
 
   /// Structured interpolation values for the presentation-layer localizer,
