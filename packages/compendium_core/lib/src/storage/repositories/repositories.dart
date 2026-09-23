@@ -787,15 +787,13 @@ class CompendiumRepositories {
             ],
           )
           .get();
-      final normalisation = await _normaliseShareableTextIfNeeded(
+      rebuiltThisCall = await _normaliseShareableTextIfNeeded(
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
       );
-      rebuiltThisCall = normalisation.rebuilt;
       rebuiltThisCall = await _repairNormalisationDerivedIndexIfNeeded(
         alreadyRebuilt: rebuiltThisCall,
         owedFromHistory: normalisationCompletedBefore.isNotEmpty,
-        deferredThisCall: normalisation.deferred,
         onProgress: onDerivedRebuildProgress,
       );
     } catch (_) {
@@ -857,59 +855,9 @@ class CompendiumRepositories {
     });
   }
 
-  /// Whether a derived rebuild must be **deferred** because the library holds a
-  /// `dances` row the rebuild itself cannot read (#1346, interacting with
-  /// #1347/#1363).
-  ///
-  /// [runDerivedRebuild] loads every dance — `DanceRepository.rebuildAllDerived`
-  /// calls `listAll(includeDeleted: true)`, which decodes `figures_json` and
-  /// `tunes_json` for each row. #1363 deliberately *leaves* a row whose JSON
-  /// cannot be canonicalized exactly as stored and records a skip for it, so
-  /// such a row is a live possibility, and a rebuild that meets one raises out
-  /// of `ensureMigrated()` — the app's startup error screen with a Retry that
-  /// cannot succeed, which is the failure #1347 exists to remove.
-  ///
-  /// Only `dances` entries block: the natural-key and settings skip flavours
-  /// are never recorded against that table, and `custom_field_defs.choices_json`
-  /// is not read by the rebuild.
-  ///
-  /// **The asymmetry is deliberate.** This gates only the rebuild triggers
-  /// #1346 *adds* — a rewrite outside `dances`, and the one-time index repair.
-  /// The pre-existing trigger, a `dances` rewrite, is left ungated and still
-  /// raises on such a library exactly as it does today: making the rebuild
-  /// tolerant of an undecodable row is #1347's contract, not this one's, and
-  /// silently widening the deferral to cover it would hide that defect behind a
-  /// fix for a different one. What this does buy is that #1346 does not convert
-  /// a silent stale index into an unrecoverable startup for installs that
-  /// launch fine today.
-  ///
-  /// Deferring is recorded by **clearing** the repair sweep's done marker, so
-  /// the repair lands by itself on the first launch after the rebuild learns to
-  /// tolerate those rows. Until then the affected install keeps the stale index
-  /// it already has.
-  ///
-  /// It is *not* recorded by leaving that marker unwritten, and the difference
-  /// is not cosmetic (Copilot review of #1370): an absent marker is also the
-  /// state of a database that has simply not reached the sweep yet, so the same
-  /// absence would have to mean both "a repair is owed" and "none ever was".
-  /// Read the first way it manufactures debt on a database that never ran the
-  /// pre-fix pass; read the second way it drops a real obligation. Only an
-  /// explicit clear separates them. See
-  /// [_repairNormalisationDerivedIndexIfNeeded].
-  Future<bool> _derivedRebuildIsBlocked() async {
-    final blocking = await db
-        .customSelect(
-          'SELECT 1 FROM normalisation_skips WHERE table_name = ? LIMIT 1',
-          variables: [Variable.withString('dances')],
-        )
-        .get();
-    return blocking.isNotEmpty;
-  }
-
   /// Runs, retries, or skips the one-time shareable-text normalization pass.
   ///
-  /// Returns whether a derived rebuild has happened during this call, and
-  /// whether one was **deferred** by [_derivedRebuildIsBlocked].
+  /// Returns whether a derived rebuild has happened during this call.
   ///
   /// ## Three outcomes, not two (#1346 finding 1)
   ///
@@ -929,7 +877,7 @@ class CompendiumRepositories {
   /// So: marker matches and nothing is recorded → return, no scan. Marker
   /// matches and entries remain → retry **only** those rows. Marker differs or
   /// is absent → full scan, which now also discharges the entries it repairs.
-  Future<({bool rebuilt, bool deferred})> _normaliseShareableTextIfNeeded({
+  Future<bool> _normaliseShareableTextIfNeeded({
     required bool alreadyRebuilt,
     DerivedRebuildProgressCallback? onProgress,
   }) async {
@@ -953,14 +901,14 @@ class CompendiumRepositories {
     final scopeUnchanged =
         marker.isNotEmpty && marker.single.read<String>('value_json') == scope;
     if (scopeUnchanged && skips.isEmpty) {
-      return (rebuilt: alreadyRebuilt, deferred: false);
+      return alreadyRebuilt;
     }
 
     final outcome = scopeUnchanged
         ? await _retryRecordedNormalisationSkips(skips)
         : await _runFullNormalisationScan();
 
-    if (outcome.rebuild) {
+    if (outcome) {
       await runDerivedRebuild(onProgress: onProgress);
       await db.customUpdate(
         'DELETE FROM ${db.settings.actualTableName} WHERE key = ?',
@@ -981,10 +929,7 @@ class CompendiumRepositories {
     if (!scopeUnchanged) {
       await _writeSweepMarker(shareableTextNormalisationScopeKey, scope);
     }
-    return (
-      rebuilt: alreadyRebuilt || outcome.rebuild,
-      deferred: outcome.deferred,
-    );
+    return alreadyRebuilt || outcome;
   }
 
   /// Re-attempts **only** the rows recorded in `normalisation_skips`, clearing
@@ -1017,9 +962,7 @@ class CompendiumRepositories {
   /// Targets and group membership are re-derived from live state on every
   /// attempt and never stored, which is why an entry holds only
   /// `(table, column, record_id)` (`:653`–`:657`).
-  Future<({bool rebuild, bool deferred})> _retryRecordedNormalisationSkips(
-    List<QueryRow> entries,
-  ) async {
+  Future<bool> _retryRecordedNormalisationSkips(List<QueryRow> entries) async {
     final grouped = <(String, String), List<String>>{};
     for (final entry in entries) {
       grouped
@@ -1034,7 +977,6 @@ class CompendiumRepositories {
     var danceRewrite = false;
     var otherRewrite = false;
     var rebuild = false;
-    var deferred = false;
     await db.transaction(() async {
       for (final group in grouped.entries) {
         final (table, column) = group.key;
@@ -1079,13 +1021,13 @@ class CompendiumRepositories {
         }
       }
 
-      (rebuild, deferred) = await _resolveRebuildDecision(
+      rebuild = _resolveRebuildDecision(
         danceRewrite: danceRewrite,
         otherRewrite: otherRewrite,
       );
       if (rebuild) await _writeSweepMarker(derivedRebuildRequiredKey, 'true');
     });
-    return (rebuild: rebuild, deferred: deferred);
+    return rebuild;
   }
 
   /// Decides whether this pass's rewrites owe a rebuild now, or one that must
@@ -1112,18 +1054,17 @@ class CompendiumRepositories {
   /// A `settings` rewrite counts too. A settings value feeds no index, so this
   /// is strictly conservative — but "wrote anything" is the rule as stated, and
   /// the exemption is the same MAY that would need the same tested mapping.
-  Future<(bool, bool)> _resolveRebuildDecision({
+  /// Whether the pass owes a derived rebuild.
+  ///
+  /// #1346 gated the triggers it added on whether the library held a `dances`
+  /// normalisation skip, because a rebuild that met a row it could not read
+  /// raised out of `ensureMigrated()`. #1347 removed that hazard at its source —
+  /// `DanceRepository` now loads such a row as `UnreadableFigures` instead of
+  /// raising — so there is nothing left to defer and no condition to gate on.
+  bool _resolveRebuildDecision({
     required bool danceRewrite,
     required bool otherRewrite,
-  }) async {
-    // Ungated, and unchanged from before this fix: see
-    // [_derivedRebuildIsBlocked] for why the pre-existing trigger keeps its
-    // pre-existing failure mode.
-    if (danceRewrite) return (true, false);
-    if (!otherRewrite) return (false, false);
-    if (await _derivedRebuildIsBlocked()) return (false, true);
-    return (true, false);
-  }
+  }) => danceRewrite || otherRewrite;
 
   /// Re-attempts the recorded rows of one natural-key `(table, column)`.
   /// Returns whether any row was rewritten.
@@ -1317,11 +1258,10 @@ class CompendiumRepositories {
 
   /// The full scan over every in-scope column and every `shareable` settings
   /// row, run when the recorded scope differs from the live one.
-  Future<({bool rebuild, bool deferred})> _runFullNormalisationScan() async {
+  Future<bool> _runFullNormalisationScan() async {
     var danceRewrite = false;
     var otherRewrite = false;
     var rebuild = false;
-    var deferred = false;
     void markRewrite(String table) {
       if (table == 'dances') {
         danceRewrite = true;
@@ -1501,7 +1441,7 @@ class CompendiumRepositories {
         );
       }
 
-      (rebuild, deferred) = await _resolveRebuildDecision(
+      rebuild = _resolveRebuildDecision(
         danceRewrite: danceRewrite,
         otherRewrite: otherRewrite,
       );
@@ -1513,7 +1453,7 @@ class CompendiumRepositories {
         await _writeSweepMarker(derivedRebuildRequiredKey, 'true');
       }
     });
-    return (rebuild: rebuild, deferred: deferred);
+    return rebuild;
   }
 
   /// One-time repair of the derived indexes the normalization pass left stale
@@ -1531,11 +1471,6 @@ class CompendiumRepositories {
   /// rebuilds nothing, so a fresh install never pays a whole-library rebuild for
   /// an index that was never stale.
   ///
-  /// [deferredThisCall] is whether the pass withheld a rebuild it owed because
-  /// [_derivedRebuildIsBlocked]. That is an obligation this sweep inherits, and
-  /// it is recorded by clearing the done marker rather than by leaving it
-  /// unwritten — see the body for why those are not the same thing.
-  ///
   /// **Why a forced rebuild at all, rather than a version bump.** Bumping
   /// [_shareableTextNormalisationAlgorithmVersion] re-runs the pass, which finds
   /// every row already normalized, rewrites nothing, sets no flag and repairs no
@@ -1549,29 +1484,8 @@ class CompendiumRepositories {
   Future<bool> _repairNormalisationDerivedIndexIfNeeded({
     required bool alreadyRebuilt,
     required bool owedFromHistory,
-    required bool deferredThisCall,
     DerivedRebuildProgressCallback? onProgress,
   }) async {
-    // A rebuild the pass just withheld re-arms this sweep **durably**, by
-    // clearing its done marker, rather than by relying on that marker never
-    // having been written.
-    //
-    // The distinction is load-bearing and was not obvious (Copilot review of
-    // #1370). An absent marker cannot record a deferral, because "absent"
-    // is also the state of a database that simply has not reached this sweep
-    // yet — so a deferral recorded that way is indistinguishable from a debt
-    // that was never incurred, and the two need opposite treatment below.
-    // Clearing an existing marker says the obligation is live; leaving an
-    // absent one absent says nothing at all.
-    if (deferredThisCall) {
-      await db.customUpdate(
-        'DELETE FROM ${db.settings.actualTableName} WHERE key = ?',
-        variables: [Variable<String>(normalisationDerivedIndexRepairDoneKey)],
-        updates: {db.settings},
-        updateKind: UpdateKind.delete,
-      );
-    }
-
     final done = await db
         .customSelect(
           'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
@@ -1582,27 +1496,20 @@ class CompendiumRepositories {
         .get();
     if (done.isNotEmpty) return alreadyRebuilt;
 
-    // Retire BEFORE consulting the blocker, and the order is the whole point.
+    // Retire immediately when nothing is owed, and the order still matters
+    // even with no blocker left to consult.
     //
-    // Nothing is owed here, so there is nothing a blocker could be protecting:
-    // this database either never completed the pass under the old dance-only
-    // condition, or has already been repaired. Deferring instead would leave
-    // the marker absent while the pass writes the scope marker — and on the
-    // next open that scope marker is exactly what [owedFromHistory] reads, so
-    // the sweep would wake up believing it owed a repair it had never owed and
-    // eventually pay a whole-library rebuild for it. A fresh database with one
-    // un-normalisable dance row is enough to trigger that, which is the
-    // opposite of the guarantee this gate exists to make.
-    if (!owedFromHistory && !deferredThisCall) {
+    // This database either never completed the pass under the old dance-only
+    // condition, or has already been repaired. Leaving the marker absent here
+    // would let the pass go on to write the scope marker — and on the next open
+    // that scope marker is exactly what [owedFromHistory] reads, so the sweep
+    // would wake up believing it owed a repair it had never owed and eventually
+    // pay a whole-library rebuild for it. A fresh database with one
+    // un-normalisable dance row was enough to trigger that.
+    if (!owedFromHistory) {
       await _writeSweepMarker(normalisationDerivedIndexRepairDoneKey, '"done"');
       return alreadyRebuilt;
     }
-
-    // Deferred, not skipped: the marker is deliberately left absent, so this
-    // sweep re-evaluates on the next open and performs the repair by itself once
-    // the rebuild can read every dance. See [_derivedRebuildIsBlocked]. Reached
-    // only when something IS owed, so the absent marker now means what it says.
-    if (await _derivedRebuildIsBlocked()) return alreadyRebuilt;
 
     // A rebuild earlier in this call already used the current source rows: the
     // normalization pass runs before this sweep and rebuilds after its own
