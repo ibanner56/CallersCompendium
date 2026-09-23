@@ -512,11 +512,14 @@ while it is on. You can tap its heading to open or close it.
   whoever runs it can read and change everything you sync.
 - **Status** also tells you when a first connection merged duplicate dances —
   "Found and merged 3 duplicate dances", say. Connecting a device that already
-  holds some of the same dances joins them up silently, and that count is the
-  only record you get of it, so it stays on the status while this device is
-  connected rather than only appearing once. It shows after any first
-  connection to a store: when you pair, when you reconnect a store that went
-  missing, and when this device rejoins a store that was replaced.
+  holds some of the same dances joins them up silently, and this is what tells
+  you it happened. It shows after any first connection to a store: when you
+  pair, when you reconnect a store that went missing, and when this device
+  rejoins a store that was replaced. It stays put for the rest of the time the
+  app is open, rather than flashing past while you're not looking, but it is
+  **not** kept once you close the app — so if the number matters to you, write
+  it down. The dances are already merged either way; the count is a report, not
+  something waiting to be dealt with.
 - **Status** also shows when this device last synced. **Sync is not a backup:**
   a store that goes unused for 30 days is removed, so keep making file backups.
   From three weeks of disuse the status also warns that the store is close to

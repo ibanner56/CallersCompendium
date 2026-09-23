@@ -32,7 +32,7 @@ Future<void> _pumpAndOpen(
     settings: repos.settings,
     syncLocal: repos.syncLocal,
     coordinator: () => null,
-    reconfigure: () async {},
+    reconfigure: ({bool startPass = true}) async {},
     classifier: _NoopNetwork(),
   );
   addTearDown(syncController.dispose);

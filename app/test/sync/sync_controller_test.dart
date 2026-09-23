@@ -111,7 +111,7 @@ void main() {
       settings: repos.settings,
       syncLocal: repos.syncLocal,
       coordinator: () => coordinator,
-      reconfigure: () async {},
+      reconfigure: ({bool startPass = true}) async {},
       classifier: network,
       now: () => clock,
       debounce: debounce,
@@ -161,7 +161,7 @@ void main() {
         settings: repos.settings,
         syncLocal: repos.syncLocal,
         coordinator: () => null,
-        reconfigure: () async => reconfigured++,
+        reconfigure: ({bool startPass = true}) async => reconfigured++,
         classifier: network,
       );
       addTearDown(controller.dispose);
@@ -903,7 +903,7 @@ void main() {
         settings: repos.settings,
         syncLocal: repos.syncLocal,
         coordinator: () => coordinator,
-        reconfigure: () async {},
+        reconfigure: ({bool startPass = true}) async {},
         pairingProbeFactory: (syncId, endpoint) => probe,
         classifier: network,
       );
@@ -927,7 +927,7 @@ void main() {
         settings: repos.settings,
         syncLocal: repos.syncLocal,
         coordinator: () => coordinator,
-        reconfigure: () async => reconfigured++,
+        reconfigure: ({bool startPass = true}) async => reconfigured++,
         classifier: network,
       );
       addTearDown(controller.dispose);
@@ -1033,6 +1033,54 @@ void main() {
       );
     });
 
+    // Production's reconfigure does not merely rebuild the coordinator: it
+    // installs it and immediately fires an app-start pass it does not await
+    // (`main.dart`, `unawaited(_runSyncStart())`). Every other test here uses
+    // a no-op reconfigure, so none of them reproduced that — and the
+    // coordinator *queues* a trigger arriving while a pass is in flight rather
+    // than joining it, so pairing ran two full passes back to back and
+    // returned the second one's outcome for the dialog to describe the first
+    // one with.
+    test('completePairing runs exactly one pass even though the app starts '
+        'one of its own on every reconfiguration', () async {
+      final startPasses = <int>[];
+      coordinator = _coordinator(repos, startPasses);
+      addTearDown(() => coordinator?.dispose());
+      late final SyncController controller;
+      controller = SyncController(
+        settings: repos.settings,
+        syncLocal: repos.syncLocal,
+        coordinator: () => coordinator,
+        // Exactly what main.dart does, including not awaiting it.
+        reconfigure: ({bool startPass = true}) async {
+          if (startPass) unawaited(controller.onAppStart());
+        },
+        classifier: network,
+        now: () => clock,
+      );
+      addTearDown(controller.dispose);
+      await controller.load();
+      await controller.setEnabled(true);
+      startPasses.clear();
+
+      final outcome = await controller.completePairing(
+        'correct horse battery staple',
+        Uri.parse(kDefaultSyncEndpoint),
+      );
+      // Let anything the reconfiguration started settle, so a second pass
+      // cannot hide behind the await above.
+      await pumpEventQueue();
+
+      expect(outcome, SyncGateOutcome.ran);
+      expect(
+        startPasses.length,
+        1,
+        reason:
+            'the automatic app-start pass must be suppressed for pairing, so '
+            'the outcome returned belongs to the pass the dialog describes',
+      );
+    });
+
     // The count belongs to a store, not to the device: reporting the previous
     // store's merges as this attach's would be a number about records that
     // are no longer there.
@@ -1111,7 +1159,7 @@ void main() {
         settings: repos.settings,
         syncLocal: repos.syncLocal,
         coordinator: () => coordinator,
-        reconfigure: () async {},
+        reconfigure: ({bool startPass = true}) async {},
         runExclusive: runExclusive ?? (operation) => operation(),
         classifier: network,
         now: () => clock,
@@ -1244,7 +1292,7 @@ void main() {
         settings: repos.settings,
         syncLocal: repos.syncLocal,
         coordinator: () => coordinator,
-        reconfigure: () async {},
+        reconfigure: ({bool startPass = true}) async {},
         runExclusive: runExclusive ?? (operation) => operation(),
         deviceAdminFactory: (syncId, endpoint) => fake.admin,
         classifier: network,
@@ -1488,7 +1536,7 @@ void main() {
         settings: repos.settings,
         syncLocal: repos.syncLocal,
         coordinator: () => coordinator,
-        reconfigure: () async {},
+        reconfigure: ({bool startPass = true}) async {},
         deviceAdminFactory: (syncId, endpoint) => fake.admin,
         classifier: network,
       );

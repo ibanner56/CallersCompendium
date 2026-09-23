@@ -120,7 +120,7 @@ _pumpSettings(
     settings: repos.settings,
     syncLocal: repos.syncLocal,
     coordinator: () => _syncCoordinator,
-    reconfigure: () async {},
+    reconfigure: ({bool startPass = true}) async {},
     pairingProbeFactory: _pairingProbeFactory,
     deviceAdminFactory: _deviceAdminFactory,
     classifier: _syncNetwork,

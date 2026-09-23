@@ -152,7 +152,18 @@ class SyncController extends ChangeNotifier {
 
   final SettingsRepository _settings;
   final SyncCoordinator? Function() _coordinator;
-  final Future<void> Function() _reconfigure;
+
+  /// Rebuilds the coordinator for the current settings.
+  ///
+  /// [startPass] is what the app does *after* installing it: normally it kicks
+  /// off an app-start pass without awaiting it, which is right for an ordinary
+  /// reconfiguration and wrong for pairing. [completePairing] has to observe
+  /// exactly one pass to report it, and a pass it did not start is one it
+  /// cannot observe — the coordinator queues a concurrent trigger rather than
+  /// joining it (`sync_coordinator.dart`, `_queued`), so leaving the automatic
+  /// one in place ran two full passes back to back and handed the caller the
+  /// second one's outcome to describe the first one with.
+  final Future<void> Function({bool startPass}) _reconfigure;
   final SyncLocalRepository _syncLocal;
 
   /// Runs a write that no sync pass may overlap: the app's writer boundary,
@@ -239,7 +250,12 @@ class SyncController extends ChangeNotifier {
   SyncPassResult? get lastResult => _lastResult;
 
   /// How many duplicate dances the latest fresh attach merged, or 0 when none
-  /// has merged any since this device attached to its current store.
+  /// has merged any **in this app session**.
+  ///
+  /// Session-scoped, not attachment-scoped: the latch is in memory, so a
+  /// restart loses the count while the device stays attached to the store it
+  /// belongs to. User-facing copy must say so rather than promise the count
+  /// lasts as long as the connection does.
   ///
   /// ADR-004 names this count as *the* mitigation for silent merge — the merge
   /// itself is irreversible from the user's point of view, and reporting a
@@ -699,7 +715,14 @@ class SyncController extends ChangeNotifier {
     // follows is the only thing that can set it.
     _mergedDuplicates = 0;
     _notify();
-    await _reconfigure();
+    // The automatic app-start pass is suppressed so this method owns the only
+    // one. Without that there are two: the app fires an unawaited pass the
+    // moment it installs the coordinator, and the coordinator *queues* a
+    // trigger that arrives while one is in flight instead of joining it — so
+    // the call below ran a second full pass immediately after the largest
+    // transfer sync ever makes, and returned its outcome, which the completion
+    // dialog then presented as the first pass's.
+    await _reconfigure(startPass: false);
     return trigger(SyncTrigger.appStart);
   }
 

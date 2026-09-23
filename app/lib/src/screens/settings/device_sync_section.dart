@@ -395,8 +395,9 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
                 ),
                 title: Text(syncNoticeText(l10n, group)),
               ),
-            // What this device merged when it last fresh-attached, for as long
-            // as this attachment lasts. ADR-004 makes the count the mitigation
+            // What this device merged when it last fresh-attached, for the rest
+            // of this app session — the latch is in memory, so it does not
+            // outlive a restart. ADR-004 makes the count the mitigation
             // for a merge the user is never shown, and three of the four
             // fresh-attach paths — a confirmed replacement, a stale-epoch
             // auto-join, and a pairing pass the §6.12 gate deferred — have no
