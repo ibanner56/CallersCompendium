@@ -341,10 +341,56 @@ void main() {
       expect(
         pred(f),
         "EXISTS (SELECT 1 FROM custom_field_values v "
+        "JOIN custom_field_defs d ON d.id = v.field_id "
         "WHERE v.dance_id = dances.id AND v.field_id = ? "
+        "AND d.deleted_at IS NULL "
         "AND v.value_text LIKE '%' || ? || '%' ESCAPE '\\')",
       );
+      // The definition join binds nothing, so the bind order is unchanged:
+      // `field_id` first, then the operator's own values (#1358).
       expect(compiler.compile(f).binds, ['fid', 'jig']);
+    });
+
+    test('every custom-field operator filters the tombstoned definition', () {
+      // The snapshot above pins one operator's SQL. This pins the *property*
+      // for all of them: the parent predicate is emitted by `_customField`,
+      // not by any per-operator branch, so no operator can be added that
+      // silently omits it (#1358).
+      final cases = <CustomFieldFilter>[
+        CustomFieldFilter(
+          def(CustomFieldType.text),
+          CustomFieldOp.contains,
+          'j',
+        ),
+        CustomFieldFilter(def(CustomFieldType.text), CustomFieldOp.equals, 'j'),
+        CustomFieldFilter(def(CustomFieldType.number), CustomFieldOp.eq, 1),
+        CustomFieldFilter(def(CustomFieldType.number), CustomFieldOp.lt, 1),
+        CustomFieldFilter(def(CustomFieldType.number), CustomFieldOp.gt, 1),
+        CustomFieldFilter(def(CustomFieldType.number), CustomFieldOp.between, [
+          1,
+          2,
+        ]),
+        CustomFieldFilter(
+          def(CustomFieldType.boolean),
+          CustomFieldOp.is_,
+          true,
+        ),
+        CustomFieldFilter(
+          def(CustomFieldType.choice, choices: const ['a', 'b']),
+          CustomFieldOp.in_,
+          const ['a'],
+        ),
+      ];
+      for (final f in cases) {
+        expect(
+          pred(f),
+          allOf(
+            contains('JOIN custom_field_defs d ON d.id = v.field_id'),
+            contains('d.deleted_at IS NULL'),
+          ),
+          reason: 'operator ${f.op.name} must filter the tombstoned definition',
+        );
+      }
     });
 
     test('contains escapes LIKE metacharacters in the bound value', () {
