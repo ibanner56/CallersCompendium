@@ -1156,9 +1156,10 @@ class SyncCoordinator {
       );
       normalizedPendingLive = await _normalizeCandidates(snapshot.pendingLive);
       // The pending views are derived from the same snapshot, so they go stale
-      // with it. A repaired tombstone left behind as its pre-repair copy stays
-      // filtered out as quarantined, and a stale peer live copy then wins the
-      // merge the repair was supposed to make it lose.
+      // with it. A repaired tombstone left behind as its pre-repair copy still
+      // reads as quarantined, which excludes it from the merge table (§6.3) and
+      // so drops the decision the repair was made to win. Rebuilding is what
+      // lets the repaired copy stand as this device's candidate.
       await rebuildPendingViews();
     }
 

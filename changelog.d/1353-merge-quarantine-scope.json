@@ -1,0 +1,10 @@
+{
+  "id": "1353-merge-quarantine-scope",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Device Sync no longer skips a record because one other device sent a copy with an implausible clock. The offending copy is still refused and reported, and the record now arrives from any device that sent a sound one, along with the dances and programs citing it.",
+      "A record held back on this device for an implausible clock no longer stops the dances and programs that cite it from receiving other devices' edits and deletions. Only the held-back record itself sits out, so an edit made on another device now arrives instead of waiting for this device's clock to be corrected."
+    ]
+  }
+}

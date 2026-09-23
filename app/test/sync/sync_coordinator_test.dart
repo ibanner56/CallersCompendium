@@ -864,71 +864,74 @@ void main() {
     },
   );
 
-  test('a held address still resolves from the peers that sent it in window', () async {
-    final now = DateTime.utc(2026, 7, 15, 12);
-    final held = SyncMergeCandidate.fromBlob(
-      _choreographer('author-r', 'Held locally', updatedAt: now),
-    );
-    final newer = SyncMergeCandidate.fromBlob(
-      _choreographer(
-        'author-r',
-        'Newer on B',
-        updatedAt: now.add(const Duration(hours: 1)),
-      ),
-    );
-    final future = SyncMergeCandidate.fromBlob(
-      _choreographer(
-        'author-r',
-        'Out of window',
-        updatedAt: now.add(const Duration(hours: 25)),
-      ),
-    );
-    final store = _FakeStore(
-      local: {held.address: held},
-      baseline: {
-        held.address: SyncBaselineEntry(
-          kind: held.address.kind,
-          recordId: held.address.recordId,
-          wireHash: held.wireHash,
+  test(
+    'a held address still resolves from the peers that sent it in window',
+    () async {
+      final now = DateTime.utc(2026, 7, 15, 12);
+      final held = SyncMergeCandidate.fromBlob(
+        _choreographer('author-r', 'Held locally', updatedAt: now),
+      );
+      final newer = SyncMergeCandidate.fromBlob(
+        _choreographer(
+          'author-r',
+          'Newer on B',
+          updatedAt: now.add(const Duration(hours: 1)),
         ),
-      },
-    );
-    final transport = _FakeTransport(
-      devices: ['peer-b', 'peer-c'],
-      peerManifests: {
-        'peer-b': _manifest(
-          deviceId: 'peer-b',
-          records: {
-            SyncRecordKind.choreographer: {'author-r': newer.wireHash},
-          },
+      );
+      final future = SyncMergeCandidate.fromBlob(
+        _choreographer(
+          'author-r',
+          'Out of window',
+          updatedAt: now.add(const Duration(hours: 25)),
         ),
-        'peer-c': _manifest(
-          deviceId: 'peer-c',
-          records: {
-            SyncRecordKind.choreographer: {'author-r': future.wireHash},
-          },
-        ),
-      },
-      blobResponses: _blobs([held, newer, future]),
-    );
-    final coordinator = SyncCoordinator(
-      syncId: 'configured',
-      deviceId: 'device-a',
-      store: store,
-      transport: transport,
-      now: () => now,
-    );
-    addTearDown(coordinator.dispose);
+      );
+      final store = _FakeStore(
+        local: {held.address: held},
+        baseline: {
+          held.address: SyncBaselineEntry(
+            kind: held.address.kind,
+            recordId: held.address.recordId,
+            wireHash: held.wireHash,
+          ),
+        },
+      );
+      final transport = _FakeTransport(
+        devices: ['peer-b', 'peer-c'],
+        peerManifests: {
+          'peer-b': _manifest(
+            deviceId: 'peer-b',
+            records: {
+              SyncRecordKind.choreographer: {'author-r': newer.wireHash},
+            },
+          ),
+          'peer-c': _manifest(
+            deviceId: 'peer-c',
+            records: {
+              SyncRecordKind.choreographer: {'author-r': future.wireHash},
+            },
+          ),
+        },
+        blobResponses: _blobs([held, newer, future]),
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+        now: () => now,
+      );
+      addTearDown(coordinator.dispose);
 
-    final result = await coordinator.syncNow();
+      final result = await coordinator.syncNow();
 
-    expect(result.status, SyncPassStatus.completed);
-    // The mirror of the test above: this path was already correct, and a
-    // peer-side exclusion that ignored whether the device holds the record
-    // would break it.
-    expect(store.writes.map((write) => write.address), [newer.address]);
-    expect(store.writes.single.body['name'], 'Newer on B');
-  });
+      expect(result.status, SyncPassStatus.completed);
+      // The mirror of the test above: this path was already correct, and a
+      // peer-side exclusion that ignored whether the device holds the record
+      // would break it.
+      expect(store.writes.map((write) => write.address), [newer.address]);
+      expect(store.writes.single.body['name'], 'Newer on B');
+    },
+  );
 
   test('applies a peer edit to a dependent of a quarantined root', () async {
     final now = DateTime.utc(2026, 7, 15, 12);
@@ -1130,10 +1133,7 @@ void main() {
             report.peerId == null,
       );
       expect(quarantined, hasLength(1));
-      expect(
-        quarantined.single.message,
-        contains('1 database-FK dependent'),
-      );
+      expect(quarantined.single.message, contains('1 database-FK dependent'));
       // Withheld from publication is not withheld from the merge.
       expect(store.writes.map((write) => write.address), [dependent.address]);
       expect(store.writes.single.body['title'], 'Edited on B');
