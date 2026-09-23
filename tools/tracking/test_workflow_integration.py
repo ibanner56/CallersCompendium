@@ -45,14 +45,27 @@ def test_job_stops_at_underscore_job_id() -> None:
     assert "name: Next job" not in first
 
 
-def test_ci_runs_for_all_pull_request_updates() -> None:
+def test_ci_runs_for_pull_request_code_updates() -> None:
+    """CI runs on the activity types that change code -- and not on `edited`.
+
+    `edited` was required here while the tracking gate read the PR body
+    (#1138). #1338 removed that job and #1379 removed the trigger, because a
+    description edit started a second run whose concurrency group cancelled
+    the first. Asserting its absence, rather than only the presence of the
+    other three, is deliberate: re-adding it is the regression this guard
+    exists to catch.
+    """
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+    pull_request = trigger(workflow, "pull_request")
+    assert "edited" not in pull_request, (
+        "pull_request must not include edited: it cancels the in-flight suite "
+        "for a description change, and nothing in ci.yml reads the PR body"
+    )
     assert re.search(
-        r"^  pull_request:\n    types: \[opened, reopened, synchronize, edited\]$",
+        r"^  pull_request:\n    types: \[opened, reopened, synchronize\]$",
         workflow,
         flags=re.MULTILINE,
-    ), "pull_request must include edited and the default-equivalent activity types"
-
+    ), "pull_request must run for opened, reopened and synchronize"
 
 
 def test_ci_has_no_pull_request_tracking_gate() -> None:
