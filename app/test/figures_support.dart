@@ -11,4 +11,13 @@ import 'package:compendium_core/compendium_core.dart';
 /// See the core copy for why tests get an unwrap and production gets none.
 List<Figure> figuresOf(Dance dance) => switch (dance.figuresSource) {
   DecodedFigures(:final figures) => figures,
+  // Deliberately loud. A test reaching here expected a decodable
+  // transcription and did not get one, which is a wrong expectation rather
+  // than a case to paper over — returning an empty list would let the test
+  // pass while asserting nothing. A test that means to exercise an
+  // undecodable transcription matches on [UnreadableFigures] itself.
+  UnreadableFigures() => throw StateError(
+    'figuresOf() called on a dance whose transcription could not be decoded; '
+    'match on UnreadableFigures instead',
+  ),
 };
