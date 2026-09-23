@@ -6,6 +6,7 @@ import 'package:drift/drift.dart';
 import 'package:meta/meta.dart';
 
 import '../model/choreographer.dart';
+import '../model/figure_source.dart';
 import '../model/custom_field.dart';
 import '../model/dance.dart';
 import '../model/difficulty_level.dart';
@@ -4906,11 +4907,24 @@ final class CompendiumSyncStorage
     message: 'Inbound record could not be decoded: $message.',
   );
 
+  /// The record body published for a dance, or `null` to publish nothing.
+  ///
+  /// **A dance whose stored transcription could not be decoded is withheld**
+  /// (#1347). The body would otherwise carry the transcription as an empty
+  /// array plus a `figuresRaw` sibling, and a peer that does not understand
+  /// `figuresRaw` would apply the empty array over its own copy — replacing a
+  /// transcription it can read with nothing, on the strength of a record this
+  /// device could not read in the first place. That is the one outcome this
+  /// whole change exists to prevent, so the record does not go out at all.
+  ///
+  /// Withholding is strictly conservative: a record that is never published
+  /// cannot overwrite anything, and the peer keeps whatever it already has. The
+  /// local copy is untouched either way — the bytes stay exactly as stored.
   Future<Map<String, Object?>?> _readDanceBody(String id) async {
     final dance = await repositories.dances.getById(id, includeDeleted: true);
-    return dance == null
-        ? null
-        : archiveDanceToJson(dance, const {}, includeOptionalFields: true);
+    if (dance == null) return null;
+    if (dance.figuresSource is UnreadableFigures) return null;
+    return archiveDanceToJson(dance, const {}, includeOptionalFields: true);
   }
 
   Future<Map<String, Object?>?> _readProgramBody(String id) async {
