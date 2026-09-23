@@ -90,6 +90,10 @@ class _SyncDevicesScreenState extends State<SyncDevicesScreen> {
   }
 
   Future<void> _load() async {
+    // The first call arrives from a post-frame callback, which still runs when
+    // the screen was popped inside that same frame; reading the scope off a
+    // defunct element would throw rather than simply do nothing.
+    if (!mounted) return;
     final controller = SyncScope.of(context);
     if (!_loading) setState(() => _loading = true);
     final result = await controller.listStoreDevices();

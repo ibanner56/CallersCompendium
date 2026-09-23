@@ -2345,6 +2345,13 @@ void main() {
           tester,
         ) async {
           final gate = Completer<void>();
+          // Released here as well as at the end of the body: an assertion
+          // below throws out of the test, and a pass still waiting on this
+          // gate would then hang the suite to its ten-minute timeout instead
+          // of reporting which expectation failed.
+          addTearDown(() {
+            if (!gate.isCompleted) gate.complete();
+          });
           final repos = await pumpPaired(tester);
           _syncCoordinator = SyncCoordinator(
             syncId: 'configured',
@@ -2361,16 +2368,25 @@ void main() {
           await tester.tap(find.byKey(const ValueKey('sync-now')));
           await tester.pump();
 
-          for (final key in ['sync-devices', 'sync-wipe']) {
-            expect(
-              tester.widget<ListTile>(find.byKey(ValueKey(key))).enabled,
-              isFalse,
-              reason: '$key must not be tappable mid-pass',
-            );
-          }
+          // Sampled while the pass is in flight, asserted once it has
+          // finished. Asserting here instead would throw with the pass still
+          // waiting on the gate, and the suite would reach its ten-minute
+          // timeout rather than reporting which tile was wrong.
+          final enabledMidPass = {
+            for (final key in ['sync-devices', 'sync-wipe'])
+              key: tester.widget<ListTile>(find.byKey(ValueKey(key))).enabled,
+          };
 
           gate.complete();
           await tester.pumpAndSettle();
+
+          for (final entry in enabledMidPass.entries) {
+            expect(
+              entry.value,
+              isFalse,
+              reason: '${entry.key} must not be tappable mid-pass',
+            );
+          }
         });
 
         testWidgets('the list shows the other devices and never this one', (

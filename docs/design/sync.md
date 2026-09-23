@@ -325,8 +325,10 @@ the losing id in its last-published manifest, and so keeps that alias alive
 indefinitely — there is no per-device aging, and `stores.last_seen` is refreshed
 by any device, so the store never expires while others use it. A client-side
 detach does not help either: it forgets the sync ID locally and leaves the
-manifest in place. Pruning is therefore bounded in practice by someone calling
-`DELETE /v1/manifests/{deviceId}` for devices that are genuinely gone.
+manifest in place. Pruning is therefore bounded in practice by someone removing
+the devices that are genuinely gone — which Settings ▸ Device Sync ▸ *Other
+devices* does, issuing `DELETE /v1/manifests/{deviceId}` for the peer the user
+picks (issue #1360).
 
 The failure mode is bounded and slow — one row per merge per abandoned device, in
 a `deviceScoped` table of ids — so it is a housekeeping cost rather than a

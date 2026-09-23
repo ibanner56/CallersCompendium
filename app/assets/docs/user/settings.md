@@ -538,9 +538,11 @@ sharing a phrase: a second device using the same phrase can edit the same
 records, and if both of you touch the same dance or program at once, one
 edit silently wins — there is no merge and no warning. It also explains that
 the phrase itself has no password reset: losing it locks you out of that
-store, and the only fix for a leaked phrase is moving every device to a new
-one. Before connecting, you're offered an optional one-time backup of your
-library — accepting or skipping it doesn't change what connecting does.
+store, and a phrase that has leaked can't be taken back, so carrying on
+syncing means moving every device to a new phrase. That does not remove what
+the old phrase still opens — see **Deleting the store** below. Before
+connecting, you're offered an optional one-time backup of your library —
+accepting or skipping it doesn't change what connecting does.
 
 **Disconnecting.** To stop syncing on this device without turning Device Sync
 off, tap **Disconnect this device** and confirm. The device forgets its phrase
@@ -553,6 +555,36 @@ Disconnecting really does forget it, so copy it from **Your sync phrase**
 first if it isn't written down anywhere else.
 Turning **Device Sync** off and on again, by contrast, keeps this device
 connected.
+
+**Your other devices.** **Other devices** lists everything else connected to
+this store, and lets you remove one you no longer use — a phone you've replaced,
+or one that's been lost. Removing a device stops the store keeping its copy of
+what it shared and frees the place it was taking up; a store holds 32 devices,
+so a run of replaced phones can eventually leave no room for a new one.
+Nothing is deleted from the removed device, and nothing is deleted from yours.
+It isn't a ban either: that device can connect to this store again with the
+phrase, and a device that was only dormant rather than gone simply picks up
+again the next time it syncs.
+
+The list shows the identifiers the server made up for each device, because
+that's all the server knows — there are no device names, and this device isn't
+in the list. If you can't tell which is which, it's safe to leave them: the
+only cost of an extra entry is one of the 32 places.
+
+**Deleting the store.** **Disconnect all devices and delete the store** removes
+everything the store holds from the server, for every device at once, and it
+can't be undone. Your library stays on this device and on each of your other
+devices, but anything that had only ever reached another device through syncing
+won't arrive here. This device disconnects and forgets its phrase; your other
+devices find the store gone the next time they sync and are asked whether to
+start a new one, the same question as any store that's no longer there.
+
+This is what to use if someone else has seen your sync phrase. A leaked phrase
+can't be revoked, and moving your devices to a new phrase doesn't help on its
+own — whoever has the old one can still read and change everything in the old
+store. Deleting the store is the only thing that takes that away immediately.
+It is not the answer to running out of room, though: remove a device you don't
+use instead.
 
 If a store this device used to sync with is no longer there, the app asks
 before creating a replacement: it may have gone unused past its 30-day limit,
