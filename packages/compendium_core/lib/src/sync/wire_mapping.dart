@@ -191,7 +191,14 @@ const _settingFields = [
   SyncWireField('existenceAt', ['settings.existence_at']),
 ];
 
-/// The complete reviewed relation between wire paths and registry fields.
+/// The complete relation between wire paths and registry fields.
+///
+/// Hand-written, but not taken on trust: `test/sync/wire_mapping_test.dart`
+/// proves every pairing behaviourally, as spec §3.3 requires. It varies one
+/// registry column at a time and requires exactly the wire paths declared for
+/// it to change, so an entry naming the wrong column fails — including a swap
+/// between two columns of the same type, and including one that would put a
+/// device-local field on the wire.
 const Map<SyncRecordKind, List<SyncWireField>> syncWireFields = {
   SyncRecordKind.dance: _danceFields,
   SyncRecordKind.program: _programFields,

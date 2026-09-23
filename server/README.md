@@ -14,14 +14,22 @@ From the repository root:
 ```sh
 openssl rand -base64 32 > /secure/path/athenaeum.pepper
 chmod 600 /secure/path/athenaeum.pepper
-dart run server/bin/athenaeum.dart \
-  --data-dir /tmp/athenaeum \
-  --pepper "$(cat /secure/path/athenaeum.pepper)"
+ATHENAEUM_PEPPER="$(cat /secure/path/athenaeum.pepper)" \
+  dart run server/bin/athenaeum.dart --data-dir /tmp/athenaeum
 ```
 
 The pepper is required, is never stored in SQLite, and must be at least 256
-bits of cryptographically secure randomness. Set `ATHENAEUM_PEPPER` instead of
-`--pepper` when passing it as a command-line argument is undesirable.
+bits of cryptographically secure randomness. It comes only from runtime
+configuration — the `ATHENAEUM_PEPPER` environment variable above, or the
+`--env-file` flow the [operations
+runbook](../docs/dev/athenaeum-operations.md) uses for deployment. No build
+can embed one: the server reads no compile-time value and refuses to start
+when no pepper is configured rather than substituting a default.
+
+A `--pepper <value>` option also exists, but **prefer the environment
+variable**: command-line arguments are visible to every other user on the host
+(`ps -o args`), so `--pepper` leaks the deployment secret on a shared machine.
+Use it only where nothing else can see the process list.
 
 ### Break-glass reads
 
