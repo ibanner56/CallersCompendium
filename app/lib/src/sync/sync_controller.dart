@@ -850,11 +850,7 @@ class SyncController extends ChangeNotifier {
         await _clearAttachment();
       });
     } on Object catch (error, stack) {
-      logCaughtErrorTypeOnly(
-        error,
-        stack,
-        source: 'sync_controller.wipeStore',
-      );
+      logCaughtErrorTypeOnly(error, stack, source: 'sync_controller.wipeStore');
       return SyncAdminOutcome.failed;
     } finally {
       _detaching = false;
