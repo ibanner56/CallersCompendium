@@ -17,12 +17,18 @@ import 'sync_local_repository.dart';
 /// (issue #786). This is the single write choke point for tags: the editor, the
 /// batch dialog, and archive restore all go through [upsert].
 ///
-/// Tags are **soft-deleted** as of schema v25 (issue #898), and are the one
-/// converted kind with no referential guard: [delete] used to rely purely on
-/// the `dance_tags` FK cascade to unlink the tag from every dance. A tombstone
-/// fires no cascade, so those join rows now outlive the delete — deliberately,
-/// so a revived tag keeps its dances — and every read that reaches a tag
-/// through `dance_tags` filters on `deleted_at IS NULL` instead.
+/// Tags are **soft-deleted** as of schema v25 (issue #898): [delete] used to
+/// rely purely on the `dance_tags` FK cascade to unlink the tag from every
+/// dance. A tombstone fires no cascade, so those join rows now outlive the
+/// delete — deliberately, so a revived tag keeps its dances — and every read
+/// that reaches a tag through `dance_tags` filters on `deleted_at IS NULL`
+/// instead.
+///
+/// The ordinary tombstoning [delete] is the one converted kind's delete with no
+/// referential guard, which is safe precisely because it strands nothing. Its
+/// `permanent` branch is a different matter and **is** guarded as of issue
+/// #1357: that branch erases, and the FK cascade then strips the tag from every
+/// dance holding it, live ones included. See [delete].
 class TagRepository {
   TagRepository(this._db);
 
@@ -285,14 +291,60 @@ class TagRepository {
   /// would mean a revived tag came back untagged, silently losing every
   /// association. Reads filter the tag out instead, so the dances stop showing
   /// it either way.
+  ///
+  /// The default (tombstone) path is deliberately **unguarded** — it is what
+  /// the tag manager calls, and a tombstone strands nothing. The [permanent]
+  /// path is guarded, because it erases: `dance_tags.tag_id` is
+  /// `ON DELETE CASCADE` (`tables.dart`), so erasing a referenced tag strips it
+  /// from the referencing dances with no error at all. Until issue #1357 this
+  /// hatch had no check of any kind — the only sibling in that state — and was
+  /// held closed solely by its one caller's `isInUse` read, which sits outside
+  /// the delete's transaction and is therefore check-then-act.
+  ///
+  /// The guard matches `ChoreographerRepository.delete`'s, which is the shape
+  /// every cascading parent now uses:
+  ///
+  /// * a **live** dance holding the tag throws a [StateError] (sync-spec §3.1:
+  ///   "refuse to hard-delete an entity still referenced by a live record"),
+  ///   because the tag must stay live for that dance to keep showing it;
+  /// * a **tombstoned** dance's `dance_tags` row downgrades the erase to a
+  ///   tombstone, so the association survives for the dance's restore instead
+  ///   of cascading away;
+  /// * an unreferenced tag is erased, or tombstoned if already published.
   Future<void> delete(String id, {DateTime? at, bool permanent = false}) =>
       _db.transaction(() async {
         if (permanent) {
-          if (await isPublishedSyncRecord(
-            _db,
-            kind: SyncRecordKind.tag,
-            recordId: id,
-          )) {
+          final liveUses =
+              await (_db.select(_db.danceTags).join([
+                    innerJoin(
+                      _db.dances,
+                      _db.dances.id.equalsExp(_db.danceTags.danceId),
+                    ),
+                  ])..where(
+                    _db.danceTags.tagId.equals(id) &
+                        _db.dances.deletedAt.isNull(),
+                  ))
+                  .get();
+          if (liveUses.isNotEmpty) {
+            throw StateError(
+              'cannot delete tag "$id": still applied to '
+              '${liveUses.length} dance(s)',
+            );
+          }
+          // Any surviving `dance_tags` row — necessarily a tombstoned dance's,
+          // since a live one threw above — downgrades the erase to a tombstone.
+          final taggedBySurvivor =
+              await (_db.select(_db.danceTags)
+                    ..where((t) => t.tagId.equals(id))
+                    ..limit(1))
+                  .getSingleOrNull() !=
+              null;
+          if (taggedBySurvivor ||
+              await isPublishedSyncRecord(
+                _db,
+                kind: SyncRecordKind.tag,
+                recordId: id,
+              )) {
             await stampExistenceTransition(
               _db,
               table: _db.tags,
@@ -338,6 +390,16 @@ class TagRepository {
     }
   });
 
+  /// Erases the unpublished, unreferenced tags [ids], for reverting a
+  /// just-committed import (`ShareMetadataImporter.undo`).
+  ///
+  /// Delegates to [delete], so it inherits that method's `permanent` guard in
+  /// full: a tag a **live** dance still holds throws a [StateError] (which
+  /// abandons the whole batch — callers revert per id, or catch and continue),
+  /// a tag only a tombstoned dance holds is tombstoned, and a published tag is
+  /// tombstoned. Unlike `VenueRepository.hardDelete` this is not a
+  /// batch-at-a-time query; the tag lists it is called with are single-import
+  /// sized.
   Future<void> hardDelete(Iterable<String> ids) => _db.transaction(() async {
     for (final id in ids) {
       await delete(id, permanent: true);

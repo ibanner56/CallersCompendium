@@ -985,13 +985,17 @@ class CompendiumArchiveImporter {
   /// delegating to [ImportPipeline.undo] for the dances, authors and
   /// updated-dance rollbacks. Idempotent — a second call is a no-op.
   ///
-  /// Venue removal is **guarded**, mirroring [ImportPipeline.undo]'s
-  /// created-choreographer handling: after a successful import a surviving user
-  /// program may have linked to an imported venue, so an unconditional delete
-  /// would orphan that program's `venueId`. Each imported venue is deleted only
-  /// when no program still references it (the repository guard throws
-  /// otherwise); a still-referenced venue is retained. Inserted programs are
-  /// removed first, so a venue referenced solely by this import is reclaimed.
+  /// Venue removal goes through [VenueRepository.hardDelete], the same call the
+  /// commit-failure path above makes, because that is where the erasure
+  /// retention rule lives (sync-spec §3.1): after a successful import a
+  /// surviving user program may have linked to an imported venue, so an
+  /// unconditional erase would orphan that program's `venueId`. `hardDelete`
+  /// retains a venue **any** surviving program row still names, tombstoned
+  /// programs included, and tombstones an already-published one. Inserted
+  /// programs are removed first, so a venue referenced solely by this import is
+  /// reclaimed. `delete(permanent: true)` is deliberately *not* used: its guard
+  /// counts live programs only (issue #1328), so it erased a venue a tombstoned
+  /// program still named — issue #1357.
   ///
   /// [now] is an optional clock seam for deterministic callers; production
   /// undo timestamps default to the current UTC time.
@@ -1010,16 +1014,12 @@ class CompendiumArchiveImporter {
         await _programs.softDelete(id, at: undoAt);
       }
     }
-    for (final id in result.insertedVenueIds) {
-      try {
-        // `permanent` for the same reason the dances/programs above are
-        // hard-deleted: a rollback must leave nothing behind to publish.
-        await _venues.delete(id, permanent: true);
-      } on StateError {
-        // Still referenced by a surviving program — leave it in place rather
-        // than orphan that program's venueId.
-      }
-    }
+    // Erasing for the same reason the dances/programs above are hard-deleted:
+    // a rollback must leave nothing behind to publish. `hardDelete` owns both
+    // exceptions to that — a published venue is tombstoned instead, and a venue
+    // any surviving program row still names (tombstoned ones included) is left
+    // untouched rather than orphaning that reference.
+    await _venues.hardDelete(result.insertedVenueIds);
     for (final id in result.restoredVenueIds) {
       try {
         await _venues.delete(id);

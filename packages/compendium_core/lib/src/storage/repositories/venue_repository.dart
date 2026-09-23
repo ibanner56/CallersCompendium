@@ -214,13 +214,18 @@ class VenueRepository {
   /// because `venueId` is an app-layer-enforced soft reference, not a DB FK.
   ///
   /// Tombstones by default (schema v25, issue #898); the guard is kept. See
-  /// `ChoreographerRepository.delete` for [permanent], which the archive and
-  /// `.USR` import rollbacks pass.
+  /// `ChoreographerRepository.delete` for [permanent].
   ///
-  /// The reference count deliberately does **not** filter
-  /// `programs.deleted_at`: a soft-deleted program can still be restored, and
-  /// restoring one whose venue had been removed in the meantime would orphan
-  /// its `venueId`. That predates this change and is unaffected by it.
+  /// The reference count filters `programs.deleted_at`, so it counts **live
+  /// programs only**. A tombstoned program does not block an ordinary delete:
+  /// this delete writes a tombstone of its own, and a tombstoned venue can be
+  /// restored alongside the program that names it. Erasure is the case that
+  /// cannot be undone, and the retention rule for it lives in [hardDelete],
+  /// which counts *every* surviving program row. Import rollback therefore
+  /// calls [hardDelete] rather than passing [permanent] here (issue #1357); an
+  /// earlier version of this comment claimed the count "deliberately does not
+  /// filter `programs.deleted_at`", which stopped being true when #1328
+  /// narrowed the guard to live programs.
   Future<void> delete(String id, {DateTime? at, bool permanent = false}) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
@@ -314,6 +319,17 @@ class VenueRepository {
   /// surviving reference would silently orphan the reference instead of
   /// rejecting the delete.
   ///
+  /// Retention is **total**: a still-referenced venue is left exactly as it
+  /// is, and is skipped by the published-row tombstone below as well as by the
+  /// erase (issue #1357). Sync-spec §3.1 requires this method to "retain any
+  /// row still referenced by a surviving record", and a tombstone does not
+  /// retain one in any sense the referencing program can observe — every venue
+  /// read filters `deleted_at IS NULL` ([getById], [listAll], [watchAll]) and
+  /// `ProgramRepository` refuses to link a tombstoned venue, so tombstoning
+  /// orphans the reference exactly as erasing it would. An earlier version
+  /// tombstoned every published id before computing [stillReferenced], which
+  /// made the retention rule apply to erasure only.
+  ///
   /// Unpublished rollback rows stay hard-deleted after the schema-v25
   /// soft-delete conversion (issue #898), exactly as the corresponding dance
   /// and program paths do. A rollback erases an import that is being treated as
@@ -323,22 +339,6 @@ class VenueRepository {
     final list = ids.toList();
     if (list.isEmpty) return Future.value();
     return _db.transaction(() async {
-      final publishedIds = await publishedSyncRecordIds(
-        _db,
-        kind: SyncRecordKind.venue,
-        recordIds: list,
-      );
-      final now = DateTime.now().toUtc();
-      for (final id in publishedIds) {
-        await stampExistenceTransition(
-          _db,
-          table: _db.venues,
-          keyColumn: 'id',
-          key: id,
-          at: now,
-          deleted: true,
-        );
-      }
       // A venue still named by *any* surviving program row — including a
       // tombstoned one — must stay. `programs.venue_id` is not a foreign key,
       // so nothing at the database level would reject the erasure, and the
@@ -348,6 +348,10 @@ class VenueRepository {
       // forfeiture started tombstoning published programs instead of erasing
       // them, which breaks this method's documented precondition that the
       // caller has already removed every referencing program.
+      //
+      // Computed FIRST, so it gates the tombstone below as well as the erase.
+      // A tombstone is not retention: a referencing program cannot see a
+      // tombstoned venue any more than an erased one.
       final stillReferenced = <String>{};
       for (final chunk in _chunkIds(list)) {
         final rows =
@@ -357,6 +361,23 @@ class VenueRepository {
                 .map((row) => row.read(_db.programs.venueId))
                 .get();
         stillReferenced.addAll(rows.whereType<String>());
+      }
+      final publishedIds = await publishedSyncRecordIds(
+        _db,
+        kind: SyncRecordKind.venue,
+        recordIds: list,
+      );
+      final now = DateTime.now().toUtc();
+      for (final id in publishedIds) {
+        if (stillReferenced.contains(id)) continue;
+        await stampExistenceTransition(
+          _db,
+          table: _db.venues,
+          keyColumn: 'id',
+          key: id,
+          at: now,
+          deleted: true,
+        );
       }
       final erasableIds = list
           .where(
