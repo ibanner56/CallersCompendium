@@ -201,4 +201,58 @@ void main() {
       expect(encodeArchive(decoded.archive), encoded);
     });
   });
+
+  group('sync never publishes a body for an undecodable transcription', () {
+    // The property a later refactor would break: no body produced by ANY
+    // publish path may carry `figuresRaw`. A peer that does not understand the
+    // key applies the empty `figures` array beside it over its own readable
+    // copy, turning a row this device merely cannot read into cross-device
+    // data loss.
+    //
+    // These paths became reachable only because this change made
+    // `listAll`/`getById` return such a dance instead of raising, so the guard
+    // belongs with the change that created them.
+    late CompendiumSyncStorage storage;
+
+    setUp(() => storage = CompendiumSyncStorage(repos));
+
+    Future<void> seedUndecodable() async {
+      await repos.dances.create(sampleDance(id: 'd1', title: 'Corrupt'));
+      await repos.ensureMigrated();
+      await _storeRawFigures(db, 'd1', '[{"kind":');
+    }
+
+    test('snapshot publishes no dance body at all', () async {
+      await seedUndecodable();
+      final snapshot = await storage.snapshot();
+      final bodies = [
+        for (final c in snapshot.local.values) c?.blob.body,
+        for (final c in snapshot.publication.values) c?.blob.body,
+      ].whereType<Map<String, Object?>>();
+      for (final body in bodies) {
+        expect(
+          body.containsKey('figuresRaw'),
+          isFalse,
+          reason: 'no published body may carry the quarantine key',
+        );
+      }
+      expect(
+        snapshot.local[(kind: SyncRecordKind.dance, recordId: 'd1')],
+        isNull,
+        reason: 'the record is withheld, not published empty',
+      );
+    });
+
+    test('merge candidates omit it', () async {
+      await seedUndecodable();
+      final candidates = await storage.snapshotCandidates();
+      expect(
+        candidates[(kind: SyncRecordKind.dance, recordId: 'd1')],
+        isNull,
+      );
+      for (final c in candidates.values) {
+        expect(c?.blob.body.containsKey('figuresRaw') ?? false, isFalse);
+      }
+    });
+  });
 }
