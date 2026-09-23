@@ -16,6 +16,7 @@ import '../../sync/sync_scope.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/collapsible_section.dart';
 import '../../widgets/section_header.dart';
+import 'sync_devices_screen.dart';
 import 'sync_notice_labels.dart';
 import 'sync_pairing_screen.dart';
 
@@ -291,6 +292,24 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
     }
   }
 
+  /// Wipe destroys the store for every device at once and cannot be undone, so
+  /// it is confirmed by [confirmSyncWipe] rather than the ordinary dialog. The
+  /// controller detaches this device only on success; a failure leaves it
+  /// attached and says so.
+  Future<void> _confirmWipe(SyncController controller) async {
+    if (!await confirmSyncWipe(context) || !mounted) return;
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final l10n = AppLocalizations.of(context);
+    if (await controller.wipeStore() != SyncAdminOutcome.done) {
+      messenger?.showSnackBar(
+        SnackBar(
+          key: const ValueKey('sync-wipe-failed'),
+          content: Text(l10n.settingsSyncWipeFailed),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -446,6 +465,32 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
                 onTap: controller.running
                     ? null
                     : () => _confirmDisconnect(controller),
+              ),
+            if (controller.paired)
+              ListTile(
+                key: const ValueKey('sync-devices'),
+                leading: const Icon(Icons.devices_other_outlined),
+                title: Text(l10n.settingsSyncDevicesTitle),
+                subtitle: Text(l10n.settingsSyncDevicesSubtitle),
+                trailing: const Icon(Icons.chevron_right),
+                enabled: !controller.running,
+                onTap: controller.running
+                    ? null
+                    : () => showSyncDevicesScreen(context),
+              ),
+            if (controller.paired)
+              ListTile(
+                key: const ValueKey('sync-wipe'),
+                leading: Icon(
+                  Icons.delete_forever_outlined,
+                  color: theme.colorScheme.error,
+                ),
+                title: Text(l10n.settingsSyncWipeTitle),
+                subtitle: Text(l10n.settingsSyncWipeSubtitle),
+                enabled: !controller.running,
+                onTap: controller.running
+                    ? null
+                    : () => _confirmWipe(controller),
               ),
           ],
         ],

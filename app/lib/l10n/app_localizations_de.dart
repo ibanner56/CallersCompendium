@@ -352,6 +352,75 @@ class AppLocalizationsDe extends AppLocalizations {
       'Dieses Gerät konnte nicht getrennt werden. Es ist weiterhin verbunden; versuche es erneut.';
 
   @override
+  String get settingsSyncDevicesTitle => 'Andere Geräte';
+
+  @override
+  String get settingsSyncDevicesSubtitle =>
+      'Sieh nach, was sonst noch mit diesem Speicher verbunden ist, und entferne ein Gerät, das du nicht mehr benutzt.';
+
+  @override
+  String get settingsSyncDevicesScreenTitle => 'Andere Geräte';
+
+  @override
+  String get settingsSyncDevicesCaution =>
+      'Der Server kennt jedes Gerät nur an einer Kennung, die er selbst vergeben hat – deshalb stehen hier keine Gerätenamen, und dieses Gerät wird nicht aufgeführt. Wenn du nicht sicher bist, welches du entfernen sollst, kannst du es gefahrlos stehen lassen: Ein entferntes Gerät kann sich mit der Synchronisierungsphrase wieder verbinden.';
+
+  @override
+  String get settingsSyncDevicesEmpty =>
+      'Mit diesem Speicher sind keine anderen Geräte verbunden.';
+
+  @override
+  String get settingsSyncDevicesFailed =>
+      'Die Geräteliste konnte nicht geladen werden. Prüfe deine Verbindung und versuche es erneut.';
+
+  @override
+  String get settingsSyncDevicesStoreMissing =>
+      'Dieser Speicher liegt nicht mehr auf dem Server, es gibt also keine Geräte anzuzeigen.';
+
+  @override
+  String get settingsSyncDevicesRetry => 'Erneut versuchen';
+
+  @override
+  String get settingsSyncDeviceRemoveTooltip => 'Dieses Gerät entfernen';
+
+  @override
+  String get settingsSyncDeviceRemoveTitle => 'Dieses Gerät entfernen?';
+
+  @override
+  String get settingsSyncDeviceRemoveBody =>
+      'Der Speicher behält die Kopie dieses Geräts von dem, was es geteilt hat, nicht länger, und das Gerät synchronisiert nicht mehr. Auf jenem Gerät wird nichts gelöscht, und auf deinem wird nichts gelöscht. Es kann sich später mit der Synchronisierungsphrase wieder mit diesem Speicher verbinden.';
+
+  @override
+  String get settingsSyncDeviceRemoveAction => 'Entfernen';
+
+  @override
+  String get settingsSyncDeviceRemoveFailed =>
+      'Das Gerät konnte nicht entfernt werden. Es ist weiterhin verbunden; versuche es erneut.';
+
+  @override
+  String get settingsSyncWipeTitle =>
+      'Alle Geräte trennen und den Speicher löschen';
+
+  @override
+  String get settingsSyncWipeSubtitle =>
+      'Alles entfernen, was dieser Speicher enthält – für alle Geräte auf einmal. Das lässt sich nicht rückgängig machen.';
+
+  @override
+  String get settingsSyncWipeConfirmTitle =>
+      'Diesen Speicher vom Server löschen?';
+
+  @override
+  String get settingsSyncWipeConfirmBody =>
+      'Alles, was der Speicher enthält, wird vom Server gelöscht, für alle Geräte auf einmal, und das lässt sich nicht rückgängig machen. Deine Bibliothek bleibt auf diesem Gerät und auf jedem deiner anderen Geräte – aber alles, was bisher nur über die Synchronisierung auf ein anderes Gerät gelangt war, kommt hier nicht mehr an. Dieses Gerät wird getrennt und vergisst seine Synchronisierungsphrase; deine anderen Geräte finden den Speicher beim nächsten Synchronisieren nicht mehr vor und fragen, ob ein neuer angelegt werden soll. Nutze das, wenn deine Synchronisierungsphrase jemand anderem bekannt geworden ist: Es ist das Einzige, was sofort entfernt, was diese Person lesen kann.';
+
+  @override
+  String get settingsSyncWipeConfirmAction => 'Speicher löschen';
+
+  @override
+  String get settingsSyncWipeFailed =>
+      'Der Speicher konnte nicht gelöscht werden. Es wurde nichts geändert und dieses Gerät ist weiterhin verbunden; versuche es erneut.';
+
+  @override
   String get settingsSyncMeteredRouted =>
       'Du nutzt mobile Daten und „Nur über WLAN synchronisieren“ ist an. Schalte diese Einstellung unten aus, um jetzt zu synchronisieren.';
 

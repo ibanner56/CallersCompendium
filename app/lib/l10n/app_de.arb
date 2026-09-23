@@ -376,6 +376,82 @@
   "@settingsSyncDisconnectFailed": {
     "x-sourceSha256": "23a506ff584ec8b81da1a4dfdefe90d6572957feabcfee2aa2614e3b68b0b3c8"
   },
+  "settingsSyncDevicesTitle": "Andere Geräte",
+  "@settingsSyncDevicesTitle": {
+    "x-sourceSha256": "4e027dbb70b262fc7f99d829e4b5627a44811381c5f630afbdb415bb9e688514"
+  },
+  "settingsSyncDevicesSubtitle": "Sieh nach, was sonst noch mit diesem Speicher verbunden ist, und entferne ein Gerät, das du nicht mehr benutzt.",
+  "@settingsSyncDevicesSubtitle": {
+    "x-sourceSha256": "7e22abc062361f41877090af0c6aceb7a0a6bd5b0fc1ca93600c7688d68bd7ea"
+  },
+  "settingsSyncDevicesScreenTitle": "Andere Geräte",
+  "@settingsSyncDevicesScreenTitle": {
+    "x-sourceSha256": "4e027dbb70b262fc7f99d829e4b5627a44811381c5f630afbdb415bb9e688514"
+  },
+  "settingsSyncDevicesCaution": "Der Server kennt jedes Gerät nur an einer Kennung, die er selbst vergeben hat – deshalb stehen hier keine Gerätenamen, und dieses Gerät wird nicht aufgeführt. Wenn du nicht sicher bist, welches du entfernen sollst, kannst du es gefahrlos stehen lassen: Ein entferntes Gerät kann sich mit der Synchronisierungsphrase wieder verbinden.",
+  "@settingsSyncDevicesCaution": {
+    "x-sourceSha256": "88b8e650ef9354688da2a359b0300257622ba39c1f88eca6b34d489fb276ca0d"
+  },
+  "settingsSyncDevicesEmpty": "Mit diesem Speicher sind keine anderen Geräte verbunden.",
+  "@settingsSyncDevicesEmpty": {
+    "x-sourceSha256": "f56e6ab00b608c84434889f700c88b081f2e83a805da979cc33f524f9e2739d2"
+  },
+  "settingsSyncDevicesFailed": "Die Geräteliste konnte nicht geladen werden. Prüfe deine Verbindung und versuche es erneut.",
+  "@settingsSyncDevicesFailed": {
+    "x-sourceSha256": "27aa616f092b6506087586d1173cc91446b51b6b80fa0bd4b82875a53f9830ad"
+  },
+  "settingsSyncDevicesStoreMissing": "Dieser Speicher liegt nicht mehr auf dem Server, es gibt also keine Geräte anzuzeigen.",
+  "@settingsSyncDevicesStoreMissing": {
+    "x-sourceSha256": "4390292ce9be0068bfed9c87d58bfbe87531e0d889d5d301900fce80d20f3dd2"
+  },
+  "settingsSyncDevicesRetry": "Erneut versuchen",
+  "@settingsSyncDevicesRetry": {
+    "x-sourceSha256": "d8b8392e2c542950ca64867168e4ef87d4ad606882d5898f826b51c6d553988f"
+  },
+  "settingsSyncDeviceRemoveTooltip": "Dieses Gerät entfernen",
+  "@settingsSyncDeviceRemoveTooltip": {
+    "x-sourceSha256": "2c0bb958c741ab75e2742645d3404fc768ca628ddc6fb96ef49f6c8b4a7ea9c2"
+  },
+  "settingsSyncDeviceRemoveTitle": "Dieses Gerät entfernen?",
+  "@settingsSyncDeviceRemoveTitle": {
+    "x-sourceSha256": "7be0603b6c40ef172609549712c82f68208568bd3874ed44e0a822b320b66688"
+  },
+  "settingsSyncDeviceRemoveBody": "Der Speicher behält die Kopie dieses Geräts von dem, was es geteilt hat, nicht länger, und das Gerät synchronisiert nicht mehr. Auf jenem Gerät wird nichts gelöscht, und auf deinem wird nichts gelöscht. Es kann sich später mit der Synchronisierungsphrase wieder mit diesem Speicher verbinden.",
+  "@settingsSyncDeviceRemoveBody": {
+    "x-sourceSha256": "86fee0f332c2e9a006ad4321bf68e3fefaf121198bbcc0863d20de19246ac178"
+  },
+  "settingsSyncDeviceRemoveAction": "Entfernen",
+  "@settingsSyncDeviceRemoveAction": {
+    "x-sourceSha256": "c3812fc4acb861d5182fc2b8155f327f736fbe5e5eb86a7bd7afcb6dc5497282"
+  },
+  "settingsSyncDeviceRemoveFailed": "Das Gerät konnte nicht entfernt werden. Es ist weiterhin verbunden; versuche es erneut.",
+  "@settingsSyncDeviceRemoveFailed": {
+    "x-sourceSha256": "9c18cbeb27eb7f6e81512ea44358b1d2c8bc73a52f87327c7afc0ea6cd57a0a9"
+  },
+  "settingsSyncWipeTitle": "Alle Geräte trennen und den Speicher löschen",
+  "@settingsSyncWipeTitle": {
+    "x-sourceSha256": "6b898192c6e79737c778cddb43dfeff4f227bd337b64a71c9ab19f092a36ee51"
+  },
+  "settingsSyncWipeSubtitle": "Alles entfernen, was dieser Speicher enthält – für alle Geräte auf einmal. Das lässt sich nicht rückgängig machen.",
+  "@settingsSyncWipeSubtitle": {
+    "x-sourceSha256": "4afc7519f58143b0808aeab3027bf885e304aed84c60a8cb295ad29ab12f3248"
+  },
+  "settingsSyncWipeConfirmTitle": "Diesen Speicher vom Server löschen?",
+  "@settingsSyncWipeConfirmTitle": {
+    "x-sourceSha256": "77701b6008c7d87383a3c1c7c4316c52219e81baddc39c3438c1879315408645"
+  },
+  "settingsSyncWipeConfirmBody": "Alles, was der Speicher enthält, wird vom Server gelöscht, für alle Geräte auf einmal, und das lässt sich nicht rückgängig machen. Deine Bibliothek bleibt auf diesem Gerät und auf jedem deiner anderen Geräte – aber alles, was bisher nur über die Synchronisierung auf ein anderes Gerät gelangt war, kommt hier nicht mehr an. Dieses Gerät wird getrennt und vergisst seine Synchronisierungsphrase; deine anderen Geräte finden den Speicher beim nächsten Synchronisieren nicht mehr vor und fragen, ob ein neuer angelegt werden soll. Nutze das, wenn deine Synchronisierungsphrase jemand anderem bekannt geworden ist: Es ist das Einzige, was sofort entfernt, was diese Person lesen kann.",
+  "@settingsSyncWipeConfirmBody": {
+    "x-sourceSha256": "4d32b4cd7be210b3280e49bc954adf9a14e397ffe46431644f05b822ad637f89"
+  },
+  "settingsSyncWipeConfirmAction": "Speicher löschen",
+  "@settingsSyncWipeConfirmAction": {
+    "x-sourceSha256": "295bf35e749e744ea715d9b91ebdeb23045b26e4ad24f4c138e2bca498605461"
+  },
+  "settingsSyncWipeFailed": "Der Speicher konnte nicht gelöscht werden. Es wurde nichts geändert und dieses Gerät ist weiterhin verbunden; versuche es erneut.",
+  "@settingsSyncWipeFailed": {
+    "x-sourceSha256": "d92d4e88e22770bf1ee00d53c29f050f8bcf7632dcd8a8f9eaa3ef875d003bce"
+  },
   "settingsSyncMeteredRouted": "Du nutzt mobile Daten und „Nur über WLAN synchronisieren“ ist an. Schalte diese Einstellung unten aus, um jetzt zu synchronisieren.",
   "@settingsSyncMeteredRouted": {
     "x-sourceSha256": "213bed8509f57aef35ba73781fca3267d5e5f7d16ef7b46f83b28c82ee833777"

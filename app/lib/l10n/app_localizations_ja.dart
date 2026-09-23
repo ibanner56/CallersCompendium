@@ -341,6 +341,71 @@ class AppLocalizationsJa extends AppLocalizations {
       'このデバイスの接続を解除できませんでした。接続はまだ有効です。もう一度お試しください。';
 
   @override
+  String get settingsSyncDevicesTitle => '他のデバイス';
+
+  @override
+  String get settingsSyncDevicesSubtitle =>
+      'このストアに接続されている他のデバイスを確認し、使わなくなったデバイスを削除します。';
+
+  @override
+  String get settingsSyncDevicesScreenTitle => '他のデバイス';
+
+  @override
+  String get settingsSyncDevicesCaution =>
+      'サーバーは各デバイスを自動生成した識別子でしか把握していないため、ここにデバイス名は表示されず、このデバイスも一覧に含まれません。どれを削除すべきか分からない場合は、そのままにしておいても問題ありません。削除したデバイスは同期フレーズがあれば再び接続できます。';
+
+  @override
+  String get settingsSyncDevicesEmpty => 'このストアに接続されている他のデバイスはありません。';
+
+  @override
+  String get settingsSyncDevicesFailed =>
+      'デバイス一覧を読み込めませんでした。接続を確認して、もう一度お試しください。';
+
+  @override
+  String get settingsSyncDevicesStoreMissing =>
+      'このストアはサーバー上に存在しないため、表示できるデバイスはありません。';
+
+  @override
+  String get settingsSyncDevicesRetry => 'もう一度試す';
+
+  @override
+  String get settingsSyncDeviceRemoveTooltip => 'このデバイスを削除';
+
+  @override
+  String get settingsSyncDeviceRemoveTitle => 'このデバイスを削除しますか?';
+
+  @override
+  String get settingsSyncDeviceRemoveBody =>
+      'そのデバイスが共有した内容のコピーがストアから削除され、そのデバイスは同期を停止します。そのデバイスからも、このデバイスからも、データは削除されません。同期フレーズがあれば、後でこのストアに再び接続できます。';
+
+  @override
+  String get settingsSyncDeviceRemoveAction => '削除';
+
+  @override
+  String get settingsSyncDeviceRemoveFailed =>
+      'そのデバイスを削除できませんでした。まだ接続されています。もう一度お試しください。';
+
+  @override
+  String get settingsSyncWipeTitle => 'すべてのデバイスの接続を解除してストアを削除';
+
+  @override
+  String get settingsSyncWipeSubtitle => 'このストアの内容をすべてのデバイスから一度に削除します。取り消せません。';
+
+  @override
+  String get settingsSyncWipeConfirmTitle => 'このストアをサーバーから削除しますか?';
+
+  @override
+  String get settingsSyncWipeConfirmBody =>
+      'ストアの内容がサーバーからすべて削除され、すべてのデバイスに一度に影響します。この操作は取り消せません。ライブラリはこのデバイスにも他のデバイスにもそのまま残りますが、同期を通じて他のデバイスにしか届いていなかったものは、ここには届きません。このデバイスは接続を解除し、同期フレーズを削除します。他のデバイスは次回の同期でストアがなくなっていることに気づき、新しく作成するかどうかを尋ねます。同期フレーズが他人に見られた場合はこれを使ってください。相手が読める内容をただちに取り除ける唯一の方法です。';
+
+  @override
+  String get settingsSyncWipeConfirmAction => 'ストアを削除';
+
+  @override
+  String get settingsSyncWipeFailed =>
+      'ストアを削除できませんでした。何も変更されておらず、このデバイスはまだ接続されています。もう一度お試しください。';
+
+  @override
   String get settingsSyncMeteredRouted =>
       'モバイルデータ通信中で、「WiFi接続時のみ同期」がオンです。今すぐ同期するには、下のこの設定をオフにしてください。';
 

@@ -357,6 +357,75 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible de déconnecter cet appareil. Il est toujours connecté ; réessayez.';
 
   @override
+  String get settingsSyncDevicesTitle => 'Autres appareils';
+
+  @override
+  String get settingsSyncDevicesSubtitle =>
+      'Voyez ce qui est connecté à cet espace, et retirez un appareil que vous n\'utilisez plus.';
+
+  @override
+  String get settingsSyncDevicesScreenTitle => 'Autres appareils';
+
+  @override
+  String get settingsSyncDevicesCaution =>
+      'Le serveur ne connaît chaque appareil que par un identifiant qu\'il a lui-même attribué : il n\'y a donc pas de noms d\'appareils ici, et cet appareil n\'est pas listé. Si vous ne savez pas lequel retirer, vous pouvez sans risque le laisser : un appareil retiré peut se reconnecter avec la phrase de synchronisation.';
+
+  @override
+  String get settingsSyncDevicesEmpty =>
+      'Aucun autre appareil n\'est connecté à cet espace.';
+
+  @override
+  String get settingsSyncDevicesFailed =>
+      'Impossible de charger la liste des appareils. Vérifiez votre connexion et réessayez.';
+
+  @override
+  String get settingsSyncDevicesStoreMissing =>
+      'Cet espace n\'est plus sur le serveur : il n\'y a aucun appareil à afficher.';
+
+  @override
+  String get settingsSyncDevicesRetry => 'Réessayer';
+
+  @override
+  String get settingsSyncDeviceRemoveTooltip => 'Retirer cet appareil';
+
+  @override
+  String get settingsSyncDeviceRemoveTitle => 'Retirer cet appareil ?';
+
+  @override
+  String get settingsSyncDeviceRemoveBody =>
+      'L\'espace cesse de conserver la copie de ce que cet appareil a partagé, et celui-ci arrête de se synchroniser. Rien n\'est supprimé sur cet appareil, et rien n\'est supprimé sur le vôtre. Il pourra se reconnecter à cet espace plus tard avec la phrase de synchronisation.';
+
+  @override
+  String get settingsSyncDeviceRemoveAction => 'Retirer';
+
+  @override
+  String get settingsSyncDeviceRemoveFailed =>
+      'Impossible de retirer cet appareil. Il est toujours connecté ; réessayez.';
+
+  @override
+  String get settingsSyncWipeTitle =>
+      'Déconnecter tous les appareils et supprimer l\'espace';
+
+  @override
+  String get settingsSyncWipeSubtitle =>
+      'Supprimer tout ce que contient cet espace, pour tous les appareils à la fois. Cette action est irréversible.';
+
+  @override
+  String get settingsSyncWipeConfirmTitle =>
+      'Supprimer cet espace du serveur ?';
+
+  @override
+  String get settingsSyncWipeConfirmBody =>
+      'Tout ce que contient l\'espace est supprimé du serveur, pour tous les appareils à la fois, et cette action est irréversible. Votre bibliothèque reste sur cet appareil et sur chacun de vos autres appareils — mais tout ce qui n\'était parvenu à un autre appareil que par la synchronisation n\'arrivera pas ici. Cet appareil se déconnecte et oublie sa phrase de synchronisation ; vos autres appareils constateront la disparition de l\'espace à leur prochaine synchronisation et demanderont s\'il faut en créer un nouveau. Utilisez cette option si quelqu\'un d\'autre a vu votre phrase de synchronisation : c\'est la seule chose qui supprime immédiatement ce qu\'il peut lire.';
+
+  @override
+  String get settingsSyncWipeConfirmAction => 'Supprimer l\'espace';
+
+  @override
+  String get settingsSyncWipeFailed =>
+      'Impossible de supprimer l\'espace. Rien n\'a été modifié et cet appareil est toujours connecté ; réessayez.';
+
+  @override
   String get settingsSyncMeteredRouted =>
       'Vous utilisez les données mobiles et « Synchroniser uniquement en WiFi » est activé. Désactivez ce réglage ci-dessous pour synchroniser maintenant.';
 

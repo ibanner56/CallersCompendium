@@ -376,6 +376,82 @@
   "@settingsSyncDisconnectFailed": {
     "x-sourceSha256": "23a506ff584ec8b81da1a4dfdefe90d6572957feabcfee2aa2614e3b68b0b3c8"
   },
+  "settingsSyncDevicesTitle": "他のデバイス",
+  "@settingsSyncDevicesTitle": {
+    "x-sourceSha256": "4e027dbb70b262fc7f99d829e4b5627a44811381c5f630afbdb415bb9e688514"
+  },
+  "settingsSyncDevicesSubtitle": "このストアに接続されている他のデバイスを確認し、使わなくなったデバイスを削除します。",
+  "@settingsSyncDevicesSubtitle": {
+    "x-sourceSha256": "7e22abc062361f41877090af0c6aceb7a0a6bd5b0fc1ca93600c7688d68bd7ea"
+  },
+  "settingsSyncDevicesScreenTitle": "他のデバイス",
+  "@settingsSyncDevicesScreenTitle": {
+    "x-sourceSha256": "4e027dbb70b262fc7f99d829e4b5627a44811381c5f630afbdb415bb9e688514"
+  },
+  "settingsSyncDevicesCaution": "サーバーは各デバイスを自動生成した識別子でしか把握していないため、ここにデバイス名は表示されず、このデバイスも一覧に含まれません。どれを削除すべきか分からない場合は、そのままにしておいても問題ありません。削除したデバイスは同期フレーズがあれば再び接続できます。",
+  "@settingsSyncDevicesCaution": {
+    "x-sourceSha256": "88b8e650ef9354688da2a359b0300257622ba39c1f88eca6b34d489fb276ca0d"
+  },
+  "settingsSyncDevicesEmpty": "このストアに接続されている他のデバイスはありません。",
+  "@settingsSyncDevicesEmpty": {
+    "x-sourceSha256": "f56e6ab00b608c84434889f700c88b081f2e83a805da979cc33f524f9e2739d2"
+  },
+  "settingsSyncDevicesFailed": "デバイス一覧を読み込めませんでした。接続を確認して、もう一度お試しください。",
+  "@settingsSyncDevicesFailed": {
+    "x-sourceSha256": "27aa616f092b6506087586d1173cc91446b51b6b80fa0bd4b82875a53f9830ad"
+  },
+  "settingsSyncDevicesStoreMissing": "このストアはサーバー上に存在しないため、表示できるデバイスはありません。",
+  "@settingsSyncDevicesStoreMissing": {
+    "x-sourceSha256": "4390292ce9be0068bfed9c87d58bfbe87531e0d889d5d301900fce80d20f3dd2"
+  },
+  "settingsSyncDevicesRetry": "もう一度試す",
+  "@settingsSyncDevicesRetry": {
+    "x-sourceSha256": "d8b8392e2c542950ca64867168e4ef87d4ad606882d5898f826b51c6d553988f"
+  },
+  "settingsSyncDeviceRemoveTooltip": "このデバイスを削除",
+  "@settingsSyncDeviceRemoveTooltip": {
+    "x-sourceSha256": "2c0bb958c741ab75e2742645d3404fc768ca628ddc6fb96ef49f6c8b4a7ea9c2"
+  },
+  "settingsSyncDeviceRemoveTitle": "このデバイスを削除しますか?",
+  "@settingsSyncDeviceRemoveTitle": {
+    "x-sourceSha256": "7be0603b6c40ef172609549712c82f68208568bd3874ed44e0a822b320b66688"
+  },
+  "settingsSyncDeviceRemoveBody": "そのデバイスが共有した内容のコピーがストアから削除され、そのデバイスは同期を停止します。そのデバイスからも、このデバイスからも、データは削除されません。同期フレーズがあれば、後でこのストアに再び接続できます。",
+  "@settingsSyncDeviceRemoveBody": {
+    "x-sourceSha256": "86fee0f332c2e9a006ad4321bf68e3fefaf121198bbcc0863d20de19246ac178"
+  },
+  "settingsSyncDeviceRemoveAction": "削除",
+  "@settingsSyncDeviceRemoveAction": {
+    "x-sourceSha256": "c3812fc4acb861d5182fc2b8155f327f736fbe5e5eb86a7bd7afcb6dc5497282"
+  },
+  "settingsSyncDeviceRemoveFailed": "そのデバイスを削除できませんでした。まだ接続されています。もう一度お試しください。",
+  "@settingsSyncDeviceRemoveFailed": {
+    "x-sourceSha256": "9c18cbeb27eb7f6e81512ea44358b1d2c8bc73a52f87327c7afc0ea6cd57a0a9"
+  },
+  "settingsSyncWipeTitle": "すべてのデバイスの接続を解除してストアを削除",
+  "@settingsSyncWipeTitle": {
+    "x-sourceSha256": "6b898192c6e79737c778cddb43dfeff4f227bd337b64a71c9ab19f092a36ee51"
+  },
+  "settingsSyncWipeSubtitle": "このストアの内容をすべてのデバイスから一度に削除します。取り消せません。",
+  "@settingsSyncWipeSubtitle": {
+    "x-sourceSha256": "4afc7519f58143b0808aeab3027bf885e304aed84c60a8cb295ad29ab12f3248"
+  },
+  "settingsSyncWipeConfirmTitle": "このストアをサーバーから削除しますか?",
+  "@settingsSyncWipeConfirmTitle": {
+    "x-sourceSha256": "77701b6008c7d87383a3c1c7c4316c52219e81baddc39c3438c1879315408645"
+  },
+  "settingsSyncWipeConfirmBody": "ストアの内容がサーバーからすべて削除され、すべてのデバイスに一度に影響します。この操作は取り消せません。ライブラリはこのデバイスにも他のデバイスにもそのまま残りますが、同期を通じて他のデバイスにしか届いていなかったものは、ここには届きません。このデバイスは接続を解除し、同期フレーズを削除します。他のデバイスは次回の同期でストアがなくなっていることに気づき、新しく作成するかどうかを尋ねます。同期フレーズが他人に見られた場合はこれを使ってください。相手が読める内容をただちに取り除ける唯一の方法です。",
+  "@settingsSyncWipeConfirmBody": {
+    "x-sourceSha256": "4d32b4cd7be210b3280e49bc954adf9a14e397ffe46431644f05b822ad637f89"
+  },
+  "settingsSyncWipeConfirmAction": "ストアを削除",
+  "@settingsSyncWipeConfirmAction": {
+    "x-sourceSha256": "295bf35e749e744ea715d9b91ebdeb23045b26e4ad24f4c138e2bca498605461"
+  },
+  "settingsSyncWipeFailed": "ストアを削除できませんでした。何も変更されておらず、このデバイスはまだ接続されています。もう一度お試しください。",
+  "@settingsSyncWipeFailed": {
+    "x-sourceSha256": "d92d4e88e22770bf1ee00d53c29f050f8bcf7632dcd8a8f9eaa3ef875d003bce"
+  },
   "settingsSyncMeteredRouted": "モバイルデータ通信中で、「WiFi接続時のみ同期」がオンです。今すぐ同期するには、下のこの設定をオフにしてください。",
   "@settingsSyncMeteredRouted": {
     "x-sourceSha256": "213bed8509f57aef35ba73781fca3267d5e5f7d16ef7b46f83b28c82ee833777"

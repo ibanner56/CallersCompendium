@@ -353,6 +353,73 @@ class AppLocalizationsDa extends AppLocalizations {
       'Forbindelsen på denne enhed kunne ikke afbrydes. Den er stadig forbundet; prøv igen.';
 
   @override
+  String get settingsSyncDevicesTitle => 'Andre enheder';
+
+  @override
+  String get settingsSyncDevicesSubtitle =>
+      'Se hvad der ellers er forbundet til dette lager, og fjern en enhed, du ikke længere bruger.';
+
+  @override
+  String get settingsSyncDevicesScreenTitle => 'Andre enheder';
+
+  @override
+  String get settingsSyncDevicesCaution =>
+      'Serveren kender kun hver enhed på en identifikator, den selv har fundet på, så der står ingen enhedsnavne her, og denne enhed er ikke med på listen. Hvis du er i tvivl om, hvilken du skal fjerne, er det trygt at lade den stå: En enhed, du fjerner, kan forbinde igen med synkroniseringssætningen.';
+
+  @override
+  String get settingsSyncDevicesEmpty =>
+      'Der er ingen andre enheder forbundet til dette lager.';
+
+  @override
+  String get settingsSyncDevicesFailed =>
+      'Enhedslisten kunne ikke indlæses. Tjek din forbindelse, og prøv igen.';
+
+  @override
+  String get settingsSyncDevicesStoreMissing =>
+      'Dette lager findes ikke længere på serveren, så der er ingen enheder at vise.';
+
+  @override
+  String get settingsSyncDevicesRetry => 'Prøv igen';
+
+  @override
+  String get settingsSyncDeviceRemoveTooltip => 'Fjern denne enhed';
+
+  @override
+  String get settingsSyncDeviceRemoveTitle => 'Fjern denne enhed?';
+
+  @override
+  String get settingsSyncDeviceRemoveBody =>
+      'Lageret beholder ikke længere denne enheds kopi af det, den delte, og enheden holder op med at synkronisere. Der slettes intet fra den enhed, og der slettes intet fra din. Den kan forbinde til dette lager igen senere med synkroniseringssætningen.';
+
+  @override
+  String get settingsSyncDeviceRemoveAction => 'Fjern';
+
+  @override
+  String get settingsSyncDeviceRemoveFailed =>
+      'Enheden kunne ikke fjernes. Den er stadig forbundet; prøv igen.';
+
+  @override
+  String get settingsSyncWipeTitle => 'Afbryd alle enheder, og slet lageret';
+
+  @override
+  String get settingsSyncWipeSubtitle =>
+      'Fjern alt, hvad dette lager indeholder, for alle enheder på én gang. Det kan ikke fortrydes.';
+
+  @override
+  String get settingsSyncWipeConfirmTitle => 'Slet dette lager fra serveren?';
+
+  @override
+  String get settingsSyncWipeConfirmBody =>
+      'Alt, hvad lageret indeholder, slettes fra serveren, for alle enheder på én gang, og det kan ikke fortrydes. Dit bibliotek bliver på denne enhed og på hver af dine andre enheder — men alt, der kun nogensinde var nået frem til en anden enhed via synkronisering, kommer ikke hertil. Denne enhed afbryder forbindelsen og glemmer sin synkroniseringssætning; dine andre enheder vil opdage, at lageret er væk, næste gang de synkroniserer, og vil spørge, om der skal oprettes et nyt. Brug det, hvis din synkroniseringssætning er blevet set af andre: Det er det eneste, der straks fjerner det, de kan læse.';
+
+  @override
+  String get settingsSyncWipeConfirmAction => 'Slet lageret';
+
+  @override
+  String get settingsSyncWipeFailed =>
+      'Lageret kunne ikke slettes. Intet blev ændret, og denne enhed er stadig forbundet; prøv igen.';
+
+  @override
   String get settingsSyncMeteredRouted =>
       'Du bruger mobildata, og Synkronisér kun på WiFi er slået til. Slå den indstilling fra nedenfor for at synkronisere nu.';
 
