@@ -1746,17 +1746,15 @@ class CompendiumRepositories {
           'UPDATE ${db.dances.actualTableName} SET figures_json = ? '
           'WHERE id = ?',
           variables: [
-            Variable<String>(
-              switch (normalised.figuresSource) {
-                DecodedFigures(:final figures) => encodeFigures(figures),
-                // Unreachable today: the Dance->Dance transformer returns the
-                // same instance for an undecodable row, so the `identical`
-                // check short-circuits before this. A verbatim passthrough
-                // rather than a throw, so that if a future transformer does
-                // return one the bytes survive instead of startup dying.
-                UnreadableFigures(:final storedJson) => storedJson,
-              },
-            ),
+            Variable<String>(switch (normalised.figuresSource) {
+              DecodedFigures(:final figures) => encodeFigures(figures),
+              // Unreachable today: the Dance->Dance transformer returns the
+              // same instance for an undecodable row, so the `identical`
+              // check short-circuits before this. A verbatim passthrough
+              // rather than a throw, so that if a future transformer does
+              // return one the bytes survive instead of startup dying.
+              UnreadableFigures(:final storedJson) => storedJson,
+            }),
             Variable<String>(dance.id),
           ],
           updates: {db.dances},
@@ -1854,17 +1852,15 @@ class CompendiumRepositories {
         // sync-invariant-exclusion: maintenance-backfill is idempotent; not a sync record edit.
         'UPDATE ${db.dances.actualTableName} SET figures_json = ? WHERE id = ?',
         variables: [
-          Variable<String>(
-            switch (stripped.figuresSource) {
-              DecodedFigures(:final figures) => encodeFigures(figures),
-              // Unreachable today: the Dance->Dance transformer returns the
-              // same instance for an undecodable row, so the `identical`
-              // check short-circuits before this. A verbatim passthrough
-              // rather than a throw, so that if a future transformer does
-              // return one the bytes survive instead of startup dying.
-              UnreadableFigures(:final storedJson) => storedJson,
-            },
-          ),
+          Variable<String>(switch (stripped.figuresSource) {
+            DecodedFigures(:final figures) => encodeFigures(figures),
+            // Unreachable today: the Dance->Dance transformer returns the
+            // same instance for an undecodable row, so the `identical`
+            // check short-circuits before this. A verbatim passthrough
+            // rather than a throw, so that if a future transformer does
+            // return one the bytes survive instead of startup dying.
+            UnreadableFigures(:final storedJson) => storedJson,
+          }),
           Variable<String>(dance.id),
         ],
         updates: {db.dances},
@@ -2032,17 +2028,15 @@ class CompendiumRepositories {
         // sync-invariant-exclusion: maintenance-backfill is idempotent; not a sync record edit.
         'UPDATE ${db.dances.actualTableName} SET figures_json = ? WHERE id = ?',
         variables: [
-          Variable<String>(
-            switch (normalised.figuresSource) {
-              DecodedFigures(:final figures) => encodeFigures(figures),
-              // Unreachable today: the Dance->Dance transformer returns the
-              // same instance for an undecodable row, so the `identical`
-              // check short-circuits before this. A verbatim passthrough
-              // rather than a throw, so that if a future transformer does
-              // return one the bytes survive instead of startup dying.
-              UnreadableFigures(:final storedJson) => storedJson,
-            },
-          ),
+          Variable<String>(switch (normalised.figuresSource) {
+            DecodedFigures(:final figures) => encodeFigures(figures),
+            // Unreachable today: the Dance->Dance transformer returns the
+            // same instance for an undecodable row, so the `identical`
+            // check short-circuits before this. A verbatim passthrough
+            // rather than a throw, so that if a future transformer does
+            // return one the bytes survive instead of startup dying.
+            UnreadableFigures(:final storedJson) => storedJson,
+          }),
           Variable<String>(dance.id),
         ],
         updates: {db.dances},
@@ -2312,17 +2306,15 @@ class CompendiumRepositories {
             'UPDATE ${db.dances.actualTableName} SET figures_json = ? '
             'WHERE id = ?',
             variables: [
-              Variable<String>(
-                switch (backfilled.figuresSource) {
-                  DecodedFigures(:final figures) => encodeFigures(figures),
-                  // Unreachable today: the Dance->Dance transformer returns the
-                  // same instance for an undecodable row, so the `identical`
-                  // check short-circuits before this. A verbatim passthrough
-                  // rather than a throw, so that if a future transformer does
-                  // return one the bytes survive instead of startup dying.
-                  UnreadableFigures(:final storedJson) => storedJson,
-                },
-              ),
+              Variable<String>(switch (backfilled.figuresSource) {
+                DecodedFigures(:final figures) => encodeFigures(figures),
+                // Unreachable today: the Dance->Dance transformer returns the
+                // same instance for an undecodable row, so the `identical`
+                // check short-circuits before this. A verbatim passthrough
+                // rather than a throw, so that if a future transformer does
+                // return one the bytes survive instead of startup dying.
+                UnreadableFigures(:final storedJson) => storedJson,
+              }),
               Variable<String>(dance.id),
             ],
             updates: {db.dances},

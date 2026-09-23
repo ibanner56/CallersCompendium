@@ -237,11 +237,16 @@ class CallersBoxOnline implements OnlineSearchService {
       final existing = await repos.dances.getById(candidateId);
       if (existing != null) {
         final identical = figuresCanonicallyIdentical(
+          // An undecodable side cannot be compared, so it is reported as
+          // differing, which routes to `needsConfirmation` and puts the user in
+          // the loop rather than silently treating it as a duplicate.
           oldFigures: switch (existing.figuresSource) {
             DecodedFigures(:final figures) => figures,
+            UnreadableFigures() => const <Figure>[],
           },
           newFigures: switch (plan.draft.dance.figuresSource) {
             DecodedFigures(:final figures) => figures,
+            UnreadableFigures() => const <Figure>[],
           },
           taxonomy: contraTaxonomy,
         );

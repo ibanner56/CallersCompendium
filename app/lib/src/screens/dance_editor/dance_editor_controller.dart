@@ -180,6 +180,25 @@ class DanceEditorController extends ChangeNotifier {
 
   final List<FigureDraft> figureDrafts = [];
 
+  /// Whether the dance this editor opened held a transcription that could not
+  /// be decoded (#1347).
+  bool _loadedUnreadableFigures = false;
+
+  /// Whether a save must leave the stored transcription **untouched**.
+  ///
+  /// True exactly when the editor opened an undecodable transcription and the
+  /// user has not authored figures of their own. In that state the figure list
+  /// on screen is empty because nothing could be read, not because the dance
+  /// has no figures — so writing it back would replace the user's stored
+  /// transcription with nothing, on a save they made to change a title or a
+  /// tag. Passing `figures: null` to `copyWith` carries the original
+  /// [FigureSource] through whole instead.
+  ///
+  /// Once the user adds a figure they have authored a transcription and
+  /// replacing the old one is the correct, intended outcome.
+  bool get _preserveStoredFigures =>
+      _loadedUnreadableFigures && figureDrafts.isEmpty;
+
   List<Figure> get _figures => [
     for (final draft in figureDrafts)
       ?draft.toFigure(canonicalizeNote: _canonicalizeNote),
@@ -322,11 +341,15 @@ class DanceEditorController extends ChangeNotifier {
       for (final value in dance.customFields) {
         customValues[value.fieldId] = value.value;
       }
-      figureDrafts.addAll(
-        switch (dance.figuresSource) {
-          DecodedFigures(:final figures) => figures,
-        }.map(FigureDraft.fromFigure),
-      );
+      switch (dance.figuresSource) {
+        case DecodedFigures(:final figures):
+          figureDrafts.addAll(figures.map(FigureDraft.fromFigure));
+        // Nothing can be seeded from a transcription that cannot be decoded.
+        // Remembering it here is what stops the save below from writing the
+        // empty draft list over the stored bytes — see [_preserveStoredFigures].
+        case UnreadableFigures():
+          _loadedUnreadableFigures = true;
+      }
       _renderNotesRecursively(figureDrafts);
     } else {
       // New dance (ROADMAP DD.1): seed the initial metadata from the saved
@@ -838,7 +861,7 @@ class DanceEditorController extends ChangeNotifier {
         tagIds: List.of(tagIds),
         links: linkList,
         sourceCitations: citationList,
-        figures: _figures,
+        figures: _preserveStoredFigures ? null : _figures,
         updatedAt: now,
       );
     }

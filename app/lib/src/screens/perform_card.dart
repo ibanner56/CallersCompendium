@@ -141,6 +141,7 @@ class PerformCard extends StatelessWidget {
             _Figures(
               figures: switch (dance.figuresSource) {
                 DecodedFigures(:final figures) => figures,
+                UnreadableFigures() => const <Figure>[],
               },
               phraseStructure: dance.phraseStructure,
               renderer: renderer,
