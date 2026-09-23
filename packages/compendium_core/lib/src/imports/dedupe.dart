@@ -17,6 +17,17 @@ const _choreographyFields = [
   'mixedLevel',
   'mixer',
   'tunes',
+  // Without these, a dance whose transcription or tune list could not be
+  // decoded fingerprints as `figures: []` / `tunes: []` — identical to a dance
+  // that genuinely has none. Two dances with different content would then match
+  // as the same choreography, and `autoResolveAmbiguous` links them confidently
+  // with no user present. "Cannot read it" must not compare equal to "it is
+  // empty", here least of all: this fingerprint decides identity.
+  //
+  // `figuresRaw` is included for the same reason and closes the same hole for
+  // #1382's case, which shipped without it.
+  'figuresRaw',
+  'tunesRaw',
 ];
 
 /// Returns the intrinsic choreography values shared by import and sync dedupe.

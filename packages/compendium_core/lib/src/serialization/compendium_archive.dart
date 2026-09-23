@@ -112,11 +112,11 @@ int requiredSchemaVersion(CompendiumArchive archive) {
   final hasPurgeMarker = archive.programs.any(
     (p) => p.slots.any((s) => s.isPurgedDance != null),
   );
-  // Checked first because it is the highest version: a single undecodable
-  // transcription anywhere in the archive requires v5 regardless of what else
-  // the archive carries.
-  // Highest first: one undecodable tune list anywhere requires v6 regardless of
-  // what else the archive carries.
+  // Next-highest: reached only when nothing above matched.
+  // Checked highest-version first, so the first match wins: an undecodable tune
+  // list requires v6, and only if there is none does an undecodable
+  // transcription pull the archive to v5. Keep new cases in descending version
+  // order or a lower version will shadow a higher one.
   if (archive.dances.any((d) => d.tunesSource is UnreadableTunes)) {
     return archiveSchemaVersionUnreadableTunes;
   }

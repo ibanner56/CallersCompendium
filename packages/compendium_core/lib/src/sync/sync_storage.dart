@@ -7,6 +7,7 @@ import 'package:meta/meta.dart';
 
 import '../model/choreographer.dart';
 import '../model/figure_source.dart';
+import '../model/tunes_source.dart';
 import '../model/custom_field.dart';
 import '../model/dance.dart';
 import '../model/difficulty_level.dart';
@@ -306,7 +307,10 @@ final class CompendiumSyncStorage
       // Consequence, stated rather than implied: an undecodable dance is not
       // published at all. Conservative in the same direction as the withhold —
       // this device does not speak for a row it cannot read.
-      if (dance.figuresSource is UnreadableFigures) continue;
+      if (dance.figuresSource is UnreadableFigures ||
+          dance.tunesSource is UnreadableTunes) {
+        continue;
+      }
       await addEntity(
         kind: SyncRecordKind.dance,
         id: dance.id,
@@ -798,7 +802,10 @@ final class CompendiumSyncStorage
       //
       // Consequence, stated rather than implied: an undecodable dance is not
       // offered as a dedupe match on a fresh attach.
-      if (dance.figuresSource is UnreadableFigures) continue;
+      if (dance.figuresSource is UnreadableFigures ||
+          dance.tunesSource is UnreadableTunes) {
+        continue;
+      }
       final row = rowsById[dance.id];
       if (row == null) continue;
       final blob = syncRecordBlobForEntity(
@@ -1825,7 +1832,10 @@ final class CompendiumSyncStorage
     // Consequence, stated rather than implied: an undecodable dance is not
     // offered as a merge candidate. Conservative in the same direction as the
     // withhold — the record is simply not spoken for.
-    if (dance.figuresSource is UnreadableFigures) return null;
+    if (dance.figuresSource is UnreadableFigures ||
+        dance.tunesSource is UnreadableTunes) {
+      return null;
+    }
     final row = await (_db.select(
       _db.dances,
     )..where((table) => table.id.equals(id))).getSingleOrNull();
@@ -4962,7 +4972,10 @@ final class CompendiumSyncStorage
   Future<Map<String, Object?>?> _readDanceBody(String id) async {
     final dance = await repositories.dances.getById(id, includeDeleted: true);
     if (dance == null) return null;
-    if (dance.figuresSource is UnreadableFigures) return null;
+    if (dance.figuresSource is UnreadableFigures ||
+        dance.tunesSource is UnreadableTunes) {
+      return null;
+    }
     return archiveDanceToJson(dance, const {}, includeOptionalFields: true);
   }
 

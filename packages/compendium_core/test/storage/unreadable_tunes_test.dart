@@ -135,6 +135,56 @@ void main() {
     });
   });
 
+  test('sync never publishes a body for an undecodable tune list', () async {
+    // The withholds added for #1382 tested `figuresSource` only, so an
+    // undecodable TUNE list was still published — and `tunesRaw` is dropped by
+    // the shareable wire allow-list, so the peer would receive `tunes: []` with
+    // no marker and apply it over its own readable list.
+    await repos.dances.create(sampleDance(id: 'd1', title: 'Corrupt'));
+    await repos.ensureMigrated();
+    await _storeRawTunes(db, 'd1', '[1,2,3]');
+
+    final storage = CompendiumSyncStorage(repos);
+    final snapshot = await storage.snapshot();
+
+    expect(
+      snapshot.local[(kind: SyncRecordKind.dance, recordId: 'd1')],
+      isNull,
+      reason: 'withheld, not published with an empty tune list',
+    );
+    expect(
+      await storage.snapshotCandidates().then(
+        (c) => c[(kind: SyncRecordKind.dance, recordId: 'd1')],
+      ),
+      isNull,
+    );
+  });
+
+  test(
+    'an undecodable tune list is not a choreography match for an empty one',
+    () async {
+      // `choreographyFingerprintForDance` reads the archive body, where an
+      // undecodable list serialises as `tunes: []`. Without `tunesRaw` in the
+      // fingerprint fields, this dance would fingerprint identically to one that
+      // genuinely has no tunes — and `autoResolveAmbiguous` links equal
+      // fingerprints confidently, with no user present.
+      await repos.dances.create(sampleDance(id: 'd1', title: 'Same'));
+      await repos.dances.create(sampleDance(id: 'd2', title: 'Same'));
+      await repos.ensureMigrated();
+      await _storeRawTunes(db, 'd1', '[1,2,3]');
+      await _storeRawTunes(db, 'd2', '[]');
+
+      final a = await repos.dances.getById('d1');
+      final b = await repos.dances.getById('d2');
+
+      expect(
+        choreographyFingerprintForDance(a!),
+        isNot(equals(choreographyFingerprintForDance(b!))),
+        reason: 'unreadable must not fingerprint the same as genuinely empty',
+      );
+    },
+  );
+
   group('archive', () {
     test('a healthy library is not pushed to v6', () async {
       await repos.dances.create(sampleDance(id: 'd1', title: 'Fine'));
