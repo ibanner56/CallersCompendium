@@ -2074,15 +2074,18 @@ class DanceRepository {
       for (final id in list) {
         final dance = await getById(id);
         if (dance == null) continue;
-        // Clearing IS the user's explicit intent, so an undecodable list is
-        // cleared like any other — this is the one tunes path where replacing
-        // the stored text is what was asked for. It is not skipped as
-        // "already empty", because it is not empty; it is unreadable.
+        // Skipped, like the append path. Clearing is the user's intent, but a
+        // BATCH clear would destroy stored text this device cannot read, and
+        // the undo that should put it back cannot: the caller's snapshot is a
+        // `List<String>`, so it captures an empty list and restores an empty
+        // list. Refusing to act on a row it cannot read is the same call made
+        // for the unattended import resolver. Clearing one dance deliberately
+        // is a per-dance action, and belongs with surfacing the state.
         final hasTunes = switch (dance.tunesSource) {
           DecodedTunes(:final tunes) => tunes.isNotEmpty,
-          UnreadableTunes() => true,
+          UnreadableTunes() => null,
         };
-        if (!hasTunes) continue;
+        if (hasTunes == null || !hasTunes) continue;
         await _upsert(
           dance.copyWith(tunes: const [], updatedAt: now),
           localUserEdit: true,
