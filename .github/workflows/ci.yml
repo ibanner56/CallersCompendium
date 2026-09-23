@@ -12,13 +12,21 @@ name: CI
 # `classify` checks only the new range when the previous head has a successful
 # Merge gate; otherwise it conservatively checks the whole PR diff. Pushes retain
 # the path filter because they do not provide the required PR status.
+#
+# `edited` is deliberately not among the PR types. It arrived with the Device
+# Sync tracking gate (#1138), whose job read the PR body and so had to re-run
+# when the body changed; that job was removed in #1338 when the tracking units
+# completed. Without it, editing a PR description no longer starts a second run
+# whose concurrency group cancels the first — which left a `Merge gate` failure
+# on the cancelled suite and forced the next run to re-classify the whole PR
+# diff rather than just the new range.
 on:
   push:
     branches: [main]
     paths-ignore:
       - '**.md'
   pull_request:
-    types: [opened, reopened, synchronize, edited]
+    types: [opened, reopened, synchronize]
 
 # Cancel superseded in-flight runs for the same PR (or ref, for pushes) so a
 # new push doesn't leave stale, redundant builds burning runner minutes.
