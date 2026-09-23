@@ -3612,10 +3612,6 @@
   "@programsSlotEditorEmpty": {
     "x-sourceSha256": "1591a8eb737e1ae69093f4aed66693852377cc2692dd1e41d74a84d8520ca821"
   },
-  "programsSlotMoved": "スロットを移動しました。",
-  "@programsSlotMoved": {
-    "x-sourceSha256": "b373e9c39ad0208f3022a9bb94db088b0c0074df11896d54a5a385b92b6c7749"
-  },
   "programsSlotMovedUp": "スロットを上に移動しました。",
   "@programsSlotMovedUp": {
     "x-sourceSha256": "035c5d5a3f1b70658104843ee96b1f6f819b420983dd138ad7259990865efb33"
@@ -3623,22 +3619,6 @@
   "programsSlotMovedDown": "スロットを下に移動しました。",
   "@programsSlotMovedDown": {
     "x-sourceSha256": "55c7e061be46a7ff5d636dfc38fb62bba2e93ba0f1e689fc86189abe69640ae5"
-  },
-  "programsSlotCutBanner": "「{name}」をカットしました — ペーストして配置してください。",
-  "@programsSlotCutBanner": {
-    "x-sourceSha256": "70980fe8acd48659395ecce3cef378445a14f121bfad8cec25f193886e18b9c0"
-  },
-  "programsPasteBeforeFirst": "最初のスロットの前にペースト",
-  "@programsPasteBeforeFirst": {
-    "x-sourceSha256": "d99d0e8a673d0396a34e0457f812805423ede2c704be9877bdf4670c9d4cad56"
-  },
-  "programsPasteAfter": "{title}の後にペースト",
-  "@programsPasteAfter": {
-    "x-sourceSha256": "c732b7df43a9d0570c1a52f6b7debcae79b92aa1e52897c03eb260a0aa231765"
-  },
-  "programsPasteHere": "ここにペースト",
-  "@programsPasteHere": {
-    "x-sourceSha256": "f86b91746b90ef9d0dca9376c22804c368881b27d6e87dca23535c24b41e0ff9"
   },
   "programsMarkedPrimary": "メインとしてマークしました。",
   "@programsMarkedPrimary": {
@@ -3711,10 +3691,6 @@
   "programsCreatedDanceFromNoteAnnounce": "{title}を作成し、このスロットにリンクしました。",
   "@programsCreatedDanceFromNoteAnnounce": {
     "x-sourceSha256": "185833d5023bc165f402233bb842bdddfa040302b96dd8692065efbcf62617ea"
-  },
-  "programsRemoveSlotMenu": "スロットを削除",
-  "@programsRemoveSlotMenu": {
-    "x-sourceSha256": "8c09755dcb48871f0812510a1114daad3de22a88e43c00ea8e40cb81d4e698a5"
   },
   "programsSlotTextRequiredError": "このスロットのテキストを入力してください。",
   "@programsSlotTextRequiredError": {

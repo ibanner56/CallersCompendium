@@ -162,6 +162,11 @@ change the program or the dance.
 To reorder slots, use the **drag handle** or the **move up / move down** buttons.
 Both do the same job, so you are never forced to drag.
 
+To remove a slot from the program, tap the **scissors** button on its row. The
+slot is removed immediately, the slots after it move up, and the removal is
+announced to screen readers. Removing a slot from a program never deletes the
+dance from your collection.
+
 ### Event details
 
 When you choose **New** from the Programs list, the editor starts with the
