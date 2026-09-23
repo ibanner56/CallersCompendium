@@ -20,7 +20,8 @@ class ShareableJsonKeyCollision implements Exception {
 /// Invisible/control characters are removed before NFC so canonically equivalent
 /// input has one stored representation after the removed characters no longer
 /// interrupt combining sequences.
-String normalizeShareableText(String value) => nfc(sanitizeShareableText(value));
+String normalizeShareableText(String value) =>
+    nfc(sanitizeShareableText(value));
 
 /// The first half of [normalizeShareableText]: sanitized, but **not** composed.
 ///

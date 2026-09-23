@@ -614,9 +614,7 @@ void main() {
       );
       await targetRepos.ensureMigrated();
       expect(
-        (await targetDb
-                .customSelect('SELECT 1 FROM normalisation_skips')
-                .get())
+        (await targetDb.customSelect('SELECT 1 FROM normalisation_skips').get())
             .length,
         2,
         reason: 'precondition: the pass recorded the pair it left alone',

@@ -1132,11 +1132,10 @@ void main() {
         );
       }
       await repos.ensureMigrated();
-      expect(
-        await skips(),
-        ['$table/$column/r1', '$table/$column/r2'],
-        reason: 'precondition: the pass recorded the pair it left alone',
-      );
+      expect(await skips(), [
+        '$table/$column/r1',
+        '$table/$column/r2',
+      ], reason: 'precondition: the pass recorded the pair it left alone');
     }
 
     test('a choreographer rename onto another name is refused', () async {
@@ -1175,10 +1174,7 @@ void main() {
       await repos.tags.upsert(Tag(id: 't2', name: 'Workshop'));
 
       await expectLater(
-        repos.tags.upsert(
-          Tag(id: 't2', name: 'Chestnut'),
-          localUserEdit: true,
-        ),
+        repos.tags.upsert(Tag(id: 't2', name: 'Chestnut'), localUserEdit: true),
         throwsA(isA<DuplicateNaturalKeyError>()),
       );
 
@@ -1273,9 +1269,7 @@ void main() {
     test('a carve-out entry is still the pass\'s to discharge', () async {
       await seedRecordedPair('choreographers', 'name');
       // ignore: unused_result
-      await repos.choreographers.upsert(
-        Choreographer(id: 'r1', name: 'café'),
-      );
+      await repos.choreographers.upsert(Choreographer(id: 'r1', name: 'café'));
       // The collision goes away: the other member of the pair is renamed out of
       // the way, so `r1`'s target is free on the next open.
       await db.customStatement(
@@ -1312,19 +1306,22 @@ void main() {
       ]);
     });
 
-    test('renaming a difficulty level onto another label still throws', () async {
-      await seedRecordedPair('difficulty_levels', 'label');
+    test(
+      'renaming a difficulty level onto another label still throws',
+      () async {
+        await seedRecordedPair('difficulty_levels', 'label');
 
-      await expectLater(
-        repos.difficultyLevels.upsert(
-          DifficultyLevel(id: 'r1', label: 'café', position: 100),
-          localUserEdit: true,
-        ),
-        throwsStateError,
-      );
+        await expectLater(
+          repos.difficultyLevels.upsert(
+            DifficultyLevel(id: 'r1', label: 'café', position: 100),
+            localUserEdit: true,
+          ),
+          throwsStateError,
+        );
 
-      expect(await storedText('difficulty_levels', 'label', 'r1'), 'café');
-    });
+        expect(await storedText('difficulty_levels', 'label', 'r1'), 'café');
+      },
+    );
 
     test('a shareable settings write with colliding keys is kept', () async {
       final value = {'café': 1, 'café': 2};

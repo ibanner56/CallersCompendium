@@ -256,9 +256,9 @@ void main() {
     // The chip still reads the stored name, not the one that was typed.
     expect(find.byKey(const ValueKey('author-chip-c2')), findsOneWidget);
     expect(
-      tester.widget<InputChip>(
-        find.byKey(const ValueKey('author-chip-c2')),
-      ).label,
+      tester
+          .widget<InputChip>(find.byKey(const ValueKey('author-chip-c2')))
+          .label,
       isA<Text>().having((text) => text.data, 'label', 'Sam Jones'),
     );
   });

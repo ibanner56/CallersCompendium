@@ -362,9 +362,8 @@ class DifficultyLevelRepository {
     }
   }
 
-  String _normalizeLabel(String raw) => normalizeShareableText(
-    _sanitizeLabel(raw),
-  );
+  String _normalizeLabel(String raw) =>
+      normalizeShareableText(_sanitizeLabel(raw));
 
   /// The label as stored when §4.1 defers its composition: sanitised — §4.6
   /// binds that to every write path with no carve-out — and trimmed, but not
