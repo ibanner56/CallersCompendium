@@ -1044,7 +1044,11 @@ void main() {
     expect(saved.slots.map((s) => s.position).toList(), [0, 1]);
   });
 
-  testWidgets('reorders slots via cut then paste', (tester) async {
+  // Issue #1270: the scissors button removes the slot. It is found by its
+  // tooltip ("Cut …", kept by maintainer decision), not by key.
+  testWidgets('scissors removes a slot and renumbers the rest (issue #1270)', (
+    tester,
+  ) async {
     final repos = openTestRepositories();
     await repos.programs.create(
       _program(
@@ -1059,27 +1063,92 @@ void main() {
     );
     await _pumpBuilder(tester, repos, programId: 'p1');
 
-    // Cut the first slot, then paste it after the last.
-    await tester.tap(find.byKey(const ValueKey('slot-0-cut')));
+    await tester.tap(find.byTooltip('Cut Second'));
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.descendant(
-        of: find.byKey(const ValueKey('slot-paste-after-s2')),
-        matching: find.text('Paste here'),
+    expect(find.byKey(const ValueKey('slot-cut-banner')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.programs.getById('p1');
+    expect(saved!.slots.map((s) => s.text).toList(), ['First', 'Third']);
+    expect(saved.slots.map((s) => s.position).toList(), [0, 1]);
+  });
+
+  // The report behind #1270: the same dance twice, scissors on the second.
+  testWidgets('scissors on the second copy of a dance leaves the first '
+      '(issue #1270)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Twice Called'));
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [
+          ProgramSlot(id: 's0', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 's1', position: 1, danceId: 'd1'),
+        ],
       ),
     );
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    await tester.tap(find.byTooltip('Cut Twice Called').last);
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('save-program')));
     await tester.pumpAndSettle();
 
     final saved = await repos.programs.getById('p1');
-    expect(saved!.slots.map((s) => s.text).toList(), [
-      'Second',
-      'Third',
-      'First',
-    ]);
-    expect(saved.slots.map((s) => s.position).toList(), [0, 1, 2]);
+    expect(saved!.slots.map((s) => s.id).toList(), ['s0']);
+    expect(saved.slots.single.position, 0);
+  });
+
+  testWidgets('scissors on the only slot leaves the empty state '
+      '(issue #1270)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's0', position: 0, text: 'Only')],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    await tester.tap(find.byTooltip('Cut Only'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('slots-empty')), findsOneWidget);
+  });
+
+  // Removing a primary leaves its alternate first in the list; the editor's
+  // total `_isAltAtIndex` must render that without throwing.
+  testWidgets('scissors on a primary with an alternate leaves the alternate '
+      '(issue #1270)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [
+          ProgramSlot(id: 's0', position: 0, text: 'Primary'),
+          ProgramSlot(id: 's1', position: 1, text: 'Backup', isAlt: true),
+          ProgramSlot(id: 's2', position: 2, text: 'Next'),
+        ],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    await tester.tap(find.byTooltip('Cut Primary'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.programs.getById('p1');
+    expect(saved!.slots.map((s) => s.text).toList(), ['Backup', 'Next']);
+    expect(saved.slots.map((s) => s.position).toList(), [0, 1]);
   });
 
   testWidgets('toggling ALT indents the slot and persists isAlt', (
