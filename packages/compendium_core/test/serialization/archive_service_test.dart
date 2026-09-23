@@ -594,6 +594,55 @@ void main() {
       },
     );
 
+    test('merge re-imports a difficulty level the pass recorded', () async {
+      // Issue #1348, repro (a). Two levels differing only in Unicode form are
+      // recorded by the one-time pass and left as stored; a merge restore then
+      // re-imports one of them UNCHANGED. `upsert` normalised the label, found
+      // the other row holding the result, and threw — so `_guard` logged an
+      // ArchiveError and the level was not restored, for a write that asked to
+      // change nothing at all.
+      final targetDb = openTestDatabase();
+      addTearDown(targetDb.close);
+      final targetRepos = CompendiumRepositories(targetDb, contraTaxonomy);
+      await targetDb.customStatement(
+        'INSERT INTO difficulty_levels (id, label, position) VALUES (?, ?, ?)',
+        ['recorded', 'café', 100],
+      );
+      await targetDb.customStatement(
+        'INSERT INTO difficulty_levels (id, label, position) VALUES (?, ?, ?)',
+        ['incumbent', 'café', 101],
+      );
+      await targetRepos.ensureMigrated();
+      expect(
+        (await targetDb
+                .customSelect('SELECT 1 FROM normalisation_skips')
+                .get())
+            .length,
+        2,
+        reason: 'precondition: the pass recorded the pair it left alone',
+      );
+
+      final merged = await ArchiveRestorer(targetRepos).restore(
+        CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 16),
+          schemaVersion: archiveSchemaVersionDifficultyLevels,
+          difficultyLevels: [
+            DifficultyLevel(id: 'recorded', label: 'café', position: 100),
+          ],
+        ),
+        mode: RestoreMode.merge,
+      );
+
+      expect(merged.errors, isEmpty);
+      final row = await targetDb
+          .customSelect(
+            'SELECT label FROM difficulty_levels WHERE id = ?',
+            variables: [Variable<String>('recorded')],
+          )
+          .getSingle();
+      expect(row.read<String>('label'), 'café');
+    });
+
     test(
       'replace and merge preserve ordered difficulty levels and assignments',
       () async {
