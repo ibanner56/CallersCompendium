@@ -100,6 +100,47 @@ Future<void> _seedDanceAmbiguity(CompendiumRepositories repos) async {
   await CompendiumSyncStorage(repos).deduplicateFreshAttach();
 }
 
+/// Seeds a §6.6 step-1 rename collision through the production apply path.
+///
+/// Hand-enqueueing would not do: a step-1 row's `record_id` is the candidate's
+/// own id and its `counterpart_id` is the other local row, the reverse of a
+/// tombstone row, so a hand-written row would only ever agree with whatever
+/// the screen already believed.
+Future<void> _seedRenameCollision(CompendiumRepositories repos) async {
+  for (final entry in const [
+    (id: 'aaa-author', name: 'Alice Smith'),
+    (id: 'zzz-author', name: 'Sam Jones'),
+  ]) {
+    final _ = await repos.choreographers.upsert(
+      Choreographer(
+        id: entry.id,
+        name: entry.name,
+        email: '${entry.id}@example.com',
+      ),
+      at: _stamp,
+    );
+  }
+  final renameStamp = _stamp.add(const Duration(minutes: 1));
+  await const SyncApplyEngine().apply(
+    candidates: [
+      SyncMergeCandidate(
+        blob: SyncRecordBlob(
+          kind: SyncRecordKind.choreographer,
+          id: 'aaa-author',
+          updatedAt: renameStamp,
+          deletedAt: null,
+          existenceAt: renameStamp,
+          body: syncBodyForEntity(
+            SyncRecordKind.choreographer,
+            Choreographer(id: 'aaa-author', name: 'Sam Jones'),
+          ),
+        ),
+      ),
+    ],
+    storage: CompendiumSyncStorage(repos),
+  );
+}
+
 Future<void> _pumpScreen(
   WidgetTester tester,
   CompendiumRepositories repos,
@@ -203,15 +244,144 @@ void main() {
     );
   });
 
+  // A step-1 row stores the candidate under `record_id` and the local
+  // name-holder under `counterpart_id`, the reverse of every other reason.
+  // Making such a row actionable without teaching the display that layout
+  // labels each record as the other one — and the user is being asked which of
+  // two of their own records survives, irreversibly.
+  testWidgets('labels a step-1 collision with the right record on each side', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _seedRenameCollision(repos);
+
+    await _pumpScreen(tester, repos);
+
+    const key = 'choreographer:aaa-author:zzz-author';
+    // zzz-author is the local row holding the contested name; aaa-author is
+    // the record the peer renamed, and 'Sam Jones' is *its* new name.
+    expect(
+      tester
+          .widget<Text>(find.byKey(const ValueKey('sync-review-local-$key')))
+          .data,
+      'Local record: zzz-author',
+    );
+    expect(
+      tester
+          .widget<Text>(find.byKey(const ValueKey('sync-review-peer-$key')))
+          .data,
+      'Peer record: Sam Jones (aaa-author)',
+    );
+  });
+
+  // The same two lines for the tombstone reason, which uses the opposite
+  // layout. Without this, inverting the orientation would fix step-1 rows and
+  // silently break every other reason with the test above still green.
+  testWidgets(
+    'labels a tombstone decision with the right record on each side',
+    (tester) async {
+      final repos = openTestRepositories();
+      await _seedActionable(repos);
+
+      await _pumpScreen(tester, repos);
+
+      const key = 'choreographer:local-author:peer-author';
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('sync-review-local-$key')))
+            .data,
+        'Local record: local-author',
+      );
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('sync-review-peer-$key')))
+            .data,
+        'Peer record: Shared author (peer-author)',
+      );
+    },
+  );
+
+  testWidgets('keeps both sides of a step-1 rename collision', (tester) async {
+    final repos = openTestRepositories();
+    await _seedRenameCollision(repos);
+
+    await _pumpScreen(tester, repos);
+
+    // Before #1355 this row rendered the "no safe action" copy and no buttons,
+    // while the peer's rename was skipped on every pass.
+    expect(
+      find.text(
+        'Another device renamed this record to a name a different record '
+        'here already uses.',
+      ),
+      findsOneWidget,
+    );
+    const key = 'choreographer:aaa-author:zzz-author';
+    await tester.tap(find.byKey(const ValueKey('sync-review-keep-both-$key')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextFormField), 'Sam Jones the second');
+    await tester.tap(
+      find.byKey(const ValueKey('sync-review-keep-both-confirm')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('sync-review-empty')), findsOneWidget);
+    expect(
+      (await repos.choreographers.getById('aaa-author'))!.name,
+      'Sam Jones',
+    );
+    expect(
+      (await repos.choreographers.getById('zzz-author'))!.name,
+      'Sam Jones the second',
+    );
+  });
+
+  testWidgets('confirms before a step-1 merge discards contact details', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _seedRenameCollision(repos);
+
+    await _pumpScreen(tester, repos);
+    const key = 'choreographer:aaa-author:zzz-author';
+    await tester.tap(find.byKey(const ValueKey('sync-review-merge-$key')));
+    await tester.pumpAndSettle();
+
+    // §6.6 forbids coalescing at step 1, so the losing row's email, location
+    // and deceased marker are lost and no peer can return them. Cancelling
+    // must leave both rows exactly as they were.
+    expect(find.text('Merge these choreographers?'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(await repos.choreographers.getById('zzz-author'), isNotNull);
+    expect(await repos.syncLocal.listReviewQueue(), hasLength(1));
+
+    await tester.tap(find.byKey(const ValueKey('sync-review-merge-$key')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('sync-review-merge-confirm')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('sync-review-empty')), findsOneWidget);
+    expect(await repos.choreographers.getById('zzz-author'), isNull);
+    final survivor = await repos.choreographers.getById('aaa-author');
+    expect(survivor!.name, 'Sam Jones');
+    expect(survivor.email, 'aaa-author@example.com');
+  });
+
   testWidgets('retains unsupported rows without exposing actions', (
     tester,
   ) async {
     final repos = openTestRepositories();
+    // A reason that is still outside the action contract. The §6.6 step-1
+    // reason stood here until #1355 made it resolvable; leaving it would have
+    // left this test green while no longer testing an unsupported row.
     await _enqueue(
       repos,
       localId: 'local-author',
       candidate: _tombstone(id: 'peer-author', name: 'Shared author'),
-      reason: 'known UUID natural-key rename collides with another local row',
+      reason:
+          'natural-key collision has different bodies at the same updatedAt',
     );
 
     await _pumpScreen(tester, repos);

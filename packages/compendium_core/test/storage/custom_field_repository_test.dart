@@ -175,6 +175,99 @@ void main() {
     });
   });
 
+  group('permanent delete keeps a tombstoned dance whole (#1357)', () {
+    Future<int> valueRows(String fieldId) async {
+      final rows = await (db.select(
+        db.customFieldValues,
+      )..where((t) => t.fieldId.equals(fieldId))).get();
+      return rows.length;
+    }
+
+    Future<void> seedTombstonedValue() async {
+      // ignore: unused_result
+      await repo.upsert(
+        CustomFieldDef(
+          id: 'f1',
+          key: 'origin',
+          label: 'Origin',
+          type: CustomFieldType.text,
+        ),
+      );
+      await dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Dance',
+          customFields: [CustomFieldValue(fieldId: 'f1', value: 'some note')],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await dances.softDelete('d1', at: DateTime.utc(2026, 2));
+    }
+
+    test('tombstones the definition instead of erasing it', () async {
+      // `custom_field_values` is ON DELETE CASCADE, so erasing here destroyed
+      // the tombstoned dance's value outright.
+      await seedTombstonedValue();
+
+      await repo.delete('f1', permanent: true);
+
+      final row = await (db.select(
+        db.customFieldDefs,
+      )..where((t) => t.id.equals('f1'))).getSingleOrNull();
+      expect(row, isNotNull, reason: 'the row must survive the rollback');
+      expect(row!.deletedAt, isNotNull, reason: 'as a tombstone');
+      expect(await valueRows('f1'), 1, reason: 'the value must survive too');
+      expect(
+        await repo.getById('f1'),
+        isNull,
+        reason: 'and still leave every live view, which is what undo needs',
+      );
+    });
+
+    test('a restored dance keeps its field value, once the definition is '
+        'restored too', () async {
+      // `_customFieldsForMany` inner-joins on
+      // `custom_field_defs.deleted_at IS NULL`, so the dance-only restore shows
+      // nothing. Asserted so the release note's two-row requirement cannot
+      // quietly become "restoring the dance is enough".
+      await seedTombstonedValue();
+
+      await repo.delete('f1', permanent: true);
+
+      await dances.restore('d1', at: DateTime.utc(2026, 3));
+      expect(
+        (await dances.getById('d1'))!.customFields,
+        isEmpty,
+        reason: 'a tombstoned definition stays hidden until it is restored',
+      );
+
+      await repo.restore('f1', at: DateTime.utc(2026, 3));
+      final restored = (await dances.getById('d1'))!.customFields.single;
+      expect(restored.fieldId, 'f1');
+      expect(restored.value, 'some note');
+    });
+
+    test('still erases an unreferenced, unpublished definition', () async {
+      // ignore: unused_result
+      await repo.upsert(
+        CustomFieldDef(
+          id: 'f1',
+          key: 'origin',
+          label: 'Origin',
+          type: CustomFieldType.text,
+        ),
+      );
+
+      await repo.delete('f1', permanent: true);
+
+      final row = await (db.select(
+        db.customFieldDefs,
+      )..where((t) => t.id.equals('f1'))).getSingleOrNull();
+      expect(row, isNull, reason: 'a rollback still leaves nothing behind');
+    });
+  });
+
   group('listUsedChoiceValues', () {
     test('returns empty set when field has no values on any dance', () async {
       // ignore: unused_result

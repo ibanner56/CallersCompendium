@@ -2127,4 +2127,223 @@ void main() {
       },
     );
   });
+
+  // Since #1328 a custom-field definition, choreographer or published source
+  // may be deleted while the only dance citing it is itself soft-deleted, and
+  // that dance may then be restored. Search must not keep matching text the
+  // restored dance no longer shows (#1358).
+  group('soft-deleted parents contribute nothing to search', () {
+    late PublishedSourceRepository sources;
+    final t0 = DateTime.utc(2026, 2, 1);
+    final t1 = DateTime.utc(2026, 2, 1, 0, 0, 1);
+    final t2 = DateTime.utc(2026, 2, 1, 0, 0, 2);
+
+    setUp(() => sources = PublishedSourceRepository(db));
+
+    CustomFieldDef originField() => CustomFieldDef(
+      id: 'f',
+      key: 'origin',
+      label: 'Origin',
+      type: CustomFieldType.text,
+    );
+
+    /// Creates dance `a` citing a live definition, choreographer and source,
+    /// then reaches the state #1328 made possible: the dance is soft-deleted,
+    /// all three parents are deleted (each guard counts live dances only), and
+    /// the dance is restored.
+    Future<CustomFieldDef> seedRestoredWithTombstonedParents() async {
+      final def = originField();
+      // ignore: unused_result
+      await customFieldDefs.upsert(def);
+      // ignore: unused_result
+      await choreographers.upsert(Choreographer(id: 'c1', name: 'Quillsworth'));
+      await sources.upsert(PublishedSource(id: 's1', title: 'Brambleton'));
+      await dances.create(
+        _dance(
+          id: 'a',
+          title: 'A',
+          authorIds: ['c1'],
+          customFields: [CustomFieldValue(fieldId: 'f', value: 'Zanzibarreel')],
+        ).copyWith(sourceCitations: [SourceCitation(sourceId: 's1')]),
+      );
+      await dances.softDelete('a', at: t0);
+      await customFieldDefs.delete('f', at: t0);
+      await choreographers.delete('c1', at: t0);
+      await sources.delete('s1', at: t0);
+      await dances.restore('a', at: t1);
+      return def;
+    }
+
+    test('structured filter ignores a tombstoned definition', () async {
+      final def = await seedRestoredWithTombstonedParents();
+      expect(
+        await dances.search(
+          CustomFieldFilter(def, CustomFieldOp.contains, 'Zanzi'),
+        ),
+        isEmpty,
+        reason:
+            'the value row survives the tombstone (no FK cascade fires), but '
+            'the definition is deleted, so the filter must match nothing — '
+            'exactly as getById hides the value',
+      );
+      expect(
+        (await dances.getById('a'))!.customFields,
+        isEmpty,
+        reason: 'the record and search must agree',
+      );
+
+      // Restoring the definition makes it match again: the filter reads
+      // liveness, it does not remember the tombstone.
+      // ignore: unused_result
+      await customFieldDefs.restore('f', at: t2);
+      expect(
+        await dances.search(
+          CustomFieldFilter(def, CustomFieldOp.contains, 'Zanzi'),
+        ),
+        ['a'],
+      );
+    });
+
+    test(
+      "free text drops a tombstoned definition's value on restore",
+      () async {
+        await seedRestoredWithTombstonedParents();
+        expect(
+          await dances.search(const FullTextFilter('Zanzibarreel')),
+          isEmpty,
+        );
+        expect(
+          await dances.search(const FullTextFilter('anzibarr')),
+          isEmpty,
+          reason: 'dance_substring_fts must behave like dance_fts',
+        );
+
+        // Restoring the parent and re-saving the dance makes it searchable
+        // again — the index follows the write path, it is not a tombstone log.
+        // ignore: unused_result
+        await customFieldDefs.restore('f', at: t2);
+        await dances.update((await dances.getById('a'))!);
+        expect(await dances.search(const FullTextFilter('Zanzibarreel')), [
+          'a',
+        ]);
+        expect(await dances.search(const FullTextFilter('anzibarr')), ['a']);
+      },
+    );
+
+    test("free text drops a tombstoned author's name on restore", () async {
+      await seedRestoredWithTombstonedParents();
+      expect(await dances.search(const FullTextFilter('Quillsworth')), isEmpty);
+      expect(await dances.search(const FullTextFilter('uillswort')), isEmpty);
+
+      // ignore: unused_result
+      await choreographers.restore('c1', at: t2);
+      await dances.update((await dances.getById('a'))!);
+      expect(await dances.search(const FullTextFilter('Quillsworth')), ['a']);
+      expect(await dances.search(const FullTextFilter('uillswort')), ['a']);
+    });
+
+    test("free text drops a tombstoned source's title on restore", () async {
+      await seedRestoredWithTombstonedParents();
+      expect(await dances.search(const FullTextFilter('Brambleton')), isEmpty);
+      expect(await dances.search(const FullTextFilter('rambleto')), isEmpty);
+
+      await sources.restore('s1', at: t2);
+      await dances.update((await dances.getById('a'))!);
+      expect(await dances.search(const FullTextFilter('Brambleton')), ['a']);
+      expect(await dances.search(const FullTextFilter('rambleto')), ['a']);
+    });
+
+    // The three tests above exercise the restore path. These three exercise
+    // the *write* path, with no restore involved, and they deliberately build
+    // the Dance directly rather than round-tripping it through getById:
+    // hydration already drops tombstoned parents, so a dance read back from
+    // the database can no longer name one. Routing them through
+    // rebuildAllDerived would be worse still — it feeds the assembler a
+    // hydrated dance AND live-only prefetch maps, so it is guarded twice and
+    // could not fail however the single-write path behaved. On unfixed code a
+    // direct save writes all three texts into the index.
+    test(
+      'a save naming a tombstoned definition writes no custom text',
+      () async {
+        // ignore: unused_result
+        await customFieldDefs.upsert(originField());
+        await customFieldDefs.delete('f', at: t0);
+        await dances.create(
+          _dance(
+            id: 'a',
+            title: 'A',
+            customFields: [
+              CustomFieldValue(fieldId: 'f', value: 'Zanzibarreel'),
+            ],
+          ),
+        );
+        expect(
+          await dances.search(const FullTextFilter('Zanzibarreel')),
+          isEmpty,
+        );
+        expect(await dances.search(const FullTextFilter('anzibarr')), isEmpty);
+      },
+    );
+
+    test('a save naming a tombstoned author writes no author text', () async {
+      // ignore: unused_result
+      await choreographers.upsert(Choreographer(id: 'c1', name: 'Quillsworth'));
+      await choreographers.delete('c1', at: t0);
+      await dances.create(_dance(id: 'a', title: 'A', authorIds: ['c1']));
+      expect(await dances.search(const FullTextFilter('Quillsworth')), isEmpty);
+      expect(await dances.search(const FullTextFilter('uillswort')), isEmpty);
+    });
+
+    test('a save naming a tombstoned source writes no source text', () async {
+      await sources.upsert(PublishedSource(id: 's1', title: 'Brambleton'));
+      await sources.delete('s1', at: t0);
+      await dances.create(
+        _dance(
+          id: 'a',
+          title: 'A',
+        ).copyWith(sourceCitations: [SourceCitation(sourceId: 's1')]),
+      );
+      expect(await dances.search(const FullTextFilter('Brambleton')), isEmpty);
+      expect(await dances.search(const FullTextFilter('rambleto')), isEmpty);
+    });
+
+    test('rebuildAllDerived output is unchanged for live parents', () async {
+      final def = originField();
+      // ignore: unused_result
+      await customFieldDefs.upsert(def);
+      // ignore: unused_result
+      await choreographers.upsert(Choreographer(id: 'c1', name: 'Quillsworth'));
+      await sources.upsert(PublishedSource(id: 's1', title: 'Brambleton'));
+      await dances.create(
+        _dance(
+          id: 'a',
+          title: 'A',
+          authorIds: ['c1'],
+          customFields: [CustomFieldValue(fieldId: 'f', value: 'Zanzibarreel')],
+        ).copyWith(sourceCitations: [SourceCitation(sourceId: 's1')]),
+      );
+      const queries = ['Zanzibarreel', 'Quillsworth', 'Brambleton', 'anzibarr'];
+      for (final q in queries) {
+        expect(await dances.search(FullTextFilter(q)), [
+          'a',
+        ], reason: 'pre: $q');
+      }
+
+      await dances.rebuildAllDerived();
+
+      for (final q in queries) {
+        expect(
+          await dances.search(FullTextFilter(q)),
+          ['a'],
+          reason: 'the live-definition prefetch must not change rebuild output',
+        );
+      }
+      expect(
+        await dances.search(
+          CustomFieldFilter(def, CustomFieldOp.contains, 'Zanzi'),
+        ),
+        ['a'],
+      );
+    });
+  });
 }

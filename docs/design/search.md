@@ -165,13 +165,26 @@ all keyed/indexed on `dance_id`.
 
 ### Custom fields
 
-`CustomFieldFilter(def, op, value)` compiles to an `EXISTS` over the field's row:
+`CustomFieldFilter(def, op, value)` compiles to an `EXISTS` over the field's row,
+joined to the field's definition:
 
 ```sql
 EXISTS (SELECT 1 FROM custom_field_values v
+        JOIN custom_field_defs d ON d.id = v.field_id
         WHERE v.dance_id = dances.id AND v.field_id = ?
+          AND d.deleted_at IS NULL
           AND <op predicate>)
 ```
+
+The definition join is the soft-delete guard required of every read through a
+soft-deletable parent (sync-spec §3.1), matching the author, source, tag and
+level leaves above. Soft-deleting a definition fires no FK cascade, so its
+`custom_field_values` rows survive; without the join a tombstoned definition
+kept matching dances whose detail view no longer shows the value (#1358). It is
+written as a join rather than a second `EXISTS` so
+`tools/ci/check_sync_invariants.py`, which ratchets joins through soft-deletable
+parents, covers it. The join binds nothing, so the bind order below is
+unaffected.
 
 with `<op predicate>` selected by operator (all values bound):
 

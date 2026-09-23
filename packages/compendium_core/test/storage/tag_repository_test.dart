@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/src/storage/database.dart';
 import 'package:test/test.dart';
 
 import 'test_database.dart';
@@ -221,5 +222,151 @@ void main() {
     expect((await repo.listAllWithDeleted()).map((entry) => entry.tag.id), [
       't1',
     ]);
+  });
+
+  group('permanent delete referential guard (#1357)', () {
+    /// Counts `dance_tags` rows for [tagId] straight from the table, so a test
+    /// can tell "the association survived" from "a read filtered it out".
+    Future<int> danceTagRows(String tagId) async {
+      final rows = await (db.select(
+        db.danceTags,
+      )..where((t) => t.tagId.equals(tagId))).get();
+      return rows.length;
+    }
+
+    Future<TagRow?> rawTag(String id) =>
+        (db.select(db.tags)..where((t) => t.id.equals(id))).getSingleOrNull();
+
+    Dance buildDance({required String id, List<String> tagIds = const []}) =>
+        Dance(
+          id: id,
+          title: 'Dance $id',
+          tagIds: tagIds,
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        );
+
+    test('refuses to erase a tag a live dance still carries', () async {
+      // `dance_tags.tag_id` is ON DELETE CASCADE, so before the fix this erased
+      // the tag AND silently stripped it from the live dance — no error, no
+      // trace. §3.1: a purge must refuse an entity a live record references.
+      // ignore: unused_result
+      await repo.upsert(Tag(id: 't1', name: 'chestnut'));
+      await dances.create(buildDance(id: 'd1', tagIds: const ['t1']));
+
+      await expectLater(
+        repo.delete('t1', permanent: true),
+        throwsA(isA<StateError>()),
+      );
+
+      expect(await rawTag('t1'), isNotNull);
+      expect(await danceTagRows('t1'), 1);
+      expect((await dances.getById('d1'))!.tagIds, ['t1']);
+    });
+
+    test('hardDelete inherits the same refusal', () async {
+      // hardDelete delegates to delete(permanent: true); this asserts the
+      // delegation actually carries the guard rather than assuming it.
+      // ignore: unused_result
+      await repo.upsert(Tag(id: 't1', name: 'chestnut'));
+      await dances.create(buildDance(id: 'd1', tagIds: const ['t1']));
+
+      await expectLater(repo.hardDelete(['t1']), throwsA(isA<StateError>()));
+
+      expect(await rawTag('t1'), isNotNull);
+      expect(await danceTagRows('t1'), 1);
+    });
+
+    test(
+      'tombstones rather than erases when only a tombstoned dance carries it',
+      () async {
+        // ignore: unused_result
+        await repo.upsert(Tag(id: 't1', name: 'chestnut'));
+        await dances.create(buildDance(id: 'd1', tagIds: const ['t1']));
+        await dances.softDelete('d1', at: DateTime.utc(2026, 2));
+
+        await repo.delete('t1', permanent: true);
+
+        final row = await rawTag('t1');
+        expect(row, isNotNull, reason: 'the tag row must survive the rollback');
+        expect(row!.deletedAt, isNotNull, reason: 'and be a tombstone');
+        expect(
+          await danceTagRows('t1'),
+          1,
+          reason: 'the association must outlive the rollback for the restore',
+        );
+        expect(
+          await repo.getById('t1'),
+          isNull,
+          reason: 'but the rollback still takes it out of every live view',
+        );
+      },
+    );
+
+    test(
+      'a restored dance shows the tombstoned tag once the tag is restored too',
+      () async {
+        // The user-visible point of the tombstone: restore BOTH rows and the
+        // dance is tagged again. Erasing the tag made this unrecoverable.
+        // `_tagsForMany` inner-joins on `tags.deleted_at IS NULL`, so the
+        // dance-only restore shows nothing — asserted so the release note's
+        // two-row requirement cannot quietly become "restoring the dance is
+        // enough".
+        // ignore: unused_result
+        await repo.upsert(Tag(id: 't1', name: 'chestnut'));
+        await dances.create(buildDance(id: 'd1', tagIds: const ['t1']));
+        await dances.softDelete('d1', at: DateTime.utc(2026, 2));
+
+        await repo.delete('t1', permanent: true);
+
+        await dances.restore('d1', at: DateTime.utc(2026, 3));
+        expect(
+          (await dances.getById('d1'))!.tagIds,
+          isEmpty,
+          reason: 'a tombstoned tag stays hidden until it is restored',
+        );
+
+        await repo.restore('t1', at: DateTime.utc(2026, 3));
+        expect((await dances.getById('d1'))!.tagIds, ['t1']);
+      },
+    );
+
+    test('still erases an unreferenced, unpublished tag', () async {
+      // ignore: unused_result
+      await repo.upsert(Tag(id: 't1', name: 'chestnut'));
+
+      await repo.delete('t1', permanent: true);
+
+      expect(await rawTag('t1'), isNull);
+    });
+
+    test('still tombstones an unreferenced published tag', () async {
+      // ignore: unused_result
+      await repo.upsert(Tag(id: 't1', name: 'chestnut'));
+      await SyncLocalRepository(
+        db,
+      ).markPublished(kind: SyncRecordKind.tag, recordId: 't1');
+
+      await repo.delete('t1', permanent: true);
+
+      final row = await rawTag('t1');
+      expect(row, isNotNull);
+      expect(row!.deletedAt, isNotNull);
+    });
+
+    test('the ordinary tombstoning delete stays unguarded', () async {
+      // The tag manager calls this path after its own isInUse read, and a
+      // tombstone strands nothing (the dance_tags row stays). Guarding it would
+      // be a behaviour change for shipped UI, so the fix is scoped to the
+      // erasing branch.
+      // ignore: unused_result
+      await repo.upsert(Tag(id: 't1', name: 'chestnut'));
+      await dances.create(buildDance(id: 'd1', tagIds: const ['t1']));
+
+      await repo.delete('t1');
+
+      expect((await rawTag('t1'))!.deletedAt, isNotNull);
+      expect(await danceTagRows('t1'), 1);
+    });
   });
 }

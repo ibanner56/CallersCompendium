@@ -1,0 +1,19 @@
+{
+  "id": "1357-permanent-delete-referential-guards",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Undoing an import no longer erases a venue that a deleted program still points at, so restoring that program from Recently Deleted brings back its venue too.",
+      "Undoing an import no longer destroys a deleted dance's author, tag, citation or custom field value. The association is kept, and the author, tag, source or field is kept as a deleted record rather than being erased, so restoring both the dance and that record brings the association back. Restoring the dance on its own does not, because a deleted author, tag, source or field stays hidden until it is restored too.",
+      "Undoing an import can no longer silently strip a tag from a dance you still have. Removing a tag as part of an import rollback now stops rather than taking the tag off every dance that carries it."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "Import undo removes its inserted venues through VenueRepository.hardDelete rather than delete(permanent: true), whose guard counts live programs only, so a venue a tombstoned program names is retained instead of erased.",
+      "VenueRepository.hardDelete retains a still-referenced venue entirely, skipping the published-row tombstone as well as the erase. A tombstoned venue is invisible to every venue read and cannot be linked, so tombstoning one orphans the referencing program exactly as erasing it would.",
+      "The permanent delete branches on choreographers, tags, published sources and custom field definitions tombstone rather than erase when any cascading join row still names the parent, which after the live-owner guard means a tombstoned dance holds it. The join row survives, so the association is recoverable — but the relation loaders inner-join on the parent's deleted_at IS NULL, so it reappears only once the parent is restored as well as the dance.",
+      "TagRepository.delete(permanent: true) and hardDelete carry a referential guard for the first time, inside the delete's own transaction. It previously ran no check at all and was held closed only by one caller's check-then-act isInUse read."
+    ]
+  }
+}

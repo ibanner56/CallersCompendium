@@ -74,7 +74,7 @@ the full picture.
 ### Sync decisions
 
 - **Sync decisions** — review conflicts that [Device Sync](#device-sync)
-  couldn't settle on its own, and choose how each one is resolved. Two kinds of
+  couldn't settle on its own, and choose how each one is resolved. Three kinds of
   conflict currently offer a decision:
   - **A device deleted something another device still has.** One of your
     devices deleted a choreographer, tag, custom field, or difficulty level
@@ -82,7 +82,19 @@ the full picture.
     before either device had seen the other's copy. **Merge** accepts the
     deletion, so this device's copy goes too. **Keep both** gives this
     device's record a new, distinct name so it survives alongside the
-    deletion. Dances never enter this decision; they use the next one.
+    deletion. Dances never enter this decision; they use the dance one below.
+  - **Another device renamed a record onto a name this device already uses.**
+    Both records already exist here — they may well be two different people or
+    two different tags — so nothing is merged behind your back. **Merge** keeps
+    one record and points everything that referred to the other at it.
+    **Keep both** asks you for a new name for the record that currently holds
+    the name, and then applies the other device's rename. Until you choose, the
+    other device's change is not applied.
+
+    Merging two choreographers is the one case that loses something: an email
+    address, location, and deceased marker are kept only on your own device and
+    are never sent to your other devices, so the ones on the record that is not
+    kept cannot be recovered. The app asks you to confirm before this happens.
   - **Two devices independently created dances with the same title but
     different choreography.** This turns up when a device first connects to a
     store that already has dances in it. **Merge** combines the two dances into
@@ -556,7 +568,12 @@ connected.
 
 If a store this device used to sync with is no longer there, the app asks
 before creating a replacement: it may have gone unused past its 30-day limit,
-or it may have been removed — the app can't tell which. Declining makes no
+or it may have been removed — the app can't tell which. Reconnecting re-sends
+your whole library, so it follows **Sync only on WiFi** like everything else:
+on mobile data with that setting on, nothing is sent and the app points you at
+the setting, with the question still waiting once you're back on WiFi. If a
+reconnection doesn't go through, the question comes back and says so, and you
+can try again or leave it. Declining makes no
 network request and leaves the choice for later. Sync then **pauses**: the
 status says so and keeps saying so, and automatic syncs stop running rather
 than asking again every time. Nothing is lost while it is paused. When you

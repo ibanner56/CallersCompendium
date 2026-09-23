@@ -6,8 +6,11 @@ import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../theme/app_spacing.dart';
 
-/// Displays persisted sync decisions and exposes actions for supported
-/// tombstone and fresh-attach dance ambiguity decisions.
+/// Displays persisted sync decisions and exposes merge / keep-both actions for
+/// every reason the resolver supports: the §6.6 baseline-absence tombstone,
+/// §6.6 step-1 natural-key rename collisions, and fresh attach's live-dance
+/// choreography ambiguity. Reasons with no defined resolution stay visible as
+/// retained rows with no mutating action.
 class SyncReviewScreen extends StatefulWidget {
   const SyncReviewScreen({super.key});
 
@@ -64,7 +67,11 @@ class _SyncReviewScreenState extends State<SyncReviewScreen> {
 
   String _candidateIdentity(AppLocalizations l10n, SyncReviewQueueItem item) {
     final label = item.candidateLabel;
-    final id = item.row.counterpartId;
+    // `peerRecordId`, not `row.counterpartId`: a §6.6 step-1 row stores the
+    // candidate under `record_id` and the local name-holder under
+    // `counterpart_id`, so pairing the candidate's label with the counterpart
+    // id would describe one record with the other's identity.
+    final id = item.peerRecordId;
     return label == null ? id : '$label ($id)';
   }
 
@@ -81,10 +88,43 @@ class _SyncReviewScreenState extends State<SyncReviewScreen> {
     ),
   );
 
+  /// Warns before a merge that destroys device-local contact details.
+  ///
+  /// §6.6 forbids coalescing at step 1, so the losing choreographer's email,
+  /// location and deceased marker go with its row. They are stripped from
+  /// every shareable body, so no peer can hand them back — which is why this
+  /// is a confirmation rather than a caption.
+  Future<bool> _confirmContactFieldLoss(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.syncReviewMergeDiscardsContactsTitle),
+        content: Text(l10n.syncReviewMergeDiscardsContactsBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('sync-review-merge-confirm'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.syncReviewMergeAction),
+          ),
+        ],
+      ),
+    );
+    return confirmed ?? false;
+  }
+
   Future<void> _resolve(
     SyncReviewQueueItem item,
     SyncReviewAction action,
   ) async {
+    if (action == SyncReviewAction.merge && item.mergeDiscardsContactFields) {
+      if (!await _confirmContactFieldLoss(context)) return;
+      if (!mounted) return;
+    }
     final distinctName = action == SyncReviewAction.keepBoth
         ? await _askForDistinctName(context, item)
         : null;
@@ -137,7 +177,22 @@ class _SyncReviewScreenState extends State<SyncReviewScreen> {
     SyncReviewFailureCode.nameRequired => l10n.syncReviewNameRequired,
     SyncReviewFailureCode.nameNotDistinct => l10n.syncReviewNameNotDistinct,
     SyncReviewFailureCode.invalidCustomFieldKey => l10n.customFieldsKeyInvalid,
+    SyncReviewFailureCode.counterpartDeleted =>
+      l10n.syncReviewCounterpartDeleted,
   };
+
+  /// The explanation shown on an actionable row.
+  ///
+  /// Only reached when `isActionable`, which is what makes the trailing
+  /// tombstone case safe as an `else`: every other actionable reason is named
+  /// above it.
+  String _reasonLabel(AppLocalizations l10n, SyncReviewQueueItem item) {
+    if (item.isDanceAmbiguity) return l10n.syncReviewDanceAmbiguityReason;
+    if (item.isNaturalKeyRenameCollision) {
+      return l10n.syncReviewRenameCollisionReason;
+    }
+    return l10n.syncReviewTombstoneReason;
+  }
 
   Widget _buildItem(BuildContext context, SyncReviewQueueItem item) {
     final l10n = AppLocalizations.of(context);
@@ -161,7 +216,7 @@ class _SyncReviewScreenState extends State<SyncReviewScreen> {
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              l10n.syncReviewLocalRecord(item.row.recordId),
+              l10n.syncReviewLocalRecord(item.localRecordId),
               key: ValueKey('sync-review-local-$key'),
             ),
             Text(
@@ -171,9 +226,7 @@ class _SyncReviewScreenState extends State<SyncReviewScreen> {
             const SizedBox(height: AppSpacing.xs),
             Text(
               actionable
-                  ? item.isDanceAmbiguity
-                        ? l10n.syncReviewDanceAmbiguityReason
-                        : l10n.syncReviewTombstoneReason
+                  ? _reasonLabel(l10n, item)
                   : l10n.syncReviewUnsupportedReason,
               style: Theme.of(context).textTheme.bodySmall,
             ),

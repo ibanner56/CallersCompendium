@@ -212,6 +212,14 @@ class CustomFieldDefRepository {
   /// Tombstones by default (schema v25, issue #898); the guard is kept.
   /// [permanent] removes unpublished rows for rollback, while published rows
   /// are tombstoned so peers retain deletion evidence.
+  ///
+  /// [permanent] also **tombstones rather than erases** whenever any
+  /// `custom_field_values` row still names this definition — the case the live
+  /// guard below lets through because every such dance is itself tombstoned
+  /// (issue #1357). `custom_field_values` is `ON DELETE CASCADE`, so erasing
+  /// here would take the tombstoned dance's value with it and restoring that
+  /// dance would bring it back with the field empty. See
+  /// `ChoreographerRepository.delete` for the full reasoning.
   Future<void> delete(String id, {DateTime? at, bool permanent = false}) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
@@ -237,11 +245,21 @@ class CustomFieldDefRepository {
       }
 
       if (permanent) {
-        if (await isPublishedSyncRecord(
-          _db,
-          kind: SyncRecordKind.customFieldDef,
-          recordId: id,
-        )) {
+        // Any surviving `custom_field_values` row — necessarily a tombstoned
+        // dance's, since a live one threw above — downgrades the erase to a
+        // tombstone rather than cascading that value away (issue #1357).
+        final valuedBySurvivor =
+            await (_db.select(_db.customFieldValues)
+                  ..where((t) => t.fieldId.equals(id))
+                  ..limit(1))
+                .getSingleOrNull() !=
+            null;
+        if (valuedBySurvivor ||
+            await isPublishedSyncRecord(
+              _db,
+              kind: SyncRecordKind.customFieldDef,
+              recordId: id,
+            )) {
           await stampExistenceTransition(
             _db,
             table: _db.customFieldDefs,

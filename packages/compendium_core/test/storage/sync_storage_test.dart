@@ -5349,6 +5349,542 @@ void main() {
     });
   }
 
+  // ---------------------------------------------------------------------
+  // §6.6 step-1 resolution (#1355).
+  //
+  // The rows the two guards above produce are the ones nothing could resolve:
+  // `resolveReviewQueue` threw `unsupportedReason` and the review screen
+  // rendered no buttons, so the peer's update was skipped on every pass
+  // forever. Every test below drives the collision through the production
+  // apply path rather than hand-enqueueing a row, because the identity layout
+  // of a step-1 row — candidate under `record_id`, the name-holder under
+  // `counterpart_id` — is the reverse of every other reason's, and a
+  // hand-written row is exactly where that would be got wrong in agreement
+  // with the code.
+  // ---------------------------------------------------------------------
+
+  /// Delivers a peer rename of [renamedId] onto the name [holderId] holds and
+  /// returns the queued row, asserting only that the production path produced
+  /// the pair under test.
+  Future<SyncReviewQueueItem> queueStep1Collision({
+    required String renamedId,
+    required String holderId,
+  }) async {
+    await seedRenameCollisionRows();
+    final renameStamp = renameCollisionStamp.add(const Duration(minutes: 1));
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.choreographer,
+            id: renamedId,
+            updatedAt: renameStamp,
+            deletedAt: null,
+            existenceAt: renameStamp,
+            body: syncBodyForEntity(
+              SyncRecordKind.choreographer,
+              Choreographer(
+                id: renamedId,
+                name: renameCollisionDetails[holderId]!.name,
+              ),
+            ),
+          ),
+        ),
+      ],
+      storage: storage,
+    );
+    expect(result.applied, isEmpty);
+    expect(result.reports, isEmpty);
+    final row = (await repositories.syncLocal.listReviewQueue()).single;
+    expect(row.reason, syncNaturalKeyRenameCollisionReason);
+    expect((row.recordId, row.counterpartId), (renamedId, holderId));
+    return SyncReviewQueueItem.fromRow(row);
+  }
+
+  // A tombstone keeps occupying its natural key: none of the four indexes is
+  // filtered on `deleted_at` (§4.1), and `_loadNaturalKeyIndex` selects every
+  // row, preferring a live one only when there is one. So a peer renaming a
+  // known UUID onto a name that only a *deleted* row holds reaches the step-1
+  // guard with a deleted incumbent — and rejecting that as `targetMissing`
+  // reproduced this issue's own disease inside its fix: a queued row neither
+  // action could clear.
+  test('a step-1 collision whose name-holder is a tombstone is still '
+      'resolvable', () async {
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    // ignore: unused_result
+    await repositories.choreographers.upsert(
+      Choreographer(id: 'aaa-author', name: 'Alice Smith'),
+      at: stamp,
+    );
+    // ignore: unused_result
+    await repositories.choreographers.upsert(
+      Choreographer(id: 'zzz-author', name: 'Sam Jones'),
+      at: stamp,
+    );
+    await repositories.choreographers.delete(
+      'zzz-author',
+      at: stamp.add(const Duration(seconds: 30)),
+    );
+    // Precondition: nothing live holds the contested name, so the index can
+    // only return the tombstone.
+    expect(
+      await repositories.choreographers.getById('zzz-author'),
+      isNull,
+      reason:
+          'the name-holder must be tombstoned for this to be the case '
+          'under test',
+    );
+
+    final renameStamp = stamp.add(const Duration(minutes: 1));
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.choreographer,
+            id: 'aaa-author',
+            updatedAt: renameStamp,
+            deletedAt: null,
+            existenceAt: renameStamp,
+            body: syncBodyForEntity(
+              SyncRecordKind.choreographer,
+              Choreographer(id: 'aaa-author', name: 'Sam Jones'),
+            ),
+          ),
+        ),
+      ],
+      storage: storage,
+    );
+
+    expect(result.applied, isEmpty);
+    final item = SyncReviewQueueItem.fromRow(
+      (await repositories.syncLocal.listReviewQueue()).single,
+    );
+    expect(item.row.reason, syncNaturalKeyRenameCollisionReason);
+    expect(
+      (item.row.recordId, item.row.counterpartId),
+      ('aaa-author', 'zzz-author'),
+    );
+    expect(item.isActionable, isTrue);
+
+    // Merge refuses, and says why: collapsing a live record into a tombstone
+    // is an existence decision that step 1 runs none of the machinery for.
+    // `targetMissing` would have been a lie — the row is right there.
+    await expectLater(
+      storage.resolveReviewQueue(
+        expectedRow: item.row,
+        action: SyncReviewAction.merge,
+      ),
+      throwsA(
+        isA<SyncReviewException>().having(
+          (error) => error.code,
+          'code',
+          SyncReviewFailureCode.counterpartDeleted,
+        ),
+      ),
+    );
+    expect(await repositories.syncLocal.listReviewQueue(), hasLength(1));
+    expect(await repositories.syncLocal.listAliases(), isEmpty);
+
+    // Keep both clears it: freeing the name asks no existence question.
+    await storage.resolveReviewQueue(
+      expectedRow: item.row,
+      action: SyncReviewAction.keepBoth,
+      newNaturalKey: 'Sam Jones (deleted)',
+    );
+
+    expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+    expect(
+      (await repositories.choreographers.getById('aaa-author'))!.name,
+      'Sam Jones',
+    );
+    final tombstone = await (db.select(
+      db.choreographers,
+    )..where((row) => row.id.equals('zzz-author'))).getSingle();
+    expect(tombstone.name, 'Sam Jones (deleted)');
+    expect(tombstone.deletedAt, isNotNull, reason: 'still deleted');
+  });
+
+  test('a queued step-1 rename collision records the local hash and is '
+      'actionable', () async {
+    final item = await queueStep1Collision(
+      renamedId: 'aaa-author',
+      holderId: 'zzz-author',
+    );
+
+    // The prerequisite: without this the resolver cannot tell a current
+    // decision from one taken against a record the user has since edited, and
+    // both actions have to refuse.
+    expect(item.row.localHash, isNotNull);
+    expect(
+      item.row.localHash,
+      (await storage.snapshot())
+          .local[(kind: SyncRecordKind.choreographer, recordId: 'aaa-author')]
+          ?.wireHash,
+    );
+    expect(item.isActionable, isTrue);
+    expect(item.isNaturalKeyRenameCollision, isTrue);
+    expect(item.mergeDiscardsContactFields, isTrue);
+  });
+
+  for (final scenario in const [
+    (
+      label: 'the renamed record has the smaller UUID',
+      renamedId: 'aaa-author',
+      holderId: 'zzz-author',
+    ),
+    (
+      label: 'the renamed record has the larger UUID',
+      renamedId: 'zzz-author',
+      holderId: 'aaa-author',
+    ),
+  ]) {
+    test('keep both renames the row holding the name and applies the peer '
+        'rename (${scenario.label})', () async {
+      final item = await queueStep1Collision(
+        renamedId: scenario.renamedId,
+        holderId: scenario.holderId,
+      );
+      final contestedName = renameCollisionDetails[scenario.holderId]!.name;
+
+      await storage.resolveReviewQueue(
+        expectedRow: item.row,
+        action: SyncReviewAction.keepBoth,
+        newNaturalKey: 'Sam Jones',
+      );
+
+      // Both rows are stored, under distinct names, and the peer's rename has
+      // landed on the record it named.
+      final renamed = await repositories.choreographers.getById(
+        scenario.renamedId,
+      );
+      final holder = await repositories.choreographers.getById(
+        scenario.holderId,
+      );
+      expect(renamed!.name, contestedName);
+      expect(holder!.name, 'Sam Jones');
+      // Keep both keeps everything: no identity was retired and no
+      // device-local field was touched on either side.
+      expect(await repositories.syncLocal.listAliases(), isEmpty);
+      expectRenameCollisionRowsIntact(renamed, holder);
+      expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+    });
+
+    test('merge adopts onto the smaller UUID without coalescing device-local '
+        'fields (${scenario.label})', () async {
+      final item = await queueStep1Collision(
+        renamedId: scenario.renamedId,
+        holderId: scenario.holderId,
+      );
+      final contestedName = renameCollisionDetails[scenario.holderId]!.name;
+      // The survivor is a pure function of the two UUIDs, so it is the same
+      // row in both scenarios — which is the point of running both.
+      const survivorId = 'aaa-author';
+      const losingId = 'zzz-author';
+      final survivorDetails = renameCollisionDetails[survivorId]!;
+      final losingDetails = renameCollisionDetails[losingId]!;
+
+      await storage.resolveReviewQueue(
+        expectedRow: item.row,
+        action: SyncReviewAction.merge,
+      );
+
+      expect(await repositories.choreographers.getById(losingId), isNull);
+      expect(
+        await repositories.syncLocal.resolveAlias(
+          kind: SyncRecordKind.choreographer,
+          recordId: losingId,
+        ),
+        survivorId,
+      );
+      final survivor = await repositories.choreographers.getById(survivorId);
+      expect(survivor, isNotNull);
+      expect(survivor!.name, contestedName);
+      // §6.6: "Step 1 involves two pre-existing local rows and MUST NOT
+      // coalesce." The survivor keeps its own contact block and does not
+      // acquire the loser's — asserted field by field, because a survivor that
+      // merely "still has an email" would pass a weaker check either way.
+      expect(survivor.email, survivorDetails.email);
+      expect(survivor.location, survivorDetails.location);
+      expect(survivor.deceased, survivorDetails.deceased);
+      expect(survivor.email, isNot(losingDetails.email));
+      expect(survivor.location, isNot(losingDetails.location));
+      expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+    });
+
+    test('the next pass applies the peer record and re-queues nothing '
+        '(${scenario.label})', () async {
+      final item = await queueStep1Collision(
+        renamedId: scenario.renamedId,
+        holderId: scenario.holderId,
+      );
+      final contestedName = renameCollisionDetails[scenario.holderId]!.name;
+
+      await storage.resolveReviewQueue(
+        expectedRow: item.row,
+        action: SyncReviewAction.keepBoth,
+        newNaturalKey: 'Sam Jones',
+      );
+
+      // The same candidate re-delivered. Before #1355 this re-derived the same
+      // unresolvable row and skipped the update again, on every pass forever.
+      final renameStamp = renameCollisionStamp.add(const Duration(minutes: 2));
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.choreographer,
+              id: scenario.renamedId,
+              updatedAt: renameStamp,
+              deletedAt: null,
+              existenceAt: renameStamp,
+              body: syncBodyForEntity(
+                SyncRecordKind.choreographer,
+                Choreographer(id: scenario.renamedId, name: contestedName),
+              ),
+            ),
+          ),
+        ],
+        storage: storage,
+      );
+
+      expect(result.reports, isEmpty);
+      expect(result.applied, [
+        (kind: SyncRecordKind.choreographer, recordId: scenario.renamedId),
+      ]);
+      expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+    });
+  }
+
+  test('a local edit after queuing makes the decision stale rather than '
+      'applying it', () async {
+    final item = await queueStep1Collision(
+      renamedId: 'aaa-author',
+      holderId: 'zzz-author',
+    );
+
+    // The user edits the very row the candidate updates. The stored
+    // `local_hash` no longer describes it.
+    // ignore: unused_result
+    await repositories.choreographers.upsert(
+      Choreographer(
+        id: 'aaa-author',
+        name: renameCollisionDetails['aaa-author']!.name,
+        email: 'alice.smith@example.com',
+        location: renameCollisionDetails['aaa-author']!.location,
+        deceased: renameCollisionDetails['aaa-author']!.deceased,
+      ),
+      at: renameCollisionStamp.add(const Duration(minutes: 5)),
+    );
+
+    for (final action in SyncReviewAction.values) {
+      await expectLater(
+        storage.resolveReviewQueue(
+          expectedRow: item.row,
+          action: action,
+          newNaturalKey: 'Sam Jones',
+        ),
+        throwsA(
+          isA<SyncReviewException>().having(
+            (error) => error.code,
+            'code',
+            SyncReviewFailureCode.candidateChanged,
+          ),
+        ),
+      );
+    }
+    // The row is retained for another attempt and nothing was written.
+    expect(await repositories.syncLocal.listReviewQueue(), hasLength(1));
+    expect(await repositories.syncLocal.listAliases(), isEmpty);
+    expect(
+      (await repositories.choreographers.getById('aaa-author'))!.name,
+      renameCollisionDetails['aaa-author']!.name,
+    );
+    expect(
+      (await repositories.choreographers.getById('zzz-author'))!.name,
+      renameCollisionDetails['zzz-author']!.name,
+    );
+  });
+
+  test('keep both refuses a name another row still holds', () async {
+    final item = await queueStep1Collision(
+      renamedId: 'aaa-author',
+      holderId: 'zzz-author',
+    );
+    // ignore: unused_result
+    await repositories.choreographers.upsert(
+      Choreographer(id: 'third-author', name: 'Taken name'),
+      at: renameCollisionStamp,
+    );
+
+    await expectLater(
+      storage.resolveReviewQueue(
+        expectedRow: item.row,
+        action: SyncReviewAction.keepBoth,
+        newNaturalKey: 'Taken name',
+      ),
+      throwsA(
+        isA<SyncReviewException>().having(
+          (error) => error.code,
+          'code',
+          SyncReviewFailureCode.nameNotDistinct,
+        ),
+      ),
+    );
+    expect(await repositories.syncLocal.listReviewQueue(), hasLength(1));
+    expect(
+      (await repositories.choreographers.getById('zzz-author'))!.name,
+      renameCollisionDetails['zzz-author']!.name,
+    );
+  });
+
+  test('a collision the user resolved by hand fails rather than applying '
+      'anyway', () async {
+    final item = await queueStep1Collision(
+      renamedId: 'aaa-author',
+      holderId: 'zzz-author',
+    );
+    // Renaming the name-holder by hand was the only workaround before this
+    // action existed, so the queue can genuinely outlive its own collision.
+    // ignore: unused_result
+    await repositories.choreographers.upsert(
+      Choreographer(
+        id: 'zzz-author',
+        name: 'Renamed by hand',
+        email: renameCollisionDetails['zzz-author']!.email,
+        location: renameCollisionDetails['zzz-author']!.location,
+        deceased: renameCollisionDetails['zzz-author']!.deceased,
+      ),
+      at: renameCollisionStamp.add(const Duration(minutes: 5)),
+    );
+
+    await expectLater(
+      storage.resolveReviewQueue(
+        expectedRow: item.row,
+        action: SyncReviewAction.merge,
+      ),
+      throwsA(
+        isA<SyncReviewException>().having(
+          (error) => error.code,
+          'code',
+          SyncReviewFailureCode.candidateChanged,
+        ),
+      ),
+    );
+    expect(await repositories.syncLocal.listAliases(), isEmpty);
+    expect(await repositories.choreographers.getById('zzz-author'), isNotNull);
+  });
+
+  test('an in-batch step-1 collision is resolvable end to end', () async {
+    // The row #1364 started queueing. Its counterpart is a candidate that is
+    // still only *prepared* when the row is written, so this also covers the
+    // case where the name-holder acquires the contested name later in the same
+    // pass than the row naming it.
+    await seedRenameCollisionRows();
+
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        renameOntoSharedName('zzz-author'),
+        renameOntoSharedName('aaa-author'),
+      ],
+      storage: storage,
+    );
+    expect(result.applied, [
+      (kind: SyncRecordKind.choreographer, recordId: 'aaa-author'),
+    ]);
+    final item = SyncReviewQueueItem.fromRow(
+      (await repositories.syncLocal.listReviewQueue()).single,
+    );
+    expect(
+      (item.row.recordId, item.row.counterpartId),
+      ('zzz-author', 'aaa-author'),
+    );
+    expect(item.row.localHash, isNotNull);
+    expect(item.isActionable, isTrue);
+
+    await storage.resolveReviewQueue(
+      expectedRow: item.row,
+      action: SyncReviewAction.keepBoth,
+      newNaturalKey: 'Sam Jones the second',
+    );
+
+    expect(
+      (await repositories.choreographers.getById('zzz-author'))!.name,
+      'Sam Jones',
+    );
+    expect(
+      (await repositories.choreographers.getById('aaa-author'))!.name,
+      'Sam Jones the second',
+    );
+    expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+  });
+
+  test('merge keeps the shipped difficulty ID rather than the smaller '
+      'UUID', () async {
+    // The shipped-difficulty variant of the step-1 reason. Its survivor is the
+    // canonical shipped ID even when that is the lexicographically larger of
+    // the two, which is what distinguishes it from the ordinary reason.
+    const customId = 'a-custom-difficulty';
+    final shippedId = DifficultyLevel.beginnerId;
+    expect(customId.compareTo(shippedId) < 0, isTrue);
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    // ignore: unused_result
+    await repositories.difficultyLevels.upsert(
+      DifficultyLevel(id: customId, label: 'House level', position: 99),
+      at: stamp,
+    );
+    final shippedRow = await (db.select(
+      db.difficultyLevels,
+    )..where((row) => row.id.equals(shippedId))).getSingle();
+
+    final renameStamp = stamp.add(const Duration(minutes: 1));
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.difficultyLevel,
+            id: customId,
+            updatedAt: renameStamp,
+            deletedAt: null,
+            existenceAt: renameStamp,
+            body: syncBodyForEntity(
+              SyncRecordKind.difficultyLevel,
+              DifficultyLevel(
+                id: customId,
+                label: shippedRow.label,
+                position: 99,
+              ),
+            ),
+          ),
+        ),
+      ],
+      storage: storage,
+    );
+    expect(result.applied, isEmpty);
+    final item = SyncReviewQueueItem.fromRow(
+      (await repositories.syncLocal.listReviewQueue()).single,
+    );
+    expect(item.row.reason, syncShippedDifficultyRenameCollisionReason);
+    expect((item.row.recordId, item.row.counterpartId), (customId, shippedId));
+    expect(item.row.localHash, isNotNull);
+    expect(item.isActionable, isTrue);
+
+    await storage.resolveReviewQueue(
+      expectedRow: item.row,
+      action: SyncReviewAction.merge,
+    );
+
+    expect(await repositories.difficultyLevels.getById(customId), isNull);
+    expect(
+      await repositories.syncLocal.resolveAlias(
+        kind: SyncRecordKind.difficultyLevel,
+        recordId: customId,
+      ),
+      shippedId,
+    );
+    expect(await repositories.difficultyLevels.getById(shippedId), isNotNull);
+    expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+  });
+
   test(
     'collapses in-batch difficulty candidates sharing one canonical ID',
     () async {
@@ -5538,12 +6074,34 @@ void main() {
     },
   );
 
-  test(
-    'shareability mismatch renames an inbound field without exposing private values',
-    () async {
+  // §6.6 / ADR-004: which record survives must never be a function of "local"
+  // versus "incoming". This branch used to rename the *inbound* definition and
+  // restamp it with this device's clock, so last-writer-wins republished it and
+  // renamed the shared field on every peer — on account of a private row only
+  // this device holds. The private definition is the one that yields its key,
+  // and the outcome must not depend on how the two UUIDs sort.
+  //
+  // Both orderings are run because a smaller-UUID rule is the plausible wrong
+  // answer here and it agrees with the right one on exactly half the inputs.
+  for (final scenario in const [
+    (
+      label: 'the private definition has the smaller UUID',
+      privateId: '0a1b2c3d-1111-4111-8111-111111111111',
+      shareableId: 'f0e1d2c3-2222-4222-8222-222222222222',
+      renamedKey: 'private_key_0a1b2c3d',
+    ),
+    (
+      label: 'the private definition has the larger UUID',
+      privateId: 'f0e1d2c3-2222-4222-8222-222222222222',
+      shareableId: '0a1b2c3d-1111-4111-8111-111111111111',
+      renamedKey: 'private_key_f0e1d2c3',
+    ),
+  ]) {
+    test('shareability mismatch renames the private local definition '
+        '(${scenario.label})', () async {
       final stamp = DateTime.utc(2025, 1, 2, 12);
       final privateField = CustomFieldDef(
-        id: 'private-field',
+        id: scenario.privateId,
         key: 'private_key',
         label: 'Private key',
         type: CustomFieldType.text,
@@ -5552,26 +6110,23 @@ void main() {
       // ignore: unused_result
       await repositories.customFieldDefs.upsert(privateField, at: stamp);
       final inbound = CustomFieldDef(
-        id: 'shareable-field',
+        id: scenario.shareableId,
         key: privateField.key,
         label: privateField.label,
         type: privateField.type,
         shareable: true,
       );
+      final inboundBlob = SyncRecordBlob(
+        kind: SyncRecordKind.customFieldDef,
+        id: inbound.id,
+        updatedAt: stamp.add(const Duration(minutes: 1)),
+        deletedAt: null,
+        existenceAt: stamp.add(const Duration(minutes: 1)),
+        body: syncBodyForEntity(SyncRecordKind.customFieldDef, inbound),
+      );
 
       final result = await const SyncApplyEngine().apply(
-        candidates: [
-          SyncMergeCandidate(
-            blob: SyncRecordBlob(
-              kind: SyncRecordKind.customFieldDef,
-              id: inbound.id,
-              updatedAt: stamp.add(const Duration(minutes: 1)),
-              deletedAt: null,
-              existenceAt: stamp.add(const Duration(minutes: 1)),
-              body: syncBodyForEntity(SyncRecordKind.customFieldDef, inbound),
-            ),
-          ),
-        ],
+        candidates: [SyncMergeCandidate(blob: inboundBlob)],
         storage: storage,
       );
 
@@ -5582,16 +6137,46 @@ void main() {
       final storedInbound = await repositories.customFieldDefs.getById(
         inbound.id,
       );
-      expect(storedPrivate, isNotNull);
-      expect(storedPrivate!.key, privateField.key);
-      expect(storedPrivate.shareable, isFalse);
+      // The shared definition keeps its bare key, both orderings.
       expect(storedInbound, isNotNull);
-      expect(storedInbound!.key, isNot(privateField.key));
+      expect(storedInbound!.key, privateField.key);
       expect(storedInbound.shareable, isTrue);
+      // The private one carries the suffix derived from its OWN UUID. The
+      // expected key is spelled out rather than recomputed through
+      // `syncCustomFieldSuffix`, so a change to the derivation fails here
+      // instead of agreeing with itself.
+      expect(storedPrivate, isNotNull);
+      expect(storedPrivate!.key, scenario.renamedKey);
+      expect(storedPrivate.shareable, isFalse);
 
+      // Nothing new is published for either definition: the shared one is
+      // applied with the peer's own `updatedAt`, so its wire hash is still the
+      // one the peer sent, and the renamed private one never reaches the wire
+      // at all despite its bumped `updatedAt`.
+      final storedRow = await (db.select(
+        db.customFieldDefs,
+      )..where((row) => row.id.equals(inbound.id))).getSingle();
+      expect(storedRow.updatedAt?.toUtc(), inboundBlob.updatedAt);
+      final snapshot = await storage.snapshot();
+      expect(
+        snapshot
+            .local[(kind: SyncRecordKind.customFieldDef, recordId: inbound.id)]
+            ?.wireHash,
+        sha256Hex(encodeSyncRecordBlobUtf8(inboundBlob)),
+      );
+      expect(
+        snapshot.local.containsKey((
+          kind: SyncRecordKind.customFieldDef,
+          recordId: privateField.id,
+        )),
+        isFalse,
+      );
+
+      // The same-id case is a different branch and is deliberately unchanged:
+      // it still refuses and retains rather than renaming anything.
       final sameId = CustomFieldDef(
         id: privateField.id,
-        key: privateField.key,
+        key: storedPrivate.key,
         label: privateField.label,
         type: privateField.type,
         shareable: true,
@@ -5618,8 +6203,8 @@ void main() {
         ))!.shareable,
         isFalse,
       );
-    },
-  );
+    });
+  }
 
   test(
     'rejects a non-shareable definition before natural-key reconciliation',
@@ -7060,11 +7645,16 @@ void main() {
       const remoteId = 'retained-remote';
       const key = 'Retained author';
       await seedLocal(kind, localId, key);
+      // Deliberately a reason that is still outside the action contract. The
+      // §6.6 step-1 reasons used to stand here; they are resolvable as of
+      // #1355 and are covered by their own group, so leaving one here would
+      // have turned this into a test of the wrong thing that still passed.
       final unsupported = await enqueue(
         kind,
         localId,
         tombstoneFor(kind, remoteId, key),
-        reason: 'known UUID natural-key rename collides with another local row',
+        reason:
+            'natural-key collision has different bodies at the same updatedAt',
       );
 
       expect(unsupported.isActionable, isFalse);
