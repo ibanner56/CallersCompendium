@@ -20,8 +20,25 @@ class ShareableJsonKeyCollision implements Exception {
 /// Invisible/control characters are removed before NFC so canonically equivalent
 /// input has one stored representation after the removed characters no longer
 /// interrupt combining sequences.
-String normalizeShareableText(String value) =>
-    nfc(sanitizeImportedText(value, allowLineBreaks: true));
+String normalizeShareableText(String value) => nfc(sanitizeShareableText(value));
+
+/// The first half of [normalizeShareableText]: sanitized, but **not** composed.
+///
+/// This is what §4.1's collision carve-out means by storing a value
+/// "un-normalised". Composition is what the carve-out defers — a row whose NFC
+/// target another row already holds keeps its own bytes — and nothing else is.
+/// Sanitisation is a different rule with no carve-out: `docs/design/sync-spec.md`
+/// §4.6 binds it to *every* write path, on the grounds that a record's hash
+/// must identify its visible text. Writing the caller's raw string instead would
+/// let a normalisation collision smuggle a `U+200B` past the sanitiser, which is
+/// a second defect wearing the first one's excuse.
+///
+/// Because [normalizeShareableText] is defined over this function, a value
+/// stored through it always derives the same target it would have been
+/// normalized to. That relationship is what makes the skip recorded alongside
+/// it re-attemptable: the pass re-derives the target from the stored bytes.
+String sanitizeShareableText(String value) =>
+    sanitizeImportedText(value, allowLineBreaks: true);
 
 /// Recursively canonicalizes JSON-compatible values, including object keys.
 Object? normalizeShareableJson(Object? value) {

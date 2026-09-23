@@ -4,6 +4,7 @@ import 'package:meta/meta.dart';
 import '../../model/choreographer.dart';
 import '../../sync/sync_record_kind.dart';
 import '../database.dart';
+import '../duplicate_natural_key.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
 import 'sync_local_repository.dart';
@@ -30,6 +31,13 @@ class ChoreographerRepository {
   /// (sync-spec §6.8, [cancelPendingSyncDeletionForLocalEdit]). It defaults to
   /// false because imports, archive restore and automatic writes share this
   /// method, and a cancellation they did not intend reverses a peer's deletion.
+  ///
+  /// Throws [DuplicateNaturalKeyError] when the write would rename this
+  /// choreographer onto a name another row already holds. Callers on a user's
+  /// path MUST surface that: it means the edit was not saved, and until #1348
+  /// the old name was kept silently while the editor went on showing the new
+  /// one. See [resolveNaturalKeyCollision] for when it is raised rather than
+  /// §4.1's store-un-normalised carve-out taken.
   Future<String> upsert(
     Choreographer c, {
     DateTime? at,
@@ -70,6 +78,19 @@ class ChoreographerRepository {
           current != null &&
           incumbent != null &&
           incumbent.id != c.id;
+      // §4.1's carve-out value, resolved before anything is written: either the
+      // un-normalised form this row keeps, or a throw for a genuine duplicate
+      // (#1348). See [resolveNaturalKeyCollision] for the two questions.
+      final deferredName = collidingEdit
+          ? await resolveNaturalKeyCollision(
+              _db,
+              address: choreographerNameNormalisation,
+              recordId: c.id,
+              storedValue: current.name,
+              incomingValue: c.name,
+              incumbentId: incumbent.id,
+            )
+          : null;
       if (fromSync && incumbent != null && incumbent.id != c.id) {
         // Refuse rather than guess: reconciliation owns natural-key
         // identity, so reaching the writer with the key held by another
@@ -79,10 +100,16 @@ class ChoreographerRepository {
           '"${incumbent.id}"',
         );
       }
+      // Keyed on the name actually about to be stored, not on the normalised
+      // target. A carve-out write stores `deferredName`, which usually equals
+      // what the row already held — but need not, so asking whether the stored
+      // bytes change is the question the FTS author text depends on. The old
+      // form asked `!collidingEdit`, which was the same answer only while the
+      // carve-out was incapable of changing the name (#1348).
+      final storedName = deferredName ?? name;
       final authorIndexChanged =
-          (!collidingEdit &&
-              current != null &&
-              (current.name != name || current.deletedAt != null)) ||
+          (current != null &&
+              (current.name != storedName || current.deletedAt != null)) ||
           (current == null && incumbent?.deletedAt != null);
       final id = (collidingEdit || fromSync)
           ? c.id
@@ -102,9 +129,10 @@ class ChoreographerRepository {
           .insertOnConflictUpdate(
             ChoreographersCompanion.insert(
               id: id,
-              name: collidingEdit
-                  ? current.name
-                  : normalizeShareableText(c.name),
+              // The carve-out stores the *user's* value with NFC deferred, not
+              // the row's previous one. Keeping the old value is what #1348
+              // found: the editor showed a rename the database never took.
+              name: deferredName ?? normalizeShareableText(c.name),
               website: Value(
                 c.website == null ? null : normalizeShareableText(c.website!),
               ),
@@ -118,10 +146,9 @@ class ChoreographerRepository {
             ),
           );
       if (collidingEdit) {
-        await recordNormalisationSkip(
+        await recordNormalisationSkipAt(
           _db,
-          table: 'choreographers',
-          column: 'name',
+          choreographerNameNormalisation,
           recordId: c.id,
         );
       }

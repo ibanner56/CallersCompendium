@@ -50,6 +50,14 @@ class DifficultyLevelRepository {
 
   /// Inserts or updates a vocabulary entry without changing its stable ID.
   ///
+  /// Throws [StateError] when the write would rename this level onto a label
+  /// another row already holds, case-insensitively — the visible refusal
+  /// `defaults_section` already surfaces. It no longer throws when the label is
+  /// **unchanged** and merely derives a target another row occupies: that is
+  /// §4.1's carve-out, and the write stores the label un-normalised and records
+  /// the row in `normalisation_skips` instead. Before #1348 there was no
+  /// carve-out at all, so re-importing a recorded level from an archive failed.
+  ///
   /// Pass `localUserEdit: true` only when the person using the app deliberately
   /// edited this record: that cancels a peer's pending tombstone for it
   /// (sync-spec §6.8, [cancelPendingSyncDeletionForLocalEdit]). It defaults to
@@ -63,7 +71,16 @@ class DifficultyLevelRepository {
     final normalized = level.copyWith(label: _normalizeLabel(level.label));
     final now = resolveStamp(at);
     await _db.transaction(
-      () => _upsertInTransaction(normalized, now, localUserEdit: localUserEdit),
+      () => _upsertInTransaction(
+        normalized,
+        now,
+        localUserEdit: localUserEdit,
+        // Only this entry point offers §4.1's carve-out. [createCustom] is a
+        // creation, so it has no recorded row to re-save, and [writeFromSync]
+        // must keep refusing per §6.7 — a natural-key collision there is an
+        // identity decision reconciliation owns.
+        unnormalisedLabel: _sanitizeLabel(level.label),
+      ),
     );
   }
 
@@ -253,13 +270,19 @@ class DifficultyLevelRepository {
   DifficultyLevel _toModel(DifficultyLevelRow row) =>
       DifficultyLevel(id: row.id, label: row.label, position: row.position);
 
+  /// [unnormalisedLabel] is the caller's own label, sanitised but not composed,
+  /// and is supplied only by paths §4.1's write-path carve-out applies to. When
+  /// it is null the historical behaviour is unchanged: any duplicate label
+  /// raises.
   Future<void> _upsertInTransaction(
     DifficultyLevel normalized,
     DateTime now, {
     bool seedExistence = true,
     bool localUserEdit = false,
+    String? unnormalisedLabel,
   }) async {
-    final duplicateRows = (await _db.select(_db.difficultyLevels).get())
+    final rows = await _db.select(_db.difficultyLevels).get();
+    final duplicateRows = rows
         .where(
           (row) =>
               row.id != normalized.id &&
@@ -267,21 +290,57 @@ class DifficultyLevelRepository {
         )
         .toList();
     final duplicate = duplicateRows.isEmpty ? null : duplicateRows.first;
+    // The label stored when the collision is §4.1's carve-out rather than a
+    // genuine duplicate, or null when the write normalises as usual. The two
+    // questions are [resolveNaturalKeyCollision]'s, asked here against this
+    // repository's own case-insensitive uniqueness rule instead of a bare
+    // `UNIQUE` index (#1348).
+    String? deferredLabel;
     if (duplicate != null) {
-      throw StateError(
-        'difficulty level labels must be unique: "${normalized.label}"',
-      );
+      final ownRows = rows.where((row) => row.id == normalized.id).toList();
+      final current = ownRows.isEmpty ? null : ownRows.first;
+      var refuse = true;
+      if (current != null && unnormalisedLabel != null) {
+        final deferred = unnormalisedLabel;
+        final deferredLower = deferred.toLowerCase();
+        // 1. Did the user change the value? A row whose stored label derives a
+        //    different target is being renamed onto a label somebody else
+        //    holds, and §4.1's remedy has nothing to offer it.
+        // 2. Would the un-normalised form still collide? If it would, storing
+        //    it is not available either, so refusing visibly is all that is
+        //    left.
+        refuse =
+            normalizeShareableText(current.label) != normalized.label ||
+            rows.any(
+              (row) =>
+                  row.id != normalized.id &&
+                  row.label.toLowerCase() == deferredLower,
+            );
+        if (!refuse) deferredLabel = deferred;
+      }
+      if (refuse) {
+        throw StateError(
+          'difficulty level labels must be unique: "${normalized.label}"',
+        );
+      }
     }
     await _db
         .into(_db.difficultyLevels)
         .insertOnConflictUpdate(
           DifficultyLevelsCompanion.insert(
             id: normalized.id,
-            label: normalizeShareableText(normalized.label),
+            label: deferredLabel ?? normalizeShareableText(normalized.label),
             position: normalized.position,
             updatedAt: Value(now),
           ),
         );
+    if (deferredLabel != null) {
+      await recordNormalisationSkipAt(
+        _db,
+        difficultyLevelLabelNormalisation,
+        recordId: normalized.id,
+      );
+    }
     if (seedExistence) {
       await applyUpsertExistence(
         _db,
@@ -303,8 +362,20 @@ class DifficultyLevelRepository {
     }
   }
 
-  String _normalizeLabel(String raw) {
-    final label = normalizeShareableText(raw).trim();
+  String _normalizeLabel(String raw) => normalizeShareableText(
+    _sanitizeLabel(raw),
+  );
+
+  /// The label as stored when §4.1 defers its composition: sanitised — §4.6
+  /// binds that to every write path with no carve-out — and trimmed, but not
+  /// NFC-composed.
+  ///
+  /// [_normalizeLabel] is defined over this rather than beside it, so a label
+  /// stored through the carve-out always derives the target it would otherwise
+  /// have been normalized to. The pass re-derives that target from the stored
+  /// bytes, so if the two disagreed the recorded skip could never discharge.
+  String _sanitizeLabel(String raw) {
+    final label = sanitizeShareableText(raw).trim();
     if (label.isEmpty) {
       throw ArgumentError.value(raw, 'label', 'must not be empty');
     }

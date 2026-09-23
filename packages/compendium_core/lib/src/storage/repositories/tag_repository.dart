@@ -5,6 +5,7 @@ import '../../model/tag.dart';
 import '../../sync/sync_record_kind.dart';
 import '../../util/argb.dart';
 import '../database.dart';
+import '../duplicate_natural_key.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
 import 'sync_local_repository.dart';
@@ -54,6 +55,13 @@ class TagRepository {
   /// (sync-spec §6.8, [cancelPendingSyncDeletionForLocalEdit]). It defaults to
   /// false because imports, archive restore and automatic writes share this
   /// method, and a cancellation they did not intend reverses a peer's deletion.
+  ///
+  /// Throws [DuplicateNaturalKeyError] when the write would rename this tag
+  /// onto a name another row already holds; see [resolveNaturalKeyCollision]
+  /// for when that happens rather than §4.1's store-un-normalised carve-out
+  /// (#1348). [upsertStaged] reaches this only in its tombstone branches: a
+  /// **live** natural-key match returns the incumbent's id before any write, so
+  /// the ordinary "two tags, one name" case never gets here.
   @useResult
   Future<String> upsert(Tag tag, {DateTime? at, bool localUserEdit = false}) =>
       _write(tag, at: at, fromSync: false, localUserEdit: localUserEdit);
@@ -92,6 +100,19 @@ class TagRepository {
           current != null &&
           incumbent != null &&
           incumbent.id != tag.id;
+      // §4.1's carve-out value, resolved before anything is written: either
+      // the un-normalised form this row keeps, or a throw for a genuine
+      // duplicate (#1348). See [resolveNaturalKeyCollision].
+      final deferredName = collidingEdit
+          ? await resolveNaturalKeyCollision(
+              _db,
+              address: tagNameNormalisation,
+              recordId: tag.id,
+              storedValue: current.name,
+              incomingValue: tag.name,
+              incumbentId: incumbent.id,
+            )
+          : null;
       if (fromSync && incumbent != null && incumbent.id != tag.id) {
         // Refuse rather than guess: reconciliation owns natural-key
         // identity, so reaching the writer with the key held by another
@@ -119,18 +140,17 @@ class TagRepository {
           .insertOnConflictUpdate(
             TagsCompanion.insert(
               id: id,
-              name: collidingEdit
-                  ? current.name
-                  : normalizeShareableText(tag.name),
+              // The carve-out stores the *user's* value with NFC deferred,
+              // not the row's previous one (#1348).
+              name: deferredName ?? normalizeShareableText(tag.name),
               color: Value(normalizeArgb(tag.color)),
               updatedAt: Value(now),
             ),
           );
       if (collidingEdit) {
-        await recordNormalisationSkip(
+        await recordNormalisationSkipAt(
           _db,
-          table: 'tags',
-          column: 'name',
+          tagNameNormalisation,
           recordId: tag.id,
         );
       }

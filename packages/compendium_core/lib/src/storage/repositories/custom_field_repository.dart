@@ -7,6 +7,7 @@ import '../../model/custom_field.dart';
 import '../../model/enums.dart';
 import '../../sync/sync_record_kind.dart';
 import '../database.dart';
+import '../duplicate_natural_key.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
 import 'sync_local_repository.dart';
@@ -34,6 +35,11 @@ class CustomFieldDefRepository {
   /// (sync-spec §6.8, [cancelPendingSyncDeletionForLocalEdit]). It defaults to
   /// false because imports, archive restore and automatic writes share this
   /// method, and a cancellation they did not intend reverses a peer's deletion.
+  ///
+  /// Throws [DuplicateNaturalKeyError] when the write would move this
+  /// definition onto a key another row already holds; see
+  /// [resolveNaturalKeyCollision] for when that happens rather than §4.1's
+  /// store-un-normalised carve-out (#1348).
   Future<String> upsert(
     CustomFieldDef def, {
     DateTime? at,
@@ -77,6 +83,19 @@ class CustomFieldDefRepository {
           current != null &&
           incumbent != null &&
           incumbent.id != def.id;
+      // §4.1's carve-out value, resolved before anything is written: either
+      // the un-normalised form this row keeps, or a throw for a genuine
+      // duplicate (#1348). See [resolveNaturalKeyCollision].
+      final deferredKey = collidingEdit
+          ? await resolveNaturalKeyCollision(
+              _db,
+              address: customFieldKeyNormalisation,
+              recordId: def.id,
+              storedValue: current.key,
+              incomingValue: def.key,
+              incumbentId: incumbent.id,
+            )
+          : null;
       if (fromSync && incumbent != null && incumbent.id != def.id) {
         // Refuse rather than guess: reconciliation owns natural-key
         // identity, so reaching the writer with the key held by another
@@ -104,9 +123,9 @@ class CustomFieldDefRepository {
           .insertOnConflictUpdate(
             CustomFieldDefsCompanion.insert(
               id: id,
-              key: collidingEdit
-                  ? current.key
-                  : normalizeShareableText(def.key),
+              // The carve-out stores the *user's* value with NFC deferred,
+              // not the row's previous one (#1348).
+              key: deferredKey ?? normalizeShareableText(def.key),
               label: normalizeShareableText(def.label),
               type: def.type,
               choicesJson: Value(choices == null ? null : jsonEncode(choices)),
@@ -117,10 +136,9 @@ class CustomFieldDefRepository {
             ),
           );
       if (collidingEdit) {
-        await recordNormalisationSkip(
+        await recordNormalisationSkipAt(
           _db,
-          table: 'custom_field_defs',
-          column: 'key',
+          customFieldKeyNormalisation,
           recordId: def.id,
         );
       }
