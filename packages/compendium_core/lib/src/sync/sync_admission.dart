@@ -61,7 +61,8 @@ SyncInboundCandidateAdmission admitSyncInboundCandidate(
         recordId: candidate.blob.id,
         peerId: candidate.peerId,
         message:
-            'Inbound sync credentials are receive-only and were not adopted.',
+            'Inbound sync transport values are receive-only and were not '
+            'adopted.',
       ),
     );
   }
@@ -154,6 +155,15 @@ SyncInboundCandidateAdmission admitSyncInboundCandidate(
   );
 }
 
+/// The two settings keys the protocol puts on the wire and must never adopt
+/// back: the store address a device is attached to, and its own routing
+/// identifier. Adopting either from a peer repoints this device at another
+/// store or collides two devices in one manifest namespace.
+///
+/// This matches on the key name rather than on [EgressClass] deliberately —
+/// it is defence in depth that holds even if a classification is got wrong —
+/// which is why reclassifying either key does not turn this path red. The
+/// send-side half is guarded in `sync_codec_test.dart` instead.
 bool _isReceiveOnlySetting(SyncMergeCandidate candidate) =>
     candidate.blob.kind == SyncRecordKind.setting &&
     (candidate.blob.id == 'sync_id' || candidate.blob.id == 'sync_device_id');
