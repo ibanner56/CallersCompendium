@@ -1072,14 +1072,20 @@ makes self-hosting materially harder, which constraint 4 forbids.
   un-delete from a slow-clocked device was still silently reverted. Hardening one
   term of a conjunction hardens nothing.
 
-  It is *stamped* only by a live↔deleted transition and by no sync-apply path —
-  applying a peer's blob copies that peer's value rather than minting one — which
-  makes deletions sticky: an edit made on a device that never learned of the
+  It is *stamped* only by a local existence **decision** and by no sync-apply
+  path — applying a peer's blob copies that peer's value rather than minting one
+  — which makes deletions sticky: an edit made on a device that never learned of the
   deletion is swept up when it arrives — recoverable from Recently Deleted, but
   not announced. Chosen because a deletion silently reversed on every device is
   both worse and harder to notice than an edit that follows its record into the
   bin. It costs an `existence_at` column on all eight syncable kinds, which is
   why the migration is eight tables rather than six.
+
+  A local live↔deleted transition is the usual such decision, but not the only
+  one: cancelling a **held** tombstone by editing the record is an existence
+  decision made while the row stays live throughout, and it stamps for the same
+  reason a revival does — the record must outrank the tombstone on the peer that
+  still holds it (#1356).
 
   It is stamped **causally rather than from a bare clock** — every transition
   lands strictly after the value already on the record,
