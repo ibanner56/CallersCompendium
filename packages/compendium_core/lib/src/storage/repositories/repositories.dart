@@ -1747,9 +1747,15 @@ class CompendiumRepositories {
           'WHERE id = ?',
           variables: [
             Variable<String>(
-              encodeFigures(switch (normalised.figuresSource) {
-                DecodedFigures(:final figures) => figures,
-              }),
+              switch (normalised.figuresSource) {
+                DecodedFigures(:final figures) => encodeFigures(figures),
+                // Unreachable today: the Dance->Dance transformer returns the
+                // same instance for an undecodable row, so the `identical`
+                // check short-circuits before this. A verbatim passthrough
+                // rather than a throw, so that if a future transformer does
+                // return one the bytes survive instead of startup dying.
+                UnreadableFigures(:final storedJson) => storedJson,
+              },
             ),
             Variable<String>(dance.id),
           ],
@@ -1849,9 +1855,15 @@ class CompendiumRepositories {
         'UPDATE ${db.dances.actualTableName} SET figures_json = ? WHERE id = ?',
         variables: [
           Variable<String>(
-            encodeFigures(switch (stripped.figuresSource) {
-              DecodedFigures(:final figures) => figures,
-            }),
+            switch (stripped.figuresSource) {
+              DecodedFigures(:final figures) => encodeFigures(figures),
+              // Unreachable today: the Dance->Dance transformer returns the
+              // same instance for an undecodable row, so the `identical`
+              // check short-circuits before this. A verbatim passthrough
+              // rather than a throw, so that if a future transformer does
+              // return one the bytes survive instead of startup dying.
+              UnreadableFigures(:final storedJson) => storedJson,
+            },
           ),
           Variable<String>(dance.id),
         ],
@@ -2021,9 +2033,15 @@ class CompendiumRepositories {
         'UPDATE ${db.dances.actualTableName} SET figures_json = ? WHERE id = ?',
         variables: [
           Variable<String>(
-            encodeFigures(switch (normalised.figuresSource) {
-              DecodedFigures(:final figures) => figures,
-            }),
+            switch (normalised.figuresSource) {
+              DecodedFigures(:final figures) => encodeFigures(figures),
+              // Unreachable today: the Dance->Dance transformer returns the
+              // same instance for an undecodable row, so the `identical`
+              // check short-circuits before this. A verbatim passthrough
+              // rather than a throw, so that if a future transformer does
+              // return one the bytes survive instead of startup dying.
+              UnreadableFigures(:final storedJson) => storedJson,
+            },
           ),
           Variable<String>(dance.id),
         ],
@@ -2058,9 +2076,15 @@ class CompendiumRepositories {
       if (identical(normalised, dance)) continue;
       rewrites.add((
         dance.id,
-        encodeFigures(switch (normalised.figuresSource) {
-          DecodedFigures(:final figures) => figures,
-        }),
+        switch (normalised.figuresSource) {
+          DecodedFigures(:final figures) => encodeFigures(figures),
+          // Unreachable today: the Dance->Dance transformer returns the
+          // same instance for an undecodable row, so the `identical`
+          // check short-circuits before this. A verbatim passthrough
+          // rather than a throw, so that if a future transformer does
+          // return one the bytes survive instead of startup dying.
+          UnreadableFigures(:final storedJson) => storedJson,
+        },
       ));
     }
 
@@ -2289,9 +2313,15 @@ class CompendiumRepositories {
             'WHERE id = ?',
             variables: [
               Variable<String>(
-                encodeFigures(switch (backfilled.figuresSource) {
-                  DecodedFigures(:final figures) => figures,
-                }),
+                switch (backfilled.figuresSource) {
+                  DecodedFigures(:final figures) => encodeFigures(figures),
+                  // Unreachable today: the Dance->Dance transformer returns the
+                  // same instance for an undecodable row, so the `identical`
+                  // check short-circuits before this. A verbatim passthrough
+                  // rather than a throw, so that if a future transformer does
+                  // return one the bytes survive instead of startup dying.
+                  UnreadableFigures(:final storedJson) => storedJson,
+                },
               ),
               Variable<String>(dance.id),
             ],

@@ -97,6 +97,8 @@ String danceToPlainText(
 
   final danceFigures = switch (dance.figuresSource) {
     DecodedFigures(:final figures) => figures,
+    // Nothing to render: the exported text simply omits the figures section.
+    UnreadableFigures() => const <Figure>[],
   };
   if (danceFigures.isNotEmpty) {
     lines.add('');
