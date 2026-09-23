@@ -100,6 +100,72 @@ Future<void> _seedDanceAmbiguity(CompendiumRepositories repos) async {
   await CompendiumSyncStorage(repos).deduplicateFreshAttach();
 }
 
+/// Seeds a §6.6 step-1 rename collision through the production apply path.
+///
+/// Hand-enqueueing would not do: a step-1 row's `record_id` is the candidate's
+/// own id and its `counterpart_id` is the other local row, the reverse of a
+/// tombstone row, so a hand-written row would only ever agree with whatever
+/// the screen already believed.
+Future<void> _seedRenameCollision(CompendiumRepositories repos) async {
+  for (final entry in const [
+    (id: 'aaa-author', name: 'Alice Smith'),
+    (id: 'zzz-author', name: 'Sam Jones'),
+  ]) {
+    final _ = await repos.choreographers.upsert(
+      Choreographer(
+        id: entry.id,
+        name: entry.name,
+        email: '${entry.id}@example.com',
+      ),
+      at: _stamp,
+    );
+  }
+  final renameStamp = _stamp.add(const Duration(minutes: 1));
+  await const SyncApplyEngine().apply(
+    candidates: [
+      SyncMergeCandidate(
+        blob: SyncRecordBlob(
+          kind: SyncRecordKind.choreographer,
+          id: 'aaa-author',
+          updatedAt: renameStamp,
+          deletedAt: null,
+          existenceAt: renameStamp,
+          body: syncBodyForEntity(
+            SyncRecordKind.choreographer,
+            Choreographer(id: 'aaa-author', name: 'Sam Jones'),
+          ),
+        ),
+      ),
+    ],
+    storage: CompendiumSyncStorage(repos),
+  );
+}
+
+/// Seeds a §6.10 fuzzy near-duplicate pair: above the score threshold, with
+/// titles that are *not* equal, so keeping both needs no rename.
+Future<void> _seedFuzzyDuplicate(CompendiumRepositories repos) async {
+  final _ = await repos.choreographers.upsert(
+    Choreographer(id: 'shared-author', name: 'Sam Jones'),
+    at: _stamp,
+  );
+  for (final entry in const [
+    (id: 'a-rory', title: "Rory O'More", hand: 'left'),
+    (id: 'z-rory', title: "Rory O'Moore", hand: 'right'),
+  ]) {
+    await repos.dances.create(
+      Dance(
+        id: entry.id,
+        title: entry.title,
+        authorIds: const ['shared-author'],
+        figures: [testFigure(move: 'balance', params: {'hand': entry.hand})],
+        createdAt: _stamp,
+        updatedAt: _stamp,
+      ),
+    );
+  }
+  await CompendiumSyncStorage(repos).deduplicateFreshAttach();
+}
+
 Future<void> _pumpScreen(
   WidgetTester tester,
   CompendiumRepositories repos,
@@ -207,11 +273,15 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
+    // A reason that is still outside the action contract. The §6.6 step-1
+    // reason stood here until #1355 made it resolvable; leaving it would have
+    // left this test green while no longer testing an unsupported row.
     await _enqueue(
       repos,
       localId: 'local-author',
       candidate: _tombstone(id: 'peer-author', name: 'Shared author'),
-      reason: 'known UUID natural-key rename collides with another local row',
+      reason:
+          'natural-key collision has different bodies at the same updatedAt',
     );
 
     await _pumpScreen(tester, repos);

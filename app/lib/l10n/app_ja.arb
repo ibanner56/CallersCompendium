@@ -1632,9 +1632,9 @@
   "@syncReviewSettingsTitle": {
     "x-sourceSha256": "691b69af17f63a161f53c0d188d596093053776abfd6d2fa0b4ffd91794382c3"
   },
-  "syncReviewSettingsSubtitle": "このデバイスで作成したレコードと競合するピア側の削除を確認します。",
+  "syncReviewSettingsSubtitle": "同期だけでは解決できないデバイス間の競合について、解決方法を決めます。",
   "@syncReviewSettingsSubtitle": {
-    "x-sourceSha256": "4884c7e38dbe512d28f75048575a092b8656535e484b82694f09361c20d693cb"
+    "x-sourceSha256": "fb18d5040b56ff91ba08fb4faccd65fd99a3a407157709c3f068ae860db0c3f7"
   },
   "syncReviewTitle": "同期の判断",
   "@syncReviewTitle": {
@@ -1715,6 +1715,22 @@
   "syncReviewDanceAmbiguityReason": "ライブのダンスは同じタイトルですが、振り付けが異なります。",
   "@syncReviewDanceAmbiguityReason": {
     "x-sourceSha256": "4adede982e807d2622c96688129b256f04f230f759b6b07585c0ea726a501730"
+  },
+  "syncReviewDanceFuzzyDuplicateReason": "これらのダンスは、少し異なるタイトルの同じダンスのようです。",
+  "@syncReviewDanceFuzzyDuplicateReason": {
+    "x-sourceSha256": "6c669675f120b0f8515d169218e274238b087c876367aa2a27ad80da934e6a3c"
+  },
+  "syncReviewRenameCollisionReason": "別のデバイスがこのレコードの名前を、ここにある別のレコードがすでに使用している名前に変更しました。",
+  "@syncReviewRenameCollisionReason": {
+    "x-sourceSha256": "e5a9e0b5844f13cb9c4f4a65f511c19a1636659ace7f4ef950335bee2ca54e53"
+  },
+  "syncReviewMergeDiscardsContactsTitle": "これらの振付師を統合しますか?",
+  "@syncReviewMergeDiscardsContactsTitle": {
+    "x-sourceSha256": "9dabfcdc02184c750782b3580760f87dae3ccc1209bb7e47c2a720b58f06a539"
+  },
+  "syncReviewMergeDiscardsContactsBody": "保持されるレコードは 1 件だけです。もう一方のメールアドレス、場所、故人マークはこのデバイスにのみ保存されているため、統合後は復元できません。",
+  "@syncReviewMergeDiscardsContactsBody": {
+    "x-sourceSha256": "7b068cebe8dd826e8dde8a7b1a8c46e72d8429c856f46f1a151710f42e87550c"
   },
   "syncReviewUnsupportedReason": "この同期の競合は保留されています。ここでは安全な操作を利用できません。",
   "@syncReviewUnsupportedReason": {

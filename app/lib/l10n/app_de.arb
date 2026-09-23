@@ -1632,9 +1632,9 @@
   "@syncReviewSettingsTitle": {
     "x-sourceSha256": "691b69af17f63a161f53c0d188d596093053776abfd6d2fa0b4ffd91794382c3"
   },
-  "syncReviewSettingsSubtitle": "Prüfe Löschungen auf dem Peer-Gerät, die mit auf diesem Gerät erstellten Datensätzen kollidieren.",
+  "syncReviewSettingsSubtitle": "Entscheiden Sie, wie Konflikte zwischen Ihren Geräten gelöst werden, die die Synchronisierung nicht selbst klären kann.",
   "@syncReviewSettingsSubtitle": {
-    "x-sourceSha256": "4884c7e38dbe512d28f75048575a092b8656535e484b82694f09361c20d693cb"
+    "x-sourceSha256": "fb18d5040b56ff91ba08fb4faccd65fd99a3a407157709c3f068ae860db0c3f7"
   },
   "syncReviewTitle": "Synchronisierungsentscheidungen",
   "@syncReviewTitle": {
@@ -1715,6 +1715,22 @@
   "syncReviewDanceAmbiguityReason": "Live-Tänze haben denselben Titel, aber eine unterschiedliche Choreografie.",
   "@syncReviewDanceAmbiguityReason": {
     "x-sourceSha256": "4adede982e807d2622c96688129b256f04f230f759b6b07585c0ea726a501730"
+  },
+  "syncReviewDanceFuzzyDuplicateReason": "Diese Tänze scheinen derselbe Tanz unter leicht unterschiedlichen Titeln zu sein.",
+  "@syncReviewDanceFuzzyDuplicateReason": {
+    "x-sourceSha256": "6c669675f120b0f8515d169218e274238b087c876367aa2a27ad80da934e6a3c"
+  },
+  "syncReviewRenameCollisionReason": "Ein anderes Gerät hat diesen Datensatz in einen Namen umbenannt, den hier bereits ein anderer Datensatz verwendet.",
+  "@syncReviewRenameCollisionReason": {
+    "x-sourceSha256": "e5a9e0b5844f13cb9c4f4a65f511c19a1636659ace7f4ef950335bee2ca54e53"
+  },
+  "syncReviewMergeDiscardsContactsTitle": "Diese Choreografen zusammenführen?",
+  "@syncReviewMergeDiscardsContactsTitle": {
+    "x-sourceSha256": "9dabfcdc02184c750782b3580760f87dae3ccc1209bb7e47c2a720b58f06a539"
+  },
+  "syncReviewMergeDiscardsContactsBody": "Es wird nur ein Datensatz behalten. E-Mail-Adresse, Ort und Verstorben-Markierung des anderen sind nur auf diesem Gerät gespeichert und lassen sich danach nicht wiederherstellen.",
+  "@syncReviewMergeDiscardsContactsBody": {
+    "x-sourceSha256": "7b068cebe8dd826e8dde8a7b1a8c46e72d8429c856f46f1a151710f42e87550c"
   },
   "syncReviewUnsupportedReason": "Dieser Synchronisierungskonflikt bleibt vorerst erhalten; hier ist keine sichere Aktion verfügbar.",
   "@syncReviewUnsupportedReason": {

@@ -74,7 +74,7 @@ the full picture.
 ### Sync decisions
 
 - **Sync decisions** — review conflicts that [Device Sync](#device-sync)
-  couldn't settle on its own, and choose how each one is resolved. Two kinds of
+  couldn't settle on its own, and choose how each one is resolved. Four kinds of
   conflict currently offer a decision:
   - **A device deleted something another device still has.** One of your
     devices deleted a choreographer, tag, custom field, or difficulty level
@@ -82,11 +82,29 @@ the full picture.
     before either device had seen the other's copy. **Merge** accepts the
     deletion, so this device's copy goes too. **Keep both** gives this
     device's record a new, distinct name so it survives alongside the
-    deletion. Dances never enter this decision; they use the next one.
+    deletion. Dances never enter this decision; they use the dance ones below.
+  - **Another device renamed a record onto a name this device already uses.**
+    Both records already exist here — they may well be two different people or
+    two different tags — so nothing is merged behind your back. **Merge** keeps
+    one record and points everything that referred to the other at it.
+    **Keep both** asks you for a new name for the record that currently holds
+    the name, and then applies the other device's rename. Until you choose, the
+    other device's change is not applied.
+
+    Merging two choreographers is the one case that loses something: an email
+    address, location, and deceased marker are kept only on your own device and
+    are never sent to your other devices, so the ones on the record that is not
+    kept cannot be recovered. The app asks you to confirm before this happens.
   - **Two devices independently created dances with the same title but
     different choreography.** This turns up when a device first connects to a
     store that already has dances in it. **Merge** combines the two dances into
     one. **Keep both** renames one of the dances so both are kept separately.
+  - **Two dances look like the same dance under slightly different titles.**
+    Also found when a device first connects to a store — for example the same
+    dance imported separately on a laptop and a phone, with a stray word or
+    spelling difference in the title. **Merge** combines them into one.
+    **Keep both** simply dismisses the suggestion; the titles already differ,
+    so nothing is renamed.
   Any other conflict is shown as retained, with no action available yet, until
   a future version knows how to resolve it.
 

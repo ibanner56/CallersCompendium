@@ -15,6 +15,49 @@ const String syncBaselineAbsenceTombstoneReason =
 const String syncDanceChoreographyAmbiguityReason =
     'live dances share a normalized title but have different choreography';
 
+/// The review reason produced when fresh attach finds live dances that
+/// `DedupeIndex` flags as near-duplicates without their titles being equal.
+///
+/// Sync-spec §6.10 defers "everything else `DedupeIndex` flags" here. The
+/// exact-title tier owns equal titles — it merges an equal-choreography pair
+/// silently and queues a differing one as
+/// [syncDanceChoreographyAmbiguityReason] — so a pair carrying this reason
+/// always has two *different* normalized titles, which is why its keep-both
+/// resolution needs no rename.
+const String syncDanceFuzzyDuplicateReason =
+    'live dances are near-duplicates by title and author';
+
+/// The sync-spec §6.6 step-1 reason: a record whose UUID this device already
+/// knows arrived carrying a natural key another local row holds.
+///
+/// Step 1 is not step 2. Both sides are pre-existing local rows, so the pair
+/// may be two genuinely different entities and MUST NOT merge silently
+/// (`docs/design/sync-spec.md` §6.6, ADR-004). Two producers write this
+/// reason: the stored-row guard and the in-batch guard added by #1364.
+const String syncNaturalKeyRenameCollisionReason =
+    'known UUID natural-key rename collides with another local row';
+
+/// The step-1 reason for a rename that collides with a shipped difficulty row.
+///
+/// Identical in shape to [syncNaturalKeyRenameCollisionReason] — two local
+/// rows, one natural key — but the survivor is the canonical shipped ID rather
+/// than the lexicographically smaller UUID, because a shipped difficulty ID is
+/// part of the persisted relationship contract (§6.6).
+const String syncShippedDifficultyRenameCollisionReason =
+    'known UUID natural-key rename collides with the shipped difficulty row';
+
+/// The step-1 reasons whose resolution is defined by §6.6 and ADR-004.
+///
+/// These rows carry the *opposite* identity layout to every other queued
+/// reason: `record_id` is the candidate's own id and `counterpart_id` is the
+/// other local row, because the candidate updates a record this device already
+/// knows. Reading a step-1 row with the tombstone layout in mind is the single
+/// easiest mistake to make here, so the set is named rather than inlined.
+const Set<String> syncNaturalKeyRenameCollisionReasons = {
+  syncNaturalKeyRenameCollisionReason,
+  syncShippedDifficultyRenameCollisionReason,
+};
+
 /// The decisions supported by the persisted sync review surface.
 enum SyncReviewAction { merge, keepBoth }
 
@@ -64,6 +107,32 @@ class SyncReviewQueueItem {
   bool get isDanceAmbiguity =>
       row.reason == syncDanceChoreographyAmbiguityReason;
 
+  bool get isDanceFuzzyDuplicate => row.reason == syncDanceFuzzyDuplicateReason;
+
+  bool get isNaturalKeyRenameCollision =>
+      syncNaturalKeyRenameCollisionReasons.contains(row.reason);
+
+  /// Whether resolving this row with [SyncReviewAction.keepBoth] needs a new
+  /// name from the user.
+  ///
+  /// Every reason but [syncDanceFuzzyDuplicateReason] keeps two rows apart
+  /// that currently share one natural key, and the `UNIQUE` index is not
+  /// filtered on `deleted_at`, so without a rename the resolution simply fails
+  /// to write. A fuzzy duplicate pair already has two different titles — the
+  /// exact-title tier owns equal ones — so there is nothing to rename and
+  /// prompting for a name would be asking the user to invent a problem.
+  bool get keepBothNeedsNewName => !isDanceFuzzyDuplicate;
+
+  /// Whether [SyncReviewAction.merge] would discard device-local contact
+  /// fields that are held nowhere else.
+  ///
+  /// Step 1 merges two pre-existing local rows and MUST NOT coalesce (§6.6),
+  /// so the losing choreographer's email, location and deceased flag go with
+  /// it. They are stripped from every shareable body, so no peer can return
+  /// them. The user is told before the merge, not after.
+  bool get mergeDiscardsContactFields =>
+      isNaturalKeyRenameCollision && row.kind == SyncRecordKind.choreographer;
+
   String? get naturalKey {
     final value = candidate;
     if (value == null) return null;
@@ -87,23 +156,48 @@ class SyncReviewQueueItem {
     return value is String && value.isNotEmpty ? value : null;
   }
 
+  /// Whether the persisted row can be handed to the resolver at all.
+  ///
+  /// The identity checks are deliberately **not** shared across reasons. A
+  /// §6.6 step-1 row stores the candidate's own id as `record_id` and the
+  /// other local row as `counterpart_id`; the tombstone and dance reasons
+  /// store the opposite. A single shared `candidate.id == counterpartId`
+  /// precondition — which is what this method used to open with — silently
+  /// rejects every step-1 row no matter which reasons the allowlist below
+  /// names, so the orientation belongs inside each branch.
+  ///
+  /// This is display-time triage only. The resolver repeats every check
+  /// inside its transaction (see the class doc), so a row that slips through
+  /// here still cannot become an accidental success.
   bool get isActionable {
     final value = candidate;
-    final validCandidate =
+    final wellFormedCandidate =
         value != null &&
         value.kind == row.kind &&
-        value.id == row.counterpartId &&
         value.body['id'] == value.id &&
         sha256Hex(encodeSyncRecordBlobUtf8(value)) == row.candidateHash &&
-        row.recordId != value.id &&
         _hasValidEntityBody(value);
-    if (!validCandidate) return false;
+    if (!wellFormedCandidate) return false;
+    if (syncNaturalKeyRenameCollisionReasons.contains(row.reason)) {
+      // Step 1: the candidate updates `record_id`, and `counterpart_id` is the
+      // other local row that currently holds the natural key.
+      return value.id == row.recordId &&
+          row.recordId != row.counterpartId &&
+          value.deletedAt == null &&
+          syncNaturalKeyKinds.contains(row.kind) &&
+          naturalKey != null &&
+          (row.reason != syncShippedDifficultyRenameCollisionReason ||
+              row.kind == SyncRecordKind.difficultyLevel);
+    }
+    // Every remaining reason stores the candidate under `counterpart_id`.
+    if (value.id != row.counterpartId || row.recordId == value.id) return false;
     if (row.reason == syncBaselineAbsenceTombstoneReason) {
       return value.deletedAt != null &&
           syncNaturalKeyKinds.contains(row.kind) &&
           naturalKey != null;
     }
-    return row.reason == syncDanceChoreographyAmbiguityReason &&
+    return (row.reason == syncDanceChoreographyAmbiguityReason ||
+            row.reason == syncDanceFuzzyDuplicateReason) &&
         value.kind == SyncRecordKind.dance &&
         value.deletedAt == null &&
         naturalKey != null &&

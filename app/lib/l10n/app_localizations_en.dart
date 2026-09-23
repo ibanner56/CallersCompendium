@@ -1470,7 +1470,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get syncReviewSettingsSubtitle =>
-      'Review peer deletions that conflict with records created on this device.';
+      'Decide how conflicts between your devices are resolved when sync cannot settle them on its own.';
 
   @override
   String get syncReviewTitle => 'Sync decisions';
@@ -1539,6 +1539,22 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get syncReviewDanceAmbiguityReason =>
       'Live dances have the same title but different choreography.';
+
+  @override
+  String get syncReviewDanceFuzzyDuplicateReason =>
+      'These dances look like the same dance under slightly different titles.';
+
+  @override
+  String get syncReviewRenameCollisionReason =>
+      'Another device renamed this record to a name a different record here already uses.';
+
+  @override
+  String get syncReviewMergeDiscardsContactsTitle =>
+      'Merge these choreographers?';
+
+  @override
+  String get syncReviewMergeDiscardsContactsBody =>
+      'Only one record will be kept. The email address, location, and deceased marker on the other one are stored only on this device, so they cannot be recovered afterwards.';
 
   @override
   String get syncReviewUnsupportedReason =>

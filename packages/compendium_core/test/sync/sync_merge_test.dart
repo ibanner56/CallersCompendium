@@ -236,6 +236,159 @@ void main() {
     }
   });
 
+  // ---------------------------------------------------------------------
+  // §6.10's fuzzy tier (#1355). "Everything else `DedupeIndex` flags is
+  // deferred to `review_queue`" — the exact-title tier above decides only what
+  // merges silently.
+  // ---------------------------------------------------------------------
+
+  test('fuzzy deferral flags a near-title pair the exact tier misses', () {
+    // The issue's own worked example ("Rory O'More" vs "Rory O More
+    // (variation)") scores 0.619 and is NOT flagged; see the correction on
+    // #1355. This pair scores 0.933.
+    final left = _danceCandidate('a-rory', "Rory O'More", authors: ['author']);
+    final right = _danceCandidate('z-rory', "Rory O'Moore", authors: ['author']);
+
+    final pairs = planFreshAttachFuzzyDuplicates(
+      [left, right],
+      authorNamesByDanceId: const {
+        'a-rory': ['Sam Jones'],
+        'z-rory': ['Sam Jones'],
+      },
+    );
+
+    expect(pairs, hasLength(1));
+    expect(pairs.single.firstId, 'a-rory');
+    expect(pairs.single.secondId, 'z-rory');
+    expect(pairs.single.candidate.blob.id, 'z-rory');
+    // The exact-title tier neither merges nor queues this pair, which is the
+    // gap the fuzzy tier exists to close.
+    final exact = planFreshAttachDedupe([left, right]);
+    expect(exact.merges, isEmpty);
+    expect(exact.ambiguities, isEmpty);
+  });
+
+  test('fuzzy deferral leaves equal-title pairs to the exact tier', () {
+    // Identical titles, different choreography: the exact tier queues this as
+    // a choreography ambiguity. Flagging it here too would put one pair in the
+    // queue twice under two reasons — and `fuzzyMatches` would certainly flag
+    // it, since an equal title with a shared author is a *confident* match
+    // that bypasses the threshold entirely.
+    final left = _danceCandidate('a-same', 'Shared Dance', walkthrough: 'left');
+    final right = _danceCandidate(
+      'z-same',
+      'Shared   dance',
+      figures: const [
+        {'move': 'balance', 'params': <String, Object?>{}},
+      ],
+    );
+
+    expect(
+      planFreshAttachDedupe([left, right]).ambiguities,
+      hasLength(1),
+    );
+    expect(
+      planFreshAttachFuzzyDuplicates(
+        [left, right],
+        authorNamesByDanceId: const {
+          'a-same': ['Sam Jones'],
+          'z-same': ['Sam Jones'],
+        },
+      ),
+      isEmpty,
+    );
+  });
+
+  test('fuzzy deferral excludes tombstones and untitled rows', () {
+    final live = _danceCandidate('a-live', 'Broken Sixpence');
+    final tombstoned = _danceCandidate(
+      'z-dead',
+      'Broken Sixpense',
+      deleted: true,
+    );
+
+    expect(
+      planFreshAttachFuzzyDuplicates(
+        [live, tombstoned],
+        authorNamesByDanceId: const {},
+      ),
+      isEmpty,
+    );
+  });
+
+  // The banding is a performance device, not a second opinion about what
+  // counts as a near-duplicate. This asserts the property that makes that
+  // true: over a corpus built to straddle the bound, the banded sweep produces
+  // exactly the pairs one unbanded `DedupeIndex` over the whole corpus flags.
+  //
+  // Without this the prefilter is unfalsifiable — a bound that silently
+  // dropped real pairs would leave nothing behind to notice.
+  test('fuzzy deferral offers DedupeIndex every pair it would flag', () {
+    const titles = <String, String>{
+      'id-01': 'Broken Sixpence',
+      'id-02': 'Broken Sixpense',
+      'id-03': 'Broken Sixpence Reprise',
+      'id-04': 'The Nice Combination',
+      'id-05': 'Nice Combinations',
+      'id-06': 'Nice',
+      'id-07': "Rory O'More",
+      'id-08': "Rory O'Moore",
+      'id-09': 'Rory',
+      'id-10': 'Chorus Jig',
+      'id-11': 'Chorus Jigg',
+      'id-12': 'A Very Long Title That Shares No Words At All',
+      'id-13': 'A Very Long Title That Shares No Words At Al',
+      'id-14': 'Petronella',
+      'id-15': 'Petronela',
+      'id-16': 'P',
+    };
+    final authors = {
+      for (final id in titles.keys) id: <String>['Sam Jones'],
+    };
+    final candidates = [
+      for (final entry in titles.entries)
+        _danceCandidate(entry.key, entry.value, authors: const ['author']),
+    ];
+
+    final banded = {
+      for (final pair in planFreshAttachFuzzyDuplicates(
+        candidates,
+        authorNamesByDanceId: authors,
+      ))
+        '${pair.firstId}/${pair.secondId}',
+    };
+
+    // The reference: one index over everything, every ordered pair scored,
+    // with only the exact-title exclusion applied.
+    final index = DedupeIndex([
+      for (final entry in titles.entries)
+        DedupeEntry(
+          danceId: entry.key,
+          title: entry.value,
+          authorNames: authors[entry.key]!,
+        ),
+    ]);
+    final unbanded = <String>{};
+    for (final entry in titles.entries) {
+      for (final match in index.fuzzyMatches(entry.value, authors[entry.key]!)) {
+        if (match.danceId == entry.key) continue;
+        if (normalizeTitle(titles[match.danceId]!) ==
+            normalizeTitle(entry.value)) {
+          continue;
+        }
+        final first = entry.key.compareTo(match.danceId) <= 0
+            ? entry.key
+            : match.danceId;
+        final second = first == entry.key ? match.danceId : entry.key;
+        unbanded.add('$first/$second');
+      }
+    }
+
+    // A corpus that produced no pairs would make this vacuous.
+    expect(unbanded, isNotEmpty);
+    expect(banded, unbanded);
+  });
+
   test(
     'fresh attach excludes tombstones and preserves deterministic merge rules',
     () {

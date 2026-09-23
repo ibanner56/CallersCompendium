@@ -820,6 +820,277 @@ void main() {
     },
   );
 
+  // ---------------------------------------------------------------------
+  // §6.10's fuzzy tier at fresh attach (#1355).
+  // ---------------------------------------------------------------------
+
+  /// Seeds a near-duplicate pair that scores above `defaultThreshold` without
+  /// its normalized titles being equal, sharing one author.
+  ///
+  /// The issue's own worked example ("Rory O'More" / "Rory O More (variation)")
+  /// scores 0.619 and is not flagged at all — see the correction comment on
+  /// #1355. This pair scores 0.933.
+  Future<void> seedFuzzyPair({
+    String leftId = 'a-rory',
+    String rightId = 'z-rory',
+    String rightTitle = "Rory O'Moore",
+  }) async {
+    final stamp = DateTime.utc(2026, 7, 15, 12);
+    // ignore: unused_result
+    await repositories.choreographers.upsert(
+      Choreographer(id: 'shared-author', name: 'Sam Jones'),
+      at: stamp,
+    );
+    await repositories.dances.create(
+      Dance(
+        id: leftId,
+        title: "Rory O'More",
+        authorIds: const ['shared-author'],
+        figures: [testFigure(move: 'balance', params: const {'hand': 'left'})],
+        createdAt: stamp,
+        updatedAt: stamp,
+      ),
+    );
+    await repositories.dances.create(
+      Dance(
+        id: rightId,
+        title: rightTitle,
+        authorIds: const ['shared-author'],
+        figures: [testFigure(move: 'balance', params: const {'hand': 'right'})],
+        createdAt: stamp,
+        updatedAt: stamp,
+      ),
+    );
+  }
+
+  test('fresh attach defers a fuzzy near-duplicate without merging', () async {
+    await seedFuzzyPair();
+
+    final result = await storage.deduplicateFreshAttach();
+
+    // Queued, not merged, and not counted as a merge: a deferred pair is a
+    // question, not a duplicate removed, so it must not inflate the pairing
+    // summary's "merged N duplicates".
+    expect(result.duplicateCount, 0);
+    expect(await repositories.dances.getById('a-rory'), isNotNull);
+    expect(await repositories.dances.getById('z-rory'), isNotNull);
+    final row = (await repositories.syncLocal.listReviewQueue()).single;
+    expect(row.reason, syncDanceFuzzyDuplicateReason);
+    expect((row.recordId, row.counterpartId), ('a-rory', 'z-rory'));
+    expect(row.localHash, isNotNull);
+    final item = SyncReviewQueueItem.fromRow(row);
+    expect(item.isActionable, isTrue);
+    expect(item.isDanceFuzzyDuplicate, isTrue);
+    // No rename is needed to keep both, because the titles already differ.
+    expect(item.keepBothNeedsNewName, isFalse);
+  });
+
+  test('fresh attach leaves the exact-title tiers alone', () async {
+    final stamp = DateTime.utc(2026, 7, 15, 12);
+    // ignore: unused_result
+    await repositories.choreographers.upsert(
+      Choreographer(id: 'shared-author', name: 'Sam Jones'),
+      at: stamp,
+    );
+    // An identical pair, which must still merge silently and still be counted.
+    for (final id in ['a-identical', 'z-identical']) {
+      await repositories.dances.create(
+        Dance(
+          id: id,
+          title: 'Chorus Jig',
+          authorIds: const ['shared-author'],
+          figures: [testFigure(move: 'swing')],
+          createdAt: stamp,
+          updatedAt: stamp,
+        ),
+      );
+    }
+    // A same-title pair whose choreography differs, which must stay a single
+    // choreography-ambiguity row. `fuzzyMatches` would certainly flag it too —
+    // equal title plus a shared author is a *confident* match that bypasses
+    // the threshold — so without the equal-title exclusion this pair would be
+    // queued twice under two reasons.
+    for (final entry in [
+      (id: 'a-ambiguous', move: 'balance'),
+      (id: 'z-ambiguous', move: 'star'),
+    ]) {
+      await repositories.dances.create(
+        Dance(
+          id: entry.id,
+          title: 'Petronella',
+          authorIds: const ['shared-author'],
+          figures: [testFigure(move: entry.move)],
+          createdAt: stamp,
+          updatedAt: stamp,
+        ),
+      );
+    }
+
+    final result = await storage.deduplicateFreshAttach();
+
+    expect(result.duplicateCount, 1);
+    expect(await repositories.dances.getById('z-identical'), isNull);
+    final rows = await repositories.syncLocal.listReviewQueue();
+    expect(rows, hasLength(1));
+    expect(rows.single.reason, syncDanceChoreographyAmbiguityReason);
+    expect((rows.single.recordId, rows.single.counterpartId), (
+      'a-ambiguous',
+      'z-ambiguous',
+    ));
+  });
+
+  test('re-running the pass refreshes a fuzzy row rather than duplicating or '
+      'stranding it', () async {
+    await seedFuzzyPair();
+    await storage.deduplicateFreshAttach();
+    final first = (await repositories.syncLocal.listReviewQueue()).single;
+
+    // Nothing changed: the row keeps its original `queued_at`, so re-observing
+    // a pair does not reorder the queue.
+    await storage.deduplicateFreshAttach();
+    final unchanged = (await repositories.syncLocal.listReviewQueue()).single;
+    expect(unchanged.queuedAt, first.queuedAt);
+    expect(unchanged.candidateHash, first.candidateHash);
+    expect(unchanged.localHash, first.localHash);
+
+    // Now edit one side without breaking the match. A bare row-count
+    // assertion cannot catch a failure to refresh here: `enqueueReview` is
+    // `insertOrIgnore`, so a second insert at the same key is silently dropped
+    // and the count stays 1 whether or not the hashes were updated. A row left
+    // with a stale `local_hash` is one no resolution can ever satisfy.
+    final left = (await repositories.dances.getById('a-rory'))!;
+    await repositories.dances.update(
+      left.copyWith(walkthrough: 'edited after queuing'),
+    );
+
+    await storage.deduplicateFreshAttach();
+    final refreshed = (await repositories.syncLocal.listReviewQueue()).single;
+    expect(refreshed.reason, syncDanceFuzzyDuplicateReason);
+    expect((refreshed.recordId, refreshed.counterpartId), (
+      'a-rory',
+      'z-rory',
+    ));
+    expect(refreshed.localHash, isNot(first.localHash));
+    expect(
+      refreshed.localHash,
+      (await storage.snapshot())
+          .local[(kind: SyncRecordKind.dance, recordId: 'a-rory')]
+          ?.wireHash,
+    );
+    expect(SyncReviewQueueItem.fromRow(refreshed).isActionable, isTrue);
+  });
+
+  test('a steady-state pass revalidates fuzzy rows but discovers none',
+      () async {
+    await seedFuzzyPair();
+    await storage.deduplicateFreshAttach();
+    expect(await repositories.syncLocal.listReviewQueue(), hasLength(1));
+
+    // A second pair that a fresh attach would flag, introduced after pairing.
+    await seedFuzzyPair(
+      leftId: 'a-petronella',
+      rightId: 'z-petronella',
+      rightTitle: 'Petronela',
+    );
+    // ignore: unused_result
+    await repositories.dances.update(
+      (await repositories.dances.getById('a-petronella'))!.copyWith(
+        title: 'Petronella',
+      ),
+    );
+
+    await storage.refreshDanceAmbiguityReviews();
+
+    // Revalidated, not rediscovered: the original row survives and the new
+    // pair is not queued. This is what keeps a steady-state pass from
+    // accumulating a review wall.
+    final rows = await repositories.syncLocal.listReviewQueue();
+    expect(rows, hasLength(1));
+    expect((rows.single.recordId, rows.single.counterpartId), (
+      'a-rory',
+      'z-rory',
+    ));
+
+    // A row whose pair no longer qualifies is dropped rather than left
+    // unresolvable.
+    await repositories.dances.update(
+      (await repositories.dances.getById(
+        'z-rory',
+      ))!.copyWith(title: 'Something Entirely Different'),
+    );
+    await storage.refreshDanceAmbiguityReviews();
+    expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+  });
+
+  test('merging a fuzzy duplicate converges and rewires programs', () async {
+    await seedFuzzyPair();
+    final stamp = DateTime.utc(2026, 7, 15, 12);
+    await repositories.programs.create(
+      Program(
+        id: 'fuzzy-program',
+        title: 'Program',
+        slots: [ProgramSlot(id: 'slot-0', position: 0, danceId: 'z-rory')],
+        createdAt: stamp,
+        updatedAt: stamp,
+      ),
+    );
+    await storage.deduplicateFreshAttach();
+    final item = SyncReviewQueueItem.fromRow(
+      (await repositories.syncLocal.listReviewQueue()).single,
+    );
+
+    await storage.resolveReviewQueue(
+      expectedRow: item.row,
+      action: SyncReviewAction.merge,
+    );
+
+    expect(await repositories.dances.getById('z-rory'), isNull);
+    expect(await repositories.dances.getById('a-rory'), isNotNull);
+    expect(
+      await repositories.syncLocal.resolveAlias(
+        kind: SyncRecordKind.dance,
+        recordId: 'z-rory',
+      ),
+      'a-rory',
+    );
+    expect(
+      (await repositories.programs.getById(
+        'fuzzy-program',
+      ))!.slots.single.danceId,
+      'a-rory',
+    );
+    expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+
+    // Converged: the next pass has nothing left to say about the pair.
+    await storage.refreshDanceAmbiguityReviews();
+    expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+  });
+
+  test('keeping both fuzzy duplicates renames nothing', () async {
+    await seedFuzzyPair();
+    await storage.deduplicateFreshAttach();
+    final item = SyncReviewQueueItem.fromRow(
+      (await repositories.syncLocal.listReviewQueue()).single,
+    );
+    final before = await storage.snapshot();
+
+    await storage.resolveReviewQueue(
+      expectedRow: item.row,
+      action: SyncReviewAction.keepBoth,
+    );
+
+    final after = await storage.snapshot();
+    for (final id in ['a-rory', 'z-rory']) {
+      final address = (kind: SyncRecordKind.dance, recordId: id);
+      expect(await repositories.dances.getById(id), isNotNull);
+      // No rename means no `updatedAt` bump, so nothing is republished to
+      // peers on account of a decision that changed no record.
+      expect(after.local[address]?.wireHash, before.local[address]?.wireHash);
+    }
+    expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+    expect(await repositories.syncLocal.listAliases(), isEmpty);
+  });
+
   test(
     'keeps ambiguity pairs distinct when dance IDs contain colons',
     () async {
@@ -5349,6 +5620,440 @@ void main() {
     });
   }
 
+  // ---------------------------------------------------------------------
+  // §6.6 step-1 resolution (#1355).
+  //
+  // The rows the two guards above produce are the ones nothing could resolve:
+  // `resolveReviewQueue` threw `unsupportedReason` and the review screen
+  // rendered no buttons, so the peer's update was skipped on every pass
+  // forever. Every test below drives the collision through the production
+  // apply path rather than hand-enqueueing a row, because the identity layout
+  // of a step-1 row — candidate under `record_id`, the name-holder under
+  // `counterpart_id` — is the reverse of every other reason's, and a
+  // hand-written row is exactly where that would be got wrong in agreement
+  // with the code.
+  // ---------------------------------------------------------------------
+
+  /// Delivers a peer rename of [renamedId] onto the name [holderId] holds and
+  /// returns the queued row, asserting only that the production path produced
+  /// the pair under test.
+  Future<SyncReviewQueueItem> queueStep1Collision({
+    required String renamedId,
+    required String holderId,
+  }) async {
+    await seedRenameCollisionRows();
+    final renameStamp = renameCollisionStamp.add(const Duration(minutes: 1));
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.choreographer,
+            id: renamedId,
+            updatedAt: renameStamp,
+            deletedAt: null,
+            existenceAt: renameStamp,
+            body: syncBodyForEntity(
+              SyncRecordKind.choreographer,
+              Choreographer(
+                id: renamedId,
+                name: renameCollisionDetails[holderId]!.name,
+              ),
+            ),
+          ),
+        ),
+      ],
+      storage: storage,
+    );
+    expect(result.applied, isEmpty);
+    expect(result.reports, isEmpty);
+    final row = (await repositories.syncLocal.listReviewQueue()).single;
+    expect(row.reason, syncNaturalKeyRenameCollisionReason);
+    expect((row.recordId, row.counterpartId), (renamedId, holderId));
+    return SyncReviewQueueItem.fromRow(row);
+  }
+
+  test('a queued step-1 rename collision records the local hash and is '
+      'actionable', () async {
+    final item = await queueStep1Collision(
+      renamedId: 'aaa-author',
+      holderId: 'zzz-author',
+    );
+
+    // The prerequisite: without this the resolver cannot tell a current
+    // decision from one taken against a record the user has since edited, and
+    // both actions have to refuse.
+    expect(item.row.localHash, isNotNull);
+    expect(
+      item.row.localHash,
+      (await storage.snapshot())
+          .local[(
+            kind: SyncRecordKind.choreographer,
+            recordId: 'aaa-author',
+          )]
+          ?.wireHash,
+    );
+    expect(item.isActionable, isTrue);
+    expect(item.isNaturalKeyRenameCollision, isTrue);
+    expect(item.keepBothNeedsNewName, isTrue);
+    expect(item.mergeDiscardsContactFields, isTrue);
+  });
+
+  for (final scenario in const [
+    (
+      label: 'the renamed record has the smaller UUID',
+      renamedId: 'aaa-author',
+      holderId: 'zzz-author',
+    ),
+    (
+      label: 'the renamed record has the larger UUID',
+      renamedId: 'zzz-author',
+      holderId: 'aaa-author',
+    ),
+  ]) {
+    test('keep both renames the row holding the name and applies the peer '
+        'rename (${scenario.label})', () async {
+      final item = await queueStep1Collision(
+        renamedId: scenario.renamedId,
+        holderId: scenario.holderId,
+      );
+      final contestedName = renameCollisionDetails[scenario.holderId]!.name;
+
+      await storage.resolveReviewQueue(
+        expectedRow: item.row,
+        action: SyncReviewAction.keepBoth,
+        newNaturalKey: 'Sam Jones',
+      );
+
+      // Both rows are stored, under distinct names, and the peer's rename has
+      // landed on the record it named.
+      final renamed = await repositories.choreographers.getById(
+        scenario.renamedId,
+      );
+      final holder = await repositories.choreographers.getById(
+        scenario.holderId,
+      );
+      expect(renamed!.name, contestedName);
+      expect(holder!.name, 'Sam Jones');
+      // Keep both keeps everything: no identity was retired and no
+      // device-local field was touched on either side.
+      expect(await repositories.syncLocal.listAliases(), isEmpty);
+      expectRenameCollisionRowsIntact(renamed, holder);
+      expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+    });
+
+    test('merge adopts onto the smaller UUID without coalescing device-local '
+        'fields (${scenario.label})', () async {
+      final item = await queueStep1Collision(
+        renamedId: scenario.renamedId,
+        holderId: scenario.holderId,
+      );
+      final contestedName = renameCollisionDetails[scenario.holderId]!.name;
+      // The survivor is a pure function of the two UUIDs, so it is the same
+      // row in both scenarios — which is the point of running both.
+      const survivorId = 'aaa-author';
+      const losingId = 'zzz-author';
+      final survivorDetails = renameCollisionDetails[survivorId]!;
+      final losingDetails = renameCollisionDetails[losingId]!;
+
+      await storage.resolveReviewQueue(
+        expectedRow: item.row,
+        action: SyncReviewAction.merge,
+      );
+
+      expect(await repositories.choreographers.getById(losingId), isNull);
+      expect(
+        await repositories.syncLocal.resolveAlias(
+          kind: SyncRecordKind.choreographer,
+          recordId: losingId,
+        ),
+        survivorId,
+      );
+      final survivor = await repositories.choreographers.getById(survivorId);
+      expect(survivor, isNotNull);
+      expect(survivor!.name, contestedName);
+      // §6.6: "Step 1 involves two pre-existing local rows and MUST NOT
+      // coalesce." The survivor keeps its own contact block and does not
+      // acquire the loser's — asserted field by field, because a survivor that
+      // merely "still has an email" would pass a weaker check either way.
+      expect(survivor.email, survivorDetails.email);
+      expect(survivor.location, survivorDetails.location);
+      expect(survivor.deceased, survivorDetails.deceased);
+      expect(survivor.email, isNot(losingDetails.email));
+      expect(survivor.location, isNot(losingDetails.location));
+      expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+    });
+
+    test('the next pass applies the peer record and re-queues nothing '
+        '(${scenario.label})', () async {
+      final item = await queueStep1Collision(
+        renamedId: scenario.renamedId,
+        holderId: scenario.holderId,
+      );
+      final contestedName = renameCollisionDetails[scenario.holderId]!.name;
+
+      await storage.resolveReviewQueue(
+        expectedRow: item.row,
+        action: SyncReviewAction.keepBoth,
+        newNaturalKey: 'Sam Jones',
+      );
+
+      // The same candidate re-delivered. Before #1355 this re-derived the same
+      // unresolvable row and skipped the update again, on every pass forever.
+      final renameStamp = renameCollisionStamp.add(const Duration(minutes: 2));
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.choreographer,
+              id: scenario.renamedId,
+              updatedAt: renameStamp,
+              deletedAt: null,
+              existenceAt: renameStamp,
+              body: syncBodyForEntity(
+                SyncRecordKind.choreographer,
+                Choreographer(id: scenario.renamedId, name: contestedName),
+              ),
+            ),
+          ),
+        ],
+        storage: storage,
+      );
+
+      expect(result.reports, isEmpty);
+      expect(result.applied, [
+        (kind: SyncRecordKind.choreographer, recordId: scenario.renamedId),
+      ]);
+      expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+    });
+  }
+
+  test('a local edit after queuing makes the decision stale rather than '
+      'applying it', () async {
+    final item = await queueStep1Collision(
+      renamedId: 'aaa-author',
+      holderId: 'zzz-author',
+    );
+
+    // The user edits the very row the candidate updates. The stored
+    // `local_hash` no longer describes it.
+    // ignore: unused_result
+    await repositories.choreographers.upsert(
+      Choreographer(
+        id: 'aaa-author',
+        name: renameCollisionDetails['aaa-author']!.name,
+        email: 'alice.smith@example.com',
+        location: renameCollisionDetails['aaa-author']!.location,
+        deceased: renameCollisionDetails['aaa-author']!.deceased,
+      ),
+      at: renameCollisionStamp.add(const Duration(minutes: 5)),
+    );
+
+    for (final action in SyncReviewAction.values) {
+      await expectLater(
+        storage.resolveReviewQueue(expectedRow: item.row, action: action,
+            newNaturalKey: 'Sam Jones'),
+        throwsA(
+          isA<SyncReviewException>().having(
+            (error) => error.code,
+            'code',
+            SyncReviewFailureCode.candidateChanged,
+          ),
+        ),
+      );
+    }
+    // The row is retained for another attempt and nothing was written.
+    expect(await repositories.syncLocal.listReviewQueue(), hasLength(1));
+    expect(await repositories.syncLocal.listAliases(), isEmpty);
+    expect(
+      (await repositories.choreographers.getById('aaa-author'))!.name,
+      renameCollisionDetails['aaa-author']!.name,
+    );
+    expect(
+      (await repositories.choreographers.getById('zzz-author'))!.name,
+      renameCollisionDetails['zzz-author']!.name,
+    );
+  });
+
+  test('keep both refuses a name another row still holds', () async {
+    final item = await queueStep1Collision(
+      renamedId: 'aaa-author',
+      holderId: 'zzz-author',
+    );
+    // ignore: unused_result
+    await repositories.choreographers.upsert(
+      Choreographer(id: 'third-author', name: 'Taken name'),
+      at: renameCollisionStamp,
+    );
+
+    await expectLater(
+      storage.resolveReviewQueue(
+        expectedRow: item.row,
+        action: SyncReviewAction.keepBoth,
+        newNaturalKey: 'Taken name',
+      ),
+      throwsA(
+        isA<SyncReviewException>().having(
+          (error) => error.code,
+          'code',
+          SyncReviewFailureCode.nameNotDistinct,
+        ),
+      ),
+    );
+    expect(await repositories.syncLocal.listReviewQueue(), hasLength(1));
+    expect(
+      (await repositories.choreographers.getById('zzz-author'))!.name,
+      renameCollisionDetails['zzz-author']!.name,
+    );
+  });
+
+  test('a collision the user resolved by hand fails rather than applying '
+      'anyway', () async {
+    final item = await queueStep1Collision(
+      renamedId: 'aaa-author',
+      holderId: 'zzz-author',
+    );
+    // Renaming the name-holder by hand was the only workaround before this
+    // action existed, so the queue can genuinely outlive its own collision.
+    // ignore: unused_result
+    await repositories.choreographers.upsert(
+      Choreographer(
+        id: 'zzz-author',
+        name: 'Renamed by hand',
+        email: renameCollisionDetails['zzz-author']!.email,
+        location: renameCollisionDetails['zzz-author']!.location,
+        deceased: renameCollisionDetails['zzz-author']!.deceased,
+      ),
+      at: renameCollisionStamp.add(const Duration(minutes: 5)),
+    );
+
+    await expectLater(
+      storage.resolveReviewQueue(
+        expectedRow: item.row,
+        action: SyncReviewAction.merge,
+      ),
+      throwsA(
+        isA<SyncReviewException>().having(
+          (error) => error.code,
+          'code',
+          SyncReviewFailureCode.candidateChanged,
+        ),
+      ),
+    );
+    expect(await repositories.syncLocal.listAliases(), isEmpty);
+    expect(await repositories.choreographers.getById('zzz-author'), isNotNull);
+  });
+
+  test('an in-batch step-1 collision is resolvable end to end', () async {
+    // The row #1364 started queueing. Its counterpart is a candidate that is
+    // still only *prepared* when the row is written, so this also covers the
+    // case where the name-holder acquires the contested name later in the same
+    // pass than the row naming it.
+    await seedRenameCollisionRows();
+
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        renameOntoSharedName('zzz-author'),
+        renameOntoSharedName('aaa-author'),
+      ],
+      storage: storage,
+    );
+    expect(result.applied, [
+      (kind: SyncRecordKind.choreographer, recordId: 'aaa-author'),
+    ]);
+    final item = SyncReviewQueueItem.fromRow(
+      (await repositories.syncLocal.listReviewQueue()).single,
+    );
+    expect((item.row.recordId, item.row.counterpartId), (
+      'zzz-author',
+      'aaa-author',
+    ));
+    expect(item.row.localHash, isNotNull);
+    expect(item.isActionable, isTrue);
+
+    await storage.resolveReviewQueue(
+      expectedRow: item.row,
+      action: SyncReviewAction.keepBoth,
+      newNaturalKey: 'Sam Jones the second',
+    );
+
+    expect(
+      (await repositories.choreographers.getById('zzz-author'))!.name,
+      'Sam Jones',
+    );
+    expect(
+      (await repositories.choreographers.getById('aaa-author'))!.name,
+      'Sam Jones the second',
+    );
+    expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+  });
+
+  test('merge keeps the shipped difficulty ID rather than the smaller '
+      'UUID', () async {
+    // The shipped-difficulty variant of the step-1 reason. Its survivor is the
+    // canonical shipped ID even when that is the lexicographically larger of
+    // the two, which is what distinguishes it from the ordinary reason.
+    const customId = 'a-custom-difficulty';
+    final shippedId = DifficultyLevel.beginnerId;
+    expect(customId.compareTo(shippedId) < 0, isTrue);
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    // ignore: unused_result
+    await repositories.difficultyLevels.upsert(
+      DifficultyLevel(id: customId, label: 'House level', position: 99),
+      at: stamp,
+    );
+    final shippedRow = await (db.select(
+      db.difficultyLevels,
+    )..where((row) => row.id.equals(shippedId))).getSingle();
+
+    final renameStamp = stamp.add(const Duration(minutes: 1));
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.difficultyLevel,
+            id: customId,
+            updatedAt: renameStamp,
+            deletedAt: null,
+            existenceAt: renameStamp,
+            body: syncBodyForEntity(
+              SyncRecordKind.difficultyLevel,
+              DifficultyLevel(
+                id: customId,
+                label: shippedRow.label,
+                position: 99,
+              ),
+            ),
+          ),
+        ),
+      ],
+      storage: storage,
+    );
+    expect(result.applied, isEmpty);
+    final item = SyncReviewQueueItem.fromRow(
+      (await repositories.syncLocal.listReviewQueue()).single,
+    );
+    expect(item.row.reason, syncShippedDifficultyRenameCollisionReason);
+    expect((item.row.recordId, item.row.counterpartId), (customId, shippedId));
+    expect(item.row.localHash, isNotNull);
+    expect(item.isActionable, isTrue);
+
+    await storage.resolveReviewQueue(
+      expectedRow: item.row,
+      action: SyncReviewAction.merge,
+    );
+
+    expect(await repositories.difficultyLevels.getById(customId), isNull);
+    expect(
+      await repositories.syncLocal.resolveAlias(
+        kind: SyncRecordKind.difficultyLevel,
+        recordId: customId,
+      ),
+      shippedId,
+    );
+    expect(await repositories.difficultyLevels.getById(shippedId), isNotNull);
+    expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+  });
+
   test(
     'collapses in-batch difficulty candidates sharing one canonical ID',
     () async {
@@ -5538,12 +6243,34 @@ void main() {
     },
   );
 
-  test(
-    'shareability mismatch renames an inbound field without exposing private values',
-    () async {
+  // §6.6 / ADR-004: which record survives must never be a function of "local"
+  // versus "incoming". This branch used to rename the *inbound* definition and
+  // restamp it with this device's clock, so last-writer-wins republished it and
+  // renamed the shared field on every peer — on account of a private row only
+  // this device holds. The private definition is the one that yields its key,
+  // and the outcome must not depend on how the two UUIDs sort.
+  //
+  // Both orderings are run because a smaller-UUID rule is the plausible wrong
+  // answer here and it agrees with the right one on exactly half the inputs.
+  for (final scenario in const [
+    (
+      label: 'the private definition has the smaller UUID',
+      privateId: '0a1b2c3d-1111-4111-8111-111111111111',
+      shareableId: 'f0e1d2c3-2222-4222-8222-222222222222',
+      renamedKey: 'private_key_0a1b2c3d',
+    ),
+    (
+      label: 'the private definition has the larger UUID',
+      privateId: 'f0e1d2c3-2222-4222-8222-222222222222',
+      shareableId: '0a1b2c3d-1111-4111-8111-111111111111',
+      renamedKey: 'private_key_f0e1d2c3',
+    ),
+  ]) {
+    test('shareability mismatch renames the private local definition '
+        '(${scenario.label})', () async {
       final stamp = DateTime.utc(2025, 1, 2, 12);
       final privateField = CustomFieldDef(
-        id: 'private-field',
+        id: scenario.privateId,
         key: 'private_key',
         label: 'Private key',
         type: CustomFieldType.text,
@@ -5552,26 +6279,23 @@ void main() {
       // ignore: unused_result
       await repositories.customFieldDefs.upsert(privateField, at: stamp);
       final inbound = CustomFieldDef(
-        id: 'shareable-field',
+        id: scenario.shareableId,
         key: privateField.key,
         label: privateField.label,
         type: privateField.type,
         shareable: true,
       );
+      final inboundBlob = SyncRecordBlob(
+        kind: SyncRecordKind.customFieldDef,
+        id: inbound.id,
+        updatedAt: stamp.add(const Duration(minutes: 1)),
+        deletedAt: null,
+        existenceAt: stamp.add(const Duration(minutes: 1)),
+        body: syncBodyForEntity(SyncRecordKind.customFieldDef, inbound),
+      );
 
       final result = await const SyncApplyEngine().apply(
-        candidates: [
-          SyncMergeCandidate(
-            blob: SyncRecordBlob(
-              kind: SyncRecordKind.customFieldDef,
-              id: inbound.id,
-              updatedAt: stamp.add(const Duration(minutes: 1)),
-              deletedAt: null,
-              existenceAt: stamp.add(const Duration(minutes: 1)),
-              body: syncBodyForEntity(SyncRecordKind.customFieldDef, inbound),
-            ),
-          ),
-        ],
+        candidates: [SyncMergeCandidate(blob: inboundBlob)],
         storage: storage,
       );
 
@@ -5582,16 +6306,49 @@ void main() {
       final storedInbound = await repositories.customFieldDefs.getById(
         inbound.id,
       );
-      expect(storedPrivate, isNotNull);
-      expect(storedPrivate!.key, privateField.key);
-      expect(storedPrivate.shareable, isFalse);
+      // The shared definition keeps its bare key, both orderings.
       expect(storedInbound, isNotNull);
-      expect(storedInbound!.key, isNot(privateField.key));
+      expect(storedInbound!.key, privateField.key);
       expect(storedInbound.shareable, isTrue);
+      // The private one carries the suffix derived from its OWN UUID. The
+      // expected key is spelled out rather than recomputed through
+      // `syncCustomFieldSuffix`, so a change to the derivation fails here
+      // instead of agreeing with itself.
+      expect(storedPrivate, isNotNull);
+      expect(storedPrivate!.key, scenario.renamedKey);
+      expect(storedPrivate.shareable, isFalse);
 
+      // Nothing new is published for either definition: the shared one is
+      // applied with the peer's own `updatedAt`, so its wire hash is still the
+      // one the peer sent, and the renamed private one never reaches the wire
+      // at all despite its bumped `updatedAt`.
+      final storedRow = await (db.select(
+        db.customFieldDefs,
+      )..where((row) => row.id.equals(inbound.id))).getSingle();
+      expect(storedRow.updatedAt?.toUtc(), inboundBlob.updatedAt);
+      final snapshot = await storage.snapshot();
+      expect(
+        snapshot
+            .local[(
+              kind: SyncRecordKind.customFieldDef,
+              recordId: inbound.id,
+            )]
+            ?.wireHash,
+        sha256Hex(encodeSyncRecordBlobUtf8(inboundBlob)),
+      );
+      expect(
+        snapshot.local.containsKey((
+          kind: SyncRecordKind.customFieldDef,
+          recordId: privateField.id,
+        )),
+        isFalse,
+      );
+
+      // The same-id case is a different branch and is deliberately unchanged:
+      // it still refuses and retains rather than renaming anything.
       final sameId = CustomFieldDef(
         id: privateField.id,
-        key: privateField.key,
+        key: storedPrivate.key,
         label: privateField.label,
         type: privateField.type,
         shareable: true,
@@ -5618,8 +6375,8 @@ void main() {
         ))!.shareable,
         isFalse,
       );
-    },
-  );
+    });
+  }
 
   test(
     'rejects a non-shareable definition before natural-key reconciliation',
@@ -7060,11 +7817,16 @@ void main() {
       const remoteId = 'retained-remote';
       const key = 'Retained author';
       await seedLocal(kind, localId, key);
+      // Deliberately a reason that is still outside the action contract. The
+      // §6.6 step-1 reasons used to stand here; they are resolvable as of
+      // #1355 and are covered by their own group, so leaving one here would
+      // have turned this into a test of the wrong thing that still passed.
       final unsupported = await enqueue(
         kind,
         localId,
         tombstoneFor(kind, remoteId, key),
-        reason: 'known UUID natural-key rename collides with another local row',
+        reason:
+            'natural-key collision has different bodies at the same updatedAt',
       );
 
       expect(unsupported.isActionable, isFalse);

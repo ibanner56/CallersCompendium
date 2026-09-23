@@ -259,6 +259,113 @@ SyncFreshAttachDedupePlan planFreshAttachDedupe(
   );
 }
 
+/// Finds the live dance pairs §6.10's fuzzy tier defers to `review_queue`.
+///
+/// The exact-title tier owns equal normalized titles — [planFreshAttachDedupe]
+/// merges an equal-choreography group silently and queues a differing one as a
+/// choreography ambiguity — so any pair whose titles are equal is skipped here
+/// rather than queued twice under two reasons. Testing title equality directly,
+/// instead of subtracting the ambiguity set, keeps that exclusion true even if
+/// the ambiguity enumeration is ever changed.
+///
+/// [authorNamesByDanceId] supplies the author display **names**, which is what
+/// [DedupeIndex] matches on; a sync body carries author ids only, so the caller
+/// resolves them exactly as `ImportPipeline.buildDedupeIndex` does.
+///
+/// Every verdict is [DedupeIndex]'s own. The length banding below only decides
+/// which pairs are *offered* to it, and offers a strict superset of the pairs
+/// that could clear [threshold] — see [DedupeIndex.maxTitleLengthGap]. Without
+/// it this is a full O(n²) Levenshtein sweep of the library, run inside the
+/// fresh-attach transaction.
+List<SyncDanceDedupeAmbiguity> planFreshAttachFuzzyDuplicates(
+  Iterable<SyncMergeCandidate> candidates, {
+  required Map<String, List<String>> authorNamesByDanceId,
+  double threshold = DedupeIndex.defaultThreshold,
+}) {
+  final liveDances = [
+    for (final candidate in candidates)
+      if (candidate.blob.kind == SyncRecordKind.dance &&
+          !candidate.isDeleted &&
+          candidate.blob.body['title'] is String &&
+          normalizeTitle(candidate.blob.body['title']! as String).isNotEmpty)
+        candidate,
+  ];
+  if (liveDances.length < 2) return const [];
+
+  final normalizedTitle = <String, String>{
+    for (final candidate in liveDances)
+      candidate.blob.id: normalizeTitle(
+        candidate.blob.body['title']! as String,
+      ),
+  };
+  // Sorted by title length so the eligible band is a contiguous window, then
+  // by id so the sweep is deterministic across devices.
+  liveDances.sort((left, right) {
+    final byLength = normalizedTitle[left.blob.id]!.length.compareTo(
+      normalizedTitle[right.blob.id]!.length,
+    );
+    return byLength != 0
+        ? byLength
+        : left.blob.id.compareTo(right.blob.id);
+  });
+
+  final entries = [
+    for (final candidate in liveDances)
+      DedupeEntry(
+        danceId: candidate.blob.id,
+        title: candidate.blob.body['title']! as String,
+        authorNames: authorNamesByDanceId[candidate.blob.id] ?? const [],
+      ),
+  ];
+  final byId = {
+    for (final candidate in liveDances) candidate.blob.id: candidate,
+  };
+
+  final pairs = <String, SyncDanceDedupeAmbiguity>{};
+  for (var index = 0; index < liveDances.length - 1; index++) {
+    final subject = liveDances[index];
+    final subjectLength = normalizedTitle[subject.blob.id]!.length;
+    // Only forward partners are offered. The band is symmetric, so every pair
+    // is reached exactly once, from its shorter-titled side.
+    var windowEnd = index + 1;
+    while (windowEnd < liveDances.length) {
+      final otherLength = normalizedTitle[liveDances[windowEnd]
+          .blob
+          .id]!
+          .length;
+      // The partner is the longer side here, so the bound scales with it.
+      if (otherLength - subjectLength >
+          DedupeIndex.maxTitleLengthGap(otherLength, threshold: threshold)) {
+        break;
+      }
+      windowEnd++;
+    }
+    if (windowEnd == index + 1) continue;
+    // `entries` was built from the sorted `liveDances`, so the slices align.
+    final window = DedupeIndex(entries.sublist(index + 1, windowEnd));
+    for (final match in window.fuzzyMatches(
+      subject.blob.body['title']! as String,
+      authorNamesByDanceId[subject.blob.id] ?? const [],
+      threshold: threshold,
+    )) {
+      final other = byId[match.danceId];
+      if (other == null) continue;
+      if (normalizedTitle[subject.blob.id] == normalizedTitle[other.blob.id]) {
+        continue;
+      }
+      final ambiguity = SyncDanceDedupeAmbiguity(left: subject, right: other);
+      pairs[canonicalJson([ambiguity.firstId, ambiguity.secondId])] = ambiguity;
+    }
+  }
+
+  final result = pairs.values.toList()
+    ..sort((left, right) {
+      final first = left.firstId.compareTo(right.firstId);
+      return first == 0 ? left.secondId.compareTo(right.secondId) : first;
+    });
+  return List.unmodifiable(result);
+}
+
 String _syncChoreographyKey(Map<String, Object?> body) =>
     contentHash(choreographyFingerprint(body));
 

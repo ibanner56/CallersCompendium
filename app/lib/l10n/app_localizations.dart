@@ -2562,7 +2562,7 @@ abstract class AppLocalizations {
   /// General settings row subtitle explaining the persisted sync decision queue.
   ///
   /// In en, this message translates to:
-  /// **'Review peer deletions that conflict with records created on this device.'**
+  /// **'Decide how conflicts between your devices are resolved when sync cannot settle them on its own.'**
   String get syncReviewSettingsSubtitle;
 
   /// App-bar title for the persisted sync decision screen.
@@ -2684,6 +2684,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Live dances have the same title but different choreography.'**
   String get syncReviewDanceAmbiguityReason;
+
+  /// Reason shown when fresh attach finds live dances that are near-duplicates by title and author without their titles matching exactly.
+  ///
+  /// In en, this message translates to:
+  /// **'These dances look like the same dance under slightly different titles.'**
+  String get syncReviewDanceFuzzyDuplicateReason;
+
+  /// Reason shown for a sync-spec 6.6 step-1 natural-key rename collision between two records that both already exist on this device.
+  ///
+  /// In en, this message translates to:
+  /// **'Another device renamed this record to a name a different record here already uses.'**
+  String get syncReviewRenameCollisionReason;
+
+  /// Confirmation dialog title shown before merging two choreographer records held only on this device.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge these choreographers?'**
+  String get syncReviewMergeDiscardsContactsTitle;
+
+  /// Confirmation dialog body warning that merging two choreographers discards the losing record's device-local contact details.
+  ///
+  /// In en, this message translates to:
+  /// **'Only one record will be kept. The email address, location, and deceased marker on the other one are stored only on this device, so they cannot be recovered afterwards.'**
+  String get syncReviewMergeDiscardsContactsBody;
 
   /// Reason/status shown for persisted sync conflicts outside the W14 action contract.
   ///

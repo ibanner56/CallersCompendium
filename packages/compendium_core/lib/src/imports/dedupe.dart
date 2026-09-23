@@ -275,6 +275,41 @@ class DedupeIndex {
   /// Default minimum combined similarity for a fuzzy match to be surfaced.
   static const double defaultThreshold = 0.72;
 
+  /// The weight [_combinedScore] gives the author-set Jaccard when both sides
+  /// declare authors. The title carries the rest.
+  static const double authorWeight = 0.2;
+
+  /// The largest normalized-title length difference a pair can have and still
+  /// reach [threshold].
+  ///
+  /// Exists for callers that must compare **every pair** in a collection
+  /// rather than a small batch against it — Device Sync's fresh attach is the
+  /// one in this tree — and so need to skip pairs no score could reach before
+  /// paying for the Levenshtein distance. It lives here, beside the weights it
+  /// depends on, precisely so it cannot drift away from [_combinedScore]: a
+  /// bound computed at the call site would keep returning a number after
+  /// someone reweighted the score, and the pairs it then wrongly skipped would
+  /// never surface anywhere to be missed.
+  ///
+  /// Sound, not tight. Title similarity is `1 - levenshtein / maxLength` and
+  /// the distance is at least the length difference, so title similarity is at
+  /// most `1 - gap / longestLength`; the combined score is at most
+  /// `titleSimilarity * (1 - authorWeight) + authorWeight`. A pair outside
+  /// this gap therefore cannot clear [threshold] by score. A
+  /// [DedupeCandidate.confident] pair bypasses the threshold entirely, but
+  /// confidence requires exactly equal normalized titles and so a gap of zero,
+  /// which is always inside the bound.
+  static int maxTitleLengthGap(
+    int longestLength, {
+    double threshold = defaultThreshold,
+  }) {
+    if (longestLength <= 0) return 0;
+    final minTitleSimilarity = (threshold - authorWeight) / (1 - authorWeight);
+    if (minTitleSimilarity <= 0) return longestLength;
+    if (minTitleSimilarity >= 1) return 0;
+    return ((1 - minTitleSimilarity) * longestLength).floor();
+  }
+
   /// The exact-match dance id for `(source, externalId)`, or `null`.
   String? findByExternalId(ProvenanceSource source, String? externalId) {
     if (externalId == null) return null;
@@ -346,7 +381,9 @@ class DedupeIndex {
     // score is title-only (no penalty for missing author metadata).
     if (authorsA.isEmpty || authorsB.isEmpty) return titleSim;
     final authorSim = _jaccard(authorsA, authorsB);
-    return titleSim * 0.8 + authorSim * 0.2;
+    // Weights read from [authorWeight] rather than repeated as literals, so
+    // [maxTitleLengthGap]'s soundness argument cannot silently stop holding.
+    return titleSim * (1 - authorWeight) + authorSim * authorWeight;
   }
 }
 

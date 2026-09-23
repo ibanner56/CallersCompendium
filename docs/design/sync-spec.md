@@ -2306,6 +2306,36 @@ rule that decides on "local" versus "incoming" does not converge.
 `deviceLocal` coalescing applies to step 2 only. Step 1 involves two
 pre-existing local rows and MUST NOT coalesce.
 
+**A step-1 row's identity layout is the reverse of a tombstone row's, and the
+reversal is load-bearing.** The candidate is an update to a record this device
+already holds, so the queued row carries that record's id as `record_id` — the
+candidate blob's own id — and the *other* local row, the one currently holding
+the natural key, as `counterpart_id`. A tombstone row carries the live local
+row as `record_id` and the peer's tombstoned id as `counterpart_id`. An
+implementation that shares one identity precondition across both reasons
+rejects every step-1 row without saying so.
+
+**Step-1 rows MUST be resolvable**, by the generic keep-both-or-merge decision
+and by nothing kind-specific:
+
+- **Keep both** renames the row holding the name — `counterpart_id` — to a name
+  the user supplies, which MUST be rejected if any row already holds it
+  (including a tombstoned one, since the indexes are not filtered on
+  `deleted_at`), and then applies the candidate to `record_id` unchanged.
+- **Merge** adopts onto the lexicographically smaller of the two ids, except
+  that a canonical shipped difficulty ID outranks it where one applies, and
+  MUST NOT coalesce: the losing row's `deviceLocal` values are not carried
+  across. A client MUST tell the user before a merge that discards values held
+  nowhere else, which today means a choreographer's contact block.
+- Both actions MUST first re-validate the persisted candidate hash and the
+  `local_hash` rule below, and MUST refuse if the counterpart no longer holds
+  the colliding natural key — a user who renamed one side by hand has already
+  answered the question.
+
+Leaving these rows unresolvable is not a neutral omission. The peer's update is
+skipped on every pass while the row stands, so the record stops converging
+until the user happens to rename one side with nothing telling them to.
+
 **A record this device created and no peer has seen MUST NOT be reconciled out
 of existence silently.** Where step 2 resolves the survivor to non-existence
 and the losing local row is **absent from this device's baseline** — created
@@ -2365,9 +2395,9 @@ so no repair path reaches it. Without this rule the record the user created
 moments ago disappears from their own device, with nothing reported.
 
 **A persisted review also carries the local version that made the choice
-safe.** For every actionable baseline-absence tombstone row,
-`local_hash` MUST be the complete `wireHash` of `record_id` when the row is
-queued. Before any alias, rename, merge, tombstone, or candidate write, the
+safe.** For every actionable baseline-absence tombstone row **and every
+actionable step-1 rename-collision row**, `local_hash` MUST be the complete
+`wireHash` of `record_id` when the row is queued. Before any alias, rename, merge, tombstone, or candidate write, the
 resolver MUST reconstruct that local record inside the transaction and require
 that its current wire hash equals the non-NULL `local_hash`. A NULL legacy
 value or a mismatch MUST fail with the stale-candidate outcome and MUST retain
@@ -2413,6 +2443,24 @@ Distinct losing UUIDs cannot collide at full length. If the full-length key is
 *also* taken — reachable only if a user authored that exact key — the record
 MUST route to the review queue rather than renaming again, so the rule always
 terminates.
+
+**Shareability is the other custom-field collision, and it resolves the other
+way round.** Where an inbound `shareable` definition's `key` matches a local
+definition with a **different** UUID that is `shareable: false`, the *private
+local* definition MUST be the one renamed, under the same suffix derivation as
+above but keyed on its own UUID; the inbound definition is applied unchanged,
+keeping its bare key and its own `updatedAt`. If neither suffixed form is free,
+the record routes to the review queue as above.
+
+This is not an exception to the symmetric-survivor rule at the head of this
+section, and it must not be read as one. A private definition is projected to
+an empty body and never reaches the wire, so no peer can observe this collision
+at all: every device that *can* see it sees the identical pair and renames the
+identical row, which is the convergence the rule exists to produce. Choosing by
+smaller UUID here would instead rename a *shared* field on every peer whenever
+the shareable UUID happened to be the larger one — on account of a row only one
+device holds — which is the divergence the rule exists to prevent. Renaming the
+inbound definition, the third option, is device-relative and forbidden outright.
 
 The coordination-free property above covers the primary derivation only. Whether
 a key is "already taken" is decided against **local** state, and reconciliation
@@ -2723,6 +2771,34 @@ wire hash. A queued pair MUST NOT be re-resolved while pending. Baseline rows
 use immutable insertion; only the explicit dance reconciliation path may
 delete and reinsert derived pairs. The queue MUST NOT denormalise contact
 fields.
+
+That deferral is a distinct tier with its own rules, and "everything else" is
+what the exact-title tier above does not already own:
+
+- The fuzzy tier MUST run over the **post-merge** library. A record the
+  exact-title tier has just merged away no longer exists and MUST NOT be
+  offered as a near-duplicate partner; its survivor is the record the user is
+  asked about.
+- A pair whose normalized titles are **equal** MUST NOT be queued here. Such a
+  pair either merged silently or is already queued as the same-title
+  choreography ambiguity, and queueing it again would put one pair in the queue
+  twice under two reasons. It follows that every pair queued by this tier has
+  two different titles, so its **keep both** resolution renames nothing.
+- The pairing summary counts **merges only**. A deferred pair is a question,
+  not a duplicate removed.
+- Discovery is a fresh-attach operation. A steady-state pass MAY revalidate the
+  pairs already queued — dropping those that no longer qualify and refreshing
+  the hashes of those that do, which is what keeps them resolvable — but MUST
+  NOT scan the collection for new pairs. This is what satisfies the
+  review-wall caution structurally rather than by tuning the threshold, which
+  MUST NOT be raised to control queue volume.
+
+An implementation MAY skip offering `DedupeIndex` a pair it can prove cannot
+reach the threshold — comparing every pair is quadratic in the library size —
+but any such bound MUST be derived from the scorer's own weights, MUST drop no
+pair the scorer would flag, and MUST NOT become a second definition of what
+counts as a near-duplicate. The scorer named in this section stays the only
+authority on that question.
 
 ### 6.11 Restore
 

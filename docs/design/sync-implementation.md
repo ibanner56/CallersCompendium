@@ -905,17 +905,32 @@ backup taken on a syncing device leaves sync off and makes no network call.
 - **Inherits** W4 (`review_queue` is the storage this reviews) and W7 (the
   production queue and collision machinery).
 - **Produces** a generic queue list. **No per-kind editors are required**, which
-  is the scope control on this unit. W14 v1 exposes mutating **merge** and
-  **keep both** actions for the §6.6 baseline-absence tombstone reason and for
-  W8's live-dance choreography-ambiguity reason. Other current or future
-  reasons remain visible as retained/unsupported rows with no mutating action.
-  For the four `UNIQUE` natural-key kinds, resolving **keep both** MUST rename
-  the surviving live row before the counterpart tombstone is applied (§6.6
-  step 2). A W8 dance ambiguity's **keep both** action similarly renames the
-  local live dance before it is removed from the ambiguity set. The index is
-  not filtered on `deleted_at`, so without the rename the resolution simply
-  fails to write. These are name prompts on an otherwise kind-agnostic
+  is the scope control on this unit. Mutating **merge** and **keep both**
+  actions are exposed for the §6.6 baseline-absence tombstone reason, the §6.6
+  **step-1** natural-key rename collisions (both the ordinary and the
+  shipped-difficulty variant), and W8's two live-dance tiers — the
+  choreography ambiguity and the §6.10 fuzzy near-duplicate. Other current or
+  future reasons remain visible as retained/unsupported rows with no mutating
+  action. For the four `UNIQUE` natural-key kinds, resolving **keep both** MUST
+  rename a live row before the counterpart record is applied: the surviving
+  local row for a tombstone (§6.6 step 2), and the row that *holds the
+  colliding name* for a step-1 collision — which is `counterpart_id` there, not
+  `record_id`, because a step-1 row stores the candidate under `record_id`. A
+  W8 dance ambiguity's **keep both** similarly renames the local live dance.
+  The index is not filtered on `deleted_at`, so without the rename the
+  resolution simply fails to write. A §6.10 fuzzy pair is the one exception and
+  needs no name: its two titles already differ, which is what kept it out of
+  the exact-title tier. These are name prompts on an otherwise kind-agnostic
   surface, not per-kind editors.
+
+  **Step-1 merge does not coalesce** (§6.6). Two pre-existing local rows are
+  involved, so the losing row's `deviceLocal` fields — a choreographer's email,
+  location and deceased marker — are not carried onto the survivor and exist
+  nowhere else. The surface warns before that merge rather than after it.
+
+  An actionable step-1 row therefore also carries a queue-time `local_hash`,
+  recorded against `record_id`, so the resolver can refuse a decision taken
+  against a record edited since it was queued.
 - **Unblocks** W8.
 - **Done when** a queued supported pair survives an app restart and can be
   resolved, unsupported reasons remain retained without mutation, and a "keep
@@ -1196,6 +1211,27 @@ content conflict for W6's table rather than a reconciliation for this unit.
   persistence; confirmed replacement attach after W13 authorizes one
   successful `POST`; and the after-the-fact count
   ("merged 412 duplicates"), which is the mitigation rather than a prompt.
+
+  Dedupe has **two tiers**, and §6.10 requires both. The exact-title tier above
+  decides what merges silently. Everything else `DedupeIndex` flags — fuzzy
+  title-and-author near-matches, and the confident-match rule from #685 — is
+  deferred to `review_queue` and never merged silently. The fuzzy tier runs
+  over the **post-merge** library so a record the exact-title tier has just
+  merged away cannot be offered as a partner, and it skips any pair whose
+  normalized titles are equal, because those belong to the tier above and would
+  otherwise be queued twice under two reasons.
+
+  The count reports **merges only**. A deferred pair is a question, not a
+  duplicate removed, so it must not inflate "merged N duplicates".
+
+  Discovery is a fresh-attach operation. A steady-state pass revalidates the
+  pairs already queued — dropping ones that no longer qualify and refreshing
+  the hashes of ones that do — but never scans the collection for new pairs,
+  which is what keeps the ADR's "review wall" caution satisfied by
+  construction rather than by tuning. Comparing every pair is quadratic, so the
+  sweep offers `DedupeIndex` only pairs within `DedupeIndex.maxTitleLengthGap`;
+  that bound is derived from the scorer's own weights and drops no pair the
+  scorer would flag.
 - **Unblocks** **W13's attach-completion report only**. The count is surfaced
   at the end of pairing, and pairing is W13's. This is the "what the user is
   told" contract the serialisation rules already name between these two units;
