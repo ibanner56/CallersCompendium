@@ -262,10 +262,11 @@ void main() {
       () {
         // `sync_id` (storeAddress) and `sync_device_id` (protocolIdentifier)
         // are the two keys the protocol puts on the wire, so they are the two
-        // most likely to be mistaken for shareable. Spec §10 names exactly this
-        // mutation — "no blob, manifest or export carries it (mutation:
-        // classify it `shareable`)" — but until they were listed here the send
-        // side was unguarded. The inbound half is caught by
+        // most likely to be mistaken for shareable. The spec's conformance
+        // section (§9, Classification) names exactly this mutation — "no blob
+        // … carries it (mutation: classify it `shareable`)" — but until they
+        // were listed here the send side was unguarded. The inbound half is
+        // caught by
         // `_isReceiveOnlySetting` (sync_admission.dart), which matches on the
         // key name rather than the class, so reclassifying either key turned
         // no test red.
@@ -432,6 +433,55 @@ void main() {
         () => SyncManifest.fromJson({
           ...valid,
           'records': <String, Object?>{'future': <String, Object?>{}},
+        }),
+        throwsFormatException,
+      );
+      // A manifest entry is `id -> content hash`, and the hash slot is the
+      // only place a *value* could ride along: the id is an entity id or a
+      // settings key name, `deviceId` is the `protocolIdentifier`, and `epoch`
+      // is minted by the server (§7.1). That is why §9's classification
+      // paragraph, which pins a `storeAddress` value against serialisation
+      // under the mutation "classify it `shareable`", has a send-side guard
+      // for the blob and none for the manifest: a manifest cannot carry a
+      // settings value at all, so a guard under that mutation could never
+      // fail (#1383).
+      //
+      // What the two expectations below pin, exactly, so this is not read as
+      // more than it is: the RECORD-VALUE slot, at both ends — construction
+      // rejects a non-hash string with `ArgumentError`, decoding with
+      // `FormatException`. That one slot is pinned here because it was the one
+      // the codec constrains and nothing exercised: the `42` case above never
+      // reaches the hash check, because the string check in front of it throws
+      // first, so relaxing `_validateHash` to "any non-empty string" left the
+      // suite green.
+      //
+      // The other three slots are not pinned here and do not belong here. `v`
+      // and `writtenAt` are already covered above. `deviceId` and `epoch` are
+      // free-form strings by design — the wire format does not constrain them,
+      // and inventing a constraint in the codec would assert something the
+      // protocol does not say. What keeps a `storeAddress` out of them is that
+      // the caller passes neither: `SyncCoordinator` holds `syncId` and
+      // `deviceId` as separate fields and only ever passes `deviceId`
+      // (`app/lib/src/sync/sync_coordinator.dart`), and `epoch` comes back from
+      // the server. That is a coordinator-level property, so it is argued in
+      // the PR rather than asserted here.
+      expect(
+        () => SyncManifest(
+          deviceId: 'device-1',
+          epoch: 'epoch-1',
+          writtenAt: _stamp,
+          records: {
+            SyncRecordKind.setting: {'sync_id': 'grand-lake-oyster-catcher'},
+          },
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => SyncManifest.fromJson({
+          ...valid,
+          'records': {
+            'setting': {'sync_id': 'grand-lake-oyster-catcher'},
+          },
         }),
         throwsFormatException,
       );
