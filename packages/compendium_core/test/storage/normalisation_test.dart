@@ -993,14 +993,15 @@ void main() {
     test(
       'a fresh database with an unreadable dance row is retired, not made owing',
       () async {
-        // Copilot review of #1370. Deferring is only correct when something is
-        // owed. On a database that never completed the pre-fix pass, deferring
-        // left the done marker absent while the pass went on to write the scope
-        // marker — and the scope marker is precisely what the next open reads to
-        // decide whether a repair is owed. One un-normalisable dance row was
-        // therefore enough to manufacture a debt that had never been incurred,
-        // and the install eventually paid a whole-library rebuild for an index
-        // that was never stale.
+        // Copilot review of #1370. Retiring immediately is only correct when
+        // nothing is owed. On a database that never completed the pre-fix pass,
+        // leaving the done marker absent while the pass went on to write the
+        // scope marker manufactured a debt that had never been incurred — the
+        // scope marker is precisely what the next open reads to decide whether a
+        // repair is owed — and the install eventually paid a whole-library
+        // rebuild for an index that was never stale. (#1346 reached that state
+        // by deferring; the deferral is gone, but the ordering it exposed still
+        // has to hold.)
         await repos.dances.create(sampleDance(id: 'd1', title: 'Malformed'));
         await repos.dances.create(sampleDance(id: 'd2', title: 'Healthy'));
         await repos.ensureMigrated();

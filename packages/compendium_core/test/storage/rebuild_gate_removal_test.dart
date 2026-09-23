@@ -40,34 +40,47 @@ void main() {
               .get())
           .isNotEmpty;
 
-  test('the rebuild completes for an undecodable row with NO skip', () async {
-    // The case the gate never covered, and the reason it was a false mechanism
-    // rather than a safety one: `[1,2,3]` is valid JSON, so the normalisation
-    // pass records no skip for it, so a gate keyed on `normalisation_skips`
-    // never fires — while the rebuild still had to read the row. This passes
-    // both with and without the gate; it documents what the gate did not do.
-    await repos.dances.create(sampleDance(id: 'd1', title: 'Corrupt'));
-    await repos.ensureMigrated();
-    await storeRaw('d1', '[1,2,3]');
+  test(
+    'the index repair completes for an undecodable row with NO skip',
+    () async {
+      // Goes through `ensureMigrated()` with the repair marker cleared, so it
+      // actually enters the sweep the gate lived in. The first version of this
+      // test called `rebuildAllDerived()` directly and therefore never reached
+      // that path at all — it read as a guard while exercising nothing the gate
+      // touched, which is worse than having no test, because an absent test is
+      // visible and a green one is not.
+      //
+      // **It still passes with the gate restored, and that is the point rather
+      // than a defect.** `[1,2,3]` is valid JSON, so the normalisation pass
+      // records no skip for it, so a gate keyed on `normalisation_skips` never
+      // fires — while the rebuild still has to read the row. This documents the
+      // case the gate never covered. It is NOT evidence for the removal; that is
+      // the sibling test below, which does fail with the gate present.
+      await repos.dances.create(sampleDance(id: 'd1', title: 'Corrupt'));
+      await repos.ensureMigrated();
+      await storeRaw('d1', '[1,2,3]');
+      await clearMarker(normalisationDerivedIndexRepairDoneKey);
 
-    expect(
-      await db.customSelect('SELECT 1 FROM normalisation_skips').get(),
-      isEmpty,
-      reason: 'precondition: normalisable, so no skip is recorded',
-    );
+      expect(
+        await db.customSelect('SELECT 1 FROM normalisation_skips').get(),
+        isEmpty,
+        reason: 'precondition: normalisable, so no skip is recorded',
+      );
 
-    await repos.dances.rebuildAllDerived();
+      await CompendiumRepositories(db, contraTaxonomy).ensureMigrated();
 
-    expect(
-      await db
-          .customSelect(
-            'SELECT 1 FROM dance_fts WHERE dance_id = ?',
-            variables: [const Variable<String>('d1')],
-          )
-          .get(),
-      isNotEmpty,
-    );
-  });
+      expect(
+        await db
+            .customSelect(
+              'SELECT 1 FROM dance_fts WHERE dance_id = ?',
+              variables: [const Variable<String>('d1')],
+            )
+            .get(),
+        isNotEmpty,
+        reason: 'the dance keeps its title/FTS row',
+      );
+    },
+  );
 
   test('a recorded dances skip no longer defers the index repair', () async {
     // The behaviour this PR changes, and it is only visible on the ONE-TIME

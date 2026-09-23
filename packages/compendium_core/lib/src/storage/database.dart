@@ -293,15 +293,13 @@ const String shareableTextNormalisationScopeKey =
 /// the sweep is gated on the scope marker's presence rather than run
 /// unconditionally: a database that has never completed the pass has no
 /// pre-fix rewrite to have missed, and the pass itself now rebuilds on any
-/// rewrite. A database with nothing owed writes this marker immediately —
-/// *before* the sweep consults its deferral blocker, since a blocker with
-/// nothing to protect would otherwise leave the marker absent and let the next
-/// open mistake that absence for a debt.
+/// rewrite. A database with nothing owed writes this marker immediately, so the
+/// next open cannot mistake its absence for a debt.
 ///
-/// Also owed when the pass withheld a rebuild it had earned because the library
-/// holds a dance row the rebuild cannot read. That case **clears** this marker
-/// to re-arm the sweep, so the obligation survives even on a database that had
-/// already retired it.
+/// #1346 also deferred the repair while the library held a dance row the
+/// rebuild could not read, clearing this marker to re-arm the sweep. That is
+/// gone: #1347 made the rebuild tolerate such a row, so there is nothing to
+/// defer and this marker has one meaning again — the repair is done.
 const String normalisationDerivedIndexRepairDoneKey =
     '__normalisation_derived_index_repair_done__';
 
