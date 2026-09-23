@@ -1145,13 +1145,18 @@ makes self-hosting materially harder, which constraint 4 forbids.
   an ordinary edit poisons `updatedAt` while leaving `existenceAt` untouched, so
   a single filter would select a peer that is sound in one and poisoned in the
   other — and each is keyed on the signal that answers its own question:
-  `existenceAt` on live-or-deleted agreement, because only a local transition can
-  poison it; `updatedAt` on whether local content still matches **this device's
+  `existenceAt` on live-or-deleted agreement, because only a local existence
+  decision can poison it; `updatedAt` on whether local content still matches **this device's
   own baseline**, because only a local write can poison it, and the baseline is
   what tells a device whether it wrote.
 
-  Two details of that comparison are load-bearing rather than incidental. It is
-  scoped to the record's **`body`**, not the whole blob: the wire hash covers the
+  ("Ordinary edit" here means one that decides nothing about existence. The one
+  edit that does — cancelling a held tombstone, #1356 — writes `existenceAt`
+  from the local clock like any other local decision, so it can poison that
+  field too. It is still a *local* write, which is all this rebuild depends on.)
+
+  Two further details of that comparison are load-bearing rather than
+  incidental. It is scoped to the record's **`body`**, not the whole blob: the wire hash covers the
   timestamps, and poisoning *is* a timestamp-only change, so a whole-blob
   comparison reports "differs" for every quarantined record and the classifier
   collapses to "I edited" — the same comparator that, pointed at a peer a round
