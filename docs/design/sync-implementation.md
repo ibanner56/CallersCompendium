@@ -688,7 +688,7 @@ deletion silently reverts".
   and **never retried**; `429` honours `Retry-After`.
 
   W5 also owns **`sync_id` and `sync_device_id` as persisted settings keys, with
-  their classifications** — `accessControlData` and `protocolIdentifier` — and
+  their classifications** — `storeAddress` and `protocolIdentifier` — and
   therefore owns **adding those two members to `EgressClass`**. ADR-004 and spec
   §3.3 specify both classes; neither is in the Dart enum, deliberately, because
   a member with no registry entry is a member no ratchet exercises. Assigning
@@ -706,7 +706,8 @@ deletion silently reverts".
   replaces — so classifying them is not enough, and #923 settled that
   non-`shareable` does not imply backup-excluded here. A restored
   `sync_device_id` would give two devices one manifest; a restored `sync_id`
-  would put a bearer credential in a plaintext file.
+  would put a store address in a plaintext file, attaching whatever device
+  restores it to that store.
 - **Unblocks** W6, W8, W13, and **W10 for the sync-ID normalisation definition
   only** (contract 5).
 - **Done when** the ID bound cases pass (one code point over rejected, at the
@@ -734,7 +735,7 @@ deletion silently reverts".
 The strength score **warns and never blocks**, here or anywhere else, and is
 computed over the **normalised** ID rather than the string as typed — an
 estimator run on the raw form credits case and Unicode differences that
-normalisation collapses, and so reports a strength the credential does not
+normalisation collapses, and so reports a strength the ID does not
 have. Blocking has no safe home: the ID *is* the store address, joining means
 typing an existing one, and a newer client with a stricter estimator locks a
 user out of an ID an older client accepted, exactly as a stricter server would.
@@ -895,9 +896,9 @@ structurally unreachable by a filter that only ever nulls an entry in
 Its settings keys are themselves `deviceScoped` and MUST NOT sync — a sync
 feature whose configuration syncs is a loop. That holds for this unit's keys;
 it is **not** true of every key the feature introduces. `sync_device_id` is
-`protocolIdentifier` and `sync_id` is `accessControlData` (spec §6.1, §3.3):
+`protocolIdentifier` and `sync_id` is `storeAddress` (spec §6.1, §3.3):
 both travel on every request, and a card that called them `deviceScoped` would
-classify the bearer credential as never-transmittable while the protocol
+classify the store address as never-transmittable while the protocol
 requires it. Those two belong to W5, not here.
 
 **MUST NOT sync is only half of it: this unit's keys must also not travel in a
@@ -1140,7 +1141,7 @@ the programme and the only one that can block a release on its own.
   keys by their **wire** spelling, and refuses a peer's `deviceScoped` setting.
   **Both spec-only egress classes are covered by that half**: a peer-supplied
   `sync_device_id` (`protocolIdentifier`) and a peer-supplied `sync_id`
-  (`accessControlData`) are never applied from a received record or envelope.
+  (`storeAddress`) are never applied from a received record or envelope.
   Their non-adoption vectors are **receive-only**, which is why they need naming
   here — the send side never emits either value, so every serialisation test in
   the suite passes against an implementation that adopts both. The missing-store

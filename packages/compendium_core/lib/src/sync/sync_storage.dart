@@ -5207,9 +5207,10 @@ final class CompendiumSyncStorage
   static final _epoch = DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
 }
 
-/// Device-local marker for configured sync identities that completed a
-/// publication. The marker stores salted, slow credential verifiers rather
-/// than the raw bearer credentials or a fast unsalted hash.
+/// Device-local marker for store addresses this device completed a publication
+/// against. The marker stores salted, slow verifiers rather than the raw
+/// addresses or a fast unsalted hash, so it cannot be turned back into the
+/// address it stands for.
 const syncLastUsedFingerprintKey = 'sync_last_used_fingerprint';
 
 /// Per-device upload-budget toggle for imported dances (spec §6.1). Read

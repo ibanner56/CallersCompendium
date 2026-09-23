@@ -76,9 +76,12 @@ const String kNormalisationDerivedIndexRepairDoneKey =
 ///   [kTaxonomyV35FigureNormalizationDoneKey],
 ///   [kCallersBoxRollAwayRoleRepairDoneKey],
 ///   [kNormalisationDerivedIndexRepairDoneKey].
-/// - **sync security state** — credentials and per-installation routing state
-///   must never be copied through a backup, even though their transport-specific
-///   privacy classes are not [EgressClass.deviceLocal]:
+/// - **sync attachment state** — the store address this device is attached to,
+///   its per-installation routing identifier, and the markers derived from
+///   addresses it has used. A backup restored onto another device must not
+///   silently attach it to someone else's store or clone a routing identity,
+///   so these never travel even though their transport-specific privacy
+///   classes are not [EgressClass.deviceLocal]:
 ///   [kSyncIdKey], [kSyncDeviceIdKey], [kSyncLastUsedFingerprintKey].
 /// - **sync consent and preferences** — consent given on one device is not
 ///   consent on another, so a restore must leave sync off (spec §6.1):

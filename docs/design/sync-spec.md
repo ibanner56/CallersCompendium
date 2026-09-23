@@ -31,7 +31,7 @@ merging, user accounts, and any sharing of fields not classified `shareable`.
 
 | Term | Meaning |
 | --- | --- |
-| **sync ID** | A diceware passphrase identifying one store. A bearer credential. |
+| **sync ID** | A diceware passphrase naming one store — its address on the server, classified `storeAddress` (§3.3). Not a secret: §5.1's "credential" is the header *encoding*, not the value. |
 | **store** | Everything held under one sync ID. |
 | **device** | One installation. Holds a baseline and publishes one manifest. |
 | **peer** | Any other device attached to the same store. |
@@ -329,7 +329,7 @@ privacy registry (`field_registry.dart`, `settings_registry.dart`).
 
 - `shareable` — MAY travel.
 - `deviceLocal`, `deviceScoped`, `derived`, `protocolIdentifier`,
-  `accessControlData` — MUST NOT be serialised into a blob.
+  `storeAddress` — MUST NOT be serialised into a blob.
 
 **`protocolIdentifier` is a fifth `EgressClass`, added by this programme.** It
 covers a value the protocol MUST put on the wire in order to function, and which
@@ -370,25 +370,38 @@ Settings ▸ Device Sync ▸ *Other devices*, which issues
 that the removed device can pair again later. A disclosure implying a fixed
 per-device window would be false.
 
-**`accessControlData` is a sixth `EgressClass`, added by this programme.** It
-covers a value whose transmission *is* the authorisation for the request
-carrying it: `sync_id` is the only such value here. It is not `deviceScoped`,
-for the same reason `sync_device_id` is not — that class means never transmitted
-by any route, and this one rides an `Authorization` header on every request. It
-is not `protocolIdentifier` either, and the distinction is the reason the sixth
-member exists rather than a second tenant of the fifth: rule 1 of that class
-requires the value be derived from nothing and carry no user data by
-construction, while §8 permits a **user-chosen** sync ID of four words, each one
-to thirty-two code points and otherwise unrestricted apart from whitespace,
-control characters and `U+002D`. A user-chosen ID can carry personal content, so
-classifying it as a protocol identifier would weaken the guarantee for
-`sync_device_id`, which is the value that class exists to protect. An
-`accessControlData` value MUST:
+**`storeAddress` is a sixth `EgressClass`, added by this programme.** It covers
+a value that names *where* a shared store lives on the configured endpoint — in
+effect a path on the sync server, which is how the server handles it. `sync_id`
+is the only such value here.
+
+**It is not access-control data, and MUST NOT be described as a credential, a
+key, a password or a secret.** A user is allowed and expected to hand it to
+another person so the two can sync together; that is a supported case, not a
+compromise. That the server currently addresses a store by presenting the value
+in an `Authorization: Bearer` header is a transport mechanic, not a
+classification of the value.
+
+It is not `deviceScoped`, for the same reason `sync_device_id` is not — that
+class means never transmitted by any route, and this one travels on every
+request. It is not `shareable`, and that is the distinction most easily got
+wrong: `shareable` is not a statement about sensitivity but the switch every
+serialiser reads, so filing an address there would put it in a record blob and
+let a peer's value be adopted over the local one. It is not `protocolIdentifier`
+either, and that distinction is the reason the sixth member exists rather than a
+second tenant of the fifth: rule 1 of that class requires the value be derived
+from nothing and carry no user data by construction, while §8 permits a
+**user-chosen** sync ID of four words, each one to thirty-two code points and
+otherwise unrestricted apart from whitespace, control characters and `U+002D`. A
+user-chosen ID can carry personal content, so classifying it as a protocol
+identifier would weaken the guarantee for `sync_device_id`, which is the value
+that class exists to protect. A `storeAddress` value MUST:
 
 1. never be serialised into a record blob, exactly as the other four
    non-`shareable` classes;
 2. never be **applied** from a received record or envelope — a device's sync ID
-   is entered or generated locally and only ever read from local storage;
+   is entered or generated locally and only ever read from local storage, and
+   adopting a peer's would silently repoint the device at another store;
 3. never be durably recorded by the server, or by any proxy in front of it, in a
    form from which the value can be recovered — only an irreversible derivation
    may be stored (§5.1 requires `HMAC-SHA256(pepper, syncID)`);
@@ -409,18 +422,31 @@ one: §7.5 requires `/v1` to refuse to emit redirects at all.
 
 Rules 3 and 4 are what no other class expresses. Every other class is a rule
 about whether a value **moves**; this one is additionally a rule about what the
-*recipient* may do with a value that has already arrived, because the harm from
-a leaked credential is not that it travelled but that it was kept. Those five
-rules already existed in this specification before the class did — scattered
-across §7.1, §7.3, §7.5 and §8, each attached to `sync_id` individually, with
-nothing naming the property that makes them one set. The classification is where
-a second credential, if one is ever added, inherits all five instead of
+*recipient* may do with a value that has already arrived.
+
+**Those two rules survive the value not being a secret, on their own reasons.**
+A store address is not confidential — the user may hand it to whoever they want
+to sync with — but it is still user-chosen text that may carry personal content,
+and it still names where one person's library lives. An operator has no use for
+the plaintext, because §5.1 addresses the store by an irreversible derivation;
+retaining or printing it is therefore retention without a purpose, and it is
+exactly the kind of by-default leak §7.3 already documents for `{deviceId}` in a
+request path. A share location is not a secret, but it is also not something to
+scatter through logs. Rule 3's requirement is unchanged and so is rule 4's; only
+the reason they are stated has stopped appealing to confidentiality the value
+never had.
+
+Those five rules already existed in this specification before the class did —
+scattered across §7.1, §7.3, §7.5 and §8, each attached to `sync_id`
+individually, with nothing naming the property that makes them one set. The
+classification is where
+a second store address, if one is ever added, inherits all five instead of
 rediscovering them.
 
-`protocolIdentifier` and `accessControlData` are represented by the Dart
+`protocolIdentifier` and `storeAddress` are represented by the Dart
 `EgressClass` enum. Their first registry entries land with **W5**:
 `sync_id` and `sync_device_id` are persisted settings keys, so W5 owns their
-classifications. The access-control value is persisted locally under that
+classifications. The store address is persisted locally under that
 classification, while the server and any proxy must never retain it
 recoverably.
 
@@ -1488,8 +1514,10 @@ the transport to plaintext against anyone positioned to present a certificate.
 The failure has no symptom on either side. A conforming client therefore has no
 "trust this certificate anyway" affordance, no debug flag that becomes a
 shipped one, and no allowance for a user-supplied trust anchor: with the sync ID
-riding every request as a bearer credential, an accepted bad certificate is the
-same total, unrecoverable disclosure that a plaintext request would be.
+riding every request in an `Authorization` header, an accepted bad certificate
+is the same total, unrecoverable disclosure that a plaintext request would be --
+not because the address is a secret, but because §8 makes holding it the whole
+of the read, write and `DELETE` capability.
 
 ### 5.1 Authentication
 
@@ -1846,10 +1874,10 @@ top-level Settings blade.
 
 Every settings key Device Sync introduces is `deviceScoped` and MUST NOT sync,
 with two exceptions: `sync_device_id` is `protocolIdentifier` and `sync_id` is
-`accessControlData` (§3.3). Both travel on every request and MUST NEVER be
+`storeAddress` (§3.3). Both travel on every request and MUST NEVER be
 applied from a peer. Neither exception widens what a *record* may carry: both
 are forbidden from every blob, and a blanket rule that omitted them would
-classify the bearer credential as never-transmittable while the protocol
+classify the store address as never-transmittable while the protocol
 requires it on every request.
 
 **Every key the feature introduces MUST also be excluded from the JSON
@@ -1871,8 +1899,9 @@ A restored `sync_enabled` contradicts the first paragraph of this section,
 which requires sync be off until the user turns it on — consent given on one
 device is not consent on another. A restored `sync_device_id` is exactly the
 adoption §3.3 rule 3 forbids, and hands two devices one manifest by a route no
-envelope check sees. A restored `sync_id` puts a bearer credential into a
-plaintext file users mail to themselves.
+envelope check sees. A restored `sync_id` puts a store address into a
+plaintext file users mail to themselves, and attaches whatever device restores
+it to that store.
 
 **`sync_exclude_imports`** is one of those keys: a per-device toggle, default
 **off**, which trims what this installation publishes. It is `deviceScoped`
@@ -3388,8 +3417,8 @@ but a server that answers on `:80` is reachable by things that are not
 conforming clients: an older build, a `curl` in a support thread, a user who
 typed the endpoint without a scheme into something that defaulted to `http`, or
 a redirect from an unrelated site. The cost of one such request is not
-proportionate to its likelihood. The sync ID is a bearer credential sent on
-every request, and §8 records that it is simultaneously the store address and
+proportionate to its likelihood. The sync ID is sent on every
+request, and §8 records that it is simultaneously the store address and
 the entire read, write and `DELETE` capability, with no accounts, no rotation
 and no revocation — so a single plaintext request discloses it in full to
 anything on the path, permanently and unrecoverably.
@@ -4053,8 +4082,8 @@ leaves the local identifier unchanged, asserted by reading it back after apply
 every serialisation test still passes because the send side never emits it — the
 adoption bug is receive-only). A `protocolIdentifier` value is also never
 serialised into a blob, on the same terms as the other non-`shareable` classes.
-**An `accessControlData` value is never adopted, never serialised and never
-logged**: a received envelope naming a `sync_id` leaves the local credential
+**A `storeAddress` value is never adopted, never serialised and never
+logged**: a received envelope naming a `sync_id` leaves the local address
 untouched (mutation: apply it, which locks the device out of its own store on
 the next request and is receive-only in the same way); no blob, manifest or
 export carries it (mutation: classify it `shareable`); and no server or proxy
@@ -4216,9 +4245,9 @@ level — contains a blob body, a manifest body or decoded record content
 sweep and `DELETE /v1/store`). **A plaintext request to `/v1` on the public
 listener is refused, never proxied and never redirected** (mutation: place the
 `ProxyPass` outside a vhost, or in both the `:80` and `:443` vhosts — the API
-answers identically on each, and the bearer credential is disclosed on every
+answers identically on each, and the sync ID is disclosed on every
 plaintext call. Second mutation: answer `301` to the `https` origin instead of
-refusing — the credential is already disclosed by the plaintext request itself,
+refusing — the sync ID is already disclosed by the plaintext request itself,
 and what the redirect adds is that a client which follows it *and retains*
 `Authorization` across the hop gets a sync that **works**, so nothing ever
 surfaces the misconfiguration and every run repeats the disclosure. A client
