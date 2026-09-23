@@ -301,7 +301,6 @@ class DifficultyLevelRepository {
         at: now,
       );
     }
-
   }
 
   String _normalizeLabel(String raw) {

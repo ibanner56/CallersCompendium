@@ -387,7 +387,10 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         final tagIds = <String, String>{};
         for (final tag in _controller.stagedTags.values) {
           if (!dance.tagIds.contains(tag.id)) continue;
-          tagIds[tag.id] = await _repos.tags.upsertStaged(tag, localUserEdit: true);
+          tagIds[tag.id] = await _repos.tags.upsertStaged(
+            tag,
+            localUserEdit: true,
+          );
         }
         final committedTagIds = <String>[];
         final seenTagIds = <String>{};

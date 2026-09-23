@@ -967,9 +967,7 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
     }
     if (label == level.label) return;
     try {
-      await RepositoriesScope.of(
-        context,
-      ).difficultyLevels.upsert(
+      await RepositoriesScope.of(context).difficultyLevels.upsert(
         level.copyWith(label: label),
         localUserEdit: true,
       );

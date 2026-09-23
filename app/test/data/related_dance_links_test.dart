@@ -90,10 +90,7 @@ void main() {
       // `target` without anyone opening it.
       await saveDanceWithRelatedLinks(
         repos,
-        dance: _dance(
-          id: 'source',
-          links: [_related('source-link', 'target')],
-        ),
+        dance: _dance(id: 'source', links: [_related('source-link', 'target')]),
         original: _dance(id: 'source'),
       );
 

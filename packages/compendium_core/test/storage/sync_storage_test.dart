@@ -8333,36 +8333,40 @@ void main() {
     }
 
     Future<DateTime?> existenceOfTag() async =>
-        (await (db.select(db.tags)
-              ..where((t) => t.id.equals('cited-tag')))
-            .getSingle()).existenceAt?.toUtc();
+        (await (db.select(
+              db.tags,
+            )..where((t) => t.id.equals('cited-tag'))).getSingle()).existenceAt
+            ?.toUtc();
 
-    test('the edit releases the hold and republishes the record live', () async {
-      final deleted = DateTime.utc(2025, 6, 15, 12);
-      await holdTombstone(deleted);
+    test(
+      'the edit releases the hold and republishes the record live',
+      () async {
+        final deleted = DateTime.utc(2025, 6, 15, 12);
+        await holdTombstone(deleted);
 
-      // ignore: unused_result
-      await repositories.tags.upsert(
-        Tag(id: 'cited-tag', name: 'Contra classics'),
-        at: DateTime.utc(2025, 6, 15, 13),
-        localUserEdit: true,
-      );
+        // ignore: unused_result
+        await repositories.tags.upsert(
+          Tag(id: 'cited-tag', name: 'Contra classics'),
+          at: DateTime.utc(2025, 6, 15, 13),
+          localUserEdit: true,
+        );
 
-      expect(await repositories.syncLocal.listPendingDeletions(), isEmpty);
-      final snapshot = await storage.snapshot();
-      expect(snapshot.pending, isEmpty);
-      final published = snapshot.publication[address];
-      expect(published, isNotNull);
-      expect(published!.blob.deletedAt, isNull);
-      expect(published.blob.body['name'], 'Contra classics');
-      expect(
-        published.blob.existenceAt.isAfter(deleted),
-        isTrue,
-        reason:
-            '6.4 resolves an equal existenceAt to the tombstone, so a peer '
-            'holding it only revives on a strictly greater stamp',
-      );
-    });
+        expect(await repositories.syncLocal.listPendingDeletions(), isEmpty);
+        final snapshot = await storage.snapshot();
+        expect(snapshot.pending, isEmpty);
+        final published = snapshot.publication[address];
+        expect(published, isNotNull);
+        expect(published!.blob.deletedAt, isNull);
+        expect(published.blob.body['name'], 'Contra classics');
+        expect(
+          published.blob.existenceAt.isAfter(deleted),
+          isTrue,
+          reason:
+              '6.4 resolves an equal existenceAt to the tombstone, so a peer '
+              'holding it only revives on a strictly greater stamp',
+        );
+      },
+    );
 
     test('the edit survives the last citation going', () async {
       await holdTombstone(DateTime.utc(2025, 6, 15, 12));

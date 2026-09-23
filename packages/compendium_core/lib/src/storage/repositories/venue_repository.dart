@@ -45,11 +45,8 @@ class VenueRepository {
   /// (sync-spec §6.8, [cancelPendingSyncDeletionForLocalEdit]). It defaults to
   /// false because imports, archive restore and automatic writes share this
   /// method, and a cancellation they did not intend reverses a peer's deletion.
-  Future<void> upsert(
-    Venue v, {
-    DateTime? at,
-    bool localUserEdit = false,
-  }) => _write(v, at: at, fromSync: false, localUserEdit: localUserEdit);
+  Future<void> upsert(Venue v, {DateTime? at, bool localUserEdit = false}) =>
+      _write(v, at: at, fromSync: false, localUserEdit: localUserEdit);
 
   /// Applies a validated inbound sync record.
   ///

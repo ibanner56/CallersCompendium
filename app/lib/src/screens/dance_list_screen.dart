@@ -1312,7 +1312,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
             tag.name,
             includeDeleted: true,
           );
-          tagIds[tag.id] = await _repos.tags.upsertStaged(tag, localUserEdit: true);
+          tagIds[tag.id] = await _repos.tags.upsertStaged(
+            tag,
+            localUserEdit: true,
+          );
           if (existed == null) newlyCreatedTagIds.add(tagIds[tag.id]!);
         }
         for (final (:dance, :next) in pending) {
