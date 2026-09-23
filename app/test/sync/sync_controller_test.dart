@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:compendium_app/src/screens/settings/settings_keys.dart';
@@ -20,6 +21,69 @@ final class _FixedNetwork implements SyncNetworkClassifier {
   SyncNetworkKind kind;
   @override
   Future<SyncNetworkKind> current() async => kind;
+}
+
+/// Records what the surface asked the transport to do, so a test can
+/// assert the *request* rather than only its visible effect.
+final class _Admin {
+  _Admin({
+    this.devices = const ['device_1', 'peer_a', 'peer_b'],
+    this.storeBody,
+    this.storeKind = SyncResponseKind.success,
+    this.manifestKind = SyncResponseKind.success,
+    this.wipeKind = SyncResponseKind.success,
+  });
+
+  /// Ids returned by `GET /v1/store`, including this device's own — as the
+  /// server sends them (spec §5: "including the caller if it has
+  /// published").
+  final List<String> devices;
+
+  /// Overrides the generated store body when a test needs a malformed one.
+  final String? storeBody;
+
+  SyncResponseKind storeKind;
+  SyncResponseKind manifestKind;
+  SyncResponseKind wipeKind;
+
+  final List<String> removed = [];
+  int storeReads = 0;
+  int wipes = 0;
+  int closes = 0;
+
+  SyncHttpResponse _response(SyncResponseKind kind, {String? body}) =>
+      SyncHttpResponse(
+        statusCode: switch (kind) {
+          SyncResponseKind.success => 204,
+          SyncResponseKind.notFound => 404,
+          _ => 500,
+        },
+        kind: kind,
+        headers: const {},
+        body: body == null ? const [] : utf8.encode(body),
+      );
+
+  SyncDeviceAdmin get admin => SyncDeviceAdmin(
+    getStore: ({required previouslyUsed}) async {
+      storeReads++;
+      return SyncStoreResult(
+        response: _response(
+          storeKind,
+          body:
+              storeBody ?? jsonEncode({'epoch': 'epoch-1', 'devices': devices}),
+        ),
+      );
+    },
+    deleteManifest: (deviceId) async {
+      removed.add(deviceId);
+      return _response(manifestKind);
+    },
+    deleteStore: () async {
+      wipes++;
+      return _response(wipeKind);
+    },
+    close: () => closes++,
+  );
 }
 
 /// A coordinator whose pass operation counts calls and never reaches a network.
@@ -1050,6 +1114,290 @@ void main() {
 
       expect(controller.lastSuccessAt, isNull);
       expect(await repos.settings.get(kSyncLastSuccessAtKey), isNull);
+    });
+  });
+
+  group('device management (spec §3.3, glossary wipe / §5.3)', () {
+    /// An attached device whose own protocol id is `device_1`.
+    Future<SyncController> paired(
+      _Admin fake, {
+      Future<void> Function(Future<void> Function() operation)? runExclusive,
+    }) async {
+      await repos.settings.set(kSyncEnabledKey, true);
+      await repos.settings.set(kSyncIdKey, 'correct horse battery staple');
+      await repos.settings.set(kSyncEndpointKey, 'https://sync.example.test/');
+      await repos.settings.set(kSyncDeviceIdKey, 'device_1');
+      await repos.settings.set(kSyncLastUsedFingerprintKey, ['verifier']);
+      await repos.settings.set(kSyncLastSuccessAtKey, '2026-09-20T12:00:00Z');
+      await repos.syncLocal.replaceBaseline(epoch: 'epoch-1');
+      final controller = SyncController(
+        settings: repos.settings,
+        syncLocal: repos.syncLocal,
+        coordinator: () => coordinator,
+        reconfigure: () async {},
+        runExclusive: runExclusive ?? (operation) => operation(),
+        deviceAdminFactory: (syncId, endpoint) => fake.admin,
+        classifier: network,
+        now: () => clock,
+      );
+      addTearDown(controller.dispose);
+      await controller.load();
+      expect(controller.paired, isTrue);
+      return controller;
+    }
+
+    Future<bool> hasRow(String key) async {
+      final rows = await repos.db
+          .customSelect(
+            'SELECT 1 FROM settings WHERE key = ?',
+            variables: [Variable.withString(key)],
+          )
+          .get();
+      return rows.isNotEmpty;
+    }
+
+    test(
+      'the listing excludes this device, which the server does include',
+      () async {
+        final fake = _Admin();
+        final controller = await paired(fake);
+
+        final result = await controller.listStoreDevices();
+
+        expect(result.outcome, SyncAdminOutcome.done);
+        expect(
+          result.devices,
+          ['peer_a', 'peer_b'],
+          reason:
+              'spec §5: a client MUST exclude its own id from the peer set, and '
+              'offering to remove this device would be a different action',
+        );
+        expect(fake.closes, 1, reason: 'the listing owns the client it built');
+      },
+    );
+
+    test(
+      'a malformed store answer is a failed listing, never a short one',
+      () async {
+        final fake = _Admin(storeBody: '{"epoch":"epoch-1"}');
+        final controller = await paired(fake);
+
+        final result = await controller.listStoreDevices();
+
+        expect(result.outcome, SyncAdminOutcome.failed);
+        expect(result.devices, isEmpty);
+      },
+    );
+
+    test('a listing against a store that has gone says so', () async {
+      final fake = _Admin()..storeKind = SyncResponseKind.notFound;
+      final controller = await paired(fake);
+
+      expect(
+        (await controller.listStoreDevices()).outcome,
+        SyncAdminOutcome.storeMissing,
+      );
+    });
+
+    test('removing a peer issues exactly one DELETE for that id, inside the '
+        'writer boundary', () async {
+      final fake = _Admin();
+      var exclusiveRuns = 0;
+      final controller = await paired(
+        fake,
+        runExclusive: (operation) async {
+          exclusiveRuns++;
+          expect(
+            fake.removed,
+            isEmpty,
+            reason: 'the DELETE must not have been issued before the boundary',
+          );
+          await operation();
+        },
+      );
+
+      expect(await controller.removeDevice('peer_a'), SyncAdminOutcome.done);
+
+      expect(fake.removed, ['peer_a']);
+      expect(
+        exclusiveRuns,
+        1,
+        reason:
+            'a DELETE landing mid-pass makes that pass report the peer as a '
+            'malformed manifest; only the writer boundary serialises it',
+      );
+    });
+
+    test('removing this device is refused before any request', () async {
+      final fake = _Admin();
+      var exclusiveRuns = 0;
+      final controller = await paired(
+        fake,
+        runExclusive: (operation) async {
+          exclusiveRuns++;
+          await operation();
+        },
+      );
+
+      expect(
+        await controller.removeDevice('device_1'),
+        SyncAdminOutcome.refused,
+      );
+
+      expect(fake.removed, isEmpty);
+      expect(exclusiveRuns, 0, reason: 'nothing was requested, so nothing ran');
+      expect(controller.paired, isTrue, reason: 'refusing is not detaching');
+    });
+
+    test('a removal the server refuses reports failure', () async {
+      final fake = _Admin()..manifestKind = SyncResponseKind.serverError;
+      final controller = await paired(fake);
+
+      expect(await controller.removeDevice('peer_a'), SyncAdminOutcome.failed);
+      expect(fake.removed, ['peer_a']);
+    });
+
+    test(
+      'a removal answered 404 reports the store gone, not the peer',
+      () async {
+        final fake = _Admin()..manifestKind = SyncResponseKind.notFound;
+        final controller = await paired(fake);
+
+        expect(
+          await controller.removeDevice('peer_a'),
+          SyncAdminOutcome.storeMissing,
+        );
+      },
+    );
+
+    test('wipe deletes the store inside the writer boundary and clears this '
+        "device's attachment", () async {
+      final fake = _Admin();
+      var exclusiveRuns = 0;
+      final controller = await paired(
+        fake,
+        runExclusive: (operation) async {
+          exclusiveRuns++;
+          await operation();
+        },
+      );
+
+      expect(await controller.wipeStore(), SyncAdminOutcome.done);
+
+      expect(fake.wipes, 1);
+      expect(exclusiveRuns, 1);
+      expect(
+        controller.paired,
+        isFalse,
+        reason:
+            'a device left attached would be offered the §6.3 replacement '
+            'dialog — that is, offered to re-create the store under the '
+            'phrase that leaked',
+      );
+      expect(controller.endpoint, isNull);
+      expect(controller.lastSuccessAt, isNull);
+      expect(
+        await hasRow(kSyncIdKey),
+        isFalse,
+        reason: 'a tombstone would keep the credential on disk',
+      );
+      expect(await hasRow(kSyncEndpointKey), isFalse);
+      expect(await hasRow(kSyncLastSuccessAtKey), isFalse);
+      expect(await repos.syncLocal.getBaselineState(), isNull);
+      expect(controller.enabled, isTrue, reason: 'wipe is not disable');
+      expect(await repos.settings.get(kSyncDeviceIdKey), 'device_1');
+    });
+
+    test('a failed wipe changes nothing locally', () async {
+      final fake = _Admin()..wipeKind = SyncResponseKind.serverError;
+      final controller = await paired(fake);
+
+      expect(await controller.wipeStore(), SyncAdminOutcome.failed);
+
+      expect(fake.wipes, 1);
+      expect(
+        controller.paired,
+        isTrue,
+        reason: 'the store still exists, so the device is still attached',
+      );
+      expect(
+        await repos.settings.get(kSyncIdKey),
+        'correct horse battery staple',
+      );
+      expect(await repos.syncLocal.getBaselineState(), isNotNull);
+    });
+
+    test('wiping a store that has already gone still detaches', () async {
+      final fake = _Admin()..wipeKind = SyncResponseKind.notFound;
+      final controller = await paired(fake);
+
+      expect(
+        await controller.wipeStore(),
+        SyncAdminOutcome.done,
+        reason: '404 is the end state the user asked for, not a failure',
+      );
+      expect(controller.paired, isFalse);
+      expect(await hasRow(kSyncIdKey), isFalse);
+    });
+
+    test('a pass finishing during a wipe does not restore its last-success '
+        'time', () async {
+      final gate = Completer<void>();
+      coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device_1',
+        store: CompendiumSyncCoordinatorStore(repos),
+        transport: NoopSyncCoordinatorTransport(),
+        passOperation: ({initialStore}) async {
+          await gate.future;
+          return const SyncPassResult(SyncPassStatus.completed);
+        },
+      );
+      addTearDown(() => coordinator?.dispose());
+      final fake = _Admin();
+      late SyncController controller;
+      controller = await paired(
+        fake,
+        runExclusive: (operation) async {
+          final pass = controller.trigger(SyncTrigger.manual);
+          await operation();
+          gate.complete();
+          expect(await pass, SyncGateOutcome.ran);
+        },
+      );
+
+      expect(await controller.wipeStore(), SyncAdminOutcome.done);
+
+      expect(controller.lastSuccessAt, isNull);
+      expect(await repos.settings.get(kSyncLastSuccessAtKey), isNull);
+    });
+
+    test('an unpaired device requests nothing', () async {
+      final fake = _Admin();
+      final controller = SyncController(
+        settings: repos.settings,
+        syncLocal: repos.syncLocal,
+        coordinator: () => coordinator,
+        reconfigure: () async {},
+        deviceAdminFactory: (syncId, endpoint) => fake.admin,
+        classifier: network,
+      );
+      addTearDown(controller.dispose);
+      await controller.load();
+      expect(controller.paired, isFalse);
+
+      expect(
+        (await controller.listStoreDevices()).outcome,
+        SyncAdminOutcome.notPaired,
+      );
+      expect(
+        await controller.removeDevice('peer_a'),
+        SyncAdminOutcome.notPaired,
+      );
+      expect(await controller.wipeStore(), SyncAdminOutcome.notPaired);
+      expect(fake.storeReads, 0);
+      expect(fake.removed, isEmpty);
+      expect(fake.wipes, 0);
     });
   });
 
