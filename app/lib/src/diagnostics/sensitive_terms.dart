@@ -47,10 +47,18 @@ Future<Set<String>> collectSensitiveTerms(
     for (final tune in dance.tunes) {
       add(tune);
     }
-    for (final figure in switch (dance.figuresSource) {
-      DecodedFigures(:final figures) => figures,
-    }) {
-      addFigureContent(figure);
+    switch (dance.figuresSource) {
+      case DecodedFigures(:final figures):
+        for (final figure in figures) {
+          addFigureContent(figure);
+        }
+      // An undecodable transcription is still the user's content: the stored
+      // text holds move names, notes and free text exactly as typed. Treating
+      // it as "no figures" here would quietly drop those terms from the
+      // redaction set and let them through into a diagnostic report — the one
+      // place where "we could not read it" must NOT mean "it is not there".
+      case UnreadableFigures(:final storedJson):
+        add(storedJson);
     }
     for (final field in dance.customFields) {
       add(field.value);

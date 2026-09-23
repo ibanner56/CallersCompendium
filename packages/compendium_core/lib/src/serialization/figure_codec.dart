@@ -195,8 +195,19 @@ List<Figure> _decodeContainerChildren(
 String encodeFigures(List<Figure> figures) =>
     jsonEncode([for (final f in figures) figureToJson(f)]);
 
-/// Decodes a `figures_json` string. Throws [FormatException] on malformed
-/// input (invalid JSON, non-array root, malformed figure objects).
+/// Decodes a `figures_json` string.
+///
+/// Throws [FormatException] on malformed input (invalid JSON, non-array root,
+/// malformed figure objects) **and [ArgumentError] when a syntactically valid
+/// figure object violates a [Figure] invariant** — an empty `move`, or a
+/// parameter the constructor rejects. `[{"move":""}]` and
+/// `[{"move":"swing","params":{"beats":1e999}}]` both take the second path:
+/// `1e999` is legal JSON that parses to an infinity, which is not a
+/// non-negative integer.
+///
+/// Callers that must not raise have to catch both. This doc previously named
+/// only [FormatException], and a caller that believed it would still have
+/// crashed on the two examples above (#1347).
 List<Figure> decodeFigures(String json) {
   final Object? decoded;
   try {

@@ -129,6 +129,7 @@ class StructuredDraft {
            quality ??
            ParseQuality.ofFigures(switch (dance.figuresSource) {
              DecodedFigures(:final figures) => figures,
+             UnreadableFigures() => const [],
            }),
        issues = List.unmodifiable(issues),
        authorNames = List.unmodifiable(authorNames);

@@ -23,6 +23,7 @@ List<pw.Widget> buildFigureWidgets(
   final widgets = <pw.Widget>[];
   final sectioned = deriveSections(switch (dance.figuresSource) {
     DecodedFigures(:final figures) => figures,
+    UnreadableFigures() => const <Figure>[],
   }, dance.phraseStructure);
   String? lastLabel;
   for (final sf in sectioned) {

@@ -6,7 +6,6 @@ import '../model/choreographer.dart';
 import '../model/dance.dart';
 import '../model/dance_link.dart';
 import '../model/difficulty_level.dart';
-import '../model/figure_source.dart';
 import '../model/enums.dart';
 import '../model/provenance.dart';
 import '../storage/repositories/choreographer_repository.dart';
@@ -976,9 +975,9 @@ class ImportPipeline {
     formation: src.formation,
     progression: src.progression,
     phraseStructure: src.phraseStructure.raw,
-    figures: switch (src.figuresSource) {
-      DecodedFigures(:final figures) => figures,
-    },
+    // Carried through whole, so a re-identified dance keeps a transcription
+    // that could not be decoded instead of silently becoming figureless.
+    figuresSource: src.figuresSource,
     hook: src.hook,
     callingNotes: src.callingNotes,
     walkthrough: src.walkthrough,
