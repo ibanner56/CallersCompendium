@@ -576,10 +576,13 @@ class AthenaeumApp {
       } on StoreQuotaExceeded catch (error) {
         throw _RequestFailure(507, error.message);
       } on StoreEpochMismatch {
-        // Either the store is gone, or it was deleted and re-created at a new
-        // epoch while this upload was in flight. Both mean this epoch's store
-        // no longer exists to accept the blob, and no blob route may answer
-        // `409` (§7.1), so both report the counted `404`.
+        // `putBlob` raises this only when the store row was already gone as it
+        // wrote. It does not compare epochs, and deliberately accepts an upload
+        // into a superseded one: §7.1 namespaces blobs by epoch precisely so a
+        // stale one has no reader and is reclaimed rather than rejected. So the
+        // store having disappeared is the whole of this case, and it is the
+        // counted `404`. Do not read it as a stale-epoch rejection — adding one
+        // would change what §7.1 says blob uploads do.
         return _failedResolution(request, 404, 'store not found');
       }
       return Response(created ? 201 : 200);

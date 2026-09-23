@@ -58,27 +58,40 @@ void main() {
   // correct runtime API and is untouched; `AthenaeumConfig.fromEnvironment` is
   // a named constructor, not the compile-time one, and does not match.
   //
-  // The scan deliberately does not strip comments: stripping `//` to end of
-  // line would also truncate any line holding a `//` inside a string literal
-  // and could hide a real match after it, and a guard that can fail to see the
-  // thing it guards is worse than one that occasionally complains about prose.
-  // A comment that spells a compile-time constructor in full therefore fails
-  // here too, and should be reworded.
+  // The match runs over the WHOLE source, not line by line, and tolerates
+  // whitespace inside the constructor. A line-at-a-time scan reads as though it
+  // matched the property while actually matching one spelling of it: a formatter
+  // (or an author) may wrap the expression as `const String\n
+  // .fromEnvironment('ATHENAEUM_PEPPER')`, which is the same construct and
+  // evades a per-line regex entirely. That was not hypothetical — this test was
+  // first written that way, and stayed green with exactly that fallback present
+  // in `athenaeum_config.dart`.
+  //
+  // The scan deliberately does not strip comments: stripping `//` to end of line
+  // would also truncate a line holding `//` inside a string literal and could
+  // hide a real match after it, and a guard that can fail to see the thing it
+  // guards is worse than one that occasionally complains about prose. A comment
+  // that spells a compile-time constructor out in full therefore fails here too,
+  // and should be reworded.
   test('no source in this package reads compile-time configuration', () {
     final root = Directory('server').existsSync() ? 'server' : '.';
+    final pattern = RegExp(
+      r'\b(?:String|int|bool|double)\s*\.\s*fromEnvironment\s*\(',
+    );
     final offenders = <String>[];
     for (final directory in ['$root/lib', '$root/bin']) {
       for (final entity in Directory(directory).listSync(recursive: true)) {
         if (entity is! File || !entity.path.endsWith('.dart')) continue;
-        final lines = entity.readAsLinesSync();
-        for (var index = 0; index < lines.length; index++) {
-          if (RegExp(
-            r'\b(?:String|int|bool|double)\.fromEnvironment\s*\(',
-          ).hasMatch(lines[index])) {
-            offenders.add(
-              '${entity.path}:${index + 1}: ${lines[index].trim()}',
-            );
-          }
+        final source = entity.readAsStringSync();
+        for (final match in pattern.allMatches(source)) {
+          final line = '\n'.allMatches(source.substring(0, match.start)).length;
+          // The match may span lines, so collapse its whitespace before
+          // reporting it — otherwise the failure prints a broken fragment.
+          final snippet = source
+              .substring(match.start, match.end)
+              .replaceAll(RegExp(r'\s+'), ' ')
+              .trim();
+          offenders.add('${entity.path}:${line + 1}: $snippet');
         }
       }
     }
