@@ -3344,29 +3344,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'No slots yet. Add a dance or a note to get started.';
 
   @override
-  String get programsSlotMoved => 'Slot moved.';
-
-  @override
   String get programsSlotMovedUp => 'Slot moved up.';
 
   @override
   String get programsSlotMovedDown => 'Slot moved down.';
-
-  @override
-  String programsSlotCutBanner(String name) {
-    return '\"$name\" is cut — tap Paste to place it.';
-  }
-
-  @override
-  String get programsPasteBeforeFirst => 'Paste before first slot';
-
-  @override
-  String programsPasteAfter(String title) {
-    return 'Paste after $title';
-  }
-
-  @override
-  String get programsPasteHere => 'Paste here';
 
   @override
   String get programsMarkedPrimary => 'Marked as primary.';
@@ -3435,9 +3416,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String programsCreatedDanceFromNoteAnnounce(String title) {
     return 'Created $title and linked this slot to it.';
   }
-
-  @override
-  String get programsRemoveSlotMenu => 'Remove slot';
 
   @override
   String get programsSlotTextRequiredError => 'Enter some text for this slot.';

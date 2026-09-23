@@ -3386,29 +3386,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Nog geen slots. Voeg een dans of een noot toe om te beginnen.';
 
   @override
-  String get programsSlotMoved => 'Slot verplaatst.';
-
-  @override
   String get programsSlotMovedUp => 'Slot omhoog verplaatst.';
 
   @override
   String get programsSlotMovedDown => 'Slot omlaag verplaatst.';
-
-  @override
-  String programsSlotCutBanner(String name) {
-    return '“$name” is geknipt — tik op Plakken om het te plaatsen.';
-  }
-
-  @override
-  String get programsPasteBeforeFirst => 'Plakken vóór het eerste slot';
-
-  @override
-  String programsPasteAfter(String title) {
-    return 'Plakken na $title';
-  }
-
-  @override
-  String get programsPasteHere => 'Hier plakken';
 
   @override
   String get programsMarkedPrimary => 'Gemarkeerd als primair.';
@@ -3477,9 +3458,6 @@ class AppLocalizationsNl extends AppLocalizations {
   String programsCreatedDanceFromNoteAnnounce(String title) {
     return '$title aangemaakt en aan deze plek gekoppeld.';
   }
-
-  @override
-  String get programsRemoveSlotMenu => 'Slot verwijderen';
 
   @override
   String get programsSlotTextRequiredError =>

@@ -3244,29 +3244,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsSlotEditorEmpty => 'スロットがまだありません。ダンスまたはノートを追加して始めましょう。';
 
   @override
-  String get programsSlotMoved => 'スロットを移動しました。';
-
-  @override
   String get programsSlotMovedUp => 'スロットを上に移動しました。';
 
   @override
   String get programsSlotMovedDown => 'スロットを下に移動しました。';
-
-  @override
-  String programsSlotCutBanner(String name) {
-    return '「$name」をカットしました — ペーストして配置してください。';
-  }
-
-  @override
-  String get programsPasteBeforeFirst => '最初のスロットの前にペースト';
-
-  @override
-  String programsPasteAfter(String title) {
-    return '$titleの後にペースト';
-  }
-
-  @override
-  String get programsPasteHere => 'ここにペースト';
 
   @override
   String get programsMarkedPrimary => 'メインとしてマークしました。';
@@ -3335,9 +3316,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String programsCreatedDanceFromNoteAnnounce(String title) {
     return '$titleを作成し、このスロットにリンクしました。';
   }
-
-  @override
-  String get programsRemoveSlotMenu => 'スロットを削除';
 
   @override
   String get programsSlotTextRequiredError => 'このスロットのテキストを入力してください。';

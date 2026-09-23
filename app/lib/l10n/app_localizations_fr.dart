@@ -3409,29 +3409,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Aucun créneau pour l’instant. Ajoutez une danse ou une note pour commencer.';
 
   @override
-  String get programsSlotMoved => 'Créneau déplacé.';
-
-  @override
   String get programsSlotMovedUp => 'Créneau déplacé vers le haut.';
 
   @override
   String get programsSlotMovedDown => 'Créneau déplacé vers le bas.';
-
-  @override
-  String programsSlotCutBanner(String name) {
-    return '« $name » est coupé — appuyez sur Coller pour le placer.';
-  }
-
-  @override
-  String get programsPasteBeforeFirst => 'Coller avant le premier créneau';
-
-  @override
-  String programsPasteAfter(String title) {
-    return 'Coller après $title';
-  }
-
-  @override
-  String get programsPasteHere => 'Coller ici';
 
   @override
   String get programsMarkedPrimary => 'Marqué comme principal.';
@@ -3501,9 +3482,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String programsCreatedDanceFromNoteAnnounce(String title) {
     return '$title créée et liée à cet emplacement.';
   }
-
-  @override
-  String get programsRemoveSlotMenu => 'Supprimer le créneau';
 
   @override
   String get programsSlotTextRequiredError =>

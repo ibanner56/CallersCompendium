@@ -3364,29 +3364,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Ingen slots endnu. Tilføj en dans eller en note for at komme i gang.';
 
   @override
-  String get programsSlotMoved => 'Slot flyttet.';
-
-  @override
   String get programsSlotMovedUp => 'Slot flyttet op.';
 
   @override
   String get programsSlotMovedDown => 'Slot flyttet ned.';
-
-  @override
-  String programsSlotCutBanner(String name) {
-    return '„$name“ er klippet – tryk Indsæt for at placere det.';
-  }
-
-  @override
-  String get programsPasteBeforeFirst => 'Indsæt før første slot';
-
-  @override
-  String programsPasteAfter(String title) {
-    return 'Indsæt efter $title';
-  }
-
-  @override
-  String get programsPasteHere => 'Indsæt her';
 
   @override
   String get programsMarkedPrimary => 'Markeret som primær.';
@@ -3455,9 +3436,6 @@ class AppLocalizationsDa extends AppLocalizations {
   String programsCreatedDanceFromNoteAnnounce(String title) {
     return 'Oprettede $title og knyttede denne plads til den.';
   }
-
-  @override
-  String get programsRemoveSlotMenu => 'Fjern slot';
 
   @override
   String get programsSlotTextRequiredError =>
