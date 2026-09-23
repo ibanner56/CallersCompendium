@@ -222,7 +222,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSyncExcludeImportsSubtitle =>
-      'Standaard uit. Vermindert wat dit apparaat uploadt als je een grote geïmporteerde verzameling hebt; een dans die in een programma wordt gebruikt of vanuit een andere dans is gelinkt, wordt altijd meegenomen. Er wordt niets van je andere apparaten verwijderd.';
+      'Standaard uit. Vermindert wat dit apparaat uploadt als je een grote geïmporteerde verzameling hebt; een dans die in een programma wordt gebruikt of vanuit een andere dans is gelinkt, wordt altijd meegenomen. Er wordt niets van je andere apparaten verwijderd, en als je het weer uitzet, worden de overgeslagen dansen opnieuw geüpload.';
 
   @override
   String get settingsSyncStatusHeader => 'Status';
@@ -248,7 +248,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSyncIdCaution =>
-      'Voer hem in op je andere apparaat om dat te verbinden. Iedereen die hem heeft, kan alles lezen en wijzigen wat je synchroniseert, en hij kan alleen worden gewijzigd door alle apparaten naar een nieuwe zin te verplaatsen.';
+      'Voer hem in op je andere apparaat om dat te verbinden. Iedereen die hem heeft, kan alles lezen wat je synchroniseert, daarvan op elk verbonden apparaat iets wijzigen of verwijderen, en de hele opslag van de server verwijderen, en hij kan alleen worden gewijzigd door alle apparaten naar een nieuwe zin te verplaatsen.';
 
   @override
   String get settingsSyncStatusNotPaired =>
@@ -264,8 +264,24 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String settingsSyncCustomEndpointStatus(String host) {
-    return 'Synchroniseert met een aangepaste server: $host';
+  String settingsSyncEndpointStatus(String url) {
+    return 'Synchroniseert met $url';
+  }
+
+  @override
+  String settingsSyncCustomEndpointStatus(String url) {
+    return 'Synchroniseert met een aangepaste server: $url';
+  }
+
+  @override
+  String settingsSyncMergedDuplicates(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dubbele dansen gevonden en samengevoegd.',
+      one: '$count dubbele dans gevonden en samengevoegd.',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -468,6 +484,14 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsSyncPairingRegenerate => 'Andere zin genereren';
 
   @override
+  String get settingsSyncPairingPersonalInfoTitle =>
+      'Zet geen persoonlijke gegevens in de zin';
+
+  @override
+  String get settingsSyncPairingPersonalInfoBody =>
+      'Als je je eigen zin typt, houd er dan namen, adressen, geboortedata en al het andere over jezelf uit. De zin wordt bij elk verzoek naar de server gestuurd en wordt op elk apparaat dat je verbindt voorgelezen of ingetypt, dus het is de verkeerde plek voor iets persoonlijks.';
+
+  @override
   String get settingsSyncPairingWeakPhraseTitle =>
       'Deze zin is mogelijk makkelijk te raden';
 
@@ -525,12 +549,20 @@ class AppLocalizationsNl extends AppLocalizations {
       'Een tweede persoon kan dezelfde zin op zijn apparaat gebruiken. Als jullie tegelijk dezelfde dans of hetzelfde programma bewerken, overschrijft de ene bewerking stilzwijgend de andere — er is geen waarschuwing en geen manier om ze te combineren.';
 
   @override
+  String get settingsSyncPairingBearerTitle =>
+      'Iedereen met deze zin heeft volledige toegang';
+
+  @override
+  String get settingsSyncPairingBearerBody =>
+      'De zin is de enige sleutel en is niet aan een account gekoppeld. Wie hem heeft, kan alles lezen wat je synchroniseert, daarvan op elk verbonden apparaat iets wijzigen of verwijderen, en de hele opslag van de server verwijderen. Er is geen manier om te beperken wat een zin kan.';
+
+  @override
   String get settingsSyncPairingCredentialTitle =>
       'Deze zin kan niet worden hersteld of ingetrokken';
 
   @override
   String get settingsSyncPairingCredentialBody =>
-      'Als je deze zin kwijtraakt, wordt je opslag onbereikbaar — er is geen wachtwoordherstel. Als hij uitlekt, is de enige oplossing om alle apparaten naar een nieuwe zin te verplaatsen.';
+      'Als je deze zin kwijtraakt, wordt je opslag onbereikbaar — er is geen wachtwoordherstel. Een zin die is uitgelekt, kun je niet terugnemen. Alle apparaten naar een nieuwe zin verplaatsen stopt wat je daarna synchroniseert, maar wie de oude heeft, kan de oude opslag nog steeds lezen en wijzigen; alleen de opslag verwijderen haalt dat er meteen weg.';
 
   @override
   String get settingsSyncPairingBackupOfferTitle =>
@@ -554,18 +586,23 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSyncPairingCompleteBody =>
-      'Je bibliotheek is verbonden. De eerste synchronisatie loopt nu.';
+      'Je bibliotheek is verbonden en de eerste synchronisatie is klaar.';
 
   @override
-  String settingsSyncPairingCompleteDuplicates(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count dubbele dansen gevonden en samengevoegd.',
-      one: '$count dubbele dans gevonden en samengevoegd.',
-    );
-    return '$_temp0';
-  }
+  String get settingsSyncPairingCompleteFailed =>
+      'Je bibliotheek is verbonden, maar de eerste synchronisatie is niet afgerond. Hij probeert het vanzelf opnieuw.';
+
+  @override
+  String get settingsSyncPairingCompleteMetered =>
+      'Je bibliotheek is verbonden. De eerste synchronisatie wacht op wifi, omdat ‘Alleen synchroniseren via wifi’ aan staat.';
+
+  @override
+  String get settingsSyncPairingCompleteOffline =>
+      'Je bibliotheek is verbonden. De eerste synchronisatie draait zodra je weer online bent.';
+
+  @override
+  String get settingsSyncPairingCompletePending =>
+      'Je bibliotheek is verbonden. De eerste synchronisatie is nog niet gedraaid; hij draait de volgende keer dat dit apparaat synchroniseert.';
 
   @override
   String get settingsSyncReplacementTitle => 'Deze opslag opnieuw verbinden?';

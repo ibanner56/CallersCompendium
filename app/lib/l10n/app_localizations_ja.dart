@@ -214,7 +214,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsSyncExcludeImportsSubtitle =>
-      '初期設定ではオフです。取り込んだコレクションが多い場合に、このデバイスがアップロードする内容を減らします。プログラムで使われているか、他のダンスからリンクされているダンスは常に含まれます。他のデバイスから何かが削除されることはありません。';
+      '初期設定ではオフです。取り込んだコレクションが多い場合に、このデバイスがアップロードする内容を減らします。プログラムで使われているか、他のダンスからリンクされているダンスは常に含まれます。他のデバイスから何かが削除されることはなく、オフに戻すとスキップしていたダンスが再びアップロードされます。';
 
   @override
   String get settingsSyncStatusHeader => 'ステータス';
@@ -240,7 +240,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsSyncIdCaution =>
-      'もう一方のデバイスでこれを入力すると接続できます。これを持つ人は同期しているすべての内容を読み書きでき、変更するにはすべてのデバイスを新しいフレーズに移行するしかありません。';
+      'もう一方のデバイスでこれを入力すると接続できます。これを持つ人は、同期しているすべての内容を閲覧し、接続されたすべてのデバイス上でその内容を変更または削除し、ストア全体をサーバーから削除できます。変更するにはすべてのデバイスを新しいフレーズに移行するしかありません。';
 
   @override
   String get settingsSyncStatusNotPaired => 'まだストアに接続されていません。';
@@ -254,8 +254,23 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String settingsSyncCustomEndpointStatus(String host) {
-    return 'カスタムサーバーと同期中: $host';
+  String settingsSyncEndpointStatus(String url) {
+    return '$url と同期中';
+  }
+
+  @override
+  String settingsSyncCustomEndpointStatus(String url) {
+    return 'カスタムサーバーと同期中: $url';
+  }
+
+  @override
+  String settingsSyncMergedDuplicates(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '重複するダンスを$count件見つけて統合しました。',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -450,6 +465,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsSyncPairingRegenerate => '別のフレーズを生成';
 
   @override
+  String get settingsSyncPairingPersonalInfoTitle => 'フレーズに個人情報を入れないでください';
+
+  @override
+  String get settingsSyncPairingPersonalInfoBody =>
+      '自分でフレーズを入力する場合は、氏名、住所、生年月日など自分に関する情報を含めないでください。フレーズはリクエストのたびにサーバーへ送信され、接続する各デバイスで読み上げたり入力したりするため、私的な情報を入れる場所としては適していません。';
+
+  @override
   String get settingsSyncPairingWeakPhraseTitle => 'このフレーズは推測されやすい可能性があります';
 
   @override
@@ -505,11 +527,18 @@ class AppLocalizationsJa extends AppLocalizations {
       'もう一人が同じフレーズを自分のデバイスで使用できます。同じダンスやプログラムを同時に編集すると、一方の編集がもう一方を警告なく静かに上書きし、両方を統合する方法はありません。';
 
   @override
+  String get settingsSyncPairingBearerTitle => 'このフレーズを持つ人は誰でも全権限を持ちます';
+
+  @override
+  String get settingsSyncPairingBearerBody =>
+      'フレーズが唯一の鍵であり、アカウントには結び付いていません。フレーズを持つ人は、同期しているすべてのデータを閲覧し、接続されたすべてのデバイス上でその内容を変更または削除し、ストア全体をサーバーから削除できます。フレーズでできることを制限する方法はありません。';
+
+  @override
   String get settingsSyncPairingCredentialTitle => 'このフレーズは復元も無効化もできません';
 
   @override
   String get settingsSyncPairingCredentialBody =>
-      'このフレーズを紛失すると、ストアに到達できなくなります — パスワードのリセットはありません。漏えいした場合、唯一の対処法はすべてのデバイスを新しいフレーズに移行することです。';
+      'このフレーズを紛失すると、ストアに到達できなくなります — パスワードのリセットはありません。漏えいしたフレーズを取り消すことはできません。すべてのデバイスを新しいフレーズに移行すれば、それ以降に同期する内容は守られますが、古いフレーズを持つ人は古いストアを引き続き閲覧・変更できます。それをただちに取り除けるのはストアの削除だけです。';
 
   @override
   String get settingsSyncPairingBackupOfferTitle => '先にライブラリをバックアップしますか?';
@@ -531,18 +560,23 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsSyncPairingComplete => '接続しました';
 
   @override
-  String get settingsSyncPairingCompleteBody =>
-      'ライブラリが接続されました。最初の同期が今実行されています。';
+  String get settingsSyncPairingCompleteBody => 'ライブラリが接続され、最初の同期が完了しました。';
 
   @override
-  String settingsSyncPairingCompleteDuplicates(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '重複するダンスを$count件見つけて統合しました。',
-    );
-    return '$_temp0';
-  }
+  String get settingsSyncPairingCompleteFailed =>
+      'ライブラリは接続されましたが、最初の同期は完了しませんでした。自動的に再試行されます。';
+
+  @override
+  String get settingsSyncPairingCompleteMetered =>
+      'ライブラリが接続されました。「WiFi接続時のみ同期」がオンのため、最初の同期はWiFiを待っています。';
+
+  @override
+  String get settingsSyncPairingCompleteOffline =>
+      'ライブラリが接続されました。最初の同期はオンラインに戻り次第実行されます。';
+
+  @override
+  String get settingsSyncPairingCompletePending =>
+      'ライブラリが接続されました。最初の同期はまだ実行されていません。このデバイスが次に同期するときに実行されます。';
 
   @override
   String get settingsSyncReplacementTitle => 'このストアに再接続しますか?';

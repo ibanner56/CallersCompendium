@@ -460,10 +460,10 @@ abstract class AppLocalizations {
   /// **'Skip unused imported dances'**
   String get settingsSyncExcludeImportsTitle;
 
-  /// Subtitle of the exclude-imports switch: off by default, upload-only, dances referenced by a program or a dance link are exempt, and turning it on deletes nothing already synced.
+  /// Subtitle of the exclude-imports switch: off by default, upload-only, dances referenced by a program or a dance link are exempt, and BOTH sync_exclude_imports consequences spec §6.1 requires be surfaced at the setting rather than discovered — turning it on deletes nothing already synced, and turning it off republishes what was skipped. Must state both directions.
   ///
   /// In en, this message translates to:
-  /// **'Off by default. Cuts what this device uploads if you have a large imported collection; a dance used in a program or linked from another dance is always included. Nothing is removed from your other devices.'**
+  /// **'Off by default. Cuts what this device uploads if you have a large imported collection; a dance used in a program or linked from another dance is always included. Nothing is removed from your other devices, and turning it off uploads the skipped dances again.'**
   String get settingsSyncExcludeImportsSubtitle;
 
   /// Header of the Device Sync status group.
@@ -508,10 +508,10 @@ abstract class AppLocalizations {
   /// **'Sync phrase copied. It unlocks your store, so paste it only on a device you own.'**
   String get settingsSyncIdCopied;
 
-  /// Caution under the sync-phrase row: what it is for, and that it is an unrevocable bearer credential (spec §6.14 item 2).
+  /// Caution under the sync-phrase row: what it is for, and that it is an unrevocable bearer credential (spec §6.14 item 2) carrying the full §8 capability. Must name deletion and the store-wide wipe as well as reading and writing — this is the same disclosure the pairing flow makes, on the surface that shows the phrase itself, and the two must not drift.
   ///
   /// In en, this message translates to:
-  /// **'Enter this on your other device to connect it. Anyone who has it can read and change everything you sync, and it can\'t be changed without moving every device to a new phrase.'**
+  /// **'Enter this on your other device to connect it. Anyone who has it can read everything you sync, change or delete any of it on every connected device, and delete the whole store from the server, and it can\'t be changed without moving every device to a new phrase.'**
   String get settingsSyncIdCaution;
 
   /// Status shown when Device Sync is on but no sync store is connected.
@@ -532,11 +532,23 @@ abstract class AppLocalizations {
   /// **'Last synced {when}'**
   String settingsSyncStatusLastSynced(String when);
 
-  /// Status line shown when this device is paired with a server other than the default Device Sync server (spec §8).
+  /// Status line naming the Device Sync server this device is paired with, shown when it is the default one. ADR-004 requires the endpoint to be shown un-abstracted as a URL in Settings whether or not it is the default, so this must render the full address and not a host name.
   ///
   /// In en, this message translates to:
-  /// **'Syncing with a custom server: {host}'**
-  String settingsSyncCustomEndpointStatus(String host);
+  /// **'Syncing with {url}'**
+  String settingsSyncEndpointStatus(String url);
+
+  /// Status line shown when this device is paired with a server other than the default Device Sync server (spec §8: a custom endpoint must be shown prominently). Renders the full URL, not a host name.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing with a custom server: {url}'**
+  String settingsSyncCustomEndpointStatus(String url);
+
+  /// Report of the duplicate dances a fresh attach merged (spec, W8). ADR-004 names this count as the mitigation for silent merge, so it is shown after EVERY fresh attach — pairing, a confirmed replacement and a stale-epoch auto-join alike — not only in the pairing dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one {Found and merged {count} duplicate dance.} other {Found and merged {count} duplicate dances.}}'**
+  String settingsSyncMergedDuplicates(int count);
 
   /// Status shown while a sync is running.
   ///
@@ -616,7 +628,7 @@ abstract class AppLocalizations {
   /// **'Changes from this device haven\'t appeared on your other devices after several syncs. Open the app on them and sync.'**
   String get settingsSyncNoticeUnreflectedPublication;
 
-  /// Disclosure shown wherever Device Sync reports its status, stating that sync does not replace a file backup.
+  /// Disclosure that sync does not replace a file backup. Spec §6.14 item 3 requires it wherever the UI reports success, so it is shown both on the Device Sync status surface and in the dialog shown when pairing completes; a third success report would need it too.
   ///
   /// In en, this message translates to:
   /// **'Sync is not a backup. A store that goes unused for 30 days is removed, so keep making file backups.'**
@@ -862,6 +874,18 @@ abstract class AppLocalizations {
   /// **'Generate a different phrase'**
   String get settingsSyncPairingRegenerate;
 
+  /// Heading of the warning attached to the offer to replace the generated sync phrase with the user's own (ADR-004: the user may replace it 'behind a clear warning that it must not contain personal information').
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t put personal information in the phrase'**
+  String get settingsSyncPairingPersonalInfoTitle;
+
+  /// Body of the personal-information warning on the create path. Always shown while creating, not only once the generated phrase has been edited: a warning that appears after the user has already typed their name into the field has arrived too late, and ADR-004 places it behind the offer to replace rather than after the replacement. Advisory only; it never blocks creation.
+  ///
+  /// In en, this message translates to:
+  /// **'If you type your own phrase, keep names, addresses, birthdays and anything else about you out of it. The phrase is sent to the server on every request and is read aloud or typed on each device you connect, so it is the wrong place for anything private.'**
+  String get settingsSyncPairingPersonalInfoBody;
+
   /// Heading of the advisory warning shown when a user-chosen sync phrase scores below the reference strength (spec §8). Advisory only; it never blocks.
   ///
   /// In en, this message translates to:
@@ -952,16 +976,28 @@ abstract class AppLocalizations {
   /// **'A second person can use this same phrase on their device. If you both edit the same dance or program at the same time, one edit silently overwrites the other — there\'s no warning and no way to combine them.'**
   String get settingsSyncPairingSharingBody;
 
+  /// Heading of the bearer threat-model disclosure shown on both pairing paths (spec §8: the sync ID is simultaneously the store address and the entire read, write and DELETE capability, and this MUST be disclosed).
+  ///
+  /// In en, this message translates to:
+  /// **'Anyone with this phrase has full access'**
+  String get settingsSyncPairingBearerTitle;
+
+  /// Body of the bearer disclosure (spec §8 threat model; ADR-004 states the write and wipe case as explicitly as the read case because it is the one that destroys data). Must name all three capabilities — read, change or delete records, and delete the store — since the sharing and no-recovery disclosures cover neither deletion nor the store-wide wipe.
+  ///
+  /// In en, this message translates to:
+  /// **'The phrase is the only key, and it is not tied to an account. Whoever has it can read everything you sync, change or delete any of it on every connected device, and delete the whole store from the server. There is no way to limit what a phrase can do.'**
+  String get settingsSyncPairingBearerBody;
+
   /// Heading of the no-recovery/no-revocation disclosure shown during pairing.
   ///
   /// In en, this message translates to:
   /// **'This phrase can\'t be recovered or revoked'**
   String get settingsSyncPairingCredentialTitle;
 
-  /// Body text of the no-recovery/no-revocation disclosure (spec §6.14 item 2).
+  /// Body text of the no-recovery/no-revocation disclosure (spec §6.14 item 2). Must NOT say that moving every device to a new phrase is the only fix for a leak: that was true before Device Sync could delete the store, and it leaves the old store readable by whoever holds the leaked phrase. Wipe is the only in-band remedy that acts at once (spec §5.3); the two are complementary, not alternatives.
   ///
   /// In en, this message translates to:
-  /// **'Losing this phrase makes your store unreachable — there is no password reset. If it leaks, the only fix is moving every device to a new phrase.'**
+  /// **'Losing this phrase makes your store unreachable — there is no password reset. A phrase that leaks can\'t be taken back. Moving every device to a new phrase stops what you sync from then on, but whoever has the old one can still read and change the old store, so deleting the store is the only thing that removes that straight away.'**
   String get settingsSyncPairingCredentialBody;
 
   /// Heading of the pre-connection backup offer shown during pairing.
@@ -1000,17 +1036,35 @@ abstract class AppLocalizations {
   /// **'Connected'**
   String get settingsSyncPairingComplete;
 
-  /// Body of the pairing-complete dialog when no duplicates were found.
+  /// Body of the pairing-complete dialog when the first sync pass ran and completed. Must NOT say the first sync is running: SyncController.completePairing awaits the pass before this dialog is shown, so by the time the user reads it the pass has already finished, failed, or never started.
   ///
   /// In en, this message translates to:
-  /// **'Your library is connected. The first sync is running now.'**
+  /// **'Your library is connected, and the first sync has finished.'**
   String get settingsSyncPairingCompleteBody;
 
-  /// Body of the pairing-complete dialog reporting duplicates merged during the first attach (spec, W8).
+  /// Body of the pairing-complete dialog when the first sync pass ran and ended at any status other than completed. Pairing itself succeeded — the phrase and server are persisted — so the title still reports a connection; only the pass failed.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, one {Found and merged {count} duplicate dance.} other {Found and merged {count} duplicate dances.}}'**
-  String settingsSyncPairingCompleteDuplicates(int count);
+  /// **'Your library is connected, but the first sync didn\'t finish. It will try again on its own.'**
+  String get settingsSyncPairingCompleteFailed;
+
+  /// Body of the pairing-complete dialog when the §6.12 gate suppressed the first pass as metered. Names the setting responsible, because that is the one thing the user can act on.
+  ///
+  /// In en, this message translates to:
+  /// **'Your library is connected. The first sync is waiting for WiFi, because Sync only on WiFi is on.'**
+  String get settingsSyncPairingCompleteMetered;
+
+  /// Body of the pairing-complete dialog when the §6.12 gate suppressed the first pass because there is no connection.
+  ///
+  /// In en, this message translates to:
+  /// **'Your library is connected. The first sync will run once you\'re back online.'**
+  String get settingsSyncPairingCompleteOffline;
+
+  /// Body of the pairing-complete dialog when the first pass did not run for a reason that is neither metered nor offline — the trigger answered disabled or notPaired, which happens when the coordinator could not be built after pairing. Claims only that nothing has run yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Your library is connected. The first sync hasn\'t run yet; it will run the next time this device syncs.'**
+  String get settingsSyncPairingCompletePending;
 
   /// Title of the dialog shown when a previously used sync store is missing.
   ///

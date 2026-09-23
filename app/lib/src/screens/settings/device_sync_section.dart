@@ -395,21 +395,59 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
                 ),
                 title: Text(syncNoticeText(l10n, group)),
               ),
-            if (controller.paired &&
-                controller.endpoint != null &&
-                !isDefaultSyncEndpoint(controller.endpoint!))
+            // What this device merged when it last fresh-attached, for as long
+            // as this attachment lasts. ADR-004 makes the count the mitigation
+            // for a merge the user is never shown, and three of the four
+            // fresh-attach paths — a confirmed replacement, a stale-epoch
+            // auto-join, and a pairing pass the §6.12 gate deferred — have no
+            // dialog of their own to report it in. This tile is the surface
+            // they share.
+            if (controller.mergedDuplicates > 0)
               ListTile(
-                key: const ValueKey('sync-custom-endpoint'),
+                key: const ValueKey('sync-merged-duplicates'),
                 leading: Icon(
-                  Icons.dns_outlined,
-                  color: theme.colorScheme.error,
+                  Icons.merge_outlined,
+                  color: theme.colorScheme.tertiary,
                 ),
                 title: Text(
-                  l10n.settingsSyncCustomEndpointStatus(
-                    controller.endpoint!.host,
+                  l10n.settingsSyncMergedDuplicates(
+                    controller.mergedDuplicates,
                   ),
                 ),
               ),
+            // ADR-004 requires the endpoint shown un-abstracted as a URL in
+            // Settings, so pointing at your own server is a visible
+            // first-class option rather than a hidden one. Shown whichever
+            // server it is: a user on the default one previously saw no
+            // address anywhere on this section, which is the abstraction that
+            // clause forbids. A non-default endpoint keeps its own prominent
+            // treatment (spec §8).
+            if (controller.paired && controller.endpoint != null)
+              isDefaultSyncEndpoint(controller.endpoint!)
+                  ? ListTile(
+                      key: const ValueKey('sync-endpoint'),
+                      leading: Icon(
+                        Icons.dns_outlined,
+                        color: theme.colorScheme.secondary,
+                      ),
+                      title: Text(
+                        l10n.settingsSyncEndpointStatus(
+                          controller.endpoint!.toString(),
+                        ),
+                      ),
+                    )
+                  : ListTile(
+                      key: const ValueKey('sync-custom-endpoint'),
+                      leading: Icon(
+                        Icons.dns_outlined,
+                        color: theme.colorScheme.error,
+                      ),
+                      title: Text(
+                        l10n.settingsSyncCustomEndpointStatus(
+                          controller.endpoint!.toString(),
+                        ),
+                      ),
+                    ),
             Padding(
               padding: gutter,
               child: Text(

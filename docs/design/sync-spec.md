@@ -3039,8 +3039,12 @@ this document is invisible to it by construction.
    MUST state this where a second person could be added, not in help text.
 2. **The sync ID is a bearer credential with no recovery and no revocation**,
    and the pairing flow MUST say so. Losing it makes the store unreachable;
-   leaking it is remediable only by moving every device to a new ID. This
-   follows from there being no accounts (§8) and is not otherwise visible.
+   leaking it cannot be undone, so continuing to sync means moving every device
+   to a new ID — which on its own leaves the old store readable and writable by
+   whoever holds the leaked one, making wipe (§5.3) the only remedy that acts at
+   once. The two are complementary and the disclosure MUST NOT present either as
+   the whole answer. This follows from there being no accounts (§8) and is not
+   otherwise visible.
 3. **Sync is not backup, and the UI MUST say so wherever it reports success.**
    A store is reaped after 30 days of disuse (§7.3), which makes it a relay
    with a grace period. The file backup remains the recovery path. A green
