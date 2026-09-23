@@ -25,6 +25,7 @@ import 'package:compendium_app/src/screens/program_summary_screen.dart';
 import 'support/fake_url_launcher.dart';
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
+import 'figures_support.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
 
@@ -842,8 +843,8 @@ void main() {
     final copy = (await repos.dances.listAll()).firstWhere(
       (d) => d.title == 'Petronella Jig (copy)',
     );
-    expect(copy.figures.length, 1);
-    expect(copy.figures.first.move, 'petronella');
+    expect(figuresOf(copy).length, 1);
+    expect(figuresOf(copy).first.move, 'petronella');
     expect(copy.hook, 'A great hook');
   });
 

@@ -4,6 +4,7 @@ import 'package:drift/drift.dart' show Variable;
 import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
+import '../figures_support.dart';
 
 /// Seeds [repos] with a representative dataset spanning every entity type and
 /// their joins, so the export/restore round-trip is exercised end to end.
@@ -215,7 +216,7 @@ void main() {
         expect(d1, isNotNull);
         expect(d1!.authorIds, ['c1', 'c2']);
         expect(d1.tagIds, ['t1']);
-        expect(d1.figures, hasLength(2));
+        expect(figuresOf(d1), hasLength(2));
         expect(d1.customFields, hasLength(2));
         // Program provenance round-trips too (issue #610: this was silently
         // dropped by the archive codec).
@@ -263,7 +264,7 @@ void main() {
 
         final restored = await repos.dances.getById('legacy-mad-robin');
         expect(restored, isNotNull);
-        final figure = restored!.figures.single;
+        final figure = figuresOf(restored!).single;
         expect(figure.params['who'], ParamVocab.unspecified);
         expect(figure.assumedSubject, isFalse);
       },
@@ -788,8 +789,8 @@ void main() {
         expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
 
         final restored = await repos.dances.getById('legacy-callersbox');
-        expect(restored?.figures.single.params['who'], 'role1s');
-        expect(restored?.figures.single.params['whom'], 'neighbors');
+        expect(figuresOf(restored!).single.params['who'], 'role1s');
+        expect(figuresOf(restored).single.params['whom'], 'neighbors');
       },
     );
 

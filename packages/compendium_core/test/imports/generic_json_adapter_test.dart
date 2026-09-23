@@ -4,6 +4,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
+import '../figures_support.dart';
 
 /// Fixtures + tests for [GenericJsonAdapter]: our own canonical
 /// [CompendiumArchive] JSON as a per-dance import source.
@@ -118,14 +119,14 @@ void main() {
       final d1 = byId['d1']!.dance;
       expect(d1.title, 'Give and Take');
       expect(d1.authorIds, ['c1']);
-      expect(d1.figures, structured.figures);
+      expect(figuresOf(d1), figuresOf(structured));
       expect(d1.sourceCitations, structured.sourceCitations);
       expect(d1.customFields, structured.customFields);
       expect(d1.walkthrough, structured.walkthrough);
       expect(d1.provenance, isNull, reason: 'pipeline attaches provenance');
 
       final d2 = byId['d2']!.dance;
-      expect(d2.figures.single.isCustom, isTrue);
+      expect(figuresOf(d2).single.isCustom, isTrue);
       expect(byId['d2']!.quality.isFullyCustom, isTrue);
     });
 
@@ -302,7 +303,7 @@ void main() {
         final draft = await _importOne(adapter, discovered.single);
 
         expect(draft.quality.isFullyCustom, isTrue);
-        expect(draft.dance.figures.every((f) => f.isCustom), isTrue);
+        expect(figuresOf(draft.dance).every((f) => f.isCustom), isTrue);
       });
     });
 

@@ -15,6 +15,7 @@ import 'package:compendium_app/src/widgets/program_export_menu.dart';
 
 import 'support/l10n_harness.dart';
 import 'support/test_repositories.dart';
+import 'figures_support.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
 
@@ -1510,7 +1511,7 @@ void main() {
       // Mutation that would catch a regression: if the _hasFigures guard is
       // removed and the prompt is never shown, find.byKey returns nothing.
       assert(
-        danceWithFigures.figures.isNotEmpty,
+        figuresOf(danceWithFigures).isNotEmpty,
         'guard: fixture must have figures',
       );
       ShareParams? captured;
@@ -1609,7 +1610,7 @@ void main() {
       // Mutation: make "set list only" fall through to _plainTextWithFigures →
       // text contains "---" separator → assertion fails.
       assert(
-        danceWithFigures.figures.isNotEmpty,
+        figuresOf(danceWithFigures).isNotEmpty,
         'guard: fixture must have figures',
       );
       ShareParams? captured;
@@ -1646,7 +1647,7 @@ void main() {
         // Mutation: remove the figures append in _plainTextWithFigures → "---"
         // separator absent → assertion fails.
         assert(
-          danceWithFigures.figures.isNotEmpty,
+          figuresOf(danceWithFigures).isNotEmpty,
           'guard: fixture must have figures',
         );
         ShareParams? captured;
@@ -1690,7 +1691,7 @@ void main() {
         // Mutation: remove the alternate label in _plainTextWithFigures →
         // "Alternate" absent from text → assertion fails.
         assert(
-          danceWithFigures.figures.isNotEmpty,
+          figuresOf(danceWithFigures).isNotEmpty,
           'guard: fixture must have figures',
         );
         // Use a note-only primary so d1 (with figures) appears as the alternate.
@@ -1773,7 +1774,7 @@ void main() {
         //   Expected: a value greater than <N>   (measured ~8894 at time of writing)
         //   Actual: <N>   (both paths produce identical bytes)
         assert(
-          danceWithFigures.figures.isNotEmpty,
+          figuresOf(danceWithFigures).isNotEmpty,
           'guard: fixture must have figures',
         );
         final prog = _program(

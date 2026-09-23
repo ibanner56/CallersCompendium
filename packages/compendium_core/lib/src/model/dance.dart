@@ -7,6 +7,7 @@ import 'dance_link.dart';
 import 'difficulty_level.dart';
 import 'enums.dart';
 import 'figure.dart';
+import 'figure_source.dart';
 import 'formation.dart';
 import 'partial_date.dart';
 import 'phrase_structure.dart';
@@ -68,7 +69,7 @@ class Dance {
        authorIds = List.unmodifiable(authorIds),
        // Parse eagerly so an invalid structure fails at construction.
        phraseStructure = PhraseStructure.parse(phraseStructure),
-       figures = List.unmodifiable(figures),
+       figuresSource = DecodedFigures(figures),
        tunes = List.unmodifiable(tunes),
        customFields = List.unmodifiable(customFields),
        tagIds = List.unmodifiable(tagIds),
@@ -100,8 +101,11 @@ class Dance {
   final Progression progression;
   final PhraseStructure phraseStructure;
 
-  /// The transcription: an ordered figure list (may be empty for stubs).
-  final List<Figure> figures;
+  /// The transcription. A [FigureSource] rather than a `List<Figure>` so that
+  /// the case where the stored value cannot be decoded has a representation no
+  /// reader can silently ignore — see [FigureSource] for why a plain list (or a
+  /// list-returning shortcut on this class) would be unsafe.
+  final FigureSource figuresSource;
 
   /// One-line "why call this" description.
   final String hook;
@@ -196,14 +200,18 @@ class Dance {
   bool get isDeleted => deletedAt != null;
 
   /// Figures annotated with derived phrase labels (A1, B2, …).
-  List<SectionedFigure> get sectionedFigures =>
-      deriveSections(figures, phraseStructure);
+  List<SectionedFigure> get sectionedFigures => switch (figuresSource) {
+    DecodedFigures(:final figures) => deriveSections(figures, phraseStructure),
+  };
 
   /// Runs warning-level validation (e.g. phrase overflow). Structural
   /// invariants are enforced at construction and never appear here.
   List<ValidationIssue> validate() {
     final issues = <ValidationIssue>[];
-    deriveSections(figures, phraseStructure, issues: issues);
+    switch (figuresSource) {
+      case DecodedFigures(:final figures):
+        deriveSections(figures, phraseStructure, issues: issues);
+    }
     final composed = composedOn;
     final revised = revisedOn;
     // Warn only when the *latest* the revision could have happened is still
@@ -277,7 +285,11 @@ class Dance {
     formation: formation ?? this.formation,
     progression: progression ?? this.progression,
     phraseStructure: phraseStructure ?? this.phraseStructure.raw,
-    figures: figures ?? this.figures,
+    figures:
+        figures ??
+        switch (figuresSource) {
+          DecodedFigures(:final figures) => figures,
+        },
     hook: hook ?? this.hook,
     callingNotes: callingNotes ?? this.callingNotes,
     walkthrough: walkthrough ?? this.walkthrough,
@@ -327,7 +339,9 @@ class Dance {
       formation: formation,
       progression: progression,
       phraseStructure: phraseStructure.raw,
-      figures: figures,
+      figures: switch (figuresSource) {
+        DecodedFigures(:final figures) => figures,
+      },
       hook: hook,
       callingNotes: callingNotes,
       walkthrough: walkthrough,
@@ -367,7 +381,7 @@ class Dance {
       other.formation == formation &&
       other.progression == progression &&
       other.phraseStructure == phraseStructure &&
-      _listEq.equals(other.figures, figures) &&
+      other.figuresSource == figuresSource &&
       other.hook == hook &&
       other.callingNotes == callingNotes &&
       other.walkthrough == walkthrough &&

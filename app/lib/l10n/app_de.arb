@@ -416,9 +416,9 @@
   "@settingsSyncDeviceRemoveTitle": {
     "x-sourceSha256": "7be0603b6c40ef172609549712c82f68208568bd3874ed44e0a822b320b66688"
   },
-  "settingsSyncDeviceRemoveBody": "Der Speicher behält die Kopie dieses Geräts von dem, was es geteilt hat, nicht länger, und das Gerät synchronisiert nicht mehr. Auf jenem Gerät wird nichts gelöscht, und auf deinem wird nichts gelöscht. Es kann sich später mit der Synchronisierungsphrase wieder mit diesem Speicher verbinden.",
+  "settingsSyncDeviceRemoveBody": "Der Speicher verwirft die Liste dieses Geräts über das, was es geteilt hat, und gibt den Platz frei, den es belegt hat. Auf jenem Gerät wird nichts gelöscht, und auf deinem wird nichts gelöscht. Das ist für ein Gerät gedacht, das wirklich weg ist: Entfernen trennt es nicht, also veröffentlicht ein noch laufendes Gerät seine Liste beim nächsten Synchronisieren erneut, und jedes Gerät kann sich mit der Synchronisierungsphrase wieder verbinden.",
   "@settingsSyncDeviceRemoveBody": {
-    "x-sourceSha256": "86fee0f332c2e9a006ad4321bf68e3fefaf121198bbcc0863d20de19246ac178"
+    "x-sourceSha256": "037bb8e581c8add340fefd329bf63a55076355ef7fa29d4aa8f400b053096b3b"
   },
   "settingsSyncDeviceRemoveAction": "Entfernen",
   "@settingsSyncDeviceRemoveAction": {
@@ -448,9 +448,13 @@
   "@settingsSyncWipeConfirmAction": {
     "x-sourceSha256": "295bf35e749e744ea715d9b91ebdeb23045b26e4ad24f4c138e2bca498605461"
   },
-  "settingsSyncWipeFailed": "Der Speicher konnte nicht gelöscht werden. Es wurde nichts geändert und dieses Gerät ist weiterhin verbunden; versuche es erneut.",
+  "settingsSyncWipeFailed": "Der Speicher konnte nicht gelöscht werden, oder die Löschung ließ sich nicht bestätigen. Dieses Gerät ist weiterhin verbunden. Prüfe deine anderen Geräte, bevor du es erneut versuchst.",
   "@settingsSyncWipeFailed": {
-    "x-sourceSha256": "d92d4e88e22770bf1ee00d53c29f050f8bcf7632dcd8a8f9eaa3ef875d003bce"
+    "x-sourceSha256": "f19f64fc8215946c6367ba858ba3517bd80ec370c67a1bfb67c296e8dab792cd"
+  },
+  "settingsSyncWipeDetachFailed": "Der Speicher wurde vom Server gelöscht, aber dieses Gerät konnte die Verbindung dazu nicht trennen. Der Speicher ist weg und lässt sich nicht zurückholen. Nutze Dieses Gerät trennen, um es abzuschließen.",
+  "@settingsSyncWipeDetachFailed": {
+    "x-sourceSha256": "ac763fba9e00e2a235a8877b2058b006c655d5e1afb26a7009b2a925794f173f"
   },
   "settingsSyncMeteredRouted": "Du nutzt mobile Daten und „Nur über WLAN synchronisieren“ ist an. Schalte diese Einstellung unten aus, um jetzt zu synchronisieren.",
   "@settingsSyncMeteredRouted": {

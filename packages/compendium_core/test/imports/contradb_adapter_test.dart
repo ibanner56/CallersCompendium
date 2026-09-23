@@ -10,6 +10,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
+import '../figures_support.dart';
 
 /// Fixtures + tests for [ContraDbAdapter].
 ///
@@ -65,7 +66,7 @@ Future<StructuredDraft> _importOne(String payload) async {
 }
 
 Figure _figureFor(StructuredDraft d, String move) =>
-    d.dance.figures.firstWhere((f) => f.move == move);
+    figuresOf(d.dance).firstWhere((f) => f.move == move);
 
 void main() {
   group('ContraDbAdapter', () {
@@ -169,7 +170,7 @@ void main() {
             ),
           ),
         );
-        final custom = draft.dance.figures.single;
+        final custom = figuresOf(draft.dance).single;
         expect(custom.isCustom, isTrue);
         expect(custom.params['text'], 'twirl!');
       });
@@ -241,7 +242,7 @@ void main() {
           // Falsification target: re-add the 'star promenade' _MoveMap entry in
           // `contradb_adapter.dart` and this test goes red.
           expect(
-            draft.dance.figures.any((f) => f.move == 'star_promenade'),
+            figuresOf(draft.dance).any((f) => f.move == 'star_promenade'),
             isFalse,
           );
         },
@@ -381,7 +382,7 @@ void main() {
             ),
           ),
         );
-        final fig = draft.dance.figures.single;
+        final fig = figuresOf(draft.dance).single;
         expect(fig.isCustom, isTrue);
         expect(fig.params['text'], contains('floop de doo'));
         expect(fig.params['beats'], 8);
@@ -408,7 +409,7 @@ void main() {
               ),
             ),
           );
-          final fig = draft.dance.figures.single;
+          final fig = figuresOf(draft.dance).single;
           expect(fig.isCustom, isTrue);
           expect(fig.params['text'], 'do a thing');
           expect(fig.params['beats'], 6);
@@ -427,7 +428,7 @@ void main() {
               ),
             ),
           );
-          final fig = draft.dance.figures.single;
+          final fig = figuresOf(draft.dance).single;
           expect(fig.params['text'], 'do a thing');
           expect(fig.params['beats'], 8);
         },
@@ -449,7 +450,7 @@ void main() {
             ),
           ),
         );
-        final figs = draft.dance.figures;
+        final figs = figuresOf(draft.dance);
         expect(figs[0].customOrigin, CustomOrigin.userEntered);
         expect(figs[1].customOrigin, CustomOrigin.importGap);
         expect(figs[2].customOrigin, CustomOrigin.importGap);
@@ -464,7 +465,7 @@ void main() {
           ImportRequest(payload: payload),
         );
         final draft = adapter.parse(await adapter.fetch(discovered.single));
-        final fig = draft.dance.figures.single;
+        final fig = figuresOf(draft.dance).single;
         expect(fig.params['text'], '(unreadable figure)');
         expect(fig.customOrigin, CustomOrigin.importGap);
       });
@@ -482,7 +483,7 @@ void main() {
           ),
         );
         expect(draft.quality.isFullyCustom, isTrue);
-        expect(draft.dance.figures.every((f) => f.isCustom), isTrue);
+        expect(figuresOf(draft.dance).every((f) => f.isCustom), isTrue);
         expect(draft.dance.title, 'All Custom');
       });
 

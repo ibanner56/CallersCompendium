@@ -388,7 +388,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncDeviceRemoveBody =>
-      'Der Speicher behält die Kopie dieses Geräts von dem, was es geteilt hat, nicht länger, und das Gerät synchronisiert nicht mehr. Auf jenem Gerät wird nichts gelöscht, und auf deinem wird nichts gelöscht. Es kann sich später mit der Synchronisierungsphrase wieder mit diesem Speicher verbinden.';
+      'Der Speicher verwirft die Liste dieses Geräts über das, was es geteilt hat, und gibt den Platz frei, den es belegt hat. Auf jenem Gerät wird nichts gelöscht, und auf deinem wird nichts gelöscht. Das ist für ein Gerät gedacht, das wirklich weg ist: Entfernen trennt es nicht, also veröffentlicht ein noch laufendes Gerät seine Liste beim nächsten Synchronisieren erneut, und jedes Gerät kann sich mit der Synchronisierungsphrase wieder verbinden.';
 
   @override
   String get settingsSyncDeviceRemoveAction => 'Entfernen';
@@ -418,7 +418,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncWipeFailed =>
-      'Der Speicher konnte nicht gelöscht werden. Es wurde nichts geändert und dieses Gerät ist weiterhin verbunden; versuche es erneut.';
+      'Der Speicher konnte nicht gelöscht werden, oder die Löschung ließ sich nicht bestätigen. Dieses Gerät ist weiterhin verbunden. Prüfe deine anderen Geräte, bevor du es erneut versuchst.';
+
+  @override
+  String get settingsSyncWipeDetachFailed =>
+      'Der Speicher wurde vom Server gelöscht, aber dieses Gerät konnte die Verbindung dazu nicht trennen. Der Speicher ist weg und lässt sich nicht zurückholen. Nutze Dieses Gerät trennen, um es abzuschließen.';
 
   @override
   String get settingsSyncMeteredRouted =>

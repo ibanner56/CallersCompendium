@@ -7,6 +7,7 @@ import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/screens/dance_editor/dance_editor_controller.dart';
 
 import 'support/test_repositories.dart';
+import 'figures_support.dart';
 
 /// Pure-Dart unit tests for [DanceEditorController]: they construct the
 /// controller directly (no widget tree) and drive its mutation methods to
@@ -610,7 +611,7 @@ void main() {
 
     // Saving without edits round-trips back to the same canonical storage.
     final rebuilt = controller.buildDance();
-    expect(rebuilt.figures.single.note, 'Open role2s chain to neighbor');
+    expect(figuresOf(rebuilt).single.note, 'Open role2s chain to neighbor');
   });
 
   test('buildDance canonicalizes a typed figure note before persistence '
@@ -627,7 +628,7 @@ void main() {
     controller.onTextEdited();
 
     final dance = controller.buildDance();
-    expect(dance.figures.last.note, 'Open role2s chain to neighbor');
+    expect(figuresOf(dance).last.note, 'Open role2s chain to neighbor');
   });
 
   test('a figure note typed as a legacy synonym canonicalizes to the correct '
@@ -653,7 +654,7 @@ void main() {
     controller.onTextEdited();
 
     final dance = controller.buildDance();
-    expect(dance.figures.last.note, 'role2s chain to neighbor');
+    expect(figuresOf(dance).last.note, 'role2s chain to neighbor');
   });
 
   test('a figure note round-trips canonical -> render -> canonicalize '
@@ -678,7 +679,7 @@ void main() {
     );
     await controller.load(dance: stored, fieldDefs: const []);
     final rebuilt = controller.buildDance();
-    expect(rebuilt.figures.single.note, canonicalNote);
+    expect(figuresOf(rebuilt).single.note, canonicalNote);
   });
 
   test(
@@ -702,7 +703,7 @@ void main() {
       expect(controller.figureDrafts.single.note, plainNote);
 
       final rebuilt = controller.buildDance();
-      expect(rebuilt.figures.single.note, plainNote);
+      expect(figuresOf(rebuilt).single.note, plainNote);
     },
   );
 
@@ -738,7 +739,7 @@ void main() {
       expect(group.meanwhileSides!.first.note, 'robins lead');
 
       final rebuilt = controller.buildDance();
-      expect(rebuilt.figures.single.subFigures.first.note, 'role2s lead');
+      expect(figuresOf(rebuilt).single.subFigures.first.note, 'role2s lead');
     },
   );
 
@@ -801,8 +802,8 @@ void main() {
 
     // And it survives assembly back into the immutable dance.
     final dance = controller.buildDance();
-    expect(dance.figures, hasLength(2));
-    expect(dance.figures.every((f) => f.assumedSubject), isTrue);
+    expect(figuresOf(dance), hasLength(2));
+    expect(figuresOf(dance).every((f) => f.assumedSubject), isTrue);
   });
 
   group('meanwhile grouping (#590/#593)', () {
@@ -893,8 +894,8 @@ void main() {
         // existing `_figures` getter already flattens via toFigure(), so this
         // falls out of the design without controller-side beat math.
         final dance = controller.buildDance();
-        expect(dance.figures, hasLength(2));
-        expect(dance.figures[0].isMeanwhile, isTrue);
+        expect(figuresOf(dance), hasLength(2));
+        expect(figuresOf(dance)[0].isMeanwhile, isTrue);
       },
     );
 
@@ -1140,7 +1141,7 @@ void main() {
       );
 
       expect(controller.figureDrafts, hasLength(1));
-      final built = controller.buildDance().figures.single;
+      final built = figuresOf(controller.buildDance()).single;
       expect(built.move, 'swing');
       expect(built.params['who'], 'neighbors');
       expect(built.customOrigin, CustomOrigin.userEntered);
@@ -1158,7 +1159,7 @@ void main() {
       );
 
       expect(controller.figureDrafts, hasLength(2));
-      final figures = controller.buildDance().figures;
+      final figures = figuresOf(controller.buildDance());
       expect(figures[0].move, 'circle');
       expect(figures[1].move, 'turn_alone');
     });
@@ -1174,7 +1175,7 @@ void main() {
       );
 
       expect(controller.figureDrafts, hasLength(1));
-      final built = controller.buildDance().figures.single;
+      final built = figuresOf(controller.buildDance()).single;
       expect(built.isCustom, isTrue);
       // The parser-gap origin is NOT laundered off by the editor round-trip,
       // so the saved custom keeps its #398 marker and stays reparse-eligible.
