@@ -133,6 +133,16 @@ class CustomFieldDefRepository {
           at: now,
         );
       }
+      if (localUserEdit) {
+        await cancelPendingSyncDeletionForLocalEdit(
+          _db,
+          kind: SyncRecordKind.customFieldDef,
+          recordId: id,
+          table: _db.customFieldDefs,
+          keyColumn: 'id',
+          at: now,
+        );
+      }
       return id;
     });
   }

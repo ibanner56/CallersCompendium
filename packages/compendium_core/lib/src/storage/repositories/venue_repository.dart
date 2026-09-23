@@ -108,6 +108,17 @@ class VenueRepository {
           at: now,
         );
       }
+      if (localUserEdit) {
+        await cancelPendingSyncDeletionForLocalEdit(
+          _db,
+          kind: SyncRecordKind.venue,
+          recordId: v.id,
+          table: _db.venues,
+          keyColumn: 'id',
+          at: now,
+        );
+      }
+
       // Provenance is a single dependent row keyed on the venue id: delete
       // then (re)insert so an update refreshes it and a venue that lost its
       // provenance drops the row. Mirrors ProgramRepository's provenance

@@ -610,6 +610,18 @@ class DanceRepository {
         keyColumn: 'id',
         key: dance.id,
       );
+      if (localUserEdit) {
+        await cancelPendingSyncDeletionForLocalEdit(
+          _db,
+          kind: SyncRecordKind.dance,
+          recordId: dance.id,
+          table: _db.dances,
+          keyColumn: 'id',
+          // The model carries this write's instant; there is no separately
+          // resolved `now` on this path.
+          at: dance.updatedAt,
+        );
+      }
     }
 
     if (writeRelations) {

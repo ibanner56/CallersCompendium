@@ -288,6 +288,17 @@ class DifficultyLevelRepository {
         at: now,
       );
     }
+    if (localUserEdit) {
+      await cancelPendingSyncDeletionForLocalEdit(
+        _db,
+        kind: SyncRecordKind.difficultyLevel,
+        recordId: normalized.id,
+        table: _db.difficultyLevels,
+        keyColumn: 'id',
+        at: now,
+      );
+    }
+
   }
 
   String _normalizeLabel(String raw) {

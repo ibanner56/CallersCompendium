@@ -76,6 +76,16 @@ class PublishedSourceRepository {
           at: now,
         );
       }
+      if (localUserEdit) {
+        await cancelPendingSyncDeletionForLocalEdit(
+          _db,
+          kind: SyncRecordKind.publishedSource,
+          recordId: s.id,
+          table: _db.publishedSources,
+          keyColumn: 'id',
+          at: now,
+        );
+      }
     });
   }
 

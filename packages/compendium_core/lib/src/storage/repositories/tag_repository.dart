@@ -143,6 +143,20 @@ class TagRepository {
           at: now,
         );
       }
+      // After the existence fixup, which owns the live/revived distinction.
+      // Keyed on `id`, the row actually written: a tombstoned natural-key
+      // match is adopted under its own id, and stamping `tag.id` would raise
+      // the wrong row (or none).
+      if (localUserEdit) {
+        await cancelPendingSyncDeletionForLocalEdit(
+          _db,
+          kind: SyncRecordKind.tag,
+          recordId: id,
+          table: _db.tags,
+          keyColumn: 'id',
+          at: now,
+        );
+      }
       return id;
     });
   }

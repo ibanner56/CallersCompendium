@@ -134,6 +134,17 @@ class ChoreographerRepository {
           at: now,
         );
       }
+      if (localUserEdit) {
+        await cancelPendingSyncDeletionForLocalEdit(
+          _db,
+          kind: SyncRecordKind.choreographer,
+          recordId: id,
+          table: _db.choreographers,
+          keyColumn: 'id',
+          at: now,
+        );
+      }
+
       if (authorIndexChanged) {
         await _refreshAuthorIndex(id);
       }
