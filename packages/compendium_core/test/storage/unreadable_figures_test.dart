@@ -78,60 +78,67 @@ void main() {
     });
   });
 
-  test('the rebuild completes for an undecodable row with NO skip recorded', () async {
-    // `[1,2,3]` normalises perfectly — it is valid JSON — so the normalisation
-    // pass records nothing for it. Any gate keyed on `normalisation_skips` is
-    // therefore blind to this row while the rebuild still has to read it. That
-    // asymmetry is why tolerance belongs at the decode site and not behind a
-    // skip-table check.
-    await repos.dances.create(sampleDance(id: 'd1', title: 'Corrupt'));
-    await repos.ensureMigrated();
-    await _storeRawFigures(db, 'd1', '[1,2,3]');
+  test(
+    'the rebuild completes for an undecodable row with NO skip recorded',
+    () async {
+      // `[1,2,3]` normalises perfectly — it is valid JSON — so the normalisation
+      // pass records nothing for it. Any gate keyed on `normalisation_skips` is
+      // therefore blind to this row while the rebuild still has to read it. That
+      // asymmetry is why tolerance belongs at the decode site and not behind a
+      // skip-table check.
+      await repos.dances.create(sampleDance(id: 'd1', title: 'Corrupt'));
+      await repos.ensureMigrated();
+      await _storeRawFigures(db, 'd1', '[1,2,3]');
 
-    expect(
-      await db.customSelect('SELECT 1 FROM normalisation_skips').get(),
-      isEmpty,
-      reason: 'precondition: this value is normalisable, so nothing is recorded',
-    );
+      expect(
+        await db.customSelect('SELECT 1 FROM normalisation_skips').get(),
+        isEmpty,
+        reason:
+            'precondition: this value is normalisable, so nothing is recorded',
+      );
 
-    await repos.dances.rebuildAllDerived();
+      await repos.dances.rebuildAllDerived();
 
-    expect(
-      await db
-          .customSelect(
-            'SELECT 1 FROM dance_fts WHERE dance_id = ?',
-            variables: [const Variable<String>('d1')],
-          )
-          .get(),
-      isNotEmpty,
-      reason: 'the dance keeps its title/FTS row so it stays findable',
-    );
-    expect(
-      await db
-          .customSelect(
-            'SELECT 1 FROM dance_figures WHERE dance_id = ?',
-            variables: [const Variable<String>('d1')],
-          )
-          .get(),
-      isEmpty,
-      reason: 'there are no figures to index',
-    );
-  });
+      expect(
+        await db
+            .customSelect(
+              'SELECT 1 FROM dance_fts WHERE dance_id = ?',
+              variables: [const Variable<String>('d1')],
+            )
+            .get(),
+        isNotEmpty,
+        reason: 'the dance keeps its title/FTS row so it stays findable',
+      );
+      expect(
+        await db
+            .customSelect(
+              'SELECT 1 FROM dance_figures WHERE dance_id = ?',
+              variables: [const Variable<String>('d1')],
+            )
+            .get(),
+        isEmpty,
+        reason: 'there are no figures to index',
+      );
+    },
+  );
 
-  test('an ordinary edit leaves an unreadable transcription untouched', () async {
-    const raw = '[{"kind":';
-    await repos.dances.create(sampleDance(id: 'd1', title: 'Before'));
-    await repos.ensureMigrated();
-    await _storeRawFigures(db, 'd1', raw);
+  test(
+    'an ordinary edit leaves an unreadable transcription untouched',
+    () async {
+      const raw = '[{"kind":';
+      await repos.dances.create(sampleDance(id: 'd1', title: 'Before'));
+      await repos.ensureMigrated();
+      await _storeRawFigures(db, 'd1', raw);
 
-    final loaded = await repos.dances.getById('d1');
-    await repos.dances.update(loaded!.copyWith(title: 'After'));
+      final loaded = await repos.dances.getById('d1');
+      await repos.dances.update(loaded!.copyWith(title: 'After'));
 
-    expect(await _storedFigures(db, 'd1'), raw);
-    final reloaded = await repos.dances.getById('d1');
-    expect(reloaded!.title, 'After');
-    expect(reloaded.figuresSource, isA<UnreadableFigures>());
-  });
+      expect(await _storedFigures(db, 'd1'), raw);
+      final reloaded = await repos.dances.getById('d1');
+      expect(reloaded!.title, 'After');
+      expect(reloaded.figuresSource, isA<UnreadableFigures>());
+    },
+  );
 
   test('a duplicate carries the stored transcription through', () async {
     const raw = '[1,2,3]';
