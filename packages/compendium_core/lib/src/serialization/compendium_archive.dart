@@ -9,6 +9,7 @@ import '../model/program.dart';
 import '../model/published_source.dart';
 import '../model/tag.dart';
 import '../model/venue.dart';
+import '../model/figure_source.dart';
 
 const ListEquality<Object?> _listEq = ListEquality<Object?>();
 
@@ -32,7 +33,7 @@ const ListEquality<Object?> _listEq = ListEquality<Object?>();
 /// * **v3** — adds ordered `difficultyLevels` and the stable
 ///   `dance.difficultyLevelId` relationship.
 /// * **v4** — adds the optional `programSlot.isPurgedDance` discriminator.
-const int archiveSchemaVersion = archiveSchemaVersionProgramSlotMarkers;
+const int archiveSchemaVersion = archiveSchemaVersionUnreadableFigures;
 
 /// The original, pre-venue archive envelope version.
 const int archiveSchemaVersionBase = 1;
@@ -47,6 +48,29 @@ const int archiveSchemaVersionDifficultyLevels = 3;
 
 /// The envelope version introduced for explicit text-only purge captions.
 const int archiveSchemaVersionProgramSlotMarkers = 4;
+
+/// The envelope version introduced for a dance whose stored transcription could
+/// not be decoded, carried verbatim in `figuresRaw` (#1347).
+///
+/// Stamped **only** on an archive that actually contains such a dance, per
+/// [requiredSchemaVersion]. That conditionality is the whole point: a library
+/// with no undecodable row still produces a v1-v4 archive, byte-identical to
+/// what earlier builds wrote, so upgrading the app does not push anyone's
+/// backups to a version their other installs cannot read.
+///
+/// **What an older reader does, and why the bump is what makes it safe.**
+/// A pre-v5 reader ignores `figuresRaw` (unknown keys are skipped) and reads
+/// the accompanying empty `figures` array. Without the bump that would be
+/// silent: `_figuresFromJson(null)` and an empty array both yield `const []`,
+/// so the dance would reconstruct as figureless and the restore would report
+/// success — the user's transcription dropped with no signal. With the bump,
+/// the same reader instead warns "archive schemaVersion 5 is newer than
+/// supported 4; reading known fields only" and the loss becomes visible.
+///
+/// So: the archive **file** is lossless — the bytes are in it, and a v5 reader
+/// reconstructs the case exactly. An older **reader** is not, and cannot be;
+/// the bump's job is to make that audible rather than silent.
+const int archiveSchemaVersionUnreadableFigures = 5;
 
 /// The minimum envelope version required to represent [archive] without silent
 /// data loss on an older reader: [archiveSchemaVersionProgramSlotMarkers] when
@@ -66,6 +90,12 @@ int requiredSchemaVersion(CompendiumArchive archive) {
   final hasPurgeMarker = archive.programs.any(
     (p) => p.slots.any((s) => s.isPurgedDance != null),
   );
+  // Checked first because it is the highest version: a single undecodable
+  // transcription anywhere in the archive requires v5 regardless of what else
+  // the archive carries.
+  if (archive.dances.any((d) => d.figuresSource is UnreadableFigures)) {
+    return archiveSchemaVersionUnreadableFigures;
+  }
   if (hasPurgeMarker) return archiveSchemaVersionProgramSlotMarkers;
   if (hasDifficulty) return archiveSchemaVersionDifficultyLevels;
   return archive.venues.isNotEmpty ||

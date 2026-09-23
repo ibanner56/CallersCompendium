@@ -2,6 +2,7 @@ import '../dialect/dialect.dart';
 import '../dialect/renderer.dart';
 import '../model/dance.dart';
 import '../model/enums.dart';
+import '../model/figure.dart';
 import '../model/figure_source.dart';
 import '../model/phrase_structure.dart';
 import '../taxonomy/contra_taxonomy.dart';
