@@ -146,7 +146,7 @@ allow-list; it reads `EgressClass`, and nothing outside `shareable` is
 serialised into a blob. A field added without classification fails CI, so it
 can never reach the network by omission. Protocol metadata is separate and
 travels under two classes this ADR adds below: `protocolIdentifier` for the
-device ID and `accessControlData` for the sync ID.
+device ID and `storeAddress` for the sync ID.
 
 ### Constraints
 
@@ -232,11 +232,15 @@ re-affirmed. The re-derivation is mine: the surviving legs carry it alone, and
 the residual risk clause is true today in a way it was not when first written,
 because the budget that bounds it is now reachable at all.
 
-**The sync ID is a bearer credential.** Anyone holding it has full read and
-write access to the collection. This is deliberate: it is what makes the design
-work with no accounts and no sign-in, and it is what allows two people to share
-a collection if they choose (below). It also means there is no recovery if it is
-lost and no revocation if it leaks.
+**The sync ID is the address of a shared store, not a credential.** Think of it
+as a path on the sync server, because that is how the server handles it: anyone
+holding it has full read and write access to the collection, and holding it is
+all that is required. This is deliberate: it is what makes the design work with
+no accounts and no sign-in, and it is what allows two people to share a
+collection if they choose (below) — a user is *expected* to hand the phrase to
+someone they want to sync with. It is therefore not a secret, and must not be
+described as one. It also means there is no recovery if it is lost and no
+revocation if it leaks.
 
 ### What the server holds
 
@@ -247,10 +251,10 @@ lost and no revocation if it leaks.
 ```
 
 `<idKey>` is `HMAC-SHA256(pepper, syncID)`, never the sync ID itself — see
-*Security* below, which requires that the plaintext credential is never
+*Security* below, which requires that the plaintext sync ID is never
 retained. The namespace is written as the derived key here so that a layout
-read in isolation cannot lead an implementer to persist the credential it is
-authenticating with.
+read in isolation cannot lead an implementer to persist the address it is
+resolving.
 
 A **manifest** maps **kind, then record id**, to content hashes. The two levels
 are normative (spec §4.3): record ids are unique only within their kind, so a
@@ -532,7 +536,7 @@ made:**
    entirely** — there is no recoverable list of previously-attached IDs. A
    salted, slow verifier set remains only to distinguish prior use of an ID
    from a first attach when the collection has disappeared; it cannot
-   reconstruct the credential and is not backed up or transmitted.
+   reconstruct the ID and is not backed up or transmitted.
 3. A previously used sync ID no longer exists server-side and the user confirms
    creation of a replacement.
 
@@ -629,15 +633,23 @@ and walkthrough snippets represent real work a user would hate to redo.
   that obliges a stated retention wherever the server records it, logs included,
   because `{deviceId}` sits in a request path and lands in ordinary access logs
   by default. Spec §3.3 and §7.3.
-- `accessControlData` → **a sixth class this programme adds**, for the sync ID
-  itself. It is not `deviceScoped` for the same reason the device ID is not — it
-  rides an `Authorization` header on every request — and it is not a protocol
-  identifier, because that class requires the value carry no user data by
-  construction while a sync ID may be user-chosen. It is the one class that
+- `storeAddress` → **a sixth class this programme adds**, for the sync ID
+  itself. The sync ID names *where* a shared store lives — in effect a path on
+  the sync server, which is how the server handles it — and it is Other User
+  Content. **It is not a credential, a key, a password or a secret**, and a user
+  is expected to hand it to another person so the two can sync together; the
+  bearer mechanics are an implementation detail of how the server addresses a
+  store. It is not `deviceScoped` for the same reason the device ID is not — it
+  travels on every request — and it is not a protocol identifier, because that
+  class requires the value carry no user data by construction while a sync ID
+  may be user-chosen. Nor is it `shareable`: that class is the switch every
+  serialiser reads, so filing an address there would put it in a record blob and
+  let a peer's value overwrite the local one. It is the one class that
   constrains the **recipient** rather than only the movement: never stored
   recoverably (only `HMAC-SHA256(pepper, syncID)`), never logged, never adopted,
-  never sent to any origin but the configured endpoint's. The harm is not that
-  it travelled but that it was kept. Spec §3.3.
+  never sent to any origin but the configured endpoint's — not because the
+  address is confidential, but because the operator has no use for the plaintext
+  and it names where a user keeps their library. Spec §3.3.
 - `derived` → never transmitted; rebuilt on arrival
 
 **There is no device-to-device channel.** `deviceLocal` data moves only by the
@@ -731,8 +743,8 @@ in its configuration.
 **Six requirements on whatever proxy is used.** These are conformance
 requirements, not deployment taste, and each has a concrete failure mode:
 
-- **`Authorization` must reach the backend unmodified.** The sync ID is a
-  bearer credential in that header (spec §5.1). A proxy that consumes or
+- **`Authorization` must reach the backend unmodified.** The sync ID travels as
+  the bearer token in that header (spec §5.1). A proxy that consumes or
   strips it makes every request `401` with no obvious cause. Apache's
   `mod_proxy_http` forwards it; the hazard is adding an auth directive to
   that vhost later, or fronting the service with CGI/FPM, which needs
@@ -976,7 +988,7 @@ makes self-hosting materially harder, which constraint 4 forbids.
   but merging is last-writer-wins with no attribution and no prompt. If two
   people edit the same dance, one edit disappears silently. This must be said at
   pairing time, not discovered.
-- **A bearer credential has no recovery and no revocation.** Lose the ID and the
+- **The sync ID has no recovery and no revocation.** Lose the ID and the
   store is unreachable; leak it and there is no way to take the ID back, so
   continuing to sync means moving to a new ID on every device. That alone does
   not answer the leak, because it leaves the old store readable by whoever holds

@@ -91,7 +91,7 @@ know exists.
 | `deviceLocal` | Must never reach project-operated infrastructure. Leaves only by a transfer the user deliberately initiates between their own devices, or in a local backup file they control |
 | `deviceScoped` | Never transmitted **by any route at all**, because the value is meaningless or actively wrong on another device — a window position, a per-device marker, a per-installation key. Distinct from `deviceLocal`: that is withheld for what it *contains*, this for what it *means*. |
 | `protocolIdentifier` | May travel as opaque protocol metadata to the configured endpoint, but carries no user data and is never adopted from a peer — here, the per-installation sync device ID |
-| `accessControlData` | May travel only as the authorization for the configured endpoint, but is never recoverably retained, logged, or adopted by the server or a proxy — here, the sync ID bearer credential |
+| `storeAddress` | Names *where* a shared store lives on the configured endpoint — in effect a path on the sync server. It travels only to that endpoint, is never serialised as record content, and is never recoverably retained, logged, or adopted by the server or a proxy — here, the sync ID. **Not a credential or a secret:** the user is expected to hand it to another person so the two can sync together |
 | `derived` | Never transmitted at all. Rebuildable from other fields on arrival, so sending it would be redundant as well as an extra copy to protect |
 
 ## Vocabulary

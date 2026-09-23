@@ -33,7 +33,7 @@ disagree, that section wins.
 | --- | --- |
 | **Device Sync** | The user-facing feature. |
 | **Athenaeum** | The store Device Sync talks to. Default `https://athenaeum.callerscompendium.com/`; user-editable. |
-| **sync ID** | Diceware passphrase identifying one store. A bearer credential. |
+| **sync ID** | Diceware passphrase naming one store — its address on the server. Classified `storeAddress`; not a credential or a secret. |
 | **device ID** | Random opaque base64url identifier minted per installation, on opt-in. Classified `protocolIdentifier`: it travels in manifest envelopes and request paths as an opaque routing key, and is **never adopted from a peer**. Not `deviceScoped`, which means never transmitted by any route. See "what `EgressClass` actually governs". |
 | **epoch** | Opaque 128-bit random value the server stamps on a sync ID at creation. |
 | **record** | One syncable row — a dance, program, tag, choreographer, published source, custom field def, difficulty level, venue, or a settings key. |
@@ -489,9 +489,9 @@ mention.
 The ruling instead: **protocol identifiers get a class of their own.** The enum
 gains a fifth member, `EgressClass.protocolIdentifier`, and `deviceScoped`
 returns to the wording it had before this design touched it. A later round added
-a sixth, `accessControlData`, for the sync ID itself — recorded below the table.
+a sixth, `storeAddress`, for the sync ID itself — recorded below the table.
 
-| | `deviceScoped` | `protocolIdentifier` | `accessControlData` |
+| | `deviceScoped` | `protocolIdentifier` | `storeAddress` |
 | --- | --- | --- | --- |
 | In a record blob | Never | Never | Never |
 | In a request path or envelope | Never | Yes, to the configured endpoint only | Yes, in `Authorization`, to that origin only |
@@ -500,8 +500,8 @@ a sixth, `accessControlData`, for the sync ID itself — recorded below the tabl
 | Retention | Local only | Stated, bounded, and disclosed | By server/proxy: never retained recoverably; never logged. Local persistence follows the settings classification. |
 
 A later Copilot round found that `sync_id` had the same defect the device ID
-had, one row down in the same table: it was `deviceScoped` while being the
-bearer credential on every request. The sentence that made it undeniable was one
+had, one row down in the same table: it was `deviceScoped` while travelling on
+every request. The sentence that made it undeniable was one
 written *in this design*, to close the previous finding — the egress table's new
 "a value a transport must carry to function is **not** this class and does not
 get an exception from it".
@@ -516,14 +516,33 @@ was rejected because it is the same *shape* as the scope carve-out the previous
 ruling had just removed, restored under a different name and for a different
 value.
 
-**The maintainer's ruling: a sixth class, `accessControlData`.** It earns its
-place on a property no other class expresses. Every other member answers whether
-a value may **move**; this one also constrains what the recipient may do with a
-value that has already arrived — never stored recoverably, never logged. The
-harm from a leaked credential is not that it travelled but that it was kept, and
-no egress class had a way to say that. In practice the class *collects* five
-rules this specification already contained, each attached to `sync_id`
-individually across four sections, with nothing naming what made them one set.
+**The maintainer's ruling: a sixth class.** It earns its place on a property no
+other class expresses. Every other member answers whether a value may **move**;
+this one also constrains what the recipient may do with a value that has
+already arrived — never stored recoverably, never logged. No egress class had a
+way to say that. In practice the class *collects* five rules this specification
+already contained, each attached to `sync_id` individually across four
+sections, with nothing naming what made them one set.
+
+**The class was first named `accessControlData`, and that name was wrong.** A
+later ruling settled what the value actually is: the sync ID is the *location*
+of a shared file store — think of it as a path on the sync server, because that
+is how the server handles it — and it is Other User Content. It is not a
+credential, a key, a password or a secret. A user is allowed and expected to
+hand it to another person so the two can sync together, and this design
+supports that case explicitly; the bearer mechanics are an implementation
+detail of how the server addresses a store, not a security classification. The
+member is therefore `EgressClass.storeAddress`.
+
+**The two recipient rules survive that reclassification, on their own reasons.**
+They were originally justified by saying the harm from a leaked credential is
+not that it travelled but that it was kept. That justification is gone; the
+rules are not. A store address is still user-chosen text that may carry
+personal content, it still names where one person's library lives, and the
+operator has no use for the plaintext because §5.1 addresses the store by an
+irreversible derivation. Retaining or printing it is retention without a
+purpose. A share location is not secret, but it is also not something to
+scatter through logs.
 
 Two properties of that table are the reason it is a class and not a footnote.
 The first is that a protocol identifier is **linkable** — it correlates every
@@ -555,19 +574,19 @@ than by prose around it.
 Every settings key Device Sync introduces is `deviceScoped`, with two
 exceptions — the two values the protocol itself puts on the wire.
 `sync_device_id` is `protocolIdentifier` for the reasons above: it must travel,
-and it must never be adopted. `sync_id` is `accessControlData`, because
-transmitting it *is* the authorisation for the request carrying it:
+and it must never be adopted. `sync_id` is `storeAddress`, because it names
+*where* the shared store lives and the protocol must present it to reach one:
 
 | Key | Why it must not travel |
 | --- | --- |
 | `sync_enabled` | Each installation opts in for itself. |
 | `sync_endpoint` | Syncing it would let one device silently redirect another. |
-| `sync_id` (`accessControlData`) | The bearer credential. It travels in an `Authorization` header on every request, but the server/proxy never stores it recoverably, logs it, or adopts it. Local persistence follows the settings classification, and it is never sent to any origin but the configured endpoint's — including across a redirect, which §8 permits only within that origin. |
+| `sync_id` (`storeAddress`) | The address of the shared store, not a credential. It travels in an `Authorization` header on every request, but the server/proxy never stores it recoverably, logs it, or adopts it — the operator has no use for the plaintext, and it names where a user keeps their library. Local persistence follows the settings classification, and it is never sent to any origin but the configured endpoint's — including across a redirect, which §8 permits only within that origin. Syncing it would be circular in any case: it is the address the sync is addressed to. |
 | `sync_device_id` (`protocolIdentifier`) | Travels as a routing key, but is never *adopted*: two devices sharing an ID collide in the manifest namespace. |
 | `sync_wifi_only` | A per-device network policy; a laptop and a phone want different answers. |
 | `sync_exclude_imports` | Governs what *this* device uploads. |
 | `sync_last_synced_at` | Local state. |
-| `sync_last_used_fingerprint` | Salted, slow credential verifiers used only to distinguish a previously used sync ID after detach. They are credential-derived, device-scoped, never transmitted or adopted, and excluded from backups. |
+| `sync_last_used_fingerprint` | Salted, slow verifiers used only to distinguish a previously used sync ID after detach. Salted and slow so the marker cannot be turned back into the address it stands for. Device-scoped, never transmitted or adopted, and excluded from backups. |
 
 The rule is simple enough to state as one: **sync configuration is never itself
 synced** — `sync_device_id` included, which travels as a routing key without
@@ -3037,7 +3056,7 @@ sync ID entirely, so re-enabling is a fresh attach.
    recoverable list of previously-attached IDs is kept. A salted, slow local
    verifier set remains only to distinguish prior use of an ID from a first
    attach when the collection has disappeared; it cannot reconstruct the
-   credential and is not backed up or transmitted.
+   ID and is not backed up or transmitted.
 4. Upload every local record; download every remote record. **Inbound rejection
    applies here as in steady state** — a blob whose `existenceAt` or `updatedAt`
    is out of window is refused and reported, rather than admitted because this is
@@ -3921,7 +3940,7 @@ not the store's, holding exactly two things:
 | `accessed_at` | Timestamp. Retained. |
 
 The derived storage path is recorded rather than the plaintext for a specific
-reason: the sync ID is a bearer credential, and the store already avoids holding
+reason: the sync ID names a user's store, and the store already avoids holding
 it in the clear so that a stolen copy yields nothing usable. A plaintext access
 log would undo exactly that, and would be worse than the store, because the log
 is meant to outlive the stores it describes. Correlation is unaffected — to find
@@ -4036,7 +4055,8 @@ sync ID.
 ### An attacker who has a sync ID
 
 ...can read, modify and delete the whole collection. That is inherent to a
-bearer credential with no accounts, and ADR-004 accepts it. Mitigations are
+single store address that is also the whole capability, with no accounts, and
+ADR-004 accepts it. Mitigations are
 about making acquisition hard, not about limiting the blast radius:
 
 - Generated IDs are four EFF-wordlist words, ~2⁵². At 1,000 guesses/second an
@@ -4069,7 +4089,7 @@ about making acquisition hard, not about limiting the blast radius:
   lockout from the user's own data, indistinguishable from an outage. Scoring
   the raw string rather than the normalised one is the same bug in miniature —
   it credits case and Unicode differences that normalisation collapses before
-  the HMAC, and so reports strength the credential does not have. Maintainer's
+  the HMAC, and so reports strength the ID does not have. Maintainer's
   ruling; the structural rule is what stops `isaac-banner-dances`.
 - The ID never appears in a URL, so it does not reach logs or `Referer`.
 - The server stores only `HMAC-SHA256(pepper, syncID)`, with the pepper in
@@ -4086,7 +4106,7 @@ as plainly as the read case. `PUT /v1/manifests/{deviceId}` accepts a
 `DELETE /v1/store`. So anyone holding the sync ID can publish a manifest as
 another device, or destroy the entire store.
 
-This is inherent to "one credential, no accounts", which ADR-004 chose knowingly.
+This is inherent to "one address, no accounts", which ADR-004 chose knowingly.
 It is not mitigated here; it is disclosed, because the write case destroys data
 while the read case only exposes it. A user sharing a sync ID with a second
 person is granting exactly this.
@@ -5317,7 +5337,7 @@ and the design says so in expected findings per year. The HMAC-versus-bare-hash
 argument moves the
 other way and is now *stronger*: a chosen ID may sit below 2⁴⁰, which makes the
 derived identifier the only thing between a leaked database and a working
-credential.
+sync ID.
 
 The score is also now computed over the **normalised** ID. Scoring the raw
 string was the same bug in miniature — it credits case and Unicode distinctions
