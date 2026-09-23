@@ -446,12 +446,25 @@ void main() {
       // settings value at all, so a guard under that mutation could never
       // fail (#1383).
       //
-      // The claim rests entirely on the hash constraint, which until now
-      // nothing exercised — the `42` case above is caught by the string check
-      // in front of it. Relaxing `_validateHash` to "any non-empty string"
-      // would leave the suite green and the spec sentence false, so pin it at
-      // both ends: construction rejects with `ArgumentError`, decoding with
-      // `FormatException`.
+      // What the two expectations below pin, exactly, so this is not read as
+      // more than it is: the RECORD-VALUE slot, at both ends — construction
+      // rejects a non-hash string with `ArgumentError`, decoding with
+      // `FormatException`. That one slot is pinned here because it was the one
+      // the codec constrains and nothing exercised: the `42` case above never
+      // reaches the hash check, because the string check in front of it throws
+      // first, so relaxing `_validateHash` to "any non-empty string" left the
+      // suite green.
+      //
+      // The other three slots are not pinned here and do not belong here. `v`
+      // and `writtenAt` are already covered above. `deviceId` and `epoch` are
+      // free-form strings by design — the wire format does not constrain them,
+      // and inventing a constraint in the codec would assert something the
+      // protocol does not say. What keeps a `storeAddress` out of them is that
+      // the caller passes neither: `SyncCoordinator` holds `syncId` and
+      // `deviceId` as separate fields and only ever passes `deviceId`
+      // (`app/lib/src/sync/sync_coordinator.dart`), and `epoch` comes back from
+      // the server. That is a coordinator-level property, so it is argued in
+      // the PR rather than asserted here.
       expect(
         () => SyncManifest(
           deviceId: 'device-1',
