@@ -1915,9 +1915,33 @@ device indefinitely, and the user is not told why. See the Consequences section.
 **A local edit cancels the pending tombstone.** If the user on the holding
 device edits the entity while a deletion is pending, that is a deliberate act on
 a record they can see, and it revives the entity: the tombstone is discarded and
-the row is republished as live. Without this rule the mechanism has a hole,
-because the edit would be published anyway, advance `updatedAt`, out-rank the
-tombstone and resurrect the entity through the back door.
+the row is republished as live.
+
+The hole this closes is the opposite of the one an earlier draft of this
+paragraph described. That draft said the edit "would be published anyway,
+advance `updatedAt`, out-rank the tombstone and resurrect the entity through
+the back door" — but a pending-held record is advertised *as the tombstone*
+(see below), so the edit is never published at all. What actually happens
+without the rule is that the deferred deletion lands when the last citation
+goes and overlays the retained tombstone body onto the edited row: the user's
+work is destroyed, silently, and the record is deleted. Issue #1356 reported
+exactly that. The rule is therefore about not discarding a deliberate edit, not
+about preventing an accidental resurrection.
+
+Because the held tombstone is never written to the local row, the cancelling
+stamp must be floored against the *tombstone's* `existenceAt` and not only
+against the row's own. Flooring against the row alone yields the bare clock,
+and a device whose clock is behind the deleting peer's would stamp at or below
+the tombstone it is cancelling — which the equal-`existenceAt` rule resolves in
+the tombstone's favour, undoing the cancellation on the next pass. The same
+floor applies to an explicit restore of a record that was locally deleted while
+a hold was in place.
+
+The gate is the **provenance** of the write, so the deliberate edit has to be
+declared by the caller rather than inferred: the same repository entry points
+serve imports, archive restore and automatic writes such as reverse-link
+back-population, and any of those cancelling a hold would silently reverse
+another device's deletion of a record the user never opened.
 
 **An inbound revival that out-ranks it cancels it too.** Where a peer's live
 copy wins the `existenceAt` comparison against the held tombstone, the deferred

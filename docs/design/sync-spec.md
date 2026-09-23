@@ -2188,6 +2188,20 @@ above that tombstone by construction, so it cannot tie with it — leaving only
 genuinely concurrent transitions on two devices that have not yet seen each
 other's, within one tick of each other.
 
+**"By construction" holds only where the tombstone was applied to the row.** A
+tombstone held pending under §6.8 is deliberately *not* written to the row, so
+the row's `existenceAt` is still its pre-deletion value and the causal floor
+carries no knowledge of the tombstone at all. Cancelling such a hold MUST
+therefore floor explicitly against the held tombstone's own `existenceAt`,
+taking `max(localNow, currentExistenceAt + 1 tick, heldExistenceAt + 1 tick)`.
+Flooring against the row alone yields the bare clock, and a device whose clock
+is behind the deleting peer's — or one that deletes, syncs and edits inside a
+single tick — would stamp at or below the tombstone it is cancelling, which
+this section then resolves in the tombstone's favour. The floor MUST be read
+from the retained tombstone blob, never from `pending_deletions.tombstoned_at`,
+for the reason given below: `deletedAt` is a state indicator, never a second
+comparand.
+
 This rule MUST be applied on every path that can decide existence:
 
 | Path | Requirement |
@@ -2635,7 +2649,27 @@ A pending tombstone is cancelled by exactly two things, and by nothing else.
 
 **A deliberate local user edit**, gated on `existenceAt` per §6.4 — never on a
 newer `updatedAt`, since several sync mechanisms advance that without user
-involvement.
+involvement. This includes editing a row that is live *because* it is held: a
+held row never reaches Recently Deleted, so an explicit restore can never be
+the cancellation for it, and without this the deferred deletion later overlays
+the retained tombstone body onto the edited row and discards the user's work.
+The cancellation is an existence decision and MUST stamp under §6.4's held-hold
+floor above.
+
+Because "deliberate" is a property of the write's **provenance** and not of its
+result, an implementation MUST NOT infer it. A record write that reaches the
+same code path from an import, an archive restore, reconciliation, a reference
+rewrite, a normalisation pass, or automatic derivation of one record from
+another MUST NOT cancel a hold, however recent the `updatedAt` it produces.
+
+Provenance is decided by where the written **content** comes from, not by which
+gesture triggered the write. A user-initiated action that replaces a record's
+fields from an external source — re-importing one record's choreography, say —
+is an import for this purpose and MUST NOT cancel, even though a person asked
+for it. Reading it the other way round would let any deletion be reversed by
+content the user never authored, which is the asymmetry this rule exists to
+prevent; the user's own edit afterwards still cancels, because that write is
+authored.
 
 **An inbound revival that outranks it.** Where a peer's live copy wins the
 §6.4 existence comparison against the pending tombstone, the deferred deletion

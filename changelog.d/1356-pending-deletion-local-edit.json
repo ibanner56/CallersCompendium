@@ -1,0 +1,14 @@
+{
+  "id": "1356-pending-deletion-local-edit",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Editing a record that another device has deleted, but that this device still uses, now keeps your edit and cancels the pending deletion. Previously the edit was discarded and the record was deleted once nothing referenced it any more."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "A deliberate local edit cancels a held sync tombstone (sync-spec 6.8), stamping existence strictly above the held tombstone rather than only above the row's own value. Explicit restores use the same floor."
+    ]
+  }
+}

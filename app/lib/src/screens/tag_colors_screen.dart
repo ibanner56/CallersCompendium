@@ -91,7 +91,7 @@ class _TagColorsScreenState extends State<TagColorsScreen> {
       // minted here. Tombstone adoption cannot fire, so the returned id is
       // always identical to updated.id.
       // ignore: unused_result
-      await _repos.tags.upsert(updated);
+      await _repos.tags.upsert(updated, localUserEdit: true);
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'tag_colors_screen._setColor');
       if (!mounted) return;

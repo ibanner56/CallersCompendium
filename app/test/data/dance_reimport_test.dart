@@ -6,6 +6,84 @@ import 'package:flutter_test/flutter_test.dart';
 import '../support/test_repositories.dart';
 
 void main() {
+  test('a re-import does not cancel a peer\'s pending deletion', () async {
+    // sync-spec 6.8 gates cancellation on the write's provenance, and
+    // provenance is about where the content comes from rather than who asked
+    // for it. A re-import is user-initiated but writes the *source's*
+    // choreography, so it must not cancel a held tombstone: doing so would
+    // resurrect a dance a peer deleted on the strength of imported content.
+    // Copilot caught this opted in on #1374. The user still has a clean path -
+    // editing the dance afterwards is authored, and does cancel.
+    final repos = openTestRepositories();
+    final stamp = DateTime.utc(2026);
+    final held = DateTime.utc(2026, 6, 15, 12);
+
+    final original = Dance(
+      id: 'saved',
+      title: 'My edited title',
+      figures: [
+        testFigure(move: customMove, params: {'text': 'old'}),
+      ],
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+    await repos.dances.create(original);
+    // A program slot is a citation, so the peer's tombstone is held rather
+    // than applied and the row stays live and re-importable.
+    await repos.programs.create(
+      Program(
+        id: 'citing-program',
+        title: 'Citing program',
+        slots: [ProgramSlot(id: 'slot', position: 0, danceId: 'saved')],
+        createdAt: stamp,
+        updatedAt: stamp,
+      ),
+    );
+    await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.dance,
+            id: 'saved',
+            updatedAt: held,
+            deletedAt: held,
+            existenceAt: held,
+            body: syncBodyForEntity(SyncRecordKind.dance, original),
+          ),
+        ),
+      ],
+      storage: CompendiumSyncStorage(repos),
+    );
+    expect(await repos.syncLocal.listPendingDeletions(), hasLength(1));
+
+    expect(
+      await replaceDanceChoreography(
+        repos,
+        targetDanceId: original.id,
+        incoming: Dance(
+          id: 'remote',
+          title: 'Remote title',
+          figures: [
+            testFigure(move: customMove, params: {'text': 'new'}),
+          ],
+          createdAt: stamp,
+          updatedAt: stamp,
+        ),
+        expectedUpdatedAt: original.updatedAt,
+        now: DateTime.utc(2026, 7),
+      ),
+      DanceReimportResult.replaced,
+    );
+
+    expect(
+      await repos.syncLocal.listPendingDeletions(),
+      hasLength(1),
+      reason:
+          'the re-import writes imported content, so it must leave the hold '
+          'for a later authored edit to cancel',
+    );
+  });
+
   test(
     're-import preserves collection metadata and replaces choreography',
     () async {

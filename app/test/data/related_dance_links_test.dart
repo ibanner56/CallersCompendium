@@ -36,6 +36,75 @@ DanceLink _related(
 );
 
 void main() {
+  test(
+    'only the edited dance cancels a pending tombstone, not its co-links',
+    () async {
+      // sync-spec 6.8 cancels a held tombstone on "a deliberate local user
+      // edit". This one function performs two writes that are not alike: the
+      // dance the user actually edited, and every other dance whose reverse
+      // link it back-populated. Cancelling for the second kind would reverse a
+      // peer's deletion of a record the user never opened, which ADR-004 ranks
+      // as the worst outcome in this design. Issue #1356.
+      final repos = openTestRepositories();
+      final held = DateTime.utc(2025, 6, 15, 12);
+
+      await repos.dances.create(_dance(id: 'target'));
+      await repos.dances.create(_dance(id: 'source'));
+
+      // Hold a tombstone for each dance. `_hasCitation` counts a program slot
+      // as a citation, so both stay live locally with the deletion deferred.
+      await repos.programs.create(
+        Program(
+          id: 'citing-program',
+          title: 'Citing program',
+          slots: [
+            ProgramSlot(id: 'slot-source', position: 0, danceId: 'source'),
+            ProgramSlot(id: 'slot-target', position: 1, danceId: 'target'),
+          ],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+      final storage = CompendiumSyncStorage(repos);
+      for (final id in const ['source', 'target']) {
+        final dance = (await repos.dances.getById(id))!;
+        await const SyncApplyEngine().apply(
+          candidates: [
+            SyncMergeCandidate(
+              blob: SyncRecordBlob(
+                kind: SyncRecordKind.dance,
+                id: id,
+                updatedAt: held,
+                deletedAt: held,
+                existenceAt: held,
+                body: syncBodyForEntity(SyncRecordKind.dance, dance),
+              ),
+            ),
+          ],
+          storage: storage,
+        );
+      }
+      expect(await repos.syncLocal.listPendingDeletions(), hasLength(2));
+
+      // The user edits `source`, which back-populates a reverse link onto
+      // `target` without anyone opening it.
+      await saveDanceWithRelatedLinks(
+        repos,
+        dance: _dance(id: 'source', links: [_related('source-link', 'target')]),
+        original: _dance(id: 'source'),
+      );
+
+      final remaining = await repos.syncLocal.listPendingDeletions();
+      expect(
+        remaining.map((row) => row.recordId),
+        ['target'],
+        reason:
+            'the edited dance releases its hold; the co-linked dance, whose '
+            'write this function generated, must keep its own',
+      );
+    },
+  );
+
   test('adds a reciprocal link when saving a new relation', () async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'target'));

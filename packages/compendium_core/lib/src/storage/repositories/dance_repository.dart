@@ -460,7 +460,18 @@ class DanceRepository {
 
   Future<void> create(Dance dance) => _upsert(dance);
 
-  Future<void> update(Dance dance) => _upsert(dance);
+  /// Writes an existing dance.
+  ///
+  /// Pass `localUserEdit: true` only when the person using the app deliberately
+  /// edited this dance: that cancels a peer's pending tombstone for it
+  /// (sync-spec §6.8, [cancelPendingSyncDeletionForLocalEdit]). It defaults to
+  /// false because imports, archive restore and automatic writes share this
+  /// method, and a cancellation they did not intend reverses a peer's deletion.
+  ///
+  /// [create] takes no such flag on purpose: a dance being created carries an
+  /// id no peer has tombstoned, so there is never a hold for it to cancel.
+  Future<void> update(Dance dance, {bool localUserEdit = false}) =>
+      _upsert(dance, localUserEdit: localUserEdit);
 
   /// Persists a validated peer body without taxonomy migration side effects.
   ///
@@ -504,6 +515,7 @@ class DanceRepository {
     bool writeParent = true,
     bool writeRelations = true,
     bool rebuildDerived = true,
+    bool localUserEdit = false,
   }) => _db.transaction(() async {
     assertUtc(dance.createdAt, 'dance.createdAt');
     assertUtc(dance.updatedAt, 'dance.updatedAt');
@@ -598,6 +610,18 @@ class DanceRepository {
         keyColumn: 'id',
         key: dance.id,
       );
+      if (localUserEdit) {
+        await cancelPendingSyncDeletionForLocalEdit(
+          _db,
+          kind: SyncRecordKind.dance,
+          recordId: dance.id,
+          table: _db.dances,
+          keyColumn: 'id',
+          // The model carries this write's instant; there is no separately
+          // resolved `now` on this path.
+          at: dance.updatedAt,
+        );
+      }
     }
 
     if (writeRelations) {
@@ -1320,10 +1344,13 @@ class DanceRepository {
     final restored = await getById(id, includeDeleted: true);
     if (restored != null) await _rebuildDerived(restored);
     if (clearPending) {
-      await clearPendingSyncDeletion(
+      await clearPendingSyncDeletionForRestore(
         _db,
         kind: SyncRecordKind.dance,
         recordId: id,
+        table: _db.dances,
+        keyColumn: 'id',
+        at: at,
       );
     }
   });
@@ -1821,6 +1848,7 @@ class DanceRepository {
             clearDifficultyLevel: target == null,
             updatedAt: now,
           ),
+          localUserEdit: true,
         );
         changed++;
       }
@@ -1889,6 +1917,7 @@ class DanceRepository {
             clearRating: target == null,
             updatedAt: now,
           ),
+          localUserEdit: true,
         );
         changed++;
       }
@@ -1938,7 +1967,10 @@ class DanceRepository {
         // Append-only: an unchanged length means every addition was already
         // present, so there is nothing to write.
         if (next.length == current.length) continue;
-        await _upsert(dance.copyWith(tunes: next, updatedAt: now));
+        await _upsert(
+          dance.copyWith(tunes: next, updatedAt: now),
+          localUserEdit: true,
+        );
         changed++;
       }
       return changed;
@@ -1962,7 +1994,10 @@ class DanceRepository {
         final dance = await getById(id);
         if (dance == null) continue;
         if (dance.tunes.isEmpty) continue;
-        await _upsert(dance.copyWith(tunes: const [], updatedAt: now));
+        await _upsert(
+          dance.copyWith(tunes: const [], updatedAt: now),
+          localUserEdit: true,
+        );
         changed++;
       }
       return changed;
@@ -2015,7 +2050,10 @@ class DanceRepository {
             if (f.fieldId != def.id) f,
           incoming,
         ];
-        await _upsert(dance.copyWith(customFields: next, updatedAt: now));
+        await _upsert(
+          dance.copyWith(customFields: next, updatedAt: now),
+          localUserEdit: true,
+        );
         changed++;
       }
       return changed;
@@ -2050,7 +2088,10 @@ class DanceRepository {
           for (final f in current)
             if (f.fieldId != fieldId) f,
         ];
-        await _upsert(dance.copyWith(customFields: next, updatedAt: now));
+        await _upsert(
+          dance.copyWith(customFields: next, updatedAt: now),
+          localUserEdit: true,
+        );
         changed++;
       }
       return changed;
@@ -2132,6 +2173,11 @@ class DanceRepository {
           taxonomy: _taxonomy,
         );
         if (outcome.upgradedCount == 0) continue;
+        // Deliberately no `localUserEdit`, unlike every sibling batch method
+        // here. The user asks for the reparse, but what it writes is a pure
+        // re-derivation of existing stored content — the same class as the
+        // normalisation passes §6.8 excludes from cancelling a pending
+        // tombstone. Nothing here is content the user authored.
         await _upsert(dance.copyWith(figures: outcome.figures, updatedAt: now));
         changed++;
       }
