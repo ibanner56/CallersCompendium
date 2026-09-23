@@ -49,10 +49,22 @@ class DifficultyLevelRepository {
   }
 
   /// Inserts or updates a vocabulary entry without changing its stable ID.
-  Future<void> upsert(DifficultyLevel level, {DateTime? at}) async {
+  ///
+  /// Pass `localUserEdit: true` only when the person using the app deliberately
+  /// edited this record: that cancels a peer's pending tombstone for it
+  /// (sync-spec §6.8, [cancelPendingSyncDeletionForLocalEdit]). It defaults to
+  /// false because imports, archive restore and automatic writes share this
+  /// method, and a cancellation they did not intend reverses a peer's deletion.
+  Future<void> upsert(
+    DifficultyLevel level, {
+    DateTime? at,
+    bool localUserEdit = false,
+  }) async {
     final normalized = level.copyWith(label: _normalizeLabel(level.label));
     final now = resolveStamp(at);
-    await _db.transaction(() => _upsertInTransaction(normalized, now));
+    await _db.transaction(
+      () => _upsertInTransaction(normalized, now, localUserEdit: localUserEdit),
+    );
   }
 
   /// Applies a validated inbound sync record.
@@ -204,10 +216,13 @@ class DifficultyLevelRepository {
       deleted: false,
     );
     if (clearPending) {
-      await clearPendingSyncDeletion(
+      await clearPendingSyncDeletionForRestore(
         _db,
         kind: SyncRecordKind.difficultyLevel,
         recordId: id,
+        table: _db.difficultyLevels,
+        keyColumn: 'id',
+        at: at,
       );
     }
   });
@@ -242,6 +257,7 @@ class DifficultyLevelRepository {
     DifficultyLevel normalized,
     DateTime now, {
     bool seedExistence = true,
+    bool localUserEdit = false,
   }) async {
     final duplicateRows = (await _db.select(_db.difficultyLevels).get())
         .where(
@@ -272,6 +288,16 @@ class DifficultyLevelRepository {
         table: _db.difficultyLevels,
         keyColumn: 'id',
         key: normalized.id,
+        at: now,
+      );
+    }
+    if (localUserEdit) {
+      await cancelPendingSyncDeletionForLocalEdit(
+        _db,
+        kind: SyncRecordKind.difficultyLevel,
+        recordId: normalized.id,
+        table: _db.difficultyLevels,
+        keyColumn: 'id',
         at: now,
       );
     }

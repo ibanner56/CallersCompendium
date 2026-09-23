@@ -376,6 +376,82 @@
   "@settingsSyncDisconnectFailed": {
     "x-sourceSha256": "23a506ff584ec8b81da1a4dfdefe90d6572957feabcfee2aa2614e3b68b0b3c8"
   },
+  "settingsSyncDevicesTitle": "Andere apparaten",
+  "@settingsSyncDevicesTitle": {
+    "x-sourceSha256": "4e027dbb70b262fc7f99d829e4b5627a44811381c5f630afbdb415bb9e688514"
+  },
+  "settingsSyncDevicesSubtitle": "Bekijk wat er nog meer met deze opslag verbonden is, en verwijder een apparaat dat je niet meer gebruikt.",
+  "@settingsSyncDevicesSubtitle": {
+    "x-sourceSha256": "7e22abc062361f41877090af0c6aceb7a0a6bd5b0fc1ca93600c7688d68bd7ea"
+  },
+  "settingsSyncDevicesScreenTitle": "Andere apparaten",
+  "@settingsSyncDevicesScreenTitle": {
+    "x-sourceSha256": "4e027dbb70b262fc7f99d829e4b5627a44811381c5f630afbdb415bb9e688514"
+  },
+  "settingsSyncDevicesCaution": "De server kent elk apparaat alleen aan een identificatie die hij zelf heeft bedacht, dus er staan hier geen apparaatnamen en dit apparaat staat niet in de lijst. Weet je niet zeker welk apparaat je moet verwijderen, dan kun je het veilig laten staan: een apparaat dat je verwijdert, kan met de synchronisatiezin opnieuw verbinden.",
+  "@settingsSyncDevicesCaution": {
+    "x-sourceSha256": "88b8e650ef9354688da2a359b0300257622ba39c1f88eca6b34d489fb276ca0d"
+  },
+  "settingsSyncDevicesEmpty": "Er zijn geen andere apparaten met deze opslag verbonden.",
+  "@settingsSyncDevicesEmpty": {
+    "x-sourceSha256": "f56e6ab00b608c84434889f700c88b081f2e83a805da979cc33f524f9e2739d2"
+  },
+  "settingsSyncDevicesFailed": "Kan de apparatenlijst niet laden. Controleer je verbinding en probeer het opnieuw.",
+  "@settingsSyncDevicesFailed": {
+    "x-sourceSha256": "27aa616f092b6506087586d1173cc91446b51b6b80fa0bd4b82875a53f9830ad"
+  },
+  "settingsSyncDevicesStoreMissing": "Deze opslag staat niet meer op de server, dus er zijn geen apparaten om te tonen.",
+  "@settingsSyncDevicesStoreMissing": {
+    "x-sourceSha256": "4390292ce9be0068bfed9c87d58bfbe87531e0d889d5d301900fce80d20f3dd2"
+  },
+  "settingsSyncDevicesRetry": "Opnieuw proberen",
+  "@settingsSyncDevicesRetry": {
+    "x-sourceSha256": "d8b8392e2c542950ca64867168e4ef87d4ad606882d5898f826b51c6d553988f"
+  },
+  "settingsSyncDeviceRemoveTooltip": "Dit apparaat verwijderen",
+  "@settingsSyncDeviceRemoveTooltip": {
+    "x-sourceSha256": "2c0bb958c741ab75e2742645d3404fc768ca628ddc6fb96ef49f6c8b4a7ea9c2"
+  },
+  "settingsSyncDeviceRemoveTitle": "Dit apparaat verwijderen?",
+  "@settingsSyncDeviceRemoveTitle": {
+    "x-sourceSha256": "7be0603b6c40ef172609549712c82f68208568bd3874ed44e0a822b320b66688"
+  },
+  "settingsSyncDeviceRemoveBody": "De opslag bewaart de kopie van wat dit apparaat heeft gedeeld niet langer, en het apparaat stopt met synchroniseren. Er wordt niets van dat apparaat verwijderd, en er wordt niets van het jouwe verwijderd. Het kan later met de synchronisatiezin opnieuw verbinding maken met deze opslag.",
+  "@settingsSyncDeviceRemoveBody": {
+    "x-sourceSha256": "86fee0f332c2e9a006ad4321bf68e3fefaf121198bbcc0863d20de19246ac178"
+  },
+  "settingsSyncDeviceRemoveAction": "Verwijderen",
+  "@settingsSyncDeviceRemoveAction": {
+    "x-sourceSha256": "c3812fc4acb861d5182fc2b8155f327f736fbe5e5eb86a7bd7afcb6dc5497282"
+  },
+  "settingsSyncDeviceRemoveFailed": "Kan dat apparaat niet verwijderen. Het is nog steeds verbonden; probeer het opnieuw.",
+  "@settingsSyncDeviceRemoveFailed": {
+    "x-sourceSha256": "9c18cbeb27eb7f6e81512ea44358b1d2c8bc73a52f87327c7afc0ea6cd57a0a9"
+  },
+  "settingsSyncWipeTitle": "Alle apparaten loskoppelen en de opslag verwijderen",
+  "@settingsSyncWipeTitle": {
+    "x-sourceSha256": "6b898192c6e79737c778cddb43dfeff4f227bd337b64a71c9ab19f092a36ee51"
+  },
+  "settingsSyncWipeSubtitle": "Verwijder alles wat deze opslag bevat, voor alle apparaten tegelijk. Dit kan niet ongedaan worden gemaakt.",
+  "@settingsSyncWipeSubtitle": {
+    "x-sourceSha256": "4afc7519f58143b0808aeab3027bf885e304aed84c60a8cb295ad29ab12f3248"
+  },
+  "settingsSyncWipeConfirmTitle": "Deze opslag van de server verwijderen?",
+  "@settingsSyncWipeConfirmTitle": {
+    "x-sourceSha256": "77701b6008c7d87383a3c1c7c4316c52219e81baddc39c3438c1879315408645"
+  },
+  "settingsSyncWipeConfirmBody": "Alles wat de opslag bevat wordt van de server verwijderd, voor alle apparaten tegelijk, en dit kan niet ongedaan worden gemaakt. Je bibliotheek blijft op dit apparaat en op elk van je andere apparaten staan — maar alles wat alleen via synchronisatie op een ander apparaat terecht was gekomen, komt hier niet aan. Dit apparaat wordt losgekoppeld en vergeet zijn synchronisatiezin; je andere apparaten zullen bij de volgende synchronisatie merken dat de opslag weg is en vragen of er een nieuwe moet komen. Gebruik dit als iemand anders je synchronisatiezin heeft gezien: het is het enige dat meteen weghaalt wat die persoon kan lezen.",
+  "@settingsSyncWipeConfirmBody": {
+    "x-sourceSha256": "4d32b4cd7be210b3280e49bc954adf9a14e397ffe46431644f05b822ad637f89"
+  },
+  "settingsSyncWipeConfirmAction": "Opslag verwijderen",
+  "@settingsSyncWipeConfirmAction": {
+    "x-sourceSha256": "295bf35e749e744ea715d9b91ebdeb23045b26e4ad24f4c138e2bca498605461"
+  },
+  "settingsSyncWipeFailed": "Kan de opslag niet verwijderen. Er is niets gewijzigd en dit apparaat is nog steeds verbonden; probeer het opnieuw.",
+  "@settingsSyncWipeFailed": {
+    "x-sourceSha256": "d92d4e88e22770bf1ee00d53c29f050f8bcf7632dcd8a8f9eaa3ef875d003bce"
+  },
   "settingsSyncMeteredRouted": "Je gebruikt mobiele data en ‘Alleen synchroniseren via wifi’ staat aan. Zet die instelling hieronder uit om nu te synchroniseren.",
   "@settingsSyncMeteredRouted": {
     "x-sourceSha256": "213bed8509f57aef35ba73781fca3267d5e5f7d16ef7b46f83b28c82ee833777"

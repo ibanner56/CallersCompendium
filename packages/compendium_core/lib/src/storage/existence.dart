@@ -212,6 +212,14 @@ Future<void> stampExistenceTransition(
 ///   which is precisely the `updated_at`/`existence_at` conflation the third
 ///   column exists to prevent.
 ///
+/// That third case has **one** carve-out, and it lives outside this function on
+/// purpose. An edit to a record a peer's *held* tombstone names cancels that
+/// tombstone (sync-spec §6.8), which is an existence decision and must stamp —
+/// see [raiseExistenceAbove]. The carve-out is conditioned on a
+/// `pending_deletions` row existing, never on the write being an edit, so the
+/// paragraph above still governs every ordinary save. Widening it to all edits
+/// is the regression this note exists to prevent.
+///
 /// See [stampExistenceTransition] on the typed [table], the interpolated
 /// [keyColumn], and why these raw writes announce themselves to drift. This one
 /// always follows a drift-native upsert on the same table inside the same
@@ -236,6 +244,72 @@ Future<void> applyUpsertExistence(
     variables: [
       Variable<int>(stamp),
       Variable<int>(stamp),
+      Variable<String>(key),
+    ],
+    updates: {table},
+    updateKind: UpdateKind.update,
+  );
+}
+
+/// SQL form of the causal stamp with a **second value to supersede**, for the
+/// one transition whose predecessor is not on the row being stamped.
+///
+/// `existenceAt = max(localNow, currentExistenceAt + 1 tick, floor + 1 tick)`.
+/// The first two terms are [_causalExistenceSql] unchanged; the third is the
+/// held tombstone's own `existenceAt`, and it is what [stampExistenceTransition]
+/// structurally cannot supply.
+const String _flooredCausalExistenceSql =
+    'MAX(?, COALESCE(existence_at, 0) + $_tickSeconds, ? + $_tickSeconds)';
+
+/// Advances `existence_at` past a stamp the row does not carry.
+///
+/// ## Why [stampExistenceTransition] is not enough here
+///
+/// Every other local existence write supersedes a value that is *on the row*:
+/// a revival supersedes the deletion stamp sitting in its own `existence_at`,
+/// which is why `max(localNow, current + 1 tick)` suffices and why the
+/// specification can say a revival "stamps above the tombstone it revives by
+/// construction".
+///
+/// A **held** tombstone breaks that construction, and that is the whole reason
+/// this function exists. §6.8 keeps a tombstone for a still-cited entity in
+/// `pending_deletions` and leaves the row live, so the row's `existence_at` is
+/// still its pre-deletion value and the tombstone's is strictly greater.
+/// Flooring against the row alone therefore yields the bare clock — and §6.4
+/// resolves an equal `existenceAt` **in favour of the tombstone**, so a device
+/// whose clock is behind the deleting peer's, or one that deletes, syncs and
+/// edits inside a single tick, would stamp at or below the tombstone it is
+/// cancelling. The cancellation would then be silently undone by the very peer
+/// it was published to. [floor] closes that, and the advance is strict for the
+/// same reason `_cancelOutrankedPendingDeletion` compares strictly.
+///
+/// [floor] must come from the tombstone's own `existenceAt` — from the retained
+/// blob, never from `pending_deletions.tombstoned_at`. The specification is
+/// explicit that a receiver "MUST NOT assume `existenceAt == deletedAt` on a
+/// tombstone" and MUST treat `deletedAt` only as a state indicator, never as a
+/// second comparand.
+///
+/// `deleted_at` is deliberately untouched: the caller decides liveness, and in
+/// the §6.8 cancellation the row is already live. See [stampExistenceTransition]
+/// for the typed [table], the interpolated [keyColumn], and why these raw
+/// writes announce themselves to drift.
+Future<void> raiseExistenceAbove(
+  CompendiumDatabase db, {
+  required TableInfo<Table, dynamic> table,
+  required String keyColumn,
+  required String key,
+  required DateTime at,
+  required DateTime floor,
+}) {
+  assertUtc(at, 'at');
+  assertUtc(floor, 'floor');
+  return db.customUpdate(
+    'UPDATE ${table.actualTableName} '
+    'SET existence_at = $_flooredCausalExistenceSql '
+    'WHERE $keyColumn = ?',
+    variables: [
+      Variable<int>(unixSeconds(at)),
+      Variable<int>(unixSeconds(floor)),
       Variable<String>(key),
     ],
     updates: {table},

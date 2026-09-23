@@ -8268,6 +8268,268 @@ void main() {
       );
     });
   });
+
+  group('a deliberate local edit cancels a pending tombstone (6.8)', () {
+    // 6.8: "A pending tombstone is cancelled by exactly two things ... A
+    // deliberate local user edit, gated on `existenceAt` per 6.4 - never on a
+    // newer `updatedAt`." Only the inbound-revival half was implemented; the
+    // local edit neither cleared `pending_deletions` nor stamped existence, so
+    // `_revalidatePendingDeletions` later overlaid the retained tombstone body
+    // onto the edited row and wrote it deleted. Issue #1356.
+    const address = (kind: SyncRecordKind.tag, recordId: 'cited-tag');
+    final seeded = DateTime.utc(2025);
+
+    // Puts `cited-tag` under a peer's held tombstone, cited by a live dance.
+    Future<void> holdTombstone(
+      DateTime deletedAt, {
+      DateTime? existenceAt,
+    }) async {
+      final tag = Tag(id: 'cited-tag', name: 'Cited tag');
+      // ignore: unused_result
+      await repositories.tags.upsert(tag, at: seeded);
+      await repositories.dances.create(
+        Dance(
+          id: 'citing-dance',
+          title: 'Citing dance',
+          tagIds: const ['cited-tag'],
+          createdAt: seeded,
+          updatedAt: seeded,
+        ),
+      );
+      await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.tag,
+              id: tag.id,
+              updatedAt: deletedAt,
+              deletedAt: deletedAt,
+              existenceAt: existenceAt ?? deletedAt,
+              body: syncBodyForEntity(SyncRecordKind.tag, tag),
+            ),
+          ),
+        ],
+        storage: storage,
+      );
+      expect(
+        await repositories.syncLocal.listPendingDeletions(),
+        hasLength(1),
+        reason: 'the fixture must actually be holding a tombstone',
+      );
+    }
+
+    // Drops the only citation, which is what makes a surviving hold apply.
+    Future<void> dropTheLastCitation() async {
+      await repositories.dances.update(
+        Dance(
+          id: 'citing-dance',
+          title: 'Citing dance',
+          createdAt: seeded,
+          updatedAt: DateTime.utc(2025, 7),
+        ),
+        localUserEdit: true,
+      );
+      await storage.revalidatePendingDeletions();
+    }
+
+    Future<DateTime?> existenceOfTag() async =>
+        (await (db.select(
+              db.tags,
+            )..where((t) => t.id.equals('cited-tag'))).getSingle()).existenceAt
+            ?.toUtc();
+
+    test(
+      'the edit releases the hold and republishes the record live',
+      () async {
+        final deleted = DateTime.utc(2025, 6, 15, 12);
+        await holdTombstone(deleted);
+
+        // ignore: unused_result
+        await repositories.tags.upsert(
+          Tag(id: 'cited-tag', name: 'Contra classics'),
+          at: DateTime.utc(2025, 6, 15, 13),
+          localUserEdit: true,
+        );
+
+        expect(await repositories.syncLocal.listPendingDeletions(), isEmpty);
+        final snapshot = await storage.snapshot();
+        expect(snapshot.pending, isEmpty);
+        final published = snapshot.publication[address];
+        expect(published, isNotNull);
+        expect(published!.blob.deletedAt, isNull);
+        expect(published.blob.body['name'], 'Contra classics');
+        expect(
+          published.blob.existenceAt.isAfter(deleted),
+          isTrue,
+          reason:
+              '6.4 resolves an equal existenceAt to the tombstone, so a peer '
+              'holding it only revives on a strictly greater stamp',
+        );
+      },
+    );
+
+    test('the edit survives the last citation going', () async {
+      await holdTombstone(DateTime.utc(2025, 6, 15, 12));
+      // ignore: unused_result
+      await repositories.tags.upsert(
+        Tag(id: 'cited-tag', name: 'Contra classics'),
+        at: DateTime.utc(2025, 6, 15, 13),
+        localUserEdit: true,
+      );
+
+      await dropTheLastCitation();
+
+      final row = await (db.select(
+        db.tags,
+      )..where((t) => t.id.equals('cited-tag'))).getSingle();
+      expect(
+        row.deletedAt,
+        isNull,
+        reason: 'the deferred deletion was cancelled and must not land later',
+      );
+      expect(
+        row.name,
+        'Contra classics',
+        reason: 'the retained tombstone body must not overlay the edit',
+      );
+    });
+
+    test('the cancelling stamp outranks the tombstone on a behind clock', () async {
+      // The mutation this catches: flooring only against the row's own
+      // `existence_at`, which is what `stampExistenceTransition` does. A held
+      // tombstone is never written to the row, so that floor is the stale
+      // pre-deletion value and the stamp collapses to the bare clock. Here the
+      // clock reads earlier than the peer's tombstone - a device whose clock is
+      // behind, or a delete/sync/edit inside one tick - so a two-term max ties
+      // or loses, and 6.4 resolves a tie to the tombstone.
+      final tombstoned = DateTime.utc(2025, 6, 15, 12);
+      final tombstonedExistence = DateTime.utc(2026, 1, 1);
+      await holdTombstone(tombstoned, existenceAt: tombstonedExistence);
+
+      // ignore: unused_result
+      await repositories.tags.upsert(
+        Tag(id: 'cited-tag', name: 'Contra classics'),
+        at: DateTime.utc(2025, 6, 15, 13),
+        localUserEdit: true,
+      );
+
+      expect(await repositories.syncLocal.listPendingDeletions(), isEmpty);
+      expect(
+        (await existenceOfTag())!.isAfter(tombstonedExistence),
+        isTrue,
+        reason:
+            'the stamp must supersede the tombstone it cancels, not the row it '
+            'is written to',
+      );
+      final published = (await storage.snapshot()).publication[address];
+      expect(published!.blob.existenceAt.isAfter(tombstonedExistence), isTrue);
+    });
+
+    test('a write that is not a deliberate user edit keeps the hold', () async {
+      // The default. Imports, archive restore, reference rewrites and
+      // automatic back-population all reach this same method and all advance
+      // `updated_at`; 6.8 forbids any of them cancelling, because cancelling on
+      // recency lets a third device silently reverse another's deletion.
+      await holdTombstone(DateTime.utc(2025, 6, 15, 12));
+      final before = await existenceOfTag();
+
+      // ignore: unused_result
+      await repositories.tags.upsert(
+        Tag(id: 'cited-tag', name: 'Renamed by an import'),
+        at: DateTime.utc(2025, 6, 15, 13),
+      );
+
+      expect(await repositories.syncLocal.listPendingDeletions(), hasLength(1));
+      expect(
+        await existenceOfTag(),
+        before,
+        reason: 'an ordinary content edit is not an existence transition',
+      );
+      expect((await storage.snapshot()).pending, contains(address));
+    });
+
+    test('a sync-originated write keeps the hold', () async {
+      // Gated on provenance, not recency: this write carries a much newer
+      // `updatedAt` and no existence advance at all, so neither of 6.8's two
+      // cancellations applies.
+      await holdTombstone(DateTime.utc(2025, 6, 15, 12));
+
+      await repositories.tags.writeFromSync(
+        Tag(id: 'cited-tag', name: 'Renamed by a peer'),
+        at: DateTime.utc(2030),
+      );
+
+      expect(await repositories.syncLocal.listPendingDeletions(), hasLength(1));
+      expect((await storage.snapshot()).pending, contains(address));
+    });
+
+    test('a tombstone blob that will not decode keeps the hold', () async {
+      // The blob cannot be stamped above, and `revalidatePendingDeletions`
+      // owns that failure. Dropping the row here would destroy the deferred
+      // deletion with nothing left to re-derive it from, so the edit lands and
+      // the hold stays for that path to diagnose.
+      await holdTombstone(DateTime.utc(2025, 6, 15, 12));
+      await db.customUpdate(
+        'UPDATE pending_deletions SET tombstone_blob = ? '
+        'WHERE kind = ? AND record_id = ?',
+        variables: [
+          Variable<String>('not json'),
+          Variable<String>(SyncRecordKind.tag.name),
+          Variable<String>('cited-tag'),
+        ],
+        updates: {db.pendingDeletions},
+        updateKind: UpdateKind.update,
+      );
+
+      // ignore: unused_result
+      await repositories.tags.upsert(
+        Tag(id: 'cited-tag', name: 'Contra classics'),
+        at: DateTime.utc(2025, 6, 15, 13),
+        localUserEdit: true,
+      );
+
+      expect(await repositories.syncLocal.listPendingDeletions(), hasLength(1));
+      final row = await (db.select(
+        db.tags,
+      )..where((t) => t.id.equals('cited-tag'))).getSingle();
+      expect(row.name, 'Contra classics');
+    });
+
+    test('an explicit restore also outranks the tombstone it clears', () async {
+      // 6.8's *other* cancellation has the same gap. `restore()` stamps via
+      // `stampExistenceTransition`, which floors against the row's own
+      // `existence_at` - here the local deletion stamp, which says nothing
+      // about the held tombstone the row never carried. A device whose clock
+      // is behind the deleting peer's therefore restored to a stamp the
+      // tombstone still outranks, and the restore was undone on the next pass.
+      final tombstonedExistence = DateTime.utc(2026, 1, 1);
+      await holdTombstone(
+        DateTime.utc(2025, 6, 15, 12),
+        existenceAt: tombstonedExistence,
+      );
+
+      // The row is live while held, so reaching Recently Deleted at all takes
+      // a local delete first. That is the only route by which `restore()` can
+      // ever see a held record.
+      await repositories.tags.delete(
+        'cited-tag',
+        at: DateTime.utc(2025, 6, 15, 13),
+      );
+      await repositories.tags.restore(
+        'cited-tag',
+        at: DateTime.utc(2025, 6, 15, 14),
+      );
+
+      expect(await repositories.syncLocal.listPendingDeletions(), isEmpty);
+      expect(
+        (await existenceOfTag())!.isAfter(tombstonedExistence),
+        isTrue,
+        reason:
+            'a restore must supersede the tombstone it clears, not only the '
+            'local deletion it reverses',
+      );
+    });
+  });
 }
 
 final class _FailAfterNaturalKeyRenameInterceptor extends QueryInterceptor {

@@ -670,6 +670,120 @@ abstract class AppLocalizations {
   /// **'Couldn\'t disconnect this device. It is still connected; try again.'**
   String get settingsSyncDisconnectFailed;
 
+  /// Status-surface action opening the list of the other devices connected to this Device Sync store.
+  ///
+  /// In en, this message translates to:
+  /// **'Other devices'**
+  String get settingsSyncDevicesTitle;
+
+  /// Subtitle under the Device Sync other-devices action.
+  ///
+  /// In en, this message translates to:
+  /// **'See what else is connected to this store, and remove a device you no longer use.'**
+  String get settingsSyncDevicesSubtitle;
+
+  /// App bar title of the screen listing the other devices in the Device Sync store.
+  ///
+  /// In en, this message translates to:
+  /// **'Other devices'**
+  String get settingsSyncDevicesScreenTitle;
+
+  /// Explains that the Device Sync device list shows opaque identifiers only, excludes this device, and that removal is reversible by re-pairing.
+  ///
+  /// In en, this message translates to:
+  /// **'The server only knows each device by an identifier it made up, so there are no device names here, and this device isn\'t listed. If you aren\'t sure which one to remove, it\'s safe to leave it: a device you remove can connect again with the sync phrase.'**
+  String get settingsSyncDevicesCaution;
+
+  /// Empty state when this is the only device with a manifest in the Device Sync store.
+  ///
+  /// In en, this message translates to:
+  /// **'No other devices are connected to this store.'**
+  String get settingsSyncDevicesEmpty;
+
+  /// Error state when the Device Sync store listing could not be fetched.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the device list. Check your connection and try again.'**
+  String get settingsSyncDevicesFailed;
+
+  /// Error state when the Device Sync store itself has gone (404) while listing its devices.
+  ///
+  /// In en, this message translates to:
+  /// **'This store is no longer on the server, so there are no devices to show.'**
+  String get settingsSyncDevicesStoreMissing;
+
+  /// Button that re-fetches the Device Sync device list after a failure.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get settingsSyncDevicesRetry;
+
+  /// Tooltip of the button that removes one other device from the Device Sync store.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this device'**
+  String get settingsSyncDeviceRemoveTooltip;
+
+  /// Title of the confirmation dialog before removing another device from the Device Sync store.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this device?'**
+  String get settingsSyncDeviceRemoveTitle;
+
+  /// Body of the remove-device confirmation: what removal does, and that the removed device can pair again later (it is not a ban).
+  ///
+  /// In en, this message translates to:
+  /// **'The store stops keeping this device\'s copy of what it shared, and it stops syncing. Nothing is deleted from that device, and nothing is deleted from yours. It can connect to this store again later with the sync phrase.'**
+  String get settingsSyncDeviceRemoveBody;
+
+  /// Confirm button of the Device Sync remove-device dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get settingsSyncDeviceRemoveAction;
+
+  /// Snackbar shown when removing another device from the Device Sync store fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t remove that device. It is still connected; try again.'**
+  String get settingsSyncDeviceRemoveFailed;
+
+  /// Status-surface action that deletes the whole Device Sync store from the server (spec: wipe).
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect all devices and delete the store'**
+  String get settingsSyncWipeTitle;
+
+  /// Subtitle under the Device Sync wipe action, stating that it is irreversible and affects every device.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove everything this store holds, for every device at once. This can\'t be undone.'**
+  String get settingsSyncWipeSubtitle;
+
+  /// Title of the confirmation dialog before wiping the Device Sync store.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this store from the server?'**
+  String get settingsSyncWipeConfirmTitle;
+
+  /// Body of the Device Sync wipe confirmation: irreversible, affects every device, keeps local libraries, detaches this device, and is the immediate remedy for a leaked sync phrase (spec §5.3).
+  ///
+  /// In en, this message translates to:
+  /// **'Everything the store holds is deleted from the server, for every device at once, and this can\'t be undone. Your library stays on this device and on each of your other devices — but anything that had only ever reached another device through syncing will not arrive here. This device disconnects and forgets its sync phrase; your other devices will find the store gone the next time they sync, and will ask whether to start a new one. Use this if your sync phrase has been seen by someone else: it is the only thing that removes what they can read straight away.'**
+  String get settingsSyncWipeConfirmBody;
+
+  /// Confirm button of the Device Sync wipe dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete the store'**
+  String get settingsSyncWipeConfirmAction;
+
+  /// Snackbar shown when wiping the Device Sync store fails; the device stays attached.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t delete the store. Nothing was changed and this device is still connected; try again.'**
+  String get settingsSyncWipeFailed;
+
   /// Message shown when a manual sync is attempted on a metered connection, pointing at the WiFi-only setting.
   ///
   /// In en, this message translates to:

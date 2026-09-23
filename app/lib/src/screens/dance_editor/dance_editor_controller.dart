@@ -1098,7 +1098,7 @@ class DanceEditorController extends ChangeNotifier {
     // not a fresh UUID. Tombstone adoption requires a minting caller; it cannot
     // fire here, so the returned id is always identical to updated.id.
     // ignore: unused_result
-    await _repos.customFieldDefs.upsert(updated);
+    await _repos.customFieldDefs.upsert(updated, localUserEdit: true);
     if (_disposed) return AddChoiceResult.added;
 
     fieldDefs = [for (final d in fieldDefs) d.id == fieldId ? updated : d];

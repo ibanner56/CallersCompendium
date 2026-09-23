@@ -1256,10 +1256,13 @@ class ProgramRepository {
   }) => _db.transaction(() async {
     await _stampExistence(id, at: at, deleted: false);
     if (clearPending) {
-      await clearPendingSyncDeletion(
+      await clearPendingSyncDeletionForRestore(
         _db,
         kind: SyncRecordKind.program,
         recordId: id,
+        table: _db.programs,
+        keyColumn: 'id',
+        at: at,
       );
     }
   });

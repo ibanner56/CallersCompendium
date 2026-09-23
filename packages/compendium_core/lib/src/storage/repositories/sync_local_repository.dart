@@ -1,7 +1,9 @@
 import 'package:drift/drift.dart';
 
+import '../../sync/sync_codec.dart';
 import '../../sync/sync_record_kind.dart';
 import '../database.dart';
+import '../existence.dart';
 
 Iterable<List<T>> _chunked<T>(Iterable<T> values, int size) sync* {
   final list = values.toList(growable: false);
@@ -660,10 +662,17 @@ Future<Set<String>> publishedSyncRecordIds(
   return published;
 }
 
-/// Clears a pending tombstone only for an explicit local existence transition.
+/// Clears a pending tombstone for a deliberate local act on the record.
+///
+/// Two acts qualify, and sync-spec §6.8 admits no others: an explicit restore
+/// from Recently Deleted, and a deliberate local user edit — see
+/// [cancelPendingSyncDeletionForLocalEdit], which wraps this call with the
+/// existence stamp that edit path also owes.
 ///
 /// Sync-originated body/reference writes deliberately do not call this helper;
 /// a newer [updatedAt] alone is not evidence that the user revived a record.
+/// Neither is an import, an archive restore, or any automatic write: the gate
+/// is the provenance of the write, which only the caller knows.
 Future<void> clearPendingSyncDeletion(
   CompendiumDatabase db, {
   required SyncRecordKind kind,
@@ -673,3 +682,126 @@ Future<void> clearPendingSyncDeletion(
           (row) => row.kind.equals(kind.name) & row.recordId.equals(recordId),
         ))
         .go();
+
+/// Reads the `existenceAt` of the tombstone held for [recordId], if any.
+///
+/// `null` means there is no hold — or that its retained blob will not decode,
+/// which is deliberately the same answer here. A tombstone that cannot be
+/// decoded cannot be stamped above, and `revalidatePendingDeletions` owns that
+/// failure: it raises on exactly this condition. Reporting it as "no hold"
+/// leaves the row in place for that path to diagnose, where treating it as a
+/// cancellable hold would destroy the deferred deletion with nothing left to
+/// re-derive it from. `_cancelOutrankedPendingDeletion` swallows the same
+/// failure for the same reason.
+Future<DateTime?> heldTombstoneExistenceAt(
+  CompendiumDatabase db, {
+  required SyncRecordKind kind,
+  required String recordId,
+}) async {
+  final pending =
+      await (db.select(db.pendingDeletions)..where(
+            (row) => row.kind.equals(kind.name) & row.recordId.equals(recordId),
+          ))
+          .getSingleOrNull();
+  if (pending == null) return null;
+  try {
+    return decodeSyncRecordBlob(pending.tombstoneBlob).existenceAt;
+  } on Object {
+    return null;
+  }
+}
+
+/// Cancels a pending tombstone because the user deliberately edited the record
+/// it names (sync-spec §6.8), stamping the existence that cancellation owes.
+///
+/// Returns whether a hold was found and cancelled, so a caller can tell "no
+/// hold" from "hold released" without a second query.
+///
+/// ## Why this path exists at all
+///
+/// §6.8 holds a peer's tombstone for a still-cited entity in
+/// `pending_deletions`, keeps the row **live** locally, and advertises the
+/// entity as a tombstone until its last citation goes. The row being live is
+/// what makes this necessary: it never appears in Recently Deleted, so
+/// `restore()` — §6.8's other cancellation — can never reach it. Without this,
+/// an edit to a held record is overwritten by the retained tombstone body the
+/// moment the last citation clears, and the record is deleted with the user's
+/// work inside it.
+///
+/// ## The gate is provenance, never recency
+///
+/// Callers opt in; nothing here infers intent. "This write is a deliberate user
+/// edit" is knowledge only the call site has, and the same repository method
+/// serves imports, archive restore and automatic back-population. Gating on a
+/// newer `updatedAt` instead is forbidden outright: reference rewriting after
+/// reconciliation, merge-by-recency and the dance merge's scalar recency all
+/// advance `updatedAt` with nobody having touched the record, so a recency gate
+/// would let a third device silently reverse another's deletion.
+///
+/// [table] and [keyColumn] name the row to stamp; [at] is the write's own
+/// instant. See [raiseExistenceAbove] for why the tombstone's own `existenceAt`
+/// has to floor that stamp.
+Future<bool> cancelPendingSyncDeletionForLocalEdit(
+  CompendiumDatabase db, {
+  required SyncRecordKind kind,
+  required String recordId,
+  required TableInfo<Table, dynamic> table,
+  required String keyColumn,
+  required DateTime at,
+}) async {
+  final floor = await heldTombstoneExistenceAt(
+    db,
+    kind: kind,
+    recordId: recordId,
+  );
+  if (floor == null) return false;
+  await raiseExistenceAbove(
+    db,
+    table: table,
+    keyColumn: keyColumn,
+    key: recordId,
+    at: at,
+    floor: floor,
+  );
+  await clearPendingSyncDeletion(db, kind: kind, recordId: recordId);
+  return true;
+}
+
+/// Clears a hold for an explicit restore from Recently Deleted, flooring the
+/// restore's own existence stamp against the tombstone it is cancelling.
+///
+/// [restore] already stamps causally via `stampExistenceTransition`, which
+/// floors against the row's own `existence_at`. For a record that was locally
+/// deleted *while a peer's tombstone was held*, that floor is the local
+/// deletion stamp and says nothing about the held tombstone, which the row
+/// never carried — the same gap [cancelPendingSyncDeletionForLocalEdit] exists
+/// to close, reached by the other of §6.8's two cancellations.
+///
+/// Strictly monotonic: the underlying stamp is a `MAX`, so this can only raise
+/// a value and changes nothing when the restore's own stamp is already ahead.
+///
+/// Falls back to a bare [clearPendingSyncDeletion] when there is no usable
+/// floor, so a hold whose blob will not decode is still cleared by an explicit
+/// restore exactly as it was before. That differs from the edit path on
+/// purpose: a restore is an unambiguous instruction to bring the record back,
+/// where an edit is not evidence that the user meant to overrule a deletion
+/// they may not know about.
+Future<void> clearPendingSyncDeletionForRestore(
+  CompendiumDatabase db, {
+  required SyncRecordKind kind,
+  required String recordId,
+  required TableInfo<Table, dynamic> table,
+  required String keyColumn,
+  required DateTime at,
+}) async {
+  final cancelled = await cancelPendingSyncDeletionForLocalEdit(
+    db,
+    kind: kind,
+    recordId: recordId,
+    table: table,
+    keyColumn: keyColumn,
+    at: at,
+  );
+  if (cancelled) return;
+  await clearPendingSyncDeletion(db, kind: kind, recordId: recordId);
+}

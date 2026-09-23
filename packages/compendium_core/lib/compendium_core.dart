@@ -150,8 +150,8 @@ export 'src/storage/database_setup.dart'
 // conversion, all of which the tests exercise directly.
 //
 // The SQL writers (`applyUpsertExistence`, `stampExistenceTransition`,
-// `adoptTombstonedNaturalKey`, `seedExistenceIfMissing`) are deliberately NOT
-// exported. They take a [CompendiumDatabase] and mutate rows in place, so
+// `raiseExistenceAbove`, `adoptTombstonedNaturalKey`, `seedExistenceIfMissing`)
+// are deliberately NOT exported. They take a [CompendiumDatabase] and mutate rows in place, so
 // exporting them would offer callers a way around the repository layer — and
 // "all access through repositories" is the storage design's central rule
 // (docs/design/storage.md), not a convention. Every existence stamp has to go

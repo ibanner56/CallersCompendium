@@ -346,6 +346,75 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t disconnect this device. It is still connected; try again.';
 
   @override
+  String get settingsSyncDevicesTitle => 'Other devices';
+
+  @override
+  String get settingsSyncDevicesSubtitle =>
+      'See what else is connected to this store, and remove a device you no longer use.';
+
+  @override
+  String get settingsSyncDevicesScreenTitle => 'Other devices';
+
+  @override
+  String get settingsSyncDevicesCaution =>
+      'The server only knows each device by an identifier it made up, so there are no device names here, and this device isn\'t listed. If you aren\'t sure which one to remove, it\'s safe to leave it: a device you remove can connect again with the sync phrase.';
+
+  @override
+  String get settingsSyncDevicesEmpty =>
+      'No other devices are connected to this store.';
+
+  @override
+  String get settingsSyncDevicesFailed =>
+      'Couldn\'t load the device list. Check your connection and try again.';
+
+  @override
+  String get settingsSyncDevicesStoreMissing =>
+      'This store is no longer on the server, so there are no devices to show.';
+
+  @override
+  String get settingsSyncDevicesRetry => 'Try again';
+
+  @override
+  String get settingsSyncDeviceRemoveTooltip => 'Remove this device';
+
+  @override
+  String get settingsSyncDeviceRemoveTitle => 'Remove this device?';
+
+  @override
+  String get settingsSyncDeviceRemoveBody =>
+      'The store stops keeping this device\'s copy of what it shared, and it stops syncing. Nothing is deleted from that device, and nothing is deleted from yours. It can connect to this store again later with the sync phrase.';
+
+  @override
+  String get settingsSyncDeviceRemoveAction => 'Remove';
+
+  @override
+  String get settingsSyncDeviceRemoveFailed =>
+      'Couldn\'t remove that device. It is still connected; try again.';
+
+  @override
+  String get settingsSyncWipeTitle =>
+      'Disconnect all devices and delete the store';
+
+  @override
+  String get settingsSyncWipeSubtitle =>
+      'Remove everything this store holds, for every device at once. This can\'t be undone.';
+
+  @override
+  String get settingsSyncWipeConfirmTitle =>
+      'Delete this store from the server?';
+
+  @override
+  String get settingsSyncWipeConfirmBody =>
+      'Everything the store holds is deleted from the server, for every device at once, and this can\'t be undone. Your library stays on this device and on each of your other devices — but anything that had only ever reached another device through syncing will not arrive here. This device disconnects and forgets its sync phrase; your other devices will find the store gone the next time they sync, and will ask whether to start a new one. Use this if your sync phrase has been seen by someone else: it is the only thing that removes what they can read straight away.';
+
+  @override
+  String get settingsSyncWipeConfirmAction => 'Delete the store';
+
+  @override
+  String get settingsSyncWipeFailed =>
+      'Couldn\'t delete the store. Nothing was changed and this device is still connected; try again.';
+
+  @override
   String get settingsSyncMeteredRouted =>
       'You are on a mobile-data connection and Sync only on WiFi is on. Turn that setting off below to sync now.';
 

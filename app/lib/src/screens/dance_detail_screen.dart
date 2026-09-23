@@ -478,6 +478,9 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     );
     // Append the localized " (copy)" suffix so the duplicate is visually
     // distinct in the list. This wording is persisted into the copy's title.
+    //
+    // No `localUserEdit`: the copy carries a freshly minted id, so no peer can
+    // hold a tombstone for it and there is nothing for §6.8 to cancel.
     await _repos.dances.update(
       copy.copyWith(
         title: l10n.commonDuplicateTitleSuffix(copy.title),

@@ -127,14 +127,14 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
   Future<void> _create() async {
     final created = await VenueEditorSheet.show(context);
     if (created == null || !mounted) return;
-    await _repos.venues.upsert(created);
+    await _repos.venues.upsert(created, localUserEdit: true);
     // No reload: the upsert writes `venues`, which this screen watches.
   }
 
   Future<void> _edit(Venue venue) async {
     final updated = await VenueEditorSheet.show(context, initial: venue);
     if (updated == null || !mounted) return;
-    await _repos.venues.upsert(updated);
+    await _repos.venues.upsert(updated, localUserEdit: true);
     // No reload: the upsert writes `venues`, which this screen watches.
   }
 

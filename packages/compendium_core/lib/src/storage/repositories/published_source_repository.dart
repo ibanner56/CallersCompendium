@@ -20,8 +20,17 @@ class PublishedSourceRepository {
 
   final CompendiumDatabase _db;
 
-  Future<void> upsert(PublishedSource s, {DateTime? at}) =>
-      _write(s, at: at, fromSync: false);
+  ///
+  /// Pass `localUserEdit: true` only when the person using the app deliberately
+  /// edited this record: that cancels a peer's pending tombstone for it
+  /// (sync-spec §6.8, [cancelPendingSyncDeletionForLocalEdit]). It defaults to
+  /// false because imports, archive restore and automatic writes share this
+  /// method, and a cancellation they did not intend reverses a peer's deletion.
+  Future<void> upsert(
+    PublishedSource s, {
+    DateTime? at,
+    bool localUserEdit = false,
+  }) => _write(s, at: at, fromSync: false, localUserEdit: localUserEdit);
 
   /// Applies a validated inbound sync record.
   ///
@@ -31,12 +40,13 @@ class PublishedSourceRepository {
   /// difference is existence seeding: the envelope owns `existence_at`, which
   /// `_restoreTimestamps` writes straight after this returns.
   Future<void> writeFromSync(PublishedSource s, {DateTime? at}) =>
-      _write(s, at: at, fromSync: true);
+      _write(s, at: at, fromSync: true, localUserEdit: false);
 
   Future<void> _write(
     PublishedSource s, {
     required DateTime? at,
     required bool fromSync,
+    required bool localUserEdit,
   }) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
@@ -63,6 +73,16 @@ class PublishedSourceRepository {
           table: _db.publishedSources,
           keyColumn: 'id',
           key: s.id,
+          at: now,
+        );
+      }
+      if (localUserEdit) {
+        await cancelPendingSyncDeletionForLocalEdit(
+          _db,
+          kind: SyncRecordKind.publishedSource,
+          recordId: s.id,
+          table: _db.publishedSources,
+          keyColumn: 'id',
           at: now,
         );
       }
@@ -200,10 +220,13 @@ class PublishedSourceRepository {
       deleted: false,
     );
     if (clearPending) {
-      await clearPendingSyncDeletion(
+      await clearPendingSyncDeletionForRestore(
         _db,
         kind: SyncRecordKind.publishedSource,
         recordId: id,
+        table: _db.publishedSources,
+        keyColumn: 'id',
+        at: at,
       );
     }
   });

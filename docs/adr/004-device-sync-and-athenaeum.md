@@ -977,8 +977,11 @@ makes self-hosting materially harder, which constraint 4 forbids.
   people edit the same dance, one edit disappears silently. This must be said at
   pairing time, not discovered.
 - **A bearer credential has no recovery and no revocation.** Lose the ID and the
-  store is unreachable; leak it and the only remedy is to move to a new ID on
-  every device.
+  store is unreachable; leak it and there is no way to take the ID back, so
+  continuing to sync means moving to a new ID on every device. That alone does
+  not answer the leak, because it leaves the old store readable by whoever holds
+  the phrase — wipe is what removes the content, and it is the only remedy that
+  acts at once (§5.3). The two are complementary, not alternatives.
 - **Device Sync is not backup.** With a 30-day-of-disuse TTL the store is a relay with
   a grace period, not an archive. The file backup remains the recovery path and the UI
   must say so.
@@ -1072,14 +1075,20 @@ makes self-hosting materially harder, which constraint 4 forbids.
   un-delete from a slow-clocked device was still silently reverted. Hardening one
   term of a conjunction hardens nothing.
 
-  It is *stamped* only by a live↔deleted transition and by no sync-apply path —
-  applying a peer's blob copies that peer's value rather than minting one — which
-  makes deletions sticky: an edit made on a device that never learned of the
+  It is *stamped* only by a local existence **decision** and by no sync-apply
+  path — applying a peer's blob copies that peer's value rather than minting one
+  — which makes deletions sticky: an edit made on a device that never learned of the
   deletion is swept up when it arrives — recoverable from Recently Deleted, but
   not announced. Chosen because a deletion silently reversed on every device is
   both worse and harder to notice than an edit that follows its record into the
   bin. It costs an `existence_at` column on all eight syncable kinds, which is
   why the migration is eight tables rather than six.
+
+  A local live↔deleted transition is the usual such decision, but not the only
+  one: cancelling a **held** tombstone by editing the record is an existence
+  decision made while the row stays live throughout, and it stamps for the same
+  reason a revival does — the record must outrank the tombstone on the peer that
+  still holds it (#1356).
 
   It is stamped **causally rather than from a bare clock** — every transition
   lands strictly after the value already on the record,
@@ -1139,13 +1148,18 @@ makes self-hosting materially harder, which constraint 4 forbids.
   an ordinary edit poisons `updatedAt` while leaving `existenceAt` untouched, so
   a single filter would select a peer that is sound in one and poisoned in the
   other — and each is keyed on the signal that answers its own question:
-  `existenceAt` on live-or-deleted agreement, because only a local transition can
-  poison it; `updatedAt` on whether local content still matches **this device's
+  `existenceAt` on live-or-deleted agreement, because only a local existence
+  decision can poison it; `updatedAt` on whether local content still matches **this device's
   own baseline**, because only a local write can poison it, and the baseline is
   what tells a device whether it wrote.
 
-  Two details of that comparison are load-bearing rather than incidental. It is
-  scoped to the record's **`body`**, not the whole blob: the wire hash covers the
+  ("Ordinary edit" here means one that decides nothing about existence. The one
+  edit that does — cancelling a held tombstone, #1356 — writes `existenceAt`
+  from the local clock like any other local decision, so it can poison that
+  field too. It is still a *local* write, which is all this rebuild depends on.)
+
+  Two further details of that comparison are load-bearing rather than
+  incidental. It is scoped to the record's **`body`**, not the whole blob: the wire hash covers the
   timestamps, and poisoning *is* a timestamp-only change, so a whole-blob
   comparison reports "differs" for every quarantined record and the classifier
   collapses to "I edited" — the same comparator that, pointed at a peer a round
@@ -1312,7 +1326,9 @@ makes self-hosting materially harder, which constraint 4 forbids.
   with equal confidence and a reader deserves to see which way the decision went.
   Its one residue is operational and disclosed: a device that stops syncing
   without being removed pins its aliases indefinitely, so pruning depends in
-  practice on dead devices being removed via `DELETE /v1/manifests/{deviceId}`.
+  practice on dead devices being removed. Settings ▸ Device Sync ▸ *Other
+  devices* is where a user does that, issuing `DELETE /v1/manifests/{deviceId}`
+  for the peer they pick (issue #1360).
 - **Applying an inbound record must not erase what it omits.** A blob correctly
   omits `deviceLocal` fields — and the repositories' `upsert` methods write
   *every* column, which is right for a local restore and destructive here. A

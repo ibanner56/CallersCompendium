@@ -376,6 +376,82 @@
   "@settingsSyncDisconnectFailed": {
     "x-sourceSha256": "23a506ff584ec8b81da1a4dfdefe90d6572957feabcfee2aa2614e3b68b0b3c8"
   },
+  "settingsSyncDevicesTitle": "Autres appareils",
+  "@settingsSyncDevicesTitle": {
+    "x-sourceSha256": "4e027dbb70b262fc7f99d829e4b5627a44811381c5f630afbdb415bb9e688514"
+  },
+  "settingsSyncDevicesSubtitle": "Voyez ce qui est connecté à cet espace, et retirez un appareil que vous n'utilisez plus.",
+  "@settingsSyncDevicesSubtitle": {
+    "x-sourceSha256": "7e22abc062361f41877090af0c6aceb7a0a6bd5b0fc1ca93600c7688d68bd7ea"
+  },
+  "settingsSyncDevicesScreenTitle": "Autres appareils",
+  "@settingsSyncDevicesScreenTitle": {
+    "x-sourceSha256": "4e027dbb70b262fc7f99d829e4b5627a44811381c5f630afbdb415bb9e688514"
+  },
+  "settingsSyncDevicesCaution": "Le serveur ne connaît chaque appareil que par un identifiant qu'il a lui-même attribué : il n'y a donc pas de noms d'appareils ici, et cet appareil n'est pas listé. Si vous ne savez pas lequel retirer, vous pouvez sans risque le laisser : un appareil retiré peut se reconnecter avec la phrase de synchronisation.",
+  "@settingsSyncDevicesCaution": {
+    "x-sourceSha256": "88b8e650ef9354688da2a359b0300257622ba39c1f88eca6b34d489fb276ca0d"
+  },
+  "settingsSyncDevicesEmpty": "Aucun autre appareil n'est connecté à cet espace.",
+  "@settingsSyncDevicesEmpty": {
+    "x-sourceSha256": "f56e6ab00b608c84434889f700c88b081f2e83a805da979cc33f524f9e2739d2"
+  },
+  "settingsSyncDevicesFailed": "Impossible de charger la liste des appareils. Vérifiez votre connexion et réessayez.",
+  "@settingsSyncDevicesFailed": {
+    "x-sourceSha256": "27aa616f092b6506087586d1173cc91446b51b6b80fa0bd4b82875a53f9830ad"
+  },
+  "settingsSyncDevicesStoreMissing": "Cet espace n'est plus sur le serveur : il n'y a aucun appareil à afficher.",
+  "@settingsSyncDevicesStoreMissing": {
+    "x-sourceSha256": "4390292ce9be0068bfed9c87d58bfbe87531e0d889d5d301900fce80d20f3dd2"
+  },
+  "settingsSyncDevicesRetry": "Réessayer",
+  "@settingsSyncDevicesRetry": {
+    "x-sourceSha256": "d8b8392e2c542950ca64867168e4ef87d4ad606882d5898f826b51c6d553988f"
+  },
+  "settingsSyncDeviceRemoveTooltip": "Retirer cet appareil",
+  "@settingsSyncDeviceRemoveTooltip": {
+    "x-sourceSha256": "2c0bb958c741ab75e2742645d3404fc768ca628ddc6fb96ef49f6c8b4a7ea9c2"
+  },
+  "settingsSyncDeviceRemoveTitle": "Retirer cet appareil ?",
+  "@settingsSyncDeviceRemoveTitle": {
+    "x-sourceSha256": "7be0603b6c40ef172609549712c82f68208568bd3874ed44e0a822b320b66688"
+  },
+  "settingsSyncDeviceRemoveBody": "L'espace cesse de conserver la copie de ce que cet appareil a partagé, et celui-ci arrête de se synchroniser. Rien n'est supprimé sur cet appareil, et rien n'est supprimé sur le vôtre. Il pourra se reconnecter à cet espace plus tard avec la phrase de synchronisation.",
+  "@settingsSyncDeviceRemoveBody": {
+    "x-sourceSha256": "86fee0f332c2e9a006ad4321bf68e3fefaf121198bbcc0863d20de19246ac178"
+  },
+  "settingsSyncDeviceRemoveAction": "Retirer",
+  "@settingsSyncDeviceRemoveAction": {
+    "x-sourceSha256": "c3812fc4acb861d5182fc2b8155f327f736fbe5e5eb86a7bd7afcb6dc5497282"
+  },
+  "settingsSyncDeviceRemoveFailed": "Impossible de retirer cet appareil. Il est toujours connecté ; réessayez.",
+  "@settingsSyncDeviceRemoveFailed": {
+    "x-sourceSha256": "9c18cbeb27eb7f6e81512ea44358b1d2c8bc73a52f87327c7afc0ea6cd57a0a9"
+  },
+  "settingsSyncWipeTitle": "Déconnecter tous les appareils et supprimer l'espace",
+  "@settingsSyncWipeTitle": {
+    "x-sourceSha256": "6b898192c6e79737c778cddb43dfeff4f227bd337b64a71c9ab19f092a36ee51"
+  },
+  "settingsSyncWipeSubtitle": "Supprimer tout ce que contient cet espace, pour tous les appareils à la fois. Cette action est irréversible.",
+  "@settingsSyncWipeSubtitle": {
+    "x-sourceSha256": "4afc7519f58143b0808aeab3027bf885e304aed84c60a8cb295ad29ab12f3248"
+  },
+  "settingsSyncWipeConfirmTitle": "Supprimer cet espace du serveur ?",
+  "@settingsSyncWipeConfirmTitle": {
+    "x-sourceSha256": "77701b6008c7d87383a3c1c7c4316c52219e81baddc39c3438c1879315408645"
+  },
+  "settingsSyncWipeConfirmBody": "Tout ce que contient l'espace est supprimé du serveur, pour tous les appareils à la fois, et cette action est irréversible. Votre bibliothèque reste sur cet appareil et sur chacun de vos autres appareils — mais tout ce qui n'était parvenu à un autre appareil que par la synchronisation n'arrivera pas ici. Cet appareil se déconnecte et oublie sa phrase de synchronisation ; vos autres appareils constateront la disparition de l'espace à leur prochaine synchronisation et demanderont s'il faut en créer un nouveau. Utilisez cette option si quelqu'un d'autre a vu votre phrase de synchronisation : c'est la seule chose qui supprime immédiatement ce qu'il peut lire.",
+  "@settingsSyncWipeConfirmBody": {
+    "x-sourceSha256": "4d32b4cd7be210b3280e49bc954adf9a14e397ffe46431644f05b822ad637f89"
+  },
+  "settingsSyncWipeConfirmAction": "Supprimer l'espace",
+  "@settingsSyncWipeConfirmAction": {
+    "x-sourceSha256": "295bf35e749e744ea715d9b91ebdeb23045b26e4ad24f4c138e2bca498605461"
+  },
+  "settingsSyncWipeFailed": "Impossible de supprimer l'espace. Rien n'a été modifié et cet appareil est toujours connecté ; réessayez.",
+  "@settingsSyncWipeFailed": {
+    "x-sourceSha256": "d92d4e88e22770bf1ee00d53c29f050f8bcf7632dcd8a8f9eaa3ef875d003bce"
+  },
   "settingsSyncMeteredRouted": "Vous utilisez les données mobiles et « Synchroniser uniquement en WiFi » est activé. Désactivez ce réglage ci-dessous pour synchroniser maintenant.",
   "@settingsSyncMeteredRouted": {
     "x-sourceSha256": "213bed8509f57aef35ba73781fca3267d5e5f7d16ef7b46f83b28c82ee833777"

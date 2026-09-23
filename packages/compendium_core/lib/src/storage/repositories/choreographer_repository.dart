@@ -24,8 +24,17 @@ class ChoreographerRepository {
   /// Returns the id the choreographer actually occupies — see
   /// `TagRepository.upsert` on natural-key adoption.
   @useResult
-  Future<String> upsert(Choreographer c, {DateTime? at}) =>
-      _write(c, at: at, fromSync: false);
+  ///
+  /// Pass `localUserEdit: true` only when the person using the app deliberately
+  /// edited this record: that cancels a peer's pending tombstone for it
+  /// (sync-spec §6.8, [cancelPendingSyncDeletionForLocalEdit]). It defaults to
+  /// false because imports, archive restore and automatic writes share this
+  /// method, and a cancellation they did not intend reverses a peer's deletion.
+  Future<String> upsert(
+    Choreographer c, {
+    DateTime? at,
+    bool localUserEdit = false,
+  }) => _write(c, at: at, fromSync: false, localUserEdit: localUserEdit);
 
   /// Applies a validated inbound sync record.
   ///
@@ -38,13 +47,14 @@ class ChoreographerRepository {
   /// (§6.7 refuses a record rather than storing an altered copy), and it does
   /// not seed `existence_at`, which the envelope owns.
   Future<void> writeFromSync(Choreographer c, {DateTime? at}) async {
-    final _ = await _write(c, at: at, fromSync: true);
+    final _ = await _write(c, at: at, fromSync: true, localUserEdit: false);
   }
 
   Future<String> _write(
     Choreographer c, {
     required DateTime? at,
     required bool fromSync,
+    required bool localUserEdit,
   }) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
@@ -124,6 +134,17 @@ class ChoreographerRepository {
           at: now,
         );
       }
+      if (localUserEdit) {
+        await cancelPendingSyncDeletionForLocalEdit(
+          _db,
+          kind: SyncRecordKind.choreographer,
+          recordId: id,
+          table: _db.choreographers,
+          keyColumn: 'id',
+          at: now,
+        );
+      }
+
       if (authorIndexChanged) {
         await _refreshAuthorIndex(id);
       }
@@ -283,10 +304,13 @@ class ChoreographerRepository {
       deleted: false,
     );
     if (clearPending) {
-      await clearPendingSyncDeletion(
+      await clearPendingSyncDeletionForRestore(
         _db,
         kind: SyncRecordKind.choreographer,
         recordId: id,
+        table: _db.choreographers,
+        keyColumn: 'id',
+        at: at,
       );
     }
   });

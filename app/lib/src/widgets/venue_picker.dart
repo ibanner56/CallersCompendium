@@ -164,7 +164,7 @@ class _VenuePickerState extends State<VenuePicker> {
     // same rule the program panes follow for their first-value futures.
     final pending = (id: created.id, arrived: Completer<void>());
     _pendingCreate = pending;
-    await _repos.venues.upsert(created);
+    await _repos.venues.upsert(created, localUserEdit: true);
     await pending.arrived.future;
     if (!mounted) return;
     widget.onChanged(created.id);
