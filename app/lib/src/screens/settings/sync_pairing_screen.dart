@@ -9,6 +9,7 @@ import '../../data/backup_service.dart';
 import '../../data/repositories_scope.dart';
 import '../../diagnostics/error_log.dart';
 import '../../sync/sync_controller.dart';
+import '../../sync/sync_coordinator.dart' show SyncPassStatus;
 import '../../sync/sync_http_client.dart';
 import '../../sync/sync_scope.dart';
 import '../../theme/app_spacing.dart';
@@ -144,6 +145,10 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
 
     final probe = controller.probeFor(candidate, endpoint);
     _probe = probe;
+    // Declared out here because every early return inside the try leaves
+    // pairing incomplete and skips the dialog entirely; only the assignment
+    // below reaches `_showCompletion`.
+    var outcome = SyncGateOutcome.notPaired;
     setState(() {
       _busy = true;
       _fieldError = null;
@@ -191,29 +196,85 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
         }
       }
 
-      await controller.completePairing(candidate, endpoint);
+      outcome = await controller.completePairing(candidate, endpoint);
     } finally {
       _probe?.close?.call();
       _probe = null;
       if (mounted) setState(() => _busy = false);
     }
     if (!mounted) return;
-    await _showCompletion(controller);
+    await _showCompletion(controller, outcome);
     if (mounted) Navigator.of(context).pop();
   }
 
-  Future<void> _showCompletion(SyncController controller) async {
+  /// What the completion dialog says about the first sync.
+  ///
+  /// [SyncController.completePairing] awaits that pass, so by the time this is
+  /// read the pass has already completed, already failed, or never ran — the
+  /// dialog must never claim one is in progress. The gate outcome and the pass
+  /// status answer different halves of the question and neither is sufficient
+  /// alone: a suppressed attempt ran no pass at all, so `lastResult` there
+  /// belongs to some earlier pass, or is null.
+  String _completionBody(
+    AppLocalizations l10n,
+    SyncController controller,
+    SyncGateOutcome outcome,
+  ) => switch (outcome) {
+    SyncGateOutcome.ran =>
+      controller.lastResult?.status == SyncPassStatus.completed
+          ? l10n.settingsSyncPairingCompleteBody
+          : l10n.settingsSyncPairingCompleteFailed,
+    SyncGateOutcome.suppressedMetered =>
+      l10n.settingsSyncPairingCompleteMetered,
+    SyncGateOutcome.suppressedOffline =>
+      l10n.settingsSyncPairingCompleteOffline,
+    // `disabled` and `notPaired` are reachable when the coordinator could not
+    // be built from the settings this call has just written. Pairing itself
+    // still succeeded, so this claims only that nothing has synced yet.
+    SyncGateOutcome.disabled ||
+    SyncGateOutcome.notPaired => l10n.settingsSyncPairingCompletePending,
+  };
+
+  Future<void> _showCompletion(
+    SyncController controller,
+    SyncGateOutcome outcome,
+  ) async {
     final l10n = AppLocalizations.of(context);
-    final duplicates = controller.lastResult?.duplicateCount ?? 0;
+    final duplicates = controller.mergedDuplicates;
     await showDialog<void>(
       context: context,
       builder: (_) => AlertDialog(
         key: const ValueKey('sync-pairing-complete-dialog'),
         title: Text(l10n.settingsSyncPairingComplete),
-        content: Text(
-          duplicates > 0
-              ? l10n.settingsSyncPairingCompleteDuplicates(duplicates)
-              : l10n.settingsSyncPairingCompleteBody,
+        // Spec §6.14 item 3 requires the not-a-backup statement "wherever it
+        // reports success", and this dialog is a success report. It is the
+        // same string the status surface shows, deliberately: one fact, one
+        // wording.
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _completionBody(l10n, controller, outcome),
+              key: const ValueKey('sync-pairing-complete-state'),
+            ),
+            // Read from the controller's latch rather than `lastResult`: a
+            // pairing pass the §6.12 gate deferred has no result of its own,
+            // and the merge it will eventually do is reported on the status
+            // surface instead.
+            if (duplicates > 0) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                l10n.settingsSyncMergedDuplicates(duplicates),
+                key: const ValueKey('sync-pairing-complete-duplicates'),
+              ),
+            ],
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              l10n.settingsSyncNotBackup,
+              key: const ValueKey('sync-pairing-complete-not-backup'),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -302,6 +363,20 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
             onPressed: _busy ? null : _regenerate,
             child: Text(l10n.settingsSyncPairingRegenerate),
           ),
+          // ADR-004 puts this warning *behind the offer* to replace the
+          // generated phrase, not after the replacement, so it is shown for as
+          // long as the field is editable rather than gated on the field
+          // having been edited. A warning that only appears once the user has
+          // typed their name into the box has already failed at the thing it
+          // exists to prevent. Advisory, like the strength warning beside it:
+          // neither ever blocks creation.
+          const SizedBox(height: AppSpacing.sm),
+          _Disclosure(
+            key: const ValueKey('sync-pairing-personal-info-warning'),
+            icon: Icons.person_off_outlined,
+            title: l10n.settingsSyncPairingPersonalInfoTitle,
+            body: l10n.settingsSyncPairingPersonalInfoBody,
+          ),
           if (_createCandidate?.isBelowStrengthWarning ?? false) ...[
             const SizedBox(height: AppSpacing.sm),
             _Disclosure(
@@ -354,9 +429,31 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
           body: l10n.settingsSyncPairingSharingBody,
         ),
         const SizedBox(height: AppSpacing.sm),
+        // Spec §8's threat model, which MUST be disclosed: whoever holds the
+        // phrase can read, write and DELETE. Outside the create/connect branch
+        // above because it is true of a phrase however this device came by it,
+        // and neither neighbouring card covers it — sharing is about two
+        // collaborators overwriting each other, and the card below is about
+        // the phrase being unrecoverable and impossible to take back.
+        //
+        // The icon is deliberately neither a lock nor a key. The phrase is
+        // where the shared library lives, not a secret in front of it, and a
+        // padlock would reinstate exactly the password reading this copy
+        // exists to correct.
+        _Disclosure(
+          key: const ValueKey('sync-pairing-bearer-disclosure'),
+          icon: Icons.folder_shared_outlined,
+          iconColor: theme.colorScheme.error,
+          title: l10n.settingsSyncPairingBearerTitle,
+          body: l10n.settingsSyncPairingBearerBody,
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        // Same reasoning as above for the icon: this card says the phrase is
+        // recorded nowhere else and cannot be untold, which is about a one-way
+        // door rather than a key that no longer turns.
         _Disclosure(
           key: const ValueKey('sync-pairing-credential-disclosure'),
-          icon: Icons.key_off_outlined,
+          icon: Icons.report_outlined,
           title: l10n.settingsSyncPairingCredentialTitle,
           body: l10n.settingsSyncPairingCredentialBody,
         ),

@@ -1290,15 +1290,21 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// later disable has already returned, and the last request always wins.
   Future<void> _syncConfigureTail = Future<void>.value();
 
-  Future<void> _configureSyncCoordinator() {
-    final run = _syncConfigureTail.then((_) => _configureSyncCoordinatorNow());
+  /// [startPass] is false only for pairing, which runs and observes its own
+  /// single pass (see [SyncController.completePairing]). Every other caller
+  /// wants the ordinary unawaited app-start trigger at the end of
+  /// [_configureSyncCoordinatorNow].
+  Future<void> _configureSyncCoordinator({bool startPass = true}) {
+    final run = _syncConfigureTail.then(
+      (_) => _configureSyncCoordinatorNow(startPass: startPass),
+    );
     _syncConfigureTail = run.catchError((Object error, StackTrace stackTrace) {
       logCaughtError(error, stackTrace, source: 'main.sync-configure-queue');
     });
     return run;
   }
 
-  Future<void> _configureSyncCoordinatorNow() async {
+  Future<void> _configureSyncCoordinatorNow({required bool startPass}) async {
     await _disposeSyncCoordinator();
 
     final factory = widget.syncCoordinatorFactory;
@@ -1321,7 +1327,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     }
     _syncCoordinator = coordinator;
     _syncController.attachCoordinator(coordinator);
-    if (coordinator == null) return;
+    if (coordinator == null || !startPass) return;
     unawaited(_runSyncStart());
   }
 

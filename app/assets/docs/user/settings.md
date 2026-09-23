@@ -502,8 +502,24 @@ while it is on. You can tap its heading to open or close it.
   it down when you first connected. It stays hidden behind bullets until you
   tap the eye button, and **Copy** puts it on the clipboard without showing it,
   which is all you need to type or paste it into the other device. Keep it to
-  yourself: anyone who has the phrase can read and change everything you sync,
-  and the only way to change it is to move every device to a new one.
+  yourself: the phrase is where your shared library lives, so anyone who has it
+  can open that library — read everything you sync, change or delete any of it
+  on every connected device, and delete the whole store from the server.
+  Changing the phrase means moving every device to a new one.
+- **Status** names the server this device is syncing with, written out in full
+  as an address. That's the Caller's Compendium server unless you set your own
+  when you connected; a server that isn't the default one is flagged, because
+  whoever runs it can read and change everything you sync.
+- **Status** also tells you when a first connection merged duplicate dances —
+  "Found and merged 3 duplicate dances", say. Connecting a device that already
+  holds some of the same dances joins them up silently, and this is what tells
+  you it happened. It shows after any first connection to a store: when you
+  pair, when you reconnect a store that went missing, and when this device
+  rejoins a store that was replaced. It stays put for the rest of the time the
+  app is open, rather than flashing past while you're not looking, but it is
+  **not** kept once you close the app — so if the number matters to you, write
+  it down. The dances are already merged either way; the count is a report, not
+  something waiting to be dealt with.
 - **Status** also shows when this device last synced. **Sync is not a backup:**
   a store that goes unused for 30 days is removed, so keep making file backups.
   From three weeks of disuse the status also warns that the store is close to
@@ -534,27 +550,43 @@ while it is on. You can tap its heading to open or close it.
 
 **Connecting.** Once enabled, tap **Connect** to either **create a new store**
 (you get a phrase — read it aloud or share it with your other device, or
-replace it with one of your own: four words separated by hyphens. If the phrase
-you choose looks easy to guess, the screen says so but still lets you use it) or
+replace it with one of your own: four words separated by hyphens. If you type
+your own, the screen asks you to keep personal information out of it — no
+names, addresses or birthdays — because the phrase goes to the server with
+every request and gets read out or typed on each device you connect. If the
+phrase you choose also looks easy to guess, the screen says so. Neither
+warning stops you using it) or
 **connect to an existing one** (enter the phrase shown on the device you
 already set up). The screen tells you which you're doing; it never guesses.
 The **Server** field is pre-filled with the Caller's Compendium sync server,
 `https://athenaeum.callerscompendium.com/`; leave it alone unless you run your
 own. If you change it, the screen warns you that whoever runs that server can
-read, change, and delete everything you sync, and once you're connected the
-status keeps showing which server you're using. The address must start with
+read, change, and delete everything you sync. Whichever server you end up on,
+the status shows its address once you're connected. The address must start with
 `https://` (plain `http://` is accepted only for `localhost` or `127.0.0.1`,
 for testing a server on the same machine).
-Along the way it explains two things worth knowing before you commit to
-sharing a phrase: a second device using the same phrase can edit the same
+Along the way it explains three things worth knowing before you commit to
+sharing a phrase. A second device using the same phrase can edit the same
 records, and if both of you touch the same dance or program at once, one
-edit silently wins — there is no merge and no warning. It also explains that
-the phrase itself has no password reset: losing it locks you out of that
-store, and a phrase that has leaked can't be taken back, so carrying on
-syncing means moving every device to a new phrase. That does not remove what
-the old phrase still opens — see **Deleting the store** below. Before
-connecting, you're offered an optional one-time backup of your library —
-accepting or skipping it doesn't change what connecting does.
+edit silently wins — there is no merge and no warning. The phrase is where your
+shared library lives rather than a password in front of it — there's nothing to
+sign in to — so anyone you give it to, and anyone who simply comes by it, can
+open that library: read everything you sync, change or delete any of it on
+every device you've connected, and delete the whole store off the server. There
+is no version of a phrase that does less. And nothing anywhere else records it:
+lose it and the library stays where it is with no way back to it, and telling
+someone the phrase can't be untold. Moving every device to a new phrase just
+starts a second library elsewhere; the first one is still there for anyone who
+kept the old phrase — see **Deleting the store** below. Before connecting,
+you're offered an optional one-time backup of your library — accepting or
+skipping it doesn't change what connecting does.
+
+When connecting finishes, the app says so and tells you what actually happened
+to the first sync: that it has finished, that it didn't finish and will try
+again, or that it's waiting — for WiFi if **Sync only on WiFi** is on and
+you're on mobile data, or for a connection if you're offline. It never claims a
+sync is running while you read it. It repeats there that sync is not a backup,
+and reports any duplicate dances the first connection merged.
 
 **Disconnecting.** To stop syncing on this device without turning Device Sync
 off, tap **Disconnect this device** and confirm. The device forgets its phrase

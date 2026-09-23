@@ -159,7 +159,18 @@ class SyncController extends ChangeNotifier {
 
   final SettingsRepository _settings;
   final SyncCoordinator? Function() _coordinator;
-  final Future<void> Function() _reconfigure;
+
+  /// Rebuilds the coordinator for the current settings.
+  ///
+  /// [startPass] is what the app does *after* installing it: normally it kicks
+  /// off an app-start pass without awaiting it, which is right for an ordinary
+  /// reconfiguration and wrong for pairing. [completePairing] has to observe
+  /// exactly one pass to report it, and a pass it did not start is one it
+  /// cannot observe — the coordinator queues a concurrent trigger rather than
+  /// joining it (`sync_coordinator.dart`, `_queued`), so leaving the automatic
+  /// one in place ran two full passes back to back and handed the caller the
+  /// second one's outcome to describe the first one with.
+  final Future<void> Function({bool startPass}) _reconfigure;
   final SyncLocalRepository _syncLocal;
 
   /// Runs a write that no sync pass may overlap: the app's writer boundary,
@@ -212,6 +223,7 @@ class SyncController extends ChangeNotifier {
   bool _excludeImports = false;
   DateTime? _lastSuccessAt;
   SyncPassResult? _lastResult;
+  int _mergedDuplicates = 0;
   List<SyncReport> _notices = const [];
   int _inFlight = 0;
   bool _dirty = false;
@@ -243,6 +255,45 @@ class SyncController extends ChangeNotifier {
   bool get excludeImports => _excludeImports;
   DateTime? get lastSuccessAt => _lastSuccessAt;
   SyncPassResult? get lastResult => _lastResult;
+
+  /// How many duplicate dances the latest fresh attach merged, or 0 when none
+  /// has merged any **in this app session**.
+  ///
+  /// Session-scoped, not attachment-scoped: the latch is in memory, so a
+  /// restart loses the count while the device stays attached to the store it
+  /// belongs to. User-facing copy must say so rather than promise the count
+  /// lasts as long as the connection does.
+  ///
+  /// ADR-004 names this count as *the* mitigation for silent merge — the merge
+  /// itself is irreversible from the user's point of view, and reporting a
+  /// count afterwards is the whole remedy — so it cannot be tied to the one
+  /// surface that happened to be first. A fresh attach also happens after a
+  /// confirmed replacement and on a stale-epoch auto-join, neither of which has
+  /// a dialog to put it in, and a pairing pass the §6.12 gate deferred merges
+  /// later on a silent automatic pass. Hence a latch on the controller rather
+  /// than a read of [lastResult]: it outlives the pass that produced it and is
+  /// reachable from the status surface, which is the only place all three
+  /// paths share.
+  ///
+  /// Reading it from any result is safe because only a fresh attach can ever
+  /// carry a non-zero count: an ordinary pass calls
+  /// `refreshDanceAmbiguityReviews`, which hard-codes `duplicateCount: 0`
+  /// (`sync_storage.dart`), so a steady-state pass cannot overwrite this and a
+  /// zero can never be mistaken for "a fresh attach found nothing".
+  ///
+  /// That last point is also its one limitation, stated rather than hidden: a
+  /// *later* fresh attach that merges nothing cannot announce itself, so a
+  /// stale-epoch auto-join merging zero leaves an earlier count standing until
+  /// the device detaches or the app restarts. Resolving it would mean carrying
+  /// a fresh-attach flag across the isolate boundary on [SyncPassResult]; the
+  /// residue is a stale number on an informational tile, which does not earn
+  /// that. The two attaches the user initiates — pairing and a confirmed
+  /// replacement — do reset it, because they have an entry point to reset it
+  /// from.
+  ///
+  /// In memory only, and deliberately not persisted, exactly as [notices] is:
+  /// it reports something that happened in this session.
+  int get mergedDuplicates => _mergedDuplicates;
 
   /// The conditions the most recent pass to raise any had to report, as the
   /// status surface shows them (spec §2 *report*).
@@ -490,6 +541,10 @@ class SyncController extends ChangeNotifier {
     // store being forgotten; recording it would restore its last-success time.
     if (_detaching) return;
     _lastResult = result;
+    // Latched rather than replaced: see [mergedDuplicates]. A pass that merged
+    // nothing says nothing about an earlier attach's count, because every
+    // ordinary pass reports zero.
+    if (result.duplicateCount > 0) _mergedDuplicates = result.duplicateCount;
     if (result.status == SyncPassStatus.completed) {
       // A completed pass re-examined everything, so what it raises replaces
       // what stood — with one carve-out. A rejected peer record's wire hash
@@ -575,6 +630,12 @@ class SyncController extends ChangeNotifier {
     final suppressed = await _connectionGate(manual: true);
     if (suppressed != null) return suppressed;
 
+    // The replacement is itself a fresh attach against a *new* store, so any
+    // count standing from the old one is about records that no longer exist
+    // there. Cleared only once the gate has let the attempt through: a
+    // suppressed confirmation sends nothing, and must leave the controller
+    // bit-identical.
+    _mergedDuplicates = 0;
     _inFlight++;
     _notify();
     try {
@@ -636,21 +697,40 @@ class SyncController extends ChangeNotifier {
   /// event, which is why each is preceded by its own [_expectSelfWrite].
   ///
   /// Also runs the resulting fresh-attach pass to completion (subject to the
-  /// usual §6.12 gating) so [lastResult] carries the real W8 duplicate count
-  /// by the time this returns — `reconfigure` alone only awaits the
-  /// coordinator's construction, not the app-start pass it schedules
-  /// unawaited, which would otherwise leave the caller reading a stale or
-  /// empty result.
-  Future<void> completePairing(String syncId, Uri endpoint) async {
+  /// usual §6.12 gating) so [lastResult] and [mergedDuplicates] carry the real
+  /// W8 duplicate count by the time this returns — `reconfigure` alone only
+  /// awaits the coordinator's construction, not the app-start pass it
+  /// schedules unawaited, which would otherwise leave the caller reading a
+  /// stale or empty result.
+  ///
+  /// **Returns what the §6.12 gate did with that pass**, which the pairing
+  /// surface needs and must not infer. Because this awaits the pass, it has
+  /// already finished, failed, or never started by the time the caller reports
+  /// success, so copy claiming a sync is in progress is false in every case;
+  /// and a [SyncGateOutcome.suppressedMetered] or
+  /// [SyncGateOutcome.suppressedOffline] pass ran nothing at all, which
+  /// [lastResult] alone cannot distinguish from an earlier pass's result.
+  Future<SyncGateOutcome> completePairing(String syncId, Uri endpoint) async {
     _expectSelfWrite();
     await _settings.set(kSyncEndpointKey, endpoint.toString());
     _expectSelfWrite();
     await _settings.set(kSyncIdKey, syncId);
     _endpoint = endpoint;
     _syncId = normalizeSyncId(syncId);
+    // A count belonging to a store this device is leaving must not be reported
+    // as this attach's. Cleared before the pass, not after it, so the pass that
+    // follows is the only thing that can set it.
+    _mergedDuplicates = 0;
     _notify();
-    await _reconfigure();
-    await trigger(SyncTrigger.appStart);
+    // The automatic app-start pass is suppressed so this method owns the only
+    // one. Without that there are two: the app fires an unawaited pass the
+    // moment it installs the coordinator, and the coordinator *queues* a
+    // trigger that arrives while one is in flight instead of joining it — so
+    // the call below ran a second full pass immediately after the largest
+    // transfer sync ever makes, and returned its outcome, which the completion
+    // dialog then presented as the first pass's.
+    await _reconfigure(startPass: false);
+    return trigger(SyncTrigger.appStart);
   }
 
   /// Stops syncing on this device: forgets the sync ID, the server it was
@@ -695,7 +775,7 @@ class SyncController extends ChangeNotifier {
   /// Shared by [detach] and [wipeStore]: the local half of forgetting a store
   /// is identical whether the store still exists or has just been destroyed.
   /// The sync ID is erased rather than tombstoned, since a tombstone keeps the
-  /// credential on disk.
+  /// phrase on disk.
   Future<void> _clearAttachment() => _syncLocal.transaction((tx) async {
     await tx.clearOnDetach();
     await _settings.remove(kSyncIdKey, permanent: true);
@@ -714,6 +794,7 @@ class SyncController extends ChangeNotifier {
     _endpoint = null;
     _lastSuccessAt = null;
     _lastResult = null;
+    _mergedDuplicates = 0;
     _notices = const [];
     _replacementPending = false;
     _notify();

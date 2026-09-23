@@ -236,9 +236,9 @@
   "@settingsSyncExcludeImportsTitle": {
     "x-sourceSha256": "13a7925e9cdd2fc7f1329229f1ad3416bdd1f24f9edba254e9c3bd209e576ccb"
   },
-  "settingsSyncExcludeImportsSubtitle": "Standardmäßig aus. Reduziert, was dieses Gerät hochlädt, wenn du eine große importierte Sammlung hast; ein Tanz, der in einem Programm verwendet oder von einem anderen Tanz verlinkt wird, ist immer enthalten. Auf deinen anderen Geräten wird nichts entfernt.",
+  "settingsSyncExcludeImportsSubtitle": "Standardmäßig aus. Reduziert, was dieses Gerät hochlädt, wenn du eine große importierte Sammlung hast; ein Tanz, der in einem Programm verwendet oder von einem anderen Tanz verlinkt wird, ist immer enthalten. Auf deinen anderen Geräten wird nichts entfernt, und wenn du die Einstellung wieder ausschaltest, werden die übersprungenen Tänze erneut hochgeladen.",
   "@settingsSyncExcludeImportsSubtitle": {
-    "x-sourceSha256": "c00077f0d45dcef13c082a204103353bb4a1b23be4932c20548416ae20746a0d"
+    "x-sourceSha256": "8c0f015c9ddf1a06198153bc48cb4d3676d6631ec77a1ec6b8259bb0f2caefd6"
   },
   "settingsSyncStatusHeader": "Status",
   "@settingsSyncStatusHeader": {
@@ -268,9 +268,9 @@
   "@settingsSyncIdCopied": {
     "x-sourceSha256": "81d9cf47c8df0aa7ab1264a4810a2a14b4eb11efcb8fb40108d0095f52be1c17"
   },
-  "settingsSyncIdCaution": "Gib sie auf deinem anderen Gerät ein, um es zu verbinden. Wer sie hat, kann alles lesen und ändern, was du synchronisierst, und sie lässt sich nur ändern, indem du alle Geräte auf eine neue Phrase umstellst.",
+  "settingsSyncIdCaution": "Gib sie auf deinem anderen Gerät ein, um es zu verbinden. Dort liegt deine geteilte Bibliothek, also kann jeder, der sie hat, diese Bibliothek öffnen: alles lesen, was du synchronisierst, davon auf jedem verbundenen Gerät beliebiges ändern oder löschen und den gesamten Speicher vom Server löschen. Zu einer anderen Phrase zu wechseln heißt, alle Geräte auf sie umzustellen.",
   "@settingsSyncIdCaution": {
-    "x-sourceSha256": "797e5499782ef9ce4b832a4e5722a06bc74c51b2d49b9a9b0dc5e08c212fae52"
+    "x-sourceSha256": "6b1c3d9041b3824b166fb6a6152c973e16dddf7fa17300a24eb677c3a71482e3"
   },
   "settingsSyncStatusNotPaired": "Noch nicht mit einem Speicher verbunden.",
   "@settingsSyncStatusNotPaired": {
@@ -284,9 +284,17 @@
   "@settingsSyncStatusLastSynced": {
     "x-sourceSha256": "2e4722e81e7b673034a549b3c14f93881ca876d8726d7c8bea8cd9ec33af02b7"
   },
-  "settingsSyncCustomEndpointStatus": "Synchronisiert mit einem eigenen Server: {host}",
+  "settingsSyncEndpointStatus": "Synchronisiert mit {url}",
+  "@settingsSyncEndpointStatus": {
+    "x-sourceSha256": "d6be81e3084e9b7d29ac65ad17764df296474ebdefc9a970a5f1e120acb97fda"
+  },
+  "settingsSyncCustomEndpointStatus": "Synchronisiert mit einem eigenen Server: {url}",
   "@settingsSyncCustomEndpointStatus": {
-    "x-sourceSha256": "525e18af1820ee4028e47676c0888e3da511339787b23321b243b94fa1537387"
+    "x-sourceSha256": "f98dfc7db653036549611c4e22e6de4c65c56ea1b095c3c390bdd67637d44d88"
+  },
+  "settingsSyncMergedDuplicates": "{count, plural, one {{count} doppelten Tanz gefunden und zusammengeführt.} other {{count} doppelte Tänze gefunden und zusammengeführt.}}",
+  "@settingsSyncMergedDuplicates": {
+    "x-sourceSha256": "f3420d8fa206527f49c22fec0d183d6d67d54ddb0fa188597b4c169dfe5784d5"
   },
   "settingsSyncStatusSyncing": "Synchronisiert …",
   "@settingsSyncStatusSyncing": {
@@ -508,6 +516,14 @@
   "@settingsSyncPairingRegenerate": {
     "x-sourceSha256": "0fedb816d3ffdc13964c8fa7d6c53198a3c8de979c182c17096f111c564c0dd6"
   },
+  "settingsSyncPairingPersonalInfoTitle": "Keine persönlichen Daten in die Phrase",
+  "@settingsSyncPairingPersonalInfoTitle": {
+    "x-sourceSha256": "fb0e2cbd0c4bfd6ddfe49b8d0885f41492d738229a1011c2f1e059ff255147e0"
+  },
+  "settingsSyncPairingPersonalInfoBody": "Wenn du deine eigene Phrase eingibst, lass Namen, Adressen, Geburtstage und alles andere über dich heraus. Die Phrase geht bei jeder Anfrage an den Server und wird auf jedem Gerät, das du verbindest, vorgelesen oder eingetippt — behandle sie also wie etwas, das außen auf einer Kiste steht, und nicht als Ort für Privates.",
+  "@settingsSyncPairingPersonalInfoBody": {
+    "x-sourceSha256": "843baaa107338c8fbfba60e77c42edaa6fcf76602f0bf47f1563ea5c6919968a"
+  },
   "settingsSyncPairingWeakPhraseTitle": "Diese Phrase ist möglicherweise leicht zu erraten",
   "@settingsSyncPairingWeakPhraseTitle": {
     "x-sourceSha256": "565f68f91b940dfa3a68e738d27915fca5d435cacbc83bec43e85ffe0b172646"
@@ -568,13 +584,21 @@
   "@settingsSyncPairingSharingBody": {
     "x-sourceSha256": "a98a2f3493bfcb71d5e1c5020747752924342c3821a4aa3ca1b4cca5b4c195d1"
   },
-  "settingsSyncPairingCredentialTitle": "Diese Phrase kann weder wiederhergestellt noch widerrufen werden",
-  "@settingsSyncPairingCredentialTitle": {
-    "x-sourceSha256": "c6abbeba15319ec950ff3d20957906a07104aed09b1e6570eb73a191f7f6fb93"
+  "settingsSyncPairingBearerTitle": "Wer diese Phrase hat, kann deine Bibliothek öffnen",
+  "@settingsSyncPairingBearerTitle": {
+    "x-sourceSha256": "45858e1bf94c0decbeb0f3870a62926a932f62bd361bc394dda6c5c07f7ebb81"
   },
-  "settingsSyncPairingCredentialBody": "Verlierst du diese Phrase, wird dein Speicher unerreichbar — es gibt kein Zurücksetzen. Falls sie durchsickert, ist die einzige Lösung, alle Geräte auf eine neue Phrase umzustellen.",
+  "settingsSyncPairingBearerBody": "Die Phrase ist der Ort, an dem deine geteilte Bibliothek liegt — kein Passwort davor. Es gibt nichts, wo man sich anmeldet. Jeder, dem du sie gibst, und jeder, der sie einfach in die Hände bekommt, kann diese Bibliothek vom eigenen Gerät aus öffnen: alles lesen, was du synchronisierst, davon überall, wo es angekommen ist, beliebiges ändern oder löschen und das Ganze vom Server löschen. Es gibt keine Variante einer Phrase, die weniger kann.",
+  "@settingsSyncPairingBearerBody": {
+    "x-sourceSha256": "d891d4e75ca3b4c4380a99d41a68416e96b015b5b8150baad9cac1cb56e312f6"
+  },
+  "settingsSyncPairingCredentialTitle": "Von dieser Phrase gibt es keine Kopie, und zurückholen lässt sie sich nicht",
+  "@settingsSyncPairingCredentialTitle": {
+    "x-sourceSha256": "e16277566dc4bddb09274f24707f2825a2f4a162d467f22b2b0898ab82b96dc8"
+  },
+  "settingsSyncPairingCredentialBody": "Nichts sonst kennt diese Phrase irgendwo. Verlierst du sie, bleibt die Bibliothek an dieser Stelle liegen und niemand kommt mehr heran. Jemandem die Phrase zu nennen, lässt sich ebenso wenig rückgängig machen. Stellst du deine Geräte auf eine neue Phrase um, beginnst du damit nur eine zweite Bibliothek an anderer Stelle: die erste liegt weiterhin dort, und wer die alte Phrase behalten hat, kann sie weiterhin öffnen und ändern. Nur das Löschen des Speichers nimmt sie sofort weg.",
   "@settingsSyncPairingCredentialBody": {
-    "x-sourceSha256": "8cefe91d1bf18c0df7147a7ce772b9806ad0190dbdef49e2c988a88b5dc29b06"
+    "x-sourceSha256": "a17138ff1230ef39c2340d60de66280c2bfa4fb66bbe315d72da7804fbe93e3a"
   },
   "settingsSyncPairingBackupOfferTitle": "Zuerst deine Bibliothek sichern?",
   "@settingsSyncPairingBackupOfferTitle": {
@@ -600,13 +624,25 @@
   "@settingsSyncPairingComplete": {
     "x-sourceSha256": "22965568d22a14ee17af055d2870b50afcfe9fd94a83eec3196e266932297bb2"
   },
-  "settingsSyncPairingCompleteBody": "Deine Bibliothek ist verbunden. Die erste Synchronisierung läuft jetzt.",
+  "settingsSyncPairingCompleteBody": "Deine Bibliothek ist verbunden, und die erste Synchronisierung ist abgeschlossen.",
   "@settingsSyncPairingCompleteBody": {
-    "x-sourceSha256": "750a225daf2a7bd882f9647303a4ca3c869b1ce0bd820a69c4bfa960293b72ad"
+    "x-sourceSha256": "7348fca6f5ec4bc93da087af0a566297603d519049974a1dfd2742144c8be72c"
   },
-  "settingsSyncPairingCompleteDuplicates": "{count, plural, one {{count} doppelten Tanz gefunden und zusammengeführt.} other {{count} doppelte Tänze gefunden und zusammengeführt.}}",
-  "@settingsSyncPairingCompleteDuplicates": {
-    "x-sourceSha256": "f3420d8fa206527f49c22fec0d183d6d67d54ddb0fa188597b4c169dfe5784d5"
+  "settingsSyncPairingCompleteFailed": "Deine Bibliothek ist verbunden, aber die erste Synchronisierung wurde nicht abgeschlossen. Sie versucht es von selbst erneut.",
+  "@settingsSyncPairingCompleteFailed": {
+    "x-sourceSha256": "1abc3b5435e39c84d478f9ab0395745767d18473438a089c378be1ca21083163"
+  },
+  "settingsSyncPairingCompleteMetered": "Deine Bibliothek ist verbunden. Die erste Synchronisierung wartet auf WLAN, weil „Nur über WLAN synchronisieren“ an ist.",
+  "@settingsSyncPairingCompleteMetered": {
+    "x-sourceSha256": "d6a175eb28ce65a72ad075ed71f53cfdea9b5d9bdff3b91f84fa74a826490d31"
+  },
+  "settingsSyncPairingCompleteOffline": "Deine Bibliothek ist verbunden. Die erste Synchronisierung läuft, sobald du wieder online bist.",
+  "@settingsSyncPairingCompleteOffline": {
+    "x-sourceSha256": "9b519253dd4a2c08a7b92feec2a29efa9250c74677c17c90c29271b8fac5d997"
+  },
+  "settingsSyncPairingCompletePending": "Deine Bibliothek ist verbunden. Die erste Synchronisierung ist noch nicht gelaufen; sie läuft, wenn dieses Gerät das nächste Mal synchronisiert.",
+  "@settingsSyncPairingCompletePending": {
+    "x-sourceSha256": "daa70b1721d468f073882e6c3bdc9f5a406d491f004bb1191ed459c2e5c8a0f3"
   },
   "settingsSyncReplacementTitle": "Diesen Speicher neu verbinden?",
   "@settingsSyncReplacementTitle": {

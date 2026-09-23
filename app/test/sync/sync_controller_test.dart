@@ -122,7 +122,7 @@ void main() {
       settings: repos.settings,
       syncLocal: repos.syncLocal,
       coordinator: () => coordinator,
-      reconfigure: () async {},
+      reconfigure: ({bool startPass = true}) async {},
       classifier: network,
       now: () => clock,
       debounce: debounce,
@@ -172,7 +172,7 @@ void main() {
         settings: repos.settings,
         syncLocal: repos.syncLocal,
         coordinator: () => null,
-        reconfigure: () async => reconfigured++,
+        reconfigure: ({bool startPass = true}) async => reconfigured++,
         classifier: network,
       );
       addTearDown(controller.dispose);
@@ -914,7 +914,7 @@ void main() {
         settings: repos.settings,
         syncLocal: repos.syncLocal,
         coordinator: () => coordinator,
-        reconfigure: () async {},
+        reconfigure: ({bool startPass = true}) async {},
         pairingProbeFactory: (syncId, endpoint) => probe,
         classifier: network,
       );
@@ -938,7 +938,7 @@ void main() {
         settings: repos.settings,
         syncLocal: repos.syncLocal,
         coordinator: () => coordinator,
-        reconfigure: () async => reconfigured++,
+        reconfigure: ({bool startPass = true}) async => reconfigured++,
         classifier: network,
       );
       addTearDown(controller.dispose);
@@ -990,6 +990,168 @@ void main() {
             'reconfigure alone only awaits coordinator construction, not '
             'the app-start pass it schedules unawaited',
       );
+      expect(
+        controller.mergedDuplicates,
+        5,
+        reason: 'the count is latched so it outlives the pass that found it',
+      );
+    });
+
+    // Issue #1350. The pairing surface cannot infer this: a suppressed pass
+    // and a completed one both leave `completePairing` returning normally,
+    // and `lastResult` after a suppressed one belongs to some other pass.
+    test('completePairing returns what the §6.12 gate did with the first '
+        'pass, rather than discarding it', () async {
+      coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device',
+        store: CompendiumSyncCoordinatorStore(repos),
+        transport: NoopSyncCoordinatorTransport(),
+        passOperation: ({initialStore}) async =>
+            const SyncPassResult(SyncPassStatus.completed),
+      );
+      addTearDown(() => coordinator?.dispose());
+      final controller = build();
+      await controller.load();
+      await controller.setEnabled(true);
+
+      network.kind = SyncNetworkKind.unmetered;
+      expect(
+        await controller.completePairing(
+          'correct horse battery staple',
+          Uri.parse(kDefaultSyncEndpoint),
+        ),
+        SyncGateOutcome.ran,
+      );
+
+      network.kind = SyncNetworkKind.metered;
+      expect(
+        await controller.completePairing(
+          'correct horse battery staple',
+          Uri.parse(kDefaultSyncEndpoint),
+        ),
+        SyncGateOutcome.suppressedMetered,
+        reason: 'wifiOnly defaults to on, so a metered first pass is deferred',
+      );
+
+      network.kind = SyncNetworkKind.offline;
+      expect(
+        await controller.completePairing(
+          'correct horse battery staple',
+          Uri.parse(kDefaultSyncEndpoint),
+        ),
+        SyncGateOutcome.suppressedOffline,
+      );
+    });
+
+    // Production's reconfigure does not merely rebuild the coordinator: it
+    // installs it and immediately fires an app-start pass it does not await
+    // (`main.dart`, `unawaited(_runSyncStart())`). Every other test here uses
+    // a no-op reconfigure, so none of them reproduced that — and the
+    // coordinator *queues* a trigger arriving while a pass is in flight rather
+    // than joining it, so pairing ran two full passes back to back and
+    // returned the second one's outcome for the dialog to describe the first
+    // one with.
+    test('completePairing runs exactly one pass even though the app starts '
+        'one of its own on every reconfiguration', () async {
+      final startPasses = <int>[];
+      coordinator = _coordinator(repos, startPasses);
+      addTearDown(() => coordinator?.dispose());
+      late final SyncController controller;
+      controller = SyncController(
+        settings: repos.settings,
+        syncLocal: repos.syncLocal,
+        coordinator: () => coordinator,
+        // Exactly what main.dart does, including not awaiting it.
+        reconfigure: ({bool startPass = true}) async {
+          if (startPass) unawaited(controller.onAppStart());
+        },
+        classifier: network,
+        now: () => clock,
+      );
+      addTearDown(controller.dispose);
+      await controller.load();
+      await controller.setEnabled(true);
+      startPasses.clear();
+
+      final outcome = await controller.completePairing(
+        'correct horse battery staple',
+        Uri.parse(kDefaultSyncEndpoint),
+      );
+      // Let anything the reconfiguration started settle, so a second pass
+      // cannot hide behind the await above.
+      await pumpEventQueue();
+
+      expect(outcome, SyncGateOutcome.ran);
+      expect(
+        startPasses.length,
+        1,
+        reason:
+            'the automatic app-start pass must be suppressed for pairing, so '
+            'the outcome returned belongs to the pass the dialog describes',
+      );
+    });
+
+    // The count belongs to a store, not to the device: reporting the previous
+    // store's merges as this attach's would be a number about records that
+    // are no longer there.
+    test('completePairing clears a merged-duplicates count left over from a '
+        'previous attach', () async {
+      var merges = 6;
+      coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device',
+        store: CompendiumSyncCoordinatorStore(repos),
+        transport: NoopSyncCoordinatorTransport(),
+        passOperation: ({initialStore}) async =>
+            SyncPassResult(SyncPassStatus.completed, duplicateCount: merges),
+      );
+      addTearDown(() => coordinator?.dispose());
+      final controller = build();
+      await controller.load();
+      await controller.setEnabled(true);
+      await controller.completePairing(
+        'correct horse battery staple',
+        Uri.parse(kDefaultSyncEndpoint),
+      );
+      expect(controller.mergedDuplicates, 6);
+
+      // The second attach merges nothing, which an ordinary pass also reports,
+      // so only the reset can tell them apart.
+      merges = 0;
+      await controller.completePairing(
+        'alpha bravo charlie delta',
+        Uri.parse(kDefaultSyncEndpoint),
+      );
+
+      expect(controller.mergedDuplicates, 0);
+    });
+
+    test('a steady-state pass reporting zero cannot clear the count an '
+        'earlier fresh attach set', () async {
+      var merges = 4;
+      coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device',
+        store: CompendiumSyncCoordinatorStore(repos),
+        transport: NoopSyncCoordinatorTransport(),
+        passOperation: ({initialStore}) async =>
+            SyncPassResult(SyncPassStatus.completed, duplicateCount: merges),
+      );
+      addTearDown(() => coordinator?.dispose());
+      final controller = build();
+      await controller.load();
+      await controller.setEnabled(true);
+      await controller.completePairing(
+        'correct horse battery staple',
+        Uri.parse(kDefaultSyncEndpoint),
+      );
+      expect(controller.mergedDuplicates, 4);
+
+      merges = 0;
+      await controller.syncNow();
+
+      expect(controller.mergedDuplicates, 4);
     });
   });
 
@@ -1008,7 +1170,7 @@ void main() {
         settings: repos.settings,
         syncLocal: repos.syncLocal,
         coordinator: () => coordinator,
-        reconfigure: () async {},
+        reconfigure: ({bool startPass = true}) async {},
         runExclusive: runExclusive ?? (operation) => operation(),
         classifier: network,
         now: () => clock,
@@ -1147,7 +1309,7 @@ void main() {
         settings: repos.settings,
         syncLocal: syncLocal ?? repos.syncLocal,
         coordinator: () => coordinator,
-        reconfigure: () async {},
+        reconfigure: ({bool startPass = true}) async {},
         runExclusive: runExclusive ?? (operation) => operation(),
         deviceAdminFactory: (syncId, endpoint) {
           onAdminRequested?.call(syncId);
@@ -1529,7 +1691,7 @@ void main() {
         settings: repos.settings,
         syncLocal: repos.syncLocal,
         coordinator: () => coordinator,
-        reconfigure: () async {},
+        reconfigure: ({bool startPass = true}) async {},
         deviceAdminFactory: (syncId, endpoint) => fake.admin,
         classifier: network,
       );
