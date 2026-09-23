@@ -4868,7 +4868,7 @@ must say this plainly rather than implying sync is opaque to us.
   see, list or act on.
 - **Editing a blocked row succeeds when the value is unchanged, and a rename
   onto a value another row holds is refused where the user can see it** — see
-  "Two outcomes, not one" below. Mutation-proved twice: by applying the
+  "Two outcomes, not one" above. Mutation-proved twice: by applying the
   write-path normalisation rule unconditionally, which rejects the unchanged
   re-save to satisfy an internal invariant; and by taking the carve-out for
   every collision, which writes the row's **old** value back and records a skip
