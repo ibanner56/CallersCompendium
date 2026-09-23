@@ -668,11 +668,25 @@ class SyncController extends ChangeNotifier {
     _debounceTimer?.cancel();
     _dirty = false;
     try {
-      await _runExclusive(_clearAttachment);
+      await _runExclusive(() async {
+        await _clearAttachment();
+        // Inside the boundary, immediately after the transaction commits.
+        //
+        // Not after `_runExclusive` returns: the boundary is a queue whose
+        // `finally` releases the next writer *before* this caller's own
+        // `await` resumes, so a removal queued behind this detach could begin
+        // while the in-memory sync ID still named the store we just left. In
+        // practice it does not — the released writer suspends again before it
+        // reads the field, so this forget wins — but that is an argument about
+        // microtask ordering, not an invariant, and it would stop holding the
+        // moment anything between the release and that read stopped yielding.
+        // Clearing here makes it structural: no queued writer can observe the
+        // old credential, because the clear precedes the release entirely.
+        _forgetAttachment();
+      });
     } finally {
       _detaching = false;
     }
-    _forgetAttachment();
   }
 
   /// Erases everything that ties this device to its store, in one transaction
@@ -852,11 +866,18 @@ class SyncController extends ChangeNotifier {
     _detaching = true;
     _debounceTimer?.cancel();
     _dirty = false;
+    // Distinguishes "the boundary never got us there" from "it did, and found
+    // nothing attached". Without it a writer that threw while disposing the
+    // coordinator, or during shutdown, was reported as `notPaired` — which
+    // tells the caller the attachment was already gone when it was not, the
+    // same class of untrue outcome this whole change exists to remove.
+    var ran = false;
     var attached = false;
     var wiped = false;
     var cleared = false;
     try {
       await _runExclusive(() async {
+        ran = true;
         // Built inside the boundary, for the reason [removeDevice] gives: the
         // boundary is a queue, and a credential captured before queueing can
         // belong to a store this device has already left by the time the
@@ -875,6 +896,10 @@ class SyncController extends ChangeNotifier {
           if (!wiped) return;
           await _clearAttachment();
           cleared = true;
+          // Inside the boundary, for the reason [detach] gives: a writer
+          // queued behind this one must not be able to observe the credential
+          // of a store that no longer exists.
+          _forgetAttachment();
         } finally {
           admin.close?.call();
         }
@@ -891,6 +916,11 @@ class SyncController extends ChangeNotifier {
     } finally {
       _detaching = false;
     }
+    // The boundary failed before the operation ran at all — disposing the
+    // coordinator, or refusing during shutdown. Nothing was requested and this
+    // device is still attached, so `notPaired` would be a false statement
+    // about both.
+    if (!ran) return SyncAdminOutcome.failed;
     if (!attached) return SyncAdminOutcome.notPaired;
     // `wiped` false covers both a refusal and an unresolved attempt (a
     // transport timeout after the server may already have processed the
@@ -898,7 +928,6 @@ class SyncController extends ChangeNotifier {
     // copy for this outcome does not say nothing changed.
     if (!wiped) return SyncAdminOutcome.failed;
     if (!cleared) return SyncAdminOutcome.wipedButStillAttached;
-    _forgetAttachment();
     return SyncAdminOutcome.done;
   }
 
