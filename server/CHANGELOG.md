@@ -8,6 +8,22 @@ the app and of `compendium_core`; version headings below refer to
 
 ## [Unreleased]
 
+### Changed
+
+- `PUT /v1/blobs/{hash}` answers `404 store not found` instead of
+  `409 stale blob epoch` when the store is deleted or reaped mid-request, and
+  counts the response against the failed-resolution budget. No blob endpoint
+  emits `409`, which the specification reserves for a stale-epoch manifest `PUT`
+  and a duplicate `POST /v1/store`.
+
+### Removed
+
+- The compile-time `ATHENAEUM_PEPPER` fallback. The pepper now comes only from
+  runtime configuration — the environment variable or `--pepper` — so a build
+  cannot embed one and a server with none configured refuses to start. The
+  documented local example passes it through the environment rather than argv,
+  where the process list exposes it to other users on the host.
+
 ## [0.2.0] - 2026-09-19
 
 ### Added

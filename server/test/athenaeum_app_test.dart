@@ -1251,6 +1251,236 @@ void main() {
     }
   });
 
+  // Spec §7.1: `409` has exactly two sources — a stale-epoch manifest `PUT` and
+  // a `POST /v1/store` against an id_key that already has a store. No blob
+  // route may emit it. `PUT /v1/blobs/{hash}` used to answer `409 'stale blob
+  // epoch'` when `StoreEpochMismatch` escaped the quota preflight or the write,
+  // which the store raises only when its row has gone (a concurrent
+  // `DELETE /v1/store`, or a sweep reaping it, after the handler's own lookup).
+  // Two things were wrong: the status the spec reserves for resets, and the
+  // §5.4 accounting — a thrown `_RequestFailure` answers directly, so the
+  // store-not-found outcome was never charged to the failure budget the way
+  // every other unresolved-store request is. Both guards below therefore assert
+  // the status AND that the response was counted (#1359).
+  for (final stage in _BlobStoreLossStage.values) {
+    test(
+      'a blob PUT whose store vanished during ${stage.label} is a counted 404',
+      () async {
+        final dataDirectory = await Directory.systemTemp.createTemp(
+          'athenaeum-blob-loss-',
+        );
+        final lostStore = _StoreLosingItsRow(
+          stage,
+          config: app.config,
+          database: sqlite3.openInMemory(),
+          breakGlassDatabase: sqlite3.openInMemory(),
+          diagnosticDatabase: sqlite3.openInMemory(),
+        );
+        final credential = encodeSyncCredential(syncId);
+        // A burst of 2 makes the third failure the one that proves counting:
+        // an uncounted response would leave the budget untouched and answer
+        // 404 forever.
+        final customApp = _AuthenticatedApp(
+          AthenaeumApp(
+            config: app.config,
+            store: lostStore,
+            budgetLimits: const AthenaeumBudgetLimits(
+              perIpFailureBurst: 2,
+              perIpFailuresPerMinute: 2,
+            ),
+          ),
+          credential,
+        );
+        try {
+          expect(
+            (await customApp.call(
+              Request(
+                'POST',
+                Uri.parse('http://127.0.0.1/v1/store'),
+                headers: {'authorization': 'Bearer $credential'},
+              ),
+            )).statusCode,
+            201,
+          );
+          // A well-formed, allow-list-clean record: the `putBlob` stage is only
+          // reached by a body that passes validation, so the same payload
+          // exercises both stages.
+          final bytes = _recordBlob(
+            kind: 'choreographer',
+            id: 'c1',
+            body: {'id': 'c1', 'name': 'Alice Choreo'},
+          );
+          final hash = sha256.convert(bytes).toString();
+          Future<Response> upload() => customApp.call(
+            Request(
+              'PUT',
+              Uri.parse('http://127.0.0.1/v1/blobs/$hash'),
+              headers: {
+                'authorization': 'Bearer $credential',
+                'content-type': 'application/octet-stream',
+              },
+              body: bytes,
+            ),
+          );
+
+          final first = await upload();
+          expect(
+            first.statusCode,
+            404,
+            reason: 'a vanished store is not a conflict',
+          );
+          expect(jsonDecode(await first.readAsString()), {
+            'error': 'store not found',
+          });
+          expect((await upload()).statusCode, 404);
+          // Counted: the budget is now spent, so the next one sheds. A `409`
+          // raised through `_RequestFailure` never reaches the failure budget
+          // and this would still be 404.
+          expect(
+            (await upload()).statusCode,
+            429,
+            reason: 'the 404 must consume the §5.4 failure budget',
+          );
+        } finally {
+          lostStore.close();
+          await dataDirectory.delete(recursive: true);
+        }
+      },
+    );
+  }
+
+  test('no blob route answers 409', () async {
+    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
+    final bytes = _recordBlob(
+      kind: 'choreographer',
+      id: 'c1',
+      body: {'id': 'c1', 'name': 'Alice Choreo'},
+    );
+    final hash = sha256.convert(bytes).toString();
+    final otherHash = sha256.convert(Uint8List.fromList([9])).toString();
+
+    // Every blob-route outcome this suite can reach, externally and by
+    // injection. The external requests alone are NOT sufficient and this test
+    // was briefly wrong for exactly that reason: a `DELETE /v1/store` followed
+    // by an upload is caught by the handler's own `store.lookup` and answers
+    // 404 whether or not the `StoreEpochMismatch` branches below it say 409, so
+    // an external-only sweep stayed green against the unfixed code. The two
+    // store-loss stages are the only requests that reach those branches, so
+    // they are part of the sweep rather than a separate concern.
+    final statuses = <String, int>{};
+    Future<void> record(
+      String label,
+      Future<HttpClientResponse> response,
+    ) async => statuses[label] = (await response).statusCode;
+
+    await record(
+      'put',
+      _send(
+        'PUT',
+        '/v1/blobs/$hash',
+        syncId: syncId,
+        body: bytes,
+        contentType: 'application/octet-stream',
+      ),
+    );
+    await record(
+      'put again',
+      _send(
+        'PUT',
+        '/v1/blobs/$hash',
+        syncId: syncId,
+        body: bytes,
+        contentType: 'application/octet-stream',
+      ),
+    );
+    await record('get', _send('GET', '/v1/blobs/$hash', syncId: syncId));
+    await record(
+      'get absent',
+      _send('GET', '/v1/blobs/$otherHash', syncId: syncId),
+    );
+    await record(
+      'put mismatched body',
+      _send(
+        'PUT',
+        '/v1/blobs/$otherHash',
+        syncId: syncId,
+        body: bytes,
+        contentType: 'application/octet-stream',
+      ),
+    );
+    expect(
+      (await _send('DELETE', '/v1/store', syncId: syncId)).statusCode,
+      204,
+    );
+    await record(
+      'put into a deleted store',
+      _send(
+        'PUT',
+        '/v1/blobs/$hash',
+        syncId: syncId,
+        body: bytes,
+        contentType: 'application/octet-stream',
+      ),
+    );
+
+    for (final stage in _BlobStoreLossStage.values) {
+      final lostStore = _StoreLosingItsRow(
+        stage,
+        config: app.config,
+        database: sqlite3.openInMemory(),
+        breakGlassDatabase: sqlite3.openInMemory(),
+        diagnosticDatabase: sqlite3.openInMemory(),
+      );
+      final credential = encodeSyncCredential(syncId);
+      final lossApp = _AuthenticatedApp(
+        AthenaeumApp(config: app.config, store: lostStore),
+        credential,
+      );
+      try {
+        expect(
+          (await lossApp.call(
+            Request(
+              'POST',
+              Uri.parse('http://127.0.0.1/v1/store'),
+              headers: {'authorization': 'Bearer $credential'},
+            ),
+          )).statusCode,
+          201,
+        );
+        statuses['put losing the store at ${stage.label}'] =
+            (await lossApp.call(
+              Request(
+                'PUT',
+                Uri.parse('http://127.0.0.1/v1/blobs/$hash'),
+                headers: {
+                  'authorization': 'Bearer $credential',
+                  'content-type': 'application/octet-stream',
+                },
+                body: bytes,
+              ),
+            )).statusCode;
+      } finally {
+        lostStore.close();
+      }
+    }
+
+    expect(statuses, {
+      'put': 201,
+      'put again': 200,
+      'get': 200,
+      'get absent': 404,
+      'put mismatched body': 400,
+      'put into a deleted store': 404,
+      'put losing the store at the quota preflight': 404,
+      'put losing the store at the write': 404,
+    });
+    expect(
+      statuses.values,
+      everyElement(isNot(409)),
+      reason: '§7.1 reserves 409 for manifest PUT and POST /v1/store',
+    );
+  });
+
   test(
     'server-wide shedding preserves existing-store and resource behavior',
     () async {
@@ -2713,6 +2943,51 @@ class _AuthenticatedApp {
 
   Future<Response> call(Request request) =>
       _app.call(request.change(headers: {'authorization': _authorization}));
+}
+
+/// Which step of `PUT /v1/blobs/{hash}` loses the store row underneath it.
+///
+/// Both raise [StoreEpochMismatch] from a real [AthenaeumStore] method, which
+/// is exactly what the store does when `lookup` finds no row
+/// (`athenaeum_store.dart` `blobUploadLimit`/`putBlob`). Injecting it is the
+/// only deterministic way to sit in the window between the handler's own
+/// lookup and the call: the race needs a concurrent `DELETE /v1/store` or a
+/// sweep reap landing mid-request.
+enum _BlobStoreLossStage {
+  quotaPreflight('the quota preflight'),
+  write('the write');
+
+  const _BlobStoreLossStage(this.label);
+
+  final String label;
+}
+
+class _StoreLosingItsRow extends AthenaeumStore {
+  _StoreLosingItsRow(
+    this.stage, {
+    required super.config,
+    required super.database,
+    required super.breakGlassDatabase,
+    required super.diagnosticDatabase,
+  });
+
+  final _BlobStoreLossStage stage;
+
+  @override
+  int blobUploadLimit(String idKey, String epoch, String hash) =>
+      stage == _BlobStoreLossStage.quotaPreflight
+      ? throw const StoreEpochMismatch()
+      : super.blobUploadLimit(idKey, epoch, hash);
+
+  @override
+  bool putBlob({
+    required String idKey,
+    required String epoch,
+    required String hash,
+    required Uint8List body,
+  }) => stage == _BlobStoreLossStage.write
+      ? throw const StoreEpochMismatch()
+      : super.putBlob(idKey: idKey, epoch: epoch, hash: hash, body: body);
 }
 
 Uint8List _recordBlob({
