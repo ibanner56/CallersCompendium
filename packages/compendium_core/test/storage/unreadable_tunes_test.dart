@@ -62,22 +62,25 @@ void main() {
     });
   });
 
-  test('a pending one-time sweep completes with an undecodable tune list', () async {
-    // The case that reopened after the rebuild gate was removed: with a repair
-    // owed, the sweep loads every dance. A guard that runs after
-    // `ensureMigrated()` has written the markers cannot see this, so the marker
-    // is cleared first.
-    await repos.dances.create(sampleDance(id: 'd1', title: 'Corrupt'));
-    await repos.ensureMigrated();
-    await _storeRawTunes(db, 'd1', '[1,2,3]');
-    await db.customStatement('DELETE FROM settings WHERE key = ?', [
-      normalisationDerivedIndexRepairDoneKey,
-    ]);
+  test(
+    'a pending one-time sweep completes with an undecodable tune list',
+    () async {
+      // The case that reopened after the rebuild gate was removed: with a repair
+      // owed, the sweep loads every dance. A guard that runs after
+      // `ensureMigrated()` has written the markers cannot see this, so the marker
+      // is cleared first.
+      await repos.dances.create(sampleDance(id: 'd1', title: 'Corrupt'));
+      await repos.ensureMigrated();
+      await _storeRawTunes(db, 'd1', '[1,2,3]');
+      await db.customStatement('DELETE FROM settings WHERE key = ?', [
+        normalisationDerivedIndexRepairDoneKey,
+      ]);
 
-    await CompendiumRepositories(db, contraTaxonomy).ensureMigrated();
+      await CompendiumRepositories(db, contraTaxonomy).ensureMigrated();
 
-    expect(await _storedTunes(db, 'd1'), '[1,2,3]');
-  });
+      expect(await _storedTunes(db, 'd1'), '[1,2,3]');
+    },
+  );
 
   test('an ordinary edit leaves an unreadable tune list untouched', () async {
     const raw = '[{"a":';
@@ -125,10 +128,9 @@ void main() {
     test('clearing tunes does not rewrite it', () async {
       // Clearing is the user's intent, but a BATCH clear would destroy text the
       // undo snapshot cannot restore: the snapshot is a `List<String>`.
-      await repos.dances.clearTunesForMany(
-        const ['d1'],
-        now: DateTime.utc(2026, 5, 1),
-      );
+      await repos.dances.clearTunesForMany(const [
+        'd1',
+      ], now: DateTime.utc(2026, 5, 1));
       expect(await _storedTunes(db, 'd1'), '[1,2,3]');
     });
   });

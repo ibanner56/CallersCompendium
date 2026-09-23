@@ -758,7 +758,7 @@ void main() {
         expect(draft.dance.callingNotes, contains('Nice Combo'));
         expect(draft.dance.callingNotes, contains('reels'));
         expect(draft.dance.callingNotes, contains('Dizzy Dances (p. 6)'));
-        expect(draft.dance.tunes, ['Tune A', 'Tune B']);
+        expect(tunesOf(draft.dance), ['Tune A', 'Tune B']);
       });
 
       test('id but no Name is still importable as a stub', () async {

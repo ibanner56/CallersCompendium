@@ -11,6 +11,7 @@ import 'package:compendium_app/src/screens/dance_list_screen.dart';
 
 import '../support/test_repositories.dart';
 import '../support/l10n_harness.dart';
+import '../figures_support.dart';
 
 Dance _dance({
   required String id,
@@ -114,10 +115,10 @@ void main() {
     await _addTunes(tester, ['Jig B']);
 
     // Existing tune preserved; addition merged in.
-    expect((await repos.dances.getById('d1'))!.tunes, ['Reel A', 'Jig B']);
-    expect((await repos.dances.getById('d2'))!.tunes, ['Jig B']);
+    expect(tunesOf((await repos.dances.getById('d1'))!), ['Reel A', 'Jig B']);
+    expect(tunesOf((await repos.dances.getById('d2'))!), ['Jig B']);
     // The un-selected dance is untouched.
-    expect((await repos.dances.getById('d3'))!.tunes, isEmpty);
+    expect(tunesOf((await repos.dances.getById('d3'))!), isEmpty);
     expect(find.text('Added tunes to 2 dances'), findsOneWidget);
   });
 
@@ -137,8 +138,8 @@ void main() {
     await _addTunes(tester, ['Reel A']);
 
     expect(find.text('Added tunes to 1 dance'), findsOneWidget);
-    expect((await repos.dances.getById('d1'))!.tunes, ['Reel A']);
-    expect((await repos.dances.getById('d2'))!.tunes, ['Reel A']);
+    expect(tunesOf((await repos.dances.getById('d1'))!), ['Reel A']);
+    expect(tunesOf((await repos.dances.getById('d2'))!), ['Reel A']);
   });
 
   testWidgets('undo restores the prior per-dance tunes after add', (
@@ -159,8 +160,8 @@ void main() {
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
 
-    expect((await repos.dances.getById('d1'))!.tunes, ['Reel A']);
-    expect((await repos.dances.getById('d2'))!.tunes, isEmpty);
+    expect(tunesOf((await repos.dances.getById('d1'))!), ['Reel A']);
+    expect(tunesOf((await repos.dances.getById('d2'))!), isEmpty);
   });
 
   testWidgets('clear-tunes removes all tunes after confirmation', (
@@ -184,8 +185,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect((await repos.dances.getById('d1'))!.tunes, isEmpty);
-    expect((await repos.dances.getById('d2'))!.tunes, isEmpty);
+    expect(tunesOf((await repos.dances.getById('d1'))!), isEmpty);
+    expect(tunesOf((await repos.dances.getById('d2'))!), isEmpty);
     expect(find.text('Cleared tunes from 2 dances'), findsOneWidget);
   });
 
@@ -204,7 +205,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('batch-clear-tunes-cancel')));
     await tester.pumpAndSettle();
 
-    expect((await repos.dances.getById('d1'))!.tunes, ['Reel A']);
+    expect(tunesOf((await repos.dances.getById('d1'))!), ['Reel A']);
   });
 
   testWidgets('undo restores tunes after a clear', (tester) async {
@@ -225,6 +226,6 @@ void main() {
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
 
-    expect((await repos.dances.getById('d1'))!.tunes, ['Reel A', 'Jig B']);
+    expect(tunesOf((await repos.dances.getById('d1'))!), ['Reel A', 'Jig B']);
   });
 }

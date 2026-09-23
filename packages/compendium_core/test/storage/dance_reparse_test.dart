@@ -221,7 +221,7 @@ void main() {
       expect(loaded.customFields.single.fieldId, 'f1');
       expect(loaded.customFields.single.value, 'New England');
       expect(loaded.rating, 4);
-      expect(loaded.tunes, ['Reel of Rio']);
+      expect(tunesOf(loaded), ['Reel of Rio']);
       expect(loaded.callingNotes, 'Teach the swing.');
       // Only the figure changed.
       expect(figuresOf(loaded).single.move, 'swing');
