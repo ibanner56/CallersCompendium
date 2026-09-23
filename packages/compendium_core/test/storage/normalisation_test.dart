@@ -381,6 +381,144 @@ void main() {
         {'id': 't2', 'name': 'café'},
       ],
     );
+
+    // Both entries are discharged, not just t1's (#1346 finding 1). t1's row
+    // was written to its target; t2 was never rewritten — 'café' is already its
+    // own target — but it was recorded only because t1 derived the same string,
+    // and t1 no longer does. sync-spec.md §4.1 (`:582`-`:586`) clears an entry
+    // "once its row is written", which a row already holding its target
+    // satisfies; leaving it would keep the whole library re-scanned on every
+    // launch for a collision that no longer exists.
+    expect(
+      await db.customSelect('SELECT 1 FROM normalisation_skips').get(),
+      isEmpty,
+    );
+  });
+
+  test('a completed pass with no recorded rows performs no scan', () async {
+    await repos.dances.create(sampleDance(id: 'd1', title: 'Original'));
+    await repos.ensureMigrated();
+    expect(
+      await db.customSelect('SELECT 1 FROM normalisation_skips').get(),
+      isEmpty,
+      reason: 'precondition: a healthy library records nothing',
+    );
+
+    // Written raw, so the write path's normalization does not reach it. Only a
+    // scan would repair it.
+    await db.customStatement('UPDATE dances SET title = ? WHERE id = ?', [
+      'café',
+      'd1',
+    ]);
+
+    await CompendiumRepositories(db, contraTaxonomy).ensureMigrated();
+
+    final row = await db
+        .customSelect(
+          'SELECT title FROM dances WHERE id = ?',
+          variables: [const Variable<String>('d1')],
+        )
+        .getSingle();
+    // The early return is the assertion: an unchanged marker and an empty skip
+    // table mean the pass is done, so the value is left exactly as the raw
+    // write left it. Asserting the *absence* of a repair is what makes this
+    // test able to fail — a scan that ran anyway would normalize it.
+    expect(row.read<String>('title'), 'café');
+  });
+
+  test('a retry re-attempts only the recorded rows, not the library', () async {
+    // Two tags deriving one target: both are recorded, and they stay recorded
+    // because neither can take the target while the other holds its own bytes.
+    await db.customStatement('INSERT INTO tags (id, name) VALUES (?, ?)', [
+      't1',
+      'café',
+    ]);
+    await db.customStatement('INSERT INTO tags (id, name) VALUES (?, ?)', [
+      't2',
+      'café',
+    ]);
+    await repos.dances.create(sampleDance(id: 'd1', title: 'Original'));
+    await repos.ensureMigrated();
+    expect(
+      (await db.customSelect('SELECT 1 FROM normalisation_skips').get()).length,
+      2,
+      reason: 'precondition: the colliding pair is recorded',
+    );
+
+    // An un-normalized value on a DIFFERENT in-scope column, written raw so
+    // nothing has judged it. A full scan repairs this; a retry bounded by the
+    // recorded rows never looks at it.
+    await db.customStatement(
+      'INSERT INTO published_sources (id, title) VALUES (?, ?)',
+      ['s1', 'café'],
+    );
+
+    await CompendiumRepositories(db, contraTaxonomy).ensureMigrated();
+
+    final source = await db
+        .customSelect(
+          'SELECT title FROM published_sources WHERE id = ?',
+          variables: [const Variable<String>('s1')],
+        )
+        .getSingle();
+    // THE assertion of this test, and the one a clearing-only fix would fail:
+    // the value is still decomposed, so the second `ensureMigrated()` did not
+    // re-scan the library.
+    //
+    // Leaving it un-normalized is correct rather than a defect being frozen in.
+    // sync-spec.md §4.1 (`:661`-`:668`) states the invariant the bounded retry
+    // rests on — *every un-normalized in-scope row is recorded*, because the
+    // initial pass records what it skips, the write-path carve-out records what
+    // it cannot normalize, and the two events that introduce unjudged rows (a
+    // restore, and a change to the in-scope set) both re-run the full scan. A
+    // raw SQL insert is outside all three, so it is a probe, not a state the
+    // product can reach.
+    expect(source.read<String>('title'), 'café');
+    // And the retry did do its own job: the pair is still blocked, so both
+    // entries survive.
+    expect(
+      (await db.customSelect('SELECT 1 FROM normalisation_skips').get()).length,
+      2,
+    );
+  });
+
+  test('an entry on a column no longer in scope is discharged', () async {
+    await repos.dances.create(sampleDance(id: 'd1', title: 'Original'));
+    await repos.ensureMigrated();
+    // `choreographers.email` is `deviceLocal` (field_registry.dart), so the
+    // pass never visits it and nothing it does can ever write this row to a
+    // target. An entry like this is what a column reclassified out of
+    // `shareable` leaves behind: the row still exists, so retire-missing does
+    // not remove it either.
+    await db.customStatement(
+      'INSERT INTO choreographers (id, name, email) VALUES (?, ?, ?)',
+      ['c1', 'Someone', 'café@example.test'],
+    );
+    await db.customStatement(
+      'INSERT INTO normalisation_skips '
+      '(table_name, column_name, record_id) VALUES (?, ?, ?)',
+      ['choreographers', 'email', 'c1'],
+    );
+
+    await CompendiumRepositories(db, contraTaxonomy).ensureMigrated();
+
+    expect(
+      await db.customSelect('SELECT 1 FROM normalisation_skips').get(),
+      isEmpty,
+      reason:
+          'an entry the pass can never discharge would pin the early return '
+          'open forever, which is finding 1 in miniature',
+    );
+    // Dropping the entry does not normalize the row: the column is out of
+    // scope, so leaving its value alone is the correct behaviour, and the
+    // marker-inequality rule re-judges it from scratch if it ever returns.
+    final choreographer = await db
+        .customSelect(
+          'SELECT email FROM choreographers WHERE id = ?',
+          variables: [const Variable<String>('c1')],
+        )
+        .getSingle();
+    expect(choreographer.read<String>('email'), 'café@example.test');
   });
 
   test(
@@ -649,6 +787,413 @@ void main() {
     expect(skip.read<String>('record_id'), 'custom_dialects');
   });
 
+  group('the completion marker covers the settings classifications', () {
+    const key = 'normalisation_test_key';
+    const shareable = DataClassification(
+      term: DpvTerm.nonPersonal,
+      subject: DataSubject.appUser,
+      egress: EgressClass.shareable,
+    );
+
+    tearDown(() => settingsClassifications.remove(key));
+
+    test('reclassifying a key to shareable re-runs the pass', () async {
+      // Stored raw under a key that is classified as nothing, so the settings
+      // write path does not normalize it and the scan does not judge it.
+      await db.customStatement(
+        'INSERT INTO settings (key, value_json) VALUES (?, ?)',
+        [key, '{"a":"café"}'],
+      );
+      await repos.ensureMigrated();
+      final beforeMarker = await repos.settings.get(
+        shareableTextNormalisationScopeKey,
+      );
+      final stored = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [const Variable<String>(key)],
+          )
+          .getSingle();
+      expect(
+        stored.read<String>('value_json'),
+        '{"a":"café"}',
+        reason: 'precondition: an unclassified key is out of scope',
+      );
+
+      // The reclassification an editor of settings_registry.dart makes. It
+      // touches no schema, bumps no version and runs no migration step — which
+      // is exactly why the marker has to notice it by comparison.
+      settingsClassifications[key] = shareable;
+
+      await CompendiumRepositories(db, contraTaxonomy).ensureMigrated();
+
+      final after = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [const Variable<String>(key)],
+          )
+          .getSingle();
+      expect(after.read<String>('value_json'), '{"a":"café"}');
+      expect(
+        await repos.settings.get(shareableTextNormalisationScopeKey),
+        isNot(beforeMarker),
+        reason: 'the recorded set must have changed, by inequality',
+      );
+    });
+
+    test('an unchanged classification set still takes the early return', () async {
+      // The opposite error sync-spec.md §4.1 (`:690`-`:693`) warns of: a live
+      // set built from live settings KEYS rather than from the classification
+      // entries differs on every open — a key like `editor_draft:<id>` appears
+      // and vanishes as the user works — and re-runs the whole pass at every
+      // launch. That failure is invisible in a test that only checks values get
+      // normalized, because re-scanning normalizes them correctly too.
+      //
+      // So this asserts the absence of a scan, the same way
+      // 'a completed pass with no recorded rows performs no scan' does, but
+      // across a change that moves live keys without moving classifications.
+      await repos.dances.create(sampleDance(id: 'd1', title: 'Original'));
+      await repos.ensureMigrated();
+      // A runtime-built key arriving between opens, as an editor autosave does.
+      // It is `deviceScoped`, so it never enters the fingerprint.
+      await repos.settings.set('editor_draft:d1', {'note': 'draft'});
+      await db.customStatement('UPDATE dances SET title = ? WHERE id = ?', [
+        'café',
+        'd1',
+      ]);
+
+      await CompendiumRepositories(db, contraTaxonomy).ensureMigrated();
+
+      final row = await db
+          .customSelect(
+            'SELECT title FROM dances WHERE id = ?',
+            variables: [const Variable<String>('d1')],
+          )
+          .getSingle();
+      expect(row.read<String>('title'), 'café');
+    });
+  });
+
+  group('the derived rebuild follows any rewrite', () {
+    test('a choreographer-only repair refreshes the search index', () async {
+      await db.customStatement(
+        'INSERT INTO choreographers (id, name) VALUES (?, ?)',
+        ['c1', 'José'],
+      );
+      await repos.dances.create(
+        sampleDance(id: 'd1', title: 'Credited', authorIds: const ['c1']),
+      );
+      // The dance's index row was built from the raw name, exactly as a
+      // pre-#1119 library holds it.
+      final before = await db
+          .customSelect(
+            'SELECT authors FROM dance_fts WHERE dance_id = ?',
+            variables: [const Variable<String>('d1')],
+          )
+          .getSingle();
+      expect(before.read<String>('authors'), 'José');
+
+      await repos.ensureMigrated();
+
+      final name = await db
+          .customSelect(
+            'SELECT name FROM choreographers WHERE id = ?',
+            variables: [const Variable<String>('c1')],
+          )
+          .getSingle();
+      expect(name.read<String>('name'), 'José');
+      final indexed = await db
+          .customSelect(
+            'SELECT authors FROM dance_fts WHERE dance_id = ?',
+            variables: [const Variable<String>('d1')],
+          )
+          .getSingle();
+      // The whole of finding 3: `choreographers.name` reaches `dance_fts`
+      // through `authors` (dance_repository.dart `_resolveAuthorNames`), and no
+      // `dances` row was rewritten, so the old dance-only condition set no flag
+      // and left this holding the decomposed name.
+      expect(indexed.read<String>('authors'), 'José');
+    });
+
+    test('a pass that rewrites nothing performs no rebuild', () async {
+      await repos.dances.create(sampleDance(id: 'd1', title: 'Healthy'));
+      await repos.ensureMigrated();
+
+      // Everything is already normalized and every sweep marker is written, so
+      // the second open owes nothing. sync-spec.md §4.1 (`:1012`-`:1014`): a
+      // pass that wrote nothing "MUST NOT" rebuild.
+      final counting = _CountingRepositories(db, contraTaxonomy);
+      await counting.ensureMigrated();
+
+      expect(counting.rebuildAttempts, 0);
+    });
+  });
+
+  group('the one-time derived-index repair', () {
+    test('runs exactly once for an install that completed the pass', () async {
+      await repos.dances.create(sampleDance(id: 'd1', title: 'Original'));
+      await repos.ensureMigrated();
+      // The state a pre-fix install upgrades from: the pass completed under the
+      // dance-only rebuild condition, so its marker is present and the repair
+      // marker is not.
+      await db.customStatement('DELETE FROM settings WHERE key = ?', [
+        normalisationDerivedIndexRepairDoneKey,
+      ]);
+      expect(
+        await repos.settings.contains(shareableTextNormalisationScopeKey),
+        isTrue,
+        reason: 'precondition: the pass completed under the old code',
+      );
+
+      final first = _CountingRepositories(db, contraTaxonomy);
+      await first.ensureMigrated();
+      expect(first.rebuildAttempts, 1);
+
+      final second = _CountingRepositories(db, contraTaxonomy);
+      await second.ensureMigrated();
+      expect(
+        second.rebuildAttempts,
+        0,
+        reason: 'the done marker must stop it running again',
+      );
+    });
+
+    test('a database that never ran the pass pays no rebuild', () async {
+      await repos.dances.create(sampleDance(id: 'd1', title: 'Original'));
+      // Settle every OTHER sweep first. A fresh database runs several of them
+      // and each may rebuild, so counting on a first open would measure the
+      // whole migration rather than this gate — and would read as 1 whatever
+      // this sweep did.
+      await repos.ensureMigrated();
+      // Now remove both markers, which is the state of a database that has
+      // never completed the normalization pass: nothing it wrote can have been
+      // missed by the old dance-only rebuild condition.
+      await db.customStatement('DELETE FROM settings WHERE key IN (?, ?)', [
+        shareableTextNormalisationScopeKey,
+        normalisationDerivedIndexRepairDoneKey,
+      ]);
+
+      final counting = _CountingRepositories(db, contraTaxonomy);
+      await counting.ensureMigrated();
+
+      // The pass re-runs (its marker is gone) and finds a healthy library, so
+      // it rewrites nothing and owes nothing; this sweep is not owed either,
+      // because there is no pre-fix completed pass to have missed a rewrite.
+      // Forcing a whole-library rebuild here would be pure cost.
+      expect(counting.rebuildAttempts, 0);
+      expect(
+        await counting.settings.contains(
+          normalisationDerivedIndexRepairDoneKey,
+        ),
+        isTrue,
+        reason: 'the sweep is retired all the same, so it never re-evaluates',
+      );
+    });
+
+    test('defers while a dance row the rebuild cannot read is recorded', () async {
+      await repos.dances.create(sampleDance(id: 'd1', title: 'Malformed'));
+      await repos.dances.create(sampleDance(id: 'd2', title: 'Healthy'));
+      await repos.ensureMigrated();
+      const malformed = '[{"kind":';
+      await db.customStatement(
+        'UPDATE dances SET figures_json = ? WHERE id = ?',
+        [malformed, 'd1'],
+      );
+      // A pre-fix install: the pass completed under the old dance-only rebuild
+      // condition, so its scope marker is present and MUST stay present — that
+      // is the whole signal saying a repair is owed — while the repair marker
+      // has never existed. The skip is seeded directly because the scope marker
+      // makes the pass take its early return, which is exactly the state such
+      // an install opens in.
+      //
+      // An earlier version of this test called `resetNormalisationStateForRestore`
+      // here, which deletes the scope marker — so nothing was owed, and it was
+      // asserting the very defect Copilot found on #1370 rather than the
+      // deferral. Its comment claimed the scope marker was present; it was not.
+      await db.customStatement('DELETE FROM settings WHERE key = ?', [
+        normalisationDerivedIndexRepairDoneKey,
+      ]);
+      await db.customStatement(
+        'INSERT INTO normalisation_skips '
+        '(table_name, column_name, record_id) VALUES (?, ?, ?)',
+        ['dances', 'figures_json', 'd1'],
+      );
+      expect(
+        await repos.settings.contains(shareableTextNormalisationScopeKey),
+        isTrue,
+        reason: 'precondition: the repair is genuinely owed',
+      );
+
+      // Running the repair would load every dance, decode d1's `figures_json`,
+      // and raise out of `ensureMigrated()`: the startup error screen with a
+      // Retry that cannot succeed, which is the failure #1347 exists to remove.
+      // #1346 must not reintroduce it, so the repair waits.
+      final counting = _CountingRepositories(db, contraTaxonomy);
+      await counting.ensureMigrated();
+
+      expect(counting.rebuildAttempts, 0);
+      expect(
+        await counting.settings.contains(
+          normalisationDerivedIndexRepairDoneKey,
+        ),
+        isFalse,
+        reason:
+            'deferring must NOT write the done marker, or the repair is lost '
+            'for good once the rebuild learns to tolerate the row',
+      );
+
+      // And it is genuinely deferred rather than abandoned: once the row is no
+      // longer recorded, the very next open performs the repair.
+      await db.customStatement(
+        'UPDATE dances SET figures_json = ? WHERE id = ?',
+        ['[]', 'd1'],
+      );
+      await db.customStatement('DELETE FROM normalisation_skips');
+      final later = _CountingRepositories(db, contraTaxonomy);
+      await later.ensureMigrated();
+      expect(later.rebuildAttempts, 1);
+      expect(
+        await later.settings.contains(normalisationDerivedIndexRepairDoneKey),
+        isTrue,
+      );
+    });
+
+    test(
+      'a fresh database with an unreadable dance row is retired, not made owing',
+      () async {
+        // Copilot review of #1370. Deferring is only correct when something is
+        // owed. On a database that never completed the pre-fix pass, deferring
+        // left the done marker absent while the pass went on to write the scope
+        // marker — and the scope marker is precisely what the next open reads to
+        // decide whether a repair is owed. One un-normalisable dance row was
+        // therefore enough to manufacture a debt that had never been incurred,
+        // and the install eventually paid a whole-library rebuild for an index
+        // that was never stale.
+        await repos.dances.create(sampleDance(id: 'd1', title: 'Malformed'));
+        await repos.dances.create(sampleDance(id: 'd2', title: 'Healthy'));
+        await repos.ensureMigrated();
+        // Never completed the pass: BOTH markers gone. Every other sweep is
+        // already settled, so any rebuild counted below is this sweep's.
+        await db.customStatement('DELETE FROM settings WHERE key IN (?, ?)', [
+          shareableTextNormalisationScopeKey,
+          normalisationDerivedIndexRepairDoneKey,
+        ]);
+        await db.customStatement(
+          'UPDATE dances SET figures_json = ? WHERE id = ?',
+          ['[{"kind":', 'd1'],
+        );
+
+        final first = _CountingRepositories(db, contraTaxonomy);
+        await first.ensureMigrated();
+
+        expect(first.rebuildAttempts, 0);
+        expect(
+          await first.settings.contains(normalisationDerivedIndexRepairDoneKey),
+          isTrue,
+          reason:
+              'nothing is owed, so the sweep must retire even though a dance '
+              'row blocks the rebuild — an absent marker here is read as a '
+              'debt on the next open',
+        );
+
+        // The cost the absent marker used to impose, asserted where it lands:
+        // once the row becomes readable there must still be no rebuild, because
+        // this database never had a stale index to repair.
+        await db.customStatement(
+          'UPDATE dances SET figures_json = ? WHERE id = ?',
+          ['[]', 'd1'],
+        );
+        await db.customStatement('DELETE FROM normalisation_skips');
+        final later = _CountingRepositories(db, contraTaxonomy);
+        await later.ensureMigrated();
+
+        expect(later.rebuildAttempts, 0);
+      },
+    );
+
+    test('a deferral re-arms a sweep that had already retired', () async {
+      // The hazard in the *obvious* repair for the finding above. Retiring on
+      // "nothing owed" is right, but if a deferral is recorded only by the done
+      // marker never having been written, then a database that legitimately
+      // retired early can never take on a later obligation: the pass defers, the
+      // marker is already present, and the sweep returns before it ever looks.
+      // The rebuild those rewrites owed is then lost for good.
+      //
+      // Reachable without contrivance: adding a `shareable` column is an
+      // anticipated, recurring event (sync-spec.md §7.2), and it makes the
+      // marker differ and the pass re-scan.
+      await db.customStatement(
+        'INSERT INTO choreographers (id, name) VALUES (?, ?)',
+        ['c1', 'Jose'],
+      );
+      await repos.dances.create(sampleDance(id: 'd1', title: 'Malformed'));
+      await repos.dances.create(
+        sampleDance(id: 'd2', title: 'Credited', authorIds: const ['c1']),
+      );
+      await repos.ensureMigrated();
+      expect(
+        await repos.settings.contains(normalisationDerivedIndexRepairDoneKey),
+        isTrue,
+        reason: 'precondition: this database retired the sweep legitimately',
+      );
+
+      // Now a scope change re-scans a library that has since acquired an
+      // un-normalised non-dance value and an unreadable dance row.
+      await db.customStatement(
+        'UPDATE choreographers SET name = ? WHERE id = ?',
+        ['José', 'c1'],
+      );
+      await db.customStatement(
+        'UPDATE dances SET figures_json = ? WHERE id = ?',
+        ['[{"kind":', 'd1'],
+      );
+      await db.customStatement('DELETE FROM settings WHERE key = ?', [
+        shareableTextNormalisationScopeKey,
+      ]);
+
+      final deferring = _CountingRepositories(db, contraTaxonomy);
+      await deferring.ensureMigrated();
+
+      // The pass rewrote `choreographers.name`, which owes a rebuild, but d1
+      // blocks it. The obligation has to outlive this launch.
+      expect(deferring.rebuildAttempts, 0);
+      expect(
+        await deferring.settings.contains(
+          normalisationDerivedIndexRepairDoneKey,
+        ),
+        isFalse,
+        reason:
+            'the deferral must CLEAR the already-written marker; leaving it '
+            'standing drops the rebuild those rewrites owed',
+      );
+      final stale = await db
+          .customSelect(
+            'SELECT authors FROM dance_fts WHERE dance_id = ?',
+            variables: [const Variable<String>('d2')],
+          )
+          .getSingle();
+      expect(stale.read<String>('authors'), 'Jose');
+
+      // Once the unreadable row is gone, the deferred repair lands by itself.
+      await db.customStatement(
+        'UPDATE dances SET figures_json = ? WHERE id = ?',
+        ['[]', 'd1'],
+      );
+      await db.customStatement('DELETE FROM normalisation_skips');
+      final repairing = _CountingRepositories(db, contraTaxonomy);
+      await repairing.ensureMigrated();
+
+      expect(repairing.rebuildAttempts, 1);
+      final repaired = await db
+          .customSelect(
+            'SELECT authors FROM dance_fts WHERE dance_id = ?',
+            variables: [const Variable<String>('d2')],
+          )
+          .getSingle();
+      expect(repaired.read<String>('authors'), 'José');
+    });
+  });
+
   test(
     'clears the rebuild marker after a successful normalization backfill',
     () async {
@@ -680,6 +1225,28 @@ void main() {
       expect(marker, isEmpty);
     },
   );
+}
+
+/// Counts [CompendiumRepositories.runDerivedRebuild] calls without interfering
+/// with the real rebuild.
+///
+/// A subclass rather than SQL-text matching in a `QueryInterceptor`, for the
+/// reason [CompendiumRepositories]'s own test seams document: a count that
+/// silently becomes zero because the query no longer looks like that turns a
+/// ceiling assertion into an assertion about nothing. Rename or re-signature
+/// the method this overrides and the test stops compiling instead.
+class _CountingRepositories extends CompendiumRepositories {
+  _CountingRepositories(super.db, super.taxonomy);
+
+  int rebuildAttempts = 0;
+
+  @override
+  Future<void> runDerivedRebuild({
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    rebuildAttempts++;
+    await super.runDerivedRebuild(onProgress: onProgress);
+  }
 }
 
 class _FailingOnceNormalisationRepositories extends CompendiumRepositories {

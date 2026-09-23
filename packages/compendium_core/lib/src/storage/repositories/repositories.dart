@@ -60,12 +60,52 @@ const _shareableJsonColumns = {'figures_json', 'tunes_json', 'choices_json'};
 /// `jsonDecode` genuinely cannot produce one (unlike the infinity case above,
 /// where the same reasoning does not hold), so catching it here would claim to
 /// handle a case that cannot reach this function.
+///
+/// **This is not a general "may the skip be cleared?" predicate**, and reading
+/// it as one is the mistake #1346 had to avoid. It answers that question for
+/// the [_shareableJsonColumns] branch only. For every other column the
+/// non-JSON branch returns [normalizeShareableText], whose return type is
+/// non-nullable, so this function is *statically incapable* of returning null
+/// there and the test is vacuously true — while a natural-key row's entry may
+/// be cleared only under the two-condition collision test of
+/// `docs/design/sync-spec.md` §4.1. Clearing natural-key entries on this
+/// predicate would discharge every one of them on sight and re-split exactly
+/// the colliding pairs the pass exists to keep whole.
 String? _normaliseStoredColumn(String column, String raw) {
   if (!_shareableJsonColumns.contains(column)) {
     return normalizeShareableText(raw);
   }
   try {
     return normalizeShareableJsonText(raw);
+  } on FormatException {
+    return null;
+  } on ShareableJsonKeyCollision {
+    return null;
+  } on JsonUnsupportedObjectError {
+    return null;
+  }
+}
+
+/// The canonical form of a `shareable` settings value, or **null when the
+/// stored value cannot be canonicalized at all**.
+///
+/// The settings half of the pass has its own predicate because it fails for its
+/// own reasons: the decode, the normalize AND the re-encode can each throw, and
+/// §4.1's totality is a property of the whole round trip rather than of the
+/// collision test alone. `jsonDecode` throws [FormatException] on malformed
+/// text; [normalizeShareableJson] throws [ShareableJsonKeyCollision] when two
+/// object keys normalize to one key, which would silently discard whichever
+/// entry the rebuild wrote second; and `jsonEncode` throws
+/// [JsonUnsupportedObjectError] on a value `jsonDecode` itself produced
+/// (`1e999` is legal JSON that decodes to `double.infinity` and cannot be
+/// re-encoded).
+///
+/// Extracted so the initial scan and the bounded retry cannot drift apart: they
+/// have to agree on what "this value is writable now" means, because one
+/// records the entry and the other clears it.
+String? _normaliseSettingsValue(String raw) {
+  try {
+    return jsonEncode(normalizeShareableJson(jsonDecode(raw)));
   } on FormatException {
     return null;
   } on ShareableJsonKeyCollision {
@@ -711,8 +751,27 @@ class CompendiumRepositories {
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
       );
-      await _normaliseShareableTextIfNeeded(
+      // Read BEFORE the pass, which writes this marker itself: its presence is
+      // what distinguishes an install that completed the pass under the
+      // dance-only rebuild condition — and may therefore be carrying an index
+      // the pass left stale — from a database that never ran it at all.
+      final normalisationCompletedBefore = await db
+          .customSelect(
+            'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+            variables: [
+              Variable.withString(shareableTextNormalisationScopeKey),
+            ],
+          )
+          .get();
+      final normalisation = await _normaliseShareableTextIfNeeded(
         alreadyRebuilt: rebuiltThisCall,
+        onProgress: onDerivedRebuildProgress,
+      );
+      rebuiltThisCall = normalisation.rebuilt;
+      rebuiltThisCall = await _repairNormalisationDerivedIndexIfNeeded(
+        alreadyRebuilt: rebuiltThisCall,
+        owedFromHistory: normalisationCompletedBefore.isNotEmpty,
+        deferredThisCall: normalisation.deferred,
         onProgress: onDerivedRebuildProgress,
       );
     } catch (_) {
@@ -724,10 +783,137 @@ class CompendiumRepositories {
     }
   }
 
-  Future<void> _normaliseShareableTextIfNeeded({
+  /// The fingerprint of the whole in-scope set a completed scan covered.
+  ///
+  /// `docs/design/sync-spec.md` §4.1 (`:676`–`:679`): the marker MUST record
+  /// "its columns *and* the `shareable` settings classifications, exact keys
+  /// and prefixes alike", and the pass MUST re-run whenever the live set
+  /// differs. The settings half is not decorative (#1346 finding 2):
+  /// `settings.value_json` is `deviceLocal` at the column level *by design*, so
+  /// no settings entry can ever reach the column half — while the scan's
+  /// settings half (below) walks live keys through [classifySettingsKey]. A
+  /// column-only marker therefore fingerprints less than the scan covers, and
+  /// reclassifying a key to `shareable` moves no column, trips no re-run, and
+  /// leaves that key's already-written values un-normalized permanently.
+  ///
+  /// **Classifications, not live keys** (§4.1 `:699`–`:705`). A settings key
+  /// may be built at runtime (`editor_draft:<id>`), so fingerprinting live keys
+  /// would re-run the pass whenever a user opened an editor — and would be
+  /// redundant, since a key that did not exist before is written through the
+  /// normalizing path. Only a change to *which keys are classified* brings
+  /// already-written values newly into scope.
+  ///
+  /// `settingsPrefixes` is empty today — no [settingsPrefixClassifications]
+  /// entry is `shareable` — and is emitted anyway, because the fingerprint's
+  /// job is to notice the day that stops being true.
+  ///
+  /// Compared by string equality, which is the inequality §4.1 `:740`–`:755`
+  /// requires rather than containment: containment never contracts, so a
+  /// column reclassified *out* of `shareable` and later back *in* would stay
+  /// contained and re-run nothing, while during the interval its rows could
+  /// accrue un-normalized text unrecorded.
+  String get _normalisationScope {
+    final settingsKeys =
+        settingsClassifications.entries
+            .where((entry) => entry.value.egress == EgressClass.shareable)
+            .map((entry) => entry.key)
+            .toList()
+          ..sort();
+    final settingsPrefixes =
+        settingsPrefixClassifications.entries
+            .where((entry) => entry.value.egress == EgressClass.shareable)
+            .map((entry) => entry.key)
+            .toList()
+          ..sort();
+    return jsonEncode({
+      'version': _shareableTextNormalisationAlgorithmVersion,
+      'columns': _normalisationColumns.map((c) => '${c.$1}.${c.$2}').toList(),
+      'settings': settingsKeys,
+      'settingsPrefixes': settingsPrefixes,
+    });
+  }
+
+  /// Whether a derived rebuild must be **deferred** because the library holds a
+  /// `dances` row the rebuild itself cannot read (#1346, interacting with
+  /// #1347/#1363).
+  ///
+  /// [runDerivedRebuild] loads every dance — `DanceRepository.rebuildAllDerived`
+  /// calls `listAll(includeDeleted: true)`, which decodes `figures_json` and
+  /// `tunes_json` for each row. #1363 deliberately *leaves* a row whose JSON
+  /// cannot be canonicalized exactly as stored and records a skip for it, so
+  /// such a row is a live possibility, and a rebuild that meets one raises out
+  /// of `ensureMigrated()` — the app's startup error screen with a Retry that
+  /// cannot succeed, which is the failure #1347 exists to remove.
+  ///
+  /// Only `dances` entries block: the natural-key and settings skip flavours
+  /// are never recorded against that table, and `custom_field_defs.choices_json`
+  /// is not read by the rebuild.
+  ///
+  /// **The asymmetry is deliberate.** This gates only the rebuild triggers
+  /// #1346 *adds* — a rewrite outside `dances`, and the one-time index repair.
+  /// The pre-existing trigger, a `dances` rewrite, is left ungated and still
+  /// raises on such a library exactly as it does today: making the rebuild
+  /// tolerant of an undecodable row is #1347's contract, not this one's, and
+  /// silently widening the deferral to cover it would hide that defect behind a
+  /// fix for a different one. What this does buy is that #1346 does not convert
+  /// a silent stale index into an unrecoverable startup for installs that
+  /// launch fine today.
+  ///
+  /// Deferring is recorded by **clearing** the repair sweep's done marker, so
+  /// the repair lands by itself on the first launch after the rebuild learns to
+  /// tolerate those rows. Until then the affected install keeps the stale index
+  /// it already has.
+  ///
+  /// It is *not* recorded by leaving that marker unwritten, and the difference
+  /// is not cosmetic (Copilot review of #1370): an absent marker is also the
+  /// state of a database that has simply not reached the sweep yet, so the same
+  /// absence would have to mean both "a repair is owed" and "none ever was".
+  /// Read the first way it manufactures debt on a database that never ran the
+  /// pre-fix pass; read the second way it drops a real obligation. Only an
+  /// explicit clear separates them. See
+  /// [_repairNormalisationDerivedIndexIfNeeded].
+  Future<bool> _derivedRebuildIsBlocked() async {
+    final blocking = await db
+        .customSelect(
+          'SELECT 1 FROM normalisation_skips WHERE table_name = ? LIMIT 1',
+          variables: [Variable.withString('dances')],
+        )
+        .get();
+    return blocking.isNotEmpty;
+  }
+
+  /// Runs, retries, or skips the one-time shareable-text normalization pass.
+  ///
+  /// Returns whether a derived rebuild has happened during this call, and
+  /// whether one was **deferred** by [_derivedRebuildIsBlocked].
+  ///
+  /// ## Three outcomes, not two (#1346 finding 1)
+  ///
+  /// §4.1 (`:582`–`:586`) requires the pass to "re-attempt the recorded rows on
+  /// each subsequent open, **clearing an entry once its row is written**", and
+  /// states the bound that makes that affordable: "Re-attempting is bounded by
+  /// the number of recorded rows rather than by the size of the library, so it
+  /// is not a repeated full scan."
+  ///
+  /// Until this fix there were two outcomes — take the early return, or re-scan
+  /// everything — and nothing ever cleared an entry, so one recorded row turned
+  /// a one-time pass into a full-library scan on every launch, forever.
+  /// Recording one is ordinary use: renaming a tag, choreographer or custom
+  /// field to a name another row already holds takes the `collidingEdit` branch
+  /// in the owning repository and records one, no Unicode subtlety required.
+  ///
+  /// So: marker matches and nothing is recorded → return, no scan. Marker
+  /// matches and entries remain → retry **only** those rows. Marker differs or
+  /// is absent → full scan, which now also discharges the entries it repairs.
+  Future<({bool rebuilt, bool deferred})> _normaliseShareableTextIfNeeded({
     required bool alreadyRebuilt,
     DerivedRebuildProgressCallback? onProgress,
   }) async {
+    // Retired FIRST, not only at the end as before: an entry whose row was hard
+    // deleted can never be re-attempted, and leaving it until after the work
+    // means it forces the very scan it can contribute nothing to.
+    await _retireMissingNormalisationSkips(db);
+
     final marker = await db
         .customSelect(
           'SELECT value_json FROM settings WHERE key = ? AND deleted_at IS NULL',
@@ -735,19 +921,391 @@ class CompendiumRepositories {
         )
         .get();
     final skips = await db
-        .customSelect('SELECT table_name FROM normalisation_skips LIMIT 1')
+        .customSelect(
+          'SELECT table_name, column_name, record_id FROM normalisation_skips',
+        )
         .get();
-    final scope = jsonEncode({
-      'version': _shareableTextNormalisationAlgorithmVersion,
-      'columns': _normalisationColumns.map((c) => '${c.$1}.${c.$2}').toList(),
-    });
-    if (marker.isNotEmpty &&
-        marker.single.read<String>('value_json') == scope &&
-        skips.isEmpty) {
-      return;
+    final scope = _normalisationScope;
+    final scopeUnchanged =
+        marker.isNotEmpty && marker.single.read<String>('value_json') == scope;
+    if (scopeUnchanged && skips.isEmpty) {
+      return (rebuilt: alreadyRebuilt, deferred: false);
     }
 
+    final outcome = scopeUnchanged
+        ? await _retryRecordedNormalisationSkips(skips)
+        : await _runFullNormalisationScan();
+
+    if (outcome.rebuild) {
+      await runDerivedRebuild(onProgress: onProgress);
+      await db.customUpdate(
+        'DELETE FROM ${db.settings.actualTableName} WHERE key = ?',
+        variables: [Variable<String>(derivedRebuildRequiredKey)],
+        updates: {db.settings},
+        updateKind: UpdateKind.delete,
+      );
+    }
+    // Still needed after a full scan: the scan cannot see a row that no longer
+    // exists, so an entry for one is only reachable here.
+    await _retireMissingNormalisationSkips(db);
+    // Only a scan records completion. A retry runs *because* the recorded scope
+    // already equals the live one, so re-writing it would store a byte-identical
+    // string and wake every `settings` watcher for nothing — and
+    // `docs/design/sync-implementation.md:509` states the rule the derived-flag
+    // rules around it are shaped against: "retry never writes the completion
+    // marker".
+    if (!scopeUnchanged) {
+      await _writeSweepMarker(shareableTextNormalisationScopeKey, scope);
+    }
+    return (
+      rebuilt: alreadyRebuilt || outcome.rebuild,
+      deferred: outcome.deferred,
+    );
+  }
+
+  /// Re-attempts **only** the rows recorded in `normalisation_skips`, clearing
+  /// each entry whose row is written or already holds its target.
+  ///
+  /// This is §4.1's bounded retry (`:582`–`:586`, `:626`–`:657`). Cost is one
+  /// row read per recorded entry plus, for a natural-key column, one indexed
+  /// occupancy lookup per surviving candidate — neither scaling with the size
+  /// of the library.
+  ///
+  /// ## Each flavour of entry gets its own test
+  ///
+  /// * **Natural-key collision** — §4.1 `:628`–`:634`: a recorded row is
+  ///   written only when **both** hold — no *other recorded row* in the same
+  ///   `(table, column)` currently derives the same target, **and** the live
+  ///   unique column holds no occupant other than the row itself. Both are
+  ///   load-bearing and each catches what the other misses (`:636`–`:657`):
+  ///   testing occupancy alone splits a mutually-colliding pair, since neither
+  ///   member occupies the target it derives, so whichever the walk reaches
+  ///   first is written and the other blocked — and *which* one depends on an
+  ///   order no rule fixes, so two devices could normalize opposite members of
+  ///   the same pair. Testing recorded-row grouping alone raises against an
+  ///   unrelated live row that took the target in the meantime.
+  /// * **Un-normalizable JSON** (#1363) — writable exactly when
+  ///   [_normaliseStoredColumn] stops returning null.
+  /// * **Settings** — writable exactly when [_normaliseSettingsValue] stops
+  ///   returning null. Sibling-row collisions cannot arise in this half; a
+  ///   settings value is JSON in one column under no `UNIQUE` constraint.
+  ///
+  /// Targets and group membership are re-derived from live state on every
+  /// attempt and never stored, which is why an entry holds only
+  /// `(table, column, record_id)` (`:653`–`:657`).
+  Future<({bool rebuild, bool deferred})> _retryRecordedNormalisationSkips(
+    List<QueryRow> entries,
+  ) async {
+    final grouped = <(String, String), List<String>>{};
+    for (final entry in entries) {
+      grouped
+          .putIfAbsent((
+            entry.read<String>('table_name'),
+            entry.read<String>('column_name'),
+          ), () => <String>[])
+          .add(entry.read<String>('record_id'));
+    }
+    final inScope = _normalisationColumns.toSet();
+
+    var danceRewrite = false;
+    var otherRewrite = false;
     var rebuild = false;
+    var deferred = false;
+    await db.transaction(() async {
+      for (final group in grouped.entries) {
+        final (table, column) = group.key;
+        final recordIds = group.value;
+
+        if (table == 'settings' && column == 'value_json') {
+          for (final key in recordIds) {
+            if (await _retryRecordedSettingsKey(key)) otherRewrite = true;
+          }
+          continue;
+        }
+
+        // An entry on a column that is no longer in scope — reclassified out of
+        // `shareable` — can never become writable: the write path stops
+        // normalizing that column, and the scan stops visiting it. Left in
+        // place it would pin the early return open forever, which is this
+        // finding's own defect in miniature. Dropping it loses nothing: the
+        // marker-inequality rule above forces a full re-scan if the column ever
+        // returns to scope, and that scan re-judges every one of its rows from
+        // scratch.
+        if (!inScope.contains((table, column))) {
+          for (final recordId in recordIds) {
+            await clearNormalisationSkip(
+              db,
+              table: table,
+              column: column,
+              recordId: recordId,
+            );
+          }
+          continue;
+        }
+
+        final rewroteTable = _naturalKeys.contains((table, column))
+            ? await _retryRecordedNaturalKeys(table, column, recordIds)
+            : await _retryRecordedJsonRows(table, column, recordIds);
+        if (rewroteTable) {
+          if (table == 'dances') {
+            danceRewrite = true;
+          } else {
+            otherRewrite = true;
+          }
+        }
+      }
+
+      (rebuild, deferred) = await _resolveRebuildDecision(
+        danceRewrite: danceRewrite,
+        otherRewrite: otherRewrite,
+      );
+      if (rebuild) await _writeSweepMarker(derivedRebuildRequiredKey, 'true');
+    });
+    return (rebuild: rebuild, deferred: deferred);
+  }
+
+  /// Decides whether this pass's rewrites owe a rebuild now, or one that must
+  /// wait.
+  ///
+  /// §4.1 `:1007`: "The pass MUST rebuild derived indexes if it wrote
+  /// anything", and `:1012`–`:1014`: a pass that wrote nothing — including a
+  /// retry in which every recorded row is still blocked — "MUST NOT rebuild
+  /// them". Narrowing to the columns that actually feed an index is a **MAY**
+  /// (`:1017`–`:1019`), available only against a declared column→index mapping
+  /// proven by test; no such mapping exists here, so this takes the
+  /// conservative default the spec says is "always available and always
+  /// correct".
+  ///
+  /// That default is what fixes #1346 finding 3. The flag used to be set only
+  /// by `if (table == 'dances')`, but a dance's index row is assembled from
+  /// three *other* tables — `authors` from `choreographers.name`, `sources`
+  /// from `published_sources.title`/`.author`, `custom_values` from
+  /// `custom_field_values.value_text` — all four of them `shareable` strings
+  /// and so in this pass's scope. Repairing any of them rewrote the source of
+  /// an index row, set no flag, ran no rebuild, and wrote the completion marker
+  /// anyway.
+  ///
+  /// A `settings` rewrite counts too. A settings value feeds no index, so this
+  /// is strictly conservative — but "wrote anything" is the rule as stated, and
+  /// the exemption is the same MAY that would need the same tested mapping.
+  Future<(bool, bool)> _resolveRebuildDecision({
+    required bool danceRewrite,
+    required bool otherRewrite,
+  }) async {
+    // Ungated, and unchanged from before this fix: see
+    // [_derivedRebuildIsBlocked] for why the pre-existing trigger keeps its
+    // pre-existing failure mode.
+    if (danceRewrite) return (true, false);
+    if (!otherRewrite) return (false, false);
+    if (await _derivedRebuildIsBlocked()) return (false, true);
+    return (true, false);
+  }
+
+  /// Re-attempts the recorded rows of one natural-key `(table, column)`.
+  /// Returns whether any row was rewritten.
+  Future<bool> _retryRecordedNaturalKeys(
+    String table,
+    String column,
+    List<String> recordIds,
+  ) async {
+    var rewrote = false;
+    // Live value, live target, re-derived per attempt.
+    final candidates = <String, (int rowId, String raw, String target)>{};
+    for (final recordId in recordIds) {
+      final rows = await db
+          .customSelect(
+            'SELECT rowid AS _rowid, $column FROM $table '
+            'WHERE id = ? AND $column IS NOT NULL LIMIT 1',
+            variables: [Variable<String>(recordId)],
+          )
+          .get();
+      if (rows.isEmpty) {
+        // The row is gone, or its value is now NULL. Either way there is
+        // nothing left to re-attempt.
+        await clearNormalisationSkip(
+          db,
+          table: table,
+          column: column,
+          recordId: recordId,
+        );
+        continue;
+      }
+      final raw = rows.single.read<String>(column);
+      final target = _normaliseStoredColumn(column, raw);
+      // Unreachable while no natural-key column is a JSON column, and left
+      // recorded rather than asserted away: if one ever became both, an
+      // un-normalizable value must stay recorded, not be silently written.
+      if (target == null) continue;
+      candidates[recordId] = (rows.single.read<int>('_rowid'), raw, target);
+    }
+
+    // Condition (a): no OTHER recorded row in this (table, column) derives the
+    // same target.
+    final byTarget = <String, List<String>>{};
+    for (final candidate in candidates.entries) {
+      byTarget.putIfAbsent(candidate.value.$3, () => []).add(candidate.key);
+    }
+    for (final group in byTarget.entries) {
+      if (group.value.length > 1) continue;
+      final recordId = group.value.single;
+      final (rowId, raw, target) = candidates[recordId]!;
+      // Condition (b): the live unique column holds no occupant but this row.
+      final occupied = await db
+          .customSelect(
+            'SELECT rowid FROM $table WHERE $column = ? AND rowid != ? LIMIT 1',
+            variables: [Variable<String>(target), Variable<int>(rowId)],
+          )
+          .get();
+      if (occupied.isNotEmpty) continue;
+      if (raw != target) {
+        // normalization-structure-exempt: this is the normalization backfill
+        // itself, writing the value returned by the canonicalizer.
+        await db.customUpdate(
+          'UPDATE $table SET $column = ? WHERE rowid = ?',
+          variables: [Variable<String>(target), Variable<int>(rowId)],
+          updates: _updatesForTable(table),
+          updateKind: UpdateKind.update,
+        );
+        rewrote = true;
+      }
+      // Cleared whether or not a write was needed: §4.1's condition is that the
+      // row holds its target, and a row that already did was simply recorded
+      // alongside a colliding sibling that has since moved.
+      await clearNormalisationSkip(
+        db,
+        table: table,
+        column: column,
+        recordId: recordId,
+      );
+    }
+    return rewrote;
+  }
+
+  /// Re-attempts the recorded rows of one JSON `(table, column)` (#1363's
+  /// flavour of skip). Returns whether any row was rewritten.
+  Future<bool> _retryRecordedJsonRows(
+    String table,
+    String column,
+    List<String> recordIds,
+  ) async {
+    var rewrote = false;
+    for (final recordId in recordIds) {
+      final rows = await db
+          .customSelect(
+            'SELECT rowid AS _rowid, $column FROM $table '
+            'WHERE id = ? AND $column IS NOT NULL LIMIT 1',
+            variables: [Variable<String>(recordId)],
+          )
+          .get();
+      if (rows.isEmpty) {
+        await clearNormalisationSkip(
+          db,
+          table: table,
+          column: column,
+          recordId: recordId,
+        );
+        continue;
+      }
+      final raw = rows.single.read<String>(column);
+      final target = _normaliseStoredColumn(column, raw);
+      // Still un-normalizable: stays recorded, and stays retried.
+      if (target == null) continue;
+      if (target != raw) {
+        // normalization-structure-exempt: this is the normalization backfill
+        // itself, writing the value returned by the canonicalizer.
+        await db.customUpdate(
+          'UPDATE $table SET $column = ? WHERE rowid = ?',
+          variables: [
+            Variable<String>(target),
+            Variable<int>(rows.single.read<int>('_rowid')),
+          ],
+          updates: _updatesForTable(table),
+          updateKind: UpdateKind.update,
+        );
+        rewrote = true;
+      }
+      await clearNormalisationSkip(
+        db,
+        table: table,
+        column: column,
+        recordId: recordId,
+      );
+    }
+    return rewrote;
+  }
+
+  /// Re-attempts one recorded settings key. Returns whether it was rewritten.
+  Future<bool> _retryRecordedSettingsKey(String key) async {
+    Future<void> clear() => clearNormalisationSkip(
+      db,
+      table: 'settings',
+      column: 'value_json',
+      recordId: key,
+    );
+
+    // A key reclassified out of `shareable` is out of the pass's scope, on the
+    // same reasoning as an out-of-scope column above: the scan would no longer
+    // judge it, so its entry can never be discharged by one.
+    if (classifySettingsKey(key)?.egress != EgressClass.shareable) {
+      await clear();
+      return false;
+    }
+    // Read through drift's typed API rather than as raw SQL, and the reason is
+    // the **tombstone**, not the typing. `tools/ci/check_settings_marker_reads`
+    // requires every raw `SELECT … FROM settings WHERE key` to carry
+    // `AND deleted_at IS NULL`, so that a tombstoned *marker* can never be read
+    // back as still set. This is not a marker read: it re-attempts a recorded
+    // user settings value, and the scan half whose work it continues walks
+    // `SELECT key, value_json FROM settings` unfiltered — so it judges
+    // tombstoned rows too, deliberately, because a tombstone still carries a
+    // value (`backfill repairs tombstoned shareable settings`). Adding the
+    // filter here would make the retry disagree with the scan about the same
+    // row. Satisfying the gate by typing rather than by filtering keeps the two
+    // halves reading the same set; it is stated here rather than left to be
+    // inferred, because a reader who finds the gate first will otherwise read
+    // this as an evasion of it.
+    final row = await (db.select(
+      db.settings,
+    )..where((t) => t.key.equals(key))).getSingleOrNull();
+    if (row == null) {
+      await clear();
+      return false;
+    }
+    final raw = row.valueJson;
+    final encoded = _normaliseSettingsValue(raw);
+    // The keys still collide (or the value still cannot round-trip): leave it
+    // recorded. Retry succeeds when the user renames or deletes one of the
+    // colliding keys, the same shape as the row half's occupancy test.
+    if (encoded == null) return false;
+    var rewrote = false;
+    if (encoded != raw) {
+      await db.customUpdate(
+        'UPDATE settings SET value_json = ? WHERE key = ?',
+        variables: [Variable<String>(encoded), Variable<String>(key)],
+        updates: {db.settings},
+        updateKind: UpdateKind.update,
+      );
+      rewrote = true;
+    }
+    await clear();
+    return rewrote;
+  }
+
+  /// The full scan over every in-scope column and every `shareable` settings
+  /// row, run when the recorded scope differs from the live one.
+  Future<({bool rebuild, bool deferred})> _runFullNormalisationScan() async {
+    var danceRewrite = false;
+    var otherRewrite = false;
+    var rebuild = false;
+    var deferred = false;
+    void markRewrite(String table) {
+      if (table == 'dances') {
+        danceRewrite = true;
+      } else {
+        otherRewrite = true;
+      }
+    }
+
     await db.transaction(() async {
       for (final (table, column) in _normalisationColumns) {
         final natural = _naturalKeys.contains((table, column));
@@ -789,7 +1347,9 @@ class CompendiumRepositories {
               row.read<String>('_record_id'),
               target,
             ));
-          } else if (target != raw) {
+            continue;
+          }
+          if (target != raw) {
             // normalization-structure-exempt: this is the normalization
             // backfill itself, writing the value returned by the canonicalizer.
             await db.customUpdate(
@@ -801,7 +1361,21 @@ class CompendiumRepositories {
               updates: _updatesForTable(table),
               updateKind: UpdateKind.update,
             );
-            if (table == 'dances') rebuild = true;
+            markRewrite(table);
+          }
+          // The row holds its target now, so an entry recorded for it by an
+          // earlier pass is discharged — whether this scan wrote it or found it
+          // already equal. Guarded on [keyed] because that is exactly the set of
+          // columns for which `_record_id` was selected, and equally exactly the
+          // set for which an entry can exist: only a JSON column can fail to
+          // canonicalize, and a non-natural, non-JSON column is never recorded.
+          if (keyed) {
+            await clearNormalisationSkip(
+              db,
+              table: table,
+              column: column,
+              recordId: row.read<String>('_record_id'),
+            );
           }
         }
         if (!natural) continue;
@@ -836,9 +1410,8 @@ class CompendiumRepositories {
                   .read<String>('_record_id'),
             );
           } else {
-            final raw = rows
-                .firstWhere((r) => r.read<int>('_rowid') == rowId)
-                .read<String>(column);
+            final row = rows.firstWhere((r) => r.read<int>('_rowid') == rowId);
+            final raw = row.read<String>(column);
             if (raw != target) {
               // normalization-structure-exempt: this is the normalization
               // backfill itself, writing the value returned by the canonicalizer.
@@ -848,8 +1421,18 @@ class CompendiumRepositories {
                 updates: _updatesForTable(table),
                 updateKind: UpdateKind.update,
               );
-              if (table == 'dances') rebuild = true;
+              markRewrite(table);
             }
+            // Singleton group whose target is unoccupied: the row holds its
+            // target, so any entry recorded for it — by an earlier pass, or by
+            // the write-path carve-out when the user made a colliding edit that
+            // has since been resolved — is discharged.
+            await clearNormalisationSkip(
+              db,
+              table: table,
+              column: column,
+              recordId: row.read<String>('_record_id'),
+            );
           }
         }
       }
@@ -861,36 +1444,14 @@ class CompendiumRepositories {
         final key = row.read<String>('key');
         final classification = classifySettingsKey(key);
         if (classification?.egress != EgressClass.shareable) continue;
-        // The decode, the normalize AND the re-encode are all inside the try:
-        // each can fail, and §4.1's totality is a property of the whole round
-        // trip, not of the collision test alone. `jsonDecode` throws
-        // FormatException on malformed text, and `jsonEncode` throws
-        // JsonUnsupportedObjectError on a value `jsonDecode` itself produced —
-        // `1e999` is legal JSON that decodes to `double.infinity` and cannot be
-        // re-encoded. Leaving either outside the try left this half raising on
-        // a stored value's content, the same defect as #1347's JSON columns.
-        final String encoded;
-        try {
-          encoded = jsonEncode(
-            normalizeShareableJson(jsonDecode(row.read<String>('value_json'))),
-          );
-        } on FormatException {
-          await recordNormalisationSkip(
-            db,
-            table: 'settings',
-            column: 'value_json',
-            recordId: key,
-          );
-          continue;
-        } on ShareableJsonKeyCollision {
-          await recordNormalisationSkip(
-            db,
-            table: 'settings',
-            column: 'value_json',
-            recordId: key,
-          );
-          continue;
-        } on JsonUnsupportedObjectError {
+        final raw = row.read<String>('value_json');
+        // The decode, the normalize AND the re-encode all sit behind one
+        // predicate ([_normaliseSettingsValue]): each can fail, and §4.1's
+        // totality is a property of the whole round trip, not of the collision
+        // test alone. Leaving any of them outside it left this half raising on a
+        // stored value's content, the same defect as #1347's JSON columns.
+        final encoded = _normaliseSettingsValue(raw);
+        if (encoded == null) {
           await recordNormalisationSkip(
             db,
             table: 'settings',
@@ -899,21 +1460,136 @@ class CompendiumRepositories {
           );
           continue;
         }
-        if (encoded != row.read<String>('value_json')) {
+        if (encoded != raw) {
           await db.customUpdate(
             'UPDATE settings SET value_json = ? WHERE key = ?',
             variables: [Variable<String>(encoded), Variable<String>(key)],
             updates: {db.settings},
             updateKind: UpdateKind.update,
           );
+          markRewrite('settings');
         }
+        await clearNormalisationSkip(
+          db,
+          table: 'settings',
+          column: 'value_json',
+          recordId: key,
+        );
       }
+
+      (rebuild, deferred) = await _resolveRebuildDecision(
+        danceRewrite: danceRewrite,
+        otherRewrite: otherRewrite,
+      );
       if (rebuild) {
+        // Committed in the SAME transaction as the rewrites above: if the
+        // process dies before the rebuild completes, this durable flag survives
+        // and forces the owed rebuild on the next open, even though a re-run's
+        // own rescan would find nothing left to rewrite.
         await _writeSweepMarker(derivedRebuildRequiredKey, 'true');
       }
     });
+    return (rebuild: rebuild, deferred: deferred);
+  }
 
-    if (rebuild) {
+  /// One-time repair of the derived indexes the normalization pass left stale
+  /// while its rebuild condition was `if (table == 'dances')` (#1346 finding
+  /// 3).
+  ///
+  /// Guarded by [normalisationDerivedIndexRepairDoneKey] so it runs at most once
+  /// per database. The marker is written AFTER the rebuild succeeds — an
+  /// interrupted rebuild retries on the next open.
+  ///
+  /// [owedFromHistory] is whether the normalization pass had already completed
+  /// **before this migration ran** — the only thing that can have left an index
+  /// stale under the old dance-only condition. It is false for a database with
+  /// no pre-fix pass to have missed, in which case this writes its marker and
+  /// rebuilds nothing, so a fresh install never pays a whole-library rebuild for
+  /// an index that was never stale.
+  ///
+  /// [deferredThisCall] is whether the pass withheld a rebuild it owed because
+  /// [_derivedRebuildIsBlocked]. That is an obligation this sweep inherits, and
+  /// it is recorded by clearing the done marker rather than by leaving it
+  /// unwritten — see the body for why those are not the same thing.
+  ///
+  /// **Why a forced rebuild at all, rather than a version bump.** Bumping
+  /// [_shareableTextNormalisationAlgorithmVersion] re-runs the pass, which finds
+  /// every row already normalized, rewrites nothing, sets no flag and repairs no
+  /// index — the rewrite is what the old condition missed, and it has already
+  /// happened. Leaving the rows to heal on the next edit of each dance leaves an
+  /// unknown number of dances unfindable by author or source text indefinitely,
+  /// which §4.1 (`:1028`–`:1031`) calls the costlier of the two errors.
+  ///
+  /// Returns whether a derived rebuild has happened during this call — i.e.
+  /// [alreadyRebuilt] OR this sweep ran one — so the caller can thread the flag.
+  Future<bool> _repairNormalisationDerivedIndexIfNeeded({
+    required bool alreadyRebuilt,
+    required bool owedFromHistory,
+    required bool deferredThisCall,
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    // A rebuild the pass just withheld re-arms this sweep **durably**, by
+    // clearing its done marker, rather than by relying on that marker never
+    // having been written.
+    //
+    // The distinction is load-bearing and was not obvious (Copilot review of
+    // #1370). An absent marker cannot record a deferral, because "absent"
+    // is also the state of a database that simply has not reached this sweep
+    // yet — so a deferral recorded that way is indistinguishable from a debt
+    // that was never incurred, and the two need opposite treatment below.
+    // Clearing an existing marker says the obligation is live; leaving an
+    // absent one absent says nothing at all.
+    if (deferredThisCall) {
+      await db.customUpdate(
+        'DELETE FROM ${db.settings.actualTableName} WHERE key = ?',
+        variables: [Variable<String>(normalisationDerivedIndexRepairDoneKey)],
+        updates: {db.settings},
+        updateKind: UpdateKind.delete,
+      );
+    }
+
+    final done = await db
+        .customSelect(
+          'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+          variables: [
+            Variable.withString(normalisationDerivedIndexRepairDoneKey),
+          ],
+        )
+        .get();
+    if (done.isNotEmpty) return alreadyRebuilt;
+
+    // Retire BEFORE consulting the blocker, and the order is the whole point.
+    //
+    // Nothing is owed here, so there is nothing a blocker could be protecting:
+    // this database either never completed the pass under the old dance-only
+    // condition, or has already been repaired. Deferring instead would leave
+    // the marker absent while the pass writes the scope marker — and on the
+    // next open that scope marker is exactly what [owedFromHistory] reads, so
+    // the sweep would wake up believing it owed a repair it had never owed and
+    // eventually pay a whole-library rebuild for it. A fresh database with one
+    // un-normalisable dance row is enough to trigger that, which is the
+    // opposite of the guarantee this gate exists to make.
+    if (!owedFromHistory && !deferredThisCall) {
+      await _writeSweepMarker(normalisationDerivedIndexRepairDoneKey, '"done"');
+      return alreadyRebuilt;
+    }
+
+    // Deferred, not skipped: the marker is deliberately left absent, so this
+    // sweep re-evaluates on the next open and performs the repair by itself once
+    // the rebuild can read every dance. See [_derivedRebuildIsBlocked]. Reached
+    // only when something IS owed, so the absent marker now means what it says.
+    if (await _derivedRebuildIsBlocked()) return alreadyRebuilt;
+
+    // A rebuild earlier in this call already used the current source rows: the
+    // normalization pass runs before this sweep and rebuilds after its own
+    // writes, so `alreadyRebuilt` here means the indexes are current and a
+    // second whole-library pass would be byte-identical.
+    if (!alreadyRebuilt) {
+      // Durable before the rebuild, in the shape [_backfillChainHandIfNeeded]
+      // uses: if the process dies mid-rebuild, the generic pre-check at the top
+      // of [_runMigration] performs it on the next open even though this
+      // sweep's own marker is still unwritten.
+      await _writeSweepMarker(derivedRebuildRequiredKey, 'true');
       await runDerivedRebuild(onProgress: onProgress);
       await db.customUpdate(
         'DELETE FROM ${db.settings.actualTableName} WHERE key = ?',
@@ -922,8 +1598,10 @@ class CompendiumRepositories {
         updateKind: UpdateKind.delete,
       );
     }
-    await _retireMissingNormalisationSkips(db);
-    await _writeSweepMarker(shareableTextNormalisationScopeKey, scope);
+    // Written AFTER success — if the rebuild throws, the marker is not written
+    // and the next startup retries.
+    await _writeSweepMarker(normalisationDerivedIndexRepairDoneKey, '"done"');
+    return true;
   }
 
   Set<TableInfo<Table, dynamic>> _updatesForTable(String tableName) => {

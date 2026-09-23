@@ -49,13 +49,27 @@ Raw (r'...') and triple-quoted forms are not parsed. They are detected and
 flagged as _BOUNDARY_UNKNOWN with a message explaining why and naming the
 way out, rather than silently passing or claiming the filter is missing.
 
-Deliberate exception
---------------------
+Deliberate exceptions
+---------------------
 repositories.dart performs a hard DELETE FROM settings WHERE key = ? to
 clear the rebuild marker. That is intentionally a DELETE, not a SELECT.
 _SELECT_FROM_SETTINGS_RE requires SELECT, so the DELETE never matches.
 _NOTED_EXCEPTIONS documents this by name per the kUpdateManifestPublicKey
 precedent in AGENTS.md: name exceptions rather than narrowing patterns.
+
+The same file also reads one settings row **by key without the filter, on
+purpose** (#1346): the normalisation pass's retry re-attempts a recorded
+settings value, and the scan half whose work it continues walks
+`SELECT key, value_json FROM settings` unfiltered, so both halves judge
+tombstoned rows — a tombstone still carries a value. That read uses drift's
+typed API, so no SQL literal exists for this checker to find, and it is
+recorded here because passing by not being raw SQL is not the same as having
+been considered. **Do not "fix" it by rewriting it as raw SQL plus the
+filter**: that would make the retry disagree with the scan about the same row
+and discharge a tombstoned key's entry without ever re-attempting it.
+
+This checker's subject is raw marker reads, and that limit is a property of
+what it parses rather than a claim about every read in a named file.
 
 Exit codes: 0 = all compliant, 1 = at least one violation, 2 = bad input.
 """
@@ -84,7 +98,11 @@ _NOTED_EXCEPTIONS: dict[str, str] = {
     "packages/compendium_core/lib/src/storage/repositories/repositories.dart": (
         "deliberate hard DELETE of the rebuild marker — "
         "absence of deleted_at IS NULL is correct for a DELETE; "
-        "SELECT reads in the same file all comply"
+        "every raw SELECT-by-key read in this file carries the filter, and the "
+        "one by-key read that deliberately does NOT (the normalisation pass's "
+        "retry, #1346, which must see tombstoned rows because the scan half it "
+        "continues does) is written through drift's typed API — so it is "
+        "invisible to this checker by construction, not by oversight"
     ),
 }
 
