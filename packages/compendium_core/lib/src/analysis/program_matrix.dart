@@ -1,6 +1,6 @@
 /// The programming matrix (figures × dances) — CC's Elements matrix, but
-/// **derived for free** from the structured [Dance.figures] we already store
-/// rather than a manually ticked checklist (CC's failure mode).
+/// **derived for free** from the structured [Dance.figuresSource] we already
+/// store rather than a manually ticked checklist (CC's failure mode).
 ///
 /// Pure, Flutter-free, and unit-tested: the UI (`ProgramMatrixTable` in the
 /// app) is a thin renderer over this model. Columns are the moves actually
@@ -41,6 +41,7 @@ import '../dialect/dialect.dart';
 import '../dialect/renderer.dart';
 import '../model/dance.dart';
 import '../model/figure.dart';
+import '../model/figure_source.dart';
 import '../model/formation.dart';
 import '../model/phrase_structure.dart';
 import '../taxonomy/contra_taxonomy.dart';
@@ -710,7 +711,7 @@ MatrixColumn _splitColumn(String baseMoveId, String variant) => MatrixColumn(
 /// parameterized columns replace built-in membership; matching compound
 /// sequences add present-only boolean columns; and hidden/reordered ids are
 /// transformed at display time. Compound matching scans each dance's original
-/// [Dance.figures] for a strictly-adjacent run and never changes the routed
+/// [Dance.figuresSource] for a strictly-adjacent run and never changes the routed
 /// first figure. Presence, program-debut, collision, and first-figure analysis
 /// are computed over every routed/custom column and are independent of display
 /// hiding/reordering. [MatrixColumnConfig.renames] is a label-only override
@@ -752,8 +753,11 @@ ProgramMatrix buildProgramMatrix(
     // by the phrase it *starts* in; every figure (custom included) advances the
     // beat cursor so later figures land in the right phrase/position.
     final structure = dance.phraseStructure;
+    final danceFigures = switch (dance.figuresSource) {
+      DecodedFigures(:final figures) => figures,
+    };
     var beat = 0;
-    for (final figure in dance.figures) {
+    for (final figure in danceFigures) {
       final key = columnKeyForFigure(figure, tax, config);
       final canonicalId = tax.resolve(figure.move)?.id;
       if (canonicalId == swingMoveId) {
@@ -790,7 +794,7 @@ ProgramMatrix buildProgramMatrix(
       beat += effBeats;
     }
     for (final compound in config.compound) {
-      if (_containsCompoundRun(dance.figures, compound, tax)) {
+      if (_containsCompoundRun(danceFigures, compound, tax)) {
         rowMoves.add(compound.id);
         present.add(compound.id);
       }
@@ -799,9 +803,9 @@ ProgramMatrix buildProgramMatrix(
       MatrixRow(
         danceId: dance.id,
         title: dance.title,
-        firstMoveId: dance.figures.isEmpty
+        firstMoveId: danceFigures.isEmpty
             ? null
-            : columnKeyForFigure(dance.figures.first, tax, config),
+            : columnKeyForFigure(danceFigures.first, tax, config),
         presentMoveIds: rowMoves,
         phraseLabelsByMove: phraseLabels,
         beatSpansByMove: beatSpans,

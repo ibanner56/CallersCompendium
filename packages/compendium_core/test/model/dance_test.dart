@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 import 'package:compendium_core/testing.dart';
+import '../figures_support.dart';
 
 void main() {
   final now = DateTime.utc(2026, 7, 10);
@@ -27,7 +28,7 @@ void main() {
     });
 
     test('allows an empty figure list (metadata-only stub)', () {
-      expect(make().figures, isEmpty);
+      expect(figuresOf(make()), isEmpty);
     });
 
     test('rejects unparseable phrase structures at construction', () {
@@ -36,7 +37,7 @@ void main() {
 
     test('collections are unmodifiable', () {
       final d = make(figures: [fig(8)]);
-      expect(() => d.figures.add(fig(8)), throwsUnsupportedError);
+      expect(() => figuresOf(d).add(fig(8)), throwsUnsupportedError);
       expect(() => d.authorIds.add('x'), throwsUnsupportedError);
       expect(() => d.tunes.add('x'), throwsUnsupportedError);
       expect(() => d.tagIds.add('x'), throwsUnsupportedError);
@@ -115,7 +116,7 @@ void main() {
       final copy = original.duplicate(newId: 'd2', now: later);
       expect(copy.id, 'd2');
       expect(copy.title, original.title);
-      expect(copy.figures, original.figures);
+      expect(figuresOf(copy), figuresOf(original));
       expect(copy.authorIds, original.authorIds);
       expect(copy.provenance, isNull);
       expect(copy.createdAt, later);

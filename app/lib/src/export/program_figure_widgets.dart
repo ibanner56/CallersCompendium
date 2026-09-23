@@ -21,7 +21,9 @@ List<pw.Widget> buildFigureWidgets(
   bool canonicalizeDiscouragedTerms = false,
 }) {
   final widgets = <pw.Widget>[];
-  final sectioned = deriveSections(dance.figures, dance.phraseStructure);
+  final sectioned = deriveSections(switch (dance.figuresSource) {
+    DecodedFigures(:final figures) => figures,
+  }, dance.phraseStructure);
   String? lastLabel;
   for (final sf in sectioned) {
     if (sf.label != lastLabel) {

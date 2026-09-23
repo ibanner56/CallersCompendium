@@ -214,7 +214,10 @@ List<pw.Widget> _figureAppendixWidgets(
   final widgets = <pw.Widget>[];
   for (final entry in dances) {
     final dance = entry.dance;
-    if (dance.figures.isEmpty) continue;
+    final danceFigures = switch (dance.figuresSource) {
+      DecodedFigures(:final figures) => figures,
+    };
+    if (danceFigures.isEmpty) continue;
     final titlePrefix = entry.isAlternate ? '${labels.alternate}: ' : '';
     widgets.add(pw.SizedBox(height: 10));
     widgets.add(

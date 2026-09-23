@@ -139,7 +139,9 @@ class PerformCard extends StatelessWidget {
             ),
             SizedBox(height: AppSpacing.lg * chrome),
             _Figures(
-              figures: dance.figures,
+              figures: switch (dance.figuresSource) {
+                DecodedFigures(:final figures) => figures,
+              },
               phraseStructure: dance.phraseStructure,
               renderer: renderer,
               dialect: dialect,

@@ -14,7 +14,8 @@ import '../taxonomy/taxonomy.dart';
 ///
 /// Unlike the CC `.FMP` reader's `kMaxCcFiguresPerDance`-style parse limits,
 /// there is currently **no global cap** anywhere in the domain model on
-/// `Dance.figures.length` — a dance built from a generic/JSON/archive import,
+/// the length of a dance's figure list — a dance built from a generic/JSON or
+/// archive import,
 /// or a hostile/huge one, can carry an unbounded figure list. The diff's LCS
 /// dynamic-programming table is `O(n*m)` in time *and* memory, so without its
 /// own bound a sufficiently large pair of figure lists could exhaust memory or

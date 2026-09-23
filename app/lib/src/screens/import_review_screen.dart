@@ -1045,9 +1045,13 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       if (target == null) continue;
       final draftDance = batch.records[i].draft.dance;
       diffs[i] = diffFigures(
-        oldFigures: target.figures,
+        oldFigures: switch (target.figuresSource) {
+          DecodedFigures(:final figures) => figures,
+        },
         oldStructure: target.phraseStructure,
-        newFigures: draftDance.figures,
+        newFigures: switch (draftDance.figuresSource) {
+          DecodedFigures(:final figures) => figures,
+        },
         newStructure: draftDance.phraseStructure,
         taxonomy: contraTaxonomy,
         renderer: renderer,

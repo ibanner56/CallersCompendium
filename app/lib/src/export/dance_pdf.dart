@@ -73,7 +73,9 @@ Future<Uint8List> buildDancePdf(
           pw.Text(names.join(', '), style: const pw.TextStyle(fontSize: 13)),
         for (final line in metaLines)
           pw.Text(line, style: const pw.TextStyle(fontSize: 12)),
-        if (dance.figures.isNotEmpty) ...[
+        if (switch (dance.figuresSource) {
+          DecodedFigures(:final figures) => figures,
+        }.isNotEmpty) ...[
           pw.SizedBox(height: 12),
           pw.Text(
             labels.figures,
