@@ -1511,7 +1511,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get syncReviewSettingsSubtitle =>
-      'Prüfe Löschungen auf dem Peer-Gerät, die mit auf diesem Gerät erstellten Datensätzen kollidieren.';
+      'Entscheiden Sie, wie Konflikte zwischen Ihren Geräten gelöst werden, die die Synchronisierung nicht selbst klären kann.';
 
   @override
   String get syncReviewTitle => 'Synchronisierungsentscheidungen';
@@ -1583,6 +1583,22 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get syncReviewDanceAmbiguityReason =>
       'Live-Tänze haben denselben Titel, aber eine unterschiedliche Choreografie.';
+
+  @override
+  String get syncReviewRenameCollisionReason =>
+      'Ein anderes Gerät hat diesen Datensatz in einen Namen umbenannt, den hier bereits ein anderer Datensatz verwendet.';
+
+  @override
+  String get syncReviewMergeDiscardsContactsTitle =>
+      'Diese Choreografen zusammenführen?';
+
+  @override
+  String get syncReviewMergeDiscardsContactsBody =>
+      'Es wird nur ein Datensatz behalten. E-Mail-Adresse, Ort und Verstorben-Markierung des anderen sind nur auf diesem Gerät gespeichert und lassen sich danach nicht wiederherstellen.';
+
+  @override
+  String get syncReviewCounterpartDeleted =>
+      'Der andere Datensatz wurde gelöscht, daher lassen sich die beiden nicht zusammenführen. Verwenden Sie „Beide behalten“, um ihm einen anderen Namen zu geben.';
 
   @override
   String get syncReviewUnsupportedReason =>

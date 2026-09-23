@@ -1636,9 +1636,9 @@
   "@syncReviewSettingsTitle": {
     "x-sourceSha256": "691b69af17f63a161f53c0d188d596093053776abfd6d2fa0b4ffd91794382c3"
   },
-  "syncReviewSettingsSubtitle": "Bekijk verwijderingen op het peerapparaat die conflicteren met records die op dit apparaat zijn gemaakt.",
+  "syncReviewSettingsSubtitle": "Bepaal hoe conflicten tussen je apparaten worden opgelost wanneer synchronisatie ze niet zelf kan beslechten.",
   "@syncReviewSettingsSubtitle": {
-    "x-sourceSha256": "4884c7e38dbe512d28f75048575a092b8656535e484b82694f09361c20d693cb"
+    "x-sourceSha256": "fb18d5040b56ff91ba08fb4faccd65fd99a3a407157709c3f068ae860db0c3f7"
   },
   "syncReviewTitle": "Synchronisatiebeslissingen",
   "@syncReviewTitle": {
@@ -1719,6 +1719,22 @@
   "syncReviewDanceAmbiguityReason": "Live dansen hebben dezelfde titel, maar een andere choreografie.",
   "@syncReviewDanceAmbiguityReason": {
     "x-sourceSha256": "4adede982e807d2622c96688129b256f04f230f759b6b07585c0ea726a501730"
+  },
+  "syncReviewRenameCollisionReason": "Een ander apparaat heeft dit record hernoemd naar een naam die een ander record hier al gebruikt.",
+  "@syncReviewRenameCollisionReason": {
+    "x-sourceSha256": "e5a9e0b5844f13cb9c4f4a65f511c19a1636659ace7f4ef950335bee2ca54e53"
+  },
+  "syncReviewMergeDiscardsContactsTitle": "Deze choreografen samenvoegen?",
+  "@syncReviewMergeDiscardsContactsTitle": {
+    "x-sourceSha256": "9dabfcdc02184c750782b3580760f87dae3ccc1209bb7e47c2a720b58f06a539"
+  },
+  "syncReviewMergeDiscardsContactsBody": "Er wordt maar één record bewaard. Het e-mailadres, de locatie en de markering voor overleden van het andere staan alleen op dit apparaat en kunnen daarna niet meer worden hersteld.",
+  "@syncReviewMergeDiscardsContactsBody": {
+    "x-sourceSha256": "7b068cebe8dd826e8dde8a7b1a8c46e72d8429c856f46f1a151710f42e87550c"
+  },
+  "syncReviewCounterpartDeleted": "Het andere record is verwijderd, dus deze twee kunnen niet worden samengevoegd. Gebruik 'Beide behouden' om het een andere naam te geven.",
+  "@syncReviewCounterpartDeleted": {
+    "x-sourceSha256": "ee67d01915bb78e2fb0e9807b3bd8289011168db99a3123c411e1ec7083ee5df"
   },
   "syncReviewUnsupportedReason": "Dit synchronisatieconflict wordt voorlopig bewaard; hier is geen veilige actie beschikbaar.",
   "@syncReviewUnsupportedReason": {

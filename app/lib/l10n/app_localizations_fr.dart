@@ -1522,7 +1522,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get syncReviewSettingsSubtitle =>
-      'Examinez les suppressions du pair qui entrent en conflit avec des éléments créés sur cet appareil.';
+      'Décidez comment résoudre les conflits entre vos appareils que la synchronisation ne peut pas trancher seule.';
 
   @override
   String get syncReviewTitle => 'Décisions de synchronisation';
@@ -1593,6 +1593,22 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get syncReviewDanceAmbiguityReason =>
       'Les danses actives portent le même titre, mais ont une chorégraphie différente.';
+
+  @override
+  String get syncReviewRenameCollisionReason =>
+      'Un autre appareil a renommé cet élément avec un nom qu’un autre élément utilise déjà ici.';
+
+  @override
+  String get syncReviewMergeDiscardsContactsTitle =>
+      'Fusionner ces chorégraphes ?';
+
+  @override
+  String get syncReviewMergeDiscardsContactsBody =>
+      'Un seul élément sera conservé. L’adresse e-mail, le lieu et l’indicateur de décès de l’autre ne sont enregistrés que sur cet appareil ; ils seront irrécupérables ensuite.';
+
+  @override
+  String get syncReviewCounterpartDeleted =>
+      'L’autre élément a été supprimé ; ces deux-là ne peuvent donc pas être fusionnés. Utilisez « Conserver les deux » pour lui donner un nom différent.';
 
   @override
   String get syncReviewUnsupportedReason =>
