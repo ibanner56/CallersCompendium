@@ -75,6 +75,7 @@ Future<Uint8List> buildDancePdf(
           pw.Text(line, style: const pw.TextStyle(fontSize: 12)),
         if (switch (dance.figuresSource) {
           DecodedFigures(:final figures) => figures,
+          UnreadableFigures() => const <Figure>[],
         }.isNotEmpty) ...[
           pw.SizedBox(height: 12),
           pw.Text(

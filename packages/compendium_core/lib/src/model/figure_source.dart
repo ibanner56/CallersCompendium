@@ -80,3 +80,46 @@ final class DecodedFigures extends FigureSource {
   @override
   String toString() => 'DecodedFigures(${figures.length})';
 }
+
+/// A transcription that could **not** be decoded, carrying the stored text
+/// exactly as it was read.
+///
+/// The case this type exists for (#1347). `decodeFigures` rejects text that is
+/// not JSON, whose root is not an array, or whose entries are not well-formed
+/// figure objects. Before this existed, meeting such a row raised out of the
+/// load path, which meant out of `ensureMigrated()` at startup — the app's error
+/// screen, with a Retry that failed identically every time.
+///
+/// ## [storedJson] is the transcription, not a diagnostic
+///
+/// It is the authoritative bytes, kept so that nothing downstream has to invent
+/// a replacement for them. Every path that writes a dance back MUST re-emit it
+/// verbatim rather than encoding an empty figure list: an ordinary edit to a
+/// title or a tag must not destroy a transcription the app merely cannot read
+/// today. It may be repairable later — by a future decoder, by a hand fix, or by
+/// a peer's copy — and it cannot be if it has been overwritten.
+///
+/// The text is deliberately **not** validated or normalised here. It may not be
+/// JSON at all; it may be JSON this decoder rejects; it may be perfectly
+/// normalisable (`[1, 2, 3]` is) or not. Holding it untouched is the whole
+/// contract — see the class doc above for why undecodable and un-normalisable
+/// are different questions.
+final class UnreadableFigures extends FigureSource {
+  const UnreadableFigures(this.storedJson);
+
+  /// The stored `figures_json` text, byte-for-byte as read.
+  final String storedJson;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is UnreadableFigures && other.storedJson == storedJson;
+
+  @override
+  int get hashCode => storedJson.hashCode;
+
+  /// Deliberately does not include [storedJson]: the text is user content and
+  /// this string reaches logs and diagnostic reports.
+  @override
+  String toString() => 'UnreadableFigures(${storedJson.length} chars)';
+}

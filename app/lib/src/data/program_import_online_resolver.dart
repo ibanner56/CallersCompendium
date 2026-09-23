@@ -232,13 +232,27 @@ Future<_SourceAttempt> _attemptSource(
         return const _SourceDeclined();
       }
       final draftDance = preview.plan.draft.dance;
+      // Both sides must be readable for the comparison below to mean anything.
+      // This path is UNATTENDED: `identical` declines, and `!identical` auto
+      // -imports a variation with no user present. An undecodable target would
+      // otherwise take the second branch by default — acting on a comparison
+      // that was never actually performed. Declining instead leaves the
+      // note-slot fallback (#312), which is what this code already does
+      // whenever it cannot be sure.
+      final oldFigures = switch (target.figuresSource) {
+        DecodedFigures(:final figures) => figures,
+        UnreadableFigures() => null,
+      };
+      final newFigures = switch (draftDance.figuresSource) {
+        DecodedFigures(:final figures) => figures,
+        UnreadableFigures() => null,
+      };
+      if (oldFigures == null || newFigures == null) {
+        return const _SourceDeclined();
+      }
       final identical = figuresCanonicallyIdentical(
-        oldFigures: switch (target.figuresSource) {
-          DecodedFigures(:final figures) => figures,
-        },
-        newFigures: switch (draftDance.figuresSource) {
-          DecodedFigures(:final figures) => figures,
-        },
+        oldFigures: oldFigures,
+        newFigures: newFigures,
         taxonomy: contraTaxonomy,
       );
       if (identical) {

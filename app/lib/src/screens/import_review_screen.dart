@@ -1045,12 +1045,17 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       if (target == null) continue;
       final draftDance = batch.records[i].draft.dance;
       diffs[i] = diffFigures(
+        // A preview diff only. An undecodable side has no figures to show, so
+        // the diff renders as all-added; telling the user *why* is surfacing
+        // work and is deliberately not done here.
         oldFigures: switch (target.figuresSource) {
           DecodedFigures(:final figures) => figures,
+          UnreadableFigures() => const <Figure>[],
         },
         oldStructure: target.phraseStructure,
         newFigures: switch (draftDance.figuresSource) {
           DecodedFigures(:final figures) => figures,
+          UnreadableFigures() => const <Figure>[],
         },
         newStructure: draftDance.phraseStructure,
         taxonomy: contraTaxonomy,

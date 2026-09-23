@@ -7,6 +7,7 @@ import '../model/difficulty_level.dart';
 import '../model/dance_link.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
+import '../model/figure_source.dart';
 import '../model/formation.dart';
 import '../model/partial_date.dart';
 import '../model/program.dart';
@@ -617,7 +618,15 @@ Dance _danceFromJson(Map<String, Object?> m) => Dance(
     'progression',
   ),
   phraseStructure: _strOr(m, 'phraseStructure', ''),
-  figures: _figuresFromJson(m['figures']),
+  // A v5 archive carries the undecodable transcription verbatim in
+  // `figuresRaw`; reconstruct the case rather than the empty `figures` array
+  // that accompanies it. An older archive has no such key and is unaffected.
+  figuresSource: m['figuresRaw'] is String
+      ? UnreadableFigures(m['figuresRaw']! as String)
+      : null,
+  figures: m['figuresRaw'] is String
+      ? const []
+      : _figuresFromJson(m['figures']),
   hook: _strOr(m, 'hook', ''),
   callingNotes: _strOr(m, 'callingNotes', ''),
   // Soft length bound (OWASP): the walkthrough is untrusted long free text from

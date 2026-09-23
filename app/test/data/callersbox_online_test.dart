@@ -1132,6 +1132,38 @@ void main() {
     );
 
     test(
+      'an undecodable existing transcription never compares as identical (#1347)',
+      () async {
+        // The trap this guards: mapping an undecodable side to an empty list
+        // made BOTH sides empty when the incoming dance legitimately has no
+        // figures, so `figuresCanonicallyIdentical` returned true and the flow
+        // skipped confirmation — acting on a comparison that was impossible.
+        final repos = openTestRepositories();
+        final existing = await seedDance(
+          repos,
+          provenanceSource: ProvenanceSource.contradb,
+        );
+        await repos.db.customStatement(
+          'UPDATE dances SET figures_json = ? WHERE id = ?',
+          ['[{"kind":', existing.id],
+        );
+
+        // Incoming draft carries NO figures, which is what makes the empty-list
+        // mapping collide with the undecodable side.
+        final plan = ambiguousPlan(candidateId: existing.id, figures: const []);
+        final result = await CallersBoxOnline().import(repos, plan);
+
+        expect(
+          result.kind,
+          OnlineImportKind.needsConfirmation,
+          reason: 'an unreadable side cannot be compared, so the user decides',
+        );
+        final saved = await repos.dances.listAll();
+        expect(saved, hasLength(1), reason: 'nothing written without consent');
+      },
+    );
+
+    test(
       'confident match + identical figures + same source: falls through to duplicate (no prompt)',
       () async {
         // A same-source re-import with a drifted externalId produces an

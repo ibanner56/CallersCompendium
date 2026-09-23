@@ -57,6 +57,57 @@ void main() {
     return false;
   }
 
+  group('an undecodable transcription survives editing (#1347)', () {
+    Future<DanceEditorController> loadUnreadable(
+      CompendiumRepositories repos,
+    ) async {
+      await repos.dances.create(sampleDance(id: 'd1', title: 'Corrupt'));
+      await repos.ensureMigrated();
+      await repos.db.customStatement(
+        'UPDATE dances SET figures_json = ? WHERE id = ?',
+        ['[{"kind":', 'd1'],
+      );
+      final loaded = await repos.dances.getById('d1');
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialect: Dialect.larksRobins,
+      );
+      await controller.load(dance: loaded, fieldDefs: const []);
+      return controller;
+    }
+
+    test('a title edit does not replace the stored transcription', () async {
+      final repos = openTestRepositories();
+      final controller = await loadUnreadable(repos);
+      addTearDown(controller.dispose);
+
+      controller.titleController.text = 'Renamed';
+      final built = controller.buildDance();
+
+      expect(built.figuresSource, isA<UnreadableFigures>());
+    });
+
+    test('pressing Add figure does not replace it either', () async {
+      // The placeholder trap: `addFigure()` makes `figureDrafts` non-empty
+      // while the draft still yields no figure, so a guard keyed on the draft
+      // list stops protecting the bytes the moment the button is pressed.
+      final repos = openTestRepositories();
+      final controller = await loadUnreadable(repos);
+      addTearDown(controller.dispose);
+
+      controller.addFigure();
+      controller.titleController.text = 'Renamed';
+      final built = controller.buildDance();
+
+      expect(
+        built.figuresSource,
+        isA<UnreadableFigures>(),
+        reason: 'an empty placeholder is not an authored transcription',
+      );
+    });
+  });
+
   test('load seeds a new dance with a single initial undo entry', () async {
     final repos = openTestRepositories();
     final controller = await newDanceController(repos);
