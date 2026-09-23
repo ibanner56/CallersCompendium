@@ -65,6 +65,32 @@ void main() {
     });
   });
 
+  test('a kept colliding value is still sanitised', () async {
+    // §4.1 carves out COMPOSITION, not §4.6's sanitiser — which binds every
+    // write path with no carve-out at all. Storing the caller's object verbatim
+    // would let a normalisation collision persist a zero-width space under a
+    // rule that says nothing about invisible characters.
+    await repo.set('custom_dialects', {'café': 'a​b', 'café': 'c​d'});
+
+    expect(await repo.get('custom_dialects'), {'café': 'ab', 'café': 'cd'});
+    expect(
+      (await db.customSelect('SELECT 1 FROM normalisation_skips').get()),
+      hasLength(1),
+    );
+  });
+
+  test('two keys that collide under the sanitiser alone still raise', () async {
+    // Not a normalisation collision: no sanitised form of this object keeps
+    // both entries, so there is nothing for §4.1's carve-out to store.
+    // Raised before the write is scheduled, so the closure form is required:
+    // `set` is not `async`, and a synchronous throw never becomes a Future.
+    expect(
+      () => repo.set('custom_dialects', {'ab': 1, 'a​b': 2}),
+      throwsA(isA<ShareableJsonKeyCollision>()),
+    );
+    expect(await repo.get('custom_dialects'), isNull);
+  });
+
   test('returns null for an unset key', () async {
     expect(await repo.get('nope'), isNull);
     expect(await repo.contains('nope'), isFalse);
