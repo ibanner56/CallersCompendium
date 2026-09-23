@@ -859,10 +859,19 @@ class CompendiumRepositories {
   /// a silent stale index into an unrecoverable startup for installs that
   /// launch fine today.
   ///
-  /// Deferring is recorded by *not* writing the repair sweep's done marker, so
+  /// Deferring is recorded by **clearing** the repair sweep's done marker, so
   /// the repair lands by itself on the first launch after the rebuild learns to
   /// tolerate those rows. Until then the affected install keeps the stale index
   /// it already has.
+  ///
+  /// It is *not* recorded by leaving that marker unwritten, and the difference
+  /// is not cosmetic (Copilot review of #1370): an absent marker is also the
+  /// state of a database that has simply not reached the sweep yet, so the same
+  /// absence would have to mean both "a repair is owed" and "none ever was".
+  /// Read the first way it manufactures debt on a database that never ran the
+  /// pre-fix pass; read the second way it drops a real obligation. Only an
+  /// explicit clear separates them. See
+  /// [_repairNormalisationDerivedIndexIfNeeded].
   Future<bool> _derivedRebuildIsBlocked() async {
     final blocking = await db
         .customSelect(

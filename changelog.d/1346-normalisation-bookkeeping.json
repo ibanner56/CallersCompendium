@@ -14,7 +14,7 @@
     "fixed": [
       "The shareable-text normalisation pass clears a `normalisation_skips` entry once its row holds its target, and re-attempts outstanding entries by reading only the recorded rows rather than re-scanning every in-scope column and settings row.",
       "The pass's completion marker fingerprints the shareable subset of `settingsClassifications` and `settingsPrefixClassifications` alongside its columns, so reclassifying a settings key to `shareable` re-runs the pass over its stored values.",
-      "The pass requests a derived-index rebuild after any rewrite rather than only after a `dances` rewrite, so repairs to `choreographers.name`, `published_sources.title`/`.author` and `custom_field_values.value_text` refresh `dance_fts` and `dance_substring_fts`. A one-shot sweep repairs indexes left stale by the previous condition; it waits while a dance row the rebuild cannot decode is recorded."
+      "The pass requests a derived-index rebuild after any rewrite rather than only after a `dances` rewrite, so repairs to `choreographers.name`, `published_sources.title`/`.author` and `custom_field_values.value_text` refresh `dance_fts` and `dance_substring_fts`. A one-shot sweep repairs indexes left stale by the previous condition; where such a repair is owed it waits while a dance row the rebuild cannot decode is recorded, and where none is owed it retires immediately rather than leaving the obligation ambiguous."
     ]
   }
 }
