@@ -19,16 +19,37 @@ Future<void> showSyncDevicesScreen(BuildContext context) {
   ).push(MaterialPageRoute<void>(builder: (_) => const SyncDevicesScreen()));
 }
 
-/// Confirms a wipe: the strongest confirmation in the app.
+/// Confirms a wipe and, if the user goes ahead, performs it.
 ///
-/// Lives here rather than on the status surface because it belongs with the
-/// device-management contract, and because the surface it is invoked from is
+/// The whole flow lives here rather than on the status surface because it is
+/// part of the device-management contract, and because the status surface is
 /// shared with other work in flight.
 ///
-/// Returns true only on an explicit confirm. The destructive styling is not
-/// decoration: this is the one Device Sync action that destroys data for
-/// somebody else's device as well as this one.
-Future<bool> confirmSyncWipe(BuildContext context) async {
+/// The controller detaches this device only on success; a failure leaves it
+/// attached, and this says so rather than letting a destructive action appear
+/// to have been ignored.
+Future<void> confirmAndWipeStore(
+  BuildContext context,
+  SyncController controller,
+) async {
+  if (!await _confirmSyncWipe(context) || !context.mounted) return;
+  final l10n = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.maybeOf(context);
+  if (await controller.wipeStore() != SyncAdminOutcome.done) {
+    messenger?.showSnackBar(
+      SnackBar(
+        key: const ValueKey('sync-wipe-failed'),
+        content: Text(l10n.settingsSyncWipeFailed),
+      ),
+    );
+  }
+}
+
+/// The strongest confirmation in the app. Returns true only on an explicit
+/// confirm. The destructive styling is not decoration: this is the one Device
+/// Sync action that destroys data for somebody else's device as well as this
+/// one.
+Future<bool> _confirmSyncWipe(BuildContext context) async {
   final l10n = AppLocalizations.of(context);
   final confirmed = await showDialog<bool>(
     context: context,

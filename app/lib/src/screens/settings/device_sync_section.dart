@@ -292,24 +292,6 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
     }
   }
 
-  /// Wipe destroys the store for every device at once and cannot be undone, so
-  /// it is confirmed by [confirmSyncWipe] rather than the ordinary dialog. The
-  /// controller detaches this device only on success; a failure leaves it
-  /// attached and says so.
-  Future<void> _confirmWipe(SyncController controller) async {
-    if (!await confirmSyncWipe(context) || !mounted) return;
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    final l10n = AppLocalizations.of(context);
-    if (await controller.wipeStore() != SyncAdminOutcome.done) {
-      messenger?.showSnackBar(
-        SnackBar(
-          key: const ValueKey('sync-wipe-failed'),
-          content: Text(l10n.settingsSyncWipeFailed),
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -490,7 +472,7 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
                 enabled: !controller.running,
                 onTap: controller.running
                     ? null
-                    : () => _confirmWipe(controller),
+                    : () => confirmAndWipeStore(context, controller),
               ),
           ],
         ],
