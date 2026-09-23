@@ -519,6 +519,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsSyncReplacementCancel => 'Pas maintenant';
 
   @override
+  String get settingsSyncReplacementFailed =>
+      'La dernière tentative de reconnexion n’a pas abouti. Vous pouvez réessayer, ou choisir Pas maintenant et décider plus tard.';
+
+  @override
   String get settingsAboutTitle => 'À propos';
 
   @override

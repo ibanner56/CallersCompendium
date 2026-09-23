@@ -323,14 +323,10 @@ class SyncController extends ChangeNotifier {
     final coordinator = _coordinator();
     if (coordinator == null) return SyncGateOutcome.notPaired;
 
-    final network = await _classifier.current();
-    if (network == SyncNetworkKind.offline) {
-      return SyncGateOutcome.suppressedOffline;
-    }
-    if (_wifiOnly && network == SyncNetworkKind.metered) {
-      if (trigger == SyncTrigger.manual) wifiSettingRequests.value++;
-      return SyncGateOutcome.suppressedMetered;
-    }
+    final suppressed = await _connectionGate(
+      manual: trigger == SyncTrigger.manual,
+    );
+    if (suppressed != null) return suppressed;
 
     _inFlight++;
     _notify();
@@ -367,6 +363,29 @@ class SyncController extends ChangeNotifier {
       }
       _notify();
     }
+  }
+
+  /// The §6.12 connection gate, shared by [trigger] and [confirmReplacement].
+  ///
+  /// Returns the outcome that suppressed the attempt, or null when the
+  /// connection permits it. [manual] marks an attempt the user just made, which
+  /// is routed to the *Sync only on WiFi* setting rather than dropped silently.
+  ///
+  /// Every caller MUST consult this **before** taking [_inFlight] and notifying:
+  /// a suppressed attempt must leave the controller bit-identical, and the
+  /// replacement dialog re-shows itself on any notification while the decision
+  /// is pending — so a gate that notified first would cover the very setting it
+  /// is routing the user to.
+  Future<SyncGateOutcome?> _connectionGate({required bool manual}) async {
+    final network = await _classifier.current();
+    if (network == SyncNetworkKind.offline) {
+      return SyncGateOutcome.suppressedOffline;
+    }
+    if (_wifiOnly && network == SyncNetworkKind.metered) {
+      if (manual) wifiSettingRequests.value++;
+      return SyncGateOutcome.suppressedMetered;
+    }
+    return null;
   }
 
   /// Records a pass result and, on success, persists the last-success time as
@@ -446,13 +465,49 @@ class SyncController extends ChangeNotifier {
   /// Confirms replacement of a previously used, now-missing collection
   /// exactly once (spec §6.14 item 6): the coordinator's own single-flight
   /// guard makes a double tap here issue only one `POST`.
-  Future<SyncPassResult?> confirmReplacement() async {
+  ///
+  /// A confirmation is a manual sync attempt — it fresh-attaches, which is the
+  /// largest transfer sync ever makes — so it passes the same §6.12 connection
+  /// gate as every other trigger, and reports its outcome the same way. A
+  /// suppressed confirmation sends nothing and leaves [replacementPending]
+  /// true, so the decision is still there to make on a permitted connection.
+  /// Read [lastResult] for what the pass itself did when this returns
+  /// [SyncGateOutcome.ran].
+  Future<SyncGateOutcome> confirmReplacement() async {
     final coordinator = _coordinator();
-    if (coordinator == null) return null;
+    if (coordinator == null) return SyncGateOutcome.notPaired;
+
+    final suppressed = await _connectionGate(manual: true);
+    if (suppressed != null) return suppressed;
+
     _inFlight++;
     _notify();
     try {
-      final result = await coordinator.confirmReplacement();
+      SyncPassResult result;
+      try {
+        result = await coordinator.confirmReplacement();
+      } on Object catch (error, stack) {
+        // The dialog fires this without awaiting it, so an uncaught error here
+        // would become an unhandled async error — logged as a crash, with no
+        // status the user ever sees — and `finally`'s `_notify` would re-show
+        // the dialog with nothing saying the attempt failed. Recording it as a
+        // failed pass is what `trigger` does, and for the same reason.
+        //
+        // Type only, as `trigger` and the coordinator's own `_watch` do: a
+        // transport failure's message can carry the request URI, and the
+        // diagnostics redactor deliberately keeps HTTPS URLs, so the message
+        // would put the sync endpoint into an exported diagnostic bundle.
+        logCaughtErrorTypeOnly(
+          error,
+          stack,
+          source: 'sync_controller.confirmReplacement',
+        );
+        result = SyncPassResult(
+          SyncPassStatus.failed,
+          message:
+              'replacement confirmation threw ${error.runtimeType}', // i18n-ignore: internal status
+        );
+      }
       await _recordResult(result);
       // Only a genuinely completed confirmation resolves the decision. A
       // failure (e.g. a 500 from `POST /v1/store`) leaves the coordinator's
@@ -463,7 +518,7 @@ class SyncController extends ChangeNotifier {
       if (result.status == SyncPassStatus.completed) {
         _replacementPending = false;
       }
-      return result;
+      return SyncGateOutcome.ran;
     } finally {
       _inFlight--;
       _notify();

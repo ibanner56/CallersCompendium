@@ -544,6 +544,10 @@
   "@settingsSyncReplacementCancel": {
     "x-sourceSha256": "a0e63d7c7125d29af84d6919af5550529be77c327324940c98c4b2cb13a99c8c"
   },
+  "settingsSyncReplacementFailed": "La dernière tentative de reconnexion n’a pas abouti. Vous pouvez réessayer, ou choisir Pas maintenant et décider plus tard.",
+  "@settingsSyncReplacementFailed": {
+    "x-sourceSha256": "8e4b25d593716d5ffe9ca615bb887e9c9f3de664ece8101767477717f5660453"
+  },
   "settingsAboutTitle": "À propos",
   "@settingsAboutTitle": {
     "x-sourceSha256": "4efca0d10c5feb8e9b35eb1d994f2905bb71714e6a271f511d713b539ea5faa1"

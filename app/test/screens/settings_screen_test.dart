@@ -3068,6 +3068,128 @@ void main() {
         },
       );
 
+      // The gate has to run before the controller takes `_inFlight` and
+      // notifies, because this dialog re-shows itself on any notification
+      // while the decision is pending — and it is barrier-dismissible-false,
+      // so a reopened dialog covers both the routing snackbar and the *Sync
+      // only on WiFi* tile the user is being sent to. A controller unit test
+      // cannot see that; this one can.
+      testWidgets(
+        'confirming on a metered connection routes to the WiFi setting '
+        'instead of reopening the dialog',
+        (tester) async {
+          final transport = ControllableSyncTransport();
+          final harness = await _pumpSettings(tester);
+          await harness.repos.settings.set('sync_id', 'configured-store-id-z');
+          final controller = SyncScope.of(
+            tester.element(find.byType(SettingsScreen)),
+          );
+          await controller.setEnabled(true);
+          await controller.load();
+
+          _syncCoordinator = SyncCoordinator(
+            syncId: 'configured',
+            deviceId: 'device',
+            store: CompendiumSyncCoordinatorStore(harness.repos),
+            transport: transport,
+            passOperation: ({initialStore}) async =>
+                const SyncPassResult(SyncPassStatus.replacementRequired),
+          );
+          addTearDown(_syncCoordinator!.dispose);
+          controller.attachCoordinator(_syncCoordinator);
+          await openExperimental(tester);
+
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+          expect(
+            find.byKey(const ValueKey('sync-replacement-dialog')),
+            findsOneWidget,
+          );
+
+          _syncNetwork.kind = SyncNetworkKind.metered;
+          await tester.tap(
+            find.byKey(const ValueKey('sync-replacement-confirm')),
+          );
+          await tester.pumpAndSettle();
+
+          expect(transport.createStoreCalls, 0);
+          expect(
+            find.byKey(const ValueKey('sync-replacement-dialog')),
+            findsNothing,
+            reason:
+                'the dialog must stay closed, or the setting it routes to is '
+                'unreachable behind it',
+          );
+          expect(
+            find.textContaining('Sync only on WiFi is on'),
+            findsOneWidget,
+          );
+          expect(
+            controller.replacementPending,
+            isTrue,
+            reason: 'the decision is deferred, not resolved',
+          );
+        },
+      );
+
+      testWidgets(
+        'a failed confirmation explains the dialog that comes straight back',
+        (tester) async {
+          final transport = ControllableSyncTransport()
+            ..createStoreResponse = const SyncHttpResponse(
+              statusCode: 500,
+              kind: SyncResponseKind.serverError,
+              headers: {},
+              body: [],
+            );
+          final harness = await _pumpSettings(tester);
+          await harness.repos.settings.set('sync_id', 'configured-store-id-w');
+          final controller = SyncScope.of(
+            tester.element(find.byType(SettingsScreen)),
+          );
+          await controller.setEnabled(true);
+          await controller.load();
+
+          _syncCoordinator = SyncCoordinator(
+            syncId: 'configured',
+            deviceId: 'device',
+            store: CompendiumSyncCoordinatorStore(harness.repos),
+            transport: transport,
+            passOperation: ({initialStore}) async =>
+                const SyncPassResult(SyncPassStatus.replacementRequired),
+          );
+          addTearDown(_syncCoordinator!.dispose);
+          controller.attachCoordinator(_syncCoordinator);
+          await openExperimental(tester);
+
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+          expect(
+            find.byKey(const ValueKey('sync-replacement-failed')),
+            findsNothing,
+            reason: 'nothing has been attempted yet',
+          );
+
+          await tester.tap(
+            find.byKey(const ValueKey('sync-replacement-confirm')),
+          );
+          await tester.pumpAndSettle();
+
+          expect(
+            find.byKey(const ValueKey('sync-replacement-dialog')),
+            findsOneWidget,
+            reason: 'a failure leaves the decision pending, so it comes back',
+          );
+          expect(
+            find.byKey(const ValueKey('sync-replacement-failed')),
+            findsOneWidget,
+            reason:
+                'and without this line the reappearing dialog reads as the '
+                'tap having been ignored',
+          );
+        },
+      );
+
       testWidgets(
         'a replacement already pending when the section first builds still '
         'shows the dialog, without a during-build assertion',

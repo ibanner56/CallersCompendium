@@ -504,6 +504,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSyncReplacementCancel => 'Not now';
 
   @override
+  String get settingsSyncReplacementFailed =>
+      'The last attempt to reconnect did not go through. You can try again, or choose Not now and decide later.';
+
+  @override
   String get settingsAboutTitle => 'About';
 
   @override

@@ -922,6 +922,12 @@ abstract class AppLocalizations {
   /// **'Not now'**
   String get settingsSyncReplacementCancel;
 
+  /// Line added to the missing-previously-used-store dialog when the previous confirmation failed, so a dialog that reappears explains itself rather than looking like it was ignored.
+  ///
+  /// In en, this message translates to:
+  /// **'The last attempt to reconnect did not go through. You can try again, or choose Not now and decide later.'**
+  String get settingsSyncReplacementFailed;
+
   /// Settings section navigation title (sidebar/app bar) for app version, license, and help links.
   ///
   /// In en, this message translates to:

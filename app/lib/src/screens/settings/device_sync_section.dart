@@ -42,6 +42,15 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
 
   bool _replacementDialogShowing = false;
 
+  /// Whether the user has already confirmed a replacement on this surface.
+  /// Set before the call, not after it: the controller notifies from its
+  /// `finally` and re-shows the dialog before an awaited result comes back, so
+  /// a flag written afterwards would arrive too late for the dialog it is
+  /// meant to explain. It only qualifies [SyncController.lastResult], so a
+  /// failure from some earlier, unrelated pass cannot be reported as this
+  /// dialog's.
+  bool _replacementConfirmAttempted = false;
+
   /// The sync phrase currently shown in the clear, or null while it is
   /// masked. Holding the phrase rather than a bool means a reveal cannot
   /// survive the phrase changing underneath it — detaching and pairing with a
@@ -95,7 +104,43 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
       builder: (dialogContext) => AlertDialog(
         key: const ValueKey('sync-replacement-dialog'),
         title: Text(l10n.settingsSyncReplacementTitle),
-        content: Text(l10n.settingsSyncReplacementBody),
+        // A confirmation that failed leaves the decision pending, so this
+        // dialog is still — or straight back — on screen, and without a word
+        // about the last attempt that reads as the tap having been ignored.
+        // The status line that would explain it sits behind a
+        // barrier-dismissible-false barrier, so it has to be said here.
+        //
+        // Built against the live controller rather than a value read when the
+        // dialog opened: the controller notifies when it takes the pass in
+        // flight, which can re-show this dialog *before* the attempt has a
+        // result, so a snapshot taken at open time would always predate the
+        // failure it is meant to report.
+        content: ListenableBuilder(
+          listenable: controller,
+          builder: (builderContext, _) {
+            final lastAttemptFailed =
+                _replacementConfirmAttempted &&
+                controller.lastResult?.status == SyncPassStatus.failed;
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l10n.settingsSyncReplacementBody),
+                if (lastAttemptFailed)
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.md),
+                    child: Text(
+                      l10n.settingsSyncReplacementFailed,
+                      key: const ValueKey('sync-replacement-failed'),
+                      style: TextStyle(
+                        color: Theme.of(builderContext).colorScheme.error,
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
         actions: [
           TextButton(
             key: const ValueKey('sync-replacement-cancel'),
@@ -109,7 +154,7 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
             key: const ValueKey('sync-replacement-confirm'),
             onPressed: () {
               Navigator.of(dialogContext).pop();
-              unawaited(controller.confirmReplacement());
+              unawaited(_confirmReplacement(controller));
             },
             child: Text(l10n.settingsSyncReplacementConfirm),
           ),
@@ -117,6 +162,34 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
       ),
     ).whenComplete(() => _replacementDialogShowing = false);
   }
+
+  /// Confirms replacement and reports what the §6.12 gate did with it.
+  ///
+  /// A suppressed confirmation sends nothing and leaves the decision pending,
+  /// and the controller deliberately does not notify — so this dialog stays
+  /// closed and the routing message and the *Sync only on WiFi* tile are
+  /// actually reachable behind it.
+  Future<void> _confirmReplacement(SyncController controller) async {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final l10n = AppLocalizations.of(context);
+    _replacementConfirmAttempted = true;
+    final outcome = await controller.confirmReplacement();
+    if (!mounted) return;
+    final message = _gateMessage(l10n, outcome);
+    if (message != null) {
+      messenger?.showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
+
+  /// What to tell the user about a manual attempt the §6.12 gate stopped, or
+  /// null when it ran.
+  String? _gateMessage(AppLocalizations l10n, SyncGateOutcome outcome) =>
+      switch (outcome) {
+        SyncGateOutcome.suppressedMetered => l10n.settingsSyncMeteredRouted,
+        SyncGateOutcome.suppressedOffline => l10n.settingsSyncOffline,
+        SyncGateOutcome.notPaired => l10n.settingsSyncNotPairedNow,
+        _ => null,
+      };
 
   /// Copies the sync phrase for entry on another device. The confirmation
   /// restates what the phrase is, because a clipboard is a shared surface and
@@ -143,13 +216,7 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
   Future<void> _syncNow(SyncController controller) async {
     final messenger = ScaffoldMessenger.maybeOf(context);
     final l10n = AppLocalizations.of(context);
-    final outcome = await controller.syncNow();
-    final message = switch (outcome) {
-      SyncGateOutcome.suppressedMetered => l10n.settingsSyncMeteredRouted,
-      SyncGateOutcome.suppressedOffline => l10n.settingsSyncOffline,
-      SyncGateOutcome.notPaired => l10n.settingsSyncNotPairedNow,
-      _ => null,
-    };
+    final message = _gateMessage(l10n, await controller.syncNow());
     if (message != null) {
       messenger?.showSnackBar(SnackBar(content: Text(message)));
     }

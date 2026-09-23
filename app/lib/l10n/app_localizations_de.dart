@@ -513,6 +513,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsSyncReplacementCancel => 'Jetzt nicht';
 
   @override
+  String get settingsSyncReplacementFailed =>
+      'Der letzte Versuch, neu zu verbinden, ist nicht durchgegangen. Du kannst es erneut versuchen oder Jetzt nicht wählen und später entscheiden.';
+
+  @override
   String get settingsAboutTitle => 'Über';
 
   @override

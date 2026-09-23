@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:compendium_app/src/screens/settings/settings_keys.dart';
 import 'package:compendium_app/src/sync/sync_controller.dart';
@@ -1112,10 +1113,8 @@ void main() {
 
         expect(transport.createStoreCalls, 1);
         expect(controller.replacementPending, isFalse);
-        expect(
-          results.every((r) => r?.status == SyncPassStatus.completed),
-          isTrue,
-        );
+        expect(results.every((r) => r == SyncGateOutcome.ran), isTrue);
+        expect(controller.lastResult?.status, SyncPassStatus.completed);
         expect(controller.lastResult?.duplicateCount, 3);
       },
     );
@@ -1145,6 +1144,8 @@ void main() {
       },
     );
 
+    // This is also the guard for "any other non-2xx stays failed" under the
+    // §5.2 `409` adoption: a 500 must not be swept into the adopt branch.
     test(
       'a failed confirmation leaves the decision pending and retryable',
       () async {
@@ -1164,9 +1165,10 @@ void main() {
         await controller.syncNow();
         expect(controller.replacementPending, isTrue);
 
-        final result = await controller.confirmReplacement();
+        final outcome = await controller.confirmReplacement();
 
-        expect(result?.status, SyncPassStatus.failed);
+        expect(outcome, SyncGateOutcome.ran);
+        expect(controller.lastResult?.status, SyncPassStatus.failed);
         expect(
           controller.replacementPending,
           isTrue,
@@ -1184,8 +1186,135 @@ void main() {
           body: [],
         );
         final retry = await controller.confirmReplacement();
-        expect(retry?.status, SyncPassStatus.completed);
+        expect(retry, SyncGateOutcome.ran);
+        expect(controller.lastResult?.status, SyncPassStatus.completed);
         expect(controller.replacementPending, isFalse);
+      },
+    );
+
+    // Spec §6.12: a confirmation fresh-attaches — the largest transfer sync
+    // ever makes — so it passes the same connection gate as every other
+    // manual attempt rather than spending mobile data with the default
+    // setting on.
+    test(
+      'a metered connection with WiFi-only on defers the confirmation, sends '
+      'nothing and routes to the setting',
+      () async {
+        final transport = ControllableSyncTransport();
+        coordinator = replacementCoordinator(transport);
+        final controller = build();
+        addTearDown(() => coordinator?.dispose());
+        controller.attachCoordinator(coordinator);
+        await controller.load();
+        await controller.setEnabled(true);
+        await controller.syncNow();
+        expect(controller.replacementPending, isTrue);
+        expect(controller.wifiOnly, isTrue, reason: 'the default');
+        final resultBefore = controller.lastResult;
+        network.kind = SyncNetworkKind.metered;
+
+        final outcome = await controller.confirmReplacement();
+
+        expect(outcome, SyncGateOutcome.suppressedMetered);
+        expect(transport.createStoreCalls, 0);
+        expect(transport.getStoreCalls, 0);
+        expect(controller.wifiSettingRequests.value, 1);
+        expect(
+          controller.replacementPending,
+          isTrue,
+          reason: 'a deferred decision is still there to make later',
+        );
+        expect(
+          identical(controller.lastResult, resultBefore),
+          isTrue,
+          reason:
+              'a suppressed attempt records nothing, so the surface keeps '
+              'saying what the last real pass found',
+        );
+      },
+    );
+
+    test('offline defers the confirmation without routing to the setting', () async {
+      final transport = ControllableSyncTransport();
+      coordinator = replacementCoordinator(transport);
+      final controller = build();
+      addTearDown(() => coordinator?.dispose());
+      controller.attachCoordinator(coordinator);
+      await controller.load();
+      await controller.setEnabled(true);
+      await controller.syncNow();
+      expect(controller.replacementPending, isTrue);
+      network.kind = SyncNetworkKind.offline;
+
+      final outcome = await controller.confirmReplacement();
+
+      expect(outcome, SyncGateOutcome.suppressedOffline);
+      expect(transport.createStoreCalls, 0);
+      expect(
+        controller.wifiSettingRequests.value,
+        0,
+        reason: 'no WiFi setting would help while there is no connection',
+      );
+      expect(controller.replacementPending, isTrue);
+    });
+
+    // The gate reads the *setting*, not just the classifier: a metered
+    // connection alone must not stop a user who has turned WiFi-only off.
+    test('a metered connection with WiFi-only off confirms normally', () async {
+      final transport = ControllableSyncTransport();
+      coordinator = replacementCoordinator(transport);
+      final controller = build();
+      addTearDown(() => coordinator?.dispose());
+      controller.attachCoordinator(coordinator);
+      await controller.load();
+      await controller.setEnabled(true);
+      await controller.syncNow();
+      await controller.setWifiOnly(false);
+      network.kind = SyncNetworkKind.metered;
+
+      final outcome = await controller.confirmReplacement();
+
+      expect(outcome, SyncGateOutcome.ran);
+      expect(transport.createStoreCalls, 1);
+      expect(controller.replacementPending, isFalse);
+    });
+
+    // The dialog fires this without awaiting it, so an escaping error becomes
+    // an unhandled async error logged as a crash, with no status the user
+    // ever sees.
+    test(
+      'a throwing transport is recorded as a failed pass rather than escaping',
+      () async {
+        final transport = ControllableSyncTransport()
+          ..createStoreError = const SocketException('no route to host');
+        coordinator = replacementCoordinator(transport);
+        final controller = build();
+        addTearDown(() => coordinator?.dispose());
+        controller.attachCoordinator(coordinator);
+        await controller.load();
+        await controller.setEnabled(true);
+        await controller.syncNow();
+        expect(controller.replacementPending, isTrue);
+
+        // Returning at all is half the guard: before the fix this `await`
+        // rethrew the SocketException.
+        final outcome = await controller.confirmReplacement();
+
+        expect(outcome, SyncGateOutcome.ran);
+        expect(controller.lastResult?.status, SyncPassStatus.failed);
+        expect(
+          controller.lastResult?.message,
+          contains('SocketException'),
+          reason: 'the type, never the message, which can carry the endpoint',
+        );
+        expect(controller.replacementPending, isTrue);
+        expect(
+          controller.notices,
+          isEmpty,
+          reason:
+              'a synthesized failure carries no reports, so it must not put '
+              'anything on the notice surface',
+        );
       },
     );
 

@@ -493,6 +493,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsSyncReplacementCancel => '今はしない';
 
   @override
+  String get settingsSyncReplacementFailed =>
+      '前回の再接続は完了しませんでした。もう一度試すか、「今はしない」を選んで後で決めることもできます。';
+
+  @override
   String get settingsAboutTitle => '情報';
 
   @override

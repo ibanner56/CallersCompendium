@@ -1110,14 +1110,20 @@ void main() {
     },
   );
 
-  test('create conflict reports and stops without fresh attach', () async {
+  // A `409` on the replacement `POST` means only that a store exists for this
+  // `id_key` (spec §5.2, §5.3), and the sole way that can be true is that
+  // another holder of this device's own phrase recreated it — or that this
+  // device's own `201` was lost. So the device adopts it and continues into
+  // the ordinary fresh attach. Reporting it as a failure left the decision
+  // pending and re-POSTed into the same conflict on every confirm, forever.
+  test('create conflict adopts the existing store and fresh-attaches', () async {
     final transport = _FakeTransport(
       missingKind: SyncStoreMissingKind.replacementRequired,
       createResponses: [_FakeTransport.response(409)],
     );
     final store = _FakeStore(
       previouslyUsed: true,
-      snapshotEpochs: ['epoch-1', 'epoch-1'],
+      snapshotEpochs: [null, null, 'epoch-1'],
     );
     final coordinator = SyncCoordinator(
       syncId: 'configured',
@@ -1125,17 +1131,33 @@ void main() {
       store: store,
       transport: transport,
     );
+    addTearDown(coordinator.dispose);
 
     await coordinator.onAppStart();
     final result = await coordinator.confirmReplacement();
 
-    expect(result.status, SyncPassStatus.failed);
+    expect(result.status, SyncPassStatus.completed);
+    expect(
+      transport.createCalls,
+      1,
+      reason: 'adopting must not send a second POST',
+    );
+    expect(transport.requestLog, [
+      'store', // §6.3 step 1 found the store gone
+      'create', // the one POST — answered 409
+      'store', // the adopted store, read exactly as after a 201
+      'store', // the fresh-attach pass's own lookup
+      'manifest-put',
+    ]);
+
+    // And the decision is resolved: a later trigger runs an ordinary pass
+    // instead of re-raising the dialog.
+    expect(
+      (await coordinator.syncNow()).status,
+      SyncPassStatus.completed,
+      reason: 'no re-prompt — the replacement decision is done',
+    );
     expect(transport.createCalls, 1);
-    expect(transport.storeCalls, 1);
-    expect(transport.manifestCalls, 0);
-    expect(transport.postMissingCalls, 0);
-    expect(transport.manifestPuts, 0);
-    expect(store.baselineReplacements, 0);
   });
 
   test('declining replacement keeps configured sync paused', () async {

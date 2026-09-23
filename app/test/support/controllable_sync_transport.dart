@@ -24,6 +24,12 @@ final class ControllableSyncTransport implements SyncCoordinatorTransport {
     body: [],
   );
 
+  /// When set, `createStore` throws this instead of answering — the transport
+  /// error (a `SocketException`, a TLS failure, the 30-second timeout) that a
+  /// replacement confirmation must catch rather than let escape into an
+  /// unawaited future.
+  Object? createStoreError;
+
   int getStoreCalls = 0;
   int createStoreCalls = 0;
 
@@ -36,6 +42,8 @@ final class ControllableSyncTransport implements SyncCoordinatorTransport {
   @override
   Future<SyncHttpResponse> createStore() async {
     createStoreCalls++;
+    final error = createStoreError;
+    if (error != null) throw error;
     return createStoreResponse;
   }
 
