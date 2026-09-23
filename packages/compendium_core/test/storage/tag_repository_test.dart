@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/src/storage/database.dart';
 import 'package:test/test.dart';
 
 import 'test_database.dart';
@@ -233,9 +234,8 @@ void main() {
       return rows.length;
     }
 
-    Future<dynamic> rawTag(String id) => (db.select(
-      db.tags,
-    )..where((t) => t.id.equals(id))).getSingleOrNull();
+    Future<TagRow?> rawTag(String id) =>
+        (db.select(db.tags)..where((t) => t.id.equals(id))).getSingleOrNull();
 
     Dance buildDance({required String id, List<String> tagIds = const []}) =>
         Dance(
@@ -271,10 +271,7 @@ void main() {
       await repo.upsert(Tag(id: 't1', name: 'chestnut'));
       await dances.create(buildDance(id: 'd1', tagIds: const ['t1']));
 
-      await expectLater(
-        repo.hardDelete(['t1']),
-        throwsA(isA<StateError>()),
-      );
+      await expectLater(repo.hardDelete(['t1']), throwsA(isA<StateError>()));
 
       expect(await rawTag('t1'), isNotNull);
       expect(await danceTagRows('t1'), 1);
@@ -306,20 +303,23 @@ void main() {
       },
     );
 
-    test('a restored dance still shows a tag the rollback tombstoned', () async {
-      // The user-visible point of the tombstone: restore both rows and the
-      // dance is tagged again. Erasing the tag made this unrecoverable.
-      // ignore: unused_result
-      await repo.upsert(Tag(id: 't1', name: 'chestnut'));
-      await dances.create(buildDance(id: 'd1', tagIds: const ['t1']));
-      await dances.softDelete('d1', at: DateTime.utc(2026, 2));
+    test(
+      'a restored dance still shows a tag the rollback tombstoned',
+      () async {
+        // The user-visible point of the tombstone: restore both rows and the
+        // dance is tagged again. Erasing the tag made this unrecoverable.
+        // ignore: unused_result
+        await repo.upsert(Tag(id: 't1', name: 'chestnut'));
+        await dances.create(buildDance(id: 'd1', tagIds: const ['t1']));
+        await dances.softDelete('d1', at: DateTime.utc(2026, 2));
 
-      await repo.delete('t1', permanent: true);
-      await repo.restore('t1', at: DateTime.utc(2026, 3));
-      await dances.restore('d1', at: DateTime.utc(2026, 3));
+        await repo.delete('t1', permanent: true);
+        await repo.restore('t1', at: DateTime.utc(2026, 3));
+        await dances.restore('d1', at: DateTime.utc(2026, 3));
 
-      expect((await dances.getById('d1'))!.tagIds, ['t1']);
-    });
+        expect((await dances.getById('d1'))!.tagIds, ['t1']);
+      },
+    );
 
     test('still erases an unreferenced, unpublished tag', () async {
       // ignore: unused_result

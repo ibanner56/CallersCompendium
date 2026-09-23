@@ -226,7 +226,10 @@ void main() {
         // fix the published-row loop ran first and unconditionally, so this
         // venue was tombstoned despite being referenced.
         final stamp = DateTime.utc(2026, 1, 2);
-        await repo.upsert(Venue(id: 'v1', name: 'Published Hall'), at: stamp);
+        await repo.upsert(
+          Venue(id: 'v1', name: 'Published Hall'),
+          at: stamp,
+        );
         await programs.create(buildProgram(id: 'p1', venueId: 'v1'));
         await SyncLocalRepository(
           db,
