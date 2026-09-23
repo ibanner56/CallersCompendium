@@ -22,6 +22,14 @@ Future<DanceReimportResult> replaceDanceChoreography(
     if (existing.updatedAt != expectedUpdatedAt) {
       return DanceReimportResult.targetChanged;
     }
+    // Deliberately no `localUserEdit`, even though the user asked for this.
+    // sync-spec §6.8 gates a held tombstone's cancellation on the write's
+    // provenance, and provenance is about where the *content* comes from, not
+    // about who pressed the button: the fields written here are the source's
+    // choreography, not anything the user authored. Cancelling a peer's
+    // deletion on the strength of imported content is the asymmetry ADR-004
+    // ranks worst. Editing the dance afterwards still cancels the hold,
+    // because that write is authored.
     await repos.dances.update(
       existing.copyWith(
         figures: incoming.figures,
@@ -29,7 +37,6 @@ Future<DanceReimportResult> replaceDanceChoreography(
         progression: incoming.progression,
         updatedAt: now ?? DateTime.now().toUtc(),
       ),
-      localUserEdit: true,
     );
     return DanceReimportResult.replaced;
   });

@@ -2662,6 +2662,15 @@ same code path from an import, an archive restore, reconciliation, a reference
 rewrite, a normalisation pass, or automatic derivation of one record from
 another MUST NOT cancel a hold, however recent the `updatedAt` it produces.
 
+Provenance is decided by where the written **content** comes from, not by which
+gesture triggered the write. A user-initiated action that replaces a record's
+fields from an external source — re-importing one record's choreography, say —
+is an import for this purpose and MUST NOT cancel, even though a person asked
+for it. Reading it the other way round would let any deletion be reversed by
+content the user never authored, which is the asymmetry this rule exists to
+prevent; the user's own edit afterwards still cancels, because that write is
+authored.
+
 **An inbound revival that outranks it.** Where a peer's live copy wins the
 §6.4 existence comparison against the pending tombstone, the deferred deletion
 has been overtaken and MUST be discarded with it. Retaining the row would let
