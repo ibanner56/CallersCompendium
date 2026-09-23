@@ -26,25 +26,21 @@ final class _FixedNetwork implements SyncNetworkClassifier {
 /// Records what the surface asked the transport to do, so a test can
 /// assert the *request* rather than only its visible effect.
 final class _Admin {
-  _Admin({
-    this.devices = const ['device_1', 'peer_a', 'peer_b'],
-    this.storeBody,
-    this.storeKind = SyncResponseKind.success,
-    this.manifestKind = SyncResponseKind.success,
-    this.wipeKind = SyncResponseKind.success,
-  });
-
-  /// Ids returned by `GET /v1/store`, including this device's own — as the
-  /// server sends them (spec §5: "including the caller if it has
-  /// published").
-  final List<String> devices;
+  _Admin({this.storeBody});
 
   /// Overrides the generated store body when a test needs a malformed one.
   final String? storeBody;
 
-  SyncResponseKind storeKind;
-  SyncResponseKind manifestKind;
-  SyncResponseKind wipeKind;
+  /// Ids returned by `GET /v1/store`, including this device's own — as the
+  /// server sends them (spec §5: "including the caller if it has
+  /// published").
+  final List<String> devices = const ['device_1', 'peer_a', 'peer_b'];
+
+  /// Assigned per test rather than constructed, so each case reads as the one
+  /// answer it changes.
+  SyncResponseKind storeKind = SyncResponseKind.success;
+  SyncResponseKind manifestKind = SyncResponseKind.success;
+  SyncResponseKind wipeKind = SyncResponseKind.success;
 
   final List<String> removed = [];
   int storeReads = 0;
