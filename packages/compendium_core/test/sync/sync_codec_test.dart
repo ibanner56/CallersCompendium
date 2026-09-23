@@ -260,7 +260,21 @@ void main() {
     test(
       'fails closed for non-shareable, unknown, and prefix-classified keys',
       () {
-        for (final key in ['editor_draft:d1', 'unknown_runtime_key']) {
+        // `sync_id` (storeAddress) and `sync_device_id` (protocolIdentifier)
+        // are the two keys the protocol puts on the wire, so they are the two
+        // most likely to be mistaken for shareable. Spec §10 names exactly this
+        // mutation — "no blob, manifest or export carries it (mutation:
+        // classify it `shareable`)" — but until they were listed here the send
+        // side was unguarded. The inbound half is caught by
+        // `_isReceiveOnlySetting` (sync_admission.dart), which matches on the
+        // key name rather than the class, so reclassifying either key turned
+        // no test red.
+        for (final key in [
+          'editor_draft:d1',
+          'unknown_runtime_key',
+          'sync_id',
+          'sync_device_id',
+        ]) {
           expect(
             SyncSettingsRecord(
               key: key,

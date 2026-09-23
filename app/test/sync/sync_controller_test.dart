@@ -82,6 +82,17 @@ final class _Admin {
   );
 }
 
+/// A sync-local repository whose every transaction fails, standing in for the
+/// local clear failing after the server has already destroyed the store.
+final class _FailingSyncLocal extends SyncLocalRepository {
+  _FailingSyncLocal(super.db);
+
+  @override
+  Future<T> transaction<T>(
+    Future<T> Function(SyncLocalTransaction transaction) action,
+  ) => Future<T>.error(StateError('local clear failed'));
+}
+
 /// A coordinator whose pass operation counts calls and never reaches a network.
 SyncCoordinator _coordinator(
   CompendiumRepositories repos,
@@ -111,7 +122,7 @@ void main() {
       settings: repos.settings,
       syncLocal: repos.syncLocal,
       coordinator: () => coordinator,
-      reconfigure: () async {},
+      reconfigure: ({bool startPass = true}) async {},
       classifier: network,
       now: () => clock,
       debounce: debounce,
@@ -161,7 +172,7 @@ void main() {
         settings: repos.settings,
         syncLocal: repos.syncLocal,
         coordinator: () => null,
-        reconfigure: () async => reconfigured++,
+        reconfigure: ({bool startPass = true}) async => reconfigured++,
         classifier: network,
       );
       addTearDown(controller.dispose);
@@ -903,7 +914,7 @@ void main() {
         settings: repos.settings,
         syncLocal: repos.syncLocal,
         coordinator: () => coordinator,
-        reconfigure: () async {},
+        reconfigure: ({bool startPass = true}) async {},
         pairingProbeFactory: (syncId, endpoint) => probe,
         classifier: network,
       );
@@ -927,7 +938,7 @@ void main() {
         settings: repos.settings,
         syncLocal: repos.syncLocal,
         coordinator: () => coordinator,
-        reconfigure: () async => reconfigured++,
+        reconfigure: ({bool startPass = true}) async => reconfigured++,
         classifier: network,
       );
       addTearDown(controller.dispose);
@@ -979,6 +990,168 @@ void main() {
             'reconfigure alone only awaits coordinator construction, not '
             'the app-start pass it schedules unawaited',
       );
+      expect(
+        controller.mergedDuplicates,
+        5,
+        reason: 'the count is latched so it outlives the pass that found it',
+      );
+    });
+
+    // Issue #1350. The pairing surface cannot infer this: a suppressed pass
+    // and a completed one both leave `completePairing` returning normally,
+    // and `lastResult` after a suppressed one belongs to some other pass.
+    test('completePairing returns what the §6.12 gate did with the first '
+        'pass, rather than discarding it', () async {
+      coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device',
+        store: CompendiumSyncCoordinatorStore(repos),
+        transport: NoopSyncCoordinatorTransport(),
+        passOperation: ({initialStore}) async =>
+            const SyncPassResult(SyncPassStatus.completed),
+      );
+      addTearDown(() => coordinator?.dispose());
+      final controller = build();
+      await controller.load();
+      await controller.setEnabled(true);
+
+      network.kind = SyncNetworkKind.unmetered;
+      expect(
+        await controller.completePairing(
+          'correct horse battery staple',
+          Uri.parse(kDefaultSyncEndpoint),
+        ),
+        SyncGateOutcome.ran,
+      );
+
+      network.kind = SyncNetworkKind.metered;
+      expect(
+        await controller.completePairing(
+          'correct horse battery staple',
+          Uri.parse(kDefaultSyncEndpoint),
+        ),
+        SyncGateOutcome.suppressedMetered,
+        reason: 'wifiOnly defaults to on, so a metered first pass is deferred',
+      );
+
+      network.kind = SyncNetworkKind.offline;
+      expect(
+        await controller.completePairing(
+          'correct horse battery staple',
+          Uri.parse(kDefaultSyncEndpoint),
+        ),
+        SyncGateOutcome.suppressedOffline,
+      );
+    });
+
+    // Production's reconfigure does not merely rebuild the coordinator: it
+    // installs it and immediately fires an app-start pass it does not await
+    // (`main.dart`, `unawaited(_runSyncStart())`). Every other test here uses
+    // a no-op reconfigure, so none of them reproduced that — and the
+    // coordinator *queues* a trigger arriving while a pass is in flight rather
+    // than joining it, so pairing ran two full passes back to back and
+    // returned the second one's outcome for the dialog to describe the first
+    // one with.
+    test('completePairing runs exactly one pass even though the app starts '
+        'one of its own on every reconfiguration', () async {
+      final startPasses = <int>[];
+      coordinator = _coordinator(repos, startPasses);
+      addTearDown(() => coordinator?.dispose());
+      late final SyncController controller;
+      controller = SyncController(
+        settings: repos.settings,
+        syncLocal: repos.syncLocal,
+        coordinator: () => coordinator,
+        // Exactly what main.dart does, including not awaiting it.
+        reconfigure: ({bool startPass = true}) async {
+          if (startPass) unawaited(controller.onAppStart());
+        },
+        classifier: network,
+        now: () => clock,
+      );
+      addTearDown(controller.dispose);
+      await controller.load();
+      await controller.setEnabled(true);
+      startPasses.clear();
+
+      final outcome = await controller.completePairing(
+        'correct horse battery staple',
+        Uri.parse(kDefaultSyncEndpoint),
+      );
+      // Let anything the reconfiguration started settle, so a second pass
+      // cannot hide behind the await above.
+      await pumpEventQueue();
+
+      expect(outcome, SyncGateOutcome.ran);
+      expect(
+        startPasses.length,
+        1,
+        reason:
+            'the automatic app-start pass must be suppressed for pairing, so '
+            'the outcome returned belongs to the pass the dialog describes',
+      );
+    });
+
+    // The count belongs to a store, not to the device: reporting the previous
+    // store's merges as this attach's would be a number about records that
+    // are no longer there.
+    test('completePairing clears a merged-duplicates count left over from a '
+        'previous attach', () async {
+      var merges = 6;
+      coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device',
+        store: CompendiumSyncCoordinatorStore(repos),
+        transport: NoopSyncCoordinatorTransport(),
+        passOperation: ({initialStore}) async =>
+            SyncPassResult(SyncPassStatus.completed, duplicateCount: merges),
+      );
+      addTearDown(() => coordinator?.dispose());
+      final controller = build();
+      await controller.load();
+      await controller.setEnabled(true);
+      await controller.completePairing(
+        'correct horse battery staple',
+        Uri.parse(kDefaultSyncEndpoint),
+      );
+      expect(controller.mergedDuplicates, 6);
+
+      // The second attach merges nothing, which an ordinary pass also reports,
+      // so only the reset can tell them apart.
+      merges = 0;
+      await controller.completePairing(
+        'alpha bravo charlie delta',
+        Uri.parse(kDefaultSyncEndpoint),
+      );
+
+      expect(controller.mergedDuplicates, 0);
+    });
+
+    test('a steady-state pass reporting zero cannot clear the count an '
+        'earlier fresh attach set', () async {
+      var merges = 4;
+      coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device',
+        store: CompendiumSyncCoordinatorStore(repos),
+        transport: NoopSyncCoordinatorTransport(),
+        passOperation: ({initialStore}) async =>
+            SyncPassResult(SyncPassStatus.completed, duplicateCount: merges),
+      );
+      addTearDown(() => coordinator?.dispose());
+      final controller = build();
+      await controller.load();
+      await controller.setEnabled(true);
+      await controller.completePairing(
+        'correct horse battery staple',
+        Uri.parse(kDefaultSyncEndpoint),
+      );
+      expect(controller.mergedDuplicates, 4);
+
+      merges = 0;
+      await controller.syncNow();
+
+      expect(controller.mergedDuplicates, 4);
     });
   });
 
@@ -997,7 +1170,7 @@ void main() {
         settings: repos.settings,
         syncLocal: repos.syncLocal,
         coordinator: () => coordinator,
-        reconfigure: () async {},
+        reconfigure: ({bool startPass = true}) async {},
         runExclusive: runExclusive ?? (operation) => operation(),
         classifier: network,
         now: () => clock,
@@ -1118,6 +1291,12 @@ void main() {
     Future<SyncController> paired(
       _Admin fake, {
       Future<void> Function(Future<void> Function() operation)? runExclusive,
+      SyncLocalRepository? syncLocal,
+
+      /// Notified with the sync ID each time the controller asks for a
+      /// device-management client, so a test can assert on the credential the
+      /// controller *reached for* rather than only on what was finally sent.
+      void Function(String syncId)? onAdminRequested,
     }) async {
       await repos.settings.set(kSyncEnabledKey, true);
       await repos.settings.set(kSyncIdKey, 'correct horse battery staple');
@@ -1128,11 +1307,14 @@ void main() {
       await repos.syncLocal.replaceBaseline(epoch: 'epoch-1');
       final controller = SyncController(
         settings: repos.settings,
-        syncLocal: repos.syncLocal,
+        syncLocal: syncLocal ?? repos.syncLocal,
         coordinator: () => coordinator,
-        reconfigure: () async {},
+        reconfigure: ({bool startPass = true}) async {},
         runExclusive: runExclusive ?? (operation) => operation(),
-        deviceAdminFactory: (syncId, endpoint) => fake.admin,
+        deviceAdminFactory: (syncId, endpoint) {
+          onAdminRequested?.call(syncId);
+          return fake.admin;
+        },
         classifier: network,
         now: () => clock,
       );
@@ -1368,13 +1550,148 @@ void main() {
       expect(await repos.settings.get(kSyncLastSuccessAtKey), isNull);
     });
 
+    test('a removal queued behind a real detach never uses the old '
+        'credential', () async {
+      // Replaces an earlier version of this guard that called
+      // `controller.load()` from inside its fake boundary. Production detach
+      // never does that, so the old test cleared the cached fields itself and
+      // then checked they were clear — it could not have caught the race it
+      // was named for.
+      //
+      // This mirrors `main.dart`'s `_runSyncWriter` instead: writers run one
+      // at a time and the next is released in the OUTER finally, so it starts
+      // before the previous caller's own `await` resumes. Nothing here calls
+      // `load()`; the only thing that clears the controller's view is the
+      // production code under test.
+      final fake = _Admin();
+      final requestedCredentials = <String>[];
+      Future<void>? tail;
+      final detachHoldsBoundary = Completer<void>();
+      final releaseDetach = Completer<void>();
+      var first = true;
+
+      Future<void> writerBoundary(Future<void> Function() operation) async {
+        final prior = tail;
+        final release = Completer<void>();
+        tail = release.future;
+        try {
+          if (prior != null) await prior;
+          if (first) {
+            first = false;
+            detachHoldsBoundary.complete();
+            await releaseDetach.future;
+          }
+          await operation();
+        } finally {
+          if (!release.isCompleted) release.complete();
+        }
+      }
+
+      final controller = await paired(
+        fake,
+        runExclusive: writerBoundary,
+        onAdminRequested: requestedCredentials.add,
+      );
+
+      final detaching = controller.detach();
+      await detachHoldsBoundary.future;
+      // Queues behind the detach, as a user tapping Remove and then
+      // Disconnect would.
+      final removing = controller.removeDevice('peer_a');
+      await pumpEventQueue();
+      releaseDetach.complete();
+      final outcome = await removing;
+      await detaching;
+
+      expect(
+        requestedCredentials,
+        isEmpty,
+        reason:
+            'the detach committed first, so any credential built here would '
+            'name a store this device has left',
+      );
+      expect(fake.removed, isEmpty);
+      expect(outcome, SyncAdminOutcome.notPaired);
+      expect(controller.paired, isFalse);
+    });
+
+    test('a writer boundary that fails before the operation runs is a '
+        'failure, not notPaired', () async {
+      final fake = _Admin();
+      final controller = await paired(
+        fake,
+        // `_runSyncWriter` can throw before it ever calls the operation: it
+        // disposes the coordinator first, and refuses outright during
+        // shutdown. The device is still attached when that happens.
+        runExclusive: (operation) async =>
+            throw StateError('cannot start a database writer during shutdown'),
+      );
+
+      expect(
+        await controller.wipeStore(),
+        SyncAdminOutcome.failed,
+        reason:
+            'notPaired would tell the caller the attachment had already gone, '
+            'which is untrue and is the class of defect this change removes',
+      );
+      expect(fake.wipes, 0);
+      expect(controller.paired, isTrue);
+    });
+
+    test('a wipe whose local clear fails reports the store gone, never a '
+        'failure', () async {
+      final fake = _Admin();
+      final controller = await paired(
+        fake,
+        syncLocal: _FailingSyncLocal(repos.db),
+      );
+
+      expect(
+        await controller.wipeStore(),
+        SyncAdminOutcome.wipedButStillAttached,
+        reason:
+            'the DELETE succeeded, so the store is irreversibly gone; calling '
+            'this a failure invites a retry of something that already happened',
+      );
+
+      expect(fake.wipes, 1);
+      expect(
+        controller.paired,
+        isTrue,
+        reason: 'the clear failed, so this device really is still attached',
+      );
+      expect(
+        await repos.settings.get(kSyncIdKey),
+        'correct horse battery staple',
+        reason: 'the surface must not claim a phrase was forgotten',
+      );
+    });
+
+    test('a wipe whose boundary fails only after the clear committed is still '
+        'a success', () async {
+      final fake = _Admin();
+      final controller = await paired(
+        fake,
+        // The writer boundary reconfigures after the operation; a failure
+        // there happens once the store is gone and the clear has committed.
+        runExclusive: (operation) async {
+          await operation();
+          throw StateError('post-operation reconfigure failed');
+        },
+      );
+
+      expect(await controller.wipeStore(), SyncAdminOutcome.done);
+      expect(controller.paired, isFalse);
+      expect(await hasRow(kSyncIdKey), isFalse);
+    });
+
     test('an unpaired device requests nothing', () async {
       final fake = _Admin();
       final controller = SyncController(
         settings: repos.settings,
         syncLocal: repos.syncLocal,
         coordinator: () => coordinator,
-        reconfigure: () async {},
+        reconfigure: ({bool startPass = true}) async {},
         deviceAdminFactory: (syncId, endpoint) => fake.admin,
         classifier: network,
       );

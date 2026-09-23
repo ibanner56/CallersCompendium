@@ -688,7 +688,7 @@ deletion silently reverts".
   and **never retried**; `429` honours `Retry-After`.
 
   W5 also owns **`sync_id` and `sync_device_id` as persisted settings keys, with
-  their classifications** — `accessControlData` and `protocolIdentifier` — and
+  their classifications** — `storeAddress` and `protocolIdentifier` — and
   therefore owns **adding those two members to `EgressClass`**. ADR-004 and spec
   §3.3 specify both classes; neither is in the Dart enum, deliberately, because
   a member with no registry entry is a member no ratchet exercises. Assigning
@@ -706,7 +706,8 @@ deletion silently reverts".
   replaces — so classifying them is not enough, and #923 settled that
   non-`shareable` does not imply backup-excluded here. A restored
   `sync_device_id` would give two devices one manifest; a restored `sync_id`
-  would put a bearer credential in a plaintext file.
+  would put a store address in a plaintext file, attaching whatever device
+  restores it to that store.
 - **Unblocks** W6, W8, W13, and **W10 for the sync-ID normalisation definition
   only** (contract 5).
 - **Done when** the ID bound cases pass (one code point over rejected, at the
@@ -734,7 +735,7 @@ deletion silently reverts".
 The strength score **warns and never blocks**, here or anywhere else, and is
 computed over the **normalised** ID rather than the string as typed — an
 estimator run on the raw form credits case and Unicode differences that
-normalisation collapses, and so reports a strength the credential does not
+normalisation collapses, and so reports a strength the ID does not
 have. Blocking has no safe home: the ID *is* the store address, joining means
 typing an existing one, and a newer client with a stricter estimator locks a
 user out of an ID an older client accepted, exactly as a stricter server would.
@@ -848,9 +849,16 @@ server to run against" as the point of it rather than a side effect.
   everything except the two engine clauses it inherits.
 
 The W8 edge is narrow in the same sense as this document's other narrow edges:
-W8 produces the after-the-fact duplicate count and this unit owns the surface
-that shows it at the end of pairing, so the edge gates the report and not the
-blade. Without it the two halves of one screen are scheduled independently.
+W8 produces the after-the-fact duplicate count and this unit owns the surfaces
+that show it, so the edge gates the report and not the blade. Without it the two
+halves of one screen are scheduled independently. **The report is not scoped to
+pairing**, which this document originally scheduled it as: ADR-004 names the
+count as the mitigation for a merge the user is never shown, and a fresh attach
+also happens after a confirmed replacement, on a stale-epoch auto-join, and on
+the deferred continuation of a pairing pass the §6.12 gate suppressed — none of
+which has a pairing dialog to put it in. The status surface carries it for all
+of them (issue #1350); the pairing dialog remains the immediate report for the
+one path that has one.
 - **Done when** the enablement test proves the no-network-call property, not
   merely that the toggle renders, **and** the §9 *User-visible sync obligations*
   bucket is green — both `sync_exclude_imports` clauses (a cited imported dance
@@ -895,9 +903,9 @@ structurally unreachable by a filter that only ever nulls an entry in
 Its settings keys are themselves `deviceScoped` and MUST NOT sync — a sync
 feature whose configuration syncs is a loop. That holds for this unit's keys;
 it is **not** true of every key the feature introduces. `sync_device_id` is
-`protocolIdentifier` and `sync_id` is `accessControlData` (spec §6.1, §3.3):
+`protocolIdentifier` and `sync_id` is `storeAddress` (spec §6.1, §3.3):
 both travel on every request, and a card that called them `deviceScoped` would
-classify the bearer credential as never-transmittable while the protocol
+classify the store address as never-transmittable while the protocol
 requires it. Those two belong to W5, not here.
 
 **MUST NOT sync is only half of it: this unit's keys must also not travel in a
@@ -1140,7 +1148,7 @@ the programme and the only one that can block a release on its own.
   keys by their **wire** spelling, and refuses a peer's `deviceScoped` setting.
   **Both spec-only egress classes are covered by that half**: a peer-supplied
   `sync_device_id` (`protocolIdentifier`) and a peer-supplied `sync_id`
-  (`accessControlData`) are never applied from a received record or envelope.
+  (`storeAddress`) are never applied from a received record or envelope.
   Their non-adoption vectors are **receive-only**, which is why they need naming
   here — the send side never emits either value, so every serialisation test in
   the suite passes against an implementation that adopts both. The missing-store
@@ -1237,10 +1245,12 @@ content conflict for W6's table rather than a reconciliation for this unit.
   either document without reading those.
 
 - **Unblocks** **W13's attach-completion report only**. The count is surfaced
-  at the end of pairing, and pairing is W13's. This is the "what the user is
-  told" contract the serialisation rules already name between these two units;
-  it needed to be an edge, not only a caution, because nothing else sequences
-  the producer ahead of the surface that renders it.
+  after a fresh attach, and every surface that reports one is W13's — the
+  pairing dialog and, for the attaches that have no dialog, the status surface
+  (see W8's edge above and issue #1350). This is the "what the user is told"
+  contract the serialisation rules already name between these two units; it
+  needed to be an edge, not only a caution, because nothing else sequences the
+  producer ahead of the surface that renders it.
 - **Done when** the §9 *Dedupe* bucket is green, and so is the attach half of
   *Attach and restore* — an epoch mismatch produces a fresh attach, and the
   mismatch **itself** is never interpreted as a deletion. That is the whole of
@@ -1565,9 +1575,9 @@ device an attacker's peer can write to. I added the ordering; it is my call, not
 a ruling, and I would not run a beta without it.
 
 **C4 is a prerequisite of C6 for the same reason, and was omitted the same
-way.** C6 gates the pairing surface, and the attach-completion report shown at
-the end of pairing is produced by W8, which C4 gates — so a C6 reached without
-C4 gates the surface while the thing it displays is still unbuilt. That C5 had
+way.** C6 gates the pairing surface, and the attach-completion report it shows
+is produced by W8, which C4 gates — so a C6 reached without C4 gates the surface
+while the thing it displays is still unbuilt. That C5 had
 to be added by hand is the precedent; leaving C4 implicit would have repeated
 it in the checkpoint immediately below the paragraph naming the problem. My
 call, on the same footing.

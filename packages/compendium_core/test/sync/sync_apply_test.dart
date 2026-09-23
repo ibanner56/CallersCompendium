@@ -144,10 +144,10 @@ void main() {
     },
   );
 
-  test('does not adopt receive-only sync credentials', () async {
+  test('does not adopt receive-only sync transport values', () async {
     final storage = _MemoryApplyStorage({
       (kind: SyncRecordKind.setting, recordId: 'sync_id'): {
-        'value': 'local-credential',
+        'value': 'local-address',
       },
       (kind: SyncRecordKind.setting, recordId: 'sync_device_id'): {
         'value': 'local-device',
@@ -159,7 +159,7 @@ void main() {
         '{"v":1,"kind":"setting","id":"sync_id",'
             '"updatedAt":"2026-07-15T12:00:00.000Z","deletedAt":null,'
             '"existenceAt":"2026-07-15T12:00:00.000Z",'
-            '"body":{"value":"peer-credential"}}',
+            '"body":{"value":"peer-address"}}',
         '{"v":1,"kind":"setting","id":"sync_device_id",'
             '"updatedAt":"2026-07-15T12:00:00.000Z","deletedAt":null,'
             '"existenceAt":"2026-07-15T12:00:00.000Z",'
@@ -174,7 +174,7 @@ void main() {
         kind: SyncRecordKind.setting,
         recordId: 'sync_id',
       )]?['value'],
-      'local-credential',
+      'local-address',
     );
     expect(
       storage.records[(

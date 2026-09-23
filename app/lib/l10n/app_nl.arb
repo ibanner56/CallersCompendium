@@ -236,9 +236,9 @@
   "@settingsSyncExcludeImportsTitle": {
     "x-sourceSha256": "13a7925e9cdd2fc7f1329229f1ad3416bdd1f24f9edba254e9c3bd209e576ccb"
   },
-  "settingsSyncExcludeImportsSubtitle": "Standaard uit. Vermindert wat dit apparaat uploadt als je een grote geïmporteerde verzameling hebt; een dans die in een programma wordt gebruikt of vanuit een andere dans is gelinkt, wordt altijd meegenomen. Er wordt niets van je andere apparaten verwijderd.",
+  "settingsSyncExcludeImportsSubtitle": "Standaard uit. Vermindert wat dit apparaat uploadt als je een grote geïmporteerde verzameling hebt; een dans die in een programma wordt gebruikt of vanuit een andere dans is gelinkt, wordt altijd meegenomen. Er wordt niets van je andere apparaten verwijderd, en als je het weer uitzet, worden de overgeslagen dansen opnieuw geüpload.",
   "@settingsSyncExcludeImportsSubtitle": {
-    "x-sourceSha256": "c00077f0d45dcef13c082a204103353bb4a1b23be4932c20548416ae20746a0d"
+    "x-sourceSha256": "8c0f015c9ddf1a06198153bc48cb4d3676d6631ec77a1ec6b8259bb0f2caefd6"
   },
   "settingsSyncStatusHeader": "Status",
   "@settingsSyncStatusHeader": {
@@ -268,9 +268,9 @@
   "@settingsSyncIdCopied": {
     "x-sourceSha256": "81d9cf47c8df0aa7ab1264a4810a2a14b4eb11efcb8fb40108d0095f52be1c17"
   },
-  "settingsSyncIdCaution": "Voer hem in op je andere apparaat om dat te verbinden. Iedereen die hem heeft, kan alles lezen en wijzigen wat je synchroniseert, en hij kan alleen worden gewijzigd door alle apparaten naar een nieuwe zin te verplaatsen.",
+  "settingsSyncIdCaution": "Voer hem in op je andere apparaat om dat te verbinden. Daar staat je gedeelde bibliotheek, dus iedereen die hem heeft, kan die bibliotheek openen: alles lezen wat je synchroniseert, daarvan op elk verbonden apparaat iets wijzigen of verwijderen, en de hele opslag van de server verwijderen. Overstappen op een andere zin betekent alle apparaten ernaartoe verplaatsen.",
   "@settingsSyncIdCaution": {
-    "x-sourceSha256": "797e5499782ef9ce4b832a4e5722a06bc74c51b2d49b9a9b0dc5e08c212fae52"
+    "x-sourceSha256": "6b1c3d9041b3824b166fb6a6152c973e16dddf7fa17300a24eb677c3a71482e3"
   },
   "settingsSyncStatusNotPaired": "Nog niet gekoppeld aan een opslag.",
   "@settingsSyncStatusNotPaired": {
@@ -284,9 +284,17 @@
   "@settingsSyncStatusLastSynced": {
     "x-sourceSha256": "2e4722e81e7b673034a549b3c14f93881ca876d8726d7c8bea8cd9ec33af02b7"
   },
-  "settingsSyncCustomEndpointStatus": "Synchroniseert met een aangepaste server: {host}",
+  "settingsSyncEndpointStatus": "Synchroniseert met {url}",
+  "@settingsSyncEndpointStatus": {
+    "x-sourceSha256": "d6be81e3084e9b7d29ac65ad17764df296474ebdefc9a970a5f1e120acb97fda"
+  },
+  "settingsSyncCustomEndpointStatus": "Synchroniseert met een aangepaste server: {url}",
   "@settingsSyncCustomEndpointStatus": {
-    "x-sourceSha256": "525e18af1820ee4028e47676c0888e3da511339787b23321b243b94fa1537387"
+    "x-sourceSha256": "f98dfc7db653036549611c4e22e6de4c65c56ea1b095c3c390bdd67637d44d88"
+  },
+  "settingsSyncMergedDuplicates": "{count, plural, one {{count} dubbele dans gevonden en samengevoegd.} other {{count} dubbele dansen gevonden en samengevoegd.}}",
+  "@settingsSyncMergedDuplicates": {
+    "x-sourceSha256": "f3420d8fa206527f49c22fec0d183d6d67d54ddb0fa188597b4c169dfe5784d5"
   },
   "settingsSyncStatusSyncing": "Synchroniseren…",
   "@settingsSyncStatusSyncing": {
@@ -416,9 +424,9 @@
   "@settingsSyncDeviceRemoveTitle": {
     "x-sourceSha256": "7be0603b6c40ef172609549712c82f68208568bd3874ed44e0a822b320b66688"
   },
-  "settingsSyncDeviceRemoveBody": "De opslag bewaart de kopie van wat dit apparaat heeft gedeeld niet langer, en het apparaat stopt met synchroniseren. Er wordt niets van dat apparaat verwijderd, en er wordt niets van het jouwe verwijderd. Het kan later met de synchronisatiezin opnieuw verbinding maken met deze opslag.",
+  "settingsSyncDeviceRemoveBody": "De opslag laat de lijst van wat dit apparaat heeft gedeeld los en maakt de plek vrij die het innam. Er wordt niets van dat apparaat verwijderd, en er wordt niets van het jouwe verwijderd. Dit is bedoeld voor een apparaat dat echt weg is: verwijderen koppelt het niet los, dus een apparaat dat nog draait publiceert zijn lijst bij de volgende synchronisatie opnieuw, en elk apparaat kan met de synchronisatiezin opnieuw verbinden.",
   "@settingsSyncDeviceRemoveBody": {
-    "x-sourceSha256": "86fee0f332c2e9a006ad4321bf68e3fefaf121198bbcc0863d20de19246ac178"
+    "x-sourceSha256": "037bb8e581c8add340fefd329bf63a55076355ef7fa29d4aa8f400b053096b3b"
   },
   "settingsSyncDeviceRemoveAction": "Verwijderen",
   "@settingsSyncDeviceRemoveAction": {
@@ -448,9 +456,13 @@
   "@settingsSyncWipeConfirmAction": {
     "x-sourceSha256": "295bf35e749e744ea715d9b91ebdeb23045b26e4ad24f4c138e2bca498605461"
   },
-  "settingsSyncWipeFailed": "Kan de opslag niet verwijderen. Er is niets gewijzigd en dit apparaat is nog steeds verbonden; probeer het opnieuw.",
+  "settingsSyncWipeFailed": "Kan de opslag niet verwijderen, of kan niet bevestigen dat ze verwijderd is. Dit apparaat is nog steeds verbonden. Controleer je andere apparaten voordat je het opnieuw probeert.",
   "@settingsSyncWipeFailed": {
-    "x-sourceSha256": "d92d4e88e22770bf1ee00d53c29f050f8bcf7632dcd8a8f9eaa3ef875d003bce"
+    "x-sourceSha256": "f19f64fc8215946c6367ba858ba3517bd80ec370c67a1bfb67c296e8dab792cd"
+  },
+  "settingsSyncWipeDetachFailed": "De opslag is van de server verwijderd, maar dit apparaat kon de verbinding ermee niet verbreken. De opslag is weg en kan niet worden teruggehaald. Gebruik Dit apparaat loskoppelen om het af te ronden.",
+  "@settingsSyncWipeDetachFailed": {
+    "x-sourceSha256": "ac763fba9e00e2a235a8877b2058b006c655d5e1afb26a7009b2a925794f173f"
   },
   "settingsSyncMeteredRouted": "Je gebruikt mobiele data en ‘Alleen synchroniseren via wifi’ staat aan. Zet die instelling hieronder uit om nu te synchroniseren.",
   "@settingsSyncMeteredRouted": {
@@ -503,6 +515,14 @@
   "settingsSyncPairingRegenerate": "Andere zin genereren",
   "@settingsSyncPairingRegenerate": {
     "x-sourceSha256": "0fedb816d3ffdc13964c8fa7d6c53198a3c8de979c182c17096f111c564c0dd6"
+  },
+  "settingsSyncPairingPersonalInfoTitle": "Zet geen persoonlijke gegevens in de zin",
+  "@settingsSyncPairingPersonalInfoTitle": {
+    "x-sourceSha256": "fb0e2cbd0c4bfd6ddfe49b8d0885f41492d738229a1011c2f1e059ff255147e0"
+  },
+  "settingsSyncPairingPersonalInfoBody": "Als je je eigen zin typt, houd er dan namen, adressen, geboortedata en al het andere over jezelf uit. De zin gaat bij elk verzoek naar de server en wordt op elk apparaat dat je verbindt voorgelezen of ingetypt, dus behandel hem als iets dat aan de buitenkant van een doos staat, niet als plek voor privégegevens.",
+  "@settingsSyncPairingPersonalInfoBody": {
+    "x-sourceSha256": "843baaa107338c8fbfba60e77c42edaa6fcf76602f0bf47f1563ea5c6919968a"
   },
   "settingsSyncPairingWeakPhraseTitle": "Deze zin is mogelijk makkelijk te raden",
   "@settingsSyncPairingWeakPhraseTitle": {
@@ -564,13 +584,21 @@
   "@settingsSyncPairingSharingBody": {
     "x-sourceSha256": "a98a2f3493bfcb71d5e1c5020747752924342c3821a4aa3ca1b4cca5b4c195d1"
   },
-  "settingsSyncPairingCredentialTitle": "Deze zin kan niet worden hersteld of ingetrokken",
-  "@settingsSyncPairingCredentialTitle": {
-    "x-sourceSha256": "c6abbeba15319ec950ff3d20957906a07104aed09b1e6570eb73a191f7f6fb93"
+  "settingsSyncPairingBearerTitle": "Iedereen met deze zin kan je bibliotheek openen",
+  "@settingsSyncPairingBearerTitle": {
+    "x-sourceSha256": "45858e1bf94c0decbeb0f3870a62926a932f62bd361bc394dda6c5c07f7ebb81"
   },
-  "settingsSyncPairingCredentialBody": "Als je deze zin kwijtraakt, wordt je opslag onbereikbaar — er is geen wachtwoordherstel. Als hij uitlekt, is de enige oplossing om alle apparaten naar een nieuwe zin te verplaatsen.",
+  "settingsSyncPairingBearerBody": "De zin is waar je gedeelde bibliotheek staat, geen wachtwoord ervoor — er is nergens om in te loggen. Iedereen aan wie je hem geeft, en iedereen die hem zomaar tegenkomt, kan die bibliotheek vanaf zijn eigen apparaat openen: alles lezen wat je synchroniseert, daarvan overal waar het terecht is gekomen iets wijzigen of verwijderen, en het geheel van de server verwijderen. Er bestaat geen versie van een zin die minder kan.",
+  "@settingsSyncPairingBearerBody": {
+    "x-sourceSha256": "d891d4e75ca3b4c4380a99d41a68416e96b015b5b8150baad9cac1cb56e312f6"
+  },
+  "settingsSyncPairingCredentialTitle": "Er is geen kopie van deze zin, en terugnemen kan niet",
+  "@settingsSyncPairingCredentialTitle": {
+    "x-sourceSha256": "e16277566dc4bddb09274f24707f2825a2f4a162d467f22b2b0898ab82b96dc8"
+  },
+  "settingsSyncPairingCredentialBody": "Nergens anders is deze zin bekend, dus als je hem kwijtraakt, blijft de bibliotheek liggen waar hij staat en kan niemand er nog bij. Iemand de zin vertellen valt evenmin ongedaan te maken. Je apparaten naar een nieuwe zin verplaatsen begint alleen een tweede bibliotheek ergens anders: de eerste staat er nog, en wie de oude zin heeft bewaard, kan die nog steeds openen en wijzigen. Alleen de opslag verwijderen haalt hem er meteen weg.",
   "@settingsSyncPairingCredentialBody": {
-    "x-sourceSha256": "8cefe91d1bf18c0df7147a7ce772b9806ad0190dbdef49e2c988a88b5dc29b06"
+    "x-sourceSha256": "a17138ff1230ef39c2340d60de66280c2bfa4fb66bbe315d72da7804fbe93e3a"
   },
   "settingsSyncPairingBackupOfferTitle": "Eerst je bibliotheek back-uppen?",
   "@settingsSyncPairingBackupOfferTitle": {
@@ -596,13 +624,25 @@
   "@settingsSyncPairingComplete": {
     "x-sourceSha256": "22965568d22a14ee17af055d2870b50afcfe9fd94a83eec3196e266932297bb2"
   },
-  "settingsSyncPairingCompleteBody": "Je bibliotheek is verbonden. De eerste synchronisatie loopt nu.",
+  "settingsSyncPairingCompleteBody": "Je bibliotheek is verbonden en de eerste synchronisatie is klaar.",
   "@settingsSyncPairingCompleteBody": {
-    "x-sourceSha256": "750a225daf2a7bd882f9647303a4ca3c869b1ce0bd820a69c4bfa960293b72ad"
+    "x-sourceSha256": "7348fca6f5ec4bc93da087af0a566297603d519049974a1dfd2742144c8be72c"
   },
-  "settingsSyncPairingCompleteDuplicates": "{count, plural, one {{count} dubbele dans gevonden en samengevoegd.} other {{count} dubbele dansen gevonden en samengevoegd.}}",
-  "@settingsSyncPairingCompleteDuplicates": {
-    "x-sourceSha256": "f3420d8fa206527f49c22fec0d183d6d67d54ddb0fa188597b4c169dfe5784d5"
+  "settingsSyncPairingCompleteFailed": "Je bibliotheek is verbonden, maar de eerste synchronisatie is niet afgerond. Hij probeert het vanzelf opnieuw.",
+  "@settingsSyncPairingCompleteFailed": {
+    "x-sourceSha256": "1abc3b5435e39c84d478f9ab0395745767d18473438a089c378be1ca21083163"
+  },
+  "settingsSyncPairingCompleteMetered": "Je bibliotheek is verbonden. De eerste synchronisatie wacht op wifi, omdat ‘Alleen synchroniseren via wifi’ aan staat.",
+  "@settingsSyncPairingCompleteMetered": {
+    "x-sourceSha256": "d6a175eb28ce65a72ad075ed71f53cfdea9b5d9bdff3b91f84fa74a826490d31"
+  },
+  "settingsSyncPairingCompleteOffline": "Je bibliotheek is verbonden. De eerste synchronisatie draait zodra je weer online bent.",
+  "@settingsSyncPairingCompleteOffline": {
+    "x-sourceSha256": "9b519253dd4a2c08a7b92feec2a29efa9250c74677c17c90c29271b8fac5d997"
+  },
+  "settingsSyncPairingCompletePending": "Je bibliotheek is verbonden. De eerste synchronisatie is nog niet gedraaid; hij draait de volgende keer dat dit apparaat synchroniseert.",
+  "@settingsSyncPairingCompletePending": {
+    "x-sourceSha256": "daa70b1721d468f073882e6c3bdc9f5a406d491f004bb1191ed459c2e5c8a0f3"
   },
   "settingsSyncReplacementTitle": "Deze opslag opnieuw verbinden?",
   "@settingsSyncReplacementTitle": {

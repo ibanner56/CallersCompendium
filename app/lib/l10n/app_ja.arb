@@ -236,9 +236,9 @@
   "@settingsSyncExcludeImportsTitle": {
     "x-sourceSha256": "13a7925e9cdd2fc7f1329229f1ad3416bdd1f24f9edba254e9c3bd209e576ccb"
   },
-  "settingsSyncExcludeImportsSubtitle": "初期設定ではオフです。取り込んだコレクションが多い場合に、このデバイスがアップロードする内容を減らします。プログラムで使われているか、他のダンスからリンクされているダンスは常に含まれます。他のデバイスから何かが削除されることはありません。",
+  "settingsSyncExcludeImportsSubtitle": "初期設定ではオフです。取り込んだコレクションが多い場合に、このデバイスがアップロードする内容を減らします。プログラムで使われているか、他のダンスからリンクされているダンスは常に含まれます。他のデバイスから何かが削除されることはなく、オフに戻すとスキップしていたダンスが再びアップロードされます。",
   "@settingsSyncExcludeImportsSubtitle": {
-    "x-sourceSha256": "c00077f0d45dcef13c082a204103353bb4a1b23be4932c20548416ae20746a0d"
+    "x-sourceSha256": "8c0f015c9ddf1a06198153bc48cb4d3676d6631ec77a1ec6b8259bb0f2caefd6"
   },
   "settingsSyncStatusHeader": "ステータス",
   "@settingsSyncStatusHeader": {
@@ -268,9 +268,9 @@
   "@settingsSyncIdCopied": {
     "x-sourceSha256": "81d9cf47c8df0aa7ab1264a4810a2a14b4eb11efcb8fb40108d0095f52be1c17"
   },
-  "settingsSyncIdCaution": "もう一方のデバイスでこれを入力すると接続できます。これを持つ人は同期しているすべての内容を読み書きでき、変更するにはすべてのデバイスを新しいフレーズに移行するしかありません。",
+  "settingsSyncIdCaution": "もう一方のデバイスでこれを入力すると接続できます。共有ライブラリはそこにあるため、これを持つ人は誰でもそのライブラリを開き、同期しているすべての内容を閲覧し、接続されたすべてのデバイス上でその内容を変更または削除し、ストア全体をサーバーから削除できます。別のフレーズに変えるには、すべてのデバイスをそちらへ移す必要があります。",
   "@settingsSyncIdCaution": {
-    "x-sourceSha256": "797e5499782ef9ce4b832a4e5722a06bc74c51b2d49b9a9b0dc5e08c212fae52"
+    "x-sourceSha256": "6b1c3d9041b3824b166fb6a6152c973e16dddf7fa17300a24eb677c3a71482e3"
   },
   "settingsSyncStatusNotPaired": "まだストアに接続されていません。",
   "@settingsSyncStatusNotPaired": {
@@ -284,9 +284,17 @@
   "@settingsSyncStatusLastSynced": {
     "x-sourceSha256": "2e4722e81e7b673034a549b3c14f93881ca876d8726d7c8bea8cd9ec33af02b7"
   },
-  "settingsSyncCustomEndpointStatus": "カスタムサーバーと同期中: {host}",
+  "settingsSyncEndpointStatus": "{url} と同期中",
+  "@settingsSyncEndpointStatus": {
+    "x-sourceSha256": "d6be81e3084e9b7d29ac65ad17764df296474ebdefc9a970a5f1e120acb97fda"
+  },
+  "settingsSyncCustomEndpointStatus": "カスタムサーバーと同期中: {url}",
   "@settingsSyncCustomEndpointStatus": {
-    "x-sourceSha256": "525e18af1820ee4028e47676c0888e3da511339787b23321b243b94fa1537387"
+    "x-sourceSha256": "f98dfc7db653036549611c4e22e6de4c65c56ea1b095c3c390bdd67637d44d88"
+  },
+  "settingsSyncMergedDuplicates": "{count, plural, other {重複するダンスを{count}件見つけて統合しました。}}",
+  "@settingsSyncMergedDuplicates": {
+    "x-sourceSha256": "f3420d8fa206527f49c22fec0d183d6d67d54ddb0fa188597b4c169dfe5784d5"
   },
   "settingsSyncStatusSyncing": "同期中…",
   "@settingsSyncStatusSyncing": {
@@ -416,9 +424,9 @@
   "@settingsSyncDeviceRemoveTitle": {
     "x-sourceSha256": "7be0603b6c40ef172609549712c82f68208568bd3874ed44e0a822b320b66688"
   },
-  "settingsSyncDeviceRemoveBody": "そのデバイスが共有した内容のコピーがストアから削除され、そのデバイスは同期を停止します。そのデバイスからも、このデバイスからも、データは削除されません。同期フレーズがあれば、後でこのストアに再び接続できます。",
+  "settingsSyncDeviceRemoveBody": "そのデバイスが共有した内容の一覧がストアから削除され、使っていた枠が解放されます。そのデバイスからも、このデバイスからも、データは削除されません。これは完全に使わなくなったデバイス向けの操作です。削除してもそのデバイスの接続は解除されないため、まだ動作しているデバイスは次回の同期で一覧を再び公開します。また、どのデバイスも同期フレーズがあれば再接続できます。",
   "@settingsSyncDeviceRemoveBody": {
-    "x-sourceSha256": "86fee0f332c2e9a006ad4321bf68e3fefaf121198bbcc0863d20de19246ac178"
+    "x-sourceSha256": "037bb8e581c8add340fefd329bf63a55076355ef7fa29d4aa8f400b053096b3b"
   },
   "settingsSyncDeviceRemoveAction": "削除",
   "@settingsSyncDeviceRemoveAction": {
@@ -448,9 +456,13 @@
   "@settingsSyncWipeConfirmAction": {
     "x-sourceSha256": "295bf35e749e744ea715d9b91ebdeb23045b26e4ad24f4c138e2bca498605461"
   },
-  "settingsSyncWipeFailed": "ストアを削除できませんでした。何も変更されておらず、このデバイスはまだ接続されています。もう一度お試しください。",
+  "settingsSyncWipeFailed": "ストアを削除できなかったか、削除されたことを確認できませんでした。このデバイスはまだ接続されています。もう一度試す前に、他のデバイスを確認してください。",
   "@settingsSyncWipeFailed": {
-    "x-sourceSha256": "d92d4e88e22770bf1ee00d53c29f050f8bcf7632dcd8a8f9eaa3ef875d003bce"
+    "x-sourceSha256": "f19f64fc8215946c6367ba858ba3517bd80ec370c67a1bfb67c296e8dab792cd"
+  },
+  "settingsSyncWipeDetachFailed": "ストアはサーバーから削除されましたが、このデバイスの接続を解除できませんでした。ストアは失われ、元に戻すことはできません。「このデバイスの接続を解除」で完了してください。",
+  "@settingsSyncWipeDetachFailed": {
+    "x-sourceSha256": "ac763fba9e00e2a235a8877b2058b006c655d5e1afb26a7009b2a925794f173f"
   },
   "settingsSyncMeteredRouted": "モバイルデータ通信中で、「WiFi接続時のみ同期」がオンです。今すぐ同期するには、下のこの設定をオフにしてください。",
   "@settingsSyncMeteredRouted": {
@@ -503,6 +515,14 @@
   "settingsSyncPairingRegenerate": "別のフレーズを生成",
   "@settingsSyncPairingRegenerate": {
     "x-sourceSha256": "0fedb816d3ffdc13964c8fa7d6c53198a3c8de979c182c17096f111c564c0dd6"
+  },
+  "settingsSyncPairingPersonalInfoTitle": "フレーズに個人情報を入れないでください",
+  "@settingsSyncPairingPersonalInfoTitle": {
+    "x-sourceSha256": "fb0e2cbd0c4bfd6ddfe49b8d0885f41492d738229a1011c2f1e059ff255147e0"
+  },
+  "settingsSyncPairingPersonalInfoBody": "自分でフレーズを入力する場合は、氏名、住所、生年月日など自分に関する情報を含めないでください。フレーズはリクエストのたびにサーバーへ送られ、接続する各デバイスで読み上げたり入力したりします。私的な情報を書き込む場所ではなく、箱の外側に書く宛名のようなものだと考えてください。",
+  "@settingsSyncPairingPersonalInfoBody": {
+    "x-sourceSha256": "843baaa107338c8fbfba60e77c42edaa6fcf76602f0bf47f1563ea5c6919968a"
   },
   "settingsSyncPairingWeakPhraseTitle": "このフレーズは推測されやすい可能性があります",
   "@settingsSyncPairingWeakPhraseTitle": {
@@ -564,13 +584,21 @@
   "@settingsSyncPairingSharingBody": {
     "x-sourceSha256": "a98a2f3493bfcb71d5e1c5020747752924342c3821a4aa3ca1b4cca5b4c195d1"
   },
-  "settingsSyncPairingCredentialTitle": "このフレーズは復元も無効化もできません",
-  "@settingsSyncPairingCredentialTitle": {
-    "x-sourceSha256": "c6abbeba15319ec950ff3d20957906a07104aed09b1e6570eb73a191f7f6fb93"
+  "settingsSyncPairingBearerTitle": "このフレーズを持つ人は誰でもライブラリを開けます",
+  "@settingsSyncPairingBearerTitle": {
+    "x-sourceSha256": "45858e1bf94c0decbeb0f3870a62926a932f62bd361bc394dda6c5c07f7ebb81"
   },
-  "settingsSyncPairingCredentialBody": "このフレーズを紛失すると、ストアに到達できなくなります — パスワードのリセットはありません。漏えいした場合、唯一の対処法はすべてのデバイスを新しいフレーズに移行することです。",
+  "settingsSyncPairingBearerBody": "フレーズは共有ライブラリの置き場所であり、その手前にあるパスワードではありません。サインインするものは何もありません。フレーズを渡した相手も、たまたま知った人も、自分のデバイスからそのライブラリを開けます。同期しているすべての内容を閲覧し、届いている場所すべてでその内容を変更または削除し、全体をサーバーから削除できます。できることを絞ったフレーズというものは存在しません。",
+  "@settingsSyncPairingBearerBody": {
+    "x-sourceSha256": "d891d4e75ca3b4c4380a99d41a68416e96b015b5b8150baad9cac1cb56e312f6"
+  },
+  "settingsSyncPairingCredentialTitle": "このフレーズの控えはどこにもなく、取り消すこともできません",
+  "@settingsSyncPairingCredentialTitle": {
+    "x-sourceSha256": "e16277566dc4bddb09274f24707f2825a2f4a162d467f22b2b0898ab82b96dc8"
+  },
+  "settingsSyncPairingCredentialBody": "このフレーズを知っているものは他にどこにもありません。紛失すると、その場所にあるライブラリはそのまま残り、誰も再び到達できなくなります。誰かにフレーズを伝えたことも、なかったことにはできません。すべてのデバイスを新しいフレーズに移しても、別の場所に2つ目のライブラリを作るだけです。最初のライブラリはそのまま残り、古いフレーズを持ち続けている人はそれを開いて変更できます。それをただちに取り除けるのはストアの削除だけです。",
   "@settingsSyncPairingCredentialBody": {
-    "x-sourceSha256": "8cefe91d1bf18c0df7147a7ce772b9806ad0190dbdef49e2c988a88b5dc29b06"
+    "x-sourceSha256": "a17138ff1230ef39c2340d60de66280c2bfa4fb66bbe315d72da7804fbe93e3a"
   },
   "settingsSyncPairingBackupOfferTitle": "先にライブラリをバックアップしますか?",
   "@settingsSyncPairingBackupOfferTitle": {
@@ -596,13 +624,25 @@
   "@settingsSyncPairingComplete": {
     "x-sourceSha256": "22965568d22a14ee17af055d2870b50afcfe9fd94a83eec3196e266932297bb2"
   },
-  "settingsSyncPairingCompleteBody": "ライブラリが接続されました。最初の同期が今実行されています。",
+  "settingsSyncPairingCompleteBody": "ライブラリが接続され、最初の同期が完了しました。",
   "@settingsSyncPairingCompleteBody": {
-    "x-sourceSha256": "750a225daf2a7bd882f9647303a4ca3c869b1ce0bd820a69c4bfa960293b72ad"
+    "x-sourceSha256": "7348fca6f5ec4bc93da087af0a566297603d519049974a1dfd2742144c8be72c"
   },
-  "settingsSyncPairingCompleteDuplicates": "{count, plural, other {重複するダンスを{count}件見つけて統合しました。}}",
-  "@settingsSyncPairingCompleteDuplicates": {
-    "x-sourceSha256": "f3420d8fa206527f49c22fec0d183d6d67d54ddb0fa188597b4c169dfe5784d5"
+  "settingsSyncPairingCompleteFailed": "ライブラリは接続されましたが、最初の同期は完了しませんでした。自動的に再試行されます。",
+  "@settingsSyncPairingCompleteFailed": {
+    "x-sourceSha256": "1abc3b5435e39c84d478f9ab0395745767d18473438a089c378be1ca21083163"
+  },
+  "settingsSyncPairingCompleteMetered": "ライブラリが接続されました。「WiFi接続時のみ同期」がオンのため、最初の同期はWiFiを待っています。",
+  "@settingsSyncPairingCompleteMetered": {
+    "x-sourceSha256": "d6a175eb28ce65a72ad075ed71f53cfdea9b5d9bdff3b91f84fa74a826490d31"
+  },
+  "settingsSyncPairingCompleteOffline": "ライブラリが接続されました。最初の同期はオンラインに戻り次第実行されます。",
+  "@settingsSyncPairingCompleteOffline": {
+    "x-sourceSha256": "9b519253dd4a2c08a7b92feec2a29efa9250c74677c17c90c29271b8fac5d997"
+  },
+  "settingsSyncPairingCompletePending": "ライブラリが接続されました。最初の同期はまだ実行されていません。このデバイスが次に同期するときに実行されます。",
+  "@settingsSyncPairingCompletePending": {
+    "x-sourceSha256": "daa70b1721d468f073882e6c3bdc9f5a406d491f004bb1191ed459c2e5c8a0f3"
   },
   "settingsSyncReplacementTitle": "このストアに再接続しますか?",
   "@settingsSyncReplacementTitle": {

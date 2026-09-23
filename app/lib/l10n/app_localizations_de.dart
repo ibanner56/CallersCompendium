@@ -222,7 +222,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncExcludeImportsSubtitle =>
-      'Standardmäßig aus. Reduziert, was dieses Gerät hochlädt, wenn du eine große importierte Sammlung hast; ein Tanz, der in einem Programm verwendet oder von einem anderen Tanz verlinkt wird, ist immer enthalten. Auf deinen anderen Geräten wird nichts entfernt.';
+      'Standardmäßig aus. Reduziert, was dieses Gerät hochlädt, wenn du eine große importierte Sammlung hast; ein Tanz, der in einem Programm verwendet oder von einem anderen Tanz verlinkt wird, ist immer enthalten. Auf deinen anderen Geräten wird nichts entfernt, und wenn du die Einstellung wieder ausschaltest, werden die übersprungenen Tänze erneut hochgeladen.';
 
   @override
   String get settingsSyncStatusHeader => 'Status';
@@ -248,7 +248,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncIdCaution =>
-      'Gib sie auf deinem anderen Gerät ein, um es zu verbinden. Wer sie hat, kann alles lesen und ändern, was du synchronisierst, und sie lässt sich nur ändern, indem du alle Geräte auf eine neue Phrase umstellst.';
+      'Gib sie auf deinem anderen Gerät ein, um es zu verbinden. Dort liegt deine geteilte Bibliothek, also kann jeder, der sie hat, diese Bibliothek öffnen: alles lesen, was du synchronisierst, davon auf jedem verbundenen Gerät beliebiges ändern oder löschen und den gesamten Speicher vom Server löschen. Zu einer anderen Phrase zu wechseln heißt, alle Geräte auf sie umzustellen.';
 
   @override
   String get settingsSyncStatusNotPaired =>
@@ -264,8 +264,24 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String settingsSyncCustomEndpointStatus(String host) {
-    return 'Synchronisiert mit einem eigenen Server: $host';
+  String settingsSyncEndpointStatus(String url) {
+    return 'Synchronisiert mit $url';
+  }
+
+  @override
+  String settingsSyncCustomEndpointStatus(String url) {
+    return 'Synchronisiert mit einem eigenen Server: $url';
+  }
+
+  @override
+  String settingsSyncMergedDuplicates(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count doppelte Tänze gefunden und zusammengeführt.',
+      one: '$count doppelten Tanz gefunden und zusammengeführt.',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -388,7 +404,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncDeviceRemoveBody =>
-      'Der Speicher behält die Kopie dieses Geräts von dem, was es geteilt hat, nicht länger, und das Gerät synchronisiert nicht mehr. Auf jenem Gerät wird nichts gelöscht, und auf deinem wird nichts gelöscht. Es kann sich später mit der Synchronisierungsphrase wieder mit diesem Speicher verbinden.';
+      'Der Speicher verwirft die Liste dieses Geräts über das, was es geteilt hat, und gibt den Platz frei, den es belegt hat. Auf jenem Gerät wird nichts gelöscht, und auf deinem wird nichts gelöscht. Das ist für ein Gerät gedacht, das wirklich weg ist: Entfernen trennt es nicht, also veröffentlicht ein noch laufendes Gerät seine Liste beim nächsten Synchronisieren erneut, und jedes Gerät kann sich mit der Synchronisierungsphrase wieder verbinden.';
 
   @override
   String get settingsSyncDeviceRemoveAction => 'Entfernen';
@@ -418,7 +434,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncWipeFailed =>
-      'Der Speicher konnte nicht gelöscht werden. Es wurde nichts geändert und dieses Gerät ist weiterhin verbunden; versuche es erneut.';
+      'Der Speicher konnte nicht gelöscht werden, oder die Löschung ließ sich nicht bestätigen. Dieses Gerät ist weiterhin verbunden. Prüfe deine anderen Geräte, bevor du es erneut versuchst.';
+
+  @override
+  String get settingsSyncWipeDetachFailed =>
+      'Der Speicher wurde vom Server gelöscht, aber dieses Gerät konnte die Verbindung dazu nicht trennen. Der Speicher ist weg und lässt sich nicht zurückholen. Nutze Dieses Gerät trennen, um es abzuschließen.';
 
   @override
   String get settingsSyncMeteredRouted =>
@@ -466,6 +486,14 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncPairingRegenerate => 'Andere Phrase erzeugen';
+
+  @override
+  String get settingsSyncPairingPersonalInfoTitle =>
+      'Keine persönlichen Daten in die Phrase';
+
+  @override
+  String get settingsSyncPairingPersonalInfoBody =>
+      'Wenn du deine eigene Phrase eingibst, lass Namen, Adressen, Geburtstage und alles andere über dich heraus. Die Phrase geht bei jeder Anfrage an den Server und wird auf jedem Gerät, das du verbindest, vorgelesen oder eingetippt — behandle sie also wie etwas, das außen auf einer Kiste steht, und nicht als Ort für Privates.';
 
   @override
   String get settingsSyncPairingWeakPhraseTitle =>
@@ -526,12 +554,20 @@ class AppLocalizationsDe extends AppLocalizations {
       'Eine zweite Person kann dieselbe Phrase auf ihrem Gerät verwenden. Wenn ihr beide gleichzeitig denselben Tanz oder dasselbe Programm bearbeitet, überschreibt eine Änderung die andere stillschweigend — es gibt keine Warnung und keine Möglichkeit, sie zu kombinieren.';
 
   @override
+  String get settingsSyncPairingBearerTitle =>
+      'Wer diese Phrase hat, kann deine Bibliothek öffnen';
+
+  @override
+  String get settingsSyncPairingBearerBody =>
+      'Die Phrase ist der Ort, an dem deine geteilte Bibliothek liegt — kein Passwort davor. Es gibt nichts, wo man sich anmeldet. Jeder, dem du sie gibst, und jeder, der sie einfach in die Hände bekommt, kann diese Bibliothek vom eigenen Gerät aus öffnen: alles lesen, was du synchronisierst, davon überall, wo es angekommen ist, beliebiges ändern oder löschen und das Ganze vom Server löschen. Es gibt keine Variante einer Phrase, die weniger kann.';
+
+  @override
   String get settingsSyncPairingCredentialTitle =>
-      'Diese Phrase kann weder wiederhergestellt noch widerrufen werden';
+      'Von dieser Phrase gibt es keine Kopie, und zurückholen lässt sie sich nicht';
 
   @override
   String get settingsSyncPairingCredentialBody =>
-      'Verlierst du diese Phrase, wird dein Speicher unerreichbar — es gibt kein Zurücksetzen. Falls sie durchsickert, ist die einzige Lösung, alle Geräte auf eine neue Phrase umzustellen.';
+      'Nichts sonst kennt diese Phrase irgendwo. Verlierst du sie, bleibt die Bibliothek an dieser Stelle liegen und niemand kommt mehr heran. Jemandem die Phrase zu nennen, lässt sich ebenso wenig rückgängig machen. Stellst du deine Geräte auf eine neue Phrase um, beginnst du damit nur eine zweite Bibliothek an anderer Stelle: die erste liegt weiterhin dort, und wer die alte Phrase behalten hat, kann sie weiterhin öffnen und ändern. Nur das Löschen des Speichers nimmt sie sofort weg.';
 
   @override
   String get settingsSyncPairingBackupOfferTitle =>
@@ -555,18 +591,23 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncPairingCompleteBody =>
-      'Deine Bibliothek ist verbunden. Die erste Synchronisierung läuft jetzt.';
+      'Deine Bibliothek ist verbunden, und die erste Synchronisierung ist abgeschlossen.';
 
   @override
-  String settingsSyncPairingCompleteDuplicates(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count doppelte Tänze gefunden und zusammengeführt.',
-      one: '$count doppelten Tanz gefunden und zusammengeführt.',
-    );
-    return '$_temp0';
-  }
+  String get settingsSyncPairingCompleteFailed =>
+      'Deine Bibliothek ist verbunden, aber die erste Synchronisierung wurde nicht abgeschlossen. Sie versucht es von selbst erneut.';
+
+  @override
+  String get settingsSyncPairingCompleteMetered =>
+      'Deine Bibliothek ist verbunden. Die erste Synchronisierung wartet auf WLAN, weil „Nur über WLAN synchronisieren“ an ist.';
+
+  @override
+  String get settingsSyncPairingCompleteOffline =>
+      'Deine Bibliothek ist verbunden. Die erste Synchronisierung läuft, sobald du wieder online bist.';
+
+  @override
+  String get settingsSyncPairingCompletePending =>
+      'Deine Bibliothek ist verbunden. Die erste Synchronisierung ist noch nicht gelaufen; sie läuft, wenn dieses Gerät das nächste Mal synchronisiert.';
 
   @override
   String get settingsSyncReplacementTitle => 'Diesen Speicher neu verbinden?';

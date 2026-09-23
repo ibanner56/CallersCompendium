@@ -181,11 +181,27 @@ enum EgressClass {
   /// must never be adopted from a peer.
   protocolIdentifier,
 
-  /// A bearer credential that authorizes the request carrying it. It may travel
-  /// only to the configured endpoint; the server and any proxy must never
-  /// retain it recoverably. Local persistence is governed by the field's
-  /// storage classification.
-  accessControlData,
+  /// The address of a shared store on the configured endpoint — in effect a
+  /// path on the sync server, which is how the server handles it.
+  ///
+  /// **This is not access-control data**, and a value in this class must not be
+  /// described as a credential, a key, a password or a secret. Users are
+  /// allowed and expected to hand it to another person so two people can sync
+  /// together; ADR-004 supports that case explicitly. That the server currently
+  /// addresses a store by presenting the value in an `Authorization: Bearer`
+  /// header is a transport mechanic, not a classification.
+  ///
+  /// The value may be user-chosen, so it may carry personal content — which is
+  /// why it is not [protocolIdentifier], whose guarantee is that its members
+  /// carry no user data by construction. It may travel only to the configured
+  /// endpoint; the server and any proxy must never retain it recoverably or
+  /// write it to a log; and it must never be adopted from a peer. Those rules
+  /// hold for an address as much as they would for a secret, on their own
+  /// reasons: a share location is not confidential, but it is also not
+  /// something to scatter through logs the operator has no use for, and
+  /// adopting a peer's address silently repoints this device at another store.
+  /// Local persistence is governed by the field's storage classification.
+  storeAddress,
 }
 
 /// The classification of one persisted field.

@@ -118,23 +118,29 @@ final Map<String, DataClassification> settingsClassifications = {
   // restore by backup_settings_schema.dart).
   'program_matrix_columns': _preference,
 
-  // Device Sync transport values are not ordinary preferences. The ID is a
-  // user-entered bearer credential and may contain personal information; the
+  // Device Sync transport values are not ordinary preferences. The sync ID is
+  // the address of a shared store and may contain personal information; the
   // device ID is an opaque per-installation routing identifier.
   'sync_id': const DataClassification(
     term: DpvTerm.unclassifiedPersonal,
     subject: DataSubject.appUser,
-    egress: EgressClass.accessControlData,
+    egress: EgressClass.storeAddress,
     note:
-        'User-entered bearer credential. It may contain personal information, '
-        'leaves the device over the network only in Authorization to the '
-        'configured sync origin, and is never recoverably retained or logged '
-        'by the server or a proxy; local persistence is governed by this '
-        'settings classification. The status surface can also show it and '
-        'copy it to the system clipboard when the user asks, so the '
-        'device that holds it can be joined by another without the phrase '
-        'having been written down at pairing; that path is user-initiated, '
-        'stays on the device, and is masked until asked for.',
+        'The address of the shared store this device syncs with — in effect a '
+        'path on the sync server, which is how the server handles it. It is '
+        'not a credential and not a secret: the user is expected to hand it to '
+        'another person so the two can sync together. Being user-chosen it may '
+        'contain personal information, so it leaves the device over the '
+        'network only to the configured sync origin, and is never recoverably '
+        'retained or logged by the server or a proxy — not because it is '
+        'confidential, but because the operator has no use for it and it names '
+        'where a user keeps their library. It is never adopted from a peer, '
+        'which would repoint this device at another store. Local persistence '
+        'is governed by this settings classification. The status surface can '
+        'also show it and copy it to the system clipboard when the user asks, '
+        'so the device that holds it can be joined by another without the '
+        'phrase having been written down at pairing; that path is '
+        'user-initiated and stays on the device.',
   ),
   'sync_device_id': const DataClassification(
     term: DpvTerm.nonPersonal,
@@ -150,10 +156,12 @@ final Map<String, DataClassification> settingsClassifications = {
     subject: DataSubject.appUser,
     egress: EgressClass.deviceScoped,
     note:
-        'A set of salted, slow credential verifiers used only to distinguish '
-        'previously used configured sync identities after detach; the '
-        'credential-derived values are never transmitted, adopted from a peer, '
-        'or restored from a backup.',
+        'A set of salted, slow verifiers for previously configured store '
+        'addresses, used only to recognise one this device has already synced '
+        'with after detach. They are salted and slow so the marker cannot be '
+        'turned back into the address it stands for, which names where a user '
+        'keeps their library; the derived values are never transmitted, '
+        'adopted from a peer, or restored from a backup.',
   ),
 
   'sync_enabled': const DataClassification(

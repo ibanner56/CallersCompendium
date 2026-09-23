@@ -223,7 +223,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncExcludeImportsSubtitle =>
-      'Slået fra som standard. Reducerer, hvad denne enhed uploader, hvis du har en stor importeret samling; en dans, der bruges i et program eller er linket fra en anden dans, er altid inkluderet. Intet fjernes fra dine andre enheder.';
+      'Slået fra som standard. Reducerer, hvad denne enhed uploader, hvis du har en stor importeret samling; en dans, der bruges i et program eller er linket fra en anden dans, er altid inkluderet. Intet fjernes fra dine andre enheder, og slår du den fra igen, uploades de oversprungne danse på ny.';
 
   @override
   String get settingsSyncStatusHeader => 'Status';
@@ -249,7 +249,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncIdCaution =>
-      'Indtast den på din anden enhed for at forbinde den. Alle, der har den, kan læse og ændre alt, hvad du synkroniserer, og den kan kun ændres ved at flytte alle enheder til en ny sætning.';
+      'Indtast den på din anden enhed for at forbinde den. Det er dér, dit delte bibliotek ligger, så enhver, der har den, kan åbne det bibliotek: læse alt, hvad du synkroniserer, ændre eller slette hvad som helst af det på alle forbundne enheder og slette hele lageret fra serveren. At skifte til en anden sætning betyder at flytte alle enheder til den.';
 
   @override
   String get settingsSyncStatusNotPaired => 'Ikke tilsluttet et lager endnu.';
@@ -264,8 +264,24 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String settingsSyncCustomEndpointStatus(String host) {
-    return 'Synkroniserer med en brugerdefineret server: $host';
+  String settingsSyncEndpointStatus(String url) {
+    return 'Synkroniserer med $url';
+  }
+
+  @override
+  String settingsSyncCustomEndpointStatus(String url) {
+    return 'Synkroniserer med en brugerdefineret server: $url';
+  }
+
+  @override
+  String settingsSyncMergedDuplicates(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Fandt og sammenlagde $count duplikerede danse.',
+      one: 'Fandt og sammenlagde $count duplikeret dans.',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -389,7 +405,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncDeviceRemoveBody =>
-      'Lageret beholder ikke længere denne enheds kopi af det, den delte, og enheden holder op med at synkronisere. Der slettes intet fra den enhed, og der slettes intet fra din. Den kan forbinde til dette lager igen senere med synkroniseringssætningen.';
+      'Lageret dropper denne enheds liste over det, den delte, og frigør den plads, den brugte. Der slettes intet fra den enhed, og der slettes intet fra din. Det er til en enhed, der er helt væk: at fjerne en enhed afbryder den ikke, så en enhed, der stadig kører, offentliggør sin liste igen, næste gang den synkroniserer, og enhver enhed kan forbinde igen med synkroniseringssætningen.';
 
   @override
   String get settingsSyncDeviceRemoveAction => 'Fjern';
@@ -417,7 +433,11 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncWipeFailed =>
-      'Lageret kunne ikke slettes. Intet blev ændret, og denne enhed er stadig forbundet; prøv igen.';
+      'Lageret kunne ikke slettes, eller det kunne ikke bekræftes, at det blev slettet. Denne enhed er stadig forbundet. Tjek dine andre enheder, før du prøver igen.';
+
+  @override
+  String get settingsSyncWipeDetachFailed =>
+      'Lageret blev slettet fra serveren, men denne enhed kunne ikke afbryde forbindelsen til det. Lageret er væk og kan ikke hentes tilbage. Brug Afbryd forbindelsen på denne enhed for at gøre det færdigt.';
 
   @override
   String get settingsSyncMeteredRouted =>
@@ -465,6 +485,14 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncPairingRegenerate => 'Generér en anden sætning';
+
+  @override
+  String get settingsSyncPairingPersonalInfoTitle =>
+      'Skriv ikke personlige oplysninger i sætningen';
+
+  @override
+  String get settingsSyncPairingPersonalInfoBody =>
+      'Hvis du skriver din egen sætning, så hold navne, adresser, fødselsdatoer og alt andet om dig selv ude af den. Sætningen sendes til serveren ved hver forespørgsel, og den læses højt eller tastes ind på hver enhed, du forbinder, så betragt den som noget, der står uden på en kasse, snarere end et sted til private oplysninger.';
 
   @override
   String get settingsSyncPairingWeakPhraseTitle =>
@@ -524,12 +552,20 @@ class AppLocalizationsDa extends AppLocalizations {
       'En anden person kan bruge den samme sætning på deres enhed. Hvis I begge redigerer den samme dans eller det samme program på samme tid, overskriver den ene redigering stille den anden — der er ingen advarsel og ingen måde at kombinere dem på.';
 
   @override
+  String get settingsSyncPairingBearerTitle =>
+      'Enhver med denne sætning kan åbne dit bibliotek';
+
+  @override
+  String get settingsSyncPairingBearerBody =>
+      'Sætningen er dér, hvor dit delte bibliotek ligger — ikke en adgangskode foran det. Der er intet at logge ind på. Enhver, du giver den til, og enhver, der tilfældigvis får fat i den, kan åbne det bibliotek fra sin egen enhed: læse alt, hvad du synkroniserer, ændre eller slette hvad som helst af det, overalt hvor det er nået hen, og slette det hele fra serveren. Der findes ikke en udgave af en sætning, der kan mindre.';
+
+  @override
   String get settingsSyncPairingCredentialTitle =>
-      'Denne sætning kan ikke gendannes eller tilbagekaldes';
+      'Der findes ingen kopi af denne sætning, og den kan ikke tages tilbage';
 
   @override
   String get settingsSyncPairingCredentialBody =>
-      'Mister du denne sætning, bliver dit lager utilgængeligt — der er ingen nulstilling af adgangskode. Hvis den lækkes, er den eneste løsning at flytte alle enheder til en ny sætning.';
+      'Intet andet noget sted kender denne sætning, så mister du den, bliver biblioteket på den adresse liggende, uden at nogen kan nå det igen. At fortælle nogen sætningen kan heller ikke gøres om. Flytter du dine enheder til en ny sætning, starter du blot endnu et bibliotek et andet sted: det første ligger der stadig, og enhver, der har beholdt den gamle sætning, kan stadig åbne og ændre det. Kun sletning af lageret fjerner det med det samme.';
 
   @override
   String get settingsSyncPairingBackupOfferTitle =>
@@ -553,18 +589,23 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncPairingCompleteBody =>
-      'Dit bibliotek er forbundet. Den første synkronisering kører nu.';
+      'Dit bibliotek er forbundet, og den første synkronisering er færdig.';
 
   @override
-  String settingsSyncPairingCompleteDuplicates(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Fandt og sammenlagde $count duplikerede danse.',
-      one: 'Fandt og sammenlagde $count duplikeret dans.',
-    );
-    return '$_temp0';
-  }
+  String get settingsSyncPairingCompleteFailed =>
+      'Dit bibliotek er forbundet, men den første synkronisering blev ikke færdig. Den prøver igen af sig selv.';
+
+  @override
+  String get settingsSyncPairingCompleteMetered =>
+      'Dit bibliotek er forbundet. Den første synkronisering venter på WiFi, fordi Synkronisér kun på WiFi er slået til.';
+
+  @override
+  String get settingsSyncPairingCompleteOffline =>
+      'Dit bibliotek er forbundet. Den første synkronisering kører, når du er online igen.';
+
+  @override
+  String get settingsSyncPairingCompletePending =>
+      'Dit bibliotek er forbundet. Den første synkronisering er ikke kørt endnu; den kører, næste gang denne enhed synkroniserer.';
 
   @override
   String get settingsSyncReplacementTitle => 'Genforbind dette lager?';

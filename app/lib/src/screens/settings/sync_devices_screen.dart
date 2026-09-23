@@ -35,13 +35,29 @@ Future<void> confirmAndWipeStore(
   if (!await _confirmSyncWipe(context) || !context.mounted) return;
   final l10n = AppLocalizations.of(context);
   final messenger = ScaffoldMessenger.maybeOf(context);
-  if (await controller.wipeStore() != SyncAdminOutcome.done) {
-    messenger?.showSnackBar(
-      SnackBar(
-        key: const ValueKey('sync-wipe-failed'),
-        content: Text(l10n.settingsSyncWipeFailed),
-      ),
-    );
+  switch (await controller.wipeStore()) {
+    case SyncAdminOutcome.done:
+      break;
+    // The store is irreversibly gone and this device is still attached to it.
+    // Reported as its own thing, never as a failure: telling the user nothing
+    // happened would invite them to retry a destructive action that already
+    // succeeded, and would leave them unaware that this device still holds the
+    // phrase for a store that no longer exists.
+    case SyncAdminOutcome.wipedButStillAttached:
+      messenger?.showSnackBar(
+        SnackBar(
+          key: const ValueKey('sync-wipe-detach-failed'),
+          content: Text(l10n.settingsSyncWipeDetachFailed),
+          duration: const Duration(seconds: 10),
+        ),
+      );
+    case _:
+      messenger?.showSnackBar(
+        SnackBar(
+          key: const ValueKey('sync-wipe-failed'),
+          content: Text(l10n.settingsSyncWipeFailed),
+        ),
+      );
   }
 }
 

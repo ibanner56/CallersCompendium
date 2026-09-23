@@ -225,7 +225,7 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
 
   /// Copies the sync phrase for entry on another device. The confirmation
   /// restates what the phrase is, because a clipboard is a shared surface and
-  /// the copy is the moment the credential leaves this app.
+  /// the copy is the moment the store's address leaves this app.
   Future<void> _copySyncId(String syncId) async {
     final messenger = ScaffoldMessenger.maybeOf(context);
     final l10n = AppLocalizations.of(context);
@@ -395,21 +395,60 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
                 ),
                 title: Text(syncNoticeText(l10n, group)),
               ),
-            if (controller.paired &&
-                controller.endpoint != null &&
-                !isDefaultSyncEndpoint(controller.endpoint!))
+            // What this device merged when it last fresh-attached, for the rest
+            // of this app session — the latch is in memory, so it does not
+            // outlive a restart. ADR-004 makes the count the mitigation
+            // for a merge the user is never shown, and three of the four
+            // fresh-attach paths — a confirmed replacement, a stale-epoch
+            // auto-join, and a pairing pass the §6.12 gate deferred — have no
+            // dialog of their own to report it in. This tile is the surface
+            // they share.
+            if (controller.mergedDuplicates > 0)
               ListTile(
-                key: const ValueKey('sync-custom-endpoint'),
+                key: const ValueKey('sync-merged-duplicates'),
                 leading: Icon(
-                  Icons.dns_outlined,
-                  color: theme.colorScheme.error,
+                  Icons.merge_outlined,
+                  color: theme.colorScheme.tertiary,
                 ),
                 title: Text(
-                  l10n.settingsSyncCustomEndpointStatus(
-                    controller.endpoint!.host,
+                  l10n.settingsSyncMergedDuplicates(
+                    controller.mergedDuplicates,
                   ),
                 ),
               ),
+            // ADR-004 requires the endpoint shown un-abstracted as a URL in
+            // Settings, so pointing at your own server is a visible
+            // first-class option rather than a hidden one. Shown whichever
+            // server it is: a user on the default one previously saw no
+            // address anywhere on this section, which is the abstraction that
+            // clause forbids. A non-default endpoint keeps its own prominent
+            // treatment (spec §8).
+            if (controller.paired && controller.endpoint != null)
+              isDefaultSyncEndpoint(controller.endpoint!)
+                  ? ListTile(
+                      key: const ValueKey('sync-endpoint'),
+                      leading: Icon(
+                        Icons.dns_outlined,
+                        color: theme.colorScheme.secondary,
+                      ),
+                      title: Text(
+                        l10n.settingsSyncEndpointStatus(
+                          controller.endpoint!.toString(),
+                        ),
+                      ),
+                    )
+                  : ListTile(
+                      key: const ValueKey('sync-custom-endpoint'),
+                      leading: Icon(
+                        Icons.dns_outlined,
+                        color: theme.colorScheme.error,
+                      ),
+                      title: Text(
+                        l10n.settingsSyncCustomEndpointStatus(
+                          controller.endpoint!.toString(),
+                        ),
+                      ),
+                    ),
             Padding(
               padding: gutter,
               child: Text(
@@ -533,13 +572,14 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
 /// user can enter it on another device without having written it down at
 /// pairing (spec §6.14 item 2: it cannot be recovered from the server).
 ///
-/// Masked until the user asks for it. The phrase is a bearer credential with
-/// no revocation, so a settings pane that displays it unprompted hands it to
-/// anyone who is shown the screen — a screenshot sent to support, a shared
-/// display, someone standing behind the caller at a dance. Copying works
-/// while it is masked, because the common case is moving it to another device
-/// and that never needs it on screen. The reveal is per-visit state and is
-/// deliberately not persisted.
+/// Masked until the user asks for it. Knowing the address is all it takes to
+/// reach the store, and there is no revoking it afterwards, so a settings pane
+/// that displays the phrase unprompted shares the store with everyone who can
+/// see the screen — a screenshot sent to support, a shared display, someone
+/// standing behind the caller at a dance. Copying works while it is masked,
+/// because the common case is moving it to another device and that never needs
+/// it on screen. The reveal is per-visit state and is deliberately not
+/// persisted.
 class _SyncIdTile extends StatelessWidget {
   const _SyncIdTile({
     required this.syncId,

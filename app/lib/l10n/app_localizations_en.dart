@@ -219,7 +219,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSyncExcludeImportsSubtitle =>
-      'Off by default. Cuts what this device uploads if you have a large imported collection; a dance used in a program or linked from another dance is always included. Nothing is removed from your other devices.';
+      'Off by default. Cuts what this device uploads if you have a large imported collection; a dance used in a program or linked from another dance is always included. Nothing is removed from your other devices, and turning it off uploads the skipped dances again.';
 
   @override
   String get settingsSyncStatusHeader => 'Status';
@@ -245,7 +245,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSyncIdCaution =>
-      'Enter this on your other device to connect it. Anyone who has it can read and change everything you sync, and it can\'t be changed without moving every device to a new phrase.';
+      'Enter this on your other device to connect it. It is where your shared library lives, so anyone who has it can open that library: read everything you sync, change or delete any of it on every connected device, and delete the whole store from the server. Moving to a different phrase means moving every device to it.';
 
   @override
   String get settingsSyncStatusNotPaired => 'Not connected to a store yet.';
@@ -259,8 +259,24 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String settingsSyncCustomEndpointStatus(String host) {
-    return 'Syncing with a custom server: $host';
+  String settingsSyncEndpointStatus(String url) {
+    return 'Syncing with $url';
+  }
+
+  @override
+  String settingsSyncCustomEndpointStatus(String url) {
+    return 'Syncing with a custom server: $url';
+  }
+
+  @override
+  String settingsSyncMergedDuplicates(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Found and merged $count duplicate dances.',
+      one: 'Found and merged $count duplicate dance.',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -382,7 +398,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSyncDeviceRemoveBody =>
-      'The store stops keeping this device\'s copy of what it shared, and it stops syncing. Nothing is deleted from that device, and nothing is deleted from yours. It can connect to this store again later with the sync phrase.';
+      'The store drops this device\'s list of what it shared and frees the place it was using. Nothing is deleted from that device, and nothing is deleted from yours. This is for a device that\'s genuinely gone: removing one doesn\'t disconnect it, so a device that\'s still running will publish its list again the next time it syncs, and any device can reconnect with the sync phrase.';
 
   @override
   String get settingsSyncDeviceRemoveAction => 'Remove';
@@ -412,7 +428,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSyncWipeFailed =>
-      'Couldn\'t delete the store. Nothing was changed and this device is still connected; try again.';
+      'Couldn\'t delete the store, or couldn\'t confirm it was deleted. This device is still connected. Check your other devices before trying again.';
+
+  @override
+  String get settingsSyncWipeDetachFailed =>
+      'The store was deleted from the server, but this device couldn\'t disconnect from it. The store is gone and can\'t be brought back. Use Disconnect this device to finish.';
 
   @override
   String get settingsSyncMeteredRouted =>
@@ -458,6 +478,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSyncPairingRegenerate => 'Generate a different phrase';
+
+  @override
+  String get settingsSyncPairingPersonalInfoTitle =>
+      'Don\'t put personal information in the phrase';
+
+  @override
+  String get settingsSyncPairingPersonalInfoBody =>
+      'If you type your own phrase, keep names, addresses, birthdays and anything else about you out of it. The phrase goes to the server with every request, and it gets read aloud or typed on each device you connect, so treat it like something written on the outside of a box rather than anywhere to put private details.';
 
   @override
   String get settingsSyncPairingWeakPhraseTitle =>
@@ -517,12 +545,20 @@ class AppLocalizationsEn extends AppLocalizations {
       'A second person can use this same phrase on their device. If you both edit the same dance or program at the same time, one edit silently overwrites the other — there\'s no warning and no way to combine them.';
 
   @override
+  String get settingsSyncPairingBearerTitle =>
+      'Anyone with this phrase can open your library';
+
+  @override
+  String get settingsSyncPairingBearerBody =>
+      'The phrase is where your shared library lives, not a password in front of it — there is nothing to sign in to. Anyone you give it to, and anyone who simply comes by it, can open that library from their own device: read everything you sync, change or delete any of it everywhere it has reached, and delete the whole thing from the server. There is no version of a phrase that does less.';
+
+  @override
   String get settingsSyncPairingCredentialTitle =>
-      'This phrase can\'t be recovered or revoked';
+      'There is no copy of this phrase, and no taking it back';
 
   @override
   String get settingsSyncPairingCredentialBody =>
-      'Losing this phrase makes your store unreachable — there is no password reset. If it leaks, the only fix is moving every device to a new phrase.';
+      'Nothing else anywhere knows this phrase, so if you lose it the library at that address stays where it is and no one can reach it again. Telling someone the phrase also can\'t be untold. Moving your devices to a new phrase only starts a second library somewhere else: the first one is still there, and anyone who kept the old phrase can still open and change it. Deleting the store is the only thing that takes it away at once.';
 
   @override
   String get settingsSyncPairingBackupOfferTitle =>
@@ -546,18 +582,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSyncPairingCompleteBody =>
-      'Your library is connected. The first sync is running now.';
+      'Your library is connected, and the first sync has finished.';
 
   @override
-  String settingsSyncPairingCompleteDuplicates(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Found and merged $count duplicate dances.',
-      one: 'Found and merged $count duplicate dance.',
-    );
-    return '$_temp0';
-  }
+  String get settingsSyncPairingCompleteFailed =>
+      'Your library is connected, but the first sync didn\'t finish. It will try again on its own.';
+
+  @override
+  String get settingsSyncPairingCompleteMetered =>
+      'Your library is connected. The first sync is waiting for WiFi, because Sync only on WiFi is on.';
+
+  @override
+  String get settingsSyncPairingCompleteOffline =>
+      'Your library is connected. The first sync will run once you\'re back online.';
+
+  @override
+  String get settingsSyncPairingCompletePending =>
+      'Your library is connected. The first sync hasn\'t run yet; it will run the next time this device syncs.';
 
   @override
   String get settingsSyncReplacementTitle => 'Reconnect this store?';

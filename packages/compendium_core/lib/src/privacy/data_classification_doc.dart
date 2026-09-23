@@ -26,7 +26,7 @@ String _egressName(EgressClass egress) => switch (egress) {
   EgressClass.deviceScoped => 'device-scoped',
   EgressClass.derived => 'derived',
   EgressClass.protocolIdentifier => 'protocol-identifier',
-  EgressClass.accessControlData => 'access-control-data',
+  EgressClass.storeAddress => 'store-address',
 };
 
 /// The table-cell rendering: [_egressName], emphasised for classes with
@@ -34,7 +34,7 @@ String _egressName(EgressClass egress) => switch (egress) {
 String _egressLabel(EgressClass egress) => switch (egress) {
   EgressClass.deviceLocal ||
   EgressClass.protocolIdentifier ||
-  EgressClass.accessControlData => '**${_egressName(egress)}**',
+  EgressClass.storeAddress => '**${_egressName(egress)}**',
   _ => _egressName(egress),
 };
 

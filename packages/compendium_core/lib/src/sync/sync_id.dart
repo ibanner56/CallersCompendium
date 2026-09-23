@@ -19,11 +19,21 @@ const int syncIdMaxCodePoints = 131;
 /// The strength at which the client should show its advisory warning.
 const double syncIdStrengthWarningBits = 40;
 
-/// One-based common-credential guess ranks from the SecLists 10k list.
+/// One-based guess ranks for high-frequency words, from the SecLists 10k list.
+///
+/// The list is one of common *passwords*, but that is its provenance, not a
+/// statement about what a sync ID is: the phrase is a store address
+/// (`EgressClass.storeAddress`), not a credential, and this is not a
+/// password-strength check. It exists because an address a stranger can guess
+/// is an address a stranger can land on, so [estimateSyncIdStrengthBits] can
+/// warn a user whose chosen phrase would collide with an obvious one. A
+/// guessable address is a collision and squatting problem; the phrase's
+/// confidentiality is not what is being defended, because it has none to
+/// defend.
 ///
 /// This deliberately covers only high-frequency words: an unknown user word is
 /// scored conservatively below the EFF long-list estimate.
-const Map<String, int> _commonCredentialWordGuessRanks = {
+const Map<String, int> _commonWordGuessRanks = {
   'password': 1,
   'qwerty': 5,
   'dragon': 7,
@@ -163,7 +173,7 @@ double estimateSyncIdStrengthBits(String value) {
 }
 
 double _estimateWordGuessBits(String word) {
-  final commonRank = _commonCredentialWordGuessRanks[word];
+  final commonRank = _commonWordGuessRanks[word];
   if (commonRank != null) return log(commonRank) / ln2;
   if (effLongWordlist.contains(word)) {
     return log(effLongWordlist.length) / ln2;
@@ -177,16 +187,28 @@ double _estimateWordGuessBits(String word) {
 }
 
 /// Encodes the normalized ID as an unpadded RFC 4648 base64url token.
+///
+/// **"Credential" here names the HTTP layer, not the value's classification.**
+/// This pair is the codec for the literal `Authorization: Bearer` header the
+/// server addresses a store with, and that header is genuinely a bearer scheme
+/// (RFC 6750). The value it carries is classified
+/// `EgressClass.storeAddress`: a store address, not a credential, a key, a
+/// password or a secret. The bearer mechanics are an implementation detail of
+/// how the server addresses a store, not a security classification of the
+/// phrase.
 String encodeSyncCredential(String syncId) {
   final normalized = normalizeSyncId(syncId);
   validateSyncId(normalized);
   return base64Url.encode(utf8.encode(normalized)).replaceAll('=', '');
 }
 
-/// Decodes and normalizes an unpadded base64url credential.
+/// Decodes and normalizes an unpadded base64url header token.
+///
+/// See [encodeSyncCredential] on why these two are named for the header rather
+/// than for the value's classification.
 ///
 /// This validates only the wire encoding. Call [validateSyncId] separately to
-/// distinguish an unparseable credential from a decoded but invalid sync ID.
+/// distinguish an unparseable token from a decoded but invalid sync ID.
 String decodeSyncCredential(String credential) {
   if (credential.isEmpty ||
       !RegExp(r'^[A-Za-z0-9_-]+$').hasMatch(credential) ||

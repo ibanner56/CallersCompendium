@@ -123,8 +123,9 @@ const String kMatrixExactBeatCollisionKey = 'matrix_exact_beat_collision';
 /// `backup_settings_schema.dart`) so a malformed blob can never reach the app.
 const String kProgramMatrixColumnsKey = 'program_matrix_columns';
 
-/// Key used to persist the Device Sync bearer credential. It is generated or
-/// entered locally and is never included in backups or sync record content.
+/// Key used to persist the address of the store this device syncs with
+/// (`EgressClass.storeAddress`). It is generated or entered locally, never
+/// adopted from a peer, and never included in backups or sync record content.
 const String kSyncIdKey = 'sync_id';
 
 /// The Athenaeum server this installation pairs and syncs with, chosen in the
@@ -137,9 +138,10 @@ const String kSyncEndpointKey = 'sync_endpoint';
 /// is minted locally and is never adopted from a peer or included in backups.
 const String kSyncDeviceIdKey = 'sync_device_id';
 
-/// Device-local set of salted, slow credential verifiers for every sync
-/// identity that completed a publication. It is never included in backups or
-/// sync record content.
+/// Device-local set of salted, slow verifiers for every store address this
+/// device has completed a publication against. Salted and slow so the marker
+/// cannot be turned back into the address it stands for. It is never included
+/// in backups or sync record content.
 const String kSyncLastUsedFingerprintKey = 'sync_last_used_fingerprint';
 
 /// Whether the user has turned Device Sync on. Absent means off. This is

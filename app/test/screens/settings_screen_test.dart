@@ -49,6 +49,17 @@ final class _SyncNetwork implements SyncNetworkClassifier {
   Future<SyncNetworkKind> current() async => kind;
 }
 
+/// A sync-local repository whose every transaction fails, so the local half of
+/// a wipe can be made to fail after the server half has already succeeded.
+final class _FailingSyncLocal extends SyncLocalRepository {
+  _FailingSyncLocal(super.db);
+
+  @override
+  Future<T> transaction<T>(
+    Future<T> Function(SyncLocalTransaction transaction) action,
+  ) => Future<T>.error(StateError('local clear failed'));
+}
+
 final _syncNetwork = _SyncNetwork();
 SyncCoordinator? _syncCoordinator;
 SyncPairingProbeFactory? _pairingProbeFactory;
@@ -75,6 +86,11 @@ _pumpSettings(
   bool initialTrackHistoryForAllCallers = false,
   Size surfaceSize = const Size(1000, 2600),
   BackupSaver? backupSaver,
+
+  /// Replaces the sync-local repository the controller writes through, so a
+  /// test can make the local half of a wipe fail after the server half has
+  /// already succeeded.
+  SyncLocalRepository Function(CompendiumRepositories)? syncLocalOverride,
 }) async {
   final repos = openTestRepositories();
   await repos.ensureMigrated();
@@ -118,9 +134,9 @@ _pumpSettings(
   await updateController.load();
   final syncController = SyncController(
     settings: repos.settings,
-    syncLocal: repos.syncLocal,
+    syncLocal: syncLocalOverride?.call(repos) ?? repos.syncLocal,
     coordinator: () => _syncCoordinator,
-    reconfigure: () async {},
+    reconfigure: ({bool startPass = true}) async {},
     pairingProbeFactory: _pairingProbeFactory,
     deviceAdminFactory: _deviceAdminFactory,
     classifier: _syncNetwork,
@@ -1410,6 +1426,202 @@ void main() {
         );
       });
 
+      // Spec §6.1 requires BOTH consequences of sync_exclude_imports to be
+      // surfaced at the setting rather than left to be discovered. The
+      // subtitle carried only the first for as long as the toggle existed.
+      testWidgets(
+        'the exclude-imports subtitle states both §6.1 consequences: turning '
+        'it on removes nothing, turning it off republishes',
+        (tester) async {
+          await _pumpSettings(tester);
+          await openExperimental(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-enabled-toggle')));
+          await tester.pumpAndSettle();
+
+          final subtitle = tester
+              .widget<Text>(
+                find.descendant(
+                  of: find.byKey(const ValueKey('sync-exclude-imports-toggle')),
+                  matching: find.textContaining('Off by default'),
+                ),
+              )
+              .data!;
+          expect(subtitle, contains('Nothing is removed from your other'));
+          expect(
+            subtitle,
+            contains('turning it off uploads the skipped dances again'),
+          );
+        },
+      );
+
+      /// Brings the section up already attached to [endpoint], the way a
+      /// device that paired in an earlier session starts.
+      Future<CompendiumRepositories> pumpAttached(
+        WidgetTester tester, {
+        required String endpoint,
+      }) async {
+        final harness = await _pumpSettings(tester);
+        await harness.repos.settings.set(
+          'sync_id',
+          'alpha-bravo-charlie-delta',
+        );
+        await harness.repos.settings.set('sync_endpoint', endpoint);
+        final controller = SyncScope.of(
+          tester.element(find.byType(SettingsScreen)),
+        );
+        await controller.setEnabled(true);
+        await controller.load();
+        await openExperimental(tester);
+        return harness.repos;
+      }
+
+      // ADR-004 requires the endpoint shown un-abstracted as a URL in
+      // Settings whether or not it is the default. Before this, a device on
+      // the default server saw no address on the section at all.
+      testWidgets(
+        'a device paired to the default server shows that server as a URL',
+        (tester) async {
+          await pumpAttached(tester, endpoint: kDefaultSyncEndpoint);
+
+          expect(find.byKey(const ValueKey('sync-endpoint')), findsOneWidget);
+          expect(
+            find.text('Syncing with https://athenaeum.callerscompendium.com/'),
+            findsOneWidget,
+          );
+          // Not flagged as custom: the default server is not a trust decision
+          // the user made.
+          expect(
+            find.byKey(const ValueKey('sync-custom-endpoint')),
+            findsNothing,
+          );
+        },
+      );
+
+      testWidgets(
+        'a custom server is still flagged prominently, and as a URL (spec §8)',
+        (tester) async {
+          await pumpAttached(tester, endpoint: 'https://sync.example.test/');
+
+          final tile = find.byKey(const ValueKey('sync-custom-endpoint'));
+          expect(tile, findsOneWidget);
+          expect(
+            find.text(
+              'Syncing with a custom server: https://sync.example.test/',
+            ),
+            findsOneWidget,
+          );
+          expect(find.byKey(const ValueKey('sync-endpoint')), findsNothing);
+          final icon = tester.widget<Icon>(
+            find.descendant(of: tile, matching: find.byType(Icon)),
+          );
+          final scheme = Theme.of(
+            tester.element(find.byType(SettingsScreen)),
+          ).colorScheme;
+          expect(
+            icon.color,
+            scheme.error,
+            reason: 'a custom endpoint keeps its prominent §8 treatment',
+          );
+        },
+      );
+
+      // ADR-004 names the count as *the* mitigation for a merge the user is
+      // never shown, so it cannot live only in the pairing dialog: three of
+      // the four fresh-attach paths have no dialog at all.
+      testWidgets(
+        'a fresh attach that merged duplicates reports the count on the '
+        'status surface, and it survives a later pass that merged none',
+        (tester) async {
+          final repos = await pumpAttached(
+            tester,
+            endpoint: kDefaultSyncEndpoint,
+          );
+          var merges = 3;
+          _syncCoordinator = SyncCoordinator(
+            syncId: 'configured',
+            deviceId: 'device',
+            store: CompendiumSyncCoordinatorStore(repos),
+            transport: NoopSyncCoordinatorTransport(),
+            passOperation: ({initialStore}) async => SyncPassResult(
+              SyncPassStatus.completed,
+              duplicateCount: merges,
+            ),
+          );
+          addTearDown(_syncCoordinator!.dispose);
+
+          expect(
+            find.byKey(const ValueKey('sync-merged-duplicates')),
+            findsNothing,
+            reason: 'nothing has attached yet',
+          );
+
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+
+          expect(
+            find.byKey(const ValueKey('sync-merged-duplicates')),
+            findsOneWidget,
+          );
+          expect(
+            find.text('Found and merged 3 duplicate dances.'),
+            findsOneWidget,
+          );
+
+          // An ordinary pass reports zero (it runs
+          // refreshDanceAmbiguityReviews, which hard-codes it), so a zero says
+          // nothing about whether the earlier merge happened. The count must
+          // outlive the pass that produced it.
+          merges = 0;
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+
+          expect(
+            find.text('Found and merged 3 duplicate dances.'),
+            findsOneWidget,
+          );
+        },
+      );
+
+      testWidgets(
+        'disconnecting drops the merged-duplicates count with the store it '
+        'belongs to',
+        (tester) async {
+          final repos = await pumpAttached(
+            tester,
+            endpoint: kDefaultSyncEndpoint,
+          );
+          _syncCoordinator = SyncCoordinator(
+            syncId: 'configured',
+            deviceId: 'device',
+            store: CompendiumSyncCoordinatorStore(repos),
+            transport: NoopSyncCoordinatorTransport(),
+            passOperation: ({initialStore}) async => const SyncPassResult(
+              SyncPassStatus.completed,
+              duplicateCount: 4,
+            ),
+          );
+          addTearDown(_syncCoordinator!.dispose);
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+          expect(
+            find.byKey(const ValueKey('sync-merged-duplicates')),
+            findsOneWidget,
+          );
+
+          await tester.tap(find.byKey(const ValueKey('sync-disconnect')));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('sync-disconnect-confirm')),
+          );
+          await tester.pumpAndSettle();
+
+          expect(
+            find.byKey(const ValueKey('sync-merged-duplicates')),
+            findsNothing,
+          );
+        },
+      );
+
       testWidgets('the not-a-backup disclosure is on the status surface', (
         tester,
       ) async {
@@ -2090,6 +2302,15 @@ void main() {
           );
           expect(find.text(phrase), findsNothing);
           expect(find.byKey(const ValueKey('sync-id-caution')), findsOneWidget);
+          // The same §8 capability the pairing flow discloses. This tile shows
+          // the phrase itself, so it must not describe it as less than it
+          // is — and the user guide's account of this tile names all three.
+          final caution = tester
+              .widget<Text>(find.byKey(const ValueKey('sync-id-caution')))
+              .data!;
+          expect(caution, contains('read everything you sync'));
+          expect(caution, contains('delete any of it on every connected'));
+          expect(caution, contains('delete the whole store from the server'));
         });
 
         testWidgets('Show reveals it and hides it again', (tester) async {
@@ -2309,8 +2530,15 @@ void main() {
 
         tearDown(() => _deviceAdminFactory = null);
 
-        Future<CompendiumRepositories> pumpPaired(WidgetTester tester) async {
-          final harness = await _pumpSettings(tester);
+        Future<CompendiumRepositories> pumpPaired(
+          WidgetTester tester, {
+          SyncLocalRepository Function(CompendiumRepositories)?
+          syncLocalOverride,
+        }) async {
+          final harness = await _pumpSettings(
+            tester,
+            syncLocalOverride: syncLocalOverride,
+          );
           await harness.repos.settings.set(
             'sync_id',
             'alpha-bravo-charlie-delta',
@@ -2516,6 +2744,74 @@ void main() {
             find.byKey(const ValueKey('sync-wipe-failed')),
             findsOneWidget,
           );
+          // The DELETE may have been processed before the response was lost,
+          // so this must not tell the user nothing changed and so invite a
+          // retry of something irreversible that already happened.
+          expect(
+            find.textContaining("couldn't confirm it was deleted"),
+            findsOneWidget,
+          );
+          expect(find.textContaining('Nothing was changed'), findsNothing);
+        });
+
+        testWidgets('a wipe whose local clear fails says the store is gone, '
+            'not that it failed', (tester) async {
+          final repos = await pumpPaired(
+            tester,
+            syncLocalOverride: (repos) => _FailingSyncLocal(repos.db),
+          );
+          await tester.tap(find.byKey(const ValueKey('sync-wipe')));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('sync-wipe-confirm')));
+          await tester.pumpAndSettle();
+
+          expect(wipes, 1, reason: 'the store really was deleted');
+          expect(
+            find.byKey(const ValueKey('sync-wipe-detach-failed')),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-wipe-failed')),
+            findsNothing,
+            reason:
+                'reporting a plain failure would invite a retry of a deletion '
+                'that cannot be undone and has already happened',
+          );
+          expect(
+            find.textContaining('The store was deleted from the server'),
+            findsOneWidget,
+          );
+          // Still attached, and the surface must not pretend otherwise.
+          expect(
+            await repos.settings.get('sync_id'),
+            'alpha-bravo-charlie-delta',
+          );
+        });
+
+        testWidgets('the removal dialog does not claim the device stops '
+            'syncing', (tester) async {
+          await pumpPaired(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-devices')));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('sync-device-remove-peer_a')),
+          );
+          await tester.pumpAndSettle();
+
+          // Deleting a manifest frees the device slot; it does not disconnect
+          // the device, which republishes on its next pass (the coordinator
+          // puts its manifest at the end of every one).
+          expect(
+            find.textContaining(
+              'publish its list again the next time it syncs',
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.textContaining('it stops syncing'),
+            findsNothing,
+            reason: 'removal does not stop the removed device syncing',
+          );
         });
       });
 
@@ -2670,7 +2966,7 @@ void main() {
           );
           expect(find.text('Sharing is not collaboration'), findsOneWidget);
           expect(
-            find.text("This phrase can't be recovered or revoked"),
+            find.text('There is no copy of this phrase, and no taking it back'),
             findsOneWidget,
           );
 
@@ -3092,10 +3388,16 @@ void main() {
           await harness.repos.settings.get('sync_endpoint'),
           'https://sync.example.test/',
         );
+        // The whole URL, not the bare host: ADR-004 requires the endpoint
+        // shown un-abstracted as a URL in Settings.
         expect(
-          find.text('Syncing with a custom server: sync.example.test'),
+          find.text('Syncing with a custom server: https://sync.example.test/'),
           findsOneWidget,
         );
+        // The custom tile, not the plain one: §8's prominent treatment is what
+        // separates them, so a custom server rendered as an ordinary endpoint
+        // would be a regression this assertion has to see.
+        expect(find.byKey(const ValueKey('sync-endpoint')), findsNothing);
       });
 
       testWidgets(
@@ -3235,6 +3537,298 @@ void main() {
 
         expect(exportCalls, 1);
       });
+
+      // ---------------------------------------------------------------
+      // Issue #1350: disclosures and completion copy.
+      // ---------------------------------------------------------------
+
+      /// Installs a create probe that always succeeds. Must be called BEFORE
+      /// `_pumpSettings`: the controller captures the factory when it is
+      /// constructed, so a factory installed later is never consulted and the
+      /// screen falls through to a real `SyncHttpClient`.
+      void stubCreateProbe() {
+        _pairingProbeFactory = (syncId, endpoint) => SyncPairingProbe(
+          getStore: ({required previouslyUsed}) async =>
+              throw UnimplementedError('create must not GET'),
+          createStore: () async => const SyncHttpResponse(
+            statusCode: 201,
+            kind: SyncResponseKind.created,
+            headers: {},
+            body: [],
+          ),
+        );
+      }
+
+      /// Drives the create path from the create-or-connect choice to the
+      /// completion dialog, so each guard below differs only in what the §6.12
+      /// gate and the coordinator do with the first pass.
+      Future<void> createToCompletion(WidgetTester tester) async {
+        await tester.tap(find.byKey(const ValueKey('sync-pairing-create')));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('sync-pairing-backup-skip')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('sync-pairing-continue')));
+        await tester.pumpAndSettle();
+      }
+
+      /// A coordinator whose single pass ends at [status], carrying [
+      /// duplicateCount] fresh-attach merges.
+      void stubCoordinator(
+        CompendiumRepositories repos, {
+        SyncPassStatus status = SyncPassStatus.completed,
+        int duplicateCount = 0,
+      }) {
+        _syncCoordinator = SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device',
+          store: CompendiumSyncCoordinatorStore(repos),
+          transport: NoopSyncCoordinatorTransport(),
+          passOperation: ({initialStore}) async =>
+              SyncPassResult(status, duplicateCount: duplicateCount),
+        );
+        addTearDown(_syncCoordinator!.dispose);
+      }
+
+      testWidgets(
+        'both pairing paths state that any phrase-holder can read, change or '
+        'delete records and delete the store (spec §8 threat model)',
+        (tester) async {
+          await enableAndOpenPairing(tester);
+
+          for (final path in const ['create', 'connect']) {
+            await tester.tap(find.byKey(ValueKey('sync-pairing-$path')));
+            await tester.pumpAndSettle();
+
+            expect(
+              find.byKey(const ValueKey('sync-pairing-bearer-disclosure')),
+              findsOneWidget,
+              reason: 'the §8 disclosure is missing on the $path path',
+            );
+            final body = tester
+                .widget<Text>(
+                  find.descendant(
+                    of: find.byKey(
+                      const ValueKey('sync-pairing-bearer-disclosure'),
+                    ),
+                    matching: find.textContaining('can open that library'),
+                  ),
+                )
+                .data!;
+            // All three things it lets someone do, named. Neither
+            // neighbouring card covers deletion or the store-wide wipe, which
+            // is the whole finding.
+            expect(body, contains('read everything you sync'));
+            expect(body, contains('change or delete any of it'));
+            expect(body, contains('delete the whole thing from the server'));
+            // The framing is load-bearing, not decoration: a phrase described
+            // as a password implies an account that could reset or revoke it,
+            // and neither exists.
+            expect(body, contains('not a password'));
+
+            await tester.pageBack();
+            await tester.pumpAndSettle();
+            await tester.tap(find.byKey(const ValueKey('sync-connect')));
+            await tester.pumpAndSettle();
+          }
+        },
+      );
+
+      testWidgets(
+        'the create path warns that a phrase the user types must not contain '
+        'personal information, and still connects',
+        (tester) async {
+          stubCreateProbe();
+          final harness = await _pumpSettings(tester);
+          await openExperimental(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-enabled-toggle')));
+          await tester.pumpAndSettle();
+          stubCoordinator(harness.repos);
+          await tester.tap(find.byKey(const ValueKey('sync-connect')));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('sync-pairing-create')));
+          await tester.pumpAndSettle();
+
+          // Present before anything is typed: a warning that waits for the
+          // user to replace the phrase arrives after they have already put
+          // their name in it.
+          expect(
+            find.byKey(const ValueKey('sync-pairing-personal-info-warning')),
+            findsOneWidget,
+          );
+
+          await tester.enterText(
+            find.byKey(const ValueKey('sync-pairing-phrase')),
+            'jane-smith-march-1984',
+          );
+          await tester.pumpAndSettle();
+          expect(
+            find.byKey(const ValueKey('sync-pairing-personal-info-warning')),
+            findsOneWidget,
+          );
+
+          // Advisory, never blocking: the phrase above still connects.
+          await tester.tap(
+            find.byKey(const ValueKey('sync-pairing-backup-skip')),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('sync-pairing-continue')));
+          await tester.pumpAndSettle();
+          expect(
+            find.byKey(const ValueKey('sync-pairing-complete-dialog')),
+            findsOneWidget,
+          );
+          expect(
+            await harness.repos.settings.get('sync_id'),
+            'jane-smith-march-1984',
+          );
+        },
+      );
+
+      // Both variants, because the old dialog chose *between* the duplicate
+      // line and the body line — so a not-a-backup statement bolted onto one
+      // branch would still leave the other non-conforming.
+      for (final duplicates in const [0, 2]) {
+        testWidgets(
+          'the completion dialog says sync is not a backup when the first '
+          'attach merged $duplicates duplicates (spec §6.14 item 3)',
+          (tester) async {
+            stubCreateProbe();
+            final harness = await _pumpSettings(tester);
+            await openExperimental(tester);
+            await tester.tap(find.byKey(const ValueKey('sync-enabled-toggle')));
+            await tester.pumpAndSettle();
+            stubCoordinator(harness.repos, duplicateCount: duplicates);
+            await tester.tap(find.byKey(const ValueKey('sync-connect')));
+            await tester.pumpAndSettle();
+            await createToCompletion(tester);
+
+            expect(
+              find.byKey(const ValueKey('sync-pairing-complete-not-backup')),
+              findsOneWidget,
+            );
+            expect(
+              find.descendant(
+                of: find.byKey(const ValueKey('sync-pairing-complete-dialog')),
+                matching: find.textContaining('Sync is not a backup'),
+              ),
+              findsOneWidget,
+            );
+            expect(
+              find.byKey(const ValueKey('sync-pairing-complete-duplicates')),
+              duplicates > 0 ? findsOneWidget : findsNothing,
+            );
+            if (duplicates > 0) {
+              expect(
+                find.text('Found and merged 2 duplicate dances.'),
+                findsOneWidget,
+              );
+            }
+          },
+        );
+      }
+
+      // completePairing awaits the first pass, so by the time this dialog is
+      // on screen that pass has finished, failed, or never started. Each of
+      // the four says which; none says a sync is in progress.
+      for (final variant
+          in const <
+            ({
+              String name,
+              SyncNetworkKind network,
+              SyncPassStatus? status,
+              String expected,
+            })
+          >[
+            (
+              name: 'a completed first pass',
+              network: SyncNetworkKind.unmetered,
+              status: SyncPassStatus.completed,
+              expected:
+                  'Your library is connected, and the first sync has finished.',
+            ),
+            (
+              name: 'a failed first pass',
+              network: SyncNetworkKind.unmetered,
+              status: SyncPassStatus.failed,
+              expected:
+                  'Your library is connected, but the first sync didn\'t '
+                  'finish. It will try again on its own.',
+            ),
+            (
+              name: 'a first pass deferred as metered',
+              network: SyncNetworkKind.metered,
+              status: null,
+              expected:
+                  'Your library is connected. The first sync is waiting for '
+                  'WiFi, because Sync only on WiFi is on.',
+            ),
+            (
+              name: 'a first pass deferred while offline',
+              network: SyncNetworkKind.offline,
+              status: null,
+              expected:
+                  'Your library is connected. The first sync will run once '
+                  "you're back online.",
+            ),
+          ]) {
+        testWidgets(
+          'the completion dialog reports ${variant.name} and never claims a '
+          'sync is running',
+          (tester) async {
+            stubCreateProbe();
+            final harness = await _pumpSettings(tester);
+            await openExperimental(tester);
+            await tester.tap(find.byKey(const ValueKey('sync-enabled-toggle')));
+            await tester.pumpAndSettle();
+            if (variant.status case final status?) {
+              stubCoordinator(harness.repos, status: status);
+            } else {
+              // A suppressed attempt never reaches the coordinator; the
+              // coordinator exists so the gate is the only thing stopping it.
+              stubCoordinator(harness.repos);
+            }
+            _syncNetwork.kind = variant.network;
+            await tester.tap(find.byKey(const ValueKey('sync-connect')));
+            await tester.pumpAndSettle();
+            await createToCompletion(tester);
+
+            expect(
+              find.byKey(const ValueKey('sync-pairing-complete-dialog')),
+              findsOneWidget,
+            );
+            final state = tester
+                .widget<Text>(
+                  find.byKey(const ValueKey('sync-pairing-complete-state')),
+                )
+                .data!;
+            expect(state, variant.expected);
+            expect(state, isNot(contains('running now')));
+          },
+        );
+      }
+
+      testWidgets(
+        'a pairing whose coordinator could not be built says nothing has '
+        'synced yet rather than reporting a finished sync',
+        (tester) async {
+          stubCreateProbe();
+          await enableAndOpenPairing(tester);
+          // _syncCoordinator stays null, so `trigger` answers notPaired.
+          await createToCompletion(tester);
+
+          expect(
+            tester
+                .widget<Text>(
+                  find.byKey(const ValueKey('sync-pairing-complete-state')),
+                )
+                .data,
+            'Your library is connected. The first sync hasn\'t run yet; it '
+            'will run the next time this device syncs.',
+          );
+        },
+      );
     });
 
     group('Replacement dialog (ADR-004/W13 PR2, spec §6.14 item 6)', () {
@@ -3569,6 +4163,114 @@ void main() {
           expect(tester.takeException(), isNull);
           expect(
             find.byKey(const ValueKey('sync-replacement-dialog')),
+            findsOneWidget,
+          );
+        },
+      );
+
+      // Issue #1350: a replacement is a fresh attach against a store the user
+      // has just agreed to create, so it merges duplicates exactly as pairing
+      // does — and it has no completion dialog of its own to say so.
+      testWidgets(
+        'a confirmed replacement that merged duplicates reports the count on '
+        'the status surface',
+        (tester) async {
+          final transport = ControllableSyncTransport();
+          final harness = await _pumpSettings(tester);
+          await harness.repos.settings.set('sync_id', 'configured-store-id-m');
+          final controller = SyncScope.of(
+            tester.element(find.byType(SettingsScreen)),
+          );
+          await controller.setEnabled(true);
+          await controller.load();
+
+          _syncCoordinator = SyncCoordinator(
+            syncId: 'configured',
+            deviceId: 'device',
+            store: CompendiumSyncCoordinatorStore(harness.repos),
+            transport: transport,
+            passOperation: ({initialStore}) async {
+              if (transport.createStoreCalls == 0) {
+                return const SyncPassResult(SyncPassStatus.replacementRequired);
+              }
+              return const SyncPassResult(
+                SyncPassStatus.completed,
+                duplicateCount: 7,
+              );
+            },
+          );
+          addTearDown(_syncCoordinator!.dispose);
+          controller.attachCoordinator(_syncCoordinator);
+          await openExperimental(tester);
+
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('sync-replacement-confirm')),
+          );
+          await tester.pumpAndSettle();
+
+          expect(
+            find.byKey(const ValueKey('sync-merged-duplicates')),
+            findsOneWidget,
+          );
+          expect(
+            find.text('Found and merged 7 duplicate dances.'),
+            findsOneWidget,
+          );
+        },
+      );
+
+      // The stale-epoch auto-join is the fresh attach with no user action at
+      // all behind it: the pass simply discovers the store was replaced and
+      // re-attaches. Nothing reported its merges before this.
+      testWidgets(
+        'a stale-epoch auto-join that merged duplicates reports the count '
+        'without the user having confirmed anything',
+        (tester) async {
+          final harness = await _pumpSettings(tester);
+          await harness.repos.settings.set('sync_id', 'configured-store-id-s');
+          final controller = SyncScope.of(
+            tester.element(find.byType(SettingsScreen)),
+          );
+          await controller.setEnabled(true);
+          await controller.load();
+
+          var passes = 0;
+          _syncCoordinator = SyncCoordinator(
+            syncId: 'configured',
+            deviceId: 'device',
+            store: CompendiumSyncCoordinatorStore(harness.repos),
+            transport: NoopSyncCoordinatorTransport(),
+            passOperation: ({initialStore}) async {
+              passes++;
+              // Pass 1 finds the epoch moved on; pass 2 is the fresh attach
+              // the coordinator does on its own, which merges.
+              return passes == 1
+                  ? const SyncPassResult(SyncPassStatus.staleEpoch)
+                  : const SyncPassResult(
+                      SyncPassStatus.completed,
+                      duplicateCount: 5,
+                    );
+            },
+          );
+          addTearDown(_syncCoordinator!.dispose);
+          controller.attachCoordinator(_syncCoordinator);
+          await openExperimental(tester);
+
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+          expect(
+            find.byKey(const ValueKey('sync-merged-duplicates')),
+            findsNothing,
+            reason: 'the stale-epoch pass itself merged nothing',
+          );
+
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+
+          expect(
+            find.text('Found and merged 5 duplicate dances.'),
             findsOneWidget,
           );
         },
