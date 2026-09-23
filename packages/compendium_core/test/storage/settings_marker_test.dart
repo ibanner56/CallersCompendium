@@ -26,7 +26,7 @@ import 'package:drift/drift.dart' show Variable;
 import 'package:test/test.dart';
 
 import 'test_database.dart';
-import '../figures_for_test.dart';
+import '../figures_support.dart';
 
 void main() {
   late CompendiumDatabase db;

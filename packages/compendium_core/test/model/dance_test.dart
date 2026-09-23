@@ -1,7 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 import 'package:compendium_core/testing.dart';
-import '../figures_for_test.dart';
+import '../figures_support.dart';
 
 void main() {
   final now = DateTime.utc(2026, 7, 10);

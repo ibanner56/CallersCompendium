@@ -32,7 +32,7 @@ import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
-import '../figures_for_test.dart';
+import '../figures_support.dart';
 
 Map<String, Object?> _dance(List<Map<String, Object?>> phrases) => {
   'ID': '1',

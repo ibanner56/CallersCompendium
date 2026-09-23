@@ -3,7 +3,7 @@ import 'package:test/test.dart';
 
 import 'fixtures.dart';
 import 'test_database.dart';
-import '../figures_for_test.dart';
+import '../figures_support.dart';
 
 /// Reads the derived `dance_figures.params_json` string for the figure at
 /// [idx] of [danceId]. Used to assert the stored JSON has not drifted from the

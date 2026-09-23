@@ -5,7 +5,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
 import 'support/fmp_fixture_builder.dart';
-import '../figures_for_test.dart';
+import '../figures_support.dart';
 
 /// Tests for [CallersCompanionUsrAdapter]. The reader/archive layers are tested
 /// elsewhere; here we cover the adapter's own contract: byte intake (options

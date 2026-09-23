@@ -15,7 +15,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 import '../support/test_repositories.dart';
-import '../figures_for_test.dart';
+import '../figures_support.dart';
 
 /// A minimal Caller's Box per-dance JSON payload (trimmed to the fields
 /// [CallersBoxAdapter] reads), used by the load/import policy tests.

@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
-import '../figures_for_test.dart';
+import '../figures_support.dart';
 
 /// Issue #799 — The Caller's Box `Square through <n> (<pass list>)` lines.
 ///

@@ -15,7 +15,7 @@ import 'package:compendium_app/src/widgets/program_export_menu.dart';
 
 import 'support/l10n_harness.dart';
 import 'support/test_repositories.dart';
-import 'figures_for_test.dart';
+import 'figures_support.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
 

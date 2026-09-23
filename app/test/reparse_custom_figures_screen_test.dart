@@ -11,7 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
-import 'figures_for_test.dart';
+import 'figures_support.dart';
 
 /// An import-gap custom figure carrying [text] as its stored scrubbed source.
 Figure _importGap(String text) =>

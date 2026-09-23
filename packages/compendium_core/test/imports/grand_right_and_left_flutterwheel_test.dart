@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
-import '../figures_for_test.dart';
+import '../figures_support.dart';
 
 /// Issue #295 — **grand right and left** and **flutterwheel** are compound
 /// SHORTHANDS, not taxonomy moves. Both decompose into moves the taxonomy

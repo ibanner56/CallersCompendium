@@ -4,7 +4,7 @@ import 'package:drift/drift.dart' show Variable;
 import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
-import '../figures_for_test.dart';
+import '../figures_support.dart';
 
 /// Seeds [repos] with a representative dataset spanning every entity type and
 /// their joins, so the export/restore round-trip is exercised end to end.

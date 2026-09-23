@@ -7,7 +7,7 @@ import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/screens/dance_editor/dance_editor_controller.dart';
 
 import 'support/test_repositories.dart';
-import 'figures_for_test.dart';
+import 'figures_support.dart';
 
 /// Pure-Dart unit tests for [DanceEditorController]: they construct the
 /// controller directly (no widget tree) and drive its mutation methods to

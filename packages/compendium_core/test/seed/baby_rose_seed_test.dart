@@ -6,7 +6,7 @@ import 'package:test/test.dart';
 
 import 'baby_rose_seed_generator.dart';
 import '../test_package_root.dart';
-import '../figures_for_test.dart';
+import '../figures_support.dart';
 
 void main() {
   group('Baby Rose seed asset', () {

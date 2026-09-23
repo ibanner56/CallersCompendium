@@ -3,7 +3,7 @@ import 'package:test/test.dart';
 
 import 'fixtures.dart';
 import 'test_database.dart';
-import '../figures_for_test.dart';
+import '../figures_support.dart';
 
 /// An import-gap custom figure carrying [text] as its stored scrubbed source.
 Figure importGap(String text, {int beats = 0}) =>

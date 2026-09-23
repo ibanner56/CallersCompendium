@@ -6,7 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 import '../test_package_root.dart';
-import '../figures_for_test.dart';
+import '../figures_support.dart';
 
 /// Issue #347 — The Caller's Box **compound-figure** convention + revolving-door
 /// text parity. TCB expresses a named figure as its indented component

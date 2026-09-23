@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 import 'package:compendium_core/testing.dart';
-import '../figures_for_test.dart';
+import '../figures_support.dart';
 
 /// A comprehensive archive exercising every entity type and many edge cases
 /// (non-standard phrase structure, custom-only figures, metadata-only dances,

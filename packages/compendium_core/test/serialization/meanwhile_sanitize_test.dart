@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
-import '../figures_for_test.dart';
+import '../figures_support.dart';
 
 /// The archive/.ccshare import path treats `meanwhile` sub-figures as untrusted
 /// recursive structure (#590): the decode-time sanitizer must recurse into every

@@ -1,6 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
-import '../figures_for_test.dart';
+import '../figures_support.dart';
 
 /// Coverage for the CallersBox/TCB figure-recognition enrichment (issue #553):
 /// the additive Gap-1 recognizers (roll away, cross trails, figure eight, form

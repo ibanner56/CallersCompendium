@@ -25,7 +25,7 @@ import 'package:compendium_app/src/screens/program_summary_screen.dart';
 import 'support/fake_url_launcher.dart';
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
-import 'figures_for_test.dart';
+import 'figures_support.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
 

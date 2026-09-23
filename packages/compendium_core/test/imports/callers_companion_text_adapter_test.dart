@@ -2,7 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
-import '../figures_for_test.dart';
+import '../figures_support.dart';
 
 /// Fixtures + tests for [CallersCompanionTextAdapter]: Caller's Companion's
 /// "copy formatted dance" clipboard/text export as a per-dance import source.

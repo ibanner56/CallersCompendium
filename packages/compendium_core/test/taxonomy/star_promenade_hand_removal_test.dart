@@ -45,7 +45,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show Variable;
 import 'package:drift/native.dart';
 import 'package:test/test.dart';
-import '../figures_for_test.dart';
+import '../figures_support.dart';
 
 Map<String, Object?> _dance({
   String id = '1',

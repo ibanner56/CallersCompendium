@@ -47,7 +47,7 @@ import 'package:test/test.dart';
 
 import '../test_package_root.dart';
 import 'generated/schema.dart';
-import '../figures_for_test.dart';
+import '../figures_support.dart';
 
 void main() {
   test('v35 review rows retain legacy null local hashes at v36', () async {

@@ -5,7 +5,7 @@ import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
 import 'support/fmp_fixture_builder.dart';
-import '../figures_for_test.dart';
+import '../figures_support.dart';
 
 /// Corpus regression for issue #559: choreography is ingested from the CC
 /// `Phrase` table and routed through the shared free-text **fan-out**, end to

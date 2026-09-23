@@ -4,7 +4,7 @@ import 'package:compendium_core/testing.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/test_repositories.dart';
-import '../figures_for_test.dart';
+import '../figures_support.dart';
 
 void main() {
   test(
