@@ -243,13 +243,36 @@ void main() {
       );
     });
 
+    test('fresh-attach dedupe does not offer it as a match', () async {
+      // Reaches `_danceDedupePlan`, which builds blobs straight from `listAll`
+      // and never consults the record-body read.
+      //
+      // The pairing is deliberate: dedupe groups by normalised title AND by
+      // choreography key, so the partner must have an EMPTY figure list to
+      // share a key with the undecodable row's body (which serialises as an
+      // empty `figures` array beside `figuresRaw`). A partner with real figures
+      // groups separately and the test would pass whether or not the withhold
+      // exists — which is exactly what the first version of this test did.
+      await seedUndecodable();
+      await repos.dances.create(
+        sampleDance(id: 'd2', title: 'Corrupt', figures: const []),
+      );
+
+      final result = await storage.deduplicateFreshAttach();
+
+      expect(
+        result.duplicateCount,
+        0,
+        reason:
+            'the undecodable row is not offered as a dedupe match, so no '
+            'duplicate pair is seen',
+      );
+    });
+
     test('merge candidates omit it', () async {
       await seedUndecodable();
       final candidates = await storage.snapshotCandidates();
-      expect(
-        candidates[(kind: SyncRecordKind.dance, recordId: 'd1')],
-        isNull,
-      );
+      expect(candidates[(kind: SyncRecordKind.dance, recordId: 'd1')], isNull);
       for (final c in candidates.values) {
         expect(c?.blob.body.containsKey('figuresRaw') ?? false, isFalse);
       }
