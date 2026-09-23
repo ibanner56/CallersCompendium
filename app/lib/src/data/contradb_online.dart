@@ -189,8 +189,12 @@ class ContraDbOnline implements OnlineSearchService {
       final existing = await repos.dances.getById(candidateId);
       if (existing != null) {
         final identical = figuresCanonicallyIdentical(
-          oldFigures: existing.figures,
-          newFigures: plan.draft.dance.figures,
+          oldFigures: switch (existing.figuresSource) {
+            DecodedFigures(:final figures) => figures,
+          },
+          newFigures: switch (plan.draft.dance.figuresSource) {
+            DecodedFigures(:final figures) => figures,
+          },
           taxonomy: contraTaxonomy,
         );
         if (!identical) {

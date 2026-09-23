@@ -322,7 +322,11 @@ class DanceEditorController extends ChangeNotifier {
       for (final value in dance.customFields) {
         customValues[value.fieldId] = value.value;
       }
-      figureDrafts.addAll(dance.figures.map(FigureDraft.fromFigure));
+      figureDrafts.addAll(
+        switch (dance.figuresSource) {
+          DecodedFigures(:final figures) => figures,
+        }.map(FigureDraft.fromFigure),
+      );
       _renderNotesRecursively(figureDrafts);
     } else {
       // New dance (ROADMAP DD.1): seed the initial metadata from the saved

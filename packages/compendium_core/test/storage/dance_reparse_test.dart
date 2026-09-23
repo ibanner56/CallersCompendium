@@ -3,6 +3,7 @@ import 'package:test/test.dart';
 
 import 'fixtures.dart';
 import 'test_database.dart';
+import '../figures_support.dart';
 
 /// An import-gap custom figure carrying [text] as its stored scrubbed source.
 Figure importGap(String text, {int beats = 0}) =>
@@ -118,7 +119,7 @@ void main() {
       await dances.previewImportGapReparse();
 
       expect((await dances.getById('a'))!.updatedAt, before);
-      expect((await dances.getById('a'))!.figures.single.isCustom, isTrue);
+      expect(figuresOf((await dances.getById('a'))!).single.isCustom, isTrue);
     });
   });
 
@@ -133,7 +134,7 @@ void main() {
       ], now: now);
 
       expect(changed, 1);
-      final f = (await dances.getById('a'))!.figures.single;
+      final f = figuresOf((await dances.getById('a'))!).single;
       expect(f.isCustom, isFalse);
       expect(f.move, 'swing');
       expect(f.params['beats'], 16);
@@ -173,7 +174,7 @@ void main() {
       ], now: now);
 
       expect(changed, 0);
-      final figures = (await dances.getById('a'))!.figures;
+      final figures = figuresOf((await dances.getById('a'))!);
       expect(figures[0].move, 'swing');
       expect(figures[1].isCustom, isTrue);
       expect(figures[1].customOrigin, CustomOrigin.userEntered);
@@ -223,8 +224,8 @@ void main() {
       expect(loaded.tunes, ['Reel of Rio']);
       expect(loaded.callingNotes, 'Teach the swing.');
       // Only the figure changed.
-      expect(loaded.figures.single.move, 'swing');
-      expect(loaded.figures.single.isCustom, isFalse);
+      expect(figuresOf(loaded).single.move, 'swing');
+      expect(figuresOf(loaded).single.isCustom, isFalse);
     });
 
     test('is idempotent — a second run changes nothing', () async {
@@ -243,7 +244,7 @@ void main() {
       final afterSecond = (await dances.getById('a'))!;
       // No further change, and updatedAt was not re-stamped.
       expect(afterSecond.updatedAt, afterFirst.updatedAt);
-      expect(afterSecond.figures.single.move, 'swing');
+      expect(figuresOf(afterSecond).single.move, 'swing');
     });
 
     test('empty ids is a no-op returning 0', () async {

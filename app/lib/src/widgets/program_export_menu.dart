@@ -169,8 +169,11 @@ class ProgramExportMenu extends StatelessWidget {
   /// Returns `true` if any dance reachable via [danceFor] in this program has
   /// at least one figure. When `false` the "Include figures?" prompt is skipped
   /// and all text/PDF paths proceed as set-list-only.
-  bool _hasFigures() =>
-      _orderedExportDances().any((e) => e.dance.figures.isNotEmpty);
+  bool _hasFigures() => _orderedExportDances().any(
+    (e) => switch (e.dance.figuresSource) {
+      DecodedFigures(:final figures) => figures,
+    }.isNotEmpty,
+  );
 
   /// Asks whether to include figures in the current export.
   ///
@@ -200,7 +203,10 @@ class ProgramExportMenu extends StatelessWidget {
     final alternate = l10n.exportIncludeFiguresAlternate;
     for (final entry in _orderedExportDances()) {
       final dance = entry.dance;
-      if (dance.figures.isEmpty) continue;
+      final danceFigures = switch (dance.figuresSource) {
+        DecodedFigures(:final figures) => figures,
+      };
+      if (danceFigures.isEmpty) continue;
       buf.writeln();
       // Mark alternates on the separator line so the title from
       // danceToPlainText appears exactly once (ruling 8: mark, not duplicate).

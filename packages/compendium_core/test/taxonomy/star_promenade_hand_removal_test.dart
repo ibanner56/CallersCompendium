@@ -45,6 +45,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show Variable;
 import 'package:drift/native.dart';
 import 'package:test/test.dart';
+import '../figures_support.dart';
 
 Map<String, Object?> _dance({
   String id = '1',
@@ -74,7 +75,7 @@ Future<StructuredDraft> _importTcb(List<String> lines) async {
 
 /// The single figure a one-line TCB import produces.
 Future<Figure> _importTcbLine(String line) async =>
-    (await _importTcb([line])).dance.figures.single;
+    figuresOf((await _importTcb([line])).dance).single;
 
 void main() {
   final tax = contraTaxonomy;
@@ -404,12 +405,12 @@ void main() {
       await repos.ensureMigrated();
 
       final dance = (await repos.dances.getById('d1'))!;
-      expect(dance.figures[0].params.containsKey('hand'), isFalse);
+      expect(figuresOf(dance)[0].params.containsKey('hand'), isFalse);
       // Everything else about the figure survives.
-      expect(dance.figures[0].params['who'], 'neighbors');
-      expect(dance.figures[0].params['travel'], 0.5);
+      expect(figuresOf(dance)[0].params['who'], 'neighbors');
+      expect(figuresOf(dance)[0].params['travel'], 0.5);
 
-      final side = dance.figures[1].subFigures.first;
+      final side = figuresOf(dance)[1].subFigures.first;
       expect(side.move, 'star_promenade');
       expect(side.params.containsKey('hand'), isFalse);
       expect(side.params['who'], 'partners');
@@ -433,9 +434,9 @@ void main() {
       await repos.ensureMigrated();
 
       final dance = (await repos.dances.getById('d1'))!;
-      expect(dance.figures[0].move, 'allemande');
-      expect(dance.figures[0].params['hand'], 'left');
-      expect(dance.figures[1].params.containsKey('hand'), isFalse);
+      expect(figuresOf(dance)[0].move, 'allemande');
+      expect(figuresOf(dance)[0].params['hand'], 'left');
+      expect(figuresOf(dance)[1].params.containsKey('hand'), isFalse);
 
       await db.close();
     });

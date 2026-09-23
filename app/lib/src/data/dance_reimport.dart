@@ -32,7 +32,9 @@ Future<DanceReimportResult> replaceDanceChoreography(
     // because that write is authored.
     await repos.dances.update(
       existing.copyWith(
-        figures: incoming.figures,
+        figures: switch (incoming.figuresSource) {
+          DecodedFigures(:final figures) => figures,
+        },
         formation: incoming.formation,
         progression: incoming.progression,
         updatedAt: now ?? DateTime.now().toUtc(),

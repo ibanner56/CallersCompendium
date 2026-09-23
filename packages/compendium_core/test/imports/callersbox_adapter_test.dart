@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import '../figures_support.dart';
 
 /// Fixtures + tests for [CallersBoxAdapter].
 ///
@@ -787,12 +788,12 @@ void main() {
           // PR3b cross-line merge: the preceding balance line folds into the
           // swing as its `balance` prefix, so the two source lines become one
           // structured figure carrying the summed beats (4 + 12 = 16).
-          expect(draft.dance.figures, hasLength(1));
-          expect(draft.dance.figures.single.isCustom, isFalse);
-          expect(draft.dance.figures.single.move, 'swing');
-          expect(draft.dance.figures.single.params['who'], 'neighbors');
-          expect(draft.dance.figures.single.params['prefix'], 'balance');
-          expect(draft.dance.figures.single.params['beats'], 16);
+          expect(figuresOf(draft.dance), hasLength(1));
+          expect(figuresOf(draft.dance).single.isCustom, isFalse);
+          expect(figuresOf(draft.dance).single.move, 'swing');
+          expect(figuresOf(draft.dance).single.params['who'], 'neighbors');
+          expect(figuresOf(draft.dance).single.params['prefix'], 'balance');
+          expect(figuresOf(draft.dance).single.params['beats'], 16);
         },
       );
 
@@ -811,15 +812,15 @@ void main() {
             ),
           ),
         );
-        expect(draft.dance.figures[0].isCustom, isTrue);
+        expect(figuresOf(draft.dance)[0].isCustom, isTrue);
         expect(
-          _text(draft.dance.figures[0]),
+          _text(figuresOf(draft.dance)[0]),
           'In a big ring, go forward and back',
         );
-        expect(draft.dance.figures[1].isCustom, isTrue);
-        expect(_text(draft.dance.figures[1]), 'Bend the line');
+        expect(figuresOf(draft.dance)[1].isCustom, isTrue);
+        expect(_text(figuresOf(draft.dance)[1]), 'Bend the line');
         // "Star left 1" is recognised → structured.
-        expect(draft.dance.figures[2].move, 'star');
+        expect(figuresOf(draft.dance)[2].move, 'star');
       });
 
       test('stores clean custom text when a phrase has no name', () async {
@@ -832,7 +833,7 @@ void main() {
             ),
           ),
         );
-        expect(_text(draft.dance.figures.single), 'Bend the line');
+        expect(_text(figuresOf(draft.dance).single), 'Bend the line');
       });
 
       test('scrubs gendered role terms before parsing', () async {
@@ -851,15 +852,15 @@ void main() {
         // "Ladies chain to neighbor" now structures (PR2 D3): the chain is
         // recognised and the "to neighbor" target is preserved as a Figure
         // note. The scrub still ran (who is the canonical role token).
-        expect(draft.dance.figures[0].isCustom, isFalse);
-        expect(draft.dance.figures[0].move, 'chain');
-        expect(draft.dance.figures[0].params['who'], 'role2s');
-        expect(draft.dance.figures[0].note, 'to neighbor');
+        expect(figuresOf(draft.dance)[0].isCustom, isFalse);
+        expect(figuresOf(draft.dance)[0].move, 'chain');
+        expect(figuresOf(draft.dance)[0].params['who'], 'role2s');
+        expect(figuresOf(draft.dance)[0].note, 'to neighbor');
         // "Gents allemande left" structures; the scrub still ran, so who is the
         // canonical role token (proof scrub happens before parsing).
-        expect(draft.dance.figures[1].move, 'allemande');
-        expect(draft.dance.figures[1].params['who'], 'role1s');
-        expect(draft.dance.figures[1].params['hand'], 'left');
+        expect(figuresOf(draft.dance)[1].move, 'allemande');
+        expect(figuresOf(draft.dance)[1].params['who'], 'role1s');
+        expect(figuresOf(draft.dance)[1].params['hand'], 'left');
       });
 
       test('structures compact seesaw from CallersBox', () async {
@@ -872,10 +873,10 @@ void main() {
             ),
           ),
         );
-        expect(draft.dance.figures, hasLength(1));
-        expect(draft.dance.figures.single.isCustom, isFalse);
-        expect(draft.dance.figures.single.move, 'see_saw');
-        expect(draft.dance.figures.single.params['who'], 'role1s');
+        expect(figuresOf(draft.dance), hasLength(1));
+        expect(figuresOf(draft.dance).single.isCustom, isFalse);
+        expect(figuresOf(draft.dance).single.move, 'see_saw');
+        expect(figuresOf(draft.dance).single.params['who'], 'role1s');
       });
 
       test('substitutes gypsy → shoulder round (safety net)', () async {
@@ -889,13 +890,13 @@ void main() {
           ),
         );
         // "Neighbor gypsy right" → shoulder_round structured (gypsy scrubbed).
-        expect(draft.dance.figures[0].move, 'shoulder_round');
-        expect(draft.dance.figures[0].params['who'], 'neighbors');
-        expect(draft.dance.figures[0].params['shoulder'], 'right');
+        expect(figuresOf(draft.dance)[0].move, 'shoulder_round');
+        expect(figuresOf(draft.dance)[0].params['who'], 'neighbors');
+        expect(figuresOf(draft.dance)[0].params['shoulder'], 'right');
         // "gypsies once" scrubs to "shoulder rounds once" but has no dancer set
         // and stays custom — the scrub is still visible in the text.
-        expect(draft.dance.figures[1].isCustom, isTrue);
-        expect(_text(draft.dance.figures[1]), 'shoulder rounds once');
+        expect(figuresOf(draft.dance)[1].isCustom, isTrue);
+        expect(_text(figuresOf(draft.dance)[1]), 'shoulder rounds once');
       });
 
       test('parse never fails on odd figure lines', () async {
@@ -914,16 +915,16 @@ void main() {
           ),
         );
         // Empty line dropped; the other three kept.
-        expect(draft.dance.figures, hasLength(3));
+        expect(figuresOf(draft.dance), hasLength(3));
         expect(
-          draft.dance.figures[0].params['beats'],
+          figuresOf(draft.dance)[0].params['beats'],
           isNull,
         ); // (0) → no beats
-        expect(_text(draft.dance.figures[0]), 'Improper formation');
-        expect(_text(draft.dance.figures[1]), 'No beats prefix here');
+        expect(_text(figuresOf(draft.dance)[0]), 'Improper formation');
+        expect(_text(figuresOf(draft.dance)[1]), 'No beats prefix here');
         // "Neighbor swing" is recognised → structured with source beats.
-        expect(draft.dance.figures[2].move, 'swing');
-        expect(draft.dance.figures[2].params['beats'], 4);
+        expect(figuresOf(draft.dance)[2].move, 'swing');
+        expect(figuresOf(draft.dance)[2].params['beats'], 4);
       });
     });
 
@@ -932,7 +933,7 @@ void main() {
         final draft = await _importOne(
           jsonEncode(_dance(phrases: [_phrase('A1', lines)])),
         );
-        return draft.dance.figures;
+        return figuresOf(draft.dance);
       }
 
       test('balance → swing folds into a balance-prefixed swing', () async {
@@ -1265,10 +1266,10 @@ void main() {
         );
         // Balance ends A1 and the swing opens A2 — different sections, so they
         // are left as two separate figures.
-        expect(draft.dance.figures, hasLength(2));
-        expect(draft.dance.figures[0].move, 'balance');
-        expect(draft.dance.figures[1].move, 'swing');
-        expect(draft.dance.figures[1].params['prefix'], isNull);
+        expect(figuresOf(draft.dance), hasLength(2));
+        expect(figuresOf(draft.dance)[0].move, 'balance');
+        expect(figuresOf(draft.dance)[1].move, 'swing');
+        expect(figuresOf(draft.dance)[1].params['prefix'], isNull);
       });
 
       test('a single-line "balance and swing" is not double-folded', () async {
@@ -1405,13 +1406,16 @@ void main() {
           // sections, so they stay two separate figures: the ocean keeps its
           // own 4 beats and no balance, and the balance line is promoted on its
           // own (#295) rather than folding backwards across the boundary.
-          expect(draft.dance.figures, hasLength(2));
-          expect(draft.dance.figures[0].move, 'pass_the_ocean');
-          expect(draft.dance.figures[0].params.containsKey('balance'), isFalse);
-          expect(draft.dance.figures[0].params['beats'], 4);
-          expect(draft.dance.figures[1].move, 'form_short_waves');
-          expect(draft.dance.figures[1].params['balance'], isTrue);
-          expect(draft.dance.figures[1].params['beats'], 4);
+          expect(figuresOf(draft.dance), hasLength(2));
+          expect(figuresOf(draft.dance)[0].move, 'pass_the_ocean');
+          expect(
+            figuresOf(draft.dance)[0].params.containsKey('balance'),
+            isFalse,
+          );
+          expect(figuresOf(draft.dance)[0].params['beats'], 4);
+          expect(figuresOf(draft.dance)[1].move, 'form_short_waves');
+          expect(figuresOf(draft.dance)[1].params['balance'], isTrue);
+          expect(figuresOf(draft.dance)[1].params['beats'], 4);
         },
       );
     });
@@ -1430,7 +1434,7 @@ void main() {
           ),
         );
         expect(draft.dance.title, 'Hidden');
-        expect(draft.dance.figures, isEmpty);
+        expect(figuresOf(draft.dance), isEmpty);
         expect(
           draft.issues.any((i) => i.code == 'callersbox_search_tier'),
           isTrue,
@@ -1448,7 +1452,7 @@ void main() {
             ),
           ),
         );
-        expect(draft.dance.figures, isEmpty);
+        expect(figuresOf(draft.dance), isEmpty);
         expect(
           draft.issues.any((i) => i.code == 'callersbox_search_tier'),
           isTrue,
@@ -1470,30 +1474,32 @@ void main() {
         // "Bend the line" folds into the up-the-hall, and "Neighbor turn as
         // couples" now folds into the DOWN-the-hall as `ender: turnCouple`
         // (#553), so the 10 source lines across A1/A2/B1/B2 collapse to 7.
-        expect(draft.dance.figures, hasLength(7));
+        expect(figuresOf(draft.dance), hasLength(7));
         // Every remaining line structures — A2's "Neighbor turn as couples" is
         // no longer a standalone custom (it rode into the down-hall's ender).
-        expect(draft.dance.figures.where((f) => f.isCustom), isEmpty);
+        expect(figuresOf(draft.dance).where((f) => f.isCustom), isEmpty);
         // The two A2 halls carry their folded enders.
-        final down = draft.dance.figures.firstWhere(
-          (f) => f.move == 'down_the_hall',
-        );
+        final down = figuresOf(
+          draft.dance,
+        ).firstWhere((f) => f.move == 'down_the_hall');
         expect(down.params['ender'], 'turnCouple');
         expect(down.params['beats'], 8); // hall 6 + turn as couples 2
-        final up = draft.dance.figures.firstWhere(
-          (f) => f.move == 'up_the_hall',
-        );
+        final up = figuresOf(
+          draft.dance,
+        ).firstWhere((f) => f.move == 'up_the_hall');
         expect(up.params['ender'], 'bendTheLine');
         // "Ladies chain to neighbor" (phrase B2) now structures as a chain with
         // the "to neighbor" target preserved as a Figure note.
-        final chain = draft.dance.figures.firstWhere((f) => f.move == 'chain');
+        final chain = figuresOf(
+          draft.dance,
+        ).firstWhere((f) => f.move == 'chain');
         expect(chain.params['who'], 'role2s');
         expect(chain.note, 'to neighbor');
         // The first figure is A1's balance-and-swing: the balance line folded
         // into the swing as its prefix, carrying the summed beats (4 + 12).
-        expect(draft.dance.figures.first.move, 'swing');
-        expect(draft.dance.figures.first.params['prefix'], 'balance');
-        expect(draft.dance.figures.first.params['beats'], 16);
+        expect(figuresOf(draft.dance).first.move, 'swing');
+        expect(figuresOf(draft.dance).first.params['prefix'], 'balance');
+        expect(figuresOf(draft.dance).first.params['beats'], 16);
       });
 
       test('sourceVersion carries the download_date', () async {
@@ -1519,7 +1525,9 @@ void main() {
         // rather than fall to custom. The bare "Hey" is TCB's full 16-beat
         // default; length is read from an explicit fraction when one is present,
         // never inferred from the pass count.
-        final heys = draft.dance.figures.where((f) => f.move == 'hey').toList();
+        final heys = figuresOf(
+          draft.dance,
+        ).where((f) => f.move == 'hey').toList();
         expect(heys, hasLength(1), reason: 'B2 hey should be structured');
         final hey = heys.single;
         expect(hey.isCustom, isFalse);
@@ -1531,7 +1539,7 @@ void main() {
 
       test('the decoded B2 hey survives a JSON round-trip', () async {
         final draft = await _importOne(_realId1006);
-        final hey = draft.dance.figures.firstWhere((f) => f.move == 'hey');
+        final hey = figuresOf(draft.dance).firstWhere((f) => f.move == 'hey');
         expect(figureFromJson(figureToJson(hey)), hey);
       });
     });
@@ -1546,9 +1554,9 @@ void main() {
         // The #577 regression: A2's `(4) Pass the ocean` / `(4) Balance wave of
         // four (NR,WL)` must collapse to ONE balanced ocean (beats 4 + 4 = 8),
         // not an ocean plus a standalone custom balance-wave figure.
-        final oceans = draft.dance.figures
-            .where((f) => f.move == 'pass_the_ocean')
-            .toList();
+        final oceans = figuresOf(
+          draft.dance,
+        ).where((f) => f.move == 'pass_the_ocean').toList();
         expect(oceans, hasLength(1));
         final ocean = oceans.single;
         expect(ocean.isCustom, isFalse);
@@ -1556,7 +1564,7 @@ void main() {
         expect(ocean.params['beats'], 8);
 
         // The balance-wave line was consumed — no leftover custom figure.
-        final leftoverBalanceWave = draft.dance.figures.where(
+        final leftoverBalanceWave = figuresOf(draft.dance).where(
           (f) =>
               f.isCustom && _text(f).toLowerCase().startsWith('balance wave'),
         );
@@ -1568,9 +1576,9 @@ void main() {
         // B2 `(4) Partner balance` / `(12) Partner swing` still folds via Fold 1
         // into a balance-prefixed partner swing — the new trailing fold does not
         // regress the existing behavior.
-        final swings = draft.dance.figures
-            .where((f) => f.move == 'swing')
-            .toList();
+        final swings = figuresOf(
+          draft.dance,
+        ).where((f) => f.move == 'swing').toList();
         final partnerSwing = swings.firstWhere(
           (f) => f.params['prefix'] == 'balance',
         );
@@ -1580,9 +1588,9 @@ void main() {
 
       test('the folded ocean survives a JSON round-trip', () async {
         final draft = await _importOne(_realId10882);
-        final ocean = draft.dance.figures.firstWhere(
-          (f) => f.move == 'pass_the_ocean',
-        );
+        final ocean = figuresOf(
+          draft.dance,
+        ).firstWhere((f) => f.move == 'pass_the_ocean');
         expect(figureFromJson(figureToJson(ocean)), ocean);
       });
     });

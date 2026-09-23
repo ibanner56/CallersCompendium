@@ -5,6 +5,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
 import 'support/fmp_fixture_builder.dart';
+import '../figures_support.dart';
 
 /// Tests for [CallersCompanionUsrAdapter]. The reader/archive layers are tested
 /// elsewhere; here we cover the adapter's own contract: byte intake (options
@@ -138,7 +139,7 @@ void main() {
       expect(draft.dance.title, 'Simplicity Swing');
       // "gypsy" is scrubbed to "shoulder round", which the shared parser then
       // recognises as a structured shoulder_round move (proof the scrub ran).
-      final fig = draft.dance.figures.single;
+      final fig = figuresOf(draft.dance).single;
       expect(fig.move, 'shoulder_round');
       expect(fig.params['who'], 'partners');
       expect(fig.toString().toLowerCase(), isNot(contains('gypsy')));

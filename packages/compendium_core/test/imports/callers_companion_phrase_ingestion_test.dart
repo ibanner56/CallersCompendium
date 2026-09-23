@@ -5,6 +5,7 @@ import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
 import 'support/fmp_fixture_builder.dart';
+import '../figures_support.dart';
 
 /// Corpus regression for issue #559: choreography is ingested from the CC
 /// `Phrase` table and routed through the shared free-text **fan-out**, end to
@@ -85,7 +86,7 @@ void main() {
 
       // Three Phrase lines (A1, A2, B1) → three figures. If the body had not
       // been threaded through the payload, this would be zero.
-      expect(dance.figures, hasLength(3));
+      expect(figuresOf(dance), hasLength(3));
       expect(dance.title, 'Simplicity Swing');
     });
 
@@ -94,7 +95,7 @@ void main() {
       // structures it as a swing with a balance prefix; the leading (16) is the
       // beat count.
       return danceFor('4').then((dance) {
-        final swing = dance.figures.first;
+        final swing = figuresOf(dance).first;
         expect(swing.isCustom, isFalse);
         expect(swing.move, 'swing');
         expect(swing.params['who'], 'neighbors');
@@ -112,7 +113,7 @@ void main() {
       // The COMPOUND beat prefix "(4,12)" (= 16 total) is parsed by the robust
       // beat split (#560): the line structures as a SINGLE swing, so the total
       // (16) rides on that lone figure.
-      final compound = dance.figures[1];
+      final compound = figuresOf(dance)[1];
       expect(compound.isCustom, isFalse);
       expect(compound.move, 'swing');
       expect(compound.params['who'], 'neighbors');
@@ -120,7 +121,7 @@ void main() {
 
       // B1 "(8) hey for four" is out of the recognised cut → importGap custom,
       // stored verbatim (parse-never-fails, still not dropped).
-      final hey = dance.figures[2];
+      final hey = figuresOf(dance)[2];
       expect(hey.isCustom, isTrue);
       expect(hey.customOrigin, CustomOrigin.importGap);
       expect(hey.params['text'], 'hey for four');
@@ -129,9 +130,9 @@ void main() {
     test('every dance in the file carries figures', () async {
       final four = await danceFor('4');
       final seven = await danceFor('7');
-      expect(four.figures, isNotEmpty);
-      expect(seven.figures, hasLength(2));
-      expect(seven.figures.every((f) => f.beats == 8), isTrue);
+      expect(figuresOf(four), isNotEmpty);
+      expect(figuresOf(seven), hasLength(2));
+      expect(figuresOf(seven).every((f) => f.beats == 8), isTrue);
     });
   });
 
@@ -181,12 +182,14 @@ void main() {
         // second swing from the compound-beat line whose "(4,12)" prefix sums to
         // 16 beats (#560), and one importGap custom — 3 figures, 0 Phrase lines
         // dropped.
-        expect(four.figures, hasLength(3));
-        expect(four.figures.first.move, 'swing');
-        expect(four.figures[1].move, 'swing');
-        expect(four.figures[1].beats, 16);
+        expect(figuresOf(four), hasLength(3));
+        expect(figuresOf(four).first.move, 'swing');
+        expect(figuresOf(four)[1].move, 'swing');
+        expect(figuresOf(four)[1].beats, 16);
         expect(
-          four.figures.where((f) => f.customOrigin == CustomOrigin.importGap),
+          figuresOf(
+            four,
+          ).where((f) => f.customOrigin == CustomOrigin.importGap),
           hasLength(1),
         );
 

@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:meta/meta.dart';
 
 import '../../model/enums.dart';
+import '../../model/figure_source.dart';
 import '../../privacy/field_registry.dart';
 import '../../privacy/data_classification.dart';
 import '../../privacy/settings_registry.dart';
@@ -1745,7 +1746,11 @@ class CompendiumRepositories {
           'UPDATE ${db.dances.actualTableName} SET figures_json = ? '
           'WHERE id = ?',
           variables: [
-            Variable<String>(encodeFigures(normalised.figures)),
+            Variable<String>(
+              encodeFigures(switch (normalised.figuresSource) {
+                DecodedFigures(:final figures) => figures,
+              }),
+            ),
             Variable<String>(dance.id),
           ],
           updates: {db.dances},
@@ -1843,7 +1848,11 @@ class CompendiumRepositories {
         // sync-invariant-exclusion: maintenance-backfill is idempotent; not a sync record edit.
         'UPDATE ${db.dances.actualTableName} SET figures_json = ? WHERE id = ?',
         variables: [
-          Variable<String>(encodeFigures(stripped.figures)),
+          Variable<String>(
+            encodeFigures(switch (stripped.figuresSource) {
+              DecodedFigures(:final figures) => figures,
+            }),
+          ),
           Variable<String>(dance.id),
         ],
         updates: {db.dances},
@@ -2011,7 +2020,11 @@ class CompendiumRepositories {
         // sync-invariant-exclusion: maintenance-backfill is idempotent; not a sync record edit.
         'UPDATE ${db.dances.actualTableName} SET figures_json = ? WHERE id = ?',
         variables: [
-          Variable<String>(encodeFigures(normalised.figures)),
+          Variable<String>(
+            encodeFigures(switch (normalised.figuresSource) {
+              DecodedFigures(:final figures) => figures,
+            }),
+          ),
           Variable<String>(dance.id),
         ],
         updates: {db.dances},
@@ -2043,7 +2056,12 @@ class CompendiumRepositories {
     for (final dance in allDances) {
       final normalised = dances.normaliseTaxonomyV34Public(dance);
       if (identical(normalised, dance)) continue;
-      rewrites.add((dance.id, encodeFigures(normalised.figures)));
+      rewrites.add((
+        dance.id,
+        encodeFigures(switch (normalised.figuresSource) {
+          DecodedFigures(:final figures) => figures,
+        }),
+      ));
     }
 
     final rebuildOwed = !alreadyRebuilt || rewrites.isNotEmpty;
@@ -2270,7 +2288,11 @@ class CompendiumRepositories {
             'UPDATE ${db.dances.actualTableName} SET figures_json = ? '
             'WHERE id = ?',
             variables: [
-              Variable<String>(encodeFigures(backfilled.figures)),
+              Variable<String>(
+                encodeFigures(switch (backfilled.figuresSource) {
+                  DecodedFigures(:final figures) => figures,
+                }),
+              ),
               Variable<String>(dance.id),
             ],
             updates: {db.dances},

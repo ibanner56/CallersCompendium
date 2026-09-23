@@ -2,6 +2,7 @@ import '../model/choreographer.dart';
 import '../model/custom_field.dart';
 import '../model/dance.dart';
 import '../model/dance_link.dart';
+import '../model/figure_source.dart';
 import '../model/difficulty_level.dart';
 import '../model/formation.dart';
 import '../model/program.dart';
@@ -89,7 +90,12 @@ Map<String, Object?> archiveDanceToJson(
   ),
   'progression': d.progression.name,
   'phraseStructure': d.phraseStructure.raw,
-  'figures': [for (final f in d.figures) figureToJson(f)],
+  'figures': [
+    for (final f in switch (d.figuresSource) {
+      DecodedFigures(:final figures) => figures,
+    })
+      figureToJson(f),
+  ],
   'hook': d.hook,
   'callingNotes': d.callingNotes,
   'walkthrough': d.walkthrough,

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import '../figures_support.dart';
 
 /// Tests for the `;`-clause NOTE FALLBACK in [parseFigureLines]
 /// (`callersbox_figure_dialect.dart`) and the machinery it depends on:
@@ -55,7 +56,7 @@ List<Figure> _importFigures(List<String> figureLines) {
       permission: 'full',
     ),
   );
-  return draft.dance.figures;
+  return figuresOf(draft.dance);
 }
 
 void main() {

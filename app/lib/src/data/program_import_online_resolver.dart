@@ -233,8 +233,12 @@ Future<_SourceAttempt> _attemptSource(
       }
       final draftDance = preview.plan.draft.dance;
       final identical = figuresCanonicallyIdentical(
-        oldFigures: target.figures,
-        newFigures: draftDance.figures,
+        oldFigures: switch (target.figuresSource) {
+          DecodedFigures(:final figures) => figures,
+        },
+        newFigures: switch (draftDance.figuresSource) {
+          DecodedFigures(:final figures) => figures,
+        },
         taxonomy: contraTaxonomy,
       );
       if (identical) {

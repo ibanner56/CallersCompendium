@@ -21,6 +21,7 @@ import 'package:compendium_app/src/widgets/section_header.dart';
 
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
+import 'figures_support.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
 
@@ -1241,8 +1242,8 @@ void main() {
     await tester.pumpAndSettle();
 
     final dance = (await repos.dances.listAll()).single;
-    expect(dance.figures, hasLength(1));
-    final figure = dance.figures.single;
+    expect(figuresOf(dance), hasLength(1));
+    final figure = figuresOf(dance).single;
     expect(figure.move, 'swing');
     expect(figure.params['who'], 'partners');
     expect(figure.params['beats'], 8);
@@ -1277,8 +1278,8 @@ void main() {
     await tester.pumpAndSettle();
 
     final dance = (await repos.dances.listAll()).single;
-    expect(dance.figures.single.isCustom, isTrue);
-    expect(dance.figures.single.params['text'], 'scoop them up');
+    expect(figuresOf(dance).single.isCustom, isTrue);
+    expect(figuresOf(dance).single.params['text'], 'scoop them up');
   });
 
   testWidgets('editing an existing figure round-trips', (tester) async {
@@ -1303,7 +1304,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final saved = await repos.dances.getById('d1');
-    expect(saved!.figures.single.params['beats'], 16);
+    expect(figuresOf(saved!).single.params['beats'], 16);
   });
 
   testWidgets('deleting a figure removes it on save', (tester) async {
@@ -1324,8 +1325,8 @@ void main() {
     await tester.pumpAndSettle();
 
     final saved = await repos.dances.getById('d1');
-    expect(saved!.figures, hasLength(1));
-    expect(saved.figures.single.move, 'balance');
+    expect(figuresOf(saved!), hasLength(1));
+    expect(figuresOf(saved).single.move, 'balance');
   });
 
   // ── Related dances subsection ─────────────────────────────────────────────
@@ -2131,7 +2132,7 @@ void main() {
       expect(saved.phraseStructure.raw, '2*8*4');
       // The restored draft's (empty) figure list overrides the DD.2 template
       // seed rather than being appended to it.
-      expect(saved.figures, isEmpty);
+      expect(figuresOf(saved), isEmpty);
     });
 
     testWidgets(
@@ -2197,8 +2198,8 @@ void main() {
       await tester.pumpAndSettle();
 
       final saved = (await repos.dances.listAll()).single;
-      expect(saved.figures, hasLength(8));
-      for (final figure in saved.figures) {
+      expect(figuresOf(saved), hasLength(8));
+      for (final figure in figuresOf(saved)) {
         expect(figure.move, 'stand_still');
         expect(figure.params['beats'], 8);
       }
@@ -2231,11 +2232,11 @@ void main() {
       await tester.pumpAndSettle();
 
       final saved = (await repos.dances.listAll()).single;
-      expect(saved.figures, hasLength(2));
-      expect(saved.figures[0].move, 'balance');
-      expect(saved.figures[0].params['beats'], 4);
-      expect(saved.figures[1].move, 'swing');
-      expect(saved.figures[1].params['beats'], 12);
+      expect(figuresOf(saved), hasLength(2));
+      expect(figuresOf(saved)[0].move, 'balance');
+      expect(figuresOf(saved)[0].params['beats'], 4);
+      expect(figuresOf(saved)[1].move, 'swing');
+      expect(figuresOf(saved)[1].params['beats'], 12);
     });
 
     testWidgets(
@@ -2256,7 +2257,7 @@ void main() {
         await tester.pumpAndSettle();
 
         final saved = (await repos.dances.listAll()).single;
-        expect(saved.figures, isEmpty);
+        expect(figuresOf(saved), isEmpty);
       },
     );
 
@@ -2290,8 +2291,8 @@ void main() {
       await tester.pumpAndSettle();
 
       final saved = await repos.dances.getById('d1');
-      expect(saved!.figures, hasLength(1));
-      expect(saved.figures.single.move, 'swing');
+      expect(figuresOf(saved!), hasLength(1));
+      expect(figuresOf(saved).single.move, 'swing');
     });
   });
 
@@ -2327,7 +2328,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('save-dance')));
       await tester.pumpAndSettle();
 
-      final figure = (await repos.dances.listAll()).single.figures.single;
+      final figure = figuresOf((await repos.dances.listAll()).single).single;
       expect(figure.move, 'circle');
       // Overridden param takes the configured value...
       expect(figure.params['direction'], 'right');
