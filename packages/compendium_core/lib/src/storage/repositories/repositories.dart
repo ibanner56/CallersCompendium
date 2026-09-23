@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:meta/meta.dart';
 
 import '../../model/enums.dart';
+import '../../model/figure.dart';
 import '../../model/figure_source.dart';
 import '../../privacy/field_registry.dart';
 import '../../privacy/data_classification.dart';
@@ -72,6 +73,28 @@ const _shareableJsonColumns = {'figures_json', 'tunes_json', 'choices_json'};
 /// `docs/design/sync-spec.md` §4.1. Clearing natural-key entries on this
 /// predicate would discharge every one of them on sight and re-split exactly
 /// the colliding pairs the pass exists to keep whole.
+/// Decodes a stored `figures_json` for a one-time maintenance sweep, or null
+/// when it cannot be decoded at all.
+///
+/// The sweeps that use this read raw rows and call the figure transformers
+/// directly, so they never pass through `DanceRepository._buildDance` and
+/// inherit none of its tolerance. With their marker still pending, an
+/// undecodable row therefore aborted `ensureMigrated()` even after the load
+/// path was made total — the sweep is on the other side of the call (#1347).
+///
+/// Both exception types are caught for the reason `decodeFigures` now
+/// documents: it throws `ArgumentError` as well as `FormatException`, and
+/// `[{"move":""}]` takes the second path.
+List<Figure>? _decodeSweepFigures(String storedJson) {
+  try {
+    return decodeFigures(storedJson);
+  } on FormatException {
+    return null;
+  } on ArgumentError {
+    return null;
+  }
+}
+
 String? _normaliseStoredColumn(String column, String raw) {
   if (!_shareableJsonColumns.contains(column)) {
     return normalizeShareableText(raw);
@@ -2165,7 +2188,9 @@ class CompendiumRepositories {
 
       final rewrites = <(String, String)>[];
       for (final row in rows) {
-        final figures = decodeFigures(row.read<String>('figures_json'));
+        final figures = _decodeSweepFigures(row.read<String>('figures_json'));
+        // Skipped, not rewritten: the stored bytes stay exactly as they are.
+        if (figures == null) continue;
         final normalized = dances.normaliseTaxonomyV35FiguresPublic(figures);
         if (!identical(normalized, figures)) {
           rewrites.add((row.read<String>('id'), encodeFigures(normalized)));
@@ -2398,7 +2423,9 @@ class CompendiumRepositories {
         if (row.read<String?>('source') != ProvenanceSource.callersbox.name) {
           continue;
         }
-        final figures = decodeFigures(row.read<String>('figures_json'));
+        final figures = _decodeSweepFigures(row.read<String>('figures_json'));
+        // Skipped, not rewritten: the stored bytes stay exactly as they are.
+        if (figures == null) continue;
         final repaired = dances.repairLegacyCallersBoxRollAwayFiguresPublic(
           figures,
         );

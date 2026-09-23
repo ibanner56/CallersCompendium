@@ -2604,9 +2604,10 @@ class DanceRepository {
   /// Before this, `getById`/`listAll` raised, which meant `ensureMigrated()`
   /// raised at startup and the app would not open.
   ///
-  /// **Both exception types are caught because both are reachable**, which the
-  /// codec's own documentation does not say — it claims `FormatException` only.
-  /// Measured against stored text rather than inferred:
+  /// **Both exception types are caught because both are reachable.** The codec's
+  /// documentation now says so too — this PR corrected it, having found it
+  /// claimed `FormatException` alone. Measured against stored text rather than
+  /// inferred:
   ///
   /// * `[{"kind":`  -> FormatException (not JSON)
   /// * `{"a":1}`    -> FormatException (root is not an array)

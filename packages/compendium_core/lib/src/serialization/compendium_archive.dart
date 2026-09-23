@@ -33,6 +33,12 @@ const ListEquality<Object?> _listEq = ListEquality<Object?>();
 /// * **v3** — adds ordered `difficultyLevels` and the stable
 ///   `dance.difficultyLevelId` relationship.
 /// * **v4** — adds the optional `programSlot.isPurgedDance` discriminator.
+/// * **v5** — adds `dance.figuresRaw`, the stored transcription of a dance that
+///   could not be decoded, carried verbatim beside a well-formed empty
+///   `figures` array. Stamped only on an archive that contains one, so a
+///   healthy library still writes v1-v4 byte-identically. See
+///   [archiveSchemaVersionUnreadableFigures] for why the bump is what makes an
+///   older reader's loss audible rather than silent.
 const int archiveSchemaVersion = archiveSchemaVersionUnreadableFigures;
 
 /// The original, pre-venue archive envelope version.

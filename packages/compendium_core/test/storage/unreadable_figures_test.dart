@@ -202,6 +202,53 @@ void main() {
     });
   });
 
+  group('a pending one-time sweep still completes', () {
+    // The steady-state guards above run AFTER `ensureMigrated()` has written
+    // every sweep marker, so they never enter the two sweeps that decode raw
+    // `figures_json` themselves. Those sweeps do not go through `_buildDance`
+    // and so inherit nothing from the sentinel; with their marker pending they
+    // are the path that still aborts startup. Clearing the marker is what makes
+    // this case visible at all.
+    Future<void> clearMarker(String key) =>
+        db.customStatement('DELETE FROM settings WHERE key = ?', [key]);
+
+    for (final (label, raw) in <(String, String)>[
+      ('FormatException', '[{"kind":'),
+      ('ArgumentError', '[{"move":""}]'),
+    ]) {
+      test('taxonomy v35 sweep, $label', () async {
+        await repos.dances.create(sampleDance(id: 'd1', title: 'Corrupt'));
+        await repos.ensureMigrated();
+        await _storeRawFigures(db, 'd1', raw);
+        await clearMarker(taxonomyV35FigureNormalizationDoneKey);
+
+        await CompendiumRepositories(db, contraTaxonomy).ensureMigrated();
+
+        expect(await _storedFigures(db, 'd1'), raw);
+      });
+
+      test('CallersBox roll-away repair, $label', () async {
+        await repos.dances.create(
+          sampleDance(
+            id: 'd1',
+            title: 'Corrupt',
+            provenance: Provenance(
+              source: ProvenanceSource.callersbox,
+              importedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ),
+        );
+        await repos.ensureMigrated();
+        await _storeRawFigures(db, 'd1', raw);
+        await clearMarker(callersBoxRollAwayRoleRepairDoneKey);
+
+        await CompendiumRepositories(db, contraTaxonomy).ensureMigrated();
+
+        expect(await _storedFigures(db, 'd1'), raw);
+      });
+    }
+  });
+
   group('sync never publishes a body for an undecodable transcription', () {
     // The property a later refactor would break: no body produced by ANY
     // publish path may carry `figuresRaw`. A peer that does not understand the

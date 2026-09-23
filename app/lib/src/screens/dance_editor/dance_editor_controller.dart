@@ -194,10 +194,18 @@ class DanceEditorController extends ChangeNotifier {
   /// tag. Passing `figures: null` to `copyWith` carries the original
   /// [FigureSource] through whole instead.
   ///
-  /// Once the user adds a figure they have authored a transcription and
+  /// Once the user authors a figure they have written a transcription and
   /// replacing the old one is the correct, intended outcome.
+  ///
+  /// Keyed on [_figures], **not** on `figureDrafts`. Pressing "Add figure"
+  /// appends a placeholder draft whose `toFigure()` still returns null, so
+  /// `figureDrafts` becomes non-empty while nothing has been authored yet. A
+  /// condition on the draft list therefore stopped preserving the stored bytes
+  /// the instant the button was pressed, and a subsequent save of an unrelated
+  /// field wrote an empty transcription over them — the exact loss this guard
+  /// exists to prevent, defeated by a placeholder.
   bool get _preserveStoredFigures =>
-      _loadedUnreadableFigures && figureDrafts.isEmpty;
+      _loadedUnreadableFigures && _figures.isEmpty;
 
   List<Figure> get _figures => [
     for (final draft in figureDrafts)
