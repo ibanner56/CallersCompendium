@@ -435,6 +435,41 @@ void main() {
         }),
         throwsFormatException,
       );
+      // A manifest entry is `id -> content hash`, and the hash slot is the
+      // only place a *value* could ride along: the id is an entity id or a
+      // settings key name, `deviceId` is the `protocolIdentifier`, and `epoch`
+      // is minted by the server (§7.1). That is why §9's classification
+      // paragraph's "no blob, manifest or export carries it (mutation: classify
+      // it `shareable`)" has a send-side guard for the blob and none for the
+      // manifest: a manifest cannot carry a settings value at all, so a guard
+      // under that mutation could never fail (#1383).
+      //
+      // The claim rests entirely on the hash constraint, which until now
+      // nothing exercised — the `42` case above is caught by the string check
+      // in front of it. Relaxing `_validateHash` to "any non-empty string"
+      // would leave the suite green and the spec sentence false, so pin it at
+      // both ends: construction rejects with `ArgumentError`, decoding with
+      // `FormatException`.
+      expect(
+        () => SyncManifest(
+          deviceId: 'device-1',
+          epoch: 'epoch-1',
+          writtenAt: _stamp,
+          records: {
+            SyncRecordKind.setting: {'sync_id': 'grand-lake-oyster-catcher'},
+          },
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => SyncManifest.fromJson({
+          ...valid,
+          'records': {
+            'setting': {'sync_id': 'grand-lake-oyster-catcher'},
+          },
+        }),
+        throwsFormatException,
+      );
       expect(
         () => SyncManifest.fromJson({
           ...valid,
