@@ -965,9 +965,8 @@ class DanceRepository {
     }
     for (final authorId in dance.authorIds) {
       final row =
-          await (_db.select(_db.choreographers)..where(
-                (t) => t.id.equals(authorId) & t.deletedAt.isNull(),
-              ))
+          await (_db.select(_db.choreographers)
+                ..where((t) => t.id.equals(authorId) & t.deletedAt.isNull()))
               .getSingleOrNull();
       if (row != null) names.add(row.name);
     }
@@ -990,11 +989,9 @@ class DanceRepository {
       byId = prefetched;
     } else {
       final sourceIds = dance.sourceCitations.map((c) => c.sourceId).toList();
-      final rows =
-          await (_db.select(_db.publishedSources)..where(
-                (t) => t.id.isIn(sourceIds) & t.deletedAt.isNull(),
-              ))
-              .get();
+      final rows = await (_db.select(
+        _db.publishedSources,
+      )..where((t) => t.id.isIn(sourceIds) & t.deletedAt.isNull())).get();
       byId = {for (final r in rows) r.id: r};
     }
     final texts = <String>[];
@@ -1026,11 +1023,9 @@ class DanceRepository {
       liveIds = prefetchedLiveIds;
     } else {
       final fieldIds = dance.customFields.map((v) => v.fieldId).toList();
-      final rows =
-          await (_db.select(_db.customFieldDefs)..where(
-                (t) => t.id.isIn(fieldIds) & t.deletedAt.isNull(),
-              ))
-              .get();
+      final rows = await (_db.select(
+        _db.customFieldDefs,
+      )..where((t) => t.id.isIn(fieldIds) & t.deletedAt.isNull())).get();
       liveIds = {for (final r in rows) r.id};
     }
     return [

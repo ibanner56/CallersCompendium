@@ -1,0 +1,14 @@
+{
+  "id": "1358-search-soft-deleted-parents",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Search no longer finds a dance by text belonging to a custom field, choreographer, or published source you have deleted. Previously, deleting a dance, then deleting a custom field only that dance used, then restoring the dance left the dance matching the deleted field's value in the search box, and matching the deleted field in the filter controls, even though the dance's own page no longer showed it. Restoring the field or the person makes their text findable again once the dance is next saved."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "FilterCompiler._customField now joins custom_field_defs and filters deleted_at IS NULL, so CustomFieldFilter matches nothing for a tombstoned definition, as the author, source, tag and level leaves already did (sync-spec §3.1). DanceRepository.restore now rebuilds the restored dance's dance_figures and FTS rows from its hydrated model, and the single-write path resolves author names, source texts and custom-field values live-only as rebuildAllDerived always has. Since #1328 a parent may be deleted while only a soft-deleted dance cites it, so the index written at the dance's last save could outlive its parents."
+    ]
+  }
+}

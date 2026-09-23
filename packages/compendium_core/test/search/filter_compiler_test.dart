@@ -357,17 +357,24 @@ void main() {
       // not by any per-operator branch, so no operator can be added that
       // silently omits it (#1358).
       final cases = <CustomFieldFilter>[
-        CustomFieldFilter(def(CustomFieldType.text), CustomFieldOp.contains, 'j'),
+        CustomFieldFilter(
+          def(CustomFieldType.text),
+          CustomFieldOp.contains,
+          'j',
+        ),
         CustomFieldFilter(def(CustomFieldType.text), CustomFieldOp.equals, 'j'),
         CustomFieldFilter(def(CustomFieldType.number), CustomFieldOp.eq, 1),
         CustomFieldFilter(def(CustomFieldType.number), CustomFieldOp.lt, 1),
         CustomFieldFilter(def(CustomFieldType.number), CustomFieldOp.gt, 1),
+        CustomFieldFilter(def(CustomFieldType.number), CustomFieldOp.between, [
+          1,
+          2,
+        ]),
         CustomFieldFilter(
-          def(CustomFieldType.number),
-          CustomFieldOp.between,
-          [1, 2],
+          def(CustomFieldType.boolean),
+          CustomFieldOp.is_,
+          true,
         ),
-        CustomFieldFilter(def(CustomFieldType.boolean), CustomFieldOp.is_, true),
         CustomFieldFilter(
           def(CustomFieldType.choice, choices: const ['a', 'b']),
           CustomFieldOp.in_,

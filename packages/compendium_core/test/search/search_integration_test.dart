@@ -2204,23 +2204,31 @@ void main() {
       );
     });
 
-    test("free text drops a tombstoned definition's value on restore", () async {
-      await seedRestoredWithTombstonedParents();
-      expect(await dances.search(const FullTextFilter('Zanzibarreel')), isEmpty);
-      expect(
-        await dances.search(const FullTextFilter('anzibarr')),
-        isEmpty,
-        reason: 'dance_substring_fts must behave like dance_fts',
-      );
+    test(
+      "free text drops a tombstoned definition's value on restore",
+      () async {
+        await seedRestoredWithTombstonedParents();
+        expect(
+          await dances.search(const FullTextFilter('Zanzibarreel')),
+          isEmpty,
+        );
+        expect(
+          await dances.search(const FullTextFilter('anzibarr')),
+          isEmpty,
+          reason: 'dance_substring_fts must behave like dance_fts',
+        );
 
-      // Restoring the parent and re-saving the dance makes it searchable
-      // again — the index follows the write path, it is not a tombstone log.
-      // ignore: unused_result
-      await customFieldDefs.restore('f', at: t2);
-      await dances.update((await dances.getById('a'))!);
-      expect(await dances.search(const FullTextFilter('Zanzibarreel')), ['a']);
-      expect(await dances.search(const FullTextFilter('anzibarr')), ['a']);
-    });
+        // Restoring the parent and re-saving the dance makes it searchable
+        // again — the index follows the write path, it is not a tombstone log.
+        // ignore: unused_result
+        await customFieldDefs.restore('f', at: t2);
+        await dances.update((await dances.getById('a'))!);
+        expect(await dances.search(const FullTextFilter('Zanzibarreel')), [
+          'a',
+        ]);
+        expect(await dances.search(const FullTextFilter('anzibarr')), ['a']);
+      },
+    );
 
     test("free text drops a tombstoned author's name on restore", () async {
       await seedRestoredWithTombstonedParents();
@@ -2254,20 +2262,28 @@ void main() {
     // hydrated dance AND live-only prefetch maps, so it is guarded twice and
     // could not fail however the single-write path behaved. On unfixed code a
     // direct save writes all three texts into the index.
-    test('a save naming a tombstoned definition writes no custom text', () async {
-      // ignore: unused_result
-      await customFieldDefs.upsert(originField());
-      await customFieldDefs.delete('f', at: t0);
-      await dances.create(
-        _dance(
-          id: 'a',
-          title: 'A',
-          customFields: [CustomFieldValue(fieldId: 'f', value: 'Zanzibarreel')],
-        ),
-      );
-      expect(await dances.search(const FullTextFilter('Zanzibarreel')), isEmpty);
-      expect(await dances.search(const FullTextFilter('anzibarr')), isEmpty);
-    });
+    test(
+      'a save naming a tombstoned definition writes no custom text',
+      () async {
+        // ignore: unused_result
+        await customFieldDefs.upsert(originField());
+        await customFieldDefs.delete('f', at: t0);
+        await dances.create(
+          _dance(
+            id: 'a',
+            title: 'A',
+            customFields: [
+              CustomFieldValue(fieldId: 'f', value: 'Zanzibarreel'),
+            ],
+          ),
+        );
+        expect(
+          await dances.search(const FullTextFilter('Zanzibarreel')),
+          isEmpty,
+        );
+        expect(await dances.search(const FullTextFilter('anzibarr')), isEmpty);
+      },
+    );
 
     test('a save naming a tombstoned author writes no author text', () async {
       // ignore: unused_result
@@ -2282,9 +2298,10 @@ void main() {
       await sources.upsert(PublishedSource(id: 's1', title: 'Brambleton'));
       await sources.delete('s1', at: t0);
       await dances.create(
-        _dance(id: 'a', title: 'A').copyWith(
-          sourceCitations: [SourceCitation(sourceId: 's1')],
-        ),
+        _dance(
+          id: 'a',
+          title: 'A',
+        ).copyWith(sourceCitations: [SourceCitation(sourceId: 's1')]),
       );
       expect(await dances.search(const FullTextFilter('Brambleton')), isEmpty);
       expect(await dances.search(const FullTextFilter('rambleto')), isEmpty);
@@ -2307,7 +2324,9 @@ void main() {
       );
       const queries = ['Zanzibarreel', 'Quillsworth', 'Brambleton', 'anzibarr'];
       for (final q in queries) {
-        expect(await dances.search(FullTextFilter(q)), ['a'], reason: 'pre: $q');
+        expect(await dances.search(FullTextFilter(q)), [
+          'a',
+        ], reason: 'pre: $q');
       }
 
       await dances.rebuildAllDerived();
