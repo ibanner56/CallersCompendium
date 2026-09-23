@@ -220,6 +220,49 @@ void main() {
     expect(saved.createdAt, _now);
   });
 
+  testWidgets('renaming an author onto a taken name is refused', (
+    tester,
+  ) async {
+    // Issue #1348, the live case: the repository used to write the OLD name
+    // back, raise nothing, and record a normalisation skip; this screen then
+    // patched its caches from the dialog's return value regardless, so the chip
+    // showed a rename the database never took until the next reload.
+    final repos = openTestRepositories();
+    // ignore: unused_result
+    await repos.choreographers.upsert(
+      Choreographer(id: 'c1', name: 'Pat Smith'),
+    );
+    // ignore: unused_result
+    await repos.choreographers.upsert(
+      Choreographer(id: 'c2', name: 'Sam Jones'),
+    );
+    await repos.dances.create(_dance(id: 'd1', authorIds: ['c2']));
+    await _pumpEditor(tester, repos, danceId: 'd1');
+
+    await tester.tap(find.byKey(const ValueKey('author-chip-c2')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('choreographer-name-field')),
+      'Pat Smith',
+    );
+    await tester.tap(find.byKey(const ValueKey('choreographer-save')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('choreographer-duplicate-snackbar')),
+      findsOneWidget,
+    );
+    expect((await repos.choreographers.getById('c2'))!.name, 'Sam Jones');
+    // The chip still reads the stored name, not the one that was typed.
+    expect(find.byKey(const ValueKey('author-chip-c2')), findsOneWidget);
+    expect(
+      tester.widget<InputChip>(
+        find.byKey(const ValueKey('author-chip-c2')),
+      ).label,
+      isA<Text>().having((text) => text.data, 'label', 'Sam Jones'),
+    );
+  });
+
   testWidgets('walkthrough round-trips on save', (tester) async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'd1', title: 'Original'));

@@ -6044,6 +6044,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get danceEditorSaveError => 'Impossible d’enregistrer la danse.';
 
   @override
+  String danceEditorChoreographerDuplicate(String name) {
+    return 'Un chorégraphe nommé « $name » existe déjà. Le nom n’a pas été modifié.';
+  }
+
+  @override
   String get danceEditorFallbackDanceTitle => 'Danse';
 
   @override
@@ -6961,6 +6966,11 @@ class AppLocalizationsFr extends AppLocalizations {
       one: '1 danse',
     );
     return 'Impossible de supprimer « $label » : encore utilisé par $_temp0. Supprimez d’abord la valeur de toutes les danses.';
+  }
+
+  @override
+  String customFieldsKeyDuplicate(String key) {
+    return 'Un champ avec la clé « $key » existe déjà. La clé n’a pas été modifiée.';
   }
 
   @override

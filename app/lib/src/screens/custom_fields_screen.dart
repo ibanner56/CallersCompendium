@@ -156,8 +156,30 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
       // property the discard actually depends on. Patching `_defs` locally from
       // `result` would reintroduce the bug the original comment warned about,
       // because `result` carries the pre-adoption id.
-      // ignore: unused_result
-      await _repos.customFieldDefs.upsert(result, localUserEdit: true);
+      try {
+        // ignore: unused_result
+        await _repos.customFieldDefs.upsert(result, localUserEdit: true);
+      } on DuplicateNaturalKeyError catch (error, stackTrace) {
+        // The key belongs to another definition, so nothing was written.
+        // Before #1348 the repository kept the old key and raised nothing: the
+        // screen's re-read then showed the un-renamed field with no
+        // explanation of why the rename had not taken.
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'custom_fields_screen._openForm',
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            key: const ValueKey('field-key-duplicate-snackbar'),
+            content: Text(
+              AppLocalizations.of(context).customFieldsKeyDuplicate(result.key),
+            ),
+          ),
+        );
+        return;
+      }
       // Show the one-time sharing disclosure when the user creates their very
       // first custom field. The latch is set before the dialog is awaited so a
       // crash during the dialog never re-shows it on next launch.

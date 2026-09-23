@@ -6029,6 +6029,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get danceEditorSaveError => 'Tanz konnte nicht gespeichert werden.';
 
   @override
+  String danceEditorChoreographerDuplicate(String name) {
+    return 'Ein Choreograf namens „$name“ existiert bereits. Der Name wurde nicht geändert.';
+  }
+
+  @override
   String get danceEditorFallbackDanceTitle => 'Tanz';
 
   @override
@@ -6944,6 +6949,11 @@ class AppLocalizationsDe extends AppLocalizations {
       one: '1 Tanz',
     );
     return '„$label“ kann nicht gelöscht werden: noch in $_temp0 verwendet. Entfernen Sie zuerst den Wert aus allen Tänzen.';
+  }
+
+  @override
+  String customFieldsKeyDuplicate(String key) {
+    return 'Ein Feld mit dem Schlüssel „$key“ existiert bereits. Der Schlüssel wurde nicht geändert.';
   }
 
   @override

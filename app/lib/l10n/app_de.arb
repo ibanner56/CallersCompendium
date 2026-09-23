@@ -6024,6 +6024,10 @@
   "@danceEditorSaveError": {
     "x-sourceSha256": "0c06409f17b9d47e1b55340c2d49986fadd3909dbd75d02584af750ab88b46af"
   },
+  "danceEditorChoreographerDuplicate": "Ein Choreograf namens „{name}“ existiert bereits. Der Name wurde nicht geändert.",
+  "@danceEditorChoreographerDuplicate": {
+    "x-sourceSha256": "52b0da7b4633d14785af52f52de164654e1b40d0ddd832631020e4838879bea3"
+  },
   "danceEditorFallbackDanceTitle": "Tanz",
   "@danceEditorFallbackDanceTitle": {
     "x-sourceSha256": "23d2d73543f9d7d92ac704296e5ee744037f5f4c938e21abf2c17002c4e9ba71"
@@ -6827,6 +6831,10 @@
   "customFieldsDeleteInUse": "„{label}“ kann nicht gelöscht werden: noch in {count, plural, =1{1 Tanz} other{{count} Tänzen}} verwendet. Entfernen Sie zuerst den Wert aus allen Tänzen.",
   "@customFieldsDeleteInUse": {
     "x-sourceSha256": "3216847c71408f8c115cc0f639621a7a700926cf3c3d29fe2bcce0948156a556"
+  },
+  "customFieldsKeyDuplicate": "Ein Feld mit dem Schlüssel „{key}“ existiert bereits. Der Schlüssel wurde nicht geändert.",
+  "@customFieldsKeyDuplicate": {
+    "x-sourceSha256": "346f6211e52a10a4238242669b00d656ad1ed715fef91b17e4dc2c9c58c8afa5"
   },
   "customFieldsDeleteInUseUnknown": "„{label}“ kann nicht gelöscht werden: noch von einigen Tänzen verwendet. Entfernen Sie zuerst den Wert aus allen Tänzen.",
   "@customFieldsDeleteInUseUnknown": {

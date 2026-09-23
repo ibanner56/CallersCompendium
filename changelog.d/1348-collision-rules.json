@@ -1,0 +1,17 @@
+{
+  "id": "1348-collision-rules",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Renaming a choreographer or a custom field to a name that is already taken now says so, instead of appearing to work and reverting the next time the screen is opened.",
+      "Re-importing an archive no longer fails on a difficulty level whose label differs from another level only in how the accents are stored.",
+      "Saving a setting whose entries differ only in how their accents are stored no longer fails; both entries are kept."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "The natural-key write paths now split sync-spec §4.1's normalisation carve-out from a genuine duplicate. TagRepository, ChoreographerRepository and CustomFieldDefRepository stored the row's OLD value on a colliding edit and recorded a normalisation skip, raising nothing; they now store the user's value un-normalised (sanitised, not composed) when the value is unchanged and its normalised target is merely occupied, and throw DuplicateNaturalKeyError with no skip recorded when the edit is a rename onto a value another row holds. DifficultyLevelRepository.upsert gained the carve-out it never had, so an archive merge re-importing a recorded level no longer throws. SettingsRepository.set catches ShareableJsonKeyCollision, stores the value as given and records ('settings', 'value_json', key), mirroring the one-time pass.",
+      "The (table, column) spellings written to normalisation_skips now come from one shared source (NormalisationSkipColumn and the naturalKeyNormalisationColumns list), which §4.1 requires because the pass's retry correlates the two writers' entries by grouping on that pair."
+    ]
+  }
+}

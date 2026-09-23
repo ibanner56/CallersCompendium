@@ -577,11 +577,41 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     );
     final updated = await ChoreographerDetailsDialog.show(context, existing);
     if (updated == null || !mounted) return;
-    // Safe discard: `updated` carries the id of the already-persisted
-    // `existing` row. No fresh UUID is minted here, so tombstone adoption
-    // cannot redirect the id; the returned id is always identical to updated.id.
-    // ignore: unused_result
-    await _repos.choreographers.upsert(updated, localUserEdit: true);
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      // Safe discard: `updated` carries the id of the already-persisted
+      // `existing` row. No fresh UUID is minted here, so tombstone adoption
+      // cannot redirect the id; the returned id is always identical to
+      // updated.id.
+      // ignore: unused_result
+      await _repos.choreographers.upsert(updated, localUserEdit: true);
+    } on DuplicateNaturalKeyError catch (error, stackTrace) {
+      // The rename was not saved, so the caches must not move. Until #1348 the
+      // repository kept the old name and raised nothing, and the block below
+      // then patched the cache from `updated` regardless — the editor showed a
+      // rename the database never took, until the next reload.
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_editor_screen._editChoreographer',
+      );
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          key: const ValueKey('choreographer-duplicate-snackbar'),
+          content: Text(l10n.danceEditorChoreographerDuplicate(updated.name)),
+        ),
+      );
+      return;
+    }
+    if (!mounted) return;
+    // Read the row back rather than trusting `updated`: sync-spec §4.1's
+    // collision carve-out may store the name un-normalised, so what was written
+    // is not always what the dialog returned. A row that vanished under us
+    // falls back to `updated`, which is no worse than the old unconditional
+    // patch.
+    final stored = await _repos.choreographers.getById(id) ?? updated;
     if (!mounted) return;
     setState(() {
       // Replace the existing cache entry, or append if the author wasn't
@@ -590,10 +620,10 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       final hasEntry = _choreographers.any((c) => c.id == id);
       _choreographers = [
         for (final c in _choreographers)
-          if (c.id == id) updated else c,
-        if (!hasEntry) updated,
+          if (c.id == id) stored else c,
+        if (!hasEntry) stored,
       ];
-      _choreographerNames = {..._choreographerNames, id: updated.name};
+      _choreographerNames = {..._choreographerNames, id: stored.name};
     });
   }
 

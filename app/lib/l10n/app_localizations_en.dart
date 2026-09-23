@@ -5937,6 +5937,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorSaveError => 'Couldn\'t save the dance.';
 
   @override
+  String danceEditorChoreographerDuplicate(String name) {
+    return 'A choreographer named \"$name\" already exists. The name wasn\'t changed.';
+  }
+
+  @override
   String get danceEditorFallbackDanceTitle => 'Dance';
 
   @override
@@ -6839,6 +6844,11 @@ class AppLocalizationsEn extends AppLocalizations {
       one: '1 dance',
     );
     return 'Can\'t delete \"$label\": still used by $_temp0. Remove the value from all dances first.';
+  }
+
+  @override
+  String customFieldsKeyDuplicate(String key) {
+    return 'A field with the key \"$key\" already exists. The key wasn\'t changed.';
   }
 
   @override

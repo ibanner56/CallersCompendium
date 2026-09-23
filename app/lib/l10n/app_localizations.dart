@@ -9193,6 +9193,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t save the dance.'**
   String get danceEditorSaveError;
 
+  /// Snackbar shown when renaming a choreographer to a name another choreographer already holds. The edit is refused rather than silently dropped (sync-spec 4.1, issue #1348); the raw exception is logged, never shown (CWE-209). {name} is untrusted user-entered text, rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'A choreographer named \"{name}\" already exists. The name wasn\'t changed.'**
+  String danceEditorChoreographerDuplicate(String name);
+
   /// Fallback dance title used when deleting a dance whose original title is unavailable.
   ///
   /// In en, this message translates to:
@@ -10409,6 +10415,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Can\'t delete \"{label}\": still used by {count, plural, =1{1 dance} other{{count} dances}}. Remove the value from all dances first.'**
   String customFieldsDeleteInUse(String label, int count);
+
+  /// Snackbar shown when saving a custom field with a key another definition already holds. The edit is refused rather than silently dropped (sync-spec 4.1, issue #1348); the raw exception is logged, never shown (CWE-209). {key} is untrusted user-entered text, rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'A field with the key \"{key}\" already exists. The key wasn\'t changed.'**
+  String customFieldsKeyDuplicate(String key);
 
   /// Snackbar when deleting a custom field still set on dances but the exact count is unknown. The raw exception is logged (debugPrint), never shown (CWE-209). {label} is plain text.
   ///
