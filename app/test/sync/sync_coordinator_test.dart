@@ -3140,8 +3140,17 @@ void main() {
       final result = await coordinator.syncNow();
 
       expect(result.status, SyncPassStatus.completed);
-      expect(store.writes, hasLength(2));
-      expect(store.writes.map((write) => write.address), [address, address]);
+      // One write: the repair. This fake's snapshot is constant, so the merge
+      // that follows still sees the *pre-repair*, out-of-window tombstone, and
+      // §6.3 excludes a quarantined record from the merge table entirely. It
+      // used to be dropped from the local side only, which left the engine
+      // deciding the address with no local candidate and applying the peer's
+      // copy on top — the second write this test once asserted. A real store
+      // never produced it either: there the post-repair snapshot carries the
+      // repaired tombstone, whose `updatedAt` outranks the peer's, so the
+      // decision is upload.
+      expect(store.writes, hasLength(1));
+      expect(store.writes.map((write) => write.address), [address]);
       expect(store.writes.first.sourceBlob?.body['value'], 'pending');
       expect(
         store.writes.first.sourceBlob!.updatedAt.isAfter(
@@ -3149,7 +3158,6 @@ void main() {
         ),
         isTrue,
       );
-      expect(store.writes.last.sourceBlob?.body['value'], 'peer');
       expect(
         result.reports.map((report) => report.code),
         isNot(contains(SyncReportCode.concurrentLocalChange)),
