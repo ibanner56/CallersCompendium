@@ -41,6 +41,7 @@ import '../dialect/dialect.dart';
 import '../dialect/renderer.dart';
 import '../model/dance.dart';
 import '../model/figure.dart';
+import '../model/figure_source.dart';
 import '../model/formation.dart';
 import '../model/phrase_structure.dart';
 import '../taxonomy/contra_taxonomy.dart';
@@ -752,8 +753,11 @@ ProgramMatrix buildProgramMatrix(
     // by the phrase it *starts* in; every figure (custom included) advances the
     // beat cursor so later figures land in the right phrase/position.
     final structure = dance.phraseStructure;
+    final danceFigures = switch (dance.figuresSource) {
+      DecodedFigures(:final figures) => figures,
+    };
     var beat = 0;
-    for (final figure in dance.figures) {
+    for (final figure in danceFigures) {
       final key = columnKeyForFigure(figure, tax, config);
       final canonicalId = tax.resolve(figure.move)?.id;
       if (canonicalId == swingMoveId) {
@@ -790,7 +794,7 @@ ProgramMatrix buildProgramMatrix(
       beat += effBeats;
     }
     for (final compound in config.compound) {
-      if (_containsCompoundRun(dance.figures, compound, tax)) {
+      if (_containsCompoundRun(danceFigures, compound, tax)) {
         rowMoves.add(compound.id);
         present.add(compound.id);
       }
@@ -799,9 +803,9 @@ ProgramMatrix buildProgramMatrix(
       MatrixRow(
         danceId: dance.id,
         title: dance.title,
-        firstMoveId: dance.figures.isEmpty
+        firstMoveId: danceFigures.isEmpty
             ? null
-            : columnKeyForFigure(dance.figures.first, tax, config),
+            : columnKeyForFigure(danceFigures.first, tax, config),
         presentMoveIds: rowMoves,
         phraseLabelsByMove: phraseLabels,
         beatSpansByMove: beatSpans,

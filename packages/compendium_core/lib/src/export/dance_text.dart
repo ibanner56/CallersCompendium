@@ -2,6 +2,7 @@ import '../dialect/dialect.dart';
 import '../dialect/renderer.dart';
 import '../model/dance.dart';
 import '../model/enums.dart';
+import '../model/figure_source.dart';
 import '../model/phrase_structure.dart';
 import '../taxonomy/contra_taxonomy.dart';
 import 'export_labels.dart';
@@ -94,10 +95,13 @@ String danceToPlainText(
     lines.add('${labels.phrase}: ${dance.phraseStructure.raw.trim()}');
   }
 
-  if (dance.figures.isNotEmpty) {
+  final danceFigures = switch (dance.figuresSource) {
+    DecodedFigures(:final figures) => figures,
+  };
+  if (danceFigures.isNotEmpty) {
     lines.add('');
     lines.add('${labels.figures}:');
-    final sectioned = deriveSections(dance.figures, dance.phraseStructure);
+    final sectioned = deriveSections(danceFigures, dance.phraseStructure);
     for (final sf in sectioned) {
       final text = canonicalizeDiscouragedTerms
           ? fig.renderSummaryWithCanonicalDiscouragedTerms(sf.figure, dialect)

@@ -9,6 +9,7 @@ import '../../model/custom_field.dart';
 import '../../model/dance.dart';
 import '../../model/dance_link.dart';
 import '../../model/enums.dart';
+import '../../model/figure_source.dart';
 import '../../model/figure.dart';
 import '../../model/formation.dart';
 import '../../imports/reparse_custom_figures.dart';
@@ -101,7 +102,9 @@ class DanceRepository {
   /// figures need re-routing (avoids an allocation when nothing moves).
   Dance _normaliseMoveIds(Dance dance) {
     List<Figure>? normalised;
-    final figures = dance.figures;
+    final figures = switch (dance.figuresSource) {
+      DecodedFigures(figures: final list) => list,
+    };
     for (var i = 0; i < figures.length; i++) {
       final f = figures[i];
       final resolved = _normaliseFigure(f);
@@ -131,7 +134,9 @@ class DanceRepository {
   /// already on disk.
   Dance stripStarPromenadeHandPublic(Dance dance) {
     List<Figure>? stripped;
-    final figures = dance.figures;
+    final figures = switch (dance.figuresSource) {
+      DecodedFigures(figures: final list) => list,
+    };
     for (var i = 0; i < figures.length; i++) {
       final f = figures[i];
       final result = _stripStarPromenadeHand(f);
@@ -148,7 +153,9 @@ class DanceRepository {
   /// Explicitly authored `partners` figures are preserved.
   Dance normaliseTaxonomyV33Public(Dance dance) {
     List<Figure>? normalised;
-    final figures = dance.figures;
+    final figures = switch (dance.figuresSource) {
+      DecodedFigures(figures: final list) => list,
+    };
     for (var i = 0; i < figures.length; i++) {
       final figure = figures[i];
       final result = _normaliseTaxonomyV33Figure(figure);
@@ -166,7 +173,9 @@ class DanceRepository {
   /// facts.
   Dance normaliseTaxonomyV34Public(Dance dance) {
     List<Figure>? normalised;
-    final figures = dance.figures;
+    final figures = switch (dance.figuresSource) {
+      DecodedFigures(figures: final list) => list,
+    };
     for (var i = 0; i < figures.length; i++) {
       final figure = figures[i];
       final result = _normaliseTaxonomyV34Figure(figure);
@@ -194,8 +203,11 @@ class DanceRepository {
   }
 
   Dance normaliseTaxonomyV35Public(Dance dance) {
-    final figures = normaliseTaxonomyV35FiguresPublic(dance.figures);
-    return identical(figures, dance.figures)
+    final source = switch (dance.figuresSource) {
+      DecodedFigures(:final figures) => figures,
+    };
+    final figures = normaliseTaxonomyV35FiguresPublic(source);
+    return identical(figures, source)
         ? dance
         : dance.copyWith(figures: figures);
   }
@@ -297,7 +309,9 @@ class DanceRepository {
   /// [chainHandBackfillDoneKey]'s doc comment for why.
   Dance backfillChainHandPublic(Dance dance) {
     List<Figure>? backfilled;
-    final figures = dance.figures;
+    final figures = switch (dance.figuresSource) {
+      DecodedFigures(figures: final list) => list,
+    };
     for (var i = 0; i < figures.length; i++) {
       final f = figures[i];
       final result = _backfillChainHand(f);
@@ -314,8 +328,11 @@ class DanceRepository {
   /// scope this pass to CallersBox provenance; this transformer only recognizes
   /// the exact persisted figure shape emitted by the buggy parser.
   Dance repairLegacyCallersBoxRollAwayPublic(Dance dance) {
-    final repaired = repairLegacyCallersBoxRollAwayFiguresPublic(dance.figures);
-    if (identical(repaired, dance.figures)) return dance;
+    final source = switch (dance.figuresSource) {
+      DecodedFigures(:final figures) => figures,
+    };
+    final repaired = repairLegacyCallersBoxRollAwayFiguresPublic(source);
+    if (identical(repaired, source)) return dance;
     return dance.copyWith(figures: repaired);
   }
 
@@ -567,7 +584,9 @@ class DanceRepository {
               phraseStructure: Value(normalisedDance.phraseStructure.raw),
               figuresJson: Value(
                 normalizeShareableJsonText(
-                  encodeFigures(normalisedDance.figures),
+                  encodeFigures(switch (normalisedDance.figuresSource) {
+                    DecodedFigures(:final figures) => figures,
+                  }),
                 ),
               ),
               hook: Value(normalizeShareableText(normalisedDance.hook)),
@@ -802,11 +821,14 @@ class DanceRepository {
 
   Dance _normaliseTaxonomyV35Dance(Dance dance) {
     List<Figure>? normalised;
-    for (var i = 0; i < dance.figures.length; i++) {
-      final figure = dance.figures[i];
+    final source = switch (dance.figuresSource) {
+      DecodedFigures(:final figures) => figures,
+    };
+    for (var i = 0; i < source.length; i++) {
+      final figure = source[i];
       final result = _taxonomy.normalizeFigureV35(figure);
       if (!identical(result, figure) && normalised == null) {
-        normalised = dance.figures.sublist(0, i);
+        normalised = source.sublist(0, i);
       }
       normalised?.add(result);
     }
@@ -861,9 +883,12 @@ class DanceRepository {
   }) async {
     final canonicalTexts = <String>[];
     final sectioned = dance.sectionedFigures;
+    final danceFigures = switch (dance.figuresSource) {
+      DecodedFigures(:final figures) => figures,
+    };
     var idx = 0;
-    for (var i = 0; i < dance.figures.length; i++) {
-      final figure = dance.figures[i];
+    for (var i = 0; i < danceFigures.length; i++) {
+      final figure = danceFigures[i];
       final section = sectioned[i].label;
       // Flatten a structural container recursively to leaf rows so
       // `filterByMove` matches each constituent without trying to JSON-encode
@@ -2128,7 +2153,9 @@ class DanceRepository {
         final dance = await getById(id);
         if (dance == null) continue;
         final outcome = reparseImportGapFigures(
-          dance.figures,
+          switch (dance.figuresSource) {
+            DecodedFigures(:final figures) => figures,
+          },
           taxonomy: _taxonomy,
         );
         if (outcome.upgradedCount == 0) continue;

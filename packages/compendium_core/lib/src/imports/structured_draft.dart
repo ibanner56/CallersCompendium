@@ -2,6 +2,7 @@ import 'package:meta/meta.dart';
 
 import '../model/dance.dart';
 import '../model/figure.dart';
+import '../model/figure_source.dart';
 import 'raw_record.dart';
 
 /// Severity of a non-fatal note surfaced while parsing a record.
@@ -124,7 +125,11 @@ class StructuredDraft {
     List<String> authorNames = const [],
     this.difficultyLevelLabel,
     this.difficultyLevelIdIsCanonical = false,
-  }) : quality = quality ?? ParseQuality.ofFigures(dance.figures),
+  }) : quality =
+           quality ??
+           ParseQuality.ofFigures(switch (dance.figuresSource) {
+             DecodedFigures(:final figures) => figures,
+           }),
        issues = List.unmodifiable(issues),
        authorNames = List.unmodifiable(authorNames);
 
