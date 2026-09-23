@@ -1066,6 +1066,68 @@ void main() {
     expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
   });
 
+  // A mutation sweep caught this gap: removing the fuzzy reason from
+  // `_reconcileDanceReviewQueue` left every other test green, because a
+  // two-dance merge deletes its own row through the resolver's tail anyway, so
+  // nothing observed the remap. It takes a *third* near-duplicate to make the
+  // dangling row visible — which is the shape a real library produces, since
+  // near-duplicate titles come in families rather than isolated pairs.
+  test('merging one of three near-duplicates leaves no row pointing at the '
+      'merged-away dance', () async {
+    final stamp = DateTime.utc(2026, 7, 15, 12);
+    // ignore: unused_result
+    await repositories.choreographers.upsert(
+      Choreographer(id: 'shared-author', name: 'Sam Jones'),
+      at: stamp,
+    );
+    for (final entry in const [
+      (id: 'a-x', title: "Rory O'More", move: 'balance'),
+      (id: 'b-y', title: "Rory O'Moore", move: 'swing'),
+      (id: 'c-z', title: "Rory O'Moor", move: 'star'),
+    ]) {
+      await repositories.dances.create(
+        Dance(
+          id: entry.id,
+          title: entry.title,
+          authorIds: const ['shared-author'],
+          figures: [testFigure(move: entry.move)],
+          createdAt: stamp,
+          updatedAt: stamp,
+        ),
+      );
+    }
+
+    await storage.deduplicateFreshAttach();
+    Future<Set<(String, String)>> queued() async =>
+        (await repositories.syncLocal.listReviewQueue())
+            .where((row) => row.reason == syncDanceFuzzyDuplicateReason)
+            .map((row) => (row.recordId, row.counterpartId))
+            .toSet();
+    // All three pairs are flagged and no two titles are equal.
+    expect(await queued(), {('a-x', 'b-y'), ('a-x', 'c-z'), ('b-y', 'c-z')});
+
+    final item = SyncReviewQueueItem.fromRow(
+      (await repositories.syncLocal.getReviewQueue(
+        kind: SyncRecordKind.dance,
+        recordId: 'a-x',
+        counterpartId: 'b-y',
+      ))!,
+    );
+    await storage.resolveReviewQueue(
+      expectedRow: item.row,
+      action: SyncReviewAction.merge,
+    );
+
+    expect(await repositories.dances.getById('b-y'), isNull);
+    // The (b-y, c-z) row must be remapped onto the survivor and collapsed into
+    // the (a-x, c-z) row that already exists, not left naming a dance that no
+    // longer has a row — a state no resolution could ever satisfy.
+    expect(await queued(), {('a-x', 'c-z')});
+    final remaining = (await repositories.syncLocal.listReviewQueue()).single;
+    expect(remaining.localHash, isNotNull);
+    expect(SyncReviewQueueItem.fromRow(remaining).isActionable, isTrue);
+  });
+
   test('keeping both fuzzy duplicates renames nothing', () async {
     await seedFuzzyPair();
     await storage.deduplicateFreshAttach();
