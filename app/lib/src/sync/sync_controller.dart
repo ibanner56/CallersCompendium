@@ -87,7 +87,14 @@ enum SyncAdminOutcome {
   /// Refused before any request: a removal naming this device's own id.
   refused,
 
-  /// The request was made and did not succeed. Nothing local was changed.
+  /// The store was destroyed on the server, but this device could not finish
+  /// forgetting it. The wipe is **not** undone — nothing can undo it — so this
+  /// must never be reported as a failure: the user has to be told the store is
+  /// gone and that this device is still holding the phrase for it.
+  wipedButStillAttached,
+
+  /// The request was made and did not succeed, or its outcome could not be
+  /// established. Nothing local was changed.
   failed,
 }
 
@@ -775,21 +782,34 @@ class SyncController extends ChangeNotifier {
     // detach, and the next pass would republish it), so it is refused here
     // rather than quietly done.
     if (deviceId == await _selfDeviceId()) return SyncAdminOutcome.refused;
-    final admin = _deviceAdmin();
-    if (admin == null) return SyncAdminOutcome.notPaired;
-    var outcome = SyncAdminOutcome.failed;
+    if (!paired) return SyncAdminOutcome.notPaired;
+    var outcome = SyncAdminOutcome.notPaired;
     try {
       await _runExclusive(() async {
-        final response = await admin.deleteManifest(deviceId);
-        outcome = switch (response.kind) {
-          // The server answers 204 whether or not the manifest was there, so a
-          // repeat of a removal that already happened is a success, not an
-          // error the user should be asked to retry.
-          SyncResponseKind.success => SyncAdminOutcome.done,
-          // A 404 on this route means the *store* is gone, not the manifest.
-          SyncResponseKind.notFound => SyncAdminOutcome.storeMissing,
-          _ => SyncAdminOutcome.failed,
-        };
+        // Built inside the boundary, and that is the whole point. The boundary
+        // is a queue: the `await` above yields, so a detach can be queued
+        // ahead of this operation and will have cleared the sync ID by the
+        // time the operation runs. An admin captured before queueing still
+        // holds that cleared credential, and would send the `DELETE` to a
+        // store this device has just left — removing a peer from a store the
+        // user may no longer own. Rebuilding here means a detach that won the
+        // queue leaves nothing to build from, and nothing is sent.
+        final admin = _deviceAdmin();
+        if (admin == null) return;
+        try {
+          final response = await admin.deleteManifest(deviceId);
+          outcome = switch (response.kind) {
+            // The server answers 204 whether or not the manifest was there, so
+            // a repeat of a removal that already happened is a success, not an
+            // error the user should be asked to retry.
+            SyncResponseKind.success => SyncAdminOutcome.done,
+            // A 404 on this route means the *store* is gone, not the manifest.
+            SyncResponseKind.notFound => SyncAdminOutcome.storeMissing,
+            _ => SyncAdminOutcome.failed,
+          };
+        } finally {
+          admin.close?.call();
+        }
       });
     } on Object catch (error, stack) {
       logCaughtErrorTypeOnly(
@@ -798,8 +818,6 @@ class SyncController extends ChangeNotifier {
         source: 'sync_controller.removeDevice',
       );
       return SyncAdminOutcome.failed;
-    } finally {
-      admin.close?.call();
     }
     return outcome;
   }
@@ -828,35 +846,58 @@ class SyncController extends ChangeNotifier {
   /// first thing offered in response to a `507`.
   Future<SyncAdminOutcome> wipeStore() async {
     if (!paired || _detaching) return SyncAdminOutcome.notPaired;
-    final admin = _deviceAdmin();
-    if (admin == null) return SyncAdminOutcome.notPaired;
     // Held for the same reason [detach] holds it: a pass that finishes while
     // this runs belongs to the store being destroyed, and recording it would
     // restore a last-success time for a store that no longer exists.
     _detaching = true;
     _debounceTimer?.cancel();
     _dirty = false;
+    var attached = false;
     var wiped = false;
+    var cleared = false;
     try {
       await _runExclusive(() async {
-        final response = await admin.deleteStore();
-        // A store that is already gone is the end state the user asked for,
-        // so it detaches too rather than reporting a failure they cannot act
-        // on. This is the first production consumer of `notFound`.
-        wiped =
-            response.kind == SyncResponseKind.success ||
-            response.kind == SyncResponseKind.notFound;
-        if (!wiped) return;
-        await _clearAttachment();
+        // Built inside the boundary, for the reason [removeDevice] gives: the
+        // boundary is a queue, and a credential captured before queueing can
+        // belong to a store this device has already left by the time the
+        // request goes out.
+        final admin = _deviceAdmin();
+        if (admin == null) return;
+        attached = true;
+        try {
+          final response = await admin.deleteStore();
+          // A store that is already gone is the end state the user asked for,
+          // so it detaches too rather than reporting a failure they cannot act
+          // on. This is the first production consumer of `notFound`.
+          wiped =
+              response.kind == SyncResponseKind.success ||
+              response.kind == SyncResponseKind.notFound;
+          if (!wiped) return;
+          await _clearAttachment();
+          cleared = true;
+        } finally {
+          admin.close?.call();
+        }
       });
     } on Object catch (error, stack) {
+      // Logged, but deliberately NOT returned from: the flags below decide.
+      // A throw after the `DELETE` succeeded — the local clear failing, or the
+      // writer boundary's own post-operation reconfigure failing — must not be
+      // reported as "nothing happened". The store is irreversibly gone at that
+      // point, and saying otherwise invites the user to retry a destructive
+      // action that already succeeded, while leaving this device holding the
+      // phrase for a store that no longer exists.
       logCaughtErrorTypeOnly(error, stack, source: 'sync_controller.wipeStore');
-      return SyncAdminOutcome.failed;
     } finally {
       _detaching = false;
-      admin.close?.call();
     }
+    if (!attached) return SyncAdminOutcome.notPaired;
+    // `wiped` false covers both a refusal and an unresolved attempt (a
+    // transport timeout after the server may already have processed the
+    // `DELETE`). Neither can claim the store still exists, which is why the
+    // copy for this outcome does not say nothing changed.
     if (!wiped) return SyncAdminOutcome.failed;
+    if (!cleared) return SyncAdminOutcome.wipedButStillAttached;
     _forgetAttachment();
     return SyncAdminOutcome.done;
   }

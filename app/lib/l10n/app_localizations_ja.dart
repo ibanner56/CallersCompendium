@@ -376,7 +376,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsSyncDeviceRemoveBody =>
-      'そのデバイスが共有した内容のコピーがストアから削除され、そのデバイスは同期を停止します。そのデバイスからも、このデバイスからも、データは削除されません。同期フレーズがあれば、後でこのストアに再び接続できます。';
+      'そのデバイスが共有した内容の一覧がストアから削除され、使っていた枠が解放されます。そのデバイスからも、このデバイスからも、データは削除されません。これは完全に使わなくなったデバイス向けの操作です。削除してもそのデバイスの接続は解除されないため、まだ動作しているデバイスは次回の同期で一覧を再び公開します。また、どのデバイスも同期フレーズがあれば再接続できます。';
 
   @override
   String get settingsSyncDeviceRemoveAction => '削除';
@@ -403,7 +403,11 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsSyncWipeFailed =>
-      'ストアを削除できませんでした。何も変更されておらず、このデバイスはまだ接続されています。もう一度お試しください。';
+      'ストアを削除できなかったか、削除されたことを確認できませんでした。このデバイスはまだ接続されています。もう一度試す前に、他のデバイスを確認してください。';
+
+  @override
+  String get settingsSyncWipeDetachFailed =>
+      'ストアはサーバーから削除されましたが、このデバイスの接続を解除できませんでした。ストアは失われ、元に戻すことはできません。「このデバイスの接続を解除」で完了してください。';
 
   @override
   String get settingsSyncMeteredRouted =>

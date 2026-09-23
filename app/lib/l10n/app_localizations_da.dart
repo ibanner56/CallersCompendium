@@ -389,7 +389,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncDeviceRemoveBody =>
-      'Lageret beholder ikke længere denne enheds kopi af det, den delte, og enheden holder op med at synkronisere. Der slettes intet fra den enhed, og der slettes intet fra din. Den kan forbinde til dette lager igen senere med synkroniseringssætningen.';
+      'Lageret dropper denne enheds liste over det, den delte, og frigør den plads, den brugte. Der slettes intet fra den enhed, og der slettes intet fra din. Det er til en enhed, der er helt væk: at fjerne en enhed afbryder den ikke, så en enhed, der stadig kører, offentliggør sin liste igen, næste gang den synkroniserer, og enhver enhed kan forbinde igen med synkroniseringssætningen.';
 
   @override
   String get settingsSyncDeviceRemoveAction => 'Fjern';
@@ -417,7 +417,11 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncWipeFailed =>
-      'Lageret kunne ikke slettes. Intet blev ændret, og denne enhed er stadig forbundet; prøv igen.';
+      'Lageret kunne ikke slettes, eller det kunne ikke bekræftes, at det blev slettet. Denne enhed er stadig forbundet. Tjek dine andre enheder, før du prøver igen.';
+
+  @override
+  String get settingsSyncWipeDetachFailed =>
+      'Lageret blev slettet fra serveren, men denne enhed kunne ikke afbryde forbindelsen til det. Lageret er væk og kan ikke hentes tilbage. Brug Afbryd forbindelsen på denne enhed for at gøre det færdigt.';
 
   @override
   String get settingsSyncMeteredRouted =>

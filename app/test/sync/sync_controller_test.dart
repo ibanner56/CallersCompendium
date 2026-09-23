@@ -82,6 +82,17 @@ final class _Admin {
   );
 }
 
+/// A sync-local repository whose every transaction fails, standing in for the
+/// local clear failing after the server has already destroyed the store.
+final class _FailingSyncLocal extends SyncLocalRepository {
+  _FailingSyncLocal(super.db);
+
+  @override
+  Future<T> transaction<T>(
+    Future<T> Function(SyncLocalTransaction transaction) action,
+  ) => Future<T>.error(StateError('local clear failed'));
+}
+
 /// A coordinator whose pass operation counts calls and never reaches a network.
 SyncCoordinator _coordinator(
   CompendiumRepositories repos,
@@ -1118,6 +1129,7 @@ void main() {
     Future<SyncController> paired(
       _Admin fake, {
       Future<void> Function(Future<void> Function() operation)? runExclusive,
+      SyncLocalRepository? syncLocal,
     }) async {
       await repos.settings.set(kSyncEnabledKey, true);
       await repos.settings.set(kSyncIdKey, 'correct horse battery staple');
@@ -1128,7 +1140,7 @@ void main() {
       await repos.syncLocal.replaceBaseline(epoch: 'epoch-1');
       final controller = SyncController(
         settings: repos.settings,
-        syncLocal: repos.syncLocal,
+        syncLocal: syncLocal ?? repos.syncLocal,
         coordinator: () => coordinator,
         reconfigure: () async {},
         runExclusive: runExclusive ?? (operation) => operation(),
@@ -1366,6 +1378,83 @@ void main() {
 
       expect(controller.lastSuccessAt, isNull);
       expect(await repos.settings.get(kSyncLastSuccessAtKey), isNull);
+    });
+
+    test('a removal that a detach beat to the boundary sends nothing', () async {
+      final fake = _Admin();
+      late SyncController controller;
+      controller = await paired(
+        fake,
+        // The writer boundary is a queue. This stands in for a detach that was
+        // queued ahead of the removal and completed first: by the time the
+        // removal's operation runs, the device is attached to nothing.
+        runExclusive: (operation) async {
+          await repos.settings.remove(kSyncIdKey, permanent: true);
+          await repos.settings.remove(kSyncEndpointKey, permanent: true);
+          await controller.load();
+          await operation();
+        },
+      );
+
+      expect(
+        await controller.removeDevice('peer_a'),
+        SyncAdminOutcome.notPaired,
+      );
+
+      expect(
+        fake.removed,
+        isEmpty,
+        reason:
+            'a credential captured before the boundary would still be usable '
+            'here, and would remove a peer from a store this device has left',
+      );
+    });
+
+    test('a wipe whose local clear fails reports the store gone, never a '
+        'failure', () async {
+      final fake = _Admin();
+      final controller = await paired(
+        fake,
+        syncLocal: _FailingSyncLocal(repos.db),
+      );
+
+      expect(
+        await controller.wipeStore(),
+        SyncAdminOutcome.wipedButStillAttached,
+        reason:
+            'the DELETE succeeded, so the store is irreversibly gone; calling '
+            'this a failure invites a retry of something that already happened',
+      );
+
+      expect(fake.wipes, 1);
+      expect(
+        controller.paired,
+        isTrue,
+        reason: 'the clear failed, so this device really is still attached',
+      );
+      expect(
+        await repos.settings.get(kSyncIdKey),
+        'correct horse battery staple',
+        reason: 'the surface must not claim a phrase was forgotten',
+      );
+    });
+
+    test('a wipe whose boundary fails only after the clear committed is still '
+        'a success', () async {
+      final fake = _Admin();
+      final controller = await paired(
+        fake,
+        // The writer boundary reconfigures after the operation; a failure
+        // there happens once the store is gone and the clear has committed.
+        runExclusive: (operation) async {
+          await operation();
+          throw StateError('post-operation reconfigure failed');
+        },
+      );
+
+      expect(await controller.wipeStore(), SyncAdminOutcome.done);
+      expect(controller.paired, isFalse);
+      expect(await hasRow(kSyncIdKey), isFalse);
     });
 
     test('an unpaired device requests nothing', () async {
