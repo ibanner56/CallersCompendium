@@ -1007,6 +1007,21 @@ stops there has closed one of the two, and a rebuild gate keyed on
 `normalisation_skips` is blind to precisely the case that raises: a row that
 normalises and does not decode.
 
+**A conforming client MUST therefore make the *load* path total as well**,
+holding an undecodable transcription in a form that carries the stored text
+unchanged rather than raising out of it. Two properties of that form are
+load-bearing. It MUST preserve the stored bytes verbatim, because the row is
+still the user's transcription and a later build may be able to read it. And it
+MUST NOT be substitutable for a readable transcription — a boolean flag beside
+an empty list is not sufficient, because every reader keeps compiling and
+silently receives the empty list, and many readers load a record, change one
+field and write it back, which turns a display defect into the user's
+transcription being overwritten with nothing on an ordinary edit.
+
+A client MUST NOT predict which rows the rebuild can read by consulting
+`normalisation_skips` (§3.2). The totality has to come from the load path
+itself; the skip table answers a different question.
+
 **Every pass that rewrites a row MUST commit in three steps, and MUST NOT write
 its completion marker until the derived rebuild has succeeded.** The steps are:
 (1) the row rewrites, the `normalisation_skips` upserts and a durable *rebuild
@@ -1313,6 +1328,29 @@ Nine kinds produce blobs: `dance`, `program`, `choreographer`, `tag`,
 | `body` | Archive-codec output, `shareable` fields only. |
 
 Join rows are not separate records; they ride inline with their parent.
+
+**A device MUST NOT publish a dance whose stored transcription it cannot
+decode.** The body is the archive codec's output restricted to `shareable`
+fields, and those two facts do not compose safely here. The archive shape
+carries an undecodable transcription verbatim in `figuresRaw`, beside a
+well-formed empty `figures` array — but `figuresRaw` is **not** a `shareable`
+wire field, so the shareable projection drops it, and what would go out is an
+empty `figures` array and nothing else. The marker does not survive the
+projection, so this is not a question of peer vintage: a peer of **any** version
+would receive an empty transcription with no signal that anything was missing,
+and last-writer-wins would replace a transcription it can read with nothing — on
+the strength of a record the sender could not read in the first place.
+
+Withholding is strictly conservative. A record never published cannot overwrite
+anything, the peer keeps what it has, and the local bytes are untouched. The
+alternative is the one outcome that is silently destructive rather than merely
+absent, which is the same trade §4.1 makes for every other value the wire cannot
+faithfully carry.
+
+The archive envelope's own version ledger — including the version that records
+`figuresRaw`, stamped only on an archive that actually carries one — lives with
+the archive codec and is deliberately not restated here. The only part that
+binds sync is that the key never reaches the wire.
 
 ### 4.4 Settings records
 
@@ -2843,6 +2881,31 @@ root as having no usable fallback for this pass, omit it, and recompute the
 same foreign-key withholding fixpoint. If the body is locally available, the
 client uploads it before publishing the manifest.
 
+**A record a device holds but cannot read is a third publication state, and it
+is not quarantine.** Quarantine is a derived predicate over timestamps, it has
+a fallback hash, and repair clears it. A dance whose stored transcription cannot
+be decoded (§4.3) has none of those: the row is live, it is not deleted, no
+clock is involved, and nothing a later pass does will make the device able to
+read it. It is simply never offered to a peer, because the device cannot speak
+for a record it cannot read.
+
+The withhold MUST cover **every** path that would publish or match the record,
+not only the one that reads its body. Publishing is not funnelled through a
+single chokepoint: a fresh attach builds bodies and wire hashes directly from
+model objects, and so do the dedupe plan and the merge-candidate build. A guard
+on the body read alone leaves the other three live. Two consequences follow and
+are accepted rather than worked around: such a dance is **not offered as a
+fresh-attach dedupe match**, and is **not considered as a merge candidate**.
+
+The wire hash folds the whole body, so this was never a display concern — an
+unwithheld record would reach dedupe and merge identity. The withhold removes
+that question rather than answering it; if it is ever relaxed, the hash question
+returns with it.
+
+A device SHOULD report a record withheld this way, so the gap is visible to the
+user rather than silent. **That half is not implemented**: the withhold is in
+place and emits nothing (#1347).
+
 **Repair** runs during a sync pass, not on a user gesture, and reads no clock.
 For each out-of-window field, gather peer copies, discard any whose value **for
 that field** is outside the local window, and take the greatest of what remains:
@@ -4243,12 +4306,19 @@ serialised into a blob, on the same terms as the other non-`shareable` classes.
 **A `storeAddress` value is never adopted, never serialised and never
 logged**: a received envelope naming a `sync_id` leaves the local address
 untouched (mutation: apply it, which locks the device out of its own store on
-the next request and is receive-only in the same way); no blob, manifest or
-export carries it (mutation: classify it `shareable`); and no server or proxy
-log line contains it, checked against the response to a request that fails
-authentication as well as one that succeeds (mutation: log the request line
-verbatim — the failing case is the one a naive implementation logs, because it
-is the one an operator wants to debug).
+the next request and is receive-only in the same way); no blob carries it
+(mutation: classify it `shareable`, caught by the send-side fail-closed list
+over `SyncSettingsRecord.toBlob`); a manifest and an archive export cannot carry
+it at all, so both are pinned structurally rather than by that mutation — a
+manifest's entries are record id to SHA-256 hash, its only free-form strings
+being the `protocolIdentifier` device id and the server-minted epoch, and an
+archive carries entity rows with no settings representation of any kind (the
+backup document, the one export that carries settings at all, excludes
+`sync_id` by name rather than by class — see *Configuration egress* above); and
+no server or proxy log line contains it, checked against the response to a
+request that fails authentication as well as one that succeeds (mutation: log
+the request line verbatim — the failing case is the one a naive implementation
+logs, because it is the one an operator wants to debug).
 
 **Reconciliation.** Converges from both sides (mutation: keep the local row).
 Inbound references to the losing UUID are remapped. `deviceLocal` fields
@@ -4507,7 +4577,17 @@ replacement mutation is to issue `POST` before confirmation; cancellation MUST
 leave that mutation observably red.
 
 **Client isolate and robustness.** Hostile peer blob: a malformed date rejects
-one record without aborting the batch or escaping the isolate. **An interrupted
+one record without aborting the batch or escaping the isolate. **An undecodable
+local transcription is withheld on every publish path** — asserted separately
+against the record-body read, the fresh-attach snapshot, the dedupe plan and the
+merge-candidate build, because publishing is not funnelled through one
+chokepoint (mutation: guard only the body read — the other three still build
+blobs straight from model objects, and the record goes out with an empty
+`figures` array that overwrites a peer's readable copy). The complementary
+vector is that a **healthy** library is unaffected: no new key appears in its
+blobs and its archive stamps the same envelope version as before (mutation:
+emit the key or bump the version unconditionally, which is invisible to any test
+that only exercises the undecodable row). **An interrupted
 pass leaves no partial apply** — kill the isolate mid-apply and assert the
 library is exactly pre-pass or exactly post-apply, never between. The
 complementary assertion is that a pass killed *after* step 7 and before step 8
