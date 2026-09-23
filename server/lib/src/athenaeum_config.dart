@@ -30,11 +30,19 @@ class AthenaeumConfig {
     int port = 33333,
     bool trustForwardedHeadersFromLoopback = true,
   }) {
-    final encoded = pepper ?? const String.fromEnvironment('ATHENAEUM_PEPPER');
-    if (encoded.isEmpty) {
+    // Runtime configuration only. There is deliberately no compile-time
+    // environment default behind this: a `-DATHENAEUM_PEPPER=…` define is baked
+    // in by `dart compile exe`, so the binary would carry its deployment secret
+    // inside the artifact and start with no pepper configured at all — the
+    // built-in pepper, and the failure to refuse, that spec §5.1 forbids
+    // (#1359). The runtime environment is read by the caller
+    // (`server/bin/athenaeum.dart`) and arrives here as [pepper].
+    // `athenaeum_config_test.dart` scans this package's source for the
+    // compile-time constructors, so reintroducing one fails there.
+    if (pepper == null || pepper.isEmpty) {
       throw ArgumentError('ATHENAEUM_PEPPER or --pepper is required');
     }
-    final decoded = _decodePepper(encoded);
+    final decoded = _decodePepper(pepper);
     return AthenaeumConfig(
       dataDirectory: dataDirectory,
       pepper: decoded,

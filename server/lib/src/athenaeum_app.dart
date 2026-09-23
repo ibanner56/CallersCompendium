@@ -542,7 +542,13 @@ class AthenaeumApp {
       } on StoreQuotaExceeded catch (error) {
         throw _RequestFailure(507, error.message);
       } on StoreEpochMismatch {
-        throw const _RequestFailure(409, 'stale blob epoch');
+        // The store row was reaped or deleted between the lookup above and this
+        // quota preflight. §7.1 reserves `409` for a stale-epoch manifest `PUT`
+        // and a duplicate `POST /v1/store`, so a blob upload reports the
+        // store-not-found outcome it actually had — and through
+        // `_failedResolution`, so §5.4 counts it like every other unresolved
+        // store request.
+        return _failedResolution(request, 404, 'store not found');
       }
       if (request.headers['content-encoding']?.toLowerCase() != 'gzip' &&
           _declaredLengthExceeds(request, quotaLimit)) {
@@ -570,10 +576,14 @@ class AthenaeumApp {
       } on StoreQuotaExceeded catch (error) {
         throw _RequestFailure(507, error.message);
       } on StoreEpochMismatch {
-        if (store.lookup(identity.idKey) == null) {
-          return _failedResolution(request, 404, 'store not found');
-        }
-        throw const _RequestFailure(409, 'stale blob epoch');
+        // `putBlob` raises this only when the store row was already gone as it
+        // wrote. It does not compare epochs, and deliberately accepts an upload
+        // into a superseded one: §7.1 namespaces blobs by epoch precisely so a
+        // stale one has no reader and is reclaimed rather than rejected. So the
+        // store having disappeared is the whole of this case, and it is the
+        // counted `404`. Do not read it as a stale-epoch rejection — adding one
+        // would change what §7.1 says blob uploads do.
+        return _failedResolution(request, 404, 'store not found');
       }
       return Response(created ? 201 : 200);
     }
