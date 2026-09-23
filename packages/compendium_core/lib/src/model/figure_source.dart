@@ -8,19 +8,40 @@ const ListEquality<Object?> _listEq = ListEquality<Object?>();
 ///
 /// ## Why this is not just `List<Figure>`
 ///
-/// A dance's `figures_json` can be stored in a state no list can represent: a
-/// value that is malformed, or whose object keys collide under normalization,
-/// cannot be decoded into figures at all (#1347). Today that raises on the load
-/// path. The fix is to give the unreadable case a *representation*, so it can
-/// travel through the app instead of crashing it — but a representation is only
-/// safe if nothing can quietly ignore it.
+/// A dance's `figures_json` can be stored in a state no `List<Figure>` can
+/// represent: text that `decodeFigures` rejects — not JSON at all, a root that
+/// is not an array, or an entry that is not a well-formed figure object. Today
+/// that raises on the load path (#1347). The fix is to give the undecodable
+/// case a *representation*, so it can travel through the app instead of
+/// crashing it — but a representation is only safe if nothing can quietly
+/// ignore it.
 ///
-/// A `bool figuresUnreadable` flag beside a `List<Figure>` would not be safe:
-/// every one of the ~50 places that read a transcription would keep compiling,
-/// silently receiving an empty list. Six repository methods and eleven UI paths
-/// read a dance, change one field and write it back, so an empty list there is
-/// not a display bug — it is the user's transcription being overwritten with
-/// nothing, permanently, on an ordinary edit.
+/// ## Undecodable is not un-normalisable, and neither implies the other
+///
+/// Worth stating precisely, because this is the definition the next change will
+/// be read against. The normalisation pass rejects a *different* set of values:
+/// malformed JSON, object keys that normalise to one key, and values that decode
+/// but cannot be re-encoded (`1e999` is legal JSON that parses to an infinity no
+/// JSON encoder will emit — #1363). The two sets overlap only on text that is
+/// not JSON at all.
+///
+/// * `[1, 2, 3]` normalises perfectly and does **not** decode.
+/// * A figure whose params hold both `é` and `e` + `U+0301` decodes perfectly
+///   and does **not** normalise — `decodeFigures` performs no normalisation
+///   (`figure_codec.dart` imports neither the normaliser nor anything that
+///   calls it).
+///
+/// An un-normalisable row is the normalisation pass's problem and is recorded
+/// as a skip; an **undecodable** one is this type's.
+///
+/// ## Why not a flag
+///
+/// A `bool figuresUnreadable` beside a `List<Figure>` would not be safe: every
+/// place that reads a transcription would keep compiling, silently receiving an
+/// empty list. Many of those paths read a dance, change one field and write it
+/// back, so an empty list there is not a display bug — it is the user's
+/// transcription being overwritten with nothing, permanently, on an ordinary
+/// edit.
 ///
 /// Because this is a `sealed` class, a `switch` over it is checked for
 /// exhaustiveness by the compiler. Adding a case is therefore not a change

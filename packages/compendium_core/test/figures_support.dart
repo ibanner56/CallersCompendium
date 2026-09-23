@@ -10,9 +10,12 @@ import 'package:compendium_core/compendium_core.dart';
 /// give back exactly the hazard the type exists to prevent.
 ///
 /// A test is not one of those readers. No test is a write-back path, so the
-/// compile-time forcing buys nothing here and would put a `switch` inside 270
-/// assertions — the very lines a reviewer reads to judge whether a refactor
-/// preserved behaviour. So tests get this, and `lib/` gets none.
+/// compile-time forcing buys nothing here and would put a `switch` inside every
+/// read site in both test trees — the very lines a reviewer reads to judge
+/// whether a refactor preserved behaviour. So tests get this, and `lib/` gets
+/// none. (Deliberately no count here: the first version of this comment carried
+/// one and it was stale within the same pull request. The analyzer is the
+/// instrument for that question, not a comment.)
 ///
 /// Note that this helper is itself a `switch` over the sealed type, so the
 /// second case will break *it* — one place, deliberately — at which point tests
