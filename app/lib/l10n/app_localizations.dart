@@ -2703,6 +2703,12 @@ abstract class AppLocalizations {
   /// **'Only one record will be kept. The email address, location, and deceased marker on the other one are stored only on this device, so they cannot be recovered afterwards.'**
   String get syncReviewMergeDiscardsContactsBody;
 
+  /// Failure message shown when a step-1 rename collision is merged while the record holding the colliding name is a tombstone; keep both remains available.
+  ///
+  /// In en, this message translates to:
+  /// **'The other record was deleted, so these two cannot be merged. Use Keep both to give it a different name.'**
+  String get syncReviewCounterpartDeleted;
+
   /// Reason/status shown for persisted sync conflicts outside the W14 action contract.
   ///
   /// In en, this message translates to:

@@ -1521,11 +1521,21 @@ final class CompendiumSyncStorage
       kind,
       currentRow.counterpartId,
     );
-    if (holder == null ||
-        holderMetadata == null ||
-        holderMetadata.deletedAt != null) {
+    if (holder == null || holderMetadata == null) {
       throw const SyncReviewException(SyncReviewFailureCode.targetMissing);
     }
+    // A **tombstoned** holder is not a missing one, and rejecting it as such
+    // reproduced this issue's own disease inside its fix: the row stayed
+    // queued and neither action could clear it.
+    //
+    // None of the four natural-key indexes is filtered on `deleted_at`
+    // (§4.1), so a tombstone keeps occupying its name — which is how this
+    // collision arises at all — and `_loadNaturalKeyIndex` selects every row,
+    // preferring a live one only when there is a live one to prefer. A peer
+    // renaming a known UUID onto a name that only a deleted row holds
+    // therefore reaches the step-1 guard with a deleted incumbent, and that
+    // guard does not filter on it either.
+    final holderDeleted = holderMetadata.deletedAt != null;
     // The collision must still exist. Renaming one side by hand was the only
     // workaround available before this action shipped, so it is a reachable
     // state rather than a theoretical one, and applying the candidate then
@@ -1543,6 +1553,24 @@ final class CompendiumSyncStorage
     var candidateForApply = candidate;
     switch (action) {
       case SyncReviewAction.merge:
+        if (holderDeleted) {
+          // Collapsing a live record and a tombstone into one row is an
+          // **existence** decision, which §6.4 and §6.6 step 2 settle by
+          // comparing `existenceAt`. Step 1 runs none of that machinery on
+          // purpose: it does not reconcile bodies at all, because the two rows
+          // may be different entities.
+          //
+          // So there is no sound thing to do here. Adopting the tombstone onto
+          // a live survivor resurrects a deletion the user made — its id would
+          // resolve through the alias to a live row — while letting the
+          // tombstone survive deletes the live row instead. Either way an
+          // existence question gets answered by a tie-break that was never
+          // meant to answer one. Keep both frees the name without deciding it,
+          // and stays available.
+          throw const SyncReviewException(
+            SyncReviewFailureCode.counterpartDeleted,
+          );
+        }
         // A shipped difficulty ID outranks the lexicographic rule: it is part
         // of the persisted relationship contract (§6.6), which is exactly what
         // the shipped-difficulty variant of this reason exists to hold open.
@@ -1617,6 +1645,12 @@ final class CompendiumSyncStorage
         }
         // The row being renamed is the *counterpart* — the one holding the
         // name — so the candidate can then be applied to `record_id` unchanged.
+        //
+        // This works on a tombstoned holder too, and is the only action that
+        // does: freeing the name asks no question about which record exists,
+        // so nothing has to be decided that step 1 cannot decide. The rename
+        // does restamp the tombstone and republish it, which is the honest
+        // consequence of the user renaming a record — deleted or not.
         await _renameLocalNaturalKey(
           kind,
           currentRow.counterpartId,

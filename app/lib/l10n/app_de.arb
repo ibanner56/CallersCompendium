@@ -1728,6 +1728,10 @@
   "@syncReviewMergeDiscardsContactsBody": {
     "x-sourceSha256": "7b068cebe8dd826e8dde8a7b1a8c46e72d8429c856f46f1a151710f42e87550c"
   },
+  "syncReviewCounterpartDeleted": "Der andere Datensatz wurde gelöscht, daher lassen sich die beiden nicht zusammenführen. Verwenden Sie „Beide behalten“, um ihm einen anderen Namen zu geben.",
+  "@syncReviewCounterpartDeleted": {
+    "x-sourceSha256": "ee67d01915bb78e2fb0e9807b3bd8289011168db99a3123c411e1ec7083ee5df"
+  },
   "syncReviewUnsupportedReason": "Dieser Synchronisierungskonflikt bleibt vorerst erhalten; hier ist keine sichere Aktion verfügbar.",
   "@syncReviewUnsupportedReason": {
     "x-sourceSha256": "ff23640ff27c44ed369dfadd363b690079e5b87a56f3aac19f9bec8c5bdbf2e3"

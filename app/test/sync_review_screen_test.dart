@@ -244,6 +244,63 @@ void main() {
     );
   });
 
+  // A step-1 row stores the candidate under `record_id` and the local
+  // name-holder under `counterpart_id`, the reverse of every other reason.
+  // Making such a row actionable without teaching the display that layout
+  // labels each record as the other one — and the user is being asked which of
+  // two of their own records survives, irreversibly.
+  testWidgets('labels a step-1 collision with the right record on each side', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _seedRenameCollision(repos);
+
+    await _pumpScreen(tester, repos);
+
+    const key = 'choreographer:aaa-author:zzz-author';
+    // zzz-author is the local row holding the contested name; aaa-author is
+    // the record the peer renamed, and 'Sam Jones' is *its* new name.
+    expect(
+      tester
+          .widget<Text>(find.byKey(const ValueKey('sync-review-local-$key')))
+          .data,
+      'Local record: zzz-author',
+    );
+    expect(
+      tester
+          .widget<Text>(find.byKey(const ValueKey('sync-review-peer-$key')))
+          .data,
+      'Peer record: Sam Jones (aaa-author)',
+    );
+  });
+
+  // The same two lines for the tombstone reason, which uses the opposite
+  // layout. Without this, inverting the orientation would fix step-1 rows and
+  // silently break every other reason with the test above still green.
+  testWidgets(
+    'labels a tombstone decision with the right record on each side',
+    (tester) async {
+      final repos = openTestRepositories();
+      await _seedActionable(repos);
+
+      await _pumpScreen(tester, repos);
+
+      const key = 'choreographer:local-author:peer-author';
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('sync-review-local-$key')))
+            .data,
+        'Local record: local-author',
+      );
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('sync-review-peer-$key')))
+            .data,
+        'Peer record: Shared author (peer-author)',
+      );
+    },
+  );
+
   testWidgets('keeps both sides of a step-1 rename collision', (tester) async {
     final repos = openTestRepositories();
     await _seedRenameCollision(repos);

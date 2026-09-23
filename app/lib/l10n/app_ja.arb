@@ -1728,6 +1728,10 @@
   "@syncReviewMergeDiscardsContactsBody": {
     "x-sourceSha256": "7b068cebe8dd826e8dde8a7b1a8c46e72d8429c856f46f1a151710f42e87550c"
   },
+  "syncReviewCounterpartDeleted": "もう一方のレコードは削除されているため、この 2 件は統合できません。「両方を保持」で別の名前を付けてください。",
+  "@syncReviewCounterpartDeleted": {
+    "x-sourceSha256": "ee67d01915bb78e2fb0e9807b3bd8289011168db99a3123c411e1ec7083ee5df"
+  },
   "syncReviewUnsupportedReason": "この同期の競合は保留されています。ここでは安全な操作を利用できません。",
   "@syncReviewUnsupportedReason": {
     "x-sourceSha256": "ff23640ff27c44ed369dfadd363b690079e5b87a56f3aac19f9bec8c5bdbf2e3"

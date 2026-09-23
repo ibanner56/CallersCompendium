@@ -1928,6 +1928,10 @@
   "@syncReviewMergeDiscardsContactsBody": {
     "description": "Confirmation dialog body warning that merging two choreographers discards the losing record's device-local contact details."
   },
+  "syncReviewCounterpartDeleted": "The other record was deleted, so these two cannot be merged. Use Keep both to give it a different name.",
+  "@syncReviewCounterpartDeleted": {
+    "description": "Failure message shown when a step-1 rename collision is merged while the record holding the colliding name is a tombstone; keep both remains available."
+  },
   "syncReviewUnsupportedReason": "This sync conflict is retained for now; no safe action is available here.",
   "@syncReviewUnsupportedReason": {
     "description": "Reason/status shown for persisted sync conflicts outside the W14 action contract."

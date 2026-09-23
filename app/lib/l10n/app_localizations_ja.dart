@@ -1508,6 +1508,10 @@ class AppLocalizationsJa extends AppLocalizations {
       '保持されるレコードは 1 件だけです。もう一方のメールアドレス、場所、故人マークはこのデバイスにのみ保存されているため、統合後は復元できません。';
 
   @override
+  String get syncReviewCounterpartDeleted =>
+      'もう一方のレコードは削除されているため、この 2 件は統合できません。「両方を保持」で別の名前を付けてください。';
+
+  @override
   String get syncReviewUnsupportedReason =>
       'この同期の競合は保留されています。ここでは安全な操作を利用できません。';
 

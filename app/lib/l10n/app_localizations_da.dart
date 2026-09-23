@@ -1572,6 +1572,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Kun én post bevares. E-mailadressen, stedet og markeringen for afdød på den anden er kun gemt på denne enhed og kan ikke gendannes bagefter.';
 
   @override
+  String get syncReviewCounterpartDeleted =>
+      'Den anden post er slettet, så de to kan ikke flettes sammen. Brug „Behold begge“ for at give den et andet navn.';
+
+  @override
   String get syncReviewUnsupportedReason =>
       'Denne synkroniseringskonflikt er bevaret indtil videre; ingen sikker handling er tilgængelig her.';
 

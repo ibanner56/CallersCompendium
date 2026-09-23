@@ -5401,6 +5401,109 @@ void main() {
     return SyncReviewQueueItem.fromRow(row);
   }
 
+  // A tombstone keeps occupying its natural key: none of the four indexes is
+  // filtered on `deleted_at` (§4.1), and `_loadNaturalKeyIndex` selects every
+  // row, preferring a live one only when there is one. So a peer renaming a
+  // known UUID onto a name that only a *deleted* row holds reaches the step-1
+  // guard with a deleted incumbent — and rejecting that as `targetMissing`
+  // reproduced this issue's own disease inside its fix: a queued row neither
+  // action could clear.
+  test('a step-1 collision whose name-holder is a tombstone is still '
+      'resolvable', () async {
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    // ignore: unused_result
+    await repositories.choreographers.upsert(
+      Choreographer(id: 'aaa-author', name: 'Alice Smith'),
+      at: stamp,
+    );
+    // ignore: unused_result
+    await repositories.choreographers.upsert(
+      Choreographer(id: 'zzz-author', name: 'Sam Jones'),
+      at: stamp,
+    );
+    await repositories.choreographers.delete(
+      'zzz-author',
+      at: stamp.add(const Duration(seconds: 30)),
+    );
+    // Precondition: nothing live holds the contested name, so the index can
+    // only return the tombstone.
+    expect(
+      await repositories.choreographers.getById('zzz-author'),
+      isNull,
+      reason:
+          'the name-holder must be tombstoned for this to be the case '
+          'under test',
+    );
+
+    final renameStamp = stamp.add(const Duration(minutes: 1));
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.choreographer,
+            id: 'aaa-author',
+            updatedAt: renameStamp,
+            deletedAt: null,
+            existenceAt: renameStamp,
+            body: syncBodyForEntity(
+              SyncRecordKind.choreographer,
+              Choreographer(id: 'aaa-author', name: 'Sam Jones'),
+            ),
+          ),
+        ),
+      ],
+      storage: storage,
+    );
+
+    expect(result.applied, isEmpty);
+    final item = SyncReviewQueueItem.fromRow(
+      (await repositories.syncLocal.listReviewQueue()).single,
+    );
+    expect(item.row.reason, syncNaturalKeyRenameCollisionReason);
+    expect(
+      (item.row.recordId, item.row.counterpartId),
+      ('aaa-author', 'zzz-author'),
+    );
+    expect(item.isActionable, isTrue);
+
+    // Merge refuses, and says why: collapsing a live record into a tombstone
+    // is an existence decision that step 1 runs none of the machinery for.
+    // `targetMissing` would have been a lie — the row is right there.
+    await expectLater(
+      storage.resolveReviewQueue(
+        expectedRow: item.row,
+        action: SyncReviewAction.merge,
+      ),
+      throwsA(
+        isA<SyncReviewException>().having(
+          (error) => error.code,
+          'code',
+          SyncReviewFailureCode.counterpartDeleted,
+        ),
+      ),
+    );
+    expect(await repositories.syncLocal.listReviewQueue(), hasLength(1));
+    expect(await repositories.syncLocal.listAliases(), isEmpty);
+
+    // Keep both clears it: freeing the name asks no existence question.
+    await storage.resolveReviewQueue(
+      expectedRow: item.row,
+      action: SyncReviewAction.keepBoth,
+      newNaturalKey: 'Sam Jones (deleted)',
+    );
+
+    expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+    expect(
+      (await repositories.choreographers.getById('aaa-author'))!.name,
+      'Sam Jones',
+    );
+    final tombstone = await (db.select(
+      db.choreographers,
+    )..where((row) => row.id.equals('zzz-author'))).getSingle();
+    expect(tombstone.name, 'Sam Jones (deleted)');
+    expect(tombstone.deletedAt, isNotNull, reason: 'still deleted');
+  });
+
   test('a queued step-1 rename collision records the local hash and is '
       'actionable', () async {
     final item = await queueStep1Collision(

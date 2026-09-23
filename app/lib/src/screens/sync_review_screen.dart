@@ -67,7 +67,11 @@ class _SyncReviewScreenState extends State<SyncReviewScreen> {
 
   String _candidateIdentity(AppLocalizations l10n, SyncReviewQueueItem item) {
     final label = item.candidateLabel;
-    final id = item.row.counterpartId;
+    // `peerRecordId`, not `row.counterpartId`: a §6.6 step-1 row stores the
+    // candidate under `record_id` and the local name-holder under
+    // `counterpart_id`, so pairing the candidate's label with the counterpart
+    // id would describe one record with the other's identity.
+    final id = item.peerRecordId;
     return label == null ? id : '$label ($id)';
   }
 
@@ -173,6 +177,8 @@ class _SyncReviewScreenState extends State<SyncReviewScreen> {
     SyncReviewFailureCode.nameRequired => l10n.syncReviewNameRequired,
     SyncReviewFailureCode.nameNotDistinct => l10n.syncReviewNameNotDistinct,
     SyncReviewFailureCode.invalidCustomFieldKey => l10n.customFieldsKeyInvalid,
+    SyncReviewFailureCode.counterpartDeleted =>
+      l10n.syncReviewCounterpartDeleted,
   };
 
   /// The explanation shown on an actionable row.
@@ -210,7 +216,7 @@ class _SyncReviewScreenState extends State<SyncReviewScreen> {
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              l10n.syncReviewLocalRecord(item.row.recordId),
+              l10n.syncReviewLocalRecord(item.localRecordId),
               key: ValueKey('sync-review-local-$key'),
             ),
             Text(

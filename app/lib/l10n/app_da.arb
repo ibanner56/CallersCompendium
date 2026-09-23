@@ -1728,6 +1728,10 @@
   "@syncReviewMergeDiscardsContactsBody": {
     "x-sourceSha256": "7b068cebe8dd826e8dde8a7b1a8c46e72d8429c856f46f1a151710f42e87550c"
   },
+  "syncReviewCounterpartDeleted": "Den anden post er slettet, så de to kan ikke flettes sammen. Brug „Behold begge“ for at give den et andet navn.",
+  "@syncReviewCounterpartDeleted": {
+    "x-sourceSha256": "ee67d01915bb78e2fb0e9807b3bd8289011168db99a3123c411e1ec7083ee5df"
+  },
   "syncReviewUnsupportedReason": "Denne synkroniseringskonflikt er bevaret indtil videre; ingen sikker handling er tilgængelig her.",
   "@syncReviewUnsupportedReason": {
     "x-sourceSha256": "ff23640ff27c44ed369dfadd363b690079e5b87a56f3aac19f9bec8c5bdbf2e3"

@@ -59,6 +59,16 @@ enum SyncReviewFailureCode {
   nameRequired,
   nameNotDistinct,
   invalidCustomFieldKey,
+
+  /// A §6.6 step-1 merge was asked for while the row holding the natural key
+  /// is a tombstone.
+  ///
+  /// Distinct from [targetMissing]: the row is not missing. A tombstone keeps
+  /// occupying its name, because none of the four natural-key indexes is
+  /// filtered on `deleted_at` (§4.1), which is exactly how the collision
+  /// arises. Merging it with a live record would be an *existence* decision,
+  /// and keep-both remains available.
+  counterpartDeleted,
 }
 
 /// A failed review decision that left the queue row untouched.
@@ -97,6 +107,30 @@ class SyncReviewQueueItem {
 
   bool get isNaturalKeyRenameCollision =>
       syncNaturalKeyRenameCollisionReasons.contains(row.reason);
+
+  /// The id of the record that exists only on this device.
+  ///
+  /// Reason-aware, because the queue's two identity layouts disagree about
+  /// which column that is. Every reason but §6.6 step 1 stores the local row
+  /// as `record_id`; a step-1 row stores the *candidate* there and the local
+  /// name-holder as `counterpart_id`.
+  ///
+  /// This pairing is not cosmetic. A user deciding a step-1 merge is choosing
+  /// which of two of their own records survives, irreversibly, and a screen
+  /// that labelled them the wrong way round would be inviting that choice
+  /// against the wrong record.
+  String get localRecordId =>
+      isNaturalKeyRenameCollision ? row.counterpartId : row.recordId;
+
+  /// The id of the record the peer sent — the one [candidateLabel] describes.
+  ///
+  /// The counterpart of [localRecordId]; see that doc for why it is
+  /// reason-aware. For a step-1 row this device also holds a row under this
+  /// id, since the collision is a peer's *update* to a record already known
+  /// here; it is "the peer's" in the sense that the queued body came from a
+  /// peer, not that the id is unknown locally.
+  String get peerRecordId =>
+      isNaturalKeyRenameCollision ? row.recordId : row.counterpartId;
 
   /// Whether [SyncReviewAction.merge] would discard device-local contact
   /// fields that are held nowhere else.

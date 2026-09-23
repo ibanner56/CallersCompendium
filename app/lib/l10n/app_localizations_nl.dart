@@ -1581,6 +1581,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Er wordt maar één record bewaard. Het e-mailadres, de locatie en de markering voor overleden van het andere staan alleen op dit apparaat en kunnen daarna niet meer worden hersteld.';
 
   @override
+  String get syncReviewCounterpartDeleted =>
+      'Het andere record is verwijderd, dus deze twee kunnen niet worden samengevoegd. Gebruik \'Beide behouden\' om het een andere naam te geven.';
+
+  @override
   String get syncReviewUnsupportedReason =>
       'Dit synchronisatieconflict wordt voorlopig bewaard; hier is geen veilige actie beschikbaar.';
 

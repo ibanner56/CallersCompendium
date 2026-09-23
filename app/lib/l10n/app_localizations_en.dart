@@ -1553,6 +1553,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Only one record will be kept. The email address, location, and deceased marker on the other one are stored only on this device, so they cannot be recovered afterwards.';
 
   @override
+  String get syncReviewCounterpartDeleted =>
+      'The other record was deleted, so these two cannot be merged. Use Keep both to give it a different name.';
+
+  @override
   String get syncReviewUnsupportedReason =>
       'This sync conflict is retained for now; no safe action is available here.';
 

@@ -1603,6 +1603,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Un seul élément sera conservé. L’adresse e-mail, le lieu et l’indicateur de décès de l’autre ne sont enregistrés que sur cet appareil ; ils seront irrécupérables ensuite.';
 
   @override
+  String get syncReviewCounterpartDeleted =>
+      'L’autre élément a été supprimé ; ces deux-là ne peuvent donc pas être fusionnés. Utilisez « Conserver les deux » pour lui donner un nom différent.';
+
+  @override
   String get syncReviewUnsupportedReason =>
       'Ce conflit de synchronisation est conservé pour le moment ; aucune action sûre n’est disponible ici.';
 
