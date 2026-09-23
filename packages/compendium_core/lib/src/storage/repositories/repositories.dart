@@ -770,7 +770,8 @@ class CompendiumRepositories {
       rebuiltThisCall = normalisation.rebuilt;
       rebuiltThisCall = await _repairNormalisationDerivedIndexIfNeeded(
         alreadyRebuilt: rebuiltThisCall,
-        owed: normalisationCompletedBefore.isNotEmpty || normalisation.deferred,
+        owedFromHistory: normalisationCompletedBefore.isNotEmpty,
+        deferredThisCall: normalisation.deferred,
         onProgress: onDerivedRebuildProgress,
       );
     } catch (_) {
@@ -1490,10 +1491,17 @@ class CompendiumRepositories {
   /// per database. The marker is written AFTER the rebuild succeeds — an
   /// interrupted rebuild retries on the next open.
   ///
-  /// [owed] is false for a database that has no pre-fix pass to have missed, in
-  /// which case this writes its marker and rebuilds nothing. That gate is why
-  /// a fresh install does not pay a whole-library rebuild for an index that was
-  /// never stale.
+  /// [owedFromHistory] is whether the normalization pass had already completed
+  /// **before this migration ran** — the only thing that can have left an index
+  /// stale under the old dance-only condition. It is false for a database with
+  /// no pre-fix pass to have missed, in which case this writes its marker and
+  /// rebuilds nothing, so a fresh install never pays a whole-library rebuild for
+  /// an index that was never stale.
+  ///
+  /// [deferredThisCall] is whether the pass withheld a rebuild it owed because
+  /// [_derivedRebuildIsBlocked]. That is an obligation this sweep inherits, and
+  /// it is recorded by clearing the done marker rather than by leaving it
+  /// unwritten — see the body for why those are not the same thing.
   ///
   /// **Why a forced rebuild at all, rather than a version bump.** Bumping
   /// [_shareableTextNormalisationAlgorithmVersion] re-runs the pass, which finds
@@ -1507,9 +1515,30 @@ class CompendiumRepositories {
   /// [alreadyRebuilt] OR this sweep ran one — so the caller can thread the flag.
   Future<bool> _repairNormalisationDerivedIndexIfNeeded({
     required bool alreadyRebuilt,
-    required bool owed,
+    required bool owedFromHistory,
+    required bool deferredThisCall,
     DerivedRebuildProgressCallback? onProgress,
   }) async {
+    // A rebuild the pass just withheld re-arms this sweep **durably**, by
+    // clearing its done marker, rather than by relying on that marker never
+    // having been written.
+    //
+    // The distinction is load-bearing and was not obvious (Copilot review of
+    // #1370). An absent marker cannot record a deferral, because "absent"
+    // is also the state of a database that simply has not reached this sweep
+    // yet — so a deferral recorded that way is indistinguishable from a debt
+    // that was never incurred, and the two need opposite treatment below.
+    // Clearing an existing marker says the obligation is live; leaving an
+    // absent one absent says nothing at all.
+    if (deferredThisCall) {
+      await db.customUpdate(
+        'DELETE FROM ${db.settings.actualTableName} WHERE key = ?',
+        variables: [Variable<String>(normalisationDerivedIndexRepairDoneKey)],
+        updates: {db.settings},
+        updateKind: UpdateKind.delete,
+      );
+    }
+
     final done = await db
         .customSelect(
           'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
@@ -1520,15 +1549,27 @@ class CompendiumRepositories {
         .get();
     if (done.isNotEmpty) return alreadyRebuilt;
 
-    // Deferred, not skipped: the marker is deliberately NOT written, so this
-    // sweep re-evaluates on the next open and performs the repair by itself once
-    // the rebuild can read every dance. See [_derivedRebuildIsBlocked].
-    if (await _derivedRebuildIsBlocked()) return alreadyRebuilt;
-
-    if (!owed) {
+    // Retire BEFORE consulting the blocker, and the order is the whole point.
+    //
+    // Nothing is owed here, so there is nothing a blocker could be protecting:
+    // this database either never completed the pass under the old dance-only
+    // condition, or has already been repaired. Deferring instead would leave
+    // the marker absent while the pass writes the scope marker — and on the
+    // next open that scope marker is exactly what [owedFromHistory] reads, so
+    // the sweep would wake up believing it owed a repair it had never owed and
+    // eventually pay a whole-library rebuild for it. A fresh database with one
+    // un-normalisable dance row is enough to trigger that, which is the
+    // opposite of the guarantee this gate exists to make.
+    if (!owedFromHistory && !deferredThisCall) {
       await _writeSweepMarker(normalisationDerivedIndexRepairDoneKey, '"done"');
       return alreadyRebuilt;
     }
+
+    // Deferred, not skipped: the marker is deliberately left absent, so this
+    // sweep re-evaluates on the next open and performs the repair by itself once
+    // the rebuild can read every dance. See [_derivedRebuildIsBlocked]. Reached
+    // only when something IS owed, so the absent marker now means what it says.
+    if (await _derivedRebuildIsBlocked()) return alreadyRebuilt;
 
     // A rebuild earlier in this call already used the current source rows: the
     // normalization pass runs before this sweep and rebuilds after its own

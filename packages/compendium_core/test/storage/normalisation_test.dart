@@ -999,17 +999,35 @@ void main() {
         'UPDATE dances SET figures_json = ? WHERE id = ?',
         [malformed, 'd1'],
       );
-      await repos.resetNormalisationStateForRestore();
+      // A pre-fix install: the pass completed under the old dance-only rebuild
+      // condition, so its scope marker is present and MUST stay present — that
+      // is the whole signal saying a repair is owed — while the repair marker
+      // has never existed. The skip is seeded directly because the scope marker
+      // makes the pass take its early return, which is exactly the state such
+      // an install opens in.
+      //
+      // An earlier version of this test called `resetNormalisationStateForRestore`
+      // here, which deletes the scope marker — so nothing was owed, and it was
+      // asserting the very defect Copilot found on #1370 rather than the
+      // deferral. Its comment claimed the scope marker was present; it was not.
       await db.customStatement('DELETE FROM settings WHERE key = ?', [
         normalisationDerivedIndexRepairDoneKey,
       ]);
+      await db.customStatement(
+        'INSERT INTO normalisation_skips '
+        '(table_name, column_name, record_id) VALUES (?, ?, ?)',
+        ['dances', 'figures_json', 'd1'],
+      );
+      expect(
+        await repos.settings.contains(shareableTextNormalisationScopeKey),
+        isTrue,
+        reason: 'precondition: the repair is genuinely owed',
+      );
 
-      // The pass records d1 and completes. The repair sweep is owed — the scope
-      // marker was present when this migration started — but running it would
-      // load every dance, decode d1's `figures_json`, and raise out of
-      // `ensureMigrated()`: the startup error screen with a Retry that cannot
-      // succeed, which is the failure #1347 exists to remove. #1346 must not
-      // reintroduce it, so the repair waits.
+      // Running the repair would load every dance, decode d1's `figures_json`,
+      // and raise out of `ensureMigrated()`: the startup error screen with a
+      // Retry that cannot succeed, which is the failure #1347 exists to remove.
+      // #1346 must not reintroduce it, so the repair waits.
       final counting = _CountingRepositories(db, contraTaxonomy);
       await counting.ensureMigrated();
 
@@ -1038,6 +1056,141 @@ void main() {
         await later.settings.contains(normalisationDerivedIndexRepairDoneKey),
         isTrue,
       );
+    });
+
+    test(
+      'a fresh database with an unreadable dance row is retired, not made owing',
+      () async {
+        // Copilot review of #1370. Deferring is only correct when something is
+        // owed. On a database that never completed the pre-fix pass, deferring
+        // left the done marker absent while the pass went on to write the scope
+        // marker — and the scope marker is precisely what the next open reads to
+        // decide whether a repair is owed. One un-normalisable dance row was
+        // therefore enough to manufacture a debt that had never been incurred,
+        // and the install eventually paid a whole-library rebuild for an index
+        // that was never stale.
+        await repos.dances.create(sampleDance(id: 'd1', title: 'Malformed'));
+        await repos.dances.create(sampleDance(id: 'd2', title: 'Healthy'));
+        await repos.ensureMigrated();
+        // Never completed the pass: BOTH markers gone. Every other sweep is
+        // already settled, so any rebuild counted below is this sweep's.
+        await db.customStatement('DELETE FROM settings WHERE key IN (?, ?)', [
+          shareableTextNormalisationScopeKey,
+          normalisationDerivedIndexRepairDoneKey,
+        ]);
+        await db.customStatement(
+          'UPDATE dances SET figures_json = ? WHERE id = ?',
+          ['[{"kind":', 'd1'],
+        );
+
+        final first = _CountingRepositories(db, contraTaxonomy);
+        await first.ensureMigrated();
+
+        expect(first.rebuildAttempts, 0);
+        expect(
+          await first.settings.contains(normalisationDerivedIndexRepairDoneKey),
+          isTrue,
+          reason:
+              'nothing is owed, so the sweep must retire even though a dance '
+              'row blocks the rebuild — an absent marker here is read as a '
+              'debt on the next open',
+        );
+
+        // The cost the absent marker used to impose, asserted where it lands:
+        // once the row becomes readable there must still be no rebuild, because
+        // this database never had a stale index to repair.
+        await db.customStatement(
+          'UPDATE dances SET figures_json = ? WHERE id = ?',
+          ['[]', 'd1'],
+        );
+        await db.customStatement('DELETE FROM normalisation_skips');
+        final later = _CountingRepositories(db, contraTaxonomy);
+        await later.ensureMigrated();
+
+        expect(later.rebuildAttempts, 0);
+      },
+    );
+
+    test('a deferral re-arms a sweep that had already retired', () async {
+      // The hazard in the *obvious* repair for the finding above. Retiring on
+      // "nothing owed" is right, but if a deferral is recorded only by the done
+      // marker never having been written, then a database that legitimately
+      // retired early can never take on a later obligation: the pass defers, the
+      // marker is already present, and the sweep returns before it ever looks.
+      // The rebuild those rewrites owed is then lost for good.
+      //
+      // Reachable without contrivance: adding a `shareable` column is an
+      // anticipated, recurring event (sync-spec.md §7.2), and it makes the
+      // marker differ and the pass re-scan.
+      await db.customStatement(
+        'INSERT INTO choreographers (id, name) VALUES (?, ?)',
+        ['c1', 'Jose'],
+      );
+      await repos.dances.create(sampleDance(id: 'd1', title: 'Malformed'));
+      await repos.dances.create(
+        sampleDance(id: 'd2', title: 'Credited', authorIds: const ['c1']),
+      );
+      await repos.ensureMigrated();
+      expect(
+        await repos.settings.contains(normalisationDerivedIndexRepairDoneKey),
+        isTrue,
+        reason: 'precondition: this database retired the sweep legitimately',
+      );
+
+      // Now a scope change re-scans a library that has since acquired an
+      // un-normalised non-dance value and an unreadable dance row.
+      await db.customStatement(
+        'UPDATE choreographers SET name = ? WHERE id = ?',
+        ['José', 'c1'],
+      );
+      await db.customStatement(
+        'UPDATE dances SET figures_json = ? WHERE id = ?',
+        ['[{"kind":', 'd1'],
+      );
+      await db.customStatement('DELETE FROM settings WHERE key = ?', [
+        shareableTextNormalisationScopeKey,
+      ]);
+
+      final deferring = _CountingRepositories(db, contraTaxonomy);
+      await deferring.ensureMigrated();
+
+      // The pass rewrote `choreographers.name`, which owes a rebuild, but d1
+      // blocks it. The obligation has to outlive this launch.
+      expect(deferring.rebuildAttempts, 0);
+      expect(
+        await deferring.settings.contains(
+          normalisationDerivedIndexRepairDoneKey,
+        ),
+        isFalse,
+        reason:
+            'the deferral must CLEAR the already-written marker; leaving it '
+            'standing drops the rebuild those rewrites owed',
+      );
+      final stale = await db
+          .customSelect(
+            'SELECT authors FROM dance_fts WHERE dance_id = ?',
+            variables: [const Variable<String>('d2')],
+          )
+          .getSingle();
+      expect(stale.read<String>('authors'), 'Jose');
+
+      // Once the unreadable row is gone, the deferred repair lands by itself.
+      await db.customStatement(
+        'UPDATE dances SET figures_json = ? WHERE id = ?',
+        ['[]', 'd1'],
+      );
+      await db.customStatement('DELETE FROM normalisation_skips');
+      final repairing = _CountingRepositories(db, contraTaxonomy);
+      await repairing.ensureMigrated();
+
+      expect(repairing.rebuildAttempts, 1);
+      final repaired = await db
+          .customSelect(
+            'SELECT authors FROM dance_fts WHERE dance_id = ?',
+            variables: [const Variable<String>('d2')],
+          )
+          .getSingle();
+      expect(repaired.read<String>('authors'), 'José');
     });
   });
 
