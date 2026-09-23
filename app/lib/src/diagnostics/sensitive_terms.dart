@@ -47,7 +47,9 @@ Future<Set<String>> collectSensitiveTerms(
     for (final tune in dance.tunes) {
       add(tune);
     }
-    for (final figure in dance.figures) {
+    for (final figure in switch (dance.figuresSource) {
+      DecodedFigures(:final figures) => figures,
+    }) {
       addFigureContent(figure);
     }
     for (final field in dance.customFields) {

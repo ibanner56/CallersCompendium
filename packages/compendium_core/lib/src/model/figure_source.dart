@@ -41,8 +41,7 @@ sealed class FigureSource {
 /// A transcription that was decoded successfully — the ordinary case, and
 /// currently the only one.
 final class DecodedFigures extends FigureSource {
-  DecodedFigures(List<Figure> figures)
-    : figures = List.unmodifiable(figures);
+  DecodedFigures(List<Figure> figures) : figures = List.unmodifiable(figures);
 
   /// The ordered figure list. Unmodifiable, so sharing one [DecodedFigures]
   /// between two [Dance]s (as `copyWith` and `duplicate` may) cannot let one

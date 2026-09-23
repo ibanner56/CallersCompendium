@@ -2152,12 +2152,9 @@ class DanceRepository {
       for (final id in list) {
         final dance = await getById(id);
         if (dance == null) continue;
-        final outcome = reparseImportGapFigures(
-          switch (dance.figuresSource) {
-            DecodedFigures(:final figures) => figures,
-          },
-          taxonomy: _taxonomy,
-        );
+        final outcome = reparseImportGapFigures(switch (dance.figuresSource) {
+          DecodedFigures(:final figures) => figures,
+        }, taxonomy: _taxonomy);
         if (outcome.upgradedCount == 0) continue;
         await _upsert(dance.copyWith(figures: outcome.figures, updatedAt: now));
         changed++;

@@ -1747,10 +1747,10 @@ class CompendiumRepositories {
           'WHERE id = ?',
           variables: [
             Variable<String>(
-            encodeFigures(switch (normalised.figuresSource) {
-              DecodedFigures(:final figures) => figures,
-            }),
-          ),
+              encodeFigures(switch (normalised.figuresSource) {
+                DecodedFigures(:final figures) => figures,
+              }),
+            ),
             Variable<String>(dance.id),
           ],
           updates: {db.dances},
@@ -2289,10 +2289,10 @@ class CompendiumRepositories {
             'WHERE id = ?',
             variables: [
               Variable<String>(
-            encodeFigures(switch (backfilled.figuresSource) {
-              DecodedFigures(:final figures) => figures,
-            }),
-          ),
+                encodeFigures(switch (backfilled.figuresSource) {
+                  DecodedFigures(:final figures) => figures,
+                }),
+              ),
               Variable<String>(dance.id),
             ],
             updates: {db.dances},
