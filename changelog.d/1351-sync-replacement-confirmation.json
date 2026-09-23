@@ -1,0 +1,9 @@
+{
+  "id": "1351-sync-replacement-confirmation",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Reconnecting a Device Sync store that is no longer there now follows Sync only on WiFi: on mobile data with that setting on, nothing is sent and the app points you at the setting, with the question still waiting for you. A reconnection that doesn't go through now says so on the question instead of quietly reappearing, and a store that another of your devices has already recreated is joined rather than asked about again and again."
+    ]
+  }
+}

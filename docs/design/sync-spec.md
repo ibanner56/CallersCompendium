@@ -1941,6 +1941,13 @@ republishes, which is an ordinary upload and needs no special path.
    blob or `POST` request while the decision is pending. Confirmation issues
    exactly one `POST /v1/store`, then fresh-attaches and stops; declining leaves
    sync configured but paused so a later user action can reconsider.
+   Confirmation is a manual attempt and is subject to §6.12's connection gate,
+   so on a metered connection with *Sync only on WiFi* on it sends nothing and
+   the decision stays pending; and a `409` on that `POST` means only that a
+   store exists for this `id_key` (§5.3), which on this path can only be another
+   holder of the same sync ID, so the client MUST adopt it and fresh-attach
+   without a second `POST` rather than re-asking. Any other non-2xx fails the
+   attempt and leaves the decision pending.
 2. Compute the local manifest.
 3. `GET /v1/manifests/{peer}` for each peer, with `If-None-Match`.
 4. Per record, resolve existence first (§6.4), then compare hashes and
@@ -3969,13 +3976,17 @@ attach runs **does not re-enter attach** when the epoch changed underneath it:
 it stops without publishing and the next trigger performs the fresh attach
 (mutation: recurse, and assert boundedness against a store re-created on every
 `POST /v1/store`).
-**A create answered `409` reports and stops**: the client neither joins the
-existing store nor discards a baseline it does not hold, and only a stale-epoch
-`409` from `PUT /v1/manifests/{deviceId}` triggers fresh attach (mutation: treat
-any `409` as the reset signal — every epoch-mismatch test still passes, because
-all of them arrive through the manifest `PUT`, and the damage needs a *create*
-against an ID already in use, which is exactly the silent join §6.2 step 2
-exists to prevent).
+**A *pairing* create answered `409` reports and stops**: the client neither
+joins the existing store nor discards a baseline it does not hold (mutation:
+treat a pairing `409` as a join — every epoch-mismatch test still passes,
+because all of them arrive through the manifest `PUT`, and the damage needs a
+*create* against an ID already in use, which is exactly the silent join §6.2
+step 2 exists to prevent). The rule is about *whose* store it would be, not
+about the status code: on the §6.3 step 1 replacement path the only possible
+creator is another holder of this device's own sync ID, so there a `409` is
+adopted and fresh-attached. A stale-epoch `409` from `PUT
+/v1/manifests/{deviceId}` remains the only `409` that triggers fresh attach on
+the steady-state path.
 **A previously used store answered `404` does not auto-create**: before
 confirmation there is no `POST`, manifest or blob request; declining preserves
 the baseline and server state; accepting creates exactly once and then runs

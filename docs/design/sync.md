@@ -2932,7 +2932,7 @@ buys nothing and creates one more way for a conforming client to be turned away.
 | `401` | Missing or malformed `Authorization`. |
 | `403` | Sync ID fails the structural rule — four hyphen-separated words (see Security). |
 | `404` | No such blob, manifest or device. |
-| `409` | **Epoch mismatch** on a manifest `PUT`, *or* `POST /v1/store` against an ID that already has one. Only the first is a fresh-attach trigger. |
+| `409` | **Epoch mismatch** on a manifest `PUT`, *or* `POST /v1/store` against an ID that already has one. The first is always a fresh-attach trigger; the second is one only on the replacement path (§6.3 step 1), where the store can only be this device's own sync ID recreated — from pairing it is reported, never joined. |
 | `413` | Payload exceeds a cap. |
 | `415` | Unsupported `Content-Type` (optional; see below). |
 | `422` | **Payload rejected by the allow-list** — a key not classified `shareable` for that kind was present. |

@@ -556,7 +556,12 @@ connected.
 
 If a store this device used to sync with is no longer there, the app asks
 before creating a replacement: it may have gone unused past its 30-day limit,
-or it may have been removed — the app can't tell which. Declining makes no
+or it may have been removed — the app can't tell which. Reconnecting re-sends
+your whole library, so it follows **Sync only on WiFi** like everything else:
+on mobile data with that setting on, nothing is sent and the app points you at
+the setting, with the question still waiting once you're back on WiFi. If a
+reconnection doesn't go through, the question comes back and says so, and you
+can try again or leave it. Declining makes no
 network request and leaves the choice for later. Sync then **pauses**: the
 status says so and keeps saying so, and automatic syncs stop running rather
 than asking again every time. Nothing is lost while it is paused. When you
