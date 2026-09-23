@@ -104,7 +104,11 @@ class DanceRepository {
     List<Figure>? normalised;
     final figures = switch (dance.figuresSource) {
       DecodedFigures(figures: final list) => list,
+      // Nothing to transform, and the stored bytes must survive: returning
+      // the dance unchanged leaves them exactly as read (#1347).
+      UnreadableFigures() => null,
     };
+    if (figures == null) return dance;
     for (var i = 0; i < figures.length; i++) {
       final f = figures[i];
       final resolved = _normaliseFigure(f);
@@ -136,7 +140,11 @@ class DanceRepository {
     List<Figure>? stripped;
     final figures = switch (dance.figuresSource) {
       DecodedFigures(figures: final list) => list,
+      // Nothing to transform, and the stored bytes must survive: returning
+      // the dance unchanged leaves them exactly as read (#1347).
+      UnreadableFigures() => null,
     };
+    if (figures == null) return dance;
     for (var i = 0; i < figures.length; i++) {
       final f = figures[i];
       final result = _stripStarPromenadeHand(f);
@@ -155,7 +163,11 @@ class DanceRepository {
     List<Figure>? normalised;
     final figures = switch (dance.figuresSource) {
       DecodedFigures(figures: final list) => list,
+      // Nothing to transform, and the stored bytes must survive: returning
+      // the dance unchanged leaves them exactly as read (#1347).
+      UnreadableFigures() => null,
     };
+    if (figures == null) return dance;
     for (var i = 0; i < figures.length; i++) {
       final figure = figures[i];
       final result = _normaliseTaxonomyV33Figure(figure);
@@ -175,7 +187,11 @@ class DanceRepository {
     List<Figure>? normalised;
     final figures = switch (dance.figuresSource) {
       DecodedFigures(figures: final list) => list,
+      // Nothing to transform, and the stored bytes must survive: returning
+      // the dance unchanged leaves them exactly as read (#1347).
+      UnreadableFigures() => null,
     };
+    if (figures == null) return dance;
     for (var i = 0; i < figures.length; i++) {
       final figure = figures[i];
       final result = _normaliseTaxonomyV34Figure(figure);
@@ -205,7 +221,11 @@ class DanceRepository {
   Dance normaliseTaxonomyV35Public(Dance dance) {
     final source = switch (dance.figuresSource) {
       DecodedFigures(:final figures) => figures,
+      // Nothing to transform, and the stored bytes must survive: returning
+      // the dance unchanged leaves them exactly as read (#1347).
+      UnreadableFigures() => null,
     };
+    if (source == null) return dance;
     final figures = normaliseTaxonomyV35FiguresPublic(source);
     return identical(figures, source)
         ? dance
@@ -311,7 +331,11 @@ class DanceRepository {
     List<Figure>? backfilled;
     final figures = switch (dance.figuresSource) {
       DecodedFigures(figures: final list) => list,
+      // Nothing to transform, and the stored bytes must survive: returning
+      // the dance unchanged leaves them exactly as read (#1347).
+      UnreadableFigures() => null,
     };
+    if (figures == null) return dance;
     for (var i = 0; i < figures.length; i++) {
       final f = figures[i];
       final result = _backfillChainHand(f);
@@ -330,7 +354,11 @@ class DanceRepository {
   Dance repairLegacyCallersBoxRollAwayPublic(Dance dance) {
     final source = switch (dance.figuresSource) {
       DecodedFigures(:final figures) => figures,
+      // Nothing to transform, and the stored bytes must survive: returning
+      // the dance unchanged leaves them exactly as read (#1347).
+      UnreadableFigures() => null,
     };
+    if (source == null) return dance;
     final repaired = repairLegacyCallersBoxRollAwayFiguresPublic(source);
     if (identical(repaired, source)) return dance;
     return dance.copyWith(figures: repaired);
@@ -594,13 +622,19 @@ class DanceRepository {
               ),
               progression: normalisedDance.progression,
               phraseStructure: Value(normalisedDance.phraseStructure.raw),
-              figuresJson: Value(
-                normalizeShareableJsonText(
-                  encodeFigures(switch (normalisedDance.figuresSource) {
-                    DecodedFigures(:final figures) => figures,
-                  }),
+              // The single place a Dance's transcription becomes stored bytes.
+              // An undecodable one is written back **verbatim**: it is not
+              // re-encoded, and deliberately not re-normalised either, because
+              // normalising requires decoding it as JSON and the whole premise
+              // is that it may not be. Anything else here would let an ordinary
+              // edit to a title or a tag destroy a transcription the app merely
+              // cannot read today (#1347).
+              figuresJson: Value(switch (normalisedDance.figuresSource) {
+                DecodedFigures(:final figures) => normalizeShareableJsonText(
+                  encodeFigures(figures),
                 ),
-              ),
+                UnreadableFigures(:final storedJson) => storedJson,
+              }),
               hook: Value(normalizeShareableText(normalisedDance.hook)),
               callingNotes: Value(
                 normalizeShareableText(normalisedDance.callingNotes),
@@ -847,7 +881,11 @@ class DanceRepository {
     List<Figure>? normalised;
     final source = switch (dance.figuresSource) {
       DecodedFigures(:final figures) => figures,
+      // Nothing to transform, and the stored bytes must survive: returning
+      // the dance unchanged leaves them exactly as read (#1347).
+      UnreadableFigures() => null,
     };
+    if (source == null) return dance;
     for (var i = 0; i < source.length; i++) {
       final figure = source[i];
       final result = _taxonomy.normalizeFigureV35(figure);
@@ -907,8 +945,12 @@ class DanceRepository {
   }) async {
     final canonicalTexts = <String>[];
     final sectioned = dance.sectionedFigures;
+    // No `dance_figures` rows for a transcription that cannot be read: there
+    // are no figures to index. The dance still gets its title/FTS row below, so
+    // it stays findable by title rather than vanishing from search entirely.
     final danceFigures = switch (dance.figuresSource) {
       DecodedFigures(:final figures) => figures,
+      UnreadableFigures() => const <Figure>[],
     };
     var idx = 0;
     for (var i = 0; i < danceFigures.length; i++) {
@@ -2193,9 +2235,14 @@ class DanceRepository {
       for (final id in list) {
         final dance = await getById(id);
         if (dance == null) continue;
-        final outcome = reparseImportGapFigures(switch (dance.figuresSource) {
+        final figures = switch (dance.figuresSource) {
           DecodedFigures(:final figures) => figures,
-        }, taxonomy: _taxonomy);
+          // Nothing to reparse, and nothing may be written for this dance:
+          // skipping leaves the stored bytes untouched.
+          UnreadableFigures() => null,
+        };
+        if (figures == null) continue;
+        final outcome = reparseImportGapFigures(figures, taxonomy: _taxonomy);
         if (outcome.upgradedCount == 0) continue;
         // Deliberately no `localUserEdit`, unlike every sibling batch method
         // here. The user asks for the reparse, but what it writes is a pure
@@ -2549,6 +2596,40 @@ class DanceRepository {
   /// Assembles a [Dance] from a fetched [DanceRow] and its already-resolved
   /// child collections. Pure (no I/O), so both the single-row [_toModel] and
   /// the batched [listAll] feed it the same way.
+  /// Decodes a stored `figures_json`, or holds it as [UnreadableFigures] when
+  /// it cannot be decoded at all (#1347).
+  ///
+  /// This is the one place a stored transcription becomes a model, so it is the
+  /// one place that can stop an unreadable row from taking down every read.
+  /// Before this, `getById`/`listAll` raised, which meant `ensureMigrated()`
+  /// raised at startup and the app would not open.
+  ///
+  /// **Both exception types are caught because both are reachable.** The codec's
+  /// documentation now says so too — this PR corrected it, having found it
+  /// claimed `FormatException` alone. Measured against stored text rather than
+  /// inferred:
+  ///
+  /// * `[{"kind":`  -> FormatException (not JSON)
+  /// * `{"a":1}`    -> FormatException (root is not an array)
+  /// * `[1,2,3]`    -> FormatException (entry is not an object)
+  /// * `[{"move":""}]` -> **ArgumentError** (the `Figure` constructor rejects an
+  ///   empty move)
+  /// * `[{"move":"swing","params":{"beats":1e999}}]` -> **ArgumentError**
+  ///   (`1e999` parses to infinity, which is not a non-negative integer)
+  ///
+  /// Catching only `FormatException` would leave the last two raising out of
+  /// startup — the exact defect this exists to remove, reintroduced by trusting
+  /// a doc comment over the code.
+  static FigureSource _figureSourceFor(String storedJson) {
+    try {
+      return DecodedFigures(decodeFigures(storedJson));
+    } on FormatException {
+      return UnreadableFigures(storedJson);
+    } on ArgumentError {
+      return UnreadableFigures(storedJson);
+    }
+  }
+
   Dance _buildDance(
     DanceRow row, {
     required List<String> authorIds,
@@ -2566,7 +2647,7 @@ class DanceRepository {
       formation: Formation(row.formationShape, detail: row.formationDetail),
       progression: row.progression,
       phraseStructure: row.phraseStructure,
-      figures: decodeFigures(row.figuresJson),
+      figuresSource: _figureSourceFor(row.figuresJson),
       hook: row.hook,
       callingNotes: row.callingNotes,
       walkthrough: row.walkthrough,

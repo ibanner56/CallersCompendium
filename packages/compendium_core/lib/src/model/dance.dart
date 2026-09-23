@@ -45,6 +45,7 @@ class Dance {
     this.progression = Progression.single,
     String phraseStructure = '',
     List<Figure> figures = const [],
+    FigureSource? figuresSource,
     this.hook = '',
     this.callingNotes = '',
     this.walkthrough = '',
@@ -69,7 +70,15 @@ class Dance {
        authorIds = List.unmodifiable(authorIds),
        // Parse eagerly so an invalid structure fails at construction.
        phraseStructure = PhraseStructure.parse(phraseStructure),
-       figuresSource = DecodedFigures(figures),
+       // [figuresSource] wins when given: it is how the storage layer carries a
+       // transcription it could not decode. Callers pass one or the other, never
+       // both — asserted rather than silently preferring one, because a caller
+       // that passes both has a bug in its own reasoning about which is real.
+       assert(
+         figuresSource == null || figures.isEmpty,
+         'pass figures or figuresSource, not both',
+       ),
+       figuresSource = figuresSource ?? DecodedFigures(figures),
        tunes = List.unmodifiable(tunes),
        customFields = List.unmodifiable(customFields),
        tagIds = List.unmodifiable(tagIds),
@@ -200,8 +209,12 @@ class Dance {
   bool get isDeleted => deletedAt != null;
 
   /// Figures annotated with derived phrase labels (A1, B2, …).
+  /// An undecodable transcription has no figures to label, so this is empty
+  /// rather than throwing. Surfacing that state to the user is deliberately not
+  /// done here — see [FigureSource].
   List<SectionedFigure> get sectionedFigures => switch (figuresSource) {
     DecodedFigures(:final figures) => deriveSections(figures, phraseStructure),
+    UnreadableFigures() => const [],
   };
 
   /// Runs warning-level validation (e.g. phrase overflow). Structural
@@ -211,6 +224,12 @@ class Dance {
     switch (figuresSource) {
       case DecodedFigures(:final figures):
         deriveSections(figures, phraseStructure, issues: issues);
+      // Nothing to derive, and deliberately no issue raised: `validate` reports
+      // warnings about content the user can act on in the editor, and an
+      // undecodable transcription is not that. Telling the user about it is its
+      // own piece of work.
+      case UnreadableFigures():
+        break;
     }
     final composed = composedOn;
     final revised = revisedOn;
@@ -285,11 +304,13 @@ class Dance {
     formation: formation ?? this.formation,
     progression: progression ?? this.progression,
     phraseStructure: phraseStructure ?? this.phraseStructure.raw,
-    figures:
-        figures ??
-        switch (figuresSource) {
-          DecodedFigures(:final figures) => figures,
-        },
+    // An explicit `figures:` replaces the transcription outright. With none,
+    // the existing source is carried through **whole** — including an
+    // undecodable one, whose stored bytes must survive an edit to any other
+    // field. Re-encoding it here would be the silent data loss this type
+    // exists to prevent.
+    figures: figures ?? const [],
+    figuresSource: figures == null ? figuresSource : null,
     hook: hook ?? this.hook,
     callingNotes: callingNotes ?? this.callingNotes,
     walkthrough: walkthrough ?? this.walkthrough,
@@ -339,9 +360,9 @@ class Dance {
       formation: formation,
       progression: progression,
       phraseStructure: phraseStructure.raw,
-      figures: switch (figuresSource) {
-        DecodedFigures(:final figures) => figures,
-      },
+      // Carried through whole: a copy of a dance whose transcription cannot be
+      // read still holds that transcription.
+      figuresSource: figuresSource,
       hook: hook,
       callingNotes: callingNotes,
       walkthrough: walkthrough,

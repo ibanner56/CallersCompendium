@@ -216,6 +216,7 @@ List<pw.Widget> _figureAppendixWidgets(
     final dance = entry.dance;
     final danceFigures = switch (dance.figuresSource) {
       DecodedFigures(:final figures) => figures,
+      UnreadableFigures() => const <Figure>[],
     };
     if (danceFigures.isEmpty) continue;
     final titlePrefix = entry.isAlternate ? '${labels.alternate}: ' : '';

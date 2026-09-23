@@ -34,6 +34,14 @@ Future<DanceReimportResult> replaceDanceChoreography(
       existing.copyWith(
         figures: switch (incoming.figuresSource) {
           DecodedFigures(:final figures) => figures,
+          // The incoming dance was just parsed from the source, so this is not
+          // reachable today. Returning the existing figures rather than an
+          // empty list means that if it ever becomes reachable, a reimport
+          // leaves the target's transcription alone instead of erasing it.
+          UnreadableFigures() => switch (existing.figuresSource) {
+            DecodedFigures(:final figures) => figures,
+            UnreadableFigures() => const <Figure>[],
+          },
         },
         formation: incoming.formation,
         progression: incoming.progression,

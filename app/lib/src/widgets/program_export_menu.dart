@@ -172,6 +172,7 @@ class ProgramExportMenu extends StatelessWidget {
   bool _hasFigures() => _orderedExportDances().any(
     (e) => switch (e.dance.figuresSource) {
       DecodedFigures(:final figures) => figures,
+      UnreadableFigures() => const <Figure>[],
     }.isNotEmpty,
   );
 
@@ -205,6 +206,7 @@ class ProgramExportMenu extends StatelessWidget {
       final dance = entry.dance;
       final danceFigures = switch (dance.figuresSource) {
         DecodedFigures(:final figures) => figures,
+        UnreadableFigures() => const <Figure>[],
       };
       if (danceFigures.isEmpty) continue;
       buf.writeln();
