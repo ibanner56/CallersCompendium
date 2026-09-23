@@ -8490,6 +8490,41 @@ void main() {
       )..where((t) => t.id.equals('cited-tag'))).getSingle();
       expect(row.name, 'Contra classics');
     });
+
+    test('an explicit restore also outranks the tombstone it clears', () async {
+      // 6.8's *other* cancellation has the same gap. `restore()` stamps via
+      // `stampExistenceTransition`, which floors against the row's own
+      // `existence_at` - here the local deletion stamp, which says nothing
+      // about the held tombstone the row never carried. A device whose clock
+      // is behind the deleting peer's therefore restored to a stamp the
+      // tombstone still outranks, and the restore was undone on the next pass.
+      final tombstonedExistence = DateTime.utc(2026, 1, 1);
+      await holdTombstone(
+        DateTime.utc(2025, 6, 15, 12),
+        existenceAt: tombstonedExistence,
+      );
+
+      // The row is live while held, so reaching Recently Deleted at all takes
+      // a local delete first. That is the only route by which `restore()` can
+      // ever see a held record.
+      await repositories.tags.delete(
+        'cited-tag',
+        at: DateTime.utc(2025, 6, 15, 13),
+      );
+      await repositories.tags.restore(
+        'cited-tag',
+        at: DateTime.utc(2025, 6, 15, 14),
+      );
+
+      expect(await repositories.syncLocal.listPendingDeletions(), isEmpty);
+      expect(
+        (await existenceOfTag())!.isAfter(tombstonedExistence),
+        isTrue,
+        reason:
+            'a restore must supersede the tombstone it clears, not only the '
+            'local deletion it reverses',
+      );
+    });
   });
 }
 

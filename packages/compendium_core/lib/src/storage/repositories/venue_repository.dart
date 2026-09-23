@@ -317,10 +317,13 @@ class VenueRepository {
           deleted: false,
         );
         if (clearPending) {
-          await clearPendingSyncDeletion(
+          await clearPendingSyncDeletionForRestore(
             _db,
             kind: SyncRecordKind.venue,
             recordId: id,
+            table: _db.venues,
+            keyColumn: 'id',
+            at: now,
           );
         }
       });

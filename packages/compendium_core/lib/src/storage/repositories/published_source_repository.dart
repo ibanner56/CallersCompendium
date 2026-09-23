@@ -220,10 +220,13 @@ class PublishedSourceRepository {
       deleted: false,
     );
     if (clearPending) {
-      await clearPendingSyncDeletion(
+      await clearPendingSyncDeletionForRestore(
         _db,
         kind: SyncRecordKind.publishedSource,
         recordId: id,
+        table: _db.publishedSources,
+        keyColumn: 'id',
+        at: at,
       );
     }
   });

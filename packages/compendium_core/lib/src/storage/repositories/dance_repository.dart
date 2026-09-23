@@ -1344,10 +1344,13 @@ class DanceRepository {
     final restored = await getById(id, includeDeleted: true);
     if (restored != null) await _rebuildDerived(restored);
     if (clearPending) {
-      await clearPendingSyncDeletion(
+      await clearPendingSyncDeletionForRestore(
         _db,
         kind: SyncRecordKind.dance,
         recordId: id,
+        table: _db.dances,
+        keyColumn: 'id',
+        at: at,
       );
     }
   });

@@ -766,3 +766,42 @@ Future<bool> cancelPendingSyncDeletionForLocalEdit(
   await clearPendingSyncDeletion(db, kind: kind, recordId: recordId);
   return true;
 }
+
+/// Clears a hold for an explicit restore from Recently Deleted, flooring the
+/// restore's own existence stamp against the tombstone it is cancelling.
+///
+/// [restore] already stamps causally via `stampExistenceTransition`, which
+/// floors against the row's own `existence_at`. For a record that was locally
+/// deleted *while a peer's tombstone was held*, that floor is the local
+/// deletion stamp and says nothing about the held tombstone, which the row
+/// never carried — the same gap [cancelPendingSyncDeletionForLocalEdit] exists
+/// to close, reached by the other of §6.8's two cancellations.
+///
+/// Strictly monotonic: the underlying stamp is a `MAX`, so this can only raise
+/// a value and changes nothing when the restore's own stamp is already ahead.
+///
+/// Falls back to a bare [clearPendingSyncDeletion] when there is no usable
+/// floor, so a hold whose blob will not decode is still cleared by an explicit
+/// restore exactly as it was before. That differs from the edit path on
+/// purpose: a restore is an unambiguous instruction to bring the record back,
+/// where an edit is not evidence that the user meant to overrule a deletion
+/// they may not know about.
+Future<void> clearPendingSyncDeletionForRestore(
+  CompendiumDatabase db, {
+  required SyncRecordKind kind,
+  required String recordId,
+  required TableInfo<Table, dynamic> table,
+  required String keyColumn,
+  required DateTime at,
+}) async {
+  final cancelled = await cancelPendingSyncDeletionForLocalEdit(
+    db,
+    kind: kind,
+    recordId: recordId,
+    table: table,
+    keyColumn: keyColumn,
+    at: at,
+  );
+  if (cancelled) return;
+  await clearPendingSyncDeletion(db, kind: kind, recordId: recordId);
+}

@@ -416,10 +416,13 @@ class TagRepository {
       deleted: false,
     );
     if (clearPending) {
-      await clearPendingSyncDeletion(
+      await clearPendingSyncDeletionForRestore(
         _db,
         kind: SyncRecordKind.tag,
         recordId: id,
+        table: _db.tags,
+        keyColumn: 'id',
+        at: at,
       );
     }
   });

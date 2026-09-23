@@ -320,10 +320,13 @@ class CustomFieldDefRepository {
       deleted: false,
     );
     if (clearPending) {
-      await clearPendingSyncDeletion(
+      await clearPendingSyncDeletionForRestore(
         _db,
         kind: SyncRecordKind.customFieldDef,
         recordId: id,
+        table: _db.customFieldDefs,
+        keyColumn: 'id',
+        at: at,
       );
     }
   });

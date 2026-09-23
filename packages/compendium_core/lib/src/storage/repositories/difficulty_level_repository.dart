@@ -216,10 +216,13 @@ class DifficultyLevelRepository {
       deleted: false,
     );
     if (clearPending) {
-      await clearPendingSyncDeletion(
+      await clearPendingSyncDeletionForRestore(
         _db,
         kind: SyncRecordKind.difficultyLevel,
         recordId: id,
+        table: _db.difficultyLevels,
+        keyColumn: 'id',
+        at: at,
       );
     }
   });

@@ -304,10 +304,13 @@ class ChoreographerRepository {
       deleted: false,
     );
     if (clearPending) {
-      await clearPendingSyncDeletion(
+      await clearPendingSyncDeletionForRestore(
         _db,
         kind: SyncRecordKind.choreographer,
         recordId: id,
+        table: _db.choreographers,
+        keyColumn: 'id',
+        at: at,
       );
     }
   });
