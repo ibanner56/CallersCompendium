@@ -317,9 +317,10 @@ void main() {
       expect(removed, [1]);
       expect(find.byKey(const ValueKey('slot-cut-banner')), findsNothing);
       expect(find.text('Paste here'), findsNothing);
-      // The list stays reorderable: the drag handles were never swapped out.
+      // The list stays reorderable: every row keeps a live drag handle (the
+      // icon alone would also render on an inert placeholder).
       expect(find.byType(ReorderableListView), findsOneWidget);
-      expect(find.byIcon(Icons.drag_handle), findsNWidgets(3));
+      expect(find.byType(ReorderableDragStartListener), findsNWidgets(3));
     });
 
     for (final (kind, slot, tooltip) in [
