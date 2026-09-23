@@ -269,6 +269,110 @@ void main() {
     );
   });
 
+  testWidgets('keeps both sides of a step-1 rename collision', (tester) async {
+    final repos = openTestRepositories();
+    await _seedRenameCollision(repos);
+
+    await _pumpScreen(tester, repos);
+
+    // Before #1355 this row rendered the "no safe action" copy and no buttons,
+    // while the peer's rename was skipped on every pass.
+    expect(
+      find.text(
+        'Another device renamed this record to a name a different record '
+        'here already uses.',
+      ),
+      findsOneWidget,
+    );
+    const key = 'choreographer:aaa-author:zzz-author';
+    await tester.tap(
+      find.byKey(const ValueKey('sync-review-keep-both-$key')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextFormField), 'Sam Jones the second');
+    await tester.tap(
+      find.byKey(const ValueKey('sync-review-keep-both-confirm')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('sync-review-empty')), findsOneWidget);
+    expect(
+      (await repos.choreographers.getById('aaa-author'))!.name,
+      'Sam Jones',
+    );
+    expect(
+      (await repos.choreographers.getById('zzz-author'))!.name,
+      'Sam Jones the second',
+    );
+  });
+
+  testWidgets('confirms before a step-1 merge discards contact details', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _seedRenameCollision(repos);
+
+    await _pumpScreen(tester, repos);
+    const key = 'choreographer:aaa-author:zzz-author';
+    await tester.tap(find.byKey(const ValueKey('sync-review-merge-$key')));
+    await tester.pumpAndSettle();
+
+    // §6.6 forbids coalescing at step 1, so the losing row's email, location
+    // and deceased marker are lost and no peer can return them. Cancelling
+    // must leave both rows exactly as they were.
+    expect(find.text('Merge these choreographers?'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(await repos.choreographers.getById('zzz-author'), isNotNull);
+    expect(
+      await repos.syncLocal.listReviewQueue(),
+      hasLength(1),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('sync-review-merge-$key')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('sync-review-merge-confirm')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('sync-review-empty')), findsOneWidget);
+    expect(await repos.choreographers.getById('zzz-author'), isNull);
+    final survivor = await repos.choreographers.getById('aaa-author');
+    expect(survivor!.name, 'Sam Jones');
+    expect(survivor.email, 'aaa-author@example.com');
+  });
+
+  testWidgets('keeps both fuzzy duplicates without asking for a name', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _seedFuzzyDuplicate(repos);
+
+    await _pumpScreen(tester, repos);
+
+    expect(
+      find.text(
+        'These dances look like the same dance under slightly different '
+        'titles.',
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('sync-review-keep-both-dance:a-rory:z-rory')),
+    );
+    await tester.pumpAndSettle();
+
+    // No name dialog: the two titles already differ, which is exactly what
+    // kept this pair out of the exact-title tier. Prompting would be asking
+    // the user to invent a problem.
+    expect(find.byType(TextFormField), findsNothing);
+    expect(find.byKey(const ValueKey('sync-review-empty')), findsOneWidget);
+    expect(await repos.dances.getById('a-rory'), isNotNull);
+    expect(await repos.dances.getById('z-rory'), isNotNull);
+  });
+
   testWidgets('retains unsupported rows without exposing actions', (
     tester,
   ) async {
