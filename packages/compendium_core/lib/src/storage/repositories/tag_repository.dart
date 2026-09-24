@@ -59,11 +59,14 @@ class TagRepository {
   /// method, and a cancellation they did not intend reverses a peer's deletion.
   ///
   /// Throws [DuplicateNaturalKeyError] when the write would rename this tag
-  /// onto a name another row already holds; see [resolveNaturalKeyCollision]
-  /// for when that happens rather than §4.1's store-un-normalised carve-out
-  /// (#1348). [upsertStaged] reaches this only in its tombstone branches: a
-  /// **live** natural-key match returns the incumbent's id before any write, so
-  /// the ordinary "two tags, one name" case never gets here.
+  /// onto a name another row already holds, and when it would **create** one
+  /// under a name a *live* row holds; see [resolveNaturalKeyCollision] for when
+  /// the rename case happens rather than §4.1's store-un-normalised carve-out,
+  /// and [refuseCreationOntoLiveNaturalKey] for the creation case (#1348). A
+  /// name a *tombstone* holds is still adopted, not refused. [upsertStaged]
+  /// reaches this only in its tombstone branches: a **live** natural-key match
+  /// returns the incumbent's id before any write, so the ordinary "two tags,
+  /// one name" case never gets here.
   @useResult
   Future<String> upsert(Tag tag, {DateTime? at, bool localUserEdit = false}) =>
       _write(tag, at: at, fromSync: false, localUserEdit: localUserEdit);

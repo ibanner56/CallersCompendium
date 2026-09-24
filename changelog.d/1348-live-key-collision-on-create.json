@@ -1,0 +1,14 @@
+{
+  "id": "1348-live-key-collision-on-create",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Creating a custom field whose key another field already uses now tells you so and leaves the existing field alone. It used to fail without a message, so the new field simply never appeared."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "Tags, choreographers and custom fields refuse a creation onto a live natural key with DuplicateNaturalKeyError rather than letting a raw UNIQUE constraint violation escape. Re-creating an entity under a deleted name still adopts the tombstone, and inbound sync records are still reported to reconciliation unchanged."
+    ]
+  }
+}

@@ -37,9 +37,12 @@ class CustomFieldDefRepository {
   /// method, and a cancellation they did not intend reverses a peer's deletion.
   ///
   /// Throws [DuplicateNaturalKeyError] when the write would move this
-  /// definition onto a key another row already holds; see
-  /// [resolveNaturalKeyCollision] for when that happens rather than §4.1's
-  /// store-un-normalised carve-out (#1348).
+  /// definition onto a key another row already holds, and when it would
+  /// **create** a definition under a key a *live* row holds; see
+  /// [resolveNaturalKeyCollision] for when the first happens rather than §4.1's
+  /// store-un-normalised carve-out, and [refuseCreationOntoLiveNaturalKey] for
+  /// why the second is refused rather than adopted (#1348). A key a *tombstone*
+  /// holds is still adopted, not refused.
   Future<String> upsert(
     CustomFieldDef def, {
     DateTime? at,
