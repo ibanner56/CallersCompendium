@@ -6,11 +6,19 @@ import 'hardcoded_ui_strings_allowlist.dart';
 
 /// Ratchet guard against hardcoded user-facing UI strings (L5 i18n).
 ///
-/// Walks `lib/src/**.dart` and flags string literals passed to a curated set of
-/// user-facing widget constructors/arguments (`Text('…')`, `tooltip:`,
-/// `labelText:`, `Semantics(label:/hint:)`, `InputDecoration` texts, `Tooltip`
-/// `message:`, …). Prose in a localized app must come from `AppLocalizations`
-/// (`l10n.*`), so any such literal is a leak.
+/// Walks every `lib/**.dart` file except the generated `lib/l10n/` and flags
+/// string literals passed to a curated set of user-facing widget
+/// constructors/arguments (`Text('…')`, `tooltip:`, `labelText:`,
+/// `Semantics(label:/hint:)`, `InputDecoration` texts, `Tooltip` `message:`, …).
+/// Prose in a localized app must come from `AppLocalizations` (`l10n.*`), so any
+/// such literal is a leak.
+///
+/// A `Text(...)` is judged on every string literal at the top level of its
+/// argument list, not only one directly after the paren, so
+/// `Text(cond ? 'a' : 'b')` is caught. Literals nested in another call's
+/// arguments (`Text(l10n.x('a'))`) are not: that is a call the guard cannot see
+/// into. Nor can it see prose stored in a `String` and shown later; keep such
+/// messages typed (an enum mapped through `l10n` at display time) instead.
 ///
 /// This mirrors the `dart:io` file-walking + comment-stripping precedent of
 /// `test/data/migration_guard_test.dart` and the ADR-001 Flutter-import guard,
@@ -24,9 +32,9 @@ import 'hardcoded_ui_strings_allowlist.dart';
 /// intentionally not translatable (e.g. a single-glyph font specimen).
 void main() {
   // Named arguments that render user-facing prose directly from a raw string.
-  // (Widgets whose text is wrapped in `Text(...)` are caught by the `Text(`
-  // trigger instead, so this stays deliberately narrow to avoid matching
-  // non-UI maps/records that happen to use these key names.)
+  // (Widgets whose text is wrapped in `Text(...)` are caught by
+  // [textArgumentLiterals] instead, so this stays deliberately narrow to avoid
+  // matching non-UI maps/records that happen to use these key names.)
   const namedArgs = <String>[
     'tooltip',
     'labelText',
@@ -40,11 +48,11 @@ void main() {
   ];
 
   final trigger = RegExp(
-    // `Text(` (optionally `const`) followed by a string literal, OR one of the
-    // user-facing named args followed by a string literal.
-    r'''(?:\bText\(\s*(?:const\s+)?|\b(?:'''
+    // One of the user-facing named args followed by a string literal. `Text(`
+    // is handled separately, by walking its arguments.
+    r'''\b(?:'''
     '${namedArgs.join('|')}'
-    r''')\s*:\s*)(['"])''',
+    r''')\s*:\s*(['"])''',
   );
 
   /// Replaces comment bodies with same-length blanks (newlines preserved) so
@@ -58,6 +66,42 @@ void main() {
     return src;
   }
 
+  /// Returns the index just past the string literal whose opening quote is at
+  /// [q], skipping `${…}` interpolations (which may hold their own quotes).
+  int literalEnd(String src, int q) {
+    final quote = src[q];
+    if (q + 2 < src.length && src[q + 1] == quote && src[q + 2] == quote) {
+      final end = src.indexOf(quote * 3, q + 3);
+      return end < 0 ? src.length : end + 3;
+    }
+    var i = q + 1;
+    while (i < src.length) {
+      final c = src[i];
+      if (c == r'\') {
+        i += 2;
+        continue;
+      }
+      if (c == r'$' && i + 1 < src.length && src[i + 1] == '{') {
+        var braces = 1;
+        i += 2;
+        while (i < src.length && braces > 0) {
+          final d = src[i];
+          if (d == "'" || d == '"') {
+            i = literalEnd(src, i);
+            continue;
+          }
+          if (d == '{') braces++;
+          if (d == '}') braces--;
+          i++;
+        }
+        continue;
+      }
+      if (c == quote || c == '\n') return i + 1;
+      i++;
+    }
+    return src.length;
+  }
+
   /// Reads the string literal that starts at [quoteIndex] (the opening quote),
   /// honoring backslash escapes, and returns its raw inner text — or `null` if
   /// it is a triple-quoted or unterminated literal we shouldn't judge.
@@ -69,21 +113,10 @@ void main() {
         src[quoteIndex + 2] == quote) {
       return null;
     }
-    final buf = StringBuffer();
-    var i = quoteIndex + 1;
-    while (i < src.length) {
-      final c = src[i];
-      if (c == r'\') {
-        if (i + 1 < src.length) buf.write(src[i + 1]);
-        i += 2;
-        continue;
-      }
-      if (c == quote) return buf.toString();
-      if (c == '\n') return null; // unterminated on this line
-      buf.write(c);
-      i++;
-    }
-    return null;
+    final end = literalEnd(src, quoteIndex);
+    // Unterminated on this line (or at end of file).
+    if (end > src.length || src[end - 1] != quote) return null;
+    return src.substring(quoteIndex + 1, end - 1);
   }
 
   /// Whether [literal] carries translatable prose: it has a letter left over
@@ -96,15 +129,41 @@ void main() {
     return RegExp(r'[A-Za-z]').hasMatch(withoutInterp);
   }
 
+  /// Offsets of the opening quote of every string literal at the top level of a
+  /// `Text(...)` argument list. Delimiters are walked, so a literal behind a
+  /// conditional or a `+` is found and one nested in another call's arguments
+  /// is not.
+  List<int> textArgumentLiterals(String src) {
+    final quotes = <int>[];
+    for (final m in RegExp(r'\bText\(').allMatches(src)) {
+      var depth = 0;
+      var i = m.end;
+      while (i < src.length) {
+        final c = src[i];
+        if (c == "'" || c == '"') {
+          if (depth == 0) quotes.add(i);
+          i = literalEnd(src, i);
+          continue;
+        }
+        if (c == '(' || c == '[' || c == '{') depth++;
+        if (c == ')' || c == ']' || c == '}') {
+          if (depth == 0) break;
+          depth--;
+        }
+        i++;
+      }
+    }
+    return quotes;
+  }
+
   int lineOf(String src, int offset) =>
       '\n'.allMatches(src.substring(0, offset)).length + 1;
 
-  final libSrc = Directory('lib/src');
+  final libDir = Directory('lib');
 
-  /// Scans one file, returning `(line, literal)` pairs for flagged prose that
-  /// is not suppressed by `// i18n-ignore` on its line.
-  List<(int, String)> scan(File file) {
-    final raw = file.readAsStringSync();
+  /// Scans Dart source, returning `(line, literal)` pairs for flagged prose
+  /// that is not suppressed by `// i18n-ignore` on its line.
+  List<(int, String)> scanSource(String raw) {
     final ignoredLines = <int>{};
     final rawLines = raw.split('\n');
     for (var i = 0; i < rawLines.length; i++) {
@@ -112,8 +171,11 @@ void main() {
     }
     final src = blankComments(raw);
     final hits = <(int, String)>[];
-    for (final m in trigger.allMatches(src)) {
-      final quoteIndex = m.start + m[0]!.length - 1;
+    final quoteIndexes = <int>[
+      for (final m in trigger.allMatches(src)) m.start + m[0]!.length - 1,
+      ...textArgumentLiterals(src),
+    ]..sort();
+    for (final quoteIndex in quoteIndexes) {
       final literal = readLiteral(src, quoteIndex);
       if (literal == null || !isProse(literal)) continue;
       final line = lineOf(src, quoteIndex);
@@ -123,9 +185,11 @@ void main() {
     return hits;
   }
 
-  test('lib/src exists (guard runs from the app package root)', () {
+  List<(int, String)> scan(File file) => scanSource(file.readAsStringSync());
+
+  test('lib exists (guard runs from the app package root)', () {
     expect(
-      libSrc.existsSync(),
+      libDir.existsSync(),
       isTrue,
       reason: 'Run this test from the app/ package (flutter test cwd).',
     );
@@ -133,12 +197,14 @@ void main() {
 
   test('no hardcoded user-facing strings outside the allow-list', () {
     final offenders = <String, List<(int, String)>>{};
-    for (final entity in libSrc.listSync(recursive: true)) {
+    for (final entity in libDir.listSync(recursive: true)) {
       if (entity is! File || !entity.path.endsWith('.dart')) continue;
       final rel = entity.path
           .replaceFirst(RegExp(r'^lib[/\\]'), 'lib/')
           .replaceAll('\\', '/');
       final relFromLib = rel.substring('lib/'.length);
+      // Generated localizations are the translation source, not a leak.
+      if (relFromLib.startsWith('l10n/')) continue;
       if (hardcodedUiStringAllowlist.contains(relFromLib)) continue;
       final hits = scan(entity);
       if (hits.isNotEmpty) offenders[relFromLib] = hits;
@@ -153,6 +219,43 @@ void main() {
           '${offenders.entries.map((e) => '  ${e.key}:\n'
               '${e.value.map((h) => '    L${h.$1}: ${h.$2}').join('\n')}').join('\n')}',
     );
+  });
+
+  group('scanner', () {
+    test('flags a literal behind a conditional inside Text(...)', () {
+      final hits = scanSource(
+        'Widget w() => Text(\n'
+        "  threw ? 'A check failed to complete.' : 'A check failed.',\n"
+        ');\n',
+      );
+      expect(hits.map((h) => h.$2), [
+        'A check failed to complete.',
+        'A check failed.',
+      ]);
+    });
+
+    test('flags a literal beside a localized value', () {
+      expect(scanSource("Text(l10n.title + 'Suffix');"), hasLength(1));
+    });
+
+    test('flags a literal in a conditional whose first branch is l10n', () {
+      expect(scanSource("Text(ok ? l10n.done : 'Not done');"), hasLength(1));
+    });
+
+    test('ignores localized text, interpolations and nested call args', () {
+      expect(scanSource('Text(l10n.title);'), isEmpty);
+      expect(scanSource("Text(l10n.count('items'));"), isEmpty);
+      expect(scanSource(r"Text('$count');"), isEmpty);
+      expect(scanSource(r"Text('${a ? 'x' : 'y'}');"), isEmpty);
+      expect(
+        scanSource("Text(l10n.x, style: TextStyle(fontFamily: 'Mono'));"),
+        isEmpty,
+      );
+    });
+
+    test('honours // i18n-ignore on the literal line', () {
+      expect(scanSource("Text('Aa'); // i18n-ignore"), isEmpty);
+    });
   });
 
   test('allow-list has no stale or already-clean entries', () {
