@@ -2540,9 +2540,8 @@ is not a subset of the recorded one — catches both triggers with one mechanism
 state by another route.**
 
 **Two outcomes, not one: the carve-out cannot absorb a genuine duplicate
-(#1348).** §4.1 says a write whose normalised target is occupied stores the
-value un-normalised, and that a user's edit is never rejected to satisfy a
-normalisation rule. Read as one rule it is unimplementable, and the first
+(#1348).** §4.1 used to state this as one rule: store the value un-normalised,
+and never reject the edit. Read that way it is unimplementable, and the first
 implementation showed what happens when you try: three repositories wrote the
 row's **old** value back, recorded a skip and raised nothing, so the editor went
 on showing a rename the database had not taken. The remedy §4.1 names is only

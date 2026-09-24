@@ -684,15 +684,19 @@ form the in-scope column set is defined over — but the point is the shared
 source rather than the choice: §3.3 requires a generated mapping *"proven by
 test rather than hand-maintained"* for the same class of mismatch between
 registry and codec spellings, and the same standard applies here. That source
-has to be built, because nothing importable exists today: the registry's
-identifiers are inline string literals used directly as map keys
-(`'tags.name': _choreography`), not exported constants, and the
-carve-out lives at a separate call site in each of the four in-scope
-repositories. The concrete requirement is therefore named rather than left to
-inference — the identifiers MUST be declared once, as constants or generated
-symbols, and imported at all four sites. Two hand-typed literals reconciled
-after the fact by a test would catch drift once someone thought to write that
-test, which is not the same as making the two spellings the same object. Note
+was built in #1348 as `NormalisationSkipColumn` and the
+`naturalKeyNormalisationColumns` list, declared once beside
+`recordNormalisationSkip` and imported at all four carve-out sites; the one-time
+pass's grouping set is derived from the same list rather than re-typed. It was
+needed because nothing importable existed before: the registry's identifiers are
+inline string literals used directly as map keys (`'tags.name': _choreography`),
+not exported constants, and the carve-out lives at a separate call site in each
+of the four in-scope repositories. The concrete requirement is therefore named
+rather than left to inference — the identifiers MUST be declared once, as
+constants or generated symbols, and imported at all four sites. Two hand-typed
+literals reconciled after the fact by a test would catch drift once someone
+thought to write that test, which is not the same as making the two spellings
+the same object. Note
 that this is not a convergence concern: the table is `deviceScoped` and never
 transmitted, so the damage is confined to a single install, which is why
 nothing downstream would ever surface it.
@@ -947,11 +951,32 @@ anything in this design: `DanceRepository.getById` *does* take
 from the one place it is implemented and is not. Implementations MUST therefore
 distinguish three outcomes, not two: a live row, a tombstoned row, and no row.
 
-**A later ordinary write to a row whose target is occupied MUST NOT fail.**
-§4.1's write-path rule requires every write to normalise, which would re-attempt
-the colliding value. The write MUST instead store the value un-normalised and
-record the row in `normalisation_skips`. A user's edit is never rejected to
-satisfy a normalisation rule.
+**A later ordinary write to a row whose target is occupied MUST NOT fail, and
+MUST NOT silently discard the edit either.** §4.1's write-path rule requires
+every write to normalise, which would re-attempt the colliding value. A
+conforming client MUST distinguish two cases, because the remedy below is only
+available in the first:
+
+* **The value is unchanged** — the write derives the same target the row's own
+  stored value derives, which is the case a recorded row reaches whenever it is
+  re-saved (an archive merge re-importing it, a colour or contact edit beside
+  it). The write MUST store the value un-normalised and record the row in
+  `normalisation_skips`. "Un-normalised" defers **composition only**: §4.6's
+  sanitiser has no carve-out and MUST still be applied, so the stored bytes are
+  the sanitised, uncomposed form of the caller's value and therefore still
+  derive the same target the pass will re-attempt.
+* **The value changed onto a value another row holds** — an ordinary rename onto
+  a name already taken. §4.1's remedy cannot apply, because the un-normalised
+  form of the user's typed bytes *is* the incumbent's value and storing it is the
+  `UNIQUE` violation. The write MUST be refused with an error the calling surface
+  can render for the person who made the edit, MUST leave both rows unchanged,
+  and MUST record **no** entry in `normalisation_skips` — nothing was left
+  un-normalised, so an entry would pin the bounded retry open for a collision
+  that ends as soon as the user chooses another value.
+
+A user's edit is never *silently* dropped to satisfy a normalisation rule, and is
+never rejected where §4.1's remedy could have kept it. Merging the two rows is
+excluded on §6.6 step 1's grounds.
 
 **A restore (§6.11) MUST clear both the completion marker and
 `normalisation_skips`, so that the pass runs again over the restored library.**
@@ -4120,12 +4145,17 @@ skipped, and is normalised on a later run once that tombstone is purged**
 (mutations: ignore soft-deleted rows when grouping — the write then fails
 against an index that does not filter `deleted_at`; treat a skip as final — the
 live row is blocked forever by a record the user cannot see or list). **An
-ordinary edit to a blocked row succeeds** (mutation: apply the write-path
-normalisation rule unconditionally — the user's edit is rejected to satisfy an
-internal invariant). **`settings.key` is not rewritten by the pass** (mutation:
-include every `shareable` string column without excluding record identity — the
-settings record is renamed rather than repaired). **Re-running the pass changes
-nothing** (mutation: make any step non-idempotent — a pass interrupted after
+ordinary edit to a blocked row succeeds when it leaves the value unchanged, and
+a rename onto a value another row holds is refused visibly and records no skip**
+(mutations: apply the write-path normalisation rule unconditionally — the
+unchanged re-save is rejected to satisfy an internal invariant; take the
+carve-out for every collision — the row's **old** value is written back and a
+skip is recorded for an edit that never happened, which is the bounded retry
+carrying an entry nothing can discharge). **`settings.key` is not rewritten by
+the pass** (mutation: include every `shareable` string column without excluding
+record identity — the settings record is renamed rather than repaired).
+**Re-running the pass changes nothing** (mutation: make any step non-idempotent
+— a pass interrupted after
 its last write then repeats it). **A row whose text changed is still found by
 search afterwards** (mutation: skip the derived rebuild — the index keeps the
 pre-normalisation text and matches nothing).

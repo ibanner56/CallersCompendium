@@ -38,8 +38,9 @@ void main() {
   });
 
   test('keeps colliding normalized object keys and records them', () async {
-    // §4.1: "a user's edit is never rejected to satisfy a normalisation
-    // rule". Until #1348 this threw [ShareableJsonKeyCollision] out of `set`
+    // §4.1 costs the user neither the edit nor a silent discard when a
+    // collision is the only obstacle. Until #1348 this threw
+    // [ShareableJsonKeyCollision] out of `set`
     // and the save simply failed — while the one-time pass, handed the
     // identical condition, had always skipped the value and recorded it.
     final value = {'café': 'first', 'café': 'second'};
