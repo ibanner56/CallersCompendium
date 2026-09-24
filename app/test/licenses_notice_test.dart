@@ -1,6 +1,9 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'package:compendium_app/src/licenses.dart';
 
 /// The MIT notice for `fmptools` (issue #1392).
 ///
@@ -13,7 +16,10 @@ import 'package:flutter_test/flutter_test.dart';
 /// the other copies against it, so they cannot drift or be trimmed to the
 /// copyright line alone.
 ///
-/// The in-app registration is asserted separately in `settings_about_test.dart`.
+/// It also asserts the in-app registration. That lives here rather than in
+/// `settings_about_test.dart` on purpose: enumerating `LicenseRegistry`
+/// after that file's `testWidgets` cases have run hangs on the asset loads
+/// (observed: `TimeoutException`), whereas in this file it does not.
 
 /// The repo root: the nearest ancestor of the test's working directory that
 /// contains `packages/compendium_core`.
@@ -41,7 +47,32 @@ String _normalise(String text) => text
     .trim();
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   final root = _repoRoot();
+
+  test('the license registry carries the fmptools MIT notice', () async {
+    LicenseRegistry.reset();
+    resetBundledFontLicensesForTest();
+    registerBundledFontLicenses();
+
+    // Load through the real LicenseRegistry and rootBundle, not a fake, so an
+    // unregistered entry AND an undeclared asset both fail here.
+    final entries = await LicenseRegistry.licenses.toList().timeout(
+      const Duration(seconds: 20),
+    );
+    final fmptools = entries.where(
+      (e) => e.packages.contains('fmptools (MIT)'),
+    );
+
+    expect(fmptools, hasLength(1));
+    final text = fmptools.single.paragraphs.map((p) => p.text).join(' ');
+    expect(text, contains('Copyright (c) 2020 Evan Miller'));
+    expect(
+      text,
+      contains('shall be included in all copies or substantial portions'),
+    );
+  });
+
   String read(String relative) =>
       File('${root.path}/$relative').readAsStringSync();
 
