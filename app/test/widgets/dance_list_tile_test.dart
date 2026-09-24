@@ -602,6 +602,63 @@ void main() {
     });
   });
 
+  group('unreadable badge (#1347)', () {
+    // The badge's defining property is that it does NOT belong to the
+    // visible-field configuration: a row whose stored figures or tunes cannot be
+    // decoded looks exactly like a row that simply has none, and a user who has
+    // turned every optional field off is the one least able to tell. The tests
+    // below therefore pump with `visibleFields: const {}` — the state the group
+    // above proves hides everything else — so a refactor that nests this chip
+    // under any configured field reds here instead of passing quietly.
+    DanceListEntry unreadableEntry({
+      bool figures = false,
+      bool tunes = false,
+    }) => DanceListEntry(
+      dance: Dance(
+        id: 'u1',
+        title: 'Unreadable Dance',
+        figuresSource: figures ? const UnreadableFigures('[{"kind":') : null,
+        tunesSource: tunes ? const UnreadableTunes('[1,2,3]') : null,
+        createdAt: _now,
+        updatedAt: _now,
+      ),
+      authorNames: const [],
+      tagNames: const [],
+      listCustomFields: const [],
+      callCounts: const DanceCallCounts(all: 0, performed: 0),
+    );
+
+    testWidgets('shown for unreadable figures with no fields visible', (
+      tester,
+    ) async {
+      await _pumpWithFields(
+        tester,
+        unreadableEntry(figures: true),
+        visibleFields: const {},
+      );
+
+      expect(find.text("Can't be read"), findsOneWidget);
+    });
+
+    testWidgets('shown for unreadable tunes with no fields visible', (
+      tester,
+    ) async {
+      await _pumpWithFields(
+        tester,
+        unreadableEntry(tunes: true),
+        visibleFields: const {},
+      );
+
+      expect(find.text("Can't be read"), findsOneWidget);
+    });
+
+    testWidgets('absent when both stored lists decode', (tester) async {
+      await _pumpWithFields(tester, _richEntry(), visibleFields: const {});
+
+      expect(find.text("Can't be read"), findsNothing);
+    });
+  });
+
   group('mixer chip (issue #732)', () {
     testWidgets('mixer chip absent when dance.mixer is false', (tester) async {
       await _pump(tester, _entry(mixer: false));
