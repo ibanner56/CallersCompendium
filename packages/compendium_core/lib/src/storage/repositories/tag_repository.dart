@@ -123,6 +123,20 @@ class TagRepository {
           '"${incumbent.id}"',
         );
       }
+      // A creation onto a name another row holds. `current == null` makes
+      // `collidingEdit` false, so the decision above never ran, and a *live*
+      // holder would reach the insert and fail as a raw `SqliteException`. A
+      // tombstoned holder is adopted below instead. [upsertStaged] keeps the
+      // dance editor off this branch by returning a live match's id before any
+      // write; this is the contract for a caller that comes here directly.
+      if (!fromSync && current == null && incumbent != null) {
+        refuseCreationOntoLiveNaturalKey(
+          address: tagNameNormalisation,
+          normalisedValue: name,
+          incumbentId: incumbent.id,
+          incumbentDeletedAt: incumbent.deletedAt,
+        );
+      }
       final id = (collidingEdit || fromSync)
           ? tag.id
           : await adoptTombstonedNaturalKey(

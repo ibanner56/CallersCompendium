@@ -119,3 +119,44 @@ Future<String> resolveNaturalKeyCollision(
   }
   return deferred;
 }
+
+/// Refuses an ordinary (non-sync) **creation** whose natural key a *live* row
+/// already holds, and returns normally when the write may proceed.
+///
+/// [resolveNaturalKeyCollision] answers the question for an existing row. It is
+/// never consulted for a creation, because `collidingEdit` requires the row to
+/// be there already — so until this existed, a creation carrying a fresh id fell
+/// through to the insert. That was not a takeover: drift emits
+/// `ON CONFLICT("<primary key>") DO UPDATE`, so a conflict on the *natural* key
+/// is outside the clause's target and SQLite refuses the statement. But it
+/// refused it as a raw `SqliteException`, which nothing on a user's path catches
+/// by type, so the action failed while telling the user nothing.
+///
+/// Refusing here is the same ruling #1348 settled for a rename, applied one case
+/// earlier: §4.1's store-un-normalised remedy has nothing to offer a creation —
+/// there is no previous value for the new row to keep — so the choice is between
+/// refusing visibly and failing opaquely.
+///
+/// **[incumbentDeletedAt] is what the whole decision turns on.** A *tombstoned*
+/// holder must NOT be refused: [adoptTombstonedNaturalKey] reconciles that case
+/// on purpose, and refusing it would break re-creating a deleted tag under its
+/// old name — the very regression adoption exists to fix. Only a live holder is
+/// a duplicate.
+///
+/// Callers must gate this on `fromSync == false`. §6.7 owns identity for an
+/// inbound record and reports it to reconciliation with a [StateError] that is
+/// never shown to anybody; this error is an answer to a person.
+void refuseCreationOntoLiveNaturalKey({
+  required NormalisationSkipColumn address,
+  required String normalisedValue,
+  required String incumbentId,
+  required DateTime? incumbentDeletedAt,
+}) {
+  if (incumbentDeletedAt != null) return;
+  throw DuplicateNaturalKeyError(
+    table: address.table,
+    column: address.column,
+    value: normalisedValue,
+    holderId: incumbentId,
+  );
+}

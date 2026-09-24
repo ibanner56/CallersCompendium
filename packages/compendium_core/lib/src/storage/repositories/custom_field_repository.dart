@@ -106,6 +106,20 @@ class CustomFieldDefRepository {
           '"${incumbent.id}"',
         );
       }
+      // A creation onto a key another row holds. `current == null` makes
+      // `collidingEdit` false, so the decision above never ran; a *live* holder
+      // must be refused here or the insert fails as a raw `SqliteException`
+      // that `custom_fields_screen` does not catch. A tombstoned holder is
+      // adopted immediately below instead. `incumbent.id != def.id` is implied:
+      // a row with `def.id` would have made `current` non-null.
+      if (!fromSync && current == null && incumbent != null) {
+        refuseCreationOntoLiveNaturalKey(
+          address: customFieldKeyNormalisation,
+          normalisedValue: key,
+          incumbentId: incumbent.id,
+          incumbentDeletedAt: incumbent.deletedAt,
+        );
+      }
       final id = (collidingEdit || fromSync)
           ? def.id
           : await adoptTombstonedNaturalKey(

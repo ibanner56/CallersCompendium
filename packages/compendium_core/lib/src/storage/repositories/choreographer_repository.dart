@@ -101,6 +101,21 @@ class ChoreographerRepository {
           '"${incumbent.id}"',
         );
       }
+      // A creation onto a name another row holds. `current == null` makes
+      // `collidingEdit` false, so the decision above never ran, and a *live*
+      // holder would reach the insert and fail as a raw `SqliteException`. A
+      // tombstoned holder is adopted below instead. Not reachable from the
+      // dance editor today — `name_picker` only offers "create" when nothing
+      // matches case-insensitively — but this repository is public API and the
+      // custom-field twin was reachable.
+      if (!fromSync && current == null && incumbent != null) {
+        refuseCreationOntoLiveNaturalKey(
+          address: choreographerNameNormalisation,
+          normalisedValue: name,
+          incumbentId: incumbent.id,
+          incumbentDeletedAt: incumbent.deletedAt,
+        );
+      }
       // Keyed on the name actually about to be stored, not on the normalised
       // target. A carve-out write stores `deferredName`, which usually equals
       // what the row already held — but need not, so asking whether the stored
