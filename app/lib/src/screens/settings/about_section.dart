@@ -27,7 +27,8 @@ class AboutSection extends StatelessWidget {
 /// source offer (an AGPL conveyance obligation), attribution for the bundled
 /// fonts, the "inspired by" theme note, and the dance-data provenance — plus a
 /// "View licenses" entry into Flutter's `showLicensePage` (which also lists the
-/// bundled font license texts registered via `registerBundledFontLicenses`).
+/// bundled font and ported-code license texts registered via
+/// `registerBundledLicenses`).
 ///
 /// The brand header at the top carries the app's identity and version; the
 /// remaining entries build the structure and the compliance content.

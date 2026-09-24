@@ -146,10 +146,10 @@ Future<void> main() async {
         exit(0);
       }
     }
-    // Register the bundled font license texts (OFL) so Flutter's
-    // showLicensePage — reachable from Settings ▸ About ▸ View licenses —
-    // includes them.
-    registerBundledFontLicenses();
+    // Register the bundled font (OFL) and ported-code (fmptools, MIT) license
+    // texts so Flutter's showLicensePage — reachable from Settings ▸ About ▸
+    // View licenses — includes them.
+    registerBundledLicenses();
     // [AppData] is opened once here and handed to [CompendiumApp] (which owns
     // disposal) so we never open the database twice. The database itself opens
     // lazily on first use: the desktop window restore (which reads the persisted

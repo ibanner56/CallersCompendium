@@ -52,8 +52,8 @@ void main() {
 
   test('the license registry carries the fmptools MIT notice', () async {
     LicenseRegistry.reset();
-    resetBundledFontLicensesForTest();
-    registerBundledFontLicenses();
+    resetBundledLicensesForTest();
+    registerBundledLicenses();
 
     // Load through the real LicenseRegistry and rootBundle, not a fake, so an
     // unregistered entry AND an undeclared asset both fail here.

@@ -17,6 +17,8 @@ Working through an agent? [`AGENTS.md`](AGENTS.md) is the resident guide, and
   exception](LICENSE-EXCEPTION.md) (an AGPL-3.0 §7 additional permission) — so
   the app can be published on the App Store and Google Play while the source
   stays fully AGPL-3.0.
+- If you port code from another project, its license notice must ship with the
+  port: see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 - Significant design changes start as a discussion or an ADR proposal
   (see below) — not as a surprise PR.
 
