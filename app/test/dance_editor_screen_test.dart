@@ -12,7 +12,6 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/editor/editor_draft_codec.dart';
 import 'package:compendium_app/src/editor/editor_snapshot.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
-import 'package:compendium_app/src/screens/dance_editor/editor_fields.dart';
 import 'package:compendium_app/src/screens/dance_editor/name_picker.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/theme/app_theme.dart';
@@ -2865,7 +2864,11 @@ void main() {
     ) async {
       final repos = openTestRepositories();
       await repos.dances.create(
-        _dance(id: 'd1', title: 'Corrupt', figures: [Figure(move: 'swing')]),
+        _dance(
+          id: 'd1',
+          title: 'Corrupt',
+          figures: [Figure(move: 'swing')],
+        ),
       );
       await repos.db.customStatement(
         'UPDATE dances SET figures_json = ?, tunes_json = ? WHERE id = ?',
@@ -2901,7 +2904,11 @@ void main() {
     testWidgets('neither notice is shown for a healthy dance', (tester) async {
       final repos = openTestRepositories();
       await repos.dances.create(
-        _dance(id: 'd1', title: 'Fine', figures: [Figure(move: 'swing')]),
+        _dance(
+          id: 'd1',
+          title: 'Fine',
+          figures: [Figure(move: 'swing')],
+        ),
       );
 
       await _pumpEditor(tester, repos, danceId: 'd1');

@@ -168,18 +168,21 @@ void main() {
       );
     });
 
-    test('read() withholds the inbound overlay base [_readDanceBody]', () async {
-      await repos.dances.create(sampleDance(id: 'd1', title: 'Corrupt'));
-      await repos.ensureMigrated();
-      await _storeRawTunes(db, 'd1', '[1,2,3]');
+    test(
+      'read() withholds the inbound overlay base [_readDanceBody]',
+      () async {
+        await repos.dances.create(sampleDance(id: 'd1', title: 'Corrupt'));
+        await repos.ensureMigrated();
+        await _storeRawTunes(db, 'd1', '[1,2,3]');
 
-      expect(
-        await CompendiumSyncStorage(
-          repos,
-        ).read((kind: SyncRecordKind.dance, recordId: 'd1')),
-        isNull,
-      );
-    });
+        expect(
+          await CompendiumSyncStorage(
+            repos,
+          ).read((kind: SyncRecordKind.dance, recordId: 'd1')),
+          isNull,
+        );
+      },
+    );
 
     test(
       'deduplicateFreshAttach() does not merge it away [_danceDedupePlan]',
@@ -219,7 +222,9 @@ void main() {
           sampleDance(
             id: 'd2',
             title: 'Same Title',
-            figures: [Figure(move: 'circle', params: const {'beats': 8})],
+            figures: [
+              Figure(move: 'circle', params: const {'beats': 8}),
+            ],
           ),
         );
         await repos.ensureMigrated();

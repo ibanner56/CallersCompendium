@@ -2516,7 +2516,11 @@ void main() {
     Future<CompendiumRepositories> corrupt(String column, String raw) async {
       final repos = openTestRepositories();
       await repos.dances.create(
-        _dance(id: 'd1', title: 'Corrupt', figures: [Figure(move: 'swing')]),
+        _dance(
+          id: 'd1',
+          title: 'Corrupt',
+          figures: [Figure(move: 'swing')],
+        ),
       );
       await repos.db.customStatement(
         'UPDATE dances SET $column = ? WHERE id = ?',
@@ -2562,7 +2566,11 @@ void main() {
     testWidgets('a healthy dance shows no notice', (tester) async {
       final repos = openTestRepositories();
       await repos.dances.create(
-        _dance(id: 'd1', title: 'Fine', figures: [Figure(move: 'swing')]),
+        _dance(
+          id: 'd1',
+          title: 'Fine',
+          figures: [Figure(move: 'swing')],
+        ),
       );
 
       await _pumpDetail(tester, repos, 'd1');
