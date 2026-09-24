@@ -1531,25 +1531,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         return;
       }
       if (noInterveningEdit && _editGeneration == undoEditGeneration) {
-        final baseline = _pendingBulkUndoBaseline ?? _existing!;
-        final local = _draftProgram ?? baseline;
-        final editedDuringRead = _editGeneration != undoEditGeneration;
-        final restored = editedDuringRead
-            ? _mergeUndoProgram(
-                atReadStart: baseline,
-                local: local,
-                live: live,
-                slots: _mergeUndoSlots(
-                  atReadStart: baseline.slots,
-                  local: _slots,
-                  live: live.slots,
-                ),
-              )
-            : live;
-        _applyProgramToEditor(restored);
-        await _refreshLinkedVenueForId(restored.venueId);
+        _applyProgramToEditor(live);
+        await _refreshLinkedVenueForId(live.venueId);
         if (!mounted) return;
-        if (editedDuringRead || _editGeneration != undoEditGeneration) {
+        if (_editGeneration != undoEditGeneration) {
           setState(() {
             _dirty = true;
           });
@@ -1578,11 +1563,6 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       });
       await _refreshLinkedVenueForId(merged.venueId);
       if (!mounted) return;
-      if (_editGeneration != undoEditGeneration) {
-        _scheduleAutosave();
-        _scheduleAutoCommit();
-        return;
-      }
       _scheduleAutosave();
       _scheduleAutoCommit();
     } catch (error, stackTrace) {
