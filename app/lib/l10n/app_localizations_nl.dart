@@ -2835,25 +2835,27 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceSectionWalkthrough => 'Doorloop';
 
   @override
-  String get danceFiguresUnreadable => 'These figures can\'t be read.';
+  String get danceFiguresUnreadable =>
+      'Deze figuren kunnen niet worden gelezen.';
 
   @override
-  String get danceTunesUnreadable => 'These tunes can\'t be read.';
+  String get danceTunesUnreadable =>
+      'Deze deuntjes kunnen niet worden gelezen.';
 
   @override
   String get danceUnreadableReassurance =>
-      'Nothing has been deleted. What was saved is kept exactly as it is, and editing anything else about this dance will not replace it.';
+      'Er is niets verwijderd. Wat is opgeslagen blijft precies zoals het is, en als je iets anders aan deze dans bewerkt, wordt het niet vervangen.';
 
   @override
   String get danceEditorFiguresUnreadable =>
-      'The saved figures can\'t be read, so they are not shown here. They are kept as they are unless you add figures of your own.';
+      'De opgeslagen figuren kunnen niet worden gelezen en worden hier daarom niet getoond. Ze blijven zoals ze zijn, tenzij je eigen figuren toevoegt.';
 
   @override
   String get danceEditorTunesUnreadable =>
-      'The saved tunes can\'t be read, so they are not shown here. They are kept as they are unless you add tunes of your own.';
+      'De opgeslagen deuntjes kunnen niet worden gelezen en worden hier daarom niet getoond. Ze blijven zoals ze zijn, tenzij je eigen deuntjes toevoegt.';
 
   @override
-  String get danceListUnreadableBadge => 'Can\'t be read';
+  String get danceListUnreadableBadge => 'Niet leesbaar';
 
   @override
   String get danceSectionTunes => 'Deuntjes';

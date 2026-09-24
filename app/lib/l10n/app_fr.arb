@@ -3064,6 +3064,30 @@
   "@danceSectionWalkthrough": {
     "x-sourceSha256": "b463b316cebfc24441413d705d65e7707fae189ff880ff9e704aad73c5353be6"
   },
+  "danceFiguresUnreadable": "Ces figures ne peuvent pas être lues.",
+  "@danceFiguresUnreadable": {
+    "x-sourceSha256": "3b2e3bc340d72179608dc2e077d03e3bdcc4e84d0baa3c5d45c4b51730f7a5f2"
+  },
+  "danceTunesUnreadable": "Ces airs ne peuvent pas être lus.",
+  "@danceTunesUnreadable": {
+    "x-sourceSha256": "393d3464c26340f4eb89269e0580c5e7296916996c641251a5832d1b4a9c6c5a"
+  },
+  "danceUnreadableReassurance": "Rien n'a été supprimé. Ce qui a été enregistré est conservé tel quel, et modifier autre chose dans cette danse ne le remplacera pas.",
+  "@danceUnreadableReassurance": {
+    "x-sourceSha256": "cc561b1dbafd47b48f5f84c5a5711eeab5355a78f6bf31d1514cd112e1deffcf"
+  },
+  "danceEditorFiguresUnreadable": "Les figures enregistrées ne peuvent pas être lues et ne sont donc pas affichées ici. Elles sont conservées telles quelles, sauf si vous ajoutez vos propres figures.",
+  "@danceEditorFiguresUnreadable": {
+    "x-sourceSha256": "a81f140b2f51d3f1eda203d481208fc976b04dab074009a771f64b0b092ecb56"
+  },
+  "danceEditorTunesUnreadable": "Les airs enregistrés ne peuvent pas être lus et ne sont donc pas affichés ici. Ils sont conservés tels quels, sauf si vous ajoutez vos propres airs.",
+  "@danceEditorTunesUnreadable": {
+    "x-sourceSha256": "718f6260506051e3cf0fcbc55c27e95d4112cbbae542a8d2aeadc075e1b8f012"
+  },
+  "danceListUnreadableBadge": "Illisible",
+  "@danceListUnreadableBadge": {
+    "x-sourceSha256": "dc80019544fb4181c57699b1107458e4d5e4a12f32da4d1388495f5371170e73"
+  },
   "danceSectionTunes": "Airs",
   "@danceSectionTunes": {
     "x-sourceSha256": "4b5c504ca989a4a17e54b974db8a6d4aa156fa63da39902c66ecec59f5e46412"

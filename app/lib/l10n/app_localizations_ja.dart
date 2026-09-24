@@ -2712,25 +2712,25 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceSectionWalkthrough => 'ウォークスルー';
 
   @override
-  String get danceFiguresUnreadable => 'These figures can\'t be read.';
+  String get danceFiguresUnreadable => 'このフィギュアは読み取れません。';
 
   @override
-  String get danceTunesUnreadable => 'These tunes can\'t be read.';
+  String get danceTunesUnreadable => 'このチューンは読み取れません。';
 
   @override
   String get danceUnreadableReassurance =>
-      'Nothing has been deleted. What was saved is kept exactly as it is, and editing anything else about this dance will not replace it.';
+      '削除されたものはありません。保存された内容はそのまま保持され、このダンスの他の項目を編集しても置き換えられることはありません。';
 
   @override
   String get danceEditorFiguresUnreadable =>
-      'The saved figures can\'t be read, so they are not shown here. They are kept as they are unless you add figures of your own.';
+      '保存されたフィギュアは読み取れないため、ここには表示されません。ご自身でフィギュアを追加しない限り、そのまま保持されます。';
 
   @override
   String get danceEditorTunesUnreadable =>
-      'The saved tunes can\'t be read, so they are not shown here. They are kept as they are unless you add tunes of your own.';
+      '保存されたチューンは読み取れないため、ここには表示されません。ご自身でチューンを追加しない限り、そのまま保持されます。';
 
   @override
-  String get danceListUnreadableBadge => 'Can\'t be read';
+  String get danceListUnreadableBadge => '読み取り不可';
 
   @override
   String get danceSectionTunes => 'チューン';
