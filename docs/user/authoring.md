@@ -334,6 +334,10 @@ Your tags, ratings, notes, and everything else on each dance are kept exactly as
 they are — only figures that now recognise a known move are replaced. If there is
 nothing to upgrade, the app tells you that and leaves your collection alone.
 
+A dance whose stored figures the app cannot read at all is left out of the scan
+rather than upgraded, and its stored text is not touched. The dance's own page
+tells you when its figures cannot be read.
+
 ## Where to go next
 
 - **Find and organize what you have entered:**
