@@ -1103,6 +1103,38 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     );
   }
 
+  /// The explanation shown in place of content whose stored text could not be
+  /// decoded (#1347).
+  ///
+  /// Every clause of the copy is literally true of the behaviour: the row is
+  /// intact, the stored text is written back verbatim, and an edit to another
+  /// field preserves it. It deliberately says nothing about syncing — such a
+  /// dance is withheld from Device Sync, and this notice neither promises nor
+  /// denies that.
+  Widget _unreadableNotice(BuildContext context, String headline) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            headline,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.error,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xxs),
+          Text(
+            l10n.danceUnreadableReassurance,
+            style: theme.textTheme.bodySmall,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBody(DanceDetailData detail) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
@@ -1273,15 +1305,20 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
               ),
           ],
         ),
-        FigureTable(
-          figures: switch (dance.figuresSource) {
-            DecodedFigures(:final figures) => figures,
-            UnreadableFigures() => const <Figure>[],
-          },
-          phraseStructure: dance.phraseStructure,
-          renderer: _renderer,
-          dialect: dialect,
-        ),
+        switch (dance.figuresSource) {
+          DecodedFigures(:final figures) => FigureTable(
+            figures: figures,
+            phraseStructure: dance.phraseStructure,
+            renderer: _renderer,
+            dialect: dialect,
+          ),
+          // An empty table would say the dance has no figures, which is false
+          // and is the claim this whole change exists to stop making.
+          UnreadableFigures() => _unreadableNotice(
+            context,
+            l10n.danceFiguresUnreadable,
+          ),
+        },
         if (dance.callingNotes.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
           Text(
@@ -1334,9 +1371,17 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             onOpenDance: _openDance,
           ),
         ],
-        // Renders nothing for an undecodable list rather than an empty one —
-        // telling the user why is surfacing work and is deliberately not done
-        // here.
+        // Two mutually exclusive branches. This one claims the undecodable
+        // case and says so; the decoded branch below folds `UnreadableTunes` to
+        // an empty list, which is only honest because this branch has already
+        // rendered the notice. Delete this branch and the fold silently becomes
+        // the lie that the dance has no tunes.
+        if (dance.tunesSource case UnreadableTunes()) ...[
+          const SizedBox(height: AppSpacing.lg),
+          Text(l10n.danceSectionTunes, style: theme.textTheme.titleMedium),
+          const SizedBox(height: AppSpacing.xxs),
+          _unreadableNotice(context, l10n.danceTunesUnreadable),
+        ],
         if (switch (dance.tunesSource) {
           DecodedTunes(:final tunes) => tunes,
           UnreadableTunes() => const <String>[],

@@ -264,6 +264,18 @@ class DanceEditorForm extends StatelessWidget {
                   l10n.danceEditorFiguresHelp,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
+                // An empty figure list here would otherwise read as "this dance
+                // has no figures", when in fact the stored text could not be
+                // decoded and is being preserved untouched (#1347).
+                if (controller.openedWithUnreadableFigures) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    l10n.danceEditorFiguresUnreadable,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: AppSpacing.xs),
                 FigureListEditor(
                   drafts: controller.figureDrafts,
@@ -498,6 +510,18 @@ class DanceEditorForm extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.md),
         FieldLabel(l10n.danceEditorTunesLabel),
+        // An empty tune list here would otherwise read as "this dance has no
+        // tunes", when the stored text could not be decoded and is being
+        // preserved untouched (#1347).
+        if (controller.openedWithUnreadableTunes) ...[
+          Text(
+            l10n.danceEditorTunesUnreadable,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.error,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+        ],
         TuneEditor(
           tunes: controller.tunes,
           controller: controller.tuneController,

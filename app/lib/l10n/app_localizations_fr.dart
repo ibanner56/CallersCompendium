@@ -2858,6 +2858,27 @@ class AppLocalizationsFr extends AppLocalizations {
   String get danceSectionWalkthrough => 'Déroulé';
 
   @override
+  String get danceFiguresUnreadable => 'Ces figures ne peuvent pas être lues.';
+
+  @override
+  String get danceTunesUnreadable => 'Ces airs ne peuvent pas être lus.';
+
+  @override
+  String get danceUnreadableReassurance =>
+      'Rien n\'a été supprimé. Ce qui a été enregistré est conservé tel quel, et modifier autre chose dans cette danse ne le remplacera pas.';
+
+  @override
+  String get danceEditorFiguresUnreadable =>
+      'Les figures enregistrées ne peuvent pas être lues et ne sont donc pas affichées ici. Elles sont conservées telles quelles, sauf si vous ajoutez vos propres figures.';
+
+  @override
+  String get danceEditorTunesUnreadable =>
+      'Les airs enregistrés ne peuvent pas être lus et ne sont donc pas affichés ici. Ils sont conservés tels quels, sauf si vous ajoutez vos propres airs.';
+
+  @override
+  String get danceListUnreadableBadge => 'Illisible';
+
+  @override
   String get danceSectionTunes => 'Airs';
 
   @override

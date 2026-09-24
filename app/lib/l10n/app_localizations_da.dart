@@ -2818,6 +2818,27 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceSectionWalkthrough => 'Gennemgang';
 
   @override
+  String get danceFiguresUnreadable => 'Disse figurer kan ikke læses.';
+
+  @override
+  String get danceTunesUnreadable => 'Disse melodier kan ikke læses.';
+
+  @override
+  String get danceUnreadableReassurance =>
+      'Intet er blevet slettet. Det, der blev gemt, bevares nøjagtigt som det er, og hvis du redigerer noget andet ved denne dans, bliver det ikke erstattet.';
+
+  @override
+  String get danceEditorFiguresUnreadable =>
+      'De gemte figurer kan ikke læses, så de vises ikke her. De bevares, som de er, medmindre du tilføjer dine egne figurer.';
+
+  @override
+  String get danceEditorTunesUnreadable =>
+      'De gemte melodier kan ikke læses, så de vises ikke her. De bevares, som de er, medmindre du tilføjer dine egne melodier.';
+
+  @override
+  String get danceListUnreadableBadge => 'Kan ikke læses';
+
+  @override
   String get danceSectionTunes => 'Melodier';
 
   @override

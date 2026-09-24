@@ -2851,6 +2851,77 @@ void main() {
       );
     });
   });
+
+  group('unreadable stored lists are surfaced in the editor (#1347)', () {
+    // The controller can report an unreadable source while the form omits the
+    // warning, and nothing else in the suite would notice: the editor shows an
+    // empty figure list and an empty tune list, which is exactly what a dance
+    // with neither looks like. The editor is the screen where that confusion is
+    // most costly, because the user is one tap from adding content of their own
+    // and replacing text they were never told existed.
+    testWidgets('both notices are shown when both columns are undecodable', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Corrupt',
+          figures: [Figure(move: 'swing')],
+        ),
+      );
+      await repos.db.customStatement(
+        'UPDATE dances SET figures_json = ?, tunes_json = ? WHERE id = ?',
+        ['[{"kind":', '[1,2,3]', 'd1'],
+      );
+
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      expect(
+        find.textContaining("The saved figures can't be read"),
+        findsOneWidget,
+      );
+      // The tunes field lives inside the collapsed "More details" panel, so its
+      // notice is built but offstage until the panel is opened. Expand, then
+      // assert the notice is *onstage*: a `skipOffstage: false` finder would
+      // pass on a build where the notice exists but no user can reach it.
+      await _expandMoreDetails(tester);
+      await tester.ensureVisible(
+        find
+            .textContaining(
+              "The saved tunes can't be read",
+              skipOffstage: false,
+            )
+            .first,
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining("The saved tunes can't be read"),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('neither notice is shown for a healthy dance', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Fine',
+          figures: [Figure(move: 'swing')],
+        ),
+      );
+
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      // `skipOffstage: false` deliberately: the tunes notice lays out below the
+      // fold, so an onstage-only finder would report "absent" for a build that
+      // renders it. This asserts it is not in the tree at all.
+      expect(
+        find.textContaining("can't be read", skipOffstage: false),
+        findsNothing,
+      );
+    });
+  });
 }
 
 /// A [DanceRepository] that counts [listAll] calls, so a test can assert a

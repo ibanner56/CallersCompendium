@@ -502,7 +502,7 @@ abstract class AppLocalizations {
   /// **'Copy sync phrase'**
   String get settingsSyncIdCopy;
 
-  /// Snackbar confirming the sync phrase was copied, restating that it is a bearer credential (spec §6.14 item 2).
+  /// Snackbar confirming the sync phrase was copied, restating what having it lets someone do. Describe behaviour only: the phrase is where the shared library lives, not a password guarding it, and the glossary reserves 'credential' for the header encoding. Keep this consistent with @settingsSyncIdCaution below, which must not drift from it.
   ///
   /// In en, this message translates to:
   /// **'Sync phrase copied. It unlocks your store, so paste it only on a device you own.'**
@@ -4706,6 +4706,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Walkthrough'**
   String get danceSectionWalkthrough;
+
+  /// Shown on the dance detail screen in place of the figure table when the stored figures_json could not be decoded (#1347). States the fact only; the reassurance is in @danceUnreadableReassurance below. Must not imply the dance or its figures were deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'These figures can\'t be read.'**
+  String get danceFiguresUnreadable;
+
+  /// Shown on the dance detail screen in place of the tune list when the stored tunes_json could not be decoded (#1347). Same constraints as @danceFiguresUnreadable.
+  ///
+  /// In en, this message translates to:
+  /// **'These tunes can\'t be read.'**
+  String get danceTunesUnreadable;
+
+  /// Explanation shown under @danceFiguresUnreadable or @danceTunesUnreadable. Every clause must stay literally true of the behaviour: the row is intact, the stored text is written back verbatim, and an edit to another field preserves it. Do not claim the app will recover or repair the content, and do not mention syncing -- such a dance is withheld from Device Sync, which this string deliberately does not promise either way.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing has been deleted. What was saved is kept exactly as it is, and editing anything else about this dance will not replace it.'**
+  String get danceUnreadableReassurance;
+
+  /// Shown in the dance editor above the figure list when the opened dance's stored figures could not be decoded (#1347). The final clause is literally the save rule: the editor preserves the stored text while the author has entered no figures, and replaces it once they have.
+  ///
+  /// In en, this message translates to:
+  /// **'The saved figures can\'t be read, so they are not shown here. They are kept as they are unless you add figures of your own.'**
+  String get danceEditorFiguresUnreadable;
+
+  /// Shown in the dance editor above the tunes field when the opened dance's stored tunes could not be decoded (#1347). Same save rule as @danceEditorFiguresUnreadable.
+  ///
+  /// In en, this message translates to:
+  /// **'The saved tunes can\'t be read, so they are not shown here. They are kept as they are unless you add tunes of your own.'**
+  String get danceEditorTunesUnreadable;
+
+  /// Short badge on a Collection list row whose dance holds figures or tunes that could not be decoded (#1347). Kept to two or three words; the detail screen carries the explanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t be read'**
+  String get danceListUnreadableBadge;
 
   /// Heading of the tunes section on the dance detail screen.
   ///
