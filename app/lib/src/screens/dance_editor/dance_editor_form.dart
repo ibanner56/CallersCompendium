@@ -90,6 +90,7 @@ class DanceEditorForm extends StatelessWidget {
   final ValueChanged<String> onAddAuthor;
   final ValueChanged<String> onAddTag;
   final ValueChanged<String> onAttachSource;
+
   /// Returns the id the entity actually occupies, or `null` when the create
   /// did not happen and the user has already been told why — the same
   /// contract `onCreateSource` has carried for a cancelled dialog.
@@ -97,6 +98,7 @@ class DanceEditorForm extends StatelessWidget {
   final ValueChanged<String> onEditChoreographer;
   final Future<String?> Function(String title) onCreateSource;
   final ValueChanged<String> onEditSource;
+
   /// Returns the id the entity actually occupies, or `null` when the create
   /// did not happen and the user has already been told why — the same
   /// contract `onCreateSource` has carried for a cancelled dialog.

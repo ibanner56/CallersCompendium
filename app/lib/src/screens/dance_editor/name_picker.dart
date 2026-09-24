@@ -28,6 +28,7 @@ class NamePicker extends StatelessWidget {
   final List<NameOption> options;
   final ValueChanged<String> onAdd;
   final ValueChanged<String> onRemove;
+
   /// Returns the id the entity actually occupies, or `null` when the
   /// create did not happen and the caller has already told the user why
   /// (see `dance_editor_screen._createChoreographer`). `null` skips
@@ -102,6 +103,7 @@ class _AddAutocomplete extends StatefulWidget {
   final List<String> selectedIds;
   final List<NameOption> options;
   final ValueChanged<String> onAdd;
+
   /// Returns the id the entity actually occupies, or `null` when the
   /// create did not happen and the caller has already told the user why
   /// (see `dance_editor_screen._createChoreographer`). `null` skips
