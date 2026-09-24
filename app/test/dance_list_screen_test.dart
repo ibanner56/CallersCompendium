@@ -35,6 +35,10 @@ Dance _dance({
   List<CustomFieldValue> customFields = const [],
   DateTime? createdAt,
   String hook = '',
+  String? difficultyLevelId,
+  bool mixedLevel = false,
+  bool mixer = false,
+  int? rating,
 }) => Dance(
   id: id,
   title: title,
@@ -46,6 +50,10 @@ Dance _dance({
   figures: figures,
   customFields: customFields,
   hook: hook,
+  difficultyLevelId: difficultyLevelId,
+  mixedLevel: mixedLevel,
+  mixer: mixer,
+  rating: rating,
   createdAt: createdAt ?? DateTime.utc(2026, 1, 1),
   updatedAt: createdAt ?? DateTime.utc(2026, 1, 1),
 );
@@ -1012,6 +1020,62 @@ void main() {
     expect(find.text('Chase the Squirrel'), findsOneWidget);
     expect(find.text('Rambling Reel'), findsNothing);
   });
+
+  // Issue #1393: the header count omitted Level, Mixed level, Mixer and
+  // Minimum rating, so a collapsed panel read "Filters" while filtering.
+  for (final facet in <(String, Dance Function(String), String)>[
+    (
+      'level',
+      (id) => _dance(
+        id: id,
+        title: 'Leveled $id',
+        difficultyLevelId: DifficultyLevel.beginnerId,
+      ),
+      'facet-row-level',
+    ),
+    (
+      'mixed level',
+      (id) => _dance(id: id, title: 'Mixed $id', mixedLevel: true),
+      'facet-row-mixed-level',
+    ),
+    (
+      'mixer',
+      (id) => _dance(id: id, title: 'Mixer $id', mixer: true),
+      'facet-row-mixer',
+    ),
+    (
+      'minimum rating',
+      (id) => _dance(id: id, title: 'Rated $id', rating: 4),
+      'facet-row-min-rating',
+    ),
+  ]) {
+    testWidgets('Filters header counts the ${facet.$1} facet (#1393)', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(facet.$2('a'));
+      await repos.dances.create(_dance(id: 'plain', title: 'Plain'));
+
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+      expect(find.text('Filters'), findsOneWidget);
+
+      await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
+      await _tapVisible(
+        tester,
+        find
+            .descendant(
+              of: find.byKey(ValueKey(facet.$3)),
+              matching: find.byType(FilterChip),
+            )
+            .first,
+      );
+      // Collapse the panel: the count must be readable from the header alone.
+      await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
+
+      expect(find.text('Filters (1 active)'), findsOneWidget);
+    });
+  }
 
   testWidgets('different facets AND together', (tester) async {
     final repos = openTestRepositories();

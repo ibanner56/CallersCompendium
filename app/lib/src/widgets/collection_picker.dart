@@ -712,21 +712,6 @@ class _CollectionPickerState extends State<CollectionPicker> {
     }
   }
 
-  int _activeFacetCount() {
-    return _facets.forms.length +
-        _facets.formations.length +
-        _facets.progressions.length +
-        _facets.statuses.length +
-        _facets.callStatuses.length +
-        _facets.authorIds.length +
-        _facets.tagIds.length +
-        _facets.sourceIds.length +
-        _facets.choiceValues.values.fold<int>(0, (a, s) => a + s.length) +
-        _facets.booleanValues.length +
-        _facets.textValues.values.where((s) => s.isEffective).length +
-        _facets.numberValues.values.where((s) => s.isEffective).length;
-  }
-
   @override
   Widget build(BuildContext context) {
     final data = widget.data;
@@ -796,7 +781,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
 
   Widget _buildFiltersPanel(CollectionData data) {
     final l10n = AppLocalizations.of(context);
-    final activeCount = _activeFacetCount();
+    final activeCount = _facets.activeCount;
     return ExpansionTile(
       key: const ValueKey('picker-filters-panel'),
       leading: const Icon(Icons.filter_alt_outlined),

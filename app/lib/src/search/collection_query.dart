@@ -118,6 +118,34 @@ class FacetSelections {
       textValues.values.every((s) => !s.isEffective) &&
       numberValues.values.every((s) => !s.isEffective);
 
+  /// How many selections are active: the number shown in the Filters header
+  /// of the Collection screen and the dance picker.
+  ///
+  /// One per selected chip, one per single-valued facet ([mixedLevel],
+  /// [mixer], [minRating]) and one per *effective* custom-field text/number
+  /// filter — the same set [isEmpty] tests, so `activeCount == 0` exactly when
+  /// [isEmpty]. [mixedLevel] and [mixer] count when non-null, not only when
+  /// `true`, because [buildCollectionFilter] filters on `false` too.
+  ///
+  /// When adding a facet, add it to [isEmpty], [clear] and here.
+  int get activeCount =>
+      forms.length +
+      formations.length +
+      progressions.length +
+      statuses.length +
+      levels.length +
+      (mixedLevel != null ? 1 : 0) +
+      (mixer != null ? 1 : 0) +
+      callStatuses.length +
+      (minRating != null ? 1 : 0) +
+      authorIds.length +
+      tagIds.length +
+      sourceIds.length +
+      choiceValues.values.fold<int>(0, (a, s) => a + s.length) +
+      booleanValues.length +
+      textValues.values.where((s) => s.isEffective).length +
+      numberValues.values.where((s) => s.isEffective).length;
+
   void clear() {
     forms.clear();
     formations.clear();

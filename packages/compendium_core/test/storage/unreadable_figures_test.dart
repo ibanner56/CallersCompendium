@@ -202,6 +202,32 @@ void main() {
     });
   });
 
+  test('soft delete and restore work on an undecodable row', () async {
+    // Pins the claim made in `DanceRepository.restore`'s dartdoc. That comment
+    // used to say restore throws on such a row and that failing loudly was
+    // deliberate "in the meantime", pending #1347 — which has since landed, so
+    // the comment described behaviour the code no longer had. A doc comment
+    // asserting runtime behaviour should be checkable, so it is checked here
+    // rather than re-asserted.
+    await repos.dances.create(sampleDance(id: 'd1', title: 'Corrupt'));
+    await repos.ensureMigrated();
+    await _storeRawFigures(db, 'd1', '[{"kind":');
+
+    final at = DateTime.utc(2026, 5, 1);
+    await repos.dances.softDelete('d1', at: at);
+    await repos.dances.restore('d1', at: at);
+
+    final restored = await repos.dances.getById('d1');
+    expect(restored, isNotNull);
+    expect(restored!.deletedAt, isNull);
+    expect(
+      restored.figuresSource,
+      isA<UnreadableFigures>(),
+      reason: 'the round trip must not have rewritten the stored text',
+    );
+    expect(await _storedFigures(db, 'd1'), '[{"kind":');
+  });
+
   group('a pending one-time sweep still completes', () {
     // The steady-state guards above run AFTER `ensureMigrated()` has written
     // every sweep marker, so they never enter the two sweeps that decode raw
@@ -323,6 +349,95 @@ void main() {
       for (final c in candidates.values) {
         expect(c?.blob.body.containsKey('figuresRaw') ?? false, isFalse);
       }
+    });
+  });
+
+  group('the #417 re-parse preview survives a row it cannot read', () {
+    // `previewImportGapReparse` reads `figures_json` off a `selectOnly` row and
+    // decodes it itself — deliberately, to avoid `_toModel`'s six per-dance
+    // child queries — so it never reaches `_figureSourceFor` and inherited none
+    // of the load path's tolerance. Same shape as the one-time sweeps in
+    // `repositories.dart`: the tolerance was on the other side of the call.
+    //
+    // The user-visible consequence is not one wrong row. The screen catches the
+    // throw and renders its error state, so a single undecodable dance makes
+    // Settings -> "Re-check custom figures" unusable for the whole library, with
+    // a Retry that fails identically every time.
+    //
+    // Driven off the same `undecodable` table as the load-path group above, so
+    // both exception families are exercised: a guard naming `FormatException`
+    // alone still dies on `[{"move":""}]`, which raises `ArgumentError`.
+    undecodable.forEach((label, raw) {
+      test('$label: the scan omits it and still previews the rest', () async {
+        for (final id in ['broken', 'healthy']) {
+          await repos.dances.create(
+            sampleDance(
+              id: id,
+              title: id == 'broken' ? 'Corrupt' : 'Upgradeable',
+              figures: [
+                customFigure('Neighbor swing', origin: CustomOrigin.importGap),
+              ],
+            ),
+          );
+        }
+        await repos.ensureMigrated();
+        await _storeRawFigures(db, 'broken', raw);
+
+        // Precondition: the fixture really is undecodable. Without this, a
+        // green result would be consistent with the raw UPDATE having been
+        // canonicalized away, and the test would prove nothing.
+        expect(
+          (await repos.dances.getById('broken'))!.figuresSource,
+          isA<UnreadableFigures>(),
+          reason: 'the row under test must actually be unreadable',
+        );
+
+        final previews = await repos.dances.previewImportGapReparse();
+
+        // Positive half: the readable dance is still offered. A tolerance that
+        // abandoned the scan on the first bad row would satisfy "does not
+        // throw" and fail here.
+        expect(
+          previews.map((p) => p.danceId),
+          ['healthy'],
+          reason:
+              'the unreadable row is skipped; the scan continues past it and '
+              'the upgradeable dance is still offered',
+        );
+        expect(previews.single.upgradeCount, 1);
+      });
+    });
+
+    test('the preview matches what applying would actually do', () async {
+      // The preview exists to promise what the apply will change. The apply
+      // already skips an unreadable row (`reparseImportGapFiguresForMany`
+      // matches on `UnreadableFigures` and leaves the stored bytes alone), so
+      // a preview that listed it would promise an upgrade that cannot happen —
+      // and one that crashed could not promise anything at all.
+      await repos.dances.create(
+        sampleDance(
+          id: 'broken',
+          title: 'Corrupt',
+          figures: [
+            customFigure('Neighbor swing', origin: CustomOrigin.importGap),
+          ],
+        ),
+      );
+      await repos.ensureMigrated();
+      await _storeRawFigures(db, 'broken', '[{"move":""}]');
+
+      expect(await repos.dances.previewImportGapReparse(), isEmpty);
+
+      final changed = await repos.dances.reparseImportGapFiguresForMany(const [
+        'broken',
+      ], now: DateTime.utc(2026, 6, 1));
+
+      expect(changed, 0, reason: 'preview and apply agree on the same row');
+      expect(
+        await _storedFigures(db, 'broken'),
+        '[{"move":""}]',
+        reason: 'the stored transcription is not rewritten by either call',
+      );
     });
   });
 }

@@ -604,6 +604,12 @@ abstract class AppLocalizations {
   /// **'Some items on this device have a date the app can\'t trust, so they aren\'t being sent to your other devices. Check this device\'s date and time, then edit one of the items to give it a fresh date.'**
   String get settingsSyncNoticeQuarantinedLocal;
 
+  /// Non-blocking notice for a dance on THIS device whose stored figures or tunes cannot be decoded, which is withheld from publication (spec §6.9). Every clause has to stay literally true of the behaviour. 'on this device' — the fault is a local row and no peer is involved, which is why this is NOT the skipped-record notice; that one tells the user to check another device's app version, which is the wrong device and the wrong remedy. 'figures or tunes' — both stored columns raise this, so naming only figures would be false for half the cases. 'aren't being sent' — the record is withheld from every publish and match path, so no peer's readable copy is overwritten. 'Nothing has been deleted' — the stored text is kept verbatim, and editing anything else about the dance does not replace it. The closing clause is the only remedy there is: unlike the quarantine notice no clock is involved and no later sync clears it, so this copy must not send the user to a settings screen. Do not name the collection row's badge text here — it is a separate string and the two would drift apart.
+  ///
+  /// In en, this message translates to:
+  /// **'Some dances on this device have saved figures or tunes the app can\'t read, so they aren\'t being sent to your other devices. Nothing has been deleted — open one and enter its figures or tunes again to include it.'**
+  String get settingsSyncNoticeWithheldUnreadable;
+
   /// Non-blocking notice covering every condition that leaves one INBOUND record unusable: malformed or non-canonical body, a non-shareable field, a missing or mismatched blob, an unresolved reference, or a quarantined implausible timestamp on a record received from a peer. Grouped deliberately — the spec requires the report not be a per-record prompt. A local record quarantined on this device uses settingsSyncNoticeQuarantinedLocal instead.
   ///
   /// In en, this message translates to:
