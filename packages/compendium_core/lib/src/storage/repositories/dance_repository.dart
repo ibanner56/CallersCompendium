@@ -2672,10 +2672,18 @@ class DanceRepository {
   /// Decodes a stored `figures_json`, or holds it as [UnreadableFigures] when
   /// it cannot be decoded at all (#1347).
   ///
-  /// This is the one place a stored transcription becomes a model, so it is the
-  /// one place that can stop an unreadable row from taking down every read.
-  /// Before this, `getById`/`listAll` raised, which meant `ensureMigrated()`
-  /// raised at startup and the app would not open.
+  /// This is where a stored transcription becomes a model on the load path, so
+  /// it is what stops an unreadable row from taking down every read. Before it,
+  /// `getById`/`listAll` raised, which meant `ensureMigrated()` raised at
+  /// startup and the app would not open.
+  ///
+  /// It is **not** the only route from stored text to figures, and reading it as
+  /// one is how two sites were missed after the load path landed: the one-time
+  /// sweeps in `repositories.dart` decode raw rows themselves, and
+  /// [previewImportGapReparse] bypassed [_toModel] for query-count reasons and
+  /// kept raising until it was routed through here. Any new caller that reads
+  /// `figures_json` directly inherits nothing from this and must come through
+  /// it, or restate the whole exception surface below.
   ///
   /// **Both exception types are caught because both are reachable.** The codec's
   /// documentation now says so too — this PR corrected it, having found it
