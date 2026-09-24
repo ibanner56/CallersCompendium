@@ -15,9 +15,9 @@ import 'hardcoded_ui_strings_allowlist.dart';
 ///
 /// A `Text(...)` is judged on every string literal at the top level of its
 /// argument list, not only one directly after the paren, so
-/// `Text(cond ? 'a' : 'b')` is caught. Literals nested in another call's
-/// arguments (`Text(l10n.x('a'))`) are not: that is a call the guard cannot see
-/// into. Nor can it see prose stored in a `String` and shown later; keep such
+/// `Text(cond ? 'a' : 'b')` is caught, grouping parentheses included. Literals
+/// nested in another call's arguments (`Text(l10n.x('a'))`) are not: that is a
+/// call the guard cannot see into. Nor can it see prose stored in a `String` and shown later; keep such
 /// messages typed (an enum mapped through `l10n` at display time) instead.
 ///
 /// This mirrors the `dart:io` file-walking + comment-stripping precedent of
@@ -131,24 +131,40 @@ void main() {
 
   /// Offsets of the opening quote of every string literal at the top level of a
   /// `Text(...)` argument list. Delimiters are walked, so a literal behind a
-  /// conditional or a `+` is found and one nested in another call's arguments
-  /// is not.
+  /// conditional or a `+` is found, including inside grouping parentheses
+  /// (`Text((a ? 'x' : 'y'))`). One nested in another call's arguments, or in a
+  /// list/map literal, is not. A grouping `(` is told from a call's `(` by the
+  /// character before it: an identifier, `>`, `)` or `]` means a call.
   List<int> textArgumentLiterals(String src) {
+    bool opensCall(int paren) {
+      var j = paren - 1;
+      while (j >= 0 && ' \t\r\n'.contains(src[j])) {
+        j--;
+      }
+      return j >= 0 && RegExp(r'[A-Za-z0-9_$>)\]]').hasMatch(src[j]);
+    }
+
     final quotes = <int>[];
     for (final m in RegExp(r'\bText\(').allMatches(src)) {
-      var depth = 0;
+      // One entry per open delimiter; true when it is only a grouping paren.
+      final open = <bool>[];
+      var nested = 0; // open delimiters that are not grouping parens
       var i = m.end;
       while (i < src.length) {
         final c = src[i];
         if (c == "'" || c == '"') {
-          if (depth == 0) quotes.add(i);
+          if (nested == 0) quotes.add(i);
           i = literalEnd(src, i);
           continue;
         }
-        if (c == '(' || c == '[' || c == '{') depth++;
+        if (c == '(' || c == '[' || c == '{') {
+          final grouping = c == '(' && !opensCall(i);
+          open.add(grouping);
+          if (!grouping) nested++;
+        }
         if (c == ')' || c == ']' || c == '}') {
-          if (depth == 0) break;
-          depth--;
+          if (open.isEmpty) break;
+          if (!open.removeLast()) nested--;
         }
         i++;
       }
@@ -270,6 +286,26 @@ void main() {
         scanSource("Text(l10n.x, style: TextStyle(fontFamily: 'Mono'));"),
         isEmpty,
       );
+    });
+
+    test('flags literals in a grouped (parenthesised) conditional', () {
+      // A grouping paren is not a call: nothing is being passed to a function
+      // the guard cannot see into, so the branches are still Text's own.
+      expect(
+        scanSource(
+          "Text((failed ? 'English failure' : 'English fallback'));",
+        ).map((h) => h.$2),
+        ['English failure', 'English fallback'],
+      );
+      expect(
+        scanSource("Text(a ? (b ? 'First one' : 'Second one') : l10n.q);"),
+        hasLength(2),
+      );
+    });
+
+    test('ignores a grouped conditional passed to another call', () {
+      expect(scanSource("Text((l10n.count('items')));"), isEmpty);
+      expect(scanSource("Text(l10n.x((y ? 'no way' : 'yes way')));"), isEmpty);
     });
 
     test('honours // i18n-ignore on the literal line', () {

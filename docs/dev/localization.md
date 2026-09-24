@@ -286,7 +286,7 @@ and a test asserts it stays covered) and fails if a **string literal** is passed
 a user-facing constructor/argument (`tooltip:`, `labelText:`, `hintText:`,
 `helperText:`, `errorText:`, `semanticLabel:`, `message:`, `hint:`, `helpText:`),
 or appears at the top level of a `Text(…)` argument list — so `Text(cond ? 'a' : 'b')`
-is caught as well as `Text('a')`. Prose in a localized app must come from `l10n.*`,
+is caught as well as `Text('a')` (grouping parentheses included: `Text((a ? 'x' : 'y'))`). Prose in a localized app must come from `l10n.*`,
 so any such literal is a leak. Pure interpolations, numbers, and punctuation
 (`'$count'`, `'• '`, `'—'`) are ignored.
 
