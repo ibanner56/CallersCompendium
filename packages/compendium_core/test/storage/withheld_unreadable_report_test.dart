@@ -151,6 +151,84 @@ void main() {
       });
     });
 
+    columns.forEach((column, corrupt) {
+      // The review finding on #1402. All three scans read with
+      // `includeDeleted: true`, and the report was raised before anything
+      // consulted `deletedAt`, so a dance the user had deleted on purpose
+      // raised a notice whose remedy is "nothing has been deleted — open it and
+      // enter them again". Following that advice would mean reviving the row,
+      // and §6.9 scopes this publication state to a live one.
+      //
+      // Per path, like the positive cases, and per column: a rule stated once
+      // in the helper is still three call sites, and a later refactor can drop
+      // it from one of them.
+      test('$column: a soft-deleted unreadable dance is not reported '
+          'by snapshot()', () async {
+        await seedUndecodable(corrupt);
+        await repos.dances.softDelete('d1', at: DateTime.utc(2026, 5, 1));
+
+        expect(withheldFor((await storage.snapshot()).withheld, 'd1'), isEmpty);
+      });
+
+      test('$column: a soft-deleted unreadable dance is not reported '
+          'by a fresh attach', () async {
+        await seedUndecodable(corrupt);
+        await repos.dances.softDelete('d1', at: DateTime.utc(2026, 5, 1));
+
+        final result = await storage.deduplicateFreshAttach();
+
+        expect(withheldFor(result.reports, 'd1'), isEmpty);
+      });
+
+      test('$column: a soft-deleted unreadable dance is not reported '
+          'by a steady-state pass', () async {
+        final stamp = DateTime.utc(2026, 3, 1);
+        await repos.dances.create(
+          Dance(
+            id: 'd1',
+            title: 'Shared dance',
+            figures: [testFigure(move: 'swing')],
+            createdAt: stamp,
+            updatedAt: stamp,
+          ),
+        );
+        await repos.dances.create(
+          Dance(
+            id: 'd2',
+            title: 'Shared dance',
+            figures: [testFigure(move: 'balance')],
+            createdAt: stamp,
+            updatedAt: stamp,
+          ),
+        );
+        await repos.ensureMigrated();
+        await storage.deduplicateFreshAttach();
+        await corrupt('d1');
+        await repos.dances.softDelete('d1', at: DateTime.utc(2026, 5, 1));
+
+        final result = await storage.refreshDanceAmbiguityReviews();
+
+        expect(withheldFor(result.reports, 'd1'), isEmpty);
+      });
+    });
+
+    test('a live unreadable dance is still reported once its twin is '
+        'deleted', () async {
+      // The complement that stops the liveness gate from being written as
+      // "report nothing when any row is deleted". Two undecodable rows, one
+      // deleted and one live: exactly one report, naming the live one.
+      await repos.dances.create(sampleDance(id: 'd1', title: 'Deleted one'));
+      await repos.dances.create(sampleDance(id: 'd2', title: 'Live one'));
+      await repos.ensureMigrated();
+      await _storeRawFigures(db, 'd1', '[{"kind":');
+      await _storeRawTunes(db, 'd2', '[1,2,3]');
+      await repos.dances.softDelete('d1', at: DateTime.utc(2026, 5, 1));
+
+      final snapshot = await storage.snapshot();
+
+      expect(snapshot.withheld.map((report) => report.recordId), ['d2']);
+    });
+
     test('the report names the record and blames no peer', () async {
       await seedUndecodable(columns['figures']!);
 

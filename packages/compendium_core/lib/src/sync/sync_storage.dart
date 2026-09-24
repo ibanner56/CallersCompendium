@@ -218,14 +218,32 @@ class SyncFreshAttachDedupeResult {
 /// naming only figures would be false for half the cases — the same
 /// shaped-around-the-instance mistake that let a tunes-only row through four
 /// figure-shaped guards in #1391.
-SyncReport _withheldUnreadableDanceReport(String id) => SyncReport(
-  code: SyncReportCode.withheldUnreadableRecord,
-  kind: SyncRecordKind.dance,
-  recordId: id,
-  message:
-      'Dance withheld from publication: its stored figures or tunes could not '
-      'be decoded, so this device cannot speak for the record.',
-);
+///
+/// **Only a live row is reported**, which is a spec obligation rather than
+/// tidiness. §6.9 defines this publication state as one whose "row is live, it
+/// is not deleted"; a soft-deleted row is not in it. The user-facing half is
+/// sharper still: the notice says nothing has been deleted and tells the reader
+/// to open the dance and enter its figures or tunes again. For a dance they
+/// deleted on purpose, every clause of that is wrong, and following the advice
+/// would mean reviving the row.
+///
+/// The three scanning callers all read with `includeDeleted: true`, because the
+/// withhold itself is not scoped to live rows — a deleted record still has a
+/// tombstone to reason about. So liveness is decided here, at the point the
+/// report is raised, rather than filtered out of the list afterwards.
+void _reportWithheldUnreadableDance(List<SyncReport>? into, Dance dance) {
+  if (dance.deletedAt != null) return;
+  into?.add(
+    SyncReport(
+      code: SyncReportCode.withheldUnreadableRecord,
+      kind: SyncRecordKind.dance,
+      recordId: dance.id,
+      message:
+          'Dance withheld from publication: its stored figures or tunes could '
+          'not be decoded, so this device cannot speak for the record.',
+    ),
+  );
+}
 
 /// The production storage adapter for the core sync engine.
 ///
@@ -353,7 +371,7 @@ final class CompendiumSyncStorage
       // with nothing said about it, is indistinguishable from one that synced.
       if (dance.figuresSource is UnreadableFigures ||
           dance.tunesSource is UnreadableTunes) {
-        withheld.add(_withheldUnreadableDanceReport(dance.id));
+        _reportWithheldUnreadableDance(withheld, dance);
         continue;
       }
       await addEntity(
@@ -870,7 +888,7 @@ final class CompendiumSyncStorage
       // offered as a dedupe match on a fresh attach, and says so (#1347).
       if (dance.figuresSource is UnreadableFigures ||
           dance.tunesSource is UnreadableTunes) {
-        withheld.add(_withheldUnreadableDanceReport(dance.id));
+        _reportWithheldUnreadableDance(withheld, dance);
         continue;
       }
       final row = rowsById[dance.id];
@@ -1917,7 +1935,7 @@ final class CompendiumSyncStorage
     // stops being spoken for *silently* (#1347).
     if (dance.figuresSource is UnreadableFigures ||
         dance.tunesSource is UnreadableTunes) {
-      withheld?.add(_withheldUnreadableDanceReport(id));
+      _reportWithheldUnreadableDance(withheld, dance);
       return null;
     }
     final row = await (_db.select(
