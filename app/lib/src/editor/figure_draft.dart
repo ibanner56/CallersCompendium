@@ -196,7 +196,8 @@ class FigureDraft {
   /// silently dropping the side out of the persisted container — losing the
   /// user's partial authoring the moment an autosave/undo snapshot fires —
   /// represent it as a [customMove] figure carrying whatever was entered so
-  /// far. Never called for a side whose [toFigure] already succeeds.
+  /// far, except [wordingOverride]: a custom figure never renders one, so it is
+  /// not carried (see [toFigure]). Never called for a side whose [toFigure] already succeeds.
   ///
   /// [canonicalizeNote] mirrors the parameter of the same name on [toFigure]
   /// — see its doc comment for why this is a callback rather than a direct
@@ -212,7 +213,6 @@ class FigureDraft {
       customOrigin: customOrigin,
       assumedSubject: false,
       walkthroughOverride: walkthroughOverride,
-      wordingOverride: wordingOverride,
     );
   }
 
@@ -307,7 +307,12 @@ class FigureDraft {
       walkthroughOverride: (trimmedOverride == null || trimmedOverride.isEmpty)
           ? null
           : trimmedOverride,
-      wordingOverride: _trimOptionalOverride(wordingOverride),
+      // A custom figure renders its own text and never applies a wording
+      // override (`renderer.dart`: `figure.isCustom ? null : ...`); the editor
+      // offers no field for one, so none is persisted (#1394).
+      wordingOverride: id == customMove
+          ? null
+          : _trimOptionalOverride(wordingOverride),
     );
   }
 }

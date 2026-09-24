@@ -13,7 +13,9 @@ figure-bearing free text; hand-typed prose is stored verbatim (see
 A dance may also carry a per-figure **wording override** for display-only
 authoring. It is stored with that dance occurrence, rendered through the
 active dialect, and replaces the rendered line (including summary additions).
-It is never included in canonical figure text, search, or deduplication.
+It is never included in canonical figure text, search, or deduplication. A
+custom (free-text) figure takes no override: its text is already its wording,
+the renderer ignores an override on it, and the editor does not persist one.
 
 ```json
 {
