@@ -6558,6 +6558,42 @@ class AppLocalizationsDe extends AppLocalizations {
       'Das Update konnte nicht heruntergeladen werden.';
 
   @override
+  String get updateDownloadFailureDestination =>
+      'Es konnte kein Speicherort für den Download des Updates ausgewählt werden.';
+
+  @override
+  String get updateDownloadFailureIncomplete =>
+      'Der Download war unvollständig und wurde gelöscht. Bitte versuchen Sie es erneut oder verwenden Sie „Release ansehen“.';
+
+  @override
+  String get updateDownloadFailureRefusedHost =>
+      'Der Update-Download wurde abgelehnt, weil er auf einen unerwarteten Speicherort verwies. Verwenden Sie „Release ansehen“, um das Update manuell herunterzuladen.';
+
+  @override
+  String get updateDownloadFailureUnreachable =>
+      'Das Update konnte nicht heruntergeladen werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut oder verwenden Sie „Release ansehen“.';
+
+  @override
+  String get updateDownloadFailureChecksumMismatch =>
+      'Das heruntergeladene Update hat die Sicherheitsprüfung (sha256) nicht bestanden und wurde gelöscht. Versuchen Sie es erneut oder verwenden Sie „Release ansehen“, um es manuell herunterzuladen.';
+
+  @override
+  String get updateDownloadFailureHandoffFailed =>
+      'Das Update wurde heruntergeladen und verifiziert, konnte aber nicht automatisch geöffnet werden. Verwenden Sie „Release ansehen“, um die Installation abzuschließen.';
+
+  @override
+  String get updateDownloadFailureInstallFailed =>
+      'Bei der Installation des Updates ist etwas schiefgelaufen. Versuchen Sie es erneut oder verwenden Sie „Release ansehen“, um es manuell herunterzuladen.';
+
+  @override
+  String get startupIntegrityCheckIncomplete =>
+      'Eine Integritätsprüfung der Datenbank konnte nicht abgeschlossen werden, daher konnten Ihre Daten beim Start nicht verifiziert werden. Falls die Probleme weiterhin bestehen, stellen Sie die Daten am besten aus einer Sicherung wieder her. Technische Details wurden unter Einstellungen ▸ Diagnose gespeichert.';
+
+  @override
+  String get startupIntegrityCheckFailed =>
+      'Eine Integritätsprüfung der Datenbank ist fehlgeschlagen. Ihre lokalen Daten sind möglicherweise beschädigt – stellen Sie sie am besten aus einer Sicherung wieder her.';
+
+  @override
   String updateBannerAvailable(String appName, String version) {
     return 'Eine neuere Version von $appName ($version) ist verfügbar.';
   }

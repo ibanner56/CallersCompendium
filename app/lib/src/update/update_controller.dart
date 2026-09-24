@@ -74,13 +74,40 @@ enum AssistedDownloadStatus {
   /// the file manager for the user to run (see [UpdateController.handoffResult]).
   completed,
 
-  /// The download, verification, or handoff failed. [UpdateController.downloadError]
-  /// holds a user-facing message; a verification failure has already deleted the
-  /// file.
+  /// The download, verification, or handoff failed. [UpdateController.downloadFailure]
+  /// says why; a verification failure has already deleted the file.
   failed,
 
   /// The user cancelled an in-flight download.
   cancelled,
+}
+
+/// Why an assisted download ended in [AssistedDownloadStatus.failed].
+///
+/// A discriminator, not a message: the controller is locale-free, so it records
+/// the reason and the presentation layer localizes it
+/// (`update_failure_labels.dart`), like `UrlFetchFailureReason` for imports.
+enum UpdateDownloadFailure {
+  /// No folder could be prepared to receive the file.
+  destinationUnavailable,
+
+  /// The file's size did not match the manifest; it was deleted.
+  incomplete,
+
+  /// The download URL's host was refused.
+  refusedHost,
+
+  /// The transfer failed (network or another transport error).
+  unreachable,
+
+  /// The sha256 check failed; the file was deleted.
+  checksumMismatch,
+
+  /// The verified file could not be handed to the operating system.
+  handoffFailed,
+
+  /// An unexpected error interrupted the install step.
+  installFailed,
 }
 
 /// Owns update prefs + the latest check result.
@@ -139,7 +166,7 @@ class UpdateController extends ChangeNotifier {
 
   AssistedDownloadStatus _downloadStatus = AssistedDownloadStatus.idle;
   DownloadProgress? _downloadProgress;
-  String? _downloadError;
+  UpdateDownloadFailure? _downloadFailure;
   HandoffResult? _handoffResult;
   File? _pendingMacosArtifact;
   DownloadCancelToken? _cancelToken;
@@ -185,9 +212,11 @@ class UpdateController extends ChangeNotifier {
   /// [AssistedDownloadStatus.downloading], else `null`.
   DownloadProgress? get downloadProgress => _downloadProgress;
 
-  /// A user-facing error when [downloadStatus] is
-  /// [AssistedDownloadStatus.failed], else `null`.
-  String? get downloadError => _downloadError;
+  /// Why the download failed when [downloadStatus] is
+  /// [AssistedDownloadStatus.failed], else `null`. Deliberately a typed reason
+  /// and not prose: the controller has no locale, so the UI turns it into text
+  /// with `updateDownloadFailureMessage` when it is displayed.
+  UpdateDownloadFailure? get downloadFailure => _downloadFailure;
 
   /// How the verified artifact was handed off when [downloadStatus] is
   /// [AssistedDownloadStatus.completed] — [HandoffResult.launched] on macOS and
@@ -227,7 +256,7 @@ class UpdateController extends ChangeNotifier {
   /// until [installPendingMacosUpdate] receives explicit approval.
   /// A concurrent call is ignored while one is in flight. Never throws — every
   /// failure resolves to [AssistedDownloadStatus.failed] with a user-facing
-  /// [downloadError] (a verification mismatch also deletes the file). This is
+  /// [downloadFailure] (a verification mismatch also deletes the file). This is
   /// deliberately **not** a silent no-op like the check: it is a security gate
   /// (ADR-002 §6, "Stage 1.5").
   Future<void> startAssistedDownload() async {
@@ -237,7 +266,7 @@ class UpdateController extends ChangeNotifier {
 
     final token = DownloadCancelToken();
     _cancelToken = token;
-    _downloadError = null;
+    _downloadFailure = null;
     _downloadProgress = null;
     _handoffResult = null;
     _lastNotifiedProgressTick = -1;
@@ -281,7 +310,7 @@ class UpdateController extends ChangeNotifier {
       if (usesTemporaryDirectory && downloadDir != null) {
         await _deleteDirQuietly(downloadDir);
       }
-      _failDownload('Could not choose a place to download the update.');
+      _failDownload(UpdateDownloadFailure.destinationUnavailable);
       return;
     }
 
@@ -300,7 +329,7 @@ class UpdateController extends ChangeNotifier {
         return;
       }
       if (!outcome.isSuccess || outcome.file == null) {
-        _failDownload(_downloadFailureMessage(outcome.kind));
+        _failDownload(_downloadFailureFor(outcome.kind));
         if (usesTemporaryDirectory) await _deleteDirQuietly(downloadDir!);
         return;
       }
@@ -320,10 +349,7 @@ class UpdateController extends ChangeNotifier {
       if (!verified) {
         await _deleteQuietly(file);
         if (usesTemporaryDirectory) await _deleteDirQuietly(downloadDir!);
-        _failDownload(
-          'The downloaded update failed its security (sha256) check and was '
-          'deleted. Try again, or use "View release" to download it manually.',
-        );
+        _failDownload(UpdateDownloadFailure.checksumMismatch);
         return;
       }
 
@@ -345,10 +371,7 @@ class UpdateController extends ChangeNotifier {
         } else {
           await _deleteQuietly(file);
         }
-        _failDownload(
-          'The update was downloaded and verified, but could not be opened '
-          'automatically. Use "View release" to finish installing.',
-        );
+        _failDownload(UpdateDownloadFailure.handoffFailed);
         return;
       }
 
@@ -368,10 +391,7 @@ class UpdateController extends ChangeNotifier {
       );
       await _deleteQuietly(downloaded ?? destination);
       if (usesTemporaryDirectory) await _deleteDirQuietly(downloadDir!);
-      _failDownload(
-        'Something went wrong while installing the update. Try again, or use '
-        '"View release" to download it manually.',
-      );
+      _failDownload(UpdateDownloadFailure.installFailed);
     } finally {
       _cancelToken = null;
     }
@@ -399,20 +419,14 @@ class UpdateController extends ChangeNotifier {
       );
       await _deleteQuietly(file);
       _pendingMacosArtifact = null;
-      _failDownload(
-        'Something went wrong while installing the update. Try again, or use '
-        '"View release" to download it manually.',
-      );
+      _failDownload(UpdateDownloadFailure.installFailed);
       return;
     }
 
     if (handoff == HandoffResult.failed) {
       await _deleteQuietly(file);
       _pendingMacosArtifact = null;
-      _failDownload(
-        'The update was downloaded and verified, but could not be opened '
-        'automatically. Use "View release" to finish installing.',
-      );
+      _failDownload(UpdateDownloadFailure.handoffFailed);
       return;
     }
 
@@ -447,7 +461,7 @@ class UpdateController extends ChangeNotifier {
     if (isDownloadInFlight) return;
     _downloadStatus = AssistedDownloadStatus.idle;
     _downloadProgress = null;
-    _downloadError = null;
+    _downloadFailure = null;
     _handoffResult = null;
     _pendingMacosArtifact = null;
     notifyListeners();
@@ -472,16 +486,16 @@ class UpdateController extends ChangeNotifier {
     if (file != null) unawaited(_deleteQuietly(file));
     _downloadStatus = AssistedDownloadStatus.cancelled;
     _downloadProgress = null;
-    _downloadError = null;
+    _downloadFailure = null;
     _handoffResult = null;
     _pendingMacosArtifact = null;
     _cancelToken = null;
     notifyListeners();
   }
 
-  void _failDownload(String message) {
+  void _failDownload(UpdateDownloadFailure failure) {
     _downloadStatus = AssistedDownloadStatus.failed;
-    _downloadError = message;
+    _downloadFailure = failure;
     _downloadProgress = null;
     _handoffResult = null;
     _pendingMacosArtifact = null;
@@ -489,19 +503,16 @@ class UpdateController extends ChangeNotifier {
     notifyListeners();
   }
 
-  String _downloadFailureMessage(DownloadResultKind kind) {
+  UpdateDownloadFailure _downloadFailureFor(DownloadResultKind kind) {
     switch (kind) {
       case DownloadResultKind.sizeMismatch:
-        return 'The download was incomplete and was deleted. Please try again, '
-            'or use "View release".';
+        return UpdateDownloadFailure.incomplete;
       case DownloadResultKind.refusedHost:
-        return 'The update download was refused because it pointed at an '
-            'unexpected location. Use "View release" to download it manually.';
+        return UpdateDownloadFailure.refusedHost;
       case DownloadResultKind.networkError:
       case DownloadResultKind.success:
       case DownloadResultKind.cancelled:
-        return 'The update could not be downloaded. Check your connection and '
-            'try again, or use "View release".';
+        return UpdateDownloadFailure.unreachable;
     }
   }
 
@@ -536,12 +547,12 @@ class UpdateController extends ChangeNotifier {
   void _resetDownloadForNewResult() {
     if (isDownloadInFlight) return;
     if (_downloadStatus == AssistedDownloadStatus.idle &&
-        _downloadError == null) {
+        _downloadFailure == null) {
       return;
     }
     _downloadStatus = AssistedDownloadStatus.idle;
     _downloadProgress = null;
-    _downloadError = null;
+    _downloadFailure = null;
     _handoffResult = null;
     _pendingMacosArtifact = null;
   }

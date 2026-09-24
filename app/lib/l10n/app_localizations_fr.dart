@@ -6573,6 +6573,42 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible de télécharger la mise à jour.';
 
   @override
+  String get updateDownloadFailureDestination =>
+      'Impossible de choisir un emplacement pour télécharger la mise à jour.';
+
+  @override
+  String get updateDownloadFailureIncomplete =>
+      'Le téléchargement était incomplet et a été supprimé. Veuillez réessayer ou utiliser « Voir la version ».';
+
+  @override
+  String get updateDownloadFailureRefusedHost =>
+      'Le téléchargement de la mise à jour a été refusé car il pointait vers un emplacement inattendu. Utilisez « Voir la version » pour la télécharger manuellement.';
+
+  @override
+  String get updateDownloadFailureUnreachable =>
+      'Impossible de télécharger la mise à jour. Vérifiez votre connexion et réessayez, ou utilisez « Voir la version ».';
+
+  @override
+  String get updateDownloadFailureChecksumMismatch =>
+      'La mise à jour téléchargée a échoué à la vérification de sécurité (sha256) et a été supprimée. Réessayez ou utilisez « Voir la version » pour la télécharger manuellement.';
+
+  @override
+  String get updateDownloadFailureHandoffFailed =>
+      'La mise à jour a été téléchargée et vérifiée, mais n’a pas pu être ouverte automatiquement. Utilisez « Voir la version » pour terminer l’installation.';
+
+  @override
+  String get updateDownloadFailureInstallFailed =>
+      'Un problème est survenu pendant l’installation de la mise à jour. Réessayez ou utilisez « Voir la version » pour la télécharger manuellement.';
+
+  @override
+  String get startupIntegrityCheckIncomplete =>
+      'Un contrôle d’intégrité de la base de données n’a pas pu se terminer ; vos données n’ont donc pas pu être vérifiées à ce lancement. Si les problèmes persistent, envisagez de restaurer une sauvegarde. Les détails techniques ont été enregistrés dans Paramètres ▸ Diagnostic.';
+
+  @override
+  String get startupIntegrityCheckFailed =>
+      'Un contrôle d’intégrité de la base de données a échoué. Vos données locales sont peut-être corrompues ; envisagez de restaurer une sauvegarde.';
+
+  @override
   String updateBannerAvailable(String appName, String version) {
     return 'Une nouvelle version de $appName ($version) est disponible.';
   }

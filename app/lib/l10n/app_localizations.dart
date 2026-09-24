@@ -9918,6 +9918,60 @@ abstract class AppLocalizations {
   /// **'The update could not be downloaded.'**
   String get updateBannerDownloadFailed;
 
+  /// Assisted-download error (desktop update banner and Settings ▸ Updates) shown when no folder could be prepared to receive the update file.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not choose a place to download the update.'**
+  String get updateDownloadFailureDestination;
+
+  /// Assisted-download error shown when the downloaded file's size did not match the update manifest, so it was deleted. "View release" must match the translation of updateBannerViewRelease, the button that opens the release page for a manual download.
+  ///
+  /// In en, this message translates to:
+  /// **'The download was incomplete and was deleted. Please try again, or use \"View release\".'**
+  String get updateDownloadFailureIncomplete;
+
+  /// Assisted-download error shown when the download URL was refused because its host is not on the allowed list. "View release" must match the translation of updateBannerViewRelease.
+  ///
+  /// In en, this message translates to:
+  /// **'The update download was refused because it pointed at an unexpected location. Use \"View release\" to download it manually.'**
+  String get updateDownloadFailureRefusedHost;
+
+  /// Assisted-download error shown when the download failed for a network or other transport reason. "View release" must match the translation of updateBannerViewRelease.
+  ///
+  /// In en, this message translates to:
+  /// **'The update could not be downloaded. Check your connection and try again, or use \"View release\".'**
+  String get updateDownloadFailureUnreachable;
+
+  /// Assisted-download error shown when the downloaded file's sha256 did not match the manifest, so the file was deleted. "sha256" is the literal checksum name and stays as-is. "View release" must match the translation of updateBannerViewRelease.
+  ///
+  /// In en, this message translates to:
+  /// **'The downloaded update failed its security (sha256) check and was deleted. Try again, or use \"View release\" to download it manually.'**
+  String get updateDownloadFailureChecksumMismatch;
+
+  /// Assisted-download error shown when the verified installer or disk image could not be handed to the operating system. "View release" must match the translation of updateBannerViewRelease.
+  ///
+  /// In en, this message translates to:
+  /// **'The update was downloaded and verified, but could not be opened automatically. Use \"View release\" to finish installing.'**
+  String get updateDownloadFailureHandoffFailed;
+
+  /// Assisted-download error shown when an unexpected error interrupted the install step. "View release" must match the translation of updateBannerViewRelease.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong while installing the update. Try again, or use \"View release\" to download it manually.'**
+  String get updateDownloadFailureInstallFailed;
+
+  /// Dismissible banner shown once at launch when the database integrity check itself threw an error, so the data's health is unknown. "Settings ▸ Diagnostics" must match the translated navigation labels.
+  ///
+  /// In en, this message translates to:
+  /// **'A database integrity check failed to complete, so your data could not be verified this launch. If problems persist, consider restoring from a backup. Technical details were saved to Settings ▸ Diagnostics.'**
+  String get startupIntegrityCheckIncomplete;
+
+  /// Dismissible banner shown once at launch when the database integrity check ran and reported a problem. The app still opens; the failure is advisory.
+  ///
+  /// In en, this message translates to:
+  /// **'A database integrity check failed. Your local data may be corrupt — consider restoring from a backup.'**
+  String get startupIntegrityCheckFailed;
+
   /// Update banner message when a newer version is available (idle/cancelled state).
   ///
   /// In en, this message translates to:

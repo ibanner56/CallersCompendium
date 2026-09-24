@@ -6475,6 +6475,42 @@ class AppLocalizationsDa extends AppLocalizations {
   String get updateBannerDownloadFailed => 'Opdateringen kunne ikke hentes.';
 
   @override
+  String get updateDownloadFailureDestination =>
+      'Der kunne ikke vælges et sted at hente opdateringen til.';
+
+  @override
+  String get updateDownloadFailureIncomplete =>
+      'Overførslen var ufuldstændig og blev slettet. Prøv igen, eller brug „Se udgivelse“.';
+
+  @override
+  String get updateDownloadFailureRefusedHost =>
+      'Hentningen af opdateringen blev afvist, fordi den pegede på en uventet placering. Brug „Se udgivelse“ for at hente den manuelt.';
+
+  @override
+  String get updateDownloadFailureUnreachable =>
+      'Opdateringen kunne ikke hentes. Tjek din forbindelse, og prøv igen, eller brug „Se udgivelse“.';
+
+  @override
+  String get updateDownloadFailureChecksumMismatch =>
+      'Den hentede opdatering bestod ikke sikkerhedstjekket (sha256) og blev slettet. Prøv igen, eller brug „Se udgivelse“ for at hente den manuelt.';
+
+  @override
+  String get updateDownloadFailureHandoffFailed =>
+      'Opdateringen blev hentet og verificeret, men kunne ikke åbnes automatisk. Brug „Se udgivelse“ for at gøre installationen færdig.';
+
+  @override
+  String get updateDownloadFailureInstallFailed =>
+      'Noget gik galt under installationen af opdateringen. Prøv igen, eller brug „Se udgivelse“ for at hente den manuelt.';
+
+  @override
+  String get startupIntegrityCheckIncomplete =>
+      'Et integritetstjek af databasen kunne ikke gennemføres, så dine data kunne ikke verificeres ved denne opstart. Hvis problemerne fortsætter, kan du overveje at gendanne fra en sikkerhedskopi. Tekniske detaljer blev gemt i Indstillinger ▸ Diagnostik.';
+
+  @override
+  String get startupIntegrityCheckFailed =>
+      'Et integritetstjek af databasen mislykkedes. Dine lokale data kan være beskadiget – overvej at gendanne fra en sikkerhedskopi.';
+
+  @override
   String updateBannerAvailable(String appName, String version) {
     return 'En nyere version af $appName ($version) er tilgængelig.';
   }

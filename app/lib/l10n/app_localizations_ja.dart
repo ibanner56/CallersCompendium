@@ -6245,6 +6245,41 @@ class AppLocalizationsJa extends AppLocalizations {
   String get updateBannerDownloadFailed => 'アップデートをダウンロードできませんでした。';
 
   @override
+  String get updateDownloadFailureDestination => 'アップデートのダウンロード先を選択できませんでした。';
+
+  @override
+  String get updateDownloadFailureIncomplete =>
+      'ダウンロードが不完全だったため、削除されました。もう一度お試しいただくか、「リリースを見る」をご利用ください。';
+
+  @override
+  String get updateDownloadFailureRefusedHost =>
+      '想定外の場所を指していたため、アップデートのダウンロードは拒否されました。「リリースを見る」から手動でダウンロードしてください。';
+
+  @override
+  String get updateDownloadFailureUnreachable =>
+      'アップデートをダウンロードできませんでした。接続を確認してもう一度お試しいただくか、「リリースを見る」をご利用ください。';
+
+  @override
+  String get updateDownloadFailureChecksumMismatch =>
+      'ダウンロードしたアップデートがセキュリティ (sha256) チェックに失敗したため、削除されました。もう一度お試しいただくか、「リリースを見る」から手動でダウンロードしてください。';
+
+  @override
+  String get updateDownloadFailureHandoffFailed =>
+      'アップデートはダウンロードおよび検証されましたが、自動的に開けませんでした。「リリースを見る」からインストールを完了してください。';
+
+  @override
+  String get updateDownloadFailureInstallFailed =>
+      'アップデートのインストール中に問題が発生しました。もう一度お試しいただくか、「リリースを見る」から手動でダウンロードしてください。';
+
+  @override
+  String get startupIntegrityCheckIncomplete =>
+      'データベースの整合性チェックを完了できなかったため、今回の起動ではデータを検証できませんでした。問題が続く場合は、バックアップからの復元をご検討ください。技術的な詳細は 設定 ▸ 診断 に保存されました。';
+
+  @override
+  String get startupIntegrityCheckFailed =>
+      'データベースの整合性チェックに失敗しました。ローカルのデータが破損している可能性があります。バックアップからの復元をご検討ください。';
+
+  @override
   String updateBannerAvailable(String appName, String version) {
     return '$appNameの新しいバージョン（$version）が利用可能です。';
   }
