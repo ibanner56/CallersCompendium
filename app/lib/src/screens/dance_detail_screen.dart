@@ -1371,9 +1371,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             onOpenDance: _openDance,
           ),
         ],
-        // Renders nothing for an undecodable list rather than an empty one —
-        // telling the user why is surfacing work and is deliberately not done
-        // here.
+        // Two mutually exclusive branches. This one claims the undecodable
+        // case and says so; the decoded branch below folds `UnreadableTunes` to
+        // an empty list, which is only honest because this branch has already
+        // rendered the notice. Delete this branch and the fold silently becomes
+        // the lie that the dance has no tunes.
         if (dance.tunesSource case UnreadableTunes()) ...[
           const SizedBox(height: AppSpacing.lg),
           Text(l10n.danceSectionTunes, style: theme.textTheme.titleMedium),

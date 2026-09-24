@@ -112,7 +112,6 @@ int requiredSchemaVersion(CompendiumArchive archive) {
   final hasPurgeMarker = archive.programs.any(
     (p) => p.slots.any((s) => s.isPurgedDance != null),
   );
-  // Next-highest: reached only when nothing above matched.
   // Checked highest-version first, so the first match wins: an undecodable tune
   // list requires v6, and only if there is none does an undecodable
   // transcription pull the archive to v5. Keep new cases in descending version
