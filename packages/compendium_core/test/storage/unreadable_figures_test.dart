@@ -202,6 +202,32 @@ void main() {
     });
   });
 
+  test('soft delete and restore work on an undecodable row', () async {
+    // Pins the claim made in `DanceRepository.restore`'s dartdoc. That comment
+    // used to say restore throws on such a row and that failing loudly was
+    // deliberate "in the meantime", pending #1347 — which has since landed, so
+    // the comment described behaviour the code no longer had. A doc comment
+    // asserting runtime behaviour should be checkable, so it is checked here
+    // rather than re-asserted.
+    await repos.dances.create(sampleDance(id: 'd1', title: 'Corrupt'));
+    await repos.ensureMigrated();
+    await _storeRawFigures(db, 'd1', '[{"kind":');
+
+    final at = DateTime.utc(2026, 5, 1);
+    await repos.dances.softDelete('d1', at: at);
+    await repos.dances.restore('d1', at: at);
+
+    final restored = await repos.dances.getById('d1');
+    expect(restored, isNotNull);
+    expect(restored!.deletedAt, isNull);
+    expect(
+      restored.figuresSource,
+      isA<UnreadableFigures>(),
+      reason: 'the round trip must not have rewritten the stored text',
+    );
+    expect(await _storedFigures(db, 'd1'), '[{"kind":');
+  });
+
   group('a pending one-time sweep still completes', () {
     // The steady-state guards above run AFTER `ensureMigrated()` has written
     // every sweep marker, so they never enter the two sweeps that decode raw

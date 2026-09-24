@@ -332,6 +332,10 @@
   "@settingsSyncNoticeQuarantinedLocal": {
     "x-sourceSha256": "3634a80939d6da514d886f89bbb4a9c38e5dafaaa86c1db56766b2bccd3af851"
   },
+  "settingsSyncNoticeWithheldUnreadable": "このデバイス上の一部のダンスには、アプリが読み取れない保存済みのフィギュアまたはチューンが含まれているため、他のデバイスに送信されていません。何も削除されていません。いずれかを開いて、フィギュアまたはチューンを入力し直すと同期の対象になります。",
+  "@settingsSyncNoticeWithheldUnreadable": {
+    "x-sourceSha256": "45fe046a8e986296c00a31c98d784abcd58e04c15f1b6d330e98dca3c6a832bf"
+  },
   "settingsSyncNoticeSkippedRecord": "別のデバイスからの一部のレコードは使用できず、スキップされました。他のデバイスが同じアプリのバージョンかどうか確認してから、もう一度同期してください。",
   "@settingsSyncNoticeSkippedRecord": {
     "x-sourceSha256": "810e587b9c60b4b432183640a0295d35a70a59a9ce5f3825436d2b666600afd3"
