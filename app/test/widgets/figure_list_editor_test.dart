@@ -1200,7 +1200,7 @@ void main() {
             ? FigureDraft(meanwhileSides: children())
             : FigureDraft(modifierFigures: children()),
       ]..single.params['beats'] = 8;
-      final side = () =>
+      FigureDraft side() =>
           (drafts.single.meanwhileSides ?? drafts.single.modifierFigures!)[0];
       await _pump(tester, drafts, showWordingOverride: true);
       await _openFigure(tester, 0);
