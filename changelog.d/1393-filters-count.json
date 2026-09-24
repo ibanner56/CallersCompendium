@@ -1,0 +1,9 @@
+{
+  "id": "1393-filters-count",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "The Filters heading now counts Level, Mixed level, Mixer and Minimum rating filters, so a collapsed panel no longer reads as if nothing is filtered — in the Collection and in the dance picker."
+    ]
+  }
+}

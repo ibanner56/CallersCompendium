@@ -345,7 +345,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Filters'), findsOneWidget);
 
-      await _tapVisible(tester, find.byKey(const ValueKey('picker-filters-panel')));
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('picker-filters-panel')),
+      );
       await _tapVisible(
         tester,
         find
@@ -356,7 +359,10 @@ void main() {
             .first,
       );
       // Collapse the panel: the count must be readable from the header alone.
-      await _tapVisible(tester, find.byKey(const ValueKey('picker-filters-panel')));
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('picker-filters-panel')),
+      );
 
       expect(find.text('Filters (1 active)'), findsOneWidget);
     });

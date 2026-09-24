@@ -654,6 +654,77 @@ void main() {
       expect(facets.isEmpty, isTrue);
     });
 
+    // --- activeCount (issue #1393) ------------------------------------------
+    //
+    // The Filters header used to keep its own hand-written count that left out
+    // level, mixed level, mixer and minimum rating. One row per FacetSelections
+    // field, each setting that field ALONE, so a field missing from the count
+    // fails on its own row and names itself.
+    final activeCountRows = <String, void Function(FacetSelections)>{
+      'forms': (f) => f.forms.add(DanceForm.contra),
+      'formations': (f) => f.formations.add(FormationShape.dupleImproper),
+      'progressions': (f) => f.progressions.add(Progression.values.first),
+      'statuses': (f) => f.statuses.add(DanceStatus.active),
+      'levels': (f) => f.levels.add(DifficultyLevel.beginnerId),
+      'mixedLevel true': (f) => f.mixedLevel = true,
+      'mixedLevel false': (f) => f.mixedLevel = false,
+      'mixer': (f) => f.mixer = true,
+      'callStatuses': (f) => f.callStatuses.add(true),
+      'minRating': (f) => f.minRating = 3,
+      'authorIds': (f) => f.authorIds.add('a1'),
+      'tagIds': (f) => f.tagIds.add('t1'),
+      'sourceIds': (f) => f.sourceIds.add('s1'),
+      'choiceValues': (f) => f.choiceValues['c'] = {'x'},
+      'booleanValues': (f) => f.booleanValues['b'] = true,
+      'textValues': (f) => f.textValues['t'] = const TextFacetState(
+        op: CustomFieldOp.contains,
+        value: 'swing',
+      ),
+      'numberValues': (f) => f.numberValues['n'] = const NumberFacetState(
+        op: CustomFieldOp.eq,
+        lo: 3,
+      ),
+    };
+
+    test('activeCount is 0 for an empty selection', () {
+      expect(FacetSelections().activeCount, 0);
+    });
+
+    for (final row in activeCountRows.entries) {
+      test('activeCount counts ${row.key} and agrees with isEmpty', () {
+        final facets = FacetSelections();
+        row.value(facets);
+        expect(facets.isEmpty, isFalse);
+        expect(facets.activeCount, 1);
+        facets.clear();
+        expect(facets.activeCount, 0);
+        expect(facets.isEmpty, isTrue);
+      });
+    }
+
+    test('activeCount sums every field when all are set', () {
+      final facets = FacetSelections();
+      for (final key in activeCountRows.keys) {
+        if (key == 'mixedLevel false') continue; // same field as 'true'
+        activeCountRows[key]!(facets);
+      }
+      expect(facets.activeCount, activeCountRows.length - 1);
+    });
+
+    test('activeCount ignores ineffective text and between-without-hi', () {
+      final facets = FacetSelections()
+        ..textValues['t'] = const TextFacetState(
+          op: CustomFieldOp.contains,
+          value: '  ',
+        )
+        ..numberValues['n'] = const NumberFacetState(
+          op: CustomFieldOp.between,
+          lo: 2,
+        );
+      expect(facets.isEmpty, isTrue);
+      expect(facets.activeCount, 0);
+    });
+
     test(
       'isBareFullText is true when the only facets present are '
       'whitespace-only text and incomplete between (neither is effective)',
