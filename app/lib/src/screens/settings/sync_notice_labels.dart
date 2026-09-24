@@ -12,8 +12,9 @@ import '../../../l10n/app_localizations.dart';
 /// conditions than the engine can distinguish: seven separate ways for a peer
 /// record to be unusable leave the user with the same thing to do. The spec's
 /// sizing note is explicit that the report "must not be a per-record prompt"
-/// (docs/design/sync-implementation.md:614), so the surface groups and the
-/// engine stays precise.
+/// (docs/design/sync-implementation.md), so the surface groups and the engine
+/// stays precise. Cited without a line number, because the one that was here
+/// pointed at :614 and the sentence had since moved to :652.
 ///
 /// Declaration order is the order notices appear, so a pass raising several
 /// conditions renders deterministically.
