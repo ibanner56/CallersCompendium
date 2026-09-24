@@ -194,6 +194,14 @@ class DanceEditorController extends ChangeNotifier {
   /// rather than on any placeholder for the same reason.
   bool get _preserveStoredTunes => _loadedUnreadableTunes && tunes.isEmpty;
 
+  /// Whether this editor opened a dance whose stored figures could not be
+  /// decoded, for the notice the form shows above the figure list (#1347).
+  bool get openedWithUnreadableFigures => _loadedUnreadableFigures;
+
+  /// Whether this editor opened a dance whose stored tunes could not be
+  /// decoded.
+  bool get openedWithUnreadableTunes => _loadedUnreadableTunes;
+
   /// Whether a save must leave the stored transcription **untouched**.
   ///
   /// True exactly when the editor opened an undecodable transcription and the

@@ -200,6 +200,23 @@ class DanceListTile extends StatelessWidget {
             if (effectiveFields.contains(CollectionTileField.status) &&
                 dance.status != DanceStatus.active)
               DanceStatusChip(status: dance.status),
+            // Shown regardless of the visible-field configuration: a row whose
+            // stored figures or tunes could not be decoded looks exactly like a
+            // dance that simply has none, and that is the confusion this whole
+            // change exists to remove (#1347). Not a status — the dance is
+            // fine, its stored text is what cannot be read.
+            if (dance.figuresSource is UnreadableFigures ||
+                dance.tunesSource is UnreadableTunes)
+              Chip(
+                avatar: Icon(
+                  Icons.report_problem_outlined,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                label: Text(l10n.danceListUnreadableBadge),
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
             if (effectiveFields.contains(CollectionTileField.level) &&
                 (entry.difficultyLevel ??
                         DifficultyLevel.knownForId(dance.difficultyLevelId)) !=

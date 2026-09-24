@@ -2818,6 +2818,27 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceSectionWalkthrough => 'Gennemgang';
 
   @override
+  String get danceFiguresUnreadable => 'These figures can\'t be read.';
+
+  @override
+  String get danceTunesUnreadable => 'These tunes can\'t be read.';
+
+  @override
+  String get danceUnreadableReassurance =>
+      'Nothing has been deleted. What was saved is kept exactly as it is, and editing anything else about this dance will not replace it.';
+
+  @override
+  String get danceEditorFiguresUnreadable =>
+      'The saved figures can\'t be read, so they are not shown here. They are kept as they are unless you add figures of your own.';
+
+  @override
+  String get danceEditorTunesUnreadable =>
+      'The saved tunes can\'t be read, so they are not shown here. They are kept as they are unless you add tunes of your own.';
+
+  @override
+  String get danceListUnreadableBadge => 'Can\'t be read';
+
+  @override
   String get danceSectionTunes => 'Melodier';
 
   @override
