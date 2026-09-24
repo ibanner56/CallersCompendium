@@ -336,8 +336,8 @@ final class CompendiumSyncStorage
     for (final dance in dances) {
       final row = danceRowsById[dance.id];
       if (row == null) continue;
-      // Withheld exactly as [_readDanceBody] withholds, and this is the path
-      // that matters most: it builds `local` and the wire hashes. A body for an
+      // The publish path that matters most: it builds `local`, `publication`
+      // and the wire hashes, which is what the coordinator uploads. A body for an
       // undecodable dance would carry the transcription as an empty array
       // beside a `figuresRaw` sibling, which a peer that does not understand
       // the key applies over its own readable copy (#1347). The hash would also
@@ -854,15 +854,17 @@ final class CompendiumSyncStorage
       // The live row is only retained until its inbound tombstone can apply.
       // It must not become a fresh-attach survivor or merge target.
       if (pendingDanceIds.contains(dance.id)) continue;
-      // Withheld for the same reason [_readDanceBody] withholds: this device
-      // cannot read the row it would be speaking for, and the body it would build
-      // carries the transcription as an empty array beside a `figuresRaw` sibling.
-      // A peer that does not understand `figuresRaw` applies the empty array over
-      // its own readable copy (#1347).
+      // Withheld because this device cannot read the row it would be speaking
+      // for: the body it would build carries the transcription as an empty
+      // array beside a `figuresRaw` sibling, and a peer that does not
+      // understand `figuresRaw` applies the empty array over its own readable
+      // copy (#1347).
       //
-      // These two paths do not go through [_readDanceBody], so they are not
-      // covered by its guard, and they became reachable only because this change
-      // made `listAll`/`getById` return such a dance instead of raising.
+      // One of three publish paths, each of which builds blobs straight from
+      // model objects and so needs its own guard. [_readDanceBody] is NOT a
+      // fourth: it serves the inbound overlay read, so a guard there protects
+      // none of these. This path became reachable at all only once
+      // `listAll`/`getById` began returning such a dance instead of raising.
       //
       // Consequence, stated rather than implied: an undecodable dance is not
       // offered as a dedupe match on a fresh attach, and says so (#1347).
@@ -1898,15 +1900,16 @@ final class CompendiumSyncStorage
   }) async {
     final dance = await repositories.dances.getById(id, includeDeleted: true);
     if (dance == null) return null;
-    // Withheld for the same reason [_readDanceBody] withholds: this device
-    // cannot read the row it would be speaking for, and the body it would build
-    // carries the transcription as an empty array beside a `figuresRaw` sibling.
-    // A peer that does not understand `figuresRaw` applies the empty array over
-    // its own readable copy (#1347).
+    // Withheld because this device cannot read the row it would be speaking
+    // for: the body it would build carries the transcription as an empty array
+    // beside a `figuresRaw` sibling, and a peer that does not understand
+    // `figuresRaw` applies the empty array over its own readable copy (#1347).
     //
-    // These two paths do not go through [_readDanceBody], so they are not
-    // covered by its guard, and they became reachable only because this change
-    // made `listAll`/`getById` return such a dance instead of raising.
+    // One of three publish paths, each of which builds blobs straight from
+    // model objects and so needs its own guard. [_readDanceBody] is NOT a
+    // fourth: it serves the inbound overlay read, so a guard there protects
+    // none of these. This path became reachable at all only once
+    // `listAll`/`getById` began returning such a dance instead of raising.
     //
     // Consequence, stated rather than implied: an undecodable dance is not
     // offered as a merge candidate. Conservative in the same direction as the
