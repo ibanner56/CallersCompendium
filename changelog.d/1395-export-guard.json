@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "If exporting or sharing a program hits an unexpected internal error, you now see the \"couldn't export\" message instead of nothing happening."
+      "If exporting or sharing a program hits an unexpected internal error, you now see an error message instead of nothing happening."
     ]
   }
 }
