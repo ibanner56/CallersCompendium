@@ -20,7 +20,6 @@
 // So: BOTH columns against EACH reporting path, every path driven by its own
 // public entry point, and never through a delegation.
 import 'package:compendium_core/compendium_core.dart';
-import 'package:compendium_core/src/sync/sync_storage.dart';
 import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
 

@@ -1401,14 +1401,14 @@ class DanceRepository {
   /// tombstoned would save two FTS delete-by-scans on a single-dance user
   /// action, at the cost of a second code path that can drift from this one.
   ///
-  /// [getById] hydrates, so this decodes `figures_json`; a row that cannot be
-  /// decoded makes restore throw where it previously succeeded. That row is
-  /// already unreadable everywhere else — the Recently deleted list itself
-  /// hydrates every dance to render, so it throws before a restore can be
-  /// offered — and #1347's remaining work gives such a row an explicit
-  /// unreadable representation so the load path stops throwing at all. Failing
-  /// loudly is deliberate in the meantime: swallowing it would leave the stale
-  /// index in place with no signal, which is the failure this fix removes.
+  /// [getById] hydrates, so this decodes `figures_json`. That used to make
+  /// restore throw for a row whose stored text cannot be decoded, and this
+  /// comment used to say so and call failing loudly deliberate "in the
+  /// meantime", pending #1347. #1347 has landed: the load path is total for
+  /// both JSON columns, such a row hydrates as [UnreadableFigures] /
+  /// [UnreadableTunes], and restore completes and leaves the stored text
+  /// exactly as it was. Asserted, not assumed — `unreadable_figures_test.dart`,
+  /// "soft delete and restore work on an undecodable row".
   Future<void> restore(
     String id, {
     required DateTime at,
