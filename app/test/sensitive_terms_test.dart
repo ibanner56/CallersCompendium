@@ -137,6 +137,56 @@ void main() {
     }
   });
 
+  // The two branches below are the security-relevant half of #1347. Everywhere
+  // else in the app "we could not read it" is allowed to render as "there is
+  // nothing there"; here it must not, because the redaction set is what keeps
+  // user content out of a scrubbed diagnostic export. Dropping the raw text
+  // under-redacts, which fails open. Both branches were reachable but
+  // unasserted: replacing either with `break` left the whole suite green.
+  group('an undecodable stored list still contributes its raw text', () {
+    test('malformed tunes_json is collected verbatim', () async {
+      const raw = '["Whiskey Before Breakfast", 42]';
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Corrupt',
+          tunes: const ['placeholder'],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      // A list whose element is not a string: the failure is lazy, so the row
+      // loads as `UnreadableTunes` holding this text byte for byte.
+      await repos.db.customStatement(
+        'UPDATE dances SET tunes_json = ? WHERE id = ?',
+        [raw, 'd1'],
+      );
+
+      expect(await collectSensitiveTerms(repos), contains(raw));
+    });
+
+    test('malformed figures_json is collected verbatim', () async {
+      const raw = '[{"move":"swing","note":"scoop them up gently"';
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Corrupt',
+          figures: [Figure(move: 'swing')],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await repos.db.customStatement(
+        'UPDATE dances SET figures_json = ? WHERE id = ?',
+        [raw, 'd1'],
+      );
+
+      expect(await collectSensitiveTerms(repos), contains(raw));
+    });
+  });
+
   test('is fail-closed: a source read error propagates', () async {
     final repos = openTestRepositories();
     // Drop the first source table so its read throws a real SQLite error. The

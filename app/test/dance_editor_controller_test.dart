@@ -20,10 +20,15 @@ import 'figures_support.dart';
 void main() {
   final now = DateTime.utc(2026, 1, 1);
 
-  Dance sampleDance({String id = 'd1', String title = 'My Dance'}) => Dance(
+  Dance sampleDance({
+    String id = 'd1',
+    String title = 'My Dance',
+    List<String> tunes = const [],
+  }) => Dance(
     id: id,
     title: title,
     figures: const [],
+    tunes: tunes,
     createdAt: now,
     updatedAt: now,
   );
@@ -58,14 +63,23 @@ void main() {
   }
 
   group('an undecodable transcription survives editing (#1347)', () {
+    /// Loads a dance whose [column] holds text the decoder cannot read.
+    /// Parameterised because the figures and tunes preservation rules are two
+    /// separate pieces of code (`_preserveStoredFigures`, `_preserveStoredTunes`)
+    /// with the same hazard: corrupting only `figures_json` leaves the tune
+    /// half of the contract untested.
     Future<DanceEditorController> loadUnreadable(
-      CompendiumRepositories repos,
-    ) async {
-      await repos.dances.create(sampleDance(id: 'd1', title: 'Corrupt'));
+      CompendiumRepositories repos, {
+      String column = 'figures_json',
+      String raw = '[{"kind":',
+    }) async {
+      await repos.dances.create(
+        sampleDance(id: 'd1', title: 'Corrupt', tunes: const ['Placeholder']),
+      );
       await repos.ensureMigrated();
       await repos.db.customStatement(
-        'UPDATE dances SET figures_json = ? WHERE id = ?',
-        ['[{"kind":', 'd1'],
+        'UPDATE dances SET $column = ? WHERE id = ?',
+        [raw, 'd1'],
       );
       final loaded = await repos.dances.getById('d1');
       final controller = DanceEditorController(
@@ -88,6 +102,26 @@ void main() {
       expect(built.figuresSource, isA<UnreadableFigures>());
     });
 
+    test('undo after adding a figure restores the preservation', () async {
+      // `EditorSnapshot` captures `figureDrafts` and `tunes` as plain lists and
+      // restores them with `..addAll(...)` — the exact shape that would have
+      // destroyed the stored text on the Collection Undo path. It is safe here
+      // only because `_preserveStoredFigures` is computed from LIVE content
+      // rather than from a captured flag, so restoring an empty list turns
+      // preservation back on. This pins that property rather than the current
+      // implementation of it: a refactor to a snapshot-captured flag would fail
+      // here.
+      final repos = openTestRepositories();
+      final controller = await loadUnreadable(repos);
+      addTearDown(controller.dispose);
+
+      controller.addFigure();
+      controller.undo();
+      controller.titleController.text = 'Renamed';
+
+      expect(controller.buildDance().figuresSource, isA<UnreadableFigures>());
+    });
+
     test('pressing Add figure does not replace it either', () async {
       // The placeholder trap: `addFigure()` makes `figureDrafts` non-empty
       // while the draft still yields no figure, so a guard keyed on the draft
@@ -105,6 +139,36 @@ void main() {
         isA<UnreadableFigures>(),
         reason: 'an empty placeholder is not an authored transcription',
       );
+    });
+
+    test('undo after adding a tune restores the preservation', () async {
+      // The tune half of the undo hazard above, and a separate piece of code:
+      // `_preserveStoredTunes` reads `tunes.isEmpty`, and `EditorSnapshot`
+      // restores `tunes` with `..addAll(...)` from a plain `List<String>` that
+      // never held the stored bytes. Preservation therefore has to come back on
+      // by itself when the list empties again. A refactor that captured the
+      // unreadable state into the snapshot instead would pass the figures tests
+      // and silently overwrite the stored tune text here.
+      final repos = openTestRepositories();
+      final controller = await loadUnreadable(
+        repos,
+        column: 'tunes_json',
+        raw: '[1,2,3]',
+      );
+      addTearDown(controller.dispose);
+
+      expect(
+        controller.buildDance().tunesSource,
+        isA<UnreadableTunes>(),
+        reason: 'precondition: the editor opened on an unreadable tune list',
+      );
+
+      controller.tuneController.text = 'Whiskey Before Breakfast';
+      controller.addTune();
+      controller.undo();
+      controller.titleController.text = 'Renamed';
+
+      expect(controller.buildDance().tunesSource, isA<UnreadableTunes>());
     });
   });
 

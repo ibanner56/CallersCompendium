@@ -21,6 +21,7 @@ import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/program_summary_screen.dart';
+import 'package:compendium_app/src/widgets/figure_table.dart';
 
 import 'support/fake_url_launcher.dart';
 import 'support/test_repositories.dart';
@@ -2502,6 +2503,80 @@ void main() {
 
       expect(find.text('Renamed'), findsWidgets);
       expect(find.text('Dance not found.'), findsNothing);
+    });
+  });
+
+  group('unreadable stored lists are surfaced (#1347)', () {
+    // Without these the screen could quietly go back to rendering nothing for an
+    // undecodable list and the suite would stay green — which is the exact
+    // failure #1347 is about, since "nothing rendered" is indistinguishable from
+    // "this dance has no figures". Each case asserts the headline AND the
+    // reassurance, because the headline alone states a problem without telling
+    // the user their content is still there.
+    Future<CompendiumRepositories> corrupt(String column, String raw) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Corrupt',
+          figures: [Figure(move: 'swing')],
+        ),
+      );
+      await repos.db.customStatement(
+        'UPDATE dances SET $column = ? WHERE id = ?',
+        [raw, 'd1'],
+      );
+      return repos;
+    }
+
+    testWidgets('an undecodable transcription shows the notice, not an '
+        'empty figure area', (tester) async {
+      final repos = await corrupt('figures_json', '[{"kind":');
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(find.text("These figures can't be read."), findsOneWidget);
+      expect(
+        find.textContaining('Nothing has been deleted.'),
+        findsOneWidget,
+        reason: 'the headline alone does not tell the user the text is kept',
+      );
+      expect(
+        find.byType(FigureTable),
+        findsNothing,
+        reason: 'the notice replaces the table rather than sitting beside it',
+      );
+    });
+
+    testWidgets('an undecodable tune list shows the notice under a Tunes '
+        'heading', (tester) async {
+      final repos = await corrupt('tunes_json', '[1,2,3]');
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(find.text("These tunes can't be read."), findsOneWidget);
+      expect(find.textContaining('Nothing has been deleted.'), findsOneWidget);
+      expect(
+        find.text('Tunes'),
+        findsOneWidget,
+        reason: 'an unlabelled notice does not say which list is unreadable',
+      );
+    });
+
+    testWidgets('a healthy dance shows no notice', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Fine',
+          figures: [Figure(move: 'swing')],
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(find.textContaining("can't be read"), findsNothing);
+      expect(find.byType(FigureTable), findsOneWidget);
     });
   });
 }

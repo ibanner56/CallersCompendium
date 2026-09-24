@@ -3068,6 +3068,30 @@
   "@danceSectionWalkthrough": {
     "x-sourceSha256": "b463b316cebfc24441413d705d65e7707fae189ff880ff9e704aad73c5353be6"
   },
+  "danceFiguresUnreadable": "Deze figuren kunnen niet worden gelezen.",
+  "@danceFiguresUnreadable": {
+    "x-sourceSha256": "3b2e3bc340d72179608dc2e077d03e3bdcc4e84d0baa3c5d45c4b51730f7a5f2"
+  },
+  "danceTunesUnreadable": "Deze deuntjes kunnen niet worden gelezen.",
+  "@danceTunesUnreadable": {
+    "x-sourceSha256": "393d3464c26340f4eb89269e0580c5e7296916996c641251a5832d1b4a9c6c5a"
+  },
+  "danceUnreadableReassurance": "Er is niets verwijderd. Wat is opgeslagen blijft precies zoals het is, en als je iets anders aan deze dans bewerkt, wordt het niet vervangen.",
+  "@danceUnreadableReassurance": {
+    "x-sourceSha256": "cc561b1dbafd47b48f5f84c5a5711eeab5355a78f6bf31d1514cd112e1deffcf"
+  },
+  "danceEditorFiguresUnreadable": "De opgeslagen figuren kunnen niet worden gelezen en worden hier daarom niet getoond. Ze blijven zoals ze zijn, tenzij je eigen figuren toevoegt.",
+  "@danceEditorFiguresUnreadable": {
+    "x-sourceSha256": "a81f140b2f51d3f1eda203d481208fc976b04dab074009a771f64b0b092ecb56"
+  },
+  "danceEditorTunesUnreadable": "De opgeslagen deuntjes kunnen niet worden gelezen en worden hier daarom niet getoond. Ze blijven zoals ze zijn, tenzij je eigen deuntjes toevoegt.",
+  "@danceEditorTunesUnreadable": {
+    "x-sourceSha256": "718f6260506051e3cf0fcbc55c27e95d4112cbbae542a8d2aeadc075e1b8f012"
+  },
+  "danceListUnreadableBadge": "Niet leesbaar",
+  "@danceListUnreadableBadge": {
+    "x-sourceSha256": "dc80019544fb4181c57699b1107458e4d5e4a12f32da4d1388495f5371170e73"
+  },
   "danceSectionTunes": "Deuntjes",
   "@danceSectionTunes": {
     "x-sourceSha256": "4b5c504ca989a4a17e54b974db8a6d4aa156fa63da39902c66ecec59f5e46412"

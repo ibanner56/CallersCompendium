@@ -135,28 +135,120 @@ void main() {
     });
   });
 
-  test('sync never publishes a body for an undecodable tune list', () async {
-    // The withholds added for #1382 tested `figuresSource` only, so an
-    // undecodable TUNE list was still published — and `tunesRaw` is dropped by
-    // the shareable wire allow-list, so the peer would receive `tunes: []` with
-    // no marker and apply it over its own readable list.
-    await repos.dances.create(sampleDance(id: 'd1', title: 'Corrupt'));
-    await repos.ensureMigrated();
-    await _storeRawTunes(db, 'd1', '[1,2,3]');
+  // Four guards, four tests, and one test per guard is not pedantry:
+  // `snapshotCandidates()` delegates straight to `snapshot()`, so asserting on
+  // both only ever exercised the `snapshot()` guard and the other three could
+  // be deleted with the suite still green. Each test below drives its own path
+  // through a public entry point that reaches that guard and no other, so
+  // removing one guard reds exactly one named test.
+  //
+  // Three of the four are outbound publication: `snapshot()`, `_danceDedupePlan`
+  // and `_danceCandidate`. Their shared hazard is that `tunesRaw` is dropped by
+  // the shareable wire allow-list, so a peer receives `tunes: []` with no marker
+  // and applies it over its own readable list.
+  //
+  // `_readDanceBody` is NOT a publication path and must not be described as one:
+  // its only caller is `read(address)`, which `sync_apply.dart` uses twice as
+  // `await storage.read(...) ?? const {}` to fetch the CURRENT LOCAL body an
+  // INBOUND record is overlaid onto. Its guard is still right, for a different
+  // reason — it stops an inbound update merging onto a body this device built
+  // from text it could not read.
+  group('sync withholds an undecodable tune list', () {
+    test('snapshot() withholds the record', () async {
+      await repos.dances.create(sampleDance(id: 'd1', title: 'Corrupt'));
+      await repos.ensureMigrated();
+      await _storeRawTunes(db, 'd1', '[1,2,3]');
 
-    final storage = CompendiumSyncStorage(repos);
-    final snapshot = await storage.snapshot();
+      final snapshot = await CompendiumSyncStorage(repos).snapshot();
 
-    expect(
-      snapshot.local[(kind: SyncRecordKind.dance, recordId: 'd1')],
-      isNull,
-      reason: 'withheld, not published with an empty tune list',
+      expect(
+        snapshot.local[(kind: SyncRecordKind.dance, recordId: 'd1')],
+        isNull,
+        reason: 'withheld, not published with an empty tune list',
+      );
+    });
+
+    test(
+      'read() withholds the inbound overlay base [_readDanceBody]',
+      () async {
+        await repos.dances.create(sampleDance(id: 'd1', title: 'Corrupt'));
+        await repos.ensureMigrated();
+        await _storeRawTunes(db, 'd1', '[1,2,3]');
+
+        expect(
+          await CompendiumSyncStorage(
+            repos,
+          ).read((kind: SyncRecordKind.dance, recordId: 'd1')),
+          isNull,
+        );
+      },
     );
-    expect(
-      await storage.snapshotCandidates().then(
-        (c) => c[(kind: SyncRecordKind.dance, recordId: 'd1')],
-      ),
-      isNull,
+
+    test(
+      'deduplicateFreshAttach() does not merge it away [_danceDedupePlan]',
+      () async {
+        // Both dances carry the default fixture choreography and an empty tune
+        // list, so on the wire — where `tunesRaw` is stripped — their bodies are
+        // identical and the planner would merge them. Losing the undecodable row
+        // to a merge destroys the only copy of the stored text.
+        await repos.dances.create(sampleDance(id: 'd1', title: 'Same Title'));
+        await repos.dances.create(sampleDance(id: 'd2', title: 'Same Title'));
+        await repos.ensureMigrated();
+        await _storeRawTunes(db, 'd1', '[1,2,3]');
+
+        final result = await CompendiumSyncStorage(
+          repos,
+        ).deduplicateFreshAttach();
+
+        expect(
+          result.duplicateCount,
+          0,
+          reason: 'an undecodable dance is not offered as a dedupe candidate',
+        );
+        expect(await repos.dances.getById('d1'), isNotNull);
+        expect(await repos.dances.getById('d2'), isNotNull);
+        expect(await _storedTunes(db, 'd1'), '[1,2,3]');
+      },
+    );
+
+    test(
+      'refreshDanceAmbiguityReviews() does not pair it [_danceCandidate]',
+      () async {
+        // Same normalised title, different choreography, equal `updatedAt` — the
+        // shape that produces an `equalUpdatedAt` ambiguity report. With the
+        // guard the candidate is null and the pair never forms.
+        await repos.dances.create(sampleDance(id: 'd1', title: 'Same Title'));
+        await repos.dances.create(
+          sampleDance(
+            id: 'd2',
+            title: 'Same Title',
+            figures: [
+              Figure(move: 'circle', params: const {'beats': 8}),
+            ],
+          ),
+        );
+        await repos.ensureMigrated();
+        await _storeRawTunes(db, 'd1', '[1,2,3]');
+        await repos.syncLocal.enqueueReview(
+          kind: SyncRecordKind.dance,
+          recordId: 'd1',
+          counterpartId: 'd2',
+          reason: syncDanceChoreographyAmbiguityReason,
+          candidateBlob: '{}',
+          candidateHash: 'hash',
+          queuedAt: DateTime.utc(2026, 5, 1),
+        );
+
+        final result = await CompendiumSyncStorage(
+          repos,
+        ).refreshDanceAmbiguityReviews();
+
+        expect(
+          result.reports,
+          isEmpty,
+          reason: 'an undecodable dance is not offered as a merge candidate',
+        );
+      },
     );
   });
 
