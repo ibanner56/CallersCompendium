@@ -10,11 +10,21 @@ const ListEquality<Object?> _listEq = ListEquality<Object?>();
 ///
 /// A dance's `figures_json` can be stored in a state no `List<Figure>` can
 /// represent: text that `decodeFigures` rejects — not JSON at all, a root that
-/// is not an array, or an entry that is not a well-formed figure object. Today
-/// that raises on the load path (#1347). The fix is to give the undecodable
-/// case a *representation*, so it can travel through the app instead of
-/// crashing it — but a representation is only safe if nothing can quietly
-/// ignore it.
+/// is not an array, or an entry that is not a well-formed figure object. Such a
+/// row used to raise on the load path, which meant it raised out of
+/// `ensureMigrated()` at startup and the app would not open (#1347, made total
+/// in #1382). Giving the undecodable case a *representation* is what lets it
+/// travel through the app instead of stopping it — but a representation is only
+/// safe if nothing can quietly ignore it, which is what the rest of this comment
+/// is about.
+///
+/// The representation does not by itself make any *particular* call site
+/// tolerant. Tolerance belongs where the throw is: a caller that reads
+/// `figures_json` and decodes it itself never passes through this type at all,
+/// and stays as brittle as it was. Two such sites were found after the load
+/// path had landed — the one-time maintenance sweeps in `repositories.dart`,
+/// and `DanceRepository.previewImportGapReparse`, which bypasses `_toModel`
+/// for query-count reasons.
 ///
 /// ## Undecodable is not un-normalisable, and neither implies the other
 ///
@@ -51,16 +61,18 @@ const ListEquality<Object?> _listEq = ListEquality<Object?>();
 /// would make the next case compile cleanly everywhere and give back exactly the
 /// silent-empty-list hazard this exists to prevent.
 ///
-/// This class currently has one case. That is deliberate and temporary: this
-/// change is the mechanical half, landing with no behaviour change at all, so
-/// that the case which carries the hazard arrives on its own and breaks every
-/// site that must think about it.
+/// The type has both of its cases: [DecodedFigures] and [UnreadableFigures].
+/// They arrived in that order on purpose — the sealed type landed first as the
+/// mechanical half, with no behaviour change at all, so that the case carrying
+/// the hazard arrived on its own and broke every site that had to think about
+/// it. Every production reader has since said what an unreadable transcription
+/// means there. A third case would put them all back in front of the compiler
+/// the same way, which is the property to preserve rather than the case count.
 sealed class FigureSource {
   const FigureSource();
 }
 
-/// A transcription that was decoded successfully — the ordinary case, and
-/// currently the only one.
+/// A transcription that was decoded successfully — the ordinary case.
 final class DecodedFigures extends FigureSource {
   DecodedFigures(List<Figure> figures) : figures = List.unmodifiable(figures);
 
