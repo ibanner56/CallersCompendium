@@ -2931,6 +2931,7 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
     draft.beatsTouched = false;
     draft.assumedSubject = false;
     draft.customOrigin = CustomOrigin.userEntered;
+    draft.wordingOverride = null;
     _applyMoveParamDefaults(customMove);
     draft.params['text'] = trimmed;
     widget.onChanged();

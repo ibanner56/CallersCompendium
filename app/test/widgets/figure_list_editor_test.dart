@@ -1160,6 +1160,65 @@ void main() {
     expect(find.byKey(const ValueKey('figure-0-text')), findsOneWidget);
   });
 
+  // A custom figure never renders a wording override (renderer.dart:
+  // `figure.isCustom ? null : _renderWordingOverride`) and the editor hides the
+  // field for it, so an override left behind by a move change is invisible,
+  // persisted data. Every path that changes a draft's move must clear it (#1394).
+  testWidgets('top-level custom creation clears the wording override', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'who': 'partners'})
+        ..wordingOverride = 'old wording',
+    ];
+    await _pump(tester, drafts);
+    await _openFigure(tester, 0);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('figure-0-move-input')),
+      'scoop them up',
+    );
+    await tester.pumpAndSettle();
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(drafts.single.move, customMove);
+    expect(drafts.single.wordingOverride, isNull);
+  });
+
+  for (final group in const ['meanwhile', 'modifier']) {
+    testWidgets('$group child custom creation clears the wording override', (
+      tester,
+    ) async {
+      List<FigureDraft> children() => [
+        FigureDraft(move: 'swing', params: {'who': 'partners', 'beats': 8})
+          ..wordingOverride = 'old wording',
+        FigureDraft(move: 'roll_away', params: {'beats': 8}),
+      ];
+      final drafts = <FigureDraft>[
+        group == 'meanwhile'
+            ? FigureDraft(meanwhileSides: children())
+            : FigureDraft(modifierFigures: children()),
+      ]..single.params['beats'] = 8;
+      final side = () =>
+          (drafts.single.meanwhileSides ?? drafts.single.modifierFigures!)[0];
+      await _pump(tester, drafts, showWordingOverride: true);
+      await _openFigure(tester, 0);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-0-side-0-move-input')),
+        'scoop them up',
+      );
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(side().move, customMove);
+      expect(side().params['text'], 'scoop them up');
+      expect(side().wordingOverride, isNull);
+    });
+  }
+
   testWidgets('whitespace-only submission does not create a custom figure', (
     tester,
   ) async {
