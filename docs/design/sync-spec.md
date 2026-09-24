@@ -2914,22 +2914,59 @@ clock is involved, and nothing a later pass does will make the device able to
 read it. It is simply never offered to a peer, because the device cannot speak
 for a record it cannot read.
 
-The withhold MUST cover **every** path that would publish or match the record,
-not only the one that reads its body. Publishing is not funnelled through a
-single chokepoint: a fresh attach builds bodies and wire hashes directly from
-model objects, and so do the dedupe plan and the merge-candidate build. A guard
-on the body read alone leaves the other three live. Two consequences follow and
-are accepted rather than worked around: such a dance is **not offered as a
-fresh-attach dedupe match**, and is **not considered as a merge candidate**.
+The withhold MUST cover **every** path that would publish or match the record.
+Publishing is not funnelled through a single chokepoint: the fresh-attach
+snapshot builds bodies and wire hashes directly from model objects, and so do
+the dedupe plan and the merge-candidate build, so a guard on any one of them
+leaves the others live. Two consequences follow and are accepted rather than
+worked around: such a dance is **not offered as a fresh-attach dedupe match**,
+and is **not considered as a merge candidate**.
+
+Earlier text here counted a fourth publish path, the record-body read, and
+described the three above as the ones a guard on it would miss. That was wrong
+about which direction the body read serves. Its only caller fetches the current
+local body so that an arriving peer record can be overlaid onto it, which makes
+it an **inbound** path: it withholds nothing from a peer, and a guard there
+never protected any of the three. It MUST still return nothing for a record this
+device cannot read — an overlay base carrying the transcription as an empty
+array is the same hazard one hop later — but it is not a publish path and it
+raises no withheld report.
 
 The wire hash folds the whole body, so this was never a display concern — an
 unwithheld record would reach dedupe and merge identity. The withhold removes
 that question rather than answering it; if it is ever relaxed, the hash question
 returns with it.
 
-A device SHOULD report a record withheld this way, so the gap is visible to the
-user rather than silent. **That half is not implemented**: the withhold is in
-place and emits nothing (#1347).
+A device MUST report a record withheld this way, so the gap is visible to the
+user rather than silent (#1347). A dance that is simply absent from every peer,
+with nothing said about it, is indistinguishable from one that synced, and the
+absence is permanent: no later pass clears this state.
+
+**Only a live row is reported.** The state defined above is a live, non-deleted
+row; a soft-deleted record is not in it and MUST raise no report, even though
+the withhold itself still applies to it. A record held under a **pending
+deletion** (§6.8) MUST likewise raise no report: its live row is retained only
+until an inbound tombstone can apply, so it is on its way out and the remedy
+below does not apply to it either. This is stated here rather than left to
+the contrast with quarantine above, which lists "the row is live, it is not
+deleted" as a property of the state and not as a scope on reporting — an
+implementation read it the second way and reported deleted rows. The remedy the
+notice gives is what makes this more than bookkeeping: it tells the reader
+nothing has been deleted and to open the dance and enter its figures or tunes
+again, and for a record they deleted deliberately every clause of that is wrong.
+
+Each withholding path raises one report per record, carrying the record's kind
+and id and **no peer id** — the null peer id is what says the fault is a row on
+this device. Reports coalesce on that tuple, so a pass that reaches several
+withholding paths for the same record still raises one notice. The notice MUST
+be distinct from the one used for an unusable record received from a peer: that
+copy sends the user to check another device, which is the wrong device and the
+wrong remedy here. It MUST also be distinct from the quarantine notice, which
+sends the user to this device's clock — no clock is involved in this state.
+
+The report is **not** a per-record prompt, per the sizing rule in
+design/sync-implementation.md: the surface groups reports into conditions, and
+this is one condition however many records raise it.
 
 **Repair** runs during a sync pass, not on a user gesture, and reads no clock.
 For each out-of-window field, gather peer copies, discard any whose value **for
@@ -4609,15 +4646,23 @@ leave that mutation observably red.
 **Client isolate and robustness.** Hostile peer blob: a malformed date rejects
 one record without aborting the batch or escaping the isolate. **An undecodable
 local transcription is withheld on every publish path** — asserted separately
-against the record-body read, the fresh-attach snapshot, the dedupe plan and the
-merge-candidate build, because publishing is not funnelled through one
-chokepoint (mutation: guard only the body read — the other three still build
-blobs straight from model objects, and the record goes out with an empty
-`figures` array that overwrites a peer's readable copy). The complementary
+against the fresh-attach snapshot, the dedupe plan and the merge-candidate
+build, because publishing is not funnelled through one chokepoint (mutation:
+guard only one of them — the others still build blobs straight from model
+objects, and the record goes out with an empty `figures` array that overwrites a
+peer's readable copy). Earlier text listed the record-body read as a fourth
+publish path and made it the mutation target; it is an inbound overlay read, and
+a guard there protects none of the three. **And the withhold says so**: each of
+the three raises a report the pass surfaces as a notice, asserted per path and
+per stored column, each path driven by its own entry point rather than through a
+delegation to another (mutation: emit the report for the figures column only —
+an undecodable tune list satisfies every figure-shaped assertion while going
+unreported, which is how four earlier guards passed over it). The complementary
 vector is that a **healthy** library is unaffected: no new key appears in its
-blobs and its archive stamps the same envelope version as before (mutation:
-emit the key or bump the version unconditionally, which is invisible to any test
-that only exercises the undecodable row). **An interrupted
+blobs, it raises no withheld report, and its archive stamps the same envelope
+version as before (mutation: emit the key, report unconditionally, or bump the
+version unconditionally — each is invisible to any test that only exercises the
+undecodable row). **An interrupted
 pass leaves no partial apply** — kill the isolate mid-apply and assert the
 library is exactly pre-pass or exactly post-apply, never between. The
 complementary assertion is that a pass killed *after* step 7 and before step 8

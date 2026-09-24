@@ -56,11 +56,13 @@ class SyncCoordinatorSnapshot {
     Map<SyncRecordAddress, SyncMergeCandidate?>? publication,
     Map<SyncRecordAddress, SyncMergeCandidate?>? pendingLive,
     Set<SyncRecordAddress> pending = const {},
+    List<SyncReport> withheld = const [],
   }) : local = Map.unmodifiable(local),
        baseline = Map.unmodifiable(baseline),
        publication = Map.unmodifiable(publication ?? local),
        pendingLive = Map.unmodifiable(pendingLive ?? const {}),
-       pending = Set.unmodifiable(pending);
+       pending = Set.unmodifiable(pending),
+       withheld = List.unmodifiable(withheld);
 
   final String? epoch;
   final bool previouslyUsed;
@@ -69,6 +71,14 @@ class SyncCoordinatorSnapshot {
   final Map<SyncRecordAddress, SyncMergeCandidate?> publication;
   final Map<SyncRecordAddress, SyncMergeCandidate?> pendingLive;
   final Set<SyncRecordAddress> pending;
+
+  /// Records this snapshot withheld from publication because this device could
+  /// not decode their stored content (spec §6.9, #1347).
+  ///
+  /// Defaulted rather than required so the existing snapshot fakes keep
+  /// compiling and keep meaning what they meant: a snapshot that withheld
+  /// nothing.
+  final List<SyncReport> withheld;
 }
 
 /// Storage operations that the coordinator must compose with inbound apply.
@@ -160,6 +170,7 @@ final class CompendiumSyncCoordinatorStore
       publication: snapshot.publication,
       pendingLive: snapshot.pendingLive,
       pending: snapshot.pending,
+      withheld: snapshot.withheld,
     );
   }
 
@@ -947,6 +958,17 @@ class SyncCoordinator {
 
     await rebuildPendingViews();
     final reports = SyncReportSink();
+    // A record this device holds but cannot read is withheld from publication
+    // (spec §6.9). Draining it here is what stops that being silent (#1347):
+    // without it the dance is simply absent from every peer, which looks
+    // exactly like a dance that synced.
+    //
+    // Drained from the snapshot rather than emitted through a sink threaded
+    // into storage, and drained again after each later re-snapshot below,
+    // because the earlier ones are taken before this sink exists. Repeats cost
+    // nothing: `SyncReportSink` coalesces on code, kind, record and peer, so
+    // one record raises one notice however many paths withheld it.
+    reports.addAll(snapshot.withheld);
     final peerMaps = <Map<SyncRecordAddress, SyncMergeCandidate?>>[];
     final peerManifestHashes = <Map<SyncRecordAddress, String>>[];
     final peerReferenceAliases = <Map<SyncRecordAddress, SyncRecordAddress>>[];
@@ -1151,6 +1173,7 @@ class SyncCoordinator {
       // derived-index rebuild nor the live-query invalidation ran for them.
       repairedKinds.addAll(repairResult.applied.map((address) => address.kind));
       snapshot = await store.snapshot();
+      reports.addAll(snapshot.withheld);
       normalizedLocal = await _normalizeCandidates(
         freshAttach ? snapshot.publication : snapshot.local,
       );
@@ -1281,6 +1304,7 @@ class SyncCoordinator {
     }
     if (freshAttach) {
       final attachedSnapshot = await store.snapshot();
+      reports.addAll(attachedSnapshot.withheld);
       final attachedLocal = await _normalizeCandidates(attachedSnapshot.local);
       final attachedPublication = await _normalizeCandidates(
         attachedSnapshot.publication,
@@ -1367,6 +1391,7 @@ class SyncCoordinator {
       Map<SyncRecordAddress, SyncMergeCandidate?>? publicationOverride,
     }) async => store.transaction(() async {
       final currentSnapshot = await store.snapshot();
+      reports.addAll(currentSnapshot.withheld);
       final current = await _normalizeCandidates(currentSnapshot.local);
       final publication =
           publicationOverride ??
