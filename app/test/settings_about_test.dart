@@ -170,6 +170,32 @@ void main() {
     },
   );
 
+  // A plain `test`, not `testWidgets`: under testWidgets' fake-async zone the
+  // asset loads behind the license stream never complete and the test hangs.
+  test(
+    'the license registry carries the fmptools MIT notice (#1392)',
+    () async {
+      registerBundledFontLicenses();
+
+      // Load through the real LicenseRegistry and rootBundle, not a fake, so an
+      // unregistered entry AND an undeclared asset both fail here.
+      final entries = await LicenseRegistry.licenses.toList().timeout(
+        const Duration(seconds: 20),
+      );
+      final fmptools = entries.where(
+        (e) => e.packages.contains('fmptools (MIT)'),
+      );
+
+      expect(fmptools, hasLength(1));
+      final text = fmptools.single.paragraphs.map((p) => p.text).join(' ');
+      expect(text, contains('Copyright (c) 2020 Evan Miller'));
+      expect(
+        text,
+        contains('shall be included in all copies or substantial portions'),
+      );
+    },
+  );
+
   testWidgets(
     'About User guide entry selects the shell guide destination (no push)',
     (tester) async {
