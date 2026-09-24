@@ -3,6 +3,7 @@ import '../model/custom_field.dart';
 import '../model/dance.dart';
 import '../model/dance_link.dart';
 import '../model/figure_source.dart';
+import '../model/tunes_source.dart';
 import '../model/difficulty_level.dart';
 import '../model/formation.dart';
 import '../model/program.dart';
@@ -115,7 +116,15 @@ Map<String, Object?> archiveDanceToJson(
   'mixedLevel': d.mixedLevel,
   'mixer': d.mixer,
   if (includeOptionalFields || d.rating != null) 'rating': d.rating,
-  'tunes': d.tunes,
+  // Well-formed array even when the stored text is not JSON; the raw text
+  // travels in its own string-typed key below, for the same reason
+  // `figuresRaw` does.
+  'tunes': switch (d.tunesSource) {
+    DecodedTunes(:final tunes) => tunes,
+    UnreadableTunes() => const <String>[],
+  },
+  if (d.tunesSource case UnreadableTunes(:final storedJson))
+    'tunesRaw': storedJson,
   'customFields': [
     for (final v in d.customFields)
       if (!excludedFieldIds.contains(v.fieldId))

@@ -1334,13 +1334,22 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             onOpenDance: _openDance,
           ),
         ],
-        if (dance.tunes.isNotEmpty) ...[
+        // Renders nothing for an undecodable list rather than an empty one —
+        // telling the user why is surfacing work and is deliberately not done
+        // here.
+        if (switch (dance.tunesSource) {
+          DecodedTunes(:final tunes) => tunes,
+          UnreadableTunes() => const <String>[],
+        }.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
           Text(l10n.danceSectionTunes, style: theme.textTheme.titleMedium),
           const SizedBox(height: AppSpacing.xxs),
           Text(
             canonicalDiscouragedTerms
-                ? dance.tunes
+                ? switch (dance.tunesSource) {
+                        DecodedTunes(:final tunes) => tunes,
+                        UnreadableTunes() => const <String>[],
+                      }
                       .map(
                         (tune) => _renderer
                             .renderFreeTextWithCanonicalDiscouragedTerms(
@@ -1349,7 +1358,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                             ),
                       )
                       .join(', ')
-                : dance.tunes.join(', '),
+                : switch (dance.tunesSource) {
+                    DecodedTunes(:final tunes) => tunes,
+                    UnreadableTunes() => const <String>[],
+                  }.join(', '),
           ),
         ],
         if (visibleLinks.isNotEmpty) ...[

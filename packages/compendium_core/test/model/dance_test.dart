@@ -39,7 +39,7 @@ void main() {
       final d = make(figures: [fig(8)]);
       expect(() => figuresOf(d).add(fig(8)), throwsUnsupportedError);
       expect(() => d.authorIds.add('x'), throwsUnsupportedError);
-      expect(() => d.tunes.add('x'), throwsUnsupportedError);
+      expect(() => tunesOf(d).add('x'), throwsUnsupportedError);
       expect(() => d.tagIds.add('x'), throwsUnsupportedError);
     });
 

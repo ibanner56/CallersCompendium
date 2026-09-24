@@ -33,3 +33,16 @@ List<Figure> figuresOf(Dance dance) => switch (dance.figuresSource) {
     'match on UnreadableFigures instead',
   ),
 };
+
+/// The tune list of a [Dance] whose `tunes_json` is known to be decodable.
+///
+/// Same confinement and same reasoning as [figuresOf] above: it lives in
+/// `test/`, production cannot import it, and it throws rather than returning an
+/// empty list so a test cannot pass while asserting nothing.
+List<String> tunesOf(Dance dance) => switch (dance.tunesSource) {
+  DecodedTunes(:final tunes) => tunes,
+  UnreadableTunes() => throw StateError(
+    'tunesOf() called on a dance whose tune list could not be decoded; '
+    'match on UnreadableTunes instead',
+  ),
+};

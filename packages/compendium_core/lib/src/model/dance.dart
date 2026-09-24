@@ -8,6 +8,7 @@ import 'difficulty_level.dart';
 import 'enums.dart';
 import 'figure.dart';
 import 'figure_source.dart';
+import 'tunes_source.dart';
 import 'formation.dart';
 import 'partial_date.dart';
 import 'phrase_structure.dart';
@@ -56,6 +57,7 @@ class Dance {
     this.mixer = false,
     this.rating,
     List<String> tunes = const [],
+    TunesSource? tunesSource,
     List<CustomFieldValue> customFields = const [],
     List<String> tagIds = const [],
     List<DanceLink> links = const [],
@@ -79,7 +81,14 @@ class Dance {
          'pass figures or figuresSource, not both',
        ),
        figuresSource = figuresSource ?? DecodedFigures(figures),
-       tunes = List.unmodifiable(tunes),
+       // Same contract as [figuresSource]: the storage layer passes a
+       // [TunesSource] when it holds text it could not decode; ordinary callers
+       // pass a list. Never both.
+       assert(
+         tunesSource == null || tunes.isEmpty,
+         'pass tunes or tunesSource, not both',
+       ),
+       tunesSource = tunesSource ?? DecodedTunes(tunes),
        customFields = List.unmodifiable(customFields),
        tagIds = List.unmodifiable(tagIds),
        links = List.unmodifiable(links),
@@ -179,7 +188,9 @@ class Dance {
   /// mirrors the CC-parity `Rating`. Higher is better.
   final int? rating;
 
-  final List<String> tunes;
+  /// Suggested tune names, or the stored text when it could not be decoded.
+  /// See [TunesSource] for why this is not a plain list.
+  final TunesSource tunesSource;
   final List<CustomFieldValue> customFields;
   final List<String> tagIds;
   final List<DanceLink> links;
@@ -321,7 +332,11 @@ class Dance {
     mixedLevel: mixedLevel ?? this.mixedLevel,
     mixer: mixer ?? this.mixer,
     rating: clearRating ? null : (rating ?? this.rating),
-    tunes: tunes ?? this.tunes,
+    // An explicit `tunes:` replaces the list outright; with none, the existing
+    // source is carried through whole, including an undecodable one whose
+    // stored bytes must survive an edit to any other field.
+    tunes: tunes ?? const [],
+    tunesSource: tunes == null ? tunesSource : null,
     customFields: customFields ?? this.customFields,
     tagIds: tagIds ?? this.tagIds,
     links: links ?? this.links,
@@ -371,7 +386,8 @@ class Dance {
       mixedLevel: mixedLevel,
       mixer: mixer,
       rating: rating,
-      tunes: tunes,
+      // Carried through whole: a copy keeps a tune list that cannot be read.
+      tunesSource: tunesSource,
       customFields: customFields,
       tagIds: tagIds,
       links: [
@@ -411,7 +427,7 @@ class Dance {
       other.mixedLevel == mixedLevel &&
       other.mixer == mixer &&
       other.rating == rating &&
-      _listEq.equals(other.tunes, tunes) &&
+      other.tunesSource == tunesSource &&
       _listEq.equals(other.customFields, customFields) &&
       _listEq.equals(other.tagIds, tagIds) &&
       _listEq.equals(other.links, links) &&

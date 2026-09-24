@@ -8,6 +8,7 @@ import '../model/dance_link.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/figure_source.dart';
+import '../model/tunes_source.dart';
 import '../model/formation.dart';
 import '../model/partial_date.dart';
 import '../model/program.dart';
@@ -648,7 +649,12 @@ Dance _danceFromJson(Map<String, Object?> m) => Dance(
   mixedLevel: _boolOr(m, 'mixedLevel', false),
   mixer: _boolOr(m, 'mixer', false),
   rating: _intOrNull(m, 'rating'),
-  tunes: _stringList(m, 'tunes'),
+  // A v6 archive carries an undecodable tune list verbatim in `tunesRaw`;
+  // reconstruct the case rather than the empty `tunes` array beside it.
+  tunesSource: m['tunesRaw'] is String
+      ? UnreadableTunes(m['tunesRaw']! as String)
+      : null,
+  tunes: m['tunesRaw'] is String ? const [] : _stringList(m, 'tunes'),
   customFields: _customFieldValuesFromJson(m['customFields']),
   tagIds: _stringList(m, 'tagIds'),
   links: _danceLinksFromJson(m['links']),

@@ -307,7 +307,7 @@ void main() {
       expect(figuresOf(d2)[1].customOrigin, CustomOrigin.importGap);
       expect(d1.difficultyLevelId, DifficultyLevel.intermediateId);
       expect(d1.rating, 5);
-      expect(d1.tunes, hasLength(2));
+      expect(tunesOf(d1), hasLength(2));
       expect(d1.customFields.map((v) => v.value), [
         'New England',
         4,
@@ -1369,7 +1369,7 @@ void main() {
       expect(d.hook, 'hook');
       // The legitimate newline survives; only the control byte is removed.
       expect(d.callingNotes, 'line1\ndanger');
-      expect(d.tunes, ['Tune']);
+      expect(tunesOf(d), ['Tune']);
 
       final f = figuresOf(d).single;
       expect(f.params['text'], 'balance and swing');

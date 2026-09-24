@@ -44,8 +44,17 @@ Future<Set<String>> collectSensitiveTerms(
     add(dance.title);
     add(dance.hook);
     add(dance.callingNotes);
-    for (final tune in dance.tunes) {
-      add(tune);
+    switch (dance.tunesSource) {
+      case DecodedTunes(:final tunes):
+        for (final tune in tunes) {
+          add(tune);
+        }
+      // Same rule as the figures case below: an undecodable tune list is still
+      // the user's content, and treating it as absent would drop those terms
+      // from the redaction set and let them through into a diagnostic report.
+      // Adding the raw text over-redacts rather than under-redacts.
+      case UnreadableTunes(:final storedJson):
+        add(storedJson);
     }
     switch (dance.figuresSource) {
       case DecodedFigures(:final figures):

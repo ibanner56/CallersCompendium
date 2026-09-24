@@ -986,7 +986,9 @@ class ImportPipeline {
     mixedLevel: src.mixedLevel,
     mixer: src.mixer,
     rating: src.rating,
-    tunes: src.tunes,
+    // Carried through whole, so a re-identified dance keeps a tune list
+    // that could not be decoded instead of silently becoming empty.
+    tunesSource: src.tunesSource,
     customFields: src.customFields,
     tagIds: src.tagIds,
     links: src.links,

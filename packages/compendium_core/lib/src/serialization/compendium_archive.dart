@@ -10,6 +10,7 @@ import '../model/published_source.dart';
 import '../model/tag.dart';
 import '../model/venue.dart';
 import '../model/figure_source.dart';
+import '../model/tunes_source.dart';
 
 const ListEquality<Object?> _listEq = ListEquality<Object?>();
 
@@ -39,7 +40,11 @@ const ListEquality<Object?> _listEq = ListEquality<Object?>();
 ///   healthy library still writes v1-v4 byte-identically. See
 ///   [archiveSchemaVersionUnreadableFigures] for why the bump is what makes an
 ///   older reader's loss audible rather than silent.
-const int archiveSchemaVersion = archiveSchemaVersionUnreadableFigures;
+/// * **v6** — adds `dance.tunesRaw`, the stored tune list of a dance whose
+///   `tunes_json` could not be decoded, carried verbatim beside a well-formed
+///   empty `tunes` array. Stamped only when such a dance is present, so an
+///   archive with undecodable figures but readable tunes still stamps v5.
+const int archiveSchemaVersion = archiveSchemaVersionUnreadableTunes;
 
 /// The original, pre-venue archive envelope version.
 const int archiveSchemaVersionBase = 1;
@@ -78,6 +83,17 @@ const int archiveSchemaVersionProgramSlotMarkers = 4;
 /// the bump's job is to make that audible rather than silent.
 const int archiveSchemaVersionUnreadableFigures = 5;
 
+/// The envelope version introduced for a dance whose stored tune list could not
+/// be decoded, carried verbatim in `tunesRaw` (#1347).
+///
+/// A separate version from [archiveSchemaVersionUnreadableFigures] for the
+/// reason that one exists at all: a v5 reader understands `figuresRaw` and knows
+/// nothing of `tunesRaw`, so it would ignore the key and read the accompanying
+/// empty `tunes` array — reconstructing the dance with no tunes and reporting
+/// success. Stamped only when such a dance is present, so an archive carrying
+/// undecodable figures but readable tunes still stamps v5.
+const int archiveSchemaVersionUnreadableTunes = 6;
+
 /// The minimum envelope version required to represent [archive] without silent
 /// data loss on an older reader: [archiveSchemaVersionProgramSlotMarkers] when
 /// it carries a purge-caption marker, [archiveSchemaVersionDifficultyLevels]
@@ -96,9 +112,14 @@ int requiredSchemaVersion(CompendiumArchive archive) {
   final hasPurgeMarker = archive.programs.any(
     (p) => p.slots.any((s) => s.isPurgedDance != null),
   );
-  // Checked first because it is the highest version: a single undecodable
-  // transcription anywhere in the archive requires v5 regardless of what else
-  // the archive carries.
+  // Next-highest: reached only when nothing above matched.
+  // Checked highest-version first, so the first match wins: an undecodable tune
+  // list requires v6, and only if there is none does an undecodable
+  // transcription pull the archive to v5. Keep new cases in descending version
+  // order or a lower version will shadow a higher one.
+  if (archive.dances.any((d) => d.tunesSource is UnreadableTunes)) {
+    return archiveSchemaVersionUnreadableTunes;
+  }
   if (archive.dances.any((d) => d.figuresSource is UnreadableFigures)) {
     return archiveSchemaVersionUnreadableFigures;
   }

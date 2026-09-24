@@ -1617,7 +1617,17 @@ class _DanceListScreenState extends State<DanceListScreen> {
     for (final id in selectedIds) {
       final dance = await _repos.dances.getById(id);
       if (dance == null) continue;
-      priorTunes[id] = dance.tunes.toList();
+      // Deliberately not captured for an undecodable list. The snapshot is a
+      // `List<String>`, so it would capture `[]` and Undo would write `[]`
+      // back — destroying stored text the batch itself skipped. Omitting the
+      // entry means Undo never touches that dance, which matches the
+      // repository skipping it.
+      final priors = switch (dance.tunesSource) {
+        DecodedTunes(:final tunes) => tunes.toList(),
+        UnreadableTunes() => null,
+      };
+      if (priors == null) continue;
+      priorTunes[id] = priors;
     }
 
     final count = await _repos.dances.addTunesForMany(
@@ -1678,7 +1688,17 @@ class _DanceListScreenState extends State<DanceListScreen> {
     for (final id in selectedIds) {
       final dance = await _repos.dances.getById(id);
       if (dance == null) continue;
-      priorTunes[id] = dance.tunes.toList();
+      // Deliberately not captured for an undecodable list. The snapshot is a
+      // `List<String>`, so it would capture `[]` and Undo would write `[]`
+      // back — destroying stored text the batch itself skipped. Omitting the
+      // entry means Undo never touches that dance, which matches the
+      // repository skipping it.
+      final priors = switch (dance.tunesSource) {
+        DecodedTunes(:final tunes) => tunes.toList(),
+        UnreadableTunes() => null,
+      };
+      if (priors == null) continue;
+      priorTunes[id] = priors;
     }
 
     final count = await _repos.dances.clearTunesForMany(

@@ -184,6 +184,16 @@ class DanceEditorController extends ChangeNotifier {
   /// be decoded (#1347).
   bool _loadedUnreadableFigures = false;
 
+  /// Whether the dance this editor opened held a tune list that could not be
+  /// decoded (#1347).
+  bool _loadedUnreadableTunes = false;
+
+  /// Whether a save must leave the stored tune list untouched — true while the
+  /// editor opened an undecodable one and the user has typed no tune of their
+  /// own. Same reasoning as [_preserveStoredFigures], and keyed on the content
+  /// rather than on any placeholder for the same reason.
+  bool get _preserveStoredTunes => _loadedUnreadableTunes && tunes.isEmpty;
+
   /// Whether a save must leave the stored transcription **untouched**.
   ///
   /// True exactly when the editor opened an undecodable transcription and the
@@ -339,7 +349,15 @@ class DanceEditorController extends ChangeNotifier {
       _revisedOn = dance.revisedOn;
       authorIds.addAll(dance.authorIds);
       tagIds.addAll(dance.tagIds);
-      tunes.addAll(dance.tunes);
+      switch (dance.tunesSource) {
+        case DecodedTunes(:final tunes):
+          this.tunes.addAll(tunes);
+        // Nothing can be seeded from a list that could not be decoded.
+        // Remembering it is what stops the save below writing the empty draft
+        // list over the stored text — see [_preserveStoredTunes].
+        case UnreadableTunes():
+          _loadedUnreadableTunes = true;
+      }
       for (final link in dance.links) {
         links.add(LinkDraft.fromLink(link));
       }
@@ -864,7 +882,7 @@ class DanceEditorController extends ChangeNotifier {
         clearComposedOn: _composedOn == null,
         revisedOn: _revisedOn,
         clearRevisedOn: _revisedOn == null,
-        tunes: List.of(tunes),
+        tunes: _preserveStoredTunes ? null : List.of(tunes),
         customFields: customFields,
         tagIds: List.of(tagIds),
         links: linkList,
