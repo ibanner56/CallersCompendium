@@ -195,8 +195,10 @@ void main() {
     );
   });
 
-  test('no hardcoded user-facing strings outside the allow-list', () {
-    final offenders = <String, List<(int, String)>>{};
+  /// Every file the guard judges, keyed by its `lib/`-relative POSIX path: all
+  /// of `lib/` except the generated `lib/l10n/`.
+  Map<String, File> guardedFiles() {
+    final files = <String, File>{};
     for (final entity in libDir.listSync(recursive: true)) {
       if (entity is! File || !entity.path.endsWith('.dart')) continue;
       final rel = entity.path
@@ -205,9 +207,26 @@ void main() {
       final relFromLib = rel.substring('lib/'.length);
       // Generated localizations are the translation source, not a leak.
       if (relFromLib.startsWith('l10n/')) continue;
-      if (hardcodedUiStringAllowlist.contains(relFromLib)) continue;
-      final hits = scan(entity);
-      if (hits.isNotEmpty) offenders[relFromLib] = hits;
+      files[relFromLib] = entity;
+    }
+    return files;
+  }
+
+  test('the walk covers main.dart and lib/src but not generated l10n', () {
+    // main.dart hid the integrity banner from this guard while it only walked
+    // lib/src (#1396); losing it from the walk again must fail loudly.
+    final files = guardedFiles().keys;
+    expect(files, contains('main.dart'));
+    expect(files, contains('src/update/update_banner.dart'));
+    expect(files.where((f) => f.startsWith('l10n/')), isEmpty);
+  });
+
+  test('no hardcoded user-facing strings outside the allow-list', () {
+    final offenders = <String, List<(int, String)>>{};
+    for (final entry in guardedFiles().entries) {
+      if (hardcodedUiStringAllowlist.contains(entry.key)) continue;
+      final hits = scan(entry.value);
+      if (hits.isNotEmpty) offenders[entry.key] = hits;
     }
     expect(
       offenders,
