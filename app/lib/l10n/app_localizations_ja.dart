@@ -308,6 +308,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'このデバイス上の一部の項目には、アプリが信頼できない日付が付いているため、他のデバイスに送信されていません。このデバイスの日付と時刻を確認してから、いずれかの項目を編集して新しい日付を付けてください。';
 
   @override
+  String get settingsSyncNoticeWithheldUnreadable =>
+      'このデバイス上の一部のダンスには、アプリが読み取れない保存済みのフィギュアまたはチューンが含まれているため、他のデバイスに送信されていません。何も削除されていません。いずれかを開いて、フィギュアまたはチューンを入力し直すと同期の対象になります。';
+
+  @override
   String get settingsSyncNoticeSkippedRecord =>
       '別のデバイスからの一部のレコードは使用できず、スキップされました。他のデバイスが同じアプリのバージョンかどうか確認してから、もう一度同期してください。';
 

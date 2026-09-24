@@ -325,6 +325,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Certains éléments de cet appareil portent une date à laquelle l’application ne peut pas se fier ; ils ne sont donc pas envoyés à vos autres appareils. Vérifiez la date et l’heure de cet appareil, puis modifiez l’un des éléments pour lui donner une date récente.';
 
   @override
+  String get settingsSyncNoticeWithheldUnreadable =>
+      'Certaines danses de cet appareil ont des figures ou des airs enregistrés que l’application ne peut pas lire ; elles ne sont donc pas envoyées à vos autres appareils. Rien n’a été supprimé — ouvrez-en une et saisissez à nouveau ses figures ou ses airs pour l’inclure.';
+
+  @override
   String get settingsSyncNoticeSkippedRecord =>
       'Certaines fiches provenant d’un autre appareil n’ont pas pu être utilisées et ont été ignorées. Vérifiez que vos autres appareils utilisent la même version de l’application, puis synchronisez à nouveau.';
 

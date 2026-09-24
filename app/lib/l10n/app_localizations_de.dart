@@ -320,6 +320,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Einige Einträge auf diesem Gerät haben ein Datum, dem die App nicht trauen kann, und werden deshalb nicht an deine anderen Geräte gesendet. Prüfe Datum und Uhrzeit dieses Geräts und bearbeite dann einen der Einträge, damit er ein frisches Datum bekommt.';
 
   @override
+  String get settingsSyncNoticeWithheldUnreadable =>
+      'Einige Tänze auf diesem Gerät haben gespeicherte Figuren oder Melodien, die die App nicht lesen kann, und werden deshalb nicht an deine anderen Geräte gesendet. Es wurde nichts gelöscht — öffne einen davon und gib seine Figuren oder Melodien erneut ein, damit er einbezogen wird.';
+
+  @override
   String get settingsSyncNoticeSkippedRecord =>
       'Einige Einträge von einem anderen Gerät konnten nicht verwendet werden und wurden übersprungen. Prüfe, ob deine anderen Geräte dieselbe App-Version verwenden, und synchronisiere erneut.';
 

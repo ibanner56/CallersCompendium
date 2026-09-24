@@ -49,12 +49,12 @@ erDiagram
 | mixer | `bool`, default `false` | dancers change partners each time through; a flag orthogonal to `formation` — see below |
 | progression | enum | none/single/double/triple/quadruple/other |
 | phraseStructure | string, default `""` | empty = standard 4×16-beat (A1 A2 B1 B2); otherwise one or more ordered `phrases*bars*beatsPerBar` components, e.g. `6*8*2` or `3*8*2 + 1*4*2`; section labels derive from each component's beat boundaries |
-| figuresSource | `FigureSource`, a sealed type | the transcription. One case today, `DecodedFigures`, holding an ordered `Figure[]`; a second case for a stored transcription that cannot be decoded is coming (#1347). Sealed so that case cannot be read as an empty list by accident. The `Dance` constructor still takes `figures: Figure[]`. See design/figure-taxonomy.md |
+| figuresSource | `FigureSource`, a sealed type | the transcription. `DecodedFigures` holds an ordered `Figure[]`; `UnreadableFigures` holds the stored text verbatim when it cannot be decoded (#1347, landed in #1382). Sealed so the second case cannot be read as an empty list by accident, which is the whole point of it. The `Dance` constructor still takes `figures: Figure[]`. See design/figure-taxonomy.md |
 | hook | string | one-line "why call this" description |
 | callingNotes | text | teaching/history notes, dialect-aware free text |
 | status | enum | `active` / `deprecated` / `broken` (mirrors TCB) |
 | difficultyLevelId | UUID-like stable ref → DifficultyLevel, nullable | `null` = unspecified; separate from `mixedLevel` |
-| tunes | string[] | suggested music |
+| tunes | string[], derived from `tunesSource` | suggested music. `tunesSource` is a sealed `TunesSource` on the same pattern as `figuresSource`: `DecodedTunes` holds the list, `UnreadableTunes` holds the stored text verbatim when it cannot be decoded (#1347, landed in #1391). The `Dance` constructor still takes `tunes: string[]` |
 | customFields, tags, links, provenance | | see below |
 | createdAt / updatedAt / deletedAt | timestamps | deletedAt = soft delete |
 
