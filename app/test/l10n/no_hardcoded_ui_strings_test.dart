@@ -17,8 +17,9 @@ import 'hardcoded_ui_strings_allowlist.dart';
 /// argument list, not only one directly after the paren, so
 /// `Text(cond ? 'a' : 'b')` is caught, grouping parentheses included. Literals
 /// nested in another call's arguments (`Text(l10n.x('a'))`) are not: that is a
-/// call the guard cannot see into. Nor can it see prose stored in a `String` and shown later; keep such
-/// messages typed (an enum mapped through `l10n` at display time) instead.
+/// call the guard cannot see into. Nor can it see prose stored in a `String`
+/// and shown later; keep such messages typed (an enum mapped through `l10n` at
+/// display time) instead.
 ///
 /// This mirrors the `dart:io` file-walking + comment-stripping precedent of
 /// `test/data/migration_guard_test.dart` and the ADR-001 Flutter-import guard,
