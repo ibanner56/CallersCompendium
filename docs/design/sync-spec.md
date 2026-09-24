@@ -2942,6 +2942,16 @@ user rather than silent (#1347). A dance that is simply absent from every peer,
 with nothing said about it, is indistinguishable from one that synced, and the
 absence is permanent: no later pass clears this state.
 
+**Only a live row is reported.** The state defined above is a live, non-deleted
+row; a soft-deleted record is not in it and MUST raise no report, even though
+the withhold itself still applies to it. This is stated here rather than left to
+the contrast with quarantine above, which lists "the row is live, it is not
+deleted" as a property of the state and not as a scope on reporting — an
+implementation read it the second way and reported deleted rows. The remedy the
+notice gives is what makes this more than bookkeeping: it tells the reader
+nothing has been deleted and to open the dance and enter its figures or tunes
+again, and for a record they deleted deliberately every clause of that is wrong.
+
 Each withholding path raises one report per record, carrying the record's kind
 and id and **no peer id** — the null peer id is what says the fault is a row on
 this device. Reports coalesce on that tuple, so a pass that reaches several
