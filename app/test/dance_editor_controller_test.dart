@@ -88,6 +88,26 @@ void main() {
       expect(built.figuresSource, isA<UnreadableFigures>());
     });
 
+    test('undo after adding a figure restores the preservation', () async {
+      // `EditorSnapshot` captures `figureDrafts` and `tunes` as plain lists and
+      // restores them with `..addAll(...)` — the exact shape that would have
+      // destroyed the stored text on the Collection Undo path. It is safe here
+      // only because `_preserveStoredFigures` is computed from LIVE content
+      // rather than from a captured flag, so restoring an empty list turns
+      // preservation back on. This pins that property rather than the current
+      // implementation of it: a refactor to a snapshot-captured flag would fail
+      // here.
+      final repos = openTestRepositories();
+      final controller = await loadUnreadable(repos);
+      addTearDown(controller.dispose);
+
+      controller.addFigure();
+      controller.undo();
+      controller.titleController.text = 'Renamed';
+
+      expect(controller.buildDance().figuresSource, isA<UnreadableFigures>());
+    });
+
     test('pressing Add figure does not replace it either', () async {
       // The placeholder trap: `addFigure()` makes `figureDrafts` non-empty
       // while the draft still yields no figure, so a guard keyed on the draft
