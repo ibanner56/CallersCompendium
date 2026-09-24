@@ -33,6 +33,17 @@ enum SyncNoticeGroup {
   /// version.
   quarantinedLocal,
 
+  /// A record on *this* device could not be decoded, so it is withheld from
+  /// publication rather than sent as an empty body over a peer's good copy
+  /// (spec §6.9, #1347).
+  ///
+  /// Distinct from [skippedRecord] for the same reason [quarantinedLocal] is:
+  /// that notice sends the user to their *other* device's app version, which
+  /// is the wrong device and the wrong remedy for a row stored here. Distinct
+  /// from [quarantinedLocal] too — no clock is involved and no later pass
+  /// clears it, so "check this device's date and time" would be false advice.
+  withheldUnreadableLocal,
+
   /// A record from a peer could not be used and was left alone: malformed,
   /// non-canonical, non-shareable, a missing or mismatched blob, an
   /// unresolved reference, or quarantined for an implausible clock.
@@ -61,10 +72,13 @@ enum SyncNoticeGroup {
 /// things from the user — one is another device's problem, the other is this
 /// device's clock.
 ///
-/// The switch is deliberately exhaustive with no `_` arm: a thirteenth
+/// The switch is deliberately exhaustive with no `_` arm: a new
 /// [SyncReportCode] must fail the build here rather than be dropped on the
 /// floor. Dropping codes silently is precisely the defect this mapping exists
-/// to fix — twelve were produced and none were ever displayed.
+/// to fix — the original twelve were produced and none were ever displayed.
+/// Stated without a count on purpose: the count was written when there were
+/// twelve, `withheldUnreadableRecord` made it thirteen, and a number in a
+/// comment goes stale exactly when the rule it guards is next exercised.
 SyncNoticeGroup syncNoticeGroupFor(SyncReport report) => switch (report.code) {
   SyncReportCode.equalUpdatedAt => SyncNoticeGroup.divergence,
   SyncReportCode.unseenLocalCreation => SyncNoticeGroup.keptLocalCreation,
@@ -82,6 +96,8 @@ SyncNoticeGroup syncNoticeGroupFor(SyncReport report) => switch (report.code) {
   SyncReportCode.concurrentLocalChange => SyncNoticeGroup.deferredInbound,
   SyncReportCode.unreflectedPublication =>
     SyncNoticeGroup.unreflectedPublication,
+  SyncReportCode.withheldUnreadableRecord =>
+    SyncNoticeGroup.withheldUnreadableLocal,
 };
 
 /// The groups [reports] raise, deduplicated, in [SyncNoticeGroup] order.
@@ -105,6 +121,8 @@ String syncNoticeText(
   SyncNoticeGroup.divergence => l10n.settingsSyncNoticeDivergence,
   SyncNoticeGroup.keptLocalCreation => l10n.settingsSyncNoticeKeptLocalCreation,
   SyncNoticeGroup.quarantinedLocal => l10n.settingsSyncNoticeQuarantinedLocal,
+  SyncNoticeGroup.withheldUnreadableLocal =>
+    l10n.settingsSyncNoticeWithheldUnreadable,
   SyncNoticeGroup.skippedRecord => l10n.settingsSyncNoticeSkippedRecord,
   SyncNoticeGroup.clock => l10n.settingsSyncNoticeClock,
   SyncNoticeGroup.deferredInbound => l10n.settingsSyncNoticeDeferredInbound,

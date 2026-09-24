@@ -332,6 +332,10 @@
   "@settingsSyncNoticeQuarantinedLocal": {
     "x-sourceSha256": "3634a80939d6da514d886f89bbb4a9c38e5dafaaa86c1db56766b2bccd3af851"
   },
+  "settingsSyncNoticeWithheldUnreadable": "Certaines danses de cet appareil ont des figures ou des airs enregistrés que l’application ne peut pas lire ; elles ne sont donc pas envoyées à vos autres appareils. Rien n’a été supprimé — ouvrez-en une et saisissez à nouveau ses figures ou ses airs pour l’inclure.",
+  "@settingsSyncNoticeWithheldUnreadable": {
+    "x-sourceSha256": "45fe046a8e986296c00a31c98d784abcd58e04c15f1b6d330e98dca3c6a832bf"
+  },
   "settingsSyncNoticeSkippedRecord": "Certaines fiches provenant d’un autre appareil n’ont pas pu être utilisées et ont été ignorées. Vérifiez que vos autres appareils utilisent la même version de l’application, puis synchronisez à nouveau.",
   "@settingsSyncNoticeSkippedRecord": {
     "x-sourceSha256": "810e587b9c60b4b432183640a0295d35a70a59a9ce5f3825436d2b666600afd3"

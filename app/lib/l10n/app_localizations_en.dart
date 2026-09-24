@@ -314,6 +314,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Some items on this device have a date the app can\'t trust, so they aren\'t being sent to your other devices. Check this device\'s date and time, then edit one of the items to give it a fresh date.';
 
   @override
+  String get settingsSyncNoticeWithheldUnreadable =>
+      'Some dances on this device have saved figures or tunes the app can\'t read, so they aren\'t being sent to your other devices. Nothing has been deleted — open one and enter its figures or tunes again to include it.';
+
+  @override
   String get settingsSyncNoticeSkippedRecord =>
       'Some records from another device couldn\'t be used and were skipped. Check that your other devices are running the same app version, then sync again.';
 

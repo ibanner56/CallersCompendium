@@ -332,6 +332,10 @@
   "@settingsSyncNoticeQuarantinedLocal": {
     "x-sourceSha256": "3634a80939d6da514d886f89bbb4a9c38e5dafaaa86c1db56766b2bccd3af851"
   },
+  "settingsSyncNoticeWithheldUnreadable": "Nogle danse på denne enhed har gemte figurer eller melodier, som appen ikke kan læse, så de bliver ikke sendt til dine andre enheder. Intet er blevet slettet — åbn en af dem, og indtast dens figurer eller melodier igen for at få den med.",
+  "@settingsSyncNoticeWithheldUnreadable": {
+    "x-sourceSha256": "45fe046a8e986296c00a31c98d784abcd58e04c15f1b6d330e98dca3c6a832bf"
+  },
   "settingsSyncNoticeSkippedRecord": "Nogle poster fra en anden enhed kunne ikke bruges og blev sprunget over. Tjek, at dine andre enheder kører den samme appversion, og synkronisér igen.",
   "@settingsSyncNoticeSkippedRecord": {
     "x-sourceSha256": "810e587b9c60b4b432183640a0295d35a70a59a9ce5f3825436d2b666600afd3"

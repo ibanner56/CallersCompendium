@@ -126,6 +126,7 @@ class SyncStorageSnapshot {
     Map<SyncRecordAddress, SyncMergeCandidate?>? publication,
     Map<SyncRecordAddress, SyncMergeCandidate?>? pendingLive,
     this.pending = const {},
+    this.withheld = const [],
   }) : publication = publication ?? local,
        pendingLive = pendingLive ?? const {};
 
@@ -145,6 +146,21 @@ class SyncStorageSnapshot {
   /// Addresses held in [pendingDeletions], excluded from merge and baseline
   /// advancement while their local citations still exist.
   final Set<SyncRecordAddress> pending;
+
+  /// Records this snapshot withheld from publication because this device could
+  /// not decode their stored content (spec §6.9, #1347).
+  ///
+  /// Carried on the snapshot rather than emitted through a sink passed down
+  /// into storage: the coordinator owns the per-pass [SyncReportSink], and the
+  /// return-carried shape is the one this boundary already uses for
+  /// [SyncFreshAttachDedupeResult.reports]. Threading the sink the other way
+  /// would put pass-scoped state on a storage object that is otherwise free of
+  /// it, and would change four interface signatures to do it.
+  ///
+  /// Empty for every library with no undecodable row, which is every library
+  /// this has ever been observed on — the reports exist so the one that does
+  /// have such a row is not silently short a dance.
+  final List<SyncReport> withheld;
 }
 
 /// The parent row of a two-phase record as it stood before its inbound write.
@@ -187,6 +203,29 @@ class SyncFreshAttachDedupeResult {
   final int duplicateCount;
   final List<SyncReport> reports;
 }
+
+/// The report raised for a dance withheld because this device cannot decode
+/// its stored figures or tunes (spec §6.9, #1347).
+///
+/// One shape for every withhold site on purpose. A single pass reaches more
+/// than one of them for the same row — a fresh attach takes a snapshot *and*
+/// runs the dedupe plan — and [SyncReport.coalescingKey] folds code, kind,
+/// record id and peer id, so identical reports collapse to one notice in the
+/// coordinator's sink rather than repeating per path.
+///
+/// The message names both columns because the withhold does: it is raised for
+/// an undecodable `figures_json` or an undecodable `tunes_json`, and a message
+/// naming only figures would be false for half the cases — the same
+/// shaped-around-the-instance mistake that let a tunes-only row through four
+/// figure-shaped guards in #1391.
+SyncReport _withheldUnreadableDanceReport(String id) => SyncReport(
+  code: SyncReportCode.withheldUnreadableRecord,
+  kind: SyncRecordKind.dance,
+  recordId: id,
+  message:
+      'Dance withheld from publication: its stored figures or tunes could not '
+      'be decoded, so this device cannot speak for the record.',
+);
 
 /// The production storage adapter for the core sync engine.
 ///
@@ -259,6 +298,7 @@ final class CompendiumSyncStorage
     final baseline = await repositories.syncLocal.snapshotBaseline();
     final baselineState = await repositories.syncLocal.getBaselineState();
     final local = <SyncRecordAddress, SyncMergeCandidate?>{};
+    final withheld = <SyncReport>[];
     final customFields = await repositories.customFieldDefs
         .listAllWithDeleted();
     final allowedCustomFieldIds = {
@@ -307,8 +347,13 @@ final class CompendiumSyncStorage
       // Consequence, stated rather than implied: an undecodable dance is not
       // published at all. Conservative in the same direction as the withhold —
       // this device does not speak for a row it cannot read.
+      //
+      // Reported rather than dropped in silence (#1347): the withhold is
+      // correct and stays, but a dance that is simply absent from every peer,
+      // with nothing said about it, is indistinguishable from one that synced.
       if (dance.figuresSource is UnreadableFigures ||
           dance.tunesSource is UnreadableTunes) {
+        withheld.add(_withheldUnreadableDanceReport(dance.id));
         continue;
       }
       await addEntity(
@@ -534,6 +579,7 @@ final class CompendiumSyncStorage
       publication: publication,
       pendingLive: pendingLive,
       pending: pendingAddresses,
+      withheld: List.unmodifiable(withheld),
     );
   });
 
@@ -617,9 +663,13 @@ final class CompendiumSyncStorage
   /// [refreshDanceAmbiguityReviews] so they do not rediscover or merge dances.
   Future<SyncFreshAttachDedupeResult> deduplicateFreshAttach() =>
       repositories.transaction(() async {
-        final plan = await _danceDedupePlan();
+        final withheld = <SyncReport>[];
+        final plan = await _danceDedupePlan(withheld: withheld);
         await _refreshDanceAmbiguityReviews(plan.ambiguities);
-        final reports = _reportsForDanceAmbiguities(plan.ambiguities);
+        final reports = [
+          ...withheld,
+          ..._reportsForDanceAmbiguities(plan.ambiguities),
+        ];
 
         if (plan.merges.isEmpty) {
           return SyncFreshAttachDedupeResult(
@@ -658,6 +708,7 @@ final class CompendiumSyncStorage
         };
         final ambiguities = <SyncDanceDedupeAmbiguity>[];
         final seenPairs = <String>{};
+        final withheld = <SyncReport>[];
         for (final row in queuedRows) {
           final pairKey = _danceReviewPairKey(row.recordId, row.counterpartId);
           if (!seenPairs.add(pairKey) ||
@@ -666,8 +717,11 @@ final class CompendiumSyncStorage
               pendingDanceIds.contains(row.counterpartId)) {
             continue;
           }
-          final left = await _danceCandidate(row.recordId);
-          final right = await _danceCandidate(row.counterpartId);
+          final left = await _danceCandidate(row.recordId, withheld: withheld);
+          final right = await _danceCandidate(
+            row.counterpartId,
+            withheld: withheld,
+          );
           if (left == null || right == null) continue;
           final pairPlan = planFreshAttachDedupe([left, right]);
           if (pairPlan.ambiguities.length == 1) {
@@ -677,7 +731,10 @@ final class CompendiumSyncStorage
         await _refreshDanceAmbiguityReviews(ambiguities);
         return SyncFreshAttachDedupeResult(
           duplicateCount: 0,
-          reports: List.unmodifiable(_reportsForDanceAmbiguities(ambiguities)),
+          reports: List.unmodifiable([
+            ...withheld,
+            ..._reportsForDanceAmbiguities(ambiguities),
+          ]),
         );
       });
 
@@ -771,7 +828,14 @@ final class CompendiumSyncStorage
     return canonicalJson([first, second]);
   }
 
-  Future<SyncFreshAttachDedupePlan> _danceDedupePlan() async {
+  /// [withheld] collects a report per dance this plan refuses to consider
+  /// because its stored content cannot be decoded (#1347). It is an out
+  /// parameter rather than part of the returned plan because
+  /// [SyncFreshAttachDedupePlan] is the pure planner's own type, shared with
+  /// callers that have no library behind them.
+  Future<SyncFreshAttachDedupePlan> _danceDedupePlan({
+    required List<SyncReport> withheld,
+  }) async {
     final customFields = await repositories.customFieldDefs
         .listAllWithDeleted();
     final allowedCustomFieldIds = {
@@ -801,9 +865,10 @@ final class CompendiumSyncStorage
       // made `listAll`/`getById` return such a dance instead of raising.
       //
       // Consequence, stated rather than implied: an undecodable dance is not
-      // offered as a dedupe match on a fresh attach.
+      // offered as a dedupe match on a fresh attach, and says so (#1347).
       if (dance.figuresSource is UnreadableFigures ||
           dance.tunesSource is UnreadableTunes) {
+        withheld.add(_withheldUnreadableDanceReport(dance.id));
         continue;
       }
       final row = rowsById[dance.id];
@@ -1816,7 +1881,21 @@ final class CompendiumSyncStorage
     );
   }
 
-  Future<SyncMergeCandidate?> _danceCandidate(String id) async {
+  /// [withheld], when given, collects a report for a dance refused here
+  /// because its stored content cannot be decoded (#1347).
+  ///
+  /// It is optional because two of this method's three callers must not raise
+  /// one. `_reconcileDanceReviewQueue` runs after a merge inside
+  /// [deduplicateFreshAttach], which has already reported the same record from
+  /// its dedupe plan — a second report would carry an identical
+  /// [SyncReport.coalescingKey] and be dropped anyway, so passing a sink there
+  /// would add a path without adding a notice. `resolveDanceReview` is a user
+  /// gesture rather than a pass: it raises
+  /// `SyncReviewException(targetMissing)` and has no report sink to fill.
+  Future<SyncMergeCandidate?> _danceCandidate(
+    String id, {
+    List<SyncReport>? withheld,
+  }) async {
     final dance = await repositories.dances.getById(id, includeDeleted: true);
     if (dance == null) return null;
     // Withheld for the same reason [_readDanceBody] withholds: this device
@@ -1831,9 +1910,11 @@ final class CompendiumSyncStorage
     //
     // Consequence, stated rather than implied: an undecodable dance is not
     // offered as a merge candidate. Conservative in the same direction as the
-    // withhold — the record is simply not spoken for.
+    // withhold — the record is simply not spoken for, and [withheld] is how it
+    // stops being spoken for *silently* (#1347).
     if (dance.figuresSource is UnreadableFigures ||
         dance.tunesSource is UnreadableTunes) {
+      withheld?.add(_withheldUnreadableDanceReport(id));
       return null;
     }
     final row = await (_db.select(
@@ -4956,19 +5037,25 @@ final class CompendiumSyncStorage
     message: 'Inbound record could not be decoded: $message.',
   );
 
-  /// The record body published for a dance, or `null` to publish nothing.
+  /// The stored body for a dance, or `null` for none.
   ///
-  /// **A dance whose stored transcription could not be decoded is withheld**
-  /// (#1347). The body would otherwise carry the transcription as an empty
-  /// array plus a `figuresRaw` sibling, and a peer that does not understand
-  /// `figuresRaw` would apply the empty array over its own copy — replacing a
-  /// transcription it can read with nothing, on the strength of a record this
-  /// device could not read in the first place. That is the one outcome this
-  /// whole change exists to prevent, so the record does not go out at all.
+  /// **This is an inbound path, not a publish path.** Its only caller is
+  /// [read], and [read]'s only callers are in `sync_apply.dart`, which uses it
+  /// to fetch the current local body an arriving peer record is overlaid onto.
+  /// Publication does not come through here: the coordinator publishes from
+  /// `snapshot().local` / `.publication`, whose blobs `snapshot` builds
+  /// directly with `syncRecordBlobForEntity`. Earlier comments and the spec
+  /// text written alongside them called this one of four publish paths; it is
+  /// not, and both were corrected with #1347's reporting half.
   ///
-  /// Withholding is strictly conservative: a record that is never published
-  /// cannot overwrite anything, and the peer keeps whatever it already has. The
-  /// local copy is untouched either way — the bytes stay exactly as stored.
+  /// **A dance whose stored transcription could not be decoded still returns
+  /// `null` here** (#1347), so the overlay base is empty rather than a body
+  /// carrying the transcription as an empty array beside a `figuresRaw`
+  /// sibling. Conservative in the same direction as the publish-side withhold.
+  ///
+  /// It raises no withheld report, because nothing is withheld *from a peer*
+  /// here. The record's absence from publication is reported once, by the
+  /// paths that actually withhold it.
   Future<Map<String, Object?>?> _readDanceBody(String id) async {
     final dance = await repositories.dances.getById(id, includeDeleted: true);
     if (dance == null) return null;

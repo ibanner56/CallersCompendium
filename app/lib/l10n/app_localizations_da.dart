@@ -319,6 +319,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Nogle elementer på denne enhed har en dato, appen ikke kan stole på, så de bliver ikke sendt til dine andre enheder. Tjek dato og klokkeslæt på denne enhed, og rediger derefter et af elementerne for at give det en ny dato.';
 
   @override
+  String get settingsSyncNoticeWithheldUnreadable =>
+      'Nogle danse på denne enhed har gemte figurer eller melodier, som appen ikke kan læse, så de bliver ikke sendt til dine andre enheder. Intet er blevet slettet — åbn en af dem, og indtast dens figurer eller melodier igen for at få den med.';
+
+  @override
   String get settingsSyncNoticeSkippedRecord =>
       'Nogle poster fra en anden enhed kunne ikke bruges og blev sprunget over. Tjek, at dine andre enheder kører den samme appversion, og synkronisér igen.';
 

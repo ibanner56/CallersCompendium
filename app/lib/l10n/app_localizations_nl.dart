@@ -320,6 +320,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Sommige items op dit apparaat hebben een datum die de app niet kan vertrouwen, dus ze worden niet naar je andere apparaten gestuurd. Controleer de datum en tijd op dit apparaat en bewerk daarna een van de items om het een nieuwe datum te geven.';
 
   @override
+  String get settingsSyncNoticeWithheldUnreadable =>
+      'Sommige dansen op dit apparaat hebben opgeslagen figuren of deuntjes die de app niet kan lezen, dus ze worden niet naar je andere apparaten gestuurd. Er is niets verwijderd — open er een en voer de figuren of deuntjes opnieuw in om die dans mee te nemen.';
+
+  @override
   String get settingsSyncNoticeSkippedRecord =>
       'Sommige records van een ander apparaat konden niet worden gebruikt en zijn overgeslagen. Controleer of je andere apparaten dezelfde app-versie gebruiken en synchroniseer opnieuw.';
 
