@@ -243,10 +243,25 @@ void main() {
           repos,
         ).refreshDanceAmbiguityReviews();
 
+        // Narrowed from `result.reports, isEmpty` when #1402 added a second
+        // outbound code. That assertion used "no reports at all" as a proxy for
+        // "no ambiguity pair formed", which was exact while `equalUpdatedAt`
+        // was the only thing this result could carry. It is not any more, and
+        // the proxy failed on a report that CONFIRMS what this test checks —
+        // the candidate was refused, and now says so. Asserting the pairing
+        // code by name keeps the original guard, and asserting the withheld
+        // report keeps the refusal observable from here too.
         expect(
-          result.reports,
+          result.reports.where(
+            (report) => report.code == SyncReportCode.equalUpdatedAt,
+          ),
           isEmpty,
           reason: 'an undecodable dance is not offered as a merge candidate',
+        );
+        expect(
+          result.reports.map((report) => report.code),
+          contains(SyncReportCode.withheldUnreadableRecord),
+          reason: 'and the refusal is reported rather than silent (#1347)',
         );
       },
     );
