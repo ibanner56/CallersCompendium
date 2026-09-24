@@ -231,6 +231,16 @@ class SyncFreshAttachDedupeResult {
 /// withhold itself is not scoped to live rows — a deleted record still has a
 /// tombstone to reason about. So liveness is decided here, at the point the
 /// report is raised, rather than filtered out of the list afterwards.
+///
+/// **A record under a pending deletion is equally not reportable**, for the
+/// same reason one hop earlier: its live row is retained only until an inbound
+/// tombstone can apply (§6.8), so telling the reader to go and re-enter its
+/// figures is advice about a record on its way out. That exclusion is *not*
+/// here, because two of the three callers already `continue` on
+/// `pendingDanceIds` before the withhold check and never reach this function;
+/// only `snapshot()` scans past them, and it passes a null sink for those.
+/// Stated here so the asymmetry is deliberate rather than looking like an
+/// oversight at the one call site that carries it.
 void _reportWithheldUnreadableDance(List<SyncReport>? into, Dance dance) {
   if (dance.deletedAt != null) return;
   into?.add(
@@ -317,6 +327,14 @@ final class CompendiumSyncStorage
     final baselineState = await repositories.syncLocal.getBaselineState();
     final local = <SyncRecordAddress, SyncMergeCandidate?>{};
     final withheld = <SyncReport>[];
+    // Read here rather than beside its own loop below, because the withhold
+    // report needs it before the dance scan. `_revalidatePendingDeletions()`
+    // has already run, so this is the current set.
+    final pendingRows = await repositories.syncLocal.listPendingDeletions();
+    final pendingDanceIds = {
+      for (final pending in pendingRows)
+        if (pending.kind == SyncRecordKind.dance) pending.recordId,
+    };
     final customFields = await repositories.customFieldDefs
         .listAllWithDeleted();
     final allowedCustomFieldIds = {
@@ -371,7 +389,10 @@ final class CompendiumSyncStorage
       // with nothing said about it, is indistinguishable from one that synced.
       if (dance.figuresSource is UnreadableFigures ||
           dance.tunesSource is UnreadableTunes) {
-        _reportWithheldUnreadableDance(withheld, dance);
+        _reportWithheldUnreadableDance(
+          pendingDanceIds.contains(dance.id) ? null : withheld,
+          dance,
+        );
         continue;
       }
       await addEntity(
@@ -548,7 +569,6 @@ final class CompendiumSyncStorage
     final publication = <SyncRecordAddress, SyncMergeCandidate?>{...local};
     final pendingLive = <SyncRecordAddress, SyncMergeCandidate?>{};
     final pendingAddresses = <SyncRecordAddress>{};
-    final pendingRows = await repositories.syncLocal.listPendingDeletions();
     for (final row in pendingRows) {
       final blob = decodeSyncRecordBlob(row.tombstoneBlob);
       final hash = sha256Hex(encodeSyncRecordBlobUtf8(blob));

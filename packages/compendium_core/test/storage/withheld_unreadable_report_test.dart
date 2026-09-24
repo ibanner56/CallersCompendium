@@ -212,6 +212,71 @@ void main() {
       });
     });
 
+    test('a dance under a pending deletion is not reported', () async {
+      // Named only by the review's BODY ("Pending and deleted unreadable
+      // dances"), not by its inline thread, which said deleted alone. Body and
+      // threads are independent channels and either can carry a finding the
+      // other does not.
+      //
+      // `_danceDedupePlan` and `refreshDanceAmbiguityReviews` already skip
+      // these before the withhold check; `snapshot()` did not read the pending
+      // set until after its dance scan, so it was the one path that reported a
+      // record whose tombstone is about to apply (§6.8).
+      await repos.dances.create(sampleDance(id: 'd1', title: 'Going away'));
+      // A pending deletion survives only while something still cites the
+      // record (§6.8), so the citing row is part of the fixture rather than
+      // decoration: without it `_revalidatePendingDeletions()` applies the
+      // tombstone at the top of `snapshot()` and there is nothing left to
+      // report about. The precondition below is what caught that.
+      await repos.dances.create(
+        sampleDance(
+          id: 'd2',
+          title: 'Cites it',
+          links: [
+            DanceLink(
+              id: 'link-1',
+              kind: LinkKind.relatedDance,
+              targetDanceId: 'd1',
+            ),
+          ],
+        ),
+      );
+      await repos.ensureMigrated();
+      await _storeRawFigures(db, 'd1', '[{"kind":');
+
+      final deletedAt = DateTime.utc(2026, 5, 1);
+      final tombstone = SyncRecordBlob(
+        kind: SyncRecordKind.dance,
+        id: 'd1',
+        updatedAt: deletedAt,
+        deletedAt: deletedAt,
+        existenceAt: deletedAt,
+        body: const {'id': 'd1'},
+      );
+      await repos.syncLocal.upsertPendingDeletion(
+        kind: SyncRecordKind.dance,
+        recordId: 'd1',
+        tombstonedAt: deletedAt,
+        tombstoneHash: sha256Hex(encodeSyncRecordBlobUtf8(tombstone)),
+        tombstoneBlob: encodeSyncRecordBlob(tombstone),
+      );
+
+      final snapshot = await storage.snapshot();
+
+      // Asserted first, so the test cannot pass because `snapshot()`'s opening
+      // `_revalidatePendingDeletions()` dropped the row and left nothing to
+      // report about.
+      expect(
+        await repos.syncLocal.getPendingDeletion(
+          kind: SyncRecordKind.dance,
+          recordId: 'd1',
+        ),
+        isNotNull,
+        reason: 'precondition: the pending deletion survived revalidation',
+      );
+      expect(withheldFor(snapshot.withheld, 'd1'), isEmpty);
+    });
+
     test('a live unreadable dance is still reported once its twin is '
         'deleted', () async {
       // The complement that stops the liveness gate from being written as
