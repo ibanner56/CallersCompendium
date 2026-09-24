@@ -46,6 +46,19 @@ String _normalise(String text) => text
     .replaceAll(RegExp(r'\s+'), ' ')
     .trim();
 
+/// The `//` comment block at the very top of [source]: the lines before the
+/// first one that is not a plain `//` comment. `///` doc comments and code end
+/// it, so a notice moved below the library doc, or below any declaration, is
+/// not in the head of the file.
+String _leadingComment(String source) {
+  final head = <String>[];
+  for (final line in source.split('\n')) {
+    if (!line.startsWith('//') || line.startsWith('///')) break;
+    head.add(line);
+  }
+  return head.join('\n');
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   final root = _repoRoot();
@@ -98,7 +111,7 @@ void main() {
     'packages/compendium_core/lib/src/imports/fmp/scsu.dart',
   ]) {
     test('$path carries the full fmptools notice in its header', () {
-      expect(_normalise(read(path)), contains(notice));
+      expect(_normalise(_leadingComment(read(path))), contains(notice));
     });
   }
 
