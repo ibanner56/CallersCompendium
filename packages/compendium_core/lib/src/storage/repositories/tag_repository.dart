@@ -250,8 +250,15 @@ class TagRepository {
   /// Returns the existing id for [name], including tombstoned rows when
   /// [includeDeleted] is true. Matching is case-insensitive for compatibility
   /// with legacy case-only duplicates; live rows win, then the smallest id.
+  ///
+  /// Both sides go through [naturalKeyMatchKey] — the same key
+  /// `name_picker` decides "offer create?" by, which is the point of it being
+  /// one function. Applying it to the **stored** value as well as the query is
+  /// not redundant: §4.1's carve-out can leave a row's bytes un-composed, so a
+  /// stored decomposed name would otherwise miss an NFC query and hand the
+  /// caller a create that `upsert` then refuses.
   Future<String?> idByName(String name, {bool includeDeleted = false}) async {
-    final normalized = normalizeShareableText(name);
+    final wanted = naturalKeyMatchKey(name);
     final rows =
         await (_db.select(_db.tags)..where(
               (t) =>
@@ -259,9 +266,7 @@ class TagRepository {
             ))
             .get();
     final matches =
-        rows
-            .where((row) => row.name.toLowerCase() == normalized.toLowerCase())
-            .toList()
+        rows.where((row) => naturalKeyMatchKey(row.name) == wanted).toList()
           ..sort((a, b) {
             if (includeDeleted) {
               final deletedOrder = (a.deletedAt != null ? 1 : 0).compareTo(

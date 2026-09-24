@@ -23,6 +23,35 @@ class ShareableJsonKeyCollision implements Exception {
 String normalizeShareableText(String value) =>
     nfc(sanitizeShareableText(value));
 
+/// The key to compare two natural-key values by when asking *"does the
+/// collection already have this one?"* — [normalizeShareableText], then
+/// case-folded.
+///
+/// This exists because the question was being asked in three different
+/// spellings and one of them was wrong. A UI that decides whether to offer
+/// "create a new X" must reach the same answer as the repository that will
+/// refuse the create, and `name_picker` compared with `toLowerCase()` alone —
+/// no NFC — while the repositories look the incumbent up by
+/// [normalizeShareableText]. With a live "café", typing the decomposed form
+/// still offered "create", and taking it threw
+/// `DuplicateNaturalKeyError` out of an async callback nobody awaits: the
+/// author was silently not created (found in review on #1410).
+///
+/// Case-folding is deliberately **wider** than the `UNIQUE` index, which is a
+/// plain byte comparison: "Ada" and "ADA" are two keys to SQLite but one to this
+/// function. That asymmetry is safe in this direction and only in this
+/// direction — a comparison wider than the index suppresses "create" for a name
+/// the index would have accepted, which costs the user a duplicate spelling they
+/// almost never want; a comparison *narrower* than the index offers a create the
+/// index then refuses, which is the defect. Do not narrow this to match the
+/// index without moving the repositories' lookup with it.
+///
+/// `ImportPipeline._normalizeName` deliberately does **not** use this: it also
+/// trims and collapses internal whitespace, which is right for reconciling
+/// scraped author names and wrong for deciding whether a typed name is new.
+String naturalKeyMatchKey(String value) =>
+    normalizeShareableText(value).toLowerCase();
+
 /// The first half of [normalizeShareableText]: sanitized, but **not** composed.
 ///
 /// This is what §4.1's collision carve-out means by storing a value
