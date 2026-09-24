@@ -2944,7 +2944,10 @@ absence is permanent: no later pass clears this state.
 
 **Only a live row is reported.** The state defined above is a live, non-deleted
 row; a soft-deleted record is not in it and MUST raise no report, even though
-the withhold itself still applies to it. This is stated here rather than left to
+the withhold itself still applies to it. A record held under a **pending
+deletion** (§6.8) MUST likewise raise no report: its live row is retained only
+until an inbound tombstone can apply, so it is on its way out and the remedy
+below does not apply to it either. This is stated here rather than left to
 the contrast with quarantine above, which lists "the row is live, it is not
 deleted" as a property of the state and not as a scope on reporting — an
 implementation read it the second way and reported deleted rows. The remedy the
