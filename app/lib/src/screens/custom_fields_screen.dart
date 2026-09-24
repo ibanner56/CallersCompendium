@@ -164,17 +164,32 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
         // Before #1348 the repository kept the old key and raised nothing: the
         // screen's re-read then showed the un-renamed field with no
         // explanation of why the rename had not taken.
+        //
+        // A **creation** onto a live key used to escape this catch entirely:
+        // the repository reached the insert and SQLite refused it with a raw
+        // `SqliteException`, so there was no snackbar, no diagnostic entry, and
+        // no field — the key validator checks format only, so nothing upstream
+        // stopped it either. The repository now refuses it with this same typed
+        // error.
         logCaughtError(
           error,
           stackTrace,
           source: 'custom_fields_screen._openForm',
         );
         if (!mounted) return;
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             key: const ValueKey('field-key-duplicate-snackbar'),
+            // Two outcomes, two sentences. The rename copy says the key was not
+            // changed, which on a creation would describe a field that does not
+            // exist; the creation copy says nothing was created. Neither may
+            // read better than what happened — the incumbent is untouched in
+            // both cases.
             content: Text(
-              AppLocalizations.of(context).customFieldsKeyDuplicate(result.key),
+              isNew
+                  ? l10n.customFieldsKeyDuplicateNew(result.key)
+                  : l10n.customFieldsKeyDuplicate(result.key),
             ),
           ),
         );

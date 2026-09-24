@@ -38,9 +38,11 @@ class TagRepository {
   /// Writes [tag], reviving it if a tombstone is in the way.
   ///
   /// `tags.name` is UNIQUE, so a tag deleted and then re-created under the same
-  /// name lands on the tombstoned row rather than inserting beside it. Clearing
-  /// `deleted_at` here is what makes that re-creation work at all: drift emits
-  /// an *untargeted* `ON CONFLICT DO UPDATE`, which updates every column the
+  /// name lands on the tombstoned row rather than inserting beside it —
+  /// [adoptTombstonedNaturalKey] returns the tombstone's id, so the insert
+  /// carries it. Clearing `deleted_at` here is what makes that re-creation work
+  /// at all: drift targets the conflict clause at the primary key
+  /// (`ON CONFLICT("id") DO UPDATE`), and that update writes every column the
   /// companion mentions and leaves the rest alone — so without this the new tag
   /// would be written onto the tombstone, keep its `deleted_at`, and simply
   /// never appear.

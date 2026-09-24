@@ -199,11 +199,15 @@ Future<void> stampExistenceTransition(
 ///   causal stamp. Revival-by-upsert is not theoretical: `choreographers.name`,
 ///   `tags.name`, `custom_field_defs.key` and `settings.key` are unique, so
 ///   re-creating an entity with the same natural key lands on its tombstone
-///   rather than inserting beside it. Clearing `deleted_at` here is also what
-///   makes that re-creation *work at all*: drift emits an untargeted
-///   `ON CONFLICT DO UPDATE`, which writes only the columns the companion
-///   names, so a tag re-created after deletion would otherwise be stored onto
-///   the tombstone, keep its `deleted_at`, and simply never appear.
+///   rather than inserting beside it — by [adoptTombstonedNaturalKey] for the
+///   first three, and because `key` *is* the primary key for `settings`.
+///   Clearing `deleted_at` here is also what makes that re-creation *work at
+///   all*: the insert therefore carries the tombstone's own primary key, drift
+///   emits `ON CONFLICT("<primary key>") DO UPDATE` (see
+///   [adoptTombstonedNaturalKey] on the target), and that update writes only
+///   the columns the companion names — so a tag re-created after deletion
+///   would otherwise be stored onto the tombstone, keep its `deleted_at`, and
+///   simply never appear.
 /// * **Creation** (`existence_at` NULL, because the insert branch ran) — seed
 ///   the field from a plain clock.
 /// * **Ordinary content edit** (row was live and already stamped) — *not* an
@@ -343,9 +347,14 @@ Future<void> raiseExistenceAbove(
 /// entity comes back attached to the records it was attached to before, exactly
 /// as reviving it under its original id does.
 ///
-/// A **live** row holding the key is deliberately left alone, so that case
-/// still raises `UNIQUE constraint failed` exactly as it did before v25. This
+/// A **live** row holding the key is deliberately left alone *here*: this
 /// function only restores the pre-v25 outcome for the case v25 introduced.
+/// Its callers decide that one, and since the create half of #1348 they refuse
+/// it with `DuplicateNaturalKeyError` before the insert
+/// ([refuseCreationOntoLiveNaturalKey]) rather than letting it reach SQLite.
+/// Until then it surfaced as the raw `UNIQUE constraint failed` it had raised
+/// since before v25, which no screen catches by type — so on the one path a
+/// user could reach it, the field was silently not created.
 ///
 /// ## Adoption applies to creation, never to a rename
 ///
@@ -357,10 +366,12 @@ Future<void> raiseExistenceAbove(
 /// to "Easy" and instead gets two tags, "Easy" resurrected from the dead and
 /// "Hard" unchanged. Silently producing a duplicate is worse than failing.
 ///
-/// With the guard, a rename onto a tombstoned name raises `UNIQUE constraint
-/// failed` — loudly, and identically to a rename onto a *live* name, which is
-/// what it has always done. Only the genuinely new case (create an entity whose
-/// natural key a tombstone holds) is reconciled.
+/// With the guard, a rename onto a tombstoned name is refused loudly, and
+/// identically to a rename onto a *live* name. Both did raise `UNIQUE
+/// constraint failed`; since #1348 both are `resolveNaturalKeyCollision`'s
+/// `DuplicateNaturalKeyError`, which the editors catch and report. What has
+/// not changed is that neither is absorbed. Only the genuinely new case
+/// (create an entity whose natural key a tombstone holds) is reconciled.
 ///
 /// **Adoption clears the adopted row's join rows** ([joinTable] /
 /// [joinColumn]), and that is the difference between adoption and revival. A

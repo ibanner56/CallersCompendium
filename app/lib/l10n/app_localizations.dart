@@ -10464,6 +10464,12 @@ abstract class AppLocalizations {
   /// **'A field with the key \"{key}\" already exists. The key wasn\'t changed.'**
   String customFieldsKeyDuplicate(String key);
 
+  /// Snackbar shown when CREATING a custom field whose key a live definition already holds. Distinct from customFieldsKeyDuplicate, which is the rename case and says the key was not changed: here no field was created at all and the existing definition is untouched. The write is refused rather than failing opaquely (sync-spec 4.1, issue #1348); the raw exception is logged, never shown (CWE-209). {key} is untrusted user-entered text, rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'A field with the key \"{key}\" already exists. The new field wasn\'t created.'**
+  String customFieldsKeyDuplicateNew(String key);
+
   /// Snackbar when deleting a custom field still set on dances but the exact count is unknown. The raw exception is logged (debugPrint), never shown (CWE-209). {label} is plain text.
   ///
   /// In en, this message translates to:

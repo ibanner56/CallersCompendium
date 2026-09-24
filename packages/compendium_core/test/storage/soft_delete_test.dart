@@ -515,9 +515,11 @@ void main() {
     test(
       're-creating a tag under the same UNIQUE name works, and is visible',
       () async {
-        // Without the tombstone clear this silently fails: drift emits an
-        // untargeted ON CONFLICT DO UPDATE, so the new tag lands on the
-        // tombstoned row, keeps its deleted_at, and never appears.
+        // Without the tombstone clear this silently fails: adoption makes the
+        // insert carry the tombstone's own id, drift targets the conflict
+        // clause at the primary key (ON CONFLICT("id") DO UPDATE), and that
+        // update touches only the columns the companion names — so the new tag
+        // lands on the tombstoned row, keeps its deleted_at, and never appears.
         // ignore: unused_result
         await repos.tags.upsert(
           Tag(id: 't1', name: 'Easy'),

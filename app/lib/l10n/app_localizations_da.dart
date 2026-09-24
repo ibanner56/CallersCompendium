@@ -6898,6 +6898,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String customFieldsKeyDuplicateNew(String key) {
+    return 'Et felt med nøglen „$key“ findes allerede. Det nye felt blev ikke oprettet.';
+  }
+
+  @override
   String customFieldsDeleteInUseUnknown(String label) {
     return 'Kan ikke slette „$label“: bruges stadig af nogle danse. Fjern værdien fra alle danse først.';
   }

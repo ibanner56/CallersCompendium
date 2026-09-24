@@ -6877,6 +6877,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String customFieldsKeyDuplicateNew(String key) {
+    return 'A field with the key \"$key\" already exists. The new field wasn\'t created.';
+  }
+
+  @override
   String customFieldsDeleteInUseUnknown(String label) {
     return 'Can\'t delete \"$label\": still used by some dances. Remove the value from all dances first.';
   }

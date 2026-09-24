@@ -66,7 +66,8 @@ class SettingsRepository {
   ///
   /// `key` is the primary key, so re-setting a removed setting lands on its
   /// tombstone; clearing `deleted_at` here is what makes the value visible
-  /// again. Drift's untargeted `ON CONFLICT DO UPDATE` only writes the columns
+  /// again. Drift targets the conflict clause at the primary key — here
+  /// `ON CONFLICT("key") DO UPDATE` — and that update only writes the columns
   /// the companion names, so without this the value would be stored and then
   /// filtered straight back out of every read.
   ///

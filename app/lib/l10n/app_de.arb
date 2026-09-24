@@ -6864,6 +6864,10 @@
   "@customFieldsKeyDuplicate": {
     "x-sourceSha256": "346f6211e52a10a4238242669b00d656ad1ed715fef91b17e4dc2c9c58c8afa5"
   },
+  "customFieldsKeyDuplicateNew": "Ein Feld mit dem Schlüssel „{key}“ existiert bereits. Das neue Feld wurde nicht erstellt.",
+  "@customFieldsKeyDuplicateNew": {
+    "x-sourceSha256": "59837cf3c2001b2ebf5607e77a4fb242f4e7a045479f4f12d092bc4200c39b8d"
+  },
   "customFieldsDeleteInUseUnknown": "„{label}“ kann nicht gelöscht werden: noch von einigen Tänzen verwendet. Entfernen Sie zuerst den Wert aus allen Tänzen.",
   "@customFieldsDeleteInUseUnknown": {
     "x-sourceSha256": "b5852947f44cdcc466df2740301d27ddc3c651174d3ed1640872413fbd33e63f"

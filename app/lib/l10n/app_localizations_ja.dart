@@ -6653,6 +6653,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String customFieldsKeyDuplicateNew(String key) {
+    return 'キーが「$key」のフィールドはすでに存在します。新しいフィールドは作成されませんでした。';
+  }
+
+  @override
   String customFieldsDeleteInUseUnknown(String label) {
     return '「$label」を削除できません: まだいくつかのダンスで使用されています。すべてのダンスから値を削除してから実行してください。';
   }

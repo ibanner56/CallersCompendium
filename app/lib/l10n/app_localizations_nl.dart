@@ -6950,6 +6950,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String customFieldsKeyDuplicateNew(String key) {
+    return 'Een veld met de sleutel “$key” bestaat al. Het nieuwe veld is niet aangemaakt.';
+  }
+
+  @override
   String customFieldsDeleteInUseUnknown(String label) {
     return '“$label” kan niet worden verwijderd: nog in gebruik door sommige dansen. Verwijder de waarde eerst van alle dansen.';
   }

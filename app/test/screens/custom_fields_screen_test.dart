@@ -213,7 +213,58 @@ void main() {
         find.byKey(const ValueKey('field-key-duplicate-snackbar')),
         findsOneWidget,
       );
+      // Assert the *rename* wording specifically. The create case shows a
+      // different sentence from the same snackbar key, so matching the key
+      // alone would pass with the two branches swapped.
+      expect(find.textContaining("The key wasn't changed"), findsOneWidget);
       expect((await repos.customFieldDefs.getById('f2'))!.key, 'remarks');
+    });
+
+    testWidgets('refuses CREATING a field onto a key a live field holds', (
+      tester,
+    ) async {
+      // The create half of #1348, which that PR's `collidingEdit` ruling did
+      // not reach: `_write` only consults `resolveNaturalKeyCollision` when the
+      // row already exists, so a fresh UUID fell through to the insert and
+      // SQLite refused it with a raw `SqliteException`. This screen catches
+      // `DuplicateNaturalKeyError` only, and the key validator checks format —
+      // never uniqueness — so there was no snackbar, no diagnostic entry and no
+      // field: an action that failed while telling the user nothing.
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f1',
+          key: 'notes',
+          label: 'Notes',
+          type: CustomFieldType.text,
+        ),
+      );
+      await _pumpScreen(tester, repos);
+      await _openNewForm(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('cf-label')),
+        'Second Notes',
+      );
+      await tester.enterText(find.byKey(const ValueKey('cf-key')), 'notes');
+      await tester.tap(find.byKey(const ValueKey('cf-form-save')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('field-key-duplicate-snackbar')),
+        findsOneWidget,
+      );
+      // The creation wording: nothing was created, and — unlike the rename
+      // case — no key was "not changed", because there was no key to change.
+      expect(
+        find.textContaining("The new field wasn't created"),
+        findsOneWidget,
+      );
+      // The incumbent is untouched and no second definition exists.
+      final defs = await repos.customFieldDefs.listAll();
+      expect(defs, hasLength(1));
+      expect(defs.single.id, 'f1');
+      expect(defs.single.label, 'Notes');
     });
 
     testWidgets('deletes an unused field after confirmation', (tester) async {

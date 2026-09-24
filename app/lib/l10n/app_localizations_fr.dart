@@ -6999,6 +6999,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String customFieldsKeyDuplicateNew(String key) {
+    return 'Un champ avec la clé « $key » existe déjà. Le nouveau champ n’a pas été créé.';
+  }
+
+  @override
   String customFieldsDeleteInUseUnknown(String label) {
     return 'Impossible de supprimer « $label » : encore utilisé par certaines danses. Supprimez d’abord la valeur de toutes les danses.';
   }

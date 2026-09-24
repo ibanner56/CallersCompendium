@@ -6984,6 +6984,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String customFieldsKeyDuplicateNew(String key) {
+    return 'Ein Feld mit dem Schlüssel „$key“ existiert bereits. Das neue Feld wurde nicht erstellt.';
+  }
+
+  @override
   String customFieldsDeleteInUseUnknown(String label) {
     return '„$label“ kann nicht gelöscht werden: noch von einigen Tänzen verwendet. Entfernen Sie zuerst den Wert aus allen Tänzen.';
   }
