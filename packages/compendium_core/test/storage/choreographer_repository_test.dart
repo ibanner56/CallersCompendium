@@ -307,34 +307,37 @@ void _liveNameCollisionOnCreate() {
   });
   tearDown(() => db.close());
 
-  test('refuses a creation onto a live name, typed, before any write', () async {
-    // ignore: unused_result
-    await repo.upsert(
-      Choreographer(id: 'incumbent', name: 'Ada', notes: 'keepme'),
-      at: DateTime.utc(2020),
-    );
+  test(
+    'refuses a creation onto a live name, typed, before any write',
+    () async {
+      // ignore: unused_result
+      await repo.upsert(
+        Choreographer(id: 'incumbent', name: 'Ada', notes: 'keepme'),
+        at: DateTime.utc(2020),
+      );
 
-    await expectLater(
-      repo.upsert(Choreographer(id: 'newcomer', name: 'Ada')),
-      throwsA(
-        isA<DuplicateNaturalKeyError>()
-            .having((e) => e.table, 'table', 'choreographers')
-            .having((e) => e.column, 'column', 'name')
-            .having((e) => e.value, 'value', 'Ada')
-            .having((e) => e.holderId, 'holderId', 'incumbent'),
-      ),
-    );
+      await expectLater(
+        repo.upsert(Choreographer(id: 'newcomer', name: 'Ada')),
+        throwsA(
+          isA<DuplicateNaturalKeyError>()
+              .having((e) => e.table, 'table', 'choreographers')
+              .having((e) => e.column, 'column', 'name')
+              .having((e) => e.value, 'value', 'Ada')
+              .having((e) => e.holderId, 'holderId', 'incumbent'),
+        ),
+      );
 
-    final rows = await db.select(db.choreographers).get();
-    expect(rows, hasLength(1));
-    expect(rows.single.id, 'incumbent');
-    expect(rows.single.notes, 'keepme');
-    expect(rows.single.updatedAt, DateTime.utc(2020).toLocal());
-    expect(
-      await db.customSelect('SELECT 1 FROM normalisation_skips').get(),
-      isEmpty,
-    );
-  });
+      final rows = await db.select(db.choreographers).get();
+      expect(rows, hasLength(1));
+      expect(rows.single.id, 'incumbent');
+      expect(rows.single.notes, 'keepme');
+      expect(rows.single.updatedAt, DateTime.utc(2020).toLocal());
+      expect(
+        await db.customSelect('SELECT 1 FROM normalisation_skips').get(),
+        isEmpty,
+      );
+    },
+  );
 
   test('still ADOPTS a tombstoned holder rather than refusing', () async {
     // ignore: unused_result
@@ -361,18 +364,21 @@ void _liveNameCollisionOnCreate() {
     expect(live.single.notes, 'revived');
   });
 
-  test('writeFromSync keeps refusing with StateError, not the typed error', () async {
-    // ignore: unused_result
-    await repo.upsert(Choreographer(id: 'incumbent', name: 'Ada'));
-    await expectLater(
-      repo.writeFromSync(Choreographer(id: 'inbound', name: 'Ada')),
-      throwsA(
-        isA<StateError>().having(
-          (e) => e.message,
-          'message',
-          contains('wants a name held by'),
+  test(
+    'writeFromSync keeps refusing with StateError, not the typed error',
+    () async {
+      // ignore: unused_result
+      await repo.upsert(Choreographer(id: 'incumbent', name: 'Ada'));
+      await expectLater(
+        repo.writeFromSync(Choreographer(id: 'inbound', name: 'Ada')),
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            contains('wants a name held by'),
+          ),
         ),
-      ),
-    );
-  });
+      );
+    },
+  );
 }

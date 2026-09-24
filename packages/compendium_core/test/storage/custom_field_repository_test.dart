@@ -528,33 +528,39 @@ void _liveKeyCollisionOnCreate() {
     expect(live.single.label, 'Revived');
   });
 
-  test('a case-different key is not a collision and creates a second row', () async {
-    // `custom_field_defs.key` carries a plain UNIQUE with no NOCASE collation,
-    // so "Mood" and "mood" are two keys. The guard must not widen to a
-    // case-insensitive rule the index does not implement.
-    // ignore: unused_result
-    await repo.upsert(def('incumbent', 'mood'));
-    // ignore: unused_result
-    await repo.upsert(def('newcomer', 'Mood', label: 'Other'));
-    expect(await repo.listAll(), hasLength(2));
-  });
+  test(
+    'a case-different key is not a collision and creates a second row',
+    () async {
+      // `custom_field_defs.key` carries a plain UNIQUE with no NOCASE collation,
+      // so "Mood" and "mood" are two keys. The guard must not widen to a
+      // case-insensitive rule the index does not implement.
+      // ignore: unused_result
+      await repo.upsert(def('incumbent', 'mood'));
+      // ignore: unused_result
+      await repo.upsert(def('newcomer', 'Mood', label: 'Other'));
+      expect(await repo.listAll(), hasLength(2));
+    },
+  );
 
-  test('writeFromSync keeps refusing with StateError, not the typed error', () async {
-    // §6.7 owns identity for an inbound record: it reports the record to
-    // reconciliation and is never shown to anybody. The create-collision guard
-    // is `!fromSync` for exactly that reason, and this is what would catch a
-    // future simplification that drops the flag.
-    // ignore: unused_result
-    await repo.upsert(def('incumbent', 'mood'));
-    await expectLater(
-      repo.writeFromSync(def('inbound', 'mood')),
-      throwsA(
-        isA<StateError>().having(
-          (e) => e.message,
-          'message',
-          contains('wants a name held by'),
+  test(
+    'writeFromSync keeps refusing with StateError, not the typed error',
+    () async {
+      // §6.7 owns identity for an inbound record: it reports the record to
+      // reconciliation and is never shown to anybody. The create-collision guard
+      // is `!fromSync` for exactly that reason, and this is what would catch a
+      // future simplification that drops the flag.
+      // ignore: unused_result
+      await repo.upsert(def('incumbent', 'mood'));
+      await expectLater(
+        repo.writeFromSync(def('inbound', 'mood')),
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            contains('wants a name held by'),
+          ),
         ),
-      ),
-    );
-  });
+      );
+    },
+  );
 }
