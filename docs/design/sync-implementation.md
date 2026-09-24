@@ -382,7 +382,9 @@ naming the table rather than the value is the tell.
   set, a retry that rebuilds leaves no rebuild owed, both writers spell
   `(table, column)` identically, a restore re-runs the pass,
   `normalisation_skips` survives an epoch reset and a detach, an ordinary edit
-  to a blocked row succeeds, `settings.key` is untouched, a second run of the
+  to a blocked row succeeds when it leaves the value unchanged while a rename
+  onto an occupied value is refused visibly, `settings.key` is untouched, a
+  second run of the
   pass changes nothing, a row whose text the pass changed is still found by
   search, and the write-path ratchet catches a **newly added** writer that
   bypasses the choke point rather than a writer removed from a list; and, for

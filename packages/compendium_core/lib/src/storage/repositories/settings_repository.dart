@@ -73,10 +73,9 @@ class SettingsRepository {
   /// A `shareable` value whose object keys normalize to one key is stored
   /// **whole and un-composed** and recorded in `normalisation_skips`, rather
   /// than raising [ShareableJsonKeyCollision] out of the save. That is §4.1's
-  /// write-path rule — "a user's edit is never rejected to satisfy a
-  /// normalisation rule" — and the one-time pass has always handled the
-  /// identical condition this way; only the write path let the exception escape
-  /// (#1348). Recording the key is what makes the value re-attemptable once the
+  /// write-path rule: a collision may cost the user neither the edit nor a
+  /// silent discard, and the one-time pass has always handled the identical
+  /// condition this way; only the write path let the exception escape (#1348). Recording the key is what makes the value re-attemptable once the
   /// user renames or deletes one of the colliding keys.
   ///
   /// "Un-composed" is the whole of the carve-out: the value is still sanitised
