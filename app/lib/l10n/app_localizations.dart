@@ -9241,6 +9241,12 @@ abstract class AppLocalizations {
   /// **'A choreographer named \"{name}\" already exists. The name wasn\'t changed.'**
   String danceEditorChoreographerDuplicate(String name);
 
+  /// Snackbar shown when CREATING a choreographer whose name a live choreographer already holds. Distinct from danceEditorChoreographerDuplicate, which is the rename case and says the name was not changed: here nothing was created and the existing author is untouched, so the user should select it instead. A safety net -- the author picker normally suppresses the create option for a name that already exists (issue #1348). The raw exception is logged, never shown (CWE-209). {name} is untrusted user-entered text, rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'A choreographer named \"{name}\" already exists. The new author wasn\'t created — pick the existing one instead.'**
+  String danceEditorChoreographerCreateDuplicate(String name);
+
   /// Fallback dance title used when deleting a dance whose original title is unavailable.
   ///
   /// In en, this message translates to:

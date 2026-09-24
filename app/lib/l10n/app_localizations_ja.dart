@@ -5767,6 +5767,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String danceEditorChoreographerCreateDuplicate(String name) {
+    return '「$name」という名前の振付者はすでに存在します。新しい作者は作成されませんでした。既存のものを選んでください。';
+  }
+
+  @override
   String get danceEditorFallbackDanceTitle => 'ダンス';
 
   @override

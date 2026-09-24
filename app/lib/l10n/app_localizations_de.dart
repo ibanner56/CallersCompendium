@@ -6061,6 +6061,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String danceEditorChoreographerCreateDuplicate(String name) {
+    return 'Eine Choreografin oder ein Choreograf namens „$name“ existiert bereits. Der neue Eintrag wurde nicht erstellt — wähle stattdessen den vorhandenen aus.';
+  }
+
+  @override
   String get danceEditorFallbackDanceTitle => 'Tanz';
 
   @override

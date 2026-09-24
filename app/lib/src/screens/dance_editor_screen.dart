@@ -540,19 +540,54 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   }
 
   /// Mints (or, on a natural-key match, revives) a [Choreographer] for [name],
-  /// upserts it, and returns its id. The in-memory cache update below is an
-  /// optimistic patch reconciled a moment later by
-  /// [_subscribeReferenceData]'s live stream, kept for the same immediate-
-  /// appearance reason documented on [_createSource].
-  Future<String> _createChoreographer(String name) async {
+  /// upserts it, and returns its id — or `null` when a live author already holds
+  /// the name, in which case the snackbar below has said so and nothing is
+  /// added. The in-memory cache update is an optimistic patch reconciled a
+  /// moment later by [_subscribeReferenceData]'s live stream, kept for the same
+  /// immediate-appearance reason documented on [_createSource].
+  ///
+  /// **This catch is a net, not the fix.** `NamePicker` suppresses "create" for
+  /// a name that matches an option under [naturalKeyMatchKey], which is the key
+  /// the repository resolves the incumbent by, so a collision should not reach
+  /// here at all. It is caught anyway because the two sides agreeing is a
+  /// property nothing enforces: before #1410 the picker compared `toLowerCase()`
+  /// on raw text while the repository composed to NFC, and the resulting throw
+  /// left an unawaited `async` callback — no author, and no message. A future
+  /// divergence should cost a snackbar, not silence.
+  Future<String?> _createChoreographer(String name) async {
     final minted = Choreographer(id: uuidV4(), name: name.trim());
-    // `upsert` returns the id the row actually occupies, which differs from the
-    // minted one when a tombstone already holds this name (schema v25 natural-key
-    // adoption). Caching the minted id would point the dance at a row that does
-    // not exist, and `dance_authors.choreographer_id` is a real FK, so the save
-    // fails rather than corrupting — but it fails on an ordinary action: delete a
-    // choreographer, then type that name again.
-    final id = await _repos.choreographers.upsert(minted, localUserEdit: true);
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final String id;
+    try {
+      // `upsert` returns the id the row actually occupies, which differs from
+      // the minted one when a tombstone already holds this name (schema v25
+      // natural-key adoption). Caching the minted id would point the dance at a
+      // row that does not exist, and `dance_authors.choreographer_id` is a real
+      // FK, so the save fails rather than corrupting — but it fails on an
+      // ordinary action: delete a choreographer, then type that name again.
+      id = await _repos.choreographers.upsert(minted, localUserEdit: true);
+    } on DuplicateNaturalKeyError catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_editor_screen._createChoreographer',
+      );
+      if (!mounted) return null;
+      messenger.showSnackBar(
+        SnackBar(
+          key: const ValueKey('choreographer-create-duplicate-snackbar'),
+          // Not [danceEditorChoreographerDuplicate]: that one says the name was
+          // not changed, which describes a rename. Here nothing was created and
+          // the existing author is untouched, so the user's next step is to pick
+          // it rather than to rename anything.
+          content: Text(
+            l10n.danceEditorChoreographerCreateDuplicate(minted.name),
+          ),
+        ),
+      );
+      return null;
+    }
     final choreographer = minted.id == id
         ? minted
         : Choreographer(id: id, name: minted.name);
@@ -681,7 +716,14 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
 
   /// Mints a [Tag] for [name] and stages it until the owning dance is saved.
   /// Commit-time natural-key reuse/revival happens in [TagRepository.upsertStaged].
-  Future<String> _createTag(String name) async {
+  ///
+  /// Widened to `Future<String?>` with the rest of `NamePicker.onCreate` so
+  /// there is one contract for "the create did not happen" rather than two.
+  /// **It never returns null**: staging writes nothing, so there is no
+  /// collision to refuse here, and `upsertStaged` resolves a live natural-key
+  /// match to the incumbent's id at commit without raising. Every case that
+  /// could already happen behaves exactly as before.
+  Future<String?> _createTag(String name) async {
     final minted = Tag(id: uuidV4(), name: name.trim());
     _controller.stageTag(minted);
     if (mounted) {

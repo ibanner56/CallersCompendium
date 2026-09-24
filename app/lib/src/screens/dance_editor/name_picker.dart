@@ -28,7 +28,11 @@ class NamePicker extends StatelessWidget {
   final List<NameOption> options;
   final ValueChanged<String> onAdd;
   final ValueChanged<String> onRemove;
-  final Future<String> Function(String name) onCreate;
+  /// Returns the id the entity actually occupies, or `null` when the
+  /// create did not happen and the caller has already told the user why
+  /// (see `dance_editor_screen._createChoreographer`). `null` skips
+  /// [onAdd] and leaves the typed text in place.
+  final Future<String?> Function(String name) onCreate;
 
   /// When non-null, each selected chip becomes tappable (an [InputChip]) and
   /// tapping its body invokes [onEdit] with the id — used by the Authors picker
@@ -98,7 +102,11 @@ class _AddAutocomplete extends StatefulWidget {
   final List<String> selectedIds;
   final List<NameOption> options;
   final ValueChanged<String> onAdd;
-  final Future<String> Function(String name) onCreate;
+  /// Returns the id the entity actually occupies, or `null` when the
+  /// create did not happen and the caller has already told the user why
+  /// (see `dance_editor_screen._createChoreographer`). `null` skips
+  /// [onAdd] and leaves the typed text in place.
+  final Future<String?> Function(String name) onCreate;
   final String? sheetSemanticLabel;
 
   @override
@@ -169,6 +177,12 @@ class _AddAutocompleteState extends State<_AddAutocomplete> {
           // Guard against the widget being disposed during the await (e.g. the
           // editor route closed while the tag was being created).
           if (!mounted) return;
+          // `null` is "the create did not happen, and the user has been told".
+          // Nothing is added and the field keeps the typed text, so the next
+          // action is to pick the row it collided with. Returning early rather
+          // than falling through is what keeps the field from being cleared —
+          // clearing it would discard the name the snackbar is talking about.
+          if (id == null) return;
           widget.onAdd(id);
         } else {
           widget.onAdd(choice.id!);

@@ -6031,6 +6031,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String danceEditorChoreographerCreateDuplicate(String name) {
+    return 'Er bestaat al een choreograaf met de naam “$name”. De nieuwe auteur is niet aangemaakt — kies de bestaande.';
+  }
+
+  @override
   String get danceEditorFallbackDanceTitle => 'Dans';
 
   @override

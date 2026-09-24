@@ -185,6 +185,7 @@ void main() {
   );
 
   group('canonical equivalence', _canonicalEquivalenceGroup);
+  group('create declined', _createDeclinedGroup);
 }
 
 // ---------------------------------------------------------------------------
@@ -303,5 +304,90 @@ void _canonicalEquivalenceGroup() {
       find.byKey(const ValueKey('author-option-create:GENE HUBERT')),
       findsNothing,
     );
+  });
+}
+
+// ---------------------------------------------------------------------------
+// `onCreate` returning null is the one contract for "the create did not
+// happen". `onAdd` must be skipped and the typed text kept, so the user can
+// pick the row the create collided with; clearing the field would discard the
+// name the snackbar is talking about.
+//
+// Pinned here rather than left incidental: the tag path shares this callback
+// and never returns null today, so nothing else would notice if the skip were
+// dropped.
+void _createDeclinedGroup() {
+  Future<List<String>> pumpAndTakeCreate(
+    WidgetTester tester,
+    String typed, {
+    required Future<String?> Function(String) onCreate,
+  }) async {
+    final added = <String>[];
+    await setScreenSize(tester, const Size(1200, 900));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: NamePicker(
+            fieldKey: 'author',
+            selectedIds: const [],
+            namesById: const {},
+            options: const [(id: 'gene', name: 'Gene Hubert')],
+            onAdd: added.add,
+            onRemove: (_) {},
+            onCreate: onCreate,
+            sheetSemanticLabel: 'Authors',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('author-input')),
+      warnIfMissed: false,
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('author-input')), typed);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('author-option-create:$typed')));
+    await tester.pumpAndSettle();
+    return added;
+  }
+
+  testWidgets('a null from onCreate adds nothing and keeps the typed text', (
+    tester,
+  ) async {
+    var createCalls = 0;
+    final added = await pumpAndTakeCreate(
+      tester,
+      'Refused Name',
+      onCreate: (_) async {
+        createCalls++;
+        return null;
+      },
+    );
+
+    expect(createCalls, 1, reason: 'the create really was attempted');
+    expect(added, isEmpty, reason: 'nothing may be attached');
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('author-input')))
+          .controller
+          ?.text,
+      'Refused Name',
+      reason: 'the field keeps the name the message is about',
+    );
+  });
+
+  testWidgets('a non-null id still adds, so the skip is not unconditional', (
+    tester,
+  ) async {
+    final added = await pumpAndTakeCreate(
+      tester,
+      'Accepted Name',
+      onCreate: (_) async => 'minted-id',
+    );
+    expect(added, ['minted-id']);
   });
 }

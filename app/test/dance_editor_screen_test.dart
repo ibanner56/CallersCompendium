@@ -908,6 +908,55 @@ void main() {
     },
   );
 
+  testWidgets(
+    'a refused author create reports it instead of failing silently',
+    (tester) async {
+      // The safety net for a future divergence between `NamePicker`'s match and
+      // the repository's lookup. Before #1410 the two disagreed on canonically
+      // equivalent input, `_createChoreographer` did not catch, and the throw
+      // landed in an unawaited `async` callback: no author, no message.
+      final db = openWidgetTestDatabase();
+      final refusing = _RefusingChoreographerRepository(db);
+      final repos = CompendiumRepositories(
+        db,
+        contraTaxonomy,
+        choreographers: refusing,
+      );
+      await _pumpEditor(tester, repos, danceId: null);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('author-input')),
+        'Gene Hubert',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('author-option-create:Gene Hubert')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(refusing.fired, isTrue, reason: 'the create really was attempted');
+      expect(
+        find.byKey(const ValueKey('choreographer-create-duplicate-snackbar')),
+        findsOneWidget,
+      );
+      // The creation wording, not the rename one: nothing was created, and the
+      // user's next step is to pick the existing author.
+      expect(
+        find.textContaining("The new author wasn't created"),
+        findsOneWidget,
+      );
+      // Nothing attached, and the typed name is still there to act on.
+      expect(find.byType(InputChip), findsNothing);
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('author-input')))
+            .controller
+            ?.text,
+        'Gene Hubert',
+      );
+    },
+  );
+
   testWidgets('surfaces non-blocking phrase warnings', (tester) async {
     final repos = openTestRepositories();
     await repos.dances.create(
@@ -2978,5 +3027,36 @@ class _FailOneChoreographersSelect extends drift.QueryInterceptor {
       throw Exception('injected transient choreographers read failure');
     }
     return executor.runSelect(statement, args);
+  }
+}
+
+/// Refuses every choreographer create the way a live natural-key collision
+/// does, so the editor's safety net can be exercised.
+///
+/// The net is unreachable through the real UI once `NamePicker` and the
+/// repository agree — which is the point of the root-cause fix — so the
+/// collision is injected here rather than staged. That is not an artificial
+/// scenario: the picker's options are a cache snapshot, and a row that arrived
+/// between the snapshot and the tap is exactly the divergence this catches.
+class _RefusingChoreographerRepository extends ChoreographerRepository {
+  _RefusingChoreographerRepository(super.db);
+
+  bool fired = false;
+
+  @override
+  Future<String> upsert(
+    Choreographer c, {
+    DateTime? at,
+    bool localUserEdit = false,
+  }) {
+    fired = true;
+    return Future.error(
+      const DuplicateNaturalKeyError(
+        table: 'choreographers',
+        column: 'name',
+        value: 'Gene Hubert',
+        holderId: 'c1',
+      ),
+    );
   }
 }

@@ -6056,6 +6056,10 @@
   "@danceEditorChoreographerDuplicate": {
     "x-sourceSha256": "52b0da7b4633d14785af52f52de164654e1b40d0ddd832631020e4838879bea3"
   },
+  "danceEditorChoreographerCreateDuplicate": "「{name}」という名前の振付者はすでに存在します。新しい作者は作成されませんでした。既存のものを選んでください。",
+  "@danceEditorChoreographerCreateDuplicate": {
+    "x-sourceSha256": "930415b6b09a88eeb257b9cf16ad08a9f56e1f2f274200d996bc1a620a4cb5ea"
+  },
   "danceEditorFallbackDanceTitle": "ダンス",
   "@danceEditorFallbackDanceTitle": {
     "x-sourceSha256": "23d2d73543f9d7d92ac704296e5ee744037f5f4c938e21abf2c17002c4e9ba71"
