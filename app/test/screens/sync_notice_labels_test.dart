@@ -36,10 +36,7 @@ void main() {
     // says the records came "from another device" and tells the user to check
     // that device's app version — false in both halves for a row stored here,
     // and the reuse a future simplification would reach for.
-    final text = syncNoticeText(
-      l10n,
-      SyncNoticeGroup.withheldUnreadableLocal,
-    );
+    final text = syncNoticeText(l10n, SyncNoticeGroup.withheldUnreadableLocal);
 
     expect(text, isNotEmpty);
     expect(text, isNot(equals(l10n.settingsSyncNoticeSkippedRecord)));
