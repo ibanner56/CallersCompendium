@@ -572,6 +572,56 @@ void main() {
     );
   });
 
+  test('surfaces a record the snapshot withheld as unreadable', () async {
+    // The core half of #1347 puts the report on the snapshot; this is the half
+    // that gets it to the user. Without the drain in `_runPass` the snapshot
+    // carries the report and the pass result does not, which is exactly the
+    // silence this change removes.
+    final now = DateTime.utc(2026, 7, 15, 12);
+    const withheld = SyncReport(
+      code: SyncReportCode.withheldUnreadableRecord,
+      kind: SyncRecordKind.dance,
+      recordId: 'd1',
+      message: 'Dance withheld from publication.',
+    );
+    final store = _FakeStore(
+      snapshotBuilder: (_) => SyncCoordinatorSnapshot(
+        epoch: 'epoch-1',
+        previouslyUsed: false,
+        local: const {},
+        publication: const {},
+        baseline: const {},
+        withheld: const [withheld],
+      ),
+    );
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: store,
+      transport: _FakeTransport(
+        devices: ['peer'],
+        peerManifest: _manifest(deviceId: 'peer', records: const {}),
+      ),
+      now: () => now,
+    );
+    addTearDown(coordinator.dispose);
+
+    final result = await coordinator.syncNow();
+
+    expect(
+      result.reports
+          .where(
+            (report) => report.code == SyncReportCode.withheldUnreadableRecord,
+          )
+          .map((report) => report.recordId),
+      ['d1'],
+      reason:
+          'reported exactly once: a pass takes the snapshot several times and '
+          'the sink coalesces on the record, so re-snapshots must not become '
+          'repeats to the user',
+    );
+  });
+
   test(
     'uses alias-normalized peer candidates for reflection diagnostics',
     () async {
