@@ -3,11 +3,11 @@ import 'package:compendium_core/compendium_core.dart';
 /// The figure list of a [Dance] whose transcription is known to be decodable.
 ///
 /// **This lives in `test/` on purpose, and production code cannot import it.**
-/// [FigureSource] deliberately offers no shortcut that returns a `List<Figure>`,
-/// because the next change in this sequence adds a second case and relies on
-/// every *production* reader failing to compile until it says what that case
-/// means there. A shortcut in `lib/` would make them all compile silently and
-/// give back exactly the hazard the type exists to prevent.
+/// [FigureSource] deliberately offers no shortcut that returns a `List<Figure>`:
+/// [UnreadableFigures] landed by making every *production* reader fail to
+/// compile until it said what that case means there, and a further case would
+/// have to do the same. A shortcut in `lib/` would make them all compile
+/// silently and give back exactly the hazard the type exists to prevent.
 ///
 /// A test is not one of those readers. No test is a write-back path, so the
 /// compile-time forcing buys nothing here and would put a `switch` inside every
@@ -17,10 +17,11 @@ import 'package:compendium_core/compendium_core.dart';
 /// one and it was stale within the same pull request. The analyzer is the
 /// instrument for that question, not a comment.)
 ///
-/// Note that this helper is itself a `switch` over the sealed type, so the
-/// second case will break *it* — one place, deliberately — at which point tests
-/// that need to exercise an undecodable transcription stop using it and say so
-/// explicitly.
+/// Note that this helper is itself a `switch` over the sealed type, so a new
+/// case breaks *it* — one place, deliberately. That is how it went when
+/// [UnreadableFigures] arrived, and a test that means to exercise an
+/// undecodable transcription now matches on that case itself rather than
+/// coming through here.
 List<Figure> figuresOf(Dance dance) => switch (dance.figuresSource) {
   DecodedFigures(:final figures) => figures,
   // Deliberately loud. A test reaching here expected a decodable

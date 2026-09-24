@@ -2203,6 +2203,16 @@ class DanceRepository {
   /// would make this an O(1 + 6N)-query scan. Results are ordered
   /// case-insensitively by title to match the collection's `COLLATE NOCASE`
   /// display order.
+  ///
+  /// A dance whose stored transcription cannot be decoded is **skipped**, not
+  /// raised on (#1347). Bypassing [_toModel] also bypassed [_figureSourceFor],
+  /// so this scan kept the pre-#1382 behaviour after the load path was made
+  /// total: one undecodable row aborted the whole scan, and the screen that
+  /// calls this rendered its error state with a Retry that could never succeed.
+  /// Skipping is what [reparseImportGapFiguresForMany] already does for such a
+  /// row, so the dry-run and the apply agree — and the row is absent from the
+  /// list rather than shown with a zero count, which would read as "nothing to
+  /// upgrade here" about a transcription that was never read at all.
   Future<List<CustomReparsePreview>> previewImportGapReparse() async {
     final rows =
         await (_db.selectOnly(_db.dances)
@@ -2216,7 +2226,19 @@ class DanceRepository {
 
     final previews = <CustomReparsePreview>[];
     for (final row in rows) {
-      final figures = decodeFigures(row.read(_db.dances.figuresJson)!);
+      // Routed through [_figureSourceFor] rather than a local try/catch so this
+      // site inherits the measured exception surface (`FormatException` *and*
+      // `ArgumentError`) instead of restating it, and so a third
+      // [FigureSource] case would stop this switch compiling too.
+      final figures = switch (_figureSourceFor(
+        row.read(_db.dances.figuresJson)!,
+      )) {
+        DecodedFigures(:final figures) => figures,
+        // Nothing can be re-parsed out of text that never decoded, and
+        // [reparseImportGapFiguresForMany] would skip this row anyway.
+        UnreadableFigures() => null,
+      };
+      if (figures == null) continue;
       final outcome = reparseImportGapFigures(figures, taxonomy: _taxonomy);
       if (outcome.upgradedCount > 0) {
         previews.add(
@@ -2650,10 +2672,18 @@ class DanceRepository {
   /// Decodes a stored `figures_json`, or holds it as [UnreadableFigures] when
   /// it cannot be decoded at all (#1347).
   ///
-  /// This is the one place a stored transcription becomes a model, so it is the
-  /// one place that can stop an unreadable row from taking down every read.
-  /// Before this, `getById`/`listAll` raised, which meant `ensureMigrated()`
-  /// raised at startup and the app would not open.
+  /// This is where a stored transcription becomes a model on the load path, so
+  /// it is what stops an unreadable row from taking down every read. Before it,
+  /// `getById`/`listAll` raised, which meant `ensureMigrated()` raised at
+  /// startup and the app would not open.
+  ///
+  /// It is **not** the only route from stored text to figures, and reading it as
+  /// one is how two sites were missed after the load path landed: the one-time
+  /// sweeps in `repositories.dart` decode raw rows themselves, and
+  /// [previewImportGapReparse] bypassed [_toModel] for query-count reasons and
+  /// kept raising until it was routed through here. Any new caller that reads
+  /// `figures_json` directly inherits nothing from this and must come through
+  /// it, or restate the whole exception surface below.
   ///
   /// **Both exception types are caught because both are reachable.** The codec's
   /// documentation now says so too — this PR corrected it, having found it
