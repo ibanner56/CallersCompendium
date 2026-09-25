@@ -1,9 +1,0 @@
-{
-  "id": "sync-phrase-on-status",
-  "user_visible": true,
-  "app": {
-    "added": [
-      "The Device Sync status now starts with the sync phrase this device is connected with, so you can add another device later without having written the phrase down when you first connected. It stays hidden until you tap Show, and Copy works without revealing it."
-    ]
-  }
-}

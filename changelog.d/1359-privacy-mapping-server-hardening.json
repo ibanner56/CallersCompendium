@@ -1,9 +1,0 @@
-{
-  "id": "1359-privacy-mapping-server-hardening",
-  "user_visible": false,
-  "core": {
-    "changed": [
-      "Derive the Device Sync allow-list so a wire path backed by several columns is admitted only when every one of them is shareable, instead of when any one is. No path changes classification today."
-    ]
-  }
-}

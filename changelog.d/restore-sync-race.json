@@ -1,9 +1,0 @@
-{
-  "id": "restore-sync-race",
-  "user_visible": true,
-  "app": {
-    "changed": [
-      "Restoring a backup now pauses Device Sync until the restore finishes, preventing an in-flight sync pass from overwriting restored data."
-    ]
-  }
-}

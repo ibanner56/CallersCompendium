@@ -1,9 +1,0 @@
-{
-  "id": "1347-normalisation-json-skip",
-  "user_visible": false,
-  "core": {
-    "fixed": [
-      "The shareable-text normalisation pass records a skip and continues when a stored JSON value cannot be canonicalised — malformed text, keys that normalise to the same string, or a value that decodes but cannot be re-encoded — instead of letting the exception abort the pass. Applies to the figures, tunes and custom-field-choice columns and to shareable settings values."
-    ]
-  }
-}

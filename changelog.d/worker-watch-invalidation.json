@@ -1,9 +1,0 @@
-{
-  "id": "worker-watch-invalidation",
-  "user_visible": true,
-  "app": {
-    "changed": [
-      "Inbound Device Sync changes now refresh the open screens that depend on the updated records without requiring navigation or an unrelated edit."
-    ]
-  }
-}

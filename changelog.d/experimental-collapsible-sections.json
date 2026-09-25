@@ -1,9 +1,0 @@
-{
-  "id": "experimental-collapsible-sections",
-  "user_visible": true,
-  "app": {
-    "changed": [
-      "In Settings > Experimental, Device Sync is now a section you can open and close. It starts closed while sync is off and open while it's on."
-    ]
-  }
-}

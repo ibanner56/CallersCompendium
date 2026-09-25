@@ -1,9 +1,0 @@
-{
-  "id": "1392-fmptools-notice",
-  "user_visible": true,
-  "app": {
-    "added": [
-      "Settings ▸ About ▸ View licenses now includes the license of fmptools, the open-source project the Caller's Companion importer is based on."
-    ]
-  }
-}
