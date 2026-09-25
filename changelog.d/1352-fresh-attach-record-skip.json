@@ -1,9 +1,0 @@
-{
-  "id": "1352-fresh-attach-record-skip",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "Connecting a new device to a sync store no longer fails outright when one record from another device cannot be downloaded or is refused. That record is skipped and retried on a later sync, and the rest of the library arrives, so a single missing record or a device on an older app version no longer blocks the new device from syncing. Connecting still stops without saving anything when another device's record list cannot be read at all."
-    ]
-  }
-}

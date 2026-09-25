@@ -1,9 +1,0 @@
-{
-  "id": "forfeiture-doc-drift",
-  "user_visible": false,
-  "core": {
-    "changed": [
-      "Correct the documentation of hard deletes: every hard-delete path is subject to §3.1's publication forfeiture, so a published record is tombstoned rather than erased, published tombstones are exempt from the retention purge, and VenueRepository.hardDelete retains a venue any surviving program still names. storage.md no longer states that Device Sync is unimplemented or that nothing reads existence_at for a merge decision."
-    ]
-  }
-}

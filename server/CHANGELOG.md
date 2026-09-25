@@ -8,6 +8,8 @@ the app and of `compendium_core`; version headings below refer to
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-09-24
+
 ### Changed
 
 - `PUT /v1/blobs/{hash}` answers `404 store not found` instead of

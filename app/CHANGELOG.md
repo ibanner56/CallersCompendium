@@ -38,6 +38,117 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 _Nothing yet._
 
+## [0.5.0] - 2026-09-24
+
+### Added
+
+- A dance whose saved figures or tunes cannot be read now says so, on the dance itself and as a marker in your collection, instead of appearing to have none. Nothing has been deleted: what was saved is kept exactly as it is, and editing anything else about the dance will not replace it.
+- Device Sync now tells you when a dance is being held back because its saved figures or tunes can't be read, instead of leaving it quietly missing from your other devices. The notice says nothing has been deleted and points at the only thing that fixes it: entering those figures or tunes again.
+- Connecting a device to Device Sync now says plainly that anyone holding the sync phrase can read everything you sync, change or delete it on every connected device, and delete the whole store from the server. It appears on both the create and connect paths.
+- Typing your own sync phrase instead of keeping the generated one now warns you to keep personal information out of it. Like the strength warning beside it, it never stops you using the phrase you chose.
+- The Device Sync section now shows the server it is syncing with as a full address, whether that is the Caller's Compendium server or your own. A server that isn't the default one is still flagged.
+- Device Sync settings now list the other devices connected to your store and let you remove one you no longer use, so it stops taking up one of the store's 32 places. A removed device can connect again with the sync phrase.
+- Device Sync settings can now disconnect every device and delete the store from the server. This cannot be undone, and it is the only way to immediately remove what a leaked sync phrase still opens.
+- Settings ▸ About ▸ View licenses now includes the license of fmptools, the open-source project the Caller's Companion importer is based on.
+- Experimental settings now include Device Sync, which is off until you turn it on. It shows sync status, waits for WiFi by default, and reminds you that sync is not a backup.
+- Device Sync now has a Connect flow: create a new store or connect to an existing one by phrase, with an optional one-time backup offer and clear disclosures about sharing and the phrase's no-recovery guarantee. If a previously connected store has gone missing, you're asked before it's replaced.
+- Device Sync gains a 'Skip unused imported dances' setting to trim what a device with a large imported collection uploads (a dance used in a program or linked from another dance is always included), and a note on a venue whose address and contact details didn't come across when it synced from another device.
+- You can review saved sync decisions in Settings and either merge a supported peer deletion or keep both records with a distinct local name; invalid or stale decisions remain safely retained.
+- You can disconnect a device from its Device Sync store with Disconnect this device. It forgets the phrase and the server it was using and stops syncing on that device only, without changing your library, the store, or your other devices. Turning Device Sync off and on still keeps you connected.
+- When you connect Device Sync, a Server field shows which sync server you're using. It's pre-filled with the Caller's Compendium server, and you can change it if you run your own. The app warns you before you use a different server and keeps showing it on the sync status.
+- The Device Sync status now starts with the sync phrase this device is connected with, so you can add another device later without having written the phrase down when you first connected. It stays hidden until you tap Show, and Copy works without revealing it.
+
+### Changed
+
+- Inbound dance and program sync now uses the trusted sync envelope timestamps instead of conflicting metadata embedded in the record body.
+- In the program builder, the scissors button on a slot now removes that slot from the program, and the redundant Remove slot entry has left the slot's ... menu. Removing a slot never deletes the dance from your collection.
+- The screen shown when connecting finishes now says what actually happened to the first sync — that it has finished, that it didn't finish and will retry, or that it is waiting for WiFi or for a connection. It used to say the first sync was running now, which was never true by the time you could read it.
+- That screen also repeats that sync is not a backup, which it previously left out.
+- Duplicate dances merged when a device first attaches to a store are now reported on the Device Sync status surface, not only in the dialog shown after pairing. Reconnecting a store that went missing, rejoining a store that was replaced, and a first sync that had to wait for WiFi all report their merges now.
+- The sync phrase disclosure no longer says that moving every device to a new phrase is the only fix for a leaked one: it leaves the old store readable by whoever has the leaked phrase, and deleting the store is the only thing that removes that at once.
+- The "Skip unused imported dances" setting now says that turning it off uploads the skipped dances again, alongside what it already said about turning it on.
+- Device Sync now converges steady-state edits through one guarded pass, queues at most one follow-up, protects newer local edits and records created during a pass from stale inbound snapshots, negotiates only final-manifest blobs after apply, rejects inbound non-shareable custom-field data, skips malformed relation records and dependent cascades when an inbound parent cannot be persisted, settles pending work before shutdown, stops before publication until local attach state exists, reuses unchanged peer manifests and verified blobs across isolated passes, and pauses for confirmation instead of silently recreating a missing collection. Malformed persisted Device Sync configuration no longer prevents the rest of the app from starting.
+- Your synced deletions remain safe while cited records stay in use, and conflicting shared names now reconcile without silently losing references.
+- Device Sync now fresh-attaches by unioning both sides before applying deterministic dance deduplication, rewiring references and preserving actionable review candidates for same-title dances with different choreography. Those ambiguities can be merged or kept distinct from the Sync decisions screen. Attaching to an empty store publishes through one guarded continuation, while stale manifest conflicts retry fresh attach on the next trigger and create conflicts stop without silently joining an existing store.
+- Device Sync now quarantines records with implausible future timestamps, repairs timestamps only from permitted peer evidence, and keeps unsafe quarantined values and their enforced dependents out of publication until an agreed fallback is available.
+- Backup restore and shared archive import now invalidate stale sync conclusions and rerun shareable-text normalization over restored data.
+- In Settings > Experimental, Device Sync is now a section you can open and close. It starts closed while sync is off and open while it's on.
+- Restoring a backup now pauses Device Sync until the restore finishes, preventing an in-flight sync pass from overwriting restored data.
+- When you create a Device Sync store you can now type your own sync phrase instead of using the generated one. It still has to be four words separated by hyphens, and if the phrase you pick looks easy to guess the screen warns you without stopping you.
+- Inbound Device Sync changes now refresh the open screens that depend on the updated records without requiring navigation or an unrelated edit.
+
+### Fixed
+
+- Device Sync now tells you to update the sending device instead of silently rewriting noncanonical inbound record content under the peer's timestamp.
+- Startup no longer re-checks your whole collection on every launch once a single name has been left for later. Renaming a tag, choreographer or custom field to a name another one already holds is enough to trigger it, and the check then repeated forever; it now re-tries just the affected entries and stops once they are resolved.
+- Searching by author or by a cited source now finds dances whose choreographer, source or custom-field text was repaired by the one-time text clean-up. The search index was left holding the old text, so those dances could not be found by it.
+- Settings, Re-check custom figures now opens normally when a dance's stored figures cannot be read. Previously a single such dance made the screen show its error message, and Try again failed the same way every time. The unreadable dance is left out of the list, and nothing about it is rewritten.
+- A dance whose stored figures cannot be read no longer stops the app from opening. The dance still appears in your collection, and its stored transcription is kept exactly as it is rather than being replaced with an empty one.
+- A dance whose stored tune list cannot be read no longer stops the app from opening. The dance still appears in your collection, and its stored tune list is kept exactly as it is rather than being replaced with an empty one.
+- Renaming a choreographer or a custom field to a name that is already taken now says so, instead of appearing to work and reverting the next time the screen is opened.
+- Re-importing an archive no longer fails on a difficulty level whose label differs from another level only in how the accents are stored.
+- Saving a setting whose entries differ only in how their accents are stored no longer fails; both entries are kept.
+- Creating a custom field whose key another field already uses now tells you so and leaves the existing field alone. It used to fail without a message, so the new field simply never appeared.
+- Reconnecting a Device Sync store that is no longer there now follows Sync only on WiFi: on mobile data with that setting on, nothing is sent and the app points you at the setting, with the question still waiting for you. A reconnection that doesn't go through now says so on the question instead of quietly reappearing, and a store that another of your devices has already recreated is joined rather than asked about again and again.
+- Connecting a new device to a sync store no longer fails outright when one record from another device cannot be downloaded or is refused. That record is skipped and retried on a later sync, and the rest of the library arrives, so a single missing record or a device on an older app version no longer blocks the new device from syncing. Connecting still stops without saving anything when another device's record list cannot be read at all.
+- Device Sync no longer skips a record because one other device sent a copy with an implausible clock. The offending copy is still refused and reported, and the record now arrives from any device that sent a sound one, along with the dances and programs citing it.
+- A record held back on this device for an implausible clock no longer stops the dances and programs that cite it from receiving other devices' edits and deletions. Only the held-back record itself sits out, so an edit made on another device now arrives instead of waiting for this device's clock to be corrected.
+- The choreographer details kept only on your own device — email, location, and the deceased marker — are no longer deleted when two of your devices rename two different people to the same name and both renames arrive in one sync. Both records are kept as they were, and the clash is recorded for review instead of the two people being merged into one record.
+- When another of your devices renames a choreographer, tag, custom field, or difficulty level onto a name a different record on this device already uses, Settings → Sync decisions now offers Merge and Keep both for it. Until now the clash was listed with no action available, and the other device's change was skipped on every sync, so that record quietly stopped syncing with nothing telling you why. Merging two choreographers warns you first, because the email address, location, and deceased marker on the record that is not kept are stored only on this device and cannot be recovered.
+- A custom field you marked private no longer causes the same field to be renamed on your other devices. Previously, receiving a shared field whose key matched a private field of your own renamed the shared one everywhere, on account of a field only this device had; now the private field is the one renamed, and it never leaves this device.
+- Editing a record that another device has deleted, but that this device still uses, now keeps your edit and cancels the pending deletion. Previously the edit was discarded and the record was deleted once nothing referenced it any more.
+- Undoing an import no longer erases a venue that a deleted program still points at, so restoring that program from Recently Deleted brings back its venue too.
+- Undoing an import no longer destroys a deleted dance's author, tag, citation or custom field value. The association is kept, and the author, tag, source or field is kept as a deleted record rather than being erased, so restoring both the dance and that record brings the association back. Restoring the dance on its own does not, because a deleted author, tag, source or field stays hidden until it is restored too.
+- Undoing an import can no longer silently strip a tag from a dance you still have. Removing a tag as part of an import rollback now stops rather than taking the tag off every dance that carries it.
+- Search no longer finds a dance by the value of a custom field you have deleted. Previously, deleting a dance, then deleting a custom field that no remaining dance used, then restoring the dance from Recently deleted left the dance matching the deleted field's value in the search box, even though the dance's own page no longer showed that field. Restoring the field and then editing the dance makes its value searchable again.
+- Deleting a Device Sync store no longer reports that nothing was changed when the store was in fact deleted. If the store is removed from the server but this device cannot disconnect from it, the app now says so and tells you how to finish, instead of inviting you to retry a deletion that already succeeded.
+- The Device Sync device list no longer says that removing another device stops it syncing. Removing a device frees the place it used in the store, but a device that is still running publishes again the next time it syncs; the confirmation and the user guide now say so.
+- The Filters heading now counts Level, Mixed level, Mixer and Minimum rating filters, so a collapsed panel no longer reads as if nothing is filtered — in the Collection and in the dance picker.
+- If exporting or sharing a program hits an unexpected internal error, you now see an error message instead of nothing happening.
+- The startup warning about a failed database integrity check, and its Dismiss button, now appear in your chosen language instead of always in English.
+- Update download errors (no place to download to, incomplete or refused downloads, a failed security check, a failed install) now appear in your chosen language instead of always in English.
+- The Device Sync status now tells you when a sync had something to report — records that differ on two devices and could not be resolved, a local creation kept from a peer's deletion, something on this device whose date the app can't trust, records from another device skipped as unusable, a suspect clock, an update deferred by your own edit, or changes that haven't reached your other devices. These notices block nothing and need no dismissal, and they clear by themselves once a sync stops finding the condition — at the latest the next time you open the app.
+- Declining to replace a store that no longer exists now says sync is paused, and how to reconsider, instead of continuing to show the date of the last successful sync with the store that has gone.
+- Undoing an import no longer leaves behind a choreographer the import created. When the imported dance had already been shared to another device it is kept as a deletion record, and those records no longer count as crediting the choreographer.
+- Undoing a shared archive import no longer removes a venue that a retained program still points at.
+- Device Sync now protects records before publishing their blobs, so undoing an import during synchronization preserves deletion evidence instead of losing the record permanently.
+- Large device sync updates no longer fail when a dance or program has many relationships.
+- Sync review decisions now stay safely pending when the affected local record was edited after the review was queued.
+- If Device Sync cannot finish applying an incoming dance or program, it now leaves that record exactly as it was instead of keeping half of the incoming version. A half-applied record could otherwise stay different from your other devices indefinitely.
+- Connecting Device Sync no longer fails with "Device Sync isn't available right now" on builds that were never given a sync server address.
+- An incoming tag, author or custom field whose name is already taken by a different record is now reported instead of being quietly stored under the wrong name or merged into the record you had deleted.
+- Device Sync no longer runs a pointless extra sync pass after every pass that applied changes.
+- Restoring a backup or a shared archive right after turning Device Sync on no longer risks a sync pass starting while the restore is still writing.
+- An unexpected database error while applying one incoming record no longer stops the whole sync pass, and no longer repeats on every later pass.
+- Device Sync keeps what it learned from a pass that failed partway, so the warning about records no other device has picked up is no longer reset by an unreliable connection.
+- Screens now refresh after a sync pass that only repaired timestamps, or that renamed a shared tag, author, source or level.
+- A record you deleted that is still in use somewhere no longer takes edits back from a device that has not learned about the deletion yet.
+- A synced program whose linked venue was deleted (or hadn't arrived yet on this device) no longer gets stuck reporting the same sync conflict forever. The program keeps its venue link as received from the other device instead of having it silently cleared.
+- Device Sync no longer asks you to resolve a naming conflict it can settle itself. A peer's older deletion of a record you still have no longer raises a review you could only clear by renaming.
+- A record you kept because something still uses it now receives edits from your other devices instead of reporting, on every sync, that it changed locally when it did not.
+- Device Sync no longer forgets which records it has already merged when no other device is currently attached, so a device returning later no longer re-creates duplicates that were already resolved.
+- Merging a saved sync decision about a difficulty level that was already merged away once now resolves onto the surviving level instead of failing and leaving the decision stuck.
+- A clock-implausible peer record is now reported as quarantined rather than malformed, so it reads as a clock problem instead of a corrupt record.
+- A saved sync decision no longer becomes permanently unresolvable after you edit the record it is about: the decision is re-queued against the current version instead of keeping the one captured when it was first raised.
+- When another device brings back a record whose deletion this device was still holding — because something here was using it — the record now stays. It could previously disappear again on its own once the last thing using it was removed.
+- The Device Sync status line no longer keeps showing a stale "Last synced" time after a sync attempt fails, finds the store has changed, or finds a previously connected store can no longer be reached; each is now named on the status line, with the last successful time still shown separately when there is one.
+- A sync pass that hits an internal error is now recorded as a failed pass instead of surfacing as an unhandled error.
+- Turning Device Sync off and back on no longer risks swallowing the next settings-only change instead of syncing it.
+- The user guide's Sync decisions section now explains both kinds of conflict Device Sync can ask you to resolve, in plain language, instead of describing only one and naming an internal engineering work unit.
+- Synced deletions are no longer applied on the strength of a companion deletion that the same pass then declines to apply, and a renamed difficulty level that was already merged away once is reconciled onto the surviving level instead of being reported as a conflict.
+- Device Sync no longer stops applying changes after a peer deletes a dance that used a difficulty level this device had already deleted. The incoming deletion used to fail every pass and roll back the whole batch with it, so no further record could sync.
+- Device Sync no longer re-derives the slow, salted sync-identity check on every step of a sync pass. Once a pass has confirmed prior use, later steps reuse that answer instead of repeating several seconds of CPU work per configured identity, including inside a held write lock.
+- Saving while Device Sync is applying changes in the background no longer fails with a database error: both connections now use write-ahead logging and wait for each other.
+
+### Removed
+
+- Cut and paste reordering of program slots is gone; drag a slot by its handle, or use its move up and move down buttons, to reorder. Cut and paste for figures in the dance editor is unchanged.
+
+### Data / Migrations
+
+- Collections that already completed the one-time text clean-up rebuild their search index once on first launch, with the usual progress indicator, to repair entries left stale by it.
+- Schema 35 -> 36: add the nullable queue-time local wire hash to Device Sync review rows so resolving a review can detect edits made after it was queued; existing review rows retain null hashes.
+
 ## [0.4.1] - 2026-09-19
 
 ### Added
