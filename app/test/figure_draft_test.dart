@@ -3,6 +3,58 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  // A custom figure never renders a wording override (renderer.dart:
+  // `figure.isCustom ? null : _renderWordingOverride`) and the editor offers no
+  // field for it, so toFigure must not persist one (#1394).
+  group('FigureDraft.toFigure wordingOverride on a custom figure', () {
+    test('a custom leaf draft drops a stale override', () {
+      final draft = FigureDraft(move: customMove, params: {'text': 'my call'})
+        ..wordingOverride = 'stale wording';
+      expect(draft.toFigure()!.wordingOverride, isNull);
+    });
+
+    test('a custom child of a container drops a stale override', () {
+      final container = FigureDraft(
+        meanwhileSides: [
+          FigureDraft(move: customMove, params: {'text': 'my call'})
+            ..wordingOverride = 'stale wording',
+          FigureDraft(move: 'swing'),
+        ],
+      )..params['beats'] = 8;
+      final sides = container.toFigure()!.subFigures;
+      expect(sides.first.isCustom, isTrue);
+      expect(sides.first.wordingOverride, isNull);
+    });
+
+    test('a move-less side materialised as a custom drops an override', () {
+      final container = FigureDraft(
+        meanwhileSides: [
+          FigureDraft(move: 'swing'),
+          FigureDraft()..wordingOverride = 'stale wording',
+        ],
+      )..params['beats'] = 8;
+      final sides = container.toFigure()!.subFigures;
+      expect(sides.last.isCustom, isTrue);
+      expect(sides.last.wordingOverride, isNull);
+    });
+
+    test('a structured figure and a container keep their override', () {
+      final structured = FigureDraft(move: 'swing')
+        ..wordingOverride = 'keep me';
+      expect(structured.toFigure()!.wordingOverride, 'keep me');
+      final container =
+          FigureDraft(
+              meanwhileSides: [
+                FigureDraft(move: 'swing'),
+                FigureDraft(move: 'roll_away'),
+              ],
+            )
+            ..params['beats'] = 8
+            ..wordingOverride = 'keep me too';
+      expect(container.toFigure()!.wordingOverride, 'keep me too');
+    });
+  });
+
   group('FigureDraft.toFigure customOrigin', () {
     test('a manually created custom commits as userEntered', () {
       final draft = FigureDraft(move: customMove, params: {'text': 'my call'});
