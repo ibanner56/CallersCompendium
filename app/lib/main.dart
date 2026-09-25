@@ -171,7 +171,9 @@ Future<void> main() async {
       if (call.method != _requestApplicationShutdownMethod) {
         throw PlatformException(
           code: 'not_implemented',
-          message: 'Unsupported application lifecycle method: ${call.method}',
+          // Developer-facing platform-channel error, never shown in the UI.
+          message:
+              'Unsupported application lifecycle method: ${call.method}', // i18n-ignore
         );
       }
       await shutdownController.close();
@@ -1855,22 +1857,19 @@ class _CompendiumAppState extends State<CompendiumApp> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         final messenger = ScaffoldMessenger.of(context);
+        final l10n = AppLocalizations.of(context);
         messenger.showMaterialBanner(
           MaterialBanner(
             content: Text(
               _integrityProbeThrew
-                  ? 'A database integrity check failed to complete, so your '
-                        'data could not be verified this launch. If problems '
-                        'persist, consider restoring from a backup. Technical '
-                        'details were saved to Settings ▸ Diagnostics.'
-                  : 'A database integrity check failed. Your local data may be '
-                        'corrupt — consider restoring from a backup.',
+                  ? l10n.startupIntegrityCheckIncomplete
+                  : l10n.startupIntegrityCheckFailed,
             ),
             leading: const Icon(Icons.warning_amber_outlined),
             actions: [
               TextButton(
                 onPressed: messenger.hideCurrentMaterialBanner,
-                child: const Text('Dismiss'),
+                child: Text(l10n.updateBannerDismiss),
               ),
             ],
           ),

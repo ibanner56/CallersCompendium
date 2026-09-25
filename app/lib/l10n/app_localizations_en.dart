@@ -6460,6 +6460,42 @@ class AppLocalizationsEn extends AppLocalizations {
       'The update could not be downloaded.';
 
   @override
+  String get updateDownloadFailureDestination =>
+      'Could not choose a place to download the update.';
+
+  @override
+  String get updateDownloadFailureIncomplete =>
+      'The download was incomplete and was deleted. Please try again, or use \"View release\".';
+
+  @override
+  String get updateDownloadFailureRefusedHost =>
+      'The update download was refused because it pointed at an unexpected location. Use \"View release\" to download it manually.';
+
+  @override
+  String get updateDownloadFailureUnreachable =>
+      'The update could not be downloaded. Check your connection and try again, or use \"View release\".';
+
+  @override
+  String get updateDownloadFailureChecksumMismatch =>
+      'The downloaded update failed its security (sha256) check and was deleted. Try again, or use \"View release\" to download it manually.';
+
+  @override
+  String get updateDownloadFailureHandoffFailed =>
+      'The update was downloaded and verified, but could not be opened automatically. Use \"View release\" to finish installing.';
+
+  @override
+  String get updateDownloadFailureInstallFailed =>
+      'Something went wrong while installing the update. Try again, or use \"View release\" to download it manually.';
+
+  @override
+  String get startupIntegrityCheckIncomplete =>
+      'A database integrity check failed to complete, so your data could not be verified this launch. If problems persist, consider restoring from a backup. Technical details were saved to Settings ▸ Diagnostics.';
+
+  @override
+  String get startupIntegrityCheckFailed =>
+      'A database integrity check failed. Your local data may be corrupt — consider restoring from a backup.';
+
+  @override
   String updateBannerAvailable(String appName, String version) {
     return 'A newer version of $appName ($version) is available.';
   }

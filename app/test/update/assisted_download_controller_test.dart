@@ -126,7 +126,7 @@ void main() {
     await c.installPendingMacosUpdate();
 
     expect(c.downloadStatus, AssistedDownloadStatus.completed);
-    expect(c.downloadError, isNull);
+    expect(c.downloadFailure, isNull);
     expect(handoffs, hasLength(1));
     expect(handoffs.single.platform, UpdatePlatform.macos);
     expect(await handoffs.single.file.exists(), isTrue);
@@ -164,8 +164,7 @@ void main() {
     await c.startAssistedDownload();
 
     expect(c.downloadStatus, AssistedDownloadStatus.failed);
-    expect(c.downloadError, isNotNull);
-    expect(c.downloadError, contains('security'));
+    expect(c.downloadFailure, UpdateDownloadFailure.checksumMismatch);
     expect(handoffs, isEmpty);
     expect(await captured!.exists(), isFalse); // deleted by the gate
   });
@@ -196,7 +195,7 @@ void main() {
     await c.startAssistedDownload();
 
     expect(c.downloadStatus, AssistedDownloadStatus.failed);
-    expect(c.downloadError, isNotNull);
+    expect(c.downloadFailure, UpdateDownloadFailure.unreachable);
     expect(handoffs, isEmpty);
   });
 
@@ -217,7 +216,7 @@ void main() {
     await c.installPendingMacosUpdate();
 
     expect(c.downloadStatus, AssistedDownloadStatus.completed);
-    expect(c.downloadError, isNull);
+    expect(c.downloadFailure, isNull);
     expect(c.handoffResult, HandoffResult.revealed);
   });
 
@@ -372,7 +371,7 @@ void main() {
       await c.installPendingMacosUpdate();
 
       expect(c.downloadStatus, AssistedDownloadStatus.failed);
-      expect(c.downloadError, contains('View release'));
+      expect(c.downloadFailure, UpdateDownloadFailure.handoffFailed);
       // The per-attempt temp subdirectory (and its artifact) must be cleaned
       // up on a handoff failure — nothing is left behind for a subsequent
       // download attempt to collide with (issue #626 follow-up).
@@ -449,7 +448,7 @@ void main() {
     await pending;
 
     expect(c.downloadStatus, AssistedDownloadStatus.cancelled);
-    expect(c.downloadError, isNull);
+    expect(c.downloadFailure, isNull);
   });
 
   test('mobile cannot assist-download (link only)', () async {
@@ -502,7 +501,7 @@ void main() {
     // Re-checking clears the terminal state so the affordance re-arms.
     await c.checkNow();
     expect(c.downloadStatus, AssistedDownloadStatus.idle);
-    expect(c.downloadError, isNull);
+    expect(c.downloadFailure, isNull);
   });
 
   test('resetDownload clears a terminal state to idle', () async {
@@ -521,7 +520,7 @@ void main() {
 
     c.resetDownload();
     expect(c.downloadStatus, AssistedDownloadStatus.idle);
-    expect(c.downloadError, isNull);
+    expect(c.downloadFailure, isNull);
   });
 
   group('"never throws" contract (a throwing seam fails closed)', () {
@@ -549,7 +548,7 @@ void main() {
         await c.installPendingMacosUpdate(); // must not rethrow
 
         expect(c.downloadStatus, AssistedDownloadStatus.failed);
-        expect(c.downloadError, isNotNull);
+        expect(c.downloadFailure, UpdateDownloadFailure.installFailed);
         expect(c.isDownloadInFlight, isFalse);
       },
     );
@@ -582,7 +581,7 @@ void main() {
       await c.installPendingMacosUpdate(); // must not rethrow
 
       expect(c.downloadStatus, AssistedDownloadStatus.failed);
-      expect(c.downloadError, isNotNull);
+      expect(c.downloadFailure, UpdateDownloadFailure.installFailed);
       expect(c.isDownloadInFlight, isFalse);
       expect(await captured!.exists(), isFalse); // partial file cleaned up
     });
@@ -602,8 +601,106 @@ void main() {
       await c.installPendingMacosUpdate(); // must not rethrow
 
       expect(c.downloadStatus, AssistedDownloadStatus.failed);
-      expect(c.downloadError, isNotNull);
+      expect(c.downloadFailure, UpdateDownloadFailure.installFailed);
       expect(c.isDownloadInFlight, isFalse);
+    });
+  });
+
+  group('the failure reason is typed, one per cause (#1396)', () {
+    ArtifactDownloader failing(DownloadOutcome outcome) =>
+        (
+          artifact, {
+          required destination,
+          client,
+          onProgress,
+          cancelToken,
+        }) async => outcome;
+
+    test('an unusable destination is destinationUnavailable', () async {
+      final repos = openTestRepositories();
+      final c = controller(
+        repos,
+        manifestBody: _manifest(),
+        macosDestinationPicker: (artifact) async => throw StateError('no dir'),
+      );
+      addTearDown(c.dispose);
+      await c.load();
+      await c.checkNow();
+
+      await c.startAssistedDownload();
+
+      expect(c.downloadStatus, AssistedDownloadStatus.failed);
+      expect(c.downloadFailure, UpdateDownloadFailure.destinationUnavailable);
+    });
+
+    test('a size mismatch is incomplete', () async {
+      final repos = openTestRepositories();
+      final c = controller(
+        repos,
+        manifestBody: _manifest(),
+        downloader: failing(DownloadOutcome.sizeMismatch('short')),
+      );
+      addTearDown(c.dispose);
+      await c.load();
+      await c.checkNow();
+
+      await c.startAssistedDownload();
+
+      expect(c.downloadFailure, UpdateDownloadFailure.incomplete);
+    });
+
+    test('a refused host is refusedHost', () async {
+      final repos = openTestRepositories();
+      final c = controller(
+        repos,
+        manifestBody: _manifest(),
+        downloader: failing(DownloadOutcome.refusedHost('elsewhere')),
+      );
+      addTearDown(c.dispose);
+      await c.load();
+      await c.checkNow();
+
+      await c.startAssistedDownload();
+
+      expect(c.downloadFailure, UpdateDownloadFailure.refusedHost);
+    });
+
+    test('a failed handoff off macOS is handoffFailed', () async {
+      final repos = openTestRepositories();
+      final c = controller(
+        repos,
+        manifestBody: _manifest(platform: 'linux', arch: 'x64'),
+        platform: UpdatePlatform.linux,
+        arch: UpdateArch.x64,
+        handoff: (file, platform) async => HandoffResult.failed,
+      );
+      addTearDown(c.dispose);
+      await c.load();
+      await c.checkNow();
+
+      await c.startAssistedDownload();
+
+      expect(c.downloadStatus, AssistedDownloadStatus.failed);
+      expect(c.downloadFailure, UpdateDownloadFailure.handoffFailed);
+    });
+
+    test('a fresh attempt and a reset both clear the reason', () async {
+      final repos = openTestRepositories();
+      final c = controller(
+        repos,
+        manifestBody: _manifest(),
+        downloader: failing(DownloadOutcome.refusedHost('elsewhere')),
+      );
+      addTearDown(c.dispose);
+      await c.load();
+      await c.checkNow();
+      await c.startAssistedDownload();
+      expect(c.downloadFailure, isNotNull);
+
+      c.resetDownload();
+
+      expect(c.downloadStatus, AssistedDownloadStatus.idle);
+      expect(c.downloadFailure, isNull);
     });
   });
 }

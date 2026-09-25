@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/screens/settings/updates_section.dart';
 import 'package:compendium_app/src/update/artifact_downloader.dart';
 import 'package:compendium_app/src/update/artifact_handoff.dart';
@@ -39,12 +40,17 @@ UpdateController _controller(
   );
 }
 
-Future<void> _pump(WidgetTester tester, UpdateController controller) async {
+Future<void> _pump(
+  WidgetTester tester,
+  UpdateController controller, {
+  Locale? locale,
+}) async {
   await tester.binding.setSurfaceSize(const Size(1000, 1000));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await controller.load();
   await tester.pumpWidget(
     MaterialApp(
+      locale: locale,
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
       home: Scaffold(
@@ -324,6 +330,32 @@ void main() {
         find.byKey(const ValueKey('updates-download-error')),
         findsOneWidget,
       );
+    });
+
+    testWidgets('the failure text follows the app language (#1396)', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final controller = build(
+        repos,
+        platform: UpdatePlatform.linux,
+        verifier: (file, expected) async => false,
+      );
+      addTearDown(controller.dispose);
+      final ja = await AppLocalizations.delegate.load(const Locale('ja'));
+      final en = await AppLocalizations.delegate.load(const Locale('en'));
+
+      await _pump(tester, controller, locale: const Locale('ja'));
+      await tester.tap(find.byKey(const ValueKey('updates-check-now')));
+      await tester.pumpAndSettle();
+      await tester.runAsync(controller.startAssistedDownload);
+      await tester.pumpAndSettle();
+
+      final shown = tester.widget<Text>(
+        find.byKey(const ValueKey('updates-download-error')),
+      );
+      expect(shown.data, ja.updateDownloadFailureChecksumMismatch);
+      expect(shown.data, isNot(en.updateDownloadFailureChecksumMismatch));
     });
   });
 }

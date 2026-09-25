@@ -6504,6 +6504,42 @@
   "@updateBannerDownloadFailed": {
     "x-sourceSha256": "4d6fd789fd1fe3406fb4b41914626e95cfc936b8e899a835c9d0721339a6ff67"
   },
+  "updateDownloadFailureDestination": "Es konnte kein Speicherort für den Download des Updates ausgewählt werden.",
+  "@updateDownloadFailureDestination": {
+    "x-sourceSha256": "623af0043c02285ccf6b203be680ed0926d08b1223e7edd0d02c7fd15ee31c82"
+  },
+  "updateDownloadFailureIncomplete": "Der Download war unvollständig und wurde gelöscht. Bitte versuchen Sie es erneut oder verwenden Sie „Release ansehen“.",
+  "@updateDownloadFailureIncomplete": {
+    "x-sourceSha256": "0cd1b8b90a1aa7b567458a9eaaf5edcea68b720fdae43c7d57e5820c64a9c1b7"
+  },
+  "updateDownloadFailureRefusedHost": "Der Update-Download wurde abgelehnt, weil er auf einen unerwarteten Speicherort verwies. Verwenden Sie „Release ansehen“, um das Update manuell herunterzuladen.",
+  "@updateDownloadFailureRefusedHost": {
+    "x-sourceSha256": "af76ad7165b28b47a2ef175e7d69052fe819a2a89e1277e072d98f49a4ed5b86"
+  },
+  "updateDownloadFailureUnreachable": "Das Update konnte nicht heruntergeladen werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut oder verwenden Sie „Release ansehen“.",
+  "@updateDownloadFailureUnreachable": {
+    "x-sourceSha256": "1c201c02be93aad9d8d0ed525a227d4c119bb8e54e3bd4aa9667cbe9f91398ac"
+  },
+  "updateDownloadFailureChecksumMismatch": "Das heruntergeladene Update hat die Sicherheitsprüfung (sha256) nicht bestanden und wurde gelöscht. Versuchen Sie es erneut oder verwenden Sie „Release ansehen“, um es manuell herunterzuladen.",
+  "@updateDownloadFailureChecksumMismatch": {
+    "x-sourceSha256": "9b45db38ce784fbb8fe3c676b1a9f3f344ef746368f97db1c8ac5f1201b43ea7"
+  },
+  "updateDownloadFailureHandoffFailed": "Das Update wurde heruntergeladen und verifiziert, konnte aber nicht automatisch geöffnet werden. Verwenden Sie „Release ansehen“, um die Installation abzuschließen.",
+  "@updateDownloadFailureHandoffFailed": {
+    "x-sourceSha256": "3ca6db08898958453a1a0124dc22644c699a7251c23e23a9a1e1bbb072f7c6d1"
+  },
+  "updateDownloadFailureInstallFailed": "Bei der Installation des Updates ist etwas schiefgelaufen. Versuchen Sie es erneut oder verwenden Sie „Release ansehen“, um es manuell herunterzuladen.",
+  "@updateDownloadFailureInstallFailed": {
+    "x-sourceSha256": "b95dca2ecff93664f435e74d15b4f9b7c12962cca856705ef0e4de8dea74a784"
+  },
+  "startupIntegrityCheckIncomplete": "Eine Integritätsprüfung der Datenbank konnte nicht abgeschlossen werden, daher konnten Ihre Daten beim Start nicht verifiziert werden. Falls die Probleme weiterhin bestehen, stellen Sie die Daten am besten aus einer Sicherung wieder her. Technische Details wurden unter Einstellungen ▸ Diagnose gespeichert.",
+  "@startupIntegrityCheckIncomplete": {
+    "x-sourceSha256": "9912a361a8512d14be066ed22c09788206c5f18f71dc09d204b2daea8de91933"
+  },
+  "startupIntegrityCheckFailed": "Eine Integritätsprüfung der Datenbank ist fehlgeschlagen. Ihre lokalen Daten sind möglicherweise beschädigt – stellen Sie sie am besten aus einer Sicherung wieder her.",
+  "@startupIntegrityCheckFailed": {
+    "x-sourceSha256": "8b901f979230909e2a5810b35058754d460e861cf2e53c4478b8e4b239acd1e9"
+  },
   "updateBannerAvailable": "Eine neuere Version von {appName} ({version}) ist verfügbar.",
   "@updateBannerAvailable": {
     "x-sourceSha256": "b2629b4df990988fe59d8935dcfcbd5f764d98a3d395cf45c050d82fa94e6e6f"

@@ -6,6 +6,7 @@ import '../utils/launch_external_url.dart';
 import 'artifact_handoff.dart';
 import 'macos_update_prompt.dart';
 import 'update_controller.dart';
+import 'update_failure_labels.dart';
 import 'update_scope.dart';
 import 'update_service.dart';
 
@@ -80,7 +81,10 @@ class UpdateBanner extends StatelessWidget {
         );
       case AssistedDownloadStatus.failed:
         return Text(
-          controller.downloadError ?? l10n.updateBannerDownloadFailed,
+          switch (controller.downloadFailure) {
+            final failure? => updateDownloadFailureMessage(l10n, failure),
+            null => l10n.updateBannerDownloadFailed,
+          },
           key: const ValueKey('update-banner-error'),
           style: TextStyle(color: theme.colorScheme.error),
         );

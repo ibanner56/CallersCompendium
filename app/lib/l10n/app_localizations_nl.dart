@@ -6529,6 +6529,42 @@ class AppLocalizationsNl extends AppLocalizations {
       'De update kon niet worden gedownload.';
 
   @override
+  String get updateDownloadFailureDestination =>
+      'Er kon geen locatie worden gekozen om de update naartoe te downloaden.';
+
+  @override
+  String get updateDownloadFailureIncomplete =>
+      'De download was onvolledig en is verwijderd. Probeer het opnieuw of gebruik „Release bekijken”.';
+
+  @override
+  String get updateDownloadFailureRefusedHost =>
+      'De update-download is geweigerd omdat die naar een onverwachte locatie verwees. Gebruik „Release bekijken” om de update handmatig te downloaden.';
+
+  @override
+  String get updateDownloadFailureUnreachable =>
+      'De update kon niet worden gedownload. Controleer je verbinding en probeer het opnieuw, of gebruik „Release bekijken”.';
+
+  @override
+  String get updateDownloadFailureChecksumMismatch =>
+      'De gedownloade update is niet door de beveiligingscontrole (sha256) gekomen en is verwijderd. Probeer het opnieuw of gebruik „Release bekijken” om de update handmatig te downloaden.';
+
+  @override
+  String get updateDownloadFailureHandoffFailed =>
+      'De update is gedownload en geverifieerd, maar kon niet automatisch worden geopend. Gebruik „Release bekijken” om de installatie af te ronden.';
+
+  @override
+  String get updateDownloadFailureInstallFailed =>
+      'Er ging iets mis bij het installeren van de update. Probeer het opnieuw of gebruik „Release bekijken” om de update handmatig te downloaden.';
+
+  @override
+  String get startupIntegrityCheckIncomplete =>
+      'Een integriteitscontrole van de database kon niet worden voltooid, dus je gegevens konden bij deze start niet worden geverifieerd. Overweeg een back-up terug te zetten als de problemen aanhouden. Technische details zijn opgeslagen onder Instellingen ▸ Diagnostics.';
+
+  @override
+  String get startupIntegrityCheckFailed =>
+      'Een integriteitscontrole van de database is mislukt. Je lokale gegevens zijn mogelijk beschadigd – overweeg een back-up terug te zetten.';
+
+  @override
   String updateBannerAvailable(String appName, String version) {
     return 'Een nieuwere versie van $appName ($version) is beschikbaar.';
   }

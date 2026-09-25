@@ -103,4 +103,43 @@ void main() {
     expect(find.byType(AppShell), findsOneWidget);
     expect(_materialAppLocale(tester), isNull);
   });
+
+  // #1396: the startup integrity banner used to be hard-coded English, so a
+  // non-English user got an English warning about their data.
+  for (final threw in [false, true]) {
+    testWidgets('the integrity banner follows the app language '
+        '(${threw ? 'probe threw' : 'probe returned false'}) (#1396)', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+      await appData.repositories.settings.set(kLocaleKey, 'ja');
+      final ja = await AppLocalizations.delegate.load(const Locale('ja'));
+      final en = await AppLocalizations.delegate.load(const Locale('en'));
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          integrityCheck: threw
+              ? () => throw StateError('quick_check failed to run')
+              : () async => false,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final expected = threw
+          ? ja.startupIntegrityCheckIncomplete
+          : ja.startupIntegrityCheckFailed;
+      final english = threw
+          ? en.startupIntegrityCheckIncomplete
+          : en.startupIntegrityCheckFailed;
+      expect(find.text(expected), findsOneWidget);
+      expect(find.text(english), findsNothing);
+      expect(find.text(ja.updateBannerDismiss), findsOneWidget);
+      expect(find.text('Dismiss'), findsNothing);
+    });
+  }
 }

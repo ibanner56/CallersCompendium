@@ -280,13 +280,26 @@ it is documented here but stays **off** the allow-list.
 
 A ratchet test — `app/test/l10n/no_hardcoded_ui_strings_test.dart` — runs inside
 the ordinary `flutter test` gate (no extra CI step; it mirrors the `dart:io`
-file-walking precedent of `test/data/migration_guard_test.dart`). It walks
-`lib/src/**.dart` and fails if a **string literal** is passed to a user-facing
-constructor/argument (`Text('…')`, `tooltip:`, `labelText:`, `hintText:`,
-`helperText:`, `errorText:`, `semanticLabel:`, `message:`, `hint:`, `helpText:`).
-Prose in a localized app must come from `l10n.*`, so any such literal is a leak.
-Pure interpolations, numbers, and punctuation (`'$count'`, `'• '`, `'—'`) are
-ignored.
+file-walking precedent of `test/data/migration_guard_test.dart`). It walks every
+`lib/**.dart` file except the generated `lib/l10n/` (so `lib/main.dart` is covered,
+and a test asserts it stays covered) and fails if a **string literal** is passed to
+a user-facing constructor/argument (`tooltip:`, `labelText:`, `hintText:`,
+`helperText:`, `errorText:`, `semanticLabel:`, `message:`, `hint:`, `helpText:`),
+or appears at the top level of a `Text(…)` argument list — so `Text(cond ? 'a' : 'b')`
+is caught as well as `Text('a')` (grouping parentheses included: `Text((a ? 'x' : 'y'))`). Prose in a localized app must come from `l10n.*`,
+so any such literal is a leak. Pure interpolations, numbers, and punctuation
+(`'$count'`, `'• '`, `'—'`) are ignored.
+
+**What the guard cannot see.** A literal nested inside another call's arguments
+(`Text(f('a'))`), and — more importantly — prose that is stored in a `String` and
+displayed later. The update controller's download errors were exactly that (#1396):
+literals passed to `_failDownload(...)` and read back through `downloadError`. No
+literal-at-a-widget rule can catch this class, so keep such state **typed**: a
+controller records a discriminator (`UpdateDownloadFailure`, `UrlFetchFailureReason`)
+and the presentation layer maps it through `l10n` when it renders
+(`update/update_failure_labels.dart`, `data/import_error_labels.dart`). A
+locale-free controller then cannot hold English text, and the message re-localizes
+if the language changes while it is on screen.
 
 - **Allow-list.** Files that intentionally keep English literals would live in
   `app/test/l10n/hardcoded_ui_strings_allowlist.dart`. With extraction complete,

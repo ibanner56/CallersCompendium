@@ -7,6 +7,7 @@ import '../../theme/app_spacing.dart';
 import '../../update/artifact_handoff.dart';
 import '../../update/macos_update_prompt.dart';
 import '../../update/update_controller.dart';
+import '../../update/update_failure_labels.dart';
 import '../../update/update_scope.dart';
 import '../../widgets/section_header.dart';
 
@@ -181,7 +182,10 @@ class UpdatesSection extends StatelessWidget {
           leading: Icon(Icons.error_outline, color: theme.colorScheme.error),
           title: Text(l10n.settingsUpdatesDownloadTitle),
           subtitle: Text(
-            controller.downloadError ?? l10n.settingsUpdatesDownloadError,
+            switch (controller.downloadFailure) {
+              final failure? => updateDownloadFailureMessage(l10n, failure),
+              null => l10n.settingsUpdatesDownloadError,
+            },
             key: const ValueKey('updates-download-error'),
             style: TextStyle(color: theme.colorScheme.error),
           ),
