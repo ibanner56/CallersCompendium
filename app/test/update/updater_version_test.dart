@@ -21,7 +21,7 @@ void main() {
   test('the About codename follows the release-build seam', () {
     expect(
       kAppCodename,
-      releaseBuildCodename.isEmpty ? 'Allemande Left' : releaseBuildCodename,
+      releaseBuildCodename.isEmpty ? 'Balance and Swing' : releaseBuildCodename,
     );
   });
 }

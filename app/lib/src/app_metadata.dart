@@ -27,7 +27,7 @@ const String kAppVersion = '0.5.0';
 /// current release codename as a fallback.
 const String kAppCodename = String.fromEnvironment(
   'CALLERS_COMPENDIUM_RELEASE_CODENAME',
-  defaultValue: 'Allemande Left',
+  defaultValue: 'Balance and Swing',
 );
 
 /// Release identity the strict updater compares with manifest versions.
