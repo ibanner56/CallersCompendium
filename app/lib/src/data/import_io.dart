@@ -23,11 +23,24 @@ import '../search/collection_query.dart' show ByPhraseSelections;
 /// TOCTOU window), so the cap is enforced *during* consumption, not before it.
 /// 25 MiB is deliberately **aligned with the archive intake cap**
 /// (`kMaxIncomingArchiveBytes`) and sits far above any real Compendium share
-/// bundle or Caller's Companion `.USR` (the real ~20 MB CC sample fits with
-/// margin) while bounding the blast radius. The `.USR` path adds *structural*
-/// bounds on top of this (see `FmpReadLimits`) because the FileMaker reader's
+/// bundle while bounding the blast radius. The Caller's Companion `.USR` path has
+/// its own, higher cap ([kMaxImportUsrBytes]) and adds *structural* bounds on
+/// top of it (see `FmpReadLimits`) because the FileMaker reader's
 /// per-table traversal makes a small-but-pathological file quadratic in work.
 const int kMaxImportFileBytes = 25 * 1024 * 1024;
+
+/// Hard cap on the size of a picked Caller's Companion `.USR`, in bytes.
+///
+/// Higher than [kMaxImportFileBytes] because a `.USR` is a FileMaker container
+/// that grows with the user's own data: the ~20 MB shipped sample is already
+/// close to the general cap, and a tester's real file measured ~30 MB. The
+/// share-bundle text path and the archive intake keep the 25 MiB cap — only the
+/// `.USR` byte path is widened. Enforced the same way (a bounded stream, failing
+/// closed the moment the cap is crossed), so the raise costs at most ~64 MiB of
+/// peak allocation before the structural bounds in `FmpReadLimits` take over.
+/// `kMaxFmpSectors` is sized to this cap (64 MiB of 4 KiB sectors); raise them
+/// together, or the sector guard becomes the effective ceiling.
+const int kMaxImportUsrBytes = 64 * 1024 * 1024;
 
 /// Raised when a picked import file exceeds [kMaxImportFileBytes], so the
 /// oversized case is rejected *without* buffering the whole file into memory
@@ -87,6 +100,15 @@ Future<Uint8List> readImportBytesCapped(
   XFile file, {
   int maxBytes = kMaxImportFileBytes,
 }) => readCappedBytes(file.openRead(), maxBytes: maxBytes);
+
+/// Reads a picked `.USR` [file]'s bytes under [kMaxImportUsrBytes] — the
+/// `.USR`-specific counterpart to [readImportBytesCapped]'s general cap. Split
+/// out from [pickImportUsrFile] so the `.USR` cap is unit-testable without the
+/// native picker.
+Future<Uint8List> readImportUsrBytesCapped(
+  XFile file, {
+  int maxBytes = kMaxImportUsrBytes,
+}) => readImportBytesCapped(file, maxBytes: maxBytes);
 
 /// Reads [file]'s text, failing closed via [readImportBytesCapped] if the file
 /// exceeds [maxBytes] *before* it is decoded to a string. The byte cap is
@@ -172,7 +194,7 @@ Future<Uint8List?> pickImportUsrFile() async {
   );
   final file = await openFile(acceptedTypeGroups: const [usrGroup]);
   if (file == null) return null;
-  return readImportBytesCapped(file);
+  return readImportUsrBytesCapped(file);
 }
 
 /// Fetches the text body of an import source over HTTP and returns it, or

@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:compendium_app/src/data/import_io.dart';
+import 'package:compendium_core/compendium_core.dart' show kMaxFmpSectors;
 import 'package:file_selector/file_selector.dart' show XFile;
 import 'package:flutter_test/flutter_test.dart';
 
@@ -1078,6 +1079,47 @@ void main() {
         expect(await readImportBytesCapped(fileOf(bytes), maxBytes: 8), bytes);
       },
     );
+
+    // A Caller's Companion .USR grows with the user's data (a tester's file was
+    // ~30 MB), so its picker has its own, higher cap than the share-bundle path.
+    test('the .USR cap is 64 MiB, above the general import cap', () {
+      expect(kMaxImportUsrBytes, 64 * 1024 * 1024);
+      expect(kMaxImportUsrBytes, greaterThan(kMaxImportFileBytes));
+    });
+
+    test(
+      'readImportUsrBytesCapped accepts a file the general cap would refuse',
+      () async {
+        // 26 MiB: over kMaxImportFileBytes (25 MiB), under the .USR cap.
+        final file = XFile.fromData(
+          Uint8List(26 * 1024 * 1024),
+          name: 'tester.USR',
+        );
+        await expectLater(
+          readImportBytesCapped(file),
+          throwsA(isA<ImportFileTooLargeException>()),
+        );
+        expect((await readImportUsrBytesCapped(file)).length, 26 * 1024 * 1024);
+      },
+    );
+
+    test('readImportUsrBytesCapped still rejects a file over its cap while '
+        'reading', () async {
+      await expectLater(
+        readImportUsrBytesCapped(
+          fileOf(List<int>.filled(20, 0x41)),
+          maxBytes: 8,
+        ),
+        throwsA(isA<ImportFileTooLargeException>()),
+      );
+    });
+
+    test('the core sector guard admits every file the .USR cap admits', () {
+      // 4 KiB sectors after a one-sector header: a file at the byte cap holds
+      // (cap / 4096) - 1 body sectors. If the sector guard were tighter than
+      // the byte cap, it — not the cap — would be the effective ceiling.
+      expect(kMaxFmpSectors, greaterThanOrEqualTo(kMaxImportUsrBytes ~/ 4096));
+    });
   });
 
   group('contraDbProgramIdFromInput', () {
