@@ -166,5 +166,8 @@ marketplaces (Apple's App Store, Google Play, and comparable stores) under those
 stores' required terms — while the source stays fully AGPL-3.0 and every user
 keeps their rights to it.
 
+Code we ported from other projects keeps their licenses; the notices are in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
 [^1]: Barriers tending to, y'know, get in the way and keep people out of things, rather than welcoming and supporting them.
 [^2]: But we don't necessarily promise to do anything about it.

@@ -73,7 +73,7 @@ void main() {
     // Each test drives the global LicenseRegistry, so start from a clean slate
     // and let the once-guarded registration run fresh.
     LicenseRegistry.reset();
-    resetBundledFontLicensesForTest();
+    resetBundledLicensesForTest();
   });
 
   testWidgets('About section shows license, source, and attributions (wide)', (
@@ -155,7 +155,7 @@ void main() {
     'View licenses opens showLicensePage including a bundled font license',
     (tester) async {
       // Register the bundled font licenses so the license page lists them.
-      registerBundledFontLicenses();
+      registerBundledLicenses();
 
       await _pumpAbout(tester, surfaceSize: const Size(500, 2600));
 

@@ -670,7 +670,8 @@ The **About** section tells you what you're running and where it comes from.
   SIL Open Font License.
 - Theme-palette and dance-data attributions, including The Caller's Box
   (CC BY-NC).
-- **View licenses** — the full license texts.
+- **View licenses** — the full license texts, including the bundled fonts and
+  `fmptools` (MIT), the project the Caller's Companion importer is ported from.
 
 ## Where to go next
 

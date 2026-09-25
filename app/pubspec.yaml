@@ -108,6 +108,10 @@ flutter:
     - assets/fonts/AtkinsonHyperlegible-OFL.txt
     - assets/fonts/Roboto-OFL.txt
     - assets/fonts/NotoSansSymbols2-OFL.txt
+    # License text of the `fmptools` project that fmp_reader.dart and scsu.dart
+    # are ported from (MIT — the notice must ship with the port, #1392). Loaded
+    # the same way, via licenses.dart.
+    - assets/licenses/fmptools-LICENSE.txt
     # In-app User Guide: the offline copy of the user documentation, mirrored
     # from /docs/user by tools/ci/sync_user_docs.py and kept in sync by a CI
     # drift-check. Rendered from these bundled assets so the guide works fully
