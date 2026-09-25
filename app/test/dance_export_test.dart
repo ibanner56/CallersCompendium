@@ -8,6 +8,8 @@ import 'package:share_plus/share_plus.dart';
 
 import 'package:compendium_app/src/export/dance_pdf.dart';
 import 'package:compendium_app/src/export/json_export.dart';
+import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
+import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/widgets/dance_export_menu.dart';
 
 import 'support/l10n_harness.dart';
@@ -513,6 +515,86 @@ void main() {
       expect(find.text("Couldn't export this dance"), findsOneWidget);
     });
 
+    testWidgets(
+      'surfaces a SnackBar when sharing throws an Error, not an Exception',
+      (tester) async {
+        final sink = _RecordingSink();
+        installCaughtErrorLog(sink);
+        addTearDown(resetCaughtErrorLogForTesting);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  DanceExportMenu(
+                    dance: _dance(),
+                    dialect: Dialect.canonical,
+                    authorNames: const [],
+                    formationLabel: 'Duple improper',
+                    statusLabel: 'Active',
+                    shareInvoker: (params) async =>
+                        throw StateError('no share target'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Share dance (text)'));
+        await tester.pumpAndSettle();
+
+        expect(find.text("Couldn't share this dance"), findsOneWidget);
+        expect(sink.sources, ['dance_export_menu._guard']);
+      },
+    );
+
+    testWidgets(
+      'surfaces a SnackBar when the PDF export throws an Error, not an Exception',
+      (tester) async {
+        final sink = _RecordingSink();
+        installCaughtErrorLog(sink);
+        addTearDown(resetCaughtErrorLogForTesting);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  DanceExportMenu(
+                    dance: _dance(),
+                    dialect: Dialect.canonical,
+                    authorNames: const [],
+                    formationLabel: 'Duple improper',
+                    statusLabel: 'Active',
+                    pdfLayouter: ({required name, required onLayout}) async =>
+                        throw StateError('no printer'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Export / print PDF'));
+        await tester.pumpAndSettle();
+
+        expect(find.text("Couldn't export this dance"), findsOneWidget);
+        expect(sink.sources, ['dance_export_menu._guard']);
+      },
+    );
+
     testWidgets('sanitizes the dance title in the PDF print-job name', (
       tester,
     ) async {
@@ -782,4 +864,13 @@ void main() {
       expect(spy.freeTextCalls, contains('role2s scoop them up'));
     });
   });
+}
+
+/// Records the `source` of every logged caught error.
+class _RecordingSink implements CrashLogSink {
+  final List<String> sources = [];
+
+  @override
+  void record(Object error, StackTrace? stack, {required String source}) =>
+      sources.add(source);
 }

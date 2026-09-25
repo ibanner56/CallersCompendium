@@ -1,5 +1,4 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:printing/printing.dart';
@@ -7,13 +6,13 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
-import '../diagnostics/error_log.dart';
 import '../export/dance_pdf.dart';
 import '../export/export_labels_l10n.dart';
 import '../utils/safe_name.dart';
 import '../export/dance_share_bundle.dart';
 import '../export/json_export.dart';
 import '../export/share_file.dart';
+import 'export_guard.dart';
 
 /// Actions offered by the [DanceExportMenu].
 enum _ExportAction { shareText, shareBundle, copyText, shareJson, pdf }
@@ -203,7 +202,7 @@ class DanceExportMenu extends StatelessWidget {
 
     switch (choice) {
       case JsonExportChoice.save:
-        await _guard(messenger, l10n.exportJsonSaveError, () async {
+        await guardExport(messenger, l10n.exportJsonSaveError, () async {
           final result = await delivery.save(bundle.json, bundle.fileName);
           if (result == null || !context.mounted) return;
           final message = result.fileName == null
@@ -212,25 +211,25 @@ class DanceExportMenu extends StatelessWidget {
               ? l10n.exportJsonSaved(result.fileName!)
               : l10n.exportJsonSavedTo(result.fileName!, result.path);
           messenger.showSnackBar(SnackBar(content: Text(message)));
-        });
+        }, source: 'dance_export_menu._guard');
       case JsonExportChoice.copy:
-        await _guard(messenger, l10n.exportJsonCopyError, () async {
+        await guardExport(messenger, l10n.exportJsonCopyError, () async {
           await delivery.copy(bundle.json);
           if (context.mounted) {
             messenger.showSnackBar(
               SnackBar(content: Text(l10n.exportJsonCopied)),
             );
           }
-        });
+        }, source: 'dance_export_menu._guard');
       case JsonExportChoice.share:
-        await _guard(messenger, l10n.exportJsonShareError, () {
+        await guardExport(messenger, l10n.exportJsonShareError, () {
           return delivery.share(
             json: bundle.json,
             fileName: bundle.fileName,
             subject: dance.title,
             sharePositionOrigin: origin,
           );
-        });
+        }, source: 'dance_export_menu._guard');
     }
   }
 
@@ -272,7 +271,7 @@ class DanceExportMenu extends StatelessWidget {
         : null;
     switch (action) {
       case _ExportAction.shareText:
-        await _guard(
+        await guardExport(
           messenger,
           l10n.exportShareDanceError,
           () => _shareText(
@@ -280,12 +279,14 @@ class DanceExportMenu extends StatelessWidget {
             origin,
             canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
           ),
+          source: 'dance_export_menu._guard',
         );
       case _ExportAction.shareBundle:
-        await _guard(
+        await guardExport(
           messenger,
           l10n.exportShareDanceError,
           () => _shareBundle(origin),
+          source: 'dance_export_menu._guard',
         );
       case _ExportAction.copyText:
         await _copyText(
@@ -293,40 +294,22 @@ class DanceExportMenu extends StatelessWidget {
           canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
         );
       case _ExportAction.shareJson:
-        await _guard(
+        await guardExport(
           messenger,
           l10n.exportJsonShareError,
           () => _exportJson(context, origin),
+          source: 'dance_export_menu._guard',
         );
       case _ExportAction.pdf:
-        await _guard(
+        await guardExport(
           messenger,
           l10n.exportDanceError,
           () => _exportPdf(
             l10n,
             canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
           ),
+          source: 'dance_export_menu._guard',
         );
-    }
-  }
-
-  /// Runs [action], surfacing [failureMessage] as a [SnackBar] if it throws.
-  ///
-  /// A user who simply cancels a share/print sheet surfaces as a normal
-  /// (non-throwing) result, so only genuine failures are reported.
-  Future<void> _guard(
-    ScaffoldMessengerState messenger,
-    String failureMessage,
-    Future<void> Function() action,
-  ) async {
-    try {
-      await action();
-    } on Object catch (e, st) {
-      logCaughtError(e, st, source: 'dance_export_menu._guard');
-      if (kDebugMode) {
-        debugPrint('$failureMessage: $e\n$st');
-      }
-      messenger.showSnackBar(SnackBar(content: Text(failureMessage)));
     }
   }
 

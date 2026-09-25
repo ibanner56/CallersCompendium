@@ -1,5 +1,4 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:printing/printing.dart';
@@ -10,7 +9,6 @@ export '../export/share_file.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
-import '../diagnostics/error_log.dart';
 import '../export/export_labels_l10n.dart';
 import '../export/program_pdf.dart';
 import '../export/program_share_bundle.dart';
@@ -19,6 +17,7 @@ import '../export/share_sanitization.dart';
 import '../export/share_file.dart';
 import '../search/facet_labels.dart';
 import '../utils/safe_name.dart';
+import 'export_guard.dart';
 import 'program_figures_prompt_dialog.dart';
 import 'venue_contact_share_dialog.dart';
 
@@ -403,7 +402,7 @@ class ProgramExportMenu extends StatelessWidget {
 
     switch (choice) {
       case JsonExportChoice.save:
-        await _guard(messenger, l10n.exportJsonSaveError, () async {
+        await guardExport(messenger, l10n.exportJsonSaveError, () async {
           final result = await delivery.save(bundle.json, bundle.fileName);
           if (result == null || !context.mounted) return;
           final message = result.fileName == null
@@ -412,25 +411,25 @@ class ProgramExportMenu extends StatelessWidget {
               ? l10n.exportJsonSaved(result.fileName!)
               : l10n.exportJsonSavedTo(result.fileName!, result.path);
           messenger.showSnackBar(SnackBar(content: Text(message)));
-        });
+        }, source: 'program_export_menu._guard');
       case JsonExportChoice.copy:
-        await _guard(messenger, l10n.exportJsonCopyError, () async {
+        await guardExport(messenger, l10n.exportJsonCopyError, () async {
           await delivery.copy(bundle.json);
           if (context.mounted) {
             messenger.showSnackBar(
               SnackBar(content: Text(l10n.exportJsonCopied)),
             );
           }
-        });
+        }, source: 'program_export_menu._guard');
       case JsonExportChoice.share:
-        await _guard(messenger, l10n.exportJsonShareError, () {
+        await guardExport(messenger, l10n.exportJsonShareError, () {
           return delivery.share(
             json: bundle.json,
             fileName: bundle.fileName,
             subject: program.title,
             sharePositionOrigin: origin,
           );
-        });
+        }, source: 'program_export_menu._guard');
     }
   }
 
@@ -519,51 +518,35 @@ class ProgramExportMenu extends StatelessWidget {
         : null;
     switch (action) {
       case _ExportAction.shareText:
-        await _guard(
+        await guardExport(
           messenger,
           l10n.exportShareSetListError,
           () => _shareText(context, origin),
+          source: 'program_export_menu._guard',
         );
       case _ExportAction.shareBundle:
-        await _guard(
+        await guardExport(
           messenger,
           l10n.exportShareProgramError,
           () => _shareBundle(context, origin),
+          source: 'program_export_menu._guard',
         );
       case _ExportAction.copyText:
         await _copyText(context);
       case _ExportAction.shareJson:
-        await _guard(
+        await guardExport(
           messenger,
           l10n.exportJsonShareError,
           () => _exportJson(context, origin),
+          source: 'program_export_menu._guard',
         );
       case _ExportAction.pdf:
-        await _guard(
+        await guardExport(
           messenger,
           l10n.exportSetListError,
           () => _exportPdf(context),
+          source: 'program_export_menu._guard',
         );
-    }
-  }
-
-  /// Runs [action], surfacing [failureMessage] as a [SnackBar] if it throws.
-  ///
-  /// A user who simply cancels a share/print sheet surfaces as a normal
-  /// (non-throwing) result, so only genuine failures are reported.
-  Future<void> _guard(
-    ScaffoldMessengerState messenger,
-    String failureMessage,
-    Future<void> Function() action,
-  ) async {
-    try {
-      await action();
-    } on Exception catch (e, st) {
-      logCaughtError(e, st, source: 'program_export_menu._guard');
-      if (kDebugMode) {
-        debugPrint('$failureMessage: $e\n$st');
-      }
-      messenger.showSnackBar(SnackBar(content: Text(failureMessage)));
     }
   }
 
