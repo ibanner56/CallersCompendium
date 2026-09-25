@@ -169,8 +169,9 @@ Future<void> _retireMissingNormalisationSkips(CompendiumDatabase db) async {
 /// wires up storage once (`CompendiumRepositories(db, taxonomy)`) instead of
 /// constructing each repository individually.
 class CompendiumRepositories {
-  /// [settings], [dances], and [venues] exist as **test seams**, and only as that: each
-  /// defaults to the real repository, so no production call site passes either.
+  /// [settings], [dances], [venues] and [choreographers] exist as **test
+  /// seams**, and only as that: each defaults to the real repository, so no
+  /// production call site passes any of them.
   ///
   /// A test that needs to count how many times a screen re-read its data
   /// substitutes a counting subclass here. The alternative — matching SQL text
@@ -187,8 +188,9 @@ class CompendiumRepositories {
     CollectionImportEventRepository? collectionImports,
     ProgramRepository? programs,
     VenueRepository? venues,
+    ChoreographerRepository? choreographers,
   }) : dances = dances ?? DanceRepository(db, taxonomy),
-       choreographers = ChoreographerRepository(db),
+       choreographers = choreographers ?? ChoreographerRepository(db),
        tags = TagRepository(db),
        difficultyLevels = DifficultyLevelRepository(db),
        customFieldDefs = CustomFieldDefRepository(db),

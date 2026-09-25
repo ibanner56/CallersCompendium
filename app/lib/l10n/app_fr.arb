@@ -6056,6 +6056,10 @@
   "@danceEditorChoreographerDuplicate": {
     "x-sourceSha256": "52b0da7b4633d14785af52f52de164654e1b40d0ddd832631020e4838879bea3"
   },
+  "danceEditorChoreographerCreateDuplicate": "Un chorégraphe nommé « {name} » existe déjà. Le nouvel auteur n’a pas été créé — sélectionnez celui qui existe déjà.",
+  "@danceEditorChoreographerCreateDuplicate": {
+    "x-sourceSha256": "930415b6b09a88eeb257b9cf16ad08a9f56e1f2f274200d996bc1a620a4cb5ea"
+  },
   "danceEditorFallbackDanceTitle": "Danse",
   "@danceEditorFallbackDanceTitle": {
     "x-sourceSha256": "23d2d73543f9d7d92ac704296e5ee744037f5f4c938e21abf2c17002c4e9ba71"
@@ -6899,6 +6903,10 @@
   "customFieldsKeyDuplicate": "Un champ avec la clé « {key} » existe déjà. La clé n’a pas été modifiée.",
   "@customFieldsKeyDuplicate": {
     "x-sourceSha256": "346f6211e52a10a4238242669b00d656ad1ed715fef91b17e4dc2c9c58c8afa5"
+  },
+  "customFieldsKeyDuplicateNew": "Un champ avec la clé « {key} » existe déjà. Le nouveau champ n’a pas été créé.",
+  "@customFieldsKeyDuplicateNew": {
+    "x-sourceSha256": "59837cf3c2001b2ebf5607e77a4fb242f4e7a045479f4f12d092bc4200c39b8d"
   },
   "customFieldsDeleteInUseUnknown": "Impossible de supprimer « {label} » : encore utilisé par certaines danses. Supprimez d’abord la valeur de toutes les danses.",
   "@customFieldsDeleteInUseUnknown": {

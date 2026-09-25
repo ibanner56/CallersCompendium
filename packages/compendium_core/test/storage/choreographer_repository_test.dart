@@ -281,4 +281,104 @@ void main() {
       expect(row, isNull, reason: 'a rollback still leaves nothing behind');
     });
   });
+
+  group('creating onto a live natural key', _liveNameCollisionOnCreate);
+}
+
+// ---------------------------------------------------------------------------
+// Creating a choreographer whose name a LIVE choreographer already holds.
+//
+// Same shape as the custom-field and tag guards, driven through this repository
+// directly rather than a shared helper: the three `_write` methods are separate
+// code, and a guard that exercises one of them proves nothing about the others.
+//
+// The dance editor cannot currently reach this -- `name_picker` only offers the
+// "create" choice when nothing in `options` matches case-insensitively -- so
+// this is the repository's own contract rather than a live user path. It is
+// guarded anyway because the repository is public API and the sibling defect
+// was live.
+void _liveNameCollisionOnCreate() {
+  late CompendiumDatabase db;
+  late ChoreographerRepository repo;
+
+  setUp(() {
+    db = openTestDatabase();
+    repo = ChoreographerRepository(db);
+  });
+  tearDown(() => db.close());
+
+  test(
+    'refuses a creation onto a live name, typed, before any write',
+    () async {
+      // ignore: unused_result
+      await repo.upsert(
+        Choreographer(id: 'incumbent', name: 'Ada', notes: 'keepme'),
+        at: DateTime.utc(2020),
+      );
+
+      await expectLater(
+        repo.upsert(Choreographer(id: 'newcomer', name: 'Ada')),
+        throwsA(
+          isA<DuplicateNaturalKeyError>()
+              .having((e) => e.table, 'table', 'choreographers')
+              .having((e) => e.column, 'column', 'name')
+              .having((e) => e.value, 'value', 'Ada')
+              .having((e) => e.holderId, 'holderId', 'incumbent'),
+        ),
+      );
+
+      final rows = await db.select(db.choreographers).get();
+      expect(rows, hasLength(1));
+      expect(rows.single.id, 'incumbent');
+      expect(rows.single.notes, 'keepme');
+      expect(rows.single.updatedAt, DateTime.utc(2020).toLocal());
+      expect(
+        await db.customSelect('SELECT 1 FROM normalisation_skips').get(),
+        isEmpty,
+      );
+    },
+  );
+
+  test('still ADOPTS a tombstoned holder rather than refusing', () async {
+    // ignore: unused_result
+    await repo.upsert(
+      Choreographer(id: 'incumbent', name: 'Ada'),
+      at: DateTime.utc(2020),
+    );
+    await repo.delete('incumbent', at: DateTime.utc(2021));
+    expect(
+      (await (db.select(
+        db.choreographers,
+      )..where((t) => t.id.equals('incumbent'))).getSingle()).deletedAt,
+      isNotNull,
+      reason: 'the fixture must actually be a tombstone',
+    );
+
+    final written = await repo.upsert(
+      Choreographer(id: 'newcomer', name: 'Ada', notes: 'revived'),
+      at: DateTime.utc(2022),
+    );
+    expect(written, 'incumbent', reason: 'the tombstone was adopted');
+    final live = await repo.listAll();
+    expect(live, hasLength(1));
+    expect(live.single.notes, 'revived');
+  });
+
+  test(
+    'writeFromSync keeps refusing with StateError, not the typed error',
+    () async {
+      // ignore: unused_result
+      await repo.upsert(Choreographer(id: 'incumbent', name: 'Ada'));
+      await expectLater(
+        repo.writeFromSync(Choreographer(id: 'inbound', name: 'Ada')),
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            contains('wants a name held by'),
+          ),
+        ),
+      );
+    },
+  );
 }

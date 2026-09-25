@@ -3,8 +3,10 @@ import 'package:drift/drift.dart';
 import 'database.dart';
 import 'shareable_text.dart';
 
-/// Raised when an edit would give a row a `UNIQUE` natural key that a
-/// **different** live or tombstoned row already holds.
+/// Raised when a write would give a row a `UNIQUE` natural key that a
+/// **different** row already holds — an *edit* renaming onto a live or
+/// tombstoned holder ([resolveNaturalKeyCollision]), or a *creation* landing on
+/// a live one ([refuseCreationOntoLiveNaturalKey]).
 ///
 /// This is the visible half of issue #1348's ruling. `docs/design/sync-spec.md`
 /// §4.1 says a write whose normalised target is occupied must store the value
@@ -13,7 +15,8 @@ import 'shareable_text.dart';
 /// value would violate the `UNIQUE` index, so there is no way to keep the edit;
 /// the choice is between refusing it and discarding it. Refusing is the one the
 /// user can see and act on, and it is what the four natural-key repositories
-/// now do.
+/// now do. For a creation the remedy is not merely unavailable but meaningless:
+/// a new row has no previous value to keep un-normalised.
 ///
 /// Distinct from the [StateError] those repositories raise for an inbound sync
 /// record holding an occupied key (§6.7). That one reports a record to
@@ -55,8 +58,11 @@ class DuplicateNaturalKeyError implements Exception {
 /// normalised form of [incomingValue] is already held by [incumbentId], and
 /// returns the value to store when the write may proceed.
 ///
-/// This is the one statement of issue #1348's ruling, and it asks **two**
-/// questions rather than one:
+/// This is the statement of issue #1348's ruling for a write to a row that
+/// already exists, and it asks **two** questions rather than one.
+/// [refuseCreationOntoLiveNaturalKey] states the same ruling for a creation,
+/// which reaches neither question because there is no stored value to compare
+/// against:
 ///
 /// 1. *Did the user change the value?* If the stored value and the incoming one
 ///    derive different targets, the edit is a genuine rename onto a name
@@ -118,4 +124,45 @@ Future<String> resolveNaturalKeyCollision(
     );
   }
   return deferred;
+}
+
+/// Refuses an ordinary (non-sync) **creation** whose natural key a *live* row
+/// already holds, and returns normally when the write may proceed.
+///
+/// [resolveNaturalKeyCollision] answers the question for an existing row. It is
+/// never consulted for a creation, because `collidingEdit` requires the row to
+/// be there already — so until this existed, a creation carrying a fresh id fell
+/// through to the insert. That was not a takeover: drift emits
+/// `ON CONFLICT("<primary key>") DO UPDATE`, so a conflict on the *natural* key
+/// is outside the clause's target and SQLite refuses the statement. But it
+/// refused it as a raw `SqliteException`, which nothing on a user's path catches
+/// by type, so the action failed while telling the user nothing.
+///
+/// Refusing here is the same ruling #1348 settled for a rename, applied one case
+/// earlier: §4.1's store-un-normalised remedy has nothing to offer a creation —
+/// there is no previous value for the new row to keep — so the choice is between
+/// refusing visibly and failing opaquely.
+///
+/// **[incumbentDeletedAt] is what the whole decision turns on.** A *tombstoned*
+/// holder must NOT be refused: [adoptTombstonedNaturalKey] reconciles that case
+/// on purpose, and refusing it would break re-creating a deleted tag under its
+/// old name — the very regression adoption exists to fix. Only a live holder is
+/// a duplicate.
+///
+/// Callers must gate this on `fromSync == false`. §6.7 owns identity for an
+/// inbound record and reports it to reconciliation with a [StateError] that is
+/// never shown to anybody; this error is an answer to a person.
+void refuseCreationOntoLiveNaturalKey({
+  required NormalisationSkipColumn address,
+  required String normalisedValue,
+  required String incumbentId,
+  required DateTime? incumbentDeletedAt,
+}) {
+  if (incumbentDeletedAt != null) return;
+  throw DuplicateNaturalKeyError(
+    table: address.table,
+    column: address.column,
+    value: normalisedValue,
+    holderId: incumbentId,
+  );
 }

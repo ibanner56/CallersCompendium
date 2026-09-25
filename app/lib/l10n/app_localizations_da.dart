@@ -5983,6 +5983,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String danceEditorChoreographerCreateDuplicate(String name) {
+    return 'En koreograf ved navn „$name“ findes allerede. Den nye forfatter blev ikke oprettet — vælg den eksisterende i stedet.';
+  }
+
+  @override
   String get danceEditorFallbackDanceTitle => 'Dans';
 
   @override
@@ -6931,6 +6936,11 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String customFieldsKeyDuplicate(String key) {
     return 'Et felt med nøglen „$key“ findes allerede. Nøglen blev ikke ændret.';
+  }
+
+  @override
+  String customFieldsKeyDuplicateNew(String key) {
+    return 'Et felt med nøglen „$key“ findes allerede. Det nye felt blev ikke oprettet.';
   }
 
   @override

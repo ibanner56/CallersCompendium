@@ -71,9 +71,17 @@ class _BatchTagDialogState extends State<_BatchTagDialog> {
     if (name.isEmpty || _creating) return;
     // Reuse an option already visible in this picker instead of minting a
     // duplicate. Hidden live rows are reconciled at commit time.
+    //
+    // [naturalKeyMatchKey], the same key `TagRepository.idByName` resolves by,
+    // so a canonically equivalent spelling reuses the visible tag rather than
+    // showing a second chip that commit then silently merges away. Unlike the
+    // author picker this was never a data-loss path — `upsertStaged` resolves
+    // the live row before any write — but it is the fourth spelling of one
+    // comparison, and the divergence found in review on #1410 is what those
+    // produce.
     Tag? existing;
     for (final t in _tags) {
-      if (t.name.toLowerCase() == name.toLowerCase()) {
+      if (naturalKeyMatchKey(t.name) == naturalKeyMatchKey(name)) {
         existing = t;
         break;
       }

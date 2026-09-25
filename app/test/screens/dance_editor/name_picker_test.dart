@@ -183,4 +183,211 @@ void main() {
       );
     },
   );
+
+  group('canonical equivalence', _canonicalEquivalenceGroup);
+  group('create declined', _createDeclinedGroup);
+}
+
+// ---------------------------------------------------------------------------
+// The picker's "is this name new?" test must ask the same question the
+// repository will ask, or it offers a create the repository then refuses.
+//
+// Found in review on #1410: the comparison was `toLowerCase()` on raw text,
+// while `ChoreographerRepository` looks the incumbent up by
+// `normalizeShareableText`, which composes to NFC. With a live "café", typing
+// the decomposed form matched nothing here, offered "create", and threw
+// `DuplicateNaturalKeyError` out of `onSelected` — an async callback nothing
+// awaits — so the author was silently not created. The PR body had claimed this
+// path was unreachable; it was not.
+//
+// Both halves are asserted, because fixing only the exact test would suppress
+// "create" while the substring filter still failed to show the row it collides
+// with, leaving an empty list and no way forward.
+
+/// "café" composed: U+00E9.
+const _nfcCafe = 'caf\u00e9';
+
+/// "café" decomposed: "e" + U+0301 combining acute.
+const _nfdCafe = 'cafe\u0301';
+
+void _canonicalEquivalenceGroup() {
+  Future<List<String>> pumpAndType(
+    WidgetTester tester,
+    String typed, {
+    required List<NameOption> options,
+  }) async {
+    final created = <String>[];
+    await setScreenSize(tester, const Size(1200, 900));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: NamePicker(
+            fieldKey: 'author',
+            selectedIds: const [],
+            namesById: const {},
+            options: options,
+            onAdd: (_) {},
+            onRemove: (_) {},
+            onCreate: (name) async {
+              created.add(name);
+              return 'new-id';
+            },
+            sheetSemanticLabel: 'Authors',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('author-input')),
+      warnIfMissed: false,
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('author-input')), typed);
+    await tester.pumpAndSettle();
+    return created;
+  }
+
+  testWidgets('a decomposed spelling of a live name offers no create', (
+    tester,
+  ) async {
+    // Precondition: the two strings really are canonically equivalent and not
+    // byte-equal, or the test passes without exercising anything.
+    expect(_nfcCafe == _nfdCafe, isFalse);
+    expect(_nfcCafe.toLowerCase() == _nfdCafe.toLowerCase(), isFalse);
+
+    await pumpAndType(
+      tester,
+      _nfdCafe,
+      options: const [(id: 'c1', name: _nfcCafe)],
+    );
+
+    expect(
+      find.byKey(ValueKey('author-option-create:$_nfdCafe')),
+      findsNothing,
+      reason: 'the repository would refuse this create',
+    );
+    expect(
+      find.byKey(const ValueKey('author-option-c1')),
+      findsOneWidget,
+      reason: 'the incumbent must still be offered, or there is no way forward',
+    );
+  });
+
+  testWidgets('a genuinely new name still offers create', (tester) async {
+    // The other side of the guard: a comparison widened until it matches
+    // everything would pass the test above and break the picker.
+    await pumpAndType(
+      tester,
+      'Brand New Author',
+      options: const [(id: 'c1', name: _nfcCafe)],
+    );
+    expect(
+      find.byKey(const ValueKey('author-option-create:Brand New Author')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('case-only difference still offers no create, as before', (
+    tester,
+  ) async {
+    // Pre-existing behaviour this change must not disturb: the picker was
+    // already case-insensitive, and `naturalKeyMatchKey` keeps it so.
+    await pumpAndType(
+      tester,
+      'GENE HUBERT',
+      options: const [(id: 'gene', name: 'Gene Hubert')],
+    );
+    expect(
+      find.byKey(const ValueKey('author-option-create:GENE HUBERT')),
+      findsNothing,
+    );
+  });
+}
+
+// ---------------------------------------------------------------------------
+// `onCreate` returning null is the one contract for "the create did not
+// happen". `onAdd` must be skipped and the typed text kept, so the user can
+// pick the row the create collided with; clearing the field would discard the
+// name the snackbar is talking about.
+//
+// Pinned here rather than left incidental: the tag path shares this callback
+// and never returns null today, so nothing else would notice if the skip were
+// dropped.
+void _createDeclinedGroup() {
+  Future<List<String>> pumpAndTakeCreate(
+    WidgetTester tester,
+    String typed, {
+    required Future<String?> Function(String) onCreate,
+  }) async {
+    final added = <String>[];
+    await setScreenSize(tester, const Size(1200, 900));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: NamePicker(
+            fieldKey: 'author',
+            selectedIds: const [],
+            namesById: const {},
+            options: const [(id: 'gene', name: 'Gene Hubert')],
+            onAdd: added.add,
+            onRemove: (_) {},
+            onCreate: onCreate,
+            sheetSemanticLabel: 'Authors',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('author-input')),
+      warnIfMissed: false,
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('author-input')), typed);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('author-option-create:$typed')));
+    await tester.pumpAndSettle();
+    return added;
+  }
+
+  testWidgets('a null from onCreate adds nothing and keeps the typed text', (
+    tester,
+  ) async {
+    var createCalls = 0;
+    final added = await pumpAndTakeCreate(
+      tester,
+      'Refused Name',
+      onCreate: (_) async {
+        createCalls++;
+        return null;
+      },
+    );
+
+    expect(createCalls, 1, reason: 'the create really was attempted');
+    expect(added, isEmpty, reason: 'nothing may be attached');
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('author-input')))
+          .controller
+          ?.text,
+      'Refused Name',
+      reason: 'the field keeps the name the message is about',
+    );
+  });
+
+  testWidgets('a non-null id still adds, so the skip is not unconditional', (
+    tester,
+  ) async {
+    final added = await pumpAndTakeCreate(
+      tester,
+      'Accepted Name',
+      onCreate: (_) async => 'minted-id',
+    );
+    expect(added, ['minted-id']);
+  });
 }

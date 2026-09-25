@@ -5767,6 +5767,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String danceEditorChoreographerCreateDuplicate(String name) {
+    return '「$name」という名前の振付者はすでに存在します。新しい作者は作成されませんでした。既存のものを選んでください。';
+  }
+
+  @override
   String get danceEditorFallbackDanceTitle => 'ダンス';
 
   @override
@@ -6685,6 +6690,11 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String customFieldsKeyDuplicate(String key) {
     return 'キーが「$key」のフィールドはすでに存在します。キーは変更されませんでした。';
+  }
+
+  @override
+  String customFieldsKeyDuplicateNew(String key) {
+    return 'キーが「$key」のフィールドはすでに存在します。新しいフィールドは作成されませんでした。';
   }
 
   @override

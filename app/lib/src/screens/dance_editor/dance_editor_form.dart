@@ -90,11 +90,19 @@ class DanceEditorForm extends StatelessWidget {
   final ValueChanged<String> onAddAuthor;
   final ValueChanged<String> onAddTag;
   final ValueChanged<String> onAttachSource;
-  final Future<String> Function(String name) onCreateChoreographer;
+
+  /// Returns the id the entity actually occupies, or `null` when the create
+  /// did not happen and the user has already been told why — the same
+  /// contract `onCreateSource` has carried for a cancelled dialog.
+  final Future<String?> Function(String name) onCreateChoreographer;
   final ValueChanged<String> onEditChoreographer;
   final Future<String?> Function(String title) onCreateSource;
   final ValueChanged<String> onEditSource;
-  final Future<String> Function(String name) onCreateTag;
+
+  /// Returns the id the entity actually occupies, or `null` when the create
+  /// did not happen and the user has already been told why — the same
+  /// contract `onCreateSource` has carried for a cancelled dialog.
+  final Future<String?> Function(String name) onCreateTag;
 
   @override
   Widget build(BuildContext context) {

@@ -369,4 +369,114 @@ void main() {
       expect(await danceTagRows('t1'), 1);
     });
   });
+
+  group('creating onto a live natural key', _liveNameCollisionOnCreate);
+}
+
+// ---------------------------------------------------------------------------
+// Creating a tag whose name a LIVE tag already holds. See the twin group in
+// `choreographer_repository_test.dart` on why each repository is driven
+// directly rather than through a shared helper.
+//
+// `upsertStaged` returns a live match's id before any write, so the dance
+// editor's ordinary "two tags, one name" case never reaches `upsert`. This is
+// the repository's own contract for a caller that does.
+void _liveNameCollisionOnCreate() {
+  late CompendiumDatabase db;
+  late TagRepository repo;
+
+  setUp(() {
+    db = openTestDatabase();
+    repo = TagRepository(db);
+  });
+  tearDown(() => db.close());
+
+  test(
+    'refuses a creation onto a live name, typed, before any write',
+    () async {
+      // ignore: unused_result
+      await repo.upsert(
+        Tag(id: 'incumbent', name: 'Easy', color: 0xFF2196F3),
+        at: DateTime.utc(2020),
+      );
+
+      await expectLater(
+        repo.upsert(Tag(id: 'newcomer', name: 'Easy')),
+        throwsA(
+          isA<DuplicateNaturalKeyError>()
+              .having((e) => e.table, 'table', 'tags')
+              .having((e) => e.column, 'column', 'name')
+              .having((e) => e.value, 'value', 'Easy')
+              .having((e) => e.holderId, 'holderId', 'incumbent'),
+        ),
+      );
+
+      final rows = await db.select(db.tags).get();
+      expect(rows, hasLength(1));
+      expect(rows.single.id, 'incumbent');
+      expect(rows.single.color, 0xFF2196F3);
+      expect(rows.single.updatedAt, DateTime.utc(2020).toLocal());
+      expect(
+        await db.customSelect('SELECT 1 FROM normalisation_skips').get(),
+        isEmpty,
+      );
+    },
+  );
+
+  test('still ADOPTS a tombstoned holder rather than refusing', () async {
+    // ignore: unused_result
+    await repo.upsert(
+      Tag(id: 'incumbent', name: 'Easy'),
+      at: DateTime.utc(2020),
+    );
+    await repo.delete('incumbent', at: DateTime.utc(2021));
+    expect(
+      (await (db.select(
+        db.tags,
+      )..where((t) => t.id.equals('incumbent'))).getSingle()).deletedAt,
+      isNotNull,
+      reason: 'the fixture must actually be a tombstone',
+    );
+
+    final written = await repo.upsert(
+      Tag(id: 'newcomer', name: 'Easy', color: 0xFF00FF00),
+      at: DateTime.utc(2022),
+    );
+    expect(written, 'incumbent', reason: 'the tombstone was adopted');
+    final live = await repo.listAll();
+    expect(live, hasLength(1));
+    expect(live.single.color, 0xFF00FF00);
+  });
+
+  test(
+    'upsertStaged still returns the live incumbent instead of refusing',
+    () async {
+      // The path the dance editor actually takes. It must keep returning the
+      // incumbent's id rather than starting to throw the new error.
+      // ignore: unused_result
+      await repo.upsert(Tag(id: 'incumbent', name: 'Easy'));
+      expect(
+        await repo.upsertStaged(Tag(id: 'staged', name: 'Easy')),
+        'incumbent',
+      );
+    },
+  );
+
+  test(
+    'writeFromSync keeps refusing with StateError, not the typed error',
+    () async {
+      // ignore: unused_result
+      await repo.upsert(Tag(id: 'incumbent', name: 'Easy'));
+      await expectLater(
+        repo.writeFromSync(Tag(id: 'inbound', name: 'Easy')),
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            contains('wants a name held by'),
+          ),
+        ),
+      );
+    },
+  );
 }

@@ -6031,6 +6031,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String danceEditorChoreographerCreateDuplicate(String name) {
+    return 'Er bestaat al een choreograaf met de naam “$name”. De nieuwe auteur is niet aangemaakt — kies de bestaande.';
+  }
+
+  @override
   String get danceEditorFallbackDanceTitle => 'Dans';
 
   @override
@@ -6983,6 +6988,11 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String customFieldsKeyDuplicate(String key) {
     return 'Een veld met de sleutel “$key” bestaat al. De sleutel is niet gewijzigd.';
+  }
+
+  @override
+  String customFieldsKeyDuplicateNew(String key) {
+    return 'Een veld met de sleutel “$key” bestaat al. Het nieuwe veld is niet aangemaakt.';
   }
 
   @override

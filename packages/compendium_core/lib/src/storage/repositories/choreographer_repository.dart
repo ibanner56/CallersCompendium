@@ -33,11 +33,14 @@ class ChoreographerRepository {
   /// method, and a cancellation they did not intend reverses a peer's deletion.
   ///
   /// Throws [DuplicateNaturalKeyError] when the write would rename this
-  /// choreographer onto a name another row already holds. Callers on a user's
-  /// path MUST surface that: it means the edit was not saved, and until #1348
-  /// the old name was kept silently while the editor went on showing the new
-  /// one. See [resolveNaturalKeyCollision] for when it is raised rather than
-  /// §4.1's store-un-normalised carve-out taken.
+  /// choreographer onto a name another row already holds, and when it would
+  /// **create** one under a name a *live* row holds. Callers on a user's path
+  /// MUST surface that: it means the write was not saved, and until #1348 the
+  /// old name was kept silently while the editor went on showing the new one.
+  /// See [resolveNaturalKeyCollision] for when the rename case is raised rather
+  /// than §4.1's store-un-normalised carve-out taken, and
+  /// [refuseCreationOntoLiveNaturalKey] for the creation case. A name a
+  /// *tombstone* holds is still adopted, not refused.
   Future<String> upsert(
     Choreographer c, {
     DateTime? at,
@@ -99,6 +102,21 @@ class ChoreographerRepository {
         throw StateError(
           'inbound choreographer "${c.id}" wants a name held by '
           '"${incumbent.id}"',
+        );
+      }
+      // A creation onto a name another row holds. `current == null` makes
+      // `collidingEdit` false, so the decision above never ran, and a *live*
+      // holder would reach the insert and fail as a raw `SqliteException`. A
+      // tombstoned holder is adopted below instead. Not reachable from the
+      // dance editor today — `name_picker` only offers "create" when nothing
+      // matches case-insensitively — but this repository is public API and the
+      // custom-field twin was reachable.
+      if (!fromSync && current == null && incumbent != null) {
+        refuseCreationOntoLiveNaturalKey(
+          address: choreographerNameNormalisation,
+          normalisedValue: name,
+          incumbentId: incumbent.id,
+          incumbentDeletedAt: incumbent.deletedAt,
         );
       }
       // Keyed on the name actually about to be stored, not on the normalised

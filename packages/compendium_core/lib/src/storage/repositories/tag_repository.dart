@@ -38,9 +38,11 @@ class TagRepository {
   /// Writes [tag], reviving it if a tombstone is in the way.
   ///
   /// `tags.name` is UNIQUE, so a tag deleted and then re-created under the same
-  /// name lands on the tombstoned row rather than inserting beside it. Clearing
-  /// `deleted_at` here is what makes that re-creation work at all: drift emits
-  /// an *untargeted* `ON CONFLICT DO UPDATE`, which updates every column the
+  /// name lands on the tombstoned row rather than inserting beside it —
+  /// [adoptTombstonedNaturalKey] returns the tombstone's id, so the insert
+  /// carries it. Clearing `deleted_at` here is what makes that re-creation work
+  /// at all: drift targets the conflict clause at the primary key
+  /// (`ON CONFLICT("id") DO UPDATE`), and that update writes every column the
   /// companion mentions and leaves the rest alone — so without this the new tag
   /// would be written onto the tombstone, keep its `deleted_at`, and simply
   /// never appear.
@@ -57,11 +59,14 @@ class TagRepository {
   /// method, and a cancellation they did not intend reverses a peer's deletion.
   ///
   /// Throws [DuplicateNaturalKeyError] when the write would rename this tag
-  /// onto a name another row already holds; see [resolveNaturalKeyCollision]
-  /// for when that happens rather than §4.1's store-un-normalised carve-out
-  /// (#1348). [upsertStaged] reaches this only in its tombstone branches: a
-  /// **live** natural-key match returns the incumbent's id before any write, so
-  /// the ordinary "two tags, one name" case never gets here.
+  /// onto a name another row already holds, and when it would **create** one
+  /// under a name a *live* row holds; see [resolveNaturalKeyCollision] for when
+  /// the rename case happens rather than §4.1's store-un-normalised carve-out,
+  /// and [refuseCreationOntoLiveNaturalKey] for the creation case (#1348). A
+  /// name a *tombstone* holds is still adopted, not refused. [upsertStaged]
+  /// reaches this only in its tombstone branches: a **live** natural-key match
+  /// returns the incumbent's id before any write, so the ordinary "two tags,
+  /// one name" case never gets here.
   @useResult
   Future<String> upsert(Tag tag, {DateTime? at, bool localUserEdit = false}) =>
       _write(tag, at: at, fromSync: false, localUserEdit: localUserEdit);
@@ -121,6 +126,20 @@ class TagRepository {
         throw StateError(
           'inbound tag "${tag.id}" wants a name held by '
           '"${incumbent.id}"',
+        );
+      }
+      // A creation onto a name another row holds. `current == null` makes
+      // `collidingEdit` false, so the decision above never ran, and a *live*
+      // holder would reach the insert and fail as a raw `SqliteException`. A
+      // tombstoned holder is adopted below instead. [upsertStaged] keeps the
+      // dance editor off this branch by returning a live match's id before any
+      // write; this is the contract for a caller that comes here directly.
+      if (!fromSync && current == null && incumbent != null) {
+        refuseCreationOntoLiveNaturalKey(
+          address: tagNameNormalisation,
+          normalisedValue: name,
+          incumbentId: incumbent.id,
+          incumbentDeletedAt: incumbent.deletedAt,
         );
       }
       final id = (collidingEdit || fromSync)
@@ -231,8 +250,15 @@ class TagRepository {
   /// Returns the existing id for [name], including tombstoned rows when
   /// [includeDeleted] is true. Matching is case-insensitive for compatibility
   /// with legacy case-only duplicates; live rows win, then the smallest id.
+  ///
+  /// Both sides go through [naturalKeyMatchKey] — the same key
+  /// `name_picker` decides "offer create?" by, which is the point of it being
+  /// one function. Applying it to the **stored** value as well as the query is
+  /// not redundant: §4.1's carve-out can leave a row's bytes un-composed, so a
+  /// stored decomposed name would otherwise miss an NFC query and hand the
+  /// caller a create that `upsert` then refuses.
   Future<String?> idByName(String name, {bool includeDeleted = false}) async {
-    final normalized = normalizeShareableText(name);
+    final wanted = naturalKeyMatchKey(name);
     final rows =
         await (_db.select(_db.tags)..where(
               (t) =>
@@ -240,9 +266,7 @@ class TagRepository {
             ))
             .get();
     final matches =
-        rows
-            .where((row) => row.name.toLowerCase() == normalized.toLowerCase())
-            .toList()
+        rows.where((row) => naturalKeyMatchKey(row.name) == wanted).toList()
           ..sort((a, b) {
             if (includeDeleted) {
               final deletedOrder = (a.deletedAt != null ? 1 : 0).compareTo(

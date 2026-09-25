@@ -6061,6 +6061,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String danceEditorChoreographerCreateDuplicate(String name) {
+    return 'Eine Choreografin oder ein Choreograf namens „$name“ existiert bereits. Der neue Eintrag wurde nicht erstellt — wähle stattdessen den vorhandenen aus.';
+  }
+
+  @override
   String get danceEditorFallbackDanceTitle => 'Tanz';
 
   @override
@@ -7017,6 +7022,11 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String customFieldsKeyDuplicate(String key) {
     return 'Ein Feld mit dem Schlüssel „$key“ existiert bereits. Der Schlüssel wurde nicht geändert.';
+  }
+
+  @override
+  String customFieldsKeyDuplicateNew(String key) {
+    return 'Ein Feld mit dem Schlüssel „$key“ existiert bereits. Das neue Feld wurde nicht erstellt.';
   }
 
   @override
