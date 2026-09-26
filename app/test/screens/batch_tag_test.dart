@@ -464,4 +464,129 @@ void main() {
     );
     handle.dispose();
   });
+
+  group('row menu Add tags (issue #1416)', () {
+    Future<void> openRowAddTags(WidgetTester tester, String danceId) async {
+      await tester.tap(find.byKey(ValueKey('dance-actions-$danceId')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('dance-action-add-tags')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('tags only that dance and does not enter selection mode', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't1', name: 'Beginner'));
+      await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Bravo'));
+      await repos.dances.create(_dance(id: 'd3', title: 'Charlie'));
+      await repos.dances.create(
+        _dance(id: 'd4', title: 'Tag seed', tagIds: ['t1']),
+      );
+      await _pumpScreen(tester, repos);
+
+      await openRowAddTags(tester, 'd1');
+      expect(find.byKey(const ValueKey('batch-tag-dialog')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('batch-tag-option-t1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('batch-tag-confirm')));
+      await tester.pumpAndSettle();
+
+      expect(_tagIdsOf((await repos.dances.getById('d1'))!), {'t1'});
+      expect(_tagIdsOf((await repos.dances.getById('d2'))!), isEmpty);
+      expect(_tagIdsOf((await repos.dances.getById('d3'))!), isEmpty);
+      // The row shows the new tag without a manual reload.
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('slidable-d1')),
+          matching: find.byKey(const ValueKey('tag-filter-chip-t1')),
+        ),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('batch-tag-snackbar')), findsOneWidget);
+      expect(find.text('Tagged 1 dance'), findsOneWidget);
+      // Never entered selection mode.
+      expect(find.byKey(const ValueKey('batch-select')), findsOneWidget);
+      expect(find.byKey(const ValueKey('batch-exit')), findsNothing);
+    });
+
+    testWidgets('the row menu is hidden in selection mode', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+      await _pumpScreen(tester, repos);
+
+      await _enterSelectionMode(tester);
+
+      expect(find.byKey(const ValueKey('dance-actions-d1')), findsNothing);
+    });
+
+    testWidgets('undo restores that dance to its prior tags', (tester) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't1', name: 'Beginner'));
+      await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+      await repos.dances.create(
+        _dance(id: 'd2', title: 'Tag seed', tagIds: ['t1']),
+      );
+      await _pumpScreen(tester, repos);
+
+      await openRowAddTags(tester, 'd1');
+      await tester.tap(find.byKey(const ValueKey('batch-tag-option-t1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('batch-tag-confirm')));
+      await tester.pumpAndSettle();
+      expect(_tagIdsOf((await repos.dances.getById('d1'))!), {'t1'});
+
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+
+      expect(_tagIdsOf((await repos.dances.getById('d1'))!), isEmpty);
+      expect(_tagIdsOf((await repos.dances.getById('d2'))!), {'t1'});
+    });
+
+    testWidgets('an inline-created tag lands on that dance only', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Bravo'));
+      await _pumpScreen(tester, repos);
+
+      await openRowAddTags(tester, 'd2');
+      await tester.enterText(
+        find.byKey(const ValueKey('batch-new-tag-field')),
+        'Contra Corners',
+      );
+      await tester.tap(find.byKey(const ValueKey('batch-create-tag')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('batch-tag-confirm')));
+      await tester.pumpAndSettle();
+
+      final created = (await repos.tags.listAll()).singleWhere(
+        (t) => t.name == 'Contra Corners',
+      );
+      expect(_tagIdsOf((await repos.dances.getById('d2'))!), {created.id});
+      expect(_tagIdsOf((await repos.dances.getById('d1'))!), isEmpty);
+    });
+
+    testWidgets('cancelling the picker changes nothing', (tester) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't1', name: 'Beginner'));
+      await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+      await repos.dances.create(
+        _dance(id: 'd2', title: 'Tag seed', tagIds: ['t1']),
+      );
+      await _pumpScreen(tester, repos);
+
+      await openRowAddTags(tester, 'd1');
+      await tester.tap(find.byKey(const ValueKey('batch-tag-cancel')));
+      await tester.pumpAndSettle();
+
+      expect(_tagIdsOf((await repos.dances.getById('d1'))!), isEmpty);
+      expect(find.byKey(const ValueKey('batch-tag-snackbar')), findsNothing);
+    });
+  });
 }
