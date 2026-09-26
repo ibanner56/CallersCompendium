@@ -1,0 +1,9 @@
+{
+  "id": "1418-dance-editor-type-field",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "The dance editor now has a **Type** field (contra, English, or square), so you can set or correct a dance's type by hand. Settings \u25b8 Defaults now calls the same setting **Type**."
+    ]
+  }
+}

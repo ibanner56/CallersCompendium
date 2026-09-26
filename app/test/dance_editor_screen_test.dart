@@ -29,6 +29,7 @@ Dance _dance({
   required String id,
   String title = 'Original',
   List<Figure> figures = const [],
+  DanceForm form = DanceForm.contra,
   List<String> authorIds = const [],
   List<String> tagIds = const [],
   List<DanceLink> links = const [],
@@ -41,6 +42,7 @@ Dance _dance({
   id: id,
   title: title,
   figures: figures,
+  form: form,
   authorIds: authorIds,
   tagIds: tagIds,
   links: links,
@@ -324,6 +326,27 @@ void main() {
 
     final saved = await repos.dances.getById('d1');
     expect(saved!.mixer, isTrue);
+  });
+
+  testWidgets('type: changing an existing contra dance to square persists '
+      '(issue #1418)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+    await _pumpEditor(tester, repos, danceId: 'd1');
+
+    expect(_dropdownValue<DanceForm>(tester), DanceForm.contra);
+
+    // Picked by the same label the Collection filter and tile use.
+    await tester.tap(find.byKey(const ValueKey('form-field')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Square').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.dances.getById('d1');
+    expect(saved!.form, DanceForm.square);
   });
 
   testWidgets('selecting Unspecified clears an existing level', (tester) async {
@@ -1982,7 +2005,7 @@ void main() {
     });
 
     testWidgets(
-      'Form control is absent from the UI but a loaded form round-trips',
+      'editing an unrelated field preserves a loaded non-default type',
       (tester) async {
         final repos = openTestRepositories();
         // Persist a dance whose form is not the default (contra).
@@ -1998,14 +2021,9 @@ void main() {
         await _pumpEditor(tester, repos, danceId: 'd1');
         await _expandMoreDetails(tester);
 
-        // No "Form" field is rendered anywhere in the editor.
-        final formField = find.byWidgetPredicate(
-          (w) =>
-              w.key is ValueKey &&
-              (w.key as ValueKey).value.toString().startsWith('form-field-'),
-        );
-        expect(formField, findsNothing);
-        expect(find.text('Form'), findsNothing);
+        // The Type field opens on the stored value, not the contra default
+        // (issue #1418; it was absent from the editor until then).
+        expect(_dropdownValue<DanceForm>(tester), DanceForm.ecd);
 
         // Editing an unrelated field and saving preserves the form value.
         await tester.enterText(
@@ -2073,6 +2091,8 @@ void main() {
       );
       // The seeded formation shows in the formation dropdown.
       expect(_dropdownValue<FormationShape>(tester), FormationShape.longways);
+      // ...and the seeded type shows in the type dropdown (issue #1418).
+      expect(_dropdownValue<DanceForm>(tester), DanceForm.square);
 
       await tester.enterText(
         find.byKey(const ValueKey('title-field')),
