@@ -126,6 +126,10 @@ predictable:
 Filters work alongside the search bar: whatever you type and whatever you tick
 apply together.
 
+If the panel is longer than you need, you can hide the filters you never use under
+**Settings → Defaults → Collection filters**. Hiding a filter only removes it from
+the panel; your dances are untouched.
+
 ## Search by the moves a dance contains
 
 Sometimes you are not looking for a title or an author — you are looking for a

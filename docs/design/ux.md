@@ -39,6 +39,15 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 - Search input is dialect-canonicalized; result counts announced politely to AT.
   The calling-history facet follows the active caller and performed-only scope;
   it is omitted when that scope has no qualifying calls.
+- Which filter sections appear is a per-user display preference (Settings ▸
+  Defaults ▸ Collection filters, issue #1419), applied to the Collection page
+  and the dance picker alike. It is a deny-list of section ids
+  (`collection_hidden_facets`), so every filter — including a custom field
+  created later — is shown until hidden. Hiding is display-only: it clears the
+  facet's current selection, but a hidden section that holds a selection (the
+  detail page's tag chip selects one) stays visible until it is cleared, so no
+  control-less filter can narrow the list. When every available section is
+  hidden the panel says so rather than reporting an empty collection.
 - Actions: new dance, import, duplicate, batch tag.
 
 ### 2. Dance detail / card
