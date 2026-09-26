@@ -2583,6 +2583,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
             taxonomy: data.taxonomy,
             dialect: _dialect,
             sectionLabels: data.sectionLabels,
+            tags: data.tags,
             onChanged: _onAdvancedChanged,
           ),
       ],
