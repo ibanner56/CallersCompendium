@@ -1,0 +1,14 @@
+{
+  "id": "usr-import-64mib-cap",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "You can now import a Caller's Companion file of up to 64 MB. Files over 25 MB, which used to be refused as too large, now import."
+    ]
+  },
+  "core": {
+    "changed": [
+      "Raise the FileMaker reader's sector ceiling (`kMaxFmpSectors`) from 8,192 to 16,384 so it admits files up to the app's 64 MiB `.USR` cap."
+    ]
+  }
+}

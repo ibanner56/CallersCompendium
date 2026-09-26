@@ -27,7 +27,7 @@ import '../support/fmp_fixture_builder.dart';
 ///
 /// ## Bounds / determinism / CI cost
 /// Every generated input is size-bounded (well under the app's `#443`
-/// `kMaxImportFileBytes` cap) so termination and allocation are structurally
+/// `kMaxImportUsrBytes` cap) so termination and allocation are structurally
 /// guaranteed with no wall-clock dependence — if a case ever looped forever the
 /// test would hang, which is itself a detectable failure. A subset runs under
 /// tiny injected [FmpReadLimits] to prove the structural DoS guards trip. The
@@ -219,7 +219,7 @@ const int _fmpIterations = 2000;
 const int _scsuIterations = 2000;
 
 /// Structural ceiling for every generated container (well under `#443`'s
-/// 25 MiB `kMaxImportFileBytes`), keeping allocation + traversal bounded.
+/// 64 MiB `kMaxImportUsrBytes`), keeping allocation + traversal bounded.
 const int _maxCandidateBytes = 64 * 1024;
 
 const int _sectorSize = 4096;

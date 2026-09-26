@@ -84,11 +84,13 @@ class FmpResourceLimitException implements Exception {
 
 /// Maximum number of body sectors ([FmpDatabase]) [readFmp12] will read.
 ///
-/// ~32 MiB of 4 KiB sectors — a defense-in-depth ceiling **inside the core
+/// ~64 MiB of 4 KiB sectors — a defense-in-depth ceiling **inside the core
 /// reader itself** (independent of any app-layer byte cap), bounding the length
-/// of every per-table traversal. The real ~20 MB Caller's Companion sample is
-/// ~5000 sectors, well under this.
-const int kMaxFmpSectors = 8192;
+/// of every per-table traversal. Sized to the app's `.USR` byte cap
+/// (`kMaxImportUsrBytes`, 64 MiB): a file the picker admits must not be refused
+/// here for size alone. The real ~20 MB Caller's Companion sample is ~5000
+/// sectors, and a ~30 MB tester file ~7300, both well under this.
+const int kMaxFmpSectors = 16384;
 
 /// Maximum number of distinct tables [readFmp12] will reconstruct.
 ///
