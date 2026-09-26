@@ -149,6 +149,66 @@ void main() {
     expect(find.byIcon(Icons.chevron_right), findsNothing);
   });
 
+  group('Add tags row action (issue #1416)', () {
+    Future<void> pumpWith(
+      WidgetTester tester, {
+      VoidCallback? onAddTags,
+      VoidCallback? onDuplicate,
+    }) => tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: DanceListTile(
+            entry: _entry(),
+            onTap: () {},
+            onAddTags: onAddTags,
+            onDuplicate: onDuplicate,
+          ),
+        ),
+      ),
+    );
+
+    testWidgets('the menu offers Add tags and invokes only onAddTags', (
+      tester,
+    ) async {
+      var addTags = 0;
+      var duplicates = 0;
+      await pumpWith(
+        tester,
+        onAddTags: () => addTags++,
+        onDuplicate: () => duplicates++,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('dance-actions-d1')));
+      await tester.pumpAndSettle();
+      expect(find.text('Add tags'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('dance-action-add-tags')));
+      await tester.pumpAndSettle();
+
+      expect(addTags, 1);
+      expect(duplicates, 0);
+    });
+
+    testWidgets('the menu exists for onAddTags alone', (tester) async {
+      await pumpWith(tester, onAddTags: () {});
+      expect(find.byKey(const ValueKey('dance-actions-d1')), findsOneWidget);
+    });
+
+    testWidgets('no item appears when onAddTags is not wired', (tester) async {
+      await pumpWith(tester, onDuplicate: () {});
+
+      await tester.tap(find.byKey(const ValueKey('dance-actions-d1')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('dance-action-duplicate')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('dance-action-add-tags')), findsNothing);
+    });
+  });
+
   testWidgets('rating indicator shows the value with a semantic label', (
     tester,
   ) async {
