@@ -849,7 +849,10 @@ void main() {
     test('two tag rows in an all-of group AND the tags together', () {
       final f = BuilderGroup(
         kind: GroupKind.all,
-        children: [BuilderTag(tagId: 't1'), BuilderTag(tagId: 't2')],
+        children: [
+          BuilderTag(tagId: 't1'),
+          BuilderTag(tagId: 't2'),
+        ],
       ).toFilter();
       expect(f, isA<AndFilter>());
       final ids = [
@@ -861,13 +864,19 @@ void main() {
     test('any-of ORs tags and none-of negates their OR', () {
       final any = BuilderGroup(
         kind: GroupKind.any,
-        children: [BuilderTag(tagId: 't1'), BuilderTag(tagId: 't2')],
+        children: [
+          BuilderTag(tagId: 't1'),
+          BuilderTag(tagId: 't2'),
+        ],
       ).toFilter();
       expect(any, isA<OrFilter>());
 
       final none = BuilderGroup(
         kind: GroupKind.none,
-        children: [BuilderTag(tagId: 't1'), BuilderTag(tagId: 't2')],
+        children: [
+          BuilderTag(tagId: 't1'),
+          BuilderTag(tagId: 't2'),
+        ],
       ).toFilter();
       expect(none, isA<NotFilter>());
       expect((none as NotFilter).child, isA<OrFilter>());
@@ -875,7 +884,10 @@ void main() {
 
     test('a tag row mixes with a figure row in one all-of group', () {
       final f = BuilderGroup(
-        children: [BuilderTag(tagId: 't1'), BuilderFigure(move: 'swing')],
+        children: [
+          BuilderTag(tagId: 't1'),
+          BuilderFigure(move: 'swing'),
+        ],
       ).toFilter();
       expect(f, isA<AndFilter>());
       final children = (f as AndFilter).children;
@@ -885,7 +897,10 @@ void main() {
 
     test('an unpicked tag row is skipped beside a complete one', () {
       final f = BuilderGroup(
-        children: [BuilderTag(), BuilderTag(tagId: 't1')],
+        children: [
+          BuilderTag(),
+          BuilderTag(tagId: 't1'),
+        ],
       ).toFilter();
       expect(f, isA<TagFilter>());
     });
