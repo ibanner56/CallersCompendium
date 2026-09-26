@@ -439,6 +439,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsSyncNotPairedNow => '同期する前にストアを接続してください。';
 
   @override
+  String get commonSyncNowTooltip => '今すぐ同期';
+
+  @override
+  String get commonSyncMeteredBlocked =>
+      'モバイルデータ通信中で、「WiFi接続時のみ同期」がオンです。今すぐ同期するには、設定でこの設定をオフにしてください。';
+
+  @override
   String get settingsSyncConnectTitle => '接続';
 
   @override

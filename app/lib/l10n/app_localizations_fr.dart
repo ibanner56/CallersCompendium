@@ -462,6 +462,13 @@ class AppLocalizationsFr extends AppLocalizations {
       'Connectez un espace de stockage avant de synchroniser.';
 
   @override
+  String get commonSyncNowTooltip => 'Synchroniser maintenant';
+
+  @override
+  String get commonSyncMeteredBlocked =>
+      'Vous utilisez les données mobiles et « Synchroniser uniquement en WiFi » est activé. Désactivez ce réglage dans les Paramètres pour synchroniser maintenant.';
+
+  @override
   String get settingsSyncConnectTitle => 'Connecter';
 
   @override

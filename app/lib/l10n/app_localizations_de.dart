@@ -457,6 +457,13 @@ class AppLocalizationsDe extends AppLocalizations {
       'Verbinde einen Speicher, bevor du synchronisierst.';
 
   @override
+  String get commonSyncNowTooltip => 'Jetzt synchronisieren';
+
+  @override
+  String get commonSyncMeteredBlocked =>
+      'Du nutzt mobile Daten und „Nur über WLAN synchronisieren“ ist an. Schalte diese Einstellung in den Einstellungen aus, um jetzt zu synchronisieren.';
+
+  @override
   String get settingsSyncConnectTitle => 'Verbinden';
 
   @override

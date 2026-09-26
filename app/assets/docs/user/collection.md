@@ -92,6 +92,11 @@ written down.
 
 Clear the search bar to return to your whole collection.
 
+If you use [Device Sync](./settings.md#device-sync) and have connected a store,
+a **Sync now** icon also sits in the **Collection** toolbar, so you can pull in
+a change from another device without leaving the page. It shows a spinner while
+a sync is running, and it is not shown while Device Sync is off.
+
 Use **Search in** to choose the indexed fields: **All fields**, **Title**,
 **Author**, or **Figure**. When **Online search** is enabled in the Advanced
 panel, the same control offers **Title**, **Author**, and **Figure**; choose

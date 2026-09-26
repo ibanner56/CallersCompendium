@@ -14,6 +14,7 @@ import '../utils/confirm_delete.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/program_list_tile.dart';
 import '../widgets/skeleton.dart';
+import '../widgets/sync_now_action.dart';
 import '../widgets/weekday_header_strip.dart';
 import 'app_shell_search_scope.dart';
 import 'contradb_program_import_screen.dart';
@@ -475,6 +476,9 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
               icon: const Icon(Icons.search),
               onPressed: openSearch,
             ),
+          // Second entry to Settings ▸ Sync now; renders nothing unless Device
+          // Sync is on and paired.
+          const SyncNowAction(),
           if (_programs != null) ...[
             if (openSearch != null)
               _buildCompactMoreActions(l10n)
