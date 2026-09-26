@@ -358,6 +358,7 @@ class MatrixRow {
     Map<String, Set<String>> phraseLabelsByMove = const {},
     Map<String, List<BeatSpan>> beatSpansByMove = const {},
     this.section,
+    this.alternateGroup,
     this.formation = const Formation(FormationShape.dupleImproper),
   }) : presentMoveIds = Set.unmodifiable(presentMoveIds),
        phraseLabelsByMove = Map.unmodifiable({
@@ -377,6 +378,15 @@ class MatrixRow {
   /// or the slot itself is a break. Drives the ordinal badge on the matrix row
   /// header.
   final int? section;
+
+  /// The alternate group this row's slot belongs to (see
+  /// [Program.alternateGroupsForSlots]), or `null` when the row stands alone.
+  /// Rows sharing a group are mutually exclusive choices for one program
+  /// position — a primary and its alternates — so they are never danced in
+  /// sequence. [ProgramMatrix.isCollision] never compares rows of one group and
+  /// instead compares every row of a group with every row of the groups
+  /// immediately before and after it.
+  final int? alternateGroup;
 
   /// Column key of the dance's FIRST figure (the first-figure highlight), or
   /// `null` when the dance has no figures. Custom first figures use
@@ -426,6 +436,7 @@ class MatrixRow {
       other.title == title &&
       other.firstMoveId == firstMoveId &&
       other.section == section &&
+      other.alternateGroup == alternateGroup &&
       other.formation == formation &&
       _setEq.equals(other.presentMoveIds, presentMoveIds) &&
       _phraseMapEq.equals(other.phraseLabelsByMove, phraseLabelsByMove) &&
@@ -437,6 +448,7 @@ class MatrixRow {
     title,
     firstMoveId,
     section,
+    alternateGroup,
     formation,
     _setEq.hash(presentMoveIds),
     _phraseMapEq.hash(phraseLabelsByMove),
@@ -702,6 +714,14 @@ MatrixColumn _splitColumn(String baseMoveId, String variant) => MatrixColumn(
 /// throws [ArgumentError] (enforced at runtime, in release builds too). Omit
 /// it to leave every row's [MatrixRow.section] `null`.
 ///
+/// [alternateGroups], when provided, is likewise a parallel list aligned to
+/// [dances] (see [Program.alternateGroupsForSlots]): rows with the same id are a
+/// primary and its alternates — mutually exclusive choices for one program
+/// position — and each group's rows must be consecutive. A length mismatch or a
+/// non-contiguous group throws [ArgumentError]. Omit it to treat every row as
+/// its own group, i.e. plain row-by-row adjacency. It only affects
+/// [ProgramMatrix.isCollision].
+///
 /// [collisionMode] sets [ProgramMatrix.collisionMode] (issue #962), defaulting
 /// to [MatrixCollisionMode.exactBeats] — the callers deriving the on-screen
 /// matrix and its PDF export both read this from the "flag exact beat overlap
@@ -722,6 +742,7 @@ ProgramMatrix buildProgramMatrix(
   List<Dance> dances, {
   Taxonomy? taxonomy,
   List<int?>? sections,
+  List<int>? alternateGroups,
   MatrixCollisionMode collisionMode = MatrixCollisionMode.exactBeats,
   MatrixColumnConfig config = MatrixColumnConfig.empty,
 }) {
@@ -732,6 +753,30 @@ ProgramMatrix buildProgramMatrix(
       'sections',
       'must be aligned to dances (same length: ${dances.length})',
     );
+  }
+  if (alternateGroups != null) {
+    if (alternateGroups.length != dances.length) {
+      throw ArgumentError.value(
+        alternateGroups.length,
+        'alternateGroups',
+        'must be aligned to dances (same length: ${dances.length})',
+      );
+    }
+    // A group is one program position's primary and its alternates, so its
+    // rows are consecutive; a group id that reappears after another group has
+    // no meaning and would make the neighbour lookup silently wrong.
+    final seen = <int>{};
+    for (var i = 0; i < alternateGroups.length; i++) {
+      final group = alternateGroups[i];
+      if (i > 0 && alternateGroups[i - 1] == group) continue;
+      if (!seen.add(group)) {
+        throw ArgumentError.value(
+          alternateGroups,
+          'alternateGroups',
+          'group $group is not contiguous (reappears at row $i)',
+        );
+      }
+    }
   }
 
   final rows = <MatrixRow>[];
@@ -812,6 +857,7 @@ ProgramMatrix buildProgramMatrix(
         phraseLabelsByMove: phraseLabels,
         beatSpansByMove: beatSpans,
         section: sections == null ? null : sections[i],
+        alternateGroup: alternateGroups == null ? null : alternateGroups[i],
         formation: dance.formation,
       ),
     );
