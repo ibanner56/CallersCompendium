@@ -263,7 +263,8 @@ Here is how to read it:
 - **Hide alternate rows temporarily** with the alternate-route icon above the
   matrix. This view-only filter resets when you close the program editor, stays
   active while you switch tabs or resize the window, and does not change the
-  saved program, the same-figure alerts, or any PDF/set-list export. It is separate from the persisted
+  saved program, the same-figure alerts, or any PDF/set-list export. It is
+  separate from the persisted
   **Hide alternates** option in the program's details, which controls set-list
   output.
 - **Reorder, rename, or remove columns for good** in
