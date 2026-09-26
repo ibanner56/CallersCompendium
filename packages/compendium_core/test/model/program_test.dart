@@ -339,6 +339,97 @@ void main() {
     });
   });
 
+  group('Program.plannedDanceCount', () {
+    Program program(List<ProgramSlot> slots) => Program(
+      id: 'p1',
+      title: 'T',
+      slots: slots,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    test('counts every slot when there are no alternates or break', () {
+      expect(
+        program([
+          ProgramSlot(id: 'a', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 'b', position: 1, danceId: 'd2'),
+        ]).plannedDanceCount,
+        2,
+      );
+    });
+
+    test('excludes alternates', () {
+      expect(
+        program([
+          ProgramSlot(id: 'a', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 'b', position: 1, danceId: 'd2', isAlt: true),
+          ProgramSlot(id: 'c', position: 2, text: 'alt stub', isAlt: true),
+          ProgramSlot(id: 'd', position: 3, danceId: 'd3'),
+        ]).plannedDanceCount,
+        2,
+      );
+    });
+
+    test('excludes the break, including a hand-typed one', () {
+      expect(
+        program([
+          ProgramSlot(id: 'a', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 'b', position: 1, text: Program.breakSlotText),
+          ProgramSlot(id: 'c', position: 2, danceId: 'd2'),
+        ]).plannedDanceCount,
+        2,
+      );
+      expect(
+        program([
+          ProgramSlot(id: 'a', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 'b', position: 1, text: '  bReAk '),
+        ]).plannedDanceCount,
+        1,
+      );
+    });
+
+    test(
+      'counts text stubs, purge captions, and dance slots noted "Break"',
+      () {
+        expect(
+          program([
+            ProgramSlot(id: 'a', position: 0, text: 'bouncy'),
+            ProgramSlot(id: 'b', position: 1, text: 'set ender'),
+            ProgramSlot(
+              id: 'c',
+              position: 2,
+              text: 'Purged Reel',
+              isPurgedDance: true,
+            ),
+            ProgramSlot(id: 'd', position: 3, text: 'Breakdown'),
+            ProgramSlot(id: 'e', position: 4, danceId: 'd1', text: 'Break'),
+          ]).plannedDanceCount,
+          5,
+        );
+      },
+    );
+
+    test('does not count an orphaned leading alternate', () {
+      expect(
+        program([
+          ProgramSlot(id: 'a', position: 0, danceId: 'd1', isAlt: true),
+          ProgramSlot(id: 'b', position: 1, danceId: 'd2'),
+        ]).plannedDanceCount,
+        1,
+      );
+    });
+
+    test('is zero for an empty program or one with only a break', () {
+      expect(program(const []).plannedDanceCount, 0);
+      expect(
+        program([
+          ProgramSlot(id: 'a', position: 0, text: Program.breakSlotText),
+        ]).plannedDanceCount,
+        0,
+      );
+    });
+  });
+
   group('ALT grouping (Program.grouped)', () {
     Program program(List<ProgramSlot> slots) => Program(
       id: 'p1',
