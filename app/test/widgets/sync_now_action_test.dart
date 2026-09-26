@@ -26,8 +26,17 @@ import '../support/test_repositories.dart';
 final class _Network implements SyncNetworkClassifier {
   SyncNetworkKind kind = SyncNetworkKind.unmetered;
 
+  /// When non-null, [current] waits on it. The controller consults the
+  /// classifier *before* it marks a pass in flight, so holding it open keeps a
+  /// test inside the window in which the controller's own `running` is still
+  /// false.
+  Completer<void>? hold;
+
   @override
-  Future<SyncNetworkKind> current() async => kind;
+  Future<SyncNetworkKind> current() async {
+    await hold?.future;
+    return kind;
+  }
 }
 
 const _glyph = ValueKey('sync-now-action');
@@ -266,6 +275,73 @@ void main() {
 
         expect(find.text('Connect a store before syncing.'), findsOneWidget);
       });
+
+      testWidgets('a second tap during the connectivity check does not queue '
+          'a second pass', (tester) async {
+        final host = await _pump(tester, build());
+        host.network.hold = Completer<void>();
+
+        await tester.tap(find.byKey(_glyph));
+        await tester.pump();
+        // The controller has not yet marked a pass in flight, so only the
+        // widget's own guard can stop this one.
+        expect(host.controller.running, isFalse);
+        await tester.tap(find.byKey(_glyph), warnIfMissed: false);
+        await tester.pump();
+
+        host.network.hold!.complete();
+        await tester.pumpAndSettle();
+
+        expect(host.passes, hasLength(1));
+      });
+
+      testWidgets('is usable again once a gated attempt has been explained', (
+        tester,
+      ) async {
+        final host = await _pump(tester, build());
+        host.network.kind = SyncNetworkKind.offline;
+        await tester.tap(find.byKey(_glyph));
+        await tester.pumpAndSettle();
+        expect(host.passes, isEmpty);
+
+        host.network.kind = SyncNetworkKind.unmetered;
+        await tester.tap(find.byKey(_glyph));
+        await tester.pumpAndSettle();
+
+        expect(host.passes, hasLength(1));
+      });
+
+      for (final (label, kind, text) in [
+        (
+          'offline',
+          SyncNetworkKind.offline,
+          'No connection right now. Sync will run at the next opportunity.',
+        ),
+        (
+          'metered',
+          SyncNetworkKind.metered,
+          'You are on a mobile-data connection and Sync only on WiFi is on. '
+              'Turn that setting off in Settings to sync now.',
+        ),
+      ]) {
+        testWidgets('a $label outcome arriving after the app tree is gone '
+            'does not throw', (tester) async {
+          final host = await _pump(tester, build());
+          host.network.kind = kind;
+          host.network.hold = Completer<void>();
+          await tester.tap(find.byKey(_glyph));
+          await tester.pump();
+
+          // Tearing the whole tree down disposes the ScaffoldMessenger the tap
+          // captured; the outcome then arrives wanting a snackbar.
+          await tester.pumpWidget(const SizedBox());
+          host.network.hold!.complete();
+          await tester.pumpAndSettle();
+
+          expect(tester.takeException(), isNull);
+          expect(find.text(text), findsNothing);
+        });
+      }
 
       testWidgets('leaving the page mid-pass does not throw', (tester) async {
         final host = await _pump(tester, build());
