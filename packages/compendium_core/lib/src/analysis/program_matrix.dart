@@ -18,7 +18,9 @@
 ///    its first appearance too.
 ///  * **Same-figure collision** (per cell): the move repeats in a
 ///    *strictly-adjacent* dance (the row immediately above or below in program
-///    order) — the repeat a caller wants to reconsider
+///    order — or, where a slot has alternates, any dance that could be called
+///    directly before or after it, see [MatrixRow.alternateGroup]) — the repeat
+///    a caller wants to reconsider
 ///    ([ProgramMatrix.isCollision]). Positions are derived from cumulative
 ///    **effective** beats ([Taxonomy.effectiveParams], so figures with no
 ///    explicitly-stored count still land correctly) and threaded through
@@ -506,8 +508,10 @@ class ProgramMatrix {
 
   /// Whether the move at [rows]`[rowIndex]` × [columns]`[colIndex]` is a
   /// **same-figure collision** with a strictly-adjacent dance: the same move
-  /// appears in the dance immediately above OR below this one in program
-  /// order, under whichever comparison [collisionMode] selects:
+  /// appears in a dance that can be called immediately before OR after this one
+  /// in program order — the row above or below, except that a primary and its
+  /// alternates ([MatrixRow.alternateGroup]) are one choice for a single
+  /// position — under whichever comparison [collisionMode] selects:
   ///
   ///  * [MatrixCollisionMode.exactBeats] (the default, issue #962): the move's
   ///    beat span actually overlaps ([BeatSpan.overlaps]) with an occurrence in
@@ -517,8 +521,13 @@ class ProgramMatrix {
   ///    move merely *starts* in the same phrase (A1/A2/B1/B2…) as an
   ///    occurrence in the neighbouring dance.
   ///
-  /// Adjacency is strictly the previous/next row in both modes (issue #582's
-  /// locked design — not a configurable window). The collapsed [customMove] and
+  /// Adjacency is strictly the previous/next program position in both modes
+  /// (issue #582's locked design — not a configurable window). Rows sharing a
+  /// [MatrixRow.alternateGroup] are alternatives for one position: they are
+  /// never compared with each other (at most one is danced), and each is
+  /// compared with every row of the group before and the group after (issue
+  /// #1413), because any of them may be the one actually called. Without
+  /// groups, every row is its own position, i.e. the previous/next row. The collapsed [customMove] and
   /// compound columns never collide in either mode (custom figures aren't
   /// reliably comparable, and compounds are per-dance booleans), because
   /// neither [MatrixRow.phraseLabelsByMove] nor [MatrixRow.beatSpansByMove]
@@ -535,11 +544,45 @@ class ProgramMatrix {
     };
   }
 
+  /// The rows [rowIndex] can be danced directly next to: every row of the
+  /// alternate group immediately before its own and every row of the group
+  /// immediately after it (see [MatrixRow.alternateGroup]). Rows of its own
+  /// group are alternatives to it and are never neighbours. A row with no group
+  /// is a group of one, so without groups this is just the row above and below.
+  Iterable<int> _neighborRowIndices(int rowIndex) sync* {
+    final group = rows[rowIndex].alternateGroup;
+    bool inGroup(int r, int? g) => g != null && rows[r].alternateGroup == g;
+
+    var start = rowIndex;
+    while (start > 0 && inGroup(start - 1, group)) {
+      start--;
+    }
+    var end = rowIndex;
+    while (end < rows.length - 1 && inGroup(end + 1, group)) {
+      end++;
+    }
+    if (start > 0) {
+      final previous = rows[start - 1].alternateGroup;
+      var r = start - 1;
+      yield r;
+      while (r > 0 && inGroup(r - 1, previous)) {
+        yield --r;
+      }
+    }
+    if (end < rows.length - 1) {
+      final next = rows[end + 1].alternateGroup;
+      var r = end + 1;
+      yield r;
+      while (r < rows.length - 1 && inGroup(r + 1, next)) {
+        yield ++r;
+      }
+    }
+  }
+
   bool _isExactBeatCollision(int rowIndex, String moveId) {
     final here = rows[rowIndex].beatSpansByMove[moveId];
     if (here == null || here.isEmpty) return false;
-    for (final neighbor in [rowIndex - 1, rowIndex + 1]) {
-      if (neighbor < 0 || neighbor >= rows.length) continue;
+    for (final neighbor in _neighborRowIndices(rowIndex)) {
       final there = rows[neighbor].beatSpansByMove[moveId];
       if (there == null) continue;
       for (final h in here) {
@@ -552,8 +595,7 @@ class ProgramMatrix {
   bool _isPhraseCollision(int rowIndex, String moveId) {
     final here = rows[rowIndex].phraseLabelsByMove[moveId];
     if (here == null || here.isEmpty) return false;
-    for (final neighbor in [rowIndex - 1, rowIndex + 1]) {
-      if (neighbor < 0 || neighbor >= rows.length) continue;
+    for (final neighbor in _neighborRowIndices(rowIndex)) {
       final there = rows[neighbor].phraseLabelsByMove[moveId];
       if (there != null && here.any(there.contains)) return true;
     }

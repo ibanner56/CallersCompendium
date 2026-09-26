@@ -535,6 +535,66 @@ void main() {
       expect(p.sectionAtIndex(3), isNull);
     });
 
+    group('Program.alternateGroupsForSlots', () {
+      ProgramSlot alt(String id, int pos) =>
+          ProgramSlot(id: id, position: pos, danceId: 'd$pos', isAlt: true);
+      ProgramSlot text(String id, int pos) =>
+          ProgramSlot(id: id, position: pos, text: 'Waltz');
+
+      test('a primary and its trailing alternates share a group', () {
+        final slots = [
+          dance('a', 0),
+          dance('b', 1),
+          alt('b2', 2),
+          alt('b3', 3),
+          dance('c', 4),
+        ];
+        expect(Program.alternateGroupsForSlots(slots), [0, 1, 1, 1, 2]);
+      });
+
+      test('a leading orphaned alternate starts its own group', () {
+        final slots = [alt('o', 0), alt('o2', 1), dance('a', 2)];
+        expect(Program.alternateGroupsForSlots(slots), [0, 0, 1]);
+      });
+
+      test('a text-only primary owns the alternates that follow it', () {
+        final slots = [dance('a', 0), text('w', 1), alt('x', 2), dance('c', 3)];
+        expect(Program.alternateGroupsForSlots(slots), [0, 1, 1, 2]);
+      });
+
+      test('empty slot list yields no groups', () {
+        expect(Program.alternateGroupsForSlots(const []), isEmpty);
+      });
+
+      test('agrees with Program.grouped about who alternates for whom', () {
+        final slots = [
+          alt('o', 0),
+          dance('a', 1),
+          alt('a2', 2),
+          text('w', 3),
+          alt('w2', 4),
+          alt('w3', 5),
+          dance('c', 6),
+        ];
+        final program = Program(
+          id: 'p',
+          title: 'P',
+          slots: slots,
+          createdAt: now,
+          updatedAt: now,
+        );
+        final ids = Program.alternateGroupsForSlots(slots);
+        final byGroup = <int, List<String>>{};
+        for (var i = 0; i < slots.length; i++) {
+          byGroup.putIfAbsent(ids[i], () => []).add(slots[i].id);
+        }
+        expect(byGroup.values.toList(), [
+          for (final g in program.grouped)
+            [g.primary.id, for (final a in g.alternates) a.id],
+        ]);
+      });
+    });
+
     group('Program.sectionsForSlots', () {
       test('aligns to the slot list and matches sectionAtIndex', () {
         final slots = [
