@@ -1174,11 +1174,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get settingsDefaultsFormTitle => 'Dansvorm';
+  String get settingsDefaultsFormTitle => 'Type';
 
   @override
   String get settingsDefaultsFormSubtitle =>
-      'De dansvorm waarmee een nieuwe dans begint. Je kunt dit per dans aanpassen.';
+      'Het danstype waarmee een nieuwe dans begint. Je kunt dit per dans aanpassen.';
 
   @override
   String get settingsDefaultsFormationTitle => 'Formatie';
@@ -5610,6 +5610,9 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceEditorAuthorsLabel => 'Auteurs';
+
+  @override
+  String get danceEditorFormLabel => 'Type';
 
   @override
   String get danceEditorFormationLabel => 'Formatie';

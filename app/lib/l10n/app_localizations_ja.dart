@@ -1134,11 +1134,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get settingsDefaultsFormTitle => 'ダンス形式';
+  String get settingsDefaultsFormTitle => 'タイプ';
 
   @override
   String get settingsDefaultsFormSubtitle =>
-      '新しいダンスのデフォルトのダンス形式です。ダンスごとに変更できます。';
+      '新しいダンスのデフォルトのダンスタイプです。ダンスごとに変更できます。';
 
   @override
   String get settingsDefaultsFormationTitle => 'フォーメーション';
@@ -5361,6 +5361,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorAuthorsLabel => '作者';
+
+  @override
+  String get danceEditorFormLabel => 'タイプ';
 
   @override
   String get danceEditorFormationLabel => 'フォーメーション';
