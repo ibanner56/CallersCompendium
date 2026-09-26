@@ -2463,6 +2463,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
           authors: data.authors,
           tags: data.tags,
           citedSources: data.citedSources,
+          tunes: data.tunes,
           choiceFields: data.choiceFields,
           booleanFields: data.booleanFields,
           textFields: data.textFields,

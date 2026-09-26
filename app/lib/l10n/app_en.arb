@@ -3122,6 +3122,34 @@
   "@collectionFacetAuthorSearchHint": {
     "description": "Hint text of the author-filter search field."
   },
+  "collectionFacetTunes": "Tunes",
+  "@collectionFacetTunes": {
+    "description": "Filter section heading for the tunes facet. A dance matches only if it has every tune entered here."
+  },
+  "collectionFacetTunesSearchHint": "Search or add a tune…",
+  "@collectionFacetTunesSearchHint": {
+    "description": "Hint text of the tunes-filter field, which suggests tunes already in the collection and also accepts free text."
+  },
+  "collectionFacetAddTune": "Add \"{name}\"",
+  "@collectionFacetAddTune": {
+    "description": "Option in the tunes-filter dropdown that adds the typed text as a filter value, whether or not any dance has that exact tune.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Dmaj 6/8"
+      }
+    }
+  },
+  "collectionFacetRemoveTune": "Remove {name}",
+  "@collectionFacetRemoveTune": {
+    "description": "Tooltip on a tunes-filter chip that removes that value from the filter.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Dmaj 6/8"
+      }
+    }
+  },
   "collectionFacetOpContains": "contains",
   "@collectionFacetOpContains": {
     "description": "Text custom-field filter operator: substring match."

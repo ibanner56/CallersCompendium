@@ -43,7 +43,8 @@ CollectionSort? collectionSortFromName(Object? stored) {
 /// The user's one-tap facet selections. Every facet is multi-select: within a
 /// single facet the selected leaves are OR-ed ("has any of these tags"), and
 /// distinct facets are AND-ed ("this form AND one of these tags") — the
-/// confirmed decision 7 semantics, applied uniformly.
+/// confirmed decision 7 semantics — with one deliberate exception, [tunes],
+/// which is AND-within-facet ("has every one of these tunes").
 class FacetSelections {
   final Set<DanceForm> forms = {};
   final Set<FormationShape> formations = {};
@@ -82,6 +83,28 @@ class FacetSelections {
   /// so duplicate/prefix titles or title-vs-author collisions never over-match.
   final Set<String> sourceIds = {};
 
+  /// Tunes facet: free-text values the user entered, in entry order. Each is a
+  /// case-insensitive substring tested against the dance's tune list, and a
+  /// dance must match **every** one ([TunesFilter]). This is the one facet that
+  /// is AND-within-facet rather than OR: a caller asking for "Dmaj" and "6/8"
+  /// wants the dances that have both, not either.
+  ///
+  /// A list, not a set, so chips keep the order they were entered in; callers
+  /// go through [addTune], which trims and refuses blanks and duplicates.
+  final List<String> tunes = [];
+
+  /// Adds [value] to [tunes] as entered (trimmed). Returns whether anything
+  /// changed: a blank value, or one already present ignoring case, is refused,
+  /// since a second chip for the same text could not change the result.
+  bool addTune(String value) {
+    final tune = value.trim();
+    if (tune.isEmpty) return false;
+    final key = tune.toLowerCase();
+    if (tunes.any((t) => t.toLowerCase() == key)) return false;
+    tunes.add(tune);
+    return true;
+  }
+
   /// Selected `choice` custom-field values, keyed by field id → chosen values
   /// (OR-within a field).
   final Map<String, Set<String>> choiceValues = {};
@@ -113,6 +136,7 @@ class FacetSelections {
       authorIds.isEmpty &&
       tagIds.isEmpty &&
       sourceIds.isEmpty &&
+      tunes.isEmpty &&
       choiceValues.values.every((s) => s.isEmpty) &&
       booleanValues.isEmpty &&
       textValues.values.every((s) => !s.isEffective) &&
@@ -141,6 +165,7 @@ class FacetSelections {
       authorIds.length +
       tagIds.length +
       sourceIds.length +
+      tunes.length +
       choiceValues.values.fold<int>(0, (a, s) => a + s.length) +
       booleanValues.length +
       textValues.values.where((s) => s.isEffective).length +
@@ -159,6 +184,7 @@ class FacetSelections {
     authorIds.clear();
     tagIds.clear();
     sourceIds.clear();
+    tunes.clear();
     choiceValues.clear();
     booleanValues.clear();
     textValues.clear();
@@ -294,6 +320,11 @@ DanceFilter buildCollectionFilter({
   addOr([for (final id in facets.authorIds) AuthorFilter(id)]);
   addOr([for (final id in facets.tagIds) TagFilter(id)]);
   addOr([for (final id in facets.sourceIds) SourceIdFilter(id)]);
+  // AND within the facet, unlike every facet above: one branch per entered
+  // value, each already a top-level AND operand, so no OR/AND group is built.
+  for (final tune in facets.tunes) {
+    branches.add(TunesFilter(tune));
+  }
 
   final defsById = {for (final d in defs) d.id: d};
   facets.choiceValues.forEach((fieldId, values) {

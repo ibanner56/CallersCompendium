@@ -32,6 +32,7 @@ class CollectionData {
     required this.authors,
     required this.tags,
     required this.citedSources,
+    required this.tunes,
     required this.forms,
     required this.formations,
     required this.progressions,
@@ -81,6 +82,12 @@ class CollectionData {
   /// title). Drives the Source facet; an empty list hides the facet, matching
   /// the present-value pattern used for authors/tags/rating.
   final List<PublishedSource> citedSources;
+
+  /// Distinct tune names across the collection, sorted case-insensitively, for
+  /// the Tunes facet's suggestions. Names that differ only in case appear once
+  /// (the first spelling met), since the facet matches ignoring case. Tune
+  /// lists that could not be decoded contribute nothing.
+  final List<String> tunes;
 
   final List<DanceForm> forms;
   final List<FormationShape> formations;
@@ -253,6 +260,23 @@ class CollectionData {
             (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
           );
 
+    // First spelling wins per case-folded name; iteration follows `dances`, so
+    // which spelling that is depends on load order, not on anything the user
+    // can see — acceptable because the facet matches ignoring case anyway.
+    final tuneByFold = <String, String>{};
+    for (final d in dances) {
+      if (d.tunesSource case DecodedTunes(:final tunes)) {
+        for (final t in tunes) {
+          final name = t.trim();
+          if (name.isNotEmpty) {
+            tuneByFold.putIfAbsent(name.toLowerCase(), () => name);
+          }
+        }
+      }
+    }
+    final tuneList = tuneByFold.values.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+
     final searchable = defs.where((d) => d.searchable).toList();
 
     return CollectionData(
@@ -281,6 +305,7 @@ class CollectionData {
       authors: authors,
       tags: tagList,
       citedSources: citedSources,
+      tunes: tuneList,
       forms: forms,
       formations: formations,
       progressions: progressions,

@@ -2425,6 +2425,22 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionFacetAuthorSearchHint => '作者を検索…';
 
   @override
+  String get collectionFacetTunes => 'チューン';
+
+  @override
+  String get collectionFacetTunesSearchHint => 'チューンを検索または追加…';
+
+  @override
+  String collectionFacetAddTune(String name) {
+    return '「$name」を追加';
+  }
+
+  @override
+  String collectionFacetRemoveTune(String name) {
+    return '$nameを削除';
+  }
+
+  @override
   String get collectionFacetOpContains => 'を含む';
 
   @override

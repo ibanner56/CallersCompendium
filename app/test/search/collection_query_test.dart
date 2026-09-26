@@ -674,6 +674,7 @@ void main() {
       'authorIds': (f) => f.authorIds.add('a1'),
       'tagIds': (f) => f.tagIds.add('t1'),
       'sourceIds': (f) => f.sourceIds.add('s1'),
+      'tunes': (f) => f.addTune('Dmaj'),
       'choiceValues': (f) => f.choiceValues['c'] = {'x'},
       'booleanValues': (f) => f.booleanValues['b'] = true,
       'textValues': (f) => f.textValues['t'] = const TextFacetState(
@@ -741,6 +742,66 @@ void main() {
         expect(isBareFullText(ftsText: 'Al', facets: facets), isTrue);
       },
     );
+  });
+
+  group('Tunes facet (#1420)', () {
+    DanceFilter build(FacetSelections facets, {String ftsText = ''}) =>
+        buildCollectionFilter(ftsText: ftsText, facets: facets, defs: const []);
+
+    test('one entered value compiles to the bare TunesFilter leaf', () {
+      final facets = FacetSelections()..addTune('Dmaj');
+      final filter = build(facets);
+      expect(filter, isA<TunesFilter>());
+      expect((filter as TunesFilter).query, 'Dmaj');
+    });
+
+    test('several values are AND-ed, not OR-ed (unlike Author)', () {
+      final facets = FacetSelections()
+        ..addTune('Dmaj')
+        ..addTune('6/8');
+      final filter = build(facets);
+      expect(filter, isA<AndFilter>());
+      final leaves = (filter as AndFilter).children;
+      expect(leaves.every((f) => f is TunesFilter), isTrue);
+      expect(leaves.map((f) => (f as TunesFilter).query), ['Dmaj', '6/8']);
+    });
+
+    test('the same two values on the Author facet are OR-ed: the contrast', () {
+      final facets = FacetSelections()..authorIds.addAll(['a1', 'a2']);
+      expect(build(facets), isA<OrFilter>());
+    });
+
+    test('is AND-ed with the other facets and the full-text query', () {
+      final facets = FacetSelections()
+        ..forms.add(DanceForm.contra)
+        ..addTune('Dmaj')
+        ..addTune('6/8');
+      final filter = build(facets, ftsText: 'swing') as AndFilter;
+      expect(filter.children.whereType<FullTextFilter>(), hasLength(1));
+      expect(filter.children.whereType<FormFilter>(), hasLength(1));
+      expect(filter.children.whereType<TunesFilter>(), hasLength(2));
+      expect(filter.children, hasLength(4));
+    });
+
+    test('addTune trims, and refuses blanks and case-insensitive repeats', () {
+      final facets = FacetSelections();
+      expect(facets.addTune('  Dmaj  '), isTrue);
+      expect(facets.tunes, ['Dmaj']);
+      expect(facets.addTune('   '), isFalse);
+      expect(facets.addTune(''), isFalse);
+      expect(facets.addTune('dmaj'), isFalse);
+      expect(facets.addTune(' DMAJ '), isFalse);
+      expect(facets.tunes, ['Dmaj']);
+      expect(facets.addTune('6/8'), isTrue);
+      expect(facets.tunes, ['Dmaj', '6/8']);
+    });
+
+    test('a tunes selection stops the search being a bare full-text one', () {
+      final facets = FacetSelections();
+      expect(isBareFullText(ftsText: 'Al', facets: facets), isTrue);
+      facets.addTune('Dmaj');
+      expect(isBareFullText(ftsText: 'Al', facets: facets), isFalse);
+    });
   });
 
   group('BuilderGroup folding', () {

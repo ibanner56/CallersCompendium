@@ -68,6 +68,7 @@ class ResponsiveAutocomplete<T extends Object> extends StatefulWidget {
     this.focusNode,
     this.autofocus = false,
     this.sheetSemanticLabel,
+    this.selectFirstOnSheetSubmit = false,
     this.overlayConstraints = const BoxConstraints(
       maxHeight: 240,
       maxWidth: 320,
@@ -135,6 +136,18 @@ class ResponsiveAutocomplete<T extends Object> extends StatefulWidget {
   /// Announced (as a semantics header) when the narrow-layout sheet opens,
   /// e.g. "Search moves". Ignored on the wide layout.
   final String? sheetSemanticLabel;
+
+  /// Whether pressing Enter in the narrow layout's sheet picks its first option
+  /// (as [onSelected] would on a tap) instead of only dismissing the sheet.
+  ///
+  /// The wide layout already behaves this way — [RawAutocomplete] selects the
+  /// highlighted option, which starts on the first, when the field is
+  /// submitted — so this restores parity for a caller whose first row is the
+  /// one Enter is meant to commit (the Tunes facet's typed-text row). It is
+  /// off by default because turning it on changes what Enter does: every other
+  /// call site keeps dismissing on submit in the sheet. With no options, or a
+  /// blank query, Enter still just dismisses. Ignored on the wide layout.
+  final bool selectFirstOnSheetSubmit;
 
   /// Size constraints for the wide layout's floating options popover. Ignored
   /// on the narrow layout (the sheet sizes itself via
@@ -288,6 +301,7 @@ class _ResponsiveAutocompleteState<T extends Object>
                 optionTileBuilder: widget.optionTileBuilder,
                 scrollController: scrollController,
                 semanticLabel: l10n,
+                selectFirstOnSubmit: widget.selectFirstOnSheetSubmit,
               );
             },
           ),
@@ -443,6 +457,7 @@ class _AutocompleteSheetContent<T extends Object> extends StatefulWidget {
     required this.fieldViewBuilder,
     required this.optionTileBuilder,
     required this.scrollController,
+    required this.selectFirstOnSubmit,
     this.semanticLabel,
   });
 
@@ -453,6 +468,7 @@ class _AutocompleteSheetContent<T extends Object> extends StatefulWidget {
   final ResponsiveAutocompleteFieldViewBuilder fieldViewBuilder;
   final AutocompleteOptionTileBuilder<T> optionTileBuilder;
   final ScrollController scrollController;
+  final bool selectFirstOnSubmit;
   final String? semanticLabel;
 
   @override
@@ -530,7 +546,13 @@ class _AutocompleteSheetContentState<T extends Object>
             autofocus: widget.autofocus,
             fieldViewBuilder: widget.fieldViewBuilder,
             onChanged: _recompute,
-            onSubmit: () => Navigator.of(context).maybePop(),
+            onSubmit: () {
+              if (widget.selectFirstOnSubmit && options.isNotEmpty) {
+                Navigator.of(context).pop(options.first);
+              } else {
+                Navigator.of(context).maybePop();
+              }
+            },
           ),
         ),
         Expanded(

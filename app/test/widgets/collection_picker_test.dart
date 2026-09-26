@@ -21,6 +21,7 @@ Dance _dance({
   required String title,
   List<String> tagIds = const [],
   List<Figure> figures = const [],
+  List<String> tunes = const [],
   String? difficultyLevelId,
   bool mixedLevel = false,
   bool mixer = false,
@@ -30,6 +31,7 @@ Dance _dance({
   title: title,
   authorIds: const [],
   tagIds: tagIds,
+  tunes: tunes,
   form: DanceForm.contra,
   formation: const Formation(FormationShape.dupleImproper),
   status: DanceStatus.active,
@@ -307,6 +309,38 @@ Future<void> _addPhraseMove(
 }
 
 void main() {
+  // Issue #1420: the picker builds its own FacetPanel, so the Tunes facet has
+  // to be wired here separately from the Collection screen.
+  testWidgets('the Tunes facet narrows the picker list (#1420)', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(id: 'a', title: 'Tuned', tunes: const ['Dmaj 6/8']),
+    );
+    await repos.dances.create(_dance(id: 'b', title: 'Plain'));
+
+    await _pumpPicker(tester, repos, onAddDance: (_) {});
+    await tester.pumpAndSettle();
+    expect(find.text('Tuned'), findsOneWidget);
+    expect(find.text('Plain'), findsOneWidget);
+
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-filters-panel')),
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('tunes-facet-search')),
+      'dmaj',
+    );
+    await tester.pumpAndSettle();
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tuned'), findsOneWidget);
+    expect(find.text('Plain'), findsNothing);
+  });
+
   // Issue #1393: the header count omitted Level, Mixed level, Mixer and
   // Minimum rating, so a collapsed panel read "Filters" while filtering.
   for (final facet in <(String, Dance Function(String), String)>[

@@ -55,6 +55,7 @@ sealed DanceFilter
   AuthorFilter(String choreographerId)
   SourceFilter(String query)                 // substring match on cited source title/author
   SourceIdFilter(String sourceId)            // identity match on cited source id
+  TunesFilter(String query)                  // substring over the dance's tunes (dances.tunes_json), #1420
   FormFilter(DanceForm form)                 // roadmap "Type": contra | ecd | square
   FormationFilter(FormationShape shape)      // shape only; free-text detail via FullTextFilter
   ProgressionFilter(Progression progression)
@@ -141,6 +142,7 @@ compiles to the literal `1` (TRUE); `OrFilter([])` to `0` (FALSE); the outer
 | `AuthorFilter(cid)` | `id IN (SELECT dance_id FROM dance_authors WHERE choreographer_id = ?)` |
 | `SourceFilter(q)` | `id IN (SELECT ds.dance_id FROM dance_sources ds JOIN published_sources ps ON ps.id = ds.source_id WHERE ps.title LIKE '%' \|\| ? \|\| '%' ESCAPE '\' OR ps.author LIKE '%' \|\| ? \|\| '%' ESCAPE '\')` (2 binds) |
 | `SourceIdFilter(sid)` | `id IN (SELECT dance_id FROM dance_sources WHERE source_id = ?)` |
+| `TunesFilter(q)` | `CASE WHEN NOT json_valid(dances.tunes_json) THEN 0 WHEN json_type(dances.tunes_json) <> 'array' THEN 0 WHEN EXISTS (… json_each(dances.tunes_json) j WHERE j.type <> 'text') THEN 0 ELSE EXISTS (… json_each(dances.tunes_json) j WHERE j.value LIKE '%' \|\| ? \|\| '%' ESCAPE '\') END` (1 bind, LIKE-escaped). The `CASE` is load-bearing: `json_each` over malformed text raises for the whole query, and `AND` operand order is not guaranteed, so an undecodable list (`UnreadableTunes`) must be excluded by an *ordered* guard. Case folding is SQLite's `LIKE` (ASCII only). |
 | `TagFilter(tid)` | `id IN (SELECT dance_id FROM dance_tags WHERE tag_id = ?)` |
 | `FormFilter(f)` | `form = ?` (enum `.name`, e.g. `'contra'`) |
 | `FormationFilter(s)` | `formation_shape = ?` (enum `.name`) |
@@ -480,6 +482,7 @@ tree. This section specifies the mapping; the widget work is 3.2c.
 | One-tap facet: Formation | `FormationFilter(shape)` |
 | One-tap facet: Progression | `ProgressionFilter(progression)` |
 | One-tap facet: Author | `AuthorFilter(choreographerId)` |
+| One-tap facet: Tunes | `TunesFilter(query)` per entered value, **AND-ed within the facet** (a dance must match every value) — the only facet that is not OR-within; each leaf is a case-insensitive substring over the dance's tune list and never matches a dance whose stored `tunes_json` is undecodable (#1420) |
 | One-tap facet: Tag(s) | `TagFilter(tagId)` (multiple tags AND-ed, or OR within the facet — see open Q) |
 | One-tap facet: Status | `StatusFilter(status)` |
 | One-tap facet: Level | `LevelFilter(level)` — multiple levels OR-ed |

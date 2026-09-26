@@ -28,6 +28,8 @@ Dance _dance({
   required String title,
   List<String> authorIds = const [],
   List<String> tagIds = const [],
+  List<String> tunes = const [],
+  TunesSource? tunesSource,
   DanceForm form = DanceForm.contra,
   Formation formation = const Formation(FormationShape.dupleImproper),
   DanceStatus status = DanceStatus.active,
@@ -44,6 +46,8 @@ Dance _dance({
   title: title,
   authorIds: authorIds,
   tagIds: tagIds,
+  tunes: tunes,
+  tunesSource: tunesSource,
   form: form,
   formation: formation,
   status: status,
@@ -1076,6 +1080,60 @@ void main() {
       expect(find.text('Filters (1 active)'), findsOneWidget);
     });
   }
+
+  testWidgets(
+    'issue #1420: the Tunes facet needs every entered value, tolerates a '
+    'dance whose tunes cannot be read, and clears with the other filters',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(id: 'a', title: 'Alpha', tunes: const ['Dmaj 6/8']),
+      );
+      await repos.dances.create(
+        _dance(id: 'b', title: 'Bravo', tunes: const ['Dmaj', 'Gmaj']),
+      );
+      await repos.dances.create(_dance(id: 'c', title: 'Charlie'));
+      // Stored text no list can represent (#1347). Searching must neither
+      // include this dance nor fail for the readable ones.
+      await repos.dances.create(
+        _dance(
+          id: 'd',
+          title: 'Delta',
+          tunesSource: const UnreadableTunes('[{"a":'),
+        ),
+      );
+
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+      expect(_titles(tester), ['Alpha', 'Bravo', 'Charlie', 'Delta']);
+
+      await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
+      final search = find.byKey(const ValueKey('tunes-facet-search'));
+
+      // One value: any dance with a matching entry, ignoring case.
+      await tester.enterText(search, 'dmaj');
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(_titles(tester), ['Alpha', 'Bravo']);
+
+      // A second value narrows: AND, not OR. "6/8" is satisfied by the same
+      // entry that satisfies "dmaj" in Alpha, and by nothing in Bravo.
+      await tester.enterText(search, '6/8');
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(_titles(tester), ['Alpha']);
+
+      // Each chip counts toward the Filters badge.
+      await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
+      expect(find.text('Filters (2 active)'), findsOneWidget);
+      await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
+
+      await _tapVisible(tester, find.byKey(const ValueKey('clear-filters')));
+      expect(_titles(tester), ['Alpha', 'Bravo', 'Charlie', 'Delta']);
+    },
+  );
 
   testWidgets('different facets AND together', (tester) async {
     final repos = openTestRepositories();

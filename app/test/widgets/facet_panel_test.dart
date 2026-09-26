@@ -17,6 +17,7 @@ Future<void> _pump(
   List<CustomFieldDef> choiceFields = const [],
   List<PublishedSource> citedSources = const [],
   List<Choreographer> authors = const [],
+  List<String> tunes = const [],
   bool hasMixedLevel = false,
   bool hasMixer = false,
   bool hasRating = false,
@@ -53,6 +54,7 @@ Future<void> _pump(
               authors: authors,
               tags: const [],
               citedSources: citedSources,
+              tunes: tunes,
               choiceFields: choiceFields,
               booleanFields: const [],
               textFields: const [],
@@ -759,6 +761,246 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('mixer-yes')));
       await tester.pumpAndSettle();
       expect(facets.mixer, isNull);
+    });
+  });
+
+  group('Tunes facet (#1420)', () {
+    const tunes = ['Dmaj', 'Dmaj / Bmin', 'Gmaj 6/8'];
+    final search = find.byKey(const ValueKey('tunes-facet-search'));
+    final typedOption = find.byKey(const ValueKey('tunes-facet-option-typed'));
+
+    Finder chip(String tune) => find.byKey(ValueKey('tunes-facet-chip-$tune'));
+
+    testWidgets('is hidden when no dance has tunes and none is selected', (
+      tester,
+    ) async {
+      await _pump(tester, FacetSelections(), onChanged: () {});
+      expect(find.byKey(const ValueKey('facet-section-tunes')), findsNothing);
+    });
+
+    testWidgets('an entered value keeps the section visible after the '
+        'vocabulary empties, so it can still be removed', (tester) async {
+      final facets = FacetSelections()..addTune('Dmaj');
+      await _pump(tester, facets, onChanged: () {});
+      expect(find.byKey(const ValueKey('facet-section-tunes')), findsOneWidget);
+      expect(chip('Dmaj'), findsOneWidget);
+    });
+
+    testWidgets('picking a suggestion adds a chip and notifies once', (
+      tester,
+    ) async {
+      final facets = FacetSelections();
+      var changes = 0;
+      await _pump(tester, facets, tunes: tunes, onChanged: () => changes++);
+
+      await tester.enterText(search, 'bmin');
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('tunes-facet-option-Dmaj / Bmin')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(facets.tunes, ['Dmaj / Bmin']);
+      expect(changes, 1);
+      expect(chip('Dmaj / Bmin'), findsOneWidget);
+      // The field is reset for the next value.
+      expect(tester.widget<TextField>(search).controller!.text, '');
+    });
+
+    testWidgets('Enter commits the typed text, not the first suggestion', (
+      tester,
+    ) async {
+      final facets = FacetSelections();
+      await _pump(tester, facets, tunes: tunes, onChanged: () {});
+
+      // "Dmaj / Bmin" and "Dmaj" both contain "dma"; the user typed "dma" and
+      // means exactly that substring.
+      await tester.enterText(search, 'dma');
+      await tester.pumpAndSettle();
+      expect(typedOption, findsOneWidget);
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(facets.tunes, ['dma']);
+    });
+
+    testWidgets('free text with no suggestion at all still commits', (
+      tester,
+    ) async {
+      final facets = FacetSelections();
+      await _pump(tester, facets, tunes: tunes, onChanged: () {});
+
+      await tester.enterText(search, 'Emin');
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(facets.tunes, ['Emin']);
+      expect(chip('Emin'), findsOneWidget);
+    });
+
+    testWidgets('no typed-text row is offered when a suggestion says the '
+        'same thing', (tester) async {
+      await _pump(tester, FacetSelections(), tunes: tunes, onChanged: () {});
+      await tester.enterText(search, 'DMAJ');
+      await tester.pumpAndSettle();
+      expect(typedOption, findsNothing);
+      expect(
+        find.byKey(const ValueKey('tunes-facet-option-Dmaj')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a value already entered is not offered again, and a blank '
+        'commit changes nothing', (tester) async {
+      final facets = FacetSelections()..addTune('Dmaj');
+      var changes = 0;
+      await _pump(tester, facets, tunes: tunes, onChanged: () => changes++);
+
+      await tester.enterText(search, 'dmaj');
+      await tester.pumpAndSettle();
+      expect(typedOption, findsNothing);
+      expect(
+        find.byKey(const ValueKey('tunes-facet-option-Dmaj')),
+        findsNothing,
+      );
+
+      await tester.enterText(search, '   ');
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(facets.tunes, ['Dmaj']);
+      expect(changes, 0);
+    });
+
+    testWidgets('deleting a chip removes the value and notifies', (
+      tester,
+    ) async {
+      final facets = FacetSelections()
+        ..addTune('Dmaj')
+        ..addTune('6/8');
+      var changes = 0;
+      await _pump(tester, facets, tunes: tunes, onChanged: () => changes++);
+
+      await tester.tap(
+        find.descendant(of: chip('Dmaj'), matching: find.byIcon(Icons.close)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(facets.tunes, ['6/8']);
+      expect(changes, 1);
+      expect(chip('Dmaj'), findsNothing);
+    });
+
+    testWidgets('entered values compile to AND-ed TunesFilters and drive the '
+        'section badge', (tester) async {
+      final facets = FacetSelections();
+      await _pump(tester, facets, tunes: tunes, onChanged: () {});
+      for (final text in ['Dmaj', '6/8']) {
+        await tester.enterText(search, text);
+        await tester.pumpAndSettle();
+        await tester.testTextInput.receiveAction(TextInputAction.done);
+        await tester.pumpAndSettle();
+      }
+
+      final filter = buildCollectionFilter(
+        ftsText: '',
+        facets: facets,
+        defs: const [],
+      );
+      expect(filter, isA<AndFilter>());
+      expect(
+        [
+          for (final f in (filter as AndFilter).children)
+            (f as TunesFilter).query,
+        ],
+        ['Dmaj', '6/8'],
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('facet-section-tunes')),
+          matching: find.text('2'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('narrow layout: Enter in the sheet commits the typed text and '
+        'closes the sheet (review of #1430)', (tester) async {
+      final facets = FacetSelections();
+      var changes = 0;
+      await _pump(
+        tester,
+        facets,
+        tunes: tunes,
+        screenSize: const Size(360, 720),
+        onChanged: () => changes++,
+      );
+
+      await tester.tap(search, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsOneWidget);
+      // "gmaj" is a substring of the suggestion "Gmaj 6/8" but is not it: the
+      // first row is the typed text, which is what Enter must commit.
+      await tester.enterText(search, 'gmaj');
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(facets.tunes, ['gmaj']);
+      expect(changes, 1);
+      expect(find.byType(BottomSheet), findsNothing);
+      expect(chip('gmaj'), findsOneWidget);
+    });
+
+    testWidgets('narrow layout: Enter on a blank field just closes the sheet', (
+      tester,
+    ) async {
+      final facets = FacetSelections();
+      var changes = 0;
+      await _pump(
+        tester,
+        facets,
+        tunes: tunes,
+        screenSize: const Size(360, 720),
+        onChanged: () => changes++,
+      );
+
+      await tester.tap(search, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      await tester.enterText(search, '   ');
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(facets.tunes, isEmpty);
+      expect(changes, 0);
+      expect(find.byType(BottomSheet), findsNothing);
+    });
+
+    testWidgets('narrow layout: picking from the sheet adds the chip and '
+        'closes the sheet', (tester) async {
+      final facets = FacetSelections();
+      await _pump(
+        tester,
+        facets,
+        tunes: tunes,
+        screenSize: const Size(360, 720),
+        onChanged: () {},
+      );
+
+      await tester.tap(search, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsOneWidget);
+      await tester.enterText(search, 'gmaj');
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('tunes-facet-option-Gmaj 6/8')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(facets.tunes, ['Gmaj 6/8']);
+      expect(find.byType(BottomSheet), findsNothing);
     });
   });
 }

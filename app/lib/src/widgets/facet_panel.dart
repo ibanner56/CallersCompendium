@@ -9,8 +9,9 @@ import 'responsive_autocomplete.dart';
 /// The one-tap facet filter panel (`docs/design/ux.md` §1). Each section is a
 /// multi-select group of [FilterChip]s over the [FacetSelections] the parent
 /// owns; toggling a chip mutates that selection and calls [onChanged] so the
-/// parent re-runs the search. Within a section selections are OR-ed; sections
-/// are AND-ed (see [buildCollectionFilter]).
+/// parent re-runs the search. Within a section selections are OR-ed — except
+/// Tunes, which is AND-ed — and sections are AND-ed (see
+/// [buildCollectionFilter]).
 class FacetPanel extends StatelessWidget {
   const FacetPanel({
     super.key,
@@ -27,6 +28,7 @@ class FacetPanel extends StatelessWidget {
     required this.authors,
     required this.tags,
     required this.citedSources,
+    required this.tunes,
     required this.choiceFields,
     required this.booleanFields,
     required this.textFields,
@@ -59,6 +61,12 @@ class FacetPanel extends StatelessWidget {
   /// Published sources cited by at least one dance; drives the Source facet.
   /// Empty hides the section (an uncited collection), mirroring [authors].
   final List<PublishedSource> citedSources;
+
+  /// Distinct tune names in the collection, offered as suggestions by the Tunes
+  /// facet. Empty hides the section unless a value is already selected: the
+  /// field is free text, so an entered value must stay visible (and removable)
+  /// even if the dance that supplied the suggestion has since changed.
+  final List<String> tunes;
 
   final List<CustomFieldDef> choiceFields;
   final List<CustomFieldDef> booleanFields;
@@ -288,6 +296,17 @@ class FacetPanel extends StatelessWidget {
         _AuthorFacet(
           key: const ValueKey('facet-row-author'),
           authors: authors,
+          facets: facets,
+          onChanged: onChanged,
+        ),
+      );
+    }
+
+    if (tunes.isNotEmpty || facets.tunes.isNotEmpty) {
+      sections.add(
+        _TunesFacet(
+          key: const ValueKey('facet-row-tunes'),
+          tunes: tunes,
           facets: facets,
           onChanged: onChanged,
         ),
@@ -703,6 +722,173 @@ class _AuthorFacetState extends State<_AuthorFacet> {
                 dense: true,
                 leading: const Icon(Icons.person_outline, size: 18),
                 title: Text(a.name),
+                onTap: onSelected,
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The Tunes facet (#1420): free-text values, each matched as a
+/// case-insensitive substring of the dance's tune list, and **all** of them must
+/// match ([TunesFilter], AND-within-facet — the opposite of the Author facet).
+///
+/// Shaped like [_AuthorFacet] — a search field over suggestions, chosen values
+/// as removable chips in the shared [_FacetExpansion] shell — with one
+/// difference: the vocabulary is only a suggestion list, not a closed set.
+/// Tunes are free text, so the first dropdown row is always the typed text
+/// itself ("Add “Dmaj”"), which is what Enter commits; without it, Enter would
+/// silently pick the first *suggestion* and a value like `Dmaj` could never be
+/// entered while `Dmaj / Bmin` existed. Selection is written into the
+/// parent-owned [FacetSelections.tunes] via [FacetSelections.addTune].
+class _TunesFacet extends StatefulWidget {
+  const _TunesFacet({
+    super.key,
+    required this.tunes,
+    required this.facets,
+    required this.onChanged,
+  });
+
+  final List<String> tunes;
+  final FacetSelections facets;
+  final VoidCallback onChanged;
+
+  @override
+  State<_TunesFacet> createState() => _TunesFacetState();
+}
+
+/// One row of the Tunes dropdown: a tune already in the collection, or the
+/// text the user typed ([isTyped]).
+class _TuneChoice {
+  const _TuneChoice(this.value, {this.isTyped = false});
+
+  final String value;
+  final bool isTyped;
+}
+
+class _TunesFacetState extends State<_TunesFacet> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _add(String value) {
+    // A refused add (blank, or already a chip) changes nothing, so it must not
+    // re-run the search either.
+    if (widget.facets.addTune(value)) widget.onChanged();
+    _controller.clear();
+  }
+
+  void _remove(String value) {
+    widget.facets.tunes.remove(value);
+    widget.onChanged();
+  }
+
+  Iterable<_TuneChoice> _options(TextEditingValue value) {
+    final typed = value.text.trim();
+    if (typed.isEmpty) return const Iterable<_TuneChoice>.empty();
+    final key = typed.toLowerCase();
+    final selected = {for (final t in widget.facets.tunes) t.toLowerCase()};
+    final matches = [
+      for (final t in widget.tunes)
+        if (!selected.contains(t.toLowerCase()) &&
+            t.toLowerCase().contains(key))
+          _TuneChoice(t),
+    ];
+    // Offer the typed text unless a row (or an existing chip) already says the
+    // same thing; it leads so Enter, which takes the first row, commits it.
+    final redundant =
+        selected.contains(key) ||
+        matches.any((m) => m.value.toLowerCase() == key);
+    return [if (!redundant) _TuneChoice(typed, isTyped: true), ...matches];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final selected = widget.facets.tunes;
+    return _FacetExpansion(
+      label: l10n.collectionFacetTunes,
+      sectionId: 'tunes',
+      activeCount: selected.length,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (selected.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (final tune in selected)
+                    InputChip(
+                      key: ValueKey('tunes-facet-chip-$tune'),
+                      avatar: const Icon(Icons.music_note_outlined, size: 18),
+                      label: Text(tune),
+                      tooltip: l10n.collectionFacetRemoveTune(tune),
+                      deleteIcon: const Icon(Icons.close, size: 18),
+                      deleteButtonTooltipMessage: l10n
+                          .collectionFacetRemoveTune(tune),
+                      onDeleted: () => _remove(tune),
+                    ),
+                ],
+              ),
+            ),
+          ResponsiveAutocomplete<_TuneChoice>(
+            key: const ValueKey('tunes-facet-autocomplete'),
+            textEditingController: _controller,
+            focusNode: _focusNode,
+            displayStringForOption: (c) => c.value,
+            sheetSemanticLabel: l10n.collectionFacetTunes,
+            // The first row is the typed text; Enter must commit it in the
+            // compact sheet too, as `RawAutocomplete` already does inline.
+            selectFirstOnSheetSubmit: true,
+            optionsBuilder: _options,
+            onSelected: (c) => _add(c.value),
+            fieldViewBuilder: (context, controller, focusNode, onSubmit, _) {
+              return TextField(
+                key: const ValueKey('tunes-facet-search'),
+                controller: controller,
+                focusNode: focusNode,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search, size: 18),
+                  hintText: l10n.collectionFacetTunesSearchHint,
+                  isDense: true,
+                ),
+                onSubmitted: (_) => onSubmit(),
+              );
+            },
+            optionTileBuilder: (context, c, onSelected) {
+              return ListTile(
+                key: ValueKey(
+                  c.isTyped
+                      ? 'tunes-facet-option-typed'
+                      : 'tunes-facet-option-${c.value}',
+                ),
+                dense: true,
+                leading: Icon(
+                  c.isTyped ? Icons.add : Icons.music_note_outlined,
+                  size: 18,
+                ),
+                title: Text(
+                  c.isTyped ? l10n.collectionFacetAddTune(c.value) : c.value,
+                ),
                 onTap: onSelected,
               );
             },
