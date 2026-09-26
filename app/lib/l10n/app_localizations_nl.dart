@@ -2639,6 +2639,18 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionQueryHasFigure => 'Heeft figuur';
 
   @override
+  String get collectionQueryHasTag => 'Heeft tag';
+
+  @override
+  String get collectionQueryTagLabel => 'Tag';
+
+  @override
+  String get collectionQueryTagHint => 'Kies een tag';
+
+  @override
+  String get collectionQueryRemoveTag => 'Tag verwijderen';
+
+  @override
   String get collectionQuerySequenceThen => 'Reeks (dan)';
 
   @override

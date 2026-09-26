@@ -18,8 +18,12 @@ class _Host extends StatefulWidget {
     required this.sectionLabels,
     required this.taxonomy,
     required this.dialect,
+    required this.tags,
+    this.onChanged,
   });
   final BuilderGroup root;
+  final List<Tag> tags;
+  final VoidCallback? onChanged;
   final List<String> sectionLabels;
   final Taxonomy taxonomy;
   final Dialect dialect;
@@ -41,7 +45,11 @@ class _HostState extends State<_Host> {
             taxonomy: widget.taxonomy,
             dialect: widget.dialect,
             sectionLabels: widget.sectionLabels,
-            onChanged: () => setState(() {}),
+            tags: widget.tags,
+            onChanged: () {
+              widget.onChanged?.call();
+              setState(() {});
+            },
           ),
         ),
       ),
@@ -67,6 +75,10 @@ Future<void> _pump(
   // Defaults to the app's own default dialect. Overridden by the labelling
   // tests, which assert the facet honours the user's role terminology.
   Dialect? dialect,
+  // Empty by default: most tests here are about figures, and an empty list is
+  // the state in which "Has tag" is not offered.
+  List<Tag> tags = const [],
+  VoidCallback? onChanged,
 }) async {
   await setScreenSize(tester, screenSize);
   await tester.pumpWidget(
@@ -75,12 +87,147 @@ Future<void> _pump(
       sectionLabels: sectionLabels,
       taxonomy: taxonomy ?? contraTaxonomy,
       dialect: dialect ?? Dialect.larksRobins,
+      tags: tags,
+      onChanged: onChanged,
     ),
   );
   await tester.pumpAndSettle();
 }
 
 void main() {
+  // -------------------------------------------------------------------------
+  // "Has tag" row (#1412)
+  // -------------------------------------------------------------------------
+
+  group('"Has tag" row', () {
+    final tags = [
+      Tag(id: 't1', name: 'Smooth'),
+      Tag(id: 't2', name: 'Energetic'),
+    ];
+
+    Future<void> openAddMenu(WidgetTester tester, BuilderGroup root) async {
+      await tester.tap(find.byKey(ValueKey('add-menu-${root.id}')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the Add menu offers "Has tag" and adds an unpicked row', (
+      tester,
+    ) async {
+      final root = BuilderGroup();
+      await _pump(tester, root: root, tags: tags);
+
+      await openAddMenu(tester, root);
+      await tester.tap(find.text('Has tag'));
+      await tester.pumpAndSettle();
+
+      final row = root.children.single as BuilderTag;
+      expect(row.tagId, isNull);
+      expect(row.toFilter(), isNull, reason: 'an unpicked row is skipped');
+      expect(find.byKey(ValueKey('tag-${row.id}')), findsOneWidget);
+      expect(find.text('Choose a tag'), findsOneWidget);
+    });
+
+    testWidgets('the Add menu does not offer "Has tag" with no tags', (
+      tester,
+    ) async {
+      final root = BuilderGroup();
+      await _pump(tester, root: root);
+
+      await openAddMenu(tester, root);
+
+      expect(find.text('Has figure'), findsOneWidget);
+      expect(find.text('Has tag'), findsNothing);
+    });
+
+    testWidgets('picking a tag sets the model and fires onChanged', (
+      tester,
+    ) async {
+      final row = BuilderTag();
+      final root = BuilderGroup(children: [row]);
+      var changes = 0;
+      await _pump(tester, root: root, tags: tags, onChanged: () => changes++);
+
+      await tester.tap(find.byKey(ValueKey('tag-${row.id}')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Energetic').last);
+      await tester.pumpAndSettle();
+
+      expect(row.tagId, 't2');
+      expect(changes, 1);
+      expect((root.toFilter() as TagFilter).tagId, 't2');
+    });
+
+    testWidgets('two tag rows in an All group AND their tags', (tester) async {
+      final a = BuilderTag(tagId: 't1');
+      final b = BuilderTag();
+      final root = BuilderGroup(children: [a, b]);
+      await _pump(tester, root: root, tags: tags);
+
+      await tester.tap(find.byKey(ValueKey('tag-${b.id}')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Energetic').last);
+      await tester.pumpAndSettle();
+
+      final filter = root.toFilter();
+      expect(filter, isA<AndFilter>());
+      expect(
+        [
+          for (final c in (filter as AndFilter).children)
+            (c as TagFilter).tagId,
+        ],
+        ['t1', 't2'],
+      );
+    });
+
+    testWidgets('the remove button drops the row and fires onChanged', (
+      tester,
+    ) async {
+      final row = BuilderTag(tagId: 't1');
+      final root = BuilderGroup(children: [row]);
+      var changes = 0;
+      await _pump(tester, root: root, tags: tags, onChanged: () => changes++);
+
+      await tester.tap(find.byKey(ValueKey('remove-${row.id}')));
+      await tester.pumpAndSettle();
+
+      expect(root.children, isEmpty);
+      expect(changes, 1);
+    });
+
+    testWidgets('a picked tag that is no longer offered is cleared, not a '
+        'crash', (tester) async {
+      final row = BuilderTag(tagId: 'gone');
+      final root = BuilderGroup(children: [row]);
+      var changes = 0;
+      await _pump(tester, root: root, tags: tags, onChanged: () => changes++);
+
+      expect(tester.takeException(), isNull);
+      expect(row.tagId, isNull, reason: 'a filter the row cannot show is gone');
+      expect(root.toFilter(), isNull);
+      expect(changes, 1);
+      expect(find.text('Choose a tag'), findsOneWidget);
+    });
+
+    testWidgets('a pick made before the stale-clear callback runs survives', (
+      tester,
+    ) async {
+      final row = BuilderTag();
+      final root = BuilderGroup(children: [row]);
+      await _pump(tester, root: root, tags: tags);
+
+      // Make the row stale and schedule a rebuild, but register the "user
+      // picks a tag" callback FIRST so it runs before the row's own post-frame
+      // clear. The clear must then find a different id and leave it alone.
+      row.tagId = 'gone';
+      WidgetsBinding.instance.addPostFrameCallback((_) => row.tagId = 't1');
+      tester.element(find.byType(_Host)).markNeedsBuild();
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(row.tagId, 't1');
+    });
+  });
+
   // -------------------------------------------------------------------------
   // _ThenRow basic rendering
   // -------------------------------------------------------------------------
