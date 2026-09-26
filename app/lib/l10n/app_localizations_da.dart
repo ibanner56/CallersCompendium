@@ -2620,6 +2620,18 @@ class AppLocalizationsDa extends AppLocalizations {
   String get collectionQueryHasFigure => 'Har figur';
 
   @override
+  String get collectionQueryHasTag => 'Har tag';
+
+  @override
+  String get collectionQueryTagLabel => 'Tag';
+
+  @override
+  String get collectionQueryTagHint => 'Vælg et tag';
+
+  @override
+  String get collectionQueryRemoveTag => 'Fjern tag';
+
+  @override
   String get collectionQuerySequenceThen => 'Sekvens (derefter)';
 
   @override
