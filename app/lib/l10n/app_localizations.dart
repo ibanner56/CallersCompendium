@@ -2031,16 +2031,16 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 shorthand defined.} other{{count} shorthands defined.}}'**
   String settingsDefaultsFigureShorthandsCountSubtitle(int count);
 
-  /// Title of the default dance-form picker.
+  /// Title of the default dance-type picker.
   ///
   /// In en, this message translates to:
-  /// **'Form'**
+  /// **'Type'**
   String get settingsDefaultsFormTitle;
 
-  /// Explanation for the default dance-form picker.
+  /// Explanation for the default dance-type picker.
   ///
   /// In en, this message translates to:
-  /// **'The dance form a new dance starts as. You can still change it per dance.'**
+  /// **'The dance type a new dance starts as. You can still change it per dance.'**
   String get settingsDefaultsFormSubtitle;
 
   /// Title of the default dance-formation picker.
@@ -8492,6 +8492,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Authors'**
   String get danceEditorAuthorsLabel;
+
+  /// Field label for the dance type (contra, English, square) picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get danceEditorFormLabel;
 
   /// Field label for the dance formation picker.
   ///

@@ -1450,13 +1450,13 @@
       }
     }
   },
-  "settingsDefaultsFormTitle": "Form",
+  "settingsDefaultsFormTitle": "Type",
   "@settingsDefaultsFormTitle": {
-    "description": "Title of the default dance-form picker."
+    "description": "Title of the default dance-type picker."
   },
-  "settingsDefaultsFormSubtitle": "The dance form a new dance starts as. You can still change it per dance.",
+  "settingsDefaultsFormSubtitle": "The dance type a new dance starts as. You can still change it per dance.",
   "@settingsDefaultsFormSubtitle": {
-    "description": "Explanation for the default dance-form picker."
+    "description": "Explanation for the default dance-type picker."
   },
   "settingsDefaultsFormationTitle": "Formation",
   "@settingsDefaultsFormationTitle": {
@@ -7156,6 +7156,10 @@
   "danceEditorAuthorsLabel": "Authors",
   "@danceEditorAuthorsLabel": {
     "description": "Field label for the dance author/choreographer picker."
+  },
+  "danceEditorFormLabel": "Type",
+  "@danceEditorFormLabel": {
+    "description": "Field label for the dance type (contra, English, square) picker."
   },
   "danceEditorFormationLabel": "Formation",
   "@danceEditorFormationLabel": {

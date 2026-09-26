@@ -1191,11 +1191,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get settingsDefaultsFormTitle => 'Forme';
+  String get settingsDefaultsFormTitle => 'Type';
 
   @override
   String get settingsDefaultsFormSubtitle =>
-      'La forme de danse par défaut pour une nouvelle danse. Modifiable par danse.';
+      'Le type de danse par défaut pour une nouvelle danse. Modifiable par danse.';
 
   @override
   String get settingsDefaultsFormationTitle => 'Formation';
@@ -5632,6 +5632,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get danceEditorAuthorsLabel => 'Auteurs';
+
+  @override
+  String get danceEditorFormLabel => 'Type';
 
   @override
   String get danceEditorFormationLabel => 'Formation';

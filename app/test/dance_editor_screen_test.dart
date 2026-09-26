@@ -29,6 +29,7 @@ Dance _dance({
   required String id,
   String title = 'Original',
   List<Figure> figures = const [],
+  DanceForm form = DanceForm.contra,
   List<String> authorIds = const [],
   List<String> tagIds = const [],
   List<DanceLink> links = const [],
@@ -41,6 +42,7 @@ Dance _dance({
   id: id,
   title: title,
   figures: figures,
+  form: form,
   authorIds: authorIds,
   tagIds: tagIds,
   links: links,
@@ -324,6 +326,43 @@ void main() {
 
     final saved = await repos.dances.getById('d1');
     expect(saved!.mixer, isTrue);
+  });
+
+  testWidgets('type: changing an existing contra dance to square persists '
+      '(issue #1418)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+    await _pumpEditor(tester, repos, danceId: 'd1');
+
+    expect(_dropdownValue<DanceForm>(tester), DanceForm.contra);
+
+    // Picked by the same label the Collection filter and tile use.
+    await tester.tap(find.byKey(const ValueKey('form-field')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Square').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.dances.getById('d1');
+    expect(saved!.form, DanceForm.square);
+  });
+
+  testWidgets('type: an existing dance opens showing its saved type and '
+      'saving untouched keeps it (issue #1418)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(id: 'd1', title: 'Original', form: DanceForm.ecd),
+    );
+    await _pumpEditor(tester, repos, danceId: 'd1');
+
+    expect(_dropdownValue<DanceForm>(tester), DanceForm.ecd);
+
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    expect((await repos.dances.getById('d1'))!.form, DanceForm.ecd);
   });
 
   testWidgets('selecting Unspecified clears an existing level', (tester) async {
@@ -2073,6 +2112,8 @@ void main() {
       );
       // The seeded formation shows in the formation dropdown.
       expect(_dropdownValue<FormationShape>(tester), FormationShape.longways);
+      // ...and the seeded type shows in the type dropdown (issue #1418).
+      expect(_dropdownValue<DanceForm>(tester), DanceForm.square);
 
       await tester.enterText(
         find.byKey(const ValueKey('title-field')),
