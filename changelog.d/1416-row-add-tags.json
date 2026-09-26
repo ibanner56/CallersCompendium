@@ -1,0 +1,9 @@
+{
+  "id": "1416-row-add-tags",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "You can add tags to a single dance from the ⋮ menu on its row in your collection, without entering selection mode."
+    ]
+  }
+}

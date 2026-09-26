@@ -1,0 +1,14 @@
+{
+  "id": "1414-programs-list-slot-count",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "The slot count on the Programs list no longer includes alternates or the break, so it shows how many dances the program is planned for."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add `Program.plannedDanceCount`, the number of slots excluding alternates and the break."
+    ]
+  }
+}
