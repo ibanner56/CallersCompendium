@@ -1288,13 +1288,13 @@
   "@settingsDefaultsFigureShorthandsCountSubtitle": {
     "x-sourceSha256": "6d4432ee62f376ca6c9fb4472f9d054165689141b59cdf9b70645b0536fb55a1"
   },
-  "settingsDefaultsFormTitle": "ダンス形式",
+  "settingsDefaultsFormTitle": "タイプ",
   "@settingsDefaultsFormTitle": {
-    "x-sourceSha256": "2e0e960ab3204127b1dce399c9984c81f52a79f4d85cb0c3afddcfcfe8a2b48c"
+    "x-sourceSha256": "baaddf70fb5d432b8bd948ef91d6f910124a6d138edae4d5f000c4610ddc8eae"
   },
-  "settingsDefaultsFormSubtitle": "新しいダンスのデフォルトのダンス形式です。ダンスごとに変更できます。",
+  "settingsDefaultsFormSubtitle": "新しいダンスのデフォルトのダンスタイプです。ダンスごとに変更できます。",
   "@settingsDefaultsFormSubtitle": {
-    "x-sourceSha256": "6d3c6e64687bed3f44ec2dc1101b6c8dc68afd2503b797d62570e6430c5a6b6f"
+    "x-sourceSha256": "19397876123939e7698c88d2e13ec41cc9cb1d5ce9f7b1d0a7dda2b5e38ba298"
   },
   "settingsDefaultsFormationTitle": "フォーメーション",
   "@settingsDefaultsFormationTitle": {
@@ -5583,6 +5583,10 @@
   "danceEditorAuthorsLabel": "作者",
   "@danceEditorAuthorsLabel": {
     "x-sourceSha256": "2c00c9aaa72c717ad6d901a09c4d698a68b2e9740be3769e0af7d6bd85d72d5d"
+  },
+  "danceEditorFormLabel": "タイプ",
+  "@danceEditorFormLabel": {
+    "x-sourceSha256": "baaddf70fb5d432b8bd948ef91d6f910124a6d138edae4d5f000c4610ddc8eae"
   },
   "danceEditorFormationLabel": "フォーメーション",
   "@danceEditorFormationLabel": {
