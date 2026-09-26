@@ -1137,6 +1137,13 @@ class AppLocalizationsDa extends AppLocalizations {
       'Brugerdefinerede felter';
 
   @override
+  String get settingsDefaultsCollectionFiltersHeader => 'Samlingsfiltre';
+
+  @override
+  String get settingsDefaultsCollectionFiltersSubtitle =>
+      'Vælg hvilke filtre der vises, når du filtrerer samlingen, og når du vælger danse til et program. Alle filtre vises som standard. Når du skjuler et filter, ryddes dets valg.';
+
+  @override
   String get settingsDefaultsAuthoringHeader => 'Standarder for dansforfatning';
 
   @override
@@ -2510,6 +2517,10 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get collectionFacetNone =>
       'Ingen filtre tilgængelige for denne samling endnu.';
+
+  @override
+  String get collectionFacetAllHidden =>
+      'Alle filtre er skjult. Du kan vise dem igen under Indstillinger → Standardværdier.';
 
   @override
   String get collectionFacetClear => 'Ryd filtre';

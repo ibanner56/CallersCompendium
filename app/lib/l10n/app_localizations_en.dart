@@ -1126,6 +1126,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsDefaultsCollectionCardCustomFields => 'Custom fields';
 
   @override
+  String get settingsDefaultsCollectionFiltersHeader => 'Collection filters';
+
+  @override
+  String get settingsDefaultsCollectionFiltersSubtitle =>
+      'Choose which filters appear when you filter the Collection and when you pick dances for a program. All filters are shown by default. Hiding a filter clears its selection.';
+
+  @override
   String get settingsDefaultsAuthoringHeader => 'Dance-authoring defaults';
 
   @override
@@ -2493,6 +2500,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get collectionFacetNone =>
       'No filters available for this collection yet.';
+
+  @override
+  String get collectionFacetAllHidden =>
+      'All filters are hidden. You can show them again in Settings → Defaults.';
 
   @override
   String get collectionFacetClear => 'Clear filters';

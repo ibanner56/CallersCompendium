@@ -1983,6 +1983,18 @@ abstract class AppLocalizations {
   /// **'Custom fields'**
   String get settingsDefaultsCollectionCardCustomFields;
 
+  /// Section header for the preference that chooses which filters appear in the Collection page's Filters panel and the dance picker (#1419).
+  ///
+  /// In en, this message translates to:
+  /// **'Collection filters'**
+  String get settingsDefaultsCollectionFiltersHeader;
+
+  /// Subtitle describing the filter-visibility checkboxes (#1419).
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which filters appear when you filter the Collection and when you pick dances for a program. All filters are shown by default. Hiding a filter clears its selection.'**
+  String get settingsDefaultsCollectionFiltersSubtitle;
+
   /// Section header for defaults applied when authoring a new dance.
   ///
   /// In en, this message translates to:
@@ -4178,6 +4190,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No filters available for this collection yet.'**
   String get collectionFacetNone;
+
+  /// Message shown in the filters panel when the collection has filters but the user has hidden every one of them in Settings (#1419). Distinct from collectionFacetNone, which means there is nothing to filter by.
+  ///
+  /// In en, this message translates to:
+  /// **'All filters are hidden. You can show them again in Settings → Defaults.'**
+  String get collectionFacetAllHidden;
 
   /// Button that clears all active facet filters.
   ///

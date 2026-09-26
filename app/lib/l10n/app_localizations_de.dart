@@ -1145,6 +1145,13 @@ class AppLocalizationsDe extends AppLocalizations {
       'Benutzerdefinierte Felder';
 
   @override
+  String get settingsDefaultsCollectionFiltersHeader => 'Sammlungsfilter';
+
+  @override
+  String get settingsDefaultsCollectionFiltersSubtitle =>
+      'Wählen Sie aus, welche Filter erscheinen, wenn Sie die Sammlung filtern und wenn Sie Tänze für ein Programm auswählen. Standardmäßig werden alle Filter angezeigt. Beim Ausblenden eines Filters wird seine Auswahl zurückgesetzt.';
+
+  @override
   String get settingsDefaultsAuthoringHeader =>
       'Standardwerte für die Tanzerstellung';
 
@@ -2539,6 +2546,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get collectionFacetNone =>
       'Für diese Sammlung sind noch keine Filter verfügbar.';
+
+  @override
+  String get collectionFacetAllHidden =>
+      'Alle Filter sind ausgeblendet. Sie können sie unter Einstellungen → Standardwerte wieder einblenden.';
 
   @override
   String get collectionFacetClear => 'Filter löschen';

@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/collection_facets_scope.dart';
 import '../search/collection_query.dart';
 import '../search/facet_labels.dart';
 import 'responsive_autocomplete.dart';
@@ -11,6 +12,10 @@ import 'responsive_autocomplete.dart';
 /// owns; toggling a chip mutates that selection and calls [onChanged] so the
 /// parent re-runs the search. Within a section selections are OR-ed; sections
 /// are AND-ed (see [buildCollectionFilter]).
+///
+/// Sections the user hid under Settings → Defaults (#1419, read from
+/// [CollectionFacetsScope]) are omitted unless they hold a selection. This is
+/// display-only: the parent clears a facet's selection when it becomes hidden.
 class FacetPanel extends StatelessWidget {
   const FacetPanel({
     super.key,
@@ -71,12 +76,25 @@ class FacetPanel extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final sections = <Widget>[];
 
+    // Sections the user hid in Settings → Defaults (#1419). A hidden section
+    // that still holds a selection is shown anyway: a filter that is narrowing
+    // the list must always have a visible control (the detail page's tag chip
+    // selects a tag without going through this panel). `suppressed` records
+    // that data-backed sections were left out, which picks the empty message.
+    final hidden = CollectionFacetsScope.of(context);
+    var suppressed = false;
+    bool shown(String id) {
+      if (!hidden.contains(id) || facets.hasSelectionFor(id)) return true;
+      suppressed = true;
+      return false;
+    }
+
     void toggle<T>(Set<T> set, T value, bool selected) {
       selected ? set.add(value) : set.remove(value);
       onChanged();
     }
 
-    if (forms.isNotEmpty) {
+    if (forms.isNotEmpty && shown(CollectionFacetIds.form)) {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-form'),
@@ -97,7 +115,7 @@ class FacetPanel extends StatelessWidget {
       );
     }
 
-    if (formations.isNotEmpty) {
+    if (formations.isNotEmpty && shown(CollectionFacetIds.formation)) {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-formation'),
@@ -118,7 +136,7 @@ class FacetPanel extends StatelessWidget {
       );
     }
 
-    if (progressions.isNotEmpty) {
+    if (progressions.isNotEmpty && shown(CollectionFacetIds.progression)) {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-progression'),
@@ -139,7 +157,7 @@ class FacetPanel extends StatelessWidget {
       );
     }
 
-    if (statuses.isNotEmpty) {
+    if (statuses.isNotEmpty && shown(CollectionFacetIds.status)) {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-status'),
@@ -160,7 +178,7 @@ class FacetPanel extends StatelessWidget {
       );
     }
 
-    if (levels.isNotEmpty) {
+    if (levels.isNotEmpty && shown(CollectionFacetIds.level)) {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-level'),
@@ -181,7 +199,7 @@ class FacetPanel extends StatelessWidget {
       );
     }
 
-    if (hasMixedLevel) {
+    if (hasMixedLevel && shown(CollectionFacetIds.mixedLevel)) {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-mixed-level'),
@@ -204,7 +222,7 @@ class FacetPanel extends StatelessWidget {
       );
     }
 
-    if (hasMixer) {
+    if (hasMixer && shown(CollectionFacetIds.mixer)) {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-mixer'),
@@ -227,7 +245,7 @@ class FacetPanel extends StatelessWidget {
       );
     }
 
-    if (hasRating) {
+    if (hasRating && shown(CollectionFacetIds.minRating)) {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-min-rating'),
@@ -253,7 +271,7 @@ class FacetPanel extends StatelessWidget {
       );
     }
 
-    if (hasCallingHistory) {
+    if (hasCallingHistory && shown(CollectionFacetIds.callStatus)) {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-call-status'),
@@ -280,7 +298,7 @@ class FacetPanel extends StatelessWidget {
       );
     }
 
-    if (authors.isNotEmpty) {
+    if (authors.isNotEmpty && shown(CollectionFacetIds.author)) {
       // #341: a searchable multi-select replaces the flat per-author chip list,
       // which grew unwieldy as collections accumulate choreographers. Selection
       // still lives in `facets.authorIds`, so filter semantics are unchanged.
@@ -294,7 +312,7 @@ class FacetPanel extends StatelessWidget {
       );
     }
 
-    if (tags.isNotEmpty) {
+    if (tags.isNotEmpty && shown(CollectionFacetIds.tags)) {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-tags'),
@@ -315,7 +333,7 @@ class FacetPanel extends StatelessWidget {
       );
     }
 
-    if (citedSources.isNotEmpty) {
+    if (citedSources.isNotEmpty && shown(CollectionFacetIds.source)) {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-source'),
@@ -337,6 +355,7 @@ class FacetPanel extends StatelessWidget {
     }
 
     for (final def in choiceFields) {
+      if (!shown(customFieldFacetId(def.id))) continue;
       // Read-only during build: don't create a map entry here (builds must be
       // side-effect free). The entry is created lazily in onSelected.
       final selected = facets.choiceValues[def.id] ?? const <String>{};
@@ -366,6 +385,7 @@ class FacetPanel extends StatelessWidget {
     }
 
     for (final def in booleanFields) {
+      if (!shown(customFieldFacetId(def.id))) continue;
       final current = facets.booleanValues[def.id];
       sections.add(
         _FacetSection(
@@ -404,6 +424,7 @@ class FacetPanel extends StatelessWidget {
     }
 
     for (final def in textFields) {
+      if (!shown(customFieldFacetId(def.id))) continue;
       sections.add(
         _TextFieldFacet(
           key: ValueKey('cf-text-${def.id}'),
@@ -415,6 +436,7 @@ class FacetPanel extends StatelessWidget {
     }
 
     for (final def in numberFields) {
+      if (!shown(customFieldFacetId(def.id))) continue;
       sections.add(
         _NumberFieldFacet(
           key: ValueKey('cf-num-${def.id}'),
@@ -428,7 +450,9 @@ class FacetPanel extends StatelessWidget {
     if (sections.isEmpty) {
       return Padding(
         padding: const EdgeInsets.all(16),
-        child: Text(l10n.collectionFacetNone),
+        child: Text(
+          suppressed ? l10n.collectionFacetAllHidden : l10n.collectionFacetNone,
+        ),
       );
     }
 

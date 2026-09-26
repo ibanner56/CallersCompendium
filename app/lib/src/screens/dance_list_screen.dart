@@ -9,6 +9,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/callersbox_online.dart';
+import '../data/collection_facets_scope.dart';
 import '../data/collection_filter_scope.dart';
 import '../data/collection_tile_fields_scope.dart';
 import '../data/contradb_online.dart';
@@ -202,6 +203,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// Whether calling-history filters use performed slots only.
   bool _requirePerformedForHistory = false;
 
+  /// Filter sections hidden in Settings → Defaults (issue #1419), mirrored from
+  /// [CollectionFacetsScope] in [didChangeDependencies] so a newly hidden
+  /// section's selection can be cleared (see [FacetSelections.clearFacets]).
+  Set<String> _hiddenFacets = const {};
+
   static const Duration _debounce = Duration(milliseconds: 250);
 
   final _ftsController = TextEditingController();
@@ -379,6 +385,17 @@ class _DanceListScreenState extends State<DanceListScreen> {
         _started && newRequirePerformed != _requirePerformedForHistory;
     _requirePerformedForHistory = newRequirePerformed;
 
+    // A section hidden while it holds a selection would keep narrowing the list
+    // with no control to clear it, so hiding it clears it (issue #1419). Only
+    // *newly* hidden sections are cleared: one that is still visible because a
+    // tag chip selected it while hidden must not be wiped by an unrelated
+    // change to the hidden set.
+    final newHiddenFacets = CollectionFacetsScope.of(context);
+    final facetsCleared =
+        _started &&
+        _facets.clearFacets(newHiddenFacets.difference(_hiddenFacets));
+    _hiddenFacets = newHiddenFacets;
+
     if (!_started) {
       _started = true;
       _repos = RepositoriesScope.of(context);
@@ -389,7 +406,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _boot();
     } else if (requirePerformedChanged && !_onlineEnabled && _data != null) {
       _runSearch();
-    } else if (dialectChanged || ignoreArticlesChanged || enrichmentChanged) {
+    } else if (dialectChanged ||
+        ignoreArticlesChanged ||
+        enrichmentChanged ||
+        facetsCleared) {
       _runSearch();
     }
 

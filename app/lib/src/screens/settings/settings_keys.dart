@@ -102,6 +102,14 @@ const String kCustomFieldSharingDisclosureKey =
 /// see no change until they adjust the preference.
 const String kCollectionTileVisibleFieldsKey = 'collection_tile_visible_fields';
 
+/// Key used to persist the filter sections the user has hidden from the
+/// Collection page's Filters panel and the dance picker (issue #1419). Stored as
+/// a JSON list of opaque section-id strings (see `CollectionFacetIds` and
+/// `customFieldFacetId`). Unlike [kCollectionTileVisibleFieldsKey] this lists
+/// what is **hidden**, so unset, empty or unreadable means every filter is
+/// shown and a filter added later is visible by default.
+const String kCollectionHiddenFacetsKey = 'collection_hidden_facets';
+
 /// Key used to persist the Programs "flag exact beat overlap only" setting
 /// (issue #962). Stored as a `bool`; **unset means on** (`true`) — the product
 /// default this issue changed the matrix's same-figure collision check to. A
