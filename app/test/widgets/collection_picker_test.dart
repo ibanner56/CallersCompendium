@@ -3,6 +3,7 @@ import 'package:compendium_core/testing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/data/collection_facets_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/callersbox_online.dart';
 import 'package:compendium_app/src/data/online_search.dart';
@@ -74,6 +75,7 @@ Future<void> _pumpPicker(
   void Function(OnlineSearchResultRow result)? onPreviewOnlineEnded,
   void Function(OnlineSearchResultRow result)? onViewOnlineDetails,
   ValueNotifier<bool>? sortIgnoreArticlesNotifier,
+  ValueNotifier<Set<String>>? hiddenFacets,
 }) async {
   enrichment ??= SearchEnrichment.empty;
   final ignoreArticles =
@@ -96,22 +98,27 @@ Future<void> _pumpPicker(
           repositories: repos,
           child: SortIgnoreArticlesScope(
             notifier: ignoreArticles,
-            child: CollectionPicker(
-              data: data,
-              dialect: Dialect.larksRobins,
-              enrichment: enrichment,
-              onAddDance: onAddDance,
-              rowAction: rowAction,
-              enableOnlineSearch: enableOnlineSearch,
-              callersBoxOnline: callersBoxOnline,
-              contraDbOnline: contraDbOnline,
-              onDanceImported: onDanceImported,
-              onPreviewDanceStarted: onPreviewDanceStarted,
-              onPreviewDanceEnded: onPreviewDanceEnded,
-              onViewDanceDetails: onViewDanceDetails,
-              onPreviewOnlineStarted: onPreviewOnlineStarted,
-              onPreviewOnlineEnded: onPreviewOnlineEnded,
-              onViewOnlineDetails: onViewOnlineDetails,
+            // The hidden-filters preference (#1419), mounted only when a test
+            // supplies a notifier so every other test runs without it.
+            child: _maybeFacetsScope(
+              hiddenFacets,
+              CollectionPicker(
+                data: data,
+                dialect: Dialect.larksRobins,
+                enrichment: enrichment,
+                onAddDance: onAddDance,
+                rowAction: rowAction,
+                enableOnlineSearch: enableOnlineSearch,
+                callersBoxOnline: callersBoxOnline,
+                contraDbOnline: contraDbOnline,
+                onDanceImported: onDanceImported,
+                onPreviewDanceStarted: onPreviewDanceStarted,
+                onPreviewDanceEnded: onPreviewDanceEnded,
+                onViewDanceDetails: onViewDanceDetails,
+                onPreviewOnlineStarted: onPreviewOnlineStarted,
+                onPreviewOnlineEnded: onPreviewOnlineEnded,
+                onViewOnlineDetails: onViewOnlineDetails,
+              ),
             ),
           ),
         ),
@@ -119,6 +126,11 @@ Future<void> _pumpPicker(
     ),
   );
 }
+
+Widget _maybeFacetsScope(ValueNotifier<Set<String>>? hidden, Widget child) =>
+    hidden == null
+    ? child
+    : CollectionFacetsScope(notifier: hidden, child: child);
 
 class _DedupeOnlineService implements OnlineSearchService {
   _DedupeOnlineService(
@@ -1448,5 +1460,66 @@ void main() {
       find.byKey(const ValueKey('picker-online-added-contraDb-remote')),
       findsNothing,
     );
+  });
+
+  group('hidden filters (#1419)', () {
+    Future<void> seedMixer(CompendiumRepositories repos) async {
+      await repos.dances.create(
+        _dance(id: 'mix', title: 'Mixer Dance', mixer: true),
+      );
+      await repos.dances.create(_dance(id: 'plain', title: 'Plain Dance'));
+    }
+
+    testWidgets('a hidden filter is not offered in the picker', (tester) async {
+      final repos = openTestRepositories();
+      await seedMixer(repos);
+      final hidden = ValueNotifier<Set<String>>({CollectionFacetIds.mixer});
+      addTearDown(hidden.dispose);
+
+      await _pumpPicker(
+        tester,
+        repos,
+        onAddDance: (_) {},
+        hiddenFacets: hidden,
+      );
+      await tester.pumpAndSettle();
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('picker-filters-panel')),
+      );
+
+      expect(find.byKey(const ValueKey('facet-row-mixer')), findsNothing);
+    });
+
+    testWidgets('hiding a filter that is narrowing the picker clears it', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await seedMixer(repos);
+      final hidden = ValueNotifier<Set<String>>(const {});
+      addTearDown(hidden.dispose);
+
+      await _pumpPicker(
+        tester,
+        repos,
+        onAddDance: (_) {},
+        hiddenFacets: hidden,
+      );
+      await tester.pumpAndSettle();
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('picker-filters-panel')),
+      );
+      await _tapVisible(tester, find.byKey(const ValueKey('mixer-yes')));
+      expect(_titles(tester), ['Mixer Dance']);
+      expect(find.text('Filters (1 active)'), findsOneWidget);
+
+      hidden.value = {CollectionFacetIds.mixer};
+      await tester.pumpAndSettle();
+
+      expect(_titles(tester), ['Mixer Dance', 'Plain Dance']);
+      expect(find.byKey(const ValueKey('facet-row-mixer')), findsNothing);
+      expect(find.text('Filters (1 active)'), findsNothing);
+    });
   });
 }

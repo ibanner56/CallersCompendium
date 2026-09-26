@@ -10,6 +10,7 @@ import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
+import 'package:compendium_app/src/data/collection_facets_scope.dart';
 import 'package:compendium_app/src/data/collection_filter_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
@@ -66,6 +67,7 @@ Future<void> _pumpScreen(
   CallersBoxOnline? callersBoxOnline,
   ContraDbOnline? contraDbOnline,
   CollectionFilterController? filterController,
+  ValueNotifier<Set<String>>? hiddenFacets,
 }) async {
   // A tall surface so the search bar, filter/advanced panels and results are
   // all laid out without scrolling, keeping chip/control taps stable.
@@ -103,7 +105,15 @@ Future<void> _pumpScreen(
                 notifier: sortIgnoreArticlesNotifier,
                 child: CollectionFilterScope(
                   controller: activeFilterController,
-                  child: child!,
+                  // The hidden-filters preference (#1419); the scope is only
+                  // mounted when a test supplies a notifier, so every other
+                  // test still runs without it.
+                  child: hiddenFacets == null
+                      ? child!
+                      : CollectionFacetsScope(
+                          notifier: hiddenFacets,
+                          child: child!,
+                        ),
                 ),
               ),
             ),
@@ -1871,6 +1881,141 @@ void main() {
       // The tagged section announces "Bouncy, 2 dances"; Other "Other, 1 dance".
       expect(find.bySemanticsLabel('Bouncy, 2 dances'), findsOneWidget);
       expect(find.bySemanticsLabel('Other, 1 dance'), findsOneWidget);
+    });
+  });
+
+  group('hidden filters (#1419)', () {
+    Future<CompendiumRepositories> seedStatusAndTag() async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't1', name: 'Classic'));
+      await repos.dances.create(
+        _dance(id: 'd1', title: 'Chase the Squirrel', tagIds: const ['t1']),
+      );
+      await repos.dances.create(
+        _dance(id: 'd2', title: 'Rambling Reel', status: DanceStatus.draft),
+      );
+      return repos;
+    }
+
+    testWidgets('hiding a filter removes its section from the Filters panel', (
+      tester,
+    ) async {
+      final repos = await seedStatusAndTag();
+      final hidden = ValueNotifier<Set<String>>({CollectionFacetIds.status});
+      addTearDown(hidden.dispose);
+
+      await _pumpScreen(tester, repos, hiddenFacets: hidden);
+      await tester.pumpAndSettle();
+      await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
+
+      expect(find.byKey(const ValueKey('facet-row-status')), findsNothing);
+      expect(find.byKey(const ValueKey('facet-row-tags')), findsWidgets);
+    });
+
+    testWidgets('hiding a filter that is narrowing the list clears it', (
+      tester,
+    ) async {
+      final repos = await seedStatusAndTag();
+      final hidden = ValueNotifier<Set<String>>(const {});
+      addTearDown(hidden.dispose);
+
+      await _pumpScreen(tester, repos, hiddenFacets: hidden);
+      await tester.pumpAndSettle();
+      await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
+      await _tapVisible(tester, find.byKey(const ValueKey('status-draft')));
+      expect(find.text('Rambling Reel'), findsOneWidget);
+      expect(find.text('Chase the Squirrel'), findsNothing);
+      expect(find.text('Filters (1 active)'), findsOneWidget);
+
+      // The user hides Status in Settings while the Draft chip is selected.
+      hidden.value = {CollectionFacetIds.status};
+      await tester.pumpAndSettle();
+
+      // No invisible control is left narrowing the list, and the header count
+      // no longer counts a filter nobody can see.
+      expect(find.text('Chase the Squirrel'), findsOneWidget);
+      expect(find.text('Rambling Reel'), findsOneWidget);
+      expect(find.byKey(const ValueKey('facet-row-status')), findsNothing);
+      expect(find.text('Filters (1 active)'), findsNothing);
+      expect(find.byKey(const ValueKey('clear-filters')), findsNothing);
+    });
+
+    testWidgets('showing the filter again does not resurrect the selection', (
+      tester,
+    ) async {
+      final repos = await seedStatusAndTag();
+      final hidden = ValueNotifier<Set<String>>(const {});
+      addTearDown(hidden.dispose);
+
+      await _pumpScreen(tester, repos, hiddenFacets: hidden);
+      await tester.pumpAndSettle();
+      await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
+      await _tapVisible(tester, find.byKey(const ValueKey('status-draft')));
+
+      hidden.value = {CollectionFacetIds.status};
+      await tester.pumpAndSettle();
+      hidden.value = const {};
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('facet-row-status')), findsWidgets);
+      expect(find.text('Chase the Squirrel'), findsOneWidget);
+      expect(find.text('Rambling Reel'), findsOneWidget);
+    });
+
+    testWidgets('a tag chip still filters while Tags is hidden, and the Tags '
+        'section stays visible to clear it', (tester) async {
+      final repos = await seedStatusAndTag();
+      final hidden = ValueNotifier<Set<String>>({CollectionFacetIds.tags});
+      addTearDown(hidden.dispose);
+      final filterController = CollectionFilterController();
+      addTearDown(filterController.dispose);
+
+      await _pumpScreen(
+        tester,
+        repos,
+        hiddenFacets: hidden,
+        filterController: filterController,
+      );
+      await tester.pumpAndSettle();
+      await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
+      expect(find.byKey(const ValueKey('facet-row-tags')), findsNothing);
+
+      // The detail page's tag chip goes through this controller, not the panel.
+      filterController.filterByTag('t1');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Chase the Squirrel'), findsOneWidget);
+      expect(find.text('Rambling Reel'), findsNothing);
+      expect(find.byKey(const ValueKey('facet-row-tags')), findsWidgets);
+      expect(find.byKey(const ValueKey('tag-t1')), findsOneWidget);
+    });
+
+    testWidgets('hiding an unrelated filter keeps a tag selection that is '
+        'visible only because it is active', (tester) async {
+      final repos = await seedStatusAndTag();
+      final hidden = ValueNotifier<Set<String>>({CollectionFacetIds.tags});
+      addTearDown(hidden.dispose);
+      final filterController = CollectionFilterController();
+      addTearDown(filterController.dispose);
+
+      await _pumpScreen(
+        tester,
+        repos,
+        hiddenFacets: hidden,
+        filterController: filterController,
+      );
+      await tester.pumpAndSettle();
+      filterController.filterByTag('t1');
+      await tester.pumpAndSettle();
+      expect(find.text('Rambling Reel'), findsNothing);
+
+      // Only *newly* hidden ids are cleared; `tags` was already hidden.
+      hidden.value = {CollectionFacetIds.tags, CollectionFacetIds.status};
+      await tester.pumpAndSettle();
+
+      expect(find.text('Chase the Squirrel'), findsOneWidget);
+      expect(find.text('Rambling Reel'), findsNothing);
     });
   });
 }
