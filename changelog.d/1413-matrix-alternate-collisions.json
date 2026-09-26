@@ -1,0 +1,14 @@
+{
+  "id": "1413-matrix-alternate-collisions",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "In the programming matrix, a dance and its alternate are no longer flagged as repeating each other's figures, and each alternate is now checked against the dances on either side of its slot, so a repeat that could happen depending on which one you call is flagged."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "Add `Program.alternateGroupsForSlots` and an `alternateGroups` argument to `buildProgramMatrix`; `ProgramMatrix.isCollision` compares each row with every row of the alternate groups before and after its own instead of the flat previous/next row, and never with its own group."
+    ]
+  }
+}
