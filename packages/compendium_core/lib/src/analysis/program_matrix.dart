@@ -382,7 +382,11 @@ class MatrixRow {
   final int? section;
 
   /// The alternate group this row's slot belongs to (see
-  /// [Program.alternateGroupsForSlots]), or `null` when the row stands alone.
+  /// [Program.alternateGroupsForSlots]), or `null` when the matrix was built
+  /// without group information (`buildProgramMatrix`'s `alternateGroups` was
+  /// omitted). `null` is not "a slot with no alternates": a slot alone in its
+  /// group still carries an integer id. A `null` row is treated as a group of
+  /// one, so it is compared with the row above and below.
   /// Rows sharing a group are mutually exclusive choices for one program
   /// position — a primary and its alternates — so they are never danced in
   /// sequence. [ProgramMatrix.isCollision] never compares rows of one group and
