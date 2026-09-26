@@ -11,6 +11,7 @@ Dance _dance({
   required String title,
   List<String> authorIds = const [],
   List<String> tagIds = const [],
+  List<String> tunes = const [],
   List<CustomFieldValue> customFields = const [],
   List<Figure>? figures,
   DanceForm form = DanceForm.contra,
@@ -31,6 +32,7 @@ Dance _dance({
     title: title,
     authorIds: authorIds,
     tagIds: tagIds,
+    tunes: tunes,
     customFields: customFields,
     form: form,
     formation: Formation(formation),
@@ -119,6 +121,121 @@ void main() {
       await dances.create(_dance(id: 'a', title: 'A', tagIds: ['t1']));
       await dances.create(_dance(id: 'b', title: 'B'));
       expect(await dances.search(const TagFilter('t1')), ['a']);
+    });
+
+    group('Tunes', () {
+      Future<void> storeRawTunes(String id, String raw) => db.customStatement(
+        'UPDATE dances SET tunes_json = ? WHERE id = ?',
+        [raw, id],
+      );
+
+      test('is a case-insensitive substring match over every entry', () async {
+        await dances.create(
+          _dance(id: 'a', title: 'A', tunes: ['Dmaj / Bmin']),
+        );
+        await dances.create(_dance(id: 'b', title: 'B', tunes: ['Gmaj']));
+        await dances.create(_dance(id: 'c', title: 'C'));
+        expect(await dances.search(const TunesFilter('dmaj')), ['a']);
+        expect(await dances.search(const TunesFilter('BMIN')), ['a']);
+        expect(await dances.search(const TunesFilter('maj')), ['a', 'b']);
+        expect(await dances.search(const TunesFilter('nothing')), isEmpty);
+      });
+
+      test(
+        'AND of leaves needs every value, spread over any entries',
+        () async {
+          await dances.create(
+            _dance(id: 'both', title: 'Both', tunes: ['Dmaj', '6/8']),
+          );
+          // One entry satisfying both values.
+          await dances.create(
+            _dance(id: 'one', title: 'One', tunes: ['Dmaj 6/8']),
+          );
+          await dances.create(_dance(id: 'dOnly', title: 'D', tunes: ['Dmaj']));
+          await dances.create(_dance(id: 'sOnly', title: 'S', tunes: ['6/8']));
+          expect(
+            await dances.search(
+              const AndFilter([TunesFilter('Dmaj'), TunesFilter('6/8')]),
+            ),
+            ['both', 'one'],
+          );
+          // The same two values OR-ed would match all four: the AND is real.
+          expect(
+            await dances.search(
+              const OrFilter([TunesFilter('Dmaj'), TunesFilter('6/8')]),
+            ),
+            hasLength(4),
+          );
+        },
+      );
+
+      test('LIKE metacharacters match literally', () async {
+        await dances.create(_dance(id: 'a', title: 'A', tunes: ['100% jig']));
+        await dances.create(_dance(id: 'b', title: 'B', tunes: ['a_b']));
+        await dances.create(_dance(id: 'c', title: 'C', tunes: ['axb']));
+        expect(await dances.search(const TunesFilter('%')), ['a']);
+        expect(await dances.search(const TunesFilter('a_b')), ['b']);
+      });
+
+      test('a soft-deleted dance never matches', () async {
+        await dances.create(
+          _dance(
+            id: 'a',
+            title: 'A',
+            tunes: ['Dmaj'],
+            deletedAt: DateTime.utc(2026, 2, 1),
+          ),
+        );
+        expect(await dances.search(const TunesFilter('Dmaj')), isEmpty);
+      });
+
+      // Every shape `_tunesSourceFor` refuses (`unreadable_tunes_test.dart`),
+      // plus valid JSON that only *looks* searchable: a JSON string, an object
+      // holding the query as a value, and a list mixing in a non-string.
+      const unreadable = <String, String>{
+        'not JSON at all': '[{"a":',
+        'root is an object holding the value': '{"a":"Dmaj"}',
+        'root is a bare string': '"Dmaj"',
+        'elements are numbers': '[1,2,3]',
+        'a null element': '[null]',
+        'a list mixing a string with a number': '["Dmaj",1]',
+        'JSON5 the strict parser refuses': "['Dmaj']",
+      };
+
+      unreadable.forEach((label, raw) {
+        test('$label: matches nothing and does not fail the query', () async {
+          await dances.create(_dance(id: 'bad', title: 'Bad'));
+          await dances.create(
+            _dance(id: 'good', title: 'Good', tunes: ['Dmaj']),
+          );
+          await storeRawTunes('bad', raw);
+          // The healthy dance is still found: one unreadable row must not
+          // take the query down (`json_each` raises on malformed text).
+          expect(await dances.search(const TunesFilter('Dmaj')), ['good']);
+          expect(
+            await dances.search(
+              const AndFilter([TunesFilter('Dmaj'), TunesFilter('D')]),
+            ),
+            ['good'],
+          );
+          // Under NOT the leaf is a plain 0, so this must only not raise.
+          await dances.search(const NotFilter(TunesFilter('Dmaj')));
+        });
+
+        test('$label: agrees with how Dart classifies the same text', () async {
+          await dances.create(_dance(id: 'bad', title: 'Bad'));
+          await storeRawTunes('bad', raw);
+          final loaded = await dances.getById('bad');
+          expect(loaded!.tunesSource, isA<UnreadableTunes>());
+        });
+      });
+
+      test('a readable list containing the query is the only thing that '
+          'matches: readable and empty lists are not swept in', () async {
+        await dances.create(_dance(id: 'empty', title: 'Empty'));
+        await dances.create(_dance(id: 'ok', title: 'Ok', tunes: ['Dmaj']));
+        expect(await dances.search(const TunesFilter('Dmaj')), ['ok']);
+      });
     });
 
     test('Level: eq matches exactly, ordered ops respect the scale', () async {
