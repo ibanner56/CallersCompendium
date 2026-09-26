@@ -2725,9 +2725,21 @@
     "x-sourceSha256": "f55279927a1a3e1ddebfe5c497a9b49eea91e8e4eb66dfe0c765d847246b1133"
   },
   "collectionFacetTunes": "チューン",
+  "@collectionFacetTunes": {
+    "x-sourceSha256": "4b5c504ca989a4a17e54b974db8a6d4aa156fa63da39902c66ecec59f5e46412"
+  },
   "collectionFacetTunesSearchHint": "チューンを検索または追加…",
+  "@collectionFacetTunesSearchHint": {
+    "x-sourceSha256": "8db03f56a4f16ad6b98d0ae1d93b556d0da56dc8b225294e8cab758161b9f39f"
+  },
   "collectionFacetAddTune": "「{name}」を追加",
+  "@collectionFacetAddTune": {
+    "x-sourceSha256": "6785b5588297a1d77c1a90f131292c273e1b9150af92b621b396baaeb1f93d80"
+  },
   "collectionFacetRemoveTune": "{name}を削除",
+  "@collectionFacetRemoveTune": {
+    "x-sourceSha256": "e6a3c4a1250a6ad3f10faa22333e5e50a6ba78e5b28a3b26f5743d9f8c7ede93"
+  },
   "collectionFacetOpContains": "を含む",
   "@collectionFacetOpContains": {
     "x-sourceSha256": "beeb20fbd67695085c26c5dfa7b5ece4d1985d201cb6f0dd9aa66a36ed987ce5"
