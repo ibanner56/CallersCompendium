@@ -149,6 +149,14 @@ Rows live inside **All**, **Any**, or **None** groups — match every row, any
 row, or no row — and groups can nest inside one another, so you can express
 questions as detailed as you need.
 
+The builder can also ask about your tags. Add a **"has
+tag"** row and pick a tag from the list. Two "has tag" rows inside an **All**
+group find dances that carry *both* tags — something the Tags filter, which
+matches *any* of the tags you tick, cannot do. Tag rows sit alongside figure
+rows in the same group, so "tagged *Smooth* and has a petronella" is one query.
+The row only appears in the **Add** menu once at least one of your dances has a
+tag.
+
 ### Ask per phrase with By-Phrase search
 
 If you think about dances the way The Caller's Box does — phrase by phrase — open
