@@ -268,6 +268,9 @@ A growing library needs a little housekeeping. Caller's Compendium makes every
 change reversible.
 
 - **Duplicate** a dance to spin off a variation without disturbing the original.
+- **Add tags** to a single dance from the **Actions** menu on its row (the
+  three vertical dots), without entering selection mode. You can pick existing
+  tags or create new ones, and the change can be undone.
 - **Delete** a dance and it is only *soft-deleted* — an **Undo** option appears
   right away, and the dance moves to a **Recently Deleted** area rather than
   vanishing.
