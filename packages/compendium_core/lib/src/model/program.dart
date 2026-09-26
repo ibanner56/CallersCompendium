@@ -336,6 +336,21 @@ class Program {
     }, growable: false);
   }
 
+  /// The alternate group of each slot in a **position-ordered** [slots] list,
+  /// as a parallel list (same length/order): every slot in one group is a
+  /// mutually exclusive choice for the same program position. Ids are
+  /// consecutive from 0. Uses exactly the rule [grouped] does — an `isAlt` slot
+  /// joins the nearest preceding non-alt slot's group (which may be a text-only
+  /// slot), and a leading/orphaned alt starts its own group — so the two never
+  /// disagree about which slots are alternatives to each other.
+  static List<int> alternateGroupsForSlots(List<ProgramSlot> slots) {
+    var group = -1;
+    return List<int>.generate(slots.length, (i) {
+      if (!slots[i].isAlt || group < 0) group++;
+      return group;
+    }, growable: false);
+  }
+
   /// Groups [slots] into primaries each carrying their trailing alternates,
   /// so builder/perform UIs render an alt indented under its primary
   /// (`docs/design/ux.md` §4). The documented invariant is that an `isAlt`

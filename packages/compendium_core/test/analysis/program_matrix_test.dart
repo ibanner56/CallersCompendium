@@ -912,6 +912,211 @@ void main() {
     });
   });
 
+  group('isCollision — alternate groups (issue #1413)', () {
+    // Every dance is a single 16-beat figure at beat 0, so two dances that use
+    // the same move collide under BOTH modes; which pairs are compared is the
+    // only variable. Each row uses a move of its own unless a test makes two
+    // rows share one deliberately.
+    Figure fig(String id) => testFigure(move: id, params: {'beats': 16});
+    Dance d(String id, String moveId) => dance(id, id, [fig(moveId)]);
+    int col(ProgramMatrix m, String moveId) =>
+        m.columns.indexWhere((c) => c.moveId == moveId);
+
+    for (final mode in MatrixCollisionMode.values) {
+      group('${mode.name} mode', () {
+        ProgramMatrix build(List<Dance> dances, List<int>? groups) =>
+            buildProgramMatrix(
+              dances,
+              alternateGroups: groups,
+              collisionMode: mode,
+            );
+
+        test('alternates of one slot never collide with each other', () {
+          // Dance1, Dance2a (primary), Dance2b (alt), Dance3.
+          final m = build(
+            [
+              d('d1', 'circle'),
+              d('d2a', 'balance'),
+              d('d2b', 'balance'),
+              d('d3', 'promenade'),
+            ],
+            [0, 1, 1, 2],
+          );
+          final c = col(m, 'balance');
+          expect(m.isCollision(1, c), isFalse);
+          expect(m.isCollision(2, c), isFalse);
+        });
+
+        test('without groups, rows are still compared row by row', () {
+          final m = build([
+            d('d1', 'circle'),
+            d('d2a', 'balance'),
+            d('d2b', 'balance'),
+            d('d3', 'promenade'),
+          ], null);
+          final c = col(m, 'balance');
+          expect(m.isCollision(1, c), isTrue);
+          expect(m.isCollision(2, c), isTrue);
+        });
+
+        test('an alternate is checked against the neighbour before its '
+            'primary', () {
+          // Dance1 and Dance2b share `balance`; Dance2a (the row between them)
+          // does not. Dance2b can follow Dance1 whenever it is the one called.
+          final m = build(
+            [
+              d('d1', 'balance'),
+              d('d2a', 'circle'),
+              d('d2b', 'balance'),
+              d('d3', 'promenade'),
+            ],
+            [0, 1, 1, 2],
+          );
+          final c = col(m, 'balance');
+          expect(m.isCollision(0, c), isTrue);
+          expect(m.isCollision(2, c), isTrue);
+          expect(m.isCollision(1, c), isFalse);
+        });
+
+        test('an alternate is checked against the neighbour after its '
+            'primary', () {
+          // Dance2a and Dance3 share `balance`; Dance2b (the row between them)
+          // does not.
+          final m = build(
+            [
+              d('d1', 'circle'),
+              d('d2a', 'balance'),
+              d('d2b', 'do_si_do'),
+              d('d3', 'balance'),
+            ],
+            [0, 1, 1, 2],
+          );
+          final c = col(m, 'balance');
+          expect(m.isCollision(1, c), isTrue);
+          expect(m.isCollision(3, c), isTrue);
+          expect(m.isCollision(2, c), isFalse);
+        });
+
+        test('every member of a larger group is compared with every member '
+            'of the adjacent groups', () {
+          // Three-way groups either side of a three-way middle group. The
+          // shared `balance` sits at the FAR end of the previous group, the
+          // middle of the current one, and the FAR end of the next — none of
+          // which is the flat-array neighbour of the middle row.
+          final m = build(
+            [
+              d('a0', 'balance'),
+              d('a1', 'circle'),
+              d('a2', 'do_si_do'),
+              d('b0', 'promenade'),
+              d('b1', 'balance'),
+              d('b2', 'petronella'),
+              d('c0', 'pass_through'),
+              d('c1', 'right_left_through'),
+              d('c2', 'balance'),
+            ],
+            [0, 0, 0, 1, 1, 1, 2, 2, 2],
+          );
+          final c = col(m, 'balance');
+          expect(
+            [for (var r = 0; r < 9; r++) m.isCollision(r, c)],
+            [
+              true, false, false, // a0 meets b1
+              false, true, false, // b1 meets a0 and c2
+              false, false, true, // c2 meets b1
+            ],
+          );
+        });
+
+        test('two groups whose members never share a move do not collide', () {
+          final m = build(
+            [
+              d('d1a', 'circle'),
+              d('d1b', 'balance'),
+              d('d2a', 'do_si_do'),
+              d('d2b', 'promenade'),
+            ],
+            [0, 0, 1, 1],
+          );
+          for (var r = 0; r < 4; r++) {
+            for (var c = 0; c < m.columns.length; c++) {
+              expect(m.isCollision(r, c), isFalse, reason: 'row $r col $c');
+            }
+          }
+        });
+
+        test('groups are not compared beyond the adjacent group', () {
+          final m = build(
+            [
+              d('d1', 'balance'),
+              d('d2a', 'circle'),
+              d('d2b', 'do_si_do'),
+              d('d3', 'balance'),
+            ],
+            [0, 1, 1, 2],
+          );
+          final c = col(m, 'balance');
+          expect(m.isCollision(0, c), isFalse);
+          expect(m.isCollision(3, c), isFalse);
+        });
+
+        test('a leading orphaned alternate is a group of its own', () {
+          // Program.alternateGroupsForSlots gives [0, 1, 1] for
+          // [alt, primary, alt]: the orphan is not folded into the next group.
+          final m = build(
+            [d('o', 'balance'), d('p', 'balance'), d('a', 'circle')],
+            [0, 1, 1],
+          );
+          final c = col(m, 'balance');
+          expect(m.isCollision(0, c), isTrue);
+          expect(m.isCollision(1, c), isTrue);
+          expect(m.isCollision(2, c), isFalse);
+        });
+      });
+    }
+
+    test('rows record their alternate group, and default to none', () {
+      final grouped = buildProgramMatrix(
+        [d('d1', 'circle'), d('d2', 'balance')],
+        alternateGroups: [0, 0],
+      );
+      expect(grouped.rows.map((r) => r.alternateGroup), [0, 0]);
+      final ungrouped = buildProgramMatrix([d('d1', 'circle')]);
+      expect(ungrouped.rows.single.alternateGroup, isNull);
+    });
+
+    test('alternateGroups must be aligned to dances', () {
+      expect(
+        () => buildProgramMatrix([d('d1', 'circle')], alternateGroups: [0, 0]),
+        throwsArgumentError,
+      );
+    });
+
+    test('a group that reappears after another group is rejected', () {
+      expect(
+        () => buildProgramMatrix(
+          [d('d1', 'circle'), d('d2', 'balance'), d('d3', 'promenade')],
+          alternateGroups: [0, 1, 0],
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('MatrixRow equality includes the alternate group', () {
+      MatrixRow row(int? group) => MatrixRow(
+        danceId: 'd1',
+        title: 'A',
+        firstMoveId: null,
+        presentMoveIds: const {},
+        alternateGroup: group,
+      );
+      expect(row(1), row(1));
+      expect(row(1).hashCode, row(1).hashCode);
+      expect(row(1), isNot(row(2)));
+      expect(row(1), isNot(row(null)));
+    });
+  });
+
   group('isCollision — phrase mode (issue #582; opt-in via #962)', () {
     // A figure's phrase is derived from its cumulative beat offset under the
     // default 4x16 structure (A1 0-15, A2 16-31, B1 32-47, B2 48-63). `fig`

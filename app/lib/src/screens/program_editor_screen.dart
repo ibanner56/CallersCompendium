@@ -2850,8 +2850,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     // free-text slots) so the ordinal badge reflects every break position.
     final now = DateTime.now();
     final sectionsForSlots = Program.sectionsForSlots(_slots);
+    // A primary and its alternates are one choice for a single position, so
+    // the matrix must not treat them as consecutive dances. Groups come from
+    // the full slot list (a free-text primary can own a dance alternate).
+    final alternateGroupsForSlots = Program.alternateGroupsForSlots(_slots);
     final rows = <Dance>[];
     final rowSections = <int?>[];
+    final rowAlternateGroups = <int>[];
     final altDanceIds = <String>{};
     final altRowIndices = <int>{};
     var omittedFreeText = 0;
@@ -2872,6 +2877,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           );
       rows.add(dance);
       rowSections.add(sectionsForSlots[i]);
+      rowAlternateGroups.add(alternateGroupsForSlots[i]);
       if (slot.isAlt) {
         altDanceIds.add(danceId);
         altRowIndices.add(rows.length - 1);
@@ -2882,6 +2888,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       rows,
       taxonomy: data.taxonomy,
       sections: rowSections,
+      alternateGroups: rowAlternateGroups,
       collisionMode: _matrixExactBeatCollision
           ? MatrixCollisionMode.exactBeats
           : MatrixCollisionMode.phrase,
