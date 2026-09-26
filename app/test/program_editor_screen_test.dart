@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart' show testFigure;
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
@@ -3769,7 +3770,11 @@ void main() {
       ('d3', 'Dance3', move3),
     ]) {
       await repos.dances.create(
-        _dance(id: id, title: title, figures: [Figure(move: move)]),
+        _dance(
+          id: id,
+          title: title,
+          figures: [testFigure(move: move, params: const {})],
+        ),
       );
     }
     await repos.programs.create(

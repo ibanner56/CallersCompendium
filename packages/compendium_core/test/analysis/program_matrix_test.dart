@@ -1018,11 +1018,14 @@ void main() {
             [0, 0, 0, 1, 1, 1, 2, 2, 2],
           );
           final c = col(m, 'balance');
-          expect([for (var r = 0; r < 9; r++) m.isCollision(r, c)], [
-            true, false, false, // a0 meets b1
-            false, true, false, // b1 meets a0 and c2
-            false, false, true, // c2 meets b1
-          ]);
+          expect(
+            [for (var r = 0; r < 9; r++) m.isCollision(r, c)],
+            [
+              true, false, false, // a0 meets b1
+              false, true, false, // b1 meets a0 and c2
+              false, false, true, // c2 meets b1
+            ],
+          );
         });
 
         test('two groups whose members never share a move do not collide', () {
@@ -1091,11 +1094,10 @@ void main() {
 
     test('a group that reappears after another group is rejected', () {
       expect(
-        () => buildProgramMatrix([
-          d('d1', 'circle'),
-          d('d2', 'balance'),
-          d('d3', 'promenade'),
-        ], alternateGroups: [0, 1, 0]),
+        () => buildProgramMatrix(
+          [d('d1', 'circle'), d('d2', 'balance'), d('d3', 'promenade')],
+          alternateGroups: [0, 1, 0],
+        ),
         throwsArgumentError,
       );
     });
