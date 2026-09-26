@@ -1154,6 +1154,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Champs personnalisés';
 
   @override
+  String get settingsDefaultsCollectionFiltersHeader =>
+      'Filtres de la collection';
+
+  @override
+  String get settingsDefaultsCollectionFiltersSubtitle =>
+      'Choisissez les filtres qui apparaissent lorsque vous filtrez la collection et lorsque vous choisissez des danses pour un programme. Tous les filtres sont affichés par défaut. Masquer un filtre efface sa sélection.';
+
+  @override
   String get settingsDefaultsAuthoringHeader =>
       'Paramètres par défaut de création de danse';
 
@@ -2547,6 +2555,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get collectionFacetNone =>
       'Aucun filtre disponible pour cette collection pour l’instant.';
+
+  @override
+  String get collectionFacetAllHidden =>
+      'Tous les filtres sont masqués. Vous pouvez les réafficher dans Paramètres → Valeurs par défaut.';
 
   @override
   String get collectionFacetClear => 'Effacer les filtres';

@@ -1413,6 +1413,14 @@
   "@settingsDefaultsCollectionCardCustomFields": {
     "description": "Label for the showInList custom-field chips field-visibility toggle (#767)."
   },
+  "settingsDefaultsCollectionFiltersHeader": "Collection filters",
+  "@settingsDefaultsCollectionFiltersHeader": {
+    "description": "Section header for the preference that chooses which filters appear in the Collection page's Filters panel and the dance picker (#1419)."
+  },
+  "settingsDefaultsCollectionFiltersSubtitle": "Choose which filters appear when you filter the Collection and when you pick dances for a program. All filters are shown by default. Hiding a filter clears its selection.",
+  "@settingsDefaultsCollectionFiltersSubtitle": {
+    "description": "Subtitle describing the filter-visibility checkboxes (#1419)."
+  },
   "settingsDefaultsAuthoringHeader": "Dance-authoring defaults",
   "@settingsDefaultsAuthoringHeader": {
     "description": "Section header for defaults applied when authoring a new dance."
@@ -3103,6 +3111,10 @@
   "collectionFacetNone": "No filters available for this collection yet.",
   "@collectionFacetNone": {
     "description": "Message shown when the collection has no facets to filter by."
+  },
+  "collectionFacetAllHidden": "All filters are hidden. You can show them again in Settings → Defaults.",
+  "@collectionFacetAllHidden": {
+    "description": "Message shown in the filters panel when the collection has filters but the user has hidden every one of them in Settings (#1419). Distinct from collectionFacetNone, which means there is nothing to filter by."
   },
   "collectionFacetClear": "Clear filters",
   "@collectionFacetClear": {

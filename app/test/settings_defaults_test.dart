@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/aggressive_beats_update_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
+import 'package:compendium_app/src/data/collection_facets_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
@@ -45,6 +46,7 @@ Future<void> _pumpDefaults(
   WidgetTester tester,
   CompendiumRepositories repos, {
   bool expandGroups = true,
+  ValueNotifier<Set<String>>? hiddenFacets,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1200, 4500));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -62,6 +64,8 @@ Future<void> _pumpDefaults(
     repos.settings,
   );
   await walkthroughSnippets.load();
+  final facetsNotifier = hiddenFacets ?? ValueNotifier<Set<String>>(const {});
+  if (hiddenFacets == null) addTearDown(facetsNotifier.dispose);
   addTearDown(dialect.dispose);
   addTearDown(theme.dispose);
   addTearDown(customThemes.dispose);
@@ -87,7 +91,10 @@ Future<void> _pumpDefaults(
                   controller: shorthandMappings,
                   child: WalkthroughSnippetLibraryScope(
                     controller: walkthroughSnippets,
-                    child: const SettingsScreen(),
+                    child: CollectionFacetsScope(
+                      notifier: facetsNotifier,
+                      child: const SettingsScreen(),
+                    ),
                   ),
                 ),
               ),
@@ -714,7 +721,7 @@ void main() {
   ) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 3000));
+    await tester.binding.setSurfaceSize(const Size(1200, 4500));
     await tester.pumpAndSettle();
 
     await _scrollTo(tester, const ValueKey('defaults-dance-phrase'));
@@ -737,7 +744,7 @@ void main() {
   ) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 3000));
+    await tester.binding.setSurfaceSize(const Size(1200, 4500));
     await tester.pumpAndSettle();
 
     await _scrollTo(tester, const ValueKey('defaults-dance-phrase'));
@@ -839,7 +846,7 @@ void main() {
     await repos.settings.set(kDefaultDancePhraseStructureKey, '8*8*1');
 
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 3000));
+    await tester.binding.setSurfaceSize(const Size(1200, 4500));
     await tester.pumpAndSettle();
     await _scrollTo(tester, const ValueKey('defaults-dance-phrase'));
 
@@ -883,7 +890,7 @@ void main() {
   ) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 3000));
+    await tester.binding.setSurfaceSize(const Size(1200, 4500));
     await tester.pumpAndSettle();
 
     expect(find.text('Starting figures'), findsOneWidget);
@@ -900,7 +907,7 @@ void main() {
     (tester) async {
       final repos = openTestRepositories();
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 3000));
+      await tester.binding.setSurfaceSize(const Size(1200, 4500));
       await tester.pumpAndSettle();
 
       expect(find.text('Meanwhile defaults'), findsOneWidget);
@@ -940,7 +947,7 @@ void main() {
   ) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 3000));
+    await tester.binding.setSurfaceSize(const Size(1200, 4500));
     await tester.pumpAndSettle();
 
     for (var i = 0; i < 4; i++) {
@@ -967,7 +974,7 @@ void main() {
     final repos = openTestRepositories();
     await repos.settings.set(kFreeTextEntryKey, true);
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 3000));
+    await tester.binding.setSurfaceSize(const Size(1200, 4500));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('meanwhile-side-add')));
@@ -1000,7 +1007,7 @@ void main() {
   testWidgets('Starting figures can add a meanwhile template', (tester) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 3000));
+    await tester.binding.setSurfaceSize(const Size(1200, 4500));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('figure-add')));
@@ -1020,7 +1027,7 @@ void main() {
   testWidgets('editing the template figure persists it', (tester) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 3000));
+    await tester.binding.setSurfaceSize(const Size(1200, 4500));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
@@ -1047,7 +1054,7 @@ void main() {
     (tester) async {
       final repos = openTestRepositories();
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 3000));
+      await tester.binding.setSurfaceSize(const Size(1200, 4500));
       await tester.pumpAndSettle();
 
       // Delete one of the eight seeded figures: the shortened list persists.
@@ -1087,7 +1094,7 @@ void main() {
       ]),
     );
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 3000));
+    await tester.binding.setSurfaceSize(const Size(1200, 4500));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('figure-0-summary')), findsOneWidget);
@@ -1112,7 +1119,7 @@ void main() {
         ]),
       );
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 3000));
+      await tester.binding.setSurfaceSize(const Size(1200, 4500));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('figure-0-menu')));
@@ -1273,7 +1280,7 @@ void main() {
       await repos.settings.set(kDefaultDanceFiguresTemplateKey, '[]');
 
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 3000));
+      await tester.binding.setSurfaceSize(const Size(1200, 4500));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('figure-add')));
@@ -1309,7 +1316,7 @@ void main() {
       await repos.settings.set(kDefaultModifierFiguresKey, '[]');
 
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 3000));
+      await tester.binding.setSurfaceSize(const Size(1200, 4500));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('modifier-default-add')));
@@ -1343,7 +1350,7 @@ void main() {
         await repos.settings.set(kDefaultModifierFiguresKey, '[]');
 
         await _pumpDefaults(tester, repos);
-        await tester.binding.setSurfaceSize(const Size(1200, 3000));
+        await tester.binding.setSurfaceSize(const Size(1200, 4500));
         await tester.pumpAndSettle();
         await _scrollTo(tester, const ValueKey('modifier-default-add'));
 
@@ -1465,5 +1472,159 @@ void main() {
         );
       },
     );
+  });
+
+  group('Collection filters visibility (#1419)', () {
+    Key box(String id) => ValueKey('defaults-facet-$id');
+    bool ticked(WidgetTester tester, Key key) =>
+        tester.widget<CheckboxListTile>(find.byKey(key)).value ?? false;
+
+    testWidgets('offers one checkbox per built-in filter, all ticked', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pumpDefaults(tester, repos, expandGroups: false);
+
+      for (final id in CollectionFacetIds.builtIns) {
+        await _scrollTo(tester, box(id));
+        expect(ticked(tester, box(id)), isTrue, reason: id);
+      }
+    });
+
+    testWidgets('unticking hides the filter live and persists the hidden id', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final hidden = ValueNotifier<Set<String>>(const {});
+      addTearDown(hidden.dispose);
+      await _pumpDefaults(
+        tester,
+        repos,
+        expandGroups: false,
+        hiddenFacets: hidden,
+      );
+
+      await _scrollTo(tester, box(CollectionFacetIds.status));
+      await tester.tap(find.byKey(box(CollectionFacetIds.status)));
+      await tester.pumpAndSettle();
+
+      expect(hidden.value, {CollectionFacetIds.status});
+      expect(ticked(tester, box(CollectionFacetIds.status)), isFalse);
+      expect(await repos.settings.get(kCollectionHiddenFacetsKey), [
+        CollectionFacetIds.status,
+      ]);
+
+      // Ticking it again shows it and stores an empty list, not a stale id.
+      await tester.tap(find.byKey(box(CollectionFacetIds.status)));
+      await tester.pumpAndSettle();
+      expect(hidden.value, isEmpty);
+      expect(await repos.settings.get(kCollectionHiddenFacetsKey), isEmpty);
+    });
+
+    testWidgets('two taps before a rebuild both take effect', (tester) async {
+      final repos = openTestRepositories();
+      final hidden = ValueNotifier<Set<String>>(const {});
+      addTearDown(hidden.dispose);
+      await _pumpDefaults(
+        tester,
+        repos,
+        expandGroups: false,
+        hiddenFacets: hidden,
+      );
+      await _scrollTo(tester, box(CollectionFacetIds.tags));
+      await _scrollTo(tester, box(CollectionFacetIds.status));
+
+      // No pump between the taps: the second must build on the notifier's
+      // current value, not on the build-time snapshot the first also saw.
+      await tester.tap(find.byKey(box(CollectionFacetIds.status)));
+      await tester.tap(find.byKey(box(CollectionFacetIds.tags)));
+      await tester.pumpAndSettle();
+
+      expect(hidden.value, {
+        CollectionFacetIds.status,
+        CollectionFacetIds.tags,
+      });
+      expect(await repos.settings.get(kCollectionHiddenFacetsKey), [
+        CollectionFacetIds.status,
+        CollectionFacetIds.tags,
+      ]);
+    });
+
+    testWidgets('a filter hidden before the screen opens shows unticked', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final hidden = ValueNotifier<Set<String>>({CollectionFacetIds.author});
+      addTearDown(hidden.dispose);
+      await _pumpDefaults(
+        tester,
+        repos,
+        expandGroups: false,
+        hiddenFacets: hidden,
+      );
+
+      await _scrollTo(tester, box(CollectionFacetIds.author));
+      expect(ticked(tester, box(CollectionFacetIds.author)), isFalse);
+      await _scrollTo(tester, box(CollectionFacetIds.tags));
+      expect(ticked(tester, box(CollectionFacetIds.tags)), isTrue);
+    });
+
+    testWidgets('each searchable custom field gets its own checkbox, by id', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f1',
+          key: 'region_a',
+          label: 'Region',
+          type: CustomFieldType.choice,
+          choices: const ['north'],
+        ),
+      );
+      // Same label: the checkboxes must still be told apart by id.
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f2',
+          key: 'region_b',
+          label: 'Region',
+          type: CustomFieldType.text,
+        ),
+      );
+      // Not searchable, so the Filters panel has no section for it either.
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f3',
+          key: 'private_note',
+          label: 'Private note',
+          type: CustomFieldType.text,
+          searchable: false,
+        ),
+      );
+      final hidden = ValueNotifier<Set<String>>(const {});
+      addTearDown(hidden.dispose);
+      await _pumpDefaults(
+        tester,
+        repos,
+        expandGroups: false,
+        hiddenFacets: hidden,
+      );
+
+      await _scrollTo(tester, box('cf-f1'));
+      expect(find.byKey(box('cf-f2')), findsOneWidget);
+      expect(find.byKey(box('cf-f3')), findsNothing);
+
+      await tester.tap(find.byKey(box('cf-f2')));
+      await tester.pumpAndSettle();
+
+      // Only the second "Region" is hidden, under its type-agnostic id.
+      expect(hidden.value, {customFieldFacetId('f2')});
+      expect(ticked(tester, box('cf-f1')), isTrue);
+      expect(ticked(tester, box('cf-f2')), isFalse);
+      expect(await repos.settings.get(kCollectionHiddenFacetsKey), ['cf:f2']);
+    });
   });
 }

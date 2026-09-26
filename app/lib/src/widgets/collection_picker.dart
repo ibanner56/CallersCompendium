@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 
 import '../data/callersbox_online.dart';
+import '../data/collection_facets_scope.dart';
 import '../data/contradb_online.dart';
 import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
@@ -188,6 +189,10 @@ class _CollectionPickerState extends State<CollectionPicker> {
   late CompendiumRepositories _repos;
   bool _started = false;
   bool _requirePerformedForHistory = false;
+
+  /// Filter sections hidden in Settings → Defaults (issue #1419), mirrored from
+  /// [CollectionFacetsScope] so a newly hidden section's selection is cleared.
+  Set<String> _hiddenFacets = const {};
   bool _ignoreLeadingArticles = true;
 
   List<DanceListEntry> _results = const [];
@@ -207,13 +212,22 @@ class _CollectionPickerState extends State<CollectionPicker> {
     final ignoreLeadingArticlesChanged =
         _started && newIgnoreLeadingArticles != _ignoreLeadingArticles;
     _ignoreLeadingArticles = newIgnoreLeadingArticles;
+    // Hiding a section clears its selection (issue #1419); see the same hook in
+    // DanceListScreen.didChangeDependencies for why only newly hidden sections.
+    final newHiddenFacets = CollectionFacetsScope.of(context);
+    final facetsCleared =
+        _started &&
+        _facets.clearFacets(newHiddenFacets.difference(_hiddenFacets));
+    _hiddenFacets = newHiddenFacets;
     if (!_started) {
       _started = true;
       _repos = RepositoriesScope.of(context);
       _callersBox = widget.callersBoxOnline ?? CallersBoxOnline();
       _contraDb = widget.contraDbOnline ?? ContraDbOnline();
       _runSearch();
-    } else if ((requirePerformedChanged || ignoreLeadingArticlesChanged) &&
+    } else if ((requirePerformedChanged ||
+            ignoreLeadingArticlesChanged ||
+            facetsCleared) &&
         !_onlineEnabled) {
       _runSearch();
     }

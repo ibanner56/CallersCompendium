@@ -1100,6 +1100,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsDefaultsCollectionCardCustomFields => 'カスタムフィールド';
 
   @override
+  String get settingsDefaultsCollectionFiltersHeader => 'コレクションのフィルター';
+
+  @override
+  String get settingsDefaultsCollectionFiltersSubtitle =>
+      'コレクションを絞り込むときと、プログラム用にダンスを選ぶときに表示するフィルターを選択します。既定ではすべてのフィルターが表示されます。フィルターを非表示にすると、その選択は解除されます。';
+
+  @override
   String get settingsDefaultsAuthoringHeader => 'ダンス作成のデフォルト設定';
 
   @override
@@ -2412,6 +2419,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get collectionFacetNone => 'このコレクションにはまだ利用可能なフィルターがありません。';
+
+  @override
+  String get collectionFacetAllHidden =>
+      'すべてのフィルターが非表示です。設定 → デフォルト で再び表示できます。';
 
   @override
   String get collectionFacetClear => 'フィルターをクリア';

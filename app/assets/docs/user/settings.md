@@ -360,6 +360,14 @@ setup.
 
 - **Collection sort order** — the default order for your library when you open it.
   You can still change the sort while browsing.
+- **Collection filters** — choose which filters appear in the **Filters** panel
+  on the Collection screen and when you pick dances for a program. Every filter
+  is shown until you untick it, and each of your searchable custom fields has its
+  own checkbox. Hiding a filter only removes it from the panel: it does not
+  delete anything, and the Advanced search can still use the same properties. If
+  you hide a filter that is currently narrowing the list, its selection is
+  cleared. A filter that is narrowing the list when you open a dance's tag from
+  its detail page stays visible until you clear it.
 
 ### Dance-authoring defaults
 

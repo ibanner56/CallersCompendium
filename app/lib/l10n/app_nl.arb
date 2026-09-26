@@ -1248,6 +1248,14 @@
   "@settingsDefaultsCollectionCardCustomFields": {
     "x-sourceSha256": "5566db49faf3cfcec9576e3e90ce5f58b029ea5c7b48d8e4508eb56c951e3433"
   },
+  "settingsDefaultsCollectionFiltersHeader": "Collectiefilters",
+  "@settingsDefaultsCollectionFiltersHeader": {
+    "x-sourceSha256": "06981cabadd70feb8e1965e99b8ed513b175f6e2a6969fd306738c7408177797"
+  },
+  "settingsDefaultsCollectionFiltersSubtitle": "Kies welke filters verschijnen wanneer je de collectie filtert en wanneer je dansen voor een programma kiest. Alle filters worden standaard getoond. Als je een filter verbergt, wordt de selectie ervan gewist.",
+  "@settingsDefaultsCollectionFiltersSubtitle": {
+    "x-sourceSha256": "fe9b11fa483a593aae54741b5b3cb3abc94b60c4f1575d98df4c16d55b9b5022"
+  },
   "settingsDefaultsAuthoringHeader": "Standaarden voor dansen aanmaken",
   "@settingsDefaultsAuthoringHeader": {
     "x-sourceSha256": "482854f4cc0c72562a4c8a593046db1f9154cbc2787f0474b4a866f28685f347"
@@ -2711,6 +2719,10 @@
   "collectionFacetNone": "Nog geen filters beschikbaar voor deze collectie.",
   "@collectionFacetNone": {
     "x-sourceSha256": "20083f4ddf1392f3feff034e97d0c12b9c3ec1f201189b481ada3a638b1c54be"
+  },
+  "collectionFacetAllHidden": "Alle filters zijn verborgen. Je kunt ze weer tonen via Instellingen → Standaardwaarden.",
+  "@collectionFacetAllHidden": {
+    "x-sourceSha256": "94933ebf3218eff33ad3a278381498d141ddf221fb31a1edb7478cfa430a33ec"
   },
   "collectionFacetClear": "Filters wissen",
   "@collectionFacetClear": {

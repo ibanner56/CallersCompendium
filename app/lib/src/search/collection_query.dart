@@ -1,5 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 
+import '../data/collection_facets_scope.dart';
+
 /// Sort options surfaced in the Collection UI (`docs/design/ux.md` §1). Maps
 /// onto the core [SearchSort] allow-list. [relevance] is only offered when the
 /// query is a bare full-text search (`docs/design/search.md` decision 6);
@@ -127,7 +129,8 @@ class FacetSelections {
   /// [isEmpty]. [mixedLevel] and [mixer] count when non-null, not only when
   /// `true`, because [buildCollectionFilter] filters on `false` too.
   ///
-  /// When adding a facet, add it to [isEmpty], [clear] and here.
+  /// When adding a facet, add it to [isEmpty], [clear], [hasSelectionFor],
+  /// [clearFacets] and here.
   int get activeCount =>
       forms.length +
       formations.length +
@@ -163,6 +166,90 @@ class FacetSelections {
     booleanValues.clear();
     textValues.clear();
     numberValues.clear();
+  }
+
+  /// Whether the filter section [id] (a `CollectionFacetIds` value or a
+  /// `customFieldFacetId`) currently holds a selection. An unknown id holds
+  /// none.
+  bool hasSelectionFor(String id) {
+    switch (id) {
+      case CollectionFacetIds.form:
+        return forms.isNotEmpty;
+      case CollectionFacetIds.formation:
+        return formations.isNotEmpty;
+      case CollectionFacetIds.progression:
+        return progressions.isNotEmpty;
+      case CollectionFacetIds.status:
+        return statuses.isNotEmpty;
+      case CollectionFacetIds.level:
+        return levels.isNotEmpty;
+      case CollectionFacetIds.mixedLevel:
+        return mixedLevel != null;
+      case CollectionFacetIds.mixer:
+        return mixer != null;
+      case CollectionFacetIds.minRating:
+        return minRating != null;
+      case CollectionFacetIds.callStatus:
+        return callStatuses.isNotEmpty;
+      case CollectionFacetIds.author:
+        return authorIds.isNotEmpty;
+      case CollectionFacetIds.tags:
+        return tagIds.isNotEmpty;
+      case CollectionFacetIds.source:
+        return sourceIds.isNotEmpty;
+    }
+    final defId = customFieldIdOfFacetId(id);
+    if (defId == null) return false;
+    return (choiceValues[defId]?.isNotEmpty ?? false) ||
+        booleanValues.containsKey(defId) ||
+        (textValues[defId]?.isEffective ?? false) ||
+        (numberValues[defId]?.isEffective ?? false);
+  }
+
+  /// Clears the selection of every filter section named in [ids] and returns
+  /// whether anything was selected, so the caller knows the results may have
+  /// changed. Ids that name no section are ignored.
+  bool clearFacets(Set<String> ids) {
+    var changed = false;
+    for (final id in ids) {
+      if (!hasSelectionFor(id)) continue;
+      changed = true;
+      switch (id) {
+        case CollectionFacetIds.form:
+          forms.clear();
+        case CollectionFacetIds.formation:
+          formations.clear();
+        case CollectionFacetIds.progression:
+          progressions.clear();
+        case CollectionFacetIds.status:
+          statuses.clear();
+        case CollectionFacetIds.level:
+          levels.clear();
+        case CollectionFacetIds.mixedLevel:
+          mixedLevel = null;
+        case CollectionFacetIds.mixer:
+          mixer = null;
+        case CollectionFacetIds.minRating:
+          minRating = null;
+        case CollectionFacetIds.callStatus:
+          callStatuses.clear();
+        case CollectionFacetIds.author:
+          authorIds.clear();
+        case CollectionFacetIds.tags:
+          tagIds.clear();
+        case CollectionFacetIds.source:
+          sourceIds.clear();
+        default:
+          final defId = customFieldIdOfFacetId(id);
+          if (defId != null) {
+            choiceValues.remove(defId);
+            booleanValues.remove(defId);
+            textValues.remove(defId);
+            numberValues.remove(defId);
+          }
+      }
+    }
+    return changed;
   }
 }
 

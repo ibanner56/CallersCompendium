@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/active_dialect_scope.dart';
 import '../../data/aggressive_beats_update_scope.dart';
+import '../../data/collection_facets_scope.dart';
 import '../../data/collection_tile_fields_scope.dart';
 import '../../data/display_defaults.dart';
 import '../../data/repositories_scope.dart';
@@ -124,6 +125,12 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   /// feature is strictly opt-in. This value is used only by the starting-figures
   /// editor, which remains in Defaults.
   bool _freeTextEntry = false;
+
+  /// The searchable custom-field definitions, one "Collection filters" checkbox
+  /// each (issue #1419) — the same set the Filters panel offers a section for
+  /// (`CollectionData.choiceFields` etc.). Loaded once when the section is first
+  /// built, so a field created later appears here after Settings is reopened.
+  List<CustomFieldDef> _filterFieldDefs = const [];
 
   /// Lazily loads the persisted Display defaults the first time the Defaults
   /// section is built. Mirrors [_ensureAutoSizeLoaded]: a late read must not
@@ -321,6 +328,20 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         })
         .catchError((_) {
           /* diagnostics: silent — keep the empty override map (pure taxonomy defaults) */
+        });
+    repos.customFieldDefs
+        .listAll()
+        .then((defs) {
+          if (!mounted) return;
+          setState(
+            () => _filterFieldDefs = [
+              for (final def in defs)
+                if (def.searchable) def,
+            ],
+          );
+        })
+        .catchError((_) {
+          /* diagnostics: silent — no custom-field filter checkboxes are offered */
         });
     repos.settings
         .get(kFreeTextEntryKey)
@@ -705,6 +726,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       dancePhraseController: _defaultDancePhrase,
       onDefaultDancePhraseChanged: _onDefaultDancePhraseChanged,
       freeTextEntry: _freeTextEntry,
+      filterFieldDefs: _filterFieldDefs,
       danceFigureTemplateDrafts: _defaultDanceFigureDrafts,
       onDanceFigureTemplateChanged: () {
         setState(() {});
@@ -1116,6 +1138,7 @@ class _DefaultsView extends StatelessWidget {
     required this.dancePhraseController,
     required this.onDefaultDancePhraseChanged,
     required this.freeTextEntry,
+    required this.filterFieldDefs,
     required this.danceFigureTemplateDrafts,
     required this.onDanceFigureTemplateChanged,
     required this.onDanceFigureTemplateAdd,
@@ -1179,6 +1202,9 @@ class _DefaultsView extends StatelessWidget {
   /// governs the Settings starting-figures editor, keeping the toggle's effect
   /// consistent with the dance editor it sits above.
   final bool freeTextEntry;
+
+  /// The searchable custom fields, one Collection-filters checkbox each.
+  final List<CustomFieldDef> filterFieldDefs;
 
   /// The live draft list backing the starting-figures template editor (ROADMAP
   /// DD.2), plus callbacks mirroring the dance editor's [FigureListEditor]
@@ -1403,6 +1429,74 @@ class _DefaultsView extends StatelessWidget {
                       toggle(CollectionTileField.customFields, v ?? true),
                   title: Text(l10n.settingsDefaultsCollectionCardCustomFields),
                 ),
+              ],
+            );
+          },
+        ),
+        SectionHeader(title: l10n.settingsDefaultsCollectionFiltersHeader),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            0,
+            AppSpacing.md,
+            AppSpacing.xs,
+          ),
+          child: Text(
+            l10n.settingsDefaultsCollectionFiltersSubtitle,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+        // Scope-backed like the card fields above, but the stored set is the
+        // *hidden* ids: a ticked box means the filter is shown.
+        Builder(
+          builder: (context) {
+            final hidden = CollectionFacetsScope.of(context);
+            Future<void> toggle(String id, bool shown) async {
+              final notifier = CollectionFacetsScope.notifierOf(context);
+              final settings = RepositoriesScope.of(context).settings;
+              // Read notifier.value, not the build-time snapshot, so rapid
+              // successive taps don't lose earlier toggles.
+              final updated = Set.of(notifier.value);
+              shown ? updated.remove(id) : updated.add(id);
+              notifier.value = updated;
+              await settings.set(
+                kCollectionHiddenFacetsKey,
+                CollectionFacetsScope.encode(updated),
+              );
+            }
+
+            final builtIns = <(String, String)>[
+              (CollectionFacetIds.form, l10n.collectionFacetType),
+              (CollectionFacetIds.formation, l10n.collectionFacetFormation),
+              (CollectionFacetIds.progression, l10n.commonProgression),
+              (CollectionFacetIds.status, l10n.collectionFacetStatus),
+              (CollectionFacetIds.level, l10n.collectionFacetLevel),
+              (CollectionFacetIds.mixedLevel, l10n.commonMixedLevel),
+              (CollectionFacetIds.mixer, l10n.commonMixer),
+              (CollectionFacetIds.minRating, l10n.collectionFacetMinRating),
+              (CollectionFacetIds.callStatus, l10n.collectionFacetCallStatus),
+              (CollectionFacetIds.author, l10n.collectionFacetAuthor),
+              (CollectionFacetIds.tags, l10n.collectionFacetTags),
+              (CollectionFacetIds.source, l10n.collectionFacetSource),
+            ];
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final (id, label) in builtIns)
+                  CheckboxListTile(
+                    key: ValueKey('defaults-facet-$id'),
+                    value: !hidden.contains(id),
+                    onChanged: (v) => toggle(id, v ?? true),
+                    title: Text(label),
+                  ),
+                for (final def in filterFieldDefs)
+                  CheckboxListTile(
+                    key: ValueKey('defaults-facet-cf-${def.id}'),
+                    value: !hidden.contains(customFieldFacetId(def.id)),
+                    onChanged: (v) =>
+                        toggle(customFieldFacetId(def.id), v ?? true),
+                    title: Text(def.label),
+                  ),
               ],
             );
           },

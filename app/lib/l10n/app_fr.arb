@@ -1248,6 +1248,14 @@
   "@settingsDefaultsCollectionCardCustomFields": {
     "x-sourceSha256": "5566db49faf3cfcec9576e3e90ce5f58b029ea5c7b48d8e4508eb56c951e3433"
   },
+  "settingsDefaultsCollectionFiltersHeader": "Filtres de la collection",
+  "@settingsDefaultsCollectionFiltersHeader": {
+    "x-sourceSha256": "06981cabadd70feb8e1965e99b8ed513b175f6e2a6969fd306738c7408177797"
+  },
+  "settingsDefaultsCollectionFiltersSubtitle": "Choisissez les filtres qui apparaissent lorsque vous filtrez la collection et lorsque vous choisissez des danses pour un programme. Tous les filtres sont affichés par défaut. Masquer un filtre efface sa sélection.",
+  "@settingsDefaultsCollectionFiltersSubtitle": {
+    "x-sourceSha256": "fe9b11fa483a593aae54741b5b3cb3abc94b60c4f1575d98df4c16d55b9b5022"
+  },
   "settingsDefaultsAuthoringHeader": "Paramètres par défaut de création de danse",
   "@settingsDefaultsAuthoringHeader": {
     "x-sourceSha256": "482854f4cc0c72562a4c8a593046db1f9154cbc2787f0474b4a866f28685f347"
@@ -2711,6 +2719,10 @@
   "collectionFacetNone": "Aucun filtre disponible pour cette collection pour l’instant.",
   "@collectionFacetNone": {
     "x-sourceSha256": "20083f4ddf1392f3feff034e97d0c12b9c3ec1f201189b481ada3a638b1c54be"
+  },
+  "collectionFacetAllHidden": "Tous les filtres sont masqués. Vous pouvez les réafficher dans Paramètres → Valeurs par défaut.",
+  "@collectionFacetAllHidden": {
+    "x-sourceSha256": "94933ebf3218eff33ad3a278381498d141ddf221fb31a1edb7478cfa430a33ec"
   },
   "collectionFacetClear": "Effacer les filtres",
   "@collectionFacetClear": {
