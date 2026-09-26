@@ -366,7 +366,7 @@ setup.
 These help if you write your own dances. Keep in mind you can override any of them
 per dance. [Write & edit dances](./authoring.md) covers them in context.
 
-- **Form**, **Formation**, and **Progression** — the starting choices for a new
+- **Type**, **Formation**, and **Progression** — the starting choices for a new
   dance.
 - **Default phrase structure** — leave blank for the standard 4×16 A1 A2 B1 B2, or
   set your own.

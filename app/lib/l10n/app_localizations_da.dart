@@ -1173,11 +1173,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get settingsDefaultsFormTitle => 'Form';
+  String get settingsDefaultsFormTitle => 'Type';
 
   @override
   String get settingsDefaultsFormSubtitle =>
-      'Den dansform en ny dans starter som. Du kan stadig ændre det per dans.';
+      'Den danstype en ny dans starter som. Du kan stadig ændre det per dans.';
 
   @override
   String get settingsDefaultsFormationTitle => 'Formation';
@@ -5564,6 +5564,9 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceEditorAuthorsLabel => 'Forfattere';
+
+  @override
+  String get danceEditorFormLabel => 'Type';
 
   @override
   String get danceEditorFormationLabel => 'Formation';
