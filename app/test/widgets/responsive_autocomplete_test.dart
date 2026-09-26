@@ -709,39 +709,56 @@ void main() {
     // A field whose submit does nothing but forward to `onSubmit`, so what the
     // sheet does with Enter is the only thing under test. The shared harness's
     // field selects on its own before forwarding, which would hide it.
+    // [selectFirstOnSheetSubmit] null means the argument is OMITTED, so the
+    // widget's own default is what runs. Passing `false` explicitly would make
+    // a "by default" test unable to fail when the default changes, which is the
+    // guarantee the other call sites depend on.
     Future<List<String>> pumpSubmitOnly(
       WidgetTester tester, {
-      required bool selectFirstOnSheetSubmit,
+      bool? selectFirstOnSheetSubmit,
     }) async {
       await setScreenSize(tester, const Size(360, 720));
       final picked = <String>[];
+      Iterable<String> optionsFor(TextEditingValue v) {
+        final q = v.text.trim().toLowerCase();
+        if (q.isEmpty) return const <String>[];
+        return const ['swing', 'swirl', 'balance'].where((o) => o.contains(q));
+      }
+
+      Widget field(
+        BuildContext context,
+        TextEditingController controller,
+        FocusNode focusNode,
+        VoidCallback onSubmit,
+        bool autofocus,
+      ) => TextField(
+        key: const ValueKey('test-input'),
+        controller: controller,
+        focusNode: focusNode,
+        onSubmitted: (_) => onSubmit(),
+      );
+      Widget tile(BuildContext context, String option, VoidCallback pick) =>
+          ListTile(title: Text(option), onTap: pick);
+
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: ResponsiveAutocomplete<String>(
-              selectFirstOnSheetSubmit: selectFirstOnSheetSubmit,
-              displayStringForOption: (o) => o,
-              optionsBuilder: (v) {
-                final q = v.text.trim().toLowerCase();
-                if (q.isEmpty) return const <String>[];
-                return const [
-                  'swing',
-                  'swirl',
-                  'balance',
-                ].where((o) => o.contains(q));
-              },
-              onSelected: picked.add,
-              fieldViewBuilder: (context, controller, focusNode, onSubmit, _) {
-                return TextField(
-                  key: const ValueKey('test-input'),
-                  controller: controller,
-                  focusNode: focusNode,
-                  onSubmitted: (_) => onSubmit(),
-                );
-              },
-              optionTileBuilder: (context, option, onSelected) =>
-                  ListTile(title: Text(option), onTap: onSelected),
-            ),
+            body: selectFirstOnSheetSubmit == null
+                ? ResponsiveAutocomplete<String>(
+                    displayStringForOption: (o) => o,
+                    optionsBuilder: optionsFor,
+                    onSelected: picked.add,
+                    fieldViewBuilder: field,
+                    optionTileBuilder: tile,
+                  )
+                : ResponsiveAutocomplete<String>(
+                    selectFirstOnSheetSubmit: selectFirstOnSheetSubmit,
+                    displayStringForOption: (o) => o,
+                    optionsBuilder: optionsFor,
+                    onSelected: picked.add,
+                    fieldViewBuilder: field,
+                    optionTileBuilder: tile,
+                  ),
           ),
         ),
       );
@@ -761,10 +778,7 @@ void main() {
     testWidgets('by default Enter only dismisses: no option is selected', (
       tester,
     ) async {
-      final picked = await pumpSubmitOnly(
-        tester,
-        selectFirstOnSheetSubmit: false,
-      );
+      final picked = await pumpSubmitOnly(tester);
       await openTypeAndSubmit(tester, 'sw');
       expect(picked, isEmpty);
       expect(find.byType(BottomSheet), findsNothing);
