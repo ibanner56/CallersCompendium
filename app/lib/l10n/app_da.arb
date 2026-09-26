@@ -2724,6 +2724,10 @@
   "@collectionFacetAuthorSearchHint": {
     "x-sourceSha256": "f55279927a1a3e1ddebfe5c497a9b49eea91e8e4eb66dfe0c765d847246b1133"
   },
+  "collectionFacetTunes": "Melodier",
+  "collectionFacetTunesSearchHint": "Søg efter eller tilføj en melodi…",
+  "collectionFacetAddTune": "Tilføj „{name}“",
+  "collectionFacetRemoveTune": "Fjern {name}",
   "collectionFacetOpContains": "indeholder",
   "@collectionFacetOpContains": {
     "x-sourceSha256": "beeb20fbd67695085c26c5dfa7b5ece4d1985d201cb6f0dd9aa66a36ed987ce5"

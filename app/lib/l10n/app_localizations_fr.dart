@@ -2560,6 +2560,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get collectionFacetAuthorSearchHint => 'Rechercher des auteurs…';
 
   @override
+  String get collectionFacetTunes => 'Airs';
+
+  @override
+  String get collectionFacetTunesSearchHint => 'Rechercher ou ajouter un air…';
+
+  @override
+  String collectionFacetAddTune(String name) {
+    return 'Ajouter « $name »';
+  }
+
+  @override
+  String collectionFacetRemoveTune(String name) {
+    return 'Supprimer $name';
+  }
+
+  @override
   String get collectionFacetOpContains => 'contient';
 
   @override

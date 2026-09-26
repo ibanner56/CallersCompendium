@@ -2539,6 +2539,22 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionFacetAuthorSearchHint => 'Auteurs zoeken…';
 
   @override
+  String get collectionFacetTunes => 'Deuntjes';
+
+  @override
+  String get collectionFacetTunesSearchHint => 'Deuntje zoeken of toevoegen…';
+
+  @override
+  String collectionFacetAddTune(String name) {
+    return '“$name” toevoegen';
+  }
+
+  @override
+  String collectionFacetRemoveTune(String name) {
+    return '$name verwijderen';
+  }
+
+  @override
   String get collectionFacetOpContains => 'bevat';
 
   @override

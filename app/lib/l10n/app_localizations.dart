@@ -4197,6 +4197,30 @@ abstract class AppLocalizations {
   /// **'Search authors…'**
   String get collectionFacetAuthorSearchHint;
 
+  /// Filter section heading for the tunes facet. A dance matches only if it has every tune entered here.
+  ///
+  /// In en, this message translates to:
+  /// **'Tunes'**
+  String get collectionFacetTunes;
+
+  /// Hint text of the tunes-filter field, which suggests tunes already in the collection and also accepts free text.
+  ///
+  /// In en, this message translates to:
+  /// **'Search or add a tune…'**
+  String get collectionFacetTunesSearchHint;
+
+  /// Option in the tunes-filter dropdown that adds the typed text as a filter value, whether or not any dance has that exact tune.
+  ///
+  /// In en, this message translates to:
+  /// **'Add \"{name}\"'**
+  String collectionFacetAddTune(String name);
+
+  /// Tooltip on a tunes-filter chip that removes that value from the filter.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {name}'**
+  String collectionFacetRemoveTune(String name);
+
   /// Text custom-field filter operator: substring match.
   ///
   /// In en, this message translates to:
