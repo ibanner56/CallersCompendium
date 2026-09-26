@@ -456,6 +456,13 @@ class AppLocalizationsDa extends AppLocalizations {
       'Tilslut et lager, før du synkroniserer.';
 
   @override
+  String get commonSyncNowTooltip => 'Synkronisér nu';
+
+  @override
+  String get commonSyncMeteredBlocked =>
+      'Du bruger mobildata, og Synkronisér kun på WiFi er slået til. Slå den indstilling fra i Indstillinger for at synkronisere nu.';
+
+  @override
   String get settingsSyncConnectTitle => 'Forbind';
 
   @override

@@ -46,6 +46,7 @@ import '../widgets/dance_list_tile.dart';
 import '../widgets/facet_panel.dart';
 import '../widgets/online_result_tile.dart';
 import '../widgets/skeleton.dart';
+import '../widgets/sync_now_action.dart';
 import '../screens/custom_fields_screen.dart';
 import '../screens/recently_deleted_screen.dart';
 import 'app_shell_search_scope.dart';
@@ -1850,6 +1851,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
             icon: const Icon(Icons.search),
             onPressed: openSearch,
           ),
+        // Second entry to Settings ▸ Sync now; renders nothing unless Device
+        // Sync is on and paired.
+        const SyncNowAction(),
         if (_data != null) ...[
           if (compactActions)
             _buildCompactMoreActions(l10n)

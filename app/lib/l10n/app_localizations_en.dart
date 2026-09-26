@@ -450,6 +450,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSyncNotPairedNow => 'Connect a store before syncing.';
 
   @override
+  String get commonSyncNowTooltip => 'Sync now';
+
+  @override
+  String get commonSyncMeteredBlocked =>
+      'You are on a mobile-data connection and Sync only on WiFi is on. Turn that setting off in Settings to sync now.';
+
+  @override
   String get settingsSyncConnectTitle => 'Connect';
 
   @override
