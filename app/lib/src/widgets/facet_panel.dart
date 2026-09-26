@@ -300,8 +300,21 @@ class FacetPanel extends StatelessWidget {
           key: const ValueKey('facet-row-tags'),
           label: l10n.collectionFacetTags,
           sectionId: 'tags',
-          activeCount: facets.tagIds.length,
+          activeCount: facets.tagIds.length + (facets.untagged ? 1 : 0),
           chips: [
+            // First, so it is not buried in a long alphabetical tag list and
+            // cannot be mistaken for a real tag named "Untagged". An OR member of
+            // this facet: it neither clears nor is cleared by the tag chips.
+            _chip(
+              key: 'tag-untagged',
+              label: l10n.collectionFacetUntagged,
+              icon: Icons.label_off_outlined,
+              selected: facets.untagged,
+              onSelected: (s) {
+                facets.untagged = s;
+                onChanged();
+              },
+            ),
             for (final t in tags)
               _chip(
                 key: 'tag-${t.id}',

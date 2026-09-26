@@ -3092,6 +3092,10 @@
   "@collectionFacetTags": {
     "description": "Filter section heading for the tags facet."
   },
+  "collectionFacetUntagged": "Untagged",
+  "@collectionFacetUntagged": {
+    "description": "Filter chip in the tags facet selecting dances that have no tag."
+  },
   "collectionFacetSource": "Source",
   "@collectionFacetSource": {
     "description": "Filter section heading for the cited-source facet."

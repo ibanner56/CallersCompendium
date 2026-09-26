@@ -121,6 +121,76 @@ void main() {
       expect(await dances.search(const TagFilter('t1')), ['a']);
     });
 
+    group('Untagged', () {
+      final t0 = DateTime.utc(2026, 2, 1);
+      final t1 = DateTime.utc(2026, 2, 1, 0, 0, 1);
+
+      /// `a` has a live tag, `b` has none, `c`'s only tag is soft-deleted (its
+      /// join row survives), `d` has one live and one soft-deleted tag.
+      Future<void> seed() async {
+        // ignore: unused_result
+        await tags.upsert(Tag(id: 't1', name: 'chestnut'));
+        // ignore: unused_result
+        await tags.upsert(Tag(id: 't2', name: 'retired'));
+        await dances.create(_dance(id: 'a', title: 'A', tagIds: ['t1']));
+        await dances.create(_dance(id: 'b', title: 'B'));
+        await dances.create(_dance(id: 'c', title: 'C', tagIds: ['t2']));
+        await dances.create(_dance(id: 'd', title: 'D', tagIds: ['t1', 't2']));
+        await tags.delete('t2', at: t0);
+      }
+
+      test('lists dances with no live tag, incl. a deleted-only tag', () async {
+        await seed();
+        expect(await dances.search(const UntaggedFilter()), ['b', 'c']);
+      });
+
+      test('a restored tag takes its dance out of Untagged again', () async {
+        await seed();
+        await tags.restore('t2', at: t1);
+        expect(await dances.search(const UntaggedFilter()), ['b']);
+      });
+
+      test('OR with a tag is the union', () async {
+        await seed();
+        expect(
+          await dances.search(
+            const OrFilter([UntaggedFilter(), TagFilter('t1')]),
+          ),
+          ['a', 'b', 'c', 'd'],
+        );
+        // Untagged + a tag nobody has live: only the untagged dances remain.
+        expect(
+          await dances.search(
+            const OrFilter([UntaggedFilter(), TagFilter('t2')]),
+          ),
+          ['b', 'c'],
+        );
+      });
+
+      test('AND with another facet narrows the untagged set', () async {
+        await seed();
+        await dances.create(_dance(id: 'x', title: 'X', form: DanceForm.ecd));
+        expect(
+          await dances.search(
+            const AndFilter([FormFilter(DanceForm.ecd), UntaggedFilter()]),
+          ),
+          ['x'],
+        );
+        expect(
+          await dances.search(
+            const AndFilter([FormFilter(DanceForm.contra), UntaggedFilter()]),
+          ),
+          ['b', 'c'],
+        );
+      });
+
+      test('a soft-deleted dance never appears', () async {
+        await seed();
+        await dances.softDelete('b', at: t0);
+        expect(await dances.search(const UntaggedFilter()), ['c']);
+      });
+    });
+
     test('Level: eq matches exactly, ordered ops respect the scale', () async {
       await dances.create(
         _dance(

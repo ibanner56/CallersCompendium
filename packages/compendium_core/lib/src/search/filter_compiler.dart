@@ -208,6 +208,15 @@ class FilterCompiler {
         return 'id IN (SELECT dt.dance_id FROM dance_tags dt '
             'JOIN tags t ON t.id = dt.tag_id '
             'WHERE dt.tag_id = ? AND t.deleted_at IS NULL)';
+      case UntaggedFilter():
+        // The `tags` join with `deleted_at IS NULL` is load-bearing, not
+        // decoration: a tag tombstone leaves its `dance_tags` rows in place, so
+        // a bare `NOT IN (SELECT dance_id FROM dance_tags)` would call a dance
+        // whose only tag was deleted *tagged* while its card shows no tag.
+        // `NOT IN` is NULL-safe: `dance_tags.dance_id` is NOT NULL (primary key).
+        return 'id NOT IN (SELECT dt.dance_id FROM dance_tags dt '
+            'JOIN tags t ON t.id = dt.tag_id '
+            'WHERE t.deleted_at IS NULL)';
       case FormFilter(:final form):
         binds.add(form.name);
         return 'form = ?';

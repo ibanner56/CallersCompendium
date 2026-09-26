@@ -24,11 +24,12 @@ Dance _dance({
   bool mixedLevel = false,
   bool mixer = false,
   int? rating,
+  List<String> tagIds = const [],
 }) => Dance(
   id: id,
   title: title,
   authorIds: const [],
-  tagIds: const [],
+  tagIds: tagIds,
   form: DanceForm.contra,
   formation: const Formation(FormationShape.dupleImproper),
   status: DanceStatus.active,
@@ -367,6 +368,29 @@ void main() {
       expect(find.text('Filters (1 active)'), findsOneWidget);
     });
   }
+
+  testWidgets('the picker offers the Untagged chip (#1422)', (tester) async {
+    final repos = openTestRepositories();
+    // ignore: unused_result
+    await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
+    await repos.dances.create(
+      _dance(id: 'a', title: 'Tagged', tagIds: const ['t1']),
+    );
+    await repos.dances.create(_dance(id: 'b', title: 'Untagged Dance'));
+
+    await _pumpPicker(tester, repos, onAddDance: (_) {});
+    await tester.pumpAndSettle();
+    expect(_titles(tester), ['Tagged', 'Untagged Dance']);
+
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-filters-panel')),
+    );
+    await _tapVisible(tester, find.byKey(const ValueKey('tag-untagged')));
+
+    expect(_titles(tester), ['Untagged Dance']);
+    expect(find.text('Filters (1 active)'), findsOneWidget);
+  });
 
   testWidgets('title sort ignores leading articles by default', (tester) async {
     final repos = openTestRepositories();

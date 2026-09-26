@@ -17,6 +17,7 @@ Future<void> _pump(
   List<CustomFieldDef> choiceFields = const [],
   List<PublishedSource> citedSources = const [],
   List<Choreographer> authors = const [],
+  List<Tag> tags = const [],
   bool hasMixedLevel = false,
   bool hasMixer = false,
   bool hasRating = false,
@@ -51,7 +52,7 @@ Future<void> _pump(
               hasRating: hasRating,
               hasCallingHistory: hasCallingHistory,
               authors: authors,
-              tags: const [],
+              tags: tags,
               citedSources: citedSources,
               choiceFields: choiceFields,
               booleanFields: const [],
@@ -759,6 +760,94 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('mixer-yes')));
       await tester.pumpAndSettle();
       expect(facets.mixer, isNull);
+    });
+  });
+
+  group('untagged chip (issue #1422)', () {
+    final smooth = Tag(id: 't1', name: 'smooth');
+    final lively = Tag(id: 't2', name: 'lively');
+
+    testWidgets('is absent when the Tags section is absent', (tester) async {
+      await _pump(tester, FacetSelections(), onChanged: () {});
+      expect(find.byKey(const ValueKey('facet-row-tags')), findsNothing);
+      expect(find.byKey(const ValueKey('tag-untagged')), findsNothing);
+    });
+
+    testWidgets('is the first chip of the Tags section', (tester) async {
+      await _pump(
+        tester,
+        FacetSelections(),
+        tags: [smooth, lively],
+        onChanged: () {},
+      );
+      final chips = find.descendant(
+        of: find.byKey(const ValueKey('facet-row-tags')),
+        matching: find.byType(FilterChip),
+      );
+      expect(chips, findsNWidgets(3));
+      expect(
+        tester.widget<FilterChip>(chips.first).key,
+        const ValueKey('tag-untagged'),
+      );
+      expect(find.text('Untagged'), findsOneWidget);
+    });
+
+    testWidgets('toggles independently of the tag chips', (tester) async {
+      final facets = FacetSelections();
+      await _pump(tester, facets, tags: [smooth, lively], onChanged: () {});
+
+      await tester.tap(find.byKey(const ValueKey('tag-untagged')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('tag-t1')));
+      await tester.pump();
+      expect(facets.untagged, isTrue);
+      expect(facets.tagIds, {'t1'});
+
+      await tester.tap(find.byKey(const ValueKey('tag-t1')));
+      await tester.pump();
+      expect(facets.untagged, isTrue, reason: 'a tag chip must not clear it');
+      expect(facets.tagIds, isEmpty);
+
+      await tester.tap(find.byKey(const ValueKey('tag-t2')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('tag-untagged')));
+      await tester.pump();
+      expect(facets.untagged, isFalse);
+      expect(facets.tagIds, {'t2'}, reason: 'Untagged must not clear tags');
+    });
+
+    testWidgets('counts toward the Tags section badge', (tester) async {
+      final facets = FacetSelections();
+      await _pump(tester, facets, tags: [smooth, lively], onChanged: () {});
+      expect(find.byType(Badge), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('tag-untagged')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('tag-t1')));
+      await tester.pump();
+
+      final badge = find.byType(Badge);
+      expect(badge, findsOneWidget);
+      expect(
+        find.descendant(of: badge, matching: find.text('2')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Untagged + a tag compiles to one OR group', (tester) async {
+      final facets = FacetSelections();
+      await _pump(tester, facets, tags: [smooth, lively], onChanged: () {});
+      await tester.tap(find.byKey(const ValueKey('tag-untagged')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('tag-t1')));
+      await tester.pump();
+
+      final f = buildCollectionFilter(ftsText: '', facets: facets, defs: []);
+      expect(f, isA<OrFilter>());
+      expect((f as OrFilter).children.map((c) => c.runtimeType).toSet(), {
+        TagFilter,
+        UntaggedFilter,
+      });
     });
   });
 }
