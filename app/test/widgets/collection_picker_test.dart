@@ -603,7 +603,9 @@ void main() {
   testWidgets('advanced builder: two "Has tag" rows find dances with both '
       'tags', (tester) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't2', name: 'energetic'));
     await repos.dances.create(
       _dance(id: 'a', title: 'Both', tagIds: const ['t1', 't2']),
