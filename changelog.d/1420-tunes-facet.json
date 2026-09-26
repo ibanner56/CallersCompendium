@@ -1,0 +1,14 @@
+{
+  "id": "1420-tunes-facet",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "The Collection filters (and the dance picker) have a new Tunes filter. Type a tune, a key, or a time signature, pick a suggestion or press Enter, and it becomes a chip. A dance must match every chip you add, so Dmaj and 6/8 finds only dances that have both among their tunes."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add `TunesFilter`, a search leaf that matches a dance whose tune list contains a value (case-insensitive substring). A dance whose stored tunes cannot be decoded never matches, and no longer risks failing the whole query."
+    ]
+  }
+}

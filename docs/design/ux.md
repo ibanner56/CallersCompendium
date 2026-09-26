@@ -31,7 +31,7 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   list/detail split-pane breakpoint (e.g. a tablet rotation), which used to
   discard the list's state.
 - Search bar = unified FTS; **filter panel** for structured search: formation,
-  progression, author, tags, calling history (Called / Not called), custom
+  progression, author, tunes, tags, calling history (Called / Not called), custom
   fields, and figure queries ("contains
   petronella in B1", "chain **then** swing") built with a friendly query
   builder (ContraDB ez-query lesson: common cases one-tap, advanced tree
