@@ -2660,6 +2660,18 @@ class AppLocalizationsDe extends AppLocalizations {
   String get collectionQueryHasFigure => 'Hat Figur';
 
   @override
+  String get collectionQueryHasTag => 'Hat Tag';
+
+  @override
+  String get collectionQueryTagLabel => 'Tag';
+
+  @override
+  String get collectionQueryTagHint => 'Tag auswählen';
+
+  @override
+  String get collectionQueryRemoveTag => 'Tag entfernen';
+
+  @override
   String get collectionQuerySequenceThen => 'Sequenz (dann)';
 
   @override

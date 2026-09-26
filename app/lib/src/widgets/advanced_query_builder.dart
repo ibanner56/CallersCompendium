@@ -11,7 +11,7 @@ import 'responsive_autocomplete.dart';
 /// "Query-builder UX"). Edits the mutable [BuilderGroup] [root] in place and
 /// calls [onChanged] after every edit so the parent recompiles and re-runs the
 /// search. Uses plain language ("All of / Any of / None of", "Has figure",
-/// "then") rather than raw AST names.
+/// "Has tag", "then") rather than raw AST names.
 class AdvancedQueryBuilder extends StatelessWidget {
   const AdvancedQueryBuilder({
     super.key,
@@ -19,6 +19,7 @@ class AdvancedQueryBuilder extends StatelessWidget {
     required this.taxonomy,
     required this.dialect,
     required this.sectionLabels,
+    required this.tags,
     required this.onChanged,
   });
 
@@ -31,6 +32,11 @@ class AdvancedQueryBuilder extends StatelessWidget {
   /// widget has no hidden inherited dependency.
   final Dialect dialect;
   final List<String> sectionLabels;
+
+  /// The tags a "Has tag" row can pick from — the same set the Tag facet
+  /// offers (tags carried by at least one live dance). With none, the Add menu
+  /// does not offer "Has tag" at all.
+  final List<Tag> tags;
   final VoidCallback onChanged;
 
   @override
@@ -40,6 +46,7 @@ class AdvancedQueryBuilder extends StatelessWidget {
       taxonomy: taxonomy,
       dialect: dialect,
       sectionLabels: sectionLabels,
+      tags: tags,
       onChanged: onChanged,
       onRemove: null,
       depth: 0,
@@ -53,6 +60,7 @@ class _GroupView extends StatelessWidget {
     required this.taxonomy,
     required this.dialect,
     required this.sectionLabels,
+    required this.tags,
     required this.onChanged,
     required this.onRemove,
     required this.depth,
@@ -62,6 +70,7 @@ class _GroupView extends StatelessWidget {
   final Taxonomy taxonomy;
   final Dialect dialect;
   final List<String> sectionLabels;
+  final List<Tag> tags;
   final VoidCallback onChanged;
   final VoidCallback? onRemove;
   final int depth;
@@ -133,6 +142,7 @@ class _GroupView extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: _AddMenu(
                 id: group.id,
+                offerTag: tags.isNotEmpty,
                 onAdd: (node) {
                   group.children.add(node);
                   onChanged();
@@ -154,6 +164,7 @@ class _GroupView extends StatelessWidget {
           taxonomy: taxonomy,
           dialect: dialect,
           sectionLabels: sectionLabels,
+          tags: tags,
           onChanged: onChanged,
           onRemove: remove,
           depth: depth + 1,
@@ -164,6 +175,16 @@ class _GroupView extends StatelessWidget {
           taxonomy: taxonomy,
           dialect: dialect,
           sectionLabels: sectionLabels,
+          onChanged: onChanged,
+          onRemove: () {
+            remove();
+            onChanged();
+          },
+        );
+      case BuilderTag():
+        return _TagRow(
+          node: child,
+          tags: tags,
           onChanged: onChanged,
           onRemove: () {
             remove();
@@ -187,9 +208,18 @@ class _GroupView extends StatelessWidget {
 }
 
 class _AddMenu extends StatelessWidget {
-  const _AddMenu({required this.id, required this.onAdd});
+  const _AddMenu({
+    required this.id,
+    required this.offerTag,
+    required this.onAdd,
+  });
 
   final String id;
+
+  /// Whether "Has tag" is offered. False when there is no tag to pick, so the
+  /// menu never adds a row that cannot be filled in (mirrors the Tag facet,
+  /// which is hidden when the collection has no tags).
+  final bool offerTag;
   final ValueChanged<BuilderNode> onAdd;
 
   @override
@@ -200,6 +230,7 @@ class _AddMenu extends StatelessWidget {
       tooltip: l10n.collectionQueryAddCondition,
       onSelected: (value) => onAdd(switch (value) {
         'figure' => BuilderFigure(),
+        'tag' => BuilderTag(),
         'then' => BuilderThen(),
         _ => BuilderGroup(),
       }),
@@ -208,6 +239,8 @@ class _AddMenu extends StatelessWidget {
           value: 'figure',
           child: Text(l10n.collectionQueryHasFigure),
         ),
+        if (offerTag)
+          PopupMenuItem(value: 'tag', child: Text(l10n.collectionQueryHasTag)),
         PopupMenuItem(
           value: 'then',
           child: Text(l10n.collectionQuerySequenceThen),
@@ -273,6 +306,86 @@ class _FigureRow extends StatelessWidget {
           IconButton(
             key: ValueKey('remove-${figure.id}'),
             tooltip: l10n.collectionQueryRemoveFigure,
+            icon: const Icon(Icons.close),
+            onPressed: onRemove,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A "Has tag" row: a dropdown over [tags] that sets [BuilderTag.tagId].
+class _TagRow extends StatelessWidget {
+  const _TagRow({
+    required this.node,
+    required this.tags,
+    required this.onChanged,
+    required this.onRemove,
+  });
+
+  final BuilderTag node;
+  final List<Tag> tags;
+  final VoidCallback onChanged;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final stored = node.tagId;
+    // [tags] is the set of tags carried by a LIVE dance, so a picked tag can
+    // drop out of it while the row is open (its last dance is deleted or
+    // untagged). A `DropdownButton` asserts when its value is not among its
+    // items, so a value that is gone is shown as unpicked.
+    final value = tags.any((t) => t.id == stored) ? stored : null;
+    // Showing "unpicked" is not enough on its own: `BuilderTag.toFilter` would
+    // still emit the gone tag, a filter the user can neither see nor clear
+    // (the same hazard `_ParamDropdown` closes for params). So the MODEL is
+    // normalised to match and the search re-run — but only if the row still
+    // holds that id, so a pick made in the meantime is never overwritten.
+    if (stored != null && value == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (node.tagId == stored) {
+          node.tagId = null;
+          onChanged();
+        }
+      });
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Text(l10n.collectionQueryHasTag),
+          ),
+          Expanded(
+            child: Semantics(
+              label: l10n.collectionQueryTagLabel,
+              child: DropdownButton<String>(
+                key: ValueKey('tag-${node.id}'),
+                isExpanded: true,
+                value: value,
+                hint: Text(l10n.collectionQueryTagHint),
+                onChanged: (id) {
+                  if (id != null && id != node.tagId) {
+                    node.tagId = id;
+                    onChanged();
+                  }
+                },
+                items: [
+                  for (final tag in tags)
+                    DropdownMenuItem(
+                      value: tag.id,
+                      child: Text(tag.name, overflow: TextOverflow.ellipsis),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          IconButton(
+            key: ValueKey('remove-${node.id}'),
+            tooltip: l10n.collectionQueryRemoveTag,
             icon: const Icon(Icons.close),
             onPressed: onRemove,
           ),

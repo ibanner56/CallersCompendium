@@ -3290,6 +3290,22 @@
   "@collectionQueryHasFigure": {
     "description": "Advanced-query condition type / row label: the dance contains a given figure."
   },
+  "collectionQueryHasTag": "Has tag",
+  "@collectionQueryHasTag": {
+    "description": "Advanced-query condition type / row label: the dance carries a given tag."
+  },
+  "collectionQueryTagLabel": "Tag",
+  "@collectionQueryTagLabel": {
+    "description": "Accessibility label of the tag dropdown on an Advanced-query 'Has tag' row."
+  },
+  "collectionQueryTagHint": "Choose a tag",
+  "@collectionQueryTagHint": {
+    "description": "Placeholder shown on an Advanced-query 'Has tag' row before a tag is picked."
+  },
+  "collectionQueryRemoveTag": "Remove tag",
+  "@collectionQueryRemoveTag": {
+    "description": "Tooltip of the button that removes an Advanced-query 'Has tag' row."
+  },
   "collectionQuerySequenceThen": "Sequence (then)",
   "@collectionQuerySequenceThen": {
     "description": "Advanced-query 'add' menu item: a two-figure ordered sequence condition."

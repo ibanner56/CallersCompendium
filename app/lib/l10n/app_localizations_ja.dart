@@ -2532,6 +2532,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionQueryHasFigure => 'フィギュアを含む';
 
   @override
+  String get collectionQueryHasTag => 'タグあり';
+
+  @override
+  String get collectionQueryTagLabel => 'タグ';
+
+  @override
+  String get collectionQueryTagHint => 'タグを選択';
+
+  @override
+  String get collectionQueryRemoveTag => 'タグを削除';
+
+  @override
   String get collectionQuerySequenceThen => 'シーケンス（次に）';
 
   @override

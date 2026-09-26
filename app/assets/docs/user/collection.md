@@ -153,6 +153,14 @@ Rows live inside **All**, **Any**, or **None** groups — match every row, any
 row, or no row — and groups can nest inside one another, so you can express
 questions as detailed as you need.
 
+The builder can also ask about your tags. Add a **"has
+tag"** row and pick a tag from the list. Two "has tag" rows inside an **All**
+group find dances that carry *both* tags — something the Tags filter, which
+matches *any* of the tags you tick, cannot do. Tag rows sit alongside figure
+rows in the same group, so "tagged *Smooth* and has a petronella" is one query.
+The row only appears in the **Add** menu once at least one of your dances has a
+tag.
+
 ### Ask per phrase with By-Phrase search
 
 If you think about dances the way The Caller's Box does — phrase by phrase — open
@@ -272,6 +280,9 @@ A growing library needs a little housekeeping. Caller's Compendium makes every
 change reversible.
 
 - **Duplicate** a dance to spin off a variation without disturbing the original.
+- **Add tags** to a single dance from the **Actions** menu on its row (the
+  three vertical dots), without entering selection mode. You can pick existing
+  tags or create new ones, and the change can be undone.
 - **Delete** a dance and it is only *soft-deleted* — an **Undo** option appears
   right away, and the dance moves to a **Recently Deleted** area rather than
   vanishing.

@@ -41,7 +41,7 @@ class ProgramListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final slotCount = program.slots.length;
+    final slotCount = program.plannedDanceCount;
     final eventDate = program.eventDate;
     final dateLabel = eventDate == null
         ? null
