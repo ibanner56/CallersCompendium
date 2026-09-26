@@ -386,7 +386,7 @@ void main() {
       tester,
       find.byKey(const ValueKey('picker-filters-panel')),
     );
-    await _tapVisible(tester, find.byKey(const ValueKey('tag-untagged')));
+    await _tapVisible(tester, find.byKey(const ValueKey('untagged-chip')));
 
     expect(_titles(tester), ['Untagged Dance']);
     expect(find.text('Filters (1 active)'), findsOneWidget);

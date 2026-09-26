@@ -770,7 +770,7 @@ void main() {
     testWidgets('is absent when the Tags section is absent', (tester) async {
       await _pump(tester, FacetSelections(), onChanged: () {});
       expect(find.byKey(const ValueKey('facet-row-tags')), findsNothing);
-      expect(find.byKey(const ValueKey('tag-untagged')), findsNothing);
+      expect(find.byKey(const ValueKey('untagged-chip')), findsNothing);
     });
 
     testWidgets('is the first chip of the Tags section', (tester) async {
@@ -787,16 +787,46 @@ void main() {
       expect(chips, findsNWidgets(3));
       expect(
         tester.widget<FilterChip>(chips.first).key,
-        const ValueKey('tag-untagged'),
+        const ValueKey('untagged-chip'),
       );
       expect(find.text('Untagged'), findsOneWidget);
+    });
+
+    testWidgets('a real tag whose id is "untagged" does not collide with it', (
+      tester,
+    ) async {
+      // Tag ids are unvalidated and an archive restore keeps the id it carries,
+      // so a real tag can legitimately be id `untagged`.
+      final facets = FacetSelections();
+      await _pump(
+        tester,
+        facets,
+        tags: [
+          Tag(id: 'untagged', name: 'Odd one'),
+          smooth,
+        ],
+        onChanged: () {},
+      );
+      expect(tester.takeException(), isNull);
+      expect(find.byKey(const ValueKey('untagged-chip')), findsOneWidget);
+      expect(find.byKey(const ValueKey('tag-untagged')), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('tag-untagged')));
+      await tester.pump();
+      expect(facets.tagIds, {'untagged'});
+      expect(facets.untagged, isFalse, reason: 'the real tag is not Untagged');
+
+      await tester.tap(find.byKey(const ValueKey('untagged-chip')));
+      await tester.pump();
+      expect(facets.untagged, isTrue);
+      expect(facets.tagIds, {'untagged'});
     });
 
     testWidgets('toggles independently of the tag chips', (tester) async {
       final facets = FacetSelections();
       await _pump(tester, facets, tags: [smooth, lively], onChanged: () {});
 
-      await tester.tap(find.byKey(const ValueKey('tag-untagged')));
+      await tester.tap(find.byKey(const ValueKey('untagged-chip')));
       await tester.pump();
       await tester.tap(find.byKey(const ValueKey('tag-t1')));
       await tester.pump();
@@ -810,7 +840,7 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('tag-t2')));
       await tester.pump();
-      await tester.tap(find.byKey(const ValueKey('tag-untagged')));
+      await tester.tap(find.byKey(const ValueKey('untagged-chip')));
       await tester.pump();
       expect(facets.untagged, isFalse);
       expect(facets.tagIds, {'t2'}, reason: 'Untagged must not clear tags');
@@ -821,7 +851,7 @@ void main() {
       await _pump(tester, facets, tags: [smooth, lively], onChanged: () {});
       expect(find.byType(Badge), findsNothing);
 
-      await tester.tap(find.byKey(const ValueKey('tag-untagged')));
+      await tester.tap(find.byKey(const ValueKey('untagged-chip')));
       await tester.pump();
       await tester.tap(find.byKey(const ValueKey('tag-t1')));
       await tester.pump();
@@ -837,7 +867,7 @@ void main() {
     testWidgets('Untagged + a tag compiles to one OR group', (tester) async {
       final facets = FacetSelections();
       await _pump(tester, facets, tags: [smooth, lively], onChanged: () {});
-      await tester.tap(find.byKey(const ValueKey('tag-untagged')));
+      await tester.tap(find.byKey(const ValueKey('untagged-chip')));
       await tester.pump();
       await tester.tap(find.byKey(const ValueKey('tag-t1')));
       await tester.pump();

@@ -305,8 +305,12 @@ class FacetPanel extends StatelessWidget {
             // First, so it is not buried in a long alphabetical tag list and
             // cannot be mistaken for a real tag named "Untagged". An OR member of
             // this facet: it neither clears nor is cleared by the tag chips.
+            // Its key must stay outside the `tag-` namespace the real chips use
+            // below: tag ids are unvalidated (an archive restore keeps whatever
+            // id it carries), so `tag-untagged` would collide with a real tag
+            // whose id is `untagged`.
             _chip(
-              key: 'tag-untagged',
+              key: 'untagged-chip',
               label: l10n.collectionFacetUntagged,
               icon: Icons.label_off_outlined,
               selected: facets.untagged,

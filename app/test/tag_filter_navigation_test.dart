@@ -321,7 +321,7 @@ void main() {
         await tester.pumpAndSettle();
       }
 
-      await tapChip('tag-untagged');
+      await tapChip('untagged-chip');
       expect(_listedTitles(tester), ['Plain Two']);
       expect(find.text('Filters (1 active)'), findsOneWidget);
 
@@ -336,7 +336,7 @@ void main() {
       expect(find.text('Filters (1 active)'), findsOneWidget);
       expect(
         tester
-            .widget<FilterChip>(find.byKey(const ValueKey('tag-untagged')))
+            .widget<FilterChip>(find.byKey(const ValueKey('untagged-chip')))
             .selected,
         isFalse,
       );
