@@ -66,6 +66,7 @@ sealed DanceFilter
                                                // → scoped calling-history EXISTS
   RatingFilter(int minimum)                  // minimum-star floor, 1..5
   TagFilter(String tagId)
+  UntaggedFilter()                           // dances with no live tag (issue #1422)
   CustomFieldFilter(CustomFieldDef def, CustomFieldOp op, Object? value)
 
   // structural leaf
@@ -141,7 +142,8 @@ compiles to the literal `1` (TRUE); `OrFilter([])` to `0` (FALSE); the outer
 | `AuthorFilter(cid)` | `id IN (SELECT dance_id FROM dance_authors WHERE choreographer_id = ?)` |
 | `SourceFilter(q)` | `id IN (SELECT ds.dance_id FROM dance_sources ds JOIN published_sources ps ON ps.id = ds.source_id WHERE ps.title LIKE '%' \|\| ? \|\| '%' ESCAPE '\' OR ps.author LIKE '%' \|\| ? \|\| '%' ESCAPE '\')` (2 binds) |
 | `SourceIdFilter(sid)` | `id IN (SELECT dance_id FROM dance_sources WHERE source_id = ?)` |
-| `TagFilter(tid)` | `id IN (SELECT dance_id FROM dance_tags WHERE tag_id = ?)` |
+| `TagFilter(tid)` | `id IN (SELECT dt.dance_id FROM dance_tags dt JOIN tags t ON t.id = dt.tag_id WHERE dt.tag_id = ? AND t.deleted_at IS NULL)` — a soft-deleted tag matches nothing, though its `dance_tags` rows survive the tombstone |
+| `UntaggedFilter()` | `id NOT IN (SELECT dt.dance_id FROM dance_tags dt JOIN tags t ON t.id = dt.tag_id WHERE t.deleted_at IS NULL)` — no binds; a dance whose only tag is soft-deleted counts as untagged. `NOT IN` is NULL-safe because `dance_tags.dance_id` is `NOT NULL` (part of the primary key) |
 | `FormFilter(f)` | `form = ?` (enum `.name`, e.g. `'contra'`) |
 | `FormationFilter(s)` | `formation_shape = ?` (enum `.name`) |
 | `ProgressionFilter(p)` | `progression = ?` (enum `.name`) |
@@ -480,7 +482,7 @@ tree. This section specifies the mapping; the widget work is 3.2c.
 | One-tap facet: Formation | `FormationFilter(shape)` |
 | One-tap facet: Progression | `ProgressionFilter(progression)` |
 | One-tap facet: Author | `AuthorFilter(choreographerId)` |
-| One-tap facet: Tag(s) | `TagFilter(tagId)` (multiple tags AND-ed, or OR within the facet — see open Q) |
+| One-tap facet: Tag(s) | `TagFilter(tagId)` per selected tag, OR-ed within the facet (open Q7); the facet's **Untagged** chip adds `UntaggedFilter()` to that same OR group (issue #1422). The chip shows exactly when the Tags section does |
 | One-tap facet: Status | `StatusFilter(status)` |
 | One-tap facet: Level | `LevelFilter(level)` — multiple levels OR-ed |
 | One-tap facet: Mixed level | `MixedLevelFilter(true)` |
@@ -570,7 +572,10 @@ Flagged for coordinator/user input before 3.2b:
    ranking can be revisited later.
 7. **Multi-tag facet semantics** *(minor)*. When the user picks several tags in
    the Tag facet: AND (has all) or OR (has any)? Proposed: OR within a single
-   facet, AND across facets (standard faceted-search behaviour).
+   facet, AND across facets (standard faceted-search behaviour). Implemented
+   that way; the facet's **Untagged** chip (issue #1422) is one more member of
+   the OR group, so `Untagged` + `TagA` lists untagged dances plus dances with
+   `TagA`, and the group still ANDs with every other facet.
 8. **Migration rebuild wiring** *(implementation, 3.2b)*. Whether the v2
    backfill runs `rebuildAllDerived()` from within `onUpgrade` (needs
    repository/taxonomy access) or via inline SQL + a post-open integrity pass.

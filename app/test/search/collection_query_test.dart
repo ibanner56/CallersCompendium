@@ -127,6 +127,39 @@ void main() {
       expect(tags.map((t) => t.tagId).toSet(), {'t1', 't2'});
     });
 
+    test('Untagged alone folds to the bare leaf', () {
+      final facets = FacetSelections()..untagged = true;
+      final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
+      expect(f, isA<UntaggedFilter>());
+    });
+
+    test('Untagged ORs with selected tags in one group (issue #1422)', () {
+      final facets = FacetSelections()
+        ..untagged = true
+        ..tagIds.addAll(['t1', 't2']);
+      final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
+      expect(f, isA<OrFilter>());
+      final children = (f as OrFilter).children;
+      expect(children.whereType<UntaggedFilter>(), hasLength(1));
+      expect(children.whereType<TagFilter>().map((t) => t.tagId).toSet(), {
+        't1',
+        't2',
+      });
+      expect(children, hasLength(3));
+    });
+
+    test('Untagged ANDs with other facets (issue #1422)', () {
+      final facets = FacetSelections()
+        ..untagged = true
+        ..forms.add(DanceForm.contra);
+      final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
+      expect(f, isA<AndFilter>());
+      final children = (f as AndFilter).children;
+      expect(children.whereType<FormFilter>(), hasLength(1));
+      expect(children.whereType<UntaggedFilter>(), hasLength(1));
+      expect(children.whereType<OrFilter>(), isEmpty);
+    });
+
     test(
       'called-status selections are scoped and both values are unrestricted',
       () {
@@ -654,6 +687,22 @@ void main() {
       expect(facets.isEmpty, isTrue);
     });
 
+    test('untagged counts toward isEmpty and clear() resets it (#1422)', () {
+      final facets = FacetSelections()..untagged = true;
+      expect(facets.isEmpty, isFalse);
+      facets.clear();
+      expect(facets.untagged, isFalse);
+      expect(facets.isEmpty, isTrue);
+    });
+
+    test('an Untagged-only selection is not a bare full-text search', () {
+      // 'Al' is within the two-character bare-FTS window, so the positive
+      // control is true and the facet is the only thing that can flip it.
+      final facets = FacetSelections()..untagged = true;
+      expect(isBareFullText(ftsText: 'Al', facets: facets), isFalse);
+      expect(isBareFullText(ftsText: 'Al', facets: FacetSelections()), isTrue);
+    });
+
     // --- activeCount (issue #1393) ------------------------------------------
     //
     // The Filters header used to keep its own hand-written count that left out
@@ -673,6 +722,7 @@ void main() {
       'minRating': (f) => f.minRating = 3,
       'authorIds': (f) => f.authorIds.add('a1'),
       'tagIds': (f) => f.tagIds.add('t1'),
+      'untagged': (f) => f.untagged = true,
       'sourceIds': (f) => f.sourceIds.add('s1'),
       'choiceValues': (f) => f.choiceValues['c'] = {'x'},
       'booleanValues': (f) => f.booleanValues['b'] = true,

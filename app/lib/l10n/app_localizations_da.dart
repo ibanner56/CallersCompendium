@@ -2502,6 +2502,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get collectionFacetTags => 'Tags';
 
   @override
+  String get collectionFacetUntagged => 'Uden tags';
+
+  @override
   String get collectionFacetSource => 'Kilde';
 
   @override

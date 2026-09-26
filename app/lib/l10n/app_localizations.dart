@@ -4161,6 +4161,12 @@ abstract class AppLocalizations {
   /// **'Tags'**
   String get collectionFacetTags;
 
+  /// Filter chip in the tags facet selecting dances that have no tag.
+  ///
+  /// In en, this message translates to:
+  /// **'Untagged'**
+  String get collectionFacetUntagged;
+
   /// Filter section heading for the cited-source facet.
   ///
   /// In en, this message translates to:
