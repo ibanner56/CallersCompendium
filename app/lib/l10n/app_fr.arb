@@ -2840,6 +2840,22 @@
   "@collectionQueryHasFigure": {
     "x-sourceSha256": "b1e435fd44c4580667532e0e27a8a29f320a214169dab2b1478db0cbddb9d049"
   },
+  "collectionQueryHasTag": "Contient le tag",
+  "@collectionQueryHasTag": {
+    "x-sourceSha256": "3008551423e334c114420e5067df270bf1dded620b84c542cb55c92032d30928"
+  },
+  "collectionQueryTagLabel": "Tag",
+  "@collectionQueryTagLabel": {
+    "x-sourceSha256": "1503916a2ab2b0fd6768d3455fd8f2d9aa3b31333a8507dadcad983704a975d7"
+  },
+  "collectionQueryTagHint": "Choisir un tag",
+  "@collectionQueryTagHint": {
+    "x-sourceSha256": "562118274d75725f6291f7730cc80c08c617c9a4c65e2a3784f4d2bc26cafd32"
+  },
+  "collectionQueryRemoveTag": "Supprimer le tag",
+  "@collectionQueryRemoveTag": {
+    "x-sourceSha256": "488464ba45b0e8e2bb24fac5530ec868c24851f486b82ab6e95c95e4f31ae79a"
+  },
   "collectionQuerySequenceThen": "Séquence (puis)",
   "@collectionQuerySequenceThen": {
     "x-sourceSha256": "4edbe4825194b0528f7764d25916ef261c83884f7fe8cb867415a35023143833"

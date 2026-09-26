@@ -1249,14 +1249,18 @@ class _DanceListScreenState extends State<DanceListScreen> {
     });
   }
 
-  /// Applies a batch tag [mode] to the selected dances. Opens the tag picker,
+  /// Applies a batch tag [mode] to the selected dances.
+  Future<void> _batchTag(BatchTagMode mode) =>
+      _applyTags(mode, Set<String>.of(_selectedIds));
+
+  /// Applies a tag [mode] to [selectedIds]: the multi-select selection, or the
+  /// single row whose ⋮ menu opened it (issue #1416). Opens the tag picker,
   /// then persists the new tag sets and staged tags in one transaction,
   /// announces the result to AT, and offers Undo.
-  Future<void> _batchTag(BatchTagMode mode) async {
+  Future<void> _applyTags(BatchTagMode mode, Set<String> selectedIds) async {
     final data = _data;
-    if (data == null || _selectedIds.isEmpty) return;
+    if (data == null || selectedIds.isEmpty) return;
 
-    final selectedIds = Set<String>.of(_selectedIds);
     // Tags currently present on the selected dances (drives the Remove picker).
     final presentTagIds = <String>{
       for (final id in selectedIds)
@@ -1336,7 +1340,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         }
       });
     } catch (error, stackTrace) {
-      logCaughtError(error, stackTrace, source: 'dance_list_screen._batchTag');
+      logCaughtError(error, stackTrace, source: 'dance_list_screen._applyTags');
       if (!mounted) return;
       ScaffoldMessenger.of(context)
         ..clearSnackBars()
@@ -1364,7 +1368,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
       Directionality.of(context),
     );
 
-    _exitSelectionMode();
+    // A row-menu tag is not in selection mode; leave any selection alone.
+    if (_selectionMode) _exitSelectionMode();
     if (!mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
@@ -2578,6 +2583,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
             taxonomy: data.taxonomy,
             dialect: _dialect,
             sectionLabels: data.sectionLabels,
+            tags: data.tags,
             onChanged: _onAdvancedChanged,
           ),
       ],
@@ -2844,6 +2850,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         }
       },
       onDuplicate: () => _duplicateFromList(entry.dance.id),
+      onAddTags: () => _applyTags(BatchTagMode.add, {entry.dance.id}),
       onTagTap: _applyExternalTagFilter,
       // No reload when the sheet closes: the sheet's write goes to
       // `program_slots`, which the live tallies subscription watches, so the

@@ -492,6 +492,7 @@ tree. This section specifies the mapping; the widget work is 3.2c.
 | **Multiple facets selected** | `AndFilter([...leaves])` — the common case |
 | Advanced ▸ boolean group | `AndFilter` / `OrFilter` / `NotFilter` group nodes |
 | Advanced ▸ figure row | `FigureFilter(query)` with move + param + section pickers |
+| Advanced ▸ tag row | `TagFilter(tagId)` — a tag picker offering the tags carried by a live dance; two rows in an all-of group AND their tags, which the OR-only Tag facet cannot |
 | Advanced ▸ sequence row ("X then Y") | `ThenFilter(before, after)` — both operands are `FigureQuery` |
 
 - **Common case**: the facet chips compose into a flat `AndFilter` of leaves. No tree
