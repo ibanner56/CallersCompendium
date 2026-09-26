@@ -489,6 +489,9 @@ void main() {
 
       await openRowAddTags(tester, 'd1');
       expect(find.byKey(const ValueKey('batch-tag-dialog')), findsOneWidget);
+      // Checked while the picker is open: a mutation that enters selection
+      // mode is otherwise undone by the post-apply exit and goes unseen.
+      expect(find.byKey(const ValueKey('batch-exit')), findsNothing);
       await tester.tap(find.byKey(const ValueKey('batch-tag-option-t1')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('batch-tag-confirm')));
