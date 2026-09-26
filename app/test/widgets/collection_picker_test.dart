@@ -25,7 +25,6 @@ Dance _dance({
   bool mixedLevel = false,
   bool mixer = false,
   int? rating,
-  List<String> tagIds = const [],
 }) => Dance(
   id: id,
   title: title,
