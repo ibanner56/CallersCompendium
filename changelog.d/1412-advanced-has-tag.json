@@ -1,0 +1,9 @@
+{
+  "id": "1412-advanced-has-tag",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "The Advanced search builder has a new \"Has tag\" condition. Put two of them in an \"All of\" group to find dances that carry both tags, or mix a tag with figure conditions in the same group."
+    ]
+  }
+}

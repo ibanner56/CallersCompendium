@@ -1316,6 +1316,48 @@ void main() {
     expect(find.byType(DropdownButton<GroupKind>), findsOneWidget);
   });
 
+  testWidgets(
+    'advanced builder: two "Has tag" rows find dances with both tags',
+    (tester) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't2', name: 'energetic'));
+      await repos.dances.create(
+        _dance(id: 'a', title: 'Both', tagIds: const ['t1', 't2']),
+      );
+      await repos.dances.create(
+        _dance(id: 'b', title: 'Smooth Only', tagIds: const ['t1']),
+      );
+      await repos.dances.create(
+        _dance(id: 'c', title: 'Energetic Only', tagIds: const ['t2']),
+      );
+
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+
+      await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+      await _tapVisible(tester, find.byKey(const ValueKey('advanced-enable')));
+
+      final tagDropdowns = find.byWidgetPredicate((w) {
+        final key = w.key;
+        return w is DropdownButton<String> &&
+            key is ValueKey<String> &&
+            key.value.startsWith('tag-');
+      });
+      for (final (index, name) in ['smooth', 'energetic'].indexed) {
+        await _tapVisible(tester, find.text('Add'));
+        await _tapVisible(tester, find.text('Has tag').last);
+        await _tapVisible(tester, tagDropdowns.at(index));
+        await tester.tap(find.text(name).last);
+        await tester.pumpAndSettle();
+      }
+
+      expect(_titles(tester), ['Both']);
+    },
+  );
+
   testWidgets('advanced builder: add a "then" sequence row', (tester) async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'a', title: 'Alpha'));

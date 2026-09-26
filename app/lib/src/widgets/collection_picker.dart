@@ -905,6 +905,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
             taxonomy: data.taxonomy,
             dialect: widget.dialect,
             sectionLabels: data.sectionLabels,
+            tags: data.tags,
             onChanged: _onAdvancedChanged,
           ),
       ],

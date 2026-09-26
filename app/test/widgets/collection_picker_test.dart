@@ -19,6 +19,7 @@ import '../support/l10n_harness.dart';
 Dance _dance({
   required String id,
   required String title,
+  List<String> tagIds = const [],
   List<Figure> figures = const [],
   List<String> tunes = const [],
   String? difficultyLevelId,
@@ -29,7 +30,7 @@ Dance _dance({
   id: id,
   title: title,
   authorIds: const [],
-  tagIds: const [],
+  tagIds: tagIds,
   tunes: tunes,
   form: DanceForm.contra,
   formation: const Formation(FormationShape.dupleImproper),
@@ -631,6 +632,52 @@ void main() {
     // The advanced tree compiles through buildCollectionFilter and re-runs the
     // search, so only the dance with the figure survives.
     expect(_titles(tester), ['Has Petronella']);
+  });
+
+  testWidgets('advanced builder: two "Has tag" rows find dances with both '
+      'tags', (tester) async {
+    final repos = openTestRepositories();
+    // ignore: unused_result
+    await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
+    // ignore: unused_result
+    await repos.tags.upsert(Tag(id: 't2', name: 'energetic'));
+    await repos.dances.create(
+      _dance(id: 'a', title: 'Both', tagIds: const ['t1', 't2']),
+    );
+    await repos.dances.create(
+      _dance(id: 'b', title: 'Smooth Only', tagIds: const ['t1']),
+    );
+    await repos.dances.create(
+      _dance(id: 'c', title: 'Energetic Only', tagIds: const ['t2']),
+    );
+
+    await _pumpPicker(tester, repos, onAddDance: (_) {});
+    await tester.pumpAndSettle();
+
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-advanced-panel')),
+    );
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-advanced-enable')),
+    );
+
+    final tagDropdowns = find.byWidgetPredicate((w) {
+      final key = w.key;
+      return w is DropdownButton<String> &&
+          key is ValueKey<String> &&
+          key.value.startsWith('tag-');
+    });
+    for (final (index, name) in ['smooth', 'energetic'].indexed) {
+      await _tapVisible(tester, find.text('Add'));
+      await _tapVisible(tester, find.text('Has tag').last);
+      await _tapVisible(tester, tagDropdowns.at(index));
+      await tester.tap(find.text(name).last);
+      await tester.pumpAndSettle();
+    }
+
+    expect(_titles(tester), ['Both']);
   });
 
   group('search enrichment (saved-dialect vocabulary)', () {

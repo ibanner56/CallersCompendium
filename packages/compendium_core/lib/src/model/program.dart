@@ -289,6 +289,16 @@ class Program {
     return index < 0 ? null : index;
   }
 
+  /// How many dances the program is planned for: every slot except alternates
+  /// ([ProgramSlot.isAlt]) and the break ([ProgramSlot.isBreak]).
+  ///
+  /// Text-only slots that stand in for a dance ("bouncy", "set ender") and
+  /// purged-dance captions are counted; an orphaned leading alternate is not,
+  /// because it is still an alternate. [slots]`.length` is the row count, which
+  /// this deliberately is not.
+  int get plannedDanceCount =>
+      slots.where((s) => !s.isAlt && !s.isBreak).length;
+
   /// Whether the program contains a break slot (and therefore has derived
   /// sections).
   bool get hasBreak => firstBreakSlotIndex != null;

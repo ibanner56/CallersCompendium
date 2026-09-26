@@ -39,7 +39,9 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 - Search input is dialect-canonicalized; result counts announced politely to AT.
   The calling-history facet follows the active caller and performed-only scope;
   it is omitted when that scope has no qualifying calls.
-- Actions: new dance, import, duplicate, batch tag.
+- Actions: new dance, import, duplicate, batch tag. Each row's ⋮ menu also
+  offers Duplicate, Add to program, Add tags (one dance, same picker and Undo
+  as batch tag) and Delete (#1416).
 
 ### 2. Dance detail / card
 - Header: title, authors, formation, hook, tags, status banner (deprecated/

@@ -430,7 +430,8 @@ extension GroupKindX on GroupKind {
   };
 }
 
-/// A node in the Advanced builder tree.
+/// A node in the Advanced builder tree: a group, a "has figure" row, a "has
+/// tag" row, or a "then" sequence row.
 sealed class BuilderNode {
   BuilderNode({String? id}) : id = id ?? _nextId();
 
@@ -513,6 +514,22 @@ class BuilderFigure extends BuilderNode implements BuilderFigureNode {
   DanceFilter? toFilter() {
     final leaf = toFigureQuery();
     return leaf == null ? null : FigureFilter(leaf);
+  }
+}
+
+/// A "has tag" row: the dance carries the tag [tagId]. Folds to the same
+/// [TagFilter] leaf the Tag facet emits, so an all-of group of tag rows gives
+/// "has tag A AND tag B" — which the facet, OR-only within itself, cannot say.
+/// A row with no tag picked folds to `null` and is skipped.
+class BuilderTag extends BuilderNode {
+  BuilderTag({this.tagId, super.id});
+
+  String? tagId;
+
+  @override
+  DanceFilter? toFilter() {
+    final id = tagId;
+    return (id == null || id.isEmpty) ? null : TagFilter(id);
   }
 }
 
