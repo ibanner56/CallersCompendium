@@ -1284,7 +1284,7 @@
   "@settingsDefaultsFormTitle": {
     "x-sourceSha256": "baaddf70fb5d432b8bd948ef91d6f910124a6d138edae4d5f000c4610ddc8eae"
   },
-  "settingsDefaultsFormSubtitle": "Het dantype waarmee een nieuwe dans begint. Je kunt dit per dans aanpassen.",
+  "settingsDefaultsFormSubtitle": "Het danstype waarmee een nieuwe dans begint. Je kunt dit per dans aanpassen.",
   "@settingsDefaultsFormSubtitle": {
     "x-sourceSha256": "19397876123939e7698c88d2e13ec41cc9cb1d5ce9f7b1d0a7dda2b5e38ba298"
   },

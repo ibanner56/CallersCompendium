@@ -1178,7 +1178,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsDefaultsFormSubtitle =>
-      'Het dantype waarmee een nieuwe dans begint. Je kunt dit per dans aanpassen.';
+      'Het danstype waarmee een nieuwe dans begint. Je kunt dit per dans aanpassen.';
 
   @override
   String get settingsDefaultsFormationTitle => 'Formatie';
