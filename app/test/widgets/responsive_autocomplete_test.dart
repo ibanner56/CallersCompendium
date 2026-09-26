@@ -704,4 +704,94 @@ void main() {
       expect(find.byKey(const ValueKey('test-option-swing')), findsOneWidget);
     });
   });
+
+  group('Enter in the compact sheet (review of #1430)', () {
+    // A field whose submit does nothing but forward to `onSubmit`, so what the
+    // sheet does with Enter is the only thing under test. The shared harness's
+    // field selects on its own before forwarding, which would hide it.
+    Future<List<String>> pumpSubmitOnly(
+      WidgetTester tester, {
+      required bool selectFirstOnSheetSubmit,
+    }) async {
+      await setScreenSize(tester, const Size(360, 720));
+      final picked = <String>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ResponsiveAutocomplete<String>(
+              selectFirstOnSheetSubmit: selectFirstOnSheetSubmit,
+              displayStringForOption: (o) => o,
+              optionsBuilder: (v) {
+                final q = v.text.trim().toLowerCase();
+                if (q.isEmpty) return const <String>[];
+                return const [
+                  'swing',
+                  'swirl',
+                  'balance',
+                ].where((o) => o.contains(q));
+              },
+              onSelected: picked.add,
+              fieldViewBuilder: (context, controller, focusNode, onSubmit, _) {
+                return TextField(
+                  key: const ValueKey('test-input'),
+                  controller: controller,
+                  focusNode: focusNode,
+                  onSubmitted: (_) => onSubmit(),
+                );
+              },
+              optionTileBuilder: (context, option, onSelected) =>
+                  ListTile(title: Text(option), onTap: onSelected),
+            ),
+          ),
+        ),
+      );
+      return picked;
+    }
+
+    Future<void> openTypeAndSubmit(WidgetTester tester, String text) async {
+      final input = find.byKey(const ValueKey('test-input'));
+      await tester.tap(input, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      await tester.enterText(input, text);
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('by default Enter only dismisses: no option is selected', (
+      tester,
+    ) async {
+      final picked = await pumpSubmitOnly(
+        tester,
+        selectFirstOnSheetSubmit: false,
+      );
+      await openTypeAndSubmit(tester, 'sw');
+      expect(picked, isEmpty);
+      expect(find.byType(BottomSheet), findsNothing);
+    });
+
+    testWidgets('opted in, Enter selects the first option and closes', (
+      tester,
+    ) async {
+      final picked = await pumpSubmitOnly(
+        tester,
+        selectFirstOnSheetSubmit: true,
+      );
+      await openTypeAndSubmit(tester, 'sw');
+      expect(picked, ['swing']);
+      expect(find.byType(BottomSheet), findsNothing);
+    });
+
+    testWidgets('opted in, Enter with no options only dismisses', (
+      tester,
+    ) async {
+      final picked = await pumpSubmitOnly(
+        tester,
+        selectFirstOnSheetSubmit: true,
+      );
+      await openTypeAndSubmit(tester, 'zzz');
+      expect(picked, isEmpty);
+      expect(find.byType(BottomSheet), findsNothing);
+    });
+  });
 }

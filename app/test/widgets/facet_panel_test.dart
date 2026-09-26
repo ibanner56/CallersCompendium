@@ -925,6 +925,59 @@ void main() {
       );
     });
 
+    testWidgets('narrow layout: Enter in the sheet commits the typed text and '
+        'closes the sheet (review of #1430)', (tester) async {
+      final facets = FacetSelections();
+      var changes = 0;
+      await _pump(
+        tester,
+        facets,
+        tunes: tunes,
+        screenSize: const Size(360, 720),
+        onChanged: () => changes++,
+      );
+
+      await tester.tap(search, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsOneWidget);
+      // "gmaj" is a substring of the suggestion "Gmaj 6/8" but is not it: the
+      // first row is the typed text, which is what Enter must commit.
+      await tester.enterText(search, 'gmaj');
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(facets.tunes, ['gmaj']);
+      expect(changes, 1);
+      expect(find.byType(BottomSheet), findsNothing);
+      expect(chip('gmaj'), findsOneWidget);
+    });
+
+    testWidgets('narrow layout: Enter on a blank field just closes the sheet', (
+      tester,
+    ) async {
+      final facets = FacetSelections();
+      var changes = 0;
+      await _pump(
+        tester,
+        facets,
+        tunes: tunes,
+        screenSize: const Size(360, 720),
+        onChanged: () => changes++,
+      );
+
+      await tester.tap(search, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      await tester.enterText(search, '   ');
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(facets.tunes, isEmpty);
+      expect(changes, 0);
+      expect(find.byType(BottomSheet), findsNothing);
+    });
+
     testWidgets('narrow layout: picking from the sheet adds the chip and '
         'closes the sheet', (tester) async {
       final facets = FacetSelections();

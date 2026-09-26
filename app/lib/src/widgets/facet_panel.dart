@@ -856,6 +856,9 @@ class _TunesFacetState extends State<_TunesFacet> {
             focusNode: _focusNode,
             displayStringForOption: (c) => c.value,
             sheetSemanticLabel: l10n.collectionFacetTunes,
+            // The first row is the typed text; Enter must commit it in the
+            // compact sheet too, as `RawAutocomplete` already does inline.
+            selectFirstOnSheetSubmit: true,
             optionsBuilder: _options,
             onSelected: (c) => _add(c.value),
             fieldViewBuilder: (context, controller, focusNode, onSubmit, _) {
