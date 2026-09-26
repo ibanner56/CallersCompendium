@@ -18,8 +18,8 @@ import '../sync/sync_scope.dart';
 /// it marks a pass in flight, so [SyncController.running] is still false for
 /// that first await, and a second tap inside it would reach the coordinator,
 /// which queues exactly one follow-up pass rather than dropping the request.
-/// [_SyncNowActionState._attempting] is set synchronously and held until [_SyncNowActionState._syncNow]
-/// finishes, closing that window.
+/// So the state's `_attempting` flag is set synchronously and held until
+/// `_syncNow` finishes, closing that window.
 ///
 /// It depends on [SyncScope] itself (rather than its host screen doing so)
 /// because that scope notifies at the start and end of every pass, and a host
