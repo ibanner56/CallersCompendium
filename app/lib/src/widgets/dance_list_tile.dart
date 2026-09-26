@@ -39,6 +39,7 @@ class DanceListTile extends StatelessWidget {
     this.onDelete,
     this.onDuplicate,
     this.onAddToProgram,
+    this.onAddTags,
     this.onTagTap,
     this.visibleFields,
   }) : assert(
@@ -83,6 +84,10 @@ class DanceListTile extends StatelessWidget {
   /// Opens the add-to-program flow for this dance. When non-null (and not in
   /// [selectionMode]) the ⋮ menu exposes an "Add to program" action.
   final VoidCallback? onAddToProgram;
+
+  /// Opens the add-tags flow for this dance alone. When non-null (and not in
+  /// [selectionMode]) the ⋮ menu exposes an "Add tags" action.
+  final VoidCallback? onAddTags;
 
   /// Called with a tag's id when its chip is tapped, to filter the Collection
   /// to that tag (issue #414). When null (e.g. the Programs dance picker) the
@@ -328,7 +333,10 @@ class DanceListTile extends StatelessWidget {
   /// drill-in chevron. Returns null when neither is needed.
   Widget? _buildTrailing(AppLocalizations l10n) {
     final hasActions =
-        onDelete != null || onDuplicate != null || onAddToProgram != null;
+        onDelete != null ||
+        onDuplicate != null ||
+        onAddToProgram != null ||
+        onAddTags != null;
     if (!hasActions) {
       return showChevron ? const Icon(Icons.chevron_right) : null;
     }
@@ -355,6 +363,8 @@ class DanceListTile extends StatelessWidget {
             onDuplicate?.call();
           case _DanceRowAction.addToProgram:
             onAddToProgram?.call();
+          case _DanceRowAction.addTags:
+            onAddTags?.call();
           case _DanceRowAction.delete:
             onDelete?.call();
         }
@@ -380,8 +390,20 @@ class DanceListTile extends StatelessWidget {
               contentPadding: EdgeInsets.zero,
             ),
           ),
+        if (onAddTags != null)
+          PopupMenuItem<_DanceRowAction>(
+            key: const ValueKey('dance-action-add-tags'),
+            value: _DanceRowAction.addTags,
+            child: ListTile(
+              leading: const Icon(Icons.label_outline),
+              title: Text(l10n.collectionAddTags),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
         if (onDelete != null) ...[
-          if (onDuplicate != null || onAddToProgram != null)
+          if (onDuplicate != null ||
+              onAddToProgram != null ||
+              onAddTags != null)
             const PopupMenuDivider(),
           PopupMenuItem<_DanceRowAction>(
             key: const ValueKey('dance-action-delete'),
@@ -399,4 +421,4 @@ class DanceListTile extends StatelessWidget {
 }
 
 /// Row actions exposed by [DanceListTile]'s trailing overflow (⋮) menu.
-enum _DanceRowAction { duplicate, addToProgram, delete }
+enum _DanceRowAction { duplicate, addToProgram, addTags, delete }

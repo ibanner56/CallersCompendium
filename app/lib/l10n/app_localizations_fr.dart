@@ -2657,6 +2657,18 @@ class AppLocalizationsFr extends AppLocalizations {
   String get collectionQueryHasFigure => 'Contient une figure';
 
   @override
+  String get collectionQueryHasTag => 'Contient le tag';
+
+  @override
+  String get collectionQueryTagLabel => 'Tag';
+
+  @override
+  String get collectionQueryTagHint => 'Choisir un tag';
+
+  @override
+  String get collectionQueryRemoveTag => 'Supprimer le tag';
+
+  @override
   String get collectionQuerySequenceThen => 'Séquence (puis)';
 
   @override

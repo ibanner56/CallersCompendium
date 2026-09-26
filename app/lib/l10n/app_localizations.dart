@@ -4365,6 +4365,30 @@ abstract class AppLocalizations {
   /// **'Has figure'**
   String get collectionQueryHasFigure;
 
+  /// Advanced-query condition type / row label: the dance carries a given tag.
+  ///
+  /// In en, this message translates to:
+  /// **'Has tag'**
+  String get collectionQueryHasTag;
+
+  /// Accessibility label of the tag dropdown on an Advanced-query 'Has tag' row.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag'**
+  String get collectionQueryTagLabel;
+
+  /// Placeholder shown on an Advanced-query 'Has tag' row before a tag is picked.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a tag'**
+  String get collectionQueryTagHint;
+
+  /// Tooltip of the button that removes an Advanced-query 'Has tag' row.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove tag'**
+  String get collectionQueryRemoveTag;
+
   /// Advanced-query 'add' menu item: a two-figure ordered sequence condition.
   ///
   /// In en, this message translates to:
