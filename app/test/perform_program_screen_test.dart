@@ -1876,5 +1876,81 @@ void main() {
         expect(find.text('Slot 2 of 2'), findsNothing);
       },
     );
+
+    testWidgets(
+      'arrow and page keys do not change the slot while the overlay is open, '
+      'and Escape closes it',
+      (tester) async {
+        // The overlay already blocks *pointer* navigation (the barrier above);
+        // keyboard navigation must be blocked the same way, or pressing ↓ to
+        // read further down a walkthrough silently swaps the dance underneath.
+        // A walkthrough long enough to overflow the overlay's height cap, so
+        // the vertical keys have something to scroll.
+        final data = await _dataWith([
+          _dance(
+            id: 'd1',
+            title: 'First Dance',
+            walkthrough: List.generate(
+              80,
+              (i) => 'Line ${i + 1}: neighbours balance and swing.',
+            ).join('\n'),
+          ),
+          _dance(id: 'd2', title: 'Second Dance'),
+        ]);
+        await _pumpProgram(
+          tester,
+          program: _program([
+            _slot(id: 's1', position: 0, danceId: 'd1'),
+            _slot(id: 's2', position: 1, danceId: 'd2'),
+          ]),
+          data: data,
+        );
+
+        await tester.tap(
+          find.byKey(const ValueKey('perform-walkthrough-toggle')),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byType(PerformWalkthroughOverlay), findsOneWidget);
+
+        for (final key in [
+          LogicalKeyboardKey.arrowRight,
+          LogicalKeyboardKey.arrowDown,
+          LogicalKeyboardKey.pageDown,
+        ]) {
+          await tester.sendKeyEvent(key);
+          await tester.pumpAndSettle();
+          expect(find.byType(PerformWalkthroughOverlay), findsOneWidget);
+          expect(find.text('Slot 1 of 2'), findsOneWidget, reason: '$key');
+          expect(find.text('Second Dance'), findsNothing, reason: '$key');
+        }
+
+        // The vertical keys scrolled the walkthrough instead (↓ then PgDn
+        // above); ↑ scrolls back a step.
+        final scrollable = tester.widget<SingleChildScrollView>(
+          find.descendant(
+            of: find.byType(PerformWalkthroughOverlay),
+            matching: find.byType(SingleChildScrollView),
+          ),
+        );
+        final afterDown = scrollable.controller!.offset;
+        expect(afterDown, greaterThan(0));
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+        await tester.pumpAndSettle();
+        expect(scrollable.controller!.offset, lessThan(afterDown));
+
+        // Escape closes the overlay without touching the slot.
+        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+        await tester.pumpAndSettle();
+        expect(find.byType(PerformWalkthroughOverlay), findsNothing);
+        expect(find.text('Slot 1 of 2'), findsOneWidget);
+
+        // With the overlay closed, the same keys navigate again — which also
+        // proves the key events were reaching the shortcut scope all along.
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+        await tester.pumpAndSettle();
+        expect(find.text('Second Dance'), findsOneWidget);
+        expect(find.text('Slot 2 of 2'), findsOneWidget);
+      },
+    );
   });
 }

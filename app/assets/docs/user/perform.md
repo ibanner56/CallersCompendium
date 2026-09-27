@@ -102,6 +102,11 @@ control suits you and your setup:
   or
 - the **arrow keys** or **page keys** on a keyboard.
 
+While the walkthrough overlay is open, none of these change your slot: taps on
+the card are absorbed, the **up**, **down** and **page keys** scroll the
+walkthrough itself, and **Esc** closes it — so reading ahead can't move you off
+the dance you are calling.
+
 A **jump-to-slot overview** lets you jump anywhere in the program at once — useful
 if plans change mid-evening. And when a slot has an [alt](./glossary.md#alt),
 one tap swaps it in place of the primary.
