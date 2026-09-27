@@ -240,6 +240,37 @@ void main() {
       DedupeEntry(danceId: 'd2', title: 'Trip to Nowhere'),
     ]);
 
+    test('titles that normalize to nothing never match each other', () {
+      // `normalizeTitle` keeps only [a-z0-9], so every non-Latin or
+      // punctuation-only title folds to ''. Two empty strings are equal, and
+      // an equality short-circuit scored them 1.0 — so every such dance was
+      // "ambiguous" against every other one (reviewer's red run:
+      // `query "月" -> d1(花):1.000`), across scripts included.
+      final nonLatin = DedupeIndex([
+        DedupeEntry(danceId: 'd1', title: '花', authorNames: ['Alice Smith']),
+        DedupeEntry(danceId: 'd2', title: 'Танец', authorNames: ['Bob Jones']),
+        DedupeEntry(danceId: 'd3', title: '★'),
+      ]);
+      expect(
+        nonLatin
+            .verdictFor(
+              source: ProvenanceSource.json,
+              title: '月',
+              authorNames: ['Alice Smith'],
+            )
+            .isNewDance,
+        isTrue,
+      );
+      expect(
+        nonLatin
+            .verdictFor(source: ProvenanceSource.json, title: '★')
+            .isNewDance,
+        isTrue,
+        reason: 'an empty normalized title carries no identity signal',
+      );
+      expect(nonLatin.fuzzyMatches('月', const []), isEmpty);
+    });
+
     test('near-identical title is an ambiguous match', () {
       final v = index.verdictFor(
         source: ProvenanceSource.json,

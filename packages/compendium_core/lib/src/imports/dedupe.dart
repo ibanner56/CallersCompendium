@@ -399,9 +399,15 @@ double _jaccard(Set<String> a, Set<String> b) {
 }
 
 /// Normalized Levenshtein similarity (`0.0..1.0`) between two strings.
+///
+/// An empty side scores 0.0 *before* the equality check: [normalizeTitle]
+/// folds every non-Latin or punctuation-only title to `''`, and `'' == ''`
+/// would otherwise score two unrelated dances 1.0 — making every such dance
+/// an "ambiguous" match for every other one. An empty normalized title carries
+/// no identity signal, so it is not scored at all.
 double _similarity(String a, String b) {
-  if (a == b) return 1.0;
   if (a.isEmpty || b.isEmpty) return 0.0;
+  if (a == b) return 1.0;
   final dist = _levenshtein(a, b);
   final maxLen = a.length > b.length ? a.length : b.length;
   return 1.0 - dist / maxLen;

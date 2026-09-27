@@ -334,6 +334,46 @@ void main() {
     });
   });
 
+  group('autoResolveAmbiguous', () {
+    test('never links on a title that normalizes to nothing', () async {
+      // '花' and '月' both fold to '' under `normalizeTitle`, and two dances
+      // with no figures have equal choreography fingerprints — so the
+      // exact-normalized-title gate passed on '' == '' and the content check
+      // then linked two unrelated dances. The verdict is hand-built because
+      // fuzzy scoring no longer produces one for empty titles; this guards the
+      // resolver itself against any caller that does.
+      final seeded = await pipeline.commit(
+        await pipeline.plan(
+          FakeSourceAdapter([record('fake-1', '花')]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+      );
+      final existingId = seeded.insertedDanceIds.single;
+
+      final adapter = FakeSourceAdapter([record('fake-2', '月')]);
+      final discovered = await adapter.discover(const ImportRequest());
+      final draft = adapter.parse(await adapter.fetch(discovered.single));
+      final batch = ImportBatchResult(
+        records: [
+          ImportRecordPlan(
+            draft: draft,
+            verdict: DedupeVerdict.ambiguous([
+              DedupeCandidate(danceId: existingId, score: 1.0),
+            ]),
+          ),
+        ],
+      );
+
+      final resolutions = await pipeline.autoResolveAmbiguous(
+        batch,
+        authorNamesOf: (_) => const [],
+      );
+      expect(resolutions[0]?.kind, DedupeResolutionKind.duplicate);
+    });
+  });
+
   group('variation resolution (issue #686)', () {
     // #686: a confident title+author match whose figures DIFFER resolves to
     // `.variation` — a distinct new dance, optionally linked back to the

@@ -697,6 +697,14 @@ class ImportPipeline {
 
       final incoming = plan.draft.dance;
       final incomingTitle = normalizeTitle(incoming.title);
+      if (incomingTitle.isEmpty) {
+        // A title that folds to nothing (non-Latin, punctuation-only) carries
+        // no identity signal, so the exact-title gate below would pass on
+        // '' == '' against every other such dance and the content check could
+        // then link two unrelated ones. Never link; import as its own dance.
+        resolutions[i] = DedupeResolution.duplicate();
+        continue;
+      }
       final incomingAuthors = _normalizedAuthorSet(authorNamesOf(incoming));
 
       String? linkTarget;
