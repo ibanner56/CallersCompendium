@@ -33,8 +33,18 @@ import 'generated/schema.dart';
 class _ThrowAfterProgramSlotsRebuild extends Migrator {
   _ThrowAfterProgramSlotsRebuild(super.database);
 
+  /// `PRAGMA foreign_keys` as seen from inside `onUpgrade`, recorded so the
+  /// claim in `database.dart` — that foreign keys are OFF for the whole of
+  /// `onUpgrade`, which is what makes the pragma toggle inside `alterTable` a
+  /// non-event under the enclosing transaction — is checked, not asserted.
+  final foreignKeysSeen = <bool>[];
+
   @override
   Future<void> alterTable(TableMigration migration) async {
+    foreignKeysSeen.add(
+      (await database.customSelect('PRAGMA foreign_keys').getSingle())
+          .read<bool>('foreign_keys'),
+    );
     await super.alterTable(migration);
     if (migration.affectedTable.actualTableName == 'program_slots') {
       throw StateError('injected failure after the v35 alterTable');
@@ -45,8 +55,10 @@ class _ThrowAfterProgramSlotsRebuild extends Migrator {
 class _FailingAfterV35 extends CompendiumDatabase {
   _FailingAfterV35(super.executor);
 
+  late final migrator = _ThrowAfterProgramSlotsRebuild(this);
+
   @override
-  Migrator createMigrator() => _ThrowAfterProgramSlotsRebuild(this);
+  Migrator createMigrator() => migrator;
 }
 
 void main() {
@@ -83,6 +95,14 @@ void main() {
       // connection is what the assertions below read.
     }
 
+    expect(
+      failing.migrator.foreignKeysSeen,
+      [false],
+      reason:
+          'foreign keys must be OFF during onUpgrade (beforeOpen turns them ON '
+          'afterwards); if this ever reads true, alterTable will try to toggle '
+          'the pragma inside the migration transaction, where it is a no-op',
+    );
     expect(
       _userVersion(raw),
       34,
