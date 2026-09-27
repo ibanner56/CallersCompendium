@@ -65,6 +65,22 @@ void main() {
         expect(f!.isCustom, isTrue, reason: line);
       }
     });
+
+    test('a throwing scrub degrades to a custom of the raw text', () {
+      // The scrub runs before recognition; parse-never-fails covers it too, so
+      // a scrub that throws (e.g. a folding-sensitive glyph a substitution
+      // table cannot look up) must yield an honest custom, not an exception.
+      final f = parseFigureLine(
+        'Neighbor swing',
+        beats: 8,
+        scrub: (_) => throw StateError('scrub failed'),
+      );
+      expect(f, isNotNull);
+      expect(f!.isCustom, isTrue);
+      expect(_text(f), 'Neighbor swing');
+      expect(f.params['beats'], 8);
+      expect(f.customOrigin, CustomOrigin.importGap);
+    });
   });
 
   group('parseFigureLine — structured recognition (real fixture lines)', () {
@@ -1569,5 +1585,40 @@ void main() {
       expect(f.params['travel'], 1.5);
       expect(f.params.containsKey('places'), isFalse);
     });
+  });
+
+  group('parseFigureLine — two-and-a-half turns', () {
+    // 2.5 is the top of the rotation domain and the fractional spelling is the
+    // natural one for it; the compound branch used to fire only for a leading
+    // "1", so every "2 1/2" declined to custom while "2.5" structured.
+    for (final line in [
+      'Neighbor allemande left 2 1/2',
+      'Neighbors allemande left 2 1/2',
+      'Neighbor allemande left 2 & 1/2',
+      'Neighbor allemande left 2½',
+    ]) {
+      test('"$line" structures as a 2.5 turn', () {
+        final f = _parseLine(line);
+        expect(f, isNotNull, reason: line);
+        expect(f!.isCustom, isFalse, reason: line);
+        expect(f.move, 'allemande', reason: line);
+        expect(f.params['travel'], 2.5, reason: line);
+      });
+    }
+
+    // 2¾ is beyond the 2.5 rotation cap and 2¼ is not a rotation the parser's
+    // vocabulary admits (its decimal table stops at 2.5 with no 2.25 either):
+    // honest custom, not a half-read "2".
+    for (final line in [
+      'Neighbor allemande left 2 1/4',
+      'Neighbor allemande left 2 3/4',
+      'Neighbor allemande left 2 & 3/4',
+    ]) {
+      test('"$line" stays custom (outside the rotation vocabulary)', () {
+        final f = _parseLine(line);
+        expect(f, isNotNull, reason: line);
+        expect(f!.isCustom, isTrue, reason: line);
+      });
+    }
   });
 }
