@@ -24,11 +24,17 @@ list that stays fast no matter how large your library grows. Each row gives you
 the essentials at a glance:
 
 - the dance **title** and its **author** or authors;
+- an icon for the dance's type — contra, English, or square;
 - a [formation](./glossary.md#formation) chip;
-- status and tag chips, when a dance carries them;
+- status, level, and tag chips, when a dance carries them;
+- how many times you have called it;
 - a rating indicator, if you have rated the dance; and
 - any custom fields you have chosen to show in the list (more on those under
   [Make your own fields](#make-your-own-fields)).
+
+Select a tag chip on a row to show every dance with that tag. To choose which
+of these details appear on each row, open **Settings → Defaults → Collection
+card fields**.
 
 *The Collection screen with a search query, the Filters panel open, and matching
 dances visible.*
@@ -48,6 +54,15 @@ sort by:
   while you have a plain-text search active (see below), and it is the order the
   app uses to put the strongest matches at the top.
 
+The arrow button beside **Sort** flips between ascending and descending order.
+On a narrow screen, sorting and grouping are in the **More actions** menu
+instead.
+
+If you use [Device Sync](./settings.md#device-sync) and have connected a store,
+a **Sync now** button also sits in the **Collection** toolbar, so you can pull in
+a change from another device without leaving the page. It shows a spinner while
+a sync is running, and it is hidden while Device Sync is off.
+
 To open a dance, select it. Its full detail view opens — on a phone as a new
 screen, and on a tablet or desktop in the pane beside the list. The
 [dance detail view](#read-a-dance-in-detail) is covered further down.
@@ -66,13 +81,13 @@ start with no colour and look exactly as they always have until you pick one,
 and the tag's name is always shown beside the colour, so nothing depends on
 being able to tell the colours apart.
 
-Next to **Sort** is a **Group by category** control. Pick one tag and the list
-splits into two labelled sections — the dances that carry that tag, then
-**Other** — so a whole category is together in one place. Your chosen **Sort**
-still orders the dances *inside* each section, and picking a dance behaves
-exactly as it does anywhere else in **Collection** (open it to read or perform;
-press and hold to select several). Choose **No grouping** to return to the flat
-list.
+Next to **Sort** is a **Group by category** control, which appears once you
+have tags. Pick one tag and the list splits into two labelled sections —
+the dances that carry that tag, then **Other** — so a whole category is together
+in one place. Your chosen **Sort** still orders the dances *inside* each
+section, and picking a dance behaves exactly as it does anywhere else in
+**Collection** (open it to read or perform; press and hold to select several).
+Choose **No grouping** to return to the flat list.
 
 Grouping is for the current session only: it keeps out of your way next time you
 open the app, so you always start from your usual order and pick a category when
@@ -84,7 +99,7 @@ The search bar sits at the top of **Collection**. Type any words — a title, an
 author, a phrase from the notes — and the list narrows as you type to the dances
 that match.
 
-Search understands your [dialect](./dialects.md) wording. If you saved or
+Search understands your [dialect](./glossary.md#dialect) wording. If you saved or
 imported a dance in one set of words and search in another, the app still finds
 it: searching **robins chain** turns up the dance even if it was stored using
 different role names. You do not have to remember how a dance was originally
@@ -92,33 +107,38 @@ written down.
 
 Clear the search bar to return to your whole collection.
 
-If you use [Device Sync](./settings.md#device-sync) and have connected a store,
-a **Sync now** icon also sits in the **Collection** toolbar, so you can pull in
-a change from another device without leaving the page. It shows a spinner while
-a sync is running, and it is not shown while Device Sync is off.
+Use **Search in** to choose where your words are looked for: **All fields**,
+**Title**, **Author**, or **Figure**.
 
-Use **Search in** to choose the indexed fields: **All fields**, **Title**,
-**Author**, or **Figure**. When **Online search** is enabled in the Advanced
-panel, the same control offers **Title**, **Author**, and **Figure**; choose
-**Author** to search author names on Caller's Box or choreographer names on
-ContraDB, or **Figure** to search dance-movement text on either source. ContraDB
-Figure searches use complete canonical move names such as **box circulate**;
-case and extra spaces are normalized, but partial or unknown names are rejected.
+The same search bar can also search The Caller's Box or ContraDB directly: turn
+on **Online search** in the **Advanced** panel, and **Search in** offers
+**Title**, **Author**, and **Figure**. **Author** finds author names on The
+Caller's Box and choreographer names on ContraDB; **Figure** searches the dance
+figures on either one. A ContraDB **Figure** search needs a complete move name,
+such as `box circulate` — capitals and extra spaces do not matter, but a partial
+name will not work. The [import guide](./imports.md#search-an-archive-online-and-import-a-dance)
+covers online search step by step.
 
 ## Narrow things down with filters
 
 When you want to slice your library by its properties rather than by words, open
-the **Filters** panel with one tap. It lets you narrow by:
+the **Filters** panel. It lets you narrow by:
 
 - **Type** and **Formation**
 - **Progression**
+- **Status**, **Level**, and **Mixed level**
+- **Mixer**
+- **Minimum rating** (for example, three stars and up)
+- **Calling history** — dances you have **Called**, or **Not called**
 - **Author**
-- **Tunes**
-- **Tags**
-- **Status** and **Level**
-- a **minimum star rating** (for example, three stars and up)
-- your own custom fields — the choice, yes/no, text, and number fields you have
-  defined
+- **Tunes** — see [Filter by tunes](#filter-by-tunes) below
+- **Tags** — including **Untagged**, for dances that have no tags yet
+- **Source** — the book or collection a dance was published in
+- your own [custom fields](./glossary.md#custom-field) — the choice, yes/no,
+  text, and number fields you have defined
+
+A filter appears only when there is something to filter by — the **Source**
+filter, for example, appears once a dance cites a published source.
 
 Two simple rules govern how filters combine, and knowing them makes the panel
 predictable:
@@ -151,9 +171,10 @@ A dance whose tunes the app cannot read never matches a Tunes filter.
 Filters work alongside the search bar: whatever you type and whatever you tick
 apply together.
 
-If the panel is longer than you need, you can hide the filters you never use under
+If the panel is longer than you need, hide the filters you never use under
 **Settings → Defaults → Collection filters**. Hiding a filter only removes it from
-the panel; your dances are untouched.
+the panel and clears anything you had selected in it; your dances are untouched.
+The same choice applies when you pick dances for a program.
 
 ## Search by the moves a dance contains
 
@@ -166,30 +187,30 @@ swing?* Two tools answer questions like these.
 Open the **Advanced** builder to ask about the [figures](./glossary.md#figure) —
 the moves — inside your dances. It works by stacking up rows and groups:
 
-1. Add a **"has figure"** row and pick a move with the type-ahead field — start
+1. Add a **Has figure** row and pick a move with the type-ahead field — start
    typing and choose from the matches.
 2. Optionally **pin the move to a section** (for example B2), so it only counts
    when it appears there.
 3. Optionally set the move's **parameters** to be more specific.
-4. Add a **"then" sequence** to require one move right after another — "a chain
+4. Add a **Sequence (then)** to require one move right after another — "a chain
    *then* a swing."
 
-Rows live inside **All**, **Any**, or **None** groups — match every row, any
-row, or no row — and groups can nest inside one another, so you can express
-questions as detailed as you need.
+Rows live inside groups set to **All of**, **Any of**, or **None of** — match
+every row, any row, or no row — and a **Condition group** can sit inside another,
+so you can express questions as detailed as you need.
 
-The builder can also ask about your tags. Add a **"has
-tag"** row and pick a tag from the list. Two "has tag" rows inside an **All**
-group find dances that carry *both* tags — something the Tags filter, which
+The builder can also ask about your tags. Add a **Has tag** row and pick a tag
+from the list. Two **Has tag** rows inside an **All of** group find dances that
+carry *both* tags — something the Tags filter, which
 matches *any* of the tags you tick, cannot do. Tag rows sit alongside figure
 rows in the same group, so "tagged *Smooth* and has a petronella" is one query.
-The row only appears in the **Add** menu once at least one of your dances has a
+**Has tag** appears in the **Add** menu once at least one of your dances has a
 tag.
 
 ### Ask per phrase with By-Phrase search
 
 If you think about dances the way The Caller's Box does — phrase by phrase — open
-the **By-Phrase** panel. For each phrase (A1, A2, B1, B2) you can require that
+the **By phrase** panel. For each phrase (A1, A2, B1, B2) you can require that
 certain moves **are present** ("figures match") or that certain moves **are
 absent** ("but do not match"). It is a quick way to say, for instance, "a swing
 in B1, but no hey anywhere in A."
@@ -197,7 +218,7 @@ in B1, but no hey anywhere in A."
 ### Everything combines
 
 You do not have to choose one search tool. The plain-text bar, the **Filters**
-panel, the **Advanced** builder, and the **By-Phrase** panel all apply together —
+panel, the **Advanced** builder, and the **By phrase** panel all apply together —
 a dance has to satisfy all of them to appear. As you narrow things down, the
 number of matching dances is announced to screen readers, so the result count is
 never hidden behind a visual-only cue.
@@ -217,25 +238,28 @@ The detail view brings together:
   the dance is flagged (for example, deprecated or broken).
 - **The figures**, laid out by section (A1, A2, B1, B2), each with a beats column
   and a marker showing where the [progression](./glossary.md#progression) happens.
-- **A wording toggle** — flip between your dialect and the neutral, shared
-  wording without changing the saved dance. See the [Dialect guide](./dialects.md)
-  for how this fits together.
+- **Tags** — select one to show every dance with that tag.
+- **A Canonical switch** — flip between your dialect and the neutral, shared
+  wording without changing the saved dance. It appears once you turn on
+  **Canonical figure text** in
+  [Settings](./settings.md#dance-details--shorthands). See the
+  [Dialect guide](./dialects.md) for how this fits together.
 - **Calling notes**, the choreographer's or your own.
-- **A Walkthrough** — a dedicated free-text field for the step-by-step teaching
-  notes you say while walking a dance through, kept separate from the shorter
-  Calling notes. If you keep a [walkthrough snippet library](./settings.md#defaults),
-  it pre-fills here from wording you have used for the same figures before, ready
-  to tweak for this dance.
+- **A Walkthrough** — the step-by-step teaching notes you say while walking a
+  dance through, kept separate from the shorter Calling notes. In the editor,
+  **Fill from snippets** can build it from wording you have used for the same
+  figures before — see [Walkthrough](./authoring.md#walkthrough).
+- **Tunes** you like with the dance.
 - **Links** — to the source, a video, and related dances.
-- **Calling history** — which of your [programs](./programs.md) include this
-  dance. (Settings decide whether this counts only slots you marked performed
-  or any program that contains the dance, and how many venues called more than
-  once appear in the repeated-venue summary.)
+- **Calling history** — which of your [programs](./glossary.md#program) include
+  this dance, and the venues where you have called it more than once.
+  [Settings](./settings.md#calling-history) decide whether this counts only
+  slots you marked performed, or every program that contains the dance.
 - **Custom fields** you have filled in.
 - **Published-source citation** — the book and page a dance came from, when you
   have recorded it.
 
-One nice touch: when a dance's notes mention another dance by name, that title
+When a dance's notes mention another dance by name, that title
 becomes a link you can select to jump straight to it.
 
 ### What you can do with a dance
@@ -243,16 +267,19 @@ becomes a link you can select to jump straight to it.
 From the detail view you can:
 
 - **Edit** the dance.
-- **Re-import choreography** from Caller's Box, ContraDB, or a single-dance
-  Caller's Compendium JSON file. This is also available from saved dance details
-  opened through Programs, search, post-import results, and the Program Editor.
+- **Re-import choreography** from The Caller's Box, ContraDB, or a single-dance
+  Caller's Compendium JSON file. You can also do this when you open a saved
+  dance from **Programs**, from search, or from the results of an import.
 - **Duplicate** it as a starting point for a variation.
 - **Add to program** — drop it into a [program](./programs.md) you are building.
-- **Print/Share** it as a PDF or as plain text. The export follows your active
-  dialect, so what you hand someone matches how they speak — see
-  [Share, print & export](./sharing.md#share-a-dance).
-- **Perform this dance** — open it in [Perform mode](./perform.md), the
-  large-print calling view, to call it on its own.
+- **Export** it — share it as text or as a dance file, copy it, or print it as a
+  PDF. The export follows your active dialect, so what you hand someone matches
+  how they speak — see [Share, print & export](./sharing.md#share-a-dance).
+- **Perform this dance** — open it in [Perform mode](./glossary.md#perform-mode),
+  the large-print calling view, to call it on its own.
+- **Delete dance** — see [Keep your collection tidy](#keep-your-collection-tidy).
+
+On a narrow screen, the less-used actions are in the **More actions** menu.
 
 ## Add a dance
 
@@ -264,8 +291,8 @@ as free text — it is still recorded as a figure.
 
 When you save, the dance is immediately selected in the detail pane so you can
 review it without having to find it in the list — on a tablet or desktop, where
-the list and detail pane are side by side. On a phone the editor simply closes
-and returns you to the list.
+the list and detail pane are side by side. On a phone the editor closes and
+returns you to the list.
 
 **[Write & edit dances](./authoring.md)** is the full guide to the editor:
 figures, meanwhile groups, walkthroughs, credits, drafts, and undo. The
@@ -278,7 +305,8 @@ usually want to bring them in rather than retype them — see
 
 Beyond the built-in details, you can track whatever matters to you — a tune
 suggestion, a "taught it at" note, a difficulty of your own. Choose **Manage
-custom fields** to create, edit, and delete your own fields.
+custom fields** on the **Collection** page to create, edit, and delete your
+own fields.
 
 A custom field can be a choice list, a yes/no switch, a text note, or a number.
 Once you define one, it:
@@ -301,34 +329,35 @@ field in use.
 
 ## Keep your collection tidy
 
-A growing library needs a little housekeeping. Caller's Compendium makes every
-change reversible.
+A growing library needs a little housekeeping, and every change here can be
+undone.
 
 - **Duplicate** a dance to spin off a variation without disturbing the original.
-- **Add tags** to a single dance from the **Actions** menu on its row (the
-  three vertical dots), without entering selection mode. You can pick existing
+- **Add tags** to a single dance from the actions menu on its row (the three
+  vertical dots), without entering selection mode. You can pick existing
   tags or create new ones, and the change can be undone.
 - **Delete** a dance and it is only *soft-deleted* — an **Undo** option appears
   right away, and the dance moves to a **Recently Deleted** area rather than
   vanishing.
 - **Restore or remove** from **Recently Deleted** — bring a dance back, or delete
   it permanently when you are sure. Anything left there is purged automatically
-  after a retention window, which you can lengthen or switch off in
-  [Settings](./settings.md).
+  after 30 days; you can choose a longer window, or never, in
+  [Settings](./settings.md#deleted-items).
 
 ### Change many dances at once
 
 To organize in bulk, enter selection mode: choose **Select dances**, or long-press
 a row on a touchscreen. Tick as many dances as you like, then apply one change
-across all of them. Tags are on the toolbar; the rest are under **More batch
-actions**:
+across all of them. Tags and level are on the toolbar; the rest are under
+**More batch actions**:
 
-- **Add tags** or **remove tags**.
+- **Add tags** or **Remove tags**.
 - **Set level**, or clear it with **Unspecified (clear)**.
 - **Set rating**, or clear it with **Unrated (clear)**.
 - **Add tunes** — build a short list and add it to every selected dance — or
-  **clear tunes**, which asks you to confirm first.
-- **Set a custom field** to a value, or **Clear this field**.
+  **Clear tunes**, which asks you to confirm first.
+- **Edit custom field** — set one of your fields to a value, or choose **Clear
+  this field**.
 
 Every batch change is announced to screen readers and can be undone, and the app
 tells you plainly when a change would affect nothing. Selected rows are marked
@@ -337,9 +366,9 @@ however you are reading the screen.
 
 ## Jump straight to a dance or program
 
-Anywhere in the app, the search affordance — the search box in the navigation rail
-on a wide screen, the search action in the app bar on a narrow one, or the
-keyboard shortcut **Ctrl-K** (**Cmd-K** on macOS) — opens a single search box over
+Anywhere in the app, the **Search** button — in the navigation rail on a wide
+screen, or in the app bar on a narrow one — or the keyboard shortcut **Ctrl-K**
+(**Cmd-K** on macOS) opens a single search box over
 whatever you are doing. Type, and matching **Dances** and **Programs** are listed
 in groups; choose one and you go straight there.
 
