@@ -870,13 +870,20 @@ class FigureRenderer {
     final displayName = alias?.displayName ?? def.displayName;
     // Params pinned by an alias are baked into its display name, so they must
     // not be rendered a second time as a template token. The v34 pull-by
-    // aliases are the exception: their pins (`who: neighbors`,
-    // `where: along`) only keep a not-yet-normalised figure VALID, and their
-    // display name is the bare "pull by", so blanking the slot would make the
-    // un-normalised figure render differently from its normalised form
-    // (`neighbors pull by right` vs `pull by right`). Skip the pin for any
-    // move id normalisation would rewrite.
-    final pinned = Taxonomy.normalizeV35MoveId(figure.move) != figure.move
+    // aliases are the exception, and DISPLAY-ONLY: their pins (`who:
+    // neighbors`, `where: along`) only keep a not-yet-normalised figure
+    // VALID, and their display name is the bare "pull by", so blanking the
+    // slot would make the un-normalised figure display differently from its
+    // normalised form (`neighbor pull by right` vs `pull by right`). Skip the
+    // pin for any move id normalisation would rewrite, but only on the
+    // display path: `renderCanonical` must keep blanking the pin so a
+    // pre-0.4.0 row's canonical text stays byte-identical to what it always
+    // was (`pull by right`), not the fresh-import derivation of the same
+    // params: applying this exception on both paths would change
+    // renderCanonical for existing rows without a versioned index rebuild.
+    final isUnnormalisedLegacyAlias =
+        Taxonomy.normalizeV35MoveId(figure.move) != figure.move;
+    final pinned = !forCanonical && isUnnormalisedLegacyAlias
         ? const <String, Object?>{}
         : alias?.pinnedParams ?? const <String, Object?>{};
     final slots = <String, String>{};

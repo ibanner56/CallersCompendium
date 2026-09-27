@@ -1134,35 +1134,39 @@ void main() {
 
     // invalid-fixture: these figures deliberately use pre-v35 move identifiers
     test(
-      'legacy pull-by aliases render alike before and after normalisation',
+      'legacy pull-by aliases DISPLAY alike before and after normalisation',
       () {
         // The alias pins (`who: neighbors` / `where: along`) exist so a v34 id
         // stays VALID until normalised; they are not baked into the alias display
         // name ("pull by"), so blanking the pinned slot made the un-normalised
-        // form render differently from the normalised one.
+        // form render differently from the normalised one. This equivalence is
+        // DISPLAY-ONLY: the byte-stable canonical text is covered separately
+        // below and deliberately does NOT track the normalised form.
         for (final move in ['pull_by_dancers', 'pull_by_direction']) {
           final raw = Figure(move: move, params: {'beats': 2});
           final normalised = contraTaxonomy.normalizeFigureV35(raw);
           expect(normalised.move, 'pull_by', reason: move);
-          expect(
-            renderer.renderCanonical(raw),
-            renderer.renderCanonical(normalised),
-            reason: '$move canonical',
-          );
           expect(
             renderer.render(raw, d),
             renderer.render(normalised, d),
             reason: '$move display',
           );
         }
-        expect(
-          renderer.renderCanonical(
-            Figure(move: 'pull_by_dancers', params: {'beats': 2}),
-          ),
-          'neighbors pull by right',
-        );
       },
     );
+
+    // invalid-fixture: these figures deliberately use pre-v35 move identifiers
+    test('legacy pull-by aliases keep their byte-stable canonical text', () {
+      // `renderCanonical` (search/dedupe identity) must not move for a row
+      // written before this PR: the alias pin-skip exception above is
+      // display-only, so canonical rendering keeps blanking the pinned
+      // `who`/`where` exactly as it did on origin/main, regardless of
+      // whether the figure has been normalised yet.
+      for (final move in ['pull_by_dancers', 'pull_by_direction']) {
+        final raw = Figure(move: move, params: {'beats': 2});
+        expect(renderer.renderCanonical(raw), 'pull by right', reason: move);
+      }
+    });
 
     group('down/up-the-hall ender', () {
       test('default turn-couple ender is surfaced', () {
