@@ -69,13 +69,20 @@ const String kNormalisationDerivedIndexRepairDoneKey =
 /// - **installation state / backup metadata** — geometry and backup bookkeeping
 ///   that
 ///   must not travel between machines or be rewritten by restoring an old file:
-///   [kWindowFrameKey], [kLastBackupAtKey], [kBackupReminderCadenceKey],
-///   [kTaxonomyV33CanonicalRebuildDoneKey],
-///   [kTaxonomyV34CanonicalRebuildDoneKey],
-///   [kModifierContainerCanonicalRebuildDoneKey],
-///   [kTaxonomyV35FigureNormalizationDoneKey],
-///   [kCallersBoxRollAwayRoleRepairDoneKey],
-///   [kNormalisationDerivedIndexRepairDoneKey].
+///   [kWindowFrameKey], [kLastBackupAtKey], [kBackupReminderCadenceKey], and
+///   every one-time migration / repair marker `ensureMigrated` writes. Six of
+///   those are named through app-side `k…` duplicates declared above; the
+///   other nine are the core constants exported by `compendium_core`
+///   ([derivedRebuildRequiredKey], [purgeCorruptionRepairDoneKey],
+///   [sectionRuleVersionKey], [inversePairNormalisationDoneKey],
+///   [starPromenadeHandRemovalDoneKey],
+///   [gripSingleFileCanonicalInclusionDoneKey], [chainHandBackfillDoneKey],
+///   [promenadeTurnCircleWordingCanonicalRebuildDoneKey],
+///   [compactDosidoSeesawCanonicalRebuildDoneKey]) named directly — the
+///   settings ratchet no longer needs a `k`-prefixed twin to see a key, so no
+///   new duplicates are added. All fifteen are `_installState` in
+///   `settings_registry.dart`: a marker says a pass has run over *this*
+///   database's rows, which is false on any other install.
 /// - **sync attachment state** — the store address this device is attached to,
 ///   its per-installation routing identifier, and the markers derived from
 ///   addresses it has used. A backup restored onto another device must not
@@ -102,6 +109,15 @@ const Set<String> kBackupSettingsDenylist = {
   kTaxonomyV35FigureNormalizationDoneKey,
   kCallersBoxRollAwayRoleRepairDoneKey,
   kNormalisationDerivedIndexRepairDoneKey,
+  derivedRebuildRequiredKey,
+  purgeCorruptionRepairDoneKey,
+  sectionRuleVersionKey,
+  inversePairNormalisationDoneKey,
+  starPromenadeHandRemovalDoneKey,
+  gripSingleFileCanonicalInclusionDoneKey,
+  chainHandBackfillDoneKey,
+  promenadeTurnCircleWordingCanonicalRebuildDoneKey,
+  compactDosidoSeesawCanonicalRebuildDoneKey,
   kSyncIdKey,
   kSyncDeviceIdKey,
   kSyncLastUsedFingerprintKey,

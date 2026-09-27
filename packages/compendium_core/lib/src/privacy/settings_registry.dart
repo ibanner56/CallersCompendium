@@ -265,6 +265,27 @@ final Map<String, DataClassification> settingsClassifications = {
   'update_dismissed_version': _backupLocalState,
   'backup_reminder_cadence': _preference,
   '__shareable_text_normalisation_scope__': _backupLocalState,
+  // One-time migration and repair markers written by
+  // `CompendiumRepositories.ensureMigrated` (declared in
+  // `packages/compendium_core/lib/src/storage/database.dart`). Each records
+  // that *this database* has had a pass run over its rows; on another install
+  // the same marker would claim a pass that never ran there, so every one is
+  // installation state and is denylisted from backups
+  // (`kBackupSettingsDenylist`). The values are `true`, `"done"` or a version
+  // token — nothing personal. The first six were classified when they were
+  // added (#1169, #1223, #1346); the nine below predate that template and
+  // were only caught when the settings ratchet stopped requiring a `k` prefix
+  // (2026 external audit, area 2 row 3, maintainer decision to match the
+  // siblings).
+  '__derived_rebuild_required__': _installState,
+  '__purge_corruption_repair_done__': _installState,
+  '__section_rule_version__': _installState,
+  '__inverse_pair_normalisation_done__': _installState,
+  '__star_promenade_hand_removal_done__': _installState,
+  '__grip_single_file_canonical_inclusion_done__': _installState,
+  '__chain_hand_backfill_done__': _installState,
+  '__promenade_turn_circle_wording_canonical_rebuild_done__': _installState,
+  '__compact_dosido_seesaw_canonical_rebuild_done__': _installState,
   '__taxonomy_v33_canonical_rebuild_done__': _installState,
   '__taxonomy_v34_canonical_rebuild_done__': _installState,
   '__modifier_container_canonical_rebuild_done__': _installState,
