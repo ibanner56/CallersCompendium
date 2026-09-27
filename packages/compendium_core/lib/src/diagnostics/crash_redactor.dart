@@ -6,9 +6,10 @@
 /// unless the user explicitly exports it. [CrashRedactor] produces the scrubbed
 /// text used for the *default* export: it removes contact PII (emails, phone
 /// numbers), collapses absolute filesystem paths to a placeholder (keeping the
-/// file basename so a stack frame stays diagnostically useful), and redacts an
-/// explicit set of user-content terms (dance / program / figure titles, notes,
-/// custom-field values, tag names) supplied by the caller.
+/// file basename so a stack frame stays diagnostically useful — unless the
+/// path ends at a home directory, where the "basename" is the username), and
+/// redacts an explicit set of user-content terms (dance / program / figure
+/// titles, notes, custom-field values, tag names) supplied by the caller.
 ///
 /// The design is deliberately conservative: when in doubt it over-redacts. A
 /// crash log is a diagnostic skeleton, not a data export, so losing a little
@@ -45,7 +46,9 @@ class CrashRedactor {
   static const String contentPlaceholder = '[redacted]';
 
   /// Directory placeholder substituted for a collapsed absolute path; the file
-  /// basename is preserved after it (e.g. `<path>/main.dart`).
+  /// basename is preserved after it (e.g. `<path>/main.dart`), except when the
+  /// path ends at a home directory (`/Users/jane` → `<path>`, see
+  /// [_endsAtHomeDirectory]).
   static const String pathPlaceholder = '<path>';
 
   // Email addresses. Intentionally broad on the local part.
@@ -140,9 +143,9 @@ class CrashRedactor {
   }
 
   /// Collapses absolute filesystem paths to [pathPlaceholder], keeping the file
-  /// basename (e.g. `/Users/me/app/main.dart` → `<path>/main.dart`). Handles
-  /// `file://` URIs, POSIX paths, Windows drive paths (either separator), and
-  /// UNC paths.
+  /// basename (e.g. `/Users/me/app/main.dart` → `<path>/main.dart`) unless the
+  /// path ends at a home directory (`/Users/me` → `<path>`). Handles `file://`
+  /// URIs, POSIX paths, Windows drive paths (either separator), and UNC paths.
   String redactPaths(String input) {
     var out = input.replaceAllMapped(_fileUri, (m) => _collapse(m[0]!, '/'));
     out = out.replaceAllMapped(_uncPath, (m) => _collapse(m[0]!, r'\'));
@@ -176,6 +179,34 @@ class CrashRedactor {
     final idx = trimmed.lastIndexOf(separator);
     if (idx < 0 || idx == trimmed.length - 1) return pathPlaceholder;
     final basename = trimmed.substring(idx + 1);
-    return basename.isEmpty ? pathPlaceholder : '$pathPlaceholder/$basename';
+    if (basename.isEmpty || _endsAtHomeDirectory(trimmed, idx, separator)) {
+      return pathPlaceholder;
+    }
+    return '$pathPlaceholder/$basename';
+  }
+
+  /// Directory names whose immediate children are per-user home directories,
+  /// on every platform this app ships to: `/Users/<name>` (macOS),
+  /// `/home/<name>` (Linux, and `/var/home`, `/export/home`), and
+  /// `C:\Users\<name>` (Windows).
+  static const Set<String> _homeContainers = {'users', 'home'};
+
+  /// Whether [trimmed] (a path with any trailing separator already removed,
+  /// whose last separator is at [idx]) ends *at* a home directory — so the
+  /// "basename" that [_collapse] would keep is a username.
+  ///
+  /// Keeping the basename exists to leave a stack frame's file name readable;
+  /// a path with no file name has nothing worth keeping, and a home
+  /// directory's name is exactly what the pass promises not to leak. Decided
+  /// by the parent segment's name rather than by segment count: `/etc/hosts`
+  /// and `/tmp/x.json` are also two segments deep and are the useful kind.
+  static bool _endsAtHomeDirectory(String trimmed, int idx, String separator) {
+    // A bare `/<name>` has no parent segment; the path patterns require at
+    // least one directory segment so this is unreachable today, but a
+    // negative `start` below would throw rather than return false.
+    if (idx <= 0) return false;
+    final parentStart = trimmed.lastIndexOf(separator, idx - 1);
+    final parent = trimmed.substring(parentStart + 1, idx);
+    return _homeContainers.contains(parent.toLowerCase());
   }
 }
