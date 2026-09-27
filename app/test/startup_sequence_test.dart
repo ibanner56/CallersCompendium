@@ -11,6 +11,7 @@ import 'package:compendium_app/main.dart';
 import 'package:compendium_app/src/data/app_database.dart';
 import 'package:compendium_app/src/data/application_shutdown_controller.dart';
 import 'package:compendium_app/src/data/backup_service.dart';
+import 'package:compendium_app/src/data/collection_facets_scope.dart';
 import 'package:compendium_app/src/data/editor_draft_shutdown_scope.dart';
 import 'package:compendium_app/src/data/sync_writer_lifecycle_scope.dart';
 import 'package:compendium_app/src/data/migration_guard.dart';
@@ -1232,4 +1233,50 @@ void main() {
       );
     },
   );
+
+  group('hidden Collection filters preference (#1419)', () {
+    // The value the running app's scope holds after startup, read from inside
+    // the tree the way a FacetPanel would.
+    Future<Set<String>> bootAndReadHidden(
+      WidgetTester tester,
+      Object? stored,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final appData = _openAppData();
+      if (stored != null) {
+        await appData.repositories.settings.set(
+          kCollectionHiddenFacetsKey,
+          stored,
+        );
+      }
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          integrityCheck: () async => true,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(AppShell), findsOneWidget);
+      return CollectionFacetsScope.of(tester.element(find.byType(AppShell)));
+    }
+
+    testWidgets('a stored list is applied at startup', (tester) async {
+      expect(await bootAndReadHidden(tester, ['tags', 'cf:abc']), {
+        'tags',
+        'cf:abc',
+      });
+    });
+
+    testWidgets('an absent value hides nothing', (tester) async {
+      expect(await bootAndReadHidden(tester, null), isEmpty);
+    });
+
+    testWidgets('a corrupt stored value hides nothing and does not crash', (
+      tester,
+    ) async {
+      expect(await bootAndReadHidden(tester, 'tags'), isEmpty);
+    });
+  });
 }

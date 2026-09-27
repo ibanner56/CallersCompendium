@@ -20,6 +20,7 @@ import 'src/data/archive_intake_service.dart';
 import 'src/data/sync_writer_lifecycle_scope.dart';
 import 'src/data/callersbox_online.dart';
 import 'src/data/collection_filter_scope.dart';
+import 'src/data/collection_facets_scope.dart';
 import 'src/data/collection_tile_fields_scope.dart';
 import 'src/data/confirm_before_delete_scope.dart';
 import 'src/data/contradb_online.dart';
@@ -81,6 +82,7 @@ import 'src/screens/settings_screen.dart'
         kAppThemeKey,
         kAutoCommitProgramChangesKey,
         kColourDanceThemeKey,
+        kCollectionHiddenFacetsKey,
         kCollectionTileVisibleFieldsKey,
         kMatrixExactBeatCollisionKey,
         kProgramMatrixColumnsKey,
@@ -426,6 +428,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
       ValueNotifier(widget.initialRequirePerformedForHistory);
   final ValueNotifier<Set<CollectionTileField>> _collectionTileFieldsNotifier =
       ValueNotifier(CollectionTileField.all);
+  final ValueNotifier<Set<String>> _collectionHiddenFacetsNotifier =
+      ValueNotifier(const <String>{});
   final ValueNotifier<bool> _trackHistoryForAllCallersNotifier = ValueNotifier(
     false,
   );
@@ -744,6 +748,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _themeNotifier.value = AppThemeSelection.system;
     _requirePerformedForHistoryNotifier.value = false;
     _collectionTileFieldsNotifier.value = CollectionTileField.all;
+    _collectionHiddenFacetsNotifier.value = const <String>{};
     _trackHistoryForAllCallersNotifier.value = false;
     _venueCallCountNotifier.value = kVenueCallCountDefault;
     _sortIgnoreArticlesNotifier.value = true;
@@ -1590,6 +1595,16 @@ class _CompendiumAppState extends State<CompendiumApp> {
         ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     _collectionTileFieldsNotifier.value =
         CollectionTileFieldsScope.decodeStored(storedTileFields);
+    // Load the hidden filter sections (issue #1419). A deny-list: absent or
+    // unreadable means every filter is shown.
+    final storedHiddenFacets = await _appData.repositories.settings
+        .get(kCollectionHiddenFacetsKey)
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — startup settings read failed; falls back to showing every filter.
+    _collectionHiddenFacetsNotifier.value = CollectionFacetsScope.decodeStored(
+      storedHiddenFacets,
+    );
   }
 
   /// Re-reads all preferences and app-local controllers from the (freshly
@@ -1615,6 +1630,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _themeNotifier.dispose();
     _requirePerformedForHistoryNotifier.dispose();
     _collectionTileFieldsNotifier.dispose();
+    _collectionHiddenFacetsNotifier.dispose();
     _trackHistoryForAllCallersNotifier.dispose();
     _venueCallCountNotifier.dispose();
     _sortIgnoreArticlesNotifier.dispose();
@@ -2046,8 +2062,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
                                                                           child: ProgramAutoCommitScope(
                                                                             notifier:
                                                                                 _autoCommitProgramChangesNotifier,
-                                                                            child:
-                                                                                child!,
+                                                                            child: CollectionFacetsScope(
+                                                                              notifier: _collectionHiddenFacetsNotifier,
+                                                                              child: child!,
+                                                                            ),
                                                                           ),
                                                                         ),
                                                                       ),
