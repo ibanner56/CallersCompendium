@@ -480,6 +480,14 @@
   "@settingsSyncNotPairedNow": {
     "x-sourceSha256": "fcee7c4478b4432bd151cb68def6a130526f17ad8725c53964026a8213b54cc4"
   },
+  "commonSyncNowTooltip": "Synchroniser maintenant",
+  "@commonSyncNowTooltip": {
+    "x-sourceSha256": "885e8f48bd70af10c21ee1046c5762dae06945145bf5c95885648e4ac308c0bf"
+  },
+  "commonSyncMeteredBlocked": "Vous utilisez les données mobiles et « Synchroniser uniquement en WiFi » est activé. Désactivez ce réglage dans les Paramètres pour synchroniser maintenant.",
+  "@commonSyncMeteredBlocked": {
+    "x-sourceSha256": "0c76efe0c32d396ac2dd46104a137f2943bb1ace796a7c11744db533ffb3d178"
+  },
   "settingsSyncConnectTitle": "Connecter",
   "@settingsSyncConnectTitle": {
     "x-sourceSha256": "1a2303ede07493acc7caaa7c737f3c52bcc9cf04372be19ed1b0af6b9f2c791e"

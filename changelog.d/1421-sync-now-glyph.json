@@ -1,0 +1,9 @@
+{
+  "id": "1421-sync-now-glyph",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A Sync now icon on the Collection and Programs toolbars starts a Device Sync pass without a trip to Settings. It appears only while Device Sync is on and a store is connected."
+    ]
+  }
+}

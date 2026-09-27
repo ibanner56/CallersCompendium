@@ -457,6 +457,13 @@ class AppLocalizationsNl extends AppLocalizations {
       'Koppel een opslag voordat je synchroniseert.';
 
   @override
+  String get commonSyncNowTooltip => 'Nu synchroniseren';
+
+  @override
+  String get commonSyncMeteredBlocked =>
+      'Je gebruikt mobiele data en ‘Alleen synchroniseren via wifi’ staat aan. Zet die instelling uit in Instellingen om nu te synchroniseren.';
+
+  @override
   String get settingsSyncConnectTitle => 'Verbinden';
 
   @override

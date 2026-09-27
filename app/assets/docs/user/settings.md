@@ -488,7 +488,9 @@ connect a store. The section starts closed while Device Sync is off and open
 while it is on. You can tap its heading to open or close it.
 
 - **Sync only on WiFi** is on by default. On a mobile-data connection automatic
-  sync waits, and pressing **Sync now** tells you why and points at this setting.
+  sync waits, and pressing **Sync now** tells you why. In this section it points
+  at this setting; from the sync icon on **Collection** or **Programs** it tells
+  you to turn the setting off here in Settings.
   A pass that was skipped runs the next time sync is triggered; you do not need
   to do anything.
 - **Skip unused imported dances** is off by default. If you have a large
@@ -646,7 +648,7 @@ can try again or leave it. Declining makes no
 network request and leaves the choice for later. Sync then **pauses**: the
 status says so and keeps saying so, and automatic syncs stop running rather
 than asking again every time. Nothing is lost while it is paused. When you
-want to decide, tap **Sync now** — that reopens the same question, and the
+want to decide, tap **Sync now** in this section — that reopens the same question, and the
 paused line goes once a sync completes.
 
 **Venues sync partially.** A venue's name, website, schedule, and notes sync

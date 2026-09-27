@@ -28,6 +28,10 @@ prompt and a **New program** button until you make your first one.
   set list you already have) and **From ContraDB** (pull an event straight from
   the online archive). On a narrow screen, those actions say **Import from title
   list** and **Import from ContraDB**. Both are described below.
+- **Sync** with your other devices from the **Sync now** icon in the
+  **Programs** toolbar. It appears only while [Device
+  Sync](./settings.md#device-sync) is on and a store is connected, and shows a
+  spinner while a sync is running.
 - **Duplicate** a program to reuse last month's shape as a starting point.
 - **Delete** a program and it is only soft-deleted — an **Undo** option appears,
   and it moves to a **Recently Deleted** area you can restore from later, exactly

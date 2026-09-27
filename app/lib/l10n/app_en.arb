@@ -552,6 +552,14 @@
   "@settingsSyncNotPairedNow": {
     "description": "Message shown when a manual sync is attempted with no store connected."
   },
+  "commonSyncNowTooltip": "Sync now",
+  "@commonSyncNowTooltip": {
+    "description": "Tooltip of the toolbar button on the Collection and Programs pages that starts a manual Device Sync pass. Shown only while Device Sync is on and paired."
+  },
+  "commonSyncMeteredBlocked": "You are on a mobile-data connection and Sync only on WiFi is on. Turn that setting off in Settings to sync now.",
+  "@commonSyncMeteredBlocked": {
+    "description": "Snackbar shown when the toolbar Sync now button is tapped on a metered connection. Unlike settingsSyncMeteredRouted it must not say the setting is 'below': the button lives outside Settings, so nothing is below it."
+  },
   "settingsSyncConnectTitle": "Connect",
   "@settingsSyncConnectTitle": {
     "description": "Title of the button that opens Device Sync pairing when no store is connected."

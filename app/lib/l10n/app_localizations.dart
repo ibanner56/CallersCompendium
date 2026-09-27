@@ -826,6 +826,18 @@ abstract class AppLocalizations {
   /// **'Connect a store before syncing.'**
   String get settingsSyncNotPairedNow;
 
+  /// Tooltip of the toolbar button on the Collection and Programs pages that starts a manual Device Sync pass. Shown only while Device Sync is on and paired.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync now'**
+  String get commonSyncNowTooltip;
+
+  /// Snackbar shown when the toolbar Sync now button is tapped on a metered connection. Unlike settingsSyncMeteredRouted it must not say the setting is 'below': the button lives outside Settings, so nothing is below it.
+  ///
+  /// In en, this message translates to:
+  /// **'You are on a mobile-data connection and Sync only on WiFi is on. Turn that setting off in Settings to sync now.'**
+  String get commonSyncMeteredBlocked;
+
   /// Title of the button that opens Device Sync pairing when no store is connected.
   ///
   /// In en, this message translates to:
