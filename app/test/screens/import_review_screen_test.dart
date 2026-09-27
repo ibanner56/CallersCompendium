@@ -478,32 +478,39 @@ void main() {
     'the overwrite warning counts distinct target dances, not re-import rows',
     (tester) async {
       final repos = openTestRepositories();
-      // A single existing local dance.
+      // A single existing local dance, received under the bare upstream id
+      // before receive keys carried the upstream source.
       await repos.dances.create(
         _dance(
           'existing',
           'Old Title',
           provenance: Provenance(
             source: ProvenanceSource.json,
-            externalId: 'ext1',
+            externalId: '457',
             importedAt: DateTime.utc(2026, 1, 1),
           ),
         ),
       );
 
-      // Two incoming records that share the same provenance key, so both
-      // dedupe onto the *same* local dance ('existing').
+      // Two incoming records with distinct receive keys (`contradb:457`,
+      // `callersbox:457`) whose legacy fallback key is the same bare `457`, so
+      // both dedupe onto the *same* local dance ('existing'). (Two records
+      // sharing one receive key can no longer produce two rows: `plan` drops
+      // the repeat within a batch.)
       await _pump(
         tester,
         repos,
         payload: _archivePayload([
-          for (final id in ['incoming-a', 'incoming-b'])
+          for (final (id, source) in [
+            ('incoming-a', ProvenanceSource.contradb),
+            ('incoming-b', ProvenanceSource.callersbox),
+          ])
             _dance(
               id,
               'Fresh $id',
               provenance: Provenance(
-                source: ProvenanceSource.json,
-                externalId: 'ext1',
+                source: source,
+                externalId: '457',
                 importedAt: DateTime.utc(2026, 6, 1),
               ),
             ),
