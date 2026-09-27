@@ -259,6 +259,11 @@ jobs:
           python3 tools/site/test_markdown_to_html.py
           python3 tools/site/test_render_user_docs.py
           python3 tools/site/test_privacy_policy.py
+      # The guard below parses `flutter --version`'s banner; this pins that
+      # parse (and the verdict's exit codes) without running flutter, so it
+      # too runs before the SDK setup.
+      - name: Test the Flutter version guard (banner parsing, exit codes)
+        run: python3 tools/ci/test_check_flutter_version.py
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           # Single source of truth for the Flutter version (see .fvmrc).
@@ -266,7 +271,8 @@ jobs:
           channel: stable
           cache: true # caches the Flutter SDK and the pub cache
       # .fvmrc is the single source of truth; assert the SDK the action actually
-      # resolved matches it (catches a channel override / drift). See
+      # resolved matches it (catches a channel override / drift). Runs with no
+      # argument, so it checks the `flutter` the action just put on PATH. See
       # tools/ci/check_flutter_version.py.
       - name: Guard Flutter version single-source (.fvmrc == toolchain)
         run: python3 tools/ci/check_flutter_version.py

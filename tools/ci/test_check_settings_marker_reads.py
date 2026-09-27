@@ -277,6 +277,37 @@ def test_extract_sql_literals() -> None:
         f"got {triple_lits}",
     )
 
+    # Escape sequences take their Dart meaning. An earlier revision appended
+    # the escaped character raw, so `'WHERE\nkey'` joined to `WHERE` + `n` +
+    # `key` -- `WHEREnkey` -- and neither the scope pattern nor the filter
+    # pattern could see a word boundary there: an unfiltered read written
+    # with a `\n` between clauses vanished from the checker entirely.
+    # Python's `\\n` below puts a literal backslash-n into the Dart source.
+    lits = extract_sql_literals("'WHERE\\nkey = ?'")
+    check(
+        "`\\n` escape becomes a newline, not the letter n",
+        len(lits) == 1 and lits[0].content == "WHERE\nkey = ?",
+        f"got {[l.content for l in lits]}",
+    )
+    lits = extract_sql_literals("'a\\tb\\rc'")
+    check(
+        "`\\t` and `\\r` escapes become tab and carriage return",
+        len(lits) == 1 and lits[0].content == "a\tb\rc",
+        f"got {[l.content for l in lits]}",
+    )
+    lits = extract_sql_literals("'it\\'s \\$x \\\\ done'")
+    check(
+        "quote, dollar and backslash escapes yield the character itself",
+        len(lits) == 1 and lits[0].content == "it's $x \\ done",
+        f"got {[l.content for l in lits]}",
+    )
+    lits = extract_sql_literals("'WHERE '\n'\\nkey = ?'")
+    check(
+        "escapes in an ADJACENT literal are decoded the same way",
+        len(lits) == 1 and lits[0].content == "WHERE \nkey = ?",
+        f"got {[l.content for l in lits]}",
+    )
+
     # Line number of the opening quote.  The two literals must not be adjacent
     # (i.e. they must be separated by a non-whitespace token) so the SELECT is
     # its own literal group with its own line number.
@@ -402,6 +433,66 @@ def test_compliant_reads() -> None:
             ").get();\n"
         ) == 0,
         "reverse order: double-quoted opening literal, single-quoted continuation",
+    )
+
+    # The widened scope (see test_non_compliant_reads) must not turn the
+    # filtered spellings of the same reads into false positives.
+    check(
+        "aliased, filtered read is compliant",
+        _violation_count(
+            "final r = db.customSelect(\n"
+            "  'SELECT s.value_json FROM settings s WHERE s.key = ? '\n"
+            "  'AND deleted_at IS NULL',\n"
+            ").get();\n"
+        ) == 0,
+    )
+    check(
+        "interpolated table name, filtered read is compliant",
+        _violation_count(
+            "final r = db.customSelect(\n"
+            "  'SELECT value_json FROM ${db.settings.actualTableName} '\n"
+            "  'WHERE key = ? AND deleted_at IS NULL',\n"
+            ").get();\n"
+        ) == 0,
+    )
+    check(
+        "`\\n`-separated clauses with the filter are compliant",
+        _violation_count(
+            "final r = db.customSelect(\n"
+            "  'SELECT value_json FROM settings WHERE key = ?\\nAND deleted_at IS NULL',\n"
+            ").get();\n"
+        ) == 0,
+        "the escape decodes to a real newline, which the filter's \\s+ accepts",
+    )
+    # repositories.dart's normalisation scan walks every settings row with no
+    # WHERE at all, on purpose (#1346; see the checker's module docstring). A
+    # read with no WHERE is not a by-key read and stays out of scope -- the
+    # widening must not sweep it in.
+    check(
+        "a read with no WHERE clause is out of scope",
+        _violation_count(
+            "final rows = db.customSelect(\n"
+            "  'SELECT key, value_json FROM settings',\n"
+            ").get();\n"
+        ) == 0,
+        "not a by-key read; the deliberate unfiltered scan in repositories.dart",
+    )
+    check(
+        "a WHERE that does not mention key is out of scope",
+        _violation_count(
+            "final rows = db.customSelect(\n"
+            "  'SELECT key, value_json FROM settings WHERE value_json IS NOT NULL',\n"
+            ").get();\n"
+        ) == 0,
+    )
+    check(
+        "a table whose name merely starts with settings is not this table",
+        _violation_count(
+            "final r = db.customSelect(\n"
+            "  'SELECT 1 FROM settings_history WHERE key = ?',\n"
+            ").get();\n"
+        ) == 0,
+        "`settings\\b` -- the word boundary is load-bearing",
     )
 
 
@@ -541,6 +632,74 @@ def test_non_compliant_reads() -> None:
         ) == 1,
         "an earlier implementation only joined same-quote adjacent literals; "
         "this cross-quote split was a complete bypass",
+    )
+
+    # --- non-canonical spellings of the same by-key read -----------------
+    #
+    # The original scope pattern was `FROM\s+settings\b … WHERE\s+key\b`: the
+    # table name spelled bare, and `key` as the FIRST token after WHERE. Every
+    # one of the reads below is the same query in legal SQL a contributor
+    # could write by habit -- or copy from the DELETE statements in
+    # repositories.dart, which already use the interpolated table name -- and
+    # every one passed the checker unfiltered. None is used by live code.
+    check(
+        "alias: FROM settings s WHERE s.key",
+        _violation_count(
+            "final r = await db.customSelect(\n"
+            "  'SELECT value_json FROM settings s WHERE s.key = ?',\n"
+            ").get();\n"
+        ) == 1,
+    )
+    check(
+        "AS alias",
+        _violation_count(
+            "final r = await db.customSelect(\n"
+            "  'SELECT s.value_json FROM settings AS s WHERE s.key = ?',\n"
+            ").get();\n"
+        ) == 1,
+    )
+    check(
+        "quoted identifiers: FROM \"settings\" WHERE \"key\"",
+        _violation_count(
+            "final r = await db.customSelect(\n"
+            "  'SELECT value_json FROM \"settings\" WHERE \"key\" = ?',\n"
+            ").get();\n"
+        ) == 1,
+    )
+    check(
+        "interpolated table name: FROM ${db.settings.actualTableName}",
+        _violation_count(
+            "final r = await db.customSelect(\n"
+            "  'SELECT value_json FROM ${db.settings.actualTableName} WHERE key = ?',\n"
+            ").get();\n"
+        ) == 1,
+        "the spelling every DELETE in repositories.dart already uses",
+    )
+    check(
+        "key is not the first predicate",
+        _violation_count(
+            "final r = await db.customSelect(\n"
+            "  'SELECT 1 FROM settings WHERE value_json = ? AND key = ?',\n"
+            ").get();\n"
+        ) == 1,
+    )
+    check(
+        "parenthesised predicate: WHERE (key = ?)",
+        _violation_count(
+            "final r = await db.customSelect(\n"
+            "  'SELECT 1 FROM settings WHERE (key = ?)',\n"
+            ").get();\n"
+        ) == 1,
+    )
+    check(
+        "a `\\n` escape between WHERE and key",
+        _violation_count(
+            "final r = await db.customSelect(\n"
+            "  'SELECT value_json FROM settings WHERE\\nkey = ?',\n"
+            ").get();\n"
+        ) == 1,
+        "Python's \\\\n puts a literal backslash-n in the Dart source; the "
+        "extractor used to append the escaped letter raw, joining to WHEREnkey",
     )
 
 

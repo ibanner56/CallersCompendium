@@ -350,6 +350,11 @@ STEPS: tuple[Step, ...] = (
         (py("tools/ci/test_check_core_coverage.py"),),
     ),
     Step(
+        "flutter-version-tests",
+        "the .fvmrc-vs-toolchain guard's banner parsing and verdict",
+        (py("tools/ci/test_check_flutter_version.py"),),
+    ),
+    Step(
         "format",
         "dart format",
         (fvm("dart", "format", "--output=none", "--set-exit-if-changed", "."),),

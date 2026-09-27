@@ -15,8 +15,9 @@ The fix added a process-wide seam (``app/lib/src/diagnostics/error_log.dart``):
 either logs or says why not" mechanical rather than a convention that erodes the
 next time someone adds a `catch` block under time pressure.
 
-Every catch clause, ``.catchError(...)`` call, and ``onError:`` callback in
-``app/lib`` must contain, within its own body:
+Every catch clause, ``.catchError(...)`` / ``.onError(...)`` /
+``.handleError(...)`` call, and ``onError:`` callback in ``app/lib`` must
+contain, within its own body:
 
 * a call to ``logCaughtError(`` or ``logCaughtErrorTypeOnly(``, or
 * a comment containing the literal marker ``diagnostics: silent`` (followed by
@@ -34,6 +35,21 @@ non-function-literal ``onError:`` value is silently exempt from this
 docstring's "must contain" claim above, by design, not by omission: this was
 found and fixed as a real false positive against
 ``app/lib/src/theme/color_schemes.dart`` while building this ratchet.
+
+**Exception — ``runZonedGuarded``.** Its second argument is an error handler
+with a body, but it is not walked: the one site in ``app/lib``
+(``crash_reporter.dart``) *is* the global log writer that every
+``logCaughtError`` call ultimately feeds, so asking it to log to itself would
+be circular. If a second ``runZonedGuarded`` ever appears, add the walk then.
+
+``.onError(...)`` and ``.handleError(...)`` were added after an audit found
+them unwalked: ``future.onError`` is the post-2.12 idiom that replaced
+``.catchError``, and ``handleError`` is its stream counterpart, so both are
+exactly the honest under-time-pressure swallow this ratchet exists for. Both
+are handled by the same argument-list walk as ``.catchError``, including a
+tear-off argument (``.onError(_swallow)``): it has no body of its own, so the
+marker goes on a comment above the statement or trailing it, as for
+``.catchError(_swallow)``.
 
 The baseline is **clean** as of the PR that added this ratchet: every site in
 ``app/lib`` was read and classified by hand. There is deliberately no allowlist
@@ -88,6 +104,14 @@ _CATCH_RE = re.compile(r"\bcatch\s*\(")
 # `test_check_caught_error_logged.py`'s `nested generics` case.
 _ON_BLOCK_RE = re.compile(r"\bon\s+[A-Za-z_][\w.]*(?:\s*<[^{;()]*?>)?\s*\{")
 _CATCHERROR_RE = re.compile(r"\.catchError\s*\(")
+# `future.onError<T>((e, s) { … })`: the optional type-argument group excludes
+# `(` from its character class for the same reason _ON_BLOCK_RE excludes `{`,
+# so nested generics (`onError<Result<Map<String, int>>>(`) reach the true
+# final `>` -- the `(` after it is the only place `\s*\(` can then match.
+# `\.onError` (a method call) and `\bonError\s*:` (a named argument) are
+# disjoint, so a site is never counted under both.
+_ONERROR_METHOD_RE = re.compile(r"\.onError\s*(?:<[^{;()]*?>)?\s*\(")
+_HANDLEERROR_RE = re.compile(r"\.handleError\s*\(")
 _ONERROR_RE = re.compile(r"\bonError\s*:")
 
 _LOG_CALL_RE = re.compile(r"\blogCaughtError\w*\s*\(")
@@ -97,8 +121,18 @@ _KINDS = {
     "catch": "catch (...) { ... }",
     "on-block": "on Type { ... }  (no bound exception object)",
     "catchError": ".catchError(...)",
+    "onError-method": ".onError(...)",
+    "handleError": ".handleError(...)",
     "onError": "onError: ...",
 }
+
+# The three method-call shapes share one walk: the site's body is the whole
+# argument list, from the `(` after the name to its balancing `)`.
+_ARGUMENT_LIST_SITES = (
+    (_CATCHERROR_RE, "catchError"),
+    (_ONERROR_METHOD_RE, "onError-method"),
+    (_HANDLEERROR_RE, "handleError"),
+)
 
 
 def _fail(msg: str, code: int = 2) -> None:
@@ -442,16 +476,17 @@ def find_unmarked(text: str) -> list[tuple[int, str, str]]:
                 (m.start(), _line_of(text, m.start()), "on-block", snippet(m.start()))
             )
 
-    for m in _CATCHERROR_RE.finditer(masked):
-        open_paren = m.end() - 1
-        close_paren = _match_paren(masked, open_paren)
-        if close_paren is None:
-            continue
-        marker_start = _lookback_start(masked, m.start())
-        if not _has_marker(text, masked, marker_start, close_paren + 1):
-            findings.append(
-                (m.start(), _line_of(text, m.start()), "catchError", snippet(m.start()))
-            )
+    for pattern, kind in _ARGUMENT_LIST_SITES:
+        for m in pattern.finditer(masked):
+            open_paren = m.end() - 1
+            close_paren = _match_paren(masked, open_paren)
+            if close_paren is None:
+                continue
+            marker_start = _lookback_start(masked, m.start())
+            if not _has_marker(text, masked, marker_start, close_paren + 1):
+                findings.append(
+                    (m.start(), _line_of(text, m.start()), kind, snippet(m.start()))
+                )
 
     for m in _ONERROR_RE.finditer(masked):
         start = m.end()
@@ -481,6 +516,7 @@ def main() -> int:
             "catch" in text
             or "catchError" in text
             or "onError" in text
+            or "handleError" in text
             or " on " in text
         ):
             continue
@@ -496,13 +532,15 @@ def main() -> int:
             f"::error::{len(offenders)} caught-error site(s) neither log via "
             "logCaughtError()/logCaughtErrorTypeOnly() nor carry a "
             "`// diagnostics: silent — <reason>` comment (issue #963). Every "
-            "catch/catchError/onError in app/lib must do one or the other.",
+            "catch/catchError/onError/handleError in app/lib must do one or "
+            "the other.",
         )
         return 1
 
     print(
-        f"OK: every catch/catchError/onError site across {len(files)} file(s) "
-        "in app/lib logs the caught error or is explicitly marked silent.",
+        f"OK: every catch/catchError/onError/handleError site across "
+        f"{len(files)} file(s) in app/lib logs the caught error or is "
+        "explicitly marked silent.",
     )
     return 0
 

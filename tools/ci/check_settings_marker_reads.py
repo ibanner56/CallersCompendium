@@ -36,6 +36,29 @@ trailing space inside the first literal:
     'SELECT 1 FROM settings WHERE key = ? '
     'AND deleted_at IS NULL'
 
+Escape sequences take their Dart meaning: `\\n` becomes a newline, `\\t` a
+tab, and `\\'`, `\\"`, `\\\\`, `\\$` the character itself. An earlier revision
+appended the escaped letter raw, so 'WHERE\\nkey' joined to WHEREnkey -- no
+word boundary for either pattern -- and an unfiltered read written with an
+escape between its clauses vanished from the checker entirely.
+
+Scope: which reads count
+------------------------
+A read is in scope when one SQL literal group contains SELECT, then FROM the
+settings table, then a WHERE clause that mentions `key`. The table may be
+spelled bare (`FROM settings`), double-quoted (`FROM "settings"`), or as a Dart
+interpolation of the drift table's name (`FROM ${db.settings.actualTableName}`
+-- the spelling every DELETE in repositories.dart already uses), with or
+without an alias; `key` may sit anywhere in the WHERE clause, quoted or
+alias-qualified (`s.key`, `"key"`, `(key = ?)`, `... AND key = ?`). The
+original pattern accepted only the canonical `FROM settings … WHERE key`, and
+each of the other spellings was a complete bypass; none is used by live code.
+
+A SELECT with no WHERE clause is not a by-key read and is out of scope -- see
+"Deliberate exceptions" for the one such read that exists on purpose. So is a
+WHERE that does not mention `key`. Both fail open by design: the invariant is
+about marker reads *by key*, and a table scan judges tombstones itself.
+
 Filter scoping
 --------------
 The filter check is restricted to the joined content of the SQL literal
@@ -110,10 +133,28 @@ _NOTED_EXCEPTIONS: dict[str, str] = {
 # Patterns
 # --------------------------------------------------------------------------
 
+# See "Scope: which reads count" in the module docstring. `settings\b` is
+# load-bearing: `settings_history` would be a different table. The `${…}`
+# alternative accepts any interpolation whose text names the settings table,
+# so `db.settings.actualTableName` and a hypothetical `$settingsTable` alias
+# both count; a `}` cannot appear inside the interpolation, which bounds it.
 _SELECT_FROM_SETTINGS_RE = re.compile(
-    r"\bSELECT\b[^;]*\bFROM\s+settings\b[^;]*\bWHERE\s+key\b",
+    r"\bSELECT\b[^;]*\bFROM\s+"
+    r'(?:"settings"|settings\b|\$\{[^}]*\bsettings\b[^}]*\})'
+    r"[^;]*\bWHERE\b[^;]*\bkey\b",
     re.IGNORECASE,
 )
+
+# Dart escape sequences that produce a character other than the one written.
+# Anything else (`\'`, `\"`, `\\`, `\$`) produces the escaped character itself.
+# `\u`/`\x` sequences are not decoded: none appears in a SQL literal here, and
+# the letters left behind carry no SQL keyword boundary that matters.
+_ESCAPES = {"n": "\n", "t": "\t", "r": "\r", "b": "\b", "f": "\f", "v": "\v"}
+
+
+def _unescape(escaped: str) -> str:
+    """The character a Dart `\\<escaped>` sequence produces."""
+    return _ESCAPES.get(escaped, escaped)
 
 _DELETED_AT_FILTER_RE = re.compile(
     # The leading \s+AND is required, not cosmetic. Dart adjacent string literals
@@ -303,7 +344,7 @@ def extract_sql_literals(text: str) -> list[SqlLiteral]:
                             if ch2 == "\\":
                                 j2 += 1
                                 if j2 < n:
-                                    group_content += text[j2]
+                                    group_content += _unescape(text[j2])
                                 j2 += 1
                                 continue
                             if ch2 == aq2:
@@ -326,7 +367,7 @@ def extract_sql_literals(text: str) -> list[SqlLiteral]:
             if ch == "\\":
                 j += 1
                 if j < n:
-                    content_chars.append(text[j])
+                    content_chars.append(_unescape(text[j]))
                 j += 1
                 continue
             if ch == q:
@@ -415,7 +456,7 @@ def extract_sql_literals(text: str) -> list[SqlLiteral]:
                 if ch == "\\":
                     j2 += 1
                     if j2 < n:
-                        adj_chars.append(text[j2])
+                        adj_chars.append(_unescape(text[j2]))
                     j2 += 1
                     continue
                 if ch == aq:

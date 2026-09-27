@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """CI ratchet: every ``debugPrint`` call must be guarded by ``kDebugMode``.
 
-An unguarded ``debugPrint`` survives into release builds, where it writes to the
+An unguarded ``debugPrint`` -- or ``debugPrintStack`` / ``debugPrintThrottled``,
+which reach the same sink -- survives into release builds, where it writes to the
 system log. This app's debug output carries file paths, import URLs and user
 dance content, so an unguarded call is an information-disclosure leak (issue
 #617, cleaned up in PR #647). The convention is enforced nowhere in code, so
@@ -29,13 +30,17 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # Production library roots only. `app/lib` plus every `packages/*/lib`.
 SEARCH_ROOTS = ("app/lib", "packages")
 
-_CALL_RE = re.compile(r"\bdebugPrint\s*\(")
+# `debugPrint(` and its siblings `debugPrintStack(` / `debugPrintThrottled(`,
+# which write to the same place in a release build; the bare name used to be
+# the whole pattern, so both siblings were invisible. `\w*` also reaches any
+# future `debugPrintX`, and a project function that merely starts with the
+# name would be asked for a guard too -- the cheap direction to be wrong in.
+_CALL_RE = re.compile(r"\bdebugPrint\w*\s*\(")
 # Locates a candidate guard; the ACCEPTANCE decision is made by
 # [is_debug_guard], not by this pattern. Matching `if (` is cheap; deciding
 # whether the condition actually implies debug-only is not, and must fail
 # closed.
 _IF_RE = re.compile(r"\bif\s*\(")
-_KDEBUG_RE = re.compile(r"\bkDebugMode\b")
 
 # `import ... show debugPrint` names the symbol without calling it.
 _IMPORT_RE = re.compile(r"^\s*import\s")
@@ -65,6 +70,50 @@ def _last_if_condition(code: str) -> str | None:
     return None
 
 
+def _split_conjunction(condition: str) -> list[str]:
+    """The operands of [condition] split on `&&` at parenthesis depth 0.
+
+    `kDebugMode && (a && b)` splits into two operands, the second of which is
+    the parenthesised group whole; the nested `&&` is not a top-level split.
+    """
+    operands: list[str] = []
+    depth = 0
+    start = 0
+    i = 0
+    while i < len(condition):
+        c = condition[i]
+        if c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+        elif depth == 0 and condition.startswith("&&", i):
+            operands.append(condition[start:i])
+            start = i + 2
+            i += 2
+            continue
+        i += 1
+    operands.append(condition[start:])
+    return operands
+
+
+def _strip_redundant_parens(operand: str) -> str:
+    """`(kDebugMode)` is `kDebugMode`: peel parentheses that enclose the WHOLE
+    operand. `(a) == (b)` starts with `(` and ends with `)` too, but its first
+    parenthesis closes early, so it is left alone."""
+    text = operand.strip()
+    while text.startswith("(") and text.endswith(")"):
+        depth = 0
+        for i, c in enumerate(text):
+            if c == "(":
+                depth += 1
+            elif c == ")":
+                depth -= 1
+                if depth == 0 and i != len(text) - 1:
+                    return text  # the leading `(` closes before the end
+        text = text[1:-1].strip()
+    return text
+
+
 def is_debug_guard(code: str) -> bool:
     """Whether the last `if (…)` in [code] guarantees `kDebugMode` is true.
 
@@ -74,20 +123,29 @@ def is_debug_guard(code: str) -> bool:
     restructure, while a false negative ships a release-build log leak — and
     an unrecognised-but-safe form is far likelier than a novel unsafe one.
 
-    Accepted: a bare `kDebugMode` token, alone or in a conjunction
-    (`kDebugMode && x`, `x && kDebugMode`).
+    Accepted — and *only* this: the condition, split on `&&` at parenthesis
+    depth 0, has an operand that is exactly the token `kDebugMode` (redundant
+    parentheses around it allowed), and contains no `||` or `?` anywhere.
+    So `kDebugMode`, `kDebugMode && x`, `x && kDebugMode`, `(kDebugMode) && x`.
 
-    Rejected, and each of these previously passed:
+    Rejected, each of which passed under an earlier revision:
 
-    * `!kDebugMode` — inverted. This is the dangerous one: it runs the call
-      **only in release**, the exact outcome the ratchet exists to prevent.
+    * `!kDebugMode`, `!(kDebugMode)` — inverted. The dangerous one: it runs
+      the call **only in release**, the exact outcome the ratchet exists to
+      prevent. The parenthesised form defeated a check for `!` immediately
+      before the token.
     * `kDebugMode || x` — a disjunction is true whenever `x` is, so the call
       can run in release whenever some other flag is set.
-    * `kDebugMode == false`, `kDebugMode != true` — inverted via comparison.
+    * `kDebugMode == false`, `kDebugMode != true`, `kDebugMode | true`,
+      `kDebugMode ^ true`, `identical(kDebugMode, false)`,
+      `kDebugMode.toString() == 'false'` — the token is an operand of some
+      other expression, whose value is not the token's.
     * anything containing `?`, since a ternary's value is not the token's.
 
     Earlier revisions matched the *shape* of a guard (`if` … `kDebugMode` …
-    `)`), which accepts any condition that merely mentions the constant.
+    `)`), then a reject-list of known-bad neighbours (`!`, `==`, `!=`, `<`,
+    `>`); each accepted every unsafe form it had not named. This is the
+    accept-list the docstring always described.
     """
     condition = _last_if_condition(code)
     if condition is None:
@@ -96,18 +154,10 @@ def is_debug_guard(code: str) -> bool:
     # condition is unusable regardless of where `kDebugMode` sits in it.
     if "||" in condition or "?" in condition:
         return False
-    for match in _KDEBUG_RE.finditer(condition):
-        before = condition[: match.start()].rstrip()
-        after = condition[match.end() :].lstrip()
-        # Negated, directly (`!kDebugMode`) or via a comparison operator.
-        if before.endswith("!"):
-            continue
-        if before.endswith(("==", "!=", ">", "<", ">=", "<=")):
-            continue
-        if after.startswith(("==", "!=", ">", "<", ">=", "<=")):
-            continue
-        return True
-    return False
+    return any(
+        _strip_redundant_parens(operand) == "kDebugMode"
+        for operand in _split_conjunction(condition)
+    )
 
 
 def _fail(msg: str, code: int = 2) -> None:
@@ -367,8 +417,9 @@ def main() -> int:
             print(f"::error::unguarded debugPrint: {offender}")
         print(
             f"::error::{len(offenders)} unguarded debugPrint call(s). Wrap each "
-            "in `if (kDebugMode) { … }` — an unguarded call writes to the "
-            "system log in release builds (issue #617).",
+            "in `if (kDebugMode) { … }` — the guard must be a bare kDebugMode "
+            "operand of the condition's top-level conjunction — an unguarded "
+            "call writes to the system log in release builds (issue #617).",
         )
         return 1
 
