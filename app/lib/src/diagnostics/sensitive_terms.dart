@@ -2,12 +2,29 @@ import 'package:compendium_core/compendium_core.dart';
 
 /// Collects the user-content strings that the *default* (scrubbed) diagnostics
 /// export must redact (issue #458): dance / program / figure titles, notes,
-/// free-text figure params, custom-field values and definitions, program notes,
-/// slot text and guest callers, band/caller/venue labels, and tag names.
+/// walkthroughs, free-text figure params, link labels, custom-field values and
+/// definitions, program notes, slot text and guest callers, band/caller/venue
+/// labels, tag names, and every person / place / source field — venue names,
+/// addresses and contacts, choreographer names and locations, published-source
+/// authors — plus the serialized records the Device Sync review and deletion
+/// queues hold.
 ///
 /// Gathered on demand from the local database at export time — export is a
 /// deliberate, infrequent user action, so a full read is acceptable — and fed
 /// to a [CrashRedactor].
+///
+/// **Why the person / place / source columns are here.** The pinned `sqlite3`
+/// renders every bound parameter into a failed statement's exception text
+/// (`Causing statement: …, parameters: …`) and drift prints that verbatim, so
+/// a constraint failure on a `venues` or `choreographers` write puts the whole
+/// row — a contact's name, a street address, a locality — into the crash
+/// record's `errorMessage`. Only phone numbers and emails are caught by the
+/// always-on patterns; names and addresses are caught only if they are here.
+/// `test/privacy/crash_log_term_sources_test.dart` reconciles this list
+/// against the privacy registry so a new third-party or personal text column
+/// cannot ship without a term source. Soft-deleted rows are read too
+/// (`includeDeleted`, `listAllWithDeleted`): a tombstoned row is still bound
+/// by the purge that removes it.
 ///
 /// **Fail-closed (OWASP).** This deliberately does NOT swallow read errors. If
 /// any source can't be read, the returned future *fails* so the caller aborts
@@ -44,6 +61,10 @@ Future<Set<String>> collectSensitiveTerms(
     add(dance.title);
     add(dance.hook);
     add(dance.callingNotes);
+    add(dance.walkthrough);
+    for (final link in dance.links) {
+      add(link.label);
+    }
     switch (dance.tunesSource) {
       case DecodedTunes(:final tunes):
         for (final tune in tunes) {
@@ -98,6 +119,58 @@ Future<Set<String>> collectSensitiveTerms(
     for (final choice in def.choices ?? const <String>[]) {
       add(choice);
     }
+  }
+
+  // People, places and sources. Every column the registry classifies as
+  // third-party or personal data is here, plus the identity fields a user
+  // would recognise as their own content (a hall's name, a book's title).
+  for (final venue in await repositories.venues.listAll(includeDeleted: true)) {
+    add(venue.name);
+    add(venue.sponsor);
+    add(venue.address1);
+    add(venue.address2);
+    add(venue.city);
+    add(venue.stateProv);
+    add(venue.country);
+    add(venue.postalCode);
+    add(venue.plus4);
+    add(venue.notes);
+    add(venue.contact1Name);
+    add(venue.contact1Phone);
+    add(venue.contact1Email);
+    add(venue.contact2Name);
+    add(venue.contact2Phone);
+    add(venue.contact2Email);
+  }
+
+  for (final choreographer in await repositories.choreographers.listAll(
+    includeDeleted: true,
+  )) {
+    add(choreographer.name);
+    add(choreographer.website);
+    add(choreographer.notes);
+    add(choreographer.email);
+    add(choreographer.location);
+  }
+
+  for (final entry
+      in await repositories.publishedSources.listAllWithDeleted()) {
+    add(entry.source.title);
+    add(entry.source.author);
+    add(entry.source.notes);
+  }
+
+  // Device Sync holds whole serialized records while a conflict awaits review
+  // or a tombstone awaits retransmission. Their content is a peer's copy of
+  // the same person / place / dance fields, not yet (or no longer) in the
+  // entity tables above, so nothing else here would cover it. Added verbatim
+  // — the same rule as an undecodable figures list: the stored text is the
+  // user's content whether or not it can be read as structure.
+  for (final row in await repositories.syncLocal.listReviewQueue()) {
+    add(row.candidateBlob);
+  }
+  for (final row in await repositories.syncLocal.listPendingDeletions()) {
+    add(row.tombstoneBlob);
   }
 
   return terms;

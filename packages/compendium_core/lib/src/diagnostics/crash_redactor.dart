@@ -9,7 +9,8 @@
 /// file basename so a stack frame stays diagnostically useful — unless the
 /// path ends at a home directory, where the "basename" is the username), and
 /// redacts an explicit set of user-content terms (dance / program / figure
-/// titles, notes, custom-field values, tag names) supplied by the caller.
+/// titles, notes, custom-field values, tag names, and the person / place /
+/// source fields the app stores) supplied by the caller.
 ///
 /// The design is deliberately conservative: when in doubt it over-redacts. A
 /// crash log is a diagnostic skeleton, not a data export, so losing a little

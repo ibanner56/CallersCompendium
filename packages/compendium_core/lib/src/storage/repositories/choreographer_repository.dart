@@ -228,12 +228,13 @@ class ChoreographerRepository {
     return row == null ? null : _toModel(row);
   }
 
-  Future<List<Choreographer>> listAll() async {
-    final rows =
-        await (_db.select(_db.choreographers)
-              ..where((t) => t.deletedAt.isNull())
-              ..orderBy([(t) => OrderingTerm(expression: t.name)]))
-            .get();
+  /// Every live choreographer, by name. With [includeDeleted], soft-deleted
+  /// rows too — see `VenueRepository.listAll` for the one reader that needs it.
+  Future<List<Choreographer>> listAll({bool includeDeleted = false}) async {
+    final query = _db.select(_db.choreographers)
+      ..orderBy([(t) => OrderingTerm(expression: t.name)]);
+    if (!includeDeleted) query.where((t) => t.deletedAt.isNull());
+    final rows = await query.get();
     return rows.map(_toModel).toList();
   }
 
