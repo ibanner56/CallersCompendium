@@ -160,6 +160,35 @@ const _freeformNote = DataClassification(
       'contain contact details the user typed there.',
 );
 
+/// Freeform text on a program or one of its slots: the evening's running notes
+/// and a slot's own text (a break, a waltz, a reminder to the caller).
+///
+/// Same three axis values as [_choreography], and deliberately **not**
+/// [_freeformNote], although the two are the same shape of unbounded text.
+/// The registry classifies freeform fields by the field's *intent*, not by
+/// what a user might type into it (`docs/dev/data-classification.md`, "Known
+/// limitations": "Freeform fields are classified by intent, not by content").
+/// A [_freeformNote] hangs off a person, place or source record and inherits
+/// that record's subject; a program note hangs off an event plan, and its
+/// intent is running order and choreography. Where a program does name a
+/// third party — its caller, band, or a slot's guest caller — those are their
+/// own columns, classified [_performerCredit]. The 2026 external audit read
+/// the shape and asked why these two were not `thirdParty`; this note is the
+/// answer. Maintainer decision: keep the by-intent classification.
+const _programNote = DataClassification(
+  term: DpvTerm.nonPersonal,
+  subject: DataSubject.none,
+  egress: EgressClass.shareable,
+  note:
+      'Freeform text attached to an event plan, not to a person, place or '
+      'source, so it does not take _freeformNote\'s third-party subject. '
+      'Classified by intent (running order, choreography), not by what a user '
+      'might type — see "Freeform fields are classified by intent, not by '
+      'content" in docs/dev/data-classification.md. Names on a program belong '
+      'in programs.caller, programs.band and program_slots.guest_caller, which '
+      'are third-party performer credits. Maintainer decision (2026 audit).',
+);
+
 /// A performer credit for a public event. Personal data about a third party,
 /// classified [EgressClass.shareable] because an event\'s billing is already
 /// public and a program without its caller and band is close to meaningless.
@@ -324,7 +353,7 @@ final Map<String, DataClassification> fieldClassifications = {
   'programs.band': _performerCredit,
   'programs.caller': _performerCredit,
   'programs.dancer_level': _choreography,
-  'programs.notes': _choreography,
+  'programs.notes': _programNote,
   'programs.status': _choreography,
   'programs.hide_alternates': _choreography,
   'programs.created_at': _recordStamp,
@@ -342,7 +371,7 @@ final Map<String, DataClassification> fieldClassifications = {
   'program_slots.program_id': _key,
   'program_slots.position': _choreography,
   'program_slots.dance_id': _key,
-  'program_slots.text': _choreography,
+  'program_slots.text': _programNote,
   'program_slots.is_purged_dance': _choreography,
   'program_slots.is_alt': _choreography,
   'program_slots.guest_caller': _performerCredit,

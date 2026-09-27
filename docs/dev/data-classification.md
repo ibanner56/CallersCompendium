@@ -352,7 +352,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `program_slots` | `performed_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `program_slots` | `position` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `program_slots` | `program_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
-| `program_slots` | `text` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `program_slots` | `text` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Freeform text attached to an event plan, not to a person, place or source, so it does not take _freeformNote's third-party subject. Classified by intent (running order, choreography), not by what a user might type — see "Freeform fields are classified by intent, not by content" in docs/dev/data-classification.md. Names on a program belong in programs.caller, programs.band and program_slots.guest_caller, which are third-party performer credits. Maintainer decision (2026 audit). |
 | `program_slots` | `walkthrough_minutes` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `programs` | `band` | `pd:Name` | Identifying → Name | third party | shareable | Performer credit for a public event. CONTESTED — see the performer-names section of docs/dev/data-classification.md. |
 | `programs` | `caller` | `pd:Name` | Identifying → Name | third party | shareable | Performer credit for a public event. CONTESTED — see the performer-names section of docs/dev/data-classification.md. |
@@ -363,7 +363,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `programs` | `existence_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Existence-transition stamp. A bare timestamp with no data subject; must travel or a receiver cannot decide which of two disagreeing copies is the later existence decision, and deletions resurrect. |
 | `programs` | `hide_alternates` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `programs` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
-| `programs` | `notes` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `programs` | `notes` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Freeform text attached to an event plan, not to a person, place or source, so it does not take _freeformNote's third-party subject. Classified by intent (running order, choreography), not by what a user might type — see "Freeform fields are classified by intent, not by content" in docs/dev/data-classification.md. Names on a program belong in programs.caller, programs.band and program_slots.guest_caller, which are third-party performer credits. Maintainer decision (2026 audit). |
 | `programs` | `status` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `programs` | `title` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `programs` | `updated_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
