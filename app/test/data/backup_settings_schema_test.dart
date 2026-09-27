@@ -1,6 +1,12 @@
 import 'package:compendium_app/src/data/aggressive_beats_update_scope.dart'
     show kAggressiveBeatsUpdateKey;
+import 'package:compendium_app/src/data/backup_reminder.dart'
+    show kBackupReminderCadenceKey;
+import 'package:compendium_app/src/data/backup_service.dart'
+    show isBackupEligibleSettingKey;
 import 'package:compendium_app/src/data/backup_settings_schema.dart';
+import 'package:compendium_app/src/data/seed_service.dart'
+    show kInitialSeedCompletedKey;
 import 'package:compendium_app/src/data/display_defaults.dart'
     show
         encodeStartingProgramTemplate,
@@ -10,10 +16,17 @@ import 'package:compendium_app/src/data/display_defaults.dart'
         StartingProgramTemplateEntry;
 import 'package:compendium_app/src/screens/settings/settings_keys.dart'
     show
+        kCollectionHiddenFacetsKey,
+        kCollectionTileVisibleFieldsKey,
+        kCustomFieldSharingDisclosureKey,
         kProgramMatrixColumnsKey,
         kShowIndividualPerformTimerKey,
         kVenueCallCountKey;
-import 'package:compendium_core/compendium_core.dart' show MatrixColumnConfig;
+import 'package:compendium_core/compendium_core.dart'
+    show
+        MatrixColumnConfig,
+        settingsClassifications,
+        shareableTextNormalisationScopeKey;
 import 'package:compendium_app/src/data/soft_delete_retention.dart'
     show kSoftDeleteRetentionKey;
 import 'package:compendium_app/src/data/walkthrough_snippet_library_controller.dart'
@@ -297,6 +310,56 @@ void main() {
       );
     });
 
+    test('the latches, the cadence, the list settings and the normalisation '
+        'scope marker enforce their container kind', () {
+      for (final key in [
+        kInitialSeedCompletedKey,
+        kCustomFieldSharingDisclosureKey,
+      ]) {
+        expect(validateBackupSettingValue(key, true), isTrue, reason: key);
+        expect(validateBackupSettingValue(key, 'true'), isFalse, reason: key);
+        expect(validateBackupSettingValue(key, 1), isFalse, reason: key);
+      }
+      expect(
+        validateBackupSettingValue(kBackupReminderCadenceKey, 'weekly'),
+        isTrue,
+      );
+      expect(validateBackupSettingValue(kBackupReminderCadenceKey, 7), isFalse);
+      for (final key in [
+        kCollectionTileVisibleFieldsKey,
+        kCollectionHiddenFacetsKey,
+      ]) {
+        expect(
+          validateBackupSettingValue(key, ['title', 'tags']),
+          isTrue,
+          reason: key,
+        );
+        expect(validateBackupSettingValue(key, <Object?>[]), isTrue);
+        expect(validateBackupSettingValue(key, 'title'), isFalse, reason: key);
+        expect(
+          validateBackupSettingValue(key, {'title': true}),
+          isFalse,
+          reason: key,
+        );
+      }
+      expect(
+        validateBackupSettingValue(shareableTextNormalisationScopeKey, {
+          'version': 1,
+          'columns': <String>[],
+          'settings': <String>[],
+          'settingsPrefixes': <String>[],
+        }),
+        isTrue,
+      );
+      expect(
+        validateBackupSettingValue(
+          shareableTextNormalisationScopeKey,
+          '{"version":1}',
+        ),
+        isFalse,
+      );
+    });
+
     test('unknown / forward-compatible keys pass through (null verdict)', () {
       expect(
         validateBackupSettingValue('some_future_key_v99', 'anything'),
@@ -304,5 +367,65 @@ void main() {
       );
       expect(validateBackupSettingValue('another_unknown', 12345), isNull);
     });
+  });
+
+  test('every backup-eligible key this build knows has a validator', () {
+    // The null verdict above is a forward-compatibility contract for keys a
+    // NEWER build wrote and this one has never heard of. It is not meant to
+    // cover keys this build declares itself: for those, "no validator" is a
+    // gap in the schema, and a hand-edited or crafted backup can restore any
+    // JSON shape under the key. Every live reader is defensive today, so the
+    // gap is latent rather than a crash — but the validator map was a
+    // hand-maintained list with no reconciliation against the registry, and
+    // hand-maintained lists drift. This turns it into a ratchet: a new
+    // backup-eligible key must either get a validator or be exempted here by
+    // name, with a reason.
+    //
+    // A `null` probe is enough to tell "has a validator" (bool verdict) from
+    // "unknown to the schema" (null verdict); the per-key tests above check
+    // what each validator accepts.
+    const exempt = <String, String>{};
+
+    final eligible = [
+      for (final key in settingsClassifications.keys)
+        if (isBackupEligibleSettingKey(key)) key,
+    ];
+    expect(
+      eligible,
+      isNotEmpty,
+      reason:
+          'the registry or the denylist has changed shape; this ratchet '
+          'would be vacuous',
+    );
+
+    final unvalidated = [
+      for (final key in eligible)
+        if (!exempt.containsKey(key) &&
+            validateBackupSettingValue(key, null) == null)
+          key,
+    ]..sort();
+
+    expect(
+      unvalidated,
+      isEmpty,
+      reason:
+          'These settings keys are classified in settings_registry.dart and '
+          'travel in backups (isBackupEligibleSettingKey), but '
+          'backup_settings_schema.dart has no validator for them, so a '
+          'restore writes whatever JSON the file carries. Add each to '
+          '_backupSettingValidators, or exempt it above with a reason:\n  '
+          '${unvalidated.join('\n  ')}',
+    );
+
+    final staleExemptions =
+        exempt.keys.where((key) => !eligible.contains(key)).toList()..sort();
+    expect(
+      staleExemptions,
+      isEmpty,
+      reason:
+          'These exemptions name keys that are no longer backup-eligible '
+          'or no longer classified; delete them so the list stays honest:\n  '
+          '${staleExemptions.join('\n  ')}',
+    );
   });
 }
