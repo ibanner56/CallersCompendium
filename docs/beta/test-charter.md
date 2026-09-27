@@ -2,8 +2,8 @@
 
 This is your field guide for the beta. It is a set of **test charters** — short
 missions that point you at a part of the app and ask you to explore it the way you
-really would, then tell us what you found. The heart of it is simple: **call a real
-dance from Perform mode**, and let everything around that — finding dances, building
+really would, then tell us what you found. The heart of it is **calling a real
+dance from Perform mode**, and letting everything around that — finding dances, building
 a program, switching to your own wording — get a real workout on the way.
 
 You do not have to do all of these, and you do not have to do them in order. Pick
@@ -24,10 +24,10 @@ event. For each session:
    that felt slow, confusing, or wrong. A note like "couldn't find where to add an
    alt" is plenty.
 4. **Report back** using the channels in the [beta guide](./beta-guide.md#how-to-give-feedback):
-   the **Bug report** form (always available) for anything broken, or **General
-   feedback** for how a session went overall and for awkward moments. A
-   [Discussion](https://github.com/ibanner56/CallersCompendium/discussions) always
-   works too.
+   the **Bug report** form for anything broken, or **General feedback** for how a
+   session went overall and for awkward moments. A
+   [Discussion](https://github.com/ibanner56/CallersCompendium/discussions) works
+   too.
 
 ### A charter reads like this
 
@@ -39,9 +39,9 @@ Every charter has the same shape so you know what you are being asked:
 
 ### Before you start
 
-- **Export a backup first.** Open **Settings → General → Export a backup** and keep
-  the file somewhere safe. You can explore freely knowing you can
-  **Restore from a backup** at any time.
+- **Export a backup first.** In **Settings › General**, choose **Export** beside
+  **Export a backup**, and keep the file somewhere safe. You can then explore
+  freely, knowing you can **Restore from a backup** at any time.
 - **Use real dances you know.** The app is most revealing when the material is
   familiar and the stakes are real.
 - **Note your setup** — platform (Linux, macOS, Windows, Android, iOS/iPadOS),
@@ -49,7 +49,7 @@ Every charter has the same shape so you know what you are being asked:
 
 ## The charters
 
-### Charter 1 — Call a real dance from Perform mode *(the main event)*
+### Charter 1 — Call a real dance from Perform mode
 
 > **Explore** calling a dance start-to-finish from **Perform mode**, as if you were
 > on stage.
@@ -127,8 +127,8 @@ your charter — and **General feedback** afterward is exactly for this.
 > backup to make sure nothing is lost.
 >
 > **With** the **Import** flow (The Caller's Box, ContraDB, Caller's Companion, or
-> a Caller's Compendium file) and **Settings → General**'s **Export a backup** /
-> **Restore from a backup**.
+> a Caller's Compendium file) and, in **Settings › General**, **Export a backup**
+> and **Restore from a backup**.
 >
 > **To discover:** During import, is the review-and-commit queue clear about what
 > will be added before you commit? Do the imported dances look right — figures,
@@ -147,7 +147,7 @@ include:
 
 - **Which charter** you ran (or what you were trying to do).
 - **Your setup** — platform, device, rough collection size.
-- **What worked well** — genuinely, this shapes what we protect.
+- **What worked well** — this shapes what we protect.
 - **What got in your way** — confusing, slow, missing, or broken. One sentence each
   is fine.
 - **Anything that broke** — with steps if you can repeat it, and the dance's source

@@ -71,8 +71,9 @@ your active dialect, and you can add as many of your own as you like.
 - **Larks/Robins** — the modern, role-neutral names, and the app's default. If
   you do nothing, this is what you see.
 - **Leads/Follows** — another role-neutral choice, ready to pick.
-- **Canonical** — the plain, shared wording the app stores underneath. Handy when
-  you want to see a dance in its neutral form (more on this below).
+- **Canonical** — the plain, shared wording the app stores underneath (see
+  [canonical wording](./glossary.md#canonical-wording)). Handy when you want to
+  see a dance in its neutral form (more on this below).
 
 The built-in dialects are deliberately role-neutral. If your community uses other
 role names — including traditional gendered ones — you are not stuck: you enter
@@ -86,8 +87,8 @@ how.
    it right away, everywhere.
 
 The built-in dialects carry a **Preset** badge and are read-only, so you can't
-change their wording by accident. Your own dialects sit below them and can be
-edited freely.
+change their wording by accident. Your own dialects appear in the same list and
+can be edited freely.
 
 ![The Settings Dialect section showing the active-dialect picker and controls for managing custom role and move terms](images/settings-dialect.png)
 
@@ -99,69 +100,95 @@ custom dialects.*
 When none of the built-in dialects match your community, make your own. From
 **Settings › Dialect**:
 
-- Choose **New dialect** to start from a clean slate, or
+- Choose **New dialect** to start from a clean slate. The app asks for a name,
+  then opens the dialect's editor.
 - Choose **Duplicate from…** to copy an existing dialect (a preset or one of your
-  own) and adjust it. To tweak a built-in dialect, use **Duplicate to customize**
-  from its menu — this makes an editable copy and leaves the original preset
-  untouched.
+  own). The copy is named after the original with "(copy)" added; open its
+  **Dialect actions** menu and choose **Edit terms** to change its wording, or
+  **Rename** to give it a name of its own.
+- To tweak a built-in dialect in one step, choose **Duplicate to customize** from
+  its **Dialect actions** menu. This makes an editable copy, opens it in the
+  editor, and leaves the original preset untouched.
 
-Give the dialect a name, then open its term editor to set any of the following.
-A **live preview** shows a sample figure re-worded as you type, so you can see the
-effect immediately.
+The editor has a section for each of the following. The **Preview** section shows
+sample figures reworded with your dialect and updates as you type, so you can see
+the effect immediately. Choose **Save** when you are done.
 
 ### Role names
 
-Set the words for the two roles — for example **Larks** and **Robins**, or your
-community's own terms. You can enter both the singular and plural forms (the app
-fills in a sensible plural if you leave it blank). This is also where you would
-enter traditional or gendered role names if that is what your dancers use.
+In the **Role terms** section, set the words for the two roles — for example
+**Larks** and **Robins**, or your community's own terms. You can enter both the
+singular and plural forms; leave the plural blank and the app works it out for
+you. This is also where you would enter traditional or gendered role names if
+that is what your dancers use.
 
 ### Reworded moves
 
-Give individual moves the wording you say out loud. If you always call a move by a
-particular name, set it here and the app will use your wording on every dance that
-contains that move. For moves that come in left- and right-handed versions, you
-can include a placeholder so the app fills in "left" or "right" for you rather
-than making you write two versions.
+In the **Move substitutions** section, give individual moves the wording you
+say out loud. If you always call a move by a particular name, set it here and the
+app uses your wording on every dance that contains that move. For moves that come
+in left- and right-handed versions, type `%S` where the side belongs — for
+example `%S shoulder round` — and the app fills in "left" or "right" for you, so
+you don't have to write two versions.
 
 ### Move wording templates
 
-For a complete sentence around a move, add a display template and use the slots
-shown in the editor, such as `{who}` and `{move}`. Legacy templates may omit
-available slots, but the editor will ask you to confirm before saving one.
-Templates with invalid syntax or more than 512 characters must be fixed before
-the dialect can be saved.
+To reword the whole sentence around a move, not just its name, add a
+**Display template** in the **Move wording templates** section. Type your
+sentence and put slots such as `{who}` and `{move}` where the app should fill in
+the details; the editor lists the **Available slots** for each move and shows a
+preview. A template can be up to 512 characters.
 
-Some moves have parameter-dependent choreography. When you choose a long-wave
-or promenade wording template, the editor provides separate templates for its
-supported branches and shows the exact slots each can use. Complete every listed
-slot: an incomplete conditional template is ignored and the normal wording is
-shown, so a single-file prefix or a dancer's in/out instruction can never
-disappear. A circle uses one template for both forms; the app always adds
-**single file** when that option is selected. Older single-template long-wave
-and promenade wordings remain available for their ordinary/default branch only;
-they are not reused for a different parameter branch.
+- If a template leaves out one of its available slots, the editor asks you to
+  confirm before saving, because that detail won't appear on the dance.
+- If a template can't be read — a slot left unclosed, for example — the editor
+  says so, and you need to fix it before you can save the dialect.
+
+A few moves are worded differently depending on how they are danced, so the
+editor gives them a separate template for each version:
+
+- **Form a long wave** has one template each for **In only**, **Out only**,
+  **In and out**, and **Neither**.
+- **Promenade** has one for **Ordinary** and one for **Single file**.
+
+Fill in only the versions you want to reword; any you leave blank keep the
+normal wording. A version you do fill in must use every slot the editor lists
+for it before you can save, so a dancer's in or out instruction, or a
+single-file promenade, never quietly disappears. A **circle** uses one template
+for both forms, and the app adds "single file" for you when a circle is danced
+that way.
+
+If you made a long-wave or promenade template before the app split them into
+versions, it still applies — but only to the ordinary version (**In only** for a
+long wave, **Ordinary** for a promenade).
 
 ### Dancer wording
 
-Reword the way the app refers to *who* is dancing — for example the words for
-"neighbors" or "the next couple" — to match how you phrase things from the stage.
+In the **Dancer substitutions** section, reword the way the app refers to *who*
+is dancing — for example the words for "neighbors" or "the next couple" — to
+match how you phrase things from the stage.
 
 ### Discouraged terms
 
-Each dialect keeps a list of words you would rather not use. When you type one of
-these while writing a dance, the editor gently flags it (it shows the word struck
-through) so you can reconsider — but it never blocks you or changes your text. The
-list ships with some common examples and is yours to edit, add to, or clear.
+Each dialect keeps a list of [discouraged terms](./glossary.md#discouraged-term)
+— words you would rather not use. When you type one of these while writing a
+dance, the editor flags it (it shows the word struck through) so you can
+reconsider, but it never blocks you or changes your text. The list starts with
+some common examples and is yours to edit, add to, or clear; **Restore defaults**
+brings back the starting list.
 
-For read-only dance details, shorthand summaries, Perform mode, and dance/program
-exports, the app also converts supported discouraged terms to the active dialect's
-canonical wording by default. Turn off **Auto-convert all discouraged terms**
-under **Dance details & shorthands** if you prefer to see the stored wording.
-This is display-only: saved dances, notes, search data, archives, and stored
-metadata are never changed. Read-only dance details also apply the setting to
-formation details, tunes, and custom-field values; titles remain literal, and
-machine-readable archives remain lossless.
+Separately, the app updates a fixed set of common older terms whenever it shows
+you a dance: "gypsy" and "gyre" read as "shoulder round", and older role words
+such as "gents", "ladies", and "ravens" read as your dialect's role names. This
+applies to dance details (including formation notes, tunes, and custom-field
+values), shorthands, Perform mode, and text and PDF exports. Titles always show
+exactly as written. Editing your discouraged-terms list doesn't change which
+words are converted.
+
+This conversion is on by default. To see the words exactly as they were saved,
+turn off **Auto-convert all discouraged terms** in **Settings › Dialect › Dance
+details & shorthands**. Either way, it only changes what you see: your saved
+dances, notes, search, shared files, and backups are never altered.
 
 > **The app watches for clashes.** If two different things would end up with the
 > exact same wording, the editor warns you right away, because that would make it
@@ -171,15 +198,17 @@ machine-readable archives remain lossless.
 ## Switch dialect on the fly
 
 You don't have to visit Settings every time. On the dance card and in
-[Perform mode](./glossary.md#perform-mode) there is a quick-switch control — a
-group-of-people icon — that changes your active dialect instantly.
+[Perform mode](./glossary.md#perform-mode) there is a **Switch dialect** control
+— a group-of-people icon — that changes your active dialect instantly. On a
+narrow screen the dance card lists your dialects in its **More actions** menu
+instead.
 
-Choose it, pick a dialect from the list, and the whole app re-reads in those
+Choose it, pick a dialect from the list, and the whole app switches to those
 words at once. This is built for real evenings: guest-calling for a community that
 uses different role names, or switching wording between gigs, takes a moment and
 leaves every saved dance exactly as it was.
 
-Remember the distinction: the quick-switch changes *how dances read for you*, not
+Remember the distinction: **Switch dialect** changes *how dances read for you*, not
 the dances themselves. Switch as often as you like.
 
 ## Peek at the canonical wording
@@ -188,39 +217,44 @@ Sometimes you want to see a dance in the plain, shared wording — to compare no
 with another caller, or to double-check what a figure really is underneath your
 own phrasing.
 
-On the dance card, the **Show canonical terms** control (shown as a **Canonical**
-switch) flips the current view between your dialect and the shared canonical
-wording. Enable **Canonical figure text** in **Settings › Dialect › Dance details
-& shorthands** first; when it is off, dance details stay in your active dialect
-and the switch is hidden. The control changes only what is on screen right then —
-it doesn't change your active dialect or touch the saved dance. When your active
-dialect is already **Canonical**, the toggle isn't shown, because there would be
-nothing to switch between. Perform mode's own canonical view setting is separate.
+On the dance card, the **Canonical** switch (read out by screen readers as
+**Show canonical terms**) flips the current view between your dialect and the
+shared canonical wording. It appears only after you turn on **Canonical figure
+text** in **Settings › Dialect › Dance details & shorthands**; while that setting
+is off, dance details stay in your active dialect. The switch changes only what
+is on screen right then — it doesn't change your active dialect or touch the
+saved dance. When your active dialect is already **Canonical**, the switch isn't
+shown, because there would be nothing to switch between.
 
-This pairs naturally with Perform mode: you can call from your own words and, if a
-dancer or another caller asks, flip to the canonical wording for a moment without
-losing your place. See the [Perform mode guide](./perform.md) for the full calling
-view.
+Perform mode has its own **Show canonical terms** control, which doesn't depend
+on the **Canonical figure text** setting. You can call from your own words and,
+if a dancer or another caller asks, flip to the canonical wording for a moment
+without losing your place. See the [Perform mode guide](./perform.md) for the
+full calling view.
 
 ## Set your defaults
 
-Two settings decide what you see before you touch anything:
+These settings decide what you see before you touch anything:
 
 - **Your active dialect** (in **Settings › Dialect**) is the wording every screen
   uses by default.
-- **Canonical figure text** (in **Settings › Dialect › Dance details &
-  shorthands**) controls whether dance details may show canonical wording. It is
-  off by default.
-- **Auto-convert all discouraged terms** (in **Settings › Dialect › Dance details
-  & shorthands**) controls whether supported discouraged terms are shown in
-  canonical wording. It is on by default.
+
+The rest are in **Settings › Dialect › Dance details & shorthands**:
+
+- **Canonical figure text** controls whether dance details can show canonical
+  wording at all. It is off by default.
+- **Auto-convert all discouraged terms** controls whether common older terms are
+  shown in current wording, as described under
+  [Discouraged terms](#discouraged-terms). It is on by default.
 - **Open dance details in canonical terms** decides whether a dance opens showing
-  your dialect or the shared canonical wording, when canonical figure text is
-  enabled. If the gate is off, details open in your active dialect and the child
-  preference is retained for later. On an existing installation, the first
-  detail open initializes the new gate off and converts an older canonical
-  default to the active-dialect default; later changes to the gate never
-  overwrite this preference.
+  your dialect or the canonical wording. It takes effect only while **Canonical
+  figure text** is on; while that is off, dances open in your active dialect and
+  the app remembers this choice for later.
+
+If an earlier version of the app was set to open dances in canonical terms, that
+choice was reset to your active dialect when **Canonical figure text** arrived.
+To get it back, turn on **Canonical figure text**, then **Open dance details in
+canonical terms**.
 
 For a full tour of everything under Settings, see the
 [Settings guide](./settings.md).
@@ -228,7 +262,7 @@ For a full tour of everything under Settings, see the
 ## Practical scenarios
 
 **Guest-calling for another community.** You usually call Larks/Robins, but
-tonight's crowd says Leads/Follows. Before you start, open the quick-switch on the
+tonight's crowd says Leads/Follows. Before you start, open **Switch dialect** on the
 dance card or in Perform and choose **Leads/Follows**. Every dance now reads in
 that community's words. Afterwards, switch back — none of your dances changed.
 
@@ -238,28 +272,31 @@ names and any moves you say differently, and set it active. From then on the who
 app speaks your language.
 
 **Bringing in dances written in older words.** When you [import](./imports.md)
-dances, or open older cards, they may use terms that have since fallen out of use.
-The app quietly understands the common older words and matches them to the shared
-form, so those dances still appear in your dialect and still turn up in search —
-no clean-up required.
+dances, they may use terms that have since fallen out of use. The app
+understands the common older words and matches them to the shared form, so those
+dances still appear in your dialect and still turn up in search — no clean-up
+required.
 
-**Comparing a figure with another caller.** Mid-conversation, flip **Show
-canonical terms** on the dance card to read the dance in neutral wording you both
-recognise, then flip back to your own.
+**Comparing a figure with another caller.** Mid-conversation, flip the
+**Canonical** switch on the dance card to read the dance in neutral wording you
+both recognise, then flip back to your own.
 
 ## Good to know
 
-- **Printing and sharing.** A dance you print or export is written in your
-  **active** dialect, so what you hand someone matches how you both speak. Note
-  that the on-screen **Show canonical terms** toggle changes only what you are
-  looking at — it doesn't change what an export contains. To export in different
-  words, switch your active dialect first. See
+- **Printing and sharing.** Text you copy or share, and a PDF you print, are
+  written in your **active** dialect, so what you hand someone matches how you
+  speak. The on-screen **Canonical** switch changes only what you are looking at
+  — it doesn't change what an export contains. To export in different words,
+  switch your active dialect first. A dance file you send to another Caller's
+  Compendium user carries the dance itself, so it opens in *their* dialect. See
   [Share, print & export](./sharing.md#which-words-a-dance-export-uses).
 - **Screen readers.** The app reads dances aloud in your dialect too — your own
   words are the clearest ones for you — so the spoken view and the visible view
   stay in step. See the [accessibility guide](./accessibility.md) for more.
-- **It's all on your device.** Dialects, like everything in Caller's Compendium,
-  live only on your device. There is no account and nothing to sync.
+- **It stays on your device.** Your dialects are stored on your device, and
+  there is no account. If you turn on the experimental
+  [Device Sync](./settings.md#device-sync), your own dialects and your choice of
+  active dialect sync to your other connected devices along with your library.
 
 ## Where to go next
 

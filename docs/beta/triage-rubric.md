@@ -51,8 +51,8 @@ Apply one **type** label so reports route to the right mindset:
 
 - `type: bug` — a defect; something is not working as intended.
 - `type: enhancement` — a new feature or an improvement to existing behavior.
-- `type: feedback` — general beta-tester impressions (often from a **Beta
-  check-in**).
+- `type: feedback` — general beta-tester impressions (usually from the
+  **General feedback** form).
 - `type: usability` — a confusing, awkward, or inefficient experience, even if
   nothing is technically "broken."
 - `type: import` — anything about importing dances or notation from external

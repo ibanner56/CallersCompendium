@@ -13,17 +13,18 @@ code to take part.
 
 ## What the beta is
 
-The core of Caller's Compendium is built and working. The beta program invites a
-small group of real callers to use it for their own dances before the first public
-release, so we can find the rough edges that only show up in the wild — at a noisy
-hall, on a tablet propped on a music stand, the night before a gig.
+Caller's Compendium is complete for its first release and in **open beta**:
+anyone can download it, and callers are using it for real gigs today. The beta
+program is how we make sure it holds up everywhere callers work — at a noisy
+hall, on a tablet propped on a music stand, the night before a gig — before the
+first stable release and wider store availability.
 
-You are not signing up for a chore. You are calling dances the way you already do,
-with the app in the mix, and telling us how it went.
+Taking part doesn't mean extra work. You call dances the way you already do,
+with the app in the mix, and tell us how it went.
 
-## What's ready to test
+## What to test
 
-These parts of the app are built and ready for you to lean on:
+Every part of the app is ready for you to rely on, including:
 
 - **Collection** — catalogue dances with structured, searchable figures, and
   search by title, author, formation, level, or even the figures themselves.
@@ -39,26 +40,18 @@ These parts of the app are built and ready for you to lean on:
   review-and-commit queue.
 - **Backup & restore** — save your whole collection to a single file and load it
   back (see [Your data is safe](#your-data-is-safe) below).
+- **Device Sync** *(experimental)* — keep your library in step across your own
+  devices. It is off until you turn it on, under **Settings › Experimental**; see
+  the [Device Sync section](../user/settings.md#device-sync) of the Settings guide.
 
-## What's still rough
+## What to expect
 
-Being honest about the state of things saves everyone time:
-
-- **Signing and first-run steps vary by platform.** The **macOS** build is signed
-  with an Apple Developer ID and notarized, so it opens normally. **Android** now
-  has two routes: the app is in a **Google Play closed test** (installs and
-  updates like any Play app — see [How to join](#how-to-join)), or you can
-  sideload the signed **APK**, which needs a one-time **"install unknown apps"**
-  permission. The two are signed with different keys, so you can't upgrade between
-  them in place — [pick one route and stick with it](../user/installation.md#install-on-android).
-  **Windows** artifacts are signed via Azure Trusted Signing when the release
-  workflow's five `AZURE_*` repository variables and federated OIDC configuration
-  are present; otherwise the unsigned fallback may show a **SmartScreen** caution
-  the first time you run it. **Linux** artifacts are unsigned, but Linux has no
-  signing prompt — you just mark the AppImage as runnable.
-  [How to install](#how-to-install) walks through each platform.
-- **You may hit bugs.** That is the point — when you do, tell us (see
-  [How to give feedback](#how-to-give-feedback)).
+- **Some platforms are still on test channels.** iPhone and iPad builds come
+  through **TestFlight** by invitation, and Android is in a **Google Play closed
+  test** alongside the direct `.apk` download. [How to install](#how-to-install)
+  covers each platform.
+- **You may find bugs.** Finding them is what the beta is for — when you do,
+  please tell us (see [How to give feedback](#how-to-give-feedback)).
 
 ## Your data is safe
 
@@ -75,7 +68,7 @@ Open **Settings → General** and you will find:
 - **Restore from a backup** — loads a backup file back into the app.
 - **Backup reminder** — an optional nudge (weekly or monthly) so you do not forget.
 
-A good habit for the beta: **export a backup before you try something new or update
+A good habit: **export a backup before you try something new or update
 the app**, and keep that file somewhere outside the app (a cloud drive, a USB stick,
 an email to yourself). If anything ever goes sideways, you can restore in a few
 steps. The [Backup & portability guide](../user/backup-portability.md) covers this
@@ -104,26 +97,30 @@ rather keep private.
 
 ## How to install
 
-Packaged beta builds are ready on the
-[Releases page](https://github.com/ibanner56/CallersCompendium/releases). The
-[Installation guide](../user/installation.md) walks you through downloading and
-opening the app on Linux, macOS, Windows, and Android — including the first-time
-security warning you may see on an **unsigned Windows fallback** (Linux artifacts
-are unsigned but generally have no signing prompt; macOS is signed and notarized,
-so it opens normally). On **Android** you can either join the **Google Play closed
-test** (it installs and updates like any Play app — helping us prove out that
-pipeline is one of the most useful things a tester can do right now) or sideload
-the signed **APK** directly; the
-[Android section](../user/installation.md#install-on-android) explains both and
-why you should stick with one. The **iPhone/iPad** build is delivered through
-**TestFlight** to invited testers — ask in the beta channels if you'd like in.
+Builds for Linux, macOS, Windows, and Android are on the
+[Releases page](https://github.com/ibanner56/CallersCompendium/releases), and the
+[Installation guide](../user/installation.md) walks through each platform. The
+macOS build is signed and notarized and the Windows build is code-signed, so
+both open like any other app.
+
+- **Android:** join the **Google Play closed test**, which installs and updates
+  like any Play app and helps prepare the app for wider release on Google Play,
+  or install the signed **`.apk`** directly. The two are signed with different
+  keys, so [pick one route and stay with it](../user/installation.md#install-on-android).
+- **iPhone and iPad:** builds are delivered through **TestFlight** to invited
+  testers. Request an invitation with the signup form described in
+  [How to join](#how-to-join).
+- **Staying up to date:** every release during the beta is a beta release, so
+  turn on **Beta channel** in **Settings › Updates** if you want the app to tell
+  you when a new version is out. See
+  [Keeping the app up to date](../user/installation.md#keeping-the-app-up-to-date).
 
 Prefer to run from source, or want to help with the code? The
 [Getting started section of CONTRIBUTING.md](../../CONTRIBUTING.md#getting-started)
 walks through installing Flutter (via FVM) and running the app on desktop, an
-emulator, or a connected phone. If anything feels like a lot, say so in
+emulator, or a connected phone. If you get stuck, ask in
 [Discussions](https://github.com/ibanner56/CallersCompendium/discussions) and we
-will help — plenty of testers are callers first and tinkerers second.
+will help.
 
 ## How to give feedback
 
@@ -138,15 +135,14 @@ Pick the channel that fits:
   we can reproduce it.
 - **General feedback** — after a dance or a session with the app, share what
   worked, what felt awkward, or a "why does it do *that*?" moment. These
-  impressions are gold.
+  impressions are some of the most valuable feedback we get.
 - **Ideas and open-ended talk** belong in
   [Discussions](https://github.com/ibanner56/CallersCompendium/discussions), where
   we can chat before anything becomes a formal request.
 
 All of the issue forms live on the
 [new-issue chooser](https://github.com/ibanner56/CallersCompendium/issues/new/choose):
-**Bug report**, **Feature request**, **General feedback**, and **Join the beta**
-are all available there now. Not sure which to pick? Start a
+**Bug report**, **Feature request**, **General feedback**, and **Join the beta**. Not sure which to pick? Start a
 [Discussion](https://github.com/ibanner56/CallersCompendium/discussions) — we will
 sort it out together. Once you file something, a maintainer sorts it using the
 [triage rubric](./triage-rubric.md), so you can see how reports move from "just

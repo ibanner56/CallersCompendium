@@ -23,8 +23,8 @@ but never required.
 
 ## What to expect
 
-Caller's Compendium is maintained by one person in their spare time, so please
-set your expectations accordingly:
+Caller's Compendium is independently maintained by a single maintainer, so
+response times reflect that:
 
 - **Acknowledgement:** I aim to reply within about **7 days**.
 - **Assessment & fix:** timelines depend on severity and my availability. I'll
@@ -37,22 +37,26 @@ If you don't hear back within a couple of weeks, a gentle nudge is welcome.
 
 ## Supported versions
 
-This is a young, pre-1.0 project under active development. Security fixes land
-on **`main`** and ship in the **latest release**; older releases are not
+Caller's Compendium is pre-1.0 and under active development. Security fixes
+land on **`main`** and ship in the **latest release**; older releases are not
 patched separately. The best way to stay secure is to run the most recent
 version.
 
 ## No bug bounty
 
-There's no paid bounty program — this is a free, open-source, solo-maintained
-project. Responsible disclosure is genuinely appreciated, and I'm glad to
-acknowledge reporters in the advisory and release notes.
+There is no paid bounty program. Responsible disclosure is genuinely
+appreciated, and I'm glad to acknowledge reporters in the advisory and release
+notes.
 
 ## Privacy posture
 
 Caller's Compendium is **local-first and offline by design**. Your dances,
 programs, and settings live on your device; the app doesn't run analytics,
-tracking, or telemetry, and it doesn't phone home. Online sources (e.g.
+tracking, or telemetry, and it doesn't phone home. Online sources (for example,
 importing from community databases) are strictly **import-only** actions you
-initiate — there's no background sync of your data off the device. That smaller
-footprint is intentional and shapes how we think about security here.
+initiate. The one feature that sends library data to a server is
+**Device Sync**, which is experimental, off by default, and runs only after you
+connect a sync store yourself; its design and threat model are in
+[ADR-004](docs/adr/004-device-sync-and-athenaeum.md), and the sync server in
+[`server/`](server/) is in scope for reports. That smaller footprint is
+intentional and shapes how we think about security here.

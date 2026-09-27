@@ -1,0 +1,9 @@
+{
+  "id": "audit-licensing-notices",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "The Licenses page now credits the EFF long wordlist used for sync IDs and ContraDB's figure wording."
+    ]
+  }
+}

@@ -200,6 +200,28 @@ class FilterCompiler {
         return 'id IN (SELECT ds.dance_id FROM dance_sources ds '
             'JOIN published_sources ps ON ps.id = ds.source_id '
             'WHERE ds.source_id = ? AND ps.deleted_at IS NULL)';
+      case TunesFilter(:final query):
+        // `dances.tunes_json` is free-form stored text: it can be malformed,
+        // or valid JSON that is not a list of strings (#1347). Dart loads such
+        // a row as `UnreadableTunes`; here it must match nothing and, above
+        // all, must not abort the whole query — `json_each` over malformed
+        // text raises "malformed JSON" for every dance in the result set.
+        //
+        // A `CASE`, not an `AND` chain: SQLite is free to evaluate the operands
+        // of `AND` in any order, so `json_valid(..) AND EXISTS(json_each(..))`
+        // gives no guarantee the guard runs first. `CASE` evaluates its
+        // branches in order. The checks mirror `_tunesSourceFor`: parseable,
+        // a list, and every element a string. (`json_valid` is the strict
+        // RFC 8259 check, so JSON5 that `json_each` would accept is refused,
+        // as Dart's `jsonDecode` refuses it.)
+        binds.add(escapeLikePattern(query));
+        return 'CASE '
+            'WHEN NOT json_valid(dances.tunes_json) THEN 0 '
+            "WHEN json_type(dances.tunes_json) <> 'array' THEN 0 "
+            'WHEN EXISTS (SELECT 1 FROM json_each(dances.tunes_json) j '
+            "WHERE j.type <> 'text') THEN 0 "
+            'ELSE EXISTS (SELECT 1 FROM json_each(dances.tunes_json) j '
+            "WHERE j.value LIKE '%' || ? || '%' ESCAPE '\\') END";
       case TagFilter(:final tagId):
         // Joined to `tags` since schema v25 (#898). Tags have no referential
         // guard, so this is the one of these three where a tombstone with live
