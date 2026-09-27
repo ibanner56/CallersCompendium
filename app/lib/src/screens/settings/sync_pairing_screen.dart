@@ -168,8 +168,8 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
         try {
           response = await probe.createStore();
         } on Object catch (e, st) {
-          logCaughtError(e, st, source: 'sync_pairing_screen._submit.create');
           if (!mounted) return;
+          logCaughtError(e, st, source: 'sync_pairing_screen._submit.create');
           setState(() => _fieldError = l10n.settingsSyncPairingUnreachable);
           return;
         }
@@ -189,8 +189,8 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
         try {
           result = await probe.getStore(previouslyUsed: false);
         } on Object catch (e, st) {
-          logCaughtError(e, st, source: 'sync_pairing_screen._submit.connect');
           if (!mounted) return;
+          logCaughtError(e, st, source: 'sync_pairing_screen._submit.connect');
           setState(() => _fieldError = l10n.settingsSyncPairingUnreachable);
           return;
         }

@@ -6641,7 +6641,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String commandPaletteResultCountCapped(int shown, int total) {
-    return 'Viser de første $shown af $total resultater';
+    return 'Viser $shown af $total resultater';
   }
 
   @override

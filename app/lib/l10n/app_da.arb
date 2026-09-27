@@ -6680,9 +6680,9 @@
   "@commandPaletteResultCount": {
     "x-sourceSha256": "62b6ed1de359687cf1d95537469cd963f3b78e80a0a9e90500f732beca07ee51"
   },
-  "commandPaletteResultCountCapped": "Viser de første {shown} af {total} resultater",
+  "commandPaletteResultCountCapped": "Viser {shown} af {total} resultater",
   "@commandPaletteResultCountCapped": {
-    "x-sourceSha256": "d8e346c35177f2c51c77fb40255c05afa0f2850ea1baf3d1992fcbbd80102960"
+    "x-sourceSha256": "14ea6b93b4b0c29e4d91800e6d55d1758ba8389ad2bb221f8acc2ad15e8c88f2"
   },
   "collectionPickerSearchLabel": "Find en dans at tilføje",
   "@collectionPickerSearchLabel": {

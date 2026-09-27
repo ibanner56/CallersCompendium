@@ -10191,7 +10191,7 @@ abstract class AppLocalizations {
   /// Command-palette result count when more titles match than the palette lists (it shows at most a fixed number per group).
   ///
   /// In en, this message translates to:
-  /// **'Showing the first {shown} of {total} results'**
+  /// **'Showing {shown} of {total} results'**
   String commandPaletteResultCountCapped(int shown, int total);
 
   /// Label for the search field in the collection picker (adding a dance to a program).

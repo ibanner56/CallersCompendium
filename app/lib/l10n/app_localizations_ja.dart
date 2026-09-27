@@ -6409,7 +6409,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String commandPaletteResultCountCapped(int shown, int total) {
-    return '$total件の結果のうち最初の$shown件を表示しています';
+    return '$total件中$shown件を表示しています';
   }
 
   @override

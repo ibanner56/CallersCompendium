@@ -6622,7 +6622,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String commandPaletteResultCountCapped(int shown, int total) {
-    return 'Showing the first $shown of $total results';
+    return 'Showing $shown of $total results';
   }
 
   @override

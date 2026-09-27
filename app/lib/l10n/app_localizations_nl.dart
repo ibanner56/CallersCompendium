@@ -6692,7 +6692,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String commandPaletteResultCountCapped(int shown, int total) {
-    return 'De eerste $shown van $total resultaten worden getoond';
+    return '$shown van $total resultaten worden getoond';
   }
 
   @override

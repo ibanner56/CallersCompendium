@@ -8694,7 +8694,7 @@
       }
     }
   },
-  "commandPaletteResultCountCapped": "Showing the first {shown} of {total} results",
+  "commandPaletteResultCountCapped": "Showing {shown} of {total} results",
   "@commandPaletteResultCountCapped": {
     "description": "Command-palette result count when more titles match than the palette lists (it shows at most a fixed number per group).",
     "placeholders": {
