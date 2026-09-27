@@ -28,9 +28,11 @@ It is **local-first**, and that shapes everything else:
 - **No telemetry.** The app does not track you, phone home, or collect usage
   data. What you do in Caller's Compendium is your business alone.
 - **It works offline.** You can catalogue dances, build programs, and call a
-  whole evening with no internet connection. The only time the app reaches the
-  network is when *you* choose to bring in dances from an online source, and
-  even then it only reads — it never publishes your work back out.
+  whole evening with no internet connection. The app goes online only when *you*
+  ask it to: to bring in dances from an online source, to check for updates, or
+  to sync your own devices if you turn on the optional
+  [Device Sync](./settings.md#device-sync). It never publishes your work to a
+  community site.
 - **It runs everywhere you call.** The same app, adapted to each screen size,
   runs on Linux, macOS, Windows, Android, and iOS/iPadOS. On a phone you get a
   single-column layout with a bottom navigation bar; on a tablet or desktop you
@@ -42,13 +44,12 @@ a new machine any time with a single backup file — see the
 
 ## Installing the app
 
-Downloadable builds are ready for **Linux**, **macOS**, **Windows**, and
-**Android**, and **iPhone/iPad** builds go out through **TestFlight** to invited
-testers. The [Installation guide](./installation.md) walks you through
-downloading the right file (or joining the TestFlight beta), getting past the
-first-time security prompt you may see on an unsigned Windows fallback (Linux
-artifacts are unsigned but generally have no signing prompt), and keeping the app
-up to date.
+Caller's Compendium is available for **Linux**, **macOS**, **Windows**, and
+**Android** from the project's Releases page, on **Android** through a Google
+Play closed test, and on **iPhone and iPad** through **TestFlight** for invited
+testers. The [Installation guide](./installation.md) walks you through choosing
+the right download, what to do if your system shows a security prompt the first
+time you open the app, and keeping the app up to date.
 
 ## Your first launch
 
@@ -166,6 +167,7 @@ sections:
 
 - **General** — where you run [imports](./glossary.md#import) and manage your
   data, including [backup and restore](./backup-portability.md).
+- **Program** — your saved venues and how programs and Perform mode behave.
 - **Appearance** — themes, including light, dark, and high-contrast, plus your
   own custom themes.
 - **[Dialect](./glossary.md#dialect)** — your role names and wording (more on
@@ -175,6 +177,8 @@ sections:
   save typing.
 - **Updates** — checking for and installing new versions.
 - **Diagnostics** — the local crash log, and how to send it with a bug report.
+- **Experimental** — features still being refined, such as the optional
+  **Device Sync**.
 - **About** — version, license information, and a link to this guide.
 
 The [Settings guide](./settings.md) covers each section in detail.

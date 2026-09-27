@@ -50,17 +50,29 @@ const List<_BundledLicense> _bundledFontLicenses = [
   ),
 ];
 
-/// Code the app ports from other projects, whose license requires its notice to
-/// travel with the port.
+/// Code and data the app takes from other projects, whose license requires (or
+/// whose author was promised) an attribution that travels with the copy.
 ///
 /// `fmptools` (MIT, © 2020 Evan Miller) is what `fmp_reader.dart` and `scsu.dart`
-/// in `compendium_core` are ported from (#1392). `THIRD_PARTY_NOTICES.md` at the
-/// repo root and the head of each of those two files carry the same text;
+/// in `compendium_core` are ported from (#1392). The EFF long wordlist (CC BY
+/// 3.0 US) is compiled into `compendium_core`'s `eff_long_wordlist.dart` and
+/// drives generated sync IDs. ContraDB (AGPL-3.0) is the source of the figure
+/// sentence structure and modifier phrasing the dialect renderer follows.
+/// `THIRD_PARTY_NOTICES.md` at the repo root carries the same texts (and the
+/// ported/copied source files carry them in their heads);
 /// `test/licenses_notice_test.dart` keeps the copies identical.
 const List<_BundledLicense> _bundledCodeLicenses = [
   _BundledLicense(
     packages: ['fmptools (MIT)'],
     assetPath: 'assets/licenses/fmptools-LICENSE.txt',
+  ),
+  _BundledLicense(
+    packages: ['EFF Long Wordlist (CC BY 3.0 US)'],
+    assetPath: 'assets/licenses/eff-wordlist-NOTICE.txt',
+  ),
+  _BundledLicense(
+    packages: ['ContraDB (AGPL-3.0)'],
+    assetPath: 'assets/licenses/contradb-NOTICE.txt',
   ),
 ];
 

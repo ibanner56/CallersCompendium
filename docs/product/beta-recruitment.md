@@ -1,27 +1,31 @@
 # Beta Recruitment Plan
 
-This is the plan for finding beta testers for **Caller's Compendium**, plus
+This is the plan for reaching beta testers for **Caller's Compendium**, plus
 copy-paste announcement templates for the places contra callers actually gather.
 It is a maintainer-facing planning doc, but everything here is meant to be shared
 openly — there is nothing to hide from the community we are inviting.
 
-Our ask is honest and specific: a small group of working callers who will use the
-app for their real dances and tell us how it went. The tone throughout is
-**warm, community-first, and honest about what the app is** — local-first, no
-telemetry, no accounts, free and open-source.
+The beta is **open**: anyone can download a build from the
+[Releases page](https://github.com/ibanner56/CallersCompendium/releases), and
+invitations to iPhone/iPad (TestFlight) and the Google Play closed test are
+requested through the **Join the beta** form. So the goal is no longer to assemble a small
+cohort; it is to reach more working callers who will use the app for their real
+dances and tell us how it went, before the first stable release. The tone
+throughout is **warm, community-first, and honest about what the app is** —
+local-first, no telemetry, no accounts, free and open-source.
 
 ## Who we are looking for
 
-A good beta cohort is small (roughly 10–25 active testers) and varied along the
-axes that stress the app differently:
+There is no cap on testers. What matters is breadth along the axes that stress the
+app differently:
 
 - **Experience** — from newer callers to veterans with big repertoires.
 - **Platforms** — Linux, macOS, Windows, Android, and iOS/iPadOS, so installs and
   Perform mode get exercised everywhere. **Android testers who'll join the Google
-  Play closed test are a current priority** — Google requires a real round of
-  closed testers before we can move Android toward a wider release, so a handful
-  of callers who install from Play (rather than sideloading the `.apk`) directly
-  unblocks that path.
+  Play closed test are a priority** — Google requires a real round of closed
+  testers before we can move Android toward a wider release, so callers who
+  install from Play (rather than sideloading the `.apk`) directly unblock that
+  path.
 - **Calling context** — regular series callers, weekend/festival callers, and folks
   who call occasionally, since they build programs and use Perform mode differently.
 - **Data situation** — some coming fresh, some migrating from **Caller's Companion**
@@ -40,12 +44,16 @@ Being upfront about the deal keeps expectations healthy:
 - Use the app for their own dances — ideally including at least one real gig.
 - Send voluntary feedback through GitHub (the
   [feedback channels](../beta/beta-guide.md#how-to-give-feedback)).
-- Understand this is pre-release software, so some rough edges are expected.
+- Use the **Join the beta** form (see
+  [How to join](../beta/beta-guide.md#how-to-join)) if they want a TestFlight or
+  Google Play invitation.
+- Understand this is beta software, so some rough edges are expected.
 
 **Testers get:**
 
 - Early hands-on time with a tool built specifically for callers.
-- Real influence on the first release — their feedback shapes it directly.
+- Real influence on the first stable release — their feedback shapes it
+  directly.
 - A safety net: the app's built-in **backup/restore** means their data is theirs
   and portable from day one.
 - No strings: no cost, no account, no tracking, and they can step away anytime.
@@ -77,8 +85,8 @@ pass the call along, will do more than any single post.
    and thank them.
 4. **Keep in touch** — a light monthly nudge and quick replies to
    [beta feedback](../beta/triage-rubric.md) keep momentum without nagging.
-5. **Close the loop** — when the first release ships, thank testers publicly and
-   tell them what their feedback changed.
+5. **Close the loop** — when the first stable release ships, thank testers
+   publicly and tell them what their feedback changed.
 
 ## Copy-paste templates
 
@@ -92,8 +100,8 @@ Fill in the bracketed bits. Keep links intact. Trim to fit each venue's norms.
 >
 > I've been building **Caller's Compendium**, a free and open-source app for
 > organizing dances, building programs, and calling from a large-print
-> stage-ready **Perform mode** — and it's ready for a few real callers to put it
-> through its paces before the first release.
+> stage-ready **Perform mode**. It's in open beta, and I'd love more working
+> callers to put it through its paces before the first stable release.
 >
 > A bit about it, since I know we're all rightly wary of Yet Another App:
 >
@@ -111,14 +119,13 @@ Fill in the bracketed bits. Keep links intact. Trim to fit each venue's norms.
 >
 > What I'm asking: use it for your own dances — ideally call at least one real gig
 > with it — and tell me how it went. All feedback is voluntary and goes through
-> GitHub. Downloadable builds are ready for Linux, macOS, Windows, and Android,
-> and mobile testers can go through the stores instead: iPhone/iPad via TestFlight,
-> and **Android via a Google Play closed test** (I just need the Google-account
-> email on your device to add you — or you can sideload the Android app directly
-> if you'd rather). Right now I especially need a few Android testers willing to
-> join that Play closed test, since Google asks for a real round of them before we
-> can open the app up more widely. I'll happily walk you through install either
-> way.
+> GitHub. Anyone can download builds for Linux, macOS, Windows, and Android, and
+> mobile testers can go through the stores instead: iPhone/iPad via TestFlight,
+> and **Android via a Google Play closed test** (I need the Google-account email
+> on your device to add you — or you can install the Android app directly if
+> you'd rather). I especially need Android testers willing to join that Play
+> closed test, since Google asks for a real round of them before we can open the
+> app up more widely. I'll happily walk you through install either way.
 >
 > Interested? Start here: https://github.com/ibanner56/CallersCompendium/blob/main/docs/beta/beta-guide.md
 > and say hello in Discussions: https://github.com/ibanner56/CallersCompendium/discussions
@@ -132,7 +139,8 @@ Fill in the bracketed bits. Keep links intact. Trim to fit each venue's norms.
 >
 > I've built **Caller's Compendium**, a free, open-source app for cataloguing
 > dances, building programs, and calling from a big, high-contrast **Perform
-> mode** — and I'm looking for a few callers to test it before release.
+> mode**. It's in open beta, and I'm looking for callers to try it before the
+> first stable release.
 >
 > It's **local-first with no accounts and no tracking** — your dances stay on your
 > device, and there's built-in backup so nothing's ever locked in. It even imports
@@ -153,8 +161,8 @@ Fill in the bracketed bits. Keep links intact. Trim to fit each venue's norms.
 > the dance community: **local-first, no accounts, and no data collection of any
 > kind**, released under the AGPL so it stays free and open for everyone.
 >
-> Before the first public release, we're inviting a small group of callers to use
-> it for their real dances and share voluntary feedback. Testers keep full control
+> The app is in open beta ahead of its first stable release, and we're inviting
+> callers to use it for their real dances and share voluntary feedback. Testers keep full control
 > of their data (backup and restore are built in) and can step away anytime.
 >
 > If you call — or know callers who might enjoy shaping a community tool — we'd be
@@ -167,15 +175,16 @@ Fill in the bracketed bits. Keep links intact. Trim to fit each venue's norms.
 >
 > Hi [region] friends,
 >
-> I'm looking for a few local callers to beta test **Caller's Compendium**, a free
+> I'm looking for local callers to beta test **Caller's Compendium**, a free
 > and open-source app for organizing dances, building programs, and calling from a
 > large-print **Perform mode**. It's **local-first with no tracking and no
 > accounts** — your data stays yours, with built-in backup so you're never locked
 > in.
 >
 > Since many of us call the same series, this is a great chance to try it at a real
-> [region] dance and tell me what works on your device. Ready-to-install builds are
-> available for every platform — I'm glad to help you get set up.
+> [region] dance and tell me what works on your device. Builds are ready to
+> install on Linux, macOS, Windows, and Android, and iPhone/iPad testers can join
+> through TestFlight — I'm glad to help you get set up.
 >
 > Interested? Details are here:
 > https://github.com/ibanner56/CallersCompendium/blob/main/docs/beta/beta-guide.md
@@ -187,8 +196,8 @@ Fill in the bracketed bits. Keep links intact. Trim to fit each venue's norms.
 ## A note on honesty
 
 Every template says the same true things: the app is free, local-first, and
-collects nothing; testers keep control of their data; and this is pre-release
-software with rough edges we want reported. We do not oversell. Callers are a
+collects nothing; testers keep control of their data; and this is beta software
+with rough edges we want reported. We do not oversell. Callers are a
 tight-knit, generous community — the fastest way to earn their help is to be
 straight with them.
 
