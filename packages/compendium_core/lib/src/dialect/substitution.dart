@@ -68,7 +68,12 @@ class Substitutor {
     return text.replaceAllMapped(pattern, (m) {
       final matched = m[0]!;
       final key = caseInsensitive ? matched.toLowerCase() : matched;
-      final replacement = _map[key]!;
+      // The regex's case-insensitive match uses Unicode simple case folding,
+      // which `toLowerCase` does not reproduce for every glyph: U+017F `ſ`
+      // matches an `s` key but lowercases to itself, so the folded match is
+      // not a key. Leave such a span as written rather than throw.
+      final replacement = _map[key];
+      if (replacement == null) return matched;
       return preserveCase ? _applyCase(matched, replacement) : replacement;
     });
   }
