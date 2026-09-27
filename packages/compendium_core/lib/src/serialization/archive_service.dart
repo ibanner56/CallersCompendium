@@ -486,6 +486,11 @@ class ArchiveRestorer {
   /// [RestoreMode.replace] loads into a clean database. Deletes join/derived
   /// tables before their parents to respect foreign keys, and clears the
   /// non-FK-linked FTS5 virtual tables explicitly.
+  ///
+  /// Published-collection import history goes too: the archive does not carry
+  /// it, it has no foreign key to cascade through, and left in place it kept
+  /// the catalog claiming "Imported v3" over a dataset that no longer held the
+  /// collection.
   Future<void> _clearAll() async {
     final db = _repos.db;
     for (final table in const ['dance_fts', 'dance_substring_fts']) {
@@ -507,6 +512,7 @@ class ArchiveRestorer {
     await db.delete(db.choreographers).go();
     await db.delete(db.publishedSources).go();
     await db.delete(db.venues).go();
+    await db.delete(db.collectionImportEvents).go();
   }
 
   Future<void> _guard(
