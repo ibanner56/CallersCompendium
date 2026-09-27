@@ -247,6 +247,27 @@ class TagFilter extends DanceFilter {
   final String tagId;
 }
 
+/// Dances with **no live tag** — the complement of "has any tag".
+///
+/// "Live" is the same rule [TagFilter] applies: a `dance_tags` row only counts
+/// when its `tags` row is not soft-deleted. Deleting a tag leaves its join rows
+/// in place (so a revived tag comes back with its dances), which means a dance
+/// whose only tag was deleted has a join row yet shows no tag on its card; this
+/// leaf treats it as untagged, matching what the card shows.
+///
+/// Compiles to `id NOT IN (SELECT dt.dance_id FROM dance_tags dt JOIN tags t …
+/// WHERE t.deleted_at IS NULL)`. (`NOT IN` is safe here because
+/// `dance_tags.dance_id` is `NOT NULL`, part of the primary key, so the
+/// subquery never yields a NULL to trip up `NOT IN` — the same argument
+/// [FigureFilter] makes.)
+///
+/// The Collection Tags facet OR-s this with any selected [TagFilter]s: it is
+/// one more member of that facet, not a separate facet.
+@immutable
+class UntaggedFilter extends DanceFilter {
+  const UntaggedFilter();
+}
+
 /// Comparison operators for a [CustomFieldFilter], typed by the field's
 /// [CustomFieldType]. Illegal `(type, op)` pairings are rejected when the
 /// filter is constructed (see [CustomFieldFilter]) and again, defensively,

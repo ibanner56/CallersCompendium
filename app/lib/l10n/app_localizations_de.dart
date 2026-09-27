@@ -2531,6 +2531,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get collectionFacetTags => 'Tags';
 
   @override
+  String get collectionFacetUntagged => 'Ohne Tags';
+
+  @override
   String get collectionFacetSource => 'Quelle';
 
   @override

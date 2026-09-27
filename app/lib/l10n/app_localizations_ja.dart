@@ -2405,6 +2405,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionFacetTags => 'タグ';
 
   @override
+  String get collectionFacetUntagged => 'タグなし';
+
+  @override
   String get collectionFacetSource => 'ソース';
 
   @override

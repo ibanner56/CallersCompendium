@@ -2518,6 +2518,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionFacetTags => 'Tags';
 
   @override
+  String get collectionFacetUntagged => 'Zonder tags';
+
+  @override
   String get collectionFacetSource => 'Bron';
 
   @override

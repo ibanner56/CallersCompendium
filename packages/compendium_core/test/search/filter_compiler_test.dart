@@ -179,6 +179,23 @@ void main() {
       );
     });
 
+    test('Untagged excludes dances with a live tag and binds nothing', () {
+      expect(
+        pred(const UntaggedFilter()),
+        'id NOT IN (SELECT dt.dance_id FROM dance_tags dt '
+        'JOIN tags t ON t.id = dt.tag_id '
+        'WHERE t.deleted_at IS NULL)',
+      );
+      expect(compiler.compile(const UntaggedFilter()).binds, isEmpty);
+    });
+
+    test('Untagged OR Tag keeps bind order', () {
+      final c = compiler.compile(
+        const OrFilter([UntaggedFilter(), TagFilter('t1')]),
+      );
+      expect(c.binds, ['t1']);
+    });
+
     test('Form / Formation / Progression / Status bind enum names', () {
       expect(pred(const FormFilter(DanceForm.ecd)), 'form = ?');
       expect(compiler.compile(const FormFilter(DanceForm.ecd)).binds, ['ecd']);

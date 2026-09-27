@@ -75,6 +75,15 @@ class FacetSelections {
   final Set<String> authorIds = {};
   final Set<String> tagIds = {};
 
+  /// The Tags facet's "Untagged" chip: dances with no live tag. One more OR
+  /// member of the Tags facet alongside [tagIds] (it never clears, or is cleared
+  /// by, a tag chip), so it is emitted into the same OR group by
+  /// [buildCollectionFilter]. A separate flag rather than a sentinel id in
+  /// [tagIds]: a sentinel could collide with a real tag id and would leak into
+  /// every consumer that treats [tagIds] as real tags (the external tag filter,
+  /// tag-name lookups).
+  bool untagged = false;
+
   /// Selected source facet: ids of cited [PublishedSource]s the user picked,
   /// each emitted as an identity-based [SourceIdFilter]. Multi-select, OR-ed
   /// within the facet — a pick-a-source chooser mirroring the Author facet
@@ -112,6 +121,7 @@ class FacetSelections {
       minRating == null &&
       authorIds.isEmpty &&
       tagIds.isEmpty &&
+      !untagged &&
       sourceIds.isEmpty &&
       choiceValues.values.every((s) => s.isEmpty) &&
       booleanValues.isEmpty &&
@@ -121,9 +131,9 @@ class FacetSelections {
   /// How many selections are active: the number shown in the Filters header
   /// of the Collection screen and the dance picker.
   ///
-  /// One per selected chip, one per single-valued facet ([mixedLevel],
-  /// [mixer], [minRating]) and one per *effective* custom-field text/number
-  /// filter — the same set [isEmpty] tests, so `activeCount == 0` exactly when
+  /// One per selected chip ([untagged] is a chip), one per single-valued facet
+  /// ([mixedLevel], [mixer], [minRating]) and one per *effective* custom-field
+  /// text/number filter — the same set [isEmpty] tests, so `activeCount == 0` exactly when
   /// [isEmpty]. [mixedLevel] and [mixer] count when non-null, not only when
   /// `true`, because [buildCollectionFilter] filters on `false` too.
   ///
@@ -140,6 +150,7 @@ class FacetSelections {
       (minRating != null ? 1 : 0) +
       authorIds.length +
       tagIds.length +
+      (untagged ? 1 : 0) +
       sourceIds.length +
       choiceValues.values.fold<int>(0, (a, s) => a + s.length) +
       booleanValues.length +
@@ -158,6 +169,7 @@ class FacetSelections {
     minRating = null;
     authorIds.clear();
     tagIds.clear();
+    untagged = false;
     sourceIds.clear();
     choiceValues.clear();
     booleanValues.clear();
@@ -292,7 +304,10 @@ DanceFilter buildCollectionFilter({
     branches.add(RatingFilter(facets.minRating!));
   }
   addOr([for (final id in facets.authorIds) AuthorFilter(id)]);
-  addOr([for (final id in facets.tagIds) TagFilter(id)]);
+  addOr([
+    for (final id in facets.tagIds) TagFilter(id),
+    if (facets.untagged) const UntaggedFilter(),
+  ]);
   addOr([for (final id in facets.sourceIds) SourceIdFilter(id)]);
 
   final defsById = {for (final d in defs) d.id: d};

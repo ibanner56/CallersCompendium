@@ -291,4 +291,55 @@ void main() {
     await tester.pumpAndSettle();
     expect(_listedTitles(tester), ['Smooth One']);
   });
+
+  testWidgets(
+    'the Untagged chip lists untagged dances, unions with a tag, and is '
+    'replaced when a tag chip is tapped on a dance (#1422)',
+    (tester) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't2', name: 'energetic'));
+      await repos.dances.create(
+        _dance(id: 'd1', title: 'Smooth One', tagIds: const ['t1']),
+      );
+      await repos.dances.create(_dance(id: 'd2', title: 'Plain Two'));
+      await repos.dances.create(
+        _dance(id: 'd3', title: 'Energetic Three', tagIds: const ['t2']),
+      );
+
+      await _pumpShell(tester, repos, size: const Size(500, 1400));
+
+      await tester.tap(find.byKey(const ValueKey('filters-panel')));
+      await tester.pumpAndSettle();
+      Future<void> tapChip(String key) async {
+        final chip = find.byKey(ValueKey(key));
+        await tester.ensureVisible(chip);
+        await tester.pumpAndSettle();
+        await tester.tap(chip);
+        await tester.pumpAndSettle();
+      }
+
+      await tapChip('untagged-chip');
+      expect(_listedTitles(tester), ['Plain Two']);
+      expect(find.text('Filters (1 active)'), findsOneWidget);
+
+      await tapChip('tag-t2');
+      expect(_listedTitles(tester).toSet(), {'Plain Two', 'Energetic Three'});
+      expect(find.text('Filters (2 active)'), findsOneWidget);
+
+      // A tag chip tapped on a dance replaces every selection, Untagged too.
+      await _openDetail(tester, 'Energetic Three');
+      await _tapDetailTagChip(tester, 't2');
+      expect(_listedTitles(tester), ['Energetic Three']);
+      expect(find.text('Filters (1 active)'), findsOneWidget);
+      expect(
+        tester
+            .widget<FilterChip>(find.byKey(const ValueKey('untagged-chip')))
+            .selected,
+        isFalse,
+      );
+    },
+  );
 }

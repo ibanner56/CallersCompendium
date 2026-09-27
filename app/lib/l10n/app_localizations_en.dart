@@ -2485,6 +2485,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get collectionFacetTags => 'Tags';
 
   @override
+  String get collectionFacetUntagged => 'Untagged';
+
+  @override
   String get collectionFacetSource => 'Source';
 
   @override
