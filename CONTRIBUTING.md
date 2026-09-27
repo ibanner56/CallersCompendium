@@ -410,6 +410,6 @@ telemetry**, so nothing is ever collected automatically. You decide what to shar
   [triage rubric](docs/beta/triage-rubric.md), which maps to the label taxonomy in
   [`.github/labels.yml`](.github/labels.yml) so you can follow an issue from
   `status: triage` to `status: fixed-pending-release`.
-- **Worried about your data?** Don't be — export a backup from
-  **Settings → General** first. Backup and restore are built in, so testing a
-  pre-release build never puts your collection at risk.
+- **Protecting your data.** Export a backup from **Settings → General** before
+  trying a new build. Backup and restore are built in, so you can always return
+  to a known-good copy of your collection.

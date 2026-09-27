@@ -5,8 +5,7 @@ and moving your whole library between devices. It covers bringing in single
 dances from [The Caller's Box](./glossary.md#the-callers-box) and
 [ContraDB](./glossary.md#contradb), importing signed published collections and
 Caller's Compendium files, moving a whole library across from Caller's Companion,
-and backing up and restoring everything you own. Where a feature is still on the
-way, it says so plainly.
+and backing up and restoring everything you own.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Settings**, **Import…**, and **Choose file…**. The

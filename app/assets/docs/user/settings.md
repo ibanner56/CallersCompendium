@@ -419,7 +419,9 @@ without you choosing to.
   simply reports that no update was found, so a checkup never interrupts you with
   an error.
 - **Beta channel** (off by default) — turn this on to be offered pre-release beta
-  versions. Left off, you're only offered stable releases.
+  versions. Left off, you're only offered stable releases. While Caller's
+  Compendium is in beta, every release is a beta release, so turn this on if you
+  want the app to tell you about new versions.
 - **Check automatically** (off by default) — when on, the app quietly checks for a
   newer version as it starts up. Left off, checking only happens when you ask.
 
