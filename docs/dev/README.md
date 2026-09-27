@@ -42,9 +42,12 @@ authoritative list; `preflight.py` is the local mirror of it.
 
 ## Generated files: read the source, not the rendering
 
-Generated files carry a `<!-- generated-by: ... -->` marker (Markdown) or an
-equivalent header comment, so `grep -rl 'generated-by:'` finds them. Never
-hand-edit one; a gate will fail, and the edit is lost at the next regeneration.
+Generated Markdown carries a `<!-- generated-by: ... -->` marker on its first
+line naming the tool and the source. Generated Dart carries its generator's own
+header instead (`// GENERATED CODE - DO NOT MODIFY BY HAND` from drift;
+`flutter gen-l10n` emits no marker at all), so `grep -rl 'generated-by:'` finds
+only the Markdown — the table below is the authoritative list. Never hand-edit
+one; a gate will fail, and the edit is lost at the next regeneration.
 
 | Generated | From | By |
 | --- | --- | --- |
@@ -76,6 +79,6 @@ reproducible generated files.
 | Privacy registry | `packages/compendium_core/lib/src/privacy/` |
 | Schema and migrations | `packages/compendium_core/lib/src/storage/` |
 | UI | `app/lib/src/screens/`, `app/lib/src/widgets/` |
-| CI ratchets | `tools/ci/` (each `check_*.py` / `report_*.py` has a matching `test_*.py`) |
+| CI ratchets | `tools/ci/` (each `check_*.py` / `report_*.py` should have a matching `test_*.py`; `check_l10n_drift.py`, a thin wrapper, has none. `tools/test_preflight.py` asserts every `test_*.py` under `tools/` is run by a workflow and by preflight) |
 | Release tooling | `tools/release/` |
 | Site rendering | `tools/site/` |
