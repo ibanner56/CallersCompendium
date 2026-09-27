@@ -157,6 +157,11 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
     // never the completion dialog's own wait for the user to dismiss it,
     // which would otherwise leave an indeterminate spinner running for as
     // long as that dialog is open.
+    // Every branch below runs after a network await. Backing out of the
+    // screen meanwhile disposes it — and `dispose` force-closes the probe's
+    // client, so the in-flight request fails *immediately*, landing in the
+    // catch branch on a state that is no longer mounted. Hence the `mounted`
+    // checks before each setState.
     try {
       if (mode == SyncPairingMode.create) {
         final SyncHttpResponse response;
@@ -164,9 +169,11 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
           response = await probe.createStore();
         } on Object catch (e, st) {
           logCaughtError(e, st, source: 'sync_pairing_screen._submit.create');
+          if (!mounted) return;
           setState(() => _fieldError = l10n.settingsSyncPairingUnreachable);
           return;
         }
+        if (!mounted) return;
         if (response.kind == SyncResponseKind.conflict) {
           setState(() => _fieldError = l10n.settingsSyncPairingAlreadyInUse);
           return;
@@ -183,9 +190,11 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
           result = await probe.getStore(previouslyUsed: false);
         } on Object catch (e, st) {
           logCaughtError(e, st, source: 'sync_pairing_screen._submit.connect');
+          if (!mounted) return;
           setState(() => _fieldError = l10n.settingsSyncPairingUnreachable);
           return;
         }
+        if (!mounted) return;
         if (result.isMissing) {
           setState(() => _fieldError = l10n.settingsSyncPairingNotFound);
           return;

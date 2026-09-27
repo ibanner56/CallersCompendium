@@ -25,6 +25,7 @@ import 'package:compendium_app/src/data/track_history_for_all_callers_scope.dart
 import 'package:compendium_app/src/data/walkthrough_snippet_library_controller.dart';
 import 'package:compendium_app/src/data/walkthrough_snippet_library_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
+import 'package:compendium_app/src/screens/settings/sync_pairing_screen.dart';
 import 'package:compendium_app/src/sync/sync_controller.dart';
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_http_client.dart';
@@ -2995,6 +2996,45 @@ void main() {
             findsNothing,
           );
           expect(find.text('Connected. Not synced yet.'), findsOneWidget);
+        },
+      );
+
+      testWidgets(
+        'backing out while the probe is in flight leaves the disposed state '
+        'alone when the probe then fails',
+        (tester) async {
+          // `dispose` force-closes the probe's client, so a back-out fails the
+          // in-flight request *immediately*; the failure branch must not call
+          // setState on the unmounted screen (which throws, and lands in the
+          // diagnostics log as a spurious "crash").
+          final gate = Completer<void>();
+          _pairingProbeFactory = (syncId, endpoint) => SyncPairingProbe(
+            getStore: ({required previouslyUsed}) async =>
+                throw UnimplementedError('create must not GET'),
+            createStore: () async {
+              await gate.future;
+              throw StateError('connection closed');
+            },
+          );
+          await enableAndOpenPairing(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-pairing-create')));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('sync-pairing-backup-skip')),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('sync-pairing-continue')));
+          await tester.pump();
+
+          // Back out mid-probe.
+          await tester.pageBack();
+          await tester.pumpAndSettle();
+          expect(find.byType(SyncPairingScreen), findsNothing);
+
+          gate.complete();
+          await tester.pumpAndSettle();
+
+          expect(tester.takeException(), isNull);
         },
       );
 
