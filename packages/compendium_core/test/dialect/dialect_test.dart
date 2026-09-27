@@ -62,13 +62,59 @@ void main() {
         roles: const {'role1': RoleTerm('Dancer'), 'role2': RoleTerm('Dancer')},
       );
       final issues = d.validate();
-      expect(issues.single.code, 'dialect_collision');
+      // Both the singular ("Dancer") and the derived plural ("Dancers")
+      // collide, and each is reported so the editor can flag both fields.
+      expect(issues, hasLength(2));
+      expect(issues.map((i) => i.code), everyElement('dialect_collision'));
+      expect(
+        issues.map((i) => i.data['substitution']),
+        containsAll(['Dancer', 'Dancers']),
+      );
     });
 
     test('an empty substitution is rejected', () {
       final d = Dialect(name: 'bad', roles: const {'role1': RoleTerm('')});
       expect(d.validate().single.code, 'empty_substitution');
     });
+
+    test('a role plural colliding with the other role\'s term is flagged', () {
+      // `canonicalize` writes both the singular and the plural into its
+      // reverse map, so a plural that spells the other role's term makes the
+      // reversal ambiguous exactly as a singular collision does.
+      final d = Dialect(
+        name: 'bad',
+        roles: const {
+          'role1': RoleTerm('lark', plural: 'robins'),
+          'role2': RoleTerm('robin'),
+        },
+      );
+      final issues = d.validate();
+      expect(issues.single.code, 'dialect_collision');
+      expect(issues.single.data['substitution'], 'robins');
+    });
+
+    test('a role plural colliding with a move substitution is flagged', () {
+      final d = Dialect(
+        name: 'bad',
+        roles: const {'role1': RoleTerm('lark', plural: 'twirls')},
+        moves: const {'swing': 'twirls'},
+      );
+      expect(d.validate().single.code, 'dialect_collision');
+    });
+
+    test(
+      'an invariant plural (singular == plural) is not a self-collision',
+      () {
+        final d = Dialect(
+          name: 'ok',
+          roles: const {
+            'role1': RoleTerm('sheep', plural: 'sheep'),
+            'role2': RoleTerm('Goose', plural: 'goose'),
+          },
+        );
+        expect(d.validate(), isEmpty);
+      },
+    );
 
     test('%S is ignored when checking move-substitution collisions', () {
       final d = Dialect(

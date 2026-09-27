@@ -239,24 +239,36 @@ Figure? parseFigureLine(
   // `customFigure` throws on a negative beat count.
   final safeBeats = beats < 0 ? 0 : beats;
 
-  final scrubbed = scrubFn(rawText);
-  if (scrubbed.isEmpty) return null;
-
-  Figure fallback() => customFigure(
-    scrubbed,
+  Figure fallback(String text) => customFigure(
+    text,
     beats: safeBeats,
     progression: progression,
     origin: CustomOrigin.importGap,
   );
+
+  // The scrub is part of the parse-never-fails contract too. The recognisers
+  // assume it ran (role terms already canonical), so a scrub that throws (a
+  // dialect substitution it cannot look up, say) does not attempt recognition
+  // on the raw line: it degrades straight to an honest custom of that text.
+  final String scrubbed;
+  try {
+    scrubbed = scrubFn(rawText);
+  } catch (_) {
+    final raw = rawText.trim();
+    return raw.isEmpty ? null : fallback(raw);
+  }
+  if (scrubbed.isEmpty) return null;
 
   try {
     // A source-specific veto runs BEFORE any recognizer, including this
     // front-end's own pre-recognizers: the point is that the line must not
     // structure at all for this source. Inside the try so a throwing predicate
     // degrades to custom like everything else (parse-never-fails).
-    if (frontEnd.declineToCustom?.call(scrubbed) ?? false) return fallback();
+    if (frontEnd.declineToCustom?.call(scrubbed) ?? false) {
+      return fallback(scrubbed);
+    }
     final match = _recognize(scrubbed, frontEnd);
-    if (match == null || match.forceCustom) return fallback();
+    if (match == null || match.forceCustom) return fallback(scrubbed);
 
     final params = <String, Object?>{
       ...match.params,
@@ -272,9 +284,9 @@ Figure? parseFigureLine(
     final hasError = tax
         .validateFigure(candidate)
         .any((i) => i.severity == ValidationSeverity.error);
-    return hasError ? fallback() : candidate;
+    return hasError ? fallback(scrubbed) : candidate;
   } catch (_) {
-    return fallback();
+    return fallback(scrubbed);
   }
 }
 
@@ -740,22 +752,25 @@ double? _takeRotation(List<String> w) {
     '2.5': 2.5,
   };
   for (var i = 0; i < w.length; i++) {
-    // Two-token "1 1/2" / "1 1/4" / "1 3/4" forms.
-    if (i + 1 < w.length && w[i] == '1') {
-      const combo = {'1/4': 1.25, '1/2': 1.5, '3/4': 1.75};
+    // Two-token compound forms: "1 1/2" / "1 1/4" / "1 3/4" and "2 1/2"
+    // (`_normalize` folds `½` to " 1/2 ", so "2½" arrives here the same way).
+    // The vocabulary stops at 2½, exactly as the decimal table above does
+    // (`2.25` is absent too): 2¾ is beyond the 2.5 domain cap and 2¼ is not a
+    // rotation a caller writes. Those decline the whole rotation rather than
+    // read "2" and leave the fraction as unexplained leftover — the line falls
+    // to custom either way, but without a half-consumed amount.
+    if (i + 1 < w.length && (w[i] == '1' || w[i] == '2')) {
+      const fraction = {'1/4': 0.25, '1/2': 0.5, '3/4': 0.75};
+      final whole = w[i] == '1' ? 1.0 : 2.0;
       // Three-token "1 and 1/2" form: TCB writes "1 & 1/2" and `_normalize`
       // maps `&`→"and", so bridge the intervening "and".
-      if (w[i + 1] == 'and' && i + 2 < w.length) {
-        final v3 = combo[w[i + 2]];
-        if (v3 != null) {
-          w.removeRange(i, i + 3);
-          return v3;
-        }
-      }
-      final v = combo[w[i + 1]];
-      if (v != null) {
-        w.removeRange(i, i + 2);
-        return v;
+      var j = i + 1;
+      if (w[j] == 'and' && j + 1 < w.length) j++;
+      final frac = fraction[w[j]];
+      if (frac != null) {
+        if (whole == 2.0 && frac != 0.5) return null;
+        w.removeRange(i, j + 1);
+        return whole + frac;
       }
     }
     final v = single[w[i]];

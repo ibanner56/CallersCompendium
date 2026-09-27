@@ -342,4 +342,50 @@ void main() {
       );
     });
   });
+
+  group('case-insensitive matching whose lowercase is not a map key', () {
+    // U+017F LATIN SMALL LETTER LONG S case-folds to `s` under RegExp
+    // `caseSensitive: false, unicode: true`, so `ladieſ` MATCHES the key
+    // `ladies` — but `'ladieſ'.toLowerCase()` is `ladieſ`, not `ladies`, so the
+    // lowercased match is not a key. Kelvin sign (K → k) and the like fold
+    // cleanly through `toLowerCase`; `ſ` is the one Latin glyph that does not.
+    const longS = 'Ladieſ chain';
+
+    test('Substitutor leaves the matched text alone instead of throwing', () {
+      final s = Substitutor({'ladies chain': 'X'}, caseInsensitive: true);
+      expect(s.apply(longS), longS);
+      // The ordinary spelling still substitutes.
+      expect(s.apply('Ladies chain'), 'X');
+    });
+
+    test('canonicalizeText (the editor save chokepoint) does not throw', () {
+      expect(canonicalizeText(longS, larks), longS);
+    });
+
+    test('scrubFigureText (the import scrub) does not throw', () {
+      expect(scrubFigureText(longS), longS);
+    });
+  });
+
+  group('canonicalizeMoveSearchText', () {
+    test('rewrites a legacy move keyword to the canonical display name', () {
+      expect(
+        canonicalizeMoveSearchText('give and take', contraTaxonomy),
+        'give & take',
+      );
+    });
+
+    test(
+      'leaves a bare "take" alone so prose like "take hands" is findable',
+      () {
+        // Any canonical text containing "give & take" already contains the
+        // token `take`, so a bare "take" needs no rewrite to find it; rewriting
+        // it only broke queries for the ordinary phrase "take hands four".
+        expect(
+          canonicalizeMoveSearchText('take hands four', contraTaxonomy),
+          'take hands four',
+        );
+      },
+    );
+  });
 }
