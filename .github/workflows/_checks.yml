@@ -63,6 +63,15 @@ jobs:
         run: python3 tools/ci/check_app_version.py
       - name: Test local preflight selection and availability policy
         run: python3 tools/test_preflight.py
+      # The classifier decides which of the jobs below run AT ALL for a PR, so
+      # a routing regression in it does not fail a gate -- it silently skips
+      # one. Its test ran only in local preflight for three weeks while ci.yml
+      # said it was unit-tested; test_preflight.py above now asserts that every
+      # tools/**/test_*.py is invoked by some workflow `run:` line, so that
+      # cannot recur. A classifier edit is never Markdown-only, so this job
+      # always runs for one.
+      - name: Test the CI path classifier (which gates run for a PR)
+        run: python3 tools/ci/test_classify_changes.py
       # Ratchet: the instruction text that is RESIDENT in every agent turn
       # (AGENTS.md plus each path-scoped .github/instructions file) must stay
       # within its byte budget. AGENTS.md grew 21.7x in three weeks — thirteen
@@ -216,12 +225,16 @@ jobs:
       # and workflow_dispatch only, so a PR could break the site publisher's
       # manifest-preservation contract and only fail AFTER merge. Each test
       # exits non-zero on failure (no `|| true`), so a broken suite fails this
-      # PR gate.
+      # PR gate. `test_bash.py` pins WHICH bash the other suites hand their
+      # gh/curl stubs to (#1362): the hazard is Windows-only, but the suite has
+      # a Linux case, and it ran only in preflight until test_preflight.py
+      # started asserting every tools test file is wired here.
       - name: Install Ed25519 verification dependency (for checker and its test suite)
         run: python3 -m pip install --quiet cryptography==50.0.0
 
       - name: Test release supply-chain tooling (SBOM / metadata / notes / pages publish)
         run: |
+          python3 tools/release/test_bash.py
           python3 tools/release/test_check_beta_prerelease_history.py
           python3 tools/release/test_gen_sbom.py
           python3 tools/release/test_gen_release_metadata.py
@@ -258,6 +271,20 @@ jobs:
       - name: Guard Flutter version single-source (.fvmrc == toolchain)
         run: python3 tools/ci/check_flutter_version.py
       - run: flutter pub get --enforce-lockfile
+      # Ratchet: every Figure(...) fixture in app/test and packages/*/test is
+      # valid under the taxonomy, routed through testFigure(), or marked
+      # invalid on purpose (#747). It lives HERE, not in core-tests, because it
+      # scans app/test too and an app-test-only PR skips core-tests (classify
+      # sets core_tests_changed=false for it): a widget test's Figure literal
+      # drifting after a taxonomy change -- the exact shape #747 was filed
+      # for -- then failed on the next push to main, attributed to whatever
+      # merged next. validate runs for every PR that changes a non-Markdown
+      # path, so the fixture and the gate now travel together. `dart test`
+      # does not run this over the real suites (its unit test drives synthetic
+      # input); tools/preflight.py runs it locally as its `fixtures` step.
+      - name: Guard figure fixtures against the taxonomy (#747)
+        working-directory: packages/compendium_core
+        run: dart run tool/check_fixture_validity.dart
       - run: dart format --output=none --set-exit-if-changed .
       # --fatal-infos: the analysis_options here are deliberately strict
       # (strict-casts/strict-inference/strict-raw-types + error escalations), but
@@ -300,9 +327,9 @@ jobs:
       - run: flutter pub get --enforce-lockfile
       - name: Guard compendium_core against Flutter (ADR-001)
         run: python3 tools/ci/check_core_flutter_free.py
-      - name: Guard figure fixtures against the taxonomy (#747)
-        working-directory: packages/compendium_core
-        run: dart run tool/check_fixture_validity.dart
+      # The figure-fixture ratchet (#747) used to run here; it moved to
+      # `validate` because it scans app/test as well, and this job is skipped
+      # for an app-test-only PR.
       - name: Test compendium_core (with coverage)
         run: python3 tools/ci/run_core_tests_with_coverage.py
       - name: Enforce compendium_core coverage floor

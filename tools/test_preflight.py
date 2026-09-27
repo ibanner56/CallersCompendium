@@ -10,9 +10,11 @@ import sys
 import tempfile
 import threading
 import time
-from pathlib import Path
+from pathlib import Path, PurePath
 
 SCRIPT = Path(__file__).resolve().with_name("preflight.py")
+ROOT = SCRIPT.parent.parent
+WORKFLOWS = ROOT / ".github" / "workflows"
 SPEC = importlib.util.spec_from_file_location("preflight_under_test", SCRIPT)
 assert SPEC and SPEC.loader
 preflight = importlib.util.module_from_spec(SPEC)
@@ -189,6 +191,59 @@ def test_no_lock_runs_a_toolchain_step_while_the_lock_is_held() -> None:
         assert code == 0
         assert "wait toolchain" not in output
         assert "ok   slow" in output
+
+
+def python_test_files() -> list[str]:
+    """Every ``tools/**/test_*.py``, repo-relative, forward slashes."""
+    return sorted(
+        path.relative_to(ROOT).as_posix()
+        for path in (ROOT / "tools").rglob("test_*.py")
+    )
+
+
+def workflow_code() -> str:
+    """Every workflow file, with full-line comments removed.
+
+    Comments are stripped because a comment is exactly where a stale claim
+    lives: ci.yml described ``test_classify_changes.py`` as the classifier's
+    unit test for three weeks while no ``run:`` line anywhere invoked it, and
+    a bare grep for the file name reported it wired.
+    """
+    lines: list[str] = []
+    for path in sorted(WORKFLOWS.glob("*.yml")):
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.lstrip().startswith("#"):
+                lines.append(line)
+    return "\n".join(lines)
+
+
+def test_every_python_test_file_runs_in_a_workflow() -> None:
+    """A test file only ships its guarantee if some workflow executes it.
+
+    Each ``tools/**/test_*.py`` is invoked by name from a ``run:`` line -- there
+    is no discovery step -- so a new test file is silent until someone wires
+    it. Two were not: ``tools/ci/test_classify_changes.py`` (the test of the
+    script that decides which gates run at all) and ``tools/release/test_bash.py``.
+    """
+    code = workflow_code()
+    missing = [test for test in python_test_files() if test not in code]
+    assert not missing, f"tools test file(s) not run by any workflow: {missing}"
+
+
+def test_every_python_test_file_is_a_preflight_step() -> None:
+    """docs/dev/README.md calls preflight the local mirror of CI, and the
+    mirror had holes in both directions: the changelog-fragment compiler's
+    test and ``test_resolve_release_codename.py`` ran only in CI, so a
+    malformed ``changelog.d`` fragment passed ``--fast`` and failed on the PR.
+    """
+    commands = {
+        PurePath(part).as_posix()
+        for step in preflight.STEPS
+        for command in step.commands
+        for part in command
+    }
+    missing = [test for test in python_test_files() if test not in commands]
+    assert not missing, f"tools test file(s) with no preflight step: {missing}"
 
 
 def test_unavailable_toolchain_step_does_not_take_the_lock() -> None:

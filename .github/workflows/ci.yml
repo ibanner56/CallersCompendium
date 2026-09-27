@@ -85,10 +85,12 @@ jobs:
             echo '::error::Pull request base or head SHA is unavailable.'
             exit 1
           fi
-          # Decision logic lives in tools/ci/classify_changes.py (unit-tested by
-          # tools/ci/test_classify_changes.py) so the path-to-guard routing can
-          # be exercised without a real Actions run. See that file for the
-          # path sets and tools/ci/test_classify_changes.py for coverage.
+          # Decision logic lives in tools/ci/classify_changes.py so the
+          # path-to-guard routing can be exercised without a real Actions run.
+          # Its unit test, tools/ci/test_classify_changes.py, runs in
+          # _checks.yml's validate job and in tools/preflight.py -- a
+          # classifier edit is never Markdown-only, so validate always runs
+          # for one. See classify_changes.py for the path sets.
           python3 tools/ci/classify_changes.py "$BASE_SHA" "$HEAD_SHA" "$BEFORE_SHA"
 
   checks:

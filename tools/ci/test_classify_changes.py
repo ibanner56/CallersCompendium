@@ -88,12 +88,20 @@ def test_non_markdown_paths_route_to_their_suites() -> None:
         app_tests_changed=True,
         builds_changed=True,
     )
+    # server/ path-depends on compendium_core (server/pubspec.yaml) and every
+    # server library imports the core barrel, so a core change reaches the
+    # server suite. Compile breaks were already caught by validate's
+    # workspace-root analyze; a *behavioural* regression in a shared wire
+    # model or the privacy registry passed analyze and failed only on the
+    # post-merge push to main, where ci.yml runs every suite -- attributed to
+    # whatever merged next. 117 of 300 recent main commits had this shape.
     expect(
         "packages/compendium_core/ path",
         (b"packages/compendium_core/lib/src/privacy/field_registry.dart",),
         validation_changed=True,
         core_tests_changed=True,
         app_tests_changed=True,
+        server_tests_changed=True,
         builds_changed=True,
     )
     expect(
@@ -121,6 +129,41 @@ def test_non_markdown_paths_route_to_their_suites() -> None:
         "unrelated non-markdown path (e.g. a tool script) still runs validation only",
         (b"tools/brand/generate_icons.py",),
         validation_changed=True,
+    )
+
+
+def test_test_input_paths_reach_the_suite_that_reads_them() -> None:
+    print("files that are inputs to an app test route to the app suite:")
+    # THIRD_PARTY_NOTICES.md is Markdown, so alone it used to set nothing at
+    # all -- and app/test/licenses_notice_test.dart, the only guard that the
+    # fmptools notice is still carried in full, never ran for the PR that
+    # trimmed it. Worse, ci.yml's push path filter ignores '**.md', so the
+    # trimmed notice was never checked on main either: it failed on the next
+    # unrelated PR that happened to set app_tests_changed. Same shape as
+    # GENERATED_MARKDOWN_PATHS: Markdown that is really an input to code.
+    expect(
+        "THIRD_PARTY_NOTICES.md alone",
+        (b"THIRD_PARTY_NOTICES.md",),
+        validation_changed=True,
+        app_tests_changed=True,
+    )
+    # release.yml is read by app/test/application_name_test.dart. Not
+    # Markdown, so validation already ran for it; the app suite did not.
+    expect(
+        "release.yml alone",
+        (b".github/workflows/release.yml",),
+        validation_changed=True,
+        app_tests_changed=True,
+    )
+    # A test input cannot break a platform build, so it does not light up
+    # builds_changed -- unlike an app/ path, where the two move together.
+    # (expect() asserts every unnamed output is False, so both cases above
+    # already pin builds_changed=False; this one adds the Markdown sibling.)
+    expect(
+        "a test input plus an unrelated markdown file still skips builds",
+        (b"THIRD_PARTY_NOTICES.md", b"README.md"),
+        validation_changed=True,
+        app_tests_changed=True,
     )
 
 
@@ -238,6 +281,7 @@ def main() -> int:
     test_ordinary_markdown_only_skips_everything()
     test_generated_classification_doc_forces_core_tests()
     test_non_markdown_paths_route_to_their_suites()
+    test_test_input_paths_reach_the_suite_that_reads_them()
     test_packaging_paths_trigger_builds_independently()
     test_docs_bundle_and_changelog_gates_run_on_markdown_only_diffs()
 

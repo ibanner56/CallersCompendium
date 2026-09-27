@@ -286,9 +286,15 @@ STEPS: tuple[Step, ...] = (
     ),
     Step(
         "changelog-structure",
-        "both CHANGELOGs: version sections in order, no category repeated in one",
+        "both CHANGELOGs well-formed, and every pending changelog.d fragment valid",
+        # Mirrors ci.yml's changelog-structure-gate step for step. The fragment
+        # compiler's --check used to run only in CI, so a malformed fragment --
+        # the most common PR shape, since every user-visible change adds one --
+        # passed --fast and failed on the PR.
         (
             py("tools/ci/test_check_changelog_structure.py"),
+            py("tools/release/test_compile_changelog_fragments.py"),
+            py("tools/release/compile_changelog_fragments.py", "--check"),
             py("tools/ci/check_changelog_structure.py"),
         ),
     ),
@@ -326,6 +332,7 @@ STEPS: tuple[Step, ...] = (
             py("tools/release/test_gen_release_notes.py"),
             py("tools/release/test_gen_recovery_provenance.py"),
             py("tools/release/test_release_workflow_recovery.py"),
+            py("tools/release/test_resolve_release_codename.py"),
             py("tools/release/test_publish_pages_manifest.py"),
             py("tools/release/test_publish_pages_site.py"),
             py("tools/release/test_check_pages_signature_files.py"),
