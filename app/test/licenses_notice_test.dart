@@ -49,10 +49,12 @@ class _Notice {
   /// What the normalised reference text starts with.
   final String opening;
 
-  /// A phrase the reference text must carry (the licence's own inclusion
-  /// clause, or the attribution the licence asks for), so the asset cannot be
-  /// trimmed to a title line and still satisfy the equality checks below.
-  final String mustContain;
+  /// Phrases the reference text must carry: the licence's name and URL (or
+  /// its own inclusion clause), and the source the attribution names. Because
+  /// every other copy is compared against the asset, requiring them here
+  /// requires them everywhere; without this the whole licence paragraph could
+  /// be dropped from all copies at once with every test green.
+  final List<String> mustContain;
 
   /// Repo-relative source files whose leading `//` comment must carry the full
   /// notice.
@@ -65,9 +67,10 @@ const List<_Notice> _notices = [
     package: 'fmptools (MIT)',
     asset: 'app/assets/licenses/fmptools-LICENSE.txt',
     opening: 'Copyright (c) 2020 Evan Miller',
-    mustContain:
-        'The above copyright notice and this permission notice shall be '
-        'included in all copies or substantial portions of the Software.',
+    mustContain: [
+      'The above copyright notice and this permission notice shall be '
+          'included in all copies or substantial portions of the Software.',
+    ],
     sourceHeaders: [
       'packages/compendium_core/lib/src/imports/fmp/fmp_reader.dart',
       'packages/compendium_core/lib/src/imports/fmp/scsu.dart',
@@ -75,15 +78,19 @@ const List<_Notice> _notices = [
   ),
   _Notice(
     name: 'EFF long wordlist',
-    package: 'EFF Long Wordlist (CC BY 3.0)',
+    package: 'EFF Long Wordlist (CC BY 3.0 US)',
     asset: 'app/assets/licenses/eff-wordlist-NOTICE.txt',
     opening:
         'EFF Long Wordlist Copyright (c) 2016 Electronic Frontier '
         'Foundation',
-    // CC BY asks for author, licence and source; the source URL is the part
-    // most easily dropped when a notice is shortened.
-    mustContain:
-        'Source: https://www.eff.org/files/2016/07/18/eff_large_wordlist.txt',
+    // CC BY asks for author, licence and source. The licence is the US port:
+    // EFF's copyright page links https://creativecommons.org/licenses/by/3.0/us/
+    // for its 3.0 badge, and never pointed at the Unported text.
+    mustContain: [
+      'Creative Commons Attribution 3.0 United States license (CC BY 3.0 US)',
+      'https://creativecommons.org/licenses/by/3.0/us/',
+      'Source: https://www.eff.org/files/2016/07/18/eff_large_wordlist.txt',
+    ],
     sourceHeaders: [
       'packages/compendium_core/lib/src/sync/eff_long_wordlist.dart',
     ],
@@ -93,7 +100,10 @@ const List<_Notice> _notices = [
     package: 'ContraDB (AGPL-3.0)',
     asset: 'app/assets/licenses/contradb-NOTICE.txt',
     opening: 'ContraDB Copyright (c) David Morse and ContraDB contributors',
-    mustContain: 'Source: https://github.com/contradb/contra',
+    mustContain: [
+      'GNU Affero General Public License, version 3 (AGPL-3.0)',
+      'Source: https://github.com/contradb/contra',
+    ],
     // The renderer follows ContraDB's wording but transcribes no code, so no
     // source file carries the notice in its head; the renderer's own comments
     // name the libfigure functions.
@@ -174,7 +184,9 @@ void main() {
 
     test('the ${notice.name} reference notice is the full text', () {
       expect(reference, startsWith(notice.opening));
-      expect(reference, contains(notice.mustContain));
+      for (final phrase in notice.mustContain) {
+        expect(reference, contains(phrase));
+      }
     });
 
     test('THIRD_PARTY_NOTICES.md carries the full ${notice.name} notice', () {

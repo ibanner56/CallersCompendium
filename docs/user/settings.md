@@ -682,7 +682,7 @@ The **About** section tells you what you're running and where it comes from.
   (CC BY-NC).
 - **View licenses** — the full license texts, including the bundled fonts,
   `fmptools` (MIT), the project the Caller's Companion importer is ported from,
-  the EFF long wordlist (CC BY 3.0) that generated sync IDs are drawn from, and
+  the EFF long wordlist (CC BY 3.0 US) that generated sync IDs are drawn from, and
   ContraDB (AGPL-3.0), whose figure wording the dance-text renderer follows.
 
 ## Where to go next

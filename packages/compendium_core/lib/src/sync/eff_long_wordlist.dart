@@ -2,9 +2,9 @@
 // Copyright (c) 2016 Electronic Frontier Foundation (EFF)
 //
 // The 7,776-word EFF long wordlist is licensed by EFF under the Creative Commons
-// Attribution 3.0 Unported license (CC BY 3.0),
-// https://creativecommons.org/licenses/by/3.0/ - the license stated on the
-// wordlist when it was copied. EFF's copyright page
+// Attribution 3.0 United States license (CC BY 3.0 US),
+// https://creativecommons.org/licenses/by/3.0/us/ - the license EFF's copyright
+// notice pointed to when the list was copied. EFF's copyright page
 // (https://www.eff.org/copyright) now states CC BY 4.0 International for the
 // site's content unless otherwise noted.
 //
@@ -21,8 +21,8 @@
 /// The EFF long wordlist (7776 entries) used for generated sync IDs.
 ///
 /// Source: https://www.eff.org/files/2016/07/18/eff_large_wordlist.txt
-/// Licensed by EFF under CC BY 3.0 — the full notice is at the head of this
-/// file.
+/// Licensed by EFF under CC BY 3.0 US — the full notice is at the head of
+/// this file.
 const List<String> effLongWordlist = <String>[
   'abacus',
   'abdomen',
