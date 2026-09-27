@@ -63,8 +63,10 @@ ratchet reflects over the drift schema, so it sees every column and CI fails on
 a gap.
 
 **Settings keys are different, and the serialiser must handle it.** Their half
-of the ratchet walks the source for `const String k…Key = '…';` declarations, so
-it covers only keys that exist as declared constants. The editor drafts do not:
+of the ratchet walks the source for `const String …Key = '…';` declarations
+(originally only `k…Key`; widened after the 2026 audit found core's un-prefixed
+migration markers escaping it), so it covers only keys that exist as declared
+constants. The editor drafts do not:
 they are built at runtime from a prefix (`editor_draft:<id>`,
 `program_editor_draft:<id>`) whose constants are named `…KeyPrefix` and are not
 matched by that pattern.

@@ -35,7 +35,7 @@ column, and CI will stop you.
 1. Add the column as usual.
 2. Add an entry to `fieldClassifications`, keyed `table.column` using the **SQL**
    names. For a settings key built at runtime from a prefix rather than
-   declared as an exact `const String kSomethingKey`, add the prefix to
+   declared as an exact `const String somethingKey`, add the prefix to
    `settingsPrefixClassifications` instead (see `kDanceEditorDraftKeyPrefix`
    for the pattern) — `classifySettingsKey` resolves the longest matching
    prefix.

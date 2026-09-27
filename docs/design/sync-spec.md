@@ -881,14 +881,16 @@ computed.
 
 Recording a column set turns the marker from a presence latch into a settings
 value carrying structured content, which is mechanically ordinary — sweep
-markers already store JSON — but worth one note on classification. Sweep markers
-sit outside the settings classification ratchet: it matches declarations named
-`k…Key`, and every marker is named `…DoneKey` or `…RequiredKey`, so none is
-captured. That is pre-existing and deliberate rather than something this design
-introduces, and §3.3's fail-closed rule contains it — an unclassified key is
-treated as `deviceLocal` and never serialised. The content here is a list of
-schema identifiers, which carries no user data in any case. The marker is
-install state, not store state, and is not part of §3.2's inventory.
+markers already store JSON — but worth one note on classification. When this
+was written the sweep markers sat outside the settings classification ratchet
+(it matched only declarations named `k…Key`, and every marker is named
+`…DoneKey` or `…RequiredKey`), and §3.3's fail-closed rule contained that — an
+unclassified key is treated as `deviceLocal` and never serialised. The ratchet
+has since been widened to any `…Key` declaration and every marker is classified
+`deviceScoped` in `settings_registry.dart`, which §3.3 never serialises either.
+The content here is a list of schema identifiers, which carries no user data in
+any case. The marker is install state, not store state, and is not part of
+§3.2's inventory.
 
 Raise-safety does not rest on this argument. A retry write can only raise if
 some row already holds the target, and condition (b) observes that occupant
