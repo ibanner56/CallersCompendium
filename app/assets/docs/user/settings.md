@@ -66,8 +66,8 @@ the full picture.
 
 ### Deleted items
 
-- **Keep deleted dances for** — choose **30 days**, **60 days**, **90 days**, or
-  **Never** (default is **30 days**). Deleted dances are held for this long and
+- **Keep deleted dances for** — choose **30 days**, **90 days**, or **Never**
+  (default is **30 days**). Deleted dances are held for this long and
   then purged. For how soft-delete and restore work, see
   [Collection & search](./collection.md).
 
