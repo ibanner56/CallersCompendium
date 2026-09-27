@@ -521,6 +521,40 @@ void main() {
     expect(choreographer.read<String>('email'), 'café@example.test');
   });
 
+  test('an entry naming a table this build does not know is discharged, '
+      'not interpolated', () async {
+    await repos.dances.create(sampleDance(id: 'd1', title: 'Original'));
+    await repos.ensureMigrated();
+    // Every writer stores a compile-time table name, but the retire pass reads
+    // whatever the file holds: a table renamed or dropped by a later build
+    // leaves entries like this one behind, and `SELECT 1 FROM <name>` on them
+    // would fail every open. A skip row's table must be checked against the
+    // live schema before its name reaches SQL.
+    await db.customStatement(
+      'INSERT INTO normalisation_skips '
+      '(table_name, column_name, record_id) VALUES (?, ?, ?)',
+      ['dance_snapshots', 'title', 'd1'],
+    );
+    // And a table the schema does have but the pass never records for (no
+    // shareable text column): same outcome, so the check is on the pass's own
+    // scope and not merely on `sqlite_master`.
+    await db.customStatement(
+      'INSERT INTO normalisation_skips '
+      '(table_name, column_name, record_id) VALUES (?, ?, ?)',
+      ['dance_tags', 'tag_id', 'd1'],
+    );
+
+    await CompendiumRepositories(db, contraTaxonomy).ensureMigrated();
+
+    expect(
+      await db.customSelect('SELECT 1 FROM normalisation_skips').get(),
+      isEmpty,
+      reason:
+          'an entry the pass can never discharge would pin the early return '
+          'open forever; one naming an unknown table would fail the open',
+    );
+  });
+
   test(
     'retries derived rebuild after a committed normalization rewrite',
     () async {
