@@ -5,21 +5,100 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/licenses.dart';
 
-/// The MIT notice for `fmptools` (issue #1392).
+/// The third-party notices that travel with the app.
 ///
 /// `fmp_reader.dart` and `scsu.dart` describe themselves as ports of the
 /// MIT-licensed `fmptools` project, whose license requires its copyright and
-/// permission notice to travel with "all copies or substantial portions". The
-/// notice therefore has to be present in four places: the bundled asset the
-/// in-app license page loads, the repo's `THIRD_PARTY_NOTICES.md`, and the head
-/// of each ported source file. The asset is the reference; this test compares
-/// the other copies against it, so they cannot drift or be trimmed to the
-/// copyright line alone.
+/// permission notice to travel with "all copies or substantial portions"
+/// (#1392). The EFF long wordlist compiled into `eff_long_wordlist.dart` is
+/// CC BY 3.0, which requires the author, licence and source to be named on
+/// every distributed copy. ContraDB's attribution is the one
+/// `docs/research/contradb.md` promised for reusing its figure wording.
+///
+/// Each notice therefore has to be present in several places: the bundled
+/// asset the in-app license page loads, the repo's `THIRD_PARTY_NOTICES.md`,
+/// and the head of each ported or copied source file. The asset is the
+/// reference; this test compares the other copies against it, so they cannot
+/// drift or be trimmed to the copyright line alone.
 ///
 /// It also asserts the in-app registration. That lives here rather than in
 /// `settings_about_test.dart` on purpose: enumerating `LicenseRegistry`
 /// after that file's `testWidgets` cases have run hangs on the asset loads
 /// (observed: `TimeoutException`), whereas in this file it does not.
+
+/// One bundled notice and the copies that must equal it.
+class _Notice {
+  const _Notice({
+    required this.name,
+    required this.package,
+    required this.asset,
+    required this.opening,
+    required this.mustContain,
+    this.sourceHeaders = const [],
+  });
+
+  /// Short name for test titles.
+  final String name;
+
+  /// The `packages` label `licenses.dart` files the entry under.
+  final String package;
+
+  /// Repo-relative path of the reference asset.
+  final String asset;
+
+  /// What the normalised reference text starts with.
+  final String opening;
+
+  /// A phrase the reference text must carry (the licence's own inclusion
+  /// clause, or the attribution the licence asks for), so the asset cannot be
+  /// trimmed to a title line and still satisfy the equality checks below.
+  final String mustContain;
+
+  /// Repo-relative source files whose leading `//` comment must carry the full
+  /// notice.
+  final List<String> sourceHeaders;
+}
+
+const List<_Notice> _notices = [
+  _Notice(
+    name: 'fmptools',
+    package: 'fmptools (MIT)',
+    asset: 'app/assets/licenses/fmptools-LICENSE.txt',
+    opening: 'Copyright (c) 2020 Evan Miller',
+    mustContain:
+        'The above copyright notice and this permission notice shall be '
+        'included in all copies or substantial portions of the Software.',
+    sourceHeaders: [
+      'packages/compendium_core/lib/src/imports/fmp/fmp_reader.dart',
+      'packages/compendium_core/lib/src/imports/fmp/scsu.dart',
+    ],
+  ),
+  _Notice(
+    name: 'EFF long wordlist',
+    package: 'EFF Long Wordlist (CC BY 3.0)',
+    asset: 'app/assets/licenses/eff-wordlist-NOTICE.txt',
+    opening:
+        'EFF Long Wordlist Copyright (c) 2016 Electronic Frontier '
+        'Foundation',
+    // CC BY asks for author, licence and source; the source URL is the part
+    // most easily dropped when a notice is shortened.
+    mustContain:
+        'Source: https://www.eff.org/files/2016/07/18/eff_large_wordlist.txt',
+    sourceHeaders: [
+      'packages/compendium_core/lib/src/sync/eff_long_wordlist.dart',
+    ],
+  ),
+  _Notice(
+    name: 'ContraDB',
+    package: 'ContraDB (AGPL-3.0)',
+    asset: 'app/assets/licenses/contradb-NOTICE.txt',
+    opening: 'ContraDB Copyright (c) David Morse and ContraDB contributors',
+    mustContain: 'Source: https://github.com/contradb/contra',
+    // The renderer follows ContraDB's wording but transcribes no code, so no
+    // source file carries the notice in its head; the renderer's own comments
+    // name the libfigure functions.
+  ),
+];
 
 /// The repo root: the nearest ancestor of the test's working directory that
 /// contains `packages/compendium_core`.
@@ -63,7 +142,10 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   final root = _repoRoot();
 
-  test('the license registry carries the fmptools MIT notice', () async {
+  String read(String relative) =>
+      File('${root.path}/$relative').readAsStringSync();
+
+  test('the license registry carries every bundled notice', () async {
     LicenseRegistry.reset();
     resetBundledLicensesForTest();
     registerBundledLicenses();
@@ -73,46 +155,37 @@ void main() {
     final entries = await LicenseRegistry.licenses.toList().timeout(
       const Duration(seconds: 20),
     );
-    final fmptools = entries.where(
-      (e) => e.packages.contains('fmptools (MIT)'),
-    );
 
-    expect(fmptools, hasLength(1));
-    final text = fmptools.single.paragraphs.map((p) => p.text).join(' ');
-    expect(text, contains('Copyright (c) 2020 Evan Miller'));
-    expect(
-      text,
-      contains('shall be included in all copies or substantial portions'),
-    );
+    for (final notice in _notices) {
+      final matching = entries.where(
+        (e) => e.packages.contains(notice.package),
+      );
+      expect(matching, hasLength(1), reason: notice.package);
+      final text = _normalise(
+        matching.single.paragraphs.map((p) => p.text).join('\n'),
+      );
+      // The registered text is the asset itself, not a summary of it.
+      expect(text, equals(_normalise(read(notice.asset))));
+    }
   });
 
-  String read(String relative) =>
-      File('${root.path}/$relative').readAsStringSync();
+  for (final notice in _notices) {
+    final reference = _normalise(read(notice.asset));
 
-  final notice = _normalise(read('app/assets/licenses/fmptools-LICENSE.txt'));
-
-  test('the reference notice is the upstream MIT text', () {
-    expect(notice, startsWith('Copyright (c) 2020 Evan Miller'));
-    expect(
-      notice,
-      contains(
-        'The above copyright notice and this permission notice shall be '
-        'included in all copies or substantial portions of the Software.',
-      ),
-    );
-  });
-
-  test('THIRD_PARTY_NOTICES.md carries the full fmptools notice', () {
-    expect(_normalise(read('THIRD_PARTY_NOTICES.md')), contains(notice));
-  });
-
-  for (final path in const [
-    'packages/compendium_core/lib/src/imports/fmp/fmp_reader.dart',
-    'packages/compendium_core/lib/src/imports/fmp/scsu.dart',
-  ]) {
-    test('$path carries the full fmptools notice in its header', () {
-      expect(_normalise(_leadingComment(read(path))), contains(notice));
+    test('the ${notice.name} reference notice is the full text', () {
+      expect(reference, startsWith(notice.opening));
+      expect(reference, contains(notice.mustContain));
     });
+
+    test('THIRD_PARTY_NOTICES.md carries the full ${notice.name} notice', () {
+      expect(_normalise(read('THIRD_PARTY_NOTICES.md')), contains(reference));
+    });
+
+    for (final path in notice.sourceHeaders) {
+      test('$path carries the full ${notice.name} notice in its header', () {
+        expect(_normalise(_leadingComment(read(path))), contains(reference));
+      });
+    }
   }
 
   test('every source file that calls itself an MIT port carries a notice', () {

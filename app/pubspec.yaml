@@ -112,6 +112,12 @@ flutter:
     # are ported from (MIT — the notice must ship with the port, #1392). Loaded
     # the same way, via licenses.dart.
     - assets/licenses/fmptools-LICENSE.txt
+    # Attribution for the EFF long wordlist (CC BY 3.0) compiled into
+    # compendium_core's sync_id.dart for generated sync IDs, and for ContraDB
+    # (AGPL-3.0), whose libfigure sentence structure the dialect renderer
+    # follows. Both loaded the same way, via licenses.dart.
+    - assets/licenses/eff-wordlist-NOTICE.txt
+    - assets/licenses/contradb-NOTICE.txt
     # In-app User Guide: the offline copy of the user documentation, mirrored
     # from /docs/user by tools/ci/sync_user_docs.py and kept in sync by a CI
     # drift-check. Rendered from these bundled assets so the guide works fully
