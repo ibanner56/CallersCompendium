@@ -174,7 +174,9 @@ class ImportSession {
   /// Ids of dances newly inserted by this batch.
   List<String> get insertedDanceIds => _insertedDanceIds;
 
-  /// Prior snapshots of dances this batch updated (for rollback).
+  /// Prior snapshots of dances this batch updated (for rollback): one per
+  /// dance, taken before the batch's *first* write to it, however many rows
+  /// resolved onto it.
   List<Dance> get updatedDancePriorStates => _priorStates;
 
   /// Ids of [Choreographer] rows newly created while resolving author names in
@@ -492,6 +494,13 @@ class ImportPipeline {
     final committed = <CommittedRecord>[];
     final insertedIds = <String>[];
     final priorStates = <Dance>[];
+    // Ids whose pre-import state is already in `priorStates`. Two rows can
+    // resolve onto one target in a batch (both linked to it, or one linked and
+    // one a variation with link-back); the second read then sees the first
+    // write, and restoring that "prior" on undo left the dance at an
+    // intermediate state. Capture once per target, as the program ledger in
+    // `CompendiumArchiveImporter.commit` (`priorCapturedFor`) does.
+    final priorCapturedFor = <String>{};
 
     // Batch-scoped author resolution state. Seeded from the current
     // choreographers (normalized name → id) so imported names match existing
@@ -606,7 +615,7 @@ class ImportPipeline {
               includeDeleted: true,
             );
             if (target != null) {
-              priorStates.add(target);
+              if (priorCapturedFor.add(target.id)) priorStates.add(target);
               await _dances.update(
                 target.copyWith(
                   links: [
@@ -648,7 +657,7 @@ class ImportPipeline {
             );
             continue;
           }
-          priorStates.add(prior);
+          if (priorCapturedFor.add(id)) priorStates.add(prior);
           final dance = _rebuildWithIdentity(
             plan.draft.dance,
             id: id,

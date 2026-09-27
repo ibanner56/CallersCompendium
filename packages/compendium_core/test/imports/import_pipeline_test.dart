@@ -592,6 +592,49 @@ void main() {
       final restored = (await dances.getById(id))!;
       expect(restored.title, 'Before');
     });
+
+    test('restores a dance two rows linked to in one batch to its true '
+        'pre-import state, not the intermediate one', () async {
+      final seeded = await pipeline.commit(
+        await pipeline.plan(
+          FakeSourceAdapter([record('fake-1', 'The Nice Combination')]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+      );
+      final targetId = seeded.insertedDanceIds.single;
+
+      // Two review rows (both fuzzy-ambiguous against the seeded dance), both
+      // resolved "Link to <The Nice Combination>". The prior state captured
+      // for the second link is the first link's result, so a forward-order
+      // restore left the dance at 'Nice Combination'.
+      final batch = await pipeline.plan(
+        FakeSourceAdapter([
+          record('fake-2', 'Nice Combination'),
+          record('fake-3', 'A Nice Combination'),
+        ]),
+        const ImportRequest(),
+      );
+      expect(batch.records.map((r) => r.verdict.isAmbiguous), [true, true]);
+      final session = await pipeline.commit(
+        batch,
+        now: DateTime.utc(2026, 9, 1),
+        newId: nextId,
+        resolutions: {
+          0: DedupeResolution.link(targetId),
+          1: DedupeResolution.link(targetId),
+        },
+      );
+      expect(session.records.map((r) => r.action), [
+        CommitAction.link,
+        CommitAction.link,
+      ]);
+      expect((await dances.getById(targetId))!.title, 'A Nice Combination');
+
+      await pipeline.undo(session);
+      expect((await dances.getById(targetId))!.title, 'The Nice Combination');
+    });
     group('author name resolution', () {
       Future<List<String>> authorNamesOf(String danceId) async {
         final dance = (await dances.getById(danceId))!;
