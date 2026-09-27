@@ -2,8 +2,9 @@
 
 Caller's Compendium is licensed under AGPL-3.0 (see [`LICENSE`](LICENSE) and
 [`LICENSE-EXCEPTION.md`](LICENSE-EXCEPTION.md)). This file carries the notices
-that other projects' licenses require to travel with code we ported from them.
-The same texts ship in the app under **Settings ▸ About ▸ View licenses**.
+that other projects' licenses require to travel with code or data we took from
+them, and the attribution we promised where the licence leaves it optional. The
+same texts ship in the app under **Settings ▸ About ▸ View licenses**.
 
 Fonts bundled with the app are covered separately: their SIL Open Font License
 texts live beside them in [`app/assets/fonts/`](app/assets/fonts/) and appear on
@@ -12,8 +13,10 @@ their own licenses, which Flutter lists on that page automatically.
 
 If you port code from another project, add its notice here, to the head of the
 ported file, and to the in-app license page (`app/lib/src/licenses.dart`).
-`app/test/licenses_notice_test.dart` fails when a source file that calls itself
-an MIT-licensed port carries no notice.
+The bundled asset under `app/assets/licenses/` is the reference copy;
+`app/test/licenses_notice_test.dart` compares every other copy against it, and
+fails when a source file that calls itself an MIT-licensed port carries no
+notice.
 
 ## fmptools
 
@@ -50,4 +53,67 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+```
+
+## EFF Long Wordlist
+
+Device Sync identifies an account by a generated four-word ID drawn from the
+Electronic Frontier Foundation's long wordlist (7,776 words, published 2016).
+The list is compiled unmodified into
+[`packages/compendium_core/lib/src/sync/eff_long_wordlist.dart`](packages/compendium_core/lib/src/sync/eff_long_wordlist.dart)
+and used by `sync_id.dart` to generate and score IDs.
+
+The wordlist is licensed under [Creative Commons Attribution 3.0 United
+States](https://creativecommons.org/licenses/by/3.0/us/) (CC BY 3.0 US), the
+licence EFF's copyright notice pointed to when the list was copied (the
+wordlist pages themselves state no licence; the header we recorded says
+CC BY 3.0, and EFF's 3.0 licence badge links the US port). EFF's
+[copyright page](https://www.eff.org/copyright) now states CC BY 4.0
+International for the site's content unless otherwise noted; we cite the
+licence under which the file was obtained. Either version asks for the author,
+the licence and the source to be named. The notice, verbatim:
+
+```text
+EFF Long Wordlist
+Copyright (c) 2016 Electronic Frontier Foundation (EFF)
+
+The 7,776-word EFF long wordlist is licensed by EFF under the Creative Commons
+Attribution 3.0 United States license (CC BY 3.0 US),
+https://creativecommons.org/licenses/by/3.0/us/ - the license EFF's copyright
+notice pointed to when the list was copied. EFF's copyright page
+(https://www.eff.org/copyright) now states CC BY 4.0 International for the
+site's content unless otherwise noted.
+
+Source: https://www.eff.org/files/2016/07/18/eff_large_wordlist.txt
+
+Caller's Compendium compiles the wordlist in unmodified form and uses it to
+generate the four-word IDs that identify a device-sync account.
+```
+
+## ContraDB
+
+[ContraDB](https://github.com/contradb/contra) by David Morse is licensed under
+AGPL-3.0, the same licence as Caller's Compendium.
+[`docs/research/contradb.md`](docs/research/contradb.md) records the decision
+to reuse its design with attribution. No ContraDB source code is transcribed,
+but the figure sentence structure and modifier phrasing produced by
+[`packages/compendium_core/lib/src/dialect/renderer.dart`](packages/compendium_core/lib/src/dialect/renderer.dart)
+follow ContraDB's `libfigure` (`app/javascript/libfigure/` upstream): a
+handful of moves adopt its `words()` sentence structure verbatim, and the
+modifier clauses follow `upOrDownTheHallWords`, `zigZagWords`,
+`longLinesWords`, `heyWords` and `gyreWords`, which the renderer's comments name
+at each site. The notice, verbatim:
+
+```text
+ContraDB
+Copyright (c) David Morse and ContraDB contributors
+Licensed under the GNU Affero General Public License, version 3 (AGPL-3.0).
+
+Source: https://github.com/contradb/contra
+
+Figure sentence structure and modifier phrasing in Caller's Compendium's
+dialect renderer follow ContraDB's libfigure (its words() functions, among them
+upOrDownTheHallWords, zigZagWords, longLinesWords, heyWords and gyreWords). No
+ContraDB source code is transcribed; the renderer's comments name the libfigure
+function each rendering follows.
 ```

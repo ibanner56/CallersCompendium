@@ -1375,7 +1375,7 @@ void main() {
     (tester) async {
       // Regression guard for #942: two feature PRs (#705, #567) each inserted
       // a new tile near the top of this subsection instead of at its
-      // documented position (docs/user/settings.md:264-287), splitting
+      // documented position (docs/user/settings.md:388-422), splitting
       // Free-text entry from Figure shorthands. This asserts the whole
       // subsection's rendered vertical order, not just that one adjacency.
       final repos = openTestRepositories();
