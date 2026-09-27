@@ -308,6 +308,34 @@ def test_extract_sql_literals() -> None:
         f"got {[l.content for l in lits]}",
     )
 
+    # `\u` and `\x` were left as literal letters by an earlier revision, so
+    # 'WHERE\u000akey' joined to WHEREu000akey -- no word boundary between
+    # WHERE and key for either scope or filter pattern to see.
+    lits = extract_sql_literals("'WHERE\\u000akey = ?'")
+    check(
+        "`\\uXXXX` (4 hex digits) decodes to its Unicode code point",
+        len(lits) == 1 and lits[0].content == "WHERE\nkey = ?",
+        f"got {[l.content for l in lits]}",
+    )
+    lits = extract_sql_literals("'WHERE\\x0akey = ?'")
+    check(
+        "`\\xXX` (2 hex digits) decodes to its byte value",
+        len(lits) == 1 and lits[0].content == "WHERE\nkey = ?",
+        f"got {[l.content for l in lits]}",
+    )
+    lits = extract_sql_literals("'emoji \\u{1f600} done'")
+    check(
+        "`\\u{X...}` (braced, variable-length) decodes to its code point",
+        len(lits) == 1 and lits[0].content == "emoji \U0001f600 done",
+        f"got {[l.content for l in lits]}",
+    )
+    lits = extract_sql_literals("'\\u00zz bad hex falls back to the letter u'")
+    check(
+        "malformed `\\u` (non-hex digits) falls back rather than raising",
+        len(lits) == 1 and lits[0].content == "u00zz bad hex falls back to the letter u",
+        f"got {[l.content for l in lits]}",
+    )
+
     # Line number of the opening quote.  The two literals must not be adjacent
     # (i.e. they must be separated by a non-whitespace token) so the SELECT is
     # its own literal group with its own line number.
@@ -493,6 +521,23 @@ def test_compliant_reads() -> None:
             ").get();\n"
         ) == 0,
         "`settings\\b` -- the word boundary is load-bearing",
+    )
+    check(
+        "bare `$identifier` interpolation, filtered read is compliant",
+        _violation_count(
+            "final r = db.customSelect(\n"
+            "  'SELECT value_json FROM $settingsTable WHERE key = ? '\n"
+            "  'AND deleted_at IS NULL',\n"
+            ").get();\n"
+        ) == 0,
+    )
+    check(
+        "`\\u` escape between WHERE and key, filtered read is compliant",
+        _violation_count(
+            "final r = db.customSelect(\n"
+            "  'SELECT value_json FROM settings WHERE\\u000akey = ? AND deleted_at IS NULL',\n"
+            ").get();\n"
+        ) == 0,
     )
 
 
@@ -700,6 +745,39 @@ def test_non_compliant_reads() -> None:
         ) == 1,
         "Python's \\\\n puts a literal backslash-n in the Dart source; the "
         "extractor used to append the escaped letter raw, joining to WHEREnkey",
+    )
+
+    check(
+        "bare `$identifier` interpolation naming the settings table",
+        _violation_count(
+            "final r = db.customSelect(\n"
+            "  'SELECT value_json FROM $settingsTable WHERE key = ?',\n"
+            ").get();\n"
+        ) == 1,
+        "the `${...}` alternative only matches braced interpolation; a bare "
+        "`$settingsTable` bypassed the scope pattern entirely (found in review)",
+    )
+
+    check(
+        "`\\u` escape (4 hex digits) between WHERE and key",
+        _violation_count(
+            "final r = await db.customSelect(\n"
+            "  'SELECT value_json FROM settings WHERE\\u000akey = ?',\n"
+            ").get();\n"
+        ) == 1,
+        "Dart's \\u000a is a real newline at runtime; left undecoded the letters "
+        "'u000a' merge WHERE and key into one word, hiding the WHERE\\bkey "
+        "boundary (found in review)",
+    )
+
+    check(
+        "`\\x` escape (2 hex digits) between WHERE and key",
+        _violation_count(
+            "final r = await db.customSelect(\n"
+            "  'SELECT value_json FROM settings WHERE\\x20key = ?',\n"
+            ").get();\n"
+        ) == 1,
+        "same bypass as \\u, via Dart's \\xXX byte escape",
     )
 
 

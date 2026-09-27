@@ -201,20 +201,53 @@ def python_test_files() -> list[str]:
     )
 
 
-def workflow_code() -> str:
-    """Every workflow file, with full-line comments removed.
+_RUN_BLOCK_SCALARS = ("", "|", "|-", "|+", ">", ">-", ">+")
 
-    Comments are stripped because a comment is exactly where a stale claim
-    lives: ci.yml described ``test_classify_changes.py`` as the classifier's
-    unit test for three weeks while no ``run:`` line anywhere invoked it, and
-    a bare grep for the file name reported it wired.
+
+def run_commands_from_text(workflow_text: str) -> list[str]:
+    """Every ``run:`` command body in one workflow file's text.
+
+    A test file only counts as wired in if a ``run:`` step actually invokes
+    it -- naming it elsewhere (a comment, a ``paths:`` trigger filter) proves
+    nothing about whether it executes. A single-line form (``run: python3
+    x.py``) contributes its remainder; a block-scalar form (``run: |``)
+    contributes every following line indented past the ``run:`` key itself,
+    which is how a multi-command step (several ``python3 ...`` lines under
+    one ``run: |``) is written in this repo's workflows. The block ends at
+    the first line whose indentation is not deeper (or end of file).
     """
-    lines: list[str] = []
+    lines = workflow_text.splitlines()
+    commands: list[str] = []
+    i, n = 0, len(lines)
+    while i < n:
+        line = lines[i]
+        if line.lstrip().startswith("#") or "run:" not in line:
+            i += 1
+            continue
+        run_col = line.index("run:")
+        rest = line[run_col + len("run:"):].strip()
+        i += 1
+        if rest not in _RUN_BLOCK_SCALARS:
+            commands.append(rest)
+            continue
+        while i < n:
+            cont = lines[i]
+            if cont.strip() == "":
+                i += 1
+                continue
+            if len(cont) - len(cont.lstrip()) <= run_col:
+                break
+            commands.append(cont)
+            i += 1
+    return commands
+
+
+def run_commands_text() -> str:
+    """Every ``run:`` command body across all workflow files, joined."""
+    commands: list[str] = []
     for path in sorted(WORKFLOWS.glob("*.yml")):
-        for line in path.read_text(encoding="utf-8").splitlines():
-            if not line.lstrip().startswith("#"):
-                lines.append(line)
-    return "\n".join(lines)
+        commands.extend(run_commands_from_text(path.read_text(encoding="utf-8")))
+    return "\n".join(commands)
 
 
 def test_every_python_test_file_runs_in_a_workflow() -> None:
@@ -224,10 +257,53 @@ def test_every_python_test_file_runs_in_a_workflow() -> None:
     is no discovery step -- so a new test file is silent until someone wires
     it. Two were not: ``tools/ci/test_classify_changes.py`` (the test of the
     script that decides which gates run at all) and ``tools/release/test_bash.py``.
+
+    The search is restricted to ``run:`` command bodies, not the whole
+    workflow file: a test file's name also appears in a ``paths:`` trigger
+    filter in the same repo (``test_compile_changelog_fragments.py`` in
+    ``changelog-structure.yml``), and a raw substring search across the
+    whole file would call that "run" even if every actual ``run:`` line
+    invoking it were deleted (found in review).
     """
-    code = workflow_code()
-    missing = [test for test in python_test_files() if test not in code]
+    commands = run_commands_text()
+    missing = [test for test in python_test_files() if test not in commands]
     assert not missing, f"tools test file(s) not run by any workflow: {missing}"
+
+
+def test_run_commands_from_text_ignores_non_run_mentions() -> None:
+    """A test file named only in a ``paths:`` filter is not "run".
+
+    The naive implementation searched the whole workflow file (minus
+    full-line comments), so a script mentioned only in a trigger filter --
+    or reinstated there after its ``run:`` line was deleted -- would still
+    read as wired in. This pins that the extraction is scoped to ``run:``
+    command bodies specifically.
+    """
+    workflow = (
+        "on:\n"
+        "  push:\n"
+        "    paths:\n"
+        "      - 'tools/ci/test_only_in_paths_filter.py'\n"
+        "jobs:\n"
+        "  checks:\n"
+        "    steps:\n"
+        "      # tools/ci/test_only_in_comment.py described here\n"
+        "      - run: python3 tools/ci/test_single_line.py\n"
+        "      - run: |\n"
+        "          python3 tools/ci/test_block_first.py\n"
+        "          python3 tools/ci/test_block_second.py\n"
+        "      - name: next step\n"
+        "        run: python3 tools/ci/test_after_block.py\n"
+    )
+    commands = run_commands_from_text(workflow)
+    joined = "\n".join(commands)
+
+    assert "tools/ci/test_only_in_paths_filter.py" not in joined
+    assert "tools/ci/test_only_in_comment.py" not in joined
+    assert "tools/ci/test_single_line.py" in joined
+    assert "tools/ci/test_block_first.py" in joined
+    assert "tools/ci/test_block_second.py" in joined
+    assert "tools/ci/test_after_block.py" in joined
 
 
 def test_every_python_test_file_is_a_preflight_step() -> None:
