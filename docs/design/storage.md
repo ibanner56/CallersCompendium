@@ -619,6 +619,22 @@ by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
   migrating such a file would silently stamp the version down and risk
   corruption; a belt-and-suspenders guard in `MigrationStrategy.onUpgrade`
   (`from > to` throws) backstops any open path that bypasses the preflight.
+- **Schema floor.** If the file's version is *below* `kMinSupportedSchemaVersion`
+  (its upgrade steps were retired), the preflight throws
+  `DatabaseBelowFloorError`, which names the bridge release that can still
+  migrate the file, and `AppBootstrap` renders a recovery screen with
+  Back-Up-and-Reset / Reset and no Retry (issue #841). The same
+  belt-and-suspenders guard in `onUpgrade` (`from < kMinSupportedSchemaVersion`
+  throws) backstops any open path that bypasses the preflight; without it a
+  below-floor file would run only the surviving steps and end up structurally
+  wrong with no error at all.
+- **Atomic upgrade.** drift runs `onUpgrade` with no transaction of its own and
+  stamps `user_version` only after it returns, so `onUpgrade` runs every step
+  inside a single `transaction()` (after the two refusal guards, which throw
+  before any DDL). A failure anywhere in the body — an exception from a later
+  step, a process death — rolls back to the pre-upgrade file, which the next
+  launch migrates again from the start, instead of leaving earlier steps' DDL
+  committed under the old stamp where the next open re-enters them and fails.
 - **Backup-before-migrate.** If an upgrade is pending (file version < running),
   the preflight first checkpoints the WAL and copies the whole SQLite file to
   `<app-documents>/db_backups/compendium.pre-v<from>-<UTC-timestamp>.sqlite.bak`,

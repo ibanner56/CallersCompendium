@@ -350,17 +350,15 @@ void main() {
   });
 
   test(
-    'below-floor error reaches AppBootstrap, not the generic error path — '
-    'guard: mutate the check out and the generic path fires instead (issue #841)',
+    'runMigrationPreflight throws the typed error AppBootstrap routes on, '
+    'not a generic one (issue #841)',
     () async {
-      // This test verifies the guard's routing: a DatabaseBelowFloorError must
-      // reach the below-floor branch in AppBootstrap, not fall through to the
-      // generic retry screen.
-      //
-      // We cannot exercise AppBootstrap here (widget test); what we can prove is
-      // that runMigrationPreflight throws DatabaseBelowFloorError (not StateError
-      // or any other type) for a below-floor file, so the routing in
-      // AppBootstrap's error branch is unambiguous.
+      // This asserts the *type* only. Routing — that a DatabaseBelowFloorError
+      // reaches the below-floor recovery screen rather than the generic Retry
+      // screen — is a widget concern, covered by
+      // `app/test/widgets/app_bootstrap_test.dart` ("a below-floor error shows
+      // the recovery screen and no Retry"), which pumps AppBootstrap with this
+      // error and asserts the recovery headline and the absence of Retry.
       final dbFile = File(p.join(dir.path, 'compendium.sqlite'));
       final belowFloor = kMinSupportedSchemaVersion - 1;
       _createFixture(dbFile.path, userVersion: belowFloor);
@@ -400,7 +398,6 @@ void main() {
     _createFixture(dbFile.path, userVersion: 5, seedValue: 'must survive');
 
     // Inject a writer that always throws — simulates disk full / unwritable.
-    var wipeCalled = false;
     final result = await performBackUpAndReset(
       dbFile: dbFile,
       snapshotDir: snapshotDir,
@@ -429,9 +426,9 @@ void main() {
 
     // No snapshot directory was created (writer threw before creating it).
     expect(snapshotDir.existsSync(), isFalse);
-    // wipeCalled is never set because performBackUpAndReset returns
-    // BackUpFailed; the caller (main.dart) must check and not wipe.
-    expect(wipeCalled, isFalse);
+    // performBackUpAndReset never wipes; the caller (main.dart) checks for
+    // BackUpFailed and must not wipe either. The file assertions above are
+    // the guard for the first half; the second is main.dart's to keep.
   });
 
   test('performBackUpAndReset returns BackUpReady when the snapshot succeeds, '

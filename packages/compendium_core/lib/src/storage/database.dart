@@ -648,25 +648,11 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       // with no error at all — silent corruption of a user's collection, which
       // is a far worse outcome than refusing to open the file.
       //
-      // KNOWN GAP — the app layer does *not* yet catch this earlier, unlike the
-      // downgrade case above. `runMigrationPreflight` reads `user_version`
-      // without opening the database and throws `DatabaseDowngradeError`, which
-      // `AppBootstrap` renders as a dedicated terminal screen with no Retry;
-      // `MigrationSnapshotAborted` gets the same treatment. This error is not
-      // one of those types, so it falls through to the generic
-      // `appBootstrapError` screen — **with a Retry button that can never
-      // succeed**. The user is protected from the silent corruption above, but
-      // is told nothing useful and can retry forever.
-      //
-      // The fix mirrors the downgrade path and is deliberately not bundled with
-      // the retirement (it lands on `app_en.arb` and the generated l10n, which
-      // several changes are converging on): add a typed `DatabaseTooOldError`
-      // thrown from `runMigrationPreflight` in
-      // `app/lib/src/data/migration_guard.dart`, a label in
-      // `app/lib/src/data/migration_error_labels.dart`, a new ARB key, and a
-      // no-Retry branch in `app/lib/src/widgets/app_bootstrap.dart`. This throw
-      // then stays as the backstop for any open path that bypasses the
-      // preflight, exactly as the downgrade guard above does.
+      // As with the downgrade case, the app layer normally catches this
+      // earlier: `runMigrationPreflight` (`app/lib/src/data/migration_guard.dart`)
+      // throws `DatabaseBelowFloorError`, which `AppBootstrap` renders as a
+      // recovery screen with Back-Up-and-Reset / Reset and no Retry (#841).
+      // This throw is the backstop for any open path that bypasses it.
       if (from < kMinSupportedSchemaVersion) {
         throw StateError(
           'This database was created at schema version $from by a build from '
