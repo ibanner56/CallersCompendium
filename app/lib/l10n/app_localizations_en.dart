@@ -450,6 +450,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSyncNotPairedNow => 'Connect a store before syncing.';
 
   @override
+  String get commonSyncNowTooltip => 'Sync now';
+
+  @override
+  String get commonSyncMeteredBlocked =>
+      'You are on a mobile-data connection and Sync only on WiFi is on. Turn that setting off in Settings to sync now.';
+
+  @override
   String get settingsSyncConnectTitle => 'Connect';
 
   @override
@@ -1126,6 +1133,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsDefaultsCollectionCardCustomFields => 'Custom fields';
 
   @override
+  String get settingsDefaultsCollectionFiltersHeader => 'Collection filters';
+
+  @override
+  String get settingsDefaultsCollectionFiltersSubtitle =>
+      'Choose which filters appear when you filter the Collection and when you pick dances for a program. All filters are shown by default. Hiding a filter clears its selection.';
+
+  @override
   String get settingsDefaultsAuthoringHeader => 'Dance-authoring defaults';
 
   @override
@@ -1162,11 +1176,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get settingsDefaultsFormTitle => 'Form';
+  String get settingsDefaultsFormTitle => 'Type';
 
   @override
   String get settingsDefaultsFormSubtitle =>
-      'The dance form a new dance starts as. You can still change it per dance.';
+      'The dance type a new dance starts as. You can still change it per dance.';
 
   @override
   String get settingsDefaultsFormationTitle => 'Formation';
@@ -2485,6 +2499,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get collectionFacetTags => 'Tags';
 
   @override
+  String get collectionFacetUntagged => 'Untagged';
+
+  @override
   String get collectionFacetSource => 'Source';
 
   @override
@@ -2493,6 +2510,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get collectionFacetNone =>
       'No filters available for this collection yet.';
+
+  @override
+  String get collectionFacetAllHidden =>
+      'All filters are hidden. You can show them again in Settings → Defaults.';
 
   @override
   String get collectionFacetClear => 'Clear filters';
@@ -5565,6 +5586,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceEditorAuthorsLabel => 'Authors';
+
+  @override
+  String get danceEditorFormLabel => 'Type';
 
   @override
   String get danceEditorFormationLabel => 'Formation';

@@ -826,6 +826,18 @@ abstract class AppLocalizations {
   /// **'Connect a store before syncing.'**
   String get settingsSyncNotPairedNow;
 
+  /// Tooltip of the toolbar button on the Collection and Programs pages that starts a manual Device Sync pass. Shown only while Device Sync is on and paired.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync now'**
+  String get commonSyncNowTooltip;
+
+  /// Snackbar shown when the toolbar Sync now button is tapped on a metered connection. Unlike settingsSyncMeteredRouted it must not say the setting is 'below': the button lives outside Settings, so nothing is below it.
+  ///
+  /// In en, this message translates to:
+  /// **'You are on a mobile-data connection and Sync only on WiFi is on. Turn that setting off in Settings to sync now.'**
+  String get commonSyncMeteredBlocked;
+
   /// Title of the button that opens Device Sync pairing when no store is connected.
   ///
   /// In en, this message translates to:
@@ -1983,6 +1995,18 @@ abstract class AppLocalizations {
   /// **'Custom fields'**
   String get settingsDefaultsCollectionCardCustomFields;
 
+  /// Section header for the preference that chooses which filters appear in the Collection page's Filters panel and the dance picker (#1419).
+  ///
+  /// In en, this message translates to:
+  /// **'Collection filters'**
+  String get settingsDefaultsCollectionFiltersHeader;
+
+  /// Subtitle describing the filter-visibility checkboxes (#1419).
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which filters appear when you filter the Collection and when you pick dances for a program. All filters are shown by default. Hiding a filter clears its selection.'**
+  String get settingsDefaultsCollectionFiltersSubtitle;
+
   /// Section header for defaults applied when authoring a new dance.
   ///
   /// In en, this message translates to:
@@ -2031,16 +2055,16 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 shorthand defined.} other{{count} shorthands defined.}}'**
   String settingsDefaultsFigureShorthandsCountSubtitle(int count);
 
-  /// Title of the default dance-form picker.
+  /// Title of the default dance-type picker.
   ///
   /// In en, this message translates to:
-  /// **'Form'**
+  /// **'Type'**
   String get settingsDefaultsFormTitle;
 
-  /// Explanation for the default dance-form picker.
+  /// Explanation for the default dance-type picker.
   ///
   /// In en, this message translates to:
-  /// **'The dance form a new dance starts as. You can still change it per dance.'**
+  /// **'The dance type a new dance starts as. You can still change it per dance.'**
   String get settingsDefaultsFormSubtitle;
 
   /// Title of the default dance-formation picker.
@@ -4161,6 +4185,12 @@ abstract class AppLocalizations {
   /// **'Tags'**
   String get collectionFacetTags;
 
+  /// Filter chip in the tags facet selecting dances that have no tag.
+  ///
+  /// In en, this message translates to:
+  /// **'Untagged'**
+  String get collectionFacetUntagged;
+
   /// Filter section heading for the cited-source facet.
   ///
   /// In en, this message translates to:
@@ -4178,6 +4208,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No filters available for this collection yet.'**
   String get collectionFacetNone;
+
+  /// Message shown in the filters panel when the collection has filters but the user has hidden every one of them in Settings (#1419). Distinct from collectionFacetNone, which means there is nothing to filter by.
+  ///
+  /// In en, this message translates to:
+  /// **'All filters are hidden. You can show them again in Settings → Defaults.'**
+  String get collectionFacetAllHidden;
 
   /// Button that clears all active facet filters.
   ///
@@ -8540,6 +8576,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Authors'**
   String get danceEditorAuthorsLabel;
+
+  /// Field label for the dance type (contra, English, square) picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get danceEditorFormLabel;
 
   /// Field label for the dance formation picker.
   ///

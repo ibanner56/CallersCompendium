@@ -552,6 +552,14 @@
   "@settingsSyncNotPairedNow": {
     "description": "Message shown when a manual sync is attempted with no store connected."
   },
+  "commonSyncNowTooltip": "Sync now",
+  "@commonSyncNowTooltip": {
+    "description": "Tooltip of the toolbar button on the Collection and Programs pages that starts a manual Device Sync pass. Shown only while Device Sync is on and paired."
+  },
+  "commonSyncMeteredBlocked": "You are on a mobile-data connection and Sync only on WiFi is on. Turn that setting off in Settings to sync now.",
+  "@commonSyncMeteredBlocked": {
+    "description": "Snackbar shown when the toolbar Sync now button is tapped on a metered connection. Unlike settingsSyncMeteredRouted it must not say the setting is 'below': the button lives outside Settings, so nothing is below it."
+  },
   "settingsSyncConnectTitle": "Connect",
   "@settingsSyncConnectTitle": {
     "description": "Title of the button that opens Device Sync pairing when no store is connected."
@@ -1413,6 +1421,14 @@
   "@settingsDefaultsCollectionCardCustomFields": {
     "description": "Label for the showInList custom-field chips field-visibility toggle (#767)."
   },
+  "settingsDefaultsCollectionFiltersHeader": "Collection filters",
+  "@settingsDefaultsCollectionFiltersHeader": {
+    "description": "Section header for the preference that chooses which filters appear in the Collection page's Filters panel and the dance picker (#1419)."
+  },
+  "settingsDefaultsCollectionFiltersSubtitle": "Choose which filters appear when you filter the Collection and when you pick dances for a program. All filters are shown by default. Hiding a filter clears its selection.",
+  "@settingsDefaultsCollectionFiltersSubtitle": {
+    "description": "Subtitle describing the filter-visibility checkboxes (#1419)."
+  },
   "settingsDefaultsAuthoringHeader": "Dance-authoring defaults",
   "@settingsDefaultsAuthoringHeader": {
     "description": "Section header for defaults applied when authoring a new dance."
@@ -1450,13 +1466,13 @@
       }
     }
   },
-  "settingsDefaultsFormTitle": "Form",
+  "settingsDefaultsFormTitle": "Type",
   "@settingsDefaultsFormTitle": {
-    "description": "Title of the default dance-form picker."
+    "description": "Title of the default dance-type picker."
   },
-  "settingsDefaultsFormSubtitle": "The dance form a new dance starts as. You can still change it per dance.",
+  "settingsDefaultsFormSubtitle": "The dance type a new dance starts as. You can still change it per dance.",
   "@settingsDefaultsFormSubtitle": {
-    "description": "Explanation for the default dance-form picker."
+    "description": "Explanation for the default dance-type picker."
   },
   "settingsDefaultsFormationTitle": "Formation",
   "@settingsDefaultsFormationTitle": {
@@ -3092,6 +3108,10 @@
   "@collectionFacetTags": {
     "description": "Filter section heading for the tags facet."
   },
+  "collectionFacetUntagged": "Untagged",
+  "@collectionFacetUntagged": {
+    "description": "Filter chip in the tags facet selecting dances that have no tag."
+  },
   "collectionFacetSource": "Source",
   "@collectionFacetSource": {
     "description": "Filter section heading for the cited-source facet."
@@ -3103,6 +3123,10 @@
   "collectionFacetNone": "No filters available for this collection yet.",
   "@collectionFacetNone": {
     "description": "Message shown when the collection has no facets to filter by."
+  },
+  "collectionFacetAllHidden": "All filters are hidden. You can show them again in Settings → Defaults.",
+  "@collectionFacetAllHidden": {
+    "description": "Message shown in the filters panel when the collection has filters but the user has hidden every one of them in Settings (#1419). Distinct from collectionFacetNone, which means there is nothing to filter by."
   },
   "collectionFacetClear": "Clear filters",
   "@collectionFacetClear": {
@@ -7200,6 +7224,10 @@
   "danceEditorAuthorsLabel": "Authors",
   "@danceEditorAuthorsLabel": {
     "description": "Field label for the dance author/choreographer picker."
+  },
+  "danceEditorFormLabel": "Type",
+  "@danceEditorFormLabel": {
+    "description": "Field label for the dance type (contra, English, square) picker."
   },
   "danceEditorFormationLabel": "Formation",
   "@danceEditorFormationLabel": {

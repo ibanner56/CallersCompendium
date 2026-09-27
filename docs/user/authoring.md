@@ -179,6 +179,9 @@ dance whose beats do not add up, and sometimes that is the honest transcription.
 - **Title** — required.
 - **Authors** — the [choreographer](./glossary.md#choreographer) or
   choreographers. Type to find an existing author or create a new one.
+- **Type** — whether the dance is a contra, an English (ECD) dance, or a square.
+  The Collection's **Type** filter and the dance tile use it. A new dance starts
+  with the type you chose under Settings; change it here for any one dance.
 - **Formation** and **Formation detail** — the shape the dance is danced in, plus
   anything worth adding in words.
 - **Mixer** — tick this when the dance is a
@@ -307,7 +310,7 @@ If most of your dances share a shape, set that shape once. **Settings** ▸
 **Defaults** ▸ **Dance-authoring defaults** decides what a **New dance** starts
 as:
 
-- **Form**, **Formation**, and **Progression** — what a new dance begins with.
+- **Type**, **Formation**, and **Progression** — what a new dance begins with.
 - **Default phrase structure** — seeded into new dances; blank means the standard
   4×16 (A1 A2 B1 B2).
 - **Starting figures** — the figures a new dance starts with. It defaults to a

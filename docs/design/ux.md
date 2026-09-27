@@ -31,14 +31,23 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   list/detail split-pane breakpoint (e.g. a tablet rotation), which used to
   discard the list's state.
 - Search bar = unified FTS; **filter panel** for structured search: formation,
-  progression, author, tunes, tags, calling history (Called / Not called), custom
-  fields, and figure queries ("contains
+  progression, author, tunes, tags (with an "Untagged" chip), calling history
+  (Called / Not called), custom fields, and figure queries ("contains
   petronella in B1", "chain **then** swing") built with a friendly query
   builder (ContraDB ez-query lesson: common cases one-tap, advanced tree
   behind "advanced").
 - Search input is dialect-canonicalized; result counts announced politely to AT.
   The calling-history facet follows the active caller and performed-only scope;
   it is omitted when that scope has no qualifying calls.
+- Which filter sections appear is a per-user display preference (Settings ▸
+  Defaults ▸ Collection filters, issue #1419), applied to the Collection page
+  and the dance picker alike. It is a deny-list of section ids
+  (`collection_hidden_facets`), so every filter — including a custom field
+  created later — is shown until hidden. Hiding is display-only: it clears the
+  facet's current selection, but a hidden section that holds a selection (the
+  detail page's tag chip selects one) stays visible until it is cleared, so no
+  control-less filter can narrow the list. When every available section is
+  hidden the panel says so rather than reporting an empty collection.
 - Actions: new dance, import, duplicate, batch tag. Each row's ⋮ menu also
   offers Duplicate, Add to program, Add tags (one dance, same picker and Undo
   as batch tag) and Delete (#1416).

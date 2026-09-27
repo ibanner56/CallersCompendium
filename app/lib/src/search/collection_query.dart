@@ -1,5 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 
+import '../data/collection_facets_scope.dart';
+
 /// Sort options surfaced in the Collection UI (`docs/design/ux.md` §1). Maps
 /// onto the core [SearchSort] allow-list. [relevance] is only offered when the
 /// query is a bare full-text search (`docs/design/search.md` decision 6);
@@ -76,6 +78,15 @@ class FacetSelections {
   final Set<String> authorIds = {};
   final Set<String> tagIds = {};
 
+  /// The Tags facet's "Untagged" chip: dances with no live tag. One more OR
+  /// member of the Tags facet alongside [tagIds] (it never clears, or is cleared
+  /// by, a tag chip), so it is emitted into the same OR group by
+  /// [buildCollectionFilter]. A separate flag rather than a sentinel id in
+  /// [tagIds]: a sentinel could collide with a real tag id and would leak into
+  /// every consumer that treats [tagIds] as real tags (the external tag filter,
+  /// tag-name lookups).
+  bool untagged = false;
+
   /// Selected source facet: ids of cited [PublishedSource]s the user picked,
   /// each emitted as an identity-based [SourceIdFilter]. Multi-select, OR-ed
   /// within the facet — a pick-a-source chooser mirroring the Author facet
@@ -135,6 +146,7 @@ class FacetSelections {
       minRating == null &&
       authorIds.isEmpty &&
       tagIds.isEmpty &&
+      !untagged &&
       sourceIds.isEmpty &&
       tunes.isEmpty &&
       choiceValues.values.every((s) => s.isEmpty) &&
@@ -145,13 +157,14 @@ class FacetSelections {
   /// How many selections are active: the number shown in the Filters header
   /// of the Collection screen and the dance picker.
   ///
-  /// One per selected chip, one per single-valued facet ([mixedLevel],
-  /// [mixer], [minRating]) and one per *effective* custom-field text/number
-  /// filter — the same set [isEmpty] tests, so `activeCount == 0` exactly when
+  /// One per selected chip ([untagged] is a chip), one per single-valued facet
+  /// ([mixedLevel], [mixer], [minRating]) and one per *effective* custom-field
+  /// text/number filter — the same set [isEmpty] tests, so `activeCount == 0` exactly when
   /// [isEmpty]. [mixedLevel] and [mixer] count when non-null, not only when
   /// `true`, because [buildCollectionFilter] filters on `false` too.
   ///
-  /// When adding a facet, add it to [isEmpty], [clear] and here.
+  /// When adding a facet, add it to [isEmpty], [clear], [hasSelectionFor],
+  /// [clearFacets] and here.
   int get activeCount =>
       forms.length +
       formations.length +
@@ -164,6 +177,7 @@ class FacetSelections {
       (minRating != null ? 1 : 0) +
       authorIds.length +
       tagIds.length +
+      (untagged ? 1 : 0) +
       sourceIds.length +
       tunes.length +
       choiceValues.values.fold<int>(0, (a, s) => a + s.length) +
@@ -183,12 +197,101 @@ class FacetSelections {
     minRating = null;
     authorIds.clear();
     tagIds.clear();
+    untagged = false;
     sourceIds.clear();
     tunes.clear();
     choiceValues.clear();
     booleanValues.clear();
     textValues.clear();
     numberValues.clear();
+  }
+
+  /// Whether the filter section [id] (a `CollectionFacetIds` value or a
+  /// `customFieldFacetId`) currently holds a selection. An unknown id holds
+  /// none.
+  bool hasSelectionFor(String id) {
+    switch (id) {
+      case CollectionFacetIds.form:
+        return forms.isNotEmpty;
+      case CollectionFacetIds.formation:
+        return formations.isNotEmpty;
+      case CollectionFacetIds.progression:
+        return progressions.isNotEmpty;
+      case CollectionFacetIds.status:
+        return statuses.isNotEmpty;
+      case CollectionFacetIds.level:
+        return levels.isNotEmpty;
+      case CollectionFacetIds.mixedLevel:
+        return mixedLevel != null;
+      case CollectionFacetIds.mixer:
+        return mixer != null;
+      case CollectionFacetIds.minRating:
+        return minRating != null;
+      case CollectionFacetIds.callStatus:
+        return callStatuses.isNotEmpty;
+      case CollectionFacetIds.author:
+        return authorIds.isNotEmpty;
+      case CollectionFacetIds.tunes:
+        return tunes.isNotEmpty;
+      case CollectionFacetIds.tags:
+        return tagIds.isNotEmpty;
+      case CollectionFacetIds.source:
+        return sourceIds.isNotEmpty;
+    }
+    final defId = customFieldIdOfFacetId(id);
+    if (defId == null) return false;
+    return (choiceValues[defId]?.isNotEmpty ?? false) ||
+        booleanValues.containsKey(defId) ||
+        (textValues[defId]?.isEffective ?? false) ||
+        (numberValues[defId]?.isEffective ?? false);
+  }
+
+  /// Clears the selection of every filter section named in [ids] and returns
+  /// whether anything was selected, so the caller knows the results may have
+  /// changed. Ids that name no section are ignored.
+  bool clearFacets(Set<String> ids) {
+    var changed = false;
+    for (final id in ids) {
+      if (!hasSelectionFor(id)) continue;
+      changed = true;
+      switch (id) {
+        case CollectionFacetIds.form:
+          forms.clear();
+        case CollectionFacetIds.formation:
+          formations.clear();
+        case CollectionFacetIds.progression:
+          progressions.clear();
+        case CollectionFacetIds.status:
+          statuses.clear();
+        case CollectionFacetIds.level:
+          levels.clear();
+        case CollectionFacetIds.mixedLevel:
+          mixedLevel = null;
+        case CollectionFacetIds.mixer:
+          mixer = null;
+        case CollectionFacetIds.minRating:
+          minRating = null;
+        case CollectionFacetIds.callStatus:
+          callStatuses.clear();
+        case CollectionFacetIds.author:
+          authorIds.clear();
+        case CollectionFacetIds.tunes:
+          tunes.clear();
+        case CollectionFacetIds.tags:
+          tagIds.clear();
+        case CollectionFacetIds.source:
+          sourceIds.clear();
+        default:
+          final defId = customFieldIdOfFacetId(id);
+          if (defId != null) {
+            choiceValues.remove(defId);
+            booleanValues.remove(defId);
+            textValues.remove(defId);
+            numberValues.remove(defId);
+          }
+      }
+    }
+    return changed;
   }
 }
 
@@ -318,7 +421,10 @@ DanceFilter buildCollectionFilter({
     branches.add(RatingFilter(facets.minRating!));
   }
   addOr([for (final id in facets.authorIds) AuthorFilter(id)]);
-  addOr([for (final id in facets.tagIds) TagFilter(id)]);
+  addOr([
+    for (final id in facets.tagIds) TagFilter(id),
+    if (facets.untagged) const UntaggedFilter(),
+  ]);
   addOr([for (final id in facets.sourceIds) SourceIdFilter(id)]);
   // AND within the facet, unlike every facet above: one branch per entered
   // value, each already a top-level AND operand, so no OR/AND group is built.

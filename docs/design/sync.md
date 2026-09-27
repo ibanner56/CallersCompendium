@@ -3765,7 +3765,9 @@ transaction that already committed locally.
 
 - On app start, once, after any pending migration completes.
 - Debounced 30s after a local change.
-- Manually via "Sync now" — a **delta pass**, identical to an automatic one. A
+- Manually via "Sync now" — from Settings, or from the sync glyph on the
+  Collection and Programs toolbars (shown only while sync is on and paired) —
+  a **delta pass**, identical to an automatic one. A
   **full re-verify** (rehash every local record, reconcile against every peer)
   is available behind a long-press or a Settings action, because on 11,500
   dances a full rehash is real work and the ordinary button must stay quick.

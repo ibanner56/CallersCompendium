@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart' show testFigure;
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
@@ -3750,6 +3751,96 @@ void main() {
     expect(find.text('Alternate'), findsOneWidget);
     expect(find.byTooltip('Show phrase labels'), findsOneWidget);
   });
+
+  // Issue #1413: a primary and its alternates are one choice for a single
+  // program position, so the matrix must not treat them as consecutive dances.
+  // Program: Dance1, Dance2a, Dance2b (alternate for Dance2a's position), Dance3.
+  Future<void> pumpAlternateCollisionProgram(
+    WidgetTester tester, {
+    required String move1,
+    required String move2a,
+    required String move2b,
+    required String move3,
+  }) async {
+    final repos = openTestRepositories();
+    for (final (id, title, move) in [
+      ('d1', 'Dance1', move1),
+      ('d2a', 'Dance2a', move2a),
+      ('d2b', 'Dance2b', move2b),
+      ('d3', 'Dance3', move3),
+    ]) {
+      await repos.dances.create(
+        _dance(
+          id: id,
+          title: title,
+          figures: [testFigure(move: move, params: const {})],
+        ),
+      );
+    }
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [
+          ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 's2', position: 1, danceId: 'd2a'),
+          ProgramSlot(id: 's3', position: 2, danceId: 'd2b', isAlt: true),
+          ProgramSlot(id: 's4', position: 3, danceId: 'd3'),
+        ],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1');
+    await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
+    await tester.pumpAndSettle();
+  }
+
+  Finder collidingCell(String dance, String move) => find.bySemanticsLabel(
+    RegExp('^$dance, .*$move: present, shares beats with an adjacent dance'),
+  );
+
+  testWidgets(
+    'Matrix flags a repeat between a dance and the alternate that follows '
+    'its neighbour (#1413)',
+    (tester) async {
+      final handle = tester.ensureSemantics();
+      // Dance1 and Dance2b share `circle`; Dance2a sits between them in the
+      // flat row order but is not the alternative that repeats it.
+      await pumpAlternateCollisionProgram(
+        tester,
+        move1: 'circle',
+        move2a: 'balance',
+        move2b: 'circle',
+        move3: 'promenade',
+      );
+
+      expect(collidingCell('Dance1', 'circle'), findsOneWidget);
+      expect(collidingCell('Dance2b', 'circle'), findsOneWidget);
+      handle.dispose();
+    },
+  );
+
+  testWidgets(
+    'Matrix does not flag a repeat between alternates of the same slot (#1413)',
+    (tester) async {
+      final handle = tester.ensureSemantics();
+      await pumpAlternateCollisionProgram(
+        tester,
+        move1: 'circle',
+        move2a: 'balance',
+        move2b: 'balance',
+        move3: 'promenade',
+      );
+
+      expect(collidingCell('Dance2a', 'balance'), findsNothing);
+      expect(collidingCell('Dance2b', 'balance'), findsNothing);
+      // The cells are still there and present — only the collision is gone.
+      expect(
+        find.bySemanticsLabel(RegExp('^Dance2a, .*balance: present')),
+        findsOneWidget,
+      );
+      handle.dispose();
+    },
+  );
 
   testWidgets('Matrix tab exposes an enabled export/print PDF control', (
     tester,

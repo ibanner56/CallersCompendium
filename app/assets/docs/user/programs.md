@@ -28,6 +28,10 @@ prompt and a **New program** button until you make your first one.
   set list you already have) and **From ContraDB** (pull an event straight from
   the online archive). On a narrow screen, those actions say **Import from title
   list** and **Import from ContraDB**. Both are described below.
+- **Sync** with your other devices from the **Sync now** icon in the
+  **Programs** toolbar. It appears only while [Device
+  Sync](./settings.md#device-sync) is on and a store is connected, and shows a
+  spinner while a sync is running.
 - **Duplicate** a program to reuse last month's shape as a starting point.
 - **Delete** a program and it is only soft-deleted — an **Undo** option appears,
   and it moves to a **Recently Deleted** area you can restore from later, exactly
@@ -232,7 +236,14 @@ Here is how to read it:
   very next dance. Adjacent repeats like this can make two dances feel samey on
   the floor, so the matrix flags them for you to notice and, if you like,
   reconsider. Only the two colliding cells are flagged; a repeat that is not in
-  neighbouring dances, or whose beats don't actually overlap, is left alone. If
+  neighbouring dances, or whose beats don't actually overlap, is left alone.
+  An **alternate** and its primary are two choices for the same spot in the
+  program, so they are never compared with each other. Instead, the primary
+  *and* each of its alternates are checked against the dances on either side —
+  whichever one you end up calling could be the one that follows the previous
+  dance or leads into the next. This holds even while the alternate rows are
+  hidden with the alternate-route icon, so a cell can be flagged because of an
+  alternate you cannot currently see. If
   you'd rather flag any repeat that merely lands in the same **named phrase**
   (A1, A2, B1, B2…) — even when the beats themselves don't overlap, which is how
   the matrix used to behave — turn off **Flag exact beat overlap only** in
@@ -256,7 +267,8 @@ Here is how to read it:
 - **Hide alternate rows temporarily** with the alternate-route icon above the
   matrix. This view-only filter resets when you close the program editor, stays
   active while you switch tabs or resize the window, and does not change the
-  saved program or any PDF/set-list export. It is separate from the persisted
+  saved program, the same-figure alerts, or any PDF/set-list export. It is
+  separate from the persisted
   **Hide alternates** option in the program's details, which controls set-list
   output.
 - **Reorder, rename, or remove columns for good** in

@@ -457,6 +457,13 @@ class AppLocalizationsNl extends AppLocalizations {
       'Koppel een opslag voordat je synchroniseert.';
 
   @override
+  String get commonSyncNowTooltip => 'Nu synchroniseren';
+
+  @override
+  String get commonSyncMeteredBlocked =>
+      'Je gebruikt mobiele data en ‘Alleen synchroniseren via wifi’ staat aan. Zet die instelling uit in Instellingen om nu te synchroniseren.';
+
+  @override
   String get settingsSyncConnectTitle => 'Verbinden';
 
   @override
@@ -1137,6 +1144,13 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsDefaultsCollectionCardCustomFields => 'Aangepaste velden';
 
   @override
+  String get settingsDefaultsCollectionFiltersHeader => 'Collectiefilters';
+
+  @override
+  String get settingsDefaultsCollectionFiltersSubtitle =>
+      'Kies welke filters verschijnen wanneer je de collectie filtert en wanneer je dansen voor een programma kiest. Alle filters worden standaard getoond. Als je een filter verbergt, wordt de selectie ervan gewist.';
+
+  @override
   String get settingsDefaultsAuthoringHeader =>
       'Standaarden voor dansen aanmaken';
 
@@ -1174,11 +1188,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get settingsDefaultsFormTitle => 'Dansvorm';
+  String get settingsDefaultsFormTitle => 'Type';
 
   @override
   String get settingsDefaultsFormSubtitle =>
-      'De dansvorm waarmee een nieuwe dans begint. Je kunt dit per dans aanpassen.';
+      'Het danstype waarmee een nieuwe dans begint. Je kunt dit per dans aanpassen.';
 
   @override
   String get settingsDefaultsFormationTitle => 'Formatie';
@@ -2518,6 +2532,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionFacetTags => 'Tags';
 
   @override
+  String get collectionFacetUntagged => 'Zonder tags';
+
+  @override
   String get collectionFacetSource => 'Bron';
 
   @override
@@ -2526,6 +2543,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get collectionFacetNone =>
       'Nog geen filters beschikbaar voor deze collectie.';
+
+  @override
+  String get collectionFacetAllHidden =>
+      'Alle filters zijn verborgen. Je kunt ze weer tonen via Instellingen → Standaardwaarden.';
 
   @override
   String get collectionFacetClear => 'Filters wissen';
@@ -5623,6 +5644,9 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceEditorAuthorsLabel => 'Auteurs';
+
+  @override
+  String get danceEditorFormLabel => 'Type';
 
   @override
   String get danceEditorFormationLabel => 'Formatie';

@@ -171,6 +171,22 @@ class DanceEditorForm extends StatelessWidget {
                   sheetSemanticLabel: l10n.danceEditorAuthorsLabel,
                 ),
                 const SizedBox(height: AppSpacing.md),
+                FieldLabel(l10n.danceEditorFormLabel),
+                DropdownButtonFormField<DanceForm>(
+                  key: const ValueKey('form-field'),
+                  initialValue: controller.form,
+                  items: [
+                    for (final form in DanceForm.values)
+                      DropdownMenuItem(
+                        value: form,
+                        child: Text(danceFormLabel(l10n, form)),
+                      ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) controller.setForm(value);
+                  },
+                ),
+                const SizedBox(height: AppSpacing.md),
                 FieldLabel(l10n.danceEditorFormationLabel),
                 DropdownButtonFormField<FormationShape>(
                   key: const ValueKey('formation-field'),

@@ -18,7 +18,9 @@
 ///    its first appearance too.
 ///  * **Same-figure collision** (per cell): the move repeats in a
 ///    *strictly-adjacent* dance (the row immediately above or below in program
-///    order) — the repeat a caller wants to reconsider
+///    order — or, where a slot has alternates, any dance that could be called
+///    directly before or after it, see [MatrixRow.alternateGroup]) — the repeat
+///    a caller wants to reconsider
 ///    ([ProgramMatrix.isCollision]). Positions are derived from cumulative
 ///    **effective** beats ([Taxonomy.effectiveParams], so figures with no
 ///    explicitly-stored count still land correctly) and threaded through
@@ -358,6 +360,7 @@ class MatrixRow {
     Map<String, Set<String>> phraseLabelsByMove = const {},
     Map<String, List<BeatSpan>> beatSpansByMove = const {},
     this.section,
+    this.alternateGroup,
     this.formation = const Formation(FormationShape.dupleImproper),
   }) : presentMoveIds = Set.unmodifiable(presentMoveIds),
        phraseLabelsByMove = Map.unmodifiable({
@@ -377,6 +380,19 @@ class MatrixRow {
   /// or the slot itself is a break. Drives the ordinal badge on the matrix row
   /// header.
   final int? section;
+
+  /// The alternate group this row's slot belongs to (see
+  /// [Program.alternateGroupsForSlots]), or `null` when the matrix was built
+  /// without group information (`buildProgramMatrix`'s `alternateGroups` was
+  /// omitted). `null` is not "a slot with no alternates": a slot alone in its
+  /// group still carries an integer id. A `null` row is treated as a group of
+  /// one, so it is compared with the row above and below.
+  /// Rows sharing a group are mutually exclusive choices for one program
+  /// position — a primary and its alternates — so they are never danced in
+  /// sequence. [ProgramMatrix.isCollision] never compares rows of one group and
+  /// instead compares every row of a group with every row of the groups
+  /// immediately before and after it.
+  final int? alternateGroup;
 
   /// Column key of the dance's FIRST figure (the first-figure highlight), or
   /// `null` when the dance has no figures. Custom first figures use
@@ -426,6 +442,7 @@ class MatrixRow {
       other.title == title &&
       other.firstMoveId == firstMoveId &&
       other.section == section &&
+      other.alternateGroup == alternateGroup &&
       other.formation == formation &&
       _setEq.equals(other.presentMoveIds, presentMoveIds) &&
       _phraseMapEq.equals(other.phraseLabelsByMove, phraseLabelsByMove) &&
@@ -437,6 +454,7 @@ class MatrixRow {
     title,
     firstMoveId,
     section,
+    alternateGroup,
     formation,
     _setEq.hash(presentMoveIds),
     _phraseMapEq.hash(phraseLabelsByMove),
@@ -494,8 +512,10 @@ class ProgramMatrix {
 
   /// Whether the move at [rows]`[rowIndex]` × [columns]`[colIndex]` is a
   /// **same-figure collision** with a strictly-adjacent dance: the same move
-  /// appears in the dance immediately above OR below this one in program
-  /// order, under whichever comparison [collisionMode] selects:
+  /// appears in a dance that can be called immediately before OR after this one
+  /// in program order — the row above or below, except that a primary and its
+  /// alternates ([MatrixRow.alternateGroup]) are one choice for a single
+  /// position — under whichever comparison [collisionMode] selects:
   ///
   ///  * [MatrixCollisionMode.exactBeats] (the default, issue #962): the move's
   ///    beat span actually overlaps ([BeatSpan.overlaps]) with an occurrence in
@@ -505,8 +525,13 @@ class ProgramMatrix {
   ///    move merely *starts* in the same phrase (A1/A2/B1/B2…) as an
   ///    occurrence in the neighbouring dance.
   ///
-  /// Adjacency is strictly the previous/next row in both modes (issue #582's
-  /// locked design — not a configurable window). The collapsed [customMove] and
+  /// Adjacency is strictly the previous/next program position in both modes
+  /// (issue #582's locked design — not a configurable window). Rows sharing a
+  /// [MatrixRow.alternateGroup] are alternatives for one position: they are
+  /// never compared with each other (at most one is danced), and each is
+  /// compared with every row of the group before and the group after (issue
+  /// #1413), because any of them may be the one actually called. Without
+  /// groups, every row is its own position, i.e. the previous/next row. The collapsed [customMove] and
   /// compound columns never collide in either mode (custom figures aren't
   /// reliably comparable, and compounds are per-dance booleans), because
   /// neither [MatrixRow.phraseLabelsByMove] nor [MatrixRow.beatSpansByMove]
@@ -523,11 +548,45 @@ class ProgramMatrix {
     };
   }
 
+  /// The rows [rowIndex] can be danced directly next to: every row of the
+  /// alternate group immediately before its own and every row of the group
+  /// immediately after it (see [MatrixRow.alternateGroup]). Rows of its own
+  /// group are alternatives to it and are never neighbours. A row with no group
+  /// is a group of one, so without groups this is just the row above and below.
+  Iterable<int> _neighborRowIndices(int rowIndex) sync* {
+    final group = rows[rowIndex].alternateGroup;
+    bool inGroup(int r, int? g) => g != null && rows[r].alternateGroup == g;
+
+    var start = rowIndex;
+    while (start > 0 && inGroup(start - 1, group)) {
+      start--;
+    }
+    var end = rowIndex;
+    while (end < rows.length - 1 && inGroup(end + 1, group)) {
+      end++;
+    }
+    if (start > 0) {
+      final previous = rows[start - 1].alternateGroup;
+      var r = start - 1;
+      yield r;
+      while (r > 0 && inGroup(r - 1, previous)) {
+        yield --r;
+      }
+    }
+    if (end < rows.length - 1) {
+      final next = rows[end + 1].alternateGroup;
+      var r = end + 1;
+      yield r;
+      while (r < rows.length - 1 && inGroup(r + 1, next)) {
+        yield ++r;
+      }
+    }
+  }
+
   bool _isExactBeatCollision(int rowIndex, String moveId) {
     final here = rows[rowIndex].beatSpansByMove[moveId];
     if (here == null || here.isEmpty) return false;
-    for (final neighbor in [rowIndex - 1, rowIndex + 1]) {
-      if (neighbor < 0 || neighbor >= rows.length) continue;
+    for (final neighbor in _neighborRowIndices(rowIndex)) {
       final there = rows[neighbor].beatSpansByMove[moveId];
       if (there == null) continue;
       for (final h in here) {
@@ -540,8 +599,7 @@ class ProgramMatrix {
   bool _isPhraseCollision(int rowIndex, String moveId) {
     final here = rows[rowIndex].phraseLabelsByMove[moveId];
     if (here == null || here.isEmpty) return false;
-    for (final neighbor in [rowIndex - 1, rowIndex + 1]) {
-      if (neighbor < 0 || neighbor >= rows.length) continue;
+    for (final neighbor in _neighborRowIndices(rowIndex)) {
       final there = rows[neighbor].phraseLabelsByMove[moveId];
       if (there != null && here.any(there.contains)) return true;
     }
@@ -702,6 +760,14 @@ MatrixColumn _splitColumn(String baseMoveId, String variant) => MatrixColumn(
 /// throws [ArgumentError] (enforced at runtime, in release builds too). Omit
 /// it to leave every row's [MatrixRow.section] `null`.
 ///
+/// [alternateGroups], when provided, is likewise a parallel list aligned to
+/// [dances] (see [Program.alternateGroupsForSlots]): rows with the same id are a
+/// primary and its alternates — mutually exclusive choices for one program
+/// position — and each group's rows must be consecutive. A length mismatch or a
+/// non-contiguous group throws [ArgumentError]. Omit it to treat every row as
+/// its own group, i.e. plain row-by-row adjacency. It only affects
+/// [ProgramMatrix.isCollision].
+///
 /// [collisionMode] sets [ProgramMatrix.collisionMode] (issue #962), defaulting
 /// to [MatrixCollisionMode.exactBeats] — the callers deriving the on-screen
 /// matrix and its PDF export both read this from the "flag exact beat overlap
@@ -722,6 +788,7 @@ ProgramMatrix buildProgramMatrix(
   List<Dance> dances, {
   Taxonomy? taxonomy,
   List<int?>? sections,
+  List<int>? alternateGroups,
   MatrixCollisionMode collisionMode = MatrixCollisionMode.exactBeats,
   MatrixColumnConfig config = MatrixColumnConfig.empty,
 }) {
@@ -732,6 +799,30 @@ ProgramMatrix buildProgramMatrix(
       'sections',
       'must be aligned to dances (same length: ${dances.length})',
     );
+  }
+  if (alternateGroups != null) {
+    if (alternateGroups.length != dances.length) {
+      throw ArgumentError.value(
+        alternateGroups.length,
+        'alternateGroups',
+        'must be aligned to dances (same length: ${dances.length})',
+      );
+    }
+    // A group is one program position's primary and its alternates, so its
+    // rows are consecutive; a group id that reappears after another group has
+    // no meaning and would make the neighbour lookup silently wrong.
+    final seen = <int>{};
+    for (var i = 0; i < alternateGroups.length; i++) {
+      final group = alternateGroups[i];
+      if (i > 0 && alternateGroups[i - 1] == group) continue;
+      if (!seen.add(group)) {
+        throw ArgumentError.value(
+          alternateGroups,
+          'alternateGroups',
+          'group $group is not contiguous (reappears at row $i)',
+        );
+      }
+    }
   }
 
   final rows = <MatrixRow>[];
@@ -812,6 +903,7 @@ ProgramMatrix buildProgramMatrix(
         phraseLabelsByMove: phraseLabels,
         beatSpansByMove: beatSpans,
         section: sections == null ? null : sections[i],
+        alternateGroup: alternateGroups == null ? null : alternateGroups[i],
         formation: dance.formation,
       ),
     );

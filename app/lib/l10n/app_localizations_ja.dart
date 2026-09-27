@@ -439,6 +439,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsSyncNotPairedNow => '同期する前にストアを接続してください。';
 
   @override
+  String get commonSyncNowTooltip => '今すぐ同期';
+
+  @override
+  String get commonSyncMeteredBlocked =>
+      'モバイルデータ通信中で、「WiFi接続時のみ同期」がオンです。今すぐ同期するには、設定でこの設定をオフにしてください。';
+
+  @override
   String get settingsSyncConnectTitle => '接続';
 
   @override
@@ -1100,6 +1107,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsDefaultsCollectionCardCustomFields => 'カスタムフィールド';
 
   @override
+  String get settingsDefaultsCollectionFiltersHeader => 'コレクションのフィルター';
+
+  @override
+  String get settingsDefaultsCollectionFiltersSubtitle =>
+      'コレクションを絞り込むときと、プログラム用にダンスを選ぶときに表示するフィルターを選択します。既定ではすべてのフィルターが表示されます。フィルターを非表示にすると、その選択は解除されます。';
+
+  @override
   String get settingsDefaultsAuthoringHeader => 'ダンス作成のデフォルト設定';
 
   @override
@@ -1134,11 +1148,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get settingsDefaultsFormTitle => 'ダンス形式';
+  String get settingsDefaultsFormTitle => 'タイプ';
 
   @override
   String get settingsDefaultsFormSubtitle =>
-      '新しいダンスのデフォルトのダンス形式です。ダンスごとに変更できます。';
+      '新しいダンスのデフォルトのダンスタイプです。ダンスごとに変更できます。';
 
   @override
   String get settingsDefaultsFormationTitle => 'フォーメーション';
@@ -2405,6 +2419,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionFacetTags => 'タグ';
 
   @override
+  String get collectionFacetUntagged => 'タグなし';
+
+  @override
   String get collectionFacetSource => 'ソース';
 
   @override
@@ -2412,6 +2429,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get collectionFacetNone => 'このコレクションにはまだ利用可能なフィルターがありません。';
+
+  @override
+  String get collectionFacetAllHidden =>
+      'すべてのフィルターが非表示です。設定 → デフォルト で再び表示できます。';
 
   @override
   String get collectionFacetClear => 'フィルターをクリア';
@@ -5374,6 +5395,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorAuthorsLabel => '作者';
+
+  @override
+  String get danceEditorFormLabel => 'タイプ';
 
   @override
   String get danceEditorFormationLabel => 'フォーメーション';

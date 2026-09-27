@@ -545,6 +545,26 @@ void main() {
       );
     });
 
+    testWidgets('undo reverts the type dropdown; redo re-applies it '
+        '(issue #1418)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      expect(_dropdownValue<DanceForm>(tester), DanceForm.contra);
+
+      await _pickFromDropdown(tester, DanceForm.square);
+      expect(_dropdownValue<DanceForm>(tester), DanceForm.square);
+
+      await tester.tap(find.byKey(const ValueKey('undo-button')));
+      await tester.pumpAndSettle();
+      expect(_dropdownValue<DanceForm>(tester), DanceForm.contra);
+
+      await tester.tap(find.byKey(const ValueKey('redo-button')));
+      await tester.pumpAndSettle();
+      expect(_dropdownValue<DanceForm>(tester), DanceForm.square);
+    });
+
     testWidgets('undo reverts the level dropdown all the way back to null', (
       tester,
     ) async {

@@ -456,6 +456,13 @@ class AppLocalizationsDa extends AppLocalizations {
       'Tilslut et lager, før du synkroniserer.';
 
   @override
+  String get commonSyncNowTooltip => 'Synkronisér nu';
+
+  @override
+  String get commonSyncMeteredBlocked =>
+      'Du bruger mobildata, og Synkronisér kun på WiFi er slået til. Slå den indstilling fra i Indstillinger for at synkronisere nu.';
+
+  @override
   String get settingsSyncConnectTitle => 'Forbind';
 
   @override
@@ -1137,6 +1144,13 @@ class AppLocalizationsDa extends AppLocalizations {
       'Brugerdefinerede felter';
 
   @override
+  String get settingsDefaultsCollectionFiltersHeader => 'Samlingsfiltre';
+
+  @override
+  String get settingsDefaultsCollectionFiltersSubtitle =>
+      'Vælg hvilke filtre der vises, når du filtrerer samlingen, og når du vælger danse til et program. Alle filtre vises som standard. Når du skjuler et filter, ryddes dets valg.';
+
+  @override
   String get settingsDefaultsAuthoringHeader => 'Standarder for dansforfatning';
 
   @override
@@ -1173,11 +1187,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get settingsDefaultsFormTitle => 'Form';
+  String get settingsDefaultsFormTitle => 'Type';
 
   @override
   String get settingsDefaultsFormSubtitle =>
-      'Den dansform en ny dans starter som. Du kan stadig ændre det per dans.';
+      'Den danstype en ny dans starter som. Du kan stadig ændre det per dans.';
 
   @override
   String get settingsDefaultsFormationTitle => 'Formation';
@@ -2502,6 +2516,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get collectionFacetTags => 'Tags';
 
   @override
+  String get collectionFacetUntagged => 'Uden tags';
+
+  @override
   String get collectionFacetSource => 'Kilde';
 
   @override
@@ -2510,6 +2527,10 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get collectionFacetNone =>
       'Ingen filtre tilgængelige for denne samling endnu.';
+
+  @override
+  String get collectionFacetAllHidden =>
+      'Alle filtre er skjult. Du kan vise dem igen under Indstillinger → Standardværdier.';
 
   @override
   String get collectionFacetClear => 'Ryd filtre';
@@ -5581,6 +5602,9 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceEditorAuthorsLabel => 'Forfattere';
+
+  @override
+  String get danceEditorFormLabel => 'Type';
 
   @override
   String get danceEditorFormationLabel => 'Formation';

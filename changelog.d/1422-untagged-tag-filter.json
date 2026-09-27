@@ -1,0 +1,14 @@
+{
+  "id": "1422-untagged-tag-filter",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "You can now filter the Collection to dances that have no tag. The Tags filter has a new Untagged chip, shown whenever the Tags section is, that lists dances with no tag, including dances whose only tag you deleted. Combine it with tag chips to see untagged dances plus dances with those tags."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add `UntaggedFilter`, a search filter leaf matching dances with no live (non-deleted) tag."
+    ]
+  }
+}

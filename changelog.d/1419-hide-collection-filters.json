@@ -1,0 +1,9 @@
+{
+  "id": "1419-hide-collection-filters",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "You can choose which filters appear in the Collection page's Filters panel and when you pick dances for a program. Untick the ones you do not use under Settings → Defaults → Collection filters; every filter is still shown by default."
+    ]
+  }
+}

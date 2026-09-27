@@ -480,6 +480,14 @@
   "@settingsSyncNotPairedNow": {
     "x-sourceSha256": "fcee7c4478b4432bd151cb68def6a130526f17ad8725c53964026a8213b54cc4"
   },
+  "commonSyncNowTooltip": "Nu synchroniseren",
+  "@commonSyncNowTooltip": {
+    "x-sourceSha256": "885e8f48bd70af10c21ee1046c5762dae06945145bf5c95885648e4ac308c0bf"
+  },
+  "commonSyncMeteredBlocked": "Je gebruikt mobiele data en ‘Alleen synchroniseren via wifi’ staat aan. Zet die instelling uit in Instellingen om nu te synchroniseren.",
+  "@commonSyncMeteredBlocked": {
+    "x-sourceSha256": "0c76efe0c32d396ac2dd46104a137f2943bb1ace796a7c11744db533ffb3d178"
+  },
   "settingsSyncConnectTitle": "Verbinden",
   "@settingsSyncConnectTitle": {
     "x-sourceSha256": "1a2303ede07493acc7caaa7c737f3c52bcc9cf04372be19ed1b0af6b9f2c791e"
@@ -1248,6 +1256,14 @@
   "@settingsDefaultsCollectionCardCustomFields": {
     "x-sourceSha256": "5566db49faf3cfcec9576e3e90ce5f58b029ea5c7b48d8e4508eb56c951e3433"
   },
+  "settingsDefaultsCollectionFiltersHeader": "Collectiefilters",
+  "@settingsDefaultsCollectionFiltersHeader": {
+    "x-sourceSha256": "06981cabadd70feb8e1965e99b8ed513b175f6e2a6969fd306738c7408177797"
+  },
+  "settingsDefaultsCollectionFiltersSubtitle": "Kies welke filters verschijnen wanneer je de collectie filtert en wanneer je dansen voor een programma kiest. Alle filters worden standaard getoond. Als je een filter verbergt, wordt de selectie ervan gewist.",
+  "@settingsDefaultsCollectionFiltersSubtitle": {
+    "x-sourceSha256": "fe9b11fa483a593aae54741b5b3cb3abc94b60c4f1575d98df4c16d55b9b5022"
+  },
   "settingsDefaultsAuthoringHeader": "Standaarden voor dansen aanmaken",
   "@settingsDefaultsAuthoringHeader": {
     "x-sourceSha256": "482854f4cc0c72562a4c8a593046db1f9154cbc2787f0474b4a866f28685f347"
@@ -1280,13 +1296,13 @@
   "@settingsDefaultsFigureShorthandsCountSubtitle": {
     "x-sourceSha256": "6d4432ee62f376ca6c9fb4472f9d054165689141b59cdf9b70645b0536fb55a1"
   },
-  "settingsDefaultsFormTitle": "Dansvorm",
+  "settingsDefaultsFormTitle": "Type",
   "@settingsDefaultsFormTitle": {
-    "x-sourceSha256": "2e0e960ab3204127b1dce399c9984c81f52a79f4d85cb0c3afddcfcfe8a2b48c"
+    "x-sourceSha256": "baaddf70fb5d432b8bd948ef91d6f910124a6d138edae4d5f000c4610ddc8eae"
   },
-  "settingsDefaultsFormSubtitle": "De dansvorm waarmee een nieuwe dans begint. Je kunt dit per dans aanpassen.",
+  "settingsDefaultsFormSubtitle": "Het danstype waarmee een nieuwe dans begint. Je kunt dit per dans aanpassen.",
   "@settingsDefaultsFormSubtitle": {
-    "x-sourceSha256": "6d3c6e64687bed3f44ec2dc1101b6c8dc68afd2503b797d62570e6430c5a6b6f"
+    "x-sourceSha256": "19397876123939e7698c88d2e13ec41cc9cb1d5ce9f7b1d0a7dda2b5e38ba298"
   },
   "settingsDefaultsFormationTitle": "Formatie",
   "@settingsDefaultsFormationTitle": {
@@ -2700,6 +2716,10 @@
   "@collectionFacetTags": {
     "x-sourceSha256": "1331275bc537b4c2bf1e46f7275677967515342e30b572e6852fa6f51b831fe8"
   },
+  "collectionFacetUntagged": "Zonder tags",
+  "@collectionFacetUntagged": {
+    "x-sourceSha256": "9a28cbfaf271bc2dcfc7142f739445d8dc755b1e465b399ad96ba02e87fc9927"
+  },
   "collectionFacetSource": "Bron",
   "@collectionFacetSource": {
     "x-sourceSha256": "0e570ca6fabe24f94e52c1833f3ffd25567022beb826fa16891f3322051bc221"
@@ -2711,6 +2731,10 @@
   "collectionFacetNone": "Nog geen filters beschikbaar voor deze collectie.",
   "@collectionFacetNone": {
     "x-sourceSha256": "20083f4ddf1392f3feff034e97d0c12b9c3ec1f201189b481ada3a638b1c54be"
+  },
+  "collectionFacetAllHidden": "Alle filters zijn verborgen. Je kunt ze weer tonen via Instellingen → Standaardwaarden.",
+  "@collectionFacetAllHidden": {
+    "x-sourceSha256": "94933ebf3218eff33ad3a278381498d141ddf221fb31a1edb7478cfa430a33ec"
   },
   "collectionFacetClear": "Filters wissen",
   "@collectionFacetClear": {
@@ -5591,6 +5615,10 @@
   "danceEditorAuthorsLabel": "Auteurs",
   "@danceEditorAuthorsLabel": {
     "x-sourceSha256": "2c00c9aaa72c717ad6d901a09c4d698a68b2e9740be3769e0af7d6bd85d72d5d"
+  },
+  "danceEditorFormLabel": "Type",
+  "@danceEditorFormLabel": {
+    "x-sourceSha256": "baaddf70fb5d432b8bd948ef91d6f910124a6d138edae4d5f000c4610ddc8eae"
   },
   "danceEditorFormationLabel": "Formatie",
   "@danceEditorFormationLabel": {

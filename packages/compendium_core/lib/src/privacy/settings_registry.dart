@@ -101,6 +101,12 @@ final Map<String, DataClassification> settingsClassifications = {
   'soft_delete_retention_days': _preference,
   'venue_entity_mode': _preference,
   'collection_tile_visible_fields': _preference,
+  // The filter sections hidden from the Collection Filters panel and the dance
+  // picker (issue #1419): a JSON list of opaque section ids — built-in slugs
+  // (`status`, `tags`, …) and `cf:<customFieldDefId>`. No labels or values, so
+  // nothing personal; a custom-field id is meaningless on a device without that
+  // field and is simply ignored there. A working preference like its sibling.
+  'collection_hidden_facets': _preference,
   // Whether the programming matrix flags a same-figure repeat between
   // strictly-adjacent dances by exact beat overlap (on, the default) or by
   // merely sharing a named phrase (off, the original #582 behaviour) —
