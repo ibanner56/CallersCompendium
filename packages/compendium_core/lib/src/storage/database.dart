@@ -1160,15 +1160,18 @@ class CompendiumDatabase extends _$CompendiumDatabase {
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
       if (details.wasCreated) return;
-      // Older databases are repaired by the v28 migration itself. Waiting
-      // until the open is already at head avoids scheduling a duplicate
-      // rebuild marker while historical migration tests and real upgrades are
-      // still traversing the old schema.
-      if (details.versionBefore != kCompendiumSchemaVersion) return;
       // Defensive: guards a hand-rolled DB (e.g. restored from an external
       // backup) that predates either raw FTS5 table. Creating a missing index
       // alone would silently return incomplete results, so schedule the same
       // durable rebuild used by the schema migration.
+      //
+      // This runs on a migrating open too. drift calls `onUpgrade` before this
+      // callback, so the schema is already at head here, and a file from
+      // before v28 has had both tables created by the v28 step by now — the
+      // presence check below then finds them and records nothing. (A former
+      // early return for `versionBefore != head` deferred the repair to the
+      // *next* launch, after the post-open sweeps had already failed once.)
+      // `test/storage/fts_repair_on_migrating_open_test.dart` covers this.
       final tables = await customSelect(
         "SELECT name FROM sqlite_master WHERE type='table' "
         "AND name IN ('dance_fts', 'dance_substring_fts')",
