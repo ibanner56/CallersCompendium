@@ -7,126 +7,122 @@
 [![Made with Flutter](https://img.shields.io/badge/Made%20with-Flutter-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-An open-source, local-first dance organizer for Contra (and eventually ECD and
-Squares) callers — on desktop, tablet, and phone.
+**Caller's Compendium** is a free, open-source, local-first dance organizer for
+contra dance callers. Keep your collection of dances, plan programs for your
+events, and call from a large-print, stage-ready view — on your computer,
+tablet, or phone, with or without an internet connection.
 
-> **Status: our public beta is well underway.** The core app is built and working —
-> collection management, search, programs, and performance mode are complete
-> (roadmap Phases 0–5, plus the Caller's Companion parity backfill and the
-> named-dialect library manager), importing from community sources and migrating
-> from Caller's Companion have landed (Phase 6), and the release pipeline
-> (Phase 7) now produces downloadable builds for every platform. Releases have
-> shipped steadily since `v0.1.0-beta.1` (legacy `-beta.N` series); going forward
-> beta tags are `vX.Y.Z-beta` (no counter). The latest published legacy beta is **`v0.1.0-beta.9`**.
-> **Download the latest beta from the
-> [Releases page](https://github.com/ibanner56/CallersCompendium/releases)** —
-> pick the newest release (marked *Pre-release*) and expand its **Assets** for
-> Linux, macOS, Windows, and Android. Not sure which file to grab, or hitting the
-> first-launch security prompt? The
-> [Installation guide](docs/user/installation.md) walks you through it. **iPhone
-> and iPad** builds are delivered through **TestFlight** to invited testers rather
-> than the Releases page, and **Android** is now in a **Google Play closed test**
-> — the smoothest way onto a phone, and joining helps us prove out that pipeline
-> (see the [installation guide](docs/user/installation.md#install-on-android));
-> the signed **`.apk`** on the Releases page still works for anyone who prefers to
-> sideload. **Android APKs are signed** (with a different key than the Play build,
-> so pick one route and stay with it) and the **macOS build is signed and
-> notarized**. Linux desktop artifacts are unsigned; Windows artifacts are signed
-> via Azure Trusted Signing when the release workflow's five `AZURE_*` repository
-> variables and federated OIDC configuration are present, with an unsigned
-> fallback that may show a SmartScreen prompt. See
-> [docs/ROADMAP.md](docs/ROADMAP.md) for the detailed, item-by-item status.
+**[Website](https://ibanner56.github.io/CallersCompendium/)** ·
+**[Download](https://github.com/ibanner56/CallersCompendium/releases)** ·
+**[User Guide](docs/user/README.md)** ·
+**[Join the beta](docs/beta/beta-guide.md)**
 
-## What it does
+## Availability
 
-- **Collection** — catalog dance transcriptions with structured, searchable
-  figures; search by title, author, type, formation, level, figures (even
-  "chain then swing in B2"), and your own custom fields. Enter figures with the
-  structured editor, or turn on free-text entry to type them — with your own
-  shorthands — and have them parsed into structured, editable figures. Keep a
-  step-by-step **Walkthrough** on each dance, pre-filled from your own reusable
-  snippet library, and group your collection by category to hot-swap dances of a
-  given "vibe" mid-evening. _(built)_
-- **Programs** — create, edit, duplicate, and print/email set lists for events,
-  with alternate dances, free-text slots, reusable venues, and a programming matrix
-  computed from the choreography itself. Build a program from a plain-text title
-  list or straight from a ContraDB event, and share a program together with all the
-  dances it uses — or open one you've been sent (AirDrop, "Open with", or a share
-  intent) to import the whole program and its dances in one step. _(built)_
-- **Performance mode** — a large-print, high-contrast, stage-ready calling
-  view with wake-lock, program navigation, on-the-fly adjustments, and
-  screen-reader-friendly figure rendering. _(built)_
-- **Dialect** — your terms, your phrasing: role names, move substitutions,
-  dancer-term substitutions, and discouraged-term flags are fully editable
-  presentation settings applied over a
-  standardized canonical vocabulary, so search always works and data stays
-  portable. Ships role-neutral presets (Larks/Robins by default, Leads/Follows);
-  gendered or house-specific terms are entered via the custom role-terms editor.
-  _(built, including a named-dialect library — create custom dialects, duplicate a
-  preset to customize, preview edits live, and quick-switch dialects per gig)_
-- **Imports** — bring dances in from community sources and migrate from
-  Caller's Companion, with no re-typing and no lock-in. _(built: in-app import
-  from The Caller's Box and ContraDB by link/id,
-  from Caller's Companion — both its formatted-text copy and its binary `.USR`
-  library file — and from our own Compendium JSON, all through a
-  review-and-commit queue.)_
-- **Your language** — the interface is available in English, German, French,
-  Japanese, Danish, and Dutch, selectable in Settings (or follow your device). Your
-  dance terminology stays under your control via Dialects, independent of the
-  interface language. _(built)_
-- **Backup & portability** — your library lives on your own device, so you keep
-  your own safety copy: choosing **Export a backup** in Settings writes your
-  whole collection, programs, and settings to a single dated file you can keep
-  anywhere (cloud drive, USB stick, email). Restore it on a new phone, tablet,
-  or computer — and an optional reminder nudges you to take a fresh copy. No
-  cloud account, no lock-in.
-  _(built — see the [Backup & portability guide](docs/user/backup-portability.md))_
-- **Private by design** — everything is stored locally and the app is fully
-  usable offline; there is **no analytics, tracking, or telemetry** — the app
-  never "phones home," and nothing about you is collected or transmitted. It
-  reaches the internet only for imports you initiate and for an optional update
-  check that is **off by default**.
-  _(built — see the [privacy policy](https://ibanner56.github.io/CallersCompendium/privacy/))_
-- **Updates you can verify** — an optional in-app update check tells you when a
-  new release is out. Update manifests are **cryptographically signed** and
-  artifacts are restricted to a GitHub-owned host allowlist; on desktop, an
-  assisted download **verifies the SHA-256 checksum before handing the file to
-  your OS**. Automatic checking and the beta channel are both **off by default**.
-  _(built)_
-- **Built to be usable** — keyboard-reachable controls, screen-reader support,
-  and a high-contrast stage theme run throughout, not just in Perform mode. The
-  full **User Guide ships inside the app**, so help is available offline at the
-  hall. _(built — see the [Accessibility guide](docs/user/accessibility.md))_
+Caller's Compendium is in **open beta**. The full feature set described below is
+available today, and new releases ship regularly.
 
-## Design & decisions
-
-| | |
+| Platform | How to get it |
 |---|---|
-| Plan | [docs/ROADMAP.md](docs/ROADMAP.md) |
-| Architecture decisions | [docs/adr/](docs/adr/) — stack: Flutter ([ADR-001](docs/adr/001-application-stack.md)) |
-| Designs | [docs/design/](docs/design/) — domain model, figure taxonomy, dialect, storage, imports, UX |
-| Research | [docs/research/](docs/research/) — incl. the [accessibility baseline](docs/research/accessibility-baseline.md) |
+| Linux (x64) | AppImage or `.tar.gz` from the [Releases page](https://github.com/ibanner56/CallersCompendium/releases) |
+| macOS (Intel and Apple silicon) | Signed and notarized `.dmg` or `.zip` from the Releases page |
+| Windows (x64) | Code-signed installer or portable `.zip` from the Releases page |
+| Android | Google Play closed test, or a signed `.apk` from the Releases page |
+| iPhone and iPad | TestFlight, by invitation — [request an invite](https://github.com/ibanner56/CallersCompendium/issues/new?template=beta_signup.yml) |
+
+On the Releases page, choose the newest release and expand its **Assets**. The
+[Installation guide](docs/user/installation.md) explains which file to choose
+for each platform, what to expect the first time you open the app, and how to
+stay up to date.
+
+## Features
+
+- **Collection** — Catalog dances with structured, searchable figures. Search by
+  title, author, type, formation, level, your own custom fields, or the
+  choreography itself — even "a chain, then a swing, in B2." Enter figures with
+  the structured editor or type them as free text, using your own shorthands,
+  and have them parsed into editable figures. Keep a step-by-step
+  **Walkthrough** on each dance, pre-filled from a reusable snippet library, and
+  group your collection by category to find the right dance mid-evening.
+- **Programs** — Build, duplicate, print, and email set lists for your events,
+  with alternates, free-text slots, and reusable venues. A programming matrix,
+  computed from the choreography, shows the shape and variety of your evening
+  at a glance. Start a program from a plain-text list of titles or from a
+  ContraDB event, and share a program together with every dance it uses.
+- **Perform mode** — A large-print, high-contrast calling view with program
+  navigation, on-the-fly adjustments, a screen that stays awake, and
+  screen-reader-friendly figure text.
+- **Dialect** — Role names, move wording, and discouraged-term flags are all
+  yours to set, and are applied as a presentation layer over a standard
+  vocabulary, so search keeps working and your data stays portable. The app
+  ships role-neutral presets (Larks/Robins by default, and Leads/Follows); you
+  can build your own dialects, preview edits live, and switch dialects per gig.
+- **Imports** — Bring dances in from The Caller's Box and ContraDB by link or
+  ID, migrate from Caller's Companion (its formatted-text export or its `.USR`
+  library file), or open a Caller's Compendium file. Every import passes through
+  a review queue before anything reaches your collection.
+- **Device Sync** *(experimental, opt-in)* — Keep your library in step across
+  your own devices, with no account and no sign-in. It is off until you turn it
+  on; see [Device Sync](docs/user/settings.md#device-sync) in the Settings guide.
+- **Backup & portability** — Export your whole collection, programs, and
+  settings to a single dated file, and restore it on any supported device. An
+  optional reminder prompts you to take a fresh copy. See the
+  [Backup & portability guide](docs/user/backup-portability.md).
+- **Private by design** — Your library is stored on your device, and the app is
+  fully usable offline. There is **no analytics, tracking, or telemetry**. The
+  app goes online only for actions you start — an import, an update check, or
+  Device Sync — and automatic update checks are **off by default**. See the
+  [privacy policy](https://ibanner56.github.io/CallersCompendium/privacy/).
+- **Verified updates** — The optional in-app update check reads a
+  **cryptographically signed** manifest and only accepts downloads from
+  GitHub-hosted addresses. On desktop, the assisted installer **verifies each
+  download's SHA-256 checksum** before handing it to your operating system.
+- **Accessible throughout** — Keyboard-reachable controls, screen-reader support,
+  and a high-contrast stage theme run through the whole app, not only Perform
+  mode. See the [Accessibility guide](docs/user/accessibility.md).
+- **Your language** — The interface is available in English, German, French,
+  Japanese, Danish, and Dutch, or can follow your device's language. Your dance
+  terminology is set separately, through your dialect.
+- **Help built in** — The complete [User Guide](docs/user/README.md) ships
+  inside the app, so it is available offline at the hall.
+
+## Documentation
+
+| For | Start here |
+|---|---|
+| Callers using the app | [User Guide](docs/user/README.md) — also inside the app and on the [website](https://ibanner56.github.io/CallersCompendium/guide/) |
+| Beta testers | [Beta guide](docs/beta/beta-guide.md) and [test charter](docs/beta/test-charter.md) |
+| Contributors | [CONTRIBUTING.md](CONTRIBUTING.md) and the [developer docs map](docs/dev/README.md) |
+| What's planned | [Roadmap](docs/ROADMAP.md) |
+| Architecture decisions | [docs/adr/](docs/adr/) — for example, the choice of Flutter in [ADR-001](docs/adr/001-application-stack.md) |
+| Designs | [docs/design/](docs/design/) — domain model, figure taxonomy, dialect, storage, imports, sync, and UX |
+| Research | [docs/research/](docs/research/) — including the [accessibility baseline](docs/research/accessibility-baseline.md) |
+| Security | [SECURITY.md](SECURITY.md) — how to report a vulnerability |
+
+## Feedback and the beta program
+
+If you call dances, your feedback shapes what comes next. The
+[Beta guide](docs/beta/beta-guide.md) explains how to take part, what to try,
+and how to send feedback. Taking part is voluntary, feedback goes through
+GitHub, and the app collects nothing automatically.
+
+- **Join the beta** with the
+  [signup form](https://github.com/ibanner56/CallersCompendium/issues/new?template=beta_signup.yml).
+- **Report a problem or suggest an idea** from the
+  [issue chooser](https://github.com/ibanner56/CallersCompendium/issues/new/choose),
+  which offers **Bug report**, **Feature request**, and **General feedback**
+  forms.
+- **Ask a question or start a conversation** in
+  [Discussions](https://github.com/ibanner56/CallersCompendium/discussions).
+- **Prefer email?** Write to
+  [compendium@contra.dance](mailto:compendium@contra.dance).
 
 ## Contributing
 
-We'd love your help — especially from callers and dance-community developers.
-Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the
+Contributions are welcome — from callers and dancers as much as from developers.
+Documentation fixes, dance-notation expertise, translations, and bug reports are
+all valuable. Start with [CONTRIBUTING.md](CONTRIBUTING.md) and please read the
 [Code of Conduct](CODE_OF_CONDUCT.md).
-
-## Feedback & beta
-
-Are you a caller? We're running a beta program and would love your feedback. The
-[Beta guide](docs/beta/beta-guide.md) explains how to join, what to try, and how
-to send feedback — all voluntary, all through GitHub, with no telemetry and
-nothing collected automatically. Ready to jump in? Use the
-[**Join the beta**](https://github.com/ibanner56/CallersCompendium/issues/new?template=beta_signup.yml)
-form, browse downloads on the
-[project site](https://ibanner56.github.io/CallersCompendium/), or file a report
-from the
-[issue chooser](https://github.com/ibanner56/CallersCompendium/issues/new/choose) —
-the **Bug report**, **Feature request**, and **General feedback** forms are all
-live there — or start a conversation in
-[Discussions](https://github.com/ibanner56/CallersCompendium/discussions).
 
 ## Supporting
 

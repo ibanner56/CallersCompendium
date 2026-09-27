@@ -2527,6 +2527,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get collectionFacetAuthorSearchHint => 'Search authors…';
 
   @override
+  String get collectionFacetTunes => 'Tunes';
+
+  @override
+  String get collectionFacetTunesSearchHint => 'Search or add a tune…';
+
+  @override
+  String collectionFacetAddTune(String name) {
+    return 'Add \"$name\"';
+  }
+
+  @override
+  String collectionFacetRemoveTune(String name) {
+    return 'Remove $name';
+  }
+
+  @override
   String get collectionFacetOpContains => 'contains';
 
   @override
