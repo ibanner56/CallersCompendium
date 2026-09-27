@@ -663,16 +663,25 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         );
       }
 
-      // Every step below runs inside ONE transaction, so a failure anywhere in
-      // the body leaves the file exactly as it was. drift 2.34.3 does not wrap
-      // `onUpgrade` in a transaction of its own and stamps `user_version` only
-      // after this callback returns (`_runMigrations` in
-      // `runtime/executor/helpers/engines.dart`), so without this wrap each
+      // Every step below runs inside ONE transaction, whose last statement
+      // stamps `user_version` itself, so the schema and the version commit or
+      // roll back together. drift 2.34.3 does not wrap `onUpgrade` in a
+      // transaction of its own and stamps `user_version` only after the whole
+      // open hook returns — after `onUpgrade` *and* after `beforeOpen`
+      // (`_runMigrations` in `runtime/executor/helpers/engines.dart`;
+      // `beforeOpen` in `runtime/api/db_base.dart`). Without this wrap, each
       // step commits as it goes: a throw or a process death after one step
       // leaves that step's DDL committed under the OLD version stamp, and the
       // next open re-enters the step and fails forever (from v34, the v35
-      // rebuild below fails on `no such column: planned_minutes`). The
-      // pre-migration snapshot the app writes is recoverable only by hand.
+      // rebuild below fails on `no such column: planned_minutes`). Wrapping
+      // the steps alone narrows that window but does not close it: a process
+      // death after this transaction commits and before drift's own stamp —
+      // which still has the whole of `beforeOpen` to run first — would leave
+      // the same stale-version symptom. Stamping `user_version` as this
+      // transaction's own last statement closes that window too: SQLite keeps
+      // `user_version` in the database header and writes it through the
+      // pager, so the pragma commits or rolls back with the DDL above it.
+      // drift's own stamp afterwards then just rewrites the same value.
       //
       // Two consequences to know about:
       //
@@ -690,8 +699,11 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       // The two refusal guards above stay outside the transaction: they
       // throw before any DDL, so there is nothing for them to roll back.
       //
-      // `test/storage/migration_atomicity_test.dart` injects a throw after
-      // the v35 rebuild and asserts both the stamp and the DDL are unchanged.
+      // `test/storage/migration_atomicity_test.dart` covers both windows: one
+      // test injects a throw after the v35 rebuild and asserts the stamp and
+      // the DDL are unchanged; another lets this transaction commit and then
+      // throws from `beforeOpen`, asserting `user_version` already reads the
+      // new value even though drift's own stamp never ran.
       await transaction(() async {
         if (from < 21) {
           // Issues #781/#782: the first migration in this schema's history to
@@ -1141,6 +1153,11 @@ class CompendiumDatabase extends _$CompendiumDatabase {
             await m.addColumn(reviewQueue, reviewQueue.localHash);
           }
         }
+
+        // Last statement in the transaction: see the comment above its
+        // opening for why this closes the remaining crash window. `to` is
+        // drift's own destination version, never user input.
+        await customStatement('PRAGMA user_version = $to');
       });
     },
     beforeOpen: (details) async {
