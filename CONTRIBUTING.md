@@ -1,10 +1,27 @@
 # Contributing to Caller's Compendium
 
-Thanks for helping build a community-maintained tool for dance callers! The
-best starting point is the [roadmap](docs/ROADMAP.md) and the design docs in
-[docs/design/](docs/design/). [docs/dev/README.md](docs/dev/README.md) maps
-which document answers which question — including which files are **generated**
-and must not be hand-edited.
+Thank you for helping build a community-maintained tool for dance callers.
+Contributions of every kind are welcome, and many of the most valuable ones
+need no code at all.
+
+## Ways to contribute
+
+- **Use it and tell us how it went.** Callers testing the app at real gigs are
+  the project's most important source of feedback — see the
+  [Beta guide](docs/beta/beta-guide.md) and [Feedback & beta](#feedback--beta)
+  below.
+- **Report bugs and suggest features** through the
+  [issue forms](https://github.com/ibanner56/CallersCompendium/issues/new/choose).
+- **Improve the user guides.** The [user docs](docs/user/) are plain Markdown;
+  the [style guide](docs/user/style-guide.md) explains the conventions.
+- **Share dance-notation expertise.** Interesting or unusual dances that stress
+  the figure model make excellent test cases.
+- **Translate the interface** — see [docs/dev/localization.md](docs/dev/localization.md).
+- **Write code.** Start with the [roadmap](docs/ROADMAP.md) and the design docs
+  in [docs/design/](docs/design/). [docs/dev/README.md](docs/dev/README.md) maps
+  which document answers which question — including which files are
+  **generated** and must not be hand-edited. The rest of this guide covers the
+  development workflow.
 
 Working through an agent? [`AGENTS.md`](AGENTS.md) is the resident guide, and
 [docs/dev/agents/](docs/dev/agents/) holds the per-phase chapters it points at.
@@ -379,15 +396,12 @@ fvm flutter build apk --release          # or: appbundle
 fvm flutter build ios --release --no-codesign
 ```
 
-Getting the roadmap's open items moving — see [docs/ROADMAP.md](docs/ROADMAP.md)
-— plus doc review, design feedback, and test-corpus contributions (interesting
-dances that stress the figure model!) are all welcome. Open an issue or start a
-discussion.
-
 ## Reporting bugs / requesting features
 
-Use the issue templates. For dance-notation questions, include the dance's
-source (book/site/id) so we can look at the original.
+Use the [issue forms](https://github.com/ibanner56/CallersCompendium/issues/new/choose).
+For dance-notation questions, include the dance's source (book, site, or ID) so
+we can look at the original. Report security problems privately, as described
+in [SECURITY.md](SECURITY.md).
 
 ## Feedback & beta
 
