@@ -195,7 +195,14 @@ Figure? _tryUpgrade(Figure figure, Taxonomy? taxonomy) {
   // figure that re-parses to custom stays exactly as it was (idempotent).
   if (parsed == null || parsed.isCustom) return null;
 
-  return parsed.copyWith(note: _mergeNotes(figure.note, parsed.note));
+  // Carry the authored per-figure walkthrough snippet across the upgrade: the
+  // editor persists one for a custom figure, and an "upgrade" must not discard
+  // user text. (A `wordingOverride` is never persisted on a custom, #1394, so
+  // there is nothing of it to carry.)
+  return parsed.copyWith(
+    note: _mergeNotes(figure.note, parsed.note),
+    walkthroughOverride: figure.walkthroughOverride,
+  );
 }
 
 /// Combines the [original] custom figure's note with the newly structured

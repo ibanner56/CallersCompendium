@@ -76,15 +76,40 @@ void main() {
     );
   });
 
-  test('legacy difficulty levels gain initialized sync timestamps', () async {
+  test('legacy difficulty levels gain initialized sync timestamps, and a '
+      'pre-existing difficulty_levels table does not skip the dances '
+      'rewrite', () async {
     final raw = sqlite3.sqlite3.openInMemory();
     addTearDown(raw.close);
 
+    // A v33 file whose `difficulty_levels` table already exists — the state a
+    // crash between the v34 step's `createTable` and its `alterTable(dances)`
+    // used to leave behind, before `onUpgrade` ran inside a transaction. The
+    // v34 step must still rewrite `dances.level` into `level_id`: gating that
+    // rewrite on the table's absence stamped such a file at head with the
+    // legacy column intact, and every `dances` query failed from then on.
     final historical = GeneratedHelper().databaseForVersion(
       NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
       33,
     );
     await historical.customSelect('SELECT 1').get();
+    await historical.customStatement(
+      'INSERT INTO dances '
+      '(id, title, form, formation_shape, progression, status, '
+      'created_at, updated_at, level) '
+      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        'd1',
+        'd1',
+        'contra',
+        'dupleImproper',
+        'single',
+        'active',
+        0,
+        0,
+        'beginner',
+      ],
+    );
     await historical.customStatement('''
       CREATE TABLE difficulty_levels (
         id TEXT NOT NULL,
@@ -115,5 +140,39 @@ void main() {
     expect(row.read<int>('updated_at'), greaterThan(0));
     expect(row.read<int?>('deleted_at'), isNull);
     expect(row.read<int>('existence_at'), row.read<int>('updated_at'));
+
+    final danceColumns = {
+      for (final column
+          in await migrated
+              .customSelect("SELECT name FROM pragma_table_info('dances')")
+              .get())
+        column.read<String>('name'),
+    };
+    expect(
+      danceColumns,
+      contains('level_id'),
+      reason: 'the v34 rewrite must run even when difficulty_levels exists',
+    );
+    expect(danceColumns, isNot(contains('level')));
+    final dance = await migrated
+        .customSelect(
+          'SELECT level_id FROM dances WHERE id = ?',
+          variables: [Variable.withString('d1')],
+        )
+        .getSingle();
+    expect(dance.read<String?>('level_id'), 'difficulty-beginner');
+    // The shipped vocabulary is seeded alongside the pre-existing row.
+    final ids = await migrated
+        .customSelect('SELECT id FROM difficulty_levels ORDER BY position')
+        .get();
+    expect(
+      [for (final row in ids) row.read<String>('id')],
+      [
+        'difficulty-beginner',
+        'difficulty-intermediate',
+        'difficulty-advanced',
+        'custom-level',
+      ],
+    );
   });
 }

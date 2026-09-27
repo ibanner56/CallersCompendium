@@ -31,10 +31,19 @@ reviewable. Do not flatten this directory back.
 Each dump is taken from a **real database file**, not from static analysis of
 `lib/src/storage/database.dart`:
 
-* Every supported version below head comes from the committed fixture of the
-  same name in `test/storage/fixtures/`.
 * The head dump comes from a database created on the spot by
   `tool/write_head_database.dart`.
+* A version below head with a committed fixture of the same name in
+  `test/storage/fixtures/` (v20–v27, v31, v34) was dumped from that fixture.
+* Every other version (v28, v29, v30, v32, v33, v35) was dumped the same way
+  the head is: from a database written by `tool/write_head_database.dart` on a
+  checkout of the commit that made it head. Each was added by its own bump PR;
+  none has a fixture, and none needs one for shape verification (see "Adding a
+  version").
+
+Dumps for versions that were never in a release are the subject of open issue
+#1398, which proposes keeping only shipped versions; until that settles, the
+set is exactly floor…head.
 
 That matters because six entities in this schema are created by raw
 `customStatement` DDL rather than being drift-managed — the `dance_fts` FTS5
@@ -105,12 +114,19 @@ files here, from a throwaway project outside the workspace.
 
    then `dart pub get`.
 
-2. Write a fresh head database, from this package's root:
+2. Collect one database per version, from this package's root:
 
    ```sh
    dart run tool/write_head_database.dart /tmp/schema-src/head.sqlite
    cp test/storage/fixtures/v*.sqlite /tmp/schema-src/
    ```
+
+   That covers head and every version with a fixture. For a version with no
+   fixture (v28, v29, v30, v32, v33, v35 today), check out the commit that
+   bumped `kCompendiumSchemaVersion` to it — `git log -S 'kCompendiumSchemaVersion = 30' -- lib/src/storage/database.dart`
+   finds it — and run `write_head_database.dart` there into
+   `/tmp/schema-src/vN.sqlite`. Confirm `PRAGMA user_version` on each file
+   before dumping it.
 
 3. Dump each database, **from the scratch project**:
 

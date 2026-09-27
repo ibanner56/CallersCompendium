@@ -12,8 +12,9 @@ pure-Dart core package (no Flutter imports) per ADR-001.*
 3. **Contra first, forms extensible.** `DanceForm` discriminates now; figure
    taxonomies are per-form so ECD/Squares can add their own later without
    schema surgery.
-4. **Provenance everywhere.** Imported data keeps its raw source payload,
-   external ID, permission/license, and import time.
+4. **Provenance everywhere.** Imported data keeps its source, external ID,
+   permission/license, and import time. (The raw source payload was dropped
+   at schema v21, #781 — see [Provenance](#provenance) below.)
 5. **Soft delete over hard delete** for user-visible entities. The current
    contract covers all nine syncable kinds: schema v25 (#898) introduced
    tombstones for the original eight, and schema v34 added them for difficulty
@@ -52,7 +53,7 @@ erDiagram
 | figuresSource | `FigureSource`, a sealed type | the transcription. `DecodedFigures` holds an ordered `Figure[]`; `UnreadableFigures` holds the stored text verbatim when it cannot be decoded (#1347, landed in #1382). Sealed so the second case cannot be read as an empty list by accident, which is the whole point of it. The `Dance` constructor still takes `figures: Figure[]`. See design/figure-taxonomy.md |
 | hook | string | one-line "why call this" description |
 | callingNotes | text | teaching/history notes, dialect-aware free text |
-| status | enum | `active` / `deprecated` / `broken` (mirrors TCB) |
+| status | enum | `active` / `deprecated` / `broken` / `draft` / `variation`. The first three mirror TCB; `draft` and `variation` are app-local additions (#1121) |
 | difficultyLevelId | UUID-like stable ref → DifficultyLevel, nullable | `null` = unspecified; separate from `mixedLevel` |
 | tunes | string[], derived from `tunesSource` | suggested music. `tunesSource` is a sealed `TunesSource` on the same pattern as `figuresSource`: `DecodedTunes` holds the list, `UnreadableTunes` holds the stored text verbatim when it cannot be decoded (#1347, landed in #1391). The `Dance` constructor still takes `tunes: string[]` |
 | customFields, tags, links, provenance | | see below |
@@ -64,7 +65,9 @@ AND-combined, and the per-dance counts stay in lockstep with the detail
 history): *Require "mark performed"* restricts it to performed slots (off by
 default, so the base includes unperformed slots), and *Track calling history for
 all callers* (off + a default caller set) restricts it to programs whose host
-caller matches that default caller (trim + case-insensitive; issue #583).
+caller matches that default caller (trim + case-insensitive; issue #583) or
+whose host caller is unset (#850). Both consumers share the predicate in
+`calling_history_scope.dart`.
 
 ### Figure (value object, not a table-per-move)
 ```
@@ -176,7 +179,7 @@ entry mode only (free-text field vs. picker); it never rewrites either column.
 | id, title | id, programId, position |
 | eventDate?, venue?, venueId?, notes | danceId? (nullable → free-text slot: break, waltz, announcement) |
 | band?, caller?, dancerLevel? | text? (used when danceId null, or per-slot caller note) |
-| status: draft/final/performed | isAlt: bool (alternate dance, decided at event time) |
+| status: draft/finalized/performed | isAlt: bool (alternate dance, decided at event time) |
 | createdAt/updatedAt/deletedAt | guestCaller?, walkthroughMinutes?, danceMinutes? (structured, not folded into `text`) |
 | | performedAt? (set when actually called → feeds dance calling history) |
 
@@ -210,8 +213,9 @@ locally — single-user app.)
 label?`. Covers CC's source area + related dances and TCB's video lists.
 
 ### Provenance
-`danceId, source (callersbox|contradb|callers_companion|manual|json),
-externalId?, importedAt, permission?, license?, sourceVersion?` — drives
+`danceId, source (callersbox|contradb|callersCompanion|manual|json|
+publishedCollection), externalId?, importedAt, permission?, license?,
+sourceVersion?` — drives
 attribution display, honouring permission tiers, and re-import dedupe on
 `(source, externalId)`.
 
@@ -281,8 +285,7 @@ flag) toward CC `Author`; privacy-aware, all optional.
 
 **Program / ProgramSlot** — added:
 - `Program`: `band`, `caller`, `dancerLevel` alongside `eventDate`/`venue`/
-  `notes`; optional `timeStart` / running length; `venueId` linking to a
-  reusable [Venue](#venue) (schema v14).
+  `notes`; `venueId` linking to a reusable [Venue](#venue) (schema v14).
 - `ProgramSlot`: structured `caller` (guest) and planned `time`/`length`,
   rather than folding them into the free-text `text` note.
 
@@ -291,6 +294,6 @@ flag) toward CC `Author`; privacy-aware, all optional.
 string, while keeping that free text as a coexisting fallback.
 
 **New entities (Later milestones — not yet built)** — `GlossaryTerm`
-(term/definition/source). A decision is still open on user-defined quick-entry
-**snippets** (CC "Insert Call" buttons) given our taxonomy type-ahead already
-covers entry speed.
+(term/definition/source). The question of user-defined quick-entry
+**snippets** (CC "Insert Call" buttons) is closed: a CC import seeds them as
+`ShorthandMapping`s (#562, `insert_call_shorthands.dart`).

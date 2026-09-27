@@ -1809,6 +1809,38 @@ void main() {
       );
     });
 
+    test(
+      'recentlyAdded / recentlyEdited break timestamp ties by title',
+      () async {
+        // Timestamps are stored at one-second precision, so every import batch
+        // or restore stamps a whole group with one instant. Without a tiebreak
+        // the group's order is whatever SQLite's plan yields; the documented
+        // contract is a title tiebreak in both directions.
+        final stamp = DateTime.utc(2024, 5, 1, 12, 0, 0);
+        for (final t in ['cherry', 'Apple', 'banana']) {
+          await dances.create(
+            _dance(id: t, title: t, createdAt: stamp, updatedAt: stamp),
+          );
+        }
+        for (final sort in [
+          SearchSort.recentlyAdded,
+          SearchSort.recentlyEdited,
+        ]) {
+          for (final dir in SortDirection.values) {
+            expect(
+              await dances.search(
+                const AndFilter([]),
+                sort: sort,
+                direction: dir,
+              ),
+              ['Apple', 'banana', 'cherry'],
+              reason: '$sort $dir',
+            );
+          }
+        }
+      },
+    );
+
     test('recentlyAdded ascending is oldest-first', () async {
       await dances.create(
         _dance(id: 'old', title: 'Old', createdAt: DateTime.utc(2020)),

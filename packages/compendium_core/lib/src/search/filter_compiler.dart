@@ -135,13 +135,16 @@ class FilterCompiler {
   ///
   /// [direction] flips only the *primary* comparison. The `IS NULL` guards keep
   /// NULL/absent values sorting **last** in both directions, and the trailing
-  /// `title COLLATE NOCASE` stays the ascending tiebreak. Ascending omits the
-  /// `ASC` keyword so the default fragments are byte-identical to before.
+  /// `title COLLATE NOCASE` stays the ascending tiebreak on every key that has
+  /// a primary column (the timestamp keys too: timestamps are stored at
+  /// one-second precision, so an import batch shares one instant). Ascending
+  /// omits the `ASC` keyword so the default fragments are byte-identical to
+  /// before.
   static String _orderBy(SearchSort sort, SortDirection direction) {
     final d = direction == SortDirection.descending ? ' DESC' : '';
     return switch (sort) {
-      SearchSort.recentlyAdded => 'created_at$d',
-      SearchSort.recentlyEdited => 'updated_at$d',
+      SearchSort.recentlyAdded => 'created_at$d, title COLLATE NOCASE',
+      SearchSort.recentlyEdited => 'updated_at$d, title COLLATE NOCASE',
       // Canonical PartialDate strings sort lexicographically == chronologically.
       // NULLs (no composed date) sort last; ties break by title.
       SearchSort.composedOn =>

@@ -14,11 +14,13 @@ part 'database.g.dart';
 /// layer ever writes to (in lockstep with [DanceFigures]); drift's typed FTS5
 /// support targets `content=<table>`/`content=''` tables tied to a rowid
 /// convention that doesn't map cleanly onto our text-typed `dances.id`
-/// primary key. Deviating from the exact `content=''` sketch in
-/// `docs/design/storage.md`, this table carries `dance_id` as an `UNINDEXED`
-/// column instead, so rows are matched back to a dance directly without any
-/// implicit-`rowid` bookkeeping. Same derived/rebuildable behavior, simpler
-/// and more robust to maintain.
+/// primary key. This table carries `dance_id` as an `UNINDEXED` column
+/// instead, matching the DDL sketched in `docs/design/storage.md`, so rows
+/// are matched back to a dance directly without any implicit-`rowid`
+/// bookkeeping. (The design sketch originally specified a contentless
+/// `content=''` table; it was corrected to this `UNINDEXED`-column DDL to
+/// match what was actually built.) Same derived/rebuildable behavior,
+/// simpler and more robust to maintain.
 const String createDanceFtsSql = '''
 CREATE VIRTUAL TABLE dance_fts USING fts5(
   dance_id UNINDEXED,
@@ -648,25 +650,11 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       // with no error at all — silent corruption of a user's collection, which
       // is a far worse outcome than refusing to open the file.
       //
-      // KNOWN GAP — the app layer does *not* yet catch this earlier, unlike the
-      // downgrade case above. `runMigrationPreflight` reads `user_version`
-      // without opening the database and throws `DatabaseDowngradeError`, which
-      // `AppBootstrap` renders as a dedicated terminal screen with no Retry;
-      // `MigrationSnapshotAborted` gets the same treatment. This error is not
-      // one of those types, so it falls through to the generic
-      // `appBootstrapError` screen — **with a Retry button that can never
-      // succeed**. The user is protected from the silent corruption above, but
-      // is told nothing useful and can retry forever.
-      //
-      // The fix mirrors the downgrade path and is deliberately not bundled with
-      // the retirement (it lands on `app_en.arb` and the generated l10n, which
-      // several changes are converging on): add a typed `DatabaseTooOldError`
-      // thrown from `runMigrationPreflight` in
-      // `app/lib/src/data/migration_guard.dart`, a label in
-      // `app/lib/src/data/migration_error_labels.dart`, a new ARB key, and a
-      // no-Retry branch in `app/lib/src/widgets/app_bootstrap.dart`. This throw
-      // then stays as the backstop for any open path that bypasses the
-      // preflight, exactly as the downgrade guard above does.
+      // As with the downgrade case, the app layer normally catches this
+      // earlier: `runMigrationPreflight` (`app/lib/src/data/migration_guard.dart`)
+      // throws `DatabaseBelowFloorError`, which `AppBootstrap` renders as a
+      // recovery screen with Back-Up-and-Reset / Reset and no Retry (#841).
+      // This throw is the backstop for any open path that bypasses it.
       if (from < kMinSupportedSchemaVersion) {
         throw StateError(
           'This database was created at schema version $from by a build from '
@@ -677,318 +665,377 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         );
       }
 
-      if (from < 21) {
-        // Issues #781/#782: the first migration in this schema's history to
-        // REMOVE storage rather than add or rewrite it. Three drops, all of
-        // storage that no code path ever read:
-        //
-        //   * `provenance.raw_payload` — the verbatim imported source record.
-        //     For an HTML import this was the whole source page (~7.5 KB for
-        //     this repo's own ContraDB fixture), per dance, round-tripping
-        //     through every backup. It was justified as enabling "re-import
-        //     diffing"; that feature exists (`figure_diff.dart`) but compares
-        //     PARSED figures and never read this column. Re-import dedupes on
-        //     `(source, external_id)` and re-fetches, so nothing regresses.
-        //   * `program_provenance.raw_payload` — the same column on the
-        //     program side, where no import path ever wrote it. It is null for
-        //     every row that has ever existed, so this half is a pure no-op on
-        //     real data.
-        //   * the `snapshots` table — scaffolding for hosted-archive "update
-        //     available" prompts, a feature since CUT (ROADMAP 6.2/6.3;
-        //     `docs/design/callersbox-snapshot.md` is marked superseded).
-        //     `SnapshotRepository.upsert` had no call sites, so the table is
-        //     empty in every real database.
-        //
-        // This DELETES user data (the dance-side payloads) and is not
-        // reversible by downgrading. That was a deliberate call: the data was
-        // unreadable by any feature, and carrying it forever costs every user
-        // storage and backup size for nothing.
-        //
-        // `alterTable` rebuilds each provenance table from its current Dart
-        // definition and copies the surviving columns across by name — the
-        // portable route, and the one that does not depend on the host
-        // SQLite being new enough for `ALTER TABLE … DROP COLUMN` (3.35+),
-        // which we cannot assume across six platforms.
-        await m.alterTable(TableMigration(provenance));
-        await m.alterTable(TableMigration(programProvenance));
-        await m.deleteTable('snapshots');
+      // Every step below runs inside ONE transaction, whose last statement
+      // stamps `user_version` itself, so the schema and the version commit or
+      // roll back together. drift 2.34.3 does not wrap `onUpgrade` in a
+      // transaction of its own and stamps `user_version` only after the whole
+      // open hook returns — after `onUpgrade` *and* after `beforeOpen`
+      // (`_runMigrations` in `runtime/executor/helpers/engines.dart`;
+      // `beforeOpen` in `runtime/api/db_base.dart`). Without this wrap, each
+      // step commits as it goes: a throw or a process death after one step
+      // leaves that step's DDL committed under the OLD version stamp, and the
+      // next open re-enters the step and fails forever (from v34, the v35
+      // rebuild below fails on `no such column: planned_minutes`). Wrapping
+      // the steps alone narrows that window but does not close it: a process
+      // death after this transaction commits and before drift's own stamp —
+      // which still has the whole of `beforeOpen` to run first — would leave
+      // the same stale-version symptom. Stamping `user_version` as this
+      // transaction's own last statement closes that window too: SQLite keeps
+      // `user_version` in the database header and writes it through the
+      // pager, so the pragma commits or rolls back with the DDL above it.
+      // drift's own stamp afterwards then just rewrites the same value.
+      //
+      // Two consequences to know about:
+      //
+      //   * `alterTable` opens its own `transaction()`. Nested inside this one
+      //     it becomes a savepoint (`_StatementBasedTransactionExecutor`
+      //     supports nested transactions for the sqlite3 executor), released
+      //     into — and rolled back with — the enclosing transaction.
+      //   * `alterTable` toggles `PRAGMA foreign_keys` OFF and back ON around
+      //     its rebuild if it finds it ON, and SQLite makes that pragma a
+      //     no-op inside a transaction. That does not matter here: foreign
+      //     keys are OFF for the whole of `onUpgrade` — SQLite's default, and
+      //     `beforeOpen` below is what turns them ON, after this returns — so
+      //     `alterTable` reads OFF and never issues the toggle.
+      //
+      // The two refusal guards above stay outside the transaction: they
+      // throw before any DDL, so there is nothing for them to roll back.
+      //
+      // `test/storage/migration_atomicity_test.dart` covers both windows: one
+      // test injects a throw after the v35 rebuild and asserts the stamp and
+      // the DDL are unchanged; another lets this transaction commit and then
+      // throws from `beforeOpen`, asserting `user_version` already reads the
+      // new value even though drift's own stamp never ran.
+      await transaction(() async {
+        if (from < 21) {
+          // Issues #781/#782: the first migration in this schema's history to
+          // REMOVE storage rather than add or rewrite it. Three drops, all of
+          // storage that no code path ever read:
+          //
+          //   * `provenance.raw_payload` — the verbatim imported source record.
+          //     For an HTML import this was the whole source page (~7.5 KB for
+          //     this repo's own ContraDB fixture), per dance, round-tripping
+          //     through every backup. It was justified as enabling "re-import
+          //     diffing"; that feature exists (`figure_diff.dart`) but compares
+          //     PARSED figures and never read this column. Re-import dedupes on
+          //     `(source, external_id)` and re-fetches, so nothing regresses.
+          //   * `program_provenance.raw_payload` — the same column on the
+          //     program side, where no import path ever wrote it. It is null for
+          //     every row that has ever existed, so this half is a pure no-op on
+          //     real data.
+          //   * the `snapshots` table — scaffolding for hosted-archive "update
+          //     available" prompts, a feature since CUT (ROADMAP 6.2/6.3;
+          //     `docs/design/callersbox-snapshot.md` is marked superseded).
+          //     `SnapshotRepository.upsert` had no call sites, so the table is
+          //     empty in every real database.
+          //
+          // This DELETES user data (the dance-side payloads) and is not
+          // reversible by downgrading. That was a deliberate call: the data was
+          // unreadable by any feature, and carrying it forever costs every user
+          // storage and backup size for nothing.
+          //
+          // `alterTable` rebuilds each provenance table from its current Dart
+          // definition and copies the surviving columns across by name — the
+          // portable route, and the one that does not depend on the host
+          // SQLite being new enough for `ALTER TABLE … DROP COLUMN` (3.35+),
+          // which we cannot assume across six platforms.
+          await m.alterTable(TableMigration(provenance));
+          await m.alterTable(TableMigration(programProvenance));
+          await m.deleteTable('snapshots');
 
-        // No derived rebuild is owed: none of the three feeds `dance_figures`
-        // or `dance_fts`, so the search indexes are unaffected.
-      }
-
-      if (from < 22) {
-        // Issue #748: add the derived `dance_figures.group_idx` correlation
-        // column so the `Then` sequence operator can tell a genuine "before /
-        // after" pair from two *concurrent* sides of one `meanwhile` container.
-        //
-        // Before this, `Then` correlated on `a.idx < b.idx`; but the #590
-        // flattener gives a container's concurrent sides consecutive `idx`
-        // values (the `{danceId, idx}` PK forces a distinct idx per row), so
-        // `a.idx < b.idx` held between two sides that are simultaneous by
-        // construction and `Then(X, Y)` — and symmetrically `Then(Y, X)` —
-        // matched an `X while Y` container. The concurrency signal was absent
-        // from the index entirely, so this needs a schema column, not just a
-        // query change. `group_idx` is shared by every row flattened from one
-        // top-level figure and monotonic across them (see `_insertDerivedRows`);
-        // `Then` now correlates on `a.group_idx < b.group_idx`.
-        //
-        // Like the v2 `section` add, existing rows get the column DEFAULT (0),
-        // which is wrong for correlation (every row would share group 0), so a
-        // derived rebuild is owed to repopulate `group_idx` from `figures_json`.
-        // The rebuild needs the taxonomy/renderer, unreachable from
-        // `MigrationStrategy`, so durably record that it is owed (crash-safe);
-        // `CompendiumRepositories.ensureMigrated()` then regenerates
-        // `dance_figures` + `dance_fts` from `figures_json`.
-        await m.addColumn(danceFigures, danceFigures.groupIdx);
-        await customStatement(
-          'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
-          [derivedRebuildRequiredKey, 'true'],
-        );
-      }
-
-      if (from < 23) {
-        // Issue #780: add `custom_field_defs.shareable` — a per-field flag
-        // controlling whether the field and its values travel in shared
-        // archives. DEFAULT 1 (shareable = true) so every existing row
-        // preserves today's behaviour: a pre-v23 custom field continues to
-        // travel in archives after upgrade. Users opt out per-field. No figure
-        // index is touched; no derived rebuild is required.
-        await m.addColumn(customFieldDefs, customFieldDefs.shareable);
-      }
-
-      if (from < 24) {
-        // Issue #732: add `dances.mixer` — a boolean flag marking a dance in
-        // which dancers change partners each time through. DEFAULT 0
-        // (mixer = false) so every existing row preserves today's behaviour:
-        // the concept could not be expressed before, so nothing was a mixer,
-        // and the additive default keeps it that way after upgrade. Users set
-        // it per-dance in the editor, and the Caller's Box importer infers it
-        // (see `callersbox_adapter.dart`). No figure index is touched; no
-        // derived rebuild is required.
-        await m.addColumn(dances, dances.mixer);
-      }
-
-      if (from < 25) {
-        // Issue #898: the Device Sync schema migration. Adds the sync timestamp
-        // triple to every syncable kind — twenty columns across eight tables —
-        // and converts the entity-level hard deletes to tombstones. See the
-        // note at the top of `tables.dart` for what each of the three columns
-        // means and why none of them can be folded into another.
-        //
-        // Six tables gain all three (`settings`, `choreographers`, `tags`,
-        // `published_sources`, `custom_field_defs`, `venues`); `dances` and
-        // `programs` already carry `updated_at`/`deleted_at` and gain only
-        // `existence_at`.
-        //
-        // Every column is NULLABLE, so there is no DEFAULT to preserve
-        // behaviour with — the back-fill below does that job instead. This is
-        // forced: SQLite's ALTER TABLE ADD COLUMN refuses a NOT NULL column
-        // unless it carries a *constant* default, and no constant is a truthful
-        // timestamp (an epoch-0 sentinel reads as a real 1970 stamp, which is
-        // worse than NULL). A 12-step table rebuild per table would allow NOT
-        // NULL, and was rejected as disproportionate for a migration whose
-        // stated design goal is a reviewable blast radius.
-        //
-        // No figure index is touched; no derived rebuild is required. Nothing
-        // reads `existence_at` yet — there is no sync client — so this step is
-        // behaviour-preserving apart from deletions becoming observable.
-        // ADD COLUMN, GUARDED — and the guard is load-bearing, not defensive
-        // tidiness. `m.createTable` in a historical step builds the table from
-        // *today's* Dart definition, not the definition that was current when
-        // that step was written. `venues` used to be created by the `from < 14`
-        // step (v14, "first-class venue entity"; see the schema history in
-        // `docs/design/storage.md`), which meant a database arriving from
-        // v11..v13 reached this point with
-        // `venues` already carrying all three v25 columns, and an unguarded
-        // `addColumn` would fail with "duplicate column name: updated_at". That
-        // exact `from` range is no longer reachable — v11..v19 were retired when
-        // the floor was raised to v20 (every database that can now reach
-        // `onUpgrade` already had `venues` created back when it was still on a
-        // pre-v25 build, so this specific hazard cannot recur) — but the guard is
-        // kept and written generically, not scoped to `venues`, so a future
-        // table-creating step cannot reintroduce the same class of failure.
-        //
-        // Skipping is correct rather than merely safe: a table created from
-        // today's definition already has the column in its final shape, and
-        // `createTable` leaves it empty, so there is nothing to back-fill
-        // either.
-        Future<void> addColumnIfMissing(
-          TableInfo<Table, dynamic> table,
-          GeneratedColumn<Object> column,
-        ) async {
-          final existing = await customSelect(
-            "SELECT name FROM pragma_table_info('${table.actualTableName}')",
-          ).get();
-          final present = {
-            for (final row in existing) row.read<String>('name'),
-          };
-          if (present.contains(column.name)) return;
-          await m.addColumn(table, column);
+          // No derived rebuild is owed: none of the three feeds `dance_figures`
+          // or `dance_fts`, so the search indexes are unaffected.
         }
 
-        await addColumnIfMissing(settings, settings.updatedAt);
-        await addColumnIfMissing(settings, settings.deletedAt);
-        await addColumnIfMissing(settings, settings.existenceAt);
-        await addColumnIfMissing(choreographers, choreographers.updatedAt);
-        await addColumnIfMissing(choreographers, choreographers.deletedAt);
-        await addColumnIfMissing(choreographers, choreographers.existenceAt);
-        await addColumnIfMissing(tags, tags.updatedAt);
-        await addColumnIfMissing(tags, tags.deletedAt);
-        await addColumnIfMissing(tags, tags.existenceAt);
-        await addColumnIfMissing(publishedSources, publishedSources.updatedAt);
-        await addColumnIfMissing(publishedSources, publishedSources.deletedAt);
-        await addColumnIfMissing(
-          publishedSources,
-          publishedSources.existenceAt,
-        );
-        await addColumnIfMissing(customFieldDefs, customFieldDefs.updatedAt);
-        await addColumnIfMissing(customFieldDefs, customFieldDefs.deletedAt);
-        await addColumnIfMissing(customFieldDefs, customFieldDefs.existenceAt);
-        await addColumnIfMissing(venues, venues.updatedAt);
-        await addColumnIfMissing(venues, venues.deletedAt);
-        await addColumnIfMissing(venues, venues.existenceAt);
-        await addColumnIfMissing(dances, dances.existenceAt);
-        await addColumnIfMissing(programs, programs.existenceAt);
-
-        // T₀ — one instant sampled here and written to every live row, so that
-        // no live row outranks another and the first real transition on any
-        // device establishes the ordering. `updated_at` on the six tables that
-        // just gained it is stamped from the same sample: same number, two
-        // different meanings ("this row's content was last written at" and
-        // "this row's existence was last decided at"), which happen to coincide
-        // because the migration is the only event either column can point at.
-        // That coincidence is confined to those six tables — `dances` and
-        // `programs` keep their own per-row `updated_at`, so there the two
-        // columns diverge immediately, which is what the migration test
-        // asserts against.
-        //
-        // Stored as unix seconds because that is drift's mapping for
-        // DateTimeColumn (see `existence.dart` for why the tick size follows
-        // from this).
-        final t0 = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
-
-        // THE BACK-FILL RULE, AND WHY THE OBVIOUS CHOICE IS WRONG.
-        //
-        // `existence_at` MUST NOT be copied from `updated_at`. That is the
-        // natural thing to reach for and it reintroduces, through the
-        // migration, the exact coupling the third column exists to break: a
-        // device that *edited* a live record after another device *deleted* it
-        // would carry `existence_at = updated_at` greater than the tombstone's,
-        // its live copy would outrank the tombstone, and the record would come
-        // back on first sync. At launch the entire corpus is pre-migration
-        // rows, so that would be the common case rather than an edge case.
-        //
-        // Back-fill from the row's existence history instead:
-        //   * live               -> T₀
-        //   * already tombstoned -> its own `deleted_at`, which is when its
-        //                           existence actually last changed. This is
-        //                           the one case where a pre-existing column
-        //                           carries the right meaning.
-        //
-        // COALESCE expresses exactly that, and is applied uniformly to all
-        // eight tables. On the six that gained `deleted_at` in this same step
-        // it can only ever take the T₀ branch (the column is new, so every row
-        // is live); writing it the same way everywhere states the rule once
-        // rather than encoding "these tables cannot have tombstones yet" as an
-        // invisible assumption that a later change could falsify.
-        //
-        // ACCEPTED CONSEQUENCE (maintainer decision, recorded in
-        // docs/design/sync.md): T₀ is a per-device sampled clock, not a
-        // hardcoded pre-release constant, so it is necessarily later than any
-        // deletion already in the past. A device that deleted record R before
-        // migrating carries `existence_at = deleted_at` for it; a device that
-        // never deleted R and migrates later carries T₀, which is greater — so
-        // on first sync the live copy outranks the tombstone and R comes back.
-        // This is not bounded by the migration window: T₀ remains a record's
-        // operative existence value until that record has another live<->
-        // deleted transition. The alternative (a hardcoded pre-release
-        // constant) was considered and not taken.
-        for (final table in const [
-          'settings',
-          'choreographers',
-          'tags',
-          'published_sources',
-          'custom_field_defs',
-          'venues',
-        ]) {
+        if (from < 22) {
+          // Issue #748: add the derived `dance_figures.group_idx` correlation
+          // column so the `Then` sequence operator can tell a genuine "before /
+          // after" pair from two *concurrent* sides of one `meanwhile` container.
+          //
+          // Before this, `Then` correlated on `a.idx < b.idx`; but the #590
+          // flattener gives a container's concurrent sides consecutive `idx`
+          // values (the `{danceId, idx}` PK forces a distinct idx per row), so
+          // `a.idx < b.idx` held between two sides that are simultaneous by
+          // construction and `Then(X, Y)` — and symmetrically `Then(Y, X)` —
+          // matched an `X while Y` container. The concurrency signal was absent
+          // from the index entirely, so this needs a schema column, not just a
+          // query change. `group_idx` is shared by every row flattened from one
+          // top-level figure and monotonic across them (see `_insertDerivedRows`);
+          // `Then` now correlates on `a.group_idx < b.group_idx`.
+          //
+          // Like the v2 `section` add, existing rows get the column DEFAULT (0),
+          // which is wrong for correlation (every row would share group 0), so a
+          // derived rebuild is owed to repopulate `group_idx` from `figures_json`.
+          // The rebuild needs the taxonomy/renderer, unreachable from
+          // `MigrationStrategy`, so durably record that it is owed (crash-safe);
+          // `CompendiumRepositories.ensureMigrated()` then regenerates
+          // `dance_figures` + `dance_fts` from `figures_json`.
+          await m.addColumn(danceFigures, danceFigures.groupIdx);
           await customStatement(
-            // sync-invariant-exclusion: migration-backfill is idempotent; not a sync record edit.
-            'UPDATE $table SET updated_at = ?, '
-            'existence_at = COALESCE(deleted_at, ?)',
-            [t0, t0],
+            'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
+            [derivedRebuildRequiredKey, 'true'],
           );
         }
-        for (final table in const ['dances', 'programs']) {
+
+        if (from < 23) {
+          // Issue #780: add `custom_field_defs.shareable` — a per-field flag
+          // controlling whether the field and its values travel in shared
+          // archives. DEFAULT 1 (shareable = true) so every existing row
+          // preserves today's behaviour: a pre-v23 custom field continues to
+          // travel in archives after upgrade. Users opt out per-field. No figure
+          // index is touched; no derived rebuild is required.
+          await m.addColumn(customFieldDefs, customFieldDefs.shareable);
+        }
+
+        if (from < 24) {
+          // Issue #732: add `dances.mixer` — a boolean flag marking a dance in
+          // which dancers change partners each time through. DEFAULT 0
+          // (mixer = false) so every existing row preserves today's behaviour:
+          // the concept could not be expressed before, so nothing was a mixer,
+          // and the additive default keeps it that way after upgrade. Users set
+          // it per-dance in the editor, and the Caller's Box importer infers it
+          // (see `callersbox_adapter.dart`). No figure index is touched; no
+          // derived rebuild is required.
+          await m.addColumn(dances, dances.mixer);
+        }
+
+        if (from < 25) {
+          // Issue #898: the Device Sync schema migration. Adds the sync timestamp
+          // triple to every syncable kind — twenty columns across eight tables —
+          // and converts the entity-level hard deletes to tombstones. See the
+          // note at the top of `tables.dart` for what each of the three columns
+          // means and why none of them can be folded into another.
+          //
+          // Six tables gain all three (`settings`, `choreographers`, `tags`,
+          // `published_sources`, `custom_field_defs`, `venues`); `dances` and
+          // `programs` already carry `updated_at`/`deleted_at` and gain only
+          // `existence_at`.
+          //
+          // Every column is NULLABLE, so there is no DEFAULT to preserve
+          // behaviour with — the back-fill below does that job instead. This is
+          // forced: SQLite's ALTER TABLE ADD COLUMN refuses a NOT NULL column
+          // unless it carries a *constant* default, and no constant is a truthful
+          // timestamp (an epoch-0 sentinel reads as a real 1970 stamp, which is
+          // worse than NULL). A 12-step table rebuild per table would allow NOT
+          // NULL, and was rejected as disproportionate for a migration whose
+          // stated design goal is a reviewable blast radius.
+          //
+          // No figure index is touched; no derived rebuild is required. Nothing
+          // reads `existence_at` yet — there is no sync client — so this step is
+          // behaviour-preserving apart from deletions becoming observable.
+          // ADD COLUMN, GUARDED — and the guard is load-bearing, not defensive
+          // tidiness. `m.createTable` in a historical step builds the table from
+          // *today's* Dart definition, not the definition that was current when
+          // that step was written. `venues` used to be created by the `from < 14`
+          // step (v14, "first-class venue entity"; see the schema history in
+          // `docs/design/storage.md`), which meant a database arriving from
+          // v11..v13 reached this point with
+          // `venues` already carrying all three v25 columns, and an unguarded
+          // `addColumn` would fail with "duplicate column name: updated_at". That
+          // exact `from` range is no longer reachable — v11..v19 were retired when
+          // the floor was raised to v20 (every database that can now reach
+          // `onUpgrade` already had `venues` created back when it was still on a
+          // pre-v25 build, so this specific hazard cannot recur) — but the guard is
+          // kept and written generically, not scoped to `venues`, so a future
+          // table-creating step cannot reintroduce the same class of failure.
+          //
+          // Skipping is correct rather than merely safe: a table created from
+          // today's definition already has the column in its final shape, and
+          // `createTable` leaves it empty, so there is nothing to back-fill
+          // either.
+          Future<void> addColumnIfMissing(
+            TableInfo<Table, dynamic> table,
+            GeneratedColumn<Object> column,
+          ) async {
+            final existing = await customSelect(
+              "SELECT name FROM pragma_table_info('${table.actualTableName}')",
+            ).get();
+            final present = {
+              for (final row in existing) row.read<String>('name'),
+            };
+            if (present.contains(column.name)) return;
+            await m.addColumn(table, column);
+          }
+
+          await addColumnIfMissing(settings, settings.updatedAt);
+          await addColumnIfMissing(settings, settings.deletedAt);
+          await addColumnIfMissing(settings, settings.existenceAt);
+          await addColumnIfMissing(choreographers, choreographers.updatedAt);
+          await addColumnIfMissing(choreographers, choreographers.deletedAt);
+          await addColumnIfMissing(choreographers, choreographers.existenceAt);
+          await addColumnIfMissing(tags, tags.updatedAt);
+          await addColumnIfMissing(tags, tags.deletedAt);
+          await addColumnIfMissing(tags, tags.existenceAt);
+          await addColumnIfMissing(
+            publishedSources,
+            publishedSources.updatedAt,
+          );
+          await addColumnIfMissing(
+            publishedSources,
+            publishedSources.deletedAt,
+          );
+          await addColumnIfMissing(
+            publishedSources,
+            publishedSources.existenceAt,
+          );
+          await addColumnIfMissing(customFieldDefs, customFieldDefs.updatedAt);
+          await addColumnIfMissing(customFieldDefs, customFieldDefs.deletedAt);
+          await addColumnIfMissing(
+            customFieldDefs,
+            customFieldDefs.existenceAt,
+          );
+          await addColumnIfMissing(venues, venues.updatedAt);
+          await addColumnIfMissing(venues, venues.deletedAt);
+          await addColumnIfMissing(venues, venues.existenceAt);
+          await addColumnIfMissing(dances, dances.existenceAt);
+          await addColumnIfMissing(programs, programs.existenceAt);
+
+          // T₀ — one instant sampled here and written to every live row, so that
+          // no live row outranks another and the first real transition on any
+          // device establishes the ordering. `updated_at` on the six tables that
+          // just gained it is stamped from the same sample: same number, two
+          // different meanings ("this row's content was last written at" and
+          // "this row's existence was last decided at"), which happen to coincide
+          // because the migration is the only event either column can point at.
+          // That coincidence is confined to those six tables — `dances` and
+          // `programs` keep their own per-row `updated_at`, so there the two
+          // columns diverge immediately, which is what the migration test
+          // asserts against.
+          //
+          // Stored as unix seconds because that is drift's mapping for
+          // DateTimeColumn (see `existence.dart` for why the tick size follows
+          // from this).
+          final t0 = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
+
+          // THE BACK-FILL RULE, AND WHY THE OBVIOUS CHOICE IS WRONG.
+          //
+          // `existence_at` MUST NOT be copied from `updated_at`. That is the
+          // natural thing to reach for and it reintroduces, through the
+          // migration, the exact coupling the third column exists to break: a
+          // device that *edited* a live record after another device *deleted* it
+          // would carry `existence_at = updated_at` greater than the tombstone's,
+          // its live copy would outrank the tombstone, and the record would come
+          // back on first sync. At launch the entire corpus is pre-migration
+          // rows, so that would be the common case rather than an edge case.
+          //
+          // Back-fill from the row's existence history instead:
+          //   * live               -> T₀
+          //   * already tombstoned -> its own `deleted_at`, which is when its
+          //                           existence actually last changed. This is
+          //                           the one case where a pre-existing column
+          //                           carries the right meaning.
+          //
+          // COALESCE expresses exactly that, and is applied uniformly to all
+          // eight tables. On the six that gained `deleted_at` in this same step
+          // it can only ever take the T₀ branch (the column is new, so every row
+          // is live); writing it the same way everywhere states the rule once
+          // rather than encoding "these tables cannot have tombstones yet" as an
+          // invisible assumption that a later change could falsify.
+          //
+          // ACCEPTED CONSEQUENCE (maintainer decision, recorded in
+          // docs/design/sync.md): T₀ is a per-device sampled clock, not a
+          // hardcoded pre-release constant, so it is necessarily later than any
+          // deletion already in the past. A device that deleted record R before
+          // migrating carries `existence_at = deleted_at` for it; a device that
+          // never deleted R and migrates later carries T₀, which is greater — so
+          // on first sync the live copy outranks the tombstone and R comes back.
+          // This is not bounded by the migration window: T₀ remains a record's
+          // operative existence value until that record has another live<->
+          // deleted transition. The alternative (a hardcoded pre-release
+          // constant) was considered and not taken.
+          for (final table in const [
+            'settings',
+            'choreographers',
+            'tags',
+            'published_sources',
+            'custom_field_defs',
+            'venues',
+          ]) {
+            await customStatement(
+              // sync-invariant-exclusion: migration-backfill is idempotent; not a sync record edit.
+              'UPDATE $table SET updated_at = ?, '
+              'existence_at = COALESCE(deleted_at, ?)',
+              [t0, t0],
+            );
+          }
+          for (final table in const ['dances', 'programs']) {
+            await customStatement(
+              'UPDATE $table SET existence_at = COALESCE(deleted_at, ?)',
+              [t0],
+            );
+          }
+        }
+
+        if (from < 26) {
+          // Issue #899: provenance-based venue dedupe for shared bundles. Adds
+          // the `venue_provenance` table (one row per imported venue), mirroring
+          // `program_provenance`. Purely additive: no columns on existing tables,
+          // no back-fill, no derived rebuild. Existing imported venues have no
+          // row here and will not provenance-dedupe; the new path takes effect
+          // for every bundle imported after this migration.
+          await m.createTable(venueProvenance);
+        }
+        if (from < 27) {
+          await m.createTable(collectionImportEvents);
+        }
+        if (from < 28) {
+          // Issue #1005: add short-prefix and literal-substring search indexes.
+          // Recreate dance_fts so its prefix configuration is present on upgraded
+          // databases; the durable marker below makes the rebuild crash-safe.
+          await customStatement('DROP TABLE IF EXISTS dance_fts');
+          await customStatement('DROP TABLE IF EXISTS dance_substring_fts');
+          await customStatement(createDanceFtsSql);
+          await customStatement(createDanceSubstringFtsSql);
           await customStatement(
-            'UPDATE $table SET existence_at = COALESCE(deleted_at, ?)',
-            [t0],
+            'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
+            [derivedRebuildRequiredKey, 'true'],
           );
         }
-      }
-
-      if (from < 26) {
-        // Issue #899: provenance-based venue dedupe for shared bundles. Adds
-        // the `venue_provenance` table (one row per imported venue), mirroring
-        // `program_provenance`. Purely additive: no columns on existing tables,
-        // no back-fill, no derived rebuild. Existing imported venues have no
-        // row here and will not provenance-dedupe; the new path takes effect
-        // for every bundle imported after this migration.
-        await m.createTable(venueProvenance);
-      }
-      if (from < 27) {
-        await m.createTable(collectionImportEvents);
-      }
-      if (from < 28) {
-        // Issue #1005: add short-prefix and literal-substring search indexes.
-        // Recreate dance_fts so its prefix configuration is present on upgraded
-        // databases; the durable marker below makes the rebuild crash-safe.
-        await customStatement('DROP TABLE IF EXISTS dance_fts');
-        await customStatement('DROP TABLE IF EXISTS dance_substring_fts');
-        await customStatement(createDanceFtsSql);
-        await customStatement(createDanceSubstringFtsSql);
-        await customStatement(
-          'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
-          [derivedRebuildRequiredKey, 'true'],
-        );
-      }
-      if (from < 29) {
-        await m.createTable(normalisationSkips);
-      }
-      if (from >= 29 && from < 30) {
-        await m.alterTable(TableMigration(normalisationSkips));
-      }
-      if (from < 31) {
-        // Issue #1130: mark related-dance links that participate in a
-        // transitive group. Existing links remain ordinary pairwise links.
-        await m.addColumn(danceLinks, danceLinks.transitive);
-        await customStatement(danceLinksTargetTransitiveIndexSql);
-      }
-      if (from < 32) {
-        // ADR-004/W4: local-only sync state. Baseline metadata is separate
-        // from baseline entries so an empty manifest still retains its epoch.
-        // normalisation_skips is W18-owned and deliberately not touched here.
-        await m.createTable(baselineState);
-        await m.createTable(baselineEntries);
-        await m.createTable(idAliases);
-        await m.createTable(pendingDeletions);
-        await m.createTable(reviewQueue);
-        await m.createTable(publishedRecords);
-      }
-      if (from < 34) {
-        final difficultyTableExists = (await customSelect(
-          "SELECT name FROM sqlite_master WHERE type = 'table' "
-          "AND name = 'difficulty_levels'",
-        ).get()).isNotEmpty;
-        if (!difficultyTableExists) {
+        if (from < 29) {
+          await m.createTable(normalisationSkips);
+        }
+        if (from >= 29 && from < 30) {
+          await m.alterTable(TableMigration(normalisationSkips));
+        }
+        if (from < 31) {
+          // Issue #1130: mark related-dance links that participate in a
+          // transitive group. Existing links remain ordinary pairwise links.
+          await m.addColumn(danceLinks, danceLinks.transitive);
+          await customStatement(danceLinksTargetTransitiveIndexSql);
+        }
+        if (from < 32) {
+          // ADR-004/W4: local-only sync state. Baseline metadata is separate
+          // from baseline entries so an empty manifest still retains its epoch.
+          // normalisation_skips is W18-owned and deliberately not touched here.
+          await m.createTable(baselineState);
+          await m.createTable(baselineEntries);
+          await m.createTable(idAliases);
+          await m.createTable(pendingDeletions);
+          await m.createTable(reviewQueue);
+          await m.createTable(publishedRecords);
+        }
+        if (from < 34) {
+          // Issue #1221: `dances.level` (an enum name) becomes `level_id`, a
+          // reference into the seeded `difficulty_levels` vocabulary.
+          //
+          // Each piece keys on its own precondition — the legacy column being
+          // present, a vocabulary column being absent, a seed row being absent
+          // — rather than on `difficulty_levels` not existing yet. Gating the
+          // whole block on the table's absence stamped a file that had the
+          // table but not the rewrite at head with `level` intact and no
+          // `level_id`, after which every `dances` query failed. The
+          // transaction around `onUpgrade` means a crash can no longer leave
+          // that state behind, but re-runnability is a property of the step,
+          // not of its caller.
           final danceColumns = await customSelect(
             "SELECT name FROM pragma_table_info('dances')",
           ).get();
           final hasLegacyLevel = danceColumns.any(
             (row) => row.read<String>('name') == 'level',
           );
-          await m.createTable(difficultyLevels);
-          await _seedDifficultyLevels();
+          // Refuse before any DDL, so a refusal has nothing to undo. (No
+          // app-written file can trip this: before #1221 the column held an
+          // enum whose only names are the three below.)
           if (hasLegacyLevel) {
             final unsupported = await customSelect(
               "SELECT DISTINCT level FROM dances WHERE level IS NOT NULL "
@@ -1003,6 +1050,34 @@ class CompendiumDatabase extends _$CompendiumDatabase {
                 'name(s): ${values.join(', ')}.',
               );
             }
+          }
+          // `createTable` is CREATE TABLE IF NOT EXISTS.
+          await m.createTable(difficultyLevels);
+          // The Device Sync timestamp triple (issue #1200) joined the
+          // vocabulary after the table first existed, so a table created by an
+          // earlier build lacks it. Add the columns before seeding, which
+          // writes them.
+          Future<void> addColumnIfMissing(
+            GeneratedColumn<Object> column,
+          ) async {
+            final existing = await customSelect(
+              "SELECT name FROM pragma_table_info('difficulty_levels')",
+            ).get();
+            final present = {
+              for (final row in existing) row.read<String>('name'),
+            };
+            if (!present.contains(column.name)) {
+              await m.addColumn(difficultyLevels, column);
+            }
+          }
+
+          await addColumnIfMissing(difficultyLevels.updatedAt);
+          await addColumnIfMissing(difficultyLevels.deletedAt);
+          await addColumnIfMissing(difficultyLevels.existenceAt);
+          // INSERT OR IGNORE: complete over a partial seed, a no-op over a
+          // full one.
+          await _seedDifficultyLevels();
+          if (hasLegacyLevel) {
             await m.alterTable(
               TableMigration(
                 dances,
@@ -1019,95 +1094,89 @@ class CompendiumDatabase extends _$CompendiumDatabase {
             );
             await customStatement(dancesDifficultyLevelIdIndexSql);
           }
-        }
-        Future<void> addColumnIfMissing(GeneratedColumn<Object> column) async {
-          final existing = await customSelect(
-            "SELECT name FROM pragma_table_info('difficulty_levels')",
+          final now = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
+          await customStatement(
+            // sync-invariant-exclusion: migration-backfill is idempotent; not a sync record edit.
+            'UPDATE difficulty_levels '
+            'SET updated_at = ?, existence_at = ? '
+            'WHERE deleted_at IS NULL',
+            [now, now],
+          );
+          // Issue #1196: distinguish purge captions from ordinary text-only
+          // program slots so display-only conversion never rewrites a tombstone.
+          // Existing rows remain null: pre-v33 text-only rows are ambiguous and
+          // must stay literal until an explicit edit establishes their kind.
+          final programSlotColumns = await customSelect(
+            "SELECT name FROM pragma_table_info('program_slots')",
           ).get();
-          final present = {
-            for (final row in existing) row.read<String>('name'),
-          };
-          if (!present.contains(column.name)) {
-            await m.addColumn(difficultyLevels, column);
+          final hasPurgeMarker = programSlotColumns.any(
+            (row) =>
+                row.read<String>('name') == programSlots.isPurgedDance.name,
+          );
+          if (!hasPurgeMarker) {
+            await m.addColumn(programSlots, programSlots.isPurgedDance);
+          }
+        }
+        if (from < 35) {
+          await m.alterTable(
+            TableMigration(
+              programSlots,
+              columnTransformer: {
+                programSlots.walkthroughMinutes: const CustomExpression<int>(
+                  'NULL',
+                ),
+                programSlots.danceMinutes: const CustomExpression<int>(
+                  'planned_minutes',
+                ),
+              },
+            ),
+          );
+          // Issue #1104: taxonomy v35 renamed persisted parameter keys and
+          // consolidated pull_by_dancers/pull_by_direction. The taxonomy and
+          // renderer are unavailable from MigrationStrategy, so record a
+          // durable post-open sweep for CompendiumRepositories.ensureMigrated.
+          await customStatement(
+            'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
+            [taxonomyV35FigureNormalizationDoneKey, 'false'],
+          );
+        }
+        if (from < 36) {
+          // Review queues were first created by the v32 migration using the
+          // then-current Dart table definition. A database migrating from
+          // before v32 therefore already has this v36 column by the time it
+          // reaches this step; inspect the live schema before adding it.
+          final reviewQueueColumns = await customSelect(
+            "SELECT name FROM pragma_table_info('${reviewQueue.actualTableName}')",
+          ).get();
+          final hasLocalHash = reviewQueueColumns.any(
+            (row) => row.read<String>('name') == reviewQueue.localHash.name,
+          );
+          if (!hasLocalHash) {
+            await m.addColumn(reviewQueue, reviewQueue.localHash);
           }
         }
 
-        await addColumnIfMissing(difficultyLevels.updatedAt);
-        await addColumnIfMissing(difficultyLevels.deletedAt);
-        await addColumnIfMissing(difficultyLevels.existenceAt);
-        final now = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
-        await customStatement(
-          // sync-invariant-exclusion: migration-backfill is idempotent; not a sync record edit.
-          'UPDATE difficulty_levels '
-          'SET updated_at = ?, existence_at = ? '
-          'WHERE deleted_at IS NULL',
-          [now, now],
-        );
-        // Issue #1196: distinguish purge captions from ordinary text-only
-        // program slots so display-only conversion never rewrites a tombstone.
-        // Existing rows remain null: pre-v33 text-only rows are ambiguous and
-        // must stay literal until an explicit edit establishes their kind.
-        final programSlotColumns = await customSelect(
-          "SELECT name FROM pragma_table_info('program_slots')",
-        ).get();
-        final hasPurgeMarker = programSlotColumns.any(
-          (row) => row.read<String>('name') == programSlots.isPurgedDance.name,
-        );
-        if (!hasPurgeMarker) {
-          await m.addColumn(programSlots, programSlots.isPurgedDance);
-        }
-      }
-      if (from < 35) {
-        await m.alterTable(
-          TableMigration(
-            programSlots,
-            columnTransformer: {
-              programSlots.walkthroughMinutes: const CustomExpression<int>(
-                'NULL',
-              ),
-              programSlots.danceMinutes: const CustomExpression<int>(
-                'planned_minutes',
-              ),
-            },
-          ),
-        );
-        // Issue #1104: taxonomy v35 renamed persisted parameter keys and
-        // consolidated pull_by_dancers/pull_by_direction. The taxonomy and
-        // renderer are unavailable from MigrationStrategy, so record a
-        // durable post-open sweep for CompendiumRepositories.ensureMigrated.
-        await customStatement(
-          'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
-          [taxonomyV35FigureNormalizationDoneKey, 'false'],
-        );
-      }
-      if (from < 36) {
-        // Review queues were first created by the v32 migration using the
-        // then-current Dart table definition. A database migrating from
-        // before v32 therefore already has this v36 column by the time it
-        // reaches this step; inspect the live schema before adding it.
-        final reviewQueueColumns = await customSelect(
-          "SELECT name FROM pragma_table_info('${reviewQueue.actualTableName}')",
-        ).get();
-        final hasLocalHash = reviewQueueColumns.any(
-          (row) => row.read<String>('name') == reviewQueue.localHash.name,
-        );
-        if (!hasLocalHash) {
-          await m.addColumn(reviewQueue, reviewQueue.localHash);
-        }
-      }
+        // Last statement in the transaction: see the comment above its
+        // opening for why this closes the remaining crash window. `to` is
+        // drift's own destination version, never user input.
+        await customStatement('PRAGMA user_version = $to');
+      });
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
       if (details.wasCreated) return;
-      // Older databases are repaired by the v28 migration itself. Waiting
-      // until the open is already at head avoids scheduling a duplicate
-      // rebuild marker while historical migration tests and real upgrades are
-      // still traversing the old schema.
-      if (details.versionBefore != kCompendiumSchemaVersion) return;
       // Defensive: guards a hand-rolled DB (e.g. restored from an external
       // backup) that predates either raw FTS5 table. Creating a missing index
       // alone would silently return incomplete results, so schedule the same
       // durable rebuild used by the schema migration.
+      //
+      // This runs on a migrating open too. drift calls `onUpgrade` before this
+      // callback, so the schema is already at head here, and a file from
+      // before v28 has had both tables created by the v28 step by now — the
+      // presence check below then finds them and records nothing. (A former
+      // early return for `versionBefore != head` deferred the repair to the
+      // *next* launch, after the post-open sweeps had already failed once.)
+      // `test/storage/fts_repair_on_migrating_open_test.dart` covers this.
       final tables = await customSelect(
         "SELECT name FROM sqlite_master WHERE type='table' "
         "AND name IN ('dance_fts', 'dance_substring_fts')",
@@ -1131,11 +1200,14 @@ class CompendiumDatabase extends _$CompendiumDatabase {
     },
   );
 
+  /// Seeds the shipped vocabulary. `OR IGNORE` because the v34 step may run
+  /// over a table that already holds some or all of these rows (see there);
+  /// on a fresh `onCreate` nothing is there to ignore.
   Future<void> _seedDifficultyLevels() async {
     final now = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
     for (final level in DifficultyLevel.shipped) {
       await customStatement(
-        'INSERT INTO difficulty_levels '
+        'INSERT OR IGNORE INTO difficulty_levels '
         '(id, label, position, updated_at, existence_at) '
         'VALUES (?, ?, ?, ?, ?)',
         [level.id, level.label, level.position, now, now],

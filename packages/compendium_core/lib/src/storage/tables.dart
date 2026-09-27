@@ -7,9 +7,10 @@ import '../sync/sync_record_kind.dart';
 // Design: docs/design/storage.md. `dance_figures` is a derived, rebuildable
 // index over `dances.figures_json` (the authoritative store); `dance_fts` is
 // a second derived index, created as a raw FTS5 virtual table (see
-// database.dart) rather than a typed drift table, because it is
-// content-less (`content=''`) and only ever written by the repository layer
-// that also owns `dance_figures` — a typed table adds no safety there.
+// database.dart) rather than a typed drift table: it keys rows by an
+// UNINDEXED `dance_id` column rather than a contentless `content=''` rowid,
+// and it is only ever written by the repository layer that also owns
+// `dance_figures` — a typed table adds no safety there.
 //
 // ---------------------------------------------------------------------------
 // The sync timestamp triple (`updated_at`, `deleted_at`, `existence_at`)
