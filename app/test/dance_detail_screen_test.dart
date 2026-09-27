@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -1017,6 +1018,71 @@ void main() {
     expect(dance, isNotNull);
     expect(dance!.deletedAt, isNull);
   });
+
+  testWidgets(
+    'a second tap on delete while the first write is in flight is ignored',
+    (tester) async {
+      // Re-entrancy guard on `_delete`. Without it, both taps run: the dance is
+      // soft-deleted twice and the route is popped twice — and because the
+      // second pop lands while the first is already in `popping`, it targets
+      // the route *underneath*. On a phone the detail screen sits directly on
+      // the shell root, so the surplus pop empties the navigator (blank app,
+      // no exception). Hold `softDelete` open on a gate so the window is
+      // deterministic rather than a race against SQLite.
+      final db = openWidgetTestDatabase();
+      final dances = _GatedDanceRepository(db, contraTaxonomy);
+      final repos = CompendiumRepositories(db, contraTaxonomy, dances: dances);
+      await repos.dances.create(_dance(id: 'd1', title: 'Doomed Dance'));
+
+      await tester.binding.setSurfaceSize(const Size(1200, 2400));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+      addTearDown(notifier.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          builder: (context, child) => RepositoriesScope(
+            repositories: repos,
+            child: ActiveDialectScope(notifier: notifier, child: child!),
+          ),
+          home: Builder(
+            builder: (ctx) => Scaffold(
+              body: GestureDetector(
+                onTap: () => Navigator.of(ctx).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const DanceDetailScreen(danceId: 'd1'),
+                  ),
+                ),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      final delete = find.byKey(const ValueKey('delete-dance'));
+      await tester.tap(delete);
+      await tester.pump();
+      expect(dances.softDeleteCalls, 1);
+      // Second tap lands while the first soft-delete is still awaiting.
+      await tester.tap(delete, warnIfMissed: false);
+      await tester.pump();
+
+      dances.release();
+      await tester.pumpAndSettle();
+
+      expect(dances.softDeleteCalls, 1);
+      // Exactly one pop: the home route is still there, the detail is gone.
+      expect(find.text('open'), findsOneWidget);
+      expect(find.byType(DanceDetailScreen), findsNothing);
+      expect(find.byKey(const ValueKey('deleted-snackbar')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   // ── Active dialect threading ───────────────────────────────────────────────
 
@@ -2628,5 +2694,25 @@ class _DanglingDances extends DanceRepository {
   Future<Dance?> getById(String id, {bool includeDeleted = false}) async {
     if (id == danglingDance.id) return danglingDance;
     return super.getById(id, includeDeleted: includeDeleted);
+  }
+}
+
+/// A [DanceRepository] whose [softDelete] suspends on a gate until [release]
+/// is called, so a test can land a second tap inside the write's window.
+class _GatedDanceRepository extends DanceRepository {
+  _GatedDanceRepository(super.db, super.taxonomy);
+
+  final Completer<void> _gate = Completer<void>();
+  int softDeleteCalls = 0;
+
+  void release() {
+    if (!_gate.isCompleted) _gate.complete();
+  }
+
+  @override
+  Future<void> softDelete(String id, {required DateTime at}) async {
+    softDeleteCalls++;
+    await _gate.future;
+    await super.softDelete(id, at: at);
   }
 }

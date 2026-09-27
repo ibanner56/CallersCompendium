@@ -183,6 +183,9 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   DanceDetailData? _data;
   bool _loaded = false;
 
+  /// Re-entrancy guard for [_delete]; see the note there.
+  bool _deleting = false;
+
   /// The live subscription, and the id it was opened for.
   ///
   /// Held in the State and opened once — never built in [build], which would
@@ -516,41 +519,57 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// snackbar is enqueued. In split-pane mode, this ensures the snackbar
   /// appears in the detail pane rather than being lost on unmount.
   Future<void> _delete() async {
+    if (_deleting) return;
     final l10n = AppLocalizations.of(context);
     final title = _data?.dance.title ?? l10n.danceScreenTitle;
-    // ROADMAP G.7: optional confirm dialog before the (still-undoable) delete.
-    if (!await confirmDeleteIfEnabled(context, itemLabel: title)) return;
-    if (!mounted) return;
-    final now = DateTime.now().toUtc();
-    await _repos.dances.softDelete(widget.danceId!, at: now);
-    if (!mounted) return;
-    // Capture ScaffoldMessengerState before any navigation/callback so we
-    // don't read a deactivating context after the widget is removed.
-    final messenger = ScaffoldMessenger.of(context);
-    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
-    // Show the snackbar first so the Scaffold is still in the tree when the
-    // messenger enqueues it — then notify the parent (which may unmount this
-    // widget) or pop the route.
-    showUndoSnackBar(
-      messenger,
-      key: const ValueKey('deleted-snackbar'),
-      message: l10n.commonDeletedSnack(title),
-      undoLabel: l10n.commonUndo,
-      accessibleNavigation: accessibleNavigation,
-      onUndo: () async {
-        await _repos.dances.restore(
-          widget.danceId!,
-          at: DateTime.now().toUtc(),
-        );
-        widget.onRestored?.call();
-      },
-    );
-    if (widget.onDeleted != null) {
-      // Embedded (split-pane) mode: notify the parent; no route to pop.
-      widget.onDeleted!.call();
-    } else {
-      // Routed mode: pop with true so the list screen can reload.
-      Navigator.of(context).pop(true);
+    // Re-entrancy guard: a second tap that lands while the soft-delete is
+    // still awaiting would run the whole method again — a second write and a
+    // second `pop()`. The second pop targets the route *underneath* (the first
+    // is already popping), and on a phone that is the shell root, so it
+    // empties the navigator with no exception: a blank app.
+    setState(() => _deleting = true);
+    var deleted = false;
+    try {
+      // ROADMAP G.7: optional confirm dialog before the (still-undoable) delete.
+      if (!await confirmDeleteIfEnabled(context, itemLabel: title)) return;
+      if (!mounted) return;
+      final now = DateTime.now().toUtc();
+      await _repos.dances.softDelete(widget.danceId!, at: now);
+      if (!mounted) return;
+      deleted = true;
+      // Capture ScaffoldMessengerState before any navigation/callback so we
+      // don't read a deactivating context after the widget is removed.
+      final messenger = ScaffoldMessenger.of(context);
+      final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+      // Show the snackbar first so the Scaffold is still in the tree when the
+      // messenger enqueues it — then notify the parent (which may unmount this
+      // widget) or pop the route.
+      showUndoSnackBar(
+        messenger,
+        key: const ValueKey('deleted-snackbar'),
+        message: l10n.commonDeletedSnack(title),
+        undoLabel: l10n.commonUndo,
+        accessibleNavigation: accessibleNavigation,
+        onUndo: () async {
+          await _repos.dances.restore(
+            widget.danceId!,
+            at: DateTime.now().toUtc(),
+          );
+          widget.onRestored?.call();
+        },
+      );
+      if (widget.onDeleted != null) {
+        // Embedded (split-pane) mode: notify the parent; no route to pop.
+        widget.onDeleted!.call();
+      } else {
+        // Routed mode: pop with true so the list screen can reload.
+        Navigator.of(context).pop(true);
+      }
+    } finally {
+      // Once the delete has gone through the route is on its way out (or the
+      // parent is replacing this pane), so the control stays disabled;
+      // declined or failed deletes re-enable it.
+      if (!deleted && mounted) setState(() => _deleting = false);
     }
   }
 
@@ -648,7 +667,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           key: const ValueKey('delete-dance'),
           tooltip: l10n.danceDeleteTooltip,
           icon: const Icon(Icons.delete_outline),
-          onPressed: _delete,
+          onPressed: _deleting ? null : _delete,
         ),
       ],
     );
@@ -802,6 +821,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         ),
         PopupMenuItem<void>(
           key: const ValueKey('delete-dance'),
+          enabled: !_deleting,
           onTap: _delete,
           child: ListTile(
             leading: const Icon(Icons.delete_outline),

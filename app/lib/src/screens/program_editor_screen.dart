@@ -191,6 +191,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   bool _previewPersistent = false;
   int _previewGeneration = 0;
   bool _saving = false;
+
+  /// Re-entrancy guard for [_delete]; see the note there.
+  bool _deleting = false;
   bool _dirty = false;
   final Set<Object> _pickerImportOwners = {};
   bool _autoCommitEnabled = false;
@@ -2497,43 +2500,58 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   Future<void> _delete() async {
-    if (_pickerImporting) return;
+    if (_pickerImporting || _deleting) return;
     final source = _existing;
     if (source == null) return;
     final title = source.title;
-    // ROADMAP G.7: optional confirm dialog before the (still-undoable) delete.
-    if (!await confirmDeleteIfEnabled(context, itemLabel: title)) return;
-    if (!mounted) return;
-    // Finish any already-started auto-commit before soft-deleting. Otherwise
-    // its update could land after the delete and clear the tombstone.
-    _autoCommitTimer?.cancel();
-    _editGeneration++;
-    await _commitQueueTail;
-    if (!mounted) return;
-    await _repos.programs.softDelete(source.id, at: DateTime.now().toUtc());
-    if (!mounted) return;
-    // Drop the autosave draft so it can't resurface for a deleted program.
-    await _clearDraft();
-    if (!mounted) return;
-    final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
-    showUndoSnackBar(
-      messenger,
-      message: l10n.programsDeletedSnack(title),
-      undoLabel: l10n.commonUndo,
-      accessibleNavigation: accessibleNavigation,
-      onUndo: () async {
-        // The restore is the notification: every view of a program watches
-        // `programs` itself (issue #768), including this undo's callers, which
-        // is why nothing has to be captured before the route pops any more.
-        await _repos.programs.restore(source.id, at: DateTime.now().toUtc());
-      },
-    );
-    if (widget.isEmbedded) {
-      widget.onDeleted?.call();
-    } else {
-      Navigator.of(context).pop('deleted');
+    // Re-entrancy guard (same pattern as `_saving`): a second tap that lands
+    // while the queue tail or the soft-delete is still awaiting would run the
+    // whole method again — a second write and a second `pop()`/`onDeleted`,
+    // the pop targeting the route *underneath* this one.
+    setState(() => _deleting = true);
+    var deleted = false;
+    try {
+      // ROADMAP G.7: optional confirm dialog before the (still-undoable) delete.
+      if (!await confirmDeleteIfEnabled(context, itemLabel: title)) return;
+      if (!mounted) return;
+      // Finish any already-started auto-commit before soft-deleting. Otherwise
+      // its update could land after the delete and clear the tombstone.
+      _autoCommitTimer?.cancel();
+      _editGeneration++;
+      await _commitQueueTail;
+      if (!mounted) return;
+      await _repos.programs.softDelete(source.id, at: DateTime.now().toUtc());
+      if (!mounted) return;
+      // Drop the autosave draft so it can't resurface for a deleted program.
+      await _clearDraft();
+      if (!mounted) return;
+      deleted = true;
+      final l10n = AppLocalizations.of(context);
+      final messenger = ScaffoldMessenger.of(context);
+      final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+      showUndoSnackBar(
+        messenger,
+        message: l10n.programsDeletedSnack(title),
+        undoLabel: l10n.commonUndo,
+        accessibleNavigation: accessibleNavigation,
+        onUndo: () async {
+          // The restore is the notification: every view of a program watches
+          // `programs` itself (issue #768), including this undo's callers,
+          // which is why nothing has to be captured before the route pops any
+          // more.
+          await _repos.programs.restore(source.id, at: DateTime.now().toUtc());
+        },
+      );
+      if (widget.isEmbedded) {
+        widget.onDeleted?.call();
+      } else {
+        Navigator.of(context).pop('deleted');
+      }
+    } finally {
+      // Once the delete has gone through the route is on its way out (or the
+      // host is replacing this editor), so the control stays disabled;
+      // declined or failed deletes re-enable it.
+      if (!deleted && mounted) setState(() => _deleting = false);
     }
   }
 
@@ -2673,7 +2691,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 key: const ValueKey('delete-program'),
                 tooltip: l10n.commonDelete,
                 icon: const Icon(Icons.delete_outline),
-                onPressed: _pickerImporting ? null : _delete,
+                onPressed: _pickerImporting || _deleting ? null : _delete,
               ),
             ],
           ],
