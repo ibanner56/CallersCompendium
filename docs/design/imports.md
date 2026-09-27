@@ -642,7 +642,15 @@ what the fix removes is the fabricated dancers and the doubled balance.
   Dances received before the namespace existed hold the bare id, so exact
   dedupe also tries that legacy key (`RawRecord.priorExternalIds`) and a
   re-received bundle still resolves as a re-import rather than a duplicate
-  (`GenericJsonAdapter.externalIdFor` / `legacyExternalIdFor`).
+  (`GenericJsonAdapter.externalIdFor` / `legacyExternalIdFor`). That legacy key
+  is not unique once namespaced: a bundle can contain a *different* dance from
+  each of two upstream sources that both used the same bare id, and each would
+  independently resolve the alias to the one existing dance. `ImportPipeline.plan`
+  therefore collects every record's legacy-alias claim across the whole batch
+  before assigning any verdict, and only honors the fallback when exactly one
+  current key claims it — a claim two distinct current keys share is dropped,
+  and those records fall through to fuzzy matching instead of both reimporting
+  the same dance.
 
 ### Signed published collections (#862)
 

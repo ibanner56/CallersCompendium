@@ -203,6 +203,26 @@ class ImportSession {
   bool _undone = false;
 }
 
+/// One record mid-[ImportPipeline.plan]: fetched and parsed, but not yet
+/// carrying a dedupe verdict. Verdicts are assigned in a second pass over the
+/// whole batch (see [ImportPipeline.plan]) so a legacy-alias collision between
+/// *distinct* current keys — two dances that only agree on a pre-namespacing
+/// alias — can be caught before either is committed to a `reimport` verdict.
+class _PendingPlanRecord {
+  _PendingPlanRecord({
+    required this.raw,
+    required this.draft,
+    required this.externalKey,
+  });
+
+  final RawRecord raw;
+  final StructuredDraft draft;
+
+  /// `${source.name}\u0000$externalId`, or `null` when the record carries no
+  /// external id — matches [ImportPipeline.plan]'s `firstIndexByExternalKey`.
+  final String? externalKey;
+}
+
 /// Drives a [SourceAdapter] through the full pipeline: `discover → fetch →
 /// parse → dedupe` (planning, non-destructive) and then `commit` (transactional
 /// write of dances + provenance) with session-scoped undo.
@@ -299,15 +319,15 @@ class ImportPipeline {
       for (final level in configuredLevels ?? const <DifficultyLevel>[])
         _normalizeName(level.label): level,
     };
-    final records = <ImportRecordPlan>[];
     final errors = <ImportError>[];
-    // `(source, externalId)` → index into `records` of the first planned
+    // `(source, externalId)` → index into `pending` of the first planned
     // record carrying it. [dedupe] is a pre-batch snapshot and never learns
     // about planned records, so without this a source that lists one id twice
     // (a `.USR` FileMaker record-id fallback colliding with a real zk id, say)
     // planned both as `isNew` and committed two dances under one provenance
     // key — which a later re-import could then only ever match one of.
     final firstIndexByExternalKey = <String, int>{};
+    final pending = <_PendingPlanRecord>[];
     for (final record in discovered) {
       RawRecord raw;
       try {
@@ -363,8 +383,9 @@ class ImportPipeline {
       if (firstIndex != null) {
         // Drop the repeat and say so on the record that is kept — the dropped
         // one has no row of its own for the note to appear on.
-        final first = records[firstIndex];
-        records[firstIndex] = ImportRecordPlan(
+        final first = pending[firstIndex];
+        pending[firstIndex] = _PendingPlanRecord(
+          raw: first.raw,
           draft: first.draft.copyWith(
             issues: [
               ...first.draft.issues,
@@ -378,24 +399,70 @@ class ImportPipeline {
               ),
             ],
           ),
-          verdict: first.verdict,
+          externalKey: first.externalKey,
         );
         continue;
       }
 
+      if (externalKey != null) {
+        firstIndexByExternalKey[externalKey] = pending.length;
+      }
+      pending.add(
+        _PendingPlanRecord(raw: raw, draft: draft, externalKey: externalKey),
+      );
+    }
+
+    // A legacy alias (the bare upstream id `GenericJsonAdapter` keyed a
+    // bundled dance under before receive keys carried the upstream source) is
+    // only trustworthy as a reimport target when exactly one current key in
+    // this batch resolves to it. [dedupe] is a pre-batch snapshot, so two
+    // dances that only share that alias — e.g. a bundle's `contradb:457` and
+    // `callersbox:457` both falling back to the legacy bare `457` — would
+    // otherwise each independently resolve to the same existing dance and
+    // both commit as `reimport`, overwriting it twice and mapping two program
+    // slots onto one dance (the data-loss case this PR fixes). Collect every
+    // claim before assigning any verdict so a collision is caught regardless
+    // of processing order, and regardless of which record it is discovered
+    // through.
+    final legacyTargetByIndex = <int, String>{};
+    final claimantsByLegacyTarget = <String, Set<String>>{};
+    for (var i = 0; i < pending.length; i++) {
+      final raw = pending[i].raw;
+      if (dedupe.findByExternalId(raw.source, raw.externalId) != null) {
+        continue; // An exact current-key match never consults legacy aliases.
+      }
+      for (final prior in raw.priorExternalIds) {
+        final legacyTarget = dedupe.findByExternalId(raw.source, prior);
+        if (legacyTarget == null) continue;
+        legacyTargetByIndex[i] = legacyTarget;
+        (claimantsByLegacyTarget[legacyTarget] ??= {}).add(
+          pending[i].externalKey ?? '#$i',
+        );
+        break;
+      }
+    }
+
+    final records = <ImportRecordPlan>[];
+    for (var i = 0; i < pending.length; i++) {
+      final p = pending[i];
+      final legacyTarget = legacyTargetByIndex[i];
+      final legacyCollision =
+          legacyTarget != null &&
+          claimantsByLegacyTarget[legacyTarget]!.length > 1;
       try {
         final verdict = dedupe.verdictFor(
-          source: raw.source,
-          externalId: raw.externalId,
-          priorExternalIds: raw.priorExternalIds,
-          title: draft.dance.title,
-          authorNames: await _dedupeAuthorNames(draft),
+          source: p.raw.source,
+          externalId: p.raw.externalId,
+          // Suppressed on a collision so `verdictFor` falls through to fuzzy
+          // matching instead of reimporting onto a contested legacy target.
+          priorExternalIds: legacyCollision
+              ? const []
+              : p.raw.priorExternalIds,
+          title: p.draft.dance.title,
+          authorNames: await _dedupeAuthorNames(p.draft),
           threshold: threshold,
         );
-        if (externalKey != null) {
-          firstIndexByExternalKey[externalKey] = records.length;
-        }
-        records.add(ImportRecordPlan(draft: draft, verdict: verdict));
+        records.add(ImportRecordPlan(draft: p.draft, verdict: verdict));
       } on ImportError catch (e) {
         errors.add(e);
       } catch (e) {
@@ -404,7 +471,7 @@ class ImportPipeline {
             stage: ImportStage.dedupe,
             source: adapter.source,
             message: 'Failed to dedupe record: $e',
-            externalId: raw.externalId ?? record.externalId,
+            externalId: p.raw.externalId,
             cause: e,
           ),
         );

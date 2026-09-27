@@ -298,6 +298,15 @@ class DedupeIndex {
   /// exact-normalized-title + overlapping-tokenized-author pair is therefore
   /// *guaranteed* to be surfaced (never silently dropped to [isNew]),
   /// independent of how [threshold] is tuned.
+  ///
+  /// An empty normalized title ([normalizeTitle] folds every non-Latin or
+  /// punctuation-only title to `''`) never matches, at any [threshold]:
+  /// [_similarity] scores an empty side `0.0`, but [_combinedScore] still adds
+  /// an author-only contribution when both sides declare authors, which a
+  /// caller-supplied `threshold` of `0` (or as high as `0.2`) would surface as
+  /// a candidate despite the titles carrying no identity signal at all. A
+  /// query or candidate with an empty normalized title is therefore skipped
+  /// before scoring, independent of tuning.
   List<DedupeCandidate> fuzzyMatches(
     String title,
     Iterable<String> authorNames, {
@@ -305,9 +314,11 @@ class DedupeIndex {
   }) {
     final nTitle = normalizeTitle(title);
     final nAuthors = authorNames.map(normalizeAuthor).toSet()..remove('');
+    if (nTitle.isEmpty) return const [];
     final out = <DedupeCandidate>[];
     for (final e in _entries) {
       final eTitle = normalizeTitle(e.title);
+      if (eTitle.isEmpty) continue;
       final eAuthors = e.authorNames.map(normalizeAuthor).toSet()..remove('');
       final score = _combinedScore(nTitle, nAuthors, eTitle, eAuthors);
       final confident =

@@ -35,6 +35,8 @@ class FakeSourceAdapter implements SourceAdapter {
     this.failFetchExternalIds = const {},
     this.discoverThrows = false,
     this.difficultyLevelLabel,
+    this.sourceById = const {},
+    this.priorExternalIdsById = const {},
   });
 
   /// The source-native records, each a decoded JSON object.
@@ -52,13 +54,21 @@ class FakeSourceAdapter implements SourceAdapter {
 
   final String? difficultyLevelLabel;
 
+  /// Per-record [ProvenanceSource] override, keyed by record id, for a batch
+  /// that mixes sources (e.g. a shared bundle re-exposing several upstream
+  /// sources). Falls back to [source] for an id not present here.
+  final Map<String, ProvenanceSource> sourceById;
+
+  /// Per-record [RawRecord.priorExternalIds], keyed by record id.
+  final Map<String, List<String>> priorExternalIdsById;
+
   @override
   Future<List<DiscoveredRecord>> discover(ImportRequest request) async {
     if (discoverThrows) throw StateError('discover boom');
     return [
       for (var i = 0; i < records.length; i++)
         DiscoveredRecord(
-          source: source,
+          source: sourceById[records[i]['id']] ?? source,
           externalId: records[i]['id'] as String?,
           label: records[i]['title'] as String?,
           locator: {'index': i},
@@ -79,8 +89,9 @@ class FakeSourceAdapter implements SourceAdapter {
       );
     }
     return RawRecord(
-      source: source,
+      source: sourceById[externalId] ?? source,
       externalId: externalId,
+      priorExternalIds: priorExternalIdsById[externalId] ?? const [],
       sourceVersion: obj['version'] as String?,
       payload: jsonEncode(obj),
       contentType: 'application/json',

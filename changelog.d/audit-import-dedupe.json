@@ -12,8 +12,8 @@
   },
   "core": {
     "fixed": [
-      "GenericJsonAdapter keys a received dance on `<upstream source>:<externalId>` (`externalIdFor`), and DedupeIndex.verdictFor tries RawRecord.priorExternalIds (the legacy bare id) before falling through to fuzzy matching.",
-      "Dedupe never scores two titles that normalize to nothing against each other, and autoResolveAmbiguous resolves an empty normalized title to duplicate instead of linking.",
+      "GenericJsonAdapter keys a received dance on `<upstream source>:<externalId>` (`externalIdFor`), and DedupeIndex.verdictFor tries RawRecord.priorExternalIds (the legacy bare id) before falling through to fuzzy matching; ImportPipeline.plan only honors that legacy fallback when exactly one current key in the batch claims it, so two dances from different sources that only share the alias no longer both reimport the same dance.",
+      "DedupeIndex.fuzzyMatches skips an empty normalized title before scoring, so two such titles never match at any threshold (not just the default), and autoResolveAmbiguous resolves an empty normalized title to duplicate instead of linking.",
       "ImportPipeline.plan drops a repeated (source, externalId) within one batch and attaches a `duplicate_external_id_in_batch` warning to the kept record.",
       "ImportPipeline.commit captures an updated dance's prior state once per batch, so undo restores the true pre-import state.",
       "ArchiveRestorer clears `collection_import_events` on a replace-mode restore."

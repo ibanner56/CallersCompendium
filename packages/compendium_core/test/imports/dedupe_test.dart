@@ -271,6 +271,29 @@ void main() {
       expect(nonLatin.fuzzyMatches('月', const []), isEmpty);
     });
 
+    test(
+      'empty normalized titles never match, even at a near-zero threshold '
+      'with shared authors',
+      () {
+        // `_similarity` scores an empty-vs-empty title 0.0, but
+        // `_combinedScore` still blends in an author-only contribution when
+        // both sides declare authors — 0.2 for a fully shared author set
+        // here. A caller-supplied `threshold` of 0 (or as high as 0.2) would
+        // then still surface the pair as a candidate despite the titles
+        // carrying no identity signal at all. `fuzzyMatches` must skip an
+        // empty-titled query or candidate before scoring, independent of how
+        // `threshold` is tuned — never falling back to a fuzzy match on
+        // authors alone.
+        final nonLatin = DedupeIndex([
+          DedupeEntry(danceId: 'd1', title: '花', authorNames: ['Alice Smith']),
+        ]);
+        expect(
+          nonLatin.fuzzyMatches('月', ['Alice Smith'], threshold: 0),
+          isEmpty,
+        );
+      },
+    );
+
     test('near-identical title is an ambiguous match', () {
       final v = index.verdictFor(
         source: ProvenanceSource.json,
