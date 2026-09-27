@@ -118,6 +118,7 @@ Set<String> _textColumns(CompendiumDatabase db) => {
 
 /// Stores one row per entity with every declared value in place.
 Future<void> _populate(CompendiumRepositories repos) async {
+  // ignore: unused_result
   await repos.choreographers.upsert(
     Choreographer(
       id: 'c1',
