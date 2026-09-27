@@ -191,6 +191,32 @@ void main() {
       expect(out, contains('note'));
     });
 
+    test('redacts two-character terms on a word boundary', () {
+      // Real-world two-character sensitive values: a US state code, a
+      // country code, a short surname.
+      final redactor = CrashRedactor(userContentTerms: {'CA', 'US', 'Li'});
+      final out = redactor.scrub('contact Li in CA, US for details');
+      expect(out, isNot(contains(RegExp(r'\bLi\b'))));
+      expect(out, isNot(contains(RegExp(r'\bCA\b'))));
+      expect(out, isNot(contains(RegExp(r'\bUS\b'))));
+      expect(
+        CrashRedactor.contentPlaceholder.allMatches(out).length,
+        3,
+        reason: 'each of the three short terms must be redacted once',
+      );
+    });
+
+    test('a two-character term does not blank unrelated substrings', () {
+      final redactor = CrashRedactor(userContentTerms: {'CA', 'Li'});
+      final out = redactor.scrub('the CAN-AM tour likes vacationing');
+      // "CA" inside "CAN-AM" and "vacationing", and "Li" inside "likes", are
+      // not whole-word matches and must survive intact.
+      expect(out, contains('CAN-AM'));
+      expect(out, contains('likes'));
+      expect(out, contains('vacationing'));
+      expect(out, isNot(contains(CrashRedactor.contentPlaceholder)));
+    });
+
     test('combined scrub removes every class at once', () {
       final redactor = CrashRedactor(userContentTerms: {'Chinquapin Reel'});
       const raw =

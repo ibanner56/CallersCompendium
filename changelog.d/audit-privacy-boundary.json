@@ -4,6 +4,7 @@
   "app": {
     "fixed": [
       "The scrubbed diagnostics export now removes venue names, addresses and contacts, choreographer names and locations, published-source authors, dance walkthroughs and link labels, and no longer keeps a username when a file path ends at your home folder.",
+      "The scrubbed diagnostics export also now removes venue websites, schedule and price text, published-source URLs, and difficulty-level labels, and no longer lets a two-character value (a state code, a country code, a short name) through unredacted.",
       "Your backup-reminder cadence (off, weekly or monthly) now travels in backups and is restored with them."
     ]
   },

@@ -4,9 +4,10 @@ import 'package:compendium_core/compendium_core.dart';
 /// export must redact (issue #458): dance / program / figure titles, notes,
 /// walkthroughs, free-text figure params, link labels, custom-field values and
 /// definitions, program notes, slot text and guest callers, band/caller/venue
-/// labels, tag names, and every person / place / source field — venue names,
-/// addresses and contacts, choreographer names and locations, published-source
-/// authors — plus the serialized records the Device Sync review and deletion
+/// labels, tag names, difficulty-level labels, and every person / place /
+/// source field — venue names, websites, schedule/price text, addresses and
+/// contacts, choreographer names and locations, published-source authors and
+/// urls — plus the serialized records the Device Sync review and deletion
 /// queues hold.
 ///
 /// Gathered on demand from the local database at export time — export is a
@@ -26,6 +27,18 @@ import 'package:compendium_core/compendium_core.dart';
 /// (`includeDeleted`, `listAllWithDeleted`): a tombstoned row is still bound
 /// by the purge that removes it.
 ///
+/// **Why fields the registry classifies non-personal are also here.** The
+/// scrubbed export's UI label promises "user content … removed", a promise
+/// the registry's `thirdParty`/personal-data axis does not itself scope to: a
+/// hall's schedule text or a published source's URL is exactly as capable of
+/// reaching a failed statement's echoed parameters as a dance title is, and
+/// the same over-broad-crash-log risk applies. Every simple, always-populated
+/// free-text scalar column is added on that basis, whatever its registry
+/// subject — see `_alsoRequiredColumns` in the term-source test for the ones
+/// this reconciles against. A JSON-blob column (`figures_json`, `tunes_json`)
+/// is deliberately not in that set: its content is already covered above,
+/// through the decoded `Figure`/tune records, not as a raw column read.
+///
 /// **Fail-closed (OWASP).** This deliberately does NOT swallow read errors. If
 /// any source can't be read, the returned future *fails* so the caller aborts
 /// the scrubbed export rather than emitting one that is silently missing terms
@@ -33,9 +46,13 @@ import 'package:compendium_core/compendium_core.dart';
 /// being labelled "scrubbed". See `_export` in the diagnostics settings section
 /// (`screens/settings/diagnostics_section.dart`).
 ///
-/// Empty and very short strings are dropped: the redactor already ignores terms
-/// below its minimum length, and blank titles/notes would otherwise be useless
-/// (and potentially over-broad) match terms.
+/// Empty and single-character strings are dropped: the redactor already
+/// ignores terms below its minimum length, and a blank or one-character
+/// title/note would otherwise be a useless (and potentially over-broad) match
+/// term. Two-character values — a US state code, a country code, a short
+/// surname — are kept: [CrashRedactor] matches a term that short only on a
+/// word boundary, so it cannot blank out an unrelated substring the way an
+/// unbounded two-character match would.
 Future<Set<String>> collectSensitiveTerms(
   CompendiumRepositories repositories,
 ) async {
@@ -44,7 +61,7 @@ Future<Set<String>> collectSensitiveTerms(
   void add(Object? value) {
     if (value == null) return;
     final text = value.toString().trim();
-    if (text.length >= 3) terms.add(text);
+    if (text.length >= 2) terms.add(text);
   }
 
   void addFigureContent(Figure figure) {
@@ -121,12 +138,25 @@ Future<Set<String>> collectSensitiveTerms(
     }
   }
 
+  for (final entry
+      in await repositories.difficultyLevels.listAllWithDeleted()) {
+    add(entry.level.label);
+  }
+
   // People, places and sources. Every column the registry classifies as
-  // third-party or personal data is here, plus the identity fields a user
-  // would recognise as their own content (a hall's name, a book's title).
+  // third-party or personal data is here, plus every other free-text scalar
+  // column on these entities — identity fields a user would recognise as
+  // their own content (a hall's name, a book's title) and non-personal
+  // freeform fields (a venue's schedule, price or website) that can equally
+  // reach a crash log through an echoed write.
   for (final venue in await repositories.venues.listAll(includeDeleted: true)) {
     add(venue.name);
+    add(venue.website);
     add(venue.sponsor);
+    add(venue.eventName);
+    add(venue.time);
+    add(venue.genericSchedule);
+    add(venue.price);
     add(venue.address1);
     add(venue.address2);
     add(venue.city);
@@ -157,6 +187,7 @@ Future<Set<String>> collectSensitiveTerms(
       in await repositories.publishedSources.listAllWithDeleted()) {
     add(entry.source.title);
     add(entry.source.author);
+    add(entry.source.url);
     add(entry.source.notes);
   }
 

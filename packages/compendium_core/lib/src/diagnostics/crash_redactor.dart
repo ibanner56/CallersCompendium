@@ -26,16 +26,25 @@ library;
 class CrashRedactor {
   CrashRedactor({
     this.userContentTerms = const <String>{},
-    this.minTermLength = 3,
+    this.minTermLength = 2,
   });
 
-  /// Exact user-content strings to redact wherever they appear (case-insensitive
-  /// substring match). Terms shorter than [minTermLength] are ignored so a
-  /// one-or-two-character title can't blank out unrelated text.
+  /// Exact user-content strings to redact wherever they appear. A term longer
+  /// than [_wordBoundaryMaxLength] matches as a case-insensitive substring; a
+  /// shorter one (a two-letter state or country code, an initial) matches only
+  /// on a whole-word boundary, so e.g. `CA` redacts a standalone "CA" but not
+  /// the "CA" inside "CAN" or "vacation" — a blanket substring match at that
+  /// length would over-redact unrelated text. Terms shorter than
+  /// [minTermLength] are ignored entirely: a single character is too weak a
+  /// signal to be worth matching at all, word boundary or not.
   final Set<String> userContentTerms;
 
   /// User-content terms shorter than this are skipped (see [userContentTerms]).
   final int minTermLength;
+
+  /// Terms at or below this length are matched on a word boundary rather than
+  /// as a plain substring (see [userContentTerms]).
+  static const int _wordBoundaryMaxLength = 2;
 
   /// Placeholder written in place of a redacted email address.
   static const String emailPlaceholder = '[redacted-email]';
@@ -140,7 +149,11 @@ class CrashRedactor {
             .toList()
           ..sort((a, b) => b.length.compareTo(a.length));
     if (terms.isEmpty) return null;
-    return RegExp(terms.map(RegExp.escape).join('|'), caseSensitive: false);
+    final alternation = terms.map((term) {
+      final escaped = RegExp.escape(term);
+      return term.length <= _wordBoundaryMaxLength ? '\\b$escaped\\b' : escaped;
+    }).join('|');
+    return RegExp(alternation, caseSensitive: false);
   }
 
   /// Collapses absolute filesystem paths to [pathPlaceholder], keeping the file

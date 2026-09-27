@@ -441,7 +441,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Settings keys
 
-Declared in `app/lib`; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
+Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
 **90 settings keys**: 58 shareable, 7 device-local, 23 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
 

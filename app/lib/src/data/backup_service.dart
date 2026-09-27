@@ -22,9 +22,13 @@ import '../screens/settings/settings_keys.dart'
         kSyncWifiOnlyKey;
 import 'window_service.dart' show kWindowFrameKey;
 
-/// App-side declaration used by the settings classification ratchet. The
-/// storage-owned constant has the same value and remains the migration source
-/// of truth.
+/// App-side name for the denylist entry below; the storage-owned constant has
+/// the same value and remains the migration source of truth. The settings
+/// classification ratchet (`test/data/settings_classification_test.dart`)
+/// recognises any `\w*Key` declaration and already sees the storage-owned
+/// constant directly, so this duplicate is not what keeps the ratchet aware of
+/// the key — it exists only to give [kBackupSettingsDenylist] a name to
+/// reference below.
 const String kTaxonomyV33CanonicalRebuildDoneKey =
     '__taxonomy_v33_canonical_rebuild_done__';
 const String kTaxonomyV34CanonicalRebuildDoneKey =
@@ -32,24 +36,25 @@ const String kTaxonomyV34CanonicalRebuildDoneKey =
 const String kTaxonomyV35FigureNormalizationDoneKey =
     '__taxonomy_v35_figure_normalization_done__';
 
-/// App-side declaration for the one-shot modifier-container canonical/FTS
-/// rebuild marker. The storage-owned constant remains the migration source of
-/// truth.
+/// App-side name for the one-shot modifier-container canonical/FTS rebuild
+/// marker's denylist entry; the storage-owned constant remains the migration
+/// source of truth. See the note above [kTaxonomyV33CanonicalRebuildDoneKey]
+/// for why this duplicate exists.
 const String kModifierContainerCanonicalRebuildDoneKey =
     '__modifier_container_canonical_rebuild_done__';
 
-/// App-side declaration for the storage-owned one-shot repair marker. The
-/// duplicate literal keeps the settings classification ratchet aware of this
-/// app-level backup policy, while the core constant remains the migration
-/// source of truth.
+/// App-side name for the storage-owned one-shot repair marker's denylist
+/// entry; the core constant remains the migration source of truth. See the
+/// note above [kTaxonomyV33CanonicalRebuildDoneKey] for why this duplicate
+/// exists.
 const String kCallersBoxRollAwayRoleRepairDoneKey =
     '__callersbox_roll_away_role_repair_done__';
 
-/// App-side declaration for the storage-owned one-shot derived-index repair
-/// marker (#1346). The core constant
+/// App-side name for the storage-owned one-shot derived-index repair marker's
+/// denylist entry (#1346). The core constant
 /// ([normalisationDerivedIndexRepairDoneKey]) remains the migration source of
-/// truth; the duplicate literal is what keeps the settings classification
-/// ratchet aware of this app-level backup policy.
+/// truth; see the note above [kTaxonomyV33CanonicalRebuildDoneKey] for why
+/// this duplicate exists.
 ///
 /// Denylisted for the same reason as its siblings, and with one extra
 /// consequence worth naming: the repair recomputes *derived* rows from the

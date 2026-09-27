@@ -20,9 +20,11 @@
 /// Shape follows `share_bundle_egress_test.dart` and the coverage ratchet in
 /// `packages/compendium_core/test/privacy/`: derive the required set from the
 /// real artefact (every TEXT column whose registry subject is `thirdParty` or
-/// whose category is personal data), declare how each is covered, reconcile the
-/// two with a paste-ready failure, and then prove the coverage is real by
-/// storing each declared value and asserting the collector returns it.
+/// whose category is personal data, plus [_alsoRequiredColumns] — see there
+/// for why the registry axis alone under-covers the export's actual promise),
+/// declare how each is covered, reconcile the two with a paste-ready failure,
+/// and then prove the coverage is real by storing each declared value and
+/// asserting the collector returns it.
 ///
 /// [_exempt] is the by-name escape hatch, with a reason per entry. It is empty
 /// today, and the stale-entry test below keeps it honest if that changes.
@@ -37,7 +39,10 @@ import '../support/test_repositories.dart';
 
 /// Registry column -> the distinctive value the fixture stores in it, which
 /// the collector must return. Every value is unique so a hit is unambiguous,
-/// and long enough (>= 3 chars) to clear the collector's minimum length.
+/// and long enough (>= 2 chars) to clear the collector's minimum length. See
+/// `short field values are not dropped` below for the two-character case this
+/// deliberately does not exercise (a fixture value long enough to be
+/// unambiguous can't also be short enough to prove the boundary).
 ///
 /// Columns the registry *requires* (third-party or personal) come first; the
 /// rest are user content this collector has always promised, or the identity
@@ -81,6 +86,42 @@ const Map<String, String> _sources = {
   'published_sources.title': 'TERMSRC source title',
   'dances.walkthrough': 'TERMSRC dance walkthrough',
   'dance_links.label': 'TERMSRC link label',
+  // -- also required: see _alsoRequiredColumns --
+  'difficulty_levels.label': 'TERMSRC difficulty label',
+  'venues.website': 'https://termsrc-venue.example',
+  'venues.event_name': 'TERMSRC venue event',
+  'venues.generic_schedule': 'TERMSRC venue schedule',
+  'venues.time': 'TERMSRC venue time',
+  'venues.price': 'TERMSRC venue price',
+  'published_sources.url': 'https://termsrc-source.example',
+};
+
+/// Freeform scalar TEXT columns the registry classifies non-personal
+/// (`DataSubject.none`, non-personal category) but which are required here all
+/// the same, because the scrubbed export's contract ("user content … removed")
+/// is not scoped to the registry's third-party/personal-data axis: a hall's
+/// schedule text or a source's URL can reach an echoed crash-log parameter
+/// exactly as a dance title can.
+///
+/// Deliberately a short, explicit, by-name list rather than a structural rule
+/// derived from the registry — the registry has no axis for "is a simple
+/// free-text scalar" and most non-personal columns are not that (an enum like
+/// `dances.status`, a JSON blob like `dances.figures_json`, an id, a
+/// timestamp). Widening `_requiredColumns` to every non-key TEXT column would
+/// wrongly demand a term source for `dances.figures_json`, whose content is
+/// already covered indirectly through the decoded `Figure` records
+/// (`collectSensitiveTerms`), not as a raw column read. A new freeform scalar
+/// column belongs in this list by the same judgement call as this one; the
+/// "no also-required entry names a column already required" test below keeps
+/// it from drifting into the registry-derived set.
+const Set<String> _alsoRequiredColumns = {
+  'difficulty_levels.label',
+  'venues.website',
+  'venues.event_name',
+  'venues.generic_schedule',
+  'venues.time',
+  'venues.price',
+  'published_sources.url',
 };
 
 /// Required columns that deliberately have no term source, with the reason.
@@ -95,7 +136,9 @@ final _now = DateTime.utc(2026, 1, 1);
 
 /// Every TEXT column the registry classifies as third-party or personal data,
 /// as `table.column` in SQL names, read from the live drift schema so a new
-/// column is seen without anyone listing it here.
+/// column is seen without anyone listing it here — plus [_alsoRequiredColumns],
+/// the freeform scalar columns the registry does not classify that way but
+/// which the export's broader "user content removed" contract still covers.
 Set<String> _requiredColumns(CompendiumDatabase db) {
   final required = <String>{};
   for (final column in _textColumns(db)) {
@@ -105,6 +148,7 @@ Set<String> _requiredColumns(CompendiumDatabase db) {
       required.add(column);
     }
   }
+  required.addAll(_alsoRequiredColumns);
   return required;
 }
 
@@ -133,7 +177,12 @@ Future<void> _populate(CompendiumRepositories repos) async {
     Venue(
       id: 'v1',
       name: _v('venues.name'),
+      website: _v('venues.website'),
       sponsor: _v('venues.sponsor'),
+      eventName: _v('venues.event_name'),
+      time: _v('venues.time'),
+      genericSchedule: _v('venues.generic_schedule'),
+      price: _v('venues.price'),
       address1: _v('venues.address1'),
       address2: _v('venues.address2'),
       city: _v('venues.city'),
@@ -155,7 +204,15 @@ Future<void> _populate(CompendiumRepositories repos) async {
       id: 's1',
       title: _v('published_sources.title'),
       author: _v('published_sources.author'),
+      url: _v('published_sources.url'),
       notes: _v('published_sources.notes'),
+    ),
+  );
+  await repos.difficultyLevels.upsert(
+    DifficultyLevel(
+      id: 'fixture-difficulty',
+      label: _v('difficulty_levels.label'),
+      position: 99,
     ),
   );
   await repos.dances.create(
@@ -267,6 +324,33 @@ void main() {
       );
     });
 
+    test(
+      'no also-required entry names a column the registry already requires',
+      () {
+        final repos = openTestRepositories();
+        final registryRequired = <String>{};
+        for (final column in _textColumns(repos.db)) {
+          final entry = fieldClassifications[column];
+          if (entry == null) continue;
+          if (entry.subject == DataSubject.thirdParty ||
+              entry.term.isPersonalData) {
+            registryRequired.add(column);
+          }
+        }
+        final redundant =
+            _alsoRequiredColumns.intersection(registryRequired).toList()
+              ..sort();
+        expect(
+          redundant,
+          isEmpty,
+          reason:
+              'These columns are now classified third-party or personal data '
+              'by the registry itself, so their _alsoRequiredColumns entry is '
+              'redundant. Delete it:\n  ${redundant.join('\n  ')}',
+        );
+      },
+    );
+
     test('the collector returns every declared source value', () async {
       final repos = openTestRepositories();
       await _populate(repos);
@@ -319,5 +403,32 @@ void main() {
         }
       },
     );
+
+    test('short field values are not dropped', () async {
+      // Real two-character values are common in exactly the columns most
+      // required by the registry: a US state code, a country code, a short
+      // surname. The collector must keep them (CrashRedactor.userContentTerms
+      // matches a term this short on a word boundary, not as a substring, so
+      // keeping them does not risk over-redaction — see crash_redactor_test.dart).
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'short-c1', name: 'Li'),
+      );
+      await repos.venues.upsert(
+        Venue(
+          id: 'short-v1',
+          name: 'Short Fixture Venue',
+          stateProv: 'CA',
+          country: 'US',
+        ),
+      );
+
+      final terms = await collectSensitiveTerms(repos);
+
+      for (final short in const ['Li', 'CA', 'US']) {
+        expect(terms, contains(short), reason: 'dropped short value: $short');
+      }
+    });
   });
 }
