@@ -139,7 +139,32 @@ String? _normaliseSettingsValue(String raw) {
   }
 }
 
-Future<void> _retireMissingNormalisationSkips(CompendiumDatabase db) async {
+/// Drops every `normalisation_skips` entry whose record no longer exists.
+///
+/// [inScopeTables] is the set of tables the pass can record an entry for —
+/// the table half of `_normalisationColumns` plus
+/// [settingsValueNormalisation]'s table, i.e. this build's schema. The
+/// stored `table_name` is interpolated into SQL below, so it is checked
+/// against that set first rather than trusted: every writer stores a
+/// compile-time constant, but the *reader* sees whatever the file holds, and a
+/// table renamed or dropped by a later build would otherwise fail every open
+/// with `no such table`. An entry naming a table outside the set can never be
+/// discharged by the pass (which no longer visits it), so it is deleted on the
+/// same reasoning as an out-of-scope column in `_retryRecordedNormalisationSkips`.
+///
+/// The key column comes from the table's declared primary key, not from a
+/// `settings ? 'key' : 'id'` guess: the scan records `id AS _record_id` and
+/// the settings retry records the key, so the entry's `record_id` is by
+/// construction the single primary-key column of a table that has one.
+Future<void> _retireMissingNormalisationSkips(
+  CompendiumDatabase db, {
+  required Set<String> inScopeTables,
+}) async {
+  final tablesByName = {
+    for (final table in db.allTables)
+      if (inScopeTables.contains(table.actualTableName))
+        table.actualTableName: table,
+  };
   final rows = await db
       .customSelect(
         'SELECT table_name, column_name, record_id FROM normalisation_skips',
@@ -147,21 +172,30 @@ Future<void> _retireMissingNormalisationSkips(CompendiumDatabase db) async {
       .get();
   for (final row in rows) {
     final table = row.read<String>('table_name');
+    final column = row.read<String>('column_name');
     final id = row.read<String>('record_id');
-    final keyColumn = table == 'settings' ? 'key' : 'id';
+    Future<void> clear() =>
+        clearNormalisationSkip(db, table: table, column: column, recordId: id);
+
+    final info = tablesByName[table];
+    final primaryKey = info?.$primaryKey;
+    final keyColumn = primaryKey != null && primaryKey.length == 1
+        ? primaryKey.first
+        : null;
+    if (info == null || keyColumn == null) {
+      // Not a table this build's pass can visit, or not one whose rows have a
+      // single-column key to look up by: nothing can ever discharge the entry.
+      await clear();
+      continue;
+    }
     final present = await db
         .customSelect(
-          'SELECT 1 FROM $table WHERE $keyColumn = ? LIMIT 1',
+          'SELECT 1 FROM ${info.actualTableName} '
+          'WHERE ${keyColumn.name} = ? LIMIT 1',
           variables: [Variable<String>(id)],
         )
         .get();
-    if (present.isEmpty) {
-      await db.customStatement(
-        'DELETE FROM normalisation_skips WHERE table_name = ? '
-        'AND column_name = ? AND record_id = ?',
-        [table, row.read<String>('column_name'), id],
-      );
-    }
+    if (present.isEmpty) await clear();
   }
 }
 
@@ -888,7 +922,14 @@ class CompendiumRepositories {
     // Retired FIRST, not only at the end as before: an entry whose row was hard
     // deleted can never be re-attempted, and leaving it until after the work
     // means it forces the very scan it can contribute nothing to.
-    await _retireMissingNormalisationSkips(db);
+    final inScopeTables = {
+      for (final (table, _) in _normalisationColumns) table,
+      // The settings half of the pass records under this address, which the
+      // registry-derived column set does not carry: settings values are
+      // classified per key, not as a column.
+      settingsValueNormalisation.table,
+    };
+    await _retireMissingNormalisationSkips(db, inScopeTables: inScopeTables);
 
     final marker = await db
         .customSelect(
@@ -923,7 +964,7 @@ class CompendiumRepositories {
     }
     // Still needed after a full scan: the scan cannot see a row that no longer
     // exists, so an entry for one is only reachable here.
-    await _retireMissingNormalisationSkips(db);
+    await _retireMissingNormalisationSkips(db, inScopeTables: inScopeTables);
     // Only a scan records completion. A retry runs *because* the recorded scope
     // already equals the live one, so re-writing it would store a byte-identical
     // string and wake every `settings` watcher for nothing — and
