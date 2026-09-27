@@ -16,16 +16,18 @@ has more — this page links out to each one.
 No account, and no connection for everyday use. Caller's Compendium is
 *local-first*: your [collection](./glossary.md#collection),
 [programs](./glossary.md#program), and settings live on your own device, and the
-app works fully offline. The only time it reaches the internet is when you choose
-to [import](./glossary.md#import) dances from an online source such as
+app works fully offline. It reaches the internet only when you ask it to — to
+[import](./glossary.md#import) dances from an online source such as
 [The Caller's Box](./glossary.md#the-callers-box) or
-[ContraDB](./glossary.md#contradb).
+[ContraDB](./glossary.md#contradb), to check for updates, or to sync if you have
+turned on Device Sync.
 
 ### Where is my data stored?
 
-On your device, and only on your device. Nothing is uploaded to a server and
-there's no cloud sync happening behind the scenes. That's great for privacy and
-offline use — and it means *you* keep the safety copy. See
+On your device. Nothing is uploaded anywhere unless you choose to turn on
+[Device Sync](./settings.md#device-sync) — an optional, experimental feature that
+keeps your library in step across your own devices. It is off until you turn it
+on. Because your library lives with you, *you* keep the safety copy; see
 [Backup & portability](./backup-portability.md) for how.
 
 ### What does it cost? Is it really open source?
@@ -36,8 +38,9 @@ license, and a link to the source under **Settings › About**.
 ### Which devices does it run on?
 
 Desktop (Linux, macOS, Windows) and mobile (Android, iOS/iPadOS). Desktop and
-Android builds are on the [Releases page](https://github.com/ibanner56/CallersCompendium/releases);
-iPhone and iPad go out via TestFlight to invited testers. See the
+Android builds are on the [Releases page](https://github.com/ibanner56/CallersCompendium/releases),
+and Android is also available through a Google Play closed test. iPhone and iPad
+builds are delivered through TestFlight to invited testers. See the
 [Installation guide](./installation.md) for step-by-step instructions.
 
 ## Everyday tasks
@@ -88,9 +91,10 @@ head for the guide list to find your way around.
 
 The app can check for a newer version itself. Open **Settings › Updates** and
 choose **Check for updates** any time; on desktop it can download and install the
-update for you, and on phones and tablets it links you to the download. Nothing
-updates automatically unless you turn on **Check automatically**, and you can opt
-into pre-release builds with the **Beta channel** switch. See
+update for you, and on phones and tablets it links you to the download. The app
+only checks on its own if you turn on **Check automatically**. While the app is
+in beta, every release is a beta release, so turn on the **Beta channel** switch
+too — otherwise the check won't find them. See
 [Settings](./settings.md#updates).
 
 ## Troubleshooting

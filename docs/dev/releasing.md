@@ -149,7 +149,7 @@ and produces no Android artifact.
      forms cannot read the latest release tag dynamically. Set every explicit
      SemVer literal in `.github/ISSUE_TEMPLATE/*.yml` and `*.yaml` to the same
      bare `X.Y.Z` as `app/pubspec.yaml` — currently the default and fallback
-     hint in the beta check-in and bug-report forms. Do not write `vX.Y.Z`, a
+     hint in the bug-report form. Do not write `vX.Y.Z`, a
      beta suffix, or build metadata: reporters are supplying the app build
      version, not its release tag. `tools/ci/check_app_version.py` checks all
      literals in those files, while the release workflow requires the pubspec
@@ -738,7 +738,7 @@ What does **not** auto-update is the **editorial copy**. As part of cutting a
 release (see the [Release Checklist](release-checklist.md) §4), skim `site/` and
 refresh anything the release changed:
 
-- **Status** — the "Where the project is today" list and the hero eyebrow, if the
+- **Status** — the "Project status" list and the hero eyebrow, if the
   shipped/in-flight picture moved (keep it in step with `README.md` and
   `docs/ROADMAP.md`).
 - **Features** — add/adjust cards for any newly shipped capability.

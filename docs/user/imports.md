@@ -5,8 +5,7 @@ and moving your whole library between devices. It covers bringing in single
 dances from [The Caller's Box](./glossary.md#the-callers-box) and
 [ContraDB](./glossary.md#contradb), importing signed published collections and
 Caller's Compendium files, moving a whole library across from Caller's Companion,
-and backing up and restoring everything you own. Where a feature is still on the
-way, it says so plainly.
+and backing up and restoring everything you own.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Settings**, **Import…**, and **Choose file…**. The
@@ -65,10 +64,12 @@ keep.
    search is on — you are searching the archive, not your own library.)
 3. Choose which archive to search — **The Caller's Box** or **ContraDB** — from
    the online source selector.
-4. Choose **Title** or **Author** in the **Search in** menu, then type a dance
-   title or author/choreographer name in the search box. Results appear as you
-   type. With The Caller's Box you can also narrow by the figures a dance
-   contains, using the same **By-Phrase** panel as a local search.
+4. Choose **Title**, **Author**, or **Figure** in the **Search in** menu, then
+   type in the search box. Results appear as you type. With The Caller's Box you
+   can also narrow by the figures a dance contains, using the same **By phrase**
+   panel as a local search. The
+   [Collection & search guide](./collection.md#search-across-your-dances)
+   explains how each option matches.
 5. Select a result to open a **preview** of that dance.
 6. If it is the one you want, choose **Import** to add it to your collection.
 
@@ -232,13 +233,19 @@ below.
 
 If another caller shares a **program bundle** with you — the
 **Share (program + dances)** file described in
-[Share, print & export](./sharing.md#share-a-program-with-its-dances) — you don't
-have to go through **Settings › General** and choose **Import…** by hand. Caller's Compendium registers
-itself as a place that can open those files, so you can just **open the file**:
-AirDrop it (on a Mac, iPhone, or iPad), use your system's **Open with** /
-**Share** menu, or tap it wherever it arrives. The app launches and takes you
-straight to the same review screen a manual import uses, already loaded with what
-the file contains — the program, its dances, and its venue.
+[Share, print & export](./sharing.md#share-a-program-with-its-dances) — you can
+often open the file directly:
+
+- **Mac, iPhone, or iPad:** open the `.ccshare` file wherever it arrives, or
+  send it by AirDrop.
+- **Android:** open a `.json` bundle with **Open with**, or send it to the app
+  from another app's **Share** menu.
+- **Any device**, including Linux and Windows: go to **Settings › General** and
+  choose **Import…**, then pick the file.
+
+Opened directly, the app launches and takes you straight to the same review
+screen a manual import uses, already loaded with what the file contains — the
+program, its dances, and its venue.
 
 Nothing is added until you confirm. You review the bundle exactly as you would any
 other import, decide what to bring in, and commit; an **Undo** is offered

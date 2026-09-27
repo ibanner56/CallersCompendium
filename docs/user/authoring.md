@@ -2,7 +2,8 @@
 
 Sooner or later you will want to put a dance in yourself — a dance you wrote, one
 a friend taught you at a festival, or one that came in from an
-[import](./imports.md) with a figure the app could not quite read. This guide
+[import](./imports.md) with a [figure](./glossary.md#figure) the app could not
+quite read. This guide
 covers the dance editor: how figures go in, where the notes and credits live, and
 how the app keeps your work safe while you type.
 
@@ -58,7 +59,8 @@ Enter. Press Escape when you are done.
 
 ### Free-text entry
 
-Turn on **Free-text entry** in [Settings](./settings.md) ▸ **Dialect** ▸
+Turn on **Free-text entry** in
+[Settings](./settings.md#dance-details--shorthands) ▸ **Dialect** ▸
 **Dance details & shorthands** and the same box accepts a whole line at a time
 instead of one move at a time. Type `neighbor balance & swing` and you get both
 figures; type `16 circle left 3/4` and you get a sixteen-beat circle left
@@ -70,7 +72,8 @@ dropped.
 
 ### Figure shorthands
 
-If you type the same run of figures over and over, teach it to the app once.
+If you type the same run of figures over and over, teach it to the app once as
+a [shorthand](./glossary.md#shorthand).
 Choose **Figure shorthands** in **Settings** ▸ **Dialect** ▸ **Dance details &
 shorthands**, then **New shorthand**:
 
@@ -92,13 +95,15 @@ Select a figure to open it. What you can change depends on the move:
   Common ones show straight away; choose **More options** to see the rest, and
   **Fewer options** to fold them back.
 - **Beats** — every figure has a beat count you can raise or lower.
-- **Progression** — mark the figure the dance progresses on. Moves that can carry
-  the progression say so.
+- **Progression** — mark the figure the dance
+  [progresses](./glossary.md#progression) on. Moves that can carry the
+  progression say so.
 - **Add note** — a short note attached to that figure alone.
 
-A figure whose move is not in this version's move list is shown read-only, with a
-plain explanation. Its data is preserved untouched, it edits normally again if the
-move becomes known, and you can still reorder and delete it in the meantime.
+A figure whose move this version of the app does not know — one added by a newer
+version, for example — is shown read-only, with a plain explanation. Its data is
+kept untouched, it edits normally again once the app knows the move, and you can
+still reorder and delete it in the meantime.
 
 ### Custom figure
 
@@ -113,7 +118,7 @@ for both:
 - `*text*` for **bold**
 - `_text_` for underline
 
-As you type, the app quietly styles what it recognises: move names get a dotted
+As you type, the app styles what it recognises: move names get a dotted
 underline, role terms are underlined, and
 [discouraged terms](./dialects.md) are struck through. It is a hint, not a
 correction — nothing is changed for you.
@@ -132,9 +137,9 @@ Each figure row has a drag handle and an actions menu:
 | **Mark progression** / **Clear progression** | Sets or clears the progression |
 | **Delete** | Removes the figure |
 
-After **Cut**, a banner names the figure that is waiting and **Paste** points
-appear between the rows — before the first figure, after any figure, and at the
-end of the list — so you can drop it exactly where you want. Every move,
+After **Cut**, a banner names the figure that is waiting and **Paste here**
+points appear between the rows — before the first figure, after any figure, and
+at the end of the list — so you can drop it exactly where you want. Every move,
 duplication, and deletion is announced for screen readers, and deletions can be
 undone.
 
@@ -142,28 +147,31 @@ undone.
 
 Some dances have two things happening at once — the ones on the ends do one
 thing while the middles do another. Choose **Group with next as meanwhile** and
-the two figures become a **meanwhile** group, labelled with how many **sides** it
-has and sharing one set of beats.
+the two figures become a [meanwhile](./glossary.md#meanwhile) group, labelled
+with how many sides it has and sharing one set of beats.
 
 You can also choose **Add meanwhile** from the list's **Add** menu to create the
-container first. The new container starts with the configured meanwhile defaults
-from [Settings](./settings.md#dance-authoring-defaults), or two stand-still sides
-when no valid defaults are available. Clear those defaults for two blank sides;
-one configured side gets one additional blank side. The container remains an
-editor draft until at least two sides contain enough information to save.
+group first. It starts with your **Meanwhile defaults** (see
+[Start new dances the way you work](#start-new-dances-the-way-you-work)), or two
+stand-still sides if you have not set any. If you have cleared those defaults
+you get two blank sides, and a single default side is paired with one blank
+one. The group is saved with the dance once at least two of its sides are
+filled in.
 
 Inside the group, each side is labelled **Side 1**, **Side 2**, and so on, and has
 its own controls to move up, move down, or **Remove this side**. **Add side** adds
-another concurrent figure, up to a maximum the app states when you reach it.
+another side, up to six.
 
 ### Modifier figures
 
 Use **Group with next as modifier** when one figure describes the main action
-and the next describes how it is performed. The first figure is the core and
-later figures are ordered modifiers. **Add modifier** creates an editable
-modifier container seeded from the modifier defaults in [Settings](./settings.md#dance-authoring-defaults).
-Modifier and meanwhile containers can alternate once for nested structure; the
-app rejects deeper or same-kind nesting.
+and the next describes how it is performed. The first figure is labelled
+**Core** and the figures after it **Modifier**, in order. **Add modifier**
+creates a modifier group from your **Modifier defaults**.
+
+You can put a meanwhile group inside a modifier group, or a modifier group inside
+a meanwhile group, one level deep. The app does not allow a group inside another
+of the same kind, or nesting any deeper.
 
 ### Keep an eye on the beats
 
@@ -179,9 +187,11 @@ dance whose beats do not add up, and sometimes that is the honest transcription.
 - **Title** — required.
 - **Authors** — the [choreographer](./glossary.md#choreographer) or
   choreographers. Type to find an existing author or create a new one.
-- **Type** — whether the dance is a contra, an English (ECD) dance, or a square.
-  The Collection's **Type** filter and the dance tile use it. A new dance starts
-  with the type you chose under Settings; change it here for any one dance.
+- **Type** — **Contra**, **English (ECD)**, or **Square**. It sets the icon on
+  the dance's row in your collection and what the **Type** filter finds. A new
+  dance starts with your default type (see
+  [Start new dances the way you work](#start-new-dances-the-way-you-work)); change
+  it here for any one dance.
 - **Formation** and **Formation detail** — the shape the dance is danced in, plus
   anything worth adding in words.
 - **Mixer** — tick this when the dance is a
@@ -189,7 +199,7 @@ dance whose beats do not add up, and sometimes that is the honest transcription.
   It's kept separate from the formation, because a mixer can be danced in many
   shapes and not every circle is a mixer.
 - **Phrase structure** — leave it blank for the standard A1 A2 B1 B2, or write
-  your own (the field shows `6*8*2` as an example). The app checks that what you
+  your own (the field suggests `6*8*2` as an example). The app checks that what you
   write is a valid structure, and uses it for the beat count above.
 
 ### Notes
@@ -200,7 +210,8 @@ dance whose beats do not add up, and sometimes that is the honest transcription.
 
 ### Walkthrough
 
-You can write the walkthrough as free prose, or build it from your figures.
+You can write the [walkthrough](./glossary.md#walkthrough) as free prose, or
+build it from your figures.
 
 Each figure can carry an **Add walkthrough step** description. What you write
 there is *saved as your default for that figure and reused wherever it appears* —
@@ -209,9 +220,10 @@ hey.
 
 Two things follow from that:
 
-- **Fill from snippets** assembles a walkthrough from the saved snippets of the
-  dance's figures. If it would overwrite something, the app asks first. If none of
-  the figures has a snippet yet, it says so rather than emptying the field.
+- **Fill from snippets** assembles a walkthrough from the saved
+  [snippets](./glossary.md#snippet) of the dance's figures. If it would
+  overwrite something, the app asks first. If none of the figures has a snippet
+  yet, it says so rather than emptying the field.
 - If you edit a step so it no longer matches your saved snippet, the app asks
   **Update your saved snippet?** — choose **Use everywhere** to update the default,
   or **Just this dance** to keep the change local.
@@ -235,12 +247,12 @@ them. Editing one there updates the default used everywhere.
 | **Links** | A URL with an optional label, marked **Source**, **Video**, or **Other** |
 | **Published sources** | Citations, with optional page and number |
 | **Related dances** | Cross-references to other dances, each with an optional note |
-| **Custom fields** | Any fields you have defined — see [Collection & search](./collection.md#make-your-own-fields) |
+| **Custom fields** | Any [custom fields](./glossary.md#custom-field) you have defined — see [Collection & search](./collection.md#make-your-own-fields) |
 
-For a related dance that belongs to the same **transitive group**, turn on
-**Transitive group**. The app keeps every dance in that group connected to every
-other member. Removing a transitive link detaches the whole group, while ordinary
-related-dance links outside it are left alone.
+To tie a whole family of dances together — several variations of one dance, say —
+turn on **Include in related-dance group** for the link. Every dance in the group
+is then linked to every other one. Removing a group link breaks up that whole
+group, while ordinary related-dance links are left alone.
 
 If the editor spots wording it considers discouraged, it collects it under
 **Warnings** with the term named. Nothing is blocked; it is there so you can
@@ -272,7 +284,7 @@ referenced.
 | Action | Linux / Windows | macOS |
 |---|---|---|
 | Undo | Ctrl-Z | Cmd-Z |
-| Redo | Ctrl-Shift-Z | Cmd-Shift-Z |
+| Redo | Ctrl-Shift-Z or Ctrl-Y | Cmd-Shift-Z |
 
 ### Your work is kept while you type
 
@@ -315,23 +327,31 @@ as:
   4×16 (A1 A2 B1 B2).
 - **Starting figures** — the figures a new dance starts with. It defaults to a
   single stand still of eight beats; clear it for a completely blank dance.
+- **Meanwhile defaults** and **Modifier defaults** — the figures a new
+  [meanwhile](#meanwhile-figures) or [modifier](#modifier-figures) group starts
+  with.
 - **Move defaults** — your preferred parameter values, applied whenever you insert
   that move. These override the move's built-in defaults, and you can still change
   any parameter on the figure afterwards.
+- **Aggressively recompute figure beats** — off by default, so a beat count you
+  typed yourself is never changed for you. Turn it on and changing a figure's
+  move, or an option that affects its timing, recalculates its beats straight
+  away, even over a count you typed.
 
 Every one of these is only a starting point; you can change any of them on any
 dance.
 
 ## Fix figures an import could not read
 
-Imported dances sometimes arrive with figures kept as plain custom text simply
-because the app could not recognise them at the time. As the app's figure
+Imported dances sometimes arrive with figures kept as plain custom text because
+the app could not recognise them at the time. As the app's figure
 recognition improves, those can often be upgraded.
 
-Choose **Re-check custom figures** in **Settings** ▸ **General** ▸ **Re-check…**.
-The app scans your collection and shows you what it *could* upgrade before
-anything changes: how many figures, in how many dances, and which ones. You
-confirm, and only then does anything happen.
+In [Settings](./settings.md#import) ▸ **General** ▸ **Import**, find **Re-check
+custom figures** and choose **Re-check…**. The app scans your collection and
+shows you what it *could* upgrade before anything changes: how many figures, in
+how many dances, and which ones. You confirm, and only then does anything
+happen.
 
 Your tags, ratings, notes, and everything else on each dance are kept exactly as
 they are — only figures that now recognise a known move are replaced. If there is

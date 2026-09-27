@@ -22,8 +22,8 @@ and step back out deliberately when you are done. It fills the whole screen.
 - To call a **single dance**, open it from your
   [collection](./collection.md#what-you-can-do-with-a-dance) and choose
   **Perform this dance**.
-- To call a **whole evening**, open a program and choose **Perform this
-  program**. You can also reach it from the program summary.
+- To call a **whole evening**, choose **Perform this program** in the program
+  editor or on the program's summary.
 
 When you exit, the app takes you back to wherever you came from.
 
@@ -38,20 +38,30 @@ Perform mode shows one dance at a time in very large type, with the
 [figures](./glossary.md#figure) grouped by section (A1, A2, B1, B2) and set in a
 typeface built to be read from a distance.
 
-Your [dialect](./dialects.md) is applied, so the card speaks in your words. A
-one-tap toggle flips the current card between your dialect and the neutral,
-shared wording — handy if a dancer or another caller asks about a figure — and
-flips right back without losing your place. Figure detail you recorded shows here
-too: when a swing ends facing somewhere other than the usual "in"/across — up or
-down the hall, or out of the set — the card notes that ending so you can cue it.
+Above the figures, the card shows the dance's title, choreographer, formation,
+and level; below them come the dance's calling notes. The figure where the
+progression happens is marked with an icon labelled *Progression*. Break and
+note slots in a program get a card of their own, with the text in the same
+large type.
+
+Your [dialect](./dialects.md) is applied, so the card speaks in your words (see
+**Show canonical terms** below for a quick look at the shared wording). Figure
+detail you recorded shows here too: when a swing ends facing somewhere other
+than the usual "in"/across — up or down the hall, or out of the set — the card
+notes that ending so you can cue it.
 
 ## Set the stage
 
 A row of controls along the top shapes the calling view itself. On a tablet or a
-desktop they all sit there as buttons. On a phone, only the **Stage theme** toggle
-stays out — the rest tuck into a **More actions** menu so the toolbar can't crowd
-a narrow screen. Wherever a control lives it does the same thing, and every toggle
-says which state it is in rather than relying on how it looks.
+desktop they all sit there as buttons. On a phone, only **Switch dialect** and
+the **Stage theme** toggle stay out — the rest tuck into a **More actions** menu
+so the toolbar can't crowd a narrow screen. Wherever a control lives it does the
+same thing, and every toggle says which state it is in rather than relying on
+how it looks.
+
+**Switch dialect.** Changes your active dialect for the whole app — handy when
+tonight's hall uses different role names. See
+[Dialect](./dialects.md#switch-dialect-on-the-fly).
 
 **Stage theme.** Perform opens on a **high-contrast dark-stage theme** by default,
 built for strong legibility (a contrast ratio of at least 7 to 1) under stage
@@ -63,28 +73,34 @@ so there is no guessing, and it stays where you put it — next time too.
 current dance's full text fits the screen without scrolling, recomputing whenever
 you move to a new dance or slot, rotate the device, or resize the window. So the
 text is always as large as it can be while still fitting. It starts however you
-set **Auto-size Perform cards** in [Settings › Program](./settings.md#program),
-and the in-view toggle flips it for the night.
+set **Auto-size Perform cards** in
+[Settings › Program › Performance](./settings.md#performance), and the in-view
+toggle flips it until you leave Perform.
 
 **A− and A+.** The **Decrease text size** and **Increase text size** controls step
 the size down and up, starting large with no upper limit. Using either one
-switches auto-size off, because you have just told the app what size you want —
-and that size is remembered for next time.
+switches auto-size off, because you have told the app what size you want. The
+size you pick is remembered for next time; auto-size goes back to your Settings
+choice the next time you open Perform.
 
 **Show canonical terms.** Flips the card between your
 [dialect](./glossary.md#dialect) and the shared wording without changing your
-active dialect, and is remembered too. It appears only when you are using a
-dialect other than the shared wording. See
+active dialect — handy if a dancer or another caller asks about a figure. Your
+choice is remembered. It appears only when you are using a dialect other than
+the shared wording. See
 [Dialect](./dialects.md#peek-at-the-canonical-wording).
 
-When performing a program, a non-empty caller note attached to the current slot
-appears above the dance title. This is on by default and can be turned off in
-**Settings › Program › Performance** with **Show caller notes in program
-Perform**. The note is display-only: it does not change the dance's calling
-notes, search, or exports.
+**Tap tempo** opens a silent, visual metronome: tap out the beat on the large
+target to see the tempo in beats per minute and a pulse you can follow or show
+the band. **Show walkthrough** — which appears when the dance has a
+walkthrough written — lays it over the card until you close it.
 
-**Tap tempo** opens the metronome sheet, and **Show walkthrough** — which appears
-when the dance has a walkthrough written — overlays it on the card.
+**Caller notes.** When you perform a program, a slot's caller note appears above
+the dance title, labelled *Caller note*. To hide these, turn off **Show caller
+notes in program Perform** in
+[Settings › Program › Performance](./settings.md#performance). The note is for
+your eyes only: it does not change the dance's own calling notes, search, or
+exports.
 
 ## The screen stays awake
 
@@ -97,14 +113,19 @@ screen is free to sleep as normal again.
 When you are performing a program, step through your slots with whichever
 control suits you and your setup:
 
-- the big **next** and **previous** controls;
-- the **giant edge hit zones** at the screen edges, easy to hit without looking;
-  or
-- the **arrow keys** or **page keys** on a keyboard.
+- the **Previous slot** and **Next slot** buttons at the bottom of the screen;
+- the **giant edge hit zones** — tap the left edge to go back, the right edge
+  to go forward — easy to hit without looking; or
+- the **arrow keys** or **Page Up** / **Page Down** on a keyboard.
 
-A **jump-to-slot overview** lets you jump anywhere in the program at once — useful
-if plans change mid-evening. And when a slot has an [alt](./glossary.md#alt),
-one tap swaps it in place of the primary.
+Between the two buttons, **Slot N of M** shows where you are. A dance and its
+alternates count as one slot, so stepping forward skips past the alternates.
+
+**Jump to slot** lists the whole program so you can go anywhere at once — useful
+if plans change mid-evening. When the current slot has an
+[alt](./glossary.md#alt), **Show alternate** switches the card to it (and on
+through any others, then back to the primary). This only changes what you are
+looking at; the program itself stays as it is.
 
 ## Keep time through the evening
 
@@ -118,34 +139,36 @@ For a program, the status area additionally shows:
 
 - a **running program clock** for the whole evening;
 - a **per-slot elapsed timer** that resets each time you move to a new slot;
-- a slot's planned length shown as **"planned N min (W:D),"** where `W` is the
-  walkthrough minutes and `D` is the dance minutes;
-- when walkthrough minutes are set, a gentle cue after the walkthrough portion;
-  the final overrun cue waits until the combined walkthrough and dance duration;
-- a **pause/resume** control for interruptions.
+- the slot's planned length, when you have set one, shown as **planned N min
+  (W:D)** — where W is the walkthrough minutes and D is the dance minutes;
+- once the slot's walkthrough minutes have passed, the words **walkthrough
+  complete**, with a running-figure icon;
+- once the walkthrough and dance minutes together have passed, the word
+  **over**, with a timer icon; and
+- a **Pause timers** button (**Resume timers** while paused) that freezes both
+  clocks for interruptions.
 
 Timing is display-only — it helps you keep an eye on the clock but never changes
-your program or your dances. The individual elapsed timer is on by default and
-can be hidden under **Settings → Program → Performance → Show timer for
-individual Perform**. A single dance never shows the program clock, slot timing,
-planned length, overrun cue, or slot position.
+your program or your dances. The single-dance timer is on by default; to hide
+it, turn off **Show timer for individual Perform** in
+[Settings › Program › Performance](./settings.md#performance).
 
 ## Adjust on the fly
 
-*Calling a program.* Plans change mid-gig. **Adjust program** opens a sheet that
-lets you make changes without disturbing the card you are reading. From it you
-can:
+Plans change mid-gig. When you are calling a program, **Adjust program** opens a
+sheet that lets you make changes without disturbing the card you are reading.
+From it you can:
 
 - **reorder the remaining slots** (with a drag handle or move up / move down
   buttons);
-- **insert a dance** from a quick search;
-- **add an ad-hoc note**; and
-- **mark the current slot performed**.
+- **insert a dance** with **Insert dance from search**;
+- **add an ad-hoc note or break**; and
+- **mark the current slot performed** (choose it again to clear the mark).
 
 An inserted dance and an ad-hoc note both land right after the current slot, so
-"play this next" is one action away. Every change is undoable, and for a saved
-program the changes persist. Marking a slot performed is what feeds a dance's
-calling history — see
+"play this next" is one action away. Every change offers **Undo**, and changes
+to a saved program are saved with it. If you have set calling history to count
+only slots marked performed, this is where you mark them — see
 [Programs & matrix](./programs.md#track-what-you-have-called).
 
 This sheet belongs to program Perform. Performing a single dance has nothing to
@@ -170,8 +193,11 @@ Choose **Exit performance view** and the app checks first:
 > **Exit Perform?** — Leave the performance view? Your place and the running clock
 > are kept, so you can resume where you left off.
 
-**Keep performing** returns you to the card; **Exit** leaves. Because your place
-and your clock are kept, stepping out to check something is safe.
+**Keep performing** returns you to the card; **Exit** leaves. When you are
+calling a program, your place and the clock are kept for as long as that
+program stays open, so you can step out to check something and choose **Perform
+this program** again to pick up where you left off. Closing the program, or
+performing a single dance, starts the next session fresh.
 
 ## Print or share a single dance
 
