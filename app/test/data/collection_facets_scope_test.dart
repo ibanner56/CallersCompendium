@@ -23,6 +23,7 @@ void main() {
           'min-rating',
           'call-status',
           'author',
+          'tunes',
           'tags',
           'source',
         ]);

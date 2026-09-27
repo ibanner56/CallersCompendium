@@ -131,6 +131,7 @@ the **Filters** panel. It lets you narrow by:
 - **Minimum rating** (for example, three stars and up)
 - **Calling history** — dances you have **Called**, or **Not called**
 - **Author**
+- **Tunes** — see [Filter by tunes](#filter-by-tunes) below
 - **Tags** — including **Untagged**, for dances that have no tags yet
 - **Source** — the book or collection a dance was published in
 - your own [custom fields](./glossary.md#custom-field) — the choice, yes/no,
@@ -143,10 +144,29 @@ Two simple rules govern how filters combine, and knowing them makes the panel
 predictable:
 
 - **Within one filter, choices are "any."** Ticking *Improper* and *Becket*
-  under Formation finds dances in **either** formation.
+  under Formation finds dances in **either** formation. The one exception is
+  **Tunes**, described below.
 - **Across different filters, choices are "all."** Adding an author on top of
   those formations finds dances that match one of the formations **and** are by
   that author.
+
+### Filter by tunes
+
+The **Tunes** filter finds dances by the suggested tunes you have saved on them
+— a key, a time signature, a tune name, or whatever you typed into the dance's
+**Tunes** list. It appears once at least one dance has a tune.
+
+Type into the **Tunes** box. The app suggests tunes already in your collection;
+pick one, or press Enter to use exactly what you typed. Each value becomes a
+chip you can remove with its **×**. A value matches any tune that contains it,
+ignoring upper and lower case, so *dmaj* finds *Dmaj* and *Dmaj / Bmin*.
+
+Unlike the other filters, **Tunes requires all of its chips.** Entering *Dmaj*
+and *6/8* finds only dances that have both among their tunes — either as two
+separate tunes, or together in one, such as *Dmaj 6/8*. Like every other filter
+it also combines with the rest of the panel and the search bar, counts toward
+the number shown on the **Filters** header, and is cleared by **Clear filters**.
+A dance whose tunes the app cannot read never matches a Tunes filter.
 
 Filters work alongside the search bar: whatever you type and whatever you tick
 apply together.
