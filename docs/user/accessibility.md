@@ -165,12 +165,13 @@ A few smaller settings and behaviors round out the experience:
 
 ## Help us improve
 
-Accessibility is an ongoing commitment, not a finished checkbox. Everything above
-is available today, but we know real-world use turns up rough edges we haven't
-found yet. If a screen reads awkwardly, a control is hard to reach, or something
-just doesn't work the way it should for you, please tell us through the project's
-issue tracker — you'll find the link in the [project README](../../README.md).
-Your reports genuinely make the app better for everyone.
+Accessibility is an ongoing commitment, not a finished checkbox. Everything
+above is available today, and real-world use is the best way to find what can
+still be better. If a screen reads awkwardly, a control is hard to reach, or
+something doesn't work the way it should for you, please
+[open an issue](https://github.com/ibanner56/CallersCompendium/issues/new/choose)
+or email [compendium@contra.dance](mailto:compendium@contra.dance). Every report
+helps make the app better for everyone.
 
 ## Where to go next
 

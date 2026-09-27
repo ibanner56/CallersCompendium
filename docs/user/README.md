@@ -49,6 +49,7 @@ Everything else can wait until you need it.
 | Email, print, or hand off a set list | [Share, print & export](sharing.md) |
 | Send a program to another caller | [Share, print & export — Share a program with its dances](sharing.md#share-a-program-with-its-dances) |
 | Move everything to a new device | [Backup & portability](backup-portability.md) |
+| Keep my library in step across my own devices | [Settings — Device Sync](settings.md#device-sync) |
 | Call it "larks and robins" (or anything else) | [Dialect](dialects.md) |
 | Use a screen reader, big text, or the keyboard only | [Accessibility](accessibility.md) |
 | Change how the app looks or behaves | [Settings](settings.md) |

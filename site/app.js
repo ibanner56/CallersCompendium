@@ -49,7 +49,7 @@
       var codename = releaseCodename(manifest, version);
       var releaseIdentity = formatReleaseIdentity(version, codename);
       setText("hero-version", releaseIdentity);
-      setText("hero-status", "Our public beta is live — " + releaseIdentity);
+      setText("hero-status", "Now in open beta — " + releaseIdentity);
       var line = document.getElementById("dl-version-line");
       if (line) {
         line.textContent = "Version " + version;
