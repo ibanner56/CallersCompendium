@@ -480,6 +480,13 @@ class Dialect {
 
     for (final e in roles.entries) {
       check(e.key, e.value.singular);
+      // `canonicalize` reverses the plural too (to `<role>s`), so a plural that
+      // spells another entry's term is the same ambiguity. An invariant plural
+      // (singular == plural, "sheep") is one term, not a self-collision.
+      final term = e.value;
+      if (term.plural.toLowerCase() != term.singular.toLowerCase()) {
+        check('${e.key}s', term.plural);
+      }
     }
     for (final e in moves.entries) {
       check(e.key, e.value);

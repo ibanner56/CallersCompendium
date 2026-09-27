@@ -43,6 +43,23 @@ void main() {
       expect(result.figures.single.customOrigin, CustomOrigin.importGap);
     });
 
+    test('carries an authored walkthroughOverride onto the upgraded leaf', () {
+      // A custom figure can carry a per-figure walkthrough snippet (the editor
+      // persists one for customs; a wordingOverride it never does, #1394).
+      // Upgrading the figure must not silently discard that authored text.
+      final original = importGap(
+        'Neighbor swing',
+        beats: 8,
+      ).copyWith(walkthroughOverride: 'my walkthrough', note: 'orig note');
+      final result = reparseImportGapFigures([original]);
+
+      expect(result.upgradedCount, 1);
+      final f = result.figures.single;
+      expect(f.move, 'swing');
+      expect(f.walkthroughOverride, 'my walkthrough');
+      expect(f.note, 'orig note');
+    });
+
     test('never touches a user-entered custom, even if its text parses', () {
       final userCustom = customFigure('Neighbor swing');
       final result = reparseImportGapFigures([userCustom]);

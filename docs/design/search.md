@@ -55,6 +55,7 @@ sealed DanceFilter
   AuthorFilter(String choreographerId)
   SourceFilter(String query)                 // substring match on cited source title/author
   SourceIdFilter(String sourceId)            // identity match on cited source id
+  TunesFilter(String query)                  // substring over the dance's tunes (dances.tunes_json), #1420
   FormFilter(DanceForm form)                 // roadmap "Type": contra | ecd | square
   FormationFilter(FormationShape shape)      // shape only; free-text detail via FullTextFilter
   ProgressionFilter(Progression progression)
@@ -142,6 +143,7 @@ compiles to the literal `1` (TRUE); `OrFilter([])` to `0` (FALSE); the outer
 | `AuthorFilter(cid)` | `id IN (SELECT dance_id FROM dance_authors WHERE choreographer_id = ?)` |
 | `SourceFilter(q)` | `id IN (SELECT ds.dance_id FROM dance_sources ds JOIN published_sources ps ON ps.id = ds.source_id WHERE ps.title LIKE '%' \|\| ? \|\| '%' ESCAPE '\' OR ps.author LIKE '%' \|\| ? \|\| '%' ESCAPE '\')` (2 binds) |
 | `SourceIdFilter(sid)` | `id IN (SELECT dance_id FROM dance_sources WHERE source_id = ?)` |
+| `TunesFilter(q)` | `CASE WHEN NOT json_valid(dances.tunes_json) THEN 0 WHEN json_type(dances.tunes_json) <> 'array' THEN 0 WHEN EXISTS (… json_each(dances.tunes_json) j WHERE j.type <> 'text') THEN 0 ELSE EXISTS (… json_each(dances.tunes_json) j WHERE j.value LIKE '%' \|\| ? \|\| '%' ESCAPE '\') END` (1 bind, LIKE-escaped). The `CASE` is load-bearing: `json_each` over malformed text raises for the whole query, and `AND` operand order is not guaranteed, so an undecodable list (`UnreadableTunes`) must be excluded by an *ordered* guard. Case folding is SQLite's `LIKE` (ASCII only). |
 | `TagFilter(tid)` | `id IN (SELECT dt.dance_id FROM dance_tags dt JOIN tags t ON t.id = dt.tag_id WHERE dt.tag_id = ? AND t.deleted_at IS NULL)` — a soft-deleted tag matches nothing, though its `dance_tags` rows survive the tombstone |
 | `UntaggedFilter()` | `id NOT IN (SELECT dt.dance_id FROM dance_tags dt JOIN tags t ON t.id = dt.tag_id WHERE t.deleted_at IS NULL)` — no binds; a dance whose only tag is soft-deleted counts as untagged. `NOT IN` is NULL-safe because `dance_tags.dance_id` is `NOT NULL` (part of the primary key) |
 | `FormFilter(f)` | `form = ?` (enum `.name`, e.g. `'contra'`) |
@@ -314,8 +316,10 @@ pair of aliases.
 
 **Execution model — one SELECT, plus a post-fetch sort for two cases.** The
 single compiled `SELECT` performs *all filtering* and every **SQL-expressible**
-sort: `title COLLATE NOCASE` (the default), `updated_at DESC` (recently added/
-edited), and — only for a bare Omni `FullTextFilter` leaf with at most two
+sort: `title COLLATE NOCASE` (the default), `created_at DESC` / `updated_at
+DESC` (recently added / edited, each with a `title COLLATE NOCASE` tiebreak,
+since timestamps are stored at one-second precision and an import batch shares
+one instant), and — only for a bare Omni `FullTextFilter` leaf with at most two
 Unicode scalar values — `bm25(dance_fts)` relevance. Two sorts are **not**
 expressible in that one statement and are
 applied as a **post-fetch pass in Dart** over the returned id set:
@@ -364,6 +368,11 @@ ORDER BY title COLLATE NOCASE;
 Binds, in emission order: `['contra', 'petronella', 'B1', 'swing']`.
 
 ## Schema v2 migration
+
+> **Historical.** This section records the v1 → v2 plan as it was written.
+> v2 is below the v20 floor (#837): no step here can fire, the
+> `test/storage/fixtures/v1.sqlite` fixture it calls for is gone, and the
+> indexes actually created are listed in `database.dart` (`searchIndexSql`).
 
 3.2 adds indexed section-aware figure search, which needs the derived phrase
 label persisted on each figure row. This is the project's **first real schema
@@ -423,11 +432,12 @@ future structureless forms.
 
 ```sql
 CREATE INDEX dance_figures_move_section ON dance_figures(move, section);
-CREATE INDEX dance_figures_dance_idx    ON dance_figures(dance_id, idx);
 ```
 
 - `(move, section)` serves the common `FigureFilter` leaf (`move = ? AND section = ?`).
-- `(dance_id, idx)` serves the `ThenFilter` self-join's ordering and correlation.
+- The `ThenFilter` self-join correlates on `dance_id`, which the implicit index
+  on the `{dance_id, idx}` primary key already serves; a separate
+  `(dance_id, idx)` index was planned here but never created.
 
 **Migration test** (`test/storage/migration_test.dart`, replacing the scaffold's
 placeholder note). Following the scaffold's own instructions for "when schema
@@ -470,10 +480,11 @@ The active `Dialect` is passed into the compiler (the UI supplies the user's
 current dialect). Non-role prose and unknown terms are left verbatim
 (canonicalization is conservative — exact word-boundary matches only).
 
-## Query-builder UX (spec for 3.2c — not built in this PR)
+## Query-builder UX (3.2c)
 
 Every UX affordance maps to an AST node; the panel is a thin editor over the
-tree. This section specifies the mapping; the widget work is 3.2c.
+tree. This section specifies the mapping; the widget shipped as
+`app/lib/src/widgets/advanced_query_builder.dart`.
 
 | Affordance | AST |
 |---|---|
@@ -482,6 +493,7 @@ tree. This section specifies the mapping; the widget work is 3.2c.
 | One-tap facet: Formation | `FormationFilter(shape)` |
 | One-tap facet: Progression | `ProgressionFilter(progression)` |
 | One-tap facet: Author | `AuthorFilter(choreographerId)` |
+| One-tap facet: Tunes | `TunesFilter(query)` per entered value, **AND-ed within the facet** (a dance must match every value) — the only facet that is not OR-within; each leaf is a case-insensitive substring over the dance's tune list and never matches a dance whose stored `tunes_json` is undecodable (#1420) |
 | One-tap facet: Tag(s) | `TagFilter(tagId)` per selected tag, OR-ed within the facet (open Q7); the facet's **Untagged** chip adds `UntaggedFilter()` to that same OR group (issue #1422). The chip shows exactly when the Tags section does |
 | One-tap facet: Status | `StatusFilter(status)` |
 | One-tap facet: Level | `LevelFilter(level)` — multiple levels OR-ed |
@@ -515,8 +527,8 @@ in-memory scans.
 
 - The design meets this by construction: every predicate is either a `dances`
   column compare, an indexed `dance_id` subquery, or an `EXISTS`/self-join over
-  `dance_figures` served by the `(move, section)` and `(dance_id, idx)`
-  indexes. `figures_json` is never parsed at query time.
+  `dance_figures` served by the `(move, section)` index and the
+  `{dance_id, idx}` primary key. `figures_json` is never parsed at query time.
 - `json_extract` on `params_json` is evaluated only for figure rows already
   narrowed by the indexed `(move, section)` predicate, keeping it off the hot
   path.
@@ -581,14 +593,12 @@ Flagged for coordinator/user input before 3.2b:
    repository/taxonomy access) or via inline SQL + a post-open integrity pass.
    No user-facing behaviour difference; noted so 3.2b picks the cleaner wiring.
 
-## Deferred to later PRs
+## Delivery
 
-- **3.2b** — core: the `DanceFilter`/`FigureQuery` types, `FilterCompiler`,
-  the v2 migration + column + indexes, the migration test, the benchmark
-  harness, and repository entry point (`search(DanceFilter) → List<String>`
-  ids, reusing the 3.1 ordering plumbing).
-- **3.2c** — app: the unified FTS bar + facet chips + Advanced tree builder,
-  wired to the compiler, with AT-announced result counts.
+Both follow-ups have shipped: **3.2b** (core — `DanceFilter`/`FigureQuery`,
+`FilterCompiler`, the v2 migration, the benchmark, `search(DanceFilter)`) and
+**3.2c** (app — FTS bar, facet chips, Advanced tree builder). See
+`ROADMAP-archive.md` item 3.2.
 
 ## Future leaves (CC parity backfill, ROADMAP 4b)
 

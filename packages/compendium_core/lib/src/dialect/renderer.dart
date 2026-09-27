@@ -733,10 +733,15 @@ class FigureRenderer {
     if (def == null) return rendered;
     final displayName =
         taxonomy.aliases[figure.move]?.displayName ?? def.displayName;
+    // The needle must be built from the same params the summary line was
+    // rendered from — the EFFECTIVE ones. `%S` move names (`pass_by` → "pass
+    // by %S shoulders") expand from the shoulder param, and with the shoulder
+    // left to its default the raw-params needle expands `%S` to nothing and
+    // never matches the rendered line.
     final renderedName = _renderMoveName(
       def.id,
       displayName,
-      figure.params,
+      taxonomy.effectiveParams(figure),
       dialect,
     );
     final hasDialectMoveSubstitution = dialect.moves.containsKey(def.id);
@@ -864,8 +869,23 @@ class FigureRenderer {
     final alias = taxonomy.aliases[figure.move];
     final displayName = alias?.displayName ?? def.displayName;
     // Params pinned by an alias are baked into its display name, so they must
-    // not be rendered a second time as a template token.
-    final pinned = alias?.pinnedParams ?? const <String, Object?>{};
+    // not be rendered a second time as a template token. The v34 pull-by
+    // aliases are the exception, and DISPLAY-ONLY: their pins (`who:
+    // neighbors`, `where: along`) only keep a not-yet-normalised figure
+    // VALID, and their display name is the bare "pull by", so blanking the
+    // slot would make the un-normalised figure display differently from its
+    // normalised form (`neighbor pull by right` vs `pull by right`). Skip the
+    // pin for any move id normalisation would rewrite, but only on the
+    // display path: `renderCanonical` must keep blanking the pin so a
+    // pre-0.4.0 row's canonical text stays byte-identical to what it always
+    // was (`pull by right`), not the fresh-import derivation of the same
+    // params: applying this exception on both paths would change
+    // renderCanonical for existing rows without a versioned index rebuild.
+    final isUnnormalisedLegacyAlias =
+        Taxonomy.normalizeV35MoveId(figure.move) != figure.move;
+    final pinned = !forCanonical && isUnnormalisedLegacyAlias
+        ? const <String, Object?>{}
+        : alias?.pinnedParams ?? const <String, Object?>{};
     final slots = <String, String>{};
     for (final match in _placeholder.allMatches(def.renderTemplate)) {
       final name = match[1]!;
@@ -890,8 +910,9 @@ class FigureRenderer {
       // the role reading still renders, hyphenated (`left-hand`/`right-hand`,
       // matching ContraDB's `shand + "-hand"`). This cannot go through
       // `_isDisplaySilenced`/`_silencedDefaultParams`: that mechanism compares
-      // against the SPEC default, not a sibling param, and `chain`'s one slot
-      // there already holds `dir`. See the taxonomy's v28 note for why
+      // against a fixed per-move value (the spec default or a literal), not a
+      // sibling param, and `chain`'s one slot there already holds `where`.
+      // See the taxonomy's v28 note for why
       // silencing canonical text too is the deliberate exception here.
       if (def.id == 'chain' && name == 'hand') {
         final rawHand = params[name];
@@ -1249,8 +1270,9 @@ class FigureRenderer {
   /// because [value] equals a silenced default. Two ContraDB-parity rules:
   ///
   /// - set-direction / facing silencing: the param is omitted when it equals
-  ///   the move's default (ContraDB `stringParamSetDirectionSilencingDefault`
-  ///   and the `march_forward` "forward" default). Enumerated per move in
+  ///   the move's silenced value — its spec default, or the literal the entry
+  ///   names (ContraDB `stringParamSetDirectionSilencingDefault` and the
+  ///   `march_forward` "forward" default). Enumerated per move in
   ///   [_silencedDefaultParams].
   /// - default-subject omission: `who` is omitted when it equals the move's
   ///   `who` default, for the moves in [_omitDefaultSubject] (ContraDB
@@ -1260,8 +1282,9 @@ class FigureRenderer {
     if (name == 'who' && _omitDefaultSubject.contains(def.id)) {
       return value == def.params['who']?.defaultValue;
     }
-    if (_silencedDefaultParams[def.id] == name) {
-      return value == def.params[name]?.defaultValue;
+    final silenced = _silencedDefaultParams[def.id];
+    if (silenced != null && silenced.param == name) {
+      return value == (silenced.value ?? def.params[name]?.defaultValue);
     }
     return false;
   }
@@ -1710,26 +1733,32 @@ class FigureRenderer {
   /// or the "until…" clause when spoken), so no lookup table is needed here.
 
   /// DISPLAY-ONLY: the single template param, per move, whose value is omitted
-  /// when it equals the move's taxonomy default. Mirrors ContraDB's per-param
+  /// when it equals the silenced value — the move's taxonomy default when
+  /// [value] is `null`, else the literal given. Mirrors ContraDB's per-param
   /// `stringParamSetDirectionSilencingDefault(<default>)`
   /// (`app/javascript/libfigure/param.js` @13f38a5) for the `dir` (set
   /// direction) params, and the `facing`/`march_forward` "forward" default for
-  /// the hall moves. A non-default value still renders. `cross_trails` is
+  /// the hall moves. A non-silenced value still renders. `cross_trails` is
   /// intentionally absent — it is out of PR1 scope. `pass_through`'s default
   /// direction silencing is handled by its `_displayBaseRenderers` entry (which
   /// also handles the shoulder), so it is intentionally absent here. The
   /// canonical render is never affected (it keeps `everyone down the hall
-  /// forward`, etc.).
-  static const Map<String, String> _silencedDefaultParams = {
-    // ContraDB set_direction_along → silences default 'along'.
-    'pull_by': 'where',
+  /// forward`, `pull by along right`, etc.).
+  static const Map<String, ({String param, String? value})>
+  _silencedDefaultParams = {
+    // ContraDB set_direction_along → silences 'along'. Since taxonomy v35
+    // `pull_by.where` DEFAULTS to the `unspecified` sentinel (which renders
+    // as nothing on its own), while the v35 sweep synthesised an explicit
+    // `where: along` onto every migrated `pull_by_direction`; so the silenced
+    // value here is the literal `along`, not the spec default.
+    'pull_by': (param: 'where', value: 'along'),
     // ContraDB set_direction_across/acrossish → silences default 'across'.
-    'right_left_through': 'where',
-    'chain': 'where',
-    'promenade': 'where',
+    'right_left_through': (param: 'where', value: null),
+    'chain': (param: 'where', value: null),
+    'promenade': (param: 'where', value: null),
     // ContraDB march_forward → silences the "forward" facing default.
-    'down_the_hall': 'facing',
-    'up_the_hall': 'facing',
+    'down_the_hall': (param: 'facing', value: null),
+    'up_the_hall': (param: 'facing', value: null),
   };
 
   /// DISPLAY-ONLY: moves whose `who` subject is omitted when it equals the

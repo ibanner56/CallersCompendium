@@ -105,6 +105,28 @@ class SourceIdFilter extends DanceFilter {
   final String sourceId;
 }
 
+/// Dances with at least one suggested tune whose name contains [query]
+/// (case-insensitive substring match).
+///
+/// [query] is a plain substring (compiled to `LIKE '%' || ? || '%'`), so `%`,
+/// `_` and `\` are treated literally. Case folding is SQLite's `LIKE`: ASCII
+/// only, as for [SourceFilter].
+///
+/// One leaf tests **one** value against the dance's whole tune list; a single
+/// tune entry may satisfy several leaves. The Collection Tunes facet AND-s one
+/// leaf per entered value, so it means "has every one of these" — the opposite
+/// of the OR-within-facet Author, Tag and Source facets.
+///
+/// A dance whose stored `tunes_json` cannot be decoded (`UnreadableTunes`)
+/// never matches: "cannot read it" is not "has this tune", and it must not
+/// raise either. See the compiler case for how that is guaranteed in SQL.
+@immutable
+class TunesFilter extends DanceFilter {
+  const TunesFilter(this.query);
+
+  final String query;
+}
+
 /// Dances of a given [DanceForm] (roadmap "Type": contra / ecd / square).
 @immutable
 class FormFilter extends DanceFilter {

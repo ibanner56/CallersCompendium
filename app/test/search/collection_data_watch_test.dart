@@ -79,6 +79,50 @@ void main() {
     expect(first.dancesById.keys, ['d1']);
   });
 
+  test('issue #1420: the tune vocabulary is distinct, case-folded, sorted, '
+      'and ignores a list that cannot be read', () async {
+    final repos = openRepos();
+    await repos.dances.create(
+      Dance(
+        id: 'd1',
+        title: 'One',
+        tunes: const ['Gmaj', ' dmaj ', ''],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await repos.dances.create(
+      Dance(
+        id: 'd2',
+        title: 'Two',
+        tunes: const ['DMAJ', 'Amin'],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await repos.dances.create(
+      Dance(
+        id: 'd3',
+        title: 'Three',
+        tunesSource: const UnreadableTunes('["Zmaj", 1]'),
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+
+    final first = await CollectionData.watch(repos).first;
+
+    // One entry per case-folded, trimmed name (which spelling survives depends
+    // on load order, so it is not asserted); the blank entry is dropped; "Zmaj"
+    // is absent because its list is unreadable; and the order is
+    // case-insensitive.
+    expect(
+      [for (final t in first.tunes) t.toLowerCase()],
+      ['amin', 'dmaj', 'gmaj'],
+    );
+    expect(first.tunes, everyElement(predicate<String>((t) => t == t.trim())));
+  });
+
   test('re-emits when a dance is written elsewhere', () async {
     final repos = openRepos();
     await repos.dances.create(dance('d1', 'Petronella'));

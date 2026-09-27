@@ -1002,7 +1002,12 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
       renderTemplate: '{who} {move} {whom}',
-      searchKeywords: ['give and take', 'take'],
+      // No bare `take` keyword: `canonicalizeMoveSearchText` would rewrite
+      // every query containing the word (e.g. "take hands four") to
+      // "give & take …" and stop it matching the prose it was typed for. Any
+      // row whose canonical text holds "give & take" already holds the token
+      // `take`, so a bare query needs no rewrite to find it.
+      searchKeywords: ['give and take'],
       // ContraDB range is give -> 4-8, take-only -> 2-4. Issue #634's
       // real-render fixtures confirm take-only at BOTH ends of that range (2
       // beats: The Erik Effect #570; 4 beats: Green Lake Twirl #548), so `2`
