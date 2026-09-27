@@ -175,6 +175,59 @@ void main() {
       expect(v.isReimport, isTrue);
       expect(v.targetDanceId, 'd1');
     });
+
+    test('verdictFor falls back to prior keys, in order, only when the '
+        'current key has no match', () {
+      final legacy = DedupeIndex([
+        DedupeEntry(
+          danceId: 'legacy',
+          title: 'Received Before',
+          source: ProvenanceSource.json,
+          externalId: '457',
+        ),
+        DedupeEntry(
+          danceId: 'current',
+          title: 'Received After',
+          source: ProvenanceSource.json,
+          externalId: 'contradb:457',
+        ),
+      ]);
+      // The current key wins when present.
+      expect(
+        legacy
+            .verdictFor(
+              source: ProvenanceSource.json,
+              externalId: 'contradb:457',
+              priorExternalIds: const ['457'],
+              title: 'x',
+            )
+            .targetDanceId,
+        'current',
+      );
+      // Otherwise the prior key is tried.
+      expect(
+        legacy
+            .verdictFor(
+              source: ProvenanceSource.json,
+              externalId: 'callersbox:457',
+              priorExternalIds: const ['457'],
+              title: 'x',
+            )
+            .targetDanceId,
+        'legacy',
+      );
+      // No prior key, no match: falls through to fuzzy, which finds nothing.
+      expect(
+        legacy
+            .verdictFor(
+              source: ProvenanceSource.json,
+              externalId: 'callersbox:457',
+              title: 'x',
+            )
+            .isNewDance,
+        isTrue,
+      );
+    });
   });
 
   group('DedupeIndex fuzzy title + author', () {

@@ -331,15 +331,25 @@ class DedupeIndex {
   }
 
   /// The full dedupe decision for a record: exact key first, then fuzzy.
+  ///
+  /// [priorExternalIds] are keys an earlier adapter version recorded the same
+  /// record under (`RawRecord.priorExternalIds`); each is tried, in order, only
+  /// when [externalId] itself has no match, so a library that imported under
+  /// the old key still gets a [DedupeKind.reimport] rather than a duplicate.
   DedupeVerdict verdictFor({
     required ProvenanceSource source,
     String? externalId,
+    Iterable<String> priorExternalIds = const [],
     required String title,
     Iterable<String> authorNames = const [],
     double threshold = defaultThreshold,
   }) {
     final exact = findByExternalId(source, externalId);
     if (exact != null) return DedupeVerdict.reimport(exact);
+    for (final prior in priorExternalIds) {
+      final legacy = findByExternalId(source, prior);
+      if (legacy != null) return DedupeVerdict.reimport(legacy);
+    }
     final fuzzy = fuzzyMatches(title, authorNames, threshold: threshold);
     return fuzzy.isEmpty
         ? DedupeVerdict.isNew()

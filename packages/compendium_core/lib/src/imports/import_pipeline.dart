@@ -348,6 +348,7 @@ class ImportPipeline {
         final verdict = dedupe.verdictFor(
           source: raw.source,
           externalId: raw.externalId,
+          priorExternalIds: raw.priorExternalIds,
           title: draft.dance.title,
           authorNames: await _dedupeAuthorNames(draft),
           threshold: threshold,

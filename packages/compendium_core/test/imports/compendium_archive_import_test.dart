@@ -1394,6 +1394,130 @@ void main() {
     });
   });
 
+  group('upstream provenance ids are namespaced by their source', () {
+    Provenance upstream(ProvenanceSource source) => Provenance(
+      source: source,
+      externalId: '457',
+      importedAt: DateTime.utc(2026, 1, 1),
+    );
+
+    test('two bundled dances whose upstream sources share an id land as two '
+        'dances, and each slot resolves to its own', () async {
+      // The sender pulled ContraDB #457 and The Caller's Box #457 — two
+      // unrelated dances that happen to share a small sequential id — and
+      // programmed both. Keyed on the bare upstream id they collide inside
+      // the bundle, and the original-id correlation is last-wins, so the
+      // first slot silently pointed at the second dance.
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        dances: [
+          _danceWith(
+            'orig-d1',
+            'Contra Four Fifty-Seven',
+            provenance: upstream(ProvenanceSource.contradb),
+          ),
+          _danceWith(
+            'orig-d2',
+            'Box Four Fifty-Seven',
+            provenance: upstream(ProvenanceSource.callersbox),
+          ),
+        ],
+        programs: [
+          Program(
+            id: 'orig-p1',
+            title: 'Spring Fling',
+            status: ProgramStatus.draft,
+            slots: [
+              ProgramSlot(id: 'orig-sl1', position: 0, danceId: 'orig-d1'),
+              ProgramSlot(id: 'orig-sl2', position: 1, danceId: 'orig-d2'),
+            ],
+            createdAt: DateTime.utc(2026, 4, 1),
+            updatedAt: DateTime.utc(2026, 4, 1),
+          ),
+        ],
+      );
+
+      final result = await importer.import(
+        encodeArchive(archive),
+        archive,
+        now: now,
+        newId: sequentialIds('new'),
+        newSlotId: sequentialIds('slot'),
+      );
+
+      final all = await dances.listAll();
+      expect(
+        all.map((d) => d.title),
+        unorderedEquals(<String>[
+          'Contra Four Fifty-Seven',
+          'Box Four Fifty-Seven',
+        ]),
+      );
+      final idByTitle = {for (final d in all) d.title: d.id};
+      final slots = (await programs.listAll()).single.slots;
+      expect(
+        slots[0].danceId,
+        idByTitle['Contra Four Fifty-Seven'],
+        reason: 'the first slot must not silently follow the second dance',
+      );
+      expect(slots[1].danceId, idByTitle['Box Four Fifty-Seven']);
+      expect(
+        result.programIssues.where(
+          (i) => i.code == 'archive_program_unresolved_dance',
+        ),
+        isEmpty,
+      );
+      expect(
+        all.map((d) => d.provenance?.externalId),
+        unorderedEquals(<String>['contradb:457', 'callersbox:457']),
+        reason: 'the receive key carries the upstream source',
+      );
+    });
+
+    test('a dance the library received under the bare upstream id still '
+        're-imports in place (legacy key fallback)', () async {
+      // Received before the source namespace existed: stored as
+      // (json, "457"). Re-receiving the same bundle must match it as a
+      // reimport, not mint a duplicate.
+      await dances.create(
+        _danceWith(
+          'recv-1',
+          'Contra Four Fifty-Seven',
+          provenance: Provenance(
+            source: ProvenanceSource.json,
+            externalId: '457',
+            importedAt: DateTime.utc(2026, 1, 1),
+          ),
+        ),
+      );
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        dances: [
+          _danceWith(
+            'orig-d1',
+            'Contra Four Fifty-Seven',
+            provenance: upstream(ProvenanceSource.contradb),
+          ),
+        ],
+        programs: [_programRef('orig-d1')],
+      );
+
+      final batch = await importer.plan(encodeArchive(archive));
+      expect(batch.records.single.verdict.isReimport, isTrue);
+      expect(batch.records.single.verdict.targetDanceId, 'recv-1');
+
+      await importer.commit(
+        batch,
+        archive,
+        now: now,
+        newId: sequentialIds('new'),
+        newSlotId: sequentialIds('slot'),
+      );
+      expect(await dances.listAll(), hasLength(1));
+      expect((await programs.listAll()).single.slots.single.danceId, 'recv-1');
+    });
+  });
+
   group('venue wiring (community import path)', () {
     CompendiumArchive bundleWithVenue({
       String? programVenueId,

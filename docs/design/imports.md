@@ -11,12 +11,12 @@
 
 - [Pipeline](#pipeline) — 21 lines
 - [Author resolution (resolve-or-create seam)](#author-resolution-resolve-or-create-seam) — 139 lines
-- [Sources](#sources) — 952 lines
+- [Sources](#sources) — 964 lines
   - [1. CallersBox snapshot (6.2, 6.3) — primary](#1-callersbox-snapshot-62-63--primary) — 113 lines
   - [2. Caller's Companion migration (6.5)](#2-callers-companion-migration-65) — 97 lines
   - [3. ContraDB (6.4)](#3-contradb-64) — 33 lines
   - [Compound-shorthand fan-out: grand right and left (#295)](#compound-shorthand-fan-out-grand-right-and-left-295) — 186 lines
-  - [4. Generic JSON (6.6)](#4-generic-json-66) — 5 lines
+  - [4. Generic JSON (6.6)](#4-generic-json-66) — 17 lines
   - [Signed published collections (#862)](#signed-published-collections-862) — 22 lines
   - [5. A list of titles (#823)](#5-a-list-of-titles-823) — 72 lines
   - [Simultaneous-action fan-out (`meanwhile`) (#591/#572)](#simultaneous-action-fan-out-meanwhile-591572) — 59 lines
@@ -631,6 +631,18 @@ what the fix removes is the fabricated dancers and the doubled balance.
   through explicit serialization modes: share mode omits custom fields marked
   `shareable = false`, while backup mode preserves every custom field and value.
   Versioned schema; forward-compatible reader.
+- Receive key. A received dance is stored under `(json, externalId)`, where the
+  external id is the dance's **upstream** provenance namespaced by its source —
+  `contradb:457` — because upstream sources hand out overlapping small integer
+  ids and the bare id made ContraDB #457 and The Caller's Box #457 one key
+  (inside one bundle, the original-id correlation then pointed a program slot at
+  the wrong dance). An upstream that is itself `json` is already a receive key
+  and passes through unchanged, so a re-shared dance still matches the copy
+  received directly; a dance with no upstream id is keyed on its archive id.
+  Dances received before the namespace existed hold the bare id, so exact
+  dedupe also tries that legacy key (`RawRecord.priorExternalIds`) and a
+  re-received bundle still resolves as a re-import rather than a duplicate
+  (`GenericJsonAdapter.externalIdFor` / `legacyExternalIdFor`).
 
 ### Signed published collections (#862)
 
