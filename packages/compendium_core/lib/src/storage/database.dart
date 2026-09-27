@@ -14,11 +14,13 @@ part 'database.g.dart';
 /// layer ever writes to (in lockstep with [DanceFigures]); drift's typed FTS5
 /// support targets `content=<table>`/`content=''` tables tied to a rowid
 /// convention that doesn't map cleanly onto our text-typed `dances.id`
-/// primary key. Deviating from the exact `content=''` sketch in
-/// `docs/design/storage.md`, this table carries `dance_id` as an `UNINDEXED`
-/// column instead, so rows are matched back to a dance directly without any
-/// implicit-`rowid` bookkeeping. Same derived/rebuildable behavior, simpler
-/// and more robust to maintain.
+/// primary key. This table carries `dance_id` as an `UNINDEXED` column
+/// instead, matching the DDL sketched in `docs/design/storage.md`, so rows
+/// are matched back to a dance directly without any implicit-`rowid`
+/// bookkeeping. (The design sketch originally specified a contentless
+/// `content=''` table; it was corrected to this `UNINDEXED`-column DDL to
+/// match what was actually built.) Same derived/rebuildable behavior,
+/// simpler and more robust to maintain.
 const String createDanceFtsSql = '''
 CREATE VIRTUAL TABLE dance_fts USING fts5(
   dance_id UNINDEXED,
