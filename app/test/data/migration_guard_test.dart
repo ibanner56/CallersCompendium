@@ -349,48 +349,45 @@ void main() {
     expect(snapshotDir.existsSync(), isFalse);
   });
 
-  test(
-    'runMigrationPreflight throws the typed error AppBootstrap routes on, '
-    'not a generic one (issue #841)',
-    () async {
-      // This asserts the *type* only. Routing — that a DatabaseBelowFloorError
-      // reaches the below-floor recovery screen rather than the generic Retry
-      // screen — is a widget concern, covered by
-      // `app/test/widgets/app_bootstrap_test.dart` ("a below-floor error shows
-      // the recovery screen and no Retry"), which pumps AppBootstrap with this
-      // error and asserts the recovery headline and the absence of Retry.
-      final dbFile = File(p.join(dir.path, 'compendium.sqlite'));
-      final belowFloor = kMinSupportedSchemaVersion - 1;
-      _createFixture(dbFile.path, userVersion: belowFloor);
+  test('runMigrationPreflight throws the typed error AppBootstrap routes on, '
+      'not a generic one (issue #841)', () async {
+    // This asserts the *type* only. Routing — that a DatabaseBelowFloorError
+    // reaches the below-floor recovery screen rather than the generic Retry
+    // screen — is a widget concern, covered by
+    // `app/test/widgets/app_bootstrap_test.dart` ("a below-floor error shows
+    // the recovery screen and no Retry"), which pumps AppBootstrap with this
+    // error and asserts the recovery headline and the absence of Retry.
+    final dbFile = File(p.join(dir.path, 'compendium.sqlite'));
+    final belowFloor = kMinSupportedSchemaVersion - 1;
+    _createFixture(dbFile.path, userVersion: belowFloor);
 
-      Object? thrown;
-      try {
-        await runMigrationPreflight(
-          dbFile: dbFile,
-          snapshotDir: snapshotDir,
-          runningSchemaVersion: kCompendiumSchemaVersion,
-        );
-      } catch (e) {
-        thrown = e;
-      }
-
-      // Must be the typed error, NOT null. If a future simplification removes
-      // the DatabaseBelowFloorError check in runMigrationPreflight, the preflight
-      // completes normally (no migration steps fire — the file is below-floor,
-      // so there is no applicable migration), thrown stays null, and this expect
-      // goes red. The symptom is a silent no-op: the user proceeds into a
-      // bootstrap that cannot work.
-      expect(
-        thrown,
-        isA<DatabaseBelowFloorError>(),
-        reason:
-            'Expected DatabaseBelowFloorError; got $thrown. '
-            'If this is null, the below-floor check in runMigrationPreflight '
-            'was removed — the preflight completed silently, routing users to '
-            'a bootstrap path that cannot open the database.',
+    Object? thrown;
+    try {
+      await runMigrationPreflight(
+        dbFile: dbFile,
+        snapshotDir: snapshotDir,
+        runningSchemaVersion: kCompendiumSchemaVersion,
       );
-    },
-  );
+    } catch (e) {
+      thrown = e;
+    }
+
+    // Must be the typed error, NOT null. If a future simplification removes
+    // the DatabaseBelowFloorError check in runMigrationPreflight, the preflight
+    // completes normally (no migration steps fire — the file is below-floor,
+    // so there is no applicable migration), thrown stays null, and this expect
+    // goes red. The symptom is a silent no-op: the user proceeds into a
+    // bootstrap that cannot work.
+    expect(
+      thrown,
+      isA<DatabaseBelowFloorError>(),
+      reason:
+          'Expected DatabaseBelowFloorError; got $thrown. '
+          'If this is null, the below-floor check in runMigrationPreflight '
+          'was removed — the preflight completed silently, routing users to '
+          'a bootstrap path that cannot open the database.',
+    );
+  });
 
   test('performBackUpAndReset returns BackUpFailed and does NOT wipe when the '
       'snapshot writer throws (fail-closed, issue #841)', () async {
