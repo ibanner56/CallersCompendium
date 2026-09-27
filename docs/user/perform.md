@@ -113,14 +113,19 @@ screen is free to sleep as normal again.
 When you are performing a program, step through your slots with whichever
 control suits you and your setup:
 
-- the big **next** and **previous** controls;
-- the **giant edge hit zones** at the screen edges, easy to hit without looking;
-  or
-- the **arrow keys** or **page keys** on a keyboard.
+- the **Previous slot** and **Next slot** buttons at the bottom of the screen;
+- the **giant edge hit zones** — tap the left edge to go back, the right edge
+  to go forward — easy to hit without looking; or
+- the **arrow keys** or **Page Up** / **Page Down** on a keyboard.
 
-A **jump-to-slot overview** lets you jump anywhere in the program at once — useful
-if plans change mid-evening. And when a slot has an [alt](./glossary.md#alt),
-one tap swaps it in place of the primary.
+Between the two buttons, **Slot N of M** shows where you are. A dance and its
+alternates count as one slot, so stepping forward skips past the alternates.
+
+**Jump to slot** lists the whole program so you can go anywhere at once — useful
+if plans change mid-evening. When the current slot has an
+[alt](./glossary.md#alt), **Show alternate** switches the card to it (and on
+through any others, then back to the primary). This only changes what you are
+looking at; the program itself stays as it is.
 
 ## Keep time through the evening
 
@@ -134,34 +139,36 @@ For a program, the status area additionally shows:
 
 - a **running program clock** for the whole evening;
 - a **per-slot elapsed timer** that resets each time you move to a new slot;
-- a slot's planned length shown as **"planned N min (W:D),"** where `W` is the
-  walkthrough minutes and `D` is the dance minutes;
-- when walkthrough minutes are set, a gentle cue after the walkthrough portion;
-  the final overrun cue waits until the combined walkthrough and dance duration;
-- a **pause/resume** control for interruptions.
+- the slot's planned length, when you have set one, shown as **planned N min
+  (W:D)** — where W is the walkthrough minutes and D is the dance minutes;
+- once the slot's walkthrough minutes have passed, the words **walkthrough
+  complete**, with a running-figure icon;
+- once the walkthrough and dance minutes together have passed, the word
+  **over**, with a timer icon; and
+- a **Pause timers** button (**Resume timers** while paused) that freezes both
+  clocks for interruptions.
 
 Timing is display-only — it helps you keep an eye on the clock but never changes
-your program or your dances. The individual elapsed timer is on by default and
-can be hidden under **Settings → Program → Performance → Show timer for
-individual Perform**. A single dance never shows the program clock, slot timing,
-planned length, overrun cue, or slot position.
+your program or your dances. The single-dance timer is on by default; to hide
+it, turn off **Show timer for individual Perform** in
+[Settings › Program › Performance](./settings.md#performance).
 
 ## Adjust on the fly
 
-*Calling a program.* Plans change mid-gig. **Adjust program** opens a sheet that
-lets you make changes without disturbing the card you are reading. From it you
-can:
+Plans change mid-gig. When you are calling a program, **Adjust program** opens a
+sheet that lets you make changes without disturbing the card you are reading.
+From it you can:
 
 - **reorder the remaining slots** (with a drag handle or move up / move down
   buttons);
-- **insert a dance** from a quick search;
-- **add an ad-hoc note**; and
-- **mark the current slot performed**.
+- **insert a dance** with **Insert dance from search**;
+- **add an ad-hoc note or break**; and
+- **mark the current slot performed** (choose it again to clear the mark).
 
 An inserted dance and an ad-hoc note both land right after the current slot, so
-"play this next" is one action away. Every change is undoable, and for a saved
-program the changes persist. Marking a slot performed is what feeds a dance's
-calling history — see
+"play this next" is one action away. Every change offers **Undo**, and changes
+to a saved program are saved with it. If you have set calling history to count
+only slots marked performed, this is where you mark them — see
 [Programs & matrix](./programs.md#track-what-you-have-called).
 
 This sheet belongs to program Perform. Performing a single dance has nothing to
@@ -186,8 +193,11 @@ Choose **Exit performance view** and the app checks first:
 > **Exit Perform?** — Leave the performance view? Your place and the running clock
 > are kept, so you can resume where you left off.
 
-**Keep performing** returns you to the card; **Exit** leaves. Because your place
-and your clock are kept, stepping out to check something is safe.
+**Keep performing** returns you to the card; **Exit** leaves. When you are
+calling a program, your place and the clock are kept for as long as that
+program stays open, so you can step out to check something and choose **Perform
+this program** again to pick up where you left off. Closing the program, or
+performing a single dance, starts the next session fresh.
 
 ## Print or share a single dance
 

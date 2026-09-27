@@ -42,10 +42,10 @@ dance's link or ID number.
 
 ## Caller's Companion
 
-Another app for organizing contra dances. If you are moving from it, Caller's Compendium can
-[import](#import) your whole library — dances, figures, and past programs — from
-its exported `.USR` file, and can turn its call buttons into
-[shorthands](#shorthand). See
+Another app for organizing contra dances. If you are moving from it, Caller's
+Compendium can [import](#import) your library from its export files — a `.USR`
+file brings dances, figures, and past programs across in one pass — and can turn
+its call buttons into [shorthands](#shorthand). See
 [Imports & migration](./imports.md#bring-your-library-across-from-callers-companion).
 
 ## Caller's Compendium

@@ -208,7 +208,7 @@ words at once. This is built for real evenings: guest-calling for a community th
 uses different role names, or switching wording between gigs, takes a moment and
 leaves every saved dance exactly as it was.
 
-Remember the distinction: the quick-switch changes *how dances read for you*, not
+Remember the distinction: **Switch dialect** changes *how dances read for you*, not
 the dances themselves. Switch as often as you like.
 
 ## Peek at the canonical wording
@@ -262,7 +262,7 @@ For a full tour of everything under Settings, see the
 ## Practical scenarios
 
 **Guest-calling for another community.** You usually call Larks/Robins, but
-tonight's crowd says Leads/Follows. Before you start, open the quick-switch on the
+tonight's crowd says Leads/Follows. Before you start, open **Switch dialect** on the
 dance card or in Perform and choose **Leads/Follows**. Every dance now reads in
 that community's words. Afterwards, switch back — none of your dances changed.
 

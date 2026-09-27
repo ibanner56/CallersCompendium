@@ -233,13 +233,19 @@ below.
 
 If another caller shares a **program bundle** with you — the
 **Share (program + dances)** file described in
-[Share, print & export](./sharing.md#share-a-program-with-its-dances) — you don't
-have to go through **Settings › General** and choose **Import…** by hand. Caller's Compendium registers
-itself as a place that can open those files, so you can just **open the file**:
-AirDrop it (on a Mac, iPhone, or iPad), use your system's **Open with** /
-**Share** menu, or tap it wherever it arrives. The app launches and takes you
-straight to the same review screen a manual import uses, already loaded with what
-the file contains — the program, its dances, and its venue.
+[Share, print & export](./sharing.md#share-a-program-with-its-dances) — you can
+often open the file directly:
+
+- **Mac, iPhone, or iPad:** open the `.ccshare` file wherever it arrives, or
+  send it by AirDrop.
+- **Android:** open a `.json` bundle with **Open with**, or send it to the app
+  from another app's **Share** menu.
+- **Any device**, including Linux and Windows: go to **Settings › General** and
+  choose **Import…**, then pick the file.
+
+Opened directly, the app launches and takes you straight to the same review
+screen a manual import uses, already loaded with what the file contains — the
+program, its dances, and its venue.
 
 Nothing is added until you confirm. You review the bundle exactly as you would any
 other import, decide what to bring in, and commit; an **Undo** is offered
