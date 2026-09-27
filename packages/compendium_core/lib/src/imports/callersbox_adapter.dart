@@ -34,9 +34,14 @@ import '../taxonomy/contra_taxonomy.dart' show contraTaxonomy;
 /// figures and anything else degrades to a [customFigure] carrying its beats
 /// and **canonicalized** text, so `parse` never fails on figure content.
 /// Compound TCB blocks — a `(beats) text:` parent line followed by indented
-/// `(beats)` children, matched by [_compoundParent] — are unwrapped here
-/// before the per-line parse. See `docs/design/imports.md` §1 and §"Shared
-/// free-text figure parser".
+/// `(beats)` children summing exactly to the parent's — are read by
+/// [_tryParseCompound] before the per-line parse. It collapses the block to
+/// one of three readings: a known parent name structures to a single
+/// taxonomy figure (children subsumed into its note); an unknown parent whose
+/// children ALL structure expands to those children, each keeping its own
+/// beats; anything else falls back to one [customFigure] with the parent text
+/// and the children in its note. See `docs/design/imports.md` §1 and
+/// §"Shared free-text figure parser".
 ///
 /// ## Dialect scrubbing (the headline ask)
 /// Each figure line's text is routed through the CORE canonicalization
