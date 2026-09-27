@@ -1,0 +1,22 @@
+{
+  "id": "audit-import-dedupe",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Shared programs whose dances came from two sources with the same id (for example ContraDB #457 and The Caller's Box #457) no longer point a slot at the wrong dance; bundles you already received still match as re-imports.",
+      "Dances with non-Latin or punctuation-only titles are no longer flagged as possible duplicates of each other.",
+      "When a source lists the same dance twice in one import, only one copy is imported and the kept row says so.",
+      "Undo after linking two import rows to one dance restores that dance to its state before the import, not an in-between one.",
+      "Restoring a backup in replace mode clears stale published-collection import status."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "GenericJsonAdapter keys a received dance on `<upstream source>:<externalId>` (`externalIdFor`), and DedupeIndex.verdictFor tries RawRecord.priorExternalIds (the legacy bare id) before falling through to fuzzy matching.",
+      "Dedupe never scores two titles that normalize to nothing against each other, and autoResolveAmbiguous resolves an empty normalized title to duplicate instead of linking.",
+      "ImportPipeline.plan drops a repeated (source, externalId) within one batch and attaches a `duplicate_external_id_in_batch` warning to the kept record.",
+      "ImportPipeline.commit captures an updated dance's prior state once per batch, so undo restores the true pre-import state.",
+      "ArchiveRestorer clears `collection_import_events` on a replace-mode restore."
+    ]
+  }
+}
