@@ -66,8 +66,8 @@ the full picture.
 
 ### Deleted items
 
-- **Keep deleted dances for** — choose **30 days**, **60 days**, **90 days**, or
-  **Never** (default is **30 days**). Deleted dances are held for this long and
+- **Keep deleted dances for** — choose **30 days**, **90 days**, or **Never**
+  (default is **30 days**). Deleted dances are held for this long and
   then purged. For how soft-delete and restore work, see
   [Collection & search](./collection.md).
 
@@ -75,7 +75,7 @@ the full picture.
 
 - **Sync decisions** — review conflicts that [Device Sync](#device-sync)
   couldn't settle on its own, and choose how each one is resolved. Three kinds of
-  conflict currently offer a decision:
+  conflict offer a decision:
   - **A device deleted something another device still has.** One of your
     devices deleted a choreographer, tag, custom field, or difficulty level
     that this device had already created on its own under the same name,
@@ -99,8 +99,8 @@ the full picture.
     different choreography.** This turns up when a device first connects to a
     store that already has dances in it. **Merge** combines the two dances into
     one. **Keep both** renames one of the dances so both are kept separately.
-  Any other conflict is shown as retained, with no action available yet, until
-  a future version knows how to resolve it.
+  Any other kind of conflict is listed and kept as it is, with no action to
+  choose.
 
 ### Import
 
@@ -159,8 +159,12 @@ details are handled when you export.
   second look. On (the default), only a move whose beats actually **overlap**
   between the two dances is flagged. Off, any move that merely lands in the same
   **named phrase** (A1, A2, B1, B2…) is flagged, even if its beats don't overlap
-  at all — this was the matrix's original behavior. The screen legend and the
-  printed PDF legend always agree with whichever mode is on.
+  at all. The screen legend and the printed PDF legend always agree with
+  whichever mode is on.
+
+- **Auto-save program changes** (off by default) — when on, valid changes are
+  saved as you work, so leaving the program editor never asks whether to
+  discard them. Leave it off to save programs yourself.
 
 - **Matrix columns** — opens a dedicated editor for the columns of the
   [programming matrix](./programs.md#check-your-evening-with-the-matrix). These
@@ -270,10 +274,13 @@ There's a **High Contrast** theme for maximum legibility — see the
 The **Dialect** section is your library of [dialects](./glossary.md#dialect) — the
 role names and wording the app uses when it describes dances.
 
+- **New dialect** starts a dialect of your own, and **Duplicate from…** copies
+  an existing one as a starting point.
 - Preset dialects are read-only, but you can **Duplicate to customize** to make
   your own version.
-- Custom dialects can be edited, renamed, or deleted.
-- One dialect is active at a time.
+- Custom dialects can be edited (**Edit terms**), renamed, or deleted.
+- One dialect is active at a time; select a dialect in the list to make it
+  active.
 
 ### Dance details & shorthands
 
@@ -284,13 +291,9 @@ role names and wording the app uses when it describes dances.
   discouraged terms in canonical wording across read-only dance details,
   shorthands, notes, Perform mode, and exports. Saved text and entry fields are
   unchanged.
-- **Open dance details in canonical terms** — when enabled, and canonical figure
-  text is enabled, dance details open in canonical wording. When canonical
-  figure text is disabled, this preference is retained but ignored until the
-  gate is enabled again. On an existing installation, the first detail open
-  initializes the new gate off and converts an older canonical default to the
-  active-dialect default; later changes to the gate never overwrite this
-  preference.
+- **Open dance details in canonical terms** — when this and **Canonical figure
+  text** are both on, dance details open in canonical wording. While
+  **Canonical figure text** is off, this preference is kept but has no effect.
 - **Free-text entry** — when on, adding a figure lets you type a whole line
   (for example "neighbor balance & swing") instead of building it field by field.
 - **Figure shorthands** — map short tokens to one or more figures you can insert
@@ -299,7 +302,7 @@ role names and wording the app uses when it describes dances.
 - **Walkthrough snippets** — manage your personal, per-figure walkthrough
   wording. These settings are independent of canonical figure text.
 
-This is just the entry point — see [Dialect](./dialects.md) for the full story on
+This is the entry point — see [Dialect](./dialects.md) for the full story on
 choosing and customizing wording.
 
 ## Language & region
@@ -342,54 +345,64 @@ The **Language & region** section handles formats and localization.
 
 ## Defaults
 
-The **Defaults** section sets the starting points for new items. Every default
-here can still be changed on each item later — they just save you repetitive
-setup.
-
-### Program defaults
-
-- **Default caller** and **Default band** — prefilled into each new program, and
-  editable per program.
-- **Starting program** — configure an ordered template of dances, caller notes,
-  breaks, and free-text entries for manually created programs. Dance references
-  that are no longer in your collection are skipped. This applies only to the
-  normal manual editor flow; imports, duplicates, and “create with this dance”
-  keep their own source slots.
+The **Defaults** section sets starting points: how lists open, what dance rows
+show, and what new programs and dances begin with. Every default here can still
+be changed on each item later — they save you repetitive setup.
 
 ### Display defaults
 
-- **Collection sort order** — the default order for your library when you open it.
-  You can still change the sort while browsing.
-- **Collection filters** — choose which filters appear in the **Filters** panel
-  on the Collection screen and when you pick dances for a program. Every filter
-  is shown until you untick it, and each of your searchable custom fields has its
-  own checkbox. Hiding a filter only removes it from the panel: it does not
-  delete anything, and the Advanced search can still use the same properties. If
-  you hide a filter that is currently narrowing the list, its selection is
-  cleared. A filter that is narrowing the list when you open a dance's tag from
-  its detail page stays visible until you clear it.
+- **Collection sort order** and **Programs sort order** — the order your
+  library and your Programs list use when you open them. Choose a fixed order,
+  or **Last used** to pick up wherever you left off. You can still change the
+  sort while browsing.
+
+### Collection card fields
+
+Choose which details appear on each dance row in your collection: **Authors**,
+**Times called**, **Formation**, **Status**, **Level**, **Rating**, **Tags**, and
+**Custom fields**. All of them are shown by default.
+
+### Collection filters
+
+Choose which filters appear in the **Filters** panel on the Collection screen and
+when you pick dances for a program. Every filter is shown until you untick it,
+and each of your searchable custom fields has its own checkbox. Hiding a filter
+only removes it from the panel: it does not delete anything, and the Advanced
+search can still use the same properties. If you hide a filter that is currently
+narrowing the list, its selection is cleared. A filter that is narrowing the
+list when you open a dance's tag from its detail page stays visible until you
+clear it.
+
+### Program defaults
+
+Select **Program defaults** to open this group.
+
+- **Default caller** and **Default band** — prefilled into each new program, and
+  editable per program.
+- **Starting program** — an ordered template of dances, caller notes, breaks,
+  and free-text entries for programs you create by hand. Dances that are no
+  longer in your collection are skipped. It applies only when you create a
+  program in the editor; imports, duplicates, and “create with this dance” keep
+  their own slots.
 
 ### Dance-authoring defaults
 
-These help if you write your own dances. Keep in mind you can override any of them
-per dance. [Write & edit dances](./authoring.md) covers them in context.
+These help if you write your own dances. Select **Dance-authoring defaults** to
+open this group. You can override any of them per dance, and
+[Write & edit dances](./authoring.md) covers them in context.
 
+- **Level** — open this to manage the difficulty levels used by dance editors,
+  collection filters, and batch actions. Add a level, rename it, or drag it into
+  a different position; renaming keeps existing dances attached to that level.
+  A level can't be removed while any dance uses it — including a dance waiting
+  in **Recently deleted**. Once no dance uses it, you can remove any level, including
+  the ones that ship with the app.
 - **Type**, **Formation**, and **Progression** — the starting choices for a new
   dance.
 - **Default phrase structure** — leave blank for the standard 4×16 A1 A2 B1 B2, or
   set your own.
 - **Starting figures** — the figures a new dance begins with; defaults to a single
   stand still of eight beats. Clear it for a blank new dance.
-### Difficulty levels
-
-- **Manage difficulty levels** — define the ordered vocabulary used by dance
-  editors, collection filters, and batch actions. Add a level, rename it, or
-  drag it into a different position; renaming keeps existing dance assignments
-  attached to that level.
-- A level cannot be removed while any dance uses it. Once its assignments are
-  cleared or changed, you can remove it, including one of the levels that ships
-  with the app.
-
 - **Meanwhile defaults** — the ordinary side figures used when you choose **Add
   meanwhile** while authoring a dance. Leave this list empty to start with two
   blank sides, or configure up to six ordinary sides. If only one side is
@@ -397,8 +410,9 @@ per dance. [Write & edit dances](./authoring.md) covers them in context.
   Invalid or unavailable saved defaults use two stand-still sides.
 - **Modifier defaults** — the core and modifier figures used when you choose
   **Add modifier** while authoring a dance. Leave this list empty to start with
-  two blank figures, or configure up to six figures. Invalid or unavailable
-  saved defaults use two stand-still figures.
+  two blank figures, or configure up to six figures. If only one figure is
+  configured, the app adds a blank second one. Invalid or unavailable saved
+  defaults use two stand-still figures.
 - **Move defaults** — preferred parameter values applied automatically when you
   insert a [move](./glossary.md#move) while writing. These override that move's
   built-in defaults, and you can still change any parameter afterwards.
@@ -416,10 +430,12 @@ without you choosing to.
 
 - **Check for updates** — check right now, any time. It shows the version you're
   on and whether a newer one is available. If it can't reach the update service it
-  simply reports that no update was found, so a checkup never interrupts you with
+  reports that no update was found, so a check never interrupts you with
   an error.
 - **Beta channel** (off by default) — turn this on to be offered pre-release beta
-  versions. Left off, you're only offered stable releases.
+  versions. Left off, you're only offered stable releases. While Caller's
+  Compendium is in beta, every release is a beta release, so turn this on if you
+  want the app to tell you about new versions.
 - **Check automatically** (off by default) — when on, the app quietly checks for a
   newer version as it starts up. Left off, checking only happens when you ask.
 
@@ -434,7 +450,9 @@ you first choose where to save the disk image. After it is verified, choose
 in **Applications**. Choose **Not now** to keep working and use **Update and
 restart** from the banner or Updates section later. On **Windows**, clicking
 **Download & install update** authorizes the verified installer to run; it handles
-closing and replacing the existing installation. On phones and tablets, the
+closing and replacing the existing installation. On **Linux**, the verified
+download is shown in your file manager for you to run yourself; the app never
+runs it for you. On phones and tablets, the
 banner's link takes you to the release to download it the usual way for your
 platform.
 
@@ -482,18 +500,18 @@ useful thing you can send.
 
 ## Experimental
 
-The **Experimental** section is a home for features that are still in
-development. It may be empty, and anything that appears there can change before
-it becomes a regular setting. Each feature sits in its own section: tap its
-heading to open or close it.
+The **Experimental** section holds features that are still in development —
+today, that's **Device Sync**. Anything here can change before it becomes a
+regular setting. Each feature sits in its own section: select its heading to
+open or close it.
 
 ### Device Sync
 
 **Device Sync** keeps your library in step across your own devices. It is **off
-until you turn it on**, and while it is off the app sends nothing anywhere.
-Turning it on does not send anything by itself; nothing is exchanged until you
-connect a store. The section starts closed while Device Sync is off and open
-while it is on. You can tap its heading to open or close it.
+until you turn it on** with **Turn on Device Sync**, and while it is off the app
+sends nothing anywhere. Turning it on does not send anything by itself; nothing
+is exchanged until you connect a store. The section starts closed while Device
+Sync is off and open while it is on.
 
 - **Sync only on WiFi** is on by default. On a mobile-data connection automatic
   sync waits, and pressing **Sync now** tells you why. In this section it points
@@ -506,11 +524,11 @@ while it is on. You can tap its heading to open or close it.
   dance that's actually used in one of your programs, or linked from another
   dance, is always included, so nothing that's still in use loses anything.
   Turning it on removes nothing already on your other devices; this device
-  just stops advertising the rest. Turning it back off republishes them.
+  stops advertising the rest. Turning it back off republishes them.
 - **Status** opens with **Your sync phrase** — the phrase this device is
   connected with — so you can add another device later even if you didn't write
   it down when you first connected. It stays hidden behind bullets until you
-  tap the eye button, and **Copy** puts it on the clipboard without showing it,
+  choose the eye button, and **Copy** puts it on the clipboard without showing it,
   which is all you need to type or paste it into the other device. Keep it to
   yourself: the phrase is where your shared library lives, so anyone who has it
   can open that library — read everything you sync, change or delete any of it
@@ -542,8 +560,10 @@ while it is on. You can tap its heading to open or close it.
   (edit either one to settle it); when something created here was kept rather
   than removed by a device that had never seen it; when something on *this*
   device has a date the app can't trust, so it isn't being sent anywhere
-  (check this device's clock); when records from another device couldn't be
-  used and were skipped; when another device's clock looks far off; when an
+  (check this device's clock); when some dances here have saved figures or
+  tunes the app can't read, so they aren't being sent (nothing is deleted —
+  enter those figures or tunes again to send them); when records from another
+  device couldn't be used and were skipped; when another device's clock looks far off; when an
   update arrived while you were editing the same record, so it waits for the
   next sync; and when changes from this device still haven't reached your
   other devices after several syncs. A notice is only ever a message — it
@@ -558,16 +578,20 @@ while it is on. You can tap its heading to open or close it.
   devices, and they are not included in a backup, so restoring a backup never
   turns sync on.
 
-**Connecting.** Once enabled, tap **Connect** to either **create a new store**
-(you get a phrase — read it aloud or share it with your other device, or
-replace it with one of your own: four words separated by hyphens. If you type
-your own, the screen asks you to keep personal information out of it — no
-names, addresses or birthdays — because the phrase goes to the server with
-every request and gets read out or typed on each device you connect. If the
-phrase you choose also looks easy to guess, the screen says so. Neither
-warning stops you using it) or
-**connect to an existing one** (enter the phrase shown on the device you
-already set up). The screen tells you which you're doing; it never guesses.
+**Connecting.** Once Device Sync is on, choose **Connect**, then either:
+
+- **Create a new store** — you get a phrase to read aloud or share with your
+  other device. You can replace it with one of your own: four words separated
+  by hyphens. If you type your own, the screen asks you to keep personal
+  information out of it — no names, addresses or birthdays — because the phrase
+  goes to the server with every request and gets read out or typed on each
+  device you connect. If your phrase also looks easy to guess, the screen says
+  so. Neither warning stops you using it.
+- **Connect to an existing store** — enter the phrase shown on the device you
+  already set up.
+
+The screen tells you which you're doing; it never guesses.
+
 The **Server** field is pre-filled with the Caller's Compendium sync server,
 `https://athenaeum.callerscompendium.com/`; leave it alone unless you run your
 own. If you change it, the screen warns you that whoever runs that server can
@@ -575,8 +599,9 @@ read, change, and delete everything you sync. Whichever server you end up on,
 the status shows its address once you're connected. The address must start with
 `https://` (plain `http://` is accepted only for `localhost` or `127.0.0.1`,
 for testing a server on the same machine).
-Along the way it explains three things worth knowing before you commit to
-sharing a phrase. A second device using the same phrase can edit the same
+
+Along the way the screen explains three things worth knowing before you commit
+to sharing a phrase. A second device using the same phrase can edit the same
 records, and if both of you touch the same dance or program at once, one
 edit silently wins — there is no merge and no warning. The phrase is where your
 shared library lives rather than a password in front of it — there's nothing to
@@ -587,8 +612,9 @@ is no version of a phrase that does less. And nothing anywhere else records it:
 lose it and the library stays where it is with no way back to it, and telling
 someone the phrase can't be untold. Moving every device to a new phrase just
 starts a second library elsewhere; the first one is still there for anyone who
-kept the old phrase — see **Deleting the store** below. Before connecting,
-you're offered an optional one-time backup of your library — accepting or
+kept the old phrase — see **Deleting the store** below.
+
+Before connecting, you're offered an optional one-time backup of your library — accepting or
 skipping it doesn't change what connecting does.
 
 When connecting finishes, the app says so and tells you what actually happened
@@ -599,15 +625,14 @@ sync is running while you read it. It repeats there that sync is not a backup,
 and reports any duplicate dances the first connection merged.
 
 **Disconnecting.** To stop syncing on this device without turning Device Sync
-off, tap **Disconnect this device** and confirm. The device forgets its phrase
+off, choose **Disconnect this device** and confirm. The device forgets its phrase
 and the server it was using, and stops syncing, but nothing else changes: your
 library here stays as it is, the store keeps everything, and your other devices
 carry on syncing. Nothing is sent when you disconnect. To reconnect — to the
-same store or a different one — tap **Connect** again; you'll need the phrase,
+same store or a different one — choose **Connect** again; you'll need the phrase,
 so keep it somewhere safe, along with the server address if you changed it.
 Disconnecting really does forget it, so copy it from **Your sync phrase**
-first if it isn't written down anywhere else.
-Turning **Device Sync** off and on again, by contrast, keeps this device
+first if it isn't written down anywhere else. Turning **Device Sync** off and on again, by contrast, keeps this device
 connected.
 
 **Your other devices.** **Other devices** lists everything else connected to
@@ -652,12 +677,11 @@ your whole library, so it follows **Sync only on WiFi** like everything else:
 on mobile data with that setting on, nothing is sent and the app points you at
 the setting, with the question still waiting once you're back on WiFi. If a
 reconnection doesn't go through, the question comes back and says so, and you
-can try again or leave it. Declining makes no
-network request and leaves the choice for later. Sync then **pauses**: the
+can try again or leave it. Declining makes no network request and leaves the choice for later. Sync then **pauses**: the
 status says so and keeps saying so, and automatic syncs stop running rather
 than asking again every time. Nothing is lost while it is paused. When you
-want to decide, tap **Sync now** in this section — that reopens the same question, and the
-paused line goes once a sync completes.
+want to decide, choose **Sync now** in this section — that reopens the same
+question, and the paused line goes once a sync completes.
 
 **Venues sync partially.** A venue's name, website, schedule, and notes sync
 like everything else, but its address and both contact blocks stay on each
@@ -680,8 +704,10 @@ The **About** section tells you what you're running and where it comes from.
   SIL Open Font License.
 - Theme-palette and dance-data attributions, including The Caller's Box
   (CC BY-NC).
-- **View licenses** — the full license texts, including the bundled fonts and
-  `fmptools` (MIT), the project the Caller's Companion importer is ported from.
+- **View licenses** — the full license texts, including the bundled fonts,
+  `fmptools` (MIT), the project the Caller's Companion importer is ported from,
+  the EFF long wordlist (CC BY 3.0 US) that generated sync IDs are drawn from, and
+  ContraDB (AGPL-3.0), whose figure wording the dance-text renderer follows.
 
 ## Where to go next
 

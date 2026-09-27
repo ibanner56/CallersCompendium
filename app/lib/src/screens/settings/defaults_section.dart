@@ -1476,6 +1476,7 @@ class _DefaultsView extends StatelessWidget {
               (CollectionFacetIds.minRating, l10n.collectionFacetMinRating),
               (CollectionFacetIds.callStatus, l10n.collectionFacetCallStatus),
               (CollectionFacetIds.author, l10n.collectionFacetAuthor),
+              (CollectionFacetIds.tunes, l10n.collectionFacetTunes),
               (CollectionFacetIds.tags, l10n.collectionFacetTags),
               (CollectionFacetIds.source, l10n.collectionFacetSource),
             ];

@@ -54,6 +54,10 @@ final builtInFacetSelections =
         select: (f) => f.authorIds.add('a1'),
         held: (f) => f.authorIds.isNotEmpty,
       ),
+      CollectionFacetIds.tunes: (
+        select: (f) => f.addTune('Dmaj'),
+        held: (f) => f.tunes.isNotEmpty,
+      ),
       CollectionFacetIds.tags: (
         select: (f) => f.tagIds.add('t1'),
         held: (f) => f.tagIds.isNotEmpty,

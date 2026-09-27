@@ -19,6 +19,7 @@ abstract final class CollectionFacetIds {
   static const String minRating = 'min-rating';
   static const String callStatus = 'call-status';
   static const String author = 'author';
+  static const String tunes = 'tunes';
   static const String tags = 'tags';
   static const String source = 'source';
 
@@ -34,6 +35,7 @@ abstract final class CollectionFacetIds {
     minRating,
     callStatus,
     author,
+    tunes,
     tags,
     source,
   ];
