@@ -1015,50 +1015,48 @@ class CompendiumDatabase extends _$CompendiumDatabase {
           await m.createTable(publishedRecords);
         }
         if (from < 34) {
-          final difficultyTableExists = (await customSelect(
-            "SELECT name FROM sqlite_master WHERE type = 'table' "
-            "AND name = 'difficulty_levels'",
-          ).get()).isNotEmpty;
-          if (!difficultyTableExists) {
-            final danceColumns = await customSelect(
-              "SELECT name FROM pragma_table_info('dances')",
+          // Issue #1221: `dances.level` (an enum name) becomes `level_id`, a
+          // reference into the seeded `difficulty_levels` vocabulary.
+          //
+          // Each piece keys on its own precondition — the legacy column being
+          // present, a vocabulary column being absent, a seed row being absent
+          // — rather than on `difficulty_levels` not existing yet. Gating the
+          // whole block on the table's absence stamped a file that had the
+          // table but not the rewrite at head with `level` intact and no
+          // `level_id`, after which every `dances` query failed. The
+          // transaction around `onUpgrade` means a crash can no longer leave
+          // that state behind, but re-runnability is a property of the step,
+          // not of its caller.
+          final danceColumns = await customSelect(
+            "SELECT name FROM pragma_table_info('dances')",
+          ).get();
+          final hasLegacyLevel = danceColumns.any(
+            (row) => row.read<String>('name') == 'level',
+          );
+          // Refuse before any DDL, so a refusal has nothing to undo. (No
+          // app-written file can trip this: before #1221 the column held an
+          // enum whose only names are the three below.)
+          if (hasLegacyLevel) {
+            final unsupported = await customSelect(
+              "SELECT DISTINCT level FROM dances WHERE level IS NOT NULL "
+              "AND level NOT IN ('beginner', 'intermediate', 'advanced')",
             ).get();
-            final hasLegacyLevel = danceColumns.any(
-              (row) => row.read<String>('name') == 'level',
-            );
-            await m.createTable(difficultyLevels);
-            await _seedDifficultyLevels();
-            if (hasLegacyLevel) {
-              final unsupported = await customSelect(
-                "SELECT DISTINCT level FROM dances WHERE level IS NOT NULL "
-                "AND level NOT IN ('beginner', 'intermediate', 'advanced')",
-              ).get();
-              if (unsupported.isNotEmpty) {
-                final values = [
-                  for (final row in unsupported) row.read<String>('level'),
-                ];
-                throw StateError(
-                  'Cannot migrate dances with unsupported difficulty level '
-                  'name(s): ${values.join(', ')}.',
-                );
-              }
-              await m.alterTable(
-                TableMigration(
-                  dances,
-                  columnTransformer: {
-                    dances.levelId: const CustomExpression<String>(
-                      "CASE level "
-                      "WHEN 'beginner' THEN 'difficulty-beginner' "
-                      "WHEN 'intermediate' THEN 'difficulty-intermediate' "
-                      "WHEN 'advanced' THEN 'difficulty-advanced' "
-                      'ELSE NULL END',
-                    ),
-                  },
-                ),
+            if (unsupported.isNotEmpty) {
+              final values = [
+                for (final row in unsupported) row.read<String>('level'),
+              ];
+              throw StateError(
+                'Cannot migrate dances with unsupported difficulty level '
+                'name(s): ${values.join(', ')}.',
               );
-              await customStatement(dancesDifficultyLevelIdIndexSql);
             }
           }
+          // `createTable` is CREATE TABLE IF NOT EXISTS.
+          await m.createTable(difficultyLevels);
+          // The Device Sync timestamp triple (issue #1200) joined the
+          // vocabulary after the table first existed, so a table created by an
+          // earlier build lacks it. Add the columns before seeding, which
+          // writes them.
           Future<void> addColumnIfMissing(
             GeneratedColumn<Object> column,
           ) async {
@@ -1076,6 +1074,26 @@ class CompendiumDatabase extends _$CompendiumDatabase {
           await addColumnIfMissing(difficultyLevels.updatedAt);
           await addColumnIfMissing(difficultyLevels.deletedAt);
           await addColumnIfMissing(difficultyLevels.existenceAt);
+          // INSERT OR IGNORE: complete over a partial seed, a no-op over a
+          // full one.
+          await _seedDifficultyLevels();
+          if (hasLegacyLevel) {
+            await m.alterTable(
+              TableMigration(
+                dances,
+                columnTransformer: {
+                  dances.levelId: const CustomExpression<String>(
+                    "CASE level "
+                    "WHEN 'beginner' THEN 'difficulty-beginner' "
+                    "WHEN 'intermediate' THEN 'difficulty-intermediate' "
+                    "WHEN 'advanced' THEN 'difficulty-advanced' "
+                    'ELSE NULL END',
+                  ),
+                },
+              ),
+            );
+            await customStatement(dancesDifficultyLevelIdIndexSql);
+          }
           final now = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
           await customStatement(
             // sync-invariant-exclusion: migration-backfill is idempotent; not a sync record edit.
@@ -1174,11 +1192,14 @@ class CompendiumDatabase extends _$CompendiumDatabase {
     },
   );
 
+  /// Seeds the shipped vocabulary. `OR IGNORE` because the v34 step may run
+  /// over a table that already holds some or all of these rows (see there);
+  /// on a fresh `onCreate` nothing is there to ignore.
   Future<void> _seedDifficultyLevels() async {
     final now = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
     for (final level in DifficultyLevel.shipped) {
       await customStatement(
-        'INSERT INTO difficulty_levels '
+        'INSERT OR IGNORE INTO difficulty_levels '
         '(id, label, position, updated_at, existence_at) '
         'VALUES (?, ?, ?, ?, ?)',
         [level.id, level.label, level.position, now, now],
