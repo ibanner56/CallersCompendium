@@ -57,6 +57,7 @@ const Set<String> mappedImportIssueCodes = {
   'contradb_move_fallback',
   'contradb_param_unmapped',
   'cc_related_dance_unresolved',
+  'duplicate_external_id_in_batch',
 };
 
 /// Localized message for an [ImportIssue] surfaced in the import review.
@@ -170,6 +171,8 @@ String? _localizedImportIssue(AppLocalizations l10n, ImportIssue issue) {
       return l10n.importIssueParamUnmapped;
     case 'cc_related_dance_unresolved':
       return l10n.importIssueRelatedDanceUnresolved;
+    case 'duplicate_external_id_in_batch':
+      return l10n.importIssueDuplicateExternalIdInBatch;
     default:
       return null;
   }

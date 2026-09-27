@@ -5325,6 +5325,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Eine Verknüpfung zu einem verwandten Tanz verwies auf einen Tanz, der nicht importiert wurde; die Verknüpfung wurde übersprungen.';
 
   @override
+  String get importIssueDuplicateExternalIdInBatch =>
+      'Die Quelle führte diesen Tanz in einem Import zweimal auf; die wiederholte Kopie wurde ausgelassen.';
+
+  @override
   String get importDateFieldComposed => 'komponiert';
 
   @override

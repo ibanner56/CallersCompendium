@@ -124,6 +124,7 @@ void main() {
       'contradb_move_fallback',
       'contradb_param_unmapped',
       'cc_related_dance_unresolved',
+      'duplicate_external_id_in_batch',
     };
 
     test('every produced code is mapped (no silent English leak)', () {

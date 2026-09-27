@@ -510,6 +510,43 @@ void main() {
       expect(batch.records, isEmpty);
       expect(batch.errors.single.stage, ImportStage.discover);
     });
+
+    test('a second record with the same (source, externalId) in one batch is '
+        'dropped, and the kept record says so', () async {
+      // The dedupe index is a pre-batch snapshot, so both copies were `isNew`
+      // and both were created — two dances with one provenance key, which a
+      // later re-import could then only match one of.
+      final adapter = FakeSourceAdapter([
+        record('dup', 'First Copy'),
+        record('other', 'Other Dance'),
+        record('dup', 'Second Copy'),
+      ]);
+      final batch = await pipeline.plan(adapter, const ImportRequest());
+
+      expect(batch.errors, isEmpty);
+      expect(batch.records.map((r) => r.draft.dance.title), [
+        'First Copy',
+        'Other Dance',
+      ], reason: 'the first occurrence is kept, in discovery order');
+      final kept = batch.records.first.draft;
+      final issue = kept.issues.singleWhere(
+        (i) => i.code == 'duplicate_external_id_in_batch',
+      );
+      expect(issue.severity, ImportIssueSeverity.warning);
+      expect(
+        batch.records[1].draft.issues.map((i) => i.code),
+        isNot(contains('duplicate_external_id_in_batch')),
+      );
+
+      final session = await pipeline.commit(batch, now: now, newId: nextId);
+      expect(session.committedCount, 2);
+      final all = await dances.listAll();
+      expect(
+        all.where((d) => d.provenance?.externalId == 'dup'),
+        hasLength(1),
+        reason: 'one dance per (source, externalId)',
+      );
+    });
   });
 
   group('undo', () {

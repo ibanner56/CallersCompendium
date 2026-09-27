@@ -5247,6 +5247,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'A related-dance link pointed at a dance that wasn\'t imported; the link was skipped.';
 
   @override
+  String get importIssueDuplicateExternalIdInBatch =>
+      'The source listed this dance twice in one import; the repeated copy was left out.';
+
+  @override
   String get importDateFieldComposed => 'composed';
 
   @override

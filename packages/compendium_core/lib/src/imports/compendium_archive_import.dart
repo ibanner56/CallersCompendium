@@ -1059,7 +1059,9 @@ class CompendiumArchiveImporter {
       final externalId = record.externalId;
       if (!record.succeeded || danceId == null) continue;
       if (externalId == null || externalId.isEmpty) continue;
-      committedByExternalId[externalId] = danceId; // last-wins on rare dupes
+      // Unique per batch: `ImportPipeline.plan` drops a repeated
+      // `(source, externalId)` before it can be committed twice.
+      committedByExternalId[externalId] = danceId;
     }
 
     final byOriginalId = <String, String>{};

@@ -299,6 +299,13 @@ class ImportPipeline {
     };
     final records = <ImportRecordPlan>[];
     final errors = <ImportError>[];
+    // `(source, externalId)` → index into `records` of the first planned
+    // record carrying it. [dedupe] is a pre-batch snapshot and never learns
+    // about planned records, so without this a source that lists one id twice
+    // (a `.USR` FileMaker record-id fallback colliding with a real zk id, say)
+    // planned both as `isNew` and committed two dances under one provenance
+    // key — which a later re-import could then only ever match one of.
+    final firstIndexByExternalKey = <String, int>{};
     for (final record in discovered) {
       RawRecord raw;
       try {
@@ -344,6 +351,36 @@ class ImportPipeline {
         continue;
       }
 
+      final externalId = raw.externalId;
+      final externalKey = externalId == null || externalId.isEmpty
+          ? null
+          : '${raw.source.name}\u0000$externalId';
+      final firstIndex = externalKey == null
+          ? null
+          : firstIndexByExternalKey[externalKey];
+      if (firstIndex != null) {
+        // Drop the repeat and say so on the record that is kept — the dropped
+        // one has no row of its own for the note to appear on.
+        final first = records[firstIndex];
+        records[firstIndex] = ImportRecordPlan(
+          draft: first.draft.copyWith(
+            issues: [
+              ...first.draft.issues,
+              ImportIssue(
+                severity: ImportIssueSeverity.warning,
+                code: 'duplicate_external_id_in_batch',
+                message:
+                    'The source listed ${raw.source.name}:$externalId again '
+                    'later in this batch ("${draft.dance.title}"); that '
+                    'repeat was left out in favour of this record.',
+              ),
+            ],
+          ),
+          verdict: first.verdict,
+        );
+        continue;
+      }
+
       try {
         final verdict = dedupe.verdictFor(
           source: raw.source,
@@ -353,6 +390,9 @@ class ImportPipeline {
           authorNames: await _dedupeAuthorNames(draft),
           threshold: threshold,
         );
+        if (externalKey != null) {
+          firstIndexByExternalKey[externalKey] = records.length;
+        }
         records.add(ImportRecordPlan(draft: draft, verdict: verdict));
       } on ImportError catch (e) {
         errors.add(e);
