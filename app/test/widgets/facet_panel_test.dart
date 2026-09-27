@@ -15,6 +15,7 @@ Future<void> _pump(
   List<DanceLevel> levels = const [],
   List<FormationShape> formations = const [],
   List<CustomFieldDef> choiceFields = const [],
+  List<CustomFieldDef> textFields = const [],
   List<PublishedSource> citedSources = const [],
   List<Choreographer> authors = const [],
   List<Tag> tags = const [],
@@ -56,7 +57,7 @@ Future<void> _pump(
               citedSources: citedSources,
               choiceFields: choiceFields,
               booleanFields: const [],
-              textFields: const [],
+              textFields: textFields,
               numberFields: const [],
               // Rebuild the panel so chip `selected` state reflects the mutated
               // selections, mirroring the real screen's setState on change.
@@ -350,6 +351,40 @@ void main() {
   testWidgets('source section is hidden when nothing is cited', (tester) async {
     await _pump(tester, FacetSelections(), onChanged: () {});
     expect(find.text('Source'), findsNothing);
+  });
+
+  testWidgets('text custom-field clear button carries a tooltip', (
+    tester,
+  ) async {
+    // Every other icon-only button in the panel names itself; an unnamed
+    // clear button is announced as just "button" by a screen reader.
+    final facets = FacetSelections();
+    await _pump(
+      tester,
+      facets,
+      textFields: [
+        CustomFieldDef(
+          id: 'ft',
+          key: 'ft',
+          label: 'Notes',
+          type: CustomFieldType.text,
+        ),
+      ],
+      onChanged: () {},
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('cf-text-ft-input')),
+      'zesty',
+    );
+    await tester.pumpAndSettle();
+    expect(facets.textValues['ft']?.value, 'zesty');
+
+    final clear = find.byTooltip('Clear filter');
+    expect(clear, findsOneWidget);
+    await tester.tap(clear);
+    await tester.pumpAndSettle();
+    expect(facets.textValues.containsKey('ft'), isFalse);
   });
 
   testWidgets('source chips toggle the selected source ids', (tester) async {

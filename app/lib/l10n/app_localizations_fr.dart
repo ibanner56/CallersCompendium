@@ -169,6 +169,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get colorEditHexLabel => 'Hex';
 
   @override
+  String get colorEditChannelRed => 'Rouge';
+
+  @override
+  String get colorEditChannelGreen => 'Vert';
+
+  @override
+  String get colorEditChannelBlue => 'Bleu';
+
+  @override
   String get settingsTitle => 'Paramètres';
 
   @override
@@ -2591,6 +2600,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String collectionFacetTextHint(String label) {
     return 'Filtrer par $label…';
   }
+
+  @override
+  String get collectionFacetTextClearTooltip => 'Effacer le filtre';
 
   @override
   String get collectionFacetNumOpEq => '=';
@@ -6561,6 +6573,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get danceEditorParamClearTooltip => 'Effacer (non précisé)';
 
   @override
+  String danceEditorIntParamRangeError(int min, int max) {
+    return 'Saisissez un nombre entier de $min à $max';
+  }
+
+  @override
   String get danceEditorMoreTooltip => 'Plus';
 
   @override
@@ -6705,6 +6722,27 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get commandPaletteGroupPrograms => 'Programmes';
+
+  @override
+  String commandPaletteHighlightedResult(String name, int index, int count) {
+    return '$name, $index sur $count';
+  }
+
+  @override
+  String commandPaletteResultCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count résultats',
+      one: '1 résultat',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String commandPaletteResultCountCapped(int shown, int total) {
+    return 'Affichage des $shown premiers résultats sur $total';
+  }
 
   @override
   String get collectionPickerSearchLabel => 'Trouver une danse à ajouter';

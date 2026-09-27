@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -63,6 +64,11 @@ class _CommandPaletteState extends State<CommandPalette> {
   List<CommandResult> _all = const [];
   List<CommandResult> _results = const [];
   List<GlobalKey> _rowKeys = const [];
+
+  /// How many entries matched the current query before the per-group cap was
+  /// applied, so the count the palette reports is honest when the list is
+  /// truncated.
+  int _matchCount = 0;
   int _highlighted = 0;
   bool _loading = true;
 
@@ -120,11 +126,14 @@ class _CommandPaletteState extends State<CommandPalette> {
     final q = raw.trim().toLowerCase();
     final dances = <CommandResult>[];
     final programs = <CommandResult>[];
+    var matches = 0;
     for (final r in _all) {
       if (q.isNotEmpty && !r.title.toLowerCase().contains(q)) continue;
+      matches++;
       final bucket = r.kind == CommandResultKind.dance ? dances : programs;
       if (bucket.length < CommandPalette.perGroupLimit) bucket.add(r);
     }
+    _matchCount = matches;
     _results = [...dances, ...programs];
     _rowKeys = [for (var i = 0; i < _results.length; i++) GlobalKey()];
     _highlighted = _results.isEmpty
@@ -168,6 +177,28 @@ class _CommandPaletteState extends State<CommandPalette> {
       if (_highlighted < 0) _highlighted += _results.length;
     });
     _ensureHighlightedVisible();
+    _announceHighlighted();
+  }
+
+  /// Tells assistive technology which row Enter will now open. Arrow-key
+  /// movement keeps focus in the text field, so the highlighted row is never
+  /// the focused node: `ListTile.selected` only flips a flag on an unfocused
+  /// node, which screen readers do not speak. Mirrors the Perform screen's
+  /// slot-position announcement.
+  void _announceHighlighted() {
+    if (_highlighted < 0 || _highlighted >= _results.length) return;
+    final r = _results[_highlighted];
+    final l10n = AppLocalizations.of(context);
+    final name = r.subtitle == null ? r.title : '${r.title}, ${r.subtitle}';
+    SemanticsService.sendAnnouncement(
+      View.of(context),
+      l10n.commandPaletteHighlightedResult(
+        name,
+        _highlighted + 1,
+        _results.length,
+      ),
+      Directionality.maybeOf(context) ?? TextDirection.ltr,
+    );
   }
 
   void _ensureHighlightedVisible() {
@@ -226,6 +257,32 @@ class _CommandPaletteState extends State<CommandPalette> {
                 ),
               ),
             ),
+            // Result count as a polite live region (accessibility baseline:
+            // "announce dynamic changes such as search result counts"), so a
+            // screen-reader user hears the list change as they type. Kept
+            // outside the scrollable so it cannot scroll away.
+            if (!_loading && _results.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                child: Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: Semantics(
+                    liveRegion: true,
+                    child: Text(
+                      _matchCount > _results.length
+                          ? l10n.commandPaletteResultCountCapped(
+                              _results.length,
+                              _matchCount,
+                            )
+                          : l10n.commandPaletteResultCount(_results.length),
+                      key: const ValueKey('command-palette-result-count'),
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             Flexible(child: _buildBody(theme, l10n)),
           ],
         ),
@@ -245,12 +302,17 @@ class _CommandPaletteState extends State<CommandPalette> {
         key: const ValueKey('command-palette-empty'),
         padding: const EdgeInsets.all(32),
         child: Center(
-          child: Text(
-            _all.isEmpty
-                ? l10n.commandPaletteEmptyInitial
-                : l10n.commandPaletteNoMatches,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+          // Live region for the same reason as the result count above: an
+          // empty result set is a change in what Enter would do.
+          child: Semantics(
+            liveRegion: true,
+            child: Text(
+              _all.isEmpty
+                  ? l10n.commandPaletteEmptyInitial
+                  : l10n.commandPaletteNoMatches,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
         ),

@@ -168,6 +168,18 @@
   "@colorEditHexLabel": {
     "x-sourceSha256": "69493e6f1a6957cad7e3ece5267a57e8a8ed035b5ea5fd7e360ce9eb2405c30b"
   },
+  "colorEditChannelRed": "Rot",
+  "@colorEditChannelRed": {
+    "x-sourceSha256": "ba19e9c3d5f49882ddaafed4f286a8a81491150426d321179270e27e74a89097"
+  },
+  "colorEditChannelGreen": "Grün",
+  "@colorEditChannelGreen": {
+    "x-sourceSha256": "d486dfbd5fb578340bccbdd0a662527eab38550648d5f44517e5ac71b8824703"
+  },
+  "colorEditChannelBlue": "Blau",
+  "@colorEditChannelBlue": {
+    "x-sourceSha256": "ec7d56a01607001e6401366417c5e2eb00ffa0df17ca1a9a831e0b32c8f11bf7"
+  },
   "settingsTitle": "Einstellungen",
   "@settingsTitle": {
     "x-sourceSha256": "74a883a037bc227f91891ab654a753d3a99f31ab06ae5b5d2b6e594a692b41f8"
@@ -2759,6 +2771,10 @@
   "collectionFacetTextHint": "Nach {label} filtern…",
   "@collectionFacetTextHint": {
     "x-sourceSha256": "a8508a0cc3b283a5684a1087e63601ad054438255fcbce9d2b537c8a5b6b46c6"
+  },
+  "collectionFacetTextClearTooltip": "Filter löschen",
+  "@collectionFacetTextClearTooltip": {
+    "x-sourceSha256": "ba59e2d4a5e39a429243545387ca5f0d8036676763fb7179ea39b3a0e539b8b0"
   },
   "collectionFacetNumOpEq": "=",
   "@collectionFacetNumOpEq": {
@@ -6504,6 +6520,10 @@
   "@danceEditorParamClearTooltip": {
     "x-sourceSha256": "228a87717b50bd2f4db06933e7ccb5e5761dcad5e502f4cafec84504056b2f16"
   },
+  "danceEditorIntParamRangeError": "Geben Sie eine ganze Zahl von {min} bis {max} ein",
+  "@danceEditorIntParamRangeError": {
+    "x-sourceSha256": "806e77b408cf208760573c7bec1aafa1126aa7bf4834511c4b1f8da07a56bca6"
+  },
   "danceEditorMoreTooltip": "Mehr",
   "@danceEditorMoreTooltip": {
     "x-sourceSha256": "d47d7cb0e4f8fd2be5ee07826694c18917d83ca77d0a01698582d05f432db996"
@@ -6651,6 +6671,18 @@
   "commandPaletteGroupPrograms": "Programme",
   "@commandPaletteGroupPrograms": {
     "x-sourceSha256": "b6747064b2a6dd95ce21899cbfa4a60ed8980b4819014b7a4fce0d849a599fb2"
+  },
+  "commandPaletteHighlightedResult": "{name}, {index} von {count}",
+  "@commandPaletteHighlightedResult": {
+    "x-sourceSha256": "cb00ceb52224a6c9e0a0a28855223161c92e559d446b086f116c9737f893e001"
+  },
+  "commandPaletteResultCount": "{count, plural, =1{1 Ergebnis} other{{count} Ergebnisse}}",
+  "@commandPaletteResultCount": {
+    "x-sourceSha256": "62b6ed1de359687cf1d95537469cd963f3b78e80a0a9e90500f732beca07ee51"
+  },
+  "commandPaletteResultCountCapped": "Die ersten {shown} von {total} Ergebnissen werden angezeigt",
+  "@commandPaletteResultCountCapped": {
+    "x-sourceSha256": "d8e346c35177f2c51c77fb40255c05afa0f2850ea1baf3d1992fcbbd80102960"
   },
   "collectionPickerSearchLabel": "Tanz zum Hinzufügen suchen",
   "@collectionPickerSearchLabel": {

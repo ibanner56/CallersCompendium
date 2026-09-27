@@ -159,6 +159,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get colorEditHexLabel => 'HEX';
 
   @override
+  String get colorEditChannelRed => '赤';
+
+  @override
+  String get colorEditChannelGreen => '緑';
+
+  @override
+  String get colorEditChannelBlue => '青';
+
+  @override
   String get settingsTitle => '設定';
 
   @override
@@ -2455,6 +2464,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String collectionFacetTextHint(String label) {
     return '$labelでフィルター…';
   }
+
+  @override
+  String get collectionFacetTextClearTooltip => 'フィルターをクリア';
 
   @override
   String get collectionFacetNumOpEq => '=';
@@ -6235,6 +6247,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorParamClearTooltip => 'クリア（未指定）';
 
   @override
+  String danceEditorIntParamRangeError(int min, int max) {
+    return '$minから$maxまでの整数を入力してください';
+  }
+
+  @override
   String get danceEditorMoreTooltip => '多く';
 
   @override
@@ -6374,6 +6391,26 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get commandPaletteGroupPrograms => 'プログラム';
+
+  @override
+  String commandPaletteHighlightedResult(String name, int index, int count) {
+    return '$name、$count件中$index件目';
+  }
+
+  @override
+  String commandPaletteResultCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件の結果',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String commandPaletteResultCountCapped(int shown, int total) {
+    return '$total件の結果のうち最初の$shown件を表示しています';
+  }
 
   @override
   String get collectionPickerSearchLabel => '追加するダンスを検索';
