@@ -7,7 +7,8 @@ enum DanceForm { contra, ecd, square }
 /// How the minor set progresses each time through the dance.
 enum Progression { none, single, double, triple, quadruple, other }
 
-/// Lifecycle status of a dance (mirrors The Caller's Box vocabulary).
+/// Lifecycle status of a dance. `active`, `deprecated` and `broken` mirror
+/// The Caller's Box vocabulary; `draft` and `variation` are app-local (#1121).
 enum DanceStatus { active, deprecated, broken, draft, variation }
 
 /// Backward-compatible source alias for the shipped difficulty values.

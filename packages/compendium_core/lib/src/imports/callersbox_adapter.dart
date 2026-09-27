@@ -20,22 +20,23 @@ import '../taxonomy/contra_taxonomy.dart' show contraTaxonomy;
 /// per-dance JSON, as served by
 /// `ibiblio.org/contradance/thecallersbox/dance.php?id=N&format=JSON`
 /// (surveyed in `docs/research/callersbox.md`; conventions in
-/// `docs/design/imports.md` §"CallersBox" and `docs/design/callersbox-snapshot.md`).
+/// `docs/design/imports.md` §1 "CallersBox").
 ///
 /// **Core is I/O-free** — this adapter never fetches the endpoint. It parses a
-/// payload *string* that the app layer supplies (a separate PR adds the URL
-/// fetch + in-app wiring, at which point ROADMAP 6.2/6.3 tick). The same parse
-/// path is reused by the future 6.2 hosted-snapshot NDJSON import.
+/// payload *string* that the app layer supplies: the app's by-link import
+/// (`buildCallersBoxJsonUrl`) resolves a pasted TCB URL or id to the JSON
+/// endpoint and fetches it once.
 ///
-/// ## Scope: figures imported as CUSTOM (dialect-scrubbed text + beats)
+/// ## Scope: figures go through the shared structured parser
 /// TCB figure lines are free text of the form `(beats) text` (e.g.
-/// `(4) Neighbor balance`). A `(beats) text` → **structured-move** grammar
-/// parser is a genuinely separate, large effort and is **deferred to a
-/// follow-up** (the same call the ContraDB 6.4 and Caller's Companion 6.5
-/// adapters made). Here every figure line is imported as a [customFigure]
-/// carrying its beats and its **canonicalized** text, so the headline asks —
-/// by-link parsing + gendered-term dialect scrubbing — are fully delivered and
-/// `parse` never fails on figure content.
+/// `(4) Neighbor balance`). Every line runs through [parseFigureLines]
+/// (`figure_parser.dart`): recognised moves become structured taxonomy
+/// figures and anything else degrades to a [customFigure] carrying its beats
+/// and **canonicalized** text, so `parse` never fails on figure content.
+/// Compound TCB blocks — a `(beats) text:` parent line followed by indented
+/// `(beats)` children, matched by [_compoundParent] — are unwrapped here
+/// before the per-line parse. See `docs/design/imports.md` §1 and §"Shared
+/// free-text figure parser".
 ///
 /// ## Dialect scrubbing (the headline ask)
 /// Each figure line's text is routed through the CORE canonicalization

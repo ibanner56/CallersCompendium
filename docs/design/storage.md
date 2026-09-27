@@ -19,8 +19,11 @@ lives in the core package; all access through repositories.*
 
 ## Tables (abridged)
 
+A sketch, not the schema: the authoritative column list is `tables.dart`, and
+the FTS and index DDL is `database.dart`.
+
 ```sql
-dances(id PK, title, form, formation_base, formation_detail, progression,
+dances(id PK, title, form, formation_shape, formation_detail, progression,
        phrase_structure, figures_json, hook, calling_notes, status, level_id NULL,
        tunes_json,
        created_at, updated_at, deleted_at, existence_at)
@@ -37,7 +40,9 @@ dance_figures(dance_id, idx, move, beats, progression, params_json,
 CREATE INDEX dance_figures_move ON dance_figures(move);
 
 CREATE VIRTUAL TABLE dance_fts USING fts5(     -- derived; canonical text only
-  title, authors, hook, notes, figures_text, custom_values, content='');
+  dance_id UNINDEXED, title, authors, hook, notes, figures_text,
+  custom_values, sources,
+  tokenize = 'unicode61 remove_diacritics 1', prefix = '1 2');
 
 programs(id PK, title, event_date, venue, venue_id NULL, notes, status,
          created_at, updated_at, deleted_at,
@@ -89,7 +94,8 @@ formation/…, see future search design in Phase 3) compile to SQL:
 - structural leaves → `EXISTS (SELECT 1 FROM dance_figures WHERE move=? AND
   params_json ->> '$.who' = ?)` (JSON1 on derived rows),
 - text leaves → `dance_fts MATCH ?`,
-- `then` (sequence) → self-join on `dance_figures.idx` ordering.
+- `then` (sequence) → self-join within a dance, correlated on
+  `dance_figures.group_idx` (not `idx`; #748).
 No full-table in-memory scans (ContraDB pitfall #2). Target: <50 ms over
 20k dances (TCB-scale) on tablet hardware — benchmarked in CI.
 
@@ -136,16 +142,6 @@ version is being adopted. `tools/ci/check_schema_migration.py` fails any
 PR that reintroduces a per-version artefact below the floor.
 
 ## Schema version history
-
-- v35 (issues #1104 and #1233): replaces nullable
-  `program_slots.planned_minutes` with nullable `walkthrough_minutes` and
-  `dance_minutes`, copying every legacy value, including explicit zero, to
-  `dance_minutes`; existing walkthrough values are NULL. It also rewrites
-  persisted figure parameter keys and consolidates the legacy
-  `pull_by_dancers`/`pull_by_direction` move IDs. The recursive taxonomy
-  normalization covers nested `meanwhile` figures and rebuilds the derived
-  figure and search indexes; program-slot timing is structured metadata and
-  does not feed those indexes.
 
 `CompendiumDatabase.schemaVersion` (in
 [`database.dart`](../../packages/compendium_core/lib/src/storage/database.dart))
