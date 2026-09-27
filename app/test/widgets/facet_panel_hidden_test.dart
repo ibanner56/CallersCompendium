@@ -74,6 +74,7 @@ Future<ValueNotifier<Set<String>>> _pump(
       hasRating: has,
       hasCallingHistory: has,
       authors: has ? [Choreographer(id: 'a1', name: 'Folk Process')] : const [],
+      tunes: has ? const ['Dmaj'] : const [],
       tags: has ? [Tag(id: 't1', name: 'Beginner')] : const [],
       citedSources: has
           ? [PublishedSource(id: 's1', title: 'Zesty Contras')]
@@ -197,6 +198,7 @@ void main() {
                 hasMixer: false,
                 hasRating: false,
                 authors: const [],
+                tunes: const [],
                 tags: const [],
                 citedSources: const [],
                 choiceFields: [_choice, twin],
