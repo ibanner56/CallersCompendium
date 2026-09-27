@@ -263,6 +263,11 @@ final Map<String, DataClassification> settingsClassifications = {
   'update_auto_check': _backupLocalState,
   'update_beta_channel': _backupLocalState,
   'update_dismissed_version': _backupLocalState,
+  // A user preference (off / weekly / monthly), not backup bookkeeping: the
+  // reminder itself fires from `last_backup_at`, which is what must stay
+  // local. The backup denylist refused this key from G.5 (#167) until the 2026
+  // audit (area 2 row 17) found the two disagreeing; maintainer decision to
+  // keep this classification and let the cadence travel in backups.
   'backup_reminder_cadence': _preference,
   '__shareable_text_normalisation_scope__': _backupLocalState,
   // One-time migration and repair markers written by

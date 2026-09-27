@@ -69,8 +69,13 @@ const String kNormalisationDerivedIndexRepairDoneKey =
 /// - **installation state / backup metadata** — geometry and backup bookkeeping
 ///   that
 ///   must not travel between machines or be rewritten by restoring an old file:
-///   [kWindowFrameKey], [kLastBackupAtKey], [kBackupReminderCadenceKey], and
-///   every one-time migration / repair marker `ensureMigrated` writes. Six of
+///   [kWindowFrameKey], [kLastBackupAtKey], and every one-time migration /
+///   repair marker `ensureMigrated` writes. The reminder *cadence*
+///   (`backup_reminder_cadence`) is deliberately not here: it is a preference
+///   (off / weekly / monthly) and the reminder fires from [kLastBackupAtKey],
+///   which is the value that must stay local. It was denylisted from G.5
+///   (#167) until the 2026 audit found it `shareable` in the registry and
+///   "must not travel" here at once; the registry's reading was kept. Six of
 ///   those are named through app-side `k…` duplicates declared above; the
 ///   other nine are the core constants exported by `compendium_core`
 ///   ([derivedRebuildRequiredKey], [purgeCorruptionRepairDoneKey],
@@ -102,7 +107,6 @@ const Set<String> kBackupSettingsDenylist = {
   kActiveCustomThemeKey,
   kWindowFrameKey,
   kLastBackupAtKey,
-  kBackupReminderCadenceKey,
   kTaxonomyV33CanonicalRebuildDoneKey,
   kTaxonomyV34CanonicalRebuildDoneKey,
   kModifierContainerCanonicalRebuildDoneKey,
