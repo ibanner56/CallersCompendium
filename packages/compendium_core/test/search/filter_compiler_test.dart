@@ -23,20 +23,20 @@ void main() {
       expect(c.binds, ['contra']);
     });
 
-    test('recentlyEdited sorts by updated_at DESC', () {
+    test('recentlyEdited sorts by updated_at DESC with a title tiebreak', () {
       final c = compiler.compile(
         const FormFilter(DanceForm.contra),
         sort: SearchSort.recentlyEdited,
       );
-      expect(c.sql, endsWith('ORDER BY updated_at DESC'));
+      expect(c.sql, endsWith('ORDER BY updated_at DESC, title COLLATE NOCASE'));
     });
 
-    test('recentlyAdded sorts by created_at DESC', () {
+    test('recentlyAdded sorts by created_at DESC with a title tiebreak', () {
       final c = compiler.compile(
         const FormFilter(DanceForm.contra),
         sort: SearchSort.recentlyAdded,
       );
-      expect(c.sql, endsWith('ORDER BY created_at DESC'));
+      expect(c.sql, endsWith('ORDER BY created_at DESC, title COLLATE NOCASE'));
     });
 
     test('author and lastCalled use the stable title base order', () {
@@ -657,7 +657,7 @@ void main() {
       // Descending-default keys keep their DESC.
       expect(
         compiler.compile(f, sort: SearchSort.recentlyAdded).sql,
-        endsWith('ORDER BY created_at DESC'),
+        endsWith('ORDER BY created_at DESC, title COLLATE NOCASE'),
       );
       expect(
         compiler.compile(f, sort: SearchSort.rating).sql,
@@ -697,7 +697,7 @@ void main() {
               direction: SortDirection.ascending,
             )
             .sql,
-        endsWith('ORDER BY created_at'),
+        endsWith('ORDER BY created_at, title COLLATE NOCASE'),
       );
       expect(
         compiler
@@ -707,7 +707,7 @@ void main() {
               direction: SortDirection.ascending,
             )
             .sql,
-        endsWith('ORDER BY updated_at'),
+        endsWith('ORDER BY updated_at, title COLLATE NOCASE'),
       );
     });
 

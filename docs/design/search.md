@@ -314,8 +314,10 @@ pair of aliases.
 
 **Execution model — one SELECT, plus a post-fetch sort for two cases.** The
 single compiled `SELECT` performs *all filtering* and every **SQL-expressible**
-sort: `title COLLATE NOCASE` (the default), `updated_at DESC` (recently added/
-edited), and — only for a bare Omni `FullTextFilter` leaf with at most two
+sort: `title COLLATE NOCASE` (the default), `created_at DESC` / `updated_at
+DESC` (recently added / edited, each with a `title COLLATE NOCASE` tiebreak,
+since timestamps are stored at one-second precision and an import batch shares
+one instant), and — only for a bare Omni `FullTextFilter` leaf with at most two
 Unicode scalar values — `bm25(dance_fts)` relevance. Two sorts are **not**
 expressible in that one statement and are
 applied as a **post-fetch pass in Dart** over the returned id set:

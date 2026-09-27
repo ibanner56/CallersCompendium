@@ -5,10 +5,14 @@
 /// [author] and [lastCalled] reuse the Phase 3.1 orderings and are applied in
 /// Dart after the id set is fetched (author name / last-called timestamp are
 /// not on the `dances` row). [relevance] is FTS5 `bm25` and is only honoured
-/// when the whole filter tree is a bare [FullTextFilter]; for any other tree
-/// it falls back to [title] (`bm25` is undefined outside a `MATCH` query).
+/// when the whole filter tree is a bare [FullTextFilter] with the `omni` scope
+/// and a query of at most two Unicode scalar values (`ftsQueryScalarLength`,
+/// the prefix-match shape the FTS index can rank); for any other tree,
+/// scope, or a longer query it falls back to [title] (`bm25` is undefined
+/// outside a `MATCH` query, and the substring path has no rank source).
 enum SearchSort {
-  /// FTS relevance (`bm25`); only for a bare full-text search.
+  /// FTS relevance (`bm25`); only for a bare, omni-scoped full-text search of
+  /// at most two scalars — see the enum doc.
   relevance,
 
   /// Title, case-insensitive ascending (the default).
@@ -17,12 +21,12 @@ enum SearchSort {
   /// First author name, case-insensitive ascending (Dart post-sort).
   author,
 
-  /// Most recently added first (`created_at DESC`). This is the Collection's
-  /// "recently added" order (`docs/design/ux.md` §1) and the SQL analogue of
-  /// the Phase 3.1 `DanceSort.recentlyAdded`.
+  /// Most recently added first (`created_at DESC`, ties by title). This is the
+  /// Collection's "recently added" order (`docs/design/ux.md` §1) and the SQL
+  /// analogue of the Phase 3.1 `DanceSort.recentlyAdded`.
   recentlyAdded,
 
-  /// Most recently edited first (`updated_at DESC`).
+  /// Most recently edited first (`updated_at DESC`, ties by title).
   recentlyEdited,
 
   /// By author composition date ([Dance.composedOn]), earliest first, dances
