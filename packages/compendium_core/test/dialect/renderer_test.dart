@@ -1118,13 +1118,51 @@ void main() {
     // invalid-fixture: these figures deliberately use pre-v35 move identifiers
     test('legacy pull-by aliases use canonical balance placement', () {
       for (final move in ['pull_by_dancers', 'pull_by_direction']) {
-        final summary = renderer.renderSummary(
-          Figure(move: move, params: {'balance': true}),
-          d,
+        final raw = Figure(move: move, params: {'balance': true});
+        final summary = renderer.renderSummary(raw, d);
+        // The balance clause sits directly before the move name, after any
+        // subject (`neighbor balance & pull by right`), exactly as it does for
+        // the normalised figure.
+        expect(summary, contains('balance & pull by right'), reason: move);
+        expect(
+          summary,
+          renderer.renderSummary(contraTaxonomy.normalizeFigureV35(raw), d),
+          reason: move,
         );
-        expect(summary, startsWith('balance &'), reason: move);
       }
     });
+
+    // invalid-fixture: these figures deliberately use pre-v35 move identifiers
+    test(
+      'legacy pull-by aliases render alike before and after normalisation',
+      () {
+        // The alias pins (`who: neighbors` / `where: along`) exist so a v34 id
+        // stays VALID until normalised; they are not baked into the alias display
+        // name ("pull by"), so blanking the pinned slot made the un-normalised
+        // form render differently from the normalised one.
+        for (final move in ['pull_by_dancers', 'pull_by_direction']) {
+          final raw = Figure(move: move, params: {'beats': 2});
+          final normalised = contraTaxonomy.normalizeFigureV35(raw);
+          expect(normalised.move, 'pull_by', reason: move);
+          expect(
+            renderer.renderCanonical(raw),
+            renderer.renderCanonical(normalised),
+            reason: '$move canonical',
+          );
+          expect(
+            renderer.render(raw, d),
+            renderer.render(normalised, d),
+            reason: '$move display',
+          );
+        }
+        expect(
+          renderer.renderCanonical(
+            Figure(move: 'pull_by_dancers', params: {'beats': 2}),
+          ),
+          'neighbors pull by right',
+        );
+      },
+    );
 
     group('down/up-the-hall ender', () {
       test('default turn-couple ender is surfaced', () {
@@ -1448,6 +1486,24 @@ void main() {
           renderer.renderSummary(figure, Dialect.canonical),
           contains('pulling by'),
         );
+      });
+
+      test('modifier gerundives inflect pass_by at its default shoulder', () {
+        // The move-name needle must be built from the EFFECTIVE params: with
+        // the shoulder left to its default, the raw-params needle expands `%S`
+        // to nothing ("pass by  shoulders") and never matches the rendered
+        // line, so the child was left un-gerundised.
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'pass_by', params: {'who': 'neighbors'}),
+          ],
+          beats: 16,
+        );
+
+        final rendered = renderer.renderSummary(figure, Dialect.canonical);
+        expect(rendered, contains('neighbor passing by'));
+        expect(rendered, isNot(contains('neighbor pass by')));
       });
     });
 
@@ -1976,9 +2032,40 @@ void main() {
           'partner promenade clockwise along to next neighbors',
         );
       });
-      test('pull_by drops the default "along"', () {
+      test('pull_by with no direction renders none', () {
+        // `where` defaults to the `unspecified` sentinel since v35, so a bare
+        // pull-by has nothing to silence; this pins the shape, not silencing.
         expect(renderer.render(Figure(move: 'pull_by'), d), 'pull by right');
       });
+      test('pull_by silences an explicit "along" on display only', () {
+        // ContraDB `set_direction_along`: "along" is the implied direction of
+        // a pull-by and is not spoken. The v35 sweep synthesised
+        // `where: along` onto every migrated `pull_by_direction`, so this is
+        // the shape every pre-0.4.0 import carries. Display drops the word;
+        // canonical text (search/dedupe identity) is deliberately unchanged.
+        final f = Figure(move: 'pull_by', params: {'where': 'along'});
+        expect(renderer.render(f, d), 'pull by right');
+        expect(renderer.renderSummary(f, d), 'pull by right');
+        expect(renderer.renderCanonical(f), 'pull by along right');
+      });
+      test(
+        'a normalised legacy pull_by_direction renders like a fresh one',
+        () {
+          // invalid-fixture: pre-v35 move id, normalised before rendering
+          final legacy = Figure(
+            move: 'pull_by_direction',
+            params: {'beats': 2},
+          );
+          final normalised = contraTaxonomy.normalizeFigureV35(legacy);
+          expect(normalised.move, 'pull_by');
+          expect(normalised.params['where'], 'along');
+          expect(renderer.render(normalised, d), 'pull by right');
+          expect(
+            renderer.render(normalised, d),
+            renderer.render(Figure(move: 'pull_by', params: {'beats': 2}), d),
+          );
+        },
+      );
       test('pull_by keeps a non-default direction', () {
         expect(
           renderer.render(
