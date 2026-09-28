@@ -35,7 +35,6 @@ class FakeSourceAdapter implements SourceAdapter {
     this.failFetchExternalIds = const {},
     this.discoverThrows = false,
     this.difficultyLevelLabel,
-    this.sourceById = const {},
     this.priorExternalIdsById = const {},
   });
 
@@ -54,11 +53,6 @@ class FakeSourceAdapter implements SourceAdapter {
 
   final String? difficultyLevelLabel;
 
-  /// Per-record [ProvenanceSource] override, keyed by record id, for a batch
-  /// that mixes sources (e.g. a shared bundle re-exposing several upstream
-  /// sources). Falls back to [source] for an id not present here.
-  final Map<String, ProvenanceSource> sourceById;
-
   /// Per-record [RawRecord.priorExternalIds], keyed by record id.
   final Map<String, List<String>> priorExternalIdsById;
 
@@ -68,7 +62,7 @@ class FakeSourceAdapter implements SourceAdapter {
     return [
       for (var i = 0; i < records.length; i++)
         DiscoveredRecord(
-          source: sourceById[records[i]['id']] ?? source,
+          source: source,
           externalId: records[i]['id'] as String?,
           label: records[i]['title'] as String?,
           locator: {'index': i},
@@ -89,7 +83,7 @@ class FakeSourceAdapter implements SourceAdapter {
       );
     }
     return RawRecord(
-      source: sourceById[externalId] ?? source,
+      source: source,
       externalId: externalId,
       priorExternalIds: priorExternalIdsById[externalId] ?? const [],
       sourceVersion: obj['version'] as String?,

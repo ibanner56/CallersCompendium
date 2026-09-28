@@ -572,15 +572,14 @@ void main() {
         ),
       );
 
+      // GenericJsonAdapter's own RawRecord.source is always `json` (the
+      // *receiving* adapter's source); the upstream source only shows up
+      // namespaced into the externalId, which is what these two ids model.
       final adapter = FakeSourceAdapter(
         [
           record('contradb:457', 'Fresh From ContraDB'),
           record('callersbox:457', 'Fresh From Callers Box'),
         ],
-        sourceById: {
-          'contradb:457': ProvenanceSource.contradb,
-          'callersbox:457': ProvenanceSource.callersbox,
-        },
         priorExternalIdsById: {
           'contradb:457': const ['457'],
           'callersbox:457': const ['457'],
