@@ -548,60 +548,57 @@ void main() {
       );
     });
 
-    test(
-      'two records from different sources that only share a legacy alias '
-      'do not both reimport the same dance',
-      () async {
-        // Pre-namespacing behaviour recorded a bundled dance under its bare
-        // upstream id, regardless of which upstream source it came from — so
-        // a library that received one dance under the old scheme holds a
-        // legacy `(json, "457")` row. A bundle can now contain a *different*
-        // dance from each of two upstream sources that both used id 457; each
-        // independently falls back to that same bare alias, and letting both
-        // reimport would overwrite the one existing dance twice and map two
-        // program slots onto it (row 2's data-loss case).
-        await dances.create(
-          Dance(
-            id: 'existing',
-            title: 'Old Title',
-            provenance: Provenance(
-              source: ProvenanceSource.json,
-              externalId: '457',
-              importedAt: now,
-            ),
-            createdAt: now,
-            updatedAt: now,
+    test('two records from different sources that only share a legacy alias '
+        'do not both reimport the same dance', () async {
+      // Pre-namespacing behaviour recorded a bundled dance under its bare
+      // upstream id, regardless of which upstream source it came from — so
+      // a library that received one dance under the old scheme holds a
+      // legacy `(json, "457")` row. A bundle can now contain a *different*
+      // dance from each of two upstream sources that both used id 457; each
+      // independently falls back to that same bare alias, and letting both
+      // reimport would overwrite the one existing dance twice and map two
+      // program slots onto it (row 2's data-loss case).
+      await dances.create(
+        Dance(
+          id: 'existing',
+          title: 'Old Title',
+          provenance: Provenance(
+            source: ProvenanceSource.json,
+            externalId: '457',
+            importedAt: now,
           ),
-        );
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
 
-        final adapter = FakeSourceAdapter(
-          [
-            record('contradb:457', 'Fresh From ContraDB'),
-            record('callersbox:457', 'Fresh From Callers Box'),
-          ],
-          sourceById: {
-            'contradb:457': ProvenanceSource.contradb,
-            'callersbox:457': ProvenanceSource.callersbox,
-          },
-          priorExternalIdsById: {
-            'contradb:457': const ['457'],
-            'callersbox:457': const ['457'],
-          },
-        );
-        final batch = await pipeline.plan(adapter, const ImportRequest());
+      final adapter = FakeSourceAdapter(
+        [
+          record('contradb:457', 'Fresh From ContraDB'),
+          record('callersbox:457', 'Fresh From Callers Box'),
+        ],
+        sourceById: {
+          'contradb:457': ProvenanceSource.contradb,
+          'callersbox:457': ProvenanceSource.callersbox,
+        },
+        priorExternalIdsById: {
+          'contradb:457': const ['457'],
+          'callersbox:457': const ['457'],
+        },
+      );
+      final batch = await pipeline.plan(adapter, const ImportRequest());
 
-        expect(batch.errors, isEmpty);
-        expect(batch.records, hasLength(2));
-        expect(
-          batch.records.map((r) => r.verdict.kind),
-          everyElement(isNot(DedupeKind.reimport)),
-          reason:
-              'a legacy alias claimed by two distinct current keys in this '
-              'batch must not resolve either of them to a reimport of the '
-              'same existing dance',
-        );
-      },
-    );
+      expect(batch.errors, isEmpty);
+      expect(batch.records, hasLength(2));
+      expect(
+        batch.records.map((r) => r.verdict.kind),
+        everyElement(isNot(DedupeKind.reimport)),
+        reason:
+            'a legacy alias claimed by two distinct current keys in this '
+            'batch must not resolve either of them to a reimport of the '
+            'same existing dance',
+      );
+    });
   });
 
   group('undo', () {

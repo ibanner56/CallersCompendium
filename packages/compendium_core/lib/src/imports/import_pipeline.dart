@@ -455,9 +455,7 @@ class ImportPipeline {
           externalId: p.raw.externalId,
           // Suppressed on a collision so `verdictFor` falls through to fuzzy
           // matching instead of reimporting onto a contested legacy target.
-          priorExternalIds: legacyCollision
-              ? const []
-              : p.raw.priorExternalIds,
+          priorExternalIds: legacyCollision ? const [] : p.raw.priorExternalIds,
           title: p.draft.dance.title,
           authorNames: await _dedupeAuthorNames(p.draft),
           threshold: threshold,

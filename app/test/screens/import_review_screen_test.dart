@@ -522,14 +522,8 @@ void main() {
       await _toReview(tester);
 
       // Neither row reimports the existing dance; both are offered as new.
-      expect(
-        find.byKey(const ValueKey('import-row-0-reimport')),
-        findsNothing,
-      );
-      expect(
-        find.byKey(const ValueKey('import-row-1-reimport')),
-        findsNothing,
-      );
+      expect(find.byKey(const ValueKey('import-row-0-reimport')), findsNothing);
+      expect(find.byKey(const ValueKey('import-row-1-reimport')), findsNothing);
       expect(find.byKey(const ValueKey('import-row-0-create')), findsOneWidget);
       expect(find.byKey(const ValueKey('import-row-1-create')), findsOneWidget);
 
