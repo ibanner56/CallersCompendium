@@ -154,17 +154,14 @@ There are two ways to get Caller's Compendium on Android, and you only need one:
 ## On iPhone and iPad
 
 The iOS/iPadOS build is delivered through **TestFlight**, Apple's app for beta
-testing, rather than the Releases page above. During the beta it is available
-to **invited testers**; it is not yet listed on the App Store.
+testing, rather than the Releases page above. It's an **open beta** — anyone can
+join, no invitation needed — but it is not yet listed on the App Store.
 
-1. Request an invitation with the
-   **[Join the beta](https://github.com/ibanner56/CallersCompendium/issues/new?template=beta_signup.yml)**
-   form, or see the [Beta guide](../beta/beta-guide.md#how-to-join) for other
-   ways to get in touch. Once you're added, you'll receive a TestFlight
-   invitation by email.
-2. Install **TestFlight** from the App Store if you don't have it.
-3. Open the invitation, accept it in TestFlight, and install Caller's Compendium
-   from there. TestFlight handles updates for you when a new version is released.
+1. Install **TestFlight** from the App Store if you don't have it.
+2. Open the public join link on your device:
+   **<https://testflight.apple.com/join/REgW311w>**.
+3. Accept in TestFlight and install Caller's Compendium from there. TestFlight
+   handles updates for you when a new version is released.
 
 It runs on both iPhone and iPad.
 

@@ -6,9 +6,11 @@ It is a maintainer-facing planning doc, but everything here is meant to be share
 openly — there is nothing to hide from the community we are inviting.
 
 The beta is **open**: anyone can download a build from the
-[Releases page](https://github.com/ibanner56/CallersCompendium/releases), and
-invitations to iPhone/iPad (TestFlight) and the Google Play closed test are
-requested through the **Join the beta** form. So the goal is no longer to assemble a small
+[Releases page](https://github.com/ibanner56/CallersCompendium/releases),
+iPhone/iPad testers join straight away through the public
+[TestFlight link](https://testflight.apple.com/join/REgW311w), and an
+invitation to the Android Google Play closed test is requested through the
+**Join the beta** form. So the goal is no longer to assemble a small
 cohort; it is to reach more working callers who will use the app for their real
 dances and tell us how it went, before the first stable release. The tone
 throughout is **warm, community-first, and honest about what the app is** —
@@ -44,9 +46,10 @@ Being upfront about the deal keeps expectations healthy:
 - Use the app for their own dances — ideally including at least one real gig.
 - Send voluntary feedback through GitHub (the
   [feedback channels](../beta/beta-guide.md#how-to-give-feedback)).
-- Use the **Join the beta** form (see
-  [How to join](../beta/beta-guide.md#how-to-join)) if they want a TestFlight or
-  Google Play invitation.
+- Use the [public TestFlight link](https://testflight.apple.com/join/REgW311w)
+  for iPhone/iPad, or the **Join the beta** form (see
+  [How to join](../beta/beta-guide.md#how-to-join)) if they want a Google Play
+  invitation.
 - Understand this is beta software, so some rough edges are expected.
 
 **Testers get:**
@@ -120,12 +123,14 @@ Fill in the bracketed bits. Keep links intact. Trim to fit each venue's norms.
 > What I'm asking: use it for your own dances — ideally call at least one real gig
 > with it — and tell me how it went. All feedback is voluntary and goes through
 > GitHub. Anyone can download builds for Linux, macOS, Windows, and Android, and
-> mobile testers can go through the stores instead: iPhone/iPad via TestFlight,
-> and **Android via a Google Play closed test** (I need the Google-account email
-> on your device to add you — or you can install the Android app directly if
-> you'd rather). I especially need Android testers willing to join that Play
-> closed test, since Google asks for a real round of them before we can open the
-> app up more widely. I'll happily walk you through install either way.
+> mobile testers can go through the stores instead: **iPhone/iPad is open
+> beta** — join straight from the public TestFlight link, no invite needed:
+> https://testflight.apple.com/join/REgW311w — and **Android via a Google Play
+> closed test** (I need the Google-account email on your device to add you — or
+> you can install the Android app directly if you'd rather). I especially need
+> Android testers willing to join that Play closed test, since Google asks for a
+> real round of them before we can open the app up more widely. I'll happily walk
+> you through install either way.
 >
 > Interested? Start here: https://github.com/ibanner56/CallersCompendium/blob/main/docs/beta/beta-guide.md
 > and say hello in Discussions: https://github.com/ibanner56/CallersCompendium/discussions
@@ -184,7 +189,7 @@ Fill in the bracketed bits. Keep links intact. Trim to fit each venue's norms.
 > Since many of us call the same series, this is a great chance to try it at a real
 > [region] dance and tell me what works on your device. Builds are ready to
 > install on Linux, macOS, Windows, and Android, and iPhone/iPad testers can join
-> through TestFlight — I'm glad to help you get set up.
+> the open TestFlight beta straight away — I'm glad to help you get set up.
 >
 > Interested? Details are here:
 > https://github.com/ibanner56/CallersCompendium/blob/main/docs/beta/beta-guide.md

@@ -40,7 +40,9 @@ license, and a link to the source under **Settings › About**.
 Desktop (Linux, macOS, Windows) and mobile (Android, iOS/iPadOS). Desktop and
 Android builds are on the [Releases page](https://github.com/ibanner56/CallersCompendium/releases),
 and Android is also available through a Google Play closed test. iPhone and iPad
-builds are delivered through TestFlight to invited testers. See the
+builds are delivered through TestFlight, and it's an open beta — join straight
+from the [public TestFlight link](https://testflight.apple.com/join/REgW311w),
+no invitation needed. See the
 [Installation guide](./installation.md) for step-by-step instructions.
 
 ## Everyday tasks

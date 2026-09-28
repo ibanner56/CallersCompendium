@@ -28,7 +28,7 @@ available today, and new releases ship regularly.
 | macOS (Intel and Apple silicon) | Signed and notarized `.dmg` or `.zip` from the Releases page |
 | Windows (x64) | Code-signed installer or portable `.zip` from the Releases page |
 | Android | Google Play closed test, or a signed `.apk` from the Releases page |
-| iPhone and iPad | TestFlight, by invitation — [request an invite](https://github.com/ibanner56/CallersCompendium/issues/new?template=beta_signup.yml) |
+| iPhone and iPad | TestFlight open beta — [join directly](https://testflight.apple.com/join/REgW311w), no invitation needed |
 
 On the Releases page, choose the newest release and expand its **Assets**. The
 [Installation guide](docs/user/installation.md) explains which file to choose

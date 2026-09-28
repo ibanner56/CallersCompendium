@@ -47,9 +47,9 @@ Every part of the app is ready for you to rely on, including:
 ## What to expect
 
 - **Some platforms are still on test channels.** iPhone and iPad builds come
-  through **TestFlight** by invitation, and Android is in a **Google Play closed
-  test** alongside the direct `.apk` download. [How to install](#how-to-install)
-  covers each platform.
+  through **TestFlight open beta** — join with a public link, no invitation
+  needed — and Android is in a **Google Play closed test** alongside the direct
+  `.apk` download. [How to install](#how-to-install) covers each platform.
 - **You may find bugs.** Finding them is what the beta is for — when you do,
   please tell us (see [How to give feedback](#how-to-give-feedback)).
 
@@ -78,19 +78,21 @@ in more depth.
 
 1. Read this guide and skim the [test charter](./test-charter.md) so you know the
    kinds of things we are hoping you will try.
-2. Fill out the **[Join the beta](https://github.com/ibanner56/CallersCompendium/issues/new?template=beta_signup.yml)**
+2. **On iPhone or iPad?** Skip the form and join straight away with the public
+   TestFlight link: <https://testflight.apple.com/join/REgW311w>. No signup, no
+   invitation, no personal details needed.
+3. Everyone else — or if you also want the **Android Google Play closed test** —
+   fill out the **[Join the beta](https://github.com/ibanner56/CallersCompendium/issues/new?template=beta_signup.yml)**
    form to tell us which platforms you call on. A free GitHub account is all you
    need. **Heads-up: the signup issue is public.** The form asks for one contact
-   detail per mobile platform you pick: an **Apple ID email** if you want an
-   iPhone/iPad **TestFlight** invite, and the **Google-account email** on your
-   device if you want into the **Android Google Play closed test**. Those are the
-   only personal details to include — please leave everything else out. Prefer
-   not to post an email publicly? Email it to
+   detail if you want into the Android closed test: the **Google-account email**
+   on your device. That's the only personal detail to include — please leave
+   everything else out. Prefer not to post an email publicly? Email it to
    [compendium@contra.dance](mailto:compendium@contra.dance) instead, or just say
    hello in
    [GitHub Discussions](https://github.com/ibanner56/CallersCompendium/discussions)
    if you'd rather start with a conversation.
-3. Install the app (below) and start using it for your real dances.
+4. Install the app (below) and start using it for your real dances.
 
 You can step back at any time, and you never have to share anything you would
 rather keep private.
@@ -107,8 +109,9 @@ both open like any other app.
   like any Play app and helps prepare the app for wider release on Google Play,
   or install the signed **`.apk`** directly. The two are signed with different
   keys, so [pick one route and stay with it](../user/installation.md#install-on-android).
-- **iPhone and iPad:** builds are delivered through **TestFlight** to invited
-  testers. Request an invitation with the signup form described in
+- **iPhone and iPad:** builds are delivered through **TestFlight**, and it's an
+  **open beta** — join straight from the public link, no invitation needed:
+  <https://testflight.apple.com/join/REgW311w>. See
   [How to join](#how-to-join).
 - **Staying up to date:** every release during the beta is a beta release, so
   turn on **Beta channel** in **Settings › Updates** if you want the app to tell

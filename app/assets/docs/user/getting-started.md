@@ -46,10 +46,11 @@ a new machine any time with a single backup file — see the
 
 Caller's Compendium is available for **Linux**, **macOS**, **Windows**, and
 **Android** from the project's Releases page, on **Android** through a Google
-Play closed test, and on **iPhone and iPad** through **TestFlight** for invited
-testers. The [Installation guide](./installation.md) walks you through choosing
-the right download, what to do if your system shows a security prompt the first
-time you open the app, and keeping the app up to date.
+Play closed test, and on **iPhone and iPad** through an open **TestFlight**
+beta — no invitation needed. The [Installation guide](./installation.md) walks
+you through choosing the right download, what to do if your system shows a
+security prompt the first time you open the app, and keeping the app up to
+date.
 
 ## Your first launch
 
