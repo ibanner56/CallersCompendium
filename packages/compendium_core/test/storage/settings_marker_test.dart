@@ -10,15 +10,24 @@
 // Programs / Collection listing (#429, #466). That is a far nastier failure
 // than a stale row, so it is proved here rather than reasoned about.
 //
-// THE ROUTE IS ORDINARY CODE, NOT A HYPOTHETICAL. `isBackupEligibleSettingKey`
-// in `app/lib/src/data/backup_service.dart` denylists eight named keys plus the
-// `editor_draft:` / `program_editor_draft:` prefixes; none of the four markers
-// is on either list. So `_applyAppSettings` calls `SettingsRepository.remove`
-// on any marker that exists locally but is absent from the backup being
-// restored — exactly what a backup taken before that marker was written looks
-// like. Before v25 that was harmless: the marker hard-deleted, read as absent,
-// and the idempotent repair simply re-ran. The `deleted_at IS NULL` filters on
-// those raw reads are what keep it harmless now.
+// THE ROUTE WAS ORDINARY CODE, NOT A HYPOTHETICAL. When this file was written
+// (#901) `isBackupEligibleSettingKey` in `app/lib/src/data/backup_service.dart`
+// denylisted only eight keys plus the `editor_draft:` / `program_editor_draft:`
+// prefixes, and none of the four markers exercised here was among them. So
+// `_applyAppSettings` called `SettingsRepository.remove` on any marker that
+// existed locally but was absent from the backup being restored — exactly what
+// a backup taken before that marker was written looks like. Before v25 that was
+// harmless: the marker hard-deleted, read as absent, and the idempotent repair
+// simply re-ran. The `deleted_at IS NULL` filters on those raw reads are what
+// keep it harmless now.
+//
+// Every marker `ensureMigrated` writes is now in `kBackupSettingsDenylist`
+// (2026 audit remediation), so a restore no longer removes them. The guard
+// stays because the hazard is in the raw reads, not in who calls `remove`:
+// `SettingsRepository.remove` tombstones any key, and the next caller that
+// removes a marker — a reset, a repair, a future restore mode — would meet the
+// same failure. The tests tombstone through the repository, as any such caller
+// would.
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/src/storage/database.dart'
     show modifierContainerCanonicalRebuildDoneKey;

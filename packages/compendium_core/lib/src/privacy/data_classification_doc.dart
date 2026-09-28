@@ -71,9 +71,10 @@ String renderFieldCatalogue() {
     ..writeln('### Settings keys')
     ..writeln()
     ..writeln(
-      'Declared in `app/lib`; classified here so the catalogue has one source '
-      'of truth. `settings.value_json` is `deviceLocal` at the column level so '
-      'a blanket sync cannot happen by accident — these entries decide what '
+      'Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` '
+      'library; classified here so the catalogue has one source of truth. '
+      '`settings.value_json` is `deviceLocal` at the column level so a '
+      'blanket sync cannot happen by accident — these entries decide what '
       'actually travels.',
     )
     ..writeln()

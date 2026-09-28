@@ -171,9 +171,9 @@ class _CountingChoreographers extends ChoreographerRepository {
   int listAllCalls = 0;
 
   @override
-  Future<List<Choreographer>> listAll() {
+  Future<List<Choreographer>> listAll({bool includeDeleted = false}) {
     listAllCalls++;
-    return super.listAll();
+    return super.listAll(includeDeleted: includeDeleted);
   }
 }
 

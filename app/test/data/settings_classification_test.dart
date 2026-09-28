@@ -14,33 +14,46 @@ import 'package:flutter_test/flutter_test.dart';
 ///
 /// Two declaration shapes are matched, because both exist in this codebase and
 /// each escapes the *other*'s regex (issue #923):
-/// - `const String kSomethingKey = '...';` — an exact settings key, resolved
+/// - `const String somethingKey = '...';` — an exact settings key, resolved
 ///   against [settingsClassifications].
-/// - `const String kSomethingKeyPrefix = '...';` — a settings-key *prefix*,
+/// - `const String somethingKeyPrefix = '...';` — a settings-key *prefix*,
 ///   for keys built at runtime per-entity (`editor_draft:<id>`), resolved
 ///   against [settingsPrefixClassifications].
 ///
+/// The identifier before `Key` is unconstrained: the app's `k…Key` constants
+/// and core's un-prefixed `…DoneKey` migration markers are both settings keys.
+///
 /// Adding either without classifying it fails here.
 void main() {
-  /// Matches `const String kSomethingKey = 'some_key';` — deliberately
+  /// Matches `const String somethingKey = 'some_key';` — deliberately
   /// anchored to the whole declaration rather than grepping for bare string
   /// literals, so an unrelated constant that happens to look like a key is
   /// not swept in.
   ///
-  /// Does not match `k…KeyPrefix` declarations: `Key` must be immediately
+  /// The name is any identifier ending in `Key`, **not** only the app's
+  /// `k…Key` convention. `packages/compendium_core/lib/src/storage/database.dart`
+  /// declares its one-time migration markers as `const String fooDoneKey =
+  /// '__foo_done__';` with no `k` prefix, and an earlier `k`-anchored version
+  /// of this pattern let nine of them ship unclassified while this ratchet
+  /// stayed green. A non-settings constant the wider shape sweeps in is
+  /// excluded **by name** in [notSettingsKeys], never by narrowing the pattern
+  /// again.
+  ///
+  /// Does not match `…KeyPrefix` declarations: `Key` must be immediately
   /// followed by `=`, and in a `KeyPrefix` name it is followed by `Prefix`
   /// instead. [prefixDeclaration] matches that shape; the two patterns never
   /// match the same declaration.
   final declaration = RegExp(
-    r"""^const\s+String\s+(k[A-Za-z0-9]*Key)\s*=\s*(['"])([^'"]+)\2\s*;""",
+    r"""^const\s+String\s+(\w*Key)\s*=\s*(['"])([^'"]+)\2\s*;""",
     multiLine: true,
   );
 
-  /// Matches `const String kSomethingKeyPrefix = 'some_prefix:';` — the
-  /// runtime-built-key declaration shape this issue is about. See
-  /// [declaration] for why the two patterns don't overlap.
+  /// Matches `const String somethingKeyPrefix = 'some_prefix:';` — the
+  /// runtime-built-key declaration shape this issue is about. Same
+  /// unconstrained identifier as [declaration], and see there for why the two
+  /// patterns don't overlap.
   final prefixDeclaration = RegExp(
-    r"""^const\s+String\s+(k[A-Za-z0-9]*KeyPrefix)\s*=\s*(['"])([^'"]+)\2\s*;""",
+    r"""^const\s+String\s+(\w*KeyPrefix)\s*=\s*(['"])([^'"]+)\2\s*;""",
     multiLine: true,
   );
 
@@ -78,10 +91,9 @@ void main() {
   /// this location widening closes a second blind spot in the same ratchet:
   /// before this change it only scanned `app/lib/src`, so a settings key
   /// declared in a `packages/*` library — for example, a shared class used by
-  /// a second client — would never be checked at all. No settings key is
-  /// declared outside `app/lib/src` today — verified by running this test's
-  /// own walk before widening it — but the walk should cover the shape of the
-  /// risk, not just today's instances of it.
+  /// a second client — would never be checked at all. `compendium_core`'s
+  /// `storage/database.dart` declares settings keys (the one-time migration
+  /// markers), so the `packages/*` walk is live coverage, not a precaution.
   List<Directory> sourceRoots() {
     final appLibSrc = Directory('lib/src');
     expect(

@@ -156,14 +156,17 @@ class VenueRepository {
     return _toModel(row, prov);
   }
 
-  Future<List<Venue>> listAll() async {
-    final rows =
-        await (_db.select(_db.venues)
-              ..where((t) => t.deletedAt.isNull())
-              ..orderBy([
-                (t) => OrderingTerm(expression: t.name.collate(Collate.noCase)),
-              ]))
-            .get();
+  /// Every live venue, by name. With [includeDeleted], soft-deleted rows too —
+  /// for the one reader that must see everything still on disk, the crash-log
+  /// term collector, which redacts what a failed statement could echo whether
+  /// or not the row is visible in the UI.
+  Future<List<Venue>> listAll({bool includeDeleted = false}) async {
+    final query = _db.select(_db.venues)
+      ..orderBy([
+        (t) => OrderingTerm(expression: t.name.collate(Collate.noCase)),
+      ]);
+    if (!includeDeleted) query.where((t) => t.deletedAt.isNull());
+    final rows = await query.get();
     final ids = [for (final r in rows) r.id];
     final provByVenue = await _provenanceForMany(ids);
     return [for (final row in rows) _toModel(row, provByVenue[row.id])];

@@ -62,6 +62,15 @@ void main() {
     expect(exactDeviceScopedKeys, {
       'window_frame',
       'last_backup_at',
+      derivedRebuildRequiredKey,
+      purgeCorruptionRepairDoneKey,
+      sectionRuleVersionKey,
+      inversePairNormalisationDoneKey,
+      starPromenadeHandRemovalDoneKey,
+      gripSingleFileCanonicalInclusionDoneKey,
+      chainHandBackfillDoneKey,
+      promenadeTurnCircleWordingCanonicalRebuildDoneKey,
+      compactDosidoSeesawCanonicalRebuildDoneKey,
       taxonomyV33CanonicalRebuildDoneKey,
       taxonomyV34CanonicalRebuildDoneKey,
       kModifierContainerCanonicalRebuildDoneKey,
@@ -121,5 +130,46 @@ void main() {
         reason: '$key is intentionally retained in local backups',
       );
     }
+  });
+
+  test('every exact denylisted key is either structurally represented or '
+      'classified non-shareable', () {
+    // The other direction of the cross-check above. The test above asks
+    // "is every deviceScoped key denylisted?"; this asks "is every denylisted
+    // key one the registry agrees must not travel?". Without it a key can be
+    // `_preference` ("the same on any device they own") in the registry and
+    // "must not travel between machines" in the denylist at once, and the
+    // next reader who infers "denylisted, so not shareable" is wrong.
+    //
+    // The one legitimate exception is the structurally represented group:
+    // dialects and themes are `shareable` and DO travel, in the
+    // BackupDocument's typed sections rather than the raw settings map, so
+    // the denylist excludes their raw blobs for redundancy, not egress.
+    const structurallyRepresented = {
+      'custom_dialects',
+      'active_dialect_ref',
+      'active_dialect',
+      'custom_themes',
+      'active_custom_theme',
+    };
+
+    final shareableButDenylisted = [
+      for (final key in kBackupSettingsDenylist)
+        if (!structurallyRepresented.contains(key) &&
+            settingsClassifications[key]?.egress == EgressClass.shareable)
+          key,
+    ]..sort();
+
+    expect(
+      shareableButDenylisted,
+      isEmpty,
+      reason:
+          'These keys are `shareable` in settings_registry.dart but excluded '
+          'from backups by kBackupSettingsDenylist (backup_service.dart). One '
+          'of the two is wrong: either the key is installation state and '
+          'needs a non-shareable classification, or it is a preference and '
+          'must leave the denylist. If it travels in a typed section of the '
+          'BackupDocument instead, add it to structurallyRepresented here.',
+    );
   });
 }

@@ -22,9 +22,13 @@ import '../screens/settings/settings_keys.dart'
         kSyncWifiOnlyKey;
 import 'window_service.dart' show kWindowFrameKey;
 
-/// App-side declaration used by the settings classification ratchet. The
-/// storage-owned constant has the same value and remains the migration source
-/// of truth.
+/// App-side name for the denylist entry below; the storage-owned constant has
+/// the same value and remains the migration source of truth. The settings
+/// classification ratchet (`test/data/settings_classification_test.dart`)
+/// recognises any `\w*Key` declaration and already sees the storage-owned
+/// constant directly, so this duplicate is not what keeps the ratchet aware of
+/// the key — it exists only to give [kBackupSettingsDenylist] a name to
+/// reference below.
 const String kTaxonomyV33CanonicalRebuildDoneKey =
     '__taxonomy_v33_canonical_rebuild_done__';
 const String kTaxonomyV34CanonicalRebuildDoneKey =
@@ -32,24 +36,25 @@ const String kTaxonomyV34CanonicalRebuildDoneKey =
 const String kTaxonomyV35FigureNormalizationDoneKey =
     '__taxonomy_v35_figure_normalization_done__';
 
-/// App-side declaration for the one-shot modifier-container canonical/FTS
-/// rebuild marker. The storage-owned constant remains the migration source of
-/// truth.
+/// App-side name for the one-shot modifier-container canonical/FTS rebuild
+/// marker's denylist entry; the storage-owned constant remains the migration
+/// source of truth. See the note above [kTaxonomyV33CanonicalRebuildDoneKey]
+/// for why this duplicate exists.
 const String kModifierContainerCanonicalRebuildDoneKey =
     '__modifier_container_canonical_rebuild_done__';
 
-/// App-side declaration for the storage-owned one-shot repair marker. The
-/// duplicate literal keeps the settings classification ratchet aware of this
-/// app-level backup policy, while the core constant remains the migration
-/// source of truth.
+/// App-side name for the storage-owned one-shot repair marker's denylist
+/// entry; the core constant remains the migration source of truth. See the
+/// note above [kTaxonomyV33CanonicalRebuildDoneKey] for why this duplicate
+/// exists.
 const String kCallersBoxRollAwayRoleRepairDoneKey =
     '__callersbox_roll_away_role_repair_done__';
 
-/// App-side declaration for the storage-owned one-shot derived-index repair
-/// marker (#1346). The core constant
+/// App-side name for the storage-owned one-shot derived-index repair marker's
+/// denylist entry (#1346). The core constant
 /// ([normalisationDerivedIndexRepairDoneKey]) remains the migration source of
-/// truth; the duplicate literal is what keeps the settings classification
-/// ratchet aware of this app-level backup policy.
+/// truth; see the note above [kTaxonomyV33CanonicalRebuildDoneKey] for why
+/// this duplicate exists.
 ///
 /// Denylisted for the same reason as its siblings, and with one extra
 /// consequence worth naming: the repair recomputes *derived* rows from the
@@ -69,13 +74,25 @@ const String kNormalisationDerivedIndexRepairDoneKey =
 /// - **installation state / backup metadata** — geometry and backup bookkeeping
 ///   that
 ///   must not travel between machines or be rewritten by restoring an old file:
-///   [kWindowFrameKey], [kLastBackupAtKey], [kBackupReminderCadenceKey],
-///   [kTaxonomyV33CanonicalRebuildDoneKey],
-///   [kTaxonomyV34CanonicalRebuildDoneKey],
-///   [kModifierContainerCanonicalRebuildDoneKey],
-///   [kTaxonomyV35FigureNormalizationDoneKey],
-///   [kCallersBoxRollAwayRoleRepairDoneKey],
-///   [kNormalisationDerivedIndexRepairDoneKey].
+///   [kWindowFrameKey], [kLastBackupAtKey], and every one-time migration /
+///   repair marker `ensureMigrated` writes. The reminder *cadence*
+///   (`backup_reminder_cadence`) is deliberately not here: it is a preference
+///   (off / weekly / monthly) and the reminder fires from [kLastBackupAtKey],
+///   which is the value that must stay local. It was denylisted from G.5
+///   (#167) until the 2026 audit found it `shareable` in the registry and
+///   "must not travel" here at once; the registry's reading was kept. Six of
+///   those are named through app-side `k…` duplicates declared above; the
+///   other nine are the core constants exported by `compendium_core`
+///   ([derivedRebuildRequiredKey], [purgeCorruptionRepairDoneKey],
+///   [sectionRuleVersionKey], [inversePairNormalisationDoneKey],
+///   [starPromenadeHandRemovalDoneKey],
+///   [gripSingleFileCanonicalInclusionDoneKey], [chainHandBackfillDoneKey],
+///   [promenadeTurnCircleWordingCanonicalRebuildDoneKey],
+///   [compactDosidoSeesawCanonicalRebuildDoneKey]) named directly — the
+///   settings ratchet no longer needs a `k`-prefixed twin to see a key, so no
+///   new duplicates are added. All fifteen are `_installState` in
+///   `settings_registry.dart`: a marker says a pass has run over *this*
+///   database's rows, which is false on any other install.
 /// - **sync attachment state** — the store address this device is attached to,
 ///   its per-installation routing identifier, and the markers derived from
 ///   addresses it has used. A backup restored onto another device must not
@@ -95,13 +112,21 @@ const Set<String> kBackupSettingsDenylist = {
   kActiveCustomThemeKey,
   kWindowFrameKey,
   kLastBackupAtKey,
-  kBackupReminderCadenceKey,
   kTaxonomyV33CanonicalRebuildDoneKey,
   kTaxonomyV34CanonicalRebuildDoneKey,
   kModifierContainerCanonicalRebuildDoneKey,
   kTaxonomyV35FigureNormalizationDoneKey,
   kCallersBoxRollAwayRoleRepairDoneKey,
   kNormalisationDerivedIndexRepairDoneKey,
+  derivedRebuildRequiredKey,
+  purgeCorruptionRepairDoneKey,
+  sectionRuleVersionKey,
+  inversePairNormalisationDoneKey,
+  starPromenadeHandRemovalDoneKey,
+  gripSingleFileCanonicalInclusionDoneKey,
+  chainHandBackfillDoneKey,
+  promenadeTurnCircleWordingCanonicalRebuildDoneKey,
+  compactDosidoSeesawCanonicalRebuildDoneKey,
   kSyncIdKey,
   kSyncDeviceIdKey,
   kSyncLastUsedFingerprintKey,

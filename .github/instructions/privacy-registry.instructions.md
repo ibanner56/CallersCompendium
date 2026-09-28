@@ -34,8 +34,11 @@ Any new database column, settings key, or data-entry surface must be classified
 covering:
 
 - database columns,
-- settings keys declared as an exact constant, and
-- settings keys built at runtime from a declared prefix.
+- settings keys declared as a top-level `const String …Key = '…';` — any
+  identifier ending in `Key`, `k`-prefixed or not, under `app/lib/src` or any
+  `packages/*/lib/src` (a non-settings constant of that shape is excluded by
+  name in the ratchet, never by narrowing the pattern), and
+- settings keys built at runtime from a declared `…KeyPrefix` constant.
 
 The failure mode is a red CI run rather than a silent leak. This exists because
 the boundary used to be prose and prose did not hold — see

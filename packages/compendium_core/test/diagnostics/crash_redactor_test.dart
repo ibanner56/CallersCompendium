@@ -76,6 +76,64 @@ void main() {
       final out = redactor.scrub('see https://example.com/help for details');
       expect(out, contains('https://example.com/help'));
     });
+
+    // A path that ends AT a home directory has no file basename to keep: the
+    // last segment is the username, and keeping it defeats the whole pass.
+    // The app's own file operations target subdirectories, so this shape is a
+    // permissions error on the home directory itself or a mis-pointed picker
+    // — rare, but the redactor's contract is the username never leaks.
+    group('a path ending at a home directory keeps no basename', () {
+      test('POSIX /Users/<name>', () {
+        final out = redactor.scrub(
+          "FileSystemException: Directory not found, path = '/Users/jane'",
+        );
+        expect(out, isNot(contains('jane')));
+        // The closing quote is swallowed with the basename it was attached to
+        // — the basename pattern has always taken trailing punctuation
+        // (`<path>/main.dart'` before this rule), so that is not new here.
+        expect(out, contains("path = '<path>"));
+      });
+
+      test('POSIX /home/<name>/ with a trailing slash', () {
+        final out = redactor.scrub('path /home/jane/ trailing');
+        expect(out, isNot(contains('jane')));
+        expect(out, contains('path <path> trailing'));
+      });
+
+      test(r'Windows C:\Users\<name>', () {
+        final out = redactor.scrub(r'Cannot create directory C:\Users\jane');
+        expect(out, isNot(contains('jane')));
+        expect(out, contains('directory <path>'));
+      });
+
+      test(r'Windows C:\Users\<name>\ with a space in the name', () {
+        // With the trailing separator the whole `Jane Doe\` is a directory
+        // segment (segments may contain spaces), so the collapsed path ends at
+        // the username. Without it the basename stops at the space, and the
+        // pass has no way to tell ` Doe` from following prose — that is the
+        // existing basename contract, not this rule's to change.
+        final out = redactor.scrub(
+          r'Cannot create directory C:\Users\Jane Doe\ today',
+        );
+        expect(out, isNot(contains('Jane')));
+        expect(out, isNot(contains('Doe')));
+        expect(out, contains('directory <path> today'));
+      });
+
+      test('file:// URI to a home directory', () {
+        final out = redactor.scrub('at file:///Users/jane end');
+        expect(out, isNot(contains('jane')));
+        expect(out, contains('at <path> end'));
+      });
+
+      test('a two-segment path that is not a home directory keeps its '
+          'basename', () {
+        // The rule must not over-fire: `/etc/hosts` and `/tmp/x.json` are
+        // exactly the diagnostically useful basenames the pass exists to keep.
+        expect(redactor.scrub('read /etc/hosts'), 'read <path>/hosts');
+        expect(redactor.scrub('read /tmp/x.json'), 'read <path>/x.json');
+      });
+    });
   });
 
   group('CrashRedactor preserves diagnostic skeleton', () {
@@ -131,6 +189,32 @@ void main() {
       expect(out, isNot(contains(RegExp('reel', caseSensitive: false))));
       // The single-character term must not blank out unrelated text.
       expect(out, contains('note'));
+    });
+
+    test('redacts two-character terms on a word boundary', () {
+      // Real-world two-character sensitive values: a US state code, a
+      // country code, a short surname.
+      final redactor = CrashRedactor(userContentTerms: {'CA', 'US', 'Li'});
+      final out = redactor.scrub('contact Li in CA, US for details');
+      expect(out, isNot(contains(RegExp(r'\bLi\b'))));
+      expect(out, isNot(contains(RegExp(r'\bCA\b'))));
+      expect(out, isNot(contains(RegExp(r'\bUS\b'))));
+      expect(
+        CrashRedactor.contentPlaceholder.allMatches(out).length,
+        3,
+        reason: 'each of the three short terms must be redacted once',
+      );
+    });
+
+    test('a two-character term does not blank unrelated substrings', () {
+      final redactor = CrashRedactor(userContentTerms: {'CA', 'Li'});
+      final out = redactor.scrub('the CAN-AM tour likes vacationing');
+      // "CA" inside "CAN-AM" and "vacationing", and "Li" inside "likes", are
+      // not whole-word matches and must survive intact.
+      expect(out, contains('CAN-AM'));
+      expect(out, contains('likes'));
+      expect(out, contains('vacationing'));
+      expect(out, isNot(contains(CrashRedactor.contentPlaceholder)));
     });
 
     test('combined scrub removes every class at once', () {

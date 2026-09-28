@@ -1,10 +1,12 @@
-import 'package:compendium_core/compendium_core.dart' show MatrixColumnConfig;
+import 'package:compendium_core/compendium_core.dart'
+    show MatrixColumnConfig, shareableTextNormalisationScopeKey;
 
 import '../screens/perform_card.dart' show kPerformMinScale;
 import '../screens/settings/settings_keys.dart';
 import '../update/update_config.dart'
     show kUpdateAutoCheckKey, kUpdateBetaChannelKey, kUpdateDismissedVersionKey;
 import 'aggressive_beats_update_scope.dart' show kAggressiveBeatsUpdateKey;
+import 'backup_reminder.dart' show kBackupReminderCadenceKey;
 import 'confirm_before_delete_scope.dart' show kConfirmBeforeDeleteKey;
 import 'decimal_turns_scope.dart' show kDecimalTurnsKey;
 import 'display_defaults.dart'
@@ -35,6 +37,7 @@ import 'locale_scope.dart' show kLocaleKey;
 import 'reduce_motion_scope.dart' show kReduceMotionKey;
 import 'regional_formats.dart'
     show kDateFormatCustomPatternKey, kDateFormatKey, kFirstDayOfWeekKey;
+import 'seed_service.dart' show kInitialSeedCompletedKey;
 import 'set_list_color_coding_scope.dart' show kSetListColorCodingKey;
 import 'shorthand_mappings_controller.dart' show kShorthandMappingsKey;
 import 'soft_delete_retention.dart' show kSoftDeleteRetentionKey;
@@ -90,6 +93,11 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kMatrixExactBeatCollisionKey,
     kCanonicalFigureTextKey,
     kCanonicalDiscouragedTermsKey,
+    // Two one-shot latches, written as `true` and read for presence. A
+    // non-bool would still latch, but a restore is a trust boundary and
+    // nothing legitimate ever writes anything else here.
+    kInitialSeedCompletedKey,
+    kCustomFieldSharingDisclosureKey,
   ])
     key: _isBool,
 
@@ -122,6 +130,9 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kDefaultMeanwhileSideFiguresKey,
     kDefaultModifierFiguresKey,
     kDefaultMoveParamOverridesKey,
+    // off / weekly / monthly; `backupReminderCadenceFromStored` rejects any
+    // other token and falls back to off.
+    kBackupReminderCadenceKey,
   ])
     key: _isString,
 
@@ -150,6 +161,17 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   // Shorthand mappings persist as a JSON list; the decoder also tolerates a raw
   // JSON string, so accept either and let it validate entries.
   kShorthandMappingsKey: _isListOrString,
+  // Collection tile fields (#767) and hidden filter sections (#1419) persist as
+  // JSON lists of name strings; both decoders (`decodeStored`) treat a non-List
+  // as "unset" and drop non-String entries, so only the container is enforced.
+  kCollectionTileVisibleFieldsKey: _isList,
+  kCollectionHiddenFacetsKey: _isList,
+  // The shareable-text normalisation scope marker (`_backupLocalState`, kept
+  // in backups by #1134) is a JSON object recording the algorithm version and
+  // the exact column / key scope the pass covered. `ensureMigrated` compares
+  // its stored text with the live scope and re-runs the pass on any mismatch,
+  // so a wrong-but-Map value costs one idempotent pass; a non-Map is dropped.
+  shareableTextNormalisationScopeKey: _isMap,
   // Program-matrix column config (issue #935): a JSON object the codec must be
   // able to parse. `MatrixColumnConfig.decode` throws on a malformed blob
   // (wrong types, mis-namespaced/duplicate custom ids) and the live loader
@@ -169,6 +191,7 @@ bool _isVenueCallCount(Object? v) =>
 bool _isValidPerformScale(Object? v) =>
     v is num && v.isFinite && v >= kPerformMinScale;
 bool _isMap(Object? v) => v is Map;
+bool _isList(Object? v) => v is List;
 bool _isListOrString(Object? v) => v is List || v is String;
 
 /// Accepts a program-matrix column config only when it is a JSON object the

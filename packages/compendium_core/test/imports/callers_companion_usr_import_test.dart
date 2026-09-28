@@ -1264,8 +1264,8 @@ class _CountingVenueRepository extends VenueRepository {
   int listAllCallCount = 0;
 
   @override
-  Future<List<Venue>> listAll() {
+  Future<List<Venue>> listAll({bool includeDeleted = false}) {
     listAllCallCount++;
-    return super.listAll();
+    return super.listAll(includeDeleted: includeDeleted);
   }
 }
