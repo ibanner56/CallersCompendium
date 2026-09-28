@@ -149,11 +149,16 @@ class CrashRedactor {
             .toList()
           ..sort((a, b) => b.length.compareTo(a.length));
     if (terms.isEmpty) return null;
-    final alternation = terms.map((term) {
-      final escaped = RegExp.escape(term);
-      return term.length <= _wordBoundaryMaxLength ? '\\b$escaped\\b' : escaped;
-    }).join('|');
+    final alternation = terms.map(_termPattern).join('|');
     return RegExp(alternation, caseSensitive: false);
+  }
+
+  /// The regex fragment for one term: an escaped substring, or — for a term at
+  /// or below [_wordBoundaryMaxLength] — the same substring anchored to a word
+  /// boundary on each side (see [userContentTerms]).
+  static String _termPattern(String term) {
+    final escaped = RegExp.escape(term);
+    return term.length <= _wordBoundaryMaxLength ? '\\b$escaped\\b' : escaped;
   }
 
   /// Collapses absolute filesystem paths to [pathPlaceholder], keeping the file
