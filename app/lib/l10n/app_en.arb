@@ -216,6 +216,18 @@
   "@colorEditHexLabel": {
     "description": "Field label for the hexadecimal colour input in the shared colour-picker dialog."
   },
+  "colorEditChannelRed": "Red",
+  "@colorEditChannelRed": {
+    "description": "Screen-reader name of the red channel slider in the shared colour-picker dialog (the visual label is the single letter R)."
+  },
+  "colorEditChannelGreen": "Green",
+  "@colorEditChannelGreen": {
+    "description": "Screen-reader name of the green channel slider in the shared colour-picker dialog (the visual label is the single letter G)."
+  },
+  "colorEditChannelBlue": "Blue",
+  "@colorEditChannelBlue": {
+    "description": "Screen-reader name of the blue channel slider in the shared colour-picker dialog (the visual label is the single letter B)."
+  },
   "settingsTitle": "Settings",
   "@settingsTitle": {
     "description": "Title of the Settings screen (sidebar header on wide layouts, app bar on narrow)."
@@ -3191,6 +3203,10 @@
         "example": "Notes"
       }
     }
+  },
+  "collectionFacetTextClearTooltip": "Clear filter",
+  "@collectionFacetTextClearTooltip": {
+    "description": "Tooltip of the clear (×) button inside a text custom-field filter input; empties that one field's filter text."
   },
   "collectionFacetNumOpEq": "=",
   "@collectionFacetNumOpEq": {
@@ -8447,6 +8463,20 @@
   "@danceEditorParamClearTooltip": {
     "description": "Tooltip for the button that clears a figure parameter back to the unstated state."
   },
+  "danceEditorIntParamRangeError": "Enter a whole number from {min} to {max}",
+  "@danceEditorIntParamRangeError": {
+    "description": "Error shown under an integer figure parameter field (beats, places) while its text is empty, not a whole number, or outside the allowed range; the draft keeps its last valid value meanwhile.",
+    "placeholders": {
+      "min": {
+        "type": "int",
+        "example": "0"
+      },
+      "max": {
+        "type": "int",
+        "example": "64"
+      }
+    }
+  },
   "danceEditorMoreTooltip": "More",
   "@danceEditorMoreTooltip": {
     "description": "Tooltip for incrementing a numeric figure parameter."
@@ -8663,6 +8693,48 @@
   "commandPaletteGroupPrograms": "Programs",
   "@commandPaletteGroupPrograms": {
     "description": "Command-palette group header for program results."
+  },
+  "commandPaletteHighlightedResult": "{name}, {index} of {count}",
+  "@commandPaletteHighlightedResult": {
+    "description": "Screen-reader announcement when the arrow keys move the command-palette highlight: the result's name (title, and its kind or form), then its position among the results shown.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Chorus Jig, Contra"
+      },
+      "index": {
+        "type": "int",
+        "example": "2"
+      },
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "commandPaletteResultCount": "{count, plural, =1{1 result} other{{count} results}}",
+  "@commandPaletteResultCount": {
+    "description": "Command-palette result count, shown under the search field and announced as a live region whenever the filter changes.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "commandPaletteResultCountCapped": "Showing {shown} of {total} results",
+  "@commandPaletteResultCountCapped": {
+    "description": "Command-palette result count when more titles match than the palette lists (it shows at most a fixed number per group).",
+    "placeholders": {
+      "shown": {
+        "type": "int",
+        "example": "16"
+      },
+      "total": {
+        "type": "int",
+        "example": "120"
+      }
+    }
   },
   "collectionPickerSearchLabel": "Find a dance to add",
   "@collectionPickerSearchLabel": {

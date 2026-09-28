@@ -130,7 +130,9 @@ programs, use the **up** and **down arrow keys** to move through results, press
 move between [slots](./glossary.md#slot) with the **left** and **right arrow
 keys**, or with **Page Up** and **Page Down**. These work alongside the on-screen
 next and previous controls and the large edge zones, so you can use whichever
-suits you.
+suits you. While a dance's walkthrough overlay is open, those keys pause — the
+**up** and **down** keys scroll the walkthrough instead — and **Esc** closes it,
+so reading ahead never changes your slot.
 
 **Reordering without dragging.** Anything that supports dragging — program slots,
 figures — also offers **move-up** and **move-down** actions. Figures additionally

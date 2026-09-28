@@ -24,7 +24,10 @@ import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/data/track_history_for_all_callers_scope.dart';
 import 'package:compendium_app/src/data/walkthrough_snippet_library_controller.dart';
 import 'package:compendium_app/src/data/walkthrough_snippet_library_scope.dart';
+import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
+import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
+import 'package:compendium_app/src/screens/settings/sync_pairing_screen.dart';
 import 'package:compendium_app/src/sync/sync_controller.dart';
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_http_client.dart';
@@ -2999,6 +3002,59 @@ void main() {
       );
 
       testWidgets(
+        'backing out while the probe is in flight leaves the disposed state '
+        'alone when the probe then fails',
+        (tester) async {
+          // `dispose` force-closes the probe's client, so a back-out fails the
+          // in-flight request *immediately*; the failure branch must not call
+          // setState on the unmounted screen (which throws, and lands in the
+          // diagnostics log as a spurious "crash"). A widget test's ambient
+          // error sink is a no-op (`logCaughtError` short-circuits until
+          // `installCaughtErrorLog` runs), so a recording sink is installed
+          // here specifically to catch a regression that reintroduces the
+          // logging call ahead of (or without) the `mounted` guard.
+          final sink = _RecordingSink();
+          installCaughtErrorLog(sink);
+          addTearDown(resetCaughtErrorLogForTesting);
+          final gate = Completer<void>();
+          _pairingProbeFactory = (syncId, endpoint) => SyncPairingProbe(
+            getStore: ({required previouslyUsed}) async =>
+                throw UnimplementedError('create must not GET'),
+            createStore: () async {
+              await gate.future;
+              throw StateError('connection closed');
+            },
+          );
+          await enableAndOpenPairing(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-pairing-create')));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('sync-pairing-backup-skip')),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('sync-pairing-continue')));
+          await tester.pump();
+
+          // Back out mid-probe.
+          await tester.pageBack();
+          await tester.pumpAndSettle();
+          expect(find.byType(SyncPairingScreen), findsNothing);
+
+          gate.complete();
+          await tester.pumpAndSettle();
+
+          expect(tester.takeException(), isNull);
+          expect(
+            sink.sources,
+            isEmpty,
+            reason:
+                'the probe failure landed after dispose; it must not reach '
+                'the diagnostics log',
+          );
+        },
+      );
+
+      testWidgets(
         'creating a phrase that is already in use reports it and starts '
         'nothing (spec §6.14 item 5)',
         (tester) async {
@@ -4277,4 +4333,13 @@ void main() {
       );
     });
   });
+}
+
+/// Records the `source` of every logged caught error.
+class _RecordingSink implements CrashLogSink {
+  final List<String> sources = [];
+
+  @override
+  void record(Object error, StackTrace? stack, {required String source}) =>
+      sources.add(source);
 }

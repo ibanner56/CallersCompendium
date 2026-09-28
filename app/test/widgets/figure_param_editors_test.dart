@@ -741,15 +741,57 @@ void main() {
     expect(read(), 16);
   });
 
-  testWidgets('beats field ignores out-of-range input', (tester) async {
+  testWidgets(
+    'beats field shows an adjacent error on out-of-range or non-numeric '
+    'input and leaves the draft unchanged',
+    (tester) async {
+      // Two halves: the draft must never receive a bad value (the original
+      // pinned behaviour), and the user must be *told* rather than the field
+      // silently diverging from what will be saved.
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'beats',
+        spec: const ParamSpec(ParamKind.beats, defaultValue: 8),
+        value: 8,
+      );
+      const error = 'Enter a whole number from 0 to 64';
+      final field = find.byKey(const ValueKey('p-beats'));
+
+      await tester.enterText(field, '99');
+      await tester.pump();
+      expect(read(), isNull);
+      expect(find.text(error), findsOneWidget);
+
+      await tester.enterText(field, '16');
+      await tester.pump();
+      expect(read(), 16);
+      expect(find.text(error), findsNothing);
+
+      // Clearing the field (the likelier slip) is flagged too, and the last
+      // committed value stands.
+      await tester.enterText(field, '');
+      await tester.pump();
+      expect(read(), 16);
+      expect(find.text(error), findsOneWidget);
+
+      await tester.enterText(field, 'abc');
+      await tester.pump();
+      expect(read(), 16);
+      expect(find.text(error), findsOneWidget);
+    },
+  );
+
+  testWidgets('places field error names its own range', (tester) async {
     final read = await _pumpEditor(
       tester,
-      paramKey: 'beats',
-      spec: const ParamSpec(ParamKind.beats, defaultValue: 8),
-      value: 8,
+      paramKey: 'places',
+      spec: const ParamSpec(ParamKind.places, defaultValue: 1),
+      value: 1,
     );
-    await tester.enterText(find.byKey(const ValueKey('p-beats')), '99');
+    await tester.enterText(find.byKey(const ValueKey('p-places')), '11');
+    await tester.pump();
     expect(read(), isNull);
+    expect(find.text('Enter a whole number from 1 to 10'), findsOneWidget);
   });
 
   testWidgets('text field round-trips a value', (tester) async {

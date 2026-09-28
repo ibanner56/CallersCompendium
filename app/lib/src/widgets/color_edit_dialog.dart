@@ -110,15 +110,15 @@ class _ColorEditDialogState extends State<ColorEditDialog> {
               onSubmitted: _onHexSubmitted,
             ),
             const SizedBox(height: 8),
-            _channel('R', _r, (v) {
+            _channel('R', l10n.colorEditChannelRed, _r, (v) {
               setState(() => _r = v);
               _syncHexField();
             }),
-            _channel('G', _g, (v) {
+            _channel('G', l10n.colorEditChannelGreen, _g, (v) {
               setState(() => _g = v);
               _syncHexField();
             }),
-            _channel('B', _b, (v) {
+            _channel('B', l10n.colorEditChannelBlue, _b, (v) {
               setState(() => _b = v);
               _syncHexField();
             }),
@@ -138,22 +138,46 @@ class _ColorEditDialogState extends State<ColorEditDialog> {
     );
   }
 
-  Widget _channel(String label, int value, ValueChanged<int> onChanged) {
-    return Row(
-      children: [
-        SizedBox(width: 18, child: Text(label)),
-        Expanded(
-          child: Slider(
-            value: value.toDouble(),
-            min: 0,
-            max: 255,
-            divisions: 255,
-            label: '$value',
-            onChanged: (v) => onChanged(v.round()),
+  /// One channel row: the one-letter visual [label], the [Slider], and the
+  /// numeric readout. Merged into a single semantics node so a screen reader
+  /// hears the full [channelName] on the slider itself ("Red, 128, 50%,
+  /// slider") rather than a detached "R" followed by an unnamed slider. The
+  /// readout is excluded because the slider already carries its value.
+  Widget _channel(
+    String label,
+    String channelName,
+    int value,
+    ValueChanged<int> onChanged,
+  ) {
+    return MergeSemantics(
+      child: Row(
+        children: [
+          SizedBox(
+            width: 18,
+            child: Semantics(
+              label: channelName,
+              excludeSemantics: true,
+              child: Text(label),
+            ),
           ),
-        ),
-        SizedBox(width: 32, child: Text('$value', textAlign: TextAlign.end)),
-      ],
+          Expanded(
+            child: Slider(
+              value: value.toDouble(),
+              min: 0,
+              max: 255,
+              divisions: 255,
+              label: '$value',
+              onChanged: (v) => onChanged(v.round()),
+            ),
+          ),
+          ExcludeSemantics(
+            child: SizedBox(
+              width: 32,
+              child: Text('$value', textAlign: TextAlign.end),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

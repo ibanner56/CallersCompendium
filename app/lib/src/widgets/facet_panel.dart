@@ -1044,6 +1044,7 @@ class _TextFieldFacetState extends State<_TextFieldFacet> {
               border: const OutlineInputBorder(),
               suffixIcon: _controller.text.isNotEmpty
                   ? IconButton(
+                      tooltip: l10n.collectionFacetTextClearTooltip,
                       icon: const Icon(Icons.clear, size: 18),
                       onPressed: () {
                         _controller.clear();

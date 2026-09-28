@@ -87,6 +87,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   Object? _loadError;
   bool _saving = false;
 
+  /// Re-entrancy guard for [_delete]; see the note there.
+  bool _deleting = false;
+
   // ---- Reference-data caches (shared entities) ----
   //
   // Populated by [_subscribeReferenceData]'s live [DanceEditorReferenceData]
@@ -432,34 +435,49 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// for an existing dance (the action is hidden while `widget.isNew`).
   Future<void> _delete() async {
     final id = widget.danceId;
-    if (id == null) return;
+    if (id == null || _deleting) return;
     final l10n = AppLocalizations.of(context);
     final title =
         _controller.original?.title ?? l10n.danceEditorFallbackDanceTitle;
-    // ROADMAP G.7: optional confirm dialog before the (still-undoable) delete.
-    if (!await confirmDeleteIfEnabled(context, itemLabel: title)) return;
-    if (!mounted) return;
-    final now = DateTime.now().toUtc();
-    await _repos.dances.softDelete(id, at: now);
-    if (!mounted) return;
-    // Drop the autosave draft so it can't resurface for a deleted dance.
-    await _controller.clearDraft();
-    if (!mounted) return;
-    // Capture the messenger before popping so the snackbar is enqueued while
-    // this Scaffold is still registered with it.
-    final messenger = ScaffoldMessenger.of(context);
-    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
-    showUndoSnackBar(
-      messenger,
-      key: const ValueKey('deleted-snackbar'),
-      message: l10n.commonDeletedSnack(title),
-      undoLabel: l10n.commonUndo,
-      accessibleNavigation: accessibleNavigation,
-      onUndo: () => _repos.dances.restore(id, at: DateTime.now().toUtc()),
-    );
-    // Pop without a result: the editor's routes are typed `<void>`/`<String>`
-    // and every caller reloads independently, so navigating back is enough.
-    Navigator.of(context).pop();
+    // Re-entrancy guard (same pattern as `_saving`): a second tap that lands
+    // while the soft-delete is still awaiting would run the whole method
+    // again — a second write and a second `pop()`, which targets the route
+    // *underneath* this one because the first pop is already in flight.
+    setState(() => _deleting = true);
+    var deleted = false;
+    try {
+      // ROADMAP G.7: optional confirm dialog before the (still-undoable) delete.
+      if (!await confirmDeleteIfEnabled(context, itemLabel: title)) return;
+      if (!mounted) return;
+      final now = DateTime.now().toUtc();
+      await _repos.dances.softDelete(id, at: now);
+      if (!mounted) return;
+      // Drop the autosave draft so it can't resurface for a deleted dance.
+      await _controller.clearDraft();
+      if (!mounted) return;
+      deleted = true;
+      // Capture the messenger before popping so the snackbar is enqueued while
+      // this Scaffold is still registered with it.
+      final messenger = ScaffoldMessenger.of(context);
+      final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+      showUndoSnackBar(
+        messenger,
+        key: const ValueKey('deleted-snackbar'),
+        message: l10n.commonDeletedSnack(title),
+        undoLabel: l10n.commonUndo,
+        accessibleNavigation: accessibleNavigation,
+        onUndo: () => _repos.dances.restore(id, at: DateTime.now().toUtc()),
+      );
+      // Pop without a result: the editor's routes are typed `<void>`/`<String>`
+      // and every caller reloads independently, so navigating back is enough.
+      Navigator.of(context).pop();
+    } finally {
+      // Once the delete has gone through the route is on its way out, so the
+      // control stays disabled: re-enabling it during the exit transition would
+      // let a keyboard activation fire a second pop. Declined or failed
+      // deletes re-enable it.
+      if (!deleted && mounted) setState(() => _deleting = false);
+    }
   }
 
   /// Shows the restore/discard dialog for a pending autosave draft.
@@ -819,7 +837,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
                         key: const ValueKey('delete-dance'),
                         tooltip: l10n.danceEditorDeleteDanceTooltip,
                         icon: const Icon(Icons.delete_outline),
-                        onPressed: _delete,
+                        onPressed: _deleting ? null : _delete,
                       ),
                   ],
                 ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/reduce_motion_scope.dart';
 
 /// A self-contained, opt-in **tap-tempo visual metronome** for Perform mode
 /// (issue #366, PM-scoped slice). The caller taps out the beat on a large
@@ -165,8 +166,9 @@ class _TapTempoMetronomeState extends State<TapTempoMetronome>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final reduceMotion =
-        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    // The resolved setting — the in-app override wins over the OS flag in
+    // either direction, as the user guide promises — not the raw OS value.
+    final reduceMotion = ReduceMotionScope.of(context);
     final bpm = _bpm;
     final hasTempo = bpm != null;
 

@@ -358,6 +358,24 @@ abstract class AppLocalizations {
   /// **'Hex'**
   String get colorEditHexLabel;
 
+  /// Screen-reader name of the red channel slider in the shared colour-picker dialog (the visual label is the single letter R).
+  ///
+  /// In en, this message translates to:
+  /// **'Red'**
+  String get colorEditChannelRed;
+
+  /// Screen-reader name of the green channel slider in the shared colour-picker dialog (the visual label is the single letter G).
+  ///
+  /// In en, this message translates to:
+  /// **'Green'**
+  String get colorEditChannelGreen;
+
+  /// Screen-reader name of the blue channel slider in the shared colour-picker dialog (the visual label is the single letter B).
+  ///
+  /// In en, this message translates to:
+  /// **'Blue'**
+  String get colorEditChannelBlue;
+
   /// Title of the Settings screen (sidebar header on wide layouts, app bar on narrow).
   ///
   /// In en, this message translates to:
@@ -4274,6 +4292,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Filter by {label}…'**
   String collectionFacetTextHint(String label);
+
+  /// Tooltip of the clear (×) button inside a text custom-field filter input; empties that one field's filter text.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear filter'**
+  String get collectionFacetTextClearTooltip;
 
   /// Number custom-field filter operator: equal to (symbol).
   ///
@@ -9948,6 +9972,12 @@ abstract class AppLocalizations {
   /// **'Clear (not stated)'**
   String get danceEditorParamClearTooltip;
 
+  /// Error shown under an integer figure parameter field (beats, places) while its text is empty, not a whole number, or outside the allowed range; the draft keeps its last valid value meanwhile.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a whole number from {min} to {max}'**
+  String danceEditorIntParamRangeError(int min, int max);
+
   /// Tooltip for incrementing a numeric figure parameter.
   ///
   /// In en, this message translates to:
@@ -10169,6 +10199,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Programs'**
   String get commandPaletteGroupPrograms;
+
+  /// Screen-reader announcement when the arrow keys move the command-palette highlight: the result's name (title, and its kind or form), then its position among the results shown.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}, {index} of {count}'**
+  String commandPaletteHighlightedResult(String name, int index, int count);
+
+  /// Command-palette result count, shown under the search field and announced as a live region whenever the filter changes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 result} other{{count} results}}'**
+  String commandPaletteResultCount(int count);
+
+  /// Command-palette result count when more titles match than the palette lists (it shows at most a fixed number per group).
+  ///
+  /// In en, this message translates to:
+  /// **'Showing {shown} of {total} results'**
+  String commandPaletteResultCountCapped(int shown, int total);
 
   /// Label for the search field in the collection picker (adding a dance to a program).
   ///

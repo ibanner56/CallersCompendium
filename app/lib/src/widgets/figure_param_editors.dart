@@ -398,6 +398,12 @@ class _IntField extends StatefulWidget {
 class _IntFieldState extends State<_IntField> {
   late final TextEditingController _controller;
 
+  /// Whether the text currently in the field is not a whole number within
+  /// `[min, max]`. Such text is never reported through `onChanged` — the draft
+  /// keeps its last valid value — so the field says so next to itself rather
+  /// than silently showing a number that will not be saved.
+  bool _invalid = false;
+
   @override
   void initState() {
     super.initState();
@@ -413,6 +419,7 @@ class _IntFieldState extends State<_IntField> {
     if (widget.value != old.value &&
         int.tryParse(_controller.text.trim()) != widget.value) {
       _controller.text = widget.value.toString();
+      _invalid = false;
     }
   }
 
@@ -424,18 +431,25 @@ class _IntFieldState extends State<_IntField> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return SizedBox(
       width: 96,
       child: TextField(
         key: ValueKey(widget.fieldKey),
         controller: _controller,
         keyboardType: TextInputType.number,
-        decoration: InputDecoration(labelText: widget.label, isDense: true),
+        decoration: InputDecoration(
+          labelText: widget.label,
+          isDense: true,
+          errorText: _invalid
+              ? l10n.danceEditorIntParamRangeError(widget.min, widget.max)
+              : null,
+        ),
         onChanged: (text) {
           final n = int.tryParse(text.trim());
-          if (n != null && n >= widget.min && n <= widget.max) {
-            widget.onChanged(n);
-          }
+          final valid = n != null && n >= widget.min && n <= widget.max;
+          if (valid) widget.onChanged(n);
+          if (_invalid == valid) setState(() => _invalid = !valid);
         },
       ),
     );

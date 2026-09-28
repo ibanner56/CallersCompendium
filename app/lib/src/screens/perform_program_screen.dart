@@ -186,8 +186,29 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// dance-slot's walkthrough; free-text-only slots have none.
   bool _showWalkthrough = false;
 
+  /// Scroll position of the open walkthrough overlay, driven by the arrow and
+  /// page keys while it is open (see the body's `CallbackShortcuts`).
+  final ScrollController _walkthroughScroll = ScrollController();
+
   void _toggleWalkthrough() {
     setState(() => _showWalkthrough = !_showWalkthrough);
+  }
+
+  /// Keyboard scrolling for the open walkthrough overlay: [lines] of a fixed
+  /// step for the arrow keys, or a whole viewport (`page` set) for the page
+  /// keys. Focus stays on the screen's own node while the overlay is open, so
+  /// the framework's default scroll action never sees the overlay's scroll
+  /// view; this is what gives ↑/↓ their expected meaning there.
+  void _scrollWalkthrough(int direction, {bool page = false}) {
+    if (!_walkthroughScroll.hasClients) return;
+    final position = _walkthroughScroll.position;
+    final step = page ? position.viewportDimension * 0.8 : 64.0;
+    _walkthroughScroll.jumpTo(
+      (position.pixels + direction * step).clamp(
+        position.minScrollExtent,
+        position.maxScrollExtent,
+      ),
+    );
   }
 
   /// Resolves the dance backing [slot], or `null` for a free-text-only slot or
@@ -289,6 +310,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     _timer?.cancel();
     _elapsed.dispose();
     _focusNode.dispose();
+    _walkthroughScroll.dispose();
     super.dispose();
   }
 
@@ -949,14 +971,44 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
               ),
             ),
             body: CallbackShortcuts(
-              bindings: <ShortcutActivator, VoidCallback>{
-                const SingleActivator(LogicalKeyboardKey.arrowRight): _goNext,
-                const SingleActivator(LogicalKeyboardKey.arrowDown): _goNext,
-                const SingleActivator(LogicalKeyboardKey.pageDown): _goNext,
-                const SingleActivator(LogicalKeyboardKey.arrowLeft): _goPrev,
-                const SingleActivator(LogicalKeyboardKey.arrowUp): _goPrev,
-                const SingleActivator(LogicalKeyboardKey.pageUp): _goPrev,
-              },
+              // While the walkthrough overlay is open, slot navigation is
+              // paused on the keyboard exactly as the overlay's barrier pauses
+              // it for pointers (below): pressing ↓ to read further must not
+              // swap the dance underneath. The vertical keys scroll the
+              // walkthrough instead, ←/→ are consumed (left unbound they would
+              // reach the framework's default scroll action, which asserts
+              // when the card and the overlay both hold a scroll position),
+              // and Escape closes the overlay.
+              bindings: _showWalkthrough && hasWalkthrough
+                  ? <ShortcutActivator, VoidCallback>{
+                      const SingleActivator(LogicalKeyboardKey.escape):
+                          _toggleWalkthrough,
+                      const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
+                          _scrollWalkthrough(1),
+                      const SingleActivator(LogicalKeyboardKey.arrowUp): () =>
+                          _scrollWalkthrough(-1),
+                      const SingleActivator(LogicalKeyboardKey.pageDown): () =>
+                          _scrollWalkthrough(1, page: true),
+                      const SingleActivator(LogicalKeyboardKey.pageUp): () =>
+                          _scrollWalkthrough(-1, page: true),
+                      const SingleActivator(LogicalKeyboardKey.arrowRight):
+                          () {},
+                      const SingleActivator(LogicalKeyboardKey.arrowLeft):
+                          () {},
+                    }
+                  : <ShortcutActivator, VoidCallback>{
+                      const SingleActivator(LogicalKeyboardKey.arrowRight):
+                          _goNext,
+                      const SingleActivator(LogicalKeyboardKey.arrowDown):
+                          _goNext,
+                      const SingleActivator(LogicalKeyboardKey.pageDown):
+                          _goNext,
+                      const SingleActivator(LogicalKeyboardKey.arrowLeft):
+                          _goPrev,
+                      const SingleActivator(LogicalKeyboardKey.arrowUp):
+                          _goPrev,
+                      const SingleActivator(LogicalKeyboardKey.pageUp): _goPrev,
+                    },
               child: Focus(
                 focusNode: _focusNode,
                 autofocus: true,
@@ -994,9 +1046,11 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                         ),
                       ),
                       // Walkthrough overlay sits ABOVE the edge hit zones so
-                      // reading it doesn't trigger prev/next navigation, and is
-                      // a sibling of the card — never routed through its
-                      // `_FitToHeight` — so it can't shrink the notation (#370).
+                      // reading it doesn't trigger prev/next navigation (the
+                      // keyboard bindings above are paused for the same
+                      // reason), and is a sibling of the card — never routed
+                      // through its `_FitToHeight` — so it can't shrink the
+                      // notation (#370).
                       if (_showWalkthrough && hasWalkthrough)
                         Positioned.fill(
                           child: PerformWalkthroughOverlay(
@@ -1004,6 +1058,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                             renderer: widget.renderer,
                             dialect: dialect,
                             onClose: _toggleWalkthrough,
+                            scrollController: _walkthroughScroll,
                           ),
                         ),
                     ],

@@ -2530,6 +2530,42 @@ void main() {
       expect(find.byKey(const ValueKey('save-dance')), findsOneWidget);
       expect(find.byKey(const ValueKey('delete-dance')), findsNothing);
     });
+
+    testWidgets(
+      'a second tap on Delete while the first write is in flight is ignored',
+      (tester) async {
+        // Re-entrancy guard on `_delete`, mirroring `_saving`. Without it both
+        // taps run to completion: two soft-deletes and two pops, the second of
+        // which lands on the route *under* the editor. Gate `softDelete` so the
+        // window is deterministic.
+        final db = openWidgetTestDatabase();
+        final dances = _GatedDanceRepository(db, contraTaxonomy);
+        final repos = CompendiumRepositories(
+          db,
+          contraTaxonomy,
+          dances: dances,
+        );
+        await repos.dances.create(_dance(id: 'd1', title: 'Doomed Dance'));
+        await _pumpEditor(tester, repos, danceId: 'd1');
+
+        final delete = find.byKey(const ValueKey('delete-dance'));
+        await tester.tap(delete);
+        await tester.pump();
+        expect(dances.softDeleteCalls, 1);
+        await tester.tap(delete, warnIfMissed: false);
+        await tester.pump();
+
+        dances.release();
+        await tester.pumpAndSettle();
+
+        expect(dances.softDeleteCalls, 1);
+        // Exactly one pop: back on the launcher route, not past it.
+        expect(find.byType(DanceEditorScreen), findsNothing);
+        expect(find.text('open'), findsOneWidget);
+        expect(find.byKey(const ValueKey('deleted-snackbar')), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
   });
 
   group('lingo strikethrough on prose fields', () {
@@ -3078,5 +3114,25 @@ class _RefusingChoreographerRepository extends ChoreographerRepository {
         holderId: 'c1',
       ),
     );
+  }
+}
+
+/// A [DanceRepository] whose [softDelete] suspends on a gate until [release]
+/// is called, so a test can land a second tap inside the write's window.
+class _GatedDanceRepository extends DanceRepository {
+  _GatedDanceRepository(super.db, super.taxonomy);
+
+  final Completer<void> _gate = Completer<void>();
+  int softDeleteCalls = 0;
+
+  void release() {
+    if (!_gate.isCompleted) _gate.complete();
+  }
+
+  @override
+  Future<void> softDelete(String id, {required DateTime at}) async {
+    softDeleteCalls++;
+    await _gate.future;
+    await super.softDelete(id, at: at);
   }
 }

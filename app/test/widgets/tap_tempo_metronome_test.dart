@@ -1,3 +1,4 @@
+import 'package:compendium_app/src/data/reduce_motion_scope.dart';
 import 'package:compendium_app/src/widgets/tap_tempo_metronome.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -5,11 +6,17 @@ import '../support/l10n_harness.dart';
 
 /// Pumps a [TapTempoMetronome] whose clock returns whatever [now] currently
 /// points at, so tests can advance time deterministically between taps.
+///
+/// [reduceMotionOverride] installs a [ReduceMotionScope] carrying the in-app
+/// tri-state override (`null` = follow the OS `disableAnimations` value).
 Future<void> _pumpMetronome(
   WidgetTester tester, {
   required DateTime Function() now,
   bool disableAnimations = false,
+  bool? reduceMotionOverride,
 }) async {
+  final override = ValueNotifier<bool?>(reduceMotionOverride);
+  addTearDown(override.dispose);
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
@@ -23,12 +30,17 @@ Future<void> _pumpMetronome(
         data: MediaQuery.of(
           context,
         ).copyWith(disableAnimations: disableAnimations),
-        child: child!,
+        child: ReduceMotionScope(notifier: override, child: child!),
       ),
       home: Scaffold(body: TapTempoMetronome(clock: now)),
     ),
   );
 }
+
+/// The scaling beat visual exists only in motion mode; under reduced motion
+/// the target swaps to a discrete fill step with no [Transform].
+Finder get _beatScaleTransform =>
+    find.descendant(of: _target, matching: find.byType(Transform));
 
 Finder get _target => find.byKey(const ValueKey('tap-tempo-target'));
 Finder get _readout => find.byKey(const ValueKey('tap-tempo-readout'));
@@ -199,6 +211,44 @@ void main() {
       // Readout is exposed as spoken beats-per-minute, not just the glyph.
       expect(find.bySemanticsLabel('120 beats per minute'), findsWidgets);
       handle.dispose();
+    });
+
+    group('in-app Reduce motion override', () {
+      // The user guide promises the in-app switch overrides the OS setting
+      // "in either direction"; the metronome must read the resolved value
+      // (`ReduceMotionScope.of`), not the raw OS flag.
+      testWidgets('override ON with the OS setting off removes the scaling', (
+        tester,
+      ) async {
+        await _pumpMetronome(
+          tester,
+          now: () => DateTime(2026),
+          disableAnimations: false,
+          reduceMotionOverride: true,
+        );
+        expect(_beatScaleTransform, findsNothing);
+      });
+
+      testWidgets('override OFF with the OS setting on restores the scaling', (
+        tester,
+      ) async {
+        await _pumpMetronome(
+          tester,
+          now: () => DateTime(2026),
+          disableAnimations: true,
+          reduceMotionOverride: false,
+        );
+        expect(_beatScaleTransform, findsOneWidget);
+      });
+
+      testWidgets('no override follows the OS setting', (tester) async {
+        await _pumpMetronome(
+          tester,
+          now: () => DateTime(2026),
+          disableAnimations: true,
+        );
+        expect(_beatScaleTransform, findsNothing);
+      });
     });
   });
 }

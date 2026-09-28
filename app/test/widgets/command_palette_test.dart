@@ -180,4 +180,91 @@ void main() {
       expect(tileRect.bottom, lessThanOrEqualTo(dialogRect.bottom + 0.5));
     },
   );
+
+  group('assistive technology', () {
+    // Arrow-key movement keeps focus in the text field, so a screen reader
+    // never hears which row Enter will open unless the palette says so;
+    // `ListTile.selected` only flips a flag on an unfocused node.
+    testWidgets('moving the highlight announces the highlighted result', (
+      tester,
+    ) async {
+      final TestDefaultBinaryMessenger messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      final announcements = <String>[];
+      messenger.setMockMessageHandler(SystemChannels.accessibility.name, (
+        ByteData? message,
+      ) async {
+        final decoded = SystemChannels.accessibility.codec.decodeMessage(
+          message,
+        );
+        if (decoded is Map && decoded['type'] == 'announce') {
+          final data = decoded['data'] as Map;
+          announcements.add(data['message'] as String);
+        }
+        return null;
+      });
+      addTearDown(
+        () => messenger.setMockMessageHandler(
+          SystemChannels.accessibility.name,
+          null,
+        ),
+      );
+
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance('d1', 'Alpha Reel'));
+      await repos.dances.create(_dance('d2', 'Beta Jig'));
+      await _openPalette(tester, repos);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+
+      expect(announcements, hasLength(1));
+      expect(announcements.single, contains('Beta Jig'));
+      expect(announcements.single, contains('2 of 2'));
+
+      // The highlighted row is also flagged selected for AT that inspects it.
+      final handle = tester.ensureSemantics();
+      expect(
+        tester.getSemantics(
+          find.byKey(const ValueKey('command-result-dance-d2')),
+        ),
+        isSemantics(isSelected: true),
+      );
+      handle.dispose();
+    });
+
+    testWidgets('the result count is a live region that tracks the filter', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance('d1', 'Alpha Reel'));
+      await repos.dances.create(_dance('d2', 'Beta Jig'));
+      await repos.programs.create(_program('p1', 'Spring Social'));
+      await _openPalette(tester, repos);
+
+      Finder liveRegionWith(String text) => find.ancestor(
+        of: find.text(text),
+        matching: find.byWidgetPredicate(
+          (w) => w is Semantics && (w.properties.liveRegion ?? false),
+        ),
+      );
+
+      expect(liveRegionWith('3 results'), findsOneWidget);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('command-palette-field')),
+        'beta',
+      );
+      await tester.pumpAndSettle();
+      expect(liveRegionWith('1 result'), findsOneWidget);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('command-palette-field')),
+        'zzz',
+      );
+      await tester.pumpAndSettle();
+      // The empty state is announced the same way.
+      expect(liveRegionWith('No matches for that search.'), findsOneWidget);
+    });
+  });
 }

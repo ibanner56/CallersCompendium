@@ -118,6 +118,11 @@ control suits you and your setup:
   to go forward — easy to hit without looking; or
 - the **arrow keys** or **Page Up** / **Page Down** on a keyboard.
 
+While the walkthrough overlay is open, none of these change your slot: taps on
+the card are absorbed, the **up**, **down**, **Page Up** and **Page Down** keys
+scroll the walkthrough itself, and **Esc** closes it — so reading ahead can't
+move you off the dance you are calling.
+
 Between the two buttons, **Slot N of M** shows where you are. A dance and its
 alternates count as one slot, so stepping forward skips past the alternates.
 

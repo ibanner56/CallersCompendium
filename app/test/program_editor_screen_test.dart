@@ -671,6 +671,47 @@ void main() {
     expect(await repos.programs.getById('p1', includeDeleted: true), isNotNull);
   });
 
+  testWidgets(
+    'a second tap on delete while the first write is in flight is ignored',
+    (tester) async {
+      // Re-entrancy guard on `_delete`, mirroring `_saving`. Without it both
+      // taps run: two soft-deletes and two `onDeleted` callbacks (two pops in
+      // routed mode). Gate `softDelete` so the window is deterministic.
+      final db = openWidgetTestDatabase();
+      final programs = _GatedProgramRepository(db);
+      final repos = CompendiumRepositories(
+        db,
+        contraTaxonomy,
+        programs: programs,
+      );
+      await repos.programs.create(_program(id: 'p1', title: 'Doomed'));
+      var deletedCalls = 0;
+      await _pump(
+        tester,
+        repos,
+        programId: 'p1',
+        onDeleted: () => deletedCalls++,
+      );
+
+      final delete = find.byKey(const ValueKey('delete-program'));
+      await tester.tap(delete);
+      await tester.pump();
+      // Let the queued auto-commit tail settle so the soft-delete has started.
+      await tester.pump();
+      expect(programs.softDeleteCalls, 1);
+      await tester.tap(delete, warnIfMissed: false);
+      await tester.pump();
+      await tester.pump();
+
+      programs.release();
+      await tester.pumpAndSettle();
+
+      expect(programs.softDeleteCalls, 1);
+      expect(deletedCalls, 1);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   // --- Phase 4.2 builder -----------------------------------------------------
 
   testWidgets('adds a dance slot from the inline picker', (tester) async {
@@ -4538,4 +4579,24 @@ void main() {
       },
     );
   });
+}
+
+/// A [ProgramRepository] whose [softDelete] suspends on a gate until [release]
+/// is called, so a test can land a second tap inside the write's window.
+class _GatedProgramRepository extends ProgramRepository {
+  _GatedProgramRepository(super.db);
+
+  final Completer<void> _gate = Completer<void>();
+  int softDeleteCalls = 0;
+
+  void release() {
+    if (!_gate.isCompleted) _gate.complete();
+  }
+
+  @override
+  Future<void> softDelete(String id, {required DateTime at}) async {
+    softDeleteCalls++;
+    await _gate.future;
+    await super.softDelete(id, at: at);
+  }
 }
