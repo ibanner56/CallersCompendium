@@ -1043,10 +1043,10 @@ class CompendiumArchiveImporter {
 
   /// Builds the *original*-archive-dance-id → new-Compendium-dance-id map.
   ///
-  /// [GenericJsonAdapter] keys each committed record's `externalId` as
-  /// `dance.provenance?.externalId ?? dance.id`, so this correlates the
-  /// archive's dances (by that same key) with the committed records to recover
-  /// the association from the archive's *original* dance id to the id the commit
+  /// [GenericJsonAdapter] keys each committed record's `externalId` with
+  /// [GenericJsonAdapter.externalIdFor], so this correlates the archive's
+  /// dances (by that same key) with the committed records to recover the
+  /// association from the archive's *original* dance id to the id the commit
   /// minted (or matched, on dedupe). Records that were skipped or failed
   /// contribute nothing, so a slot referencing them degrades gracefully.
   Map<String, String> _danceIdByOriginalId(
@@ -1059,12 +1059,14 @@ class CompendiumArchiveImporter {
       final externalId = record.externalId;
       if (!record.succeeded || danceId == null) continue;
       if (externalId == null || externalId.isEmpty) continue;
-      committedByExternalId[externalId] = danceId; // last-wins on rare dupes
+      // Unique per batch: `ImportPipeline.plan` drops a repeated
+      // `(source, externalId)` before it can be committed twice.
+      committedByExternalId[externalId] = danceId;
     }
 
     final byOriginalId = <String, String>{};
     for (final dance in archive.dances) {
-      final key = dance.provenance?.externalId ?? dance.id;
+      final key = GenericJsonAdapter.externalIdFor(dance);
       final committed = committedByExternalId[key];
       if (committed != null) byOriginalId[dance.id] = committed;
     }

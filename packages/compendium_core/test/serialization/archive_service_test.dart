@@ -393,6 +393,17 @@ void main() {
         // A stale row that is NOT in the archive must be gone after a replace.
         // ignore: unused_result
         await repos.tags.upsert(Tag(id: 'stale', name: 'stale-tag'));
+        // Published-collection import history is not carried by the archive
+        // either, so a replace must clear it too — or the catalog keeps
+        // claiming "Imported v3" over a dataset that no longer holds it.
+        await repos.collectionImports.record(
+          CollectionImportEvent(
+            collectionId: 'stale-collection',
+            version: '3',
+            archiveDigest: 'digest-3',
+            importedAt: DateTime.utc(2026, 7, 1),
+          ),
+        );
         final archive = await ArchiveExporter(repos).export();
         // The exported archive predates the stale tag only if we re-read; instead
         // build an archive without it explicitly.
@@ -411,6 +422,11 @@ void main() {
         final tags = await repos.tags.listAll();
         expect(tags.map((t) => t.id), isNot(contains('stale')));
         expect(tags.map((t) => t.id), contains('t1'));
+        expect(
+          await repos.collectionImports.listAll(),
+          isEmpty,
+          reason: 'replace makes the archive the whole dataset',
+        );
 
         // Dances are not duplicated by the restore.
         final dances = await repos.dances.listAll(includeDeleted: true);

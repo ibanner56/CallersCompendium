@@ -5292,6 +5292,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Et relateret-dans-link pegede på en dans, der ikke blev importeret; linket blev sprunget over.';
 
   @override
+  String get importIssueDuplicateExternalIdInBatch =>
+      'Kilden angav denne dans to gange i én import; den gentagne kopi blev udeladt.';
+
+  @override
   String get importDateFieldComposed => 'komponeret';
 
   @override

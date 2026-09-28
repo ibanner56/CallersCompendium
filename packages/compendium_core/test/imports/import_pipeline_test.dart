@@ -334,6 +334,46 @@ void main() {
     });
   });
 
+  group('autoResolveAmbiguous', () {
+    test('never links on a title that normalizes to nothing', () async {
+      // '花' and '月' both fold to '' under `normalizeTitle`, and two dances
+      // with no figures have equal choreography fingerprints — so the
+      // exact-normalized-title gate passed on '' == '' and the content check
+      // then linked two unrelated dances. The verdict is hand-built because
+      // fuzzy scoring no longer produces one for empty titles; this guards the
+      // resolver itself against any caller that does.
+      final seeded = await pipeline.commit(
+        await pipeline.plan(
+          FakeSourceAdapter([record('fake-1', '花')]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+      );
+      final existingId = seeded.insertedDanceIds.single;
+
+      final adapter = FakeSourceAdapter([record('fake-2', '月')]);
+      final discovered = await adapter.discover(const ImportRequest());
+      final draft = adapter.parse(await adapter.fetch(discovered.single));
+      final batch = ImportBatchResult(
+        records: [
+          ImportRecordPlan(
+            draft: draft,
+            verdict: DedupeVerdict.ambiguous([
+              DedupeCandidate(danceId: existingId, score: 1.0),
+            ]),
+          ),
+        ],
+      );
+
+      final resolutions = await pipeline.autoResolveAmbiguous(
+        batch,
+        authorNamesOf: (_) => const [],
+      );
+      expect(resolutions[0]?.kind, DedupeResolutionKind.duplicate);
+    });
+  });
+
   group('variation resolution (issue #686)', () {
     // #686: a confident title+author match whose figures DIFFER resolves to
     // `.variation` — a distinct new dance, optionally linked back to the
@@ -470,6 +510,94 @@ void main() {
       expect(batch.records, isEmpty);
       expect(batch.errors.single.stage, ImportStage.discover);
     });
+
+    test('a second record with the same (source, externalId) in one batch is '
+        'dropped, and the kept record says so', () async {
+      // The dedupe index is a pre-batch snapshot, so both copies were `isNew`
+      // and both were created — two dances with one provenance key, which a
+      // later re-import could then only match one of.
+      final adapter = FakeSourceAdapter([
+        record('dup', 'First Copy'),
+        record('other', 'Other Dance'),
+        record('dup', 'Second Copy'),
+      ]);
+      final batch = await pipeline.plan(adapter, const ImportRequest());
+
+      expect(batch.errors, isEmpty);
+      expect(batch.records.map((r) => r.draft.dance.title), [
+        'First Copy',
+        'Other Dance',
+      ], reason: 'the first occurrence is kept, in discovery order');
+      final kept = batch.records.first.draft;
+      final issue = kept.issues.singleWhere(
+        (i) => i.code == 'duplicate_external_id_in_batch',
+      );
+      expect(issue.severity, ImportIssueSeverity.warning);
+      expect(
+        batch.records[1].draft.issues.map((i) => i.code),
+        isNot(contains('duplicate_external_id_in_batch')),
+      );
+
+      final session = await pipeline.commit(batch, now: now, newId: nextId);
+      expect(session.committedCount, 2);
+      final all = await dances.listAll();
+      expect(
+        all.where((d) => d.provenance?.externalId == 'dup'),
+        hasLength(1),
+        reason: 'one dance per (source, externalId)',
+      );
+    });
+
+    test('two records from different sources that only share a legacy alias '
+        'do not both reimport the same dance', () async {
+      // Pre-namespacing behaviour recorded a bundled dance under its bare
+      // upstream id, regardless of which upstream source it came from — so
+      // a library that received one dance under the old scheme holds a
+      // legacy `(json, "457")` row. A bundle can now contain a *different*
+      // dance from each of two upstream sources that both used id 457; each
+      // independently falls back to that same bare alias, and letting both
+      // reimport would overwrite the one existing dance twice and map two
+      // program slots onto it (row 2's data-loss case).
+      await dances.create(
+        Dance(
+          id: 'existing',
+          title: 'Old Title',
+          provenance: Provenance(
+            source: ProvenanceSource.json,
+            externalId: '457',
+            importedAt: now,
+          ),
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+
+      // GenericJsonAdapter's own RawRecord.source is always `json` (the
+      // *receiving* adapter's source); the upstream source only shows up
+      // namespaced into the externalId, which is what these two ids model.
+      final adapter = FakeSourceAdapter(
+        [
+          record('contradb:457', 'Fresh From ContraDB'),
+          record('callersbox:457', 'Fresh From Callers Box'),
+        ],
+        priorExternalIdsById: {
+          'contradb:457': const ['457'],
+          'callersbox:457': const ['457'],
+        },
+      );
+      final batch = await pipeline.plan(adapter, const ImportRequest());
+
+      expect(batch.errors, isEmpty);
+      expect(batch.records, hasLength(2));
+      expect(
+        batch.records.map((r) => r.verdict.kind),
+        everyElement(isNot(DedupeKind.reimport)),
+        reason:
+            'a legacy alias claimed by two distinct current keys in this '
+            'batch must not resolve either of them to a reimport of the '
+            'same existing dance',
+      );
+    });
   });
 
   group('undo', () {
@@ -514,6 +642,49 @@ void main() {
       await pipeline.undo(s2);
       final restored = (await dances.getById(id))!;
       expect(restored.title, 'Before');
+    });
+
+    test('restores a dance two rows linked to in one batch to its true '
+        'pre-import state, not the intermediate one', () async {
+      final seeded = await pipeline.commit(
+        await pipeline.plan(
+          FakeSourceAdapter([record('fake-1', 'The Nice Combination')]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+      );
+      final targetId = seeded.insertedDanceIds.single;
+
+      // Two review rows (both fuzzy-ambiguous against the seeded dance), both
+      // resolved "Link to <The Nice Combination>". The prior state captured
+      // for the second link is the first link's result, so a forward-order
+      // restore left the dance at 'Nice Combination'.
+      final batch = await pipeline.plan(
+        FakeSourceAdapter([
+          record('fake-2', 'Nice Combination'),
+          record('fake-3', 'A Nice Combination'),
+        ]),
+        const ImportRequest(),
+      );
+      expect(batch.records.map((r) => r.verdict.isAmbiguous), [true, true]);
+      final session = await pipeline.commit(
+        batch,
+        now: DateTime.utc(2026, 9, 1),
+        newId: nextId,
+        resolutions: {
+          0: DedupeResolution.link(targetId),
+          1: DedupeResolution.link(targetId),
+        },
+      );
+      expect(session.records.map((r) => r.action), [
+        CommitAction.link,
+        CommitAction.link,
+      ]);
+      expect((await dances.getById(targetId))!.title, 'A Nice Combination');
+
+      await pipeline.undo(session);
+      expect((await dances.getById(targetId))!.title, 'The Nice Combination');
     });
     group('author name resolution', () {
       Future<List<String>> authorNamesOf(String danceId) async {

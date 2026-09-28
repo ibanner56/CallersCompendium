@@ -5329,6 +5329,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Een link naar een verwante dans verwees naar een dans die niet is geïmporteerd; de link is overgeslagen.';
 
   @override
+  String get importIssueDuplicateExternalIdInBatch =>
+      'De bron vermeldde deze dans twee keer in één import; de herhaalde kopie is weggelaten.';
+
+  @override
   String get importDateFieldComposed => 'gecomponeerd';
 
   @override

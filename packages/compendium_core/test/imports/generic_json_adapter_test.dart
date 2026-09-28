@@ -287,6 +287,103 @@ void main() {
       expect(draft.dance.provenance, isNull);
     });
 
+    test(
+      'an upstream (non-json) externalId is namespaced by its source',
+      () async {
+        // ContraDB #457 and The Caller's Box #457 are unrelated dances; the bare
+        // upstream id would make them one `(json, "457")` key.
+        Dance withUpstream(String id, ProvenanceSource source) => _dance(
+          id,
+          'Shared',
+          provenance: Provenance(
+            source: source,
+            externalId: '457',
+            importedAt: _now,
+          ),
+        );
+        final json = encodeArchive(
+          _archive([
+            withUpstream('a', ProvenanceSource.contradb),
+            withUpstream('b', ProvenanceSource.callersbox),
+          ]),
+        );
+        final adapter = GenericJsonAdapter();
+        final discovered = await adapter.discover(ImportRequest(payload: json));
+
+        expect(discovered.map((r) => r.externalId), [
+          'contradb:457',
+          'callersbox:457',
+        ]);
+        final draft = await _importOne(adapter, discovered.first);
+        expect(draft.raw.externalId, 'contradb:457');
+        // The key the same dance was received under before the namespace
+        // existed, so a library holding it still sees a re-import.
+        expect(draft.raw.priorExternalIds, ['457']);
+      },
+    );
+
+    test('a json-sourced externalId is already a receive key and passes '
+        'through unchanged, with no legacy fallback', () async {
+      final json = encodeArchive(
+        _archive([
+          _dance(
+            'a',
+            'Shared',
+            provenance: Provenance(
+              source: ProvenanceSource.json,
+              externalId: 'contradb:457',
+              importedAt: _now,
+            ),
+          ),
+        ]),
+      );
+      final adapter = GenericJsonAdapter();
+      final discovered = await adapter.discover(ImportRequest(payload: json));
+      final draft = await _importOne(adapter, discovered.single);
+      expect(draft.raw.externalId, 'contradb:457');
+      expect(draft.raw.priorExternalIds, isEmpty);
+    });
+
+    test('a dance received under the bare upstream id re-imports through the '
+        'pipeline (legacy key fallback)', () async {
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final dances = DanceRepository(db, contraTaxonomy);
+      final pipeline = ImportPipeline(dances, ChoreographerRepository(db));
+      await dances.create(
+        _dance(
+          'recv-1',
+          'Shared',
+          provenance: Provenance(
+            source: ProvenanceSource.json,
+            externalId: '457',
+            importedAt: _now,
+          ),
+        ),
+      );
+      final json = encodeArchive(
+        _archive([
+          _dance(
+            'orig-1',
+            'Shared',
+            provenance: Provenance(
+              source: ProvenanceSource.contradb,
+              externalId: '457',
+              importedAt: _now,
+            ),
+          ),
+        ]),
+      );
+
+      final batch = await pipeline.plan(
+        GenericJsonAdapter(),
+        ImportRequest(payload: json),
+      );
+      final verdict = batch.records.single.verdict;
+      expect(verdict.kind, DedupeKind.reimport);
+      expect(verdict.targetDanceId, 'recv-1');
+    });
+
     group('parse-never-fails', () {
       test('a fully-custom dance parses without error', () async {
         final json = encodeArchive(

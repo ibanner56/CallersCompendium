@@ -5360,6 +5360,10 @@
   "@importIssueRelatedDanceUnresolved": {
     "x-sourceSha256": "bba25e9dd4ee333366e59c43e5d719bc4aa1cfd46800300b452a2c18dcb4fbb2"
   },
+  "importIssueDuplicateExternalIdInBatch": "ソースが1回のインポートでこのダンスを2回挙げていました。重複したコピーは除外されました。",
+  "@importIssueDuplicateExternalIdInBatch": {
+    "x-sourceSha256": "a721c8fdd47e0247b9bf1162c5de8bf4118aa46c07018e171d984e9a1233a8d2"
+  },
   "importDateFieldComposed": "振付",
   "@importDateFieldComposed": {
     "x-sourceSha256": "5823ce42f83a0e9c6677267a685a2fa2e2c9e2e370393138a71698579fb71c44"

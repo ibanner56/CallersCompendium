@@ -5099,6 +5099,10 @@ class AppLocalizationsJa extends AppLocalizations {
       '関連ダンスのリンクがインポートされていないダンスを参照していたため、リンクはスキップされました。';
 
   @override
+  String get importIssueDuplicateExternalIdInBatch =>
+      'ソースが1回のインポートでこのダンスを2回挙げていました。重複したコピーは除外されました。';
+
+  @override
   String get importDateFieldComposed => '振付';
 
   @override

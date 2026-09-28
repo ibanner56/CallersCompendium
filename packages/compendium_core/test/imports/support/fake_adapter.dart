@@ -35,6 +35,7 @@ class FakeSourceAdapter implements SourceAdapter {
     this.failFetchExternalIds = const {},
     this.discoverThrows = false,
     this.difficultyLevelLabel,
+    this.priorExternalIdsById = const {},
   });
 
   /// The source-native records, each a decoded JSON object.
@@ -51,6 +52,9 @@ class FakeSourceAdapter implements SourceAdapter {
   final bool discoverThrows;
 
   final String? difficultyLevelLabel;
+
+  /// Per-record [RawRecord.priorExternalIds], keyed by record id.
+  final Map<String, List<String>> priorExternalIdsById;
 
   @override
   Future<List<DiscoveredRecord>> discover(ImportRequest request) async {
@@ -81,6 +85,7 @@ class FakeSourceAdapter implements SourceAdapter {
     return RawRecord(
       source: source,
       externalId: externalId,
+      priorExternalIds: priorExternalIdsById[externalId] ?? const [],
       sourceVersion: obj['version'] as String?,
       payload: jsonEncode(obj),
       contentType: 'application/json',

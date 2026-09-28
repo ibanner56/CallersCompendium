@@ -8193,6 +8193,12 @@ abstract class AppLocalizations {
   /// **'A related-dance link pointed at a dance that wasn\'t imported; the link was skipped.'**
   String get importIssueRelatedDanceUnresolved;
 
+  /// Import note shown on the kept record when a source produced two records with the same stable id in a single import batch; the later copy was dropped so only one dance is created under that id. Generic on purpose: never echoes the raw id or title.
+  ///
+  /// In en, this message translates to:
+  /// **'The source listed this dance twice in one import; the repeated copy was left out.'**
+  String get importIssueDuplicateExternalIdInBatch;
+
   /// Lowercase name of the 'composed' dance date field, inserted into import notes such as 'The {field} date couldn't be read'. Matches the danceEditorComposedLabel term.
   ///
   /// In en, this message translates to:

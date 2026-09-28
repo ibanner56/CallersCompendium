@@ -174,7 +174,9 @@ class ImportSession {
   /// Ids of dances newly inserted by this batch.
   List<String> get insertedDanceIds => _insertedDanceIds;
 
-  /// Prior snapshots of dances this batch updated (for rollback).
+  /// Prior snapshots of dances this batch updated (for rollback): one per
+  /// dance, taken before the batch's *first* write to it, however many rows
+  /// resolved onto it.
   List<Dance> get updatedDancePriorStates => _priorStates;
 
   /// Ids of [Choreographer] rows newly created while resolving author names in
@@ -199,6 +201,26 @@ class ImportSession {
   /// True once [ImportPipeline.undo] has reverted this batch.
   bool get isUndone => _undone;
   bool _undone = false;
+}
+
+/// One record mid-[ImportPipeline.plan]: fetched and parsed, but not yet
+/// carrying a dedupe verdict. Verdicts are assigned in a second pass over the
+/// whole batch (see [ImportPipeline.plan]) so a legacy-alias collision between
+/// *distinct* current keys — two dances that only agree on a pre-namespacing
+/// alias — can be caught before either is committed to a `reimport` verdict.
+class _PendingPlanRecord {
+  _PendingPlanRecord({
+    required this.raw,
+    required this.draft,
+    required this.externalKey,
+  });
+
+  final RawRecord raw;
+  final StructuredDraft draft;
+
+  /// `${source.name}\u0000$externalId`, or `null` when the record carries no
+  /// external id — matches [ImportPipeline.plan]'s `firstIndexByExternalKey`.
+  final String? externalKey;
 }
 
 /// Drives a [SourceAdapter] through the full pipeline: `discover → fetch →
@@ -297,8 +319,15 @@ class ImportPipeline {
       for (final level in configuredLevels ?? const <DifficultyLevel>[])
         _normalizeName(level.label): level,
     };
-    final records = <ImportRecordPlan>[];
     final errors = <ImportError>[];
+    // `(source, externalId)` → index into `pending` of the first planned
+    // record carrying it. [dedupe] is a pre-batch snapshot and never learns
+    // about planned records, so without this a source that lists one id twice
+    // (a `.USR` FileMaker record-id fallback colliding with a real zk id, say)
+    // planned both as `isNew` and committed two dances under one provenance
+    // key — which a later re-import could then only ever match one of.
+    final firstIndexByExternalKey = <String, int>{};
+    final pending = <_PendingPlanRecord>[];
     for (final record in discovered) {
       RawRecord raw;
       try {
@@ -344,15 +373,94 @@ class ImportPipeline {
         continue;
       }
 
+      final externalId = raw.externalId;
+      final externalKey = externalId == null || externalId.isEmpty
+          ? null
+          : '${raw.source.name}\u0000$externalId';
+      final firstIndex = externalKey == null
+          ? null
+          : firstIndexByExternalKey[externalKey];
+      if (firstIndex != null) {
+        // Drop the repeat and say so on the record that is kept — the dropped
+        // one has no row of its own for the note to appear on.
+        final first = pending[firstIndex];
+        pending[firstIndex] = _PendingPlanRecord(
+          raw: first.raw,
+          draft: first.draft.copyWith(
+            issues: [
+              ...first.draft.issues,
+              ImportIssue(
+                severity: ImportIssueSeverity.warning,
+                code: 'duplicate_external_id_in_batch',
+                message:
+                    'The source listed ${raw.source.name}:$externalId again '
+                    'later in this batch ("${draft.dance.title}"); that '
+                    'repeat was left out in favour of this record.',
+              ),
+            ],
+          ),
+          externalKey: first.externalKey,
+        );
+        continue;
+      }
+
+      if (externalKey != null) {
+        firstIndexByExternalKey[externalKey] = pending.length;
+      }
+      pending.add(
+        _PendingPlanRecord(raw: raw, draft: draft, externalKey: externalKey),
+      );
+    }
+
+    // A legacy alias (the bare upstream id `GenericJsonAdapter` keyed a
+    // bundled dance under before receive keys carried the upstream source) is
+    // only trustworthy as a reimport target when exactly one current key in
+    // this batch resolves to it. [dedupe] is a pre-batch snapshot, so two
+    // dances that only share that alias — e.g. a bundle's `contradb:457` and
+    // `callersbox:457` both falling back to the legacy bare `457` — would
+    // otherwise each independently resolve to the same existing dance and
+    // both commit as `reimport`, overwriting it twice and mapping two program
+    // slots onto one dance (the data-loss case this PR fixes). Collect every
+    // claim before assigning any verdict so a collision is caught regardless
+    // of processing order, and regardless of which record it is discovered
+    // through.
+    final legacyTargetByIndex = <int, String>{};
+    final claimantsByLegacyTarget = <String, Set<String>>{};
+    for (var i = 0; i < pending.length; i++) {
+      final raw = pending[i].raw;
+      if (dedupe.findByExternalId(raw.source, raw.externalId) != null) {
+        continue; // An exact current-key match never consults legacy aliases.
+      }
+      for (final prior in raw.priorExternalIds) {
+        final legacyTarget = dedupe.findByExternalId(raw.source, prior);
+        if (legacyTarget == null) continue;
+        legacyTargetByIndex[i] = legacyTarget;
+        (claimantsByLegacyTarget[legacyTarget] ??= {}).add(
+          pending[i].externalKey ?? '#$i',
+        );
+        break;
+      }
+    }
+
+    final records = <ImportRecordPlan>[];
+    for (var i = 0; i < pending.length; i++) {
+      final p = pending[i];
+      final legacyTarget = legacyTargetByIndex[i];
+      final legacyCollision =
+          legacyTarget != null &&
+          claimantsByLegacyTarget[legacyTarget]!.length > 1;
       try {
         final verdict = dedupe.verdictFor(
-          source: raw.source,
-          externalId: raw.externalId,
-          title: draft.dance.title,
-          authorNames: await _dedupeAuthorNames(draft),
+          source: p.raw.source,
+          externalId: p.raw.externalId,
+          // Suppressed on a collision so `verdictFor` falls through to fuzzy
+          // matching instead of reimporting onto a contested legacy target.
+          priorExternalIds: legacyCollision ? const [] : p.raw.priorExternalIds,
+          title: p.draft.dance.title,
+          authorNames: await _dedupeAuthorNames(p.draft),
           threshold: threshold,
         );
-        records.add(ImportRecordPlan(draft: draft, verdict: verdict));
+        records.add(ImportRecordPlan(draft: p.draft, verdict: verdict));
       } on ImportError catch (e) {
         errors.add(e);
       } catch (e) {
@@ -361,7 +469,7 @@ class ImportPipeline {
             stage: ImportStage.dedupe,
             source: adapter.source,
             message: 'Failed to dedupe record: $e',
-            externalId: raw.externalId ?? record.externalId,
+            externalId: p.raw.externalId,
             cause: e,
           ),
         );
@@ -451,6 +559,13 @@ class ImportPipeline {
     final committed = <CommittedRecord>[];
     final insertedIds = <String>[];
     final priorStates = <Dance>[];
+    // Ids whose pre-import state is already in `priorStates`. Two rows can
+    // resolve onto one target in a batch (both linked to it, or one linked and
+    // one a variation with link-back); the second read then sees the first
+    // write, and restoring that "prior" on undo left the dance at an
+    // intermediate state. Capture once per target, as the program ledger in
+    // `CompendiumArchiveImporter.commit` (`priorCapturedFor`) does.
+    final priorCapturedFor = <String>{};
 
     // Batch-scoped author resolution state. Seeded from the current
     // choreographers (normalized name → id) so imported names match existing
@@ -565,7 +680,7 @@ class ImportPipeline {
               includeDeleted: true,
             );
             if (target != null) {
-              priorStates.add(target);
+              if (priorCapturedFor.add(target.id)) priorStates.add(target);
               await _dances.update(
                 target.copyWith(
                   links: [
@@ -607,7 +722,7 @@ class ImportPipeline {
             );
             continue;
           }
-          priorStates.add(prior);
+          if (priorCapturedFor.add(id)) priorStates.add(prior);
           final dance = _rebuildWithIdentity(
             plan.draft.dance,
             id: id,
@@ -696,6 +811,14 @@ class ImportPipeline {
 
       final incoming = plan.draft.dance;
       final incomingTitle = normalizeTitle(incoming.title);
+      if (incomingTitle.isEmpty) {
+        // A title that folds to nothing (non-Latin, punctuation-only) carries
+        // no identity signal, so the exact-title gate below would pass on
+        // '' == '' against every other such dance and the content check could
+        // then link two unrelated ones. Never link; import as its own dance.
+        resolutions[i] = DedupeResolution.duplicate();
+        continue;
+      }
       final incomingAuthors = _normalizedAuthorSet(authorNamesOf(incoming));
 
       String? linkTarget;

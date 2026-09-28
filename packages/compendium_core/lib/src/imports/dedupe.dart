@@ -298,6 +298,15 @@ class DedupeIndex {
   /// exact-normalized-title + overlapping-tokenized-author pair is therefore
   /// *guaranteed* to be surfaced (never silently dropped to [isNew]),
   /// independent of how [threshold] is tuned.
+  ///
+  /// An empty normalized title ([normalizeTitle] folds every non-Latin or
+  /// punctuation-only title to `''`) never matches, at any [threshold]:
+  /// [_similarity] scores an empty side `0.0`, but [_combinedScore] still adds
+  /// an author-only contribution when both sides declare authors, which a
+  /// caller-supplied `threshold` of `0` (or as high as `0.2`) would surface as
+  /// a candidate despite the titles carrying no identity signal at all. A
+  /// query or candidate with an empty normalized title is therefore skipped
+  /// before scoring, independent of tuning.
   List<DedupeCandidate> fuzzyMatches(
     String title,
     Iterable<String> authorNames, {
@@ -305,9 +314,11 @@ class DedupeIndex {
   }) {
     final nTitle = normalizeTitle(title);
     final nAuthors = authorNames.map(normalizeAuthor).toSet()..remove('');
+    if (nTitle.isEmpty) return const [];
     final out = <DedupeCandidate>[];
     for (final e in _entries) {
       final eTitle = normalizeTitle(e.title);
+      if (eTitle.isEmpty) continue;
       final eAuthors = e.authorNames.map(normalizeAuthor).toSet()..remove('');
       final score = _combinedScore(nTitle, nAuthors, eTitle, eAuthors);
       final confident =
@@ -331,15 +342,25 @@ class DedupeIndex {
   }
 
   /// The full dedupe decision for a record: exact key first, then fuzzy.
+  ///
+  /// [priorExternalIds] are keys an earlier adapter version recorded the same
+  /// record under (`RawRecord.priorExternalIds`); each is tried, in order, only
+  /// when [externalId] itself has no match, so a library that imported under
+  /// the old key still gets a [DedupeKind.reimport] rather than a duplicate.
   DedupeVerdict verdictFor({
     required ProvenanceSource source,
     String? externalId,
+    Iterable<String> priorExternalIds = const [],
     required String title,
     Iterable<String> authorNames = const [],
     double threshold = defaultThreshold,
   }) {
     final exact = findByExternalId(source, externalId);
     if (exact != null) return DedupeVerdict.reimport(exact);
+    for (final prior in priorExternalIds) {
+      final legacy = findByExternalId(source, prior);
+      if (legacy != null) return DedupeVerdict.reimport(legacy);
+    }
     final fuzzy = fuzzyMatches(title, authorNames, threshold: threshold);
     return fuzzy.isEmpty
         ? DedupeVerdict.isNew()
@@ -389,9 +410,15 @@ double _jaccard(Set<String> a, Set<String> b) {
 }
 
 /// Normalized Levenshtein similarity (`0.0..1.0`) between two strings.
+///
+/// An empty side scores 0.0 *before* the equality check: [normalizeTitle]
+/// folds every non-Latin or punctuation-only title to `''`, and `'' == ''`
+/// would otherwise score two unrelated dances 1.0 — making every such dance
+/// an "ambiguous" match for every other one. An empty normalized title carries
+/// no identity signal, so it is not scored at all.
 double _similarity(String a, String b) {
-  if (a == b) return 1.0;
   if (a.isEmpty || b.isEmpty) return 0.0;
+  if (a == b) return 1.0;
   final dist = _levenshtein(a, b);
   final maxLen = a.length > b.length ? a.length : b.length;
   return 1.0 - dist / maxLen;

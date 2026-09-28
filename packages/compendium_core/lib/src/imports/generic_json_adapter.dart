@@ -115,11 +115,46 @@ class GenericJsonAdapter implements SourceAdapter {
       for (final dance in result.archive.dances)
         DiscoveredRecord(
           source: source,
-          externalId: dance.provenance?.externalId ?? dance.id,
+          externalId: externalIdFor(dance),
           label: dance.title,
           locator: {'danceId': dance.id},
         ),
     ];
+  }
+
+  /// The `(json, externalId)` key a bundled [dance] is received under.
+  ///
+  /// A bundle preserves each dance's upstream provenance — where the *sender*
+  /// got it — and upstream sources hand out overlapping small integer ids
+  /// (ContraDB and The Caller's Box both do), so the bare upstream id made
+  /// ContraDB #457 and The Caller's Box #457 one key: inside a bundle the
+  /// original-id correlation then pointed a program slot at the wrong dance.
+  /// The upstream id is therefore namespaced by its source (`contradb:457`).
+  /// An upstream that is itself `json` — the sender received the dance from a
+  /// bundle — already carries a key in this space and passes through
+  /// unchanged, so a re-shared dance still matches the copy received directly.
+  /// A dance with no upstream id is keyed on its archive id.
+  ///
+  /// [CompendiumArchiveImporter] correlates the archive's original dance ids
+  /// with committed records through this same function; the two must agree.
+  static String externalIdFor(Dance dance) {
+    final provenance = dance.provenance;
+    final upstreamId = provenance?.externalId;
+    if (provenance == null || upstreamId == null || upstreamId.isEmpty) {
+      return dance.id;
+    }
+    if (provenance.source == ProvenanceSource.json) return upstreamId;
+    return '${provenance.source.name}:$upstreamId';
+  }
+
+  /// The key [externalIdFor] produced before the source namespace existed —
+  /// the bare upstream id — when it differs from the current key; `null`
+  /// otherwise. Fed to [RawRecord.priorExternalIds] so a library that received
+  /// the dance under the old key re-imports it instead of gaining a duplicate.
+  static String? legacyExternalIdFor(Dance dance) {
+    final upstreamId = dance.provenance?.externalId;
+    if (upstreamId == null || upstreamId.isEmpty) return null;
+    return externalIdFor(dance) == upstreamId ? null : upstreamId;
   }
 
   @override
@@ -141,9 +176,13 @@ class GenericJsonAdapter implements SourceAdapter {
       );
     }
 
+    final legacyExternalId = legacyExternalIdFor(dance);
     return RawRecord(
       source: source,
       externalId: record.externalId,
+      priorExternalIds: legacyExternalId == null
+          ? const []
+          : [legacyExternalId],
       sourceVersion: '$_schemaVersion',
       payload: _encodeSingleDance(
         dance,

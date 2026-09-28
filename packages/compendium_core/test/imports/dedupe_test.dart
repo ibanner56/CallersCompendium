@@ -175,6 +175,59 @@ void main() {
       expect(v.isReimport, isTrue);
       expect(v.targetDanceId, 'd1');
     });
+
+    test('verdictFor falls back to prior keys, in order, only when the '
+        'current key has no match', () {
+      final legacy = DedupeIndex([
+        DedupeEntry(
+          danceId: 'legacy',
+          title: 'Received Before',
+          source: ProvenanceSource.json,
+          externalId: '457',
+        ),
+        DedupeEntry(
+          danceId: 'current',
+          title: 'Received After',
+          source: ProvenanceSource.json,
+          externalId: 'contradb:457',
+        ),
+      ]);
+      // The current key wins when present.
+      expect(
+        legacy
+            .verdictFor(
+              source: ProvenanceSource.json,
+              externalId: 'contradb:457',
+              priorExternalIds: const ['457'],
+              title: 'x',
+            )
+            .targetDanceId,
+        'current',
+      );
+      // Otherwise the prior key is tried.
+      expect(
+        legacy
+            .verdictFor(
+              source: ProvenanceSource.json,
+              externalId: 'callersbox:457',
+              priorExternalIds: const ['457'],
+              title: 'x',
+            )
+            .targetDanceId,
+        'legacy',
+      );
+      // No prior key, no match: falls through to fuzzy, which finds nothing.
+      expect(
+        legacy
+            .verdictFor(
+              source: ProvenanceSource.json,
+              externalId: 'callersbox:457',
+              title: 'x',
+            )
+            .isNewDance,
+        isTrue,
+      );
+    });
   });
 
   group('DedupeIndex fuzzy title + author', () {
@@ -186,6 +239,57 @@ void main() {
       ),
       DedupeEntry(danceId: 'd2', title: 'Trip to Nowhere'),
     ]);
+
+    test('titles that normalize to nothing never match each other', () {
+      // `normalizeTitle` keeps only [a-z0-9], so every non-Latin or
+      // punctuation-only title folds to ''. Two empty strings are equal, and
+      // an equality short-circuit scored them 1.0 — so every such dance was
+      // "ambiguous" against every other one (reviewer's red run:
+      // `query "月" -> d1(花):1.000`), across scripts included.
+      final nonLatin = DedupeIndex([
+        DedupeEntry(danceId: 'd1', title: '花', authorNames: ['Alice Smith']),
+        DedupeEntry(danceId: 'd2', title: 'Танец', authorNames: ['Bob Jones']),
+        DedupeEntry(danceId: 'd3', title: '★'),
+      ]);
+      expect(
+        nonLatin
+            .verdictFor(
+              source: ProvenanceSource.json,
+              title: '月',
+              authorNames: ['Alice Smith'],
+            )
+            .isNewDance,
+        isTrue,
+      );
+      expect(
+        nonLatin
+            .verdictFor(source: ProvenanceSource.json, title: '★')
+            .isNewDance,
+        isTrue,
+        reason: 'an empty normalized title carries no identity signal',
+      );
+      expect(nonLatin.fuzzyMatches('月', const []), isEmpty);
+    });
+
+    test('empty normalized titles never match, even at a near-zero threshold '
+        'with shared authors', () {
+      // `_similarity` scores an empty-vs-empty title 0.0, but
+      // `_combinedScore` still blends in an author-only contribution when
+      // both sides declare authors — 0.2 for a fully shared author set
+      // here. A caller-supplied `threshold` of 0 (or as high as 0.2) would
+      // then still surface the pair as a candidate despite the titles
+      // carrying no identity signal at all. `fuzzyMatches` must skip an
+      // empty-titled query or candidate before scoring, independent of how
+      // `threshold` is tuned — never falling back to a fuzzy match on
+      // authors alone.
+      final nonLatin = DedupeIndex([
+        DedupeEntry(danceId: 'd1', title: '花', authorNames: ['Alice Smith']),
+      ]);
+      expect(
+        nonLatin.fuzzyMatches('月', ['Alice Smith'], threshold: 0),
+        isEmpty,
+      );
+    });
 
     test('near-identical title is an ambiguous match', () {
       final v = index.verdictFor(

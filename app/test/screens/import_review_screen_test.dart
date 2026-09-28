@@ -475,35 +475,45 @@ void main() {
   );
 
   testWidgets(
-    'the overwrite warning counts distinct target dances, not re-import rows',
+    'colliding legacy aliases within one batch import as new rather than '
+    'both reimporting the same dance',
     (tester) async {
       final repos = openTestRepositories();
-      // A single existing local dance.
+      // A single existing local dance, received under the bare upstream id
+      // before receive keys carried the upstream source.
       await repos.dances.create(
         _dance(
           'existing',
           'Old Title',
           provenance: Provenance(
             source: ProvenanceSource.json,
-            externalId: 'ext1',
+            externalId: '457',
             importedAt: DateTime.utc(2026, 1, 1),
           ),
         ),
       );
 
-      // Two incoming records that share the same provenance key, so both
-      // dedupe onto the *same* local dance ('existing').
+      // Two incoming records with distinct receive keys (`contradb:457`,
+      // `callersbox:457`) whose legacy fallback key is the same bare `457`.
+      // These are two different dances that only coincide on that stale
+      // alias — letting each independently fall back to it would reimport
+      // both onto 'existing', overwriting it twice and mapping two program
+      // slots onto one dance. Neither may claim the alias once two distinct
+      // current keys in the batch resolve to it, so both come in as new.
       await _pump(
         tester,
         repos,
         payload: _archivePayload([
-          for (final id in ['incoming-a', 'incoming-b'])
+          for (final (id, source) in [
+            ('incoming-a', ProvenanceSource.contradb),
+            ('incoming-b', ProvenanceSource.callersbox),
+          ])
             _dance(
               id,
               'Fresh $id',
               provenance: Provenance(
-                source: ProvenanceSource.json,
-                externalId: 'ext1',
+                source: source,
+                externalId: '457',
                 importedAt: DateTime.utc(2026, 6, 1),
               ),
             ),
@@ -511,25 +521,17 @@ void main() {
       );
       await _toReview(tester);
 
-      // Both rows are re-import verdicts against the one existing dance.
-      expect(
-        find.byKey(const ValueKey('import-row-0-reimport')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey('import-row-1-reimport')),
-        findsOneWidget,
-      );
+      // Neither row reimports the existing dance; both are offered as new.
+      expect(find.byKey(const ValueKey('import-row-0-reimport')), findsNothing);
+      expect(find.byKey(const ValueKey('import-row-1-reimport')), findsNothing);
+      expect(find.byKey(const ValueKey('import-row-0-create')), findsOneWidget);
+      expect(find.byKey(const ValueKey('import-row-1-create')), findsOneWidget);
 
-      // Overwrite both rows: the banner counts the single distinct target once,
-      // not two rows.
-      await tester.tap(find.byKey(const ValueKey('import-row-0-reimport')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('import-row-1-reimport')));
-      await tester.pumpAndSettle();
-
-      expect(find.text('1 existing dance will be overwritten'), findsOneWidget);
-      expect(find.text('2 existing dances will be overwritten'), findsNothing);
+      // Nothing is queued to be overwritten.
+      expect(
+        find.byKey(const ValueKey('import-overwrite-warning')),
+        findsNothing,
+      );
     },
   );
 

@@ -11,12 +11,12 @@
 
 - [Pipeline](#pipeline) — 21 lines
 - [Author resolution (resolve-or-create seam)](#author-resolution-resolve-or-create-seam) — 139 lines
-- [Sources](#sources) — 952 lines
+- [Sources](#sources) — 1048 lines
   - [1. CallersBox — by link (primary)](#1-callersbox--by-link-primary) — 116 lines
   - [2. Caller's Companion migration (6.5)](#2-callers-companion-migration-65) — 97 lines
   - [3. ContraDB (6.4)](#3-contradb-64) — 33 lines
   - [Compound-shorthand fan-out: grand right and left (#295)](#compound-shorthand-fan-out-grand-right-and-left-295) — 186 lines
-  - [4. Generic JSON (6.6)](#4-generic-json-66) — 5 lines
+  - [4. Generic JSON (6.6)](#4-generic-json-66) — 27 lines
   - [Signed published collections (#862)](#signed-published-collections-862) — 22 lines
   - [5. A list of titles (#823)](#5-a-list-of-titles-823) — 72 lines
   - [Simultaneous-action fan-out (`meanwhile`) (#591/#572)](#simultaneous-action-fan-out-meanwhile-591572) — 59 lines
@@ -39,7 +39,7 @@ fetch → RawRecord → parse → StructuredDraft → canonicalize → dedupe �
 | **RawRecord** | Source-native payload preserved verbatim in memory + source id/version. The payload feeds `parse` and is **not persisted** — it was stored in `provenance.raw_payload` until schema v21 dropped that column (#781), because nothing read it back. Re-import dedupes on `(source, externalId)` and re-fetches from the source, so it needs no stored copy. |
 | **parse** | Adapter maps fields and parses figures into structured `Figure[]`. **Parsing never fails a dance**: any unparseable figure line becomes a `custom` figure carrying its beats and text. A dance can arrive 100% custom and still be searchable. |
 | **canonicalize** | Free text through the dialect `canonicalize()` chokepoint; terms/synonyms (incl. legacy "gypsy") mapped to canonical vocabulary; recognized formation strings map to the enum, with only source-specific detail retained separately. |
-| **dedupe** | Match by (source, externalId) first — re-import updates provenance and offers diff. Otherwise fuzzy (NFC-composed, normalized title + author) → user chooses link/duplicate/skip. Free-text imports feed their raw author names (see *Author resolution*) into this signal. An exact-normalized-title match with an overlapping tokenized author set is always a **confident match** (`DedupeCandidate.confident` / `DedupeVerdict.hasConfidentMatch`, issue #685) — it is guaranteed to surface as `ambiguous` regardless of how the score threshold is tuned, so inconsistent author-string formatting across sources can never silently resolve to `isNew`. Non-interactive callers (e.g. program import) treat a confident match as a hard **skip**, never a silent duplicate (see *Multi-author tokenization*). |
+| **dedupe** | Match by (source, externalId) first — re-import updates provenance and offers diff. Otherwise fuzzy (NFC-composed, normalized title + author) → user chooses link/duplicate/skip. A title that normalizes to nothing (non-Latin or punctuation-only — `normalizeTitle` keeps `[a-z0-9]`) is never scored against another and never auto-linked: it carries no identity signal, and `'' == ''` once scored every such dance 1.0 against every other. The index is a pre-batch snapshot, so `plan` also tracks `(source, externalId)` within the batch: a repeat is dropped and the kept record carries a `duplicate_external_id_in_batch` warning, so one batch can never commit two dances under one provenance key. Free-text imports feed their raw author names (see *Author resolution*) into this signal. An exact-normalized-title match with an overlapping tokenized author set is always a **confident match** (`DedupeCandidate.confident` / `DedupeVerdict.hasConfidentMatch`, issue #685) — it is guaranteed to surface as `ambiguous` regardless of how the score threshold is tuned, so inconsistent author-string formatting across sources can never silently resolve to `isNew`. Non-interactive callers (e.g. program import) treat a confident match as a hard **skip**, never a silent duplicate (see *Multi-author tokenization*). |
 | **review** | Batch imports land in a review queue: per-dance parse quality score (% structured vs custom figures), side-by-side raw vs parsed. Accept-all is one tap; nothing silently mutates existing user data. |
 | **commit** | Transactional; provenance row written; author names resolved to `Choreographer` associations (see *Author resolution*); import session log kept for undo. |
 
@@ -634,6 +634,26 @@ what the fix removes is the fabricated dancers and the doubled balance.
   through explicit serialization modes: share mode omits custom fields marked
   `shareable = false`, while backup mode preserves every custom field and value.
   Versioned schema; forward-compatible reader.
+- Receive key. A received dance is stored under `(json, externalId)`, where the
+  external id is the dance's **upstream** provenance namespaced by its source —
+  `contradb:457` — because upstream sources hand out overlapping small integer
+  ids and the bare id made ContraDB #457 and The Caller's Box #457 one key
+  (inside one bundle, the original-id correlation then pointed a program slot at
+  the wrong dance). An upstream that is itself `json` is already a receive key
+  and passes through unchanged, so a re-shared dance still matches the copy
+  received directly; a dance with no upstream id is keyed on its archive id.
+  Dances received before the namespace existed hold the bare id, so exact
+  dedupe also tries that legacy key (`RawRecord.priorExternalIds`) and a
+  re-received bundle still resolves as a re-import rather than a duplicate
+  (`GenericJsonAdapter.externalIdFor` / `legacyExternalIdFor`). That legacy key
+  is not unique once namespaced: a bundle can contain a *different* dance from
+  each of two upstream sources that both used the same bare id, and each would
+  independently resolve the alias to the one existing dance. `ImportPipeline.plan`
+  therefore collects every record's legacy-alias claim across the whole batch
+  before assigning any verdict, and only honors the fallback when exactly one
+  current key claims it — a claim two distinct current keys share is dropped,
+  and those records fall through to fuzzy matching instead of both reimporting
+  the same dance.
 
 ### Signed published collections (#862)
 
