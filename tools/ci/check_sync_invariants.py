@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """CI ratchets for the invariants shared by future device-sync paths.
 
-The checker deliberately covers the production source roots only:
-``app/lib/src`` and ``packages/*/lib/src``.  It checks:
+The checker covers the production library roots, ``app/lib`` and
+``packages/*/lib`` -- the whole tree, not ``lib/src``, because
+``app/lib/main.dart`` and each package's public barrel are production code
+too, and the sibling ratchets scan ``lib/**``.  It checks:
 
 * every Drift or raw-SQL join through a soft-deletable parent has a
   ``deleted_at IS NULL`` predicate;
@@ -214,16 +216,23 @@ def blank_comments(source: str) -> str:
 
 
 def source_roots(root: Path) -> list[Path]:
-    """Return ``app/lib/src`` plus every existing ``packages/*/lib/src``."""
+    """Return ``app/lib`` plus every existing ``packages/*/lib``.
+
+    Whole library trees, not ``lib/src``: ``main.dart`` and the package barrels
+    are production code, and a raw join written there was invisible with
+    nothing to say so. The generated ``app/lib/l10n`` Dart comes along and is
+    inert here -- every heuristic below runs on masked or literal-extracted
+    text, and its string literals contain no SQL.
+    """
 
     roots: list[Path] = []
-    app_root = root / "app" / "lib" / "src"
+    app_root = root / "app" / "lib"
     if app_root.is_dir():
         roots.append(app_root)
     packages = root / "packages"
     if packages.is_dir():
         for package in sorted(path for path in packages.iterdir() if path.is_dir()):
-            package_root = package / "lib" / "src"
+            package_root = package / "lib"
             if package_root.is_dir():
                 roots.append(package_root)
     return roots

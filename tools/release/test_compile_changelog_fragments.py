@@ -44,6 +44,14 @@ _Nothing yet._
 """
 
 
+# Every CHANGELOG fixture below is written with newline="\n". The compiler
+# reads the changelogs back as BYTES (apply_release restores the originals
+# byte-exact) and requires the release-managed marker to be followed by "\n",
+# as it is in the real files (.gitattributes pins eol=lf). Path.write_text
+# without `newline` writes CRLF on Windows, so the marker check used to fail
+# inside the fixture rather than in the code under test, and this suite was
+# red on every Windows checkout while green in Linux CI.
+
 def write_fragment(directory: Path, identifier: str, contents: object) -> None:
     (directory / f"{identifier}.json").write_text(
         json.dumps(contents), encoding="utf-8"
@@ -56,11 +64,11 @@ def fixture_repo() -> tuple[tempfile.TemporaryDirectory[str], Path]:
     (root / "changelog.d").mkdir()
     (root / "app").mkdir()
     (root / "packages/compendium_core").mkdir(parents=True)
-    (root / "app/CHANGELOG.md").write_text(APP, encoding="utf-8")
+    (root / "app/CHANGELOG.md").write_text(APP, encoding="utf-8", newline="\n")
     (root / "app/pubspec.yaml").write_text(
         "name: compendium_app\nversion: 0.2.0\n", encoding="utf-8"
     )
-    (root / "packages/compendium_core/CHANGELOG.md").write_text(CORE, encoding="utf-8")
+    (root / "packages/compendium_core/CHANGELOG.md").write_text(CORE, encoding="utf-8", newline="\n")
     (root / "packages/compendium_core/pubspec.yaml").write_text(
         "name: compendium_core\nversion: 0.2.0\n", encoding="utf-8"
     )
@@ -161,7 +169,7 @@ def cases() -> None:
         assert "A beta regression is fixed." in beta
 
         (root / "app/CHANGELOG.md").write_text(
-            APP.replace("_Nothing yet._", "- A direct edit."), encoding="utf-8"
+            APP.replace("_Nothing yet._", "- A direct edit."), encoding="utf-8", newline="\n"
         )
         try:
             compiler.check_pending_state(root)
@@ -172,7 +180,7 @@ def cases() -> None:
 
         for direct_content in ("Unexpected prose.", "### Unexpected heading"):
             (root / "app/CHANGELOG.md").write_text(
-                APP.replace("_Nothing yet._", direct_content), encoding="utf-8"
+                APP.replace("_Nothing yet._", direct_content), encoding="utf-8", newline="\n"
             )
             try:
                 compiler.check_pending_state(root)
@@ -182,7 +190,7 @@ def cases() -> None:
                 raise AssertionError(f"direct content passed: {direct_content}")
 
         (root / "app/CHANGELOG.md").write_text(
-            APP.replace("_Nothing yet._", "- A direct edit."), encoding="utf-8"
+            APP.replace("_Nothing yet._", "- A direct edit."), encoding="utf-8", newline="\n"
         )
         write_fragment(
             fragments,
@@ -208,7 +216,7 @@ def cases() -> None:
             raise AssertionError("write accepted a direct Unreleased edit")
         assert (root / "app/CHANGELOG.md").read_text(encoding="utf-8") == before
         assert (fragments / "103-write-guard.json").exists()
-        (root / "app/CHANGELOG.md").write_text(APP, encoding="utf-8")
+        (root / "app/CHANGELOG.md").write_text(APP, encoding="utf-8", newline="\n")
         before = (root / "app/CHANGELOG.md").read_text(encoding="utf-8")
         try:
             compiler.apply_release(

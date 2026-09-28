@@ -229,6 +229,29 @@ def test_marked_forms() -> None:
     )
 
     check(
+        ".onError logs",
+        unmarked_lines(
+            "void f() {\n"
+            "  g().onError((error, stackTrace) {\n"
+            "    logCaughtError(error, stackTrace, source: 'x.f');\n"
+            "    return null;\n"
+            "  });\n"
+            "}\n"
+        )
+        == [],
+    )
+
+    check(
+        ".handleError with a trailing same-line silent comment",
+        unmarked_lines(
+            "void f() {\n"
+            "  stream.handleError((_) {}); // diagnostics: silent — best-effort.\n"
+            "}\n"
+        )
+        == [],
+    )
+
+    check(
         "multiple catches in one try, each independently marked",
         unmarked_lines(
             "void f() {\n"
@@ -311,6 +334,64 @@ def test_unmarked_forms() -> None:
         == [2],
     )
 
+    # `future.onError(...)` is the post-2.12 idiom that replaced
+    # `.catchError(...)`, and `stream.handleError(...)` is its stream
+    # counterpart. Both are exactly the honest, under-time-pressure swallow
+    # the ratchet exists for, and both were invisible to it: the module
+    # docstring's stated purpose ("every caught, user-facing error") was
+    # broader than the four shapes it actually walked.
+    check(
+        ".onError with neither",
+        unmarked_lines(
+            "void f() {\n"
+            "  g().onError((e, s) {\n"
+            "    return null;\n"
+            "  });\n"
+            "}\n"
+        )
+        == [2],
+    )
+
+    check(
+        ".onError<Type> with type arguments, with neither",
+        unmarked_lines(
+            "void f() {\n"
+            "  g().onError<StateError>((e, s) => fallback);\n"
+            "}\n"
+        )
+        == [2],
+    )
+
+    check(
+        ".onError<Nested<Generic>> with neither",
+        unmarked_lines(
+            "void f() {\n"
+            "  g().onError<Result<Map<String, int>>>((e, s) => fallback);\n"
+            "}\n"
+        )
+        == [2],
+    )
+
+    check(
+        ".handleError with neither",
+        unmarked_lines("void f() {\n  stream.handleError((e) {});\n}\n") == [2],
+    )
+
+    # Documented exemptions, pinned so a later widening is a decision and not
+    # an accident. `runZonedGuarded`'s handler is the global log writer itself
+    # (crash_reporter.dart) -- the one site in app/lib, and the thing every
+    # other marker ultimately feeds. A tear-off `onError:` has no body to hold
+    # a marker (see the module docstring).
+    check(
+        "runZonedGuarded's handler is not a checkable site",
+        unmarked_lines("void f() {\n  runZonedGuarded(body, (e, s) {});\n}\n") == [],
+        "exempt by design: it is the log's own writer, not a swallow",
+    )
+    check(
+        "an onError: tear-off has no body and stays exempt",
+        unmarked_lines("void f() {\n  g().then(ok, onError: _forward);\n}\n") == [],
+    )
+
     check(
         "ColorScheme's onError Color field is not a handler",
         unmarked_lines(
@@ -369,6 +450,17 @@ def test_unmarked_forms() -> None:
             "}\n"
         )
         == ["on-block", "catchError", "onError", "catch"],
+    )
+
+    check(
+        "kind is reported correctly for the method-call shapes",
+        unmarked_kinds(
+            "void f() {\n"
+            "  h().onError((e, s) => null);\n"
+            "  s.handleError((e) {});\n"
+            "}\n"
+        )
+        == ["onError-method", "handleError"],
     )
 
 
@@ -466,6 +558,7 @@ def test_real_tree_is_clean() -> None:
             "catch" in text
             or "catchError" in text
             or "onError" in text
+            or "handleError" in text
             or " on " in text
         ):
             continue

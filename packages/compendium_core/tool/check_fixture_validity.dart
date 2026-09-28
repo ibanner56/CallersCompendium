@@ -479,7 +479,11 @@ FixtureReport analyse(List<File> files, String rootPath) {
   );
 }
 
-int run(List<String> args) {
+/// Runs the checker; [out] and [err] default to the process streams and exist
+/// so the unit test can read the verdict without capturing them.
+int run(List<String> args, {StringSink? out, StringSink? err}) {
+  out ??= stdout;
+  err ??= stderr;
   final cwd = Directory.current.path;
   final rootPath = args.isNotEmpty
       ? args.first
@@ -488,7 +492,7 @@ int run(List<String> args) {
       : cwd;
   final root = Directory(rootPath);
   if (!Directory('${root.path}/app/test').existsSync()) {
-    stderr.writeln(
+    err.writeln(
       '::error::could not find app/test under "$rootPath" — pass the '
       'repository root as the first argument',
     );
@@ -500,9 +504,9 @@ int run(List<String> args) {
 
   if (result.violations.isNotEmpty) {
     for (final violation in result.violations) {
-      stderr.writeln('::error::invalid figure fixture: $violation');
+      err.writeln('::error::invalid figure fixture: $violation');
     }
-    stderr.writeln(
+    err.writeln(
       '::error::${result.violations.length} figure fixture violation(s). '
       'A fixture must be valid under contraTaxonomy, routed through '
       'testFigure(), or marked `$markerPrefix <reason>`.',
@@ -510,7 +514,24 @@ int run(List<String> args) {
     return 1;
   }
 
-  stdout.writeln(
+  // Vacuity floor. The real tree holds hundreds of literal fixtures, so zero
+  // cannot mean a clean tree: it means discovery or dispatch broke — `testFiles`
+  // found nothing, or `Figure` now arrives through a node the visitor no longer
+  // handles — and this used to print "OK: 0 literal fixture(s) validated" and
+  // exit 0 for exactly that. The unit tests drive `analyse` on input they know
+  // holds fixtures, so only `run()` can see the real-tree count. `> 0` is
+  // enough; a checked-in count would rot with every fixture added or removed.
+  if (result.literal == 0) {
+    err.writeln(
+      '::error::0 literal figure fixtures found across ${files.length} test '
+      'file(s). The suites hold hundreds, so this is a regression in the '
+      'checker\'s file discovery or Figure dispatch, not a clean tree — the '
+      'ratchet would otherwise pass vacuously (#747).',
+    );
+    return 1;
+  }
+
+  out.writeln(
     'OK: ${result.literal} literal fixture(s) validated, '
     '${result.marked} deliberately-invalid, '
     '${files.length} test file(s) scanned.',

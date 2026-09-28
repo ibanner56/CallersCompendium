@@ -757,4 +757,54 @@ void main() {
       );
     });
   });
+
+  group('run()', () {
+    // The real tree has ~1,000 literal fixtures, so zero can only mean the
+    // discovery or dispatch layer broke -- `testFiles` returning nothing, or
+    // `Figure` resolved through a node the visitor no longer dispatches on --
+    // and `run()` used to print "OK: 0 literal fixture(s) validated" and exit
+    // 0 for exactly that. The synthetic-tree tests above cannot see it: they
+    // drive `analyse` on input they know contains fixtures. A `> 0` floor is
+    // enough; a checked-in count would rot.
+    test('zero literal fixtures is a failure, not a pass', () {
+      Directory('${tmp.path}/app/test').createSync(recursive: true);
+      final out = StringBuffer();
+      final err = StringBuffer();
+      expect(run([tmp.path], out: out, err: err), 1);
+      expect(err.toString(), contains('::error::'));
+      expect(err.toString(), contains('0 literal figure fixtures'));
+      expect(out.toString(), isEmpty, reason: 'no OK line for a vacuous run');
+    });
+
+    test('one valid literal fixture is a pass', () {
+      final testDir = Directory('${tmp.path}/app/test')
+        ..createSync(recursive: true);
+      File('${testDir.path}/sample_test.dart').writeAsStringSync(
+        "f() { Figure(move: 'swing', params: {'who': 'partners'}); }",
+      );
+      final out = StringBuffer();
+      final err = StringBuffer();
+      expect(
+        run([tmp.path], out: out, err: err),
+        0,
+        reason: err.toString(),
+      );
+      expect(out.toString(), contains('OK: 1 literal fixture(s) validated'));
+      expect(err.toString(), isEmpty);
+    });
+
+    test('a violation is reported before the floor is consulted', () {
+      final testDir = Directory('${tmp.path}/app/test')
+        ..createSync(recursive: true);
+      // Literal, so it counts toward the floor, and invalid, so it is a
+      // violation: the exit is 1 for the violation, not for the count.
+      File('${testDir.path}/sample_test.dart').writeAsStringSync(
+        "f() { Figure(move: 'swing', params: {'who': 'nobody'}); }",
+      );
+      final err = StringBuffer();
+      expect(run([tmp.path], out: StringBuffer(), err: err), 1);
+      expect(err.toString(), contains('invalid figure fixture'));
+      expect(err.toString(), isNot(contains('0 literal figure fixtures')));
+    });
+  });
 }

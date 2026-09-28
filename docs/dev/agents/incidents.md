@@ -121,7 +121,9 @@ when #697 split `orbit` into a first-class move, unnoticed for days until #745
 fixed them by hand.
 
 `packages/compendium_core/tool/check_fixture_validity.dart` now guards it, run
-by `_checks.yml` before the core suite — but `dart test` does not run it over
+by `_checks.yml`'s `validate` job (it first sat in `core-tests`, which an
+app-test-only PR skips — so a drifted `app/test` fixture reddened `main` one
+push later, attributed to the next PR) — but `dart test` does not run it over
 the real suites (its own unit test drives synthetic input), so a clean local
 `dart test` will not catch a fixture you just invalidated. That is why
 [`tools/preflight.py`](../../../tools/preflight.py) exists and runs it.

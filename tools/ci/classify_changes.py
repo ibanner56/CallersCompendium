@@ -60,6 +60,21 @@ GENERATED_MARKDOWN_PATHS = {
     b"docs/dev/data-classification.md",
 }
 
+# Files that are INPUTS to an app test rather than code, so they route to the
+# suite that reads them. THIRD_PARTY_NOTICES.md is Markdown and alone used to
+# set nothing at all -- app/test/licenses_notice_test.dart, the one guard that
+# the fmptools notice is still carried in full, never ran for the PR that
+# trimmed it, and ci.yml's push filter ignores '**.md' so main never checked
+# it either; it failed on the next unrelated PR to set app_tests_changed.
+# .github/workflows/release.yml is read by app/test/application_name_test.dart:
+# not Markdown, so validation already ran for it, but the app suite did not.
+# Same shape as GENERATED_MARKDOWN_PATHS. Neither can break a platform build,
+# so they reach app_tests_changed without builds_changed (see classify()).
+TEST_INPUT_PATHS = {
+    b"THIRD_PARTY_NOTICES.md",
+    b".github/workflows/release.yml",
+}
+
 # Mirrors docs-bundle-check.yml's path filter exactly. That workflow is the
 # only PR gate for the in-app User Guide bundle and the hosted-guide
 # renderer, and it is not a required status check -- so its result has to
@@ -119,7 +134,9 @@ def classify(paths):
     """
     paths = tuple(paths)
     validation_changed = any(
-        not path.endswith(b".md") or path in GENERATED_MARKDOWN_PATHS
+        not path.endswith(b".md")
+        or path in GENERATED_MARKDOWN_PATHS
+        or path in TEST_INPUT_PATHS
         for path in paths
     )
     core_tests_changed = validation_changed and any(
@@ -129,14 +146,30 @@ def classify(paths):
         or path in GENERATED_MARKDOWN_PATHS
         for path in paths
     )
-    app_tests_changed = validation_changed and any(
+    # The app's source closure: what the app suite and the platform builds
+    # both depend on. Split out from app_tests_changed so a test INPUT can run
+    # the suite without also running five platform builds.
+    app_source_changed = validation_changed and any(
         path.startswith(b"app/")
         or path.startswith(b"packages/compendium_core/")
         or path in SHARED_RUNTIME_PATHS
         for path in paths
     )
+    app_tests_changed = app_source_changed or (
+        validation_changed and any(path in TEST_INPUT_PATHS for path in paths)
+    )
     server_tests_changed = validation_changed and any(
-        path.startswith(b"server/") or path in SHARED_RUNTIME_PATHS
+        path.startswith(b"server/")
+        # server/ path-depends on compendium_core (server/pubspec.yaml) and
+        # every server library imports the core barrel. validate's
+        # workspace-root `flutter analyze` already fails a core change that
+        # breaks the server's compile; this is for the behavioural regression
+        # analyze cannot see -- a wire-model default, a registry entry --
+        # which used to surface only on the post-merge push (where ci.yml
+        # runs every suite), attributed to whatever merged next. 117 of 300
+        # recent main commits touched core without server/ or a shared path.
+        or path.startswith(b"packages/compendium_core/")
+        or path in SHARED_RUNTIME_PATHS
         for path in paths
     )
     # builds_changed used to be a bare alias for app_tests_changed, so a diff
@@ -144,7 +177,9 @@ def classify(paths):
     # Setup script -- neither under app/ nor packages/compendium_core/) never
     # ran the build matrix. Widen it independently rather than folding
     # packaging/ into app_tests_changed, since packaging changes have no
-    # Flutter app code to test.
+    # Flutter app code to test. It follows app_source_changed rather than
+    # app_tests_changed because a test input (TEST_INPUT_PATHS) exercises the
+    # suite but cannot change what a build produces.
     #
     # The `validation_changed and` guard is load-bearing, not decorative
     # (caught by review on #1322): ci.yml's `build` job requires
@@ -155,7 +190,7 @@ def classify(paths):
     # merge-gate's `require_success 'Platform builds'` would fail closed
     # forever. builds_changed must imply validation_changed, same as every
     # other *_changed output above.
-    builds_changed = app_tests_changed or (
+    builds_changed = app_source_changed or (
         validation_changed
         and any(path.startswith(b"packaging/") for path in paths)
     )

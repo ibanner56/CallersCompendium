@@ -69,6 +69,36 @@ def test_comment_stripping_and_exact_source_roots() -> None:
         assert_no(result.violations)
 
 
+def test_source_roots_cover_the_whole_lib_tree() -> None:
+    """``app/lib/main.dart`` and a package's public barrel sit outside
+    ``lib/src``, and both are production code; the sibling ratchets
+    (``check_debug_print.py``, ``check_settings_marker_reads.py``) scan
+    ``lib/**``. Nothing in ``main.dart`` writes SQL today, so the narrower
+    root was an inconsistency rather than a decision -- but a join written
+    there would have been invisible to this checker with nothing to say so.
+    Two compliant joins outside ``lib/src`` must be *counted* as candidates.
+    """
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        (root / "app/lib/src").mkdir(parents=True)
+        (root / "packages/core/lib/src").mkdir(parents=True)
+        (root / "app/lib/main.dart").write_text(
+            "String normalizeTitle(String value) => value;\n"
+            "final query = 'SELECT * FROM dances JOIN programs p ON p.id = x "
+            "WHERE p.deleted_at IS NULL';\n",
+            encoding="utf-8",
+        )
+        (root / "packages/core/lib/core.dart").write_text(
+            "final query = 'SELECT * FROM dances JOIN tags t ON t.id = x "
+            "WHERE t.deleted_at IS NULL';\n",
+            encoding="utf-8",
+        )
+        result = scan(root)
+        assert result.soft_join_candidates == 2, result
+        assert result.normalize_title_definitions == 1, result
+        assert_no(result.violations)
+
+
 def test_raw_soft_delete_join_requires_parent_filter() -> None:
     compliant = (
         "final q = 'SELECT d.id FROM dance_tags dt JOIN tags t ON t.id = dt.tag_id "

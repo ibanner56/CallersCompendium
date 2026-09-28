@@ -12,8 +12,11 @@ Usage:
     check_flutter_version.py [installed_version]
 
 If ``installed_version`` is omitted, the script runs ``flutter --version`` and
-parses it. In CI we pass the version explicitly so the check does not depend on
-``flutter`` being on PATH at that step.
+parses its banner. That is how CI invokes it: ``_checks.yml`` runs this with no
+argument immediately after ``subosito/flutter-action`` has put ``flutter`` on
+PATH, so the version checked is the one the action actually resolved. The
+argument exists for a caller that already holds the version string (and for
+``test_check_flutter_version.py``, which never runs ``flutter``).
 
 Exit codes: 0 = match, 1 = mismatch, 2 = could not parse an input.
 """
@@ -31,7 +34,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 FVMRC = REPO_ROOT / ".fvmrc"
 
 # Matches the `flutter --version` banner ("Flutter 3.44.6 • ...") and also a
-# bare "3.44.6" string (so CI can pass the version directly).
+# bare "3.44.6" string (so a caller can pass the version directly). The first
+# dotted triple in the text wins, which in the banner is Flutter's own; the
+# Dart and DevTools versions come later.
 _FLUTTER_VERSION_RE = re.compile(
     r"(?:Flutter\s+)?\b(?P<v>\d+\.\d+\.\d+)\b"
 )
