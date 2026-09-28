@@ -6677,6 +6677,33 @@ class AppLocalizationsDe extends AppLocalizations {
       'Eine Integritätsprüfung der Datenbank ist fehlgeschlagen. Ihre lokalen Daten sind möglicherweise beschädigt – stellen Sie sie am besten aus einer Sicherung wieder her.';
 
   @override
+  String get startupEcdConvertTitle => 'ECD-Tänze konvertieren?';
+
+  @override
+  String get startupEcdConvertMessage =>
+      'Möchten Sie alle nicht-englischen Tänze in Ihrer Sammlung mit dem Tag „ECD“ in englische Tänze umwandeln?';
+
+  @override
+  String get startupEcdConvertDontShowAgain => 'Dies nicht mehr anzeigen';
+
+  @override
+  String get startupEcdConvertDecline => 'Nicht jetzt';
+
+  @override
+  String get startupEcdConvertConfirm => 'Konvertieren';
+
+  @override
+  String startupEcdConvertSnackbar(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Tänze wurden in Englisch (ECD) umgewandelt.',
+      one: '1 Tanz wurde in Englisch (ECD) umgewandelt.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String updateBannerAvailable(String appName, String version) {
     return 'Eine neuere Version von $appName ($version) ist verfügbar.';
   }

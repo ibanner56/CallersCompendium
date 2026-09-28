@@ -8626,6 +8626,35 @@
   "@startupIntegrityCheckFailed": {
     "description": "Dismissible banner shown once at launch when the database integrity check ran and reported a problem. The app still opens; the failure is advisory."
   },
+  "startupEcdConvertTitle": "Convert ECD dances?",
+  "@startupEcdConvertTitle": {
+    "description": "Title of the on-launch dialog offering to convert non-English dances tagged \"ECD\" to the English Country Dance form. \"ECD\" is the same abbreviation used in commonDanceFormEcd and stays as-is."
+  },
+  "startupEcdConvertMessage": "Would you like to convert all non-English dances in your collection with the tag \"ECD\" to English dances?",
+  "@startupEcdConvertMessage": {
+    "description": "Body of the on-launch ECD-convert dialog, asking to convert every dance tagged \"ECD\" (case-insensitive) that is not already the English Country Dance form. \"ECD\" stays as-is, matching the tag name the app looks for."
+  },
+  "startupEcdConvertDontShowAgain": "Don't show this again",
+  "@startupEcdConvertDontShowAgain": {
+    "description": "Checkbox on the on-launch ECD-convert dialog that opts out of seeing the prompt on future launches, regardless of whether Convert or Not now is chosen."
+  },
+  "startupEcdConvertDecline": "Not now",
+  "@startupEcdConvertDecline": {
+    "description": "Button on the on-launch ECD-convert dialog that declines the conversion for this launch."
+  },
+  "startupEcdConvertConfirm": "Convert",
+  "@startupEcdConvertConfirm": {
+    "description": "Button on the on-launch ECD-convert dialog that confirms converting the matching dances to the English Country Dance form."
+  },
+  "startupEcdConvertSnackbar": "{count, plural, one{Converted 1 dance to English (ECD).} other{Converted {count} dances to English (ECD).}}",
+  "@startupEcdConvertSnackbar": {
+    "description": "Snackbar confirming how many dances the on-launch ECD-convert prompt converted.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "updateBannerAvailable": "A newer version of {appName} ({version}) is available.",
   "@updateBannerAvailable": {
     "description": "Update banner message when a newer version is available (idle/cancelled state).",

@@ -6574,6 +6574,33 @@ class AppLocalizationsEn extends AppLocalizations {
       'A database integrity check failed. Your local data may be corrupt — consider restoring from a backup.';
 
   @override
+  String get startupEcdConvertTitle => 'Convert ECD dances?';
+
+  @override
+  String get startupEcdConvertMessage =>
+      'Would you like to convert all non-English dances in your collection with the tag \"ECD\" to English dances?';
+
+  @override
+  String get startupEcdConvertDontShowAgain => 'Don\'t show this again';
+
+  @override
+  String get startupEcdConvertDecline => 'Not now';
+
+  @override
+  String get startupEcdConvertConfirm => 'Convert';
+
+  @override
+  String startupEcdConvertSnackbar(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Converted $count dances to English (ECD).',
+      one: 'Converted 1 dance to English (ECD).',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String updateBannerAvailable(String appName, String version) {
     return 'A newer version of $appName ($version) is available.';
   }

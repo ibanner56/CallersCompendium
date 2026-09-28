@@ -6628,6 +6628,30 @@
   "@startupIntegrityCheckFailed": {
     "x-sourceSha256": "8b901f979230909e2a5810b35058754d460e861cf2e53c4478b8e4b239acd1e9"
   },
+  "startupEcdConvertTitle": "Convertir les danses ECD ?",
+  "@startupEcdConvertTitle": {
+    "x-sourceSha256": "14c396e470af8b6a3ac8bd1169e886744a07c3143169bc8a454bce93ec390c43"
+  },
+  "startupEcdConvertMessage": "Souhaitez-vous convertir toutes les danses non anglaises de votre collection portant le tag « ECD » en danses anglaises ?",
+  "@startupEcdConvertMessage": {
+    "x-sourceSha256": "d3206bd75890125ecc2d3bc309b8a7d41fa9248e3bfa53cd9d6aaf0151bd2b6c"
+  },
+  "startupEcdConvertDontShowAgain": "Ne plus afficher ce message",
+  "@startupEcdConvertDontShowAgain": {
+    "x-sourceSha256": "497a0f940e31f232122fb58b14fe0820f8fe60437f7da8bb3a728fa04c0edf86"
+  },
+  "startupEcdConvertDecline": "Pas maintenant",
+  "@startupEcdConvertDecline": {
+    "x-sourceSha256": "a0e63d7c7125d29af84d6919af5550529be77c327324940c98c4b2cb13a99c8c"
+  },
+  "startupEcdConvertConfirm": "Convertir",
+  "@startupEcdConvertConfirm": {
+    "x-sourceSha256": "5cd425f518c2e59a42b8b70008e62212d41060cc25916cfc47ad64383f9be745"
+  },
+  "startupEcdConvertSnackbar": "{count, plural, one{1 danse convertie en Anglaise (ECD).} other{{count} danses converties en Anglaise (ECD).}}",
+  "@startupEcdConvertSnackbar": {
+    "x-sourceSha256": "eeac5cbd9f6ed8ecf6dde0028562b4784e4bb60d89a2a74630e423c760473b31"
+  },
   "updateBannerAvailable": "Une nouvelle version de {appName} ({version}) est disponible.",
   "@updateBannerAvailable": {
     "x-sourceSha256": "b2629b4df990988fe59d8935dcfcbd5f764d98a3d395cf45c050d82fa94e6e6f"
