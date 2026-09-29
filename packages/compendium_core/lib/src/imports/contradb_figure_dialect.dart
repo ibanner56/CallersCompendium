@@ -3,6 +3,7 @@ import '../taxonomy/param_types.dart';
 import '../taxonomy/taxonomy.dart';
 import 'figure_parser.dart';
 import 'figure_text_scrub.dart';
+import 'while_container.dart';
 
 /// The ContraDB-HTML figure front-end: a set of reverse-parsers that mirror
 /// ContraDB's `libfigure` `<move>Words` renderers (as observed in the
@@ -83,14 +84,17 @@ final RegExp _starPromenadeVeto = RegExp(
 /// (case-insensitive) rather than a literal substring — `while` is itself a
 /// substring of `whiles` (see ContraDB dance #1603, "Eye Of The Tiger": "…
 /// whiles ladles slide left …"), so a literal match would cut `whiles`
-/// mid-word.
-final RegExp _whileConnective = RegExp(r'\bwhiles?\b', caseSensitive: false);
+/// mid-word. Shared with the Caller's Box front-end via [whileConnective].
+final RegExp _whileConnective = whileConnective;
 
 /// Parses one ContraDB free-text figure line, fanning a general `A while B` /
-/// `A whiles B` simultaneity connective out into a [Figure.meanwhile]
-/// container (#591, part of the #572 "meanwhile" epic) when — and only
-/// when — ordinary recognition does not already resolve the WHOLE line to a
-/// structured (non-custom) figure.
+/// `A whiles B` connective out into a container when — and only when —
+/// ordinary recognition does not already resolve the WHOLE line to a
+/// structured (non-custom) figure. The container is a [Figure.modifier] when
+/// [whileModifierContainer] accepts the two sides (a whole-set core such as
+/// `long lines forward` and a `roll away`/`give & take` that changes how it is
+/// danced), and otherwise a [Figure.meanwhile] (#591, part of the #572
+/// "meanwhile" epic: two groups acting at once).
 ///
 /// ## Precedence (locked #591 requirement)
 /// The named combined moves `boxCirculateWords` ([_boxCirculate], "box
@@ -211,11 +215,16 @@ Figure? parseContraDbFigureLine(
     if (f == null) return whole;
     figures.add(f);
   }
-  return Figure.meanwhile(
-    figures: figures,
-    beats: safeBeats,
-    progression: progression,
-  );
+  return whileModifierContainer(
+        figures,
+        beats: safeBeats,
+        progression: progression,
+      ) ??
+      Figure.meanwhile(
+        figures: figures,
+        beats: safeBeats,
+        progression: progression,
+      );
 }
 
 /// Order matters: the first non-null result wins. More specific templates that

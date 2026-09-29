@@ -286,6 +286,203 @@ void main() {
     });
   });
 
+  group('weave the line slide direction (#1415)', () {
+    test('"(R;L to N2)" → slide right, annotation kept as the note', () {
+      final f = _parse('Weave the line with partner (R;L to N2)');
+      expect(f!.move, 'zig_zag');
+      expect(f.params['who'], 'partners');
+      expect(f.params['slide'], 'right');
+      expect(f.note, 'R;L to N2');
+    });
+
+    test('"(L;R to N2)" → slide left (the two spellings differ)', () {
+      final f = _parse('Weave the line with partner (L;R to N2)');
+      expect(f!.move, 'zig_zag');
+      expect(f.params['slide'], 'left');
+      expect(f.note, 'L;R to N2');
+    });
+
+    test('lowercase and spaced bracket reads the same', () {
+      final f = _parse('Weave the line with partner ( r ; l to n2)');
+      expect(f!.params['slide'], 'right');
+    });
+
+    test('a bare "(R;L)" sets the slide; all-uppercase shorthand gets no '
+        'note', () {
+      final f = _parse('Weave the line with partner (R;L)');
+      expect(f!.move, 'zig_zag');
+      expect(f.params['slide'], 'right');
+      expect(f.note, isNull);
+    });
+
+    test('a bare lowercase "(r;l)" reads like "(R;L)": slide, no note', () {
+      final f = _parse('Weave the line with partner (r;l)');
+      expect(f!.params['slide'], 'right');
+      expect(f.note, isNull);
+    });
+
+    test('the pair is read through the plural entry point too', () {
+      final figures = _parseAll(
+        'Weave the line with partner (R;L to N2)',
+        beats: 6,
+      );
+      expect(figures, hasLength(1));
+      expect(figures.single.params['slide'], 'right');
+      expect(figures.single.params['beats'], 6);
+    });
+
+    test('a non-mirrored pair "(R;R …)" keeps the default slide', () {
+      final f = _parse('Weave the line with partner (R;R to N2)');
+      expect(f!.move, 'zig_zag');
+      expect(f.params.containsKey('slide'), isFalse);
+      expect(f.note, 'R;R to N2');
+    });
+
+    test('a longer pass list or a glued suffix is not a slide', () {
+      for (final line in [
+        'Weave the line with partner (R;L;R)',
+        'Weave the line with partner (R;L2)',
+        'Weave the line with partner (R)',
+      ]) {
+        final f = _parse(line);
+        expect(f!.move, 'zig_zag', reason: line);
+        expect(f.params.containsKey('slide'), isFalse, reason: line);
+      }
+    });
+
+    test('two slide-shaped brackets are ambiguous → default slide', () {
+      final f = _parse('Weave the line with partner (R;L) (L;R)');
+      expect(f!.params.containsKey('slide'), isFalse);
+    });
+
+    test('a bare "Weave the line" keeps the default slide', () {
+      expect(_parse('Weave the line')!.params.containsKey('slide'), isFalse);
+    });
+
+    test('a bracket on a line that is not a weave is left alone', () {
+      final f = _parse('Neighbor swing (R;L to N2)');
+      expect(f!.move, 'swing');
+      expect(f.params.containsKey('slide'), isFalse);
+    });
+  });
+
+  group('while → modifier (#1415)', () {
+    const b2 =
+        'In long lines, go forward and back while N2 neighbor roll away '
+        '(W roll L, M side-step R)';
+
+    void expectLongLinesRollAway(Figure f) {
+      expect(f.isModifier, isTrue);
+      expect(f.params['beats'], 8);
+      final sides = f.subFigures;
+      expect(sides.map((s) => s.move), ['long_lines', 'roll_away']);
+      expect(sides[1].params['who'], 'nextNeighbors');
+      // Beats ride on the container only.
+      expect(sides.every((s) => !s.params.containsKey('beats')), isTrue);
+    }
+
+    test(
+      'dance 6026 B2 → modifier[long_lines, roll_away], container beats',
+      () {
+        final figures = _parseAll(b2, beats: 8);
+        expect(figures, hasLength(1));
+        expectLongLinesRollAway(figures.single);
+      },
+    );
+
+    test('the singular (reparse) fan-out reads the same line', () {
+      final f = parseFigureLineFanOut(b2, beats: 8);
+      expectLongLinesRollAway(f!);
+    });
+
+    test('a stored import-gap custom of the line upgrades, then is stable', () {
+      final original = customFigure(
+        b2,
+        beats: 8,
+        origin: CustomOrigin.importGap,
+      );
+      final once = reparseImportGapFigures([original]);
+      expect(once.upgradedCount, 1);
+      expectLongLinesRollAway(once.figures.single);
+      final twice = reparseImportGapFigures(once.figures);
+      expect(twice.upgradedCount, 0);
+    });
+
+    test('the plural free-text fan-out reads the same line', () {
+      // ContraDB ranks first and reads this line as
+      // `meanwhile[long_lines, custom]`; a container with a custom child must
+      // not count as a clean parse or it shadows TCB's modifier.
+      final figures = parseFigureLinesFanOut(b2, beats: 8);
+      expect(figures, hasLength(1));
+      expectLongLinesRollAway(figures.single);
+    });
+
+    test('slice is also a core', () {
+      final f = _parseAll(
+        'Slice left while N2 neighbor roll away',
+        beats: 8,
+      ).single;
+      expect(f.isModifier, isTrue);
+      expect(f.subFigures.map((s) => s.move), ['slice', 'roll_away']);
+    });
+
+    test('a `while` inside a bracket never splits the line', () {
+      final f = _parse(
+        'In long lines, go forward and back (W go forward while M go back)',
+        beats: 8,
+      );
+      expect(f!.isContainer, isFalse);
+    });
+
+    test('a bracketed `while` before the real one is not the boundary', () {
+      // A naive split on the first `while` would cut inside the bracket and
+      // leave both halves custom; the depth-aware split finds the top-level one.
+      final f = _parseAll(
+        'In long lines, go forward and back (W forward while M back) while '
+        'N2 neighbor roll away',
+        beats: 8,
+      ).single;
+      expect(f.isModifier, isTrue);
+      expect(f.subFigures.map((s) => s.move), ['long_lines', 'roll_away']);
+    });
+
+    test('a non-modifier pairing stays custom, not a meanwhile', () {
+      final figures = _parseAll(
+        'Larks swing while robins circle left',
+        beats: 8,
+      );
+      expect(figures, hasLength(1));
+      expect(figures.single.isCustom, isTrue);
+    });
+
+    test('the reversed order is not classified', () {
+      final figures = _parseAll(
+        'N2 neighbor roll away while in long lines, go forward and back',
+        beats: 8,
+      );
+      expect(figures.single.isContainer, isFalse);
+      expect(figures.single.isCustom, isTrue);
+    });
+
+    test('a degenerate `while` (empty side) stays custom', () {
+      for (final line in [
+        'while N2 neighbor roll away',
+        'In long lines, go forward and back while',
+      ]) {
+        final figures = _parseAll(line, beats: 8);
+        expect(figures.single.isCustom, isTrue, reason: line);
+      }
+    });
+
+    test('a `||` line is still a meanwhile', () {
+      final f = _parseAll(
+        'In long lines, go forward and back || N2 neighbor roll away',
+        beats: 8,
+      ).single;
+      expect(f.isMeanwhile, isTrue);
+    });
+  });
+
   group('relationship N-suffix', () {
     test('"Right and left through with neighbor N2" structures', () {
       final f = _parse('Right and left through with neighbor N2');

@@ -1928,13 +1928,16 @@ _Match? _californiaTwirl(List<String> w) {
 }
 
 // "Weave the line" is a caller synonym for the existing (ContraDB-sourced)
-// `zig_zag` move (ratified in D4). It carries no separate turn/ender on the
-// line, so those stay at zig_zag's inherent taxonomy defaults (there is no
-// cross-line turn/ender fold for zig_zag). An optional leading/trailing dancer
-// set maps to `who`; any other leftover token forces the custom fallback.
+// `zig_zag` move (ratified in D4). The line itself carries no turn/ender, so
+// those stay at zig_zag's inherent taxonomy defaults (there is no cross-line
+// turn/ender fold for zig_zag), and so does `slide`: this recognizer never sets
+// it. TCB's `(R;L …)` bracket states the slide, but `_normalize` drops it before
+// this runs, so it is read by `_weaveSlideAnnotation` in
+// `callersbox_figure_dialect.dart`. An optional leading/trailing dancer set maps
+// to `who`; any other leftover token forces the custom fallback.
 _Match? _weaveTheLine(List<String> w) {
   if (!_consumePhrase(w, ['weave', 'the', 'line'])) return null;
-  // TCB writes "Weave the line with partner (L;R to N2)": the pass list is an
+  // TCB writes "Weave the line with partner (L;R to N2)": the bracket is an
   // annotation (dropped by `_normalize`), and "with <dancer>" names the set —
   // consume the optional "with" so the dancer resolves to `who` instead of
   // leaving a stray "with" that would force custom.
