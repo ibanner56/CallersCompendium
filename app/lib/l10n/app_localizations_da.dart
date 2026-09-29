@@ -6594,6 +6594,33 @@ class AppLocalizationsDa extends AppLocalizations {
       'Et integritetstjek af databasen mislykkedes. Dine lokale data kan være beskadiget – overvej at gendanne fra en sikkerhedskopi.';
 
   @override
+  String get startupEcdConvertTitle => 'Konverter ECD-danse?';
+
+  @override
+  String get startupEcdConvertMessage =>
+      'Vil du konvertere alle ikke-engelske danse i din samling med tagget „ECD“ til engelske danse?';
+
+  @override
+  String get startupEcdConvertDontShowAgain => 'Vis ikke dette igen';
+
+  @override
+  String get startupEcdConvertDecline => 'Ikke nu';
+
+  @override
+  String get startupEcdConvertConfirm => 'Konverter';
+
+  @override
+  String startupEcdConvertSnackbar(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Konverterede $count danse til engelsk (ECD).',
+      one: 'Konverterede 1 dans til engelsk (ECD).',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String updateBannerAvailable(String appName, String version) {
     return 'En nyere version af $appName ($version) er tilgængelig.';
   }

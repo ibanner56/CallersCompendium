@@ -93,11 +93,12 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kMatrixExactBeatCollisionKey,
     kCanonicalFigureTextKey,
     kCanonicalDiscouragedTermsKey,
-    // Two one-shot latches, written as `true` and read for presence. A
+    // Three one-shot latches, written as `true` and read for presence. A
     // non-bool would still latch, but a restore is a trust boundary and
     // nothing legitimate ever writes anything else here.
     kInitialSeedCompletedKey,
     kCustomFieldSharingDisclosureKey,
+    kEcdConvertPromptDismissedKey,
   ])
     key: _isBool,
 

@@ -6643,6 +6643,33 @@ class AppLocalizationsNl extends AppLocalizations {
       'Een integriteitscontrole van de database is mislukt. Je lokale gegevens zijn mogelijk beschadigd – overweeg een back-up terug te zetten.';
 
   @override
+  String get startupEcdConvertTitle => 'ECD-dansen converteren?';
+
+  @override
+  String get startupEcdConvertMessage =>
+      'Wil je alle niet-Engelse dansen in je collectie met de tag “ECD” converteren naar Engelse dansen?';
+
+  @override
+  String get startupEcdConvertDontShowAgain => 'Dit niet meer tonen';
+
+  @override
+  String get startupEcdConvertDecline => 'Niet nu';
+
+  @override
+  String get startupEcdConvertConfirm => 'Converteren';
+
+  @override
+  String startupEcdConvertSnackbar(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen geconverteerd naar Engels (ECD).',
+      one: '1 dans geconverteerd naar Engels (ECD).',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String updateBannerAvailable(String appName, String version) {
     return 'Een nieuwere versie van $appName ($version) is beschikbaar.';
   }

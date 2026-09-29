@@ -1279,4 +1279,178 @@ void main() {
       expect(await bootAndReadHidden(tester, 'tags'), isEmpty);
     });
   });
+
+  group('on-launch ECD-convert prompt', () {
+    const dialogKey = ValueKey('ecd-convert-prompt-dialog');
+
+    Future<AppData> bootWithEcdTaggedDance(WidgetTester tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final appData = _openAppData();
+      // Lowercase "ecd", proving the match is case-insensitive.
+      // ignore: unused_result
+      await appData.repositories.tags.upsert(Tag(id: 'tag-ecd', name: 'ecd'));
+      // ignore: unused_result
+      await appData.repositories.tags.upsert(
+        Tag(id: 'tag-keep', name: 'Waltz'),
+      );
+      await appData.repositories.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Nonesuch',
+          tagIds: const ['tag-ecd', 'tag-keep'],
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          integrityCheck: () async => true,
+        ),
+      );
+      await tester.pumpAndSettle();
+      return appData;
+    }
+
+    testWidgets(
+      'does not appear when nothing in the collection is tagged "ECD"',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(1200, 900));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final appData = _openAppData();
+
+        await tester.pumpWidget(
+          CompendiumApp(
+            appData: appData,
+            windowService: _NoopWindowService(appData.repositories.settings),
+            integrityCheck: () async => true,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(dialogKey), findsNothing);
+      },
+    );
+
+    testWidgets('does not appear once the user has opted out', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final appData = _openAppData();
+      // ignore: unused_result
+      await appData.repositories.tags.upsert(Tag(id: 'tag-ecd', name: 'ECD'));
+      await appData.repositories.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Nonesuch',
+          tagIds: const ['tag-ecd'],
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+      await appData.repositories.settings.set(
+        kEcdConvertPromptDismissedKey,
+        true,
+      );
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          integrityCheck: () async => true,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(dialogKey), findsNothing);
+    });
+
+    testWidgets(
+      'confirming converts the matching dance, strips only the "ECD" tag, '
+      'and reports how many were converted',
+      (tester) async {
+        final appData = await bootWithEcdTaggedDance(tester);
+
+        expect(find.byKey(dialogKey), findsOneWidget);
+
+        await tester.tap(
+          find.byKey(const ValueKey('ecd-convert-prompt-confirm')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(dialogKey), findsNothing);
+        final dance = await appData.repositories.dances.getById('d1');
+        expect(dance!.form, DanceForm.ecd);
+        expect(dance.tagIds, ['tag-keep']);
+        expect(
+          find.text('Converted 1 dance to English (ECD).'),
+          findsOneWidget,
+        );
+        expect(
+          await appData.repositories.settings.get(
+            kEcdConvertPromptDismissedKey,
+          ),
+          isNull,
+          reason: 'declining the checkbox must not opt out future launches',
+        );
+      },
+    );
+
+    testWidgets('declining leaves the dance untouched', (tester) async {
+      final appData = await bootWithEcdTaggedDance(tester);
+
+      await tester.tap(
+        find.byKey(const ValueKey('ecd-convert-prompt-decline')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(dialogKey), findsNothing);
+      final dance = await appData.repositories.dances.getById('d1');
+      expect(dance!.form, DanceForm.contra);
+      expect(dance.tagIds, ['tag-ecd', 'tag-keep']);
+    });
+
+    testWidgets('checking "don\'t show this again" and declining persists the '
+        'opt-out without converting', (tester) async {
+      final appData = await bootWithEcdTaggedDance(tester);
+
+      await tester.tap(
+        find.byKey(const ValueKey('ecd-convert-prompt-dont-show-again')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('ecd-convert-prompt-decline')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        await appData.repositories.settings.get(kEcdConvertPromptDismissedKey),
+        isTrue,
+      );
+      final dance = await appData.repositories.dances.getById('d1');
+      expect(dance!.form, DanceForm.contra);
+    });
+
+    testWidgets('checking "don\'t show this again" and confirming persists the '
+        'opt-out and still converts', (tester) async {
+      final appData = await bootWithEcdTaggedDance(tester);
+
+      await tester.tap(
+        find.byKey(const ValueKey('ecd-convert-prompt-dont-show-again')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('ecd-convert-prompt-confirm')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        await appData.repositories.settings.get(kEcdConvertPromptDismissedKey),
+        isTrue,
+      );
+      final dance = await appData.repositories.dances.getById('d1');
+      expect(dance!.form, DanceForm.ecd);
+    });
+  });
 }

@@ -29,6 +29,7 @@ import 'src/data/custom_themes_scope.dart';
 import 'src/data/date_format_scope.dart';
 import 'src/data/dialect_library_controller.dart';
 import 'src/data/dialect_library_scope.dart';
+import 'src/data/ecd_conversion.dart';
 import 'src/data/editor_draft_shutdown_scope.dart';
 import 'src/data/first_day_of_week_scope.dart';
 import 'src/data/formation_colors_controller.dart';
@@ -84,6 +85,7 @@ import 'src/screens/settings_screen.dart'
         kColourDanceThemeKey,
         kCollectionHiddenFacetsKey,
         kCollectionTileVisibleFieldsKey,
+        kEcdConvertPromptDismissedKey,
         kMatrixExactBeatCollisionKey,
         kProgramMatrixColumnsKey,
         kRequirePerformedForHistoryKey,
@@ -101,6 +103,7 @@ import 'src/sync/sync_runtime.dart';
 import 'src/update/update_controller.dart';
 import 'src/update/update_scope.dart';
 import 'src/widgets/app_bootstrap.dart';
+import 'src/widgets/ecd_convert_prompt_dialog.dart';
 
 AppData _defaultAppDataFactory() => AppData(openAppDatabase());
 
@@ -565,6 +568,11 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// Guards the one-time cold-start file check so it runs only once, after the
   /// ready UI is first shown.
   bool _initialFileChecked = false;
+
+  /// Guards the one-time on-launch ECD-convert prompt so it is considered at
+  /// most once per launch — whether or not it ends up shown — after the
+  /// ready UI is first shown. See [_maybeShowEcdConvertPrompt].
+  bool _ecdConvertPromptChecked = false;
 
   @override
   void initState() {
@@ -1895,29 +1903,93 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // Cold start: the app may have been launched to open a shared file. Pull it
     // once now that the ready UI is shown, so the imported program opens over
     // the app shell (not the loading screen). No-op when intake isn't wired.
+    //
+    // The ECD-convert prompt is chained strictly *after* this intake settles,
+    // in the same post-frame callback, rather than scheduled independently:
+    // both flows can push a modal route, and `_openIncomingDancePreview`'s
+    // loading spinner is dismissed with a bare `navigator.pop()` that targets
+    // whatever is on top of the stack. Racing them let the ECD dialog land on
+    // top of that spinner, so its own pop closed the wrong route and orphaned
+    // the spinner permanently.
     final channel = widget.incomingFileChannel;
     if (channel != null && !_initialFileChecked) {
       _initialFileChecked = true;
+      _ecdConvertPromptChecked = true;
       WidgetsBinding.instance.addPostFrameCallback((_) async {
-        if (!mounted) return;
-        final file = await channel.initialFile();
-        if (!mounted) {
-          if (file != null) {
-            _trackOwnedIncomingFile(file);
-            await _cleanupOwnedIncomingFile(file.path);
-          }
-          return;
-        }
-        if (file != null) await _handleIncomingFile(file);
-        if (!mounted) return;
-        // Cold start via a shared URL (issue #343): pull it once too. Files and
-        // URLs are mutually exclusive for a single launch, so at most one of
-        // these does anything.
-        final url = await channel.initialUrl();
-        if (mounted && url != null) await _handleIncomingUrl(url);
+        await _runColdStartIntake(channel);
+        if (!context.mounted) return;
+        await _maybeShowEcdConvertPrompt(context);
       });
+    } else if (!_ecdConvertPromptChecked) {
+      _ecdConvertPromptChecked = true;
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _maybeShowEcdConvertPrompt(context),
+      );
     }
     return const AppShell();
+  }
+
+  Future<void> _runColdStartIntake(IncomingFileChannel channel) async {
+    if (!mounted) return;
+    final file = await channel.initialFile();
+    if (!mounted) {
+      if (file != null) {
+        _trackOwnedIncomingFile(file);
+        await _cleanupOwnedIncomingFile(file.path);
+      }
+      return;
+    }
+    if (file != null) await _handleIncomingFile(file);
+    if (!mounted) return;
+    // Cold start via a shared URL (issue #343): pull it once too. Files and
+    // URLs are mutually exclusive for a single launch, so at most one of
+    // these does anything.
+    final url = await channel.initialUrl();
+    if (mounted && url != null) await _handleIncomingUrl(url);
+  }
+
+  /// Offers, once per launch, to convert every live non-[DanceForm.ecd] dance
+  /// tagged "ECD" (case-insensitive) to [DanceForm.ecd] and drop the tag.
+  /// Skipped when the user has previously opted out via the dialog's "don't
+  /// show this again" checkbox, or when nothing in the collection currently
+  /// matches. Errors are caught and logged rather than surfaced — this is an
+  /// advisory convenience prompt, not part of the startup gate.
+  Future<void> _maybeShowEcdConvertPrompt(BuildContext context) async {
+    try {
+      if (!context.mounted) return;
+      final repos = _appData.repositories;
+      final dismissed = await repos.settings.get(kEcdConvertPromptDismissedKey);
+      if (dismissed == true || !context.mounted) return;
+      // Only decides whether to ask: the actual conversion re-resolves both
+      // the tag and the candidate set fresh, immediately before writing (see
+      // `convertDancesToEcd`), so this snapshot going stale while the dialog
+      // is up cannot force a wrong write.
+      final hasCandidate = await findEcdConvertCandidates(
+        repos,
+        await ecdTagIds(repos),
+      ).then((candidates) => candidates.isNotEmpty);
+      if (!hasCandidate || !context.mounted) return;
+      final result = await showEcdConvertPromptDialog(context);
+      if (result == null || !context.mounted) return;
+      if (result.dontShowAgain) {
+        await repos.settings.set(kEcdConvertPromptDismissedKey, true);
+      }
+      if (!result.convert || !context.mounted) return;
+      final now = (widget.nowOverride ?? () => DateTime.now().toUtc())();
+      final converted = await convertDancesToEcd(repos, at: now);
+      if (!context.mounted || converted == 0) return;
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context).startupEcdConvertSnackbar(converted),
+            ),
+          ),
+        );
+    } on Object catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'main.ecd-convert-prompt');
+    }
   }
 
   @override

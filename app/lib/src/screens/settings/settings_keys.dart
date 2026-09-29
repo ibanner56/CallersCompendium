@@ -96,6 +96,15 @@ const String kFreeTextEntryKey = 'free_text_entry';
 const String kCustomFieldSharingDisclosureKey =
     'custom_fields.sharing.disclosed';
 
+/// Opt-out latch for the on-launch prompt offering to convert non-[DanceForm]
+/// `.ecd` dances tagged "ECD" (case-insensitive) to `DanceForm.ecd` and drop
+/// the tag. Stored as a bool; absent/unset means the prompt may still show
+/// (subject to a matching dance existing). Set to `true` only when the user
+/// checks the dialog's "don't show this again" box — declining the offer
+/// itself leaves this unset, so the prompt returns on the next launch that
+/// still finds a matching dance.
+const String kEcdConvertPromptDismissedKey = 'ecd_convert_prompt_dismissed';
+
 /// Key used to persist the set of [CollectionTileField]s the user wants shown
 /// on each collection dance row (issue #767). Stored as a JSON list of field
 /// name strings; absent/unset means all fields are visible, so existing users

@@ -1,0 +1,9 @@
+{
+  "id": "ecd-convert-prompt",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "If your collection has dances tagged \"ECD\" that aren't already the English (ECD) form, you're now offered on launch to convert them to English (ECD) and remove the tag. Decline any time, or check \"Don't show this again\" to opt out for good."
+    ]
+  }
+}

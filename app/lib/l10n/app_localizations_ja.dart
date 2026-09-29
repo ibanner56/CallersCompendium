@@ -6362,6 +6362,32 @@ class AppLocalizationsJa extends AppLocalizations {
       'データベースの整合性チェックに失敗しました。ローカルのデータが破損している可能性があります。バックアップからの復元をご検討ください。';
 
   @override
+  String get startupEcdConvertTitle => 'ECDダンスを変換しますか？';
+
+  @override
+  String get startupEcdConvertMessage =>
+      'コレクション内の「ECD」タグが付いた英語以外のダンスを、すべて英語のダンスに変換しますか？';
+
+  @override
+  String get startupEcdConvertDontShowAgain => '次回から表示しない';
+
+  @override
+  String get startupEcdConvertDecline => '今はしない';
+
+  @override
+  String get startupEcdConvertConfirm => '変換';
+
+  @override
+  String startupEcdConvertSnackbar(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンスを英語 (ECD) に変換しました。',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String updateBannerAvailable(String appName, String version) {
     return '$appNameの新しいバージョン（$version）が利用可能です。';
   }

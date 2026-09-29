@@ -260,6 +260,11 @@ final Map<String, DataClassification> settingsClassifications = {
   // Records that the one-time custom-field sharing disclosure was shown on
   // this device. A boolean latch; contains no personal data.
   'custom_fields.sharing.disclosed': _backupLocalState,
+  // Opt-out latch for the on-launch "convert ECD-tagged dances" prompt: set
+  // only when the user checks its "don't show this again" box. Same shape as
+  // the custom-field disclosure latch above (a UI dismissal flag, no personal
+  // data), so it gets the same classification.
+  'ecd_convert_prompt_dismissed': _backupLocalState,
   'update_auto_check': _backupLocalState,
   'update_beta_channel': _backupLocalState,
   'update_dismissed_version': _backupLocalState,

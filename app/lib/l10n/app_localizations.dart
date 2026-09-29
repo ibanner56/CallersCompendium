@@ -10110,6 +10110,42 @@ abstract class AppLocalizations {
   /// **'A database integrity check failed. Your local data may be corrupt — consider restoring from a backup.'**
   String get startupIntegrityCheckFailed;
 
+  /// Title of the on-launch dialog offering to convert non-English dances tagged "ECD" to the English Country Dance form. "ECD" is the same abbreviation used in commonDanceFormEcd and stays as-is.
+  ///
+  /// In en, this message translates to:
+  /// **'Convert ECD dances?'**
+  String get startupEcdConvertTitle;
+
+  /// Body of the on-launch ECD-convert dialog, asking to convert every dance tagged "ECD" (case-insensitive) that is not already the English Country Dance form. "ECD" stays as-is, matching the tag name the app looks for.
+  ///
+  /// In en, this message translates to:
+  /// **'Would you like to convert all non-English dances in your collection with the tag \"ECD\" to English dances?'**
+  String get startupEcdConvertMessage;
+
+  /// Checkbox on the on-launch ECD-convert dialog that opts out of seeing the prompt on future launches, regardless of whether Convert or Not now is chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t show this again'**
+  String get startupEcdConvertDontShowAgain;
+
+  /// Button on the on-launch ECD-convert dialog that declines the conversion for this launch.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get startupEcdConvertDecline;
+
+  /// Button on the on-launch ECD-convert dialog that confirms converting the matching dances to the English Country Dance form.
+  ///
+  /// In en, this message translates to:
+  /// **'Convert'**
+  String get startupEcdConvertConfirm;
+
+  /// Snackbar confirming how many dances the on-launch ECD-convert prompt converted.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{Converted 1 dance to English (ECD).} other{Converted {count} dances to English (ECD).}}'**
+  String startupEcdConvertSnackbar(int count);
+
   /// Update banner message when a newer version is available (idle/cancelled state).
   ///
   /// In en, this message translates to:

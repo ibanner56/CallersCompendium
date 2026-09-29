@@ -6692,6 +6692,33 @@ class AppLocalizationsFr extends AppLocalizations {
       'Un contrôle d’intégrité de la base de données a échoué. Vos données locales sont peut-être corrompues ; envisagez de restaurer une sauvegarde.';
 
   @override
+  String get startupEcdConvertTitle => 'Convertir les danses ECD ?';
+
+  @override
+  String get startupEcdConvertMessage =>
+      'Souhaitez-vous convertir toutes les danses non anglaises de votre collection portant le tag « ECD » en danses anglaises ?';
+
+  @override
+  String get startupEcdConvertDontShowAgain => 'Ne plus afficher ce message';
+
+  @override
+  String get startupEcdConvertDecline => 'Pas maintenant';
+
+  @override
+  String get startupEcdConvertConfirm => 'Convertir';
+
+  @override
+  String startupEcdConvertSnackbar(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count danses converties en Anglaise (ECD).',
+      one: '1 danse convertie en Anglaise (ECD).',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String updateBannerAvailable(String appName, String version) {
     return 'Une nouvelle version de $appName ($version) est disponible.';
   }
