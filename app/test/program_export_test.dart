@@ -1992,8 +1992,7 @@ void main() {
   });
 
   group('DanceShareField picker (issue #1434)', () {
-    String? titlesWithD3(String id) =>
-        id == 'd3' ? 'Money Musk' : _titles(id);
+    String? titlesWithD3(String id) => id == 'd3' ? 'Money Musk' : _titles(id);
     final choreographers = <String, Choreographer>{
       'c1': Choreographer(id: 'c1', name: 'Jane Smith'),
     };
