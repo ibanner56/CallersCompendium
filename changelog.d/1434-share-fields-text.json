@@ -1,9 +1,0 @@
-{
-  "id": "1434-share-fields-text",
-  "user_visible": true,
-  "app": {
-    "added": [
-      "Sharing or copying a program's plain set list now shows each dance's author right on the numbered line, even for a dance with no figures entered. The other Settings › Defaults checkboxes (formation, level, mixer, status, phrase, calling notes, walkthrough, tunes) now take effect on the richer per-dance card in a program's \"Set list and figures\" text export, and on a single dance's own text card."
-    ]
-  }
-}
