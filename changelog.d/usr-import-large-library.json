@@ -3,12 +3,14 @@
   "user_visible": true,
   "app": {
     "changed": [
+      "You can now import a Caller's Companion file of up to 256 MB (up from 64 MB), enough for a library of around 20,000 dances.",
       "Importing a large Caller's Companion file no longer freezes the app while it reads, and the import screen now shows real progress instead of an endless spinner.",
       "Importing a very large Caller's Companion library (tens of thousands of dances) is several times faster and uses far less memory."
     ]
   },
   "core": {
     "changed": [
+      "Raise the FileMaker reader's ceilings to admit a ~20,000-dance Caller's Companion library: `kMaxFmpSectors` from 16,384 to 65,536 (exactly the app's 256 MiB `.USR` cap in 4 KiB sectors), `kMaxFmpRecords` from 200,000 to 500,000, and `kMaxCcPhraseRows` from 20,000 to 150,000.",
       "`readFmp12` gains optional `tables` and `columnFilter` arguments, and discards the sectors that hold indexes, media and layouts instead of caching them; `readCcUsrArchive` uses them to read only the tables, and on `Dance`/`Phrase` only the columns, the importer needs. `CcDanceEntry.rawColumns` now holds only those columns.",
       "`CallersCompanionUsrAdapter` takes an injectable `CcUsrArchiveReader`, exposes `discoveredArchive`, and `CallersCompanionUsrImporter.import` decodes the file once.",
       "`ImportPipeline.plan` yields to the event loop while parsing and accepts an `onProgress` callback.",
