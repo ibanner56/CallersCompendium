@@ -40,9 +40,10 @@ const int kMaxImportFileBytes = 25 * 1024 * 1024;
 /// indexes) is ~237 MiB. The share-bundle text path and the archive intake keep
 /// the 25 MiB cap — only the `.USR` byte path is widened. Enforced the same way
 /// (a bounded stream, failing closed the moment the cap is crossed), so the
-/// raise costs up to this many bytes of buffered input before the structural
-/// bounds in `FmpReadLimits` take over — transiently ~2× while the chunks are
-/// joined into one buffer, and more once the reader has decoded the file.
+/// raise costs up to this many bytes of buffered input — one buffer, sized from
+/// the file's length up front and filled in place — before the structural
+/// bounds in `FmpReadLimits` take over, and more once the reader has decoded the
+/// file.
 /// `kMaxFmpSectors` is sized to this cap (256 MiB of 4 KiB sectors); raise them
 /// together, or the sector guard becomes the effective ceiling.
 const int kMaxImportUsrBytes = 256 * 1024 * 1024;

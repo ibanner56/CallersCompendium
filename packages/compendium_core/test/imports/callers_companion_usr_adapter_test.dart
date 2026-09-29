@@ -300,6 +300,27 @@ void main() {
       );
     });
 
+    test('a failed discover clears the archive an earlier one left', () async {
+      // The pipeline turns a failed discovery into an error batch instead of
+      // rethrowing, so a reused adapter must not keep describing the previous
+      // file: a caller committing programs from it would commit the wrong file's.
+      final reused = CallersCompanionUsrAdapter();
+      await reused.discover(
+        ImportRequest(options: {'bytes': danceAndSetBytes()}),
+      );
+      expect(reused.discoveredArchive, isNotNull);
+
+      await expectLater(
+        reused.discover(
+          ImportRequest(
+            options: {'bytes': Uint8List.fromList(List<int>.filled(64, 0x41))},
+          ),
+        ),
+        throwsA(isA<ImportError>()),
+      );
+      expect(reused.discoveredArchive, isNull);
+    });
+
     test('discoveredArchive is absent until discover, then carries the '
         'programs but not the dances', () async {
       final fresh = CallersCompanionUsrAdapter();

@@ -87,7 +87,9 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
   /// The archive [discover] last read, **without its dances**
   /// ([CcUsrArchive.withoutDances]) — what
   /// [CallersCompanionUsrImporter.commit] needs — or null before [discover] has
-  /// run. Lets a caller commit without decoding the file a second time.
+  /// run — and again after a [discover] that failed, so it never describes a
+  /// different file than the last one asked about. Lets a caller commit without
+  /// decoding the file a second time.
   CcUsrArchive? get discoveredArchive => _discovered;
 
   /// Structural bounds handed to [readCcUsrArchive]; exceeding one fails closed
@@ -103,6 +105,12 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
 
   @override
   Future<List<DiscoveredRecord>> discover(ImportRequest request) async {
+    // Drop what an earlier discovery left before starting this one. The
+    // pipeline turns a failed discovery into an error batch rather than
+    // rethrowing, so without this a reused adapter would keep the previous
+    // file's archive and a caller could commit that file's programs for this
+    // one.
+    _discovered = null;
     final bytes = _bytesOf(request);
     final CcUsrArchive archive;
     try {
