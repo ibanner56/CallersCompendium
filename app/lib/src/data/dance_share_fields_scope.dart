@@ -9,12 +9,13 @@ import 'package:flutter/widgets.dart';
 /// of the widget tree so the settings screen — a sibling of the export call
 /// sites in the navigation tree — can write to the notifier via [notifierOf].
 ///
-/// **Scope of the preference:** every export call site
-/// (`ProgramExportMenu`, `DanceExportMenu`, and the dance-detail screen's own
-/// export actions) reads [DanceShareFieldsScope.of] and passes the result
-/// into the core renderers. A call site that doesn't opt in is unaffected —
-/// there is none today, since this feature's app-layer wiring lands with the
-/// call sites that read it.
+/// **Current state (issue #1434, this PR):** the scope is mounted at the app
+/// root and the Settings screen reads/writes it, but **no export call site
+/// reads it yet** — `ProgramExportMenu`, `DanceExportMenu`, and the
+/// dance-detail screen's export actions are wired to read
+/// [DanceShareFieldsScope.of] and pass the result into the core renderers in
+/// follow-up PRs. Toggling the Settings checkboxes this PR adds has no
+/// visible effect on any export until that wiring lands.
 ///
 /// **Reading the value:** call [DanceShareFieldsScope.of] inside `build`. It
 /// returns [DanceShareField.allExceptTunes] when no ancestor is present,
