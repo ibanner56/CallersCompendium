@@ -2013,6 +2013,72 @@ abstract class AppLocalizations {
   /// **'Custom fields'**
   String get settingsDefaultsCollectionCardCustomFields;
 
+  /// Section header for the preference that chooses which non-figures dance fields appear when a program/dance is shared, copied, or exported to PDF (#1434).
+  ///
+  /// In en, this message translates to:
+  /// **'Shared dance fields'**
+  String get settingsDefaultsShareFieldsHeader;
+
+  /// Subtitle describing the share-fields checkboxes (#1434).
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which details appear when you share, copy, or export a program or dance. Authors are shown by default; tunes are hidden until you turn them on.'**
+  String get settingsDefaultsShareFieldsSubtitle;
+
+  /// Label for the Authors share-field toggle (#1434).
+  ///
+  /// In en, this message translates to:
+  /// **'Authors'**
+  String get settingsDefaultsShareFieldsAuthors;
+
+  /// Label for the Formation share-field toggle (#1434).
+  ///
+  /// In en, this message translates to:
+  /// **'Formation'**
+  String get settingsDefaultsShareFieldsFormation;
+
+  /// Label for the Level share-field toggle (#1434).
+  ///
+  /// In en, this message translates to:
+  /// **'Level'**
+  String get settingsDefaultsShareFieldsLevel;
+
+  /// Label for the Mixer-flag share-field toggle (#1434).
+  ///
+  /// In en, this message translates to:
+  /// **'Mixer'**
+  String get settingsDefaultsShareFieldsMixer;
+
+  /// Label for the Status share-field toggle (#1434).
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get settingsDefaultsShareFieldsStatus;
+
+  /// Label for the Phrase-structure share-field toggle (#1434).
+  ///
+  /// In en, this message translates to:
+  /// **'Phrase'**
+  String get settingsDefaultsShareFieldsPhraseStructure;
+
+  /// Label for the Calling-notes share-field toggle (#1434).
+  ///
+  /// In en, this message translates to:
+  /// **'Calling notes'**
+  String get settingsDefaultsShareFieldsCallingNotes;
+
+  /// Label for the Walkthrough share-field toggle (#1434).
+  ///
+  /// In en, this message translates to:
+  /// **'Walkthrough'**
+  String get settingsDefaultsShareFieldsWalkthrough;
+
+  /// Label for the Tunes share-field toggle (#1434). Unlike every other field here this defaults off, since no renderer emitted tunes before this preference existed.
+  ///
+  /// In en, this message translates to:
+  /// **'Tunes'**
+  String get settingsDefaultsShareFieldsTunes;
+
   /// Section header for the preference that chooses which filters appear in the Collection page's Filters panel and the dance picker (#1419).
   ///
   /// In en, this message translates to:

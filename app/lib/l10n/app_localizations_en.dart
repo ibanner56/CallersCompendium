@@ -1142,6 +1142,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsDefaultsCollectionCardCustomFields => 'Custom fields';
 
   @override
+  String get settingsDefaultsShareFieldsHeader => 'Shared dance fields';
+
+  @override
+  String get settingsDefaultsShareFieldsSubtitle =>
+      'Choose which details appear when you share, copy, or export a program or dance. Authors are shown by default; tunes are hidden until you turn them on.';
+
+  @override
+  String get settingsDefaultsShareFieldsAuthors => 'Authors';
+
+  @override
+  String get settingsDefaultsShareFieldsFormation => 'Formation';
+
+  @override
+  String get settingsDefaultsShareFieldsLevel => 'Level';
+
+  @override
+  String get settingsDefaultsShareFieldsMixer => 'Mixer';
+
+  @override
+  String get settingsDefaultsShareFieldsStatus => 'Status';
+
+  @override
+  String get settingsDefaultsShareFieldsPhraseStructure => 'Phrase';
+
+  @override
+  String get settingsDefaultsShareFieldsCallingNotes => 'Calling notes';
+
+  @override
+  String get settingsDefaultsShareFieldsWalkthrough => 'Walkthrough';
+
+  @override
+  String get settingsDefaultsShareFieldsTunes => 'Tunes';
+
+  @override
   String get settingsDefaultsCollectionFiltersHeader => 'Collection filters';
 
   @override
