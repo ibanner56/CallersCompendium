@@ -1433,6 +1433,50 @@
   "@settingsDefaultsCollectionCardCustomFields": {
     "description": "Label for the showInList custom-field chips field-visibility toggle (#767)."
   },
+  "settingsDefaultsShareFieldsHeader": "Shared dance fields",
+  "@settingsDefaultsShareFieldsHeader": {
+    "description": "Section header for the preference that chooses which non-figures dance fields appear when a program/dance is shared, copied, or exported to PDF (#1434)."
+  },
+  "settingsDefaultsShareFieldsSubtitle": "Choose which details appear when you share, copy, or export a program or dance. Authors are shown by default; tunes are hidden until you turn them on.",
+  "@settingsDefaultsShareFieldsSubtitle": {
+    "description": "Subtitle describing the share-fields checkboxes (#1434)."
+  },
+  "settingsDefaultsShareFieldsAuthors": "Authors",
+  "@settingsDefaultsShareFieldsAuthors": {
+    "description": "Label for the Authors share-field toggle (#1434)."
+  },
+  "settingsDefaultsShareFieldsFormation": "Formation",
+  "@settingsDefaultsShareFieldsFormation": {
+    "description": "Label for the Formation share-field toggle (#1434)."
+  },
+  "settingsDefaultsShareFieldsLevel": "Level",
+  "@settingsDefaultsShareFieldsLevel": {
+    "description": "Label for the Level share-field toggle (#1434)."
+  },
+  "settingsDefaultsShareFieldsMixer": "Mixer",
+  "@settingsDefaultsShareFieldsMixer": {
+    "description": "Label for the Mixer-flag share-field toggle (#1434)."
+  },
+  "settingsDefaultsShareFieldsStatus": "Status",
+  "@settingsDefaultsShareFieldsStatus": {
+    "description": "Label for the Status share-field toggle (#1434)."
+  },
+  "settingsDefaultsShareFieldsPhraseStructure": "Phrase",
+  "@settingsDefaultsShareFieldsPhraseStructure": {
+    "description": "Label for the Phrase-structure share-field toggle (#1434)."
+  },
+  "settingsDefaultsShareFieldsCallingNotes": "Calling notes",
+  "@settingsDefaultsShareFieldsCallingNotes": {
+    "description": "Label for the Calling-notes share-field toggle (#1434)."
+  },
+  "settingsDefaultsShareFieldsWalkthrough": "Walkthrough",
+  "@settingsDefaultsShareFieldsWalkthrough": {
+    "description": "Label for the Walkthrough share-field toggle (#1434)."
+  },
+  "settingsDefaultsShareFieldsTunes": "Tunes",
+  "@settingsDefaultsShareFieldsTunes": {
+    "description": "Label for the Tunes share-field toggle (#1434). Unlike every other field here this defaults off, since no renderer emitted tunes before this preference existed."
+  },
   "settingsDefaultsCollectionFiltersHeader": "Collection filters",
   "@settingsDefaultsCollectionFiltersHeader": {
     "description": "Section header for the preference that chooses which filters appear in the Collection page's Filters panel and the dance picker (#1419)."
@@ -5570,6 +5614,20 @@
   "exportLabelWalkthrough": "Walkthrough",
   "@exportLabelWalkthrough": {
     "description": "Section heading for the walkthrough on an exported dance card (plain text and PDF)."
+  },
+  "exportLabelTunes": "Tunes",
+  "@exportLabelTunes": {
+    "description": "Section heading for the suggested tune list on an exported dance card (plain text and PDF), issue #1434."
+  },
+  "exportSlotAuthorSuffix": "by {names}",
+  "@exportSlotAuthorSuffix": {
+    "description": "Author-names suffix appended to a numbered set-list slot line, e.g. \"1. Waltz Quadrille — by Jane Smith\" (issue #1434).",
+    "placeholders": {
+      "names": {
+        "type": "String",
+        "example": "Jane Smith, Bob Lee"
+      }
+    }
   },
   "exportBeatsLabel": "{count, plural, =1{1 beat} other{{count} beats}}",
   "@exportBeatsLabel": {

@@ -101,6 +101,10 @@ final Map<String, DataClassification> settingsClassifications = {
   'soft_delete_retention_days': _preference,
   'venue_entity_mode': _preference,
   'collection_tile_visible_fields': _preference,
+  // The set of non-figures Dance fields included when a program/dance is
+  // shared, copied, or exported to PDF (issue #1434). A working preference,
+  // same shape as its sibling above.
+  'program_dance_share_fields': _preference,
   // The filter sections hidden from the Collection Filters panel and the dance
   // picker (issue #1419): a JSON list of opaque section ids — built-in slugs
   // (`status`, `tags`, …) and `cf:<customFieldDefId>`. No labels or values, so

@@ -1161,6 +1161,40 @@ class AppLocalizationsDe extends AppLocalizations {
       'Benutzerdefinierte Felder';
 
   @override
+  String get settingsDefaultsShareFieldsHeader => 'Geteilte Tanzfelder';
+
+  @override
+  String get settingsDefaultsShareFieldsSubtitle =>
+      'Wähle aus, welche Details angezeigt werden, wenn du ein Programm oder einen Tanz teilst, kopierst oder exportierst. Autoren werden standardmäßig angezeigt; Melodien sind ausgeblendet, bis du sie aktivierst.';
+
+  @override
+  String get settingsDefaultsShareFieldsAuthors => 'Autoren';
+
+  @override
+  String get settingsDefaultsShareFieldsFormation => 'Formation';
+
+  @override
+  String get settingsDefaultsShareFieldsLevel => 'Niveau';
+
+  @override
+  String get settingsDefaultsShareFieldsMixer => 'Mixer';
+
+  @override
+  String get settingsDefaultsShareFieldsStatus => 'Status';
+
+  @override
+  String get settingsDefaultsShareFieldsPhraseStructure => 'Phrasierung';
+
+  @override
+  String get settingsDefaultsShareFieldsCallingNotes => 'Calling-Notizen';
+
+  @override
+  String get settingsDefaultsShareFieldsWalkthrough => 'Ablauf';
+
+  @override
+  String get settingsDefaultsShareFieldsTunes => 'Melodien';
+
+  @override
   String get settingsDefaultsCollectionFiltersHeader => 'Sammlungsfilter';
 
   @override
@@ -4346,6 +4380,14 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get exportLabelWalkthrough => 'Ablauf';
+
+  @override
+  String get exportLabelTunes => 'Melodien';
+
+  @override
+  String exportSlotAuthorSuffix(String names) {
+    return 'von $names';
+  }
 
   @override
   String exportBeatsLabel(int count) {

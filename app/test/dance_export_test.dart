@@ -86,6 +86,7 @@ Future<void> _pumpMenu(
   Dialect? dialect,
   List<String> authorNames = const [],
   String statusLabel = 'Active',
+  Set<DanceShareField> fields = DanceShareField.allExceptTunes,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -101,6 +102,7 @@ Future<void> _pumpMenu(
               formationLabel: 'Duple improper',
               levelLabel: 'Intermediate',
               statusLabel: statusLabel,
+              fields: fields,
             ),
           ],
         ),
@@ -337,6 +339,44 @@ void main() {
       // Dialect is applied to the copied card (role token substituted).
       expect(clipboardText, contains('larks swing'));
       expect(find.text('Dance copied to clipboard.'), findsOneWidget);
+    });
+
+    testWidgets('Copy dance respects a deselected field (issue #1434)', (
+      tester,
+    ) async {
+      String? clipboardText;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            clipboardText = (call.arguments as Map)['text'] as String?;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+
+      await _pumpMenu(
+        tester,
+        _dance(),
+        authorNames: const ['Carol Ormand'],
+        fields: {...DanceShareField.allExceptTunes}
+          ..remove(DanceShareField.authors),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Copy dance'));
+      await tester.pumpAndSettle();
+
+      expect(clipboardText, isNotNull);
+      expect(clipboardText, contains('Rory O\'More'));
+      expect(clipboardText, isNot(contains('Carol Ormand')));
     });
 
     testWidgets('an active dance omits the Status line from the export', (
