@@ -424,7 +424,7 @@ List<String> _normalize(
       .replaceAll('¼', ' 1/4 ')
       .replaceAll('¾', ' 3/4 ');
   final words = s
-      .split(RegExp(r'\s+'))
+      .split(_wsRe)
       .map(_stripEdgePunct)
       .where((w) => w.isNotEmpty)
       .map((w) => w == 'thru' ? 'through' : w)
@@ -432,8 +432,21 @@ List<String> _normalize(
   return words;
 }
 
-String _stripEdgePunct(String w) =>
-    w.replaceAll(RegExp(r'^[.,;:!]+'), '').replaceAll(RegExp(r'[.,;:!]+$'), '');
+String _stripEdgePunct(String w) {
+  var start = 0;
+  var end = w.length;
+  while (start < end && _isEdgePunct(w.codeUnitAt(start))) {
+    start++;
+  }
+  while (end > start && _isEdgePunct(w.codeUnitAt(end - 1))) {
+    end--;
+  }
+  return start == 0 && end == w.length ? w : w.substring(start, end);
+}
+
+// . , ; : !
+bool _isEdgePunct(int c) =>
+    c == 0x2E || c == 0x2C || c == 0x3B || c == 0x3A || c == 0x21;
 
 /// Splits [t] on the FIRST top-level (bracket-depth-0, outside any `()`/`[]`)
 /// whole-word match of [word], returning exactly two trimmed pieces
@@ -2353,3 +2366,5 @@ _Match? _upTheHall(List<String> w) {
     'ender': 'none',
   });
 }
+
+final RegExp _wsRe = RegExp(r'\s+');

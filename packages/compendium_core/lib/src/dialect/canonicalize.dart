@@ -36,6 +36,23 @@ const Map<String, String> _legacyRoleSynonyms = {
   'women': 'role2s',
 };
 
+/// The substitutors [canonicalize] builds for [Dialect.canonical] with no extra
+/// synonyms — the only configuration the import path uses.
+///
+/// Building a [Substitutor] sorts every key and compiles a Unicode-lookbehind
+/// pattern, which is a measurable share of a large import when repeated for
+/// every figure line. Both inputs are fixed for the process:
+/// [_legacyRoleSynonyms] is const and [Dialect.canonical] is an immutable
+/// singleton, so the result is a pure function of the text. (Per isolate: a
+/// static.) Any other dialect, or any [extraRoleSynonyms], is built per call as
+/// before.
+({Substitutor roles, Substitutor? discouraged})? _canonicalSubstitutors;
+
+bool _usesCanonicalSubstitutors(
+  Dialect dialect,
+  Map<String, String> extraRoleSynonyms,
+) => extraRoleSynonyms.isEmpty && identical(dialect, Dialect.canonical);
+
 /// The single canonicalization chokepoint (dialect design §"Canonicalization
 /// on input"). Inverse-maps the user's active dialect role terms — plus known
 /// legacy synonyms — back to canonical role tokens before persistence, so
@@ -53,6 +70,14 @@ CanonicalizationResult canonicalize(
   Dialect dialect, {
   Map<String, String> extraRoleSynonyms = const {},
 }) {
+  final cacheable = _usesCanonicalSubstitutors(dialect, extraRoleSynonyms);
+  final cached = cacheable ? _canonicalSubstitutors : null;
+  if (cached != null) {
+    return CanonicalizationResult(
+      cached.roles.apply(text),
+      cached.discouraged?.matches(text) ?? const <({String text, int start})>[],
+    );
+  }
   final reverse = <String, String>{};
   // Union enrichment first (lowest precedence); then legacy synonyms; then the
   // active dialect — so legacy and the active dialect always win where they
@@ -65,23 +90,40 @@ CanonicalizationResult canonicalize(
     reverse[entry.value.singular.toLowerCase()] = entry.key;
     reverse[entry.value.plural.toLowerCase()] = '${entry.key}s';
   }
-  final rewritten = Substitutor(reverse, caseInsensitive: true).apply(text);
-
-  final discouraged = dialect.discouragedTerms.isEmpty
-      ? const <({String text, int start})>[]
+  final roles = Substitutor(reverse, caseInsensitive: true);
+  final discouragedSubstitutor = dialect.discouragedTerms.isEmpty
+      ? null
       : Substitutor({
           for (final t in dialect.discouragedTerms) t: t,
-        }, caseInsensitive: true).matches(text);
-
-  return CanonicalizationResult(rewritten, discouraged);
+        }, caseInsensitive: true);
+  if (cacheable) {
+    _canonicalSubstitutors = (
+      roles: roles,
+      discouraged: discouragedSubstitutor,
+    );
+  }
+  return CanonicalizationResult(
+    roles.apply(text),
+    discouragedSubstitutor?.matches(text) ??
+        const <({String text, int start})>[],
+  );
 }
 
 /// Convenience: canonical text only (drops the discouraged-term spans).
+///
+/// Skips the discouraged-term scan entirely on the cached canonical path, which
+/// [canonicalize] runs and this discards.
 String canonicalizeText(
   String text,
   Dialect dialect, {
   Map<String, String> extraRoleSynonyms = const {},
-}) => canonicalize(text, dialect, extraRoleSynonyms: extraRoleSynonyms).text;
+}) {
+  if (_usesCanonicalSubstitutors(dialect, extraRoleSynonyms)) {
+    final cached = _canonicalSubstitutors;
+    if (cached != null) return cached.roles.apply(text);
+  }
+  return canonicalize(text, dialect, extraRoleSynonyms: extraRoleSynonyms).text;
+}
 
 /// Rewrites taxonomy move display names and legacy keywords to their canonical
 /// display names for full-text search. Unlike role canonicalization, this is

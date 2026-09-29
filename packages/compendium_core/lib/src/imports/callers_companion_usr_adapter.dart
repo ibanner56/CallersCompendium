@@ -91,6 +91,10 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
   /// production ceilings; tests inject tiny values to exercise the guard.
   final FmpReadLimits limits;
 
+  /// Figures already parsed for a body line, shared by every dance this adapter
+  /// parses: a library repeats its stock calls thousands of times.
+  final CcFigureLineCache _lineCache = CcFigureLineCache();
+
   /// Version tag stamped onto each [RawRecord.sourceVersion].
   static const String sourceVersion = ccUsrSourceVersion;
 
@@ -222,7 +226,7 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
     }
     // Figure text is scrubbed + structured by the shared parser (the mapping's
     // default scrub is the core `scrubFigureText` chokepoint).
-    final mapping = mapCallersCompanionDance(record);
+    final mapping = mapCallersCompanionDance(record, lineCache: _lineCache);
     return StructuredDraft(
       dance: mapping.dance,
       raw: raw,

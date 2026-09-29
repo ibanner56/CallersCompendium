@@ -286,7 +286,7 @@ List<Figure> parseFigureLines(
   // discarded (OWASP; the corpus maximum is 5 clauses, so no real dance ever
   // takes this path).
   final noteFallbackReachable = clauses.length <= _maxNoteFallbackClauses;
-  final declined = <int>[];
+  final declined = <_DeclinedClause>[];
   for (var i = 0; i < clauses.length; i++) {
     // Option A beats distribution: the source's combined total rides on the
     // first clause; every later clause is beats-absent so the cumulative total
@@ -333,7 +333,12 @@ List<Figure> parseFigureLines(
     // for the note fallback; anything else is a figure.
     if (f == null || f.isCustom) {
       if (!noteFallbackReachable) return wholeAsList();
-      declined.add(i);
+      // The host a note would hang on is the last figure emitted BEFORE this
+      // clause, so it is read off `parsed` here — where it is known — not
+      // reconstructed later from clause counts, which only agree while every
+      // clause yields exactly one figure (the walk-forward fold consumes two
+      // clauses for one).
+      declined.add(_DeclinedClause(i, parsed.length - 1));
     } else {
       parsed.add(f);
     }
@@ -342,10 +347,19 @@ List<Figure> parseFigureLines(
   return _withClauseNotes(clauses, parsed, declined, scrub) ?? wholeAsList();
 }
 
+/// A `;` clause that failed to structure: its index in the clause list, and the
+/// index in the parsed figures of the last figure emitted before it (its note's
+/// host), or -1 when it precedes every figure.
+class _DeclinedClause {
+  const _DeclinedClause(this.clause, this.host);
+  final int clause;
+  final int host;
+}
+
 /// Applies the note fallback to a partially-structured `;` compound, or returns
 /// `null` to decline it (the caller then keeps the pre-existing whole-custom
 /// line). [parsed] holds the structured figures in source order and [declined]
-/// the indices of the clauses that failed.
+/// the clauses that failed, each with the figure its note would hang on.
 ///
 /// Declines — i.e. keeps today's all-or-nothing behaviour — when:
 /// - **nothing structured**, or the FIRST failing clause precedes every
@@ -369,7 +383,7 @@ List<Figure> parseFigureLines(
 List<Figure>? _withClauseNotes(
   List<String> clauses,
   List<Figure> parsed,
-  List<int> declined,
+  List<_DeclinedClause> declined,
   String Function(String)? scrub,
 ) {
   if (parsed.isEmpty) return null;
@@ -377,13 +391,13 @@ List<Figure>? _withClauseNotes(
   final scrubFn = scrub ?? scrubFigureText;
   // Notes to add, keyed by the index in `parsed` they belong to.
   final notes = <int, String>{};
-  for (final index in declined) {
-    final text = scrubFn(clauses[index]).trim();
+  for (final d in declined) {
+    final text = scrubFn(clauses[d.clause]).trim();
     if (!_noteEligibleClause(text)) return null;
-    // The host is the last structured figure emitted BEFORE this clause: the
-    // number of clauses before `index` that structured. 0 means the clause
-    // precedes every figure -> decline (the leading-clause rule).
-    final host = index - declined.where((d) => d < index).length - 1;
+    // The host is the last structured figure emitted BEFORE this clause. -1
+    // means the clause precedes every figure -> decline (the leading-clause
+    // rule).
+    final host = d.host;
     if (host < 0) return null;
     final combined = combineFigureNotes(notes[host], text);
     if (combined == null) return null; // Unreachable: `text` is non-empty.
@@ -964,9 +978,8 @@ List<String> _splitTopLevel(String t, String sep) {
 /// shared `_normalize` via [FigureFrontEnd.recognitionNormalize], so a structured
 /// match does NOT retain the bracketed text while the custom fallback — which
 /// runs on the un-normalized scrubbed text — still keeps its annotation verbatim.
-String _stripAnnotations(String lowercased) => lowercased
-    .replaceAll(RegExp(r'\([^)]*\)'), ' ')
-    .replaceAll(RegExp(r'\[[^\]]*\]'), ' ');
+String _stripAnnotations(String lowercased) =>
+    lowercased.replaceAll(_parenRe, ' ').replaceAll(_bracketRe, ' ');
 
 /// TCB's recognition-only normalization: the shared `()`/`[]` annotation strip
 /// ([_stripAnnotations]) plus one TCB-specific idiom.
@@ -1358,14 +1371,8 @@ FigureMatch? _chainAnnotation(String scrubbed) {
 /// See [_chainAnnotation]. `promenade` has no note of its own (no collision),
 /// but shares the same mechanism for consistency.
 FigureMatch? _promenadeAnnotation(String scrubbed) {
-  final wholeSet = RegExp(
-    r'\s+around\s+(?:the\s+)?major\s+set\s*$',
-    caseSensitive: false,
-  ).hasMatch(scrubbed);
-  final normalized = scrubbed.replaceFirst(
-    RegExp(r'\s+around\s+(?:the\s+)?major\s+set\s*$', caseSensitive: false),
-    '',
-  );
+  final wholeSet = _aroundMajorSetRe.hasMatch(scrubbed);
+  final normalized = scrubbed.replaceFirst(_aroundMajorSetRe, '');
   final annotated = _annotatedMatch(normalized, _promenadeAnchor, 'promenade');
   final match =
       annotated?.match ??
@@ -1647,8 +1654,8 @@ final RegExp _placesRe = RegExp(
 
 int? _parsePlaces(String raw) {
   final trimmed = raw
-      .replaceAll(RegExp(r'\s*places?\s*$', caseSensitive: false), '')
-      .replaceAll(RegExp(r'\s+'), '')
+      .replaceAll(_placesTailRe, '')
+      .replaceAll(_wsRe, '')
       .trim();
   // Slash fractions: N/4 and N/2 only (quarter-place resolution).
   const slashMap = {'1/4': 1, '2/4': 2, '3/4': 3, '4/4': 4, '1/2': 2};
@@ -2605,8 +2612,21 @@ const int _maxAnnotationNote = 200;
 // not widen its public surface for this source-specific decoder. Kept
 // byte-identical to the core's definitions.
 
-String _stripEdgePunct(String w) =>
-    w.replaceAll(RegExp(r'^[.,;:!]+'), '').replaceAll(RegExp(r'[.,;:!]+$'), '');
+String _stripEdgePunct(String w) {
+  var start = 0;
+  var end = w.length;
+  while (start < end && _isEdgePunct(w.codeUnitAt(start))) {
+    start++;
+  }
+  while (end > start && _isEdgePunct(w.codeUnitAt(end - 1))) {
+    end--;
+  }
+  return start == 0 && end == w.length ? w : w.substring(start, end);
+}
+
+// . , ; : !
+bool _isEdgePunct(int c) =>
+    c == 0x2E || c == 0x2C || c == 0x3B || c == 0x3A || c == 0x21;
 
 const Set<String> _filler = {'your', 'the', 'a', 'an'};
 
@@ -2792,14 +2812,8 @@ FigureMatch? _circulate(String scrubbed) {
   final comma = def.indexOf(',');
   if (comma == -1 || def.indexOf(',', comma + 1) != -1) return null;
 
-  final cross = RegExp(
-    r'^(.+?)\s+cross$',
-    caseSensitive: false,
-  ).firstMatch(def.substring(0, comma).trim());
-  final loop = RegExp(
-    r'^(.+?)\s+loop(?:\s+(left|right))?$',
-    caseSensitive: false,
-  ).firstMatch(def.substring(comma + 1).trim());
+  final cross = _crossRe.firstMatch(def.substring(0, comma).trim());
+  final loop = _loopRe.firstMatch(def.substring(comma + 1).trim());
   if (cross == null || loop == null) return null;
 
   final who = resolveDancerSetPhrase(cross.group(1)!);
@@ -2887,7 +2901,7 @@ FigureMatch? _squareThroughPassList(String scrubbed) {
 
   // Outside the pass list must be EXACTLY "square through <n>" (+ filler).
   final outWords = outside
-      .split(RegExp(r'\s+'))
+      .split(_wsRe)
       .map(_stripEdgePunct)
       .where((w) => w.isNotEmpty && !_filler.contains(w))
       .toList();
@@ -2985,7 +2999,7 @@ FigureMatch? _hey(String scrubbed) {
       .replaceAll('½', ' 1/2 ')
       .replaceAll('¼', ' 1/4 ')
       .replaceAll('¾', ' 3/4 ')
-      .split(RegExp(r'\s+'))
+      .split(_wsRe)
       .map(_stripEdgePunct)
       .where((w) => w.isNotEmpty)
       .toList();
@@ -3280,7 +3294,7 @@ List<_GrandRightAndLeftPass>? _decodeGrandRightAndLeftPasses(String scrubbed) {
   // as unexplained words and declines the whole line.
   final outside = '${lower.substring(0, open)} ${lower.substring(close + 1)}';
   final words = outside
-      .split(RegExp(r'\s+'))
+      .split(_wsRe)
       .map(_stripEdgePunct)
       .where((w) => w.isNotEmpty && !_filler.contains(w))
       .toList();
@@ -3314,3 +3328,17 @@ List<_GrandRightAndLeftPass>? _decodeGrandRightAndLeftPasses(String scrubbed) {
 }
 
 const List<String> _grandRightAndLeftWords = ['grand', 'right', 'and', 'left'];
+
+final RegExp _wsRe = RegExp(r'\s+');
+final RegExp _parenRe = RegExp(r'\([^)]*\)');
+final RegExp _bracketRe = RegExp(r'\[[^\]]*\]');
+final RegExp _aroundMajorSetRe = RegExp(
+  r'\s+around\s+(?:the\s+)?major\s+set\s*$',
+  caseSensitive: false,
+);
+final RegExp _placesTailRe = RegExp(r'\s*places?\s*$', caseSensitive: false);
+final RegExp _crossRe = RegExp(r'^(.+?)\s+cross$', caseSensitive: false);
+final RegExp _loopRe = RegExp(
+  r'^(.+?)\s+loop(?:\s+(left|right))?$',
+  caseSensitive: false,
+);

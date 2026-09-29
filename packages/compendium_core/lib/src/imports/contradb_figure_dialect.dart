@@ -1906,40 +1906,79 @@ String? _hallEnder(_Scan s) {
 
 // --- Scanning + token helpers -----------------------------------------------
 
-/// A whitespace tokenizer over the (already-scrubbed) figure text that remembers
-/// each token's start offset, so [note] can return the VERBATIM remaining
-/// substring (original punctuation/casing intact) once a template is consumed.
-class _Scan {
-  _Scan(this.text) {
-    for (final m in RegExp(r'\S+').allMatches(text)) {
-      _tokens.add(m.group(0)!);
-      _starts.add(m.start);
+/// A whitespace tokenization of the (already-scrubbed) figure text: each token,
+/// its start offset (so [_Scan.note] can return the VERBATIM remaining
+/// substring — original punctuation/casing intact — once a template is
+/// consumed) and, filled in lazily, its normalized form.
+///
+/// Every one of the ~55 recognizers builds its own [_Scan] over the SAME line,
+/// and both the tokens and their normalization are a pure function of the text,
+/// so [of] hands back the last line's tokenization instead of redoing it per
+/// recognizer (it was ~55% of parse time). The one-entry cache is static, so it
+/// is per isolate, and nothing mutates a [_Tokens] once built except filling in
+/// [normalized].
+class _Tokens {
+  _Tokens(this.text) {
+    for (final m in _nonSpaceRun.allMatches(text)) {
+      tokens.add(m.group(0)!);
+      starts.add(m.start);
     }
+    normalized = List<String?>.filled(tokens.length, null);
   }
 
   final String text;
-  final List<String> _tokens = <String>[];
-  final List<int> _starts = <int>[];
+  final List<String> tokens = <String>[];
+  final List<int> starts = <int>[];
+  late final List<String?> normalized;
+
+  static final RegExp _nonSpaceRun = RegExp(r'\S+');
+  static final RegExp _leadPunct = RegExp(r'^[.,;:!]+');
+  static final RegExp _trailPunct = RegExp(r'[.,;:!]+$');
+
+  static _Tokens? _last;
+  static _Tokens of(String text) {
+    final last = _last;
+    if (last != null && (identical(last.text, text) || last.text == text)) {
+      return last;
+    }
+    return _last = _Tokens(text);
+  }
+
+  /// Token [i] lowercased and stripped of surrounding `.,;:!` for matching
+  /// (ContraDB renders clause commas like `face in,` / `center,`); the fraction
+  /// glyphs and `&` are preserved. The verbatim originals stay in [tokens].
+  String norm(int i) => normalized[i] ??= tokens[i]
+      .toLowerCase()
+      .replaceAll(_leadPunct, '')
+      .replaceAll(_trailPunct, '');
+}
+
+/// A cursor over a line's [_Tokens], with the matching primitives the
+/// recognizers are written in.
+class _Scan {
+  /// `phrase.split(' ')` for each phrase ever matched: the phrases are a small
+  /// fixed vocabulary, matched against every line.
+  static final Map<String, List<String>> _phraseParts =
+      <String, List<String>>{};
+
+  _Scan(String text) : _t = _Tokens.of(text), text = text;
+
+  final String text;
+  final _Tokens _t;
+  List<String> get _tokens => _t.tokens;
+  List<int> get _starts => _t.starts;
   int _i = 0;
   int? _noteStartOverride;
 
   int get pos => _i;
   void reset(int p) => _i = p;
 
-  /// Lowercases and strips surrounding `.,;:!` for matching (ContraDB renders
-  /// clause commas like `face in,` / `center,`); the fraction glyphs and `&`
-  /// are preserved. The verbatim originals are kept for [note].
-  static String _norm(String t) => t
-      .toLowerCase()
-      .replaceAll(RegExp(r'^[.,;:!]+'), '')
-      .replaceAll(RegExp(r'[.,;:!]+$'), '');
-
   /// The next token, normalized for matching, or null at end.
-  String? peek() => _i < _tokens.length ? _norm(_tokens[_i]) : null;
+  String? peek() => _i < _tokens.length ? _t.norm(_i) : null;
 
   /// Consumes the next token if it equals [word] (normalized).
   bool eat(String word) {
-    if (_i < _tokens.length && _norm(_tokens[_i]) == word) {
+    if (_i < _tokens.length && _t.norm(_i) == word) {
       _i++;
       return true;
     }
@@ -1948,10 +1987,10 @@ class _Scan {
 
   /// Consumes a run of space-separated [phrase] words if they all match next.
   bool eatPhrase(String phrase) {
-    final parts = phrase.split(' ');
+    final parts = _phraseParts[phrase] ??= phrase.split(' ');
     if (_i + parts.length > _tokens.length) return false;
     for (var k = 0; k < parts.length; k++) {
-      if (_norm(_tokens[_i + k]) != parts[k]) return false;
+      if (_t.norm(_i + k) != parts[k]) return false;
     }
     _i += parts.length;
     return true;
