@@ -1354,12 +1354,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           _repos.programs,
           _repos.venues,
         );
-        // Read before any await: the scope lookup must not straddle the gap the
-        // fallback decode below can introduce.
+        // Read up front: a BuildContext must not be used across an async gap,
+        // and the commit below is one.
         final venueEntityMode = VenueEntityModeScope.of(context);
-        // The archive planning read: commit reaches this step only after a
-        // successful plan, which sets it and releases the file's bytes, so
-        // there is nothing to decode again.
+        // The archive planning read. Commit reaches this step only after a
+        // successful plan, which sets it and releases the file's bytes, so the
+        // file is not available to decode again — and needs no decoding.
         final archive = _usrArchive;
         if (archive == null) {
           throw StateError('Committing a .USR import that was never planned.');

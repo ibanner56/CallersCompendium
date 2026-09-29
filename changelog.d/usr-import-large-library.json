@@ -10,7 +10,7 @@
   "core": {
     "changed": [
       "`readFmp12` gains optional `tables` and `columnFilter` arguments, and discards the sectors that hold indexes, media and layouts instead of caching them; `readCcUsrArchive` uses them to read only the tables, and on `Dance`/`Phrase` only the columns, the importer needs. `CcDanceEntry.rawColumns` now holds only those columns.",
-      "`CallersCompanionUsrAdapter` takes an injectable `CcUsrArchiveReader`, exposes `discoveredArchive` and `readArchive`, and `CallersCompanionUsrImporter.import` decodes the file once.",
+      "`CallersCompanionUsrAdapter` takes an injectable `CcUsrArchiveReader`, exposes `discoveredArchive`, and `CallersCompanionUsrImporter.import` decodes the file once.",
       "`ImportPipeline.plan` yields to the event loop while parsing and accepts an `onProgress` callback.",
       "`DanceRepository` no longer runs its per-dance FTS delete-by-scan when creating a new dance, which made a bulk import quadratic."
     ],
