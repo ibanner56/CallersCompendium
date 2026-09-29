@@ -1,0 +1,15 @@
+{
+  "id": "1434-share-fields-picker",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A new Settings › Defaults section lets you choose which dance details (author, formation, level, mixer, status, phrase, calling notes, walkthrough, and suggested tunes) appear when you share, copy, or print/export a program or dance. Authors are shown by default; suggested tunes are off by default since no export showed them before.",
+      "Sharing or copying a program's plain set list now shows each dance's author right on the numbered line, even for a dance with no figures entered."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add the DanceShareField picker's rendering semantics to danceToPlainText and programToPlainText: an optional fields parameter gates each non-figures field, and an optional authorNamesFor resolver adds an author suffix to the set-list slot line."
+    ]
+  }
+}
