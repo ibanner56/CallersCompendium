@@ -5,7 +5,9 @@ import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/figure_source.dart';
 import '../model/phrase_structure.dart';
+import '../model/tunes_source.dart';
 import '../taxonomy/contra_taxonomy.dart';
+import 'dance_share_fields.dart';
 import 'export_labels.dart';
 
 /// Renders a single [Dance] as a clean, human-readable plain-text card — the
@@ -40,6 +42,13 @@ import 'export_labels.dart';
 /// [renderer] supplies the dialect rendering engine; when omitted a default
 /// `FigureRenderer(contraTaxonomy)` is used (the same taxonomy the app wires).
 ///
+/// [fields] selects which non-figures fields appear (issue #1434); figures
+/// are controlled separately (unaffected by this parameter). Defaults to
+/// [DanceShareField.allExceptTunes], matching every block this renderer
+/// emitted before the picker existed — so a caller that doesn't pass [fields]
+/// (every call site before this parameter was added) sees no change, and
+/// tunes stays off until explicitly selected.
+///
 /// Layout:
 /// ```
 /// <TITLE>
@@ -57,6 +66,12 @@ import 'export_labels.dart';
 ///
 /// Calling notes:
 /// <rendered notes>
+///
+/// Walkthrough:
+/// <rendered walkthrough>
+///
+/// Tunes:
+/// <tune, tune, ...>
 /// ```
 /// Absent parts are omitted. A dance with no figures renders the header (and
 /// notes, if any) only.
@@ -70,6 +85,7 @@ String danceToPlainText(
   FigureRenderer? renderer,
   DanceExportLabels labels = const DanceExportLabels(),
   bool canonicalizeDiscouragedTerms = false,
+  Set<DanceShareField> fields = DanceShareField.allExceptTunes,
 }) {
   final fig = renderer ?? FigureRenderer(contraTaxonomy);
   String renderText(String text) => canonicalizeDiscouragedTerms
@@ -79,20 +95,31 @@ String danceToPlainText(
 
   lines.add(dance.title.trim());
 
-  final names = authorNames.map((n) => n.trim()).where((n) => n.isNotEmpty);
-  if (names.isNotEmpty) lines.add(names.join(', '));
+  if (fields.contains(DanceShareField.authors)) {
+    final names = authorNames.map((n) => n.trim()).where((n) => n.isNotEmpty);
+    if (names.isNotEmpty) lines.add(names.join(', '));
+  }
 
-  if (_has(formationLabel)) {
+  if (fields.contains(DanceShareField.formation) && _has(formationLabel)) {
     lines.add('${labels.formation}: ${formationLabel.trim()}');
   }
-  if (_has(levelLabel)) lines.add('${labels.level}: ${levelLabel!.trim()}');
-  if (dance.mixer && _has(labels.mixer)) lines.add(labels.mixer.trim());
+  if (fields.contains(DanceShareField.level) && _has(levelLabel)) {
+    lines.add('${labels.level}: ${levelLabel!.trim()}');
+  }
+  if (fields.contains(DanceShareField.mixer) &&
+      dance.mixer &&
+      _has(labels.mixer)) {
+    lines.add(labels.mixer.trim());
+  }
   // Mirror the on-screen card, which only surfaces a status banner for a
   // non-active dance; an active dance omits the Status line entirely.
-  if (dance.status != DanceStatus.active && _has(statusLabel)) {
+  if (fields.contains(DanceShareField.status) &&
+      dance.status != DanceStatus.active &&
+      _has(statusLabel)) {
     lines.add('${labels.status}: ${statusLabel.trim()}');
   }
-  if (_has(dance.phraseStructure.raw)) {
+  if (fields.contains(DanceShareField.phraseStructure) &&
+      _has(dance.phraseStructure.raw)) {
     lines.add('${labels.phrase}: ${dance.phraseStructure.raw.trim()}');
   }
 
@@ -120,16 +147,33 @@ String danceToPlainText(
     }
   }
 
-  if (_has(dance.callingNotes)) {
+  if (fields.contains(DanceShareField.callingNotes) &&
+      _has(dance.callingNotes)) {
     lines.add('');
     lines.add('${labels.callingNotes}:');
     lines.add(renderText(dance.callingNotes.trim()));
   }
 
-  if (_has(dance.walkthrough)) {
+  if (fields.contains(DanceShareField.walkthrough) &&
+      _has(dance.walkthrough)) {
     lines.add('');
     lines.add('${labels.walkthrough}:');
     lines.add(renderText(dance.walkthrough.trim()));
+  }
+
+  if (fields.contains(DanceShareField.tunes)) {
+    final tuneList = switch (dance.tunesSource) {
+      DecodedTunes(:final tunes) => tunes,
+      // Unreadable stored tunes render as absent, matching every other
+      // unreadable-sealed-type contract in this file (figures).
+      UnreadableTunes() => const <String>[],
+    };
+    final tuneNames = tuneList.map((t) => t.trim()).where((t) => t.isNotEmpty);
+    if (tuneNames.isNotEmpty) {
+      lines.add('');
+      lines.add('${labels.tunes}:');
+      lines.add(tuneNames.join(', '));
+    }
   }
 
   return lines.join('\n');

@@ -122,6 +122,119 @@ void main() {
       expect(text, contains('1. Rory O\'More — call slow'));
     });
 
+    // Issue #1434: the slot line's author suffix is resolved independently
+    // of the figures-appendix opt-in, so it appears here on the base
+    // numbered set list (no `danceToPlainText` call involved at all).
+    group('authorNamesFor (issue #1434)', () {
+      test('omits the author suffix when the resolver is not supplied', () {
+        final text = programToPlainText(
+          program(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          titleFor: titles,
+        );
+        expect(text, contains('1. Rory O\'More'));
+        expect(text, isNot(contains('by')));
+      });
+
+      test('appends "— by <names>" when the resolver returns names', () {
+        final text = programToPlainText(
+          program(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          titleFor: titles,
+          authorNamesFor: (id) =>
+              id == 'd1' ? const ['Jane Smith'] : const [],
+        );
+        expect(text, contains('1. Rory O\'More — by Jane Smith'));
+      });
+
+      test('joins multiple resolved names with a comma', () {
+        final text = programToPlainText(
+          program(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          titleFor: titles,
+          authorNamesFor: (_) => const ['Jane Smith', 'Bob Lee'],
+        );
+        expect(text, contains('by Jane Smith, Bob Lee'));
+      });
+
+      test('omits the suffix when the resolver returns an empty list', () {
+        final text = programToPlainText(
+          program(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          titleFor: titles,
+          authorNamesFor: (_) => const [],
+        );
+        expect(text, contains('1. Rory O\'More'));
+        expect(text, isNot(contains('by')));
+      });
+
+      test('omits the suffix when every resolved name is blank', () {
+        final text = programToPlainText(
+          program(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          titleFor: titles,
+          authorNamesFor: (_) => const ['  ', ''],
+        );
+        expect(text, isNot(contains('by')));
+      });
+
+      test('appears independently of whether the dance has figures — no '
+          '"Set list and figures" opt-in needed', () {
+        // This is the literal issue #1434 scenario: a figure-less program's
+        // plain (non-appended) set list still shows the author.
+        final text = programToPlainText(
+          program(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          titleFor: titles,
+          authorNamesFor: (_) => const ['Jane Smith'],
+        );
+        expect(text, isNot(contains('Figures:')));
+        expect(text, contains('by Jane Smith'));
+      });
+
+      test('applies to alternates too', () {
+        final text = programToPlainText(
+          program(
+            slots: [
+              ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+              ProgramSlot(id: 's2', position: 1, danceId: 'd2', isAlt: true),
+            ],
+          ),
+          titleFor: titles,
+          authorNamesFor: (id) => id == 'd2' ? const ['Bob Lee'] : const [],
+        );
+        expect(text, contains('ALT: The Nice Combination — by Bob Lee'));
+      });
+
+      test('renders "title — by <names> — note" ordering with a per-slot '
+          'note present', () {
+        final text = programToPlainText(
+          program(
+            slots: [
+              ProgramSlot(
+                id: 's1',
+                position: 0,
+                danceId: 'd1',
+                text: 'call slow',
+              ),
+            ],
+          ),
+          titleFor: titles,
+          authorNamesFor: (_) => const ['Jane Smith'],
+        );
+        expect(
+          text,
+          contains('1. Rory O\'More — by Jane Smith — call slow'),
+        );
+      });
+    });
+
     test('canonicalizes prose only when enabled and preserves tombstones', () {
       final source = program(
         dancerLevel: 'Gypsy level',

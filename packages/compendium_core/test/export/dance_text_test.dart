@@ -12,9 +12,11 @@ void main() {
     String phraseStructure = '',
     List<Figure> figures = const [],
     String callingNotes = '',
+    String walkthrough = '',
     DanceStatus status = DanceStatus.active,
     String? difficultyLevelId,
     bool mixer = false,
+    List<String> tunes = const [],
   }) => Dance(
     id: 'd1',
     title: title,
@@ -23,9 +25,11 @@ void main() {
     phraseStructure: phraseStructure,
     figures: figures,
     callingNotes: callingNotes,
+    walkthrough: walkthrough,
     status: status,
     difficultyLevelId: difficultyLevelId,
     mixer: mixer,
+    tunes: tunes,
     createdAt: now,
     updatedAt: now,
   );
@@ -38,6 +42,7 @@ void main() {
     String? levelLabel,
     String statusLabel = 'Active',
     String mixerLabel = 'Mixer',
+    Set<DanceShareField>? fields,
   }) => danceToPlainText(
     d,
     dialect: dialect ?? Dialect.canonical,
@@ -46,6 +51,7 @@ void main() {
     levelLabel: levelLabel,
     statusLabel: statusLabel,
     labels: DanceExportLabels(mixer: mixerLabel),
+    fields: fields ?? DanceShareField.allExceptTunes,
   );
 
   group('danceToPlainText', () {
@@ -347,6 +353,146 @@ void main() {
       final text = render(dance(mixer: false), mixerLabel: 'Mixer');
       // Only the formation label 'Duple improper' must appear, not the mixer line.
       expect(text, isNot(contains('Mixer')));
+    });
+
+    // Issue #1434: the picker's `fields` parameter gates each non-figures
+    // block independently. Every case below constructs a dance where the
+    // field WOULD render under the old (unconditional) behavior, then
+    // confirms toggling it out of `fields` removes exactly that block.
+    group('fields (issue #1434)', () {
+      test('omitting a caller\'s default param leaves output unchanged', () {
+        // Calls the real function directly (not the test `render` wrapper)
+        // with no `fields` argument at all, to lock the function's own
+        // default value — not just the test helper's.
+        final withDefault = danceToPlainText(
+          dance(authorIds: ['a1'], callingNotes: 'Teach the box.'),
+          dialect: Dialect.canonical,
+          authorNames: const ['Carol Ormand'],
+          formationLabel: 'Duple improper',
+          statusLabel: 'Active',
+        );
+        final withExplicitAllExceptTunes = danceToPlainText(
+          dance(authorIds: ['a1'], callingNotes: 'Teach the box.'),
+          dialect: Dialect.canonical,
+          authorNames: const ['Carol Ormand'],
+          formationLabel: 'Duple improper',
+          statusLabel: 'Active',
+          fields: DanceShareField.allExceptTunes,
+        );
+        expect(withDefault, withExplicitAllExceptTunes);
+      });
+
+      test('omits the author line when authors is not selected', () {
+        final text = render(
+          dance(authorIds: ['a1']),
+          authorNames: const ['Carol Ormand'],
+          fields: {...DanceShareField.allExceptTunes}
+            ..remove(DanceShareField.authors),
+        );
+        expect(text, isNot(contains('Carol Ormand')));
+      });
+
+      test('omits the Formation line when formation is not selected', () {
+        final text = render(
+          dance(),
+          fields: {...DanceShareField.allExceptTunes}
+            ..remove(DanceShareField.formation),
+        );
+        expect(text, isNot(contains('Formation:')));
+      });
+
+      test('omits the Level line when level is not selected', () {
+        final text = render(
+          dance(),
+          levelLabel: 'Intermediate',
+          fields: {...DanceShareField.allExceptTunes}
+            ..remove(DanceShareField.level),
+        );
+        expect(text, isNot(contains('Level:')));
+      });
+
+      test('omits the Mixer line when mixer is not selected', () {
+        final text = render(
+          dance(mixer: true),
+          mixerLabel: 'Mixer',
+          fields: {...DanceShareField.allExceptTunes}
+            ..remove(DanceShareField.mixer),
+        );
+        expect(text, isNot(contains('Mixer')));
+      });
+
+      test('omits the Status line when status is not selected', () {
+        final text = render(
+          dance(status: DanceStatus.deprecated),
+          statusLabel: 'Deprecated',
+          fields: {...DanceShareField.allExceptTunes}
+            ..remove(DanceShareField.status),
+        );
+        expect(text, isNot(contains('Status:')));
+      });
+
+      test('omits the Phrase line when phraseStructure is not selected', () {
+        final text = render(
+          dance(phraseStructure: '6*8*2'),
+          fields: {...DanceShareField.allExceptTunes}
+            ..remove(DanceShareField.phraseStructure),
+        );
+        expect(text, isNot(contains('Phrase:')));
+      });
+
+      test('omits Calling notes when callingNotes is not selected', () {
+        final text = render(
+          dance(callingNotes: 'Teach the box the gnat first.'),
+          fields: {...DanceShareField.allExceptTunes}
+            ..remove(DanceShareField.callingNotes),
+        );
+        expect(text, isNot(contains('Calling notes:')));
+        expect(text, isNot(contains('Teach the box')));
+      });
+
+      test('omits Walkthrough when walkthrough is not selected', () {
+        final text = render(
+          dance(walkthrough: 'Everyone forms a big circle.'),
+          fields: {...DanceShareField.allExceptTunes}
+            ..remove(DanceShareField.walkthrough),
+        );
+        expect(text, isNot(contains('Walkthrough:')));
+        expect(text, isNot(contains('big circle')));
+      });
+
+      test('omits Tunes when tunes is not selected (the default)', () {
+        final text = render(
+          dance(tunes: const ['Rakes of Kildare', 'Kesh Jig']),
+        );
+        expect(text, isNot(contains('Tunes:')));
+        expect(text, isNot(contains('Kesh Jig')));
+      });
+
+      test('renders Tunes joined by comma when tunes is selected', () {
+        final text = render(
+          dance(tunes: const ['Rakes of Kildare', 'Kesh Jig']),
+          fields: {...DanceShareField.allExceptTunes, DanceShareField.tunes},
+        );
+        expect(text, contains('Tunes:'));
+        expect(text, contains('Rakes of Kildare, Kesh Jig'));
+      });
+
+      test('omits blank tune entries', () {
+        final text = render(
+          dance(tunes: const ['Rakes of Kildare', '  ', '']),
+          fields: {...DanceShareField.allExceptTunes, DanceShareField.tunes},
+        );
+        expect(text, contains('Rakes of Kildare'));
+        expect(text, isNot(contains(', ,')));
+      });
+
+      test('omits the Tunes section entirely when the dance has no tunes', () {
+        final text = render(
+          dance(),
+          fields: {...DanceShareField.allExceptTunes, DanceShareField.tunes},
+        );
+        expect(text, isNot(contains('Tunes:')));
+      });
     });
   });
 }
