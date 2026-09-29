@@ -1,0 +1,9 @@
+{
+  "id": "1419-macos-pdf-export-hang",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "On macOS, Export / print PDF for a dance or a program no longer freezes the app."
+    ]
+  }
+}

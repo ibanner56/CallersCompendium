@@ -39,7 +39,7 @@ dependencies:
   path_provider: ^2.1.5
   sqlite3: ^3.4.0
   pdf: ^3.11.1
-  printing: ^5.13.3
+  printing: ^5.15.0
   screen_retriever: ^0.2.0
   share_plus: ^13.2.1
   url_launcher: ^6.3.1
