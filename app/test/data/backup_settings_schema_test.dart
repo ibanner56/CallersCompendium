@@ -20,6 +20,7 @@ import 'package:compendium_app/src/screens/settings/settings_keys.dart'
         kCollectionTileVisibleFieldsKey,
         kCustomFieldSharingDisclosureKey,
         kEcdConvertPromptDismissedKey,
+        kProgramDanceShareFieldsKey,
         kProgramMatrixColumnsKey,
         kShowIndividualPerformTimerKey,
         kVenueCallCountKey;
@@ -330,6 +331,7 @@ void main() {
       for (final key in [
         kCollectionTileVisibleFieldsKey,
         kCollectionHiddenFacetsKey,
+        kProgramDanceShareFieldsKey,
       ]) {
         expect(
           validateBackupSettingValue(key, ['title', 'tags']),

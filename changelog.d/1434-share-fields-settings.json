@@ -1,0 +1,9 @@
+{
+  "id": "1434-share-fields-settings",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A new Settings › Defaults section lists the dance details (author, formation, level, mixer, status, phrase, calling notes, walkthrough, and suggested tunes) you'll be able to choose for shared/exported programs and dances. Authors is on by default; suggested tunes is off. Changing these checkboxes doesn't affect any export yet."
+    ]
+  }
+}

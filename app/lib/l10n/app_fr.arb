@@ -1268,6 +1268,50 @@
   "@settingsDefaultsCollectionCardCustomFields": {
     "x-sourceSha256": "5566db49faf3cfcec9576e3e90ce5f58b029ea5c7b48d8e4508eb56c951e3433"
   },
+  "settingsDefaultsShareFieldsHeader": "Champs de danse partagés",
+  "@settingsDefaultsShareFieldsHeader": {
+    "x-sourceSha256": "add3ae1245f2180d4be5f981ba0a516f020dd4076d00d6fbe82ce4780675d599"
+  },
+  "settingsDefaultsShareFieldsSubtitle": "Choisissez les détails qui apparaissent lorsque vous partagez, copiez ou exportez un programme ou une danse. Les auteurs sont affichés par défaut ; les airs sont masqués jusqu’à ce que vous les activiez.",
+  "@settingsDefaultsShareFieldsSubtitle": {
+    "x-sourceSha256": "b31964b5cf872c7cae665bb1297eb57be810fcff1878a20e8978c9ff90d2a903"
+  },
+  "settingsDefaultsShareFieldsAuthors": "Auteurs",
+  "@settingsDefaultsShareFieldsAuthors": {
+    "x-sourceSha256": "2c00c9aaa72c717ad6d901a09c4d698a68b2e9740be3769e0af7d6bd85d72d5d"
+  },
+  "settingsDefaultsShareFieldsFormation": "Formation",
+  "@settingsDefaultsShareFieldsFormation": {
+    "x-sourceSha256": "49a63d72be2fc0e6aa6de315ca626d27816fe9d584a01484daa694221f1ef7e1"
+  },
+  "settingsDefaultsShareFieldsLevel": "Niveau",
+  "@settingsDefaultsShareFieldsLevel": {
+    "x-sourceSha256": "1709305c9fa966d14f56f0da3c3614bbc10adcf53d72f90341bb96d24afcfca3"
+  },
+  "settingsDefaultsShareFieldsMixer": "Mixer",
+  "@settingsDefaultsShareFieldsMixer": {
+    "x-sourceSha256": "8ae012d51747c9a3e51613b1ba8305b377fcada7de30e2b7156d51c19f0b89e0"
+  },
+  "settingsDefaultsShareFieldsStatus": "Statut",
+  "@settingsDefaultsShareFieldsStatus": {
+    "x-sourceSha256": "920e413c7d411b61ef3e8c63b1cb6ad058d5f95f8b481dbafe60248387d8c355"
+  },
+  "settingsDefaultsShareFieldsPhraseStructure": "Phrase",
+  "@settingsDefaultsShareFieldsPhraseStructure": {
+    "x-sourceSha256": "159410b8c9be321a89f79bc5a7ac24040ef0a5e9fe8badf415817729b41c5b71"
+  },
+  "settingsDefaultsShareFieldsCallingNotes": "Notes d’appel",
+  "@settingsDefaultsShareFieldsCallingNotes": {
+    "x-sourceSha256": "d929944e5b1d40ac916a7b526de1016a08cf6c56c19d490bb365c62d58962298"
+  },
+  "settingsDefaultsShareFieldsWalkthrough": "Déroulé",
+  "@settingsDefaultsShareFieldsWalkthrough": {
+    "x-sourceSha256": "b463b316cebfc24441413d705d65e7707fae189ff880ff9e704aad73c5353be6"
+  },
+  "settingsDefaultsShareFieldsTunes": "Airs",
+  "@settingsDefaultsShareFieldsTunes": {
+    "x-sourceSha256": "4b5c504ca989a4a17e54b974db8a6d4aa156fa63da39902c66ecec59f5e46412"
+  },
   "settingsDefaultsCollectionFiltersHeader": "Filtres de la collection",
   "@settingsDefaultsCollectionFiltersHeader": {
     "x-sourceSha256": "06981cabadd70feb8e1965e99b8ed513b175f6e2a6969fd306738c7408177797"

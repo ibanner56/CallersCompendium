@@ -1116,6 +1116,40 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsDefaultsCollectionCardCustomFields => 'カスタムフィールド';
 
   @override
+  String get settingsDefaultsShareFieldsHeader => '共有するダンス項目';
+
+  @override
+  String get settingsDefaultsShareFieldsSubtitle =>
+      'プログラムやダンスを共有・コピー・エクスポートする際に表示する項目を選択します。作者は既定で表示されます。チューンは有効にするまで非表示です。';
+
+  @override
+  String get settingsDefaultsShareFieldsAuthors => '作者';
+
+  @override
+  String get settingsDefaultsShareFieldsFormation => 'フォーメーション';
+
+  @override
+  String get settingsDefaultsShareFieldsLevel => 'レベル';
+
+  @override
+  String get settingsDefaultsShareFieldsMixer => 'ミキサー';
+
+  @override
+  String get settingsDefaultsShareFieldsStatus => 'ステータス';
+
+  @override
+  String get settingsDefaultsShareFieldsPhraseStructure => 'フレーズ';
+
+  @override
+  String get settingsDefaultsShareFieldsCallingNotes => 'コーリングノート';
+
+  @override
+  String get settingsDefaultsShareFieldsWalkthrough => 'ウォークスルー';
+
+  @override
+  String get settingsDefaultsShareFieldsTunes => 'チューン';
+
+  @override
   String get settingsDefaultsCollectionFiltersHeader => 'コレクションのフィルター';
 
   @override

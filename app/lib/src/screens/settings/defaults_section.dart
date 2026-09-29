@@ -9,6 +9,7 @@ import '../../data/active_dialect_scope.dart';
 import '../../data/aggressive_beats_update_scope.dart';
 import '../../data/collection_facets_scope.dart';
 import '../../data/collection_tile_fields_scope.dart';
+import '../../data/dance_share_fields_scope.dart';
 import '../../data/display_defaults.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/shorthand_mappings_scope.dart';
@@ -1428,6 +1429,117 @@ class _DefaultsView extends StatelessWidget {
                   onChanged: (v) =>
                       toggle(CollectionTileField.customFields, v ?? true),
                   title: Text(l10n.settingsDefaultsCollectionCardCustomFields),
+                ),
+              ],
+            );
+          },
+        ),
+        SectionHeader(title: l10n.settingsDefaultsShareFieldsHeader),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            0,
+            AppSpacing.md,
+            AppSpacing.xs,
+          ),
+          child: Text(
+            l10n.settingsDefaultsShareFieldsSubtitle,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+        // Scope-backed: reads from DanceShareFieldsScope (app root) and
+        // writes to both the notifier (live rebuild) and settings
+        // (persistence) — same pattern as the collection-card fields above
+        // (issue #1434).
+        Builder(
+          builder: (context) {
+            final shareFields = DanceShareFieldsScope.of(context);
+            Future<void> toggleShareField(
+              DanceShareField field,
+              bool checked,
+            ) async {
+              final notifier = DanceShareFieldsScope.notifierOf(context);
+              final settings = RepositoriesScope.of(context).settings;
+              final updated = Set.of(notifier.value);
+              if (checked) {
+                updated.add(field);
+              } else {
+                updated.remove(field);
+              }
+              notifier.value = updated;
+              await settings.set(
+                kProgramDanceShareFieldsKey,
+                updated.map((f) => f.toJson()).toList(),
+              );
+            }
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CheckboxListTile(
+                  key: const ValueKey('defaults-share-field-authors'),
+                  value: shareFields.contains(DanceShareField.authors),
+                  onChanged: (v) =>
+                      toggleShareField(DanceShareField.authors, v ?? true),
+                  title: Text(l10n.settingsDefaultsShareFieldsAuthors),
+                ),
+                CheckboxListTile(
+                  key: const ValueKey('defaults-share-field-formation'),
+                  value: shareFields.contains(DanceShareField.formation),
+                  onChanged: (v) =>
+                      toggleShareField(DanceShareField.formation, v ?? true),
+                  title: Text(l10n.settingsDefaultsShareFieldsFormation),
+                ),
+                CheckboxListTile(
+                  key: const ValueKey('defaults-share-field-level'),
+                  value: shareFields.contains(DanceShareField.level),
+                  onChanged: (v) =>
+                      toggleShareField(DanceShareField.level, v ?? true),
+                  title: Text(l10n.settingsDefaultsShareFieldsLevel),
+                ),
+                CheckboxListTile(
+                  key: const ValueKey('defaults-share-field-mixer'),
+                  value: shareFields.contains(DanceShareField.mixer),
+                  onChanged: (v) =>
+                      toggleShareField(DanceShareField.mixer, v ?? true),
+                  title: Text(l10n.settingsDefaultsShareFieldsMixer),
+                ),
+                CheckboxListTile(
+                  key: const ValueKey('defaults-share-field-status'),
+                  value: shareFields.contains(DanceShareField.status),
+                  onChanged: (v) =>
+                      toggleShareField(DanceShareField.status, v ?? true),
+                  title: Text(l10n.settingsDefaultsShareFieldsStatus),
+                ),
+                CheckboxListTile(
+                  key: const ValueKey('defaults-share-field-phraseStructure'),
+                  value: shareFields.contains(DanceShareField.phraseStructure),
+                  onChanged: (v) => toggleShareField(
+                    DanceShareField.phraseStructure,
+                    v ?? true,
+                  ),
+                  title: Text(l10n.settingsDefaultsShareFieldsPhraseStructure),
+                ),
+                CheckboxListTile(
+                  key: const ValueKey('defaults-share-field-callingNotes'),
+                  value: shareFields.contains(DanceShareField.callingNotes),
+                  onChanged: (v) =>
+                      toggleShareField(DanceShareField.callingNotes, v ?? true),
+                  title: Text(l10n.settingsDefaultsShareFieldsCallingNotes),
+                ),
+                CheckboxListTile(
+                  key: const ValueKey('defaults-share-field-walkthrough'),
+                  value: shareFields.contains(DanceShareField.walkthrough),
+                  onChanged: (v) =>
+                      toggleShareField(DanceShareField.walkthrough, v ?? true),
+                  title: Text(l10n.settingsDefaultsShareFieldsWalkthrough),
+                ),
+                CheckboxListTile(
+                  key: const ValueKey('defaults-share-field-tunes'),
+                  value: shareFields.contains(DanceShareField.tunes),
+                  onChanged: (v) =>
+                      toggleShareField(DanceShareField.tunes, v ?? false),
+                  title: Text(l10n.settingsDefaultsShareFieldsTunes),
                 ),
               ],
             );

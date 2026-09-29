@@ -1153,6 +1153,40 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsDefaultsCollectionCardCustomFields => 'Aangepaste velden';
 
   @override
+  String get settingsDefaultsShareFieldsHeader => 'Gedeelde dansvelden';
+
+  @override
+  String get settingsDefaultsShareFieldsSubtitle =>
+      'Kies welke details worden weergegeven wanneer je een programma of dans deelt, kopieert of exporteert. Auteurs worden standaard weergegeven; deuntjes zijn verborgen totdat je ze inschakelt.';
+
+  @override
+  String get settingsDefaultsShareFieldsAuthors => 'Auteurs';
+
+  @override
+  String get settingsDefaultsShareFieldsFormation => 'Formatie';
+
+  @override
+  String get settingsDefaultsShareFieldsLevel => 'Niveau';
+
+  @override
+  String get settingsDefaultsShareFieldsMixer => 'Mixer';
+
+  @override
+  String get settingsDefaultsShareFieldsStatus => 'Status';
+
+  @override
+  String get settingsDefaultsShareFieldsPhraseStructure => 'Frase';
+
+  @override
+  String get settingsDefaultsShareFieldsCallingNotes => 'Callnotities';
+
+  @override
+  String get settingsDefaultsShareFieldsWalkthrough => 'Doorloop';
+
+  @override
+  String get settingsDefaultsShareFieldsTunes => 'Deuntjes';
+
+  @override
   String get settingsDefaultsCollectionFiltersHeader => 'Collectiefilters';
 
   @override

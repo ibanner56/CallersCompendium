@@ -1170,6 +1170,40 @@ class AppLocalizationsFr extends AppLocalizations {
       'Champs personnalisés';
 
   @override
+  String get settingsDefaultsShareFieldsHeader => 'Champs de danse partagés';
+
+  @override
+  String get settingsDefaultsShareFieldsSubtitle =>
+      'Choisissez les détails qui apparaissent lorsque vous partagez, copiez ou exportez un programme ou une danse. Les auteurs sont affichés par défaut ; les airs sont masqués jusqu’à ce que vous les activiez.';
+
+  @override
+  String get settingsDefaultsShareFieldsAuthors => 'Auteurs';
+
+  @override
+  String get settingsDefaultsShareFieldsFormation => 'Formation';
+
+  @override
+  String get settingsDefaultsShareFieldsLevel => 'Niveau';
+
+  @override
+  String get settingsDefaultsShareFieldsMixer => 'Mixer';
+
+  @override
+  String get settingsDefaultsShareFieldsStatus => 'Statut';
+
+  @override
+  String get settingsDefaultsShareFieldsPhraseStructure => 'Phrase';
+
+  @override
+  String get settingsDefaultsShareFieldsCallingNotes => 'Notes d’appel';
+
+  @override
+  String get settingsDefaultsShareFieldsWalkthrough => 'Déroulé';
+
+  @override
+  String get settingsDefaultsShareFieldsTunes => 'Airs';
+
+  @override
   String get settingsDefaultsCollectionFiltersHeader =>
       'Filtres de la collection';
 
