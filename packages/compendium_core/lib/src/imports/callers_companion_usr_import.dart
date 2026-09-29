@@ -14,6 +14,7 @@ import 'callers_companion_related_dances.dart';
 import 'callers_companion_usr_adapter.dart';
 import 'callers_companion_usr_archive.dart';
 import 'dedupe.dart';
+import 'import_error.dart';
 import 'import_pipeline.dart';
 import 'source_adapter.dart';
 import 'structured_draft.dart';
@@ -464,7 +465,9 @@ class CallersCompanionUsrImporter {
   /// [commit]s in one call using default dedupe handling (ambiguous records are
   /// skipped, never guessed — the pipeline default). The file is decoded once:
   /// planning reads it through the adapter, and the program build reuses that
-  /// same read ([CallersCompanionUsrAdapter.discoveredArchive]). The app's
+  /// same read ([CallersCompanionUsrAdapter.discoveredArchive]). A file that
+  /// cannot be read throws the [ImportError] planning captured (at
+  /// [ImportStage.discover]) rather than being decoded a second time. The app's
   /// review flow can instead call [plan]/[commit] separately to let the user
   /// resolve ambiguous dances.
   Future<CcUsrImportResult> import(
@@ -475,10 +478,24 @@ class CallersCompanionUsrImporter {
     String Function()? newSlotId,
   }) async {
     final batch = await plan(bytes);
-    // Set by the `discover` step [plan] just ran; only absent if the pipeline
-    // never reached it, in which case decode through the adapter's own reader.
-    final archive =
-        _adapter.discoveredArchive ?? await _adapter.readArchive(bytes);
+    final archive = _adapter.discoveredArchive;
+    if (archive == null) {
+      // `discover` failed. The pipeline turns that into an error batch instead
+      // of rethrowing, and decoding the file again here would only fail the same
+      // way — after a second full scan of a file that may be hundreds of MiB.
+      // Surface the error it already captured, unwrapped to the adapter's own
+      // (the pipeline prefixes it with "Discovery failed:").
+      final captured = batch.errors.firstWhere(
+        (e) => e.stage == ImportStage.discover,
+        orElse: () => ImportError(
+          stage: ImportStage.discover,
+          source: _adapter.source,
+          message: 'The .USR file could not be read.',
+        ),
+      );
+      final cause = captured.cause;
+      throw cause is ImportError ? cause : captured;
+    }
     return commit(
       batch,
       archive,

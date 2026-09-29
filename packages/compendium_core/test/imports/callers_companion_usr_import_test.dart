@@ -229,6 +229,79 @@ void main() {
       expect(result.insertedProgramIds, isNotEmpty);
     });
 
+    test(
+      'an unreadable file fails once, with the error planning captured',
+      () async {
+        // `plan` turns a failed discovery into an error batch instead of
+        // rethrowing. Decoding the bytes again to find out why would fail the same
+        // way after a second full scan of a file that may be hundreds of MiB, so
+        // `import` surfaces the error planning already has.
+        var reads = 0;
+        final counting = CallersCompanionUsrImporter(
+          pipeline,
+          programs,
+          venues,
+          adapter: CallersCompanionUsrAdapter(
+            reader: (bytes, limits) async {
+              reads++;
+              return readCcUsrArchive(bytes, limits: limits);
+            },
+          ),
+        );
+        await expectLater(
+          counting.import(
+            Uint8List.fromList(List<int>.filled(64, 0x41)),
+            now: now,
+            venueEntityMode: false,
+            newId: nextId,
+            newSlotId: sequentialIds(),
+          ),
+          throwsA(
+            isA<ImportError>().having(
+              (e) => e.stage,
+              'stage',
+              ImportStage.discover,
+            ),
+          ),
+        );
+        expect(reads, 1);
+        expect(await dances.listAll(), isEmpty);
+      },
+    );
+
+    test('a file over its limits fails once with the friendly error', () async {
+      var reads = 0;
+      final counting = CallersCompanionUsrImporter(
+        pipeline,
+        programs,
+        venues,
+        adapter: CallersCompanionUsrAdapter(
+          limits: const FmpReadLimits(maxTables: 1),
+          reader: (bytes, limits) async {
+            reads++;
+            return readCcUsrArchive(bytes, limits: limits);
+          },
+        ),
+      );
+      await expectLater(
+        counting.import(
+          _ccUsrBytes(),
+          now: now,
+          venueEntityMode: false,
+          newId: nextId,
+          newSlotId: sequentialIds(),
+        ),
+        throwsA(
+          isA<ImportError>().having(
+            (e) => e.message,
+            'message',
+            'That file is too large to import.',
+          ),
+        ),
+      );
+      expect(reads, 1);
+    });
+
     test('never decodes a file outside its adapter', () {
       // The count above sees only reads made through the adapter's reader, so
       // a direct `readCcUsrArchive(bytes)` in the importer would slip past it

@@ -78,12 +78,6 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
 
   CcUsrArchive? _discovered;
 
-  /// Reads [bytes] through this adapter's reader under its [limits], without
-  /// the error mapping [discover] applies. For callers that need the archive
-  /// itself and are not going through the pipeline; keeps every decode of a
-  /// file going through the one reader the adapter was given.
-  Future<CcUsrArchive> readArchive(Uint8List bytes) => _reader(bytes, limits);
-
   /// The archive [discover] last read, **without its dances**
   /// ([CcUsrArchive.withoutDances]) — what
   /// [CallersCompanionUsrImporter.commit] needs — or null before [discover] has
