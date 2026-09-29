@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show Variable;
 import 'package:test/test.dart';
@@ -56,6 +58,98 @@ void main() {
     'difficultyLevelLabel': ?difficultyLevelLabel,
     'figures': figures,
   };
+
+  group('plan cooperates with a busy event loop', () {
+    List<Map<String, Object?>> records(int n) => [
+      for (var i = 0; i < n; i++) record('r$i', 'Dance $i'),
+    ];
+
+    test('hands the event loop a turn while parsing a long batch', () async {
+      // A timer fires only when the loop gets a real turn — a chain of
+      // already-complete awaits (microtasks) never lets it. Each parse records
+      // how many timer ticks had happened by then: if planning held the isolate
+      // start to finish they would all read zero.
+      var ticks = 0;
+      final ticksSeenAtParse = <int>[];
+      final adapter = _TickRecordingAdapter(
+        records(40),
+        () => ticks,
+        ticksSeenAtParse,
+      );
+      final timer = Timer.periodic(Duration.zero, (_) => ticks++);
+      addTearDown(timer.cancel);
+
+      final batch = await pipeline.plan(
+        adapter,
+        const ImportRequest(),
+        yieldInterval: Duration.zero,
+      );
+
+      expect(batch.records, hasLength(40));
+      expect(ticksSeenAtParse.last, greaterThan(ticksSeenAtParse.first));
+      expect(ticksSeenAtParse.toSet().length, greaterThan(5));
+    });
+
+    test('with a long interval it does not pay for yielding', () async {
+      var ticks = 0;
+      final seen = <int>[];
+      final adapter = _TickRecordingAdapter(records(40), () => ticks, seen);
+      final timer = Timer.periodic(Duration.zero, (_) => ticks++);
+      addTearDown(timer.cancel);
+
+      await pipeline.plan(
+        adapter,
+        const ImportRequest(),
+        yieldInterval: const Duration(hours: 1),
+      );
+
+      expect(seen.toSet(), {0}, reason: 'no record was preceded by a yield');
+    });
+
+    test(
+      'reports progress as records are handled, ending at the total',
+      () async {
+        final events = <(int, int)>[];
+        await pipeline.plan(
+          FakeSourceAdapter(records(5)),
+          const ImportRequest(),
+          onProgress: (done, total) => events.add((done, total)),
+        );
+        expect(events.first, (1, 5));
+        expect(events.last, (5, 5));
+        expect([for (final e in events) e.$1], orderedEquals([1, 2, 3, 4, 5]));
+        expect(events.every((e) => e.$2 == 5), isTrue);
+      },
+    );
+
+    test('an empty source reports a single completed progress', () async {
+      final events = <(int, int)>[];
+      await pipeline.plan(
+        FakeSourceAdapter(const []),
+        const ImportRequest(),
+        onProgress: (done, total) => events.add((done, total)),
+      );
+      expect(events, [(0, 0)]);
+    });
+
+    test('yielding does not change the planned result', () async {
+      final input = records(12);
+      final eager = await pipeline.plan(
+        FakeSourceAdapter(input),
+        const ImportRequest(),
+        yieldInterval: Duration.zero,
+      );
+      final steady = await pipeline.plan(
+        FakeSourceAdapter(input),
+        const ImportRequest(),
+        yieldInterval: const Duration(hours: 1),
+      );
+      expect(
+        [for (final r in eager.records) r.draft.dance.title],
+        [for (final r in steady.records) r.draft.dance.title],
+      );
+    });
+  });
 
   group('commit writes provenance transactionally', () {
     test('resolves a matching configured custom difficulty label', () async {
@@ -1188,4 +1282,19 @@ void main() {
       expect(await countingChoreographers.listAll(), hasLength(2));
     });
   });
+}
+
+/// A [FakeSourceAdapter] that notes, at each `parse`, how many event-loop timer
+/// ticks had elapsed — so a test can tell whether planning ever yielded.
+class _TickRecordingAdapter extends FakeSourceAdapter {
+  _TickRecordingAdapter(super.records, this._ticks, this._seen);
+
+  final int Function() _ticks;
+  final List<int> _seen;
+
+  @override
+  StructuredDraft parse(RawRecord raw) {
+    _seen.add(_ticks());
+    return super.parse(raw);
+  }
 }

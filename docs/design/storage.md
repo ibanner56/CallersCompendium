@@ -43,6 +43,13 @@ CREATE VIRTUAL TABLE dance_fts USING fts5(     -- derived; canonical text only
   dance_id UNINDEXED, title, authors, hook, notes, figures_text,
   custom_values, sources,
   tokenize = 'unicode61 remove_diacritics 1', prefix = '1 2');
+-- `dance_id` is UNINDEXED, so deleting a dance's row is a scan of the whole table.
+-- Writing an *existing* dance therefore replaces its rows (delete, then insert);
+-- writing a *new* one only inserts — a dance with no `dances` row has none to
+-- delete, since a hard delete removes its derived rows with it — and a bulk
+-- rebuild clears the table once instead of deleting per dance. Deleting per new
+-- dance made an N-dance import O(N²) (1,000 → 8,000 dances: 0.57 → 1.66 ms per
+-- dance).
 
 programs(id PK, title, event_date, venue, venue_id NULL, notes, status,
          created_at, updated_at, deleted_at,

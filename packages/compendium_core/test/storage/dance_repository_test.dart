@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' show Variable;
 import 'package:test/test.dart';
 
 import 'fixtures.dart';
@@ -1264,8 +1265,7 @@ void main() {
       for (var i = 0; i < 4; i++) {
         await repo.create(sampleDance(id: 'd$i', title: 'Dance $i'));
       }
-      // Each create() does one per-dance FTS delete; reset so we measure only
-      // the rebuild's writes.
+      // Reset so we measure only the rebuild's writes, not the creates'.
       counter.count = 0;
       await repo.rebuildAllDerived(chunkSize: 2);
       expect(
@@ -1273,6 +1273,67 @@ void main() {
         0,
         reason:
             'rebuild must clear dance_fts in one bulk DELETE, not per dance',
+      );
+    });
+
+    group('per-dance FTS delete on write', () {
+      // Both FTS tables carry `dance_id` UNINDEXED, so each per-dance delete
+      // scans the whole table. Deleting for every dance of a bulk import made
+      // it O(N²); a brand-new dance has nothing to delete.
+      Future<int> ftsRows(CompendiumDatabase db, String id) async {
+        final rows = await db
+            .customSelect(
+              'SELECT count(*) AS c FROM dance_fts WHERE dance_id = ?',
+              variables: [Variable.withString(id)],
+            )
+            .get();
+        return rows.single.read<int>('c');
+      }
+
+      late FtsDeleteByDanceCounter counter;
+      late CompendiumDatabase countingDb;
+      late DanceRepository repo;
+
+      setUp(() {
+        counter = FtsDeleteByDanceCounter();
+        countingDb = openCountingTestDatabase(counter);
+        repo = DanceRepository(countingDb, contraTaxonomy);
+      });
+      tearDown(() => countingDb.close());
+
+      test('creating a new dance issues no FTS delete-by-scan', () async {
+        for (var i = 0; i < 5; i++) {
+          await repo.create(sampleDance(id: 'd$i', title: 'Dance $i'));
+        }
+        expect(counter.count, 0);
+        // ...and every one of them is still indexed exactly once.
+        for (var i = 0; i < 5; i++) {
+          expect(await ftsRows(countingDb, 'd$i'), 1);
+          expect(await repo.searchText('Dance $i'), contains('d$i'));
+        }
+      });
+
+      test('updating an existing dance still replaces its FTS row', () async {
+        await repo.create(sampleDance(id: 'd1', title: 'Original Title'));
+        counter.count = 0;
+        await repo.update(sampleDance(id: 'd1', title: 'Replacement Title'));
+        expect(counter.count, 1, reason: 'an existing dance must be deleted');
+        expect(await ftsRows(countingDb, 'd1'), 1);
+        expect(await repo.searchText('Replacement'), ['d1']);
+        expect(await repo.searchText('Original'), isEmpty);
+      });
+
+      test(
+        'a hard-deleted id can be created again without a stale FTS row',
+        () async {
+          await repo.create(sampleDance(id: 'd1', title: 'First Life'));
+          await repo.hardDelete(['d1']);
+          expect(await ftsRows(countingDb, 'd1'), 0);
+          await repo.create(sampleDance(id: 'd1', title: 'Second Life'));
+          expect(await ftsRows(countingDb, 'd1'), 1);
+          expect(await repo.searchText('Second'), ['d1']);
+          expect(await repo.searchText('First'), isEmpty);
+        },
       );
     });
 

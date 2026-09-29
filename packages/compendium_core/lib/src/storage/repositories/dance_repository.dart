@@ -607,6 +607,17 @@ class DanceRepository {
         );
       }
     }
+    // Whether this write creates the dance. Only asked when the derived rows
+    // are about to be rebuilt, and only of a write that owns the parent row.
+    final isNewDance =
+        writeParent &&
+        rebuildDerived &&
+        await (_db.selectOnly(_db.dances)
+                  ..addColumns([_db.dances.id])
+                  ..where(_db.dances.id.equals(normalisedDance.id))
+                  ..limit(1))
+                .getSingleOrNull() ==
+            null;
     if (writeParent) {
       await _db
           .into(_db.dances)
@@ -850,7 +861,9 @@ class DanceRepository {
             );
       }
 
-      if (rebuildDerived) await _rebuildDerived(normalisedDance);
+      if (rebuildDerived) {
+        await _rebuildDerived(normalisedDance, isNewDance: isNewDance);
+      }
     }
   });
 
@@ -910,14 +923,25 @@ class DanceRepository {
   /// per-write path ([_upsert]); the bulk [rebuildAllDerived] path instead
   /// clears every derived row once up front and calls [_insertDerivedRows]
   /// directly, so it never pays the per-dance `DELETE FROM dance_fts` scan.
-  Future<void> _rebuildDerived(Dance dance) async {
-    await (_db.delete(
-      _db.danceFigures,
-    )..where((t) => t.danceId.equals(dance.id))).go();
-    // Both FTS tables carry `dance_id` UNINDEXED, so these delete-by-scans are
-    // fine for one dance on a write; [rebuildAllDerived] deliberately avoids
-    // doing them N times (see there).
-    await _deleteFtsRows(dance.id);
+  ///
+  /// [isNewDance] means the dance had no `dances` row before this write, so it
+  /// has no derived rows to drop: a hard delete removes them along with the
+  /// dance ([hardDelete]), so a row-less id has none. Skipping the drop matters
+  /// because both FTS tables carry `dance_id` UNINDEXED — each delete scans the
+  /// whole table, so deleting for every dance of an N-dance import made it
+  /// O(N²) (measured: per-dance commit cost rose from 0.57 ms at 1,000 dances to
+  /// 1.66 ms at 8,000).
+  Future<void> _rebuildDerived(Dance dance, {bool isNewDance = false}) async {
+    if (!isNewDance) {
+      await (_db.delete(
+        _db.danceFigures,
+      )..where((t) => t.danceId.equals(dance.id))).go();
+      // Both FTS tables carry `dance_id` UNINDEXED, so these delete-by-scans are
+      // fine for one existing dance on a write; [rebuildAllDerived]
+      // deliberately avoids doing them N times (see there), and a brand-new
+      // dance has nothing to delete.
+      await _deleteFtsRows(dance.id);
+    }
     await _insertDerivedRows(dance);
   }
 

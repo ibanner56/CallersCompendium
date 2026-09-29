@@ -67,8 +67,10 @@ class FmpFormatException implements Exception {
 /// [FmpReadLimits] bound (too many sectors, tables, or records).
 ///
 /// **OWASP A04 Insecure Design / A05 Security Misconfiguration — uncontrolled
-/// resource consumption.** [readFmp12] reconstructs each table with its own full
-/// sector traversal, so the reader's cost is O(tables × sectors); a hostile
+/// resource consumption.** [readFmp12] reconstructs each table with its own
+/// sector traversal (over the sectors that hold catalog, schema or records —
+/// but a hostile file can make every sector qualify), so the reader's cost is
+/// O(tables × sectors); a hostile
 /// small-but-pathological `.USR` (e.g. thousands of fabricated table-name
 /// entries) could otherwise force quadratic work even under a byte-size cap.
 /// Bounding tables/sectors/records **fails closed** and converts the reader's
@@ -84,13 +86,17 @@ class FmpResourceLimitException implements Exception {
 
 /// Maximum number of body sectors ([FmpDatabase]) [readFmp12] will read.
 ///
-/// ~64 MiB of 4 KiB sectors — a defense-in-depth ceiling **inside the core
+/// 256 MiB of 4 KiB sectors — a defense-in-depth ceiling **inside the core
 /// reader itself** (independent of any app-layer byte cap), bounding the length
 /// of every per-table traversal. Sized to the app's `.USR` byte cap
-/// (`kMaxImportUsrBytes`, 64 MiB): a file the picker admits must not be refused
-/// here for size alone. The real ~20 MB Caller's Companion sample is ~5000
-/// sectors, and a ~30 MB tester file ~7300, both well under this.
-const int kMaxFmpSectors = 16384;
+/// (`kMaxImportUsrBytes`, 256 MiB): a file the picker admits must not be refused
+/// here for size alone, and because a file within that cap cannot hold more
+/// than `cap / 4096` sectors this is exact, not padded — raise the two together.
+/// The real ~20 MB Caller's Companion sample is ~5000 sectors, and a ~30 MB
+/// tester file ~7300. A modelled ~20,000-dance library (Caller's Box scale,
+/// ~237 MiB with its indexes) is ~61,000 sectors, so the headroom under the cap
+/// is real but thin.
+const int kMaxFmpSectors = 65536;
 
 /// Maximum number of distinct tables [readFmp12] will reconstruct.
 ///
@@ -103,8 +109,11 @@ const int kMaxFmpTables = 256;
 
 /// Maximum number of records (rows), summed across all tables, [readFmp12] will
 /// reconstruct. Bounds per-record allocation/decoding work. The real CC sample
-/// holds a few hundred rows; 200k is far above any legitimate file.
-const int kMaxFmpRecords = 200000;
+/// holds a few hundred rows of its own plus ~16k rows of shared reference data
+/// (`MD_References`/`MD_Dances`); a modelled ~20,000-dance library is ~130k rows
+/// (~220k if it also carries a heavy user's program history), so 500k leaves
+/// ~2× headroom over the heaviest case while still refusing a fabricated table.
+const int kMaxFmpRecords = 500000;
 
 /// Maximum number of Caller's Companion `Phrase` rows the CC-schema layer
 /// (`extractCcUsrArchive`) will join into figure bodies.
@@ -113,9 +122,11 @@ const int kMaxFmpRecords = 200000;
 /// hand-built [FmpDatabase] (used by the hermetic archive tests) bypasses the
 /// raw byte reader, and even under [kMaxFmpRecords] a file could aim its whole
 /// record budget at the `Phrase` table. The real `CallersCompanion2.USR` has
-/// **162** Phrase rows; 20k is ~123× that headroom while refusing a pathological
-/// table. Exceeding it **fails closed** with a [FmpResourceLimitException].
-const int kMaxCcPhraseRows = 20000;
+/// **162** Phrase rows; a dance carries ~4 sections, so a ~20,000-dance library
+/// is ~82k Phrase rows and 150k leaves ~1.8× headroom while still refusing a
+/// pathological table. It must stay below [kMaxFmpRecords]. Exceeding it
+/// **fails closed** with a [FmpResourceLimitException].
+const int kMaxCcPhraseRows = 150000;
 
 /// Maximum number of figure/body lines the CC-schema layer will accumulate for a
 /// **single dance** across all its `Phrase` sections.
@@ -310,16 +321,58 @@ class _Block {
 /// and [FmpResourceLimitException] when the container exceeds a [limits] bound
 /// (too many sectors, tables, or records — a fail-closed DoS guard). Everything
 /// else degrades to partial results + warnings.
+///
+/// [tables], when given, restricts the read to the tables with those names
+/// (case-insensitive; names the file does not contain are ignored). The result
+/// then holds only those tables, and the record budget in [limits] counts only
+/// their rows. The table-count bound ([FmpReadLimits.maxTables]) still applies
+/// to the whole file. A caller that needs a handful of tables out of a large
+/// container (Caller's Companion's importer reads 6 of ~22) skips decoding the
+/// rest.
+///
+/// [columnFilter], when given, is asked per table which columns to decode (see
+/// [FmpColumnFilter]); the rest are skipped without being decoded.
+///
+/// [pruneSectors] (default on) decodes each sector once and keeps it only if it
+/// holds a table catalog, a column definition, or a record — the sectors that
+/// carry indexes, media, layouts and scripts are never retained, which is most
+/// of a large file. It changes cost, never the result; it exists to be switched
+/// off by the equivalence tests that prove exactly that.
 FmpDatabase readFmp12(
   Uint8List bytes, {
   FmpReadLimits limits = const FmpReadLimits(),
-}) => _FmpReader(bytes, limits).read();
+  Set<String>? tables,
+  FmpColumnFilter? columnFilter,
+  bool pruneSectors = true,
+}) => _FmpReader(bytes, limits, tables, columnFilter, pruneSectors).read();
+
+/// Chooses which columns of a table [readFmp12] decodes: given the table's
+/// [tableName] and its full [columns] schema, returns the indices to keep, or
+/// null to keep every column.
+///
+/// A column that is not kept is never decoded, so its (often large) text is
+/// never materialised — but its cells still **advance row identity**: a row
+/// whose only present cells are in dropped columns still yields an empty
+/// [FmpRecord] with the same [FmpRecord.id], and still counts toward
+/// [FmpReadLimits.maxRecords]. [FmpTable.columns] always holds the complete
+/// schema.
+typedef FmpColumnFilter =
+    Set<int>? Function(String tableName, List<FmpColumn> columns);
 
 class _FmpReader {
-  _FmpReader(this._bytes, this._limits);
+  _FmpReader(
+    this._bytes,
+    this._limits,
+    this._tableFilter,
+    this._columnFilter,
+    this._prune,
+  );
 
   final Uint8List _bytes;
   final FmpReadLimits _limits;
+  final Set<String>? _tableFilter;
+  final FmpColumnFilter? _columnFilter;
+  final bool _prune;
   final List<String> _warnings = [];
 
   late final List<_Block> _blocks; // body sectors, 0-based
@@ -338,6 +391,7 @@ class _FmpReader {
     // sector count can't force unbounded preprocessing/allocation even for a
     // direct core caller that isn't behind the app's raw byte cap.
     _readSectors();
+    if (_prune) _pruneToSchemaAndRecords();
 
     final tables = <FmpTable>[];
     final tableNames = _listTables(); // index -> name
@@ -348,6 +402,14 @@ class _FmpReader {
         'The file has too many tables to import safely '
         '(${tableNames.length} > ${_limits.maxTables}).',
       );
+    }
+    final wanted = _tableFilter;
+    if (wanted != null) {
+      final lowered = {for (final n in wanted) n.toLowerCase()};
+      tableNames.removeWhere(
+        (_, name) => !lowered.contains(name.toLowerCase()),
+      );
+      if (_prune) _pruneToTables(tableNames.keys.toSet());
     }
     var totalRecords = 0;
     for (final entry in tableNames.entries) {
@@ -360,6 +422,7 @@ class _FmpReader {
         entry.key,
         columns,
         _limits.maxRecords - totalRecords,
+        _columnFilter?.call(entry.value, columns),
       );
       totalRecords += records.length;
       tables.add(FmpTable(entry.key, entry.value, columns, records));
@@ -696,21 +759,109 @@ class _FmpReader {
       visited[nextBlock - 1] = true;
       _level = 0;
       for (final chunk in _chunksOf(block)) {
-        if (chunk.type == _chunkPathPop) {
-          if (_level > 0) _level--;
-          continue;
-        }
-        if (chunk.type == _chunkPathPush) {
-          if (_level >= _path.length) {
-            _path.add(chunk.data);
-          } else {
-            _path[_level] = chunk.data;
-          }
-          _level++;
-          continue;
-        }
+        if (_applyPathChunk(chunk)) continue;
         if (!handle(chunk)) break;
       }
+      nextBlock = block.nextId;
+    }
+  }
+
+  /// Applies [chunk] to the path stack when it is a push or pop, returning
+  /// whether it was one (a path chunk carries no data to hand to a handler).
+  bool _applyPathChunk(_Chunk chunk) {
+    if (chunk.type == _chunkPathPop) {
+      if (_level > 0) _level--;
+      return true;
+    }
+    if (chunk.type == _chunkPathPush) {
+      if (_level >= _path.length) {
+        _path.add(chunk.data);
+      } else {
+        _path[_level] = chunk.data;
+      }
+      _level++;
+      return true;
+    }
+    return false;
+  }
+
+  // --- Sector pruning ---
+
+  static final Uint8List _noPayload = Uint8List(0);
+
+  /// Whether [chunks] (one sector) holds anything the table, column and value
+  /// passes act on: a catalog entry (`path[0] == 3`), a column definition
+  /// (`[128+t].[3]`) or a record (`[128+t].[5]`). With [tables] (table indices),
+  /// only those tables' column and record chunks count.
+  ///
+  /// A sector's *leading* path says nothing reliable about the rest of it — a
+  /// sector routinely pops back to the root and switches table mid-way — so
+  /// this walks the whole push/pop/data sequence with the same path rules the
+  /// passes use ([_applyPathChunk], [_pathValue]).
+  bool _holdsNeededChunks(List<_Chunk> chunks, Set<int>? tables) {
+    _level = 0;
+    for (final chunk in chunks) {
+      if (_applyPathChunk(chunk)) continue;
+      final p0 = _pathValue(0);
+      if (p0 == 3) {
+        if (tables == null) return true;
+        continue;
+      }
+      if (p0 < 128) continue;
+      final p1 = _pathValue(1);
+      if ((p1 == 3 || p1 == 5) &&
+          (tables == null || tables.contains(p0 - 128))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Replaces sector [index] with an empty one, keeping its chain links so the
+  /// walk still passes through it. Its decoded chunks are dropped.
+  void _discard(int index) {
+    final b = _blocks[index];
+    _blocks[index] = _Block(b.prevId, b.nextId, _noPayload)..chunks = const [];
+  }
+
+  /// Decodes each chain sector once and keeps its chunks only if
+  /// [_holdsNeededChunks]; the rest (indexes, media, layouts) are discarded so
+  /// they are neither retained nor re-walked by the per-table passes.
+  ///
+  /// Walks exactly the chain [_traverse] walks, in the same order, so the
+  /// decode warnings it raises are the ones an unpruned read would raise.
+  void _pruneToSchemaAndRecords() {
+    _walkChain((index, block) {
+      final chunks = _decodeChunks(block.payload);
+      if (_holdsNeededChunks(chunks, null)) {
+        block.chunks = chunks;
+      } else {
+        _discard(index);
+      }
+    });
+  }
+
+  /// Once the table filter is known, drops the sectors that hold only other
+  /// tables' data (and the catalog, which has been read).
+  void _pruneToTables(Set<int> tableIndices) {
+    _walkChain((index, block) {
+      final chunks = block.chunks;
+      if (chunks != null && !_holdsNeededChunks(chunks, tableIndices)) {
+        _discard(index);
+      }
+    });
+  }
+
+  void _walkChain(void Function(int index, _Block block) visit) {
+    if (_blocks.isEmpty) return;
+    final visited = List<bool>.filled(_blocks.length, false);
+    var nextBlock = 2; // 1-based, as in [_traverse]
+    while (nextBlock != 0 &&
+        nextBlock - 1 < _blocks.length &&
+        !visited[nextBlock - 1]) {
+      final block = _blocks[nextBlock - 1];
+      visited[nextBlock - 1] = true;
+      visit(nextBlock - 1, block);
       nextBlock = block.nextId;
     }
   }
@@ -799,6 +950,7 @@ class _FmpReader {
     int tableIndex,
     List<FmpColumn> columns,
     int maxRecords,
+    Set<int>? keepColumns,
   ) {
     final target = tableIndex + 128;
     final numColumns = columns.fold<int>(
@@ -820,25 +972,27 @@ class _FmpReader {
     var lastRow = 0;
     var lastColumn = 0;
 
-    void store(int row, int column, String value) {
+    // The row for [row], created on first sight. Fails closed *before*
+    // allocating a row that would push this read past the remaining record
+    // budget, so a table with millions of rows is rejected as it is traversed
+    // rather than after every row has been decoded and allocated (OWASP
+    // A04/A05 — bound per-record work during consumption). [rowValues.length]
+    // is exactly the number of records this table will yield, so this is the
+    // record count.
+    Map<int, String> rowFor(int row) {
       final existing = rowValues[row];
-      if (existing != null) {
-        existing[column] = value;
-        return;
-      }
-      // A newly discovered row. Fail closed *before* allocating it when it
-      // would push this read past the remaining record budget, so a table with
-      // millions of rows is rejected as it is traversed rather than after every
-      // row has been decoded and allocated (OWASP A04/A05 — bound per-record
-      // work during consumption). [rowValues.length] is exactly the number of
-      // records this table will yield, so this is the record count.
+      if (existing != null) return existing;
       if (rowValues.length >= maxRecords) {
         throw FmpResourceLimitException(
           'The file has too many records to import safely '
           '(> ${_limits.maxRecords}).',
         );
       }
-      rowValues[row] = <int, String>{column: value};
+      return rowValues[row] = <int, String>{};
+    }
+
+    void store(int row, int column, String value) {
+      rowFor(row)[column] = value;
     }
 
     void flushLong() {
@@ -896,7 +1050,11 @@ class _FmpReader {
       if (columnIndex != lastColumn) flushLong();
       if (row != lastRow || columnIndex < lastColumn) currentRow++;
 
-      if (longString) {
+      if (keepColumns != null && !keepColumns.contains(columnIndex)) {
+        // Not decoded, not buffered — but the row exists and its position in
+        // the walk still counts, exactly as if the value had been stored.
+        rowFor(currentRow);
+      } else if (longString) {
         final data = chunk.data;
         if (data != null) longBuf.addAll(data);
       } else {

@@ -129,7 +129,12 @@ class CcUsrImportResult {
 /// (pure Dart + repositories) so it lives in the core and is trivially
 /// unit-testable; the app supplies the `.USR` bytes.
 class CallersCompanionUsrImporter {
-  CallersCompanionUsrImporter(this._pipeline, this._programs, this._venues);
+  CallersCompanionUsrImporter(
+    this._pipeline,
+    this._programs,
+    this._venues, {
+    CallersCompanionUsrAdapter? adapter,
+  }) : _adapter = adapter ?? CallersCompanionUsrAdapter();
 
   final ImportPipeline _pipeline;
   final ProgramRepository _programs;
@@ -144,7 +149,7 @@ class CallersCompanionUsrImporter {
   /// happened in).
   DanceRepository get _dances => _pipeline.dances;
 
-  final CallersCompanionUsrAdapter _adapter = CallersCompanionUsrAdapter();
+  final CallersCompanionUsrAdapter _adapter;
 
   /// Plans the dance side of a `.USR` [bytes] payload non-destructively (the CC
   /// dances run through the same `discover → fetch → parse → dedupe` pipeline as
@@ -455,14 +460,13 @@ class CallersCompanionUsrImporter {
     );
   }
 
-  /// Convenience end-to-end import of a `.USR` [bytes] payload: reads the
-  /// archive for the program build, then [plan]s and [commit]s in one call
-  /// using default dedupe handling (ambiguous records are skipped, never
-  /// guessed — the pipeline default). The dance side re-parses [bytes] through
-  /// the adapter during [plan], so the file is decoded twice; that keeps the
-  /// dances on the exact shared pipeline path and the cost is negligible next
-  /// to the DB writes. The app's review flow can instead call [plan]/[commit]
-  /// separately to let the user resolve ambiguous dances.
+  /// Convenience end-to-end import of a `.USR` [bytes] payload: [plan]s and
+  /// [commit]s in one call using default dedupe handling (ambiguous records are
+  /// skipped, never guessed — the pipeline default). The file is decoded once:
+  /// planning reads it through the adapter, and the program build reuses that
+  /// same read ([CallersCompanionUsrAdapter.discoveredArchive]). The app's
+  /// review flow can instead call [plan]/[commit] separately to let the user
+  /// resolve ambiguous dances.
   Future<CcUsrImportResult> import(
     Uint8List bytes, {
     required DateTime now,
@@ -470,8 +474,11 @@ class CallersCompanionUsrImporter {
     String Function()? newId,
     String Function()? newSlotId,
   }) async {
-    final archive = readCcUsrArchive(bytes);
     final batch = await plan(bytes);
+    // Set by the `discover` step [plan] just ran; only absent if the pipeline
+    // never reached it, in which case decode through the adapter's own reader.
+    final archive =
+        _adapter.discoveredArchive ?? await _adapter.readArchive(bytes);
     return commit(
       batch,
       archive,

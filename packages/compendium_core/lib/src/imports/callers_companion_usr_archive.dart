@@ -54,6 +54,19 @@ class CcUsrArchive {
 
   /// Non-fatal notes (missing tables, guessed column names, reader warnings).
   final List<String> warnings;
+
+  /// This archive without its [dances] — everything [CallersCompanionUsrImporter]
+  /// needs at commit time (programs, shorthands, related-dance links) and
+  /// nothing more. The dances have by then been carried through the import
+  /// pipeline as drafts, so holding their rows for the whole review would just
+  /// duplicate them in memory.
+  CcUsrArchive withoutDances() => CcUsrArchive(
+    dances: const [],
+    sets: sets,
+    insertCalls: insertCalls,
+    relatedDancePairs: relatedDancePairs,
+    warnings: warnings,
+  );
 }
 
 /// One CC `Dance_Related` row: a directed pair of CC `zk_Dance_ID` values
@@ -113,9 +126,10 @@ class CcInsertCall {
 }
 
 /// A single CC `Dance` row: its CC relational id, the mapped [CcDanceRecord],
-/// and the verbatim source column map (all CC `Dance` columns, including ones
-/// this PR does not map — preserved so nothing is lost and follow-up phases
-/// have the real values).
+/// and the source column map — the `Dance` columns the importer reads
+/// ([kCcDanceColumnsRead] plus the dance key), by their CC names. Not every column
+/// of the source row: [readCcUsrArchive] never decodes CC's derived
+/// search/display helper columns, which nothing consumes.
 class CcDanceEntry {
   CcDanceEntry({
     required this.recordId,
@@ -202,7 +216,16 @@ CcUsrArchive readCcUsrArchive(
   Uint8List bytes, {
   FmpReadLimits limits = const FmpReadLimits(),
 }) {
-  final db = readFmp12(bytes, limits: limits);
+  // Only the tables the CC-schema layer looks for (a real file carries ~22:
+  // shared reference data, settings, resources), and on the two big ones only
+  // the columns it reads. Decoding the rest is most of the cost of a large
+  // library.
+  final db = readFmp12(
+    bytes,
+    limits: limits,
+    tables: _ccTableNames,
+    columnFilter: _ccColumnsToRead,
+  );
   return extractCcUsrArchive(db, limits: limits);
 }
 
@@ -250,6 +273,37 @@ CcUsrArchive extractCcUsrArchive(
 
 // --- Dance extraction ------------------------------------------------------
 
+/// A column looked up by exact CC name first, then by tolerant token-matching
+/// (see [_resolveColumn]). Held as data so the extractor that reads the column
+/// and the reader-level column filter ([_ccColumnsToRead]) resolve it from the
+/// **same** definition and can never disagree about which column is read.
+class _ColumnSpec {
+  const _ColumnSpec(this.exactNames, this.tokenSets);
+  final List<String> exactNames;
+  final List<List<String>> tokenSets;
+}
+
+String? _resolveSpec(FmpTable table, _ColumnSpec spec) =>
+    _resolveColumn(table, spec.exactNames, spec.tokenSets);
+
+/// CC's own dance key (`zk_Dance_ID`) as it appears on the `Dance` table and,
+/// as the join key, on `Phrase`.
+const _ColumnSpec _danceIdSpec = _ColumnSpec(
+  ['zk_Dance_ID'],
+  [
+    ['dance', 'id'],
+    ['danceid'],
+  ],
+);
+
+const _ColumnSpec _phraseNumberSpec = _ColumnSpec(
+  ['PhraseNumber'],
+  [
+    ['phrase', 'number'],
+    ['phrase', 'num'],
+  ],
+);
+
 const List<String> _danceTableNames = ['Dance', 'Dances'];
 const List<String> _bodyLabels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
@@ -269,14 +323,7 @@ List<CcDanceEntry> _extractDances(
   }
   // CC references dances by its own `zk_Dance_ID` field value, not the FileMaker
   // record id, so that is the join/dedupe identity we expose.
-  final danceIdCol = _resolveColumn(
-    table,
-    ['zk_Dance_ID'],
-    [
-      ['dance', 'id'],
-      ['danceid'],
-    ],
-  );
+  final danceIdCol = _resolveSpec(table, _danceIdSpec);
   final entries = <CcDanceEntry>[];
   var missingIdCount = 0;
   for (final rec in table.records) {
@@ -476,22 +523,8 @@ Map<String, List<CcBodySection>> _extractPhraseBodies(
   // A1..C2 fallback covers them, so this is silent (no warning).
   if (table == null) return const {};
 
-  final danceIdCol = _resolveColumn(
-    table,
-    ['zk_Dance_ID'],
-    [
-      ['dance', 'id'],
-      ['danceid'],
-    ],
-  );
-  final phraseNumCol = _resolveColumn(
-    table,
-    ['PhraseNumber'],
-    [
-      ['phrase', 'number'],
-      ['phrase', 'num'],
-    ],
-  );
+  final danceIdCol = _resolveSpec(table, _danceIdSpec);
+  final phraseNumCol = _resolveSpec(table, _phraseNumberSpec);
   final phraseTextCol = _resolvePhraseTextColumn(table);
   if (danceIdCol == null || phraseTextCol == null) {
     warnings.add(
@@ -1077,6 +1110,91 @@ List<CcRelatedDancePair> _extractRelatedDancePairs(
 }
 
 // --- Helpers ---------------------------------------------------------------
+
+/// Every fixed `Dance` column name [ccDanceRecordFromColumns] looks up (the
+/// dance-key column is resolved separately, by [_danceIdSpec]). A real `Dance`
+/// table has ~200 columns, most of them CC's own derived search/display helpers
+/// (`zk_SearchKey_*`, `zi_*`, `zz_*`, …) that nothing here reads and that make up
+/// well over half of its text; [readCcUsrArchive] asks the reader not to decode
+/// them.
+///
+/// **Keep this in step with [ccDanceRecordFromColumns].** A lookup added there
+/// but not here reads as empty on a real file while every hand-built test
+/// database still passes — the source-scan test in
+/// `callers_companion_usr_columns_test.dart` fails when they drift.
+const List<String> kCcDanceColumnsRead = [
+  'Author1',
+  'Author2',
+  'ContraForm',
+  'Formation',
+  'FormationOther',
+  'Progression',
+  'ProgressionOther',
+  'Level',
+  'Mixed Level',
+  ..._bodyLabels,
+  'UserDefined_1',
+  'UserDefined_1_Name',
+  'UserDefined_2',
+  'UserDefined_2_Name',
+  'UserDefined_3',
+  'UserDefined_3_Name',
+  'Name',
+  'Type',
+  'SubType',
+  'Music',
+  'Credits',
+  'DateComposed',
+  'DateRevised',
+  'Rating',
+];
+
+/// The [FmpColumnFilter] for [readCcUsrArchive]: on the `Dance` and `Phrase`
+/// tables (which carry nearly all of a library's text) keep only the columns the
+/// extractors read; every other table is read whole (they are small, and their
+/// extractors resolve several columns each).
+///
+/// Column names are matched the way [_CiColumns] matches them (lowercased,
+/// trimmed), and resolved columns come from the same [_ColumnSpec]s the
+/// extractors use.
+Set<int>? _ccColumnsToRead(String tableName, List<FmpColumn> columns) {
+  final lower = tableName.toLowerCase();
+  final table = FmpTable(0, tableName, columns, const []);
+  final Iterable<String?> names;
+  if (_danceTableNames.any((n) => n.toLowerCase() == lower)) {
+    names = [...kCcDanceColumnsRead, _resolveSpec(table, _danceIdSpec)];
+  } else if (_phraseTableNames.any((n) => n.toLowerCase() == lower)) {
+    names = [
+      _resolveSpec(table, _danceIdSpec),
+      _resolveSpec(table, _phraseNumberSpec),
+      _resolvePhraseTextColumn(table),
+    ];
+  } else {
+    return null;
+  }
+  String norm(String s) => s.toLowerCase().trim();
+  final wanted = {
+    for (final n in names)
+      if (n != null) norm(n),
+  };
+  return {
+    for (final c in columns)
+      if (wanted.contains(norm(c.name))) c.index,
+  };
+}
+
+/// Every table name the CC-schema layer looks for — the union of the candidate
+/// lists each extractor passes to [_findTable] — so [readCcUsrArchive] can ask
+/// the reader for exactly those. Derived from the lists themselves, not copied,
+/// so adding a candidate name to an extractor cannot silently leave it out.
+final Set<String> _ccTableNames = {
+  ..._danceTableNames,
+  ..._phraseTableNames,
+  ..._setTableNames,
+  ..._setItemTableNames,
+  ..._insertCallTableNames,
+  ..._relatedDanceTableNames,
+};
 
 FmpTable? _findTable(FmpDatabase db, List<String> candidateNames) {
   for (final name in candidateNames) {

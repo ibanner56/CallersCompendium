@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:compendium_core/compendium_core.dart';
@@ -203,6 +204,47 @@ void main() {
   }
 
   group('import (end-to-end from .USR bytes)', () {
+    test('decodes the file exactly once', () async {
+      var reads = 0;
+      final counting = CallersCompanionUsrImporter(
+        pipeline,
+        programs,
+        venues,
+        adapter: CallersCompanionUsrAdapter(
+          reader: (bytes, limits) async {
+            reads++;
+            return readCcUsrArchive(bytes, limits: limits);
+          },
+        ),
+      );
+      final result = await counting.import(
+        _ccUsrBytes(),
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+        newSlotId: sequentialIds(),
+      );
+      expect(reads, 1);
+      // ...and the programs still came from that one read.
+      expect(result.insertedProgramIds, isNotEmpty);
+    });
+
+    test('never decodes a file outside its adapter', () {
+      // The count above sees only reads made through the adapter's reader, so
+      // a direct `readCcUsrArchive(bytes)` in the importer would slip past it
+      // (it is exactly how the file used to be decoded twice, and it would also
+      // bypass an isolate-backed reader).
+      final src = File(
+        'lib/src/imports/callers_companion_usr_import.dart',
+      ).readAsStringSync();
+      final code = src
+          .split('\n')
+          .where((l) => !l.trimLeft().startsWith('//'))
+          .join('\n');
+      expect(code, isNot(contains('readCcUsrArchive(')));
+      expect(code, isNot(contains('readFmp12(')));
+    });
+
     test('commits dances and persists FK-mapped programs', () async {
       final result = await importer.import(
         _ccUsrBytes(),
