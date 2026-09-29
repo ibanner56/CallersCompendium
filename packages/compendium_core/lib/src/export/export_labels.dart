@@ -24,6 +24,8 @@ String _englishBeats(int beats) => '$beats ${beats == 1 ? 'beat' : 'beats'}';
 
 String _englishMinutes(int minutes) => '$minutes min';
 
+String _englishBy(String names) => 'by $names';
+
 String _englishOmittedCaption(int count) =>
     '$count free-text ${count == 1 ? 'slot' : 'slots'} '
     '(breaks, notes) omitted — the matrix shows dances only.';
@@ -41,6 +43,7 @@ class DanceExportLabels {
     this.figures = 'Figures',
     this.callingNotes = 'Calling notes',
     this.walkthrough = 'Walkthrough',
+    this.tunes = 'Tunes',
     this.beats = _englishBeats,
   });
 
@@ -54,6 +57,11 @@ class DanceExportLabels {
   final String figures;
   final String callingNotes;
   final String walkthrough;
+
+  /// Header label for the suggested-tune-list section (issue #1434). Rendered
+  /// only when `DanceShareField.tunes` is selected — no renderer emitted this
+  /// section before that field existed.
+  final String tunes;
   final String Function(int beats) beats;
 }
 
@@ -80,6 +88,7 @@ class ProgramExportLabels {
     this.sponsor = 'Sponsor',
     this.figures = 'Figures',
     this.alternate = 'Alternate',
+    this.by = _englishBy,
   });
 
   final String band;
@@ -104,6 +113,12 @@ class ProgramExportLabels {
   /// Prefix for a dance card in the figures appendix when the dance is an
   /// alternate slot rather than a primary (issue #853).
   final String alternate;
+
+  /// Formats a slot line's author-names suffix, e.g. `"by Jane Smith"`
+  /// (issue #1434). Rendered after the dance title/free text, before the
+  /// guest/minutes/performed suffixes, only when the caller resolves at
+  /// least one non-blank author name for that slot's dance.
+  final String Function(String names) by;
 }
 
 /// Labels and fixed captions for the Programming Matrix PDF
