@@ -426,6 +426,18 @@ void main() {
       expect(f!.isContainer, isFalse);
     });
 
+    test('a bracketed `while` before the real one is not the boundary', () {
+      // A naive split on the first `while` would cut inside the bracket and
+      // leave both halves custom; the depth-aware split finds the top-level one.
+      final f = _parseAll(
+        'In long lines, go forward and back (W forward while M back) while '
+        'N2 neighbor roll away',
+        beats: 8,
+      ).single;
+      expect(f.isModifier, isTrue);
+      expect(f.subFigures.map((s) => s.move), ['long_lines', 'roll_away']);
+    });
+
     test('a non-modifier pairing stays custom, not a meanwhile', () {
       final figures = _parseAll(
         'Larks swing while robins circle left',

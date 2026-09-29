@@ -151,6 +151,11 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
 ///   beats, prefer-custom sides, side-count bound). Falls back to the
 ///   pre-#591 whole-custom behaviour only for a malformed/degenerate `||` run
 ///   or a hostile over-separated line (see [meanwhileFromDoublePipe]).
+/// - **`while` folds into a `modifier` only for a core + modifier pair (#1415).**
+///   A top-level `while` line whose sides are a `long_lines`/`slice` core and a
+///   `roll_away`/`give_and_take` modifier becomes a [Figure.modifier] — see
+///   [modifierFromWhile]. Any other `while` line is left exactly as before
+///   (custom), unlike `||`, which always builds a meanwhile.
 /// - **Lossless beats.** [deriveSections] sums each figure's `beats`
 ///   cumulatively to place section labels, so a split MUST preserve the source
 ///   line's TOTAL beats exactly — no more (double-count) and no less (section

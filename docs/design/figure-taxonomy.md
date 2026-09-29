@@ -873,7 +873,9 @@ fails a PR that moves the constant without adding the matching entry.
     from CompendiumDatabase.schemaVersion — no DB migration is implied.
 - v11: adds `box_circulate` (ContraDB-sourced; modeled on `box_the_gnat`) and
     `star_through` (a balance+twirl figure modeled on `california_twirl` +
-    a balance flag), plus the `weave the line` → `zig_zag` recognizer alias.
+    a balance flag), plus the `weave the line` → `zig_zag` recognizer alias (the
+    alias sets no `slide`; TCB's `(R;L …)`/`(L;R …)` bracket is read into it by
+    `_weaveSlideAnnotation`, #1415).
     Both new moves carry a neutral `balance` flag (default false) that the
     CallersBox cross-line merge upgrades to true; like `box_the_gnat` their
     balanced beat count comes only from that merge sum, so neither takes a

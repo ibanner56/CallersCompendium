@@ -109,7 +109,11 @@ whose host caller is unset (#850). Both consumers share the predicate in
   first child is the core action and each later child is a modifier rendered
   gerundively; the container's shared `beats` is authoritative for section
   math. Its children use the same recursive codec and remain structurally
-  distinct from the concurrent sides of `meanwhile`.
+  distinct from the concurrent sides of `meanwhile`. The importers build one
+  from an `A while B` line when `A` is a whole-set core (`long_lines`, `slice`)
+  and `B` a `roll_away` or `give_and_take` (#1415, `whileModifierContainer`);
+  every other ContraDB `while` line is a `meanwhile`, and every other
+  Caller's Box `while` line stays custom.
 - Containers accept 2–6 children and may alternate exactly once:
   `meanwhile → modifier` or `modifier → meanwhile`. Same-kind nesting and
   deeper container nesting are rejected by the model and dropped by tolerant
