@@ -38,6 +38,60 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 _Nothing yet._
 
+## [0.5.1] - 2026-09-29
+
+### Added
+
+- The Advanced search builder has a new "Has tag" condition. Put two of them in an "All of" group to find dances that carry both tags, or mix a tag with figure conditions in the same group.
+- You can add tags to a single dance from the ⋮ menu on its row in your collection, without entering selection mode.
+- The dance editor now has a **Type** field (contra, English, or square), so you can set or correct a dance's type by hand. Settings ▸ Defaults now calls the same setting **Type**.
+- You can choose which filters appear in the Collection page's Filters panel and when you pick dances for a program. Untick the ones you do not use under Settings → Defaults → Collection filters; every filter is still shown by default.
+- The Collection filters (and the dance picker) have a new Tunes filter. Type a tune, a key, or a time signature, pick a suggestion or press Enter, and it becomes a chip. A dance must match every chip you add, so Dmaj and 6/8 finds only dances that have both among their tunes.
+- A Sync now icon on the Collection and Programs toolbars starts a Device Sync pass without a trip to Settings. It appears only while Device Sync is on and a store is connected.
+- You can now filter the Collection to dances that have no tag. The Tags filter has a new Untagged chip, shown whenever the Tags section is, that lists dances with no tag, including dances whose only tag you deleted. Combine it with tag chips to see untagged dances plus dances with those tags.
+- The Settings › Defaults dance-field checkboxes now take effect on every PDF export: a program's numbered set list gains the same author suffix its text export got, and a program's "Set list and figures" appendix card now shows the same formation/level/mixer/status/phrase/calling-notes/walkthrough/tunes fields a single dance's own PDF already did, instead of just its title and figures.
+- A new Settings › Defaults section lets you choose the dance details (author, formation, level, mixer, status, phrase, calling notes, walkthrough, and suggested tunes) for shared/exported programs and dances. Authors is on by default; suggested tunes is off.
+- Sharing or copying a program's plain set list now shows each dance's author right on the numbered line, even for a dance with no figures entered. The other Settings › Defaults checkboxes (formation, level, mixer, status, phrase, calling notes, walkthrough, tunes) now take effect on the richer per-dance card in a program's "Set list and figures" text export, and on a single dance's own text card.
+- The Licenses page now credits the EFF long wordlist used for sync IDs and ContraDB's figure wording.
+- If your collection has dances tagged "ECD" that aren't already the English (ECD) form, you're now offered on launch to convert them to English (ECD) and remove the tag. Decline any time, or check "Don't show this again" to opt out for good.
+
+### Changed
+
+- The built-in User Guide has been revised for the open beta. It now explains that you need to turn on Beta channel for the update check to find new releases, what to do when a Linux AppImage won't open, and where Device Sync fits in.
+- You can now import a Caller's Companion file of up to 64 MB. Files over 25 MB, which used to be refused as too large, now import.
+
+### Fixed
+
+- In the programming matrix, a dance and its alternate are no longer flagged as repeating each other's figures, and each alternate is now checked against the dances on either side of its slot, so a repeat that could happen depending on which one you call is flagged.
+- The slot count on the Programs list no longer includes alternates or the break, so it shows how many dances the program is planned for.
+- Caller's Box lines like "Weave the line with partner (R;L to N2)" now import with the slide direction the bracket gives (R;L slides right, L;R slides left) instead of always sliding left.
+- Lines like "In long lines, go forward and back while N2 neighbor roll away" now import as one figure with the roll away as a modifier, instead of one unparsed custom figure. Contra DB lines of the same kind (long lines or a slice while a roll away or a give and take) import the same way, and re-parsing older custom figures picks up the change.
+- On macOS, Export / print PDF for a dance or a program no longer freezes the app.
+- Tapping Delete twice in quick succession on a dance or a program no longer deletes it twice or backs you out one screen too far — on a phone, the second tap could leave the app on a blank screen.
+- In Perform mode for a program, the arrow and page keys no longer change your slot while the walkthrough overlay is open: the up, down and page keys scroll the walkthrough instead, and Esc closes it.
+- The tap-tempo metronome now follows the in-app Reduce motion switch, in either direction, as the guide says it does — previously it read only the system setting.
+- The Beats and count fields in the figure editor now show an error under the field when you type something that is not a whole number in range, instead of silently keeping the previous value.
+- Backing out of Device Sync pairing while it is still contacting the server no longer records a spurious error in the diagnostics log.
+- The clear button inside a custom text-field filter on the Collection page now has a tooltip and a screen-reader name.
+- The quick-search palette announces the highlighted result as you move through it with the arrow keys, and reports the result count as you type, for screen readers.
+- The red, green and blue sliders in the colour editor are announced by name to screen readers.
+- Pull-by figures imported before 0.4.0 no longer read "pull by along right": the implied "along" direction the migration recorded on them is silent again, so they display exactly like a freshly imported "pull by right".
+- Searching for "take" now finds text such as "take hands four" in figures and notes; the word was being rewritten to "give & take" before the search ran.
+- A turn written as "2 1/2", "2 & 1/2" or "2½" (for example "allemande left 2 1/2") now parses as a structured figure instead of a custom one. Settings → Re-check custom figures upgrades figures already imported that way.
+- Re-checking custom figures keeps a walkthrough note you wrote on a figure that gets upgraded, instead of dropping it.
+- Typing a long-s character (ſ, as in "Ladieſ") next to a role or move word no longer raises an error in the dance editor or on save; the text is left as written.
+- The Collection's recently added and recently edited orders now break same-second ties by title, so a batch of imported dances keeps a stable order.
+- The dialect editor now flags a role plural that spells another role's term or a move word, not only the singular.
+- Shared programs whose dances came from two sources with the same id (for example ContraDB #457 and The Caller's Box #457) no longer point a slot at the wrong dance; bundles you already received still match as re-imports.
+- Dances with non-Latin or punctuation-only titles are no longer flagged as possible duplicates of each other.
+- When a source lists the same dance twice in one import, only one copy is imported and the kept row says so.
+- Undo after linking two import rows to one dance restores that dance to its state before the import, not an in-between one.
+- Restoring a backup in replace mode clears stale published-collection import status.
+- A failed database upgrade now rolls back instead of leaving the collection unopenable.
+- The scrubbed diagnostics export now removes venue names, addresses and contacts, choreographer names and locations, published-source authors, dance walkthroughs and link labels, and no longer keeps a username when a file path ends at your home folder.
+- The scrubbed diagnostics export also now removes venue websites, schedule and price text, published-source URLs, and difficulty-level labels, and no longer lets a two-character value (a state code, a country code, a short name) through unredacted.
+- Your backup-reminder cadence (off, weekly or monthly) now travels in backups and is restored with them.
+
 ## [0.5.0] - 2026-09-24
 
 ### Added

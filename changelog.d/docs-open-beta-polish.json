@@ -1,9 +1,0 @@
-{
-  "id": "docs-open-beta-polish",
-  "user_visible": true,
-  "app": {
-    "changed": [
-      "The built-in User Guide has been revised for the open beta. It now explains that you need to turn on Beta channel for the update check to find new releases, what to do when a Linux AppImage won't open, and where Device Sync fits in."
-    ]
-  }
-}
