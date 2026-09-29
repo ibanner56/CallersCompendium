@@ -1018,6 +1018,24 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   Future<void> _exportDancePdf(Dialect dialect, DanceDetailData detail) async {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
+    // Resolve every context-dependent value up front (issue #1434 review
+    // finding): Printing.layoutPdf's `onLayout` callback can run after
+    // further internal awaits (font loading) or more than once, so a
+    // BuildContext read inside it can observe a value different from the one
+    // selected when the export started. Mirrors the eager resolution
+    // program_export_menu.dart._exportPdf already uses for the same reason.
+    final canonicalizeDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
+      context,
+    );
+    final shareFields = DanceShareFieldsScope.of(context);
+    final formationLabel = _formationDisplayLabel(
+      l10n,
+      detail.dance.formation,
+      dialect,
+      canonicalizeDiscouragedTerms,
+    );
+    final levelLabel = _levelLabel(l10n, detail.dance, detail.difficultyLevel);
+    final statusLabel = danceStatusLabel(l10n, detail.dance.status);
     try {
       await Printing.layoutPdf(
         name: sanitizeExportName(detail.dance.title, fallback: 'dance'),
@@ -1025,19 +1043,13 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           detail.dance,
           dialect: dialect,
           authorNames: detail.authorNames,
-          formationLabel: _formationDisplayLabel(
-            l10n,
-            detail.dance.formation,
-            dialect,
-            CanonicalDiscouragedTermsScope.of(context),
-          ),
-          levelLabel: _levelLabel(l10n, detail.dance, detail.difficultyLevel),
-          statusLabel: danceStatusLabel(l10n, detail.dance.status),
+          formationLabel: formationLabel,
+          levelLabel: levelLabel,
+          statusLabel: statusLabel,
           renderer: _renderer,
           labels: danceExportLabels(l10n),
-          canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
-            context,
-          ),
+          canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+          fields: shareFields,
         ),
       );
     } on Exception catch (e, stackTrace) {

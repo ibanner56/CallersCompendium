@@ -257,6 +257,7 @@ class DanceExportMenu extends StatelessWidget {
         renderer: renderer,
         labels: danceExportLabels(l10n),
         canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+        fields: fields,
       ),
     );
   }

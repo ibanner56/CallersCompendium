@@ -1474,6 +1474,35 @@ void main() {
       expect(bytes, isNotEmpty);
       expect(String.fromCharCodes(bytes.take(4)), '%PDF');
     });
+
+    testWidgets(
+      'authorNamesFor adds content to the numbered slot line, independent '
+      'of appendDances (issue #1434)',
+      (tester) async {
+        final withAuthor = await buildProgramPdf(
+          _program(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          titleFor: _titles,
+          authorNamesFor: (id) => id == 'd1' ? const ['Jane Smith'] : const [],
+        );
+        final withoutAuthor = await buildProgramPdf(
+          _program(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          titleFor: _titles,
+        );
+        expect(
+          withAuthor.length,
+          greaterThan(withoutAuthor.length),
+          reason:
+              'the author suffix must add content to the slot line even '
+              'with no figure appendix at all (appendDances is null in both '
+              'calls here) — equal length means authorNamesFor never reached '
+              '_slotLine',
+        );
+      },
+    );
   });
 
   group('venueLocalityLine', () {
@@ -2096,6 +2125,129 @@ void main() {
       expect(text, isNot(contains('Jane Smith')));
       expect(text, isNot(contains('by ')));
     });
+
+    testWidgets(
+      'PDF: a larger field selection produces a larger PDF than a smaller '
+      'one, for the identical program/dance (issue #1434)',
+      (tester) async {
+        // Same byte-size-differential technique as the existing "appendDances
+        // reaches the PDF builder" test above: PDF bytes aren't otherwise
+        // inspectable in this suite, but two closures built through the
+        // identical _exportPdf call path, differing only in the live
+        // DanceShareFieldsScope value at capture time, isolate the field
+        // selection as the only variable.
+        //
+        // Mutation this catches: dropping `cardLabelsFor`/`fields` from the
+        // buildProgramPdf call in _exportPdf. Both closures would then
+        // produce identical (title+figures-only) bytes and the comparison
+        // would fail.
+        // A richer fixture than the shared `_dances` map (whose 'd1' has only
+        // a default formation — every other field is empty/false/active, so
+        // "all fields" would add nothing beyond "formation only" and the
+        // differential would be vacuous regardless of whether the wiring
+        // works).
+        final richDance = Dance(
+          id: 'd1',
+          title: 'Rory O\'More',
+          authorIds: const ['c1'],
+          figures: [
+            Figure(move: 'swing', params: {'beats': 16, 'who': 'partners'}),
+          ],
+          mixer: true,
+          status: DanceStatus.deprecated,
+          phraseStructure: '6*8*2',
+          callingNotes: 'Teach the box the gnat first.',
+          walkthrough: 'Everyone forms a big circle.',
+          tunes: const ['Rakes of Kildare'],
+          sourceCitations: const [],
+          customFields: const [],
+          createdAt: _now,
+          updatedAt: _now,
+        );
+        final prog = _program(
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        );
+        final notifier = ValueNotifier<Set<DanceShareField>>({
+          DanceShareField.formation,
+        });
+        addTearDown(notifier.dispose);
+
+        LayoutCallback? capturedSmallFields;
+        LayoutCallback? capturedAllFields;
+
+        final widget = MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: DanceShareFieldsScope(
+            notifier: notifier,
+            child: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  ProgramExportMenu(
+                    program: prog,
+                    titleFor: _titles,
+                    danceFor: (id) => id == 'd1' ? richDance : _danceFor(id),
+                    choreographerFor: (_) =>
+                        Choreographer(id: 'c1', name: 'Jane Smith'),
+                    shareInvoker: (params) async {},
+                    pdfLayouter: ({required name, required onLayout}) async {
+                      if (capturedSmallFields == null) {
+                        capturedSmallFields = onLayout;
+                      } else if (capturedAllFields == null) {
+                        capturedAllFields = onLayout;
+                      } else {
+                        fail('pdfLayouter called more than twice');
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpWidget(widget);
+        await tester.pumpAndSettle();
+
+        Future<void> exportWithFigures() async {
+          await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Export / print PDF'));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(
+              const ValueKey('program-figures-prompt-set-list-and-figures'),
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('program-figures-prompt-confirm')),
+          );
+          await tester.pumpAndSettle();
+        }
+
+        // ── First export: only "formation" selected ───────────────────────
+        await exportWithFigures();
+
+        // ── Widen the selection, then export again ─────────────────────────
+        notifier.value = DanceShareField.all;
+        await exportWithFigures();
+
+        expect(capturedSmallFields, isNotNull);
+        expect(capturedAllFields, isNotNull);
+
+        final smallBytes = await capturedSmallFields!(PdfPageFormat.a4);
+        final allBytes = await capturedAllFields!(PdfPageFormat.a4);
+
+        expect(
+          allBytes.length,
+          greaterThan(smallBytes.length),
+          reason:
+              'the full field selection (author/level/mixer/status/phrase/'
+              'tunes) must add content beyond the small selection; equal '
+              'length means the picker never reached buildProgramPdf',
+        );
+      },
+    );
 
     testWidgets(
       'the "Set list and figures" per-dance card respects a deselected '
