@@ -1148,6 +1148,48 @@ has to be judged in its own context.
   (`meanwhile`)" above; it fans into a `meanwhile` container one layer above
   this per-move recognizer, #591.)
 
+#### Parse cost: what is cached, and what must stay true
+
+Parsing a figure line is the dominant cost of planning a large import (a
+~20,000-dance `.USR` spent almost all of its planning time here: ~1.9 ms per
+dance, roughly 7 figure lines each, before the caches below). The ContraDB
+attempt runs first on every line and tries ~55 recognizers in turn, so the cost
+was tokenizing and normalizing the same line ~55 times and rebuilding the same
+scrub tables per attempt. What is cached now, all of it a pure function of the
+line text (the parse **result is unchanged** — checked cell for cell against the
+uncached parser over a 20,516-dance corpus and ~200k mutated lines):
+
+- **The last line's tokenization** (`_Tokens.of` in `contradb_figure_dialect.dart`),
+  with each token's normalized form filled in lazily, shared by every recognizer
+  that scans the line. One entry, keyed on the text.
+- **The last `scrubFigureText` result**, since one line is scrubbed once per
+  front-end it fans out across. One entry, keyed on the text.
+- **The canonical-dialect `Substitutor`s** (`canonicalize.dart`), built once for
+  `Dialect.canonical` with no extra synonyms — the only configuration the import
+  path uses. Any other dialect, or any `extraRoleSynonyms`, is built per call.
+- **The figures a body line parsed to**, per `CallersCompanionUsrAdapter`
+  (`CcFigureLineCache`): a library repeats its stock calls thousands of times.
+  Keyed on the trimmed raw line **including its beats prefix**, bounded (50,000
+  lines; past that new lines are just parsed each time), and safe to share
+  between dances because `Figure` is immutable.
+
+Everything above is static or per-adapter state, so it is **per isolate**. Two
+things keep it honest: a cache must never hold anything but a pure function of
+its key, and any change to a parser stage that is *not* pure (reads a global,
+the clock, a setting) has to take that stage out of the cache. The tests in
+`figure_parse_cache_test.dart` compare against an isolate that parsed only the
+line in question, because a function compared only with itself cannot reveal a
+cache that ignores its key.
+
+**Clause notes hang on the figure emitted before them.** A `;` clause that
+fails to structure but is note-eligible is kept as a note on the last figure
+emitted *before* it. That figure is read off the emitted list at the moment the
+clause is declined, not derived from clause counts: the walk-forward fold above
+consumes two clauses for one figure, so counts and figures diverge after one.
+(Counting used to throw `RangeError` for a trailing note after a fold — dropping
+the whole dance from an import — and hang a note between two figures on the
+figure *after* it.)
+
 ### Balance-a-wave lines (CallersBox, #295 / taxonomy v21)
 
 The Caller's Box writes "balance an existing wave" as its own figure line —

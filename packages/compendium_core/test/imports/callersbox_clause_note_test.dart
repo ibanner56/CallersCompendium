@@ -265,6 +265,64 @@ void main() {
     });
   });
 
+  group('note fallback — the host is the figure emitted before the clause', () {
+    // A note hangs on the last figure emitted BEFORE its clause. That used to be
+    // reconstructed from clause counts (`index - failuresBefore - 1`), which
+    // only agrees while every structured clause yields exactly one figure. The
+    // walk-forward fold (#733) consumes TWO clauses for ONE figure, so after a
+    // fold the count ran ahead of the figures: a trailing note indexed past the
+    // end (a RangeError that dropped the whole dance from an import), and a
+    // note between figures hung on the figure AFTER it — the very thing the
+    // fallback promises never to do.
+
+    test('a note after a fold and a later figure no longer throws', () {
+      final figures = _lines(
+        'Women walk forward; form long wave in center; '
+        '(8) Star right 3/4 [with N2]; men turn around',
+        beats: 2,
+      );
+      expect(figures.map((f) => f.move), ['form_a_long_wave', 'star']);
+      // The note hangs on the star, the last figure before it, after the star's
+      // own recognizer note.
+      expect(figures[0].note, isNull);
+      expect(figures[1].note, endsWith('turn around'));
+    });
+
+    test('a note between a fold and the next figure stays on the fold', () {
+      final figures = _lines(
+        'Women walk forward; form long wave in center; face down; '
+        '(8) Star right 3/4 [with N2]',
+        beats: 2,
+      );
+      expect(figures.map((f) => f.move), ['form_a_long_wave', 'star']);
+      expect(figures[0].note, 'face down');
+      expect(
+        figures[1].note,
+        isNot(contains('face down')),
+        reason: 'a note must never hang on the figure AFTER its clause',
+      );
+    });
+
+    test('two notes after a fold both stay on it', () {
+      final figures = _lines(
+        'Women walk forward; form long wave in center; face down; face up',
+        beats: 2,
+      );
+      expect(figures, hasLength(1));
+      expect(figures.single.move, 'form_a_long_wave');
+      expect(figures.single.note, 'face down; face up');
+    });
+
+    test('without a fold the same note lands where it always did', () {
+      final figures = _lines(
+        'Ladies chain to partner; face down; (8) Star right 3/4 [with N2]',
+        beats: 2,
+      );
+      expect(figures.map((f) => f.move), ['chain', 'star']);
+      expect(figures[0].note, 'to partner; face down');
+    });
+  });
+
   group('note fallback — the allowlist is closed', () {
     test('an ineligible clause still collapses the whole line', () {
       for (final line in [

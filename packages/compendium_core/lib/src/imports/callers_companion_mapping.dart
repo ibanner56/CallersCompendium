@@ -181,6 +181,44 @@ class CcDanceMapping {
 /// one.
 const String ccUntitledDanceTitle = "Untitled Caller's Companion dance";
 
+/// Remembers the figures each body line parsed to, so a library that says
+/// `(8) Partner swing` four thousand times parses it once.
+///
+/// Keyed on the **trimmed raw line, beats prefix included**: a line's figures —
+/// including how a compound `(4,12)` prefix is allocated across them — are a
+/// pure function of that text under the default taxonomy and dialect, which is
+/// what [mapCallersCompanionDance] parses with. (A caller that ever parsed with
+/// another taxonomy or dialect must not share a cache with one that did not.)
+/// Sharing the cached [Figure]s between dances is safe: [Figure] is immutable,
+/// with unmodifiable params.
+///
+/// Bounded, because the input is untrusted: a file can hold far more distinct
+/// lines than any real library. Past [maxEntries] new lines are simply parsed
+/// each time; nothing already cached is evicted or changed.
+class CcFigureLineCache {
+  CcFigureLineCache({this.maxEntries = defaultMaxEntries});
+
+  /// Sized for a large real library (a Caller's Box-scale corpus of ~20,000
+  /// dances has ~14,500 distinct lines) with room to spare, while capping what
+  /// a hostile file can make this hold.
+  static const int defaultMaxEntries = 50000;
+
+  final int maxEntries;
+  final Map<String, List<Figure>> _figuresByLine = <String, List<Figure>>{};
+
+  /// How many distinct lines are remembered.
+  int get length => _figuresByLine.length;
+
+  /// The figures [line] parsed to, or null if it has not been remembered.
+  List<Figure>? operator [](String line) => _figuresByLine[line];
+
+  /// Remembers [figures] for [line] unless the cache is full.
+  void remember(String line, List<Figure> figures) {
+    if (_figuresByLine.length >= maxEntries) return;
+    _figuresByLine[line] = List<Figure>.unmodifiable(figures);
+  }
+}
+
 /// Maps a source-agnostic [CcDanceRecord] into a [Dance] draft and the issues
 /// raised while doing so. **Never throws on content** — a missing title, an
 /// unmapped level/formation, or an unparseable date all surface as
@@ -191,10 +229,14 @@ const String ccUntitledDanceTitle = "Untitled Caller's Companion dance";
 /// The draft's identity is disposable: [newId] (default [uuidV4]) and
 /// [timestamp] (default the Unix epoch) exist only so a valid [Dance] can be
 /// constructed — the pipeline reassigns id/`createdAt`/`updatedAt` at commit.
+///
+/// [lineCache], when given, is consulted and filled per body line (see
+/// [CcFigureLineCache]); it changes what parsing costs, never what it returns.
 CcDanceMapping mapCallersCompanionDance(
   CcDanceRecord record, {
   String Function()? newId,
   DateTime? timestamp,
+  CcFigureLineCache? lineCache,
 }) {
   final issues = <ImportIssue>[];
   final now = timestamp ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
@@ -281,9 +323,16 @@ CcDanceMapping mapCallersCompanionDance(
     for (final rawLine in section.lines) {
       final line = rawLine.trim();
       if (line.isEmpty) continue;
+      final cached = lineCache?[line];
+      if (cached != null) {
+        figures.addAll(cached);
+        continue;
+      }
       final prefix = splitCcBeatPrefix(line);
       final produced = parseFigureLinesFanOut(prefix.text, beats: prefix.beats);
-      figures.addAll(_allocateCompoundBeats(produced, prefix.parts));
+      final allocated = _allocateCompoundBeats(produced, prefix.parts);
+      lineCache?.remember(line, allocated);
+      figures.addAll(allocated);
     }
   }
 

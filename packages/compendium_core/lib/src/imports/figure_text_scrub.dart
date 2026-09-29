@@ -37,6 +37,24 @@ import '../util/text_sanitizer.dart';
 /// `.USR` path via `mapCallersCompanionDance`), so a `custom` figure reads
 /// consistently no matter which source it came from.
 String scrubFigureText(String text) {
+  // Pure function of [text]. One line is scrubbed several times as it fans out
+  // across front-ends (each `parseFigureLine` scrubs again), so remember the
+  // last result.
+  final lastIn = _lastScrubIn;
+  if (lastIn != null && (identical(lastIn, text) || lastIn == text)) {
+    return _lastScrubOut!;
+  }
+  final out = _scrubFigureTextUncached(text);
+  _lastScrubIn = text;
+  _lastScrubOut = out;
+  return out;
+}
+
+// One-entry memo (a static, so per isolate) of the last text scrubbed.
+String? _lastScrubIn;
+String? _lastScrubOut;
+
+String _scrubFigureTextUncached(String text) {
   final sanitized = sanitizeImportedText(text);
   final normalizedMoves = sanitized
       .replaceAllMapped(_gypsiesTerm, (_) => 'shoulder rounds')
