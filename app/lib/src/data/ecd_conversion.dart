@@ -31,20 +31,29 @@ Future<List<String>> findEcdConvertCandidates(
   );
 }
 
-/// Converts each dance in [danceIds] to [DanceForm.ecd] and strips every tag
-/// in [tagIds] from it, in one transaction. A dance that no longer exists (or
-/// was deleted between detection and confirmation) is silently skipped.
-/// Returns the number of dances actually updated.
+/// Converts every dance still matching [findEcdConvertCandidates] to
+/// [DanceForm.ecd] and strips its "ECD" tag(s), in one transaction. Returns
+/// the number of dances actually updated.
+///
+/// The candidate set and the live "ECD" tag ids are both re-resolved inside
+/// the transaction, immediately before writing, rather than reusing whatever
+/// [findEcdConvertCandidates] returned when the on-launch prompt decided
+/// whether to ask. The prompt's own detection pass can run long before the
+/// user answers it (they read the dialog; sync can run concurrently and
+/// change a dance's tags/form, rename or delete the "ECD" tag, or retag
+/// another dance as "ECD" in the meantime), so re-validating here is what
+/// keeps a stale id from forcing a dance sync has since changed, or from
+/// stripping a tag id that no longer names "ECD".
 Future<int> convertDancesToEcd(
-  CompendiumRepositories repos,
-  List<String> danceIds,
-  Set<String> tagIds, {
+  CompendiumRepositories repos, {
   DateTime? at,
 }) async {
   final now = at ?? DateTime.now().toUtc();
-  var converted = 0;
-  await repos.transaction(() async {
-    for (final id in danceIds) {
+  return repos.transaction(() async {
+    final tagIds = await ecdTagIds(repos);
+    final candidates = await findEcdConvertCandidates(repos, tagIds);
+    var converted = 0;
+    for (final id in candidates) {
       final dance = await repos.dances.getById(id);
       if (dance == null) continue;
       await repos.dances.update(
@@ -60,6 +69,6 @@ Future<int> convertDancesToEcd(
       );
       converted++;
     }
+    return converted;
   });
-  return converted;
 }

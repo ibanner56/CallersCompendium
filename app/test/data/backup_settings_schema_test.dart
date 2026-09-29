@@ -19,6 +19,7 @@ import 'package:compendium_app/src/screens/settings/settings_keys.dart'
         kCollectionHiddenFacetsKey,
         kCollectionTileVisibleFieldsKey,
         kCustomFieldSharingDisclosureKey,
+        kEcdConvertPromptDismissedKey,
         kProgramMatrixColumnsKey,
         kShowIndividualPerformTimerKey,
         kVenueCallCountKey;
@@ -315,6 +316,7 @@ void main() {
       for (final key in [
         kInitialSeedCompletedKey,
         kCustomFieldSharingDisclosureKey,
+        kEcdConvertPromptDismissedKey,
       ]) {
         expect(validateBackupSettingValue(key, true), isTrue, reason: key);
         expect(validateBackupSettingValue(key, 'true'), isFalse, reason: key);

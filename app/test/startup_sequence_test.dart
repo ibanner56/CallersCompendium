@@ -1411,31 +1411,46 @@ void main() {
       expect(dance.tagIds, ['tag-ecd', 'tag-keep']);
     });
 
-    testWidgets(
-      'checking "don\'t show this again" persists the opt-out regardless of '
-      'the chosen answer',
-      (tester) async {
-        final appData = await bootWithEcdTaggedDance(tester);
+    testWidgets('checking "don\'t show this again" and declining persists the '
+        'opt-out without converting', (tester) async {
+      final appData = await bootWithEcdTaggedDance(tester);
 
-        await tester.tap(
-          find.byKey(const ValueKey('ecd-convert-prompt-dont-show-again')),
-        );
-        await tester.pumpAndSettle();
-        await tester.tap(
-          find.byKey(const ValueKey('ecd-convert-prompt-decline')),
-        );
-        await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('ecd-convert-prompt-dont-show-again')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('ecd-convert-prompt-decline')),
+      );
+      await tester.pumpAndSettle();
 
-        expect(
-          await appData.repositories.settings.get(
-            kEcdConvertPromptDismissedKey,
-          ),
-          isTrue,
-        );
-        // The declined dance is untouched even though the opt-out was set.
-        final dance = await appData.repositories.dances.getById('d1');
-        expect(dance!.form, DanceForm.contra);
-      },
-    );
+      expect(
+        await appData.repositories.settings.get(kEcdConvertPromptDismissedKey),
+        isTrue,
+      );
+      final dance = await appData.repositories.dances.getById('d1');
+      expect(dance!.form, DanceForm.contra);
+    });
+
+    testWidgets('checking "don\'t show this again" and confirming persists the '
+        'opt-out and still converts', (tester) async {
+      final appData = await bootWithEcdTaggedDance(tester);
+
+      await tester.tap(
+        find.byKey(const ValueKey('ecd-convert-prompt-dont-show-again')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('ecd-convert-prompt-confirm')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        await appData.repositories.settings.get(kEcdConvertPromptDismissedKey),
+        isTrue,
+      );
+      final dance = await appData.repositories.dances.getById('d1');
+      expect(dance!.form, DanceForm.ecd);
+    });
   });
 }
