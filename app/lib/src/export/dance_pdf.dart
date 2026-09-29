@@ -4,6 +4,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import 'dance_card_fields.dart';
 import 'program_figure_widgets.dart';
 import 'program_pdf.dart';
 
@@ -28,6 +29,12 @@ import 'program_pdf.dart';
 /// supplies the dialect engine; when omitted a `FigureRenderer(contraTaxonomy)`
 /// is used. [theme] supplies the Unicode font; when omitted it is loaded from
 /// the bundled asset.
+///
+/// [fields] selects which non-figures fields appear (issue #1434), gated via
+/// the shared `dance_card_fields.dart` helpers so this stays in lockstep with
+/// [buildProgramPdf]'s figure-appendix cards. Defaults to
+/// [DanceShareField.allExceptTunes], matching every block this builder
+/// rendered before the picker existed.
 Future<Uint8List> buildDancePdf(
   Dance dance, {
   required Dialect dialect,
@@ -39,24 +46,22 @@ Future<Uint8List> buildDancePdf(
   DanceExportLabels labels = const DanceExportLabels(),
   pw.ThemeData? theme,
   bool canonicalizeDiscouragedTerms = false,
+  Set<DanceShareField> fields = DanceShareField.allExceptTunes,
 }) async {
   final fig = renderer ?? FigureRenderer(contraTaxonomy);
   final resolvedTheme = theme ?? await loadProgramPdfTheme();
   final doc = pw.Document(title: dance.title, theme: resolvedTheme);
 
-  final names = authorNames.map((n) => n.trim()).where((n) => n.isNotEmpty);
+  final names = danceCardAuthorNames(authorNames, fields);
 
-  final metaLines = <String>[
-    if (_has(formationLabel)) '${labels.formation}: ${formationLabel.trim()}',
-    if (_has(levelLabel)) '${labels.level}: ${levelLabel!.trim()}',
-    if (dance.mixer && _has(labels.mixer)) labels.mixer.trim(),
-    // Mirror the on-screen card / text export: only a non-active dance shows
-    // a Status line; an active dance omits it.
-    if (dance.status != DanceStatus.active && _has(statusLabel))
-      '${labels.status}: ${statusLabel.trim()}',
-    if (_has(dance.phraseStructure.raw))
-      '${labels.phrase}: ${dance.phraseStructure.raw.trim()}',
-  ];
+  final metaLines = danceCardMetaLines(
+    dance,
+    formationLabel: formationLabel,
+    levelLabel: levelLabel,
+    statusLabel: statusLabel,
+    labels: labels,
+    fields: fields,
+  );
 
   doc.addPage(
     pw.MultiPage(
@@ -91,7 +96,8 @@ Future<Uint8List> buildDancePdf(
             canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
           ),
         ],
-        if (_has(dance.callingNotes)) ...[
+        if (fields.contains(DanceShareField.callingNotes) &&
+            _has(dance.callingNotes)) ...[
           pw.SizedBox(height: 12),
           pw.Text(
             labels.callingNotes,
@@ -108,7 +114,8 @@ Future<Uint8List> buildDancePdf(
             style: const pw.TextStyle(fontSize: 12),
           ),
         ],
-        if (_has(dance.walkthrough)) ...[
+        if (fields.contains(DanceShareField.walkthrough) &&
+            _has(dance.walkthrough)) ...[
           pw.SizedBox(height: 12),
           pw.Text(
             labels.walkthrough,
@@ -124,6 +131,16 @@ Future<Uint8List> buildDancePdf(
                 : fig.renderFreeText(dance.walkthrough.trim(), dialect),
             style: const pw.TextStyle(fontSize: 12),
           ),
+        ],
+        if (danceCardTuneNames(dance, fields) case final tunes
+            when tunes.isNotEmpty) ...[
+          pw.SizedBox(height: 12),
+          pw.Text(
+            labels.tunes,
+            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+          ),
+          pw.SizedBox(height: 4),
+          pw.Text(tunes.join(', '), style: const pw.TextStyle(fontSize: 12)),
         ],
       ],
     ),

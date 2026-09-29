@@ -5615,6 +5615,20 @@
   "@exportLabelWalkthrough": {
     "description": "Section heading for the walkthrough on an exported dance card (plain text and PDF)."
   },
+  "exportLabelTunes": "Tunes",
+  "@exportLabelTunes": {
+    "description": "Section heading for the suggested tune list on an exported dance card (plain text and PDF), issue #1434."
+  },
+  "exportSlotAuthorSuffix": "by {names}",
+  "@exportSlotAuthorSuffix": {
+    "description": "Author-names suffix appended to a numbered set-list slot line, e.g. \"1. Waltz Quadrille — by Jane Smith\" (issue #1434).",
+    "placeholders": {
+      "names": {
+        "type": "String",
+        "example": "Jane Smith, Bob Lee"
+      }
+    }
+  },
   "exportBeatsLabel": "{count, plural, =1{1 beat} other{{count} beats}}",
   "@exportBeatsLabel": {
     "description": "Beat-count suffix for a figure on an exported dance card, e.g. '16 beats' or '1 beat'.",

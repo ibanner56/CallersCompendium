@@ -4358,6 +4358,14 @@ class AppLocalizationsNl extends AppLocalizations {
   String get exportLabelWalkthrough => 'Doorloop';
 
   @override
+  String get exportLabelTunes => 'Deuntjes';
+
+  @override
+  String exportSlotAuthorSuffix(String names) {
+    return 'door $names';
+  }
+
+  @override
   String exportBeatsLabel(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

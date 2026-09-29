@@ -7,6 +7,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../data/venue_label.dart';
+import 'dance_card_fields.dart';
 import 'program_figure_widgets.dart';
 
 /// Loads the bundled Unicode font (Roboto, SIL OFL-1.1) used for PDF export.
@@ -50,6 +51,17 @@ Future<pw.ThemeData> loadProgramPdfTheme() async {
 
 /// The program-matrix PDF's marker glyphs (★ ▸ ✓), cached after first load.
 pw.Font? _cachedMatrixMarkerFont;
+
+/// Per-dance display labels for a figure-appendix card (issue #1434) — the
+/// same four strings `program_export_menu.dart` already resolves for the
+/// text-path card (`_plainTextWithFigures`): resolved author *names* (never
+/// a [Choreographer] record), and the app's human-readable facet labels.
+typedef DanceCardLabels = ({
+  List<String> authorNames,
+  String formationLabel,
+  String? levelLabel,
+  String statusLabel,
+});
 
 /// Loads the bundled marker-glyph fallback font used by the program-matrix
 /// PDF (see `program_matrix_pdf.dart`, #633).
@@ -104,6 +116,17 @@ Future<pw.Font> loadProgramMatrixMarkerFont() async {
 ///   Requires [dialect] and [renderer] when provided; both default sensibly
 ///   ([dialect] falls back to [Dialect.larksRobins], [renderer] to a
 ///   fresh [FigureRenderer] using [contraTaxonomy]).
+/// - [authorNamesFor] resolves a slot's `danceId` to its already-resolved
+///   author *names* for the numbered set-list line (issue #1434) — same
+///   contract as `programToPlainText`'s parameter of the same name. `null`
+///   (the default) omits the suffix, preserving the pre-#1434 slot-line
+///   format.
+/// - [cardLabelsFor] resolves an appendix dance to the labels its card needs
+///   (issue #1434). `null` (the default) preserves the pre-#1434 appendix
+///   content exactly (title + figures only); when supplied, each appendix
+///   card is enriched to the same field set as [buildDancePdf] — gated by
+///   [fields] (defaults to [DanceShareField.allExceptTunes]) via the shared
+///   `dance_card_fields.dart` helpers, so the two builders can't drift.
 Future<Uint8List> buildProgramPdf(
   Program program, {
   required String? Function(String danceId) titleFor,
@@ -116,6 +139,9 @@ Future<Uint8List> buildProgramPdf(
   Dialect? dialect,
   FigureRenderer? renderer,
   bool canonicalizeDiscouragedTerms = false,
+  List<String> Function(String danceId)? authorNamesFor,
+  DanceCardLabels Function(Dance dance)? cardLabelsFor,
+  Set<DanceShareField> fields = DanceShareField.allExceptTunes,
 }) async {
   final fmtDate = formatDate ?? _isoDate;
   final resolvedTheme = theme ?? await loadProgramPdfTheme();
@@ -159,6 +185,7 @@ Future<Uint8List> buildProgramPdf(
           renderer: fig,
           dialect: resolvedDialect,
           canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+          authorNamesFor: authorNamesFor,
         ),
         if (_has(program.notes)) ...[
           pw.SizedBox(height: 12),
@@ -190,6 +217,8 @@ Future<Uint8List> buildProgramPdf(
             resolvedDanceLabels,
             labels,
             canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+            cardLabelsFor: cardLabelsFor,
+            fields: fields,
           ),
         ],
       ],
@@ -203,6 +232,12 @@ Future<Uint8List> buildProgramPdf(
 /// appendix. Dance title is a bold sub-header; alternates are prefixed with
 /// [labels.alternate]. No forced page breaks — [pw.MultiPage] handles
 /// pagination naturally.
+///
+/// [cardLabelsFor] gates the full field-gated card content added by issue
+/// #1434 (author line, formation/level/mixer/status/phrase, calling notes,
+/// walkthrough, tunes — [fields]-gated via the shared `dance_card_fields.dart`
+/// helpers, same as [buildDancePdf]). `null` (the default) preserves the
+/// pre-#1434 content exactly: title + figures only, regardless of [fields].
 List<pw.Widget> _figureAppendixWidgets(
   List<({Dance dance, bool isAlternate})> dances,
   FigureRenderer renderer,
@@ -210,6 +245,8 @@ List<pw.Widget> _figureAppendixWidgets(
   DanceExportLabels danceLabels,
   ProgramExportLabels labels, {
   bool canonicalizeDiscouragedTerms = false,
+  DanceCardLabels Function(Dance dance)? cardLabelsFor,
+  Set<DanceShareField> fields = DanceShareField.allExceptTunes,
 }) {
   final widgets = <pw.Widget>[];
   for (final entry in dances) {
@@ -227,6 +264,26 @@ List<pw.Widget> _figureAppendixWidgets(
         style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold),
       ),
     );
+    final cardLabels = cardLabelsFor?.call(dance);
+    if (cardLabels != null) {
+      final names = danceCardAuthorNames(cardLabels.authorNames, fields);
+      if (names.isNotEmpty) {
+        widgets.add(
+          pw.Text(names.join(', '), style: const pw.TextStyle(fontSize: 12)),
+        );
+      }
+      final metaLines = danceCardMetaLines(
+        dance,
+        formationLabel: cardLabels.formationLabel,
+        levelLabel: cardLabels.levelLabel,
+        statusLabel: cardLabels.statusLabel,
+        labels: danceLabels,
+        fields: fields,
+      );
+      for (final line in metaLines) {
+        widgets.add(pw.Text(line, style: const pw.TextStyle(fontSize: 11)));
+      }
+    }
     widgets.addAll(
       buildFigureWidgets(
         dance,
@@ -236,6 +293,63 @@ List<pw.Widget> _figureAppendixWidgets(
         canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
       ),
     );
+    if (cardLabels != null) {
+      if (fields.contains(DanceShareField.callingNotes) &&
+          _has(dance.callingNotes)) {
+        widgets.add(pw.SizedBox(height: 4));
+        widgets.add(
+          pw.Text(
+            danceLabels.callingNotes,
+            style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
+          ),
+        );
+        widgets.add(
+          pw.Text(
+            canonicalizeDiscouragedTerms
+                ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                    dance.callingNotes.trim(),
+                    dialect,
+                  )
+                : renderer.renderFreeText(dance.callingNotes.trim(), dialect),
+            style: const pw.TextStyle(fontSize: 11),
+          ),
+        );
+      }
+      if (fields.contains(DanceShareField.walkthrough) &&
+          _has(dance.walkthrough)) {
+        widgets.add(pw.SizedBox(height: 4));
+        widgets.add(
+          pw.Text(
+            danceLabels.walkthrough,
+            style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
+          ),
+        );
+        widgets.add(
+          pw.Text(
+            canonicalizeDiscouragedTerms
+                ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                    dance.walkthrough.trim(),
+                    dialect,
+                  )
+                : renderer.renderFreeText(dance.walkthrough.trim(), dialect),
+            style: const pw.TextStyle(fontSize: 11),
+          ),
+        );
+      }
+      final tunes = danceCardTuneNames(dance, fields);
+      if (tunes.isNotEmpty) {
+        widgets.add(pw.SizedBox(height: 4));
+        widgets.add(
+          pw.Text(
+            danceLabels.tunes,
+            style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
+          ),
+        );
+        widgets.add(
+          pw.Text(tunes.join(', '), style: const pw.TextStyle(fontSize: 11)),
+        );
+      }
+    }
   }
   return widgets;
 }
@@ -247,6 +361,7 @@ List<pw.Widget> _slotWidgets(
   required FigureRenderer renderer,
   required Dialect dialect,
   bool canonicalizeDiscouragedTerms = false,
+  List<String> Function(String danceId)? authorNamesFor,
 }) {
   final widgets = <pw.Widget>[];
   var n = 1;
@@ -258,6 +373,7 @@ List<pw.Widget> _slotWidgets(
       renderer: renderer,
       dialect: dialect,
       canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+      authorNamesFor: authorNamesFor,
     );
     widgets.add(
       pw.Padding(
@@ -273,6 +389,7 @@ List<pw.Widget> _slotWidgets(
         renderer: renderer,
         dialect: dialect,
         canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+        authorNamesFor: authorNamesFor,
       );
       widgets.add(
         pw.Padding(
@@ -389,12 +506,23 @@ String _slotLine(
   required FigureRenderer renderer,
   required Dialect dialect,
   bool canonicalizeDiscouragedTerms = false,
+  List<String> Function(String danceId)? authorNamesFor,
 }) {
   final buffer = StringBuffer();
 
   if (slot.danceId != null) {
     final title = titleFor(slot.danceId!);
     buffer.write(_has(title) ? title!.trim() : labels.unknownDance);
+    // Author suffix (issue #1434): resolved independently of whether this
+    // dance has any figures — mirrors programToPlainText's _slotLine.
+    final authorNames = authorNamesFor
+        ?.call(slot.danceId!)
+        .map((n) => n.trim())
+        .where((n) => n.isNotEmpty)
+        .toList();
+    if (authorNames != null && authorNames.isNotEmpty) {
+      buffer.write(' — ${labels.by(authorNames.join(', '))}');
+    }
     if (_has(slot.text)) {
       final note = canonicalizeDiscouragedTerms
           ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
