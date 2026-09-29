@@ -1804,7 +1804,7 @@ jobs:
   # after `verify` and the desktop channel does not wait on the mobile upload.
   # This job (1) needs `verify`, so no manifest is published unless every
   # binary's provenance + SBOM attestation verified; (2) runs behind the
-  # `release-publication` approval, which the maintainer grants only AFTER
+  # `release-manifest` approval, which the maintainer grants only AFTER
   # publishing the draft; (3) refuses to start unless the release is public and
   # its manifest assets download anonymously, so the channel never advertises
   # draft (inaccessible) assets; and (4) verifies every manifest/signature pair
@@ -1830,7 +1830,7 @@ jobs:
       needs.meta.outputs.is_release == 'true'
     runs-on: ubuntu-latest
     # Human approval AFTER the draft is published (see the ORDERING note above).
-    environment: release-publication
+    environment: release-manifest
     permissions:
       contents: write        # push the manifest to the gh-pages branch
     steps:

@@ -469,7 +469,7 @@ def main() -> None:
     assert pages_needs is not None and {"meta", "publish_draft", "verify"}.issubset(
         {item.strip() for item in pages_needs.group(1).split(",")}
     ), "pages must wait for provenance verification"
-    assert "    environment: release-publication\n" in pages_job, (
+    assert "    environment: release-manifest\n" in pages_job, (
         "pages must sit behind the post-publication approval"
     )
     public_step = "Require a public release with downloadable manifests"
