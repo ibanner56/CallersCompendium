@@ -22,6 +22,7 @@ import 'src/data/callersbox_online.dart';
 import 'src/data/collection_filter_scope.dart';
 import 'src/data/collection_facets_scope.dart';
 import 'src/data/collection_tile_fields_scope.dart';
+import 'src/data/dance_share_fields_scope.dart';
 import 'src/data/confirm_before_delete_scope.dart';
 import 'src/data/contradb_online.dart';
 import 'src/data/custom_themes_controller.dart';
@@ -87,6 +88,7 @@ import 'src/screens/settings_screen.dart'
         kCollectionTileVisibleFieldsKey,
         kEcdConvertPromptDismissedKey,
         kMatrixExactBeatCollisionKey,
+        kProgramDanceShareFieldsKey,
         kProgramMatrixColumnsKey,
         kRequirePerformedForHistoryKey,
         kSortIgnoreArticlesKey,
@@ -431,6 +433,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
       ValueNotifier(widget.initialRequirePerformedForHistory);
   final ValueNotifier<Set<CollectionTileField>> _collectionTileFieldsNotifier =
       ValueNotifier(CollectionTileField.all);
+  final ValueNotifier<Set<DanceShareField>> _danceShareFieldsNotifier =
+      ValueNotifier(DanceShareField.allExceptTunes);
   final ValueNotifier<Set<String>> _collectionHiddenFacetsNotifier =
       ValueNotifier(const <String>{});
   final ValueNotifier<bool> _trackHistoryForAllCallersNotifier = ValueNotifier(
@@ -1603,6 +1607,17 @@ class _CompendiumAppState extends State<CompendiumApp> {
         ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     _collectionTileFieldsNotifier.value =
         CollectionTileFieldsScope.decodeStored(storedTileFields);
+    // Load the program/dance share-fields preference (issue #1434). Stored
+    // as a JSON list of DanceShareField name strings.
+    // See DanceShareFieldsScope.decodeStored for the three-case logic.
+    final storedShareFields = await _appData.repositories.settings
+        .get(kProgramDanceShareFieldsKey)
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
+    _danceShareFieldsNotifier.value = DanceShareFieldsScope.decodeStored(
+      storedShareFields,
+    );
     // Load the hidden filter sections (issue #1419). A deny-list: absent or
     // unreadable means every filter is shown.
     final storedHiddenFacets = await _appData.repositories.settings
@@ -1638,6 +1653,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _themeNotifier.dispose();
     _requirePerformedForHistoryNotifier.dispose();
     _collectionTileFieldsNotifier.dispose();
+    _danceShareFieldsNotifier.dispose();
     _collectionHiddenFacetsNotifier.dispose();
     _trackHistoryForAllCallersNotifier.dispose();
     _venueCallCountNotifier.dispose();
@@ -2073,70 +2089,73 @@ class _CompendiumAppState extends State<CompendiumApp> {
                                 notifier: _requirePerformedForHistoryNotifier,
                                 child: CollectionTileFieldsScope(
                                   notifier: _collectionTileFieldsNotifier,
-                                  child: TrackHistoryForAllCallersScope(
-                                    notifier:
-                                        _trackHistoryForAllCallersNotifier,
-                                    child: VenueCallCountScope(
-                                      notifier: _venueCallCountNotifier,
-                                      child: SortIgnoreArticlesScope(
-                                        notifier: _sortIgnoreArticlesNotifier,
-                                        child: ReduceMotionScope(
-                                          notifier: _reduceMotionNotifier,
-                                          child: VerboseFigureRenderingScope(
-                                            notifier:
-                                                _verboseFigureRenderingNotifier,
-                                            child: CanonicalDiscouragedTermsScope(
+                                  child: DanceShareFieldsScope(
+                                    notifier: _danceShareFieldsNotifier,
+                                    child: TrackHistoryForAllCallersScope(
+                                      notifier:
+                                          _trackHistoryForAllCallersNotifier,
+                                      child: VenueCallCountScope(
+                                        notifier: _venueCallCountNotifier,
+                                        child: SortIgnoreArticlesScope(
+                                          notifier: _sortIgnoreArticlesNotifier,
+                                          child: ReduceMotionScope(
+                                            notifier: _reduceMotionNotifier,
+                                            child: VerboseFigureRenderingScope(
                                               notifier:
-                                                  _canonicalDiscouragedTermsNotifier,
-                                              child: DecimalTurnsScope(
-                                                notifier: _decimalTurnsNotifier,
-                                                child: AggressiveBeatsUpdateScope(
+                                                  _verboseFigureRenderingNotifier,
+                                              child: CanonicalDiscouragedTermsScope(
+                                                notifier:
+                                                    _canonicalDiscouragedTermsNotifier,
+                                                child: DecimalTurnsScope(
                                                   notifier:
-                                                      _aggressiveBeatsUpdateNotifier,
-                                                  child: ConfirmBeforeDeleteScope(
+                                                      _decimalTurnsNotifier,
+                                                  child: AggressiveBeatsUpdateScope(
                                                     notifier:
-                                                        _confirmBeforeDeleteNotifier,
-                                                    child: ColourDanceThemeScope(
+                                                        _aggressiveBeatsUpdateNotifier,
+                                                    child: ConfirmBeforeDeleteScope(
                                                       notifier:
-                                                          _colourDanceThemeNotifier,
-                                                      child: SetListColorCodingScope(
+                                                          _confirmBeforeDeleteNotifier,
+                                                      child: ColourDanceThemeScope(
                                                         notifier:
-                                                            _setListColorCodingNotifier,
-                                                        child: MatrixCollisionModeScope(
+                                                            _colourDanceThemeNotifier,
+                                                        child: SetListColorCodingScope(
                                                           notifier:
-                                                              _matrixExactBeatCollisionNotifier,
-                                                          child: ProgramMatrixColumnConfigScope(
+                                                              _setListColorCodingNotifier,
+                                                          child: MatrixCollisionModeScope(
                                                             notifier:
-                                                                _programMatrixColumnsNotifier,
-                                                            child: DateFormatScope(
+                                                                _matrixExactBeatCollisionNotifier,
+                                                            child: ProgramMatrixColumnConfigScope(
                                                               notifier:
-                                                                  _dateFormatNotifier,
-                                                              child: FirstDayOfWeekScope(
+                                                                  _programMatrixColumnsNotifier,
+                                                              child: DateFormatScope(
                                                                 notifier:
-                                                                    _firstDayOfWeekNotifier,
-                                                                child: LocaleScope(
+                                                                    _dateFormatNotifier,
+                                                                child: FirstDayOfWeekScope(
                                                                   notifier:
-                                                                      _localeNotifier,
-                                                                  child: EditorDraftShutdownScope(
-                                                                    controller:
-                                                                        _editorDraftShutdownController,
-                                                                    child: SyncWriterLifecycleScope(
-                                                                      runWrite:
-                                                                          _runSyncWriter,
-                                                                      onRestored:
-                                                                          reloadFromSettings,
-                                                                      child: CollectionFilterScope(
-                                                                        controller:
-                                                                            _collectionFilterController,
-                                                                        child: VenueEntityModeScope(
-                                                                          notifier:
-                                                                              _venueEntityModeNotifier,
-                                                                          child: ProgramAutoCommitScope(
+                                                                      _firstDayOfWeekNotifier,
+                                                                  child: LocaleScope(
+                                                                    notifier:
+                                                                        _localeNotifier,
+                                                                    child: EditorDraftShutdownScope(
+                                                                      controller:
+                                                                          _editorDraftShutdownController,
+                                                                      child: SyncWriterLifecycleScope(
+                                                                        runWrite:
+                                                                            _runSyncWriter,
+                                                                        onRestored:
+                                                                            reloadFromSettings,
+                                                                        child: CollectionFilterScope(
+                                                                          controller:
+                                                                              _collectionFilterController,
+                                                                          child: VenueEntityModeScope(
                                                                             notifier:
-                                                                                _autoCommitProgramChangesNotifier,
-                                                                            child: CollectionFacetsScope(
-                                                                              notifier: _collectionHiddenFacetsNotifier,
-                                                                              child: child!,
+                                                                                _venueEntityModeNotifier,
+                                                                            child: ProgramAutoCommitScope(
+                                                                              notifier: _autoCommitProgramChangesNotifier,
+                                                                              child: CollectionFacetsScope(
+                                                                                notifier: _collectionHiddenFacetsNotifier,
+                                                                                child: child!,
+                                                                              ),
                                                                             ),
                                                                           ),
                                                                         ),

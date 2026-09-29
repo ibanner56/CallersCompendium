@@ -111,6 +111,14 @@ const String kEcdConvertPromptDismissedKey = 'ecd_convert_prompt_dismissed';
 /// see no change until they adjust the preference.
 const String kCollectionTileVisibleFieldsKey = 'collection_tile_visible_fields';
 
+/// Key used to persist the set of [DanceShareField]s included when a
+/// program/dance is shared, copied, or exported to PDF (issue #1434). Stored
+/// as a JSON list of field name strings; absent/unset means every field
+/// except `tunes` (see [DanceShareField.allExceptTunes]) — the set every
+/// renderer emitted unconditionally before this preference existed — so
+/// existing users see no change to their exports until they adjust it.
+const String kProgramDanceShareFieldsKey = 'program_dance_share_fields';
+
 /// Key used to persist the filter sections the user has hidden from the
 /// Collection page's Filters panel and the dance picker (issue #1419). Stored as
 /// a JSON list of opaque section-id strings (see `CollectionFacetIds` and

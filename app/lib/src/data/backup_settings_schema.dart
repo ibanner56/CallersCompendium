@@ -162,11 +162,13 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   // Shorthand mappings persist as a JSON list; the decoder also tolerates a raw
   // JSON string, so accept either and let it validate entries.
   kShorthandMappingsKey: _isListOrString,
-  // Collection tile fields (#767) and hidden filter sections (#1419) persist as
-  // JSON lists of name strings; both decoders (`decodeStored`) treat a non-List
-  // as "unset" and drop non-String entries, so only the container is enforced.
+  // Collection tile fields (#767), hidden filter sections (#1419), and the
+  // shared-program dance-field picker (#1434) persist as JSON lists of name
+  // strings; every decoder (`decodeStored`) treats a non-List as "unset" and
+  // drops non-String entries, so only the container is enforced.
   kCollectionTileVisibleFieldsKey: _isList,
   kCollectionHiddenFacetsKey: _isList,
+  kProgramDanceShareFieldsKey: _isList,
   // The shareable-text normalisation scope marker (`_backupLocalState`, kept
   // in backups by #1134) is a JSON object recording the algorithm version and
   // the exact column / key scope the pass covered. `ensureMigrated` compares

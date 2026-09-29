@@ -1153,6 +1153,40 @@ class AppLocalizationsDa extends AppLocalizations {
       'Brugerdefinerede felter';
 
   @override
+  String get settingsDefaultsShareFieldsHeader => 'Delte dansefelter';
+
+  @override
+  String get settingsDefaultsShareFieldsSubtitle =>
+      'Vælg hvilke oplysninger der vises, når du deler, kopierer eller eksporterer et program eller en dans. Forfattere vises som standard; melodier er skjult, indtil du slår dem til.';
+
+  @override
+  String get settingsDefaultsShareFieldsAuthors => 'Forfattere';
+
+  @override
+  String get settingsDefaultsShareFieldsFormation => 'Formation';
+
+  @override
+  String get settingsDefaultsShareFieldsLevel => 'Niveau';
+
+  @override
+  String get settingsDefaultsShareFieldsMixer => 'Mixer';
+
+  @override
+  String get settingsDefaultsShareFieldsStatus => 'Status';
+
+  @override
+  String get settingsDefaultsShareFieldsPhraseStructure => 'Frase';
+
+  @override
+  String get settingsDefaultsShareFieldsCallingNotes => 'Kaldsnotes';
+
+  @override
+  String get settingsDefaultsShareFieldsWalkthrough => 'Gennemgang';
+
+  @override
+  String get settingsDefaultsShareFieldsTunes => 'Melodier';
+
+  @override
   String get settingsDefaultsCollectionFiltersHeader => 'Samlingsfiltre';
 
   @override
