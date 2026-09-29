@@ -23,6 +23,46 @@ core version. They are left that way deliberately — do not renumber them.
 
 _Nothing yet._
 
+## [0.6.1] - 2026-09-29
+
+### Added
+
+- Add `Program.plannedDanceCount`, the number of slots excluding alternates and the break.
+- Add `TunesFilter`, a search leaf that matches a dance whose tune list contains a value (case-insensitive substring). A dance whose stored tunes cannot be decoded never matches, and no longer risks failing the whole query.
+- Add `UntaggedFilter`, a search filter leaf matching dances with no live (non-deleted) tag.
+- Add DanceShareField and field-gated rendering (author, formation, level, mixer, status, phrase, calling notes, walkthrough, tunes) to danceToPlainText and programToPlainText, behind new optional parameters no existing caller passes yet.
+
+### Changed
+
+- Check a `normalisation_skips` row's table name against the pass's own scope before interpolating it into SQL, and take the lookup key from the table's declared primary key; a row naming a table this build does not record for is discharged.
+- Classify the nine one-time migration markers declared in `database.dart` as installation state; the settings classification ratchet now matches any `const String …Key` declaration, not only `k`-prefixed ones.
+- `VenueRepository.listAll` and `ChoreographerRepository.listAll` accept `includeDeleted`.
+- `CrashRedactor` collapses a path that ends at a home directory to the bare `<path>` placeholder.
+- Raise the FileMaker reader's sector ceiling (`kMaxFmpSectors`) from 8,192 to 16,384 so it admits files up to the app's 64 MiB `.USR` cap.
+
+### Fixed
+
+- Add `Program.alternateGroupsForSlots` and an `alternateGroups` argument to `buildProgramMatrix`; `ProgramMatrix.isCollision` compares each row with every row of the alternate groups before and after its own instead of the flat previous/next row, and never with its own group.
+- Read the `(R;L …)` / `(L;R …)` bracket on a Caller's Box `Weave the line` line into `zig_zag.slide` (`_weaveSlideAnnotation`); a non-mirrored pair keeps the default.
+- Fold a `long_lines`/`slice` core `while` a `roll_away`/`give_and_take` into a `modifier` container in both the Caller's Box (`modifierFromWhile`) and Contra DB (`parseContraDbFigureLine`) front-ends through one shared `whileModifierContainer`; other `while` lines keep their previous reading.
+- Rank a container with a custom child below a fully structured reading in the free-text/reparse fan-out, so a later front-end's clean parse is no longer shadowed.
+- `FigureRenderer` silences `pull_by.where == 'along'` on the display path (the value the v35 migration synthesised for `pull_by_direction`), and no longer blanks the alias-pinned slots of an un-normalised `pull_by_dancers`/`pull_by_direction`, so un-normalised and normalised legacy pull-by figures render identically. Canonical text is unchanged.
+- `FigureRenderer` builds the modifier-gerundive move-name needle from the effective params, so a `pass_by` child at its default shoulder is inflected ("passing by").
+- Remove the bare `take` search keyword from `give_and_take`; `canonicalizeMoveSearchText` no longer rewrites prose containing the word.
+- `Substitutor.apply` leaves a case-folded match whose lowercase is not a key (U+017F long s) as written instead of throwing; `parseFigureLine` also degrades a throwing scrub to a custom figure.
+- `reparseImportGapFigures` carries `walkthroughOverride` onto an upgraded leaf figure.
+- `parseFigureLine` reads "2 1/2", "2 & 1/2" and "2½" as a 2.5 rotation; "2 1/4" and "2 3/4" still decline to custom.
+- `Dialect.validate()` also checks role plurals for collisions (skipping an invariant plural equal to its singular).
+- `FilterCompiler` adds the `title COLLATE NOCASE` tiebreak to `recentlyAdded` and `recentlyEdited` in both directions; `SearchSort` docs now state the two-scalar, omni-scope limit on `relevance`.
+- GenericJsonAdapter keys a received dance on `<upstream source>:<externalId>` (`externalIdFor`), and DedupeIndex.verdictFor tries RawRecord.priorExternalIds (the legacy bare id) before falling through to fuzzy matching; ImportPipeline.plan only honors that legacy fallback when exactly one current key in the batch claims it, so two dances from different sources that only share the alias no longer both reimport the same dance.
+- DedupeIndex.fuzzyMatches skips an empty normalized title before scoring, so two such titles never match at any threshold (not just the default), and autoResolveAmbiguous resolves an empty normalized title to duplicate instead of linking.
+- ImportPipeline.plan drops a repeated (source, externalId) within one batch and attaches a `duplicate_external_id_in_batch` warning to the kept record.
+- ImportPipeline.commit captures an updated dance's prior state once per batch, so undo restores the true pre-import state.
+- ArchiveRestorer clears `collection_import_events` on a replace-mode restore.
+- Run every `onUpgrade` step inside one transaction, so an exception or process death mid-upgrade leaves the file at its pre-upgrade version instead of half-migrated under the old `user_version` stamp.
+- Key each piece of the v34 difficulty-level step on its own precondition, so a file that already has `difficulty_levels` still gets its `dances.level` column rewritten to `level_id`.
+- Run `beforeOpen`'s FTS-table repair on the open that migrates, not only on an open already at head.
+
 ## [0.6.0] - 2026-09-24
 
 ### Added
