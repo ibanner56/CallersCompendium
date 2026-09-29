@@ -63,6 +63,7 @@ class DanceExportMenu extends StatelessWidget {
     this.bundleFileWriter,
     this.pdfLayouter,
     this.jsonExportDelivery,
+    this.fields = DanceShareField.allExceptTunes,
   });
 
   final Dance dance;
@@ -72,6 +73,11 @@ class DanceExportMenu extends StatelessWidget {
   final String statusLabel;
   final String? levelLabel;
   final FigureRenderer? renderer;
+
+  /// Which non-figures fields appear on the exported card (issue #1434).
+  /// Defaults to every field this widget rendered unconditionally before the
+  /// picker existed, minus tunes — see [DanceShareField.allExceptTunes].
+  final Set<DanceShareField> fields;
   final Map<String, Choreographer> choreographersById;
   final Map<String, Tag> tagsById;
   final Map<String, PublishedSource> sourcesById;
@@ -104,6 +110,7 @@ class DanceExportMenu extends StatelessWidget {
     renderer: renderer,
     labels: danceExportLabels(l10n),
     canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+    fields: fields,
   );
 
   Future<void> _shareText(

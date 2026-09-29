@@ -10,6 +10,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/collection_filter_scope.dart';
+import '../data/dance_share_fields_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/formation_colors_scope.dart';
@@ -637,6 +638,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       levelLabel: _levelLabel(l10n, detail.dance, detail.difficultyLevel),
       statusLabel: danceStatusLabel(l10n, detail.dance.status),
       renderer: _renderer,
+      fields: DanceShareFieldsScope.of(context),
       choreographersById: detail.choreographersById,
       tagsById: detail.tagsById,
       sourcesById: detail.sourcesById,
@@ -731,6 +733,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       renderer: _renderer,
       labels: danceExportLabels(l10n),
       canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(context),
+      fields: DanceShareFieldsScope.of(context),
     );
 
     return PopupMenuButton<void>(

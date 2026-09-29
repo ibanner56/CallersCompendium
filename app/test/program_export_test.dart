@@ -11,6 +11,7 @@ import 'package:compendium_app/src/export/program_pdf.dart';
 import 'package:compendium_app/src/export/json_export.dart';
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
+import 'package:compendium_app/src/data/dance_share_fields_scope.dart';
 import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
 import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/widgets/program_export_menu.dart';
@@ -1988,6 +1989,185 @@ void main() {
 
       expect(pdfInvoked, isFalse);
     });
+  });
+
+  group('DanceShareField picker (issue #1434)', () {
+    String? titlesWithD3(String id) =>
+        id == 'd3' ? 'Money Musk' : _titles(id);
+    final choreographers = <String, Choreographer>{
+      'c1': Choreographer(id: 'c1', name: 'Jane Smith'),
+    };
+    final dancesWithAuthor = <String, Dance>{
+      ..._dances,
+      // Deliberately no figures: this is the literal issue #1434 scenario —
+      // the base set-list share for a dance that never entered figures.
+      'd3': Dance(
+        id: 'd3',
+        title: 'Money Musk',
+        authorIds: const ['c1'],
+        figures: const [],
+        sourceCitations: const [],
+        customFields: const [],
+        createdAt: _now,
+        updatedAt: _now,
+      ),
+    };
+
+    Future<String?> pumpAndCopy(
+      WidgetTester tester,
+      Program program, {
+      required Set<DanceShareField> fields,
+    }) async {
+      String? clipboardText;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            clipboardText = (call.arguments as Map)['text'] as String?;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: DanceShareFieldsScope(
+            notifier: ValueNotifier(fields),
+            child: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  ProgramExportMenu(
+                    program: program,
+                    titleFor: titlesWithD3,
+                    danceFor: (id) => dancesWithAuthor[id],
+                    choreographerFor: (id) => choreographers[id],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Copy set list'));
+      await tester.pumpAndSettle();
+      return clipboardText;
+    }
+
+    testWidgets(
+      'the base set-list line shows the author suffix for a dance with no '
+      'figures at all — the literal issue #1434 scenario, unreachable via '
+      'the figures-appendix opt-in',
+      (tester) async {
+        final text = await pumpAndCopy(
+          tester,
+          _program(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd3')],
+          ),
+          fields: DanceShareField.allExceptTunes,
+        );
+        expect(text, contains('1. Money Musk — by Jane Smith'));
+        // Confirms this dance never reached the figures-appendix path.
+        expect(text, isNot(contains('Figures:')));
+      },
+    );
+
+    testWidgets('omits the author suffix when authors is deselected', (
+      tester,
+    ) async {
+      final text = await pumpAndCopy(
+        tester,
+        _program(
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd3')],
+        ),
+        fields: {...DanceShareField.allExceptTunes}
+          ..remove(DanceShareField.authors),
+      );
+      expect(text, contains('1. Money Musk'));
+      expect(text, isNot(contains('Jane Smith')));
+      expect(text, isNot(contains('by ')));
+    });
+
+    testWidgets(
+      'the "Set list and figures" per-dance card respects a deselected '
+      'field (formation)',
+      (tester) async {
+        String? clipboardText;
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          (call) async {
+            if (call.method == 'Clipboard.setData') {
+              clipboardText = (call.arguments as Map)['text'] as String?;
+            }
+            return null;
+          },
+        );
+        addTearDown(
+          () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            SystemChannels.platform,
+            null,
+          ),
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: DanceShareFieldsScope(
+              notifier: ValueNotifier(
+                {...DanceShareField.allExceptTunes}
+                  ..remove(DanceShareField.formation),
+              ),
+              child: Scaffold(
+                appBar: AppBar(
+                  actions: [
+                    ProgramExportMenu(
+                      program: _program(
+                        slots: [
+                          ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+                        ],
+                      ),
+                      titleFor: _titles,
+                      danceFor: _danceFor,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        // d1 has figures, so this dialog is offered; choose the card mode.
+        await tester.tap(find.text('Copy set list'));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(
+            const ValueKey('program-figures-prompt-set-list-and-figures'),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('program-figures-prompt-confirm')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(clipboardText, isNotNull);
+        expect(clipboardText, contains('Figures:'));
+        expect(clipboardText, isNot(contains('Formation:')));
+      },
+    );
   });
 }
 
