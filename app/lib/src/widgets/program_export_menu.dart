@@ -209,6 +209,44 @@ class ProgramExportMenu extends StatelessWidget {
     return ProgramFiguresPromptDialog.show(context);
   }
 
+  /// Resolves the same four display strings for [dance]'s card that both the
+  /// text-path appended card and the PDF appendix card need (issue #1434):
+  /// author names (via [_authorNamesFor]), formation/level/status labels.
+  /// Shared so the two rendering paths can't drift on how a label is derived
+  /// — level label mirrors the dance_detail_screen pattern.
+  DanceCardLabels _cardLabelsFor(
+    BuildContext context,
+    Dance dance, {
+    required Dialect dialect,
+    required FigureRenderer renderer,
+  }) {
+    final l10n = AppLocalizations.of(context);
+    final String? levelLabel;
+    final difficultyLevel =
+        difficultyLevelFor?.call(dance.id) ??
+        DifficultyLevel.knownForId(dance.difficultyLevelId);
+    if (difficultyLevel != null) {
+      final base = danceLevelLabel(l10n, difficultyLevel);
+      levelLabel = dance.mixedLevel ? l10n.exportLevelWithMixed(base) : base;
+    } else {
+      levelLabel = dance.mixedLevel ? l10n.exportLevelMixedOnly : null;
+    }
+    return (
+      authorNames: _authorNamesFor(dance.id),
+      formationLabel: formationDisplayLabel(
+        l10n,
+        dance.formation,
+        renderer,
+        dialect,
+        canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
+          context,
+        ),
+      ),
+      levelLabel: levelLabel,
+      statusLabel: danceStatusLabel(l10n, dance.status),
+    );
+  }
+
   /// The set-list text with full dance cards appended — one [danceToPlainText]
   /// card per dance (primary then alternates, deduped), each preceded by a
   /// separator line and (for alternates) the "Alternate" label.
@@ -235,36 +273,19 @@ class ProgramExportMenu extends StatelessWidget {
       // Mark alternates on the separator line so the title from
       // danceToPlainText appears exactly once (ruling 8: mark, not duplicate).
       buf.writeln(entry.isAlternate ? '--- $alternate' : '---');
-      // Resolve metadata for the full dance card (ruling 6). Names only, via
-      // the shared _authorNamesFor resolver — no deviceLocal fields
-      // (email/location/deceased) enter because the API accepts List<String>.
-      final authorNames = _authorNamesFor(dance.id);
-      // Level label mirrors the dance_detail_screen pattern.
-      final String? levelLabel;
-      final difficultyLevel =
-          difficultyLevelFor?.call(dance.id) ??
-          DifficultyLevel.knownForId(dance.difficultyLevelId);
-      if (difficultyLevel != null) {
-        final base = danceLevelLabel(l10n, difficultyLevel);
-        levelLabel = dance.mixedLevel ? l10n.exportLevelWithMixed(base) : base;
-      } else {
-        levelLabel = dance.mixedLevel ? l10n.exportLevelMixedOnly : null;
-      }
+      final cardLabels = _cardLabelsFor(
+        context,
+        dance,
+        dialect: dialect,
+        renderer: renderer,
+      );
       buf.writeln(
         danceToPlainText(
           dance,
-          authorNames: authorNames,
-          formationLabel: formationDisplayLabel(
-            l10n,
-            dance.formation,
-            renderer,
-            dialect,
-            canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
-              context,
-            ),
-          ),
-          levelLabel: levelLabel,
-          statusLabel: danceStatusLabel(l10n, dance.status),
+          authorNames: cardLabels.authorNames,
+          formationLabel: cardLabels.formationLabel,
+          levelLabel: cardLabels.levelLabel,
+          statusLabel: cardLabels.statusLabel,
           dialect: dialect,
           canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
             context,
@@ -503,6 +524,26 @@ class ProgramExportMenu extends StatelessWidget {
       appendDances = null;
     }
 
+    // Resolve every context-dependent value up front (issue #1434): the PDF
+    // builder's own `build` callback runs after further internal awaits
+    // (font loading), so any BuildContext use must happen here, not inside a
+    // closure captured for later — mirrors the existing eager `labels`/
+    // `danceLabels` resolution just above.
+    final shareFields = DanceShareFieldsScope.of(context);
+    final resolvedAuthorNamesFor = shareFields.contains(DanceShareField.authors)
+        ? _authorNamesFor
+        : null;
+    final cardLabelsById = <String, DanceCardLabels>{
+      if (appendDances != null)
+        for (final entry in appendDances)
+          entry.dance.id: _cardLabelsFor(
+            context,
+            entry.dance,
+            dialect: dialect,
+            renderer: renderer,
+          ),
+    };
+
     final layoutPdf = pdfLayouter ?? Printing.layoutPdf;
     await layoutPdf(
       name: sanitizeExportName(program.title, fallback: 'program'),
@@ -519,6 +560,11 @@ class ProgramExportMenu extends StatelessWidget {
         canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
           context,
         ),
+        authorNamesFor: resolvedAuthorNamesFor,
+        cardLabelsFor: appendDances == null
+            ? null
+            : (dance) => cardLabelsById[dance.id]!,
+        fields: shareFields,
       ),
     );
   }

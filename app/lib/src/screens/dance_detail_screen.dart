@@ -1038,6 +1038,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
             context,
           ),
+          fields: DanceShareFieldsScope.of(context),
         ),
       );
     } on Exception catch (e, stackTrace) {
