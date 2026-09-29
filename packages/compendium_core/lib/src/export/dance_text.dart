@@ -154,8 +154,7 @@ String danceToPlainText(
     lines.add(renderText(dance.callingNotes.trim()));
   }
 
-  if (fields.contains(DanceShareField.walkthrough) &&
-      _has(dance.walkthrough)) {
+  if (fields.contains(DanceShareField.walkthrough) && _has(dance.walkthrough)) {
     lines.add('');
     lines.add('${labels.walkthrough}:');
     lines.add(renderText(dance.walkthrough.trim()));

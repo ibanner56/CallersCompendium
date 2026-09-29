@@ -143,8 +143,7 @@ void main() {
             slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
           ),
           titleFor: titles,
-          authorNamesFor: (id) =>
-              id == 'd1' ? const ['Jane Smith'] : const [],
+          authorNamesFor: (id) => id == 'd1' ? const ['Jane Smith'] : const [],
         );
         expect(text, contains('1. Rory O\'More — by Jane Smith'));
       });
@@ -228,10 +227,7 @@ void main() {
           titleFor: titles,
           authorNamesFor: (_) => const ['Jane Smith'],
         );
-        expect(
-          text,
-          contains('1. Rory O\'More — by Jane Smith — call slow'),
-        );
+        expect(text, contains('1. Rory O\'More — by Jane Smith — call slow'));
       });
     });
 

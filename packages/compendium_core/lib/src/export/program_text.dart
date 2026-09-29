@@ -179,7 +179,8 @@ String _slotLine(
     // Author suffix (issue #1434): resolved independently of whether this
     // dance has any figures, so it appears on every numbered dance rather
     // than only the ones reachable via the figures-appendix opt-in.
-    final authorNames = authorNamesFor?.call(slot.danceId!)
+    final authorNames = authorNamesFor
+        ?.call(slot.danceId!)
         .map((n) => n.trim())
         .where((n) => n.isNotEmpty)
         .toList();
