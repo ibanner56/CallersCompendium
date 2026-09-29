@@ -9,6 +9,7 @@ import 'package:url_launcher_platform_interface/url_launcher_platform_interface.
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/dance_reimport.dart';
+import 'package:compendium_app/src/data/dance_share_fields_scope.dart';
 import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
 import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/data/dialect_library_controller.dart';
@@ -73,6 +74,7 @@ Future<ValueNotifier<bool>> _pumpDetail(
   JsonExportDelivery? jsonExportDelivery,
   bool readOnly = false,
   Future<void> Function(DanceDetailData detail)? onReimport,
+  Set<DanceShareField>? shareFields,
 }) async {
   if (canonicalFigureText != null) {
     await repos.settings.set(kCanonicalFigureTextKey, canonicalFigureText);
@@ -88,6 +90,16 @@ Future<ValueNotifier<bool>> _pumpDetail(
   Widget withLibrary(Widget child) => dialectLibrary == null
       ? child
       : DialectLibraryScope(controller: dialectLibrary, child: child);
+  // Issue #1434 review finding: without mounting this scope explicitly, every
+  // test in this file exercises only DanceShareFieldsScope's *default*
+  // value — indistinguishable from the wiring being absent entirely. Callers
+  // that care pass a non-default shareFields set.
+  Widget withShareFields(Widget child) => shareFields == null
+      ? child
+      : DanceShareFieldsScope(
+          notifier: ValueNotifier(shareFields),
+          child: child,
+        );
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
@@ -95,11 +107,13 @@ Future<ValueNotifier<bool>> _pumpDetail(
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
         child: withLibrary(
-          ActiveDialectScope(
-            notifier: notifier,
-            child: RequirePerformedForHistoryScope(
-              notifier: requirePerformedNotifier,
-              child: child!,
+          withShareFields(
+            ActiveDialectScope(
+              notifier: notifier,
+              child: RequirePerformedForHistoryScope(
+                notifier: requirePerformedNotifier,
+                child: child!,
+              ),
             ),
           ),
         ),
@@ -280,6 +294,62 @@ void main() {
     expect(find.text('Export dance as JSON'), findsOneWidget);
     expect(find.text('Export / print PDF'), findsOneWidget);
   });
+
+  testWidgets(
+    'the wide export menu respects a deselected DanceShareFieldsScope field '
+    '(issue #1434 review finding)',
+    (tester) async {
+      String? clipboardText;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            clipboardText = (call.arguments as Map)['text'] as String?;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'c1', name: 'Gene Hubert'),
+      );
+      await repos.dances.create(
+        _dance(id: 'd1', title: 'Midwest Folklore', authorIds: ['c1']),
+      );
+
+      await _pumpDetail(
+        tester,
+        repos,
+        'd1',
+        shareFields: {...DanceShareField.allExceptTunes}
+          ..remove(DanceShareField.authors),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Copy dance'));
+      await tester.pumpAndSettle();
+
+      expect(clipboardText, isNotNull);
+      expect(clipboardText, contains('Midwest Folklore'));
+      expect(
+        clipboardText,
+        isNot(contains('Gene Hubert')),
+        reason:
+            'the wide DanceExportMenu must read the live DanceShareFieldsScope, '
+            'not a hardcoded default — mutating out that pass-through must '
+            'turn this red',
+      );
+    },
+  );
 
   group('narrow app bar', () {
     Future<DialectLibraryController> buildLibrary(
@@ -463,6 +533,65 @@ void main() {
       expect(find.text('Dance copied to clipboard.'), findsOneWidget);
       expect(clipboardText, contains('Narrow Dance'));
     });
+
+    testWidgets(
+      'the compact overflow Copy respects a deselected DanceShareFieldsScope '
+      'field (issue #1434 review finding)',
+      (tester) async {
+        final repos = openTestRepositories();
+        // ignore: unused_result
+        await repos.choreographers.upsert(
+          Choreographer(id: 'c1', name: 'Gene Hubert'),
+        );
+        await repos.dances.create(
+          _dance(id: 'd1', title: 'Narrow Dance', authorIds: ['c1']),
+        );
+        final library = await buildLibrary(repos);
+
+        String? clipboardText;
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          (call) async {
+            if (call.method == 'Clipboard.setData') {
+              clipboardText = (call.arguments as Map)['text'] as String?;
+            }
+            return null;
+          },
+        );
+        addTearDown(
+          () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            SystemChannels.platform,
+            null,
+          ),
+        );
+
+        await _pumpDetail(
+          tester,
+          repos,
+          'd1',
+          surfaceSize: const Size(360, 800),
+          dialectLibrary: library,
+          shareFields: {...DanceShareField.allExceptTunes}
+            ..remove(DanceShareField.authors),
+        );
+
+        await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('overflow-copy-dance')));
+        await tester.pumpAndSettle();
+
+        expect(clipboardText, isNotNull);
+        expect(clipboardText, contains('Narrow Dance'));
+        expect(
+          clipboardText,
+          isNot(contains('Gene Hubert')),
+          reason:
+              'the compact overflow path must read the live '
+              'DanceShareFieldsScope too — mutating out that pass-through '
+              'must turn this red',
+        );
+      },
+    );
 
     testWidgets('overflow JSON Save writes the canonical payload only', (
       tester,

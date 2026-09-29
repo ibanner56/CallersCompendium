@@ -4504,6 +4504,14 @@
   "@exportLabelWalkthrough": {
     "x-sourceSha256": "b463b316cebfc24441413d705d65e7707fae189ff880ff9e704aad73c5353be6"
   },
+  "exportLabelTunes": "Airs",
+  "@exportLabelTunes": {
+    "x-sourceSha256": "4b5c504ca989a4a17e54b974db8a6d4aa156fa63da39902c66ecec59f5e46412"
+  },
+  "exportSlotAuthorSuffix": "par {names}",
+  "@exportSlotAuthorSuffix": {
+    "x-sourceSha256": "79ac564bb32e62bcab69cdf18ff4753eae39a6616fe7569f062ab5795c484347"
+  },
   "exportBeatsLabel": "{count, plural, =1{1 temps} other{{count} temps}}",
   "@exportBeatsLabel": {
     "x-sourceSha256": "cea968646a87fe6d3b7829baf8627aa0f6250dfefffc3750240af12828a26f56"
