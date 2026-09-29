@@ -121,7 +121,8 @@ _AttemptTier _classify(
 /// one front-end's `while` fan-out would rank [_AttemptTier.clean] and shadow a
 /// later front-end's genuinely structured reading of the same line (#1415).
 bool _hasCustomDescendant(Figure f) =>
-    f.isContainer && f.subFigures.any((c) => c.isCustom || _hasCustomDescendant(c));
+    f.isContainer &&
+    f.subFigures.any((c) => c.isCustom || _hasCustomDescendant(c));
 
 /// Runs one [frontEnd] over [rawText] for the PLURAL (free-text entry) path,
 /// returning one [Figure] per emitted clause.

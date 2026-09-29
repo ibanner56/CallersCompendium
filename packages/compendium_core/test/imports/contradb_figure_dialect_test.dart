@@ -1498,10 +1498,10 @@ void main() {
       // whose NOTE swallows the tail, so only the note-swallow guard lets these
       // lines reach the fan-out at all.
       test('long lines forward while <who> take <whom> (take-only)', () {
-        expectModifier(
-          'long lines forward while ladles take neighbors',
-          ['long_lines', 'give_and_take'],
-        );
+        expectModifier('long lines forward while ladles take neighbors', [
+          'long_lines',
+          'give_and_take',
+        ]);
       });
 
       test('long lines forward while <who> give & take <whom>', () {
@@ -1512,10 +1512,10 @@ void main() {
       });
 
       test('long lines forward while a roll away', () {
-        expectModifier(
-          'long lines forward while larks roll away neighbors',
-          ['long_lines', 'roll_away'],
-        );
+        expectModifier('long lines forward while larks roll away neighbors', [
+          'long_lines',
+          'roll_away',
+        ]);
       });
 
       test('long lines forward & back while a roll away', () {
@@ -1526,10 +1526,10 @@ void main() {
       });
 
       test('slice while a roll away', () {
-        expectModifier(
-          'slice left while ladles roll away neighbors',
-          ['slice', 'roll_away'],
-        );
+        expectModifier('slice left while ladles roll away neighbors', [
+          'slice',
+          'roll_away',
+        ]);
       });
 
       test('a genuine two-group line still builds a meanwhile', () {

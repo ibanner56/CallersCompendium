@@ -375,12 +375,14 @@ void main() {
       expect(sides.every((s) => !s.params.containsKey('beats')), isTrue);
     }
 
-    test('dance 6026 B2 → modifier[long_lines, roll_away], container beats',
-        () {
-      final figures = _parseAll(b2, beats: 8);
-      expect(figures, hasLength(1));
-      expectLongLinesRollAway(figures.single);
-    });
+    test(
+      'dance 6026 B2 → modifier[long_lines, roll_away], container beats',
+      () {
+        final figures = _parseAll(b2, beats: 8);
+        expect(figures, hasLength(1));
+        expectLongLinesRollAway(figures.single);
+      },
+    );
 
     test('the singular (reparse) fan-out reads the same line', () {
       final f = parseFigureLineFanOut(b2, beats: 8);

@@ -2011,8 +2011,8 @@ bool _annotationBodyHasLowercase(String body) =>
 /// `(R;L …)` and `(L;R …)` imported identically.
 ///
 /// Declines (→ today's reading, `slide` defaulted, bracket kept as a note when
-/// it has prose) unless EXACTLY ONE bracket has the shape `<R|L>;<the other
-/// letter>` optionally followed by a word boundary and more text. A
+/// it has prose) unless EXACTLY ONE bracket is `R;L` or `L;R`, optionally
+/// followed by whitespace and more text. A
 /// non-mirrored pair (`R;R`) cannot be shown faithfully — the renderer always
 /// derives the zag as the mirror of the zig (`renderer.dart`) — and a line
 /// that is not `zig_zag` after annotation stripping is not a weave.

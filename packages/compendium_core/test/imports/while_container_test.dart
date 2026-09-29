@@ -1,17 +1,15 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
 
-Figure _f(String move) => Figure(move: move);
+Figure _f(String move) => testFigure(move: move);
 
 void main() {
   group('whileModifierContainer', () {
     test('the four named pairings build a modifier', () {
       for (final core in ['long_lines', 'slice']) {
         for (final modifier in ['roll_away', 'give_and_take']) {
-          final f = whileModifierContainer(
-            [_f(core), _f(modifier)],
-            beats: 8,
-          );
+          final f = whileModifierContainer([_f(core), _f(modifier)], beats: 8);
           expect(f, isNotNull, reason: '$core + $modifier');
           expect(f!.isModifier, isTrue);
           expect(f.params['beats'], 8);
@@ -45,10 +43,7 @@ void main() {
         'three sides': [_f('long_lines'), _f('roll_away'), _f('give_and_take')],
         'container side': [
           _f('long_lines'),
-          Figure.meanwhile(
-            figures: [_f('roll_away'), _f('swing')],
-            beats: 8,
-          ),
+          Figure.meanwhile(figures: [_f('roll_away'), _f('swing')], beats: 8),
         ],
       };
       declined.forEach((name, sides) {
