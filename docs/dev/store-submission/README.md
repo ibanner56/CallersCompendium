@@ -40,8 +40,10 @@ targets:
 - **iOS / iPadOS** — iPhone **and** iPad. Already built, signed, and
   auto-uploaded to **TestFlight internal testing** by CI on every `v*` tag
   (see [`../releasing.md`](../releasing.md#ios-testflight-via-app-store-connect-api)).
-  "Open beta" means turning on **TestFlight external testing**, which needs a
-  one-time **Beta App Review** and unlocks a **public join link**.
+  **Open beta is live:** TestFlight **external testing** passed its one-time
+  **Beta App Review** and the **public join link** is up at
+  <https://testflight.apple.com/join/REgW311w> — see
+  [`app-store.md`](app-store.md#4-open-beta--testflight-external-testing--done).
 - **Android** — CI already builds a **signed universal APK** for sideloading.
   Google Play wants an **`.aab` (Android App Bundle)**, not an APK, so there is a
   small build change to make (see the Play checklist).
