@@ -1474,6 +1474,35 @@ void main() {
       expect(bytes, isNotEmpty);
       expect(String.fromCharCodes(bytes.take(4)), '%PDF');
     });
+
+    testWidgets(
+      'authorNamesFor adds content to the numbered slot line, independent '
+      'of appendDances (issue #1434)',
+      (tester) async {
+        final withAuthor = await buildProgramPdf(
+          _program(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          titleFor: _titles,
+          authorNamesFor: (id) => id == 'd1' ? const ['Jane Smith'] : const [],
+        );
+        final withoutAuthor = await buildProgramPdf(
+          _program(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          titleFor: _titles,
+        );
+        expect(
+          withAuthor.length,
+          greaterThan(withoutAuthor.length),
+          reason:
+              'the author suffix must add content to the slot line even '
+              'with no figure appendix at all (appendDances is null in both '
+              'calls here) — equal length means authorNamesFor never reached '
+              '_slotLine',
+        );
+      },
+    );
   });
 
   group('venueLocalityLine', () {
