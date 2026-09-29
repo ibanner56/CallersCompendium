@@ -283,12 +283,22 @@ class ImportPipeline {
   ///
   /// [index] should be a fresh [buildDedupeIndex] snapshot; if omitted, one is
   /// built automatically.
+  ///
+  /// Parsing is CPU-bound and its awaits complete without waiting on anything,
+  /// so on a large batch (a ~20,000-dance `.USR` is ~40 s of it) the loop would
+  /// otherwise hold the isolate from start to finish and freeze any UI running
+  /// on it. Every [yieldInterval] of work it therefore hands the event loop a
+  /// turn; pass [Duration.zero] to yield after every record. [onProgress] is
+  /// told `(processed, total)` as records are handled, and once more with
+  /// `(total, total)` when the loop ends.
   Future<ImportBatchResult> plan(
     SourceAdapter adapter,
     ImportRequest request, {
     DedupeIndex? index,
     double threshold = DedupeIndex.defaultThreshold,
     bool preserveCanonicalDifficultyIds = false,
+    void Function(int processed, int total)? onProgress,
+    Duration yieldInterval = const Duration(milliseconds: 25),
   }) async {
     final dedupe = index ?? await buildDedupeIndex();
     final List<DiscoveredRecord> discovered;
@@ -328,7 +338,19 @@ class ImportPipeline {
     // key — which a later re-import could then only ever match one of.
     final firstIndexByExternalKey = <String, int>{};
     final pending = <_PendingPlanRecord>[];
+    final slice = Stopwatch()..start();
+    var processed = 0;
     for (final record in discovered) {
+      if (processed > 0) {
+        onProgress?.call(processed, discovered.length);
+        if (slice.elapsed >= yieldInterval) {
+          // A real turn of the event loop, not a microtask: paint, input and
+          // timers get to run.
+          await Future<void>.delayed(Duration.zero);
+          slice.reset();
+        }
+      }
+      processed++;
       RawRecord raw;
       try {
         raw = await adapter.fetch(record);
@@ -411,6 +433,7 @@ class ImportPipeline {
         _PendingPlanRecord(raw: raw, draft: draft, externalKey: externalKey),
       );
     }
+    onProgress?.call(discovered.length, discovered.length);
 
     // A legacy alias (the bare upstream id `GenericJsonAdapter` keyed a
     // bundled dance under before receive keys carried the upstream source) is

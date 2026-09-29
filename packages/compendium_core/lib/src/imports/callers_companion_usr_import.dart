@@ -14,6 +14,7 @@ import 'callers_companion_related_dances.dart';
 import 'callers_companion_usr_adapter.dart';
 import 'callers_companion_usr_archive.dart';
 import 'dedupe.dart';
+import 'import_error.dart';
 import 'import_pipeline.dart';
 import 'source_adapter.dart';
 import 'structured_draft.dart';
@@ -129,7 +130,12 @@ class CcUsrImportResult {
 /// (pure Dart + repositories) so it lives in the core and is trivially
 /// unit-testable; the app supplies the `.USR` bytes.
 class CallersCompanionUsrImporter {
-  CallersCompanionUsrImporter(this._pipeline, this._programs, this._venues);
+  CallersCompanionUsrImporter(
+    this._pipeline,
+    this._programs,
+    this._venues, {
+    CallersCompanionUsrAdapter? adapter,
+  }) : _adapter = adapter ?? CallersCompanionUsrAdapter();
 
   final ImportPipeline _pipeline;
   final ProgramRepository _programs;
@@ -144,7 +150,7 @@ class CallersCompanionUsrImporter {
   /// happened in).
   DanceRepository get _dances => _pipeline.dances;
 
-  final CallersCompanionUsrAdapter _adapter = CallersCompanionUsrAdapter();
+  final CallersCompanionUsrAdapter _adapter;
 
   /// Plans the dance side of a `.USR` [bytes] payload non-destructively (the CC
   /// dances run through the same `discover → fetch → parse → dedupe` pipeline as
@@ -455,14 +461,15 @@ class CallersCompanionUsrImporter {
     );
   }
 
-  /// Convenience end-to-end import of a `.USR` [bytes] payload: reads the
-  /// archive for the program build, then [plan]s and [commit]s in one call
-  /// using default dedupe handling (ambiguous records are skipped, never
-  /// guessed — the pipeline default). The dance side re-parses [bytes] through
-  /// the adapter during [plan], so the file is decoded twice; that keeps the
-  /// dances on the exact shared pipeline path and the cost is negligible next
-  /// to the DB writes. The app's review flow can instead call [plan]/[commit]
-  /// separately to let the user resolve ambiguous dances.
+  /// Convenience end-to-end import of a `.USR` [bytes] payload: [plan]s and
+  /// [commit]s in one call using default dedupe handling (ambiguous records are
+  /// skipped, never guessed — the pipeline default). The file is decoded once:
+  /// planning reads it through the adapter, and the program build reuses that
+  /// same read ([CallersCompanionUsrAdapter.discoveredArchive]). A file that
+  /// cannot be read throws the [ImportError] planning captured (at
+  /// [ImportStage.discover]) rather than being decoded a second time. The app's
+  /// review flow can instead call [plan]/[commit] separately to let the user
+  /// resolve ambiguous dances.
   Future<CcUsrImportResult> import(
     Uint8List bytes, {
     required DateTime now,
@@ -470,8 +477,25 @@ class CallersCompanionUsrImporter {
     String Function()? newId,
     String Function()? newSlotId,
   }) async {
-    final archive = readCcUsrArchive(bytes);
     final batch = await plan(bytes);
+    final archive = _adapter.discoveredArchive;
+    if (archive == null) {
+      // `discover` failed. The pipeline turns that into an error batch instead
+      // of rethrowing, and decoding the file again here would only fail the same
+      // way — after a second full scan of a file that may be hundreds of MiB.
+      // Surface the error it already captured, unwrapped to the adapter's own
+      // (the pipeline prefixes it with "Discovery failed:").
+      final captured = batch.errors.firstWhere(
+        (e) => e.stage == ImportStage.discover,
+        orElse: () => ImportError(
+          stage: ImportStage.discover,
+          source: _adapter.source,
+          message: 'The .USR file could not be read.',
+        ),
+      );
+      final cause = captured.cause;
+      throw cause is ImportError ? cause : captured;
+    }
     return commit(
       batch,
       archive,

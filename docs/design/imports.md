@@ -321,8 +321,30 @@ declines the collapse.
   figures, the rest as `importGap` customs (parse-never-fails); a line that is
   empty after scrubbing yields nothing (nothing to store). Sets → Programs; user
   fields → notes.
+- Library-scale behaviour (a ~20 000-dance `.USR` is ~240 MB and ~40 s of
+  parsing): the app reads the file on a **background isolate** (the adapter takes
+  an injectable `CcUsrArchiveReader`; the default source uses
+  `readCcUsrArchiveInIsolate`), decodes it **once** — `plan` keeps the archive
+  (`CallersCompanionUsrAdapter.discoveredArchive`, dances stripped) and commit
+  builds programs from it — loads the file into a buffer sized up front instead
+  of joining chunks (which held ~2× the file), the review screen **releases the
+  file's bytes once planning succeeds** (its rows are in the batch and its
+  programs in the kept archive, so the ~250 MB buffer is not carried through the
+  review; going back to the input step asks for the file again), and
+  `ImportPipeline.plan` yields
+  to the event loop every ~25 ms and reports `(processed, total)` so the review
+  screen shows real progress. Commit-side, a brand-new dance skips the FTS
+  delete-by-scan (see `storage.md`), which had made commit O(N²). Planning
+  against a non-empty library did **not** scale with library size when measured
+  (unrelated or near-duplicate titles), so the fuzzy dedupe was left alone.
 - Adapter wiring note: the `.USR` adapter round-trips each dance through a JSON
-  `columns` payload. The `Phrase` body is **not** in that per-dance column map,
+  `columns` payload holding the `Dance` columns the importer reads
+  (`kCcDanceColumnsRead` plus the dance key); CC's derived search/display helper
+  columns are never decoded (`readCcUsrArchive` passes the reader a table and
+  column allowlist — only the `Dance`/`Phrase`/`Set`/`SetItem`/`InsertCall`/
+  `Dance_Related` tables, and on `Dance` and `Phrase` only the columns read — and
+  the reader discards the index/media/layout sectors it never needs). The
+  `Phrase` body is **not** in that per-dance column map,
   so the joined body is threaded through the `discover → fetch → parse` payload
   explicitly (legacy payloads without it fall back to the `A1..C2` columns).
 - Beat-prefix parsing (#560): each body line's leading beats prefix is peeled by
@@ -349,10 +371,16 @@ declines the collapse.
     JSON payload, or storage — defense in depth ahead
     of the parser's own `scrubFigureText` chokepoint (idempotent, no double-mangle).
   - **Bounded fail-closed.** `FmpReadLimits` gains CC-layer caps enforced in
-    `extractCcUsrArchive`: `maxPhraseRows` (default 20 000; sample is 162) and
+    `extractCcUsrArchive`: `maxPhraseRows` (default 150 000; the sample is 162
+    and a ~20 000-dance library ~82 000) and
     `maxFiguresPerDance` (512) throw `FmpResourceLimitException`, which the
     adapter's `discover` maps to the friendly "That file is too large to
-    import." — never OOM/throw-through. `maxBodyLineLength` (2 000 chars, matching
+    import." — never OOM/throw-through. The byte-level caps are sized together
+    for a ~20 000-dance library (~237 MiB with FileMaker's own indexes): the
+    app's `.USR` byte cap `kMaxImportUsrBytes` is 256 MiB, and the reader's
+    `kMaxFmpSectors` (65 536 = 256 MiB / 4 KiB) and `kMaxFmpRecords` (500 000)
+    are sized to admit it; raise the byte cap and the sector cap together.
+    `maxBodyLineLength` (2 000 chars, matching
     the local `maxFreeTextEntryLength`) is the exception: a single over-long line
     is **dropped with a warning**, not fatal — mirroring the free-text-entry path
     so one over-long line can't abort a 40-dance import (the O(1) check does no

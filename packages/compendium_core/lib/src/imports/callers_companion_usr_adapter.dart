@@ -33,12 +33,13 @@ import 'structured_draft.dart';
 /// `externalId` = that CC dance id. That gives exact `(source, externalId)`
 /// dedupe/re-import and is the key that links `SetItem` rows to their dance
 /// (CC's `SetItem.zk_Dance_ID` references `Dance.zk_Dance_ID`, **not** the
-/// FileMaker record id). The `fetch` payload is a JSON object of that dance's
-/// **verbatim** CC column map (all columns, including ones this PR does not map)
-/// plus its id, so the in-memory record losslessly carries the whole source row
-/// through to `parse` and the follow-up phases (author resolution,
-/// custom-field defs, etc.). It is not persisted: that payload fed
-/// `provenance.raw_payload` until schema v21 dropped the column (#781).
+/// FileMaker record id). The `fetch` payload is a JSON object of that dance's CC
+/// column map plus its id — the columns the importer reads (see
+/// `kCcDanceColumnsRead` and the dance key), verbatim. It is not every column
+/// of the source row: CC's derived search/display helpers (`zk_SearchKey_*`,
+/// `zi_*`, `zz_*`, …) are never decoded, since nothing downstream reads them and
+/// they are most of a real `Dance` row's text. It is not persisted: that payload
+/// fed `provenance.raw_payload` until schema v21 dropped the column (#781).
 ///
 /// ## Scope
 ///
@@ -48,8 +49,42 @@ import 'structured_draft.dart';
 /// app-layer follow-up because [ImportPipeline] is dance-only (see the PR
 /// notes). Authors stay unresolved (names → notes + info issue), matching the
 /// other adapters and the queued author-resolution PR.
+/// Turns a `.USR` file's [bytes] into a [CcUsrArchive] under [limits].
+///
+/// The adapter's default is [readCcUsrArchive] run synchronously. The type
+/// exists so the app can run the same read on a background isolate: parsing a
+/// library-sized file takes seconds and must not stall the UI. Implementations
+/// must throw exactly what [readCcUsrArchive] throws
+/// ([FmpFormatException], [FmpResourceLimitException]).
+typedef CcUsrArchiveReader =
+    Future<CcUsrArchive> Function(Uint8List bytes, FmpReadLimits limits);
+
+Future<CcUsrArchive> _readSynchronously(
+  Uint8List bytes,
+  FmpReadLimits limits,
+) async => readCcUsrArchive(bytes, limits: limits);
+
 class CallersCompanionUsrAdapter implements SourceAdapter {
-  CallersCompanionUsrAdapter({this.limits = const FmpReadLimits()});
+  CallersCompanionUsrAdapter({
+    this.limits = const FmpReadLimits(),
+    CcUsrArchiveReader? reader,
+  }) : _reader = reader ?? _readSynchronously;
+
+  final CcUsrArchiveReader _reader;
+
+  /// The reader this adapter decodes files with (the synchronous
+  /// [readCcUsrArchive] unless one was injected).
+  CcUsrArchiveReader get reader => _reader;
+
+  CcUsrArchive? _discovered;
+
+  /// The archive [discover] last read, **without its dances**
+  /// ([CcUsrArchive.withoutDances]) — what
+  /// [CallersCompanionUsrImporter.commit] needs — or null before [discover] has
+  /// run — and again after a [discover] that failed, so it never describes a
+  /// different file than the last one asked about. Lets a caller commit without
+  /// decoding the file a second time.
+  CcUsrArchive? get discoveredArchive => _discovered;
 
   /// Structural bounds handed to [readCcUsrArchive]; exceeding one fails closed
   /// with a friendly "too large" [ImportError] (see [discover]). Defaults to the
@@ -64,10 +99,16 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
 
   @override
   Future<List<DiscoveredRecord>> discover(ImportRequest request) async {
+    // Drop what an earlier discovery left before starting this one. The
+    // pipeline turns a failed discovery into an error batch rather than
+    // rethrowing, so without this a reused adapter would keep the previous
+    // file's archive and a caller could commit that file's programs for this
+    // one.
+    _discovered = null;
     final bytes = _bytesOf(request);
     final CcUsrArchive archive;
     try {
-      archive = readCcUsrArchive(bytes, limits: limits);
+      archive = await _reader(bytes, limits);
     } on FmpResourceLimitException {
       // Untrusted input that is too large / over-structured: fail closed with a
       // friendly message aligned with the archive intake path. The internal
@@ -86,6 +127,7 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
             '(FileMaker 12) database: ${e.message}',
       );
     }
+    _discovered = archive.withoutDances();
     return [
       for (final entry in archive.dances)
         DiscoveredRecord(

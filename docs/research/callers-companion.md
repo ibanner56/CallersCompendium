@@ -135,7 +135,7 @@ calc/display/search helpers, prefixed `zc_`/`zi_`/`zk_`). Substantive user data:
   path remains a fallback. Because `PhraseText` is untrusted external free text,
   the join is hardened (#561): each body line is sanitized at the ingestion
   boundary (control/bidi/format stripping) before it reaches storage, and the
-  join is bounded fail-closed (`FmpReadLimits.maxPhraseRows` = 20 000,
+  join is bounded fail-closed (`FmpReadLimits.maxPhraseRows` = 150 000,
   `maxFiguresPerDance` = 512), while a single over-`maxBodyLineLength` (2 000)
   line is dropped with a warning rather than aborting the import, and
   orphan/missing `zk_Dance_ID` rows degrade to warnings rather than throwing.

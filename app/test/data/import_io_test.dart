@@ -1,7 +1,10 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:compendium_app/src/data/import_io.dart';
-import 'package:compendium_core/compendium_core.dart' show kMaxFmpSectors;
+import 'package:compendium_app/src/data/usr_archive_isolate.dart';
+import 'package:compendium_core/compendium_core.dart'
+    show CallersCompanionUsrAdapter, kMaxFmpSectors;
 import 'package:file_selector/file_selector.dart' show XFile;
 import 'package:flutter_test/flutter_test.dart';
 
@@ -972,8 +975,8 @@ void main() {
     // A picked file is untrusted input (OWASP A04/A05 — uncontrolled resource
     // consumption). The cap is enforced by reading the file as a BOUNDED stream
     // and failing closed the instant more than maxBytes bytes are consumed — we
-    // never trust a separate XFile.length() probe (a file can grow or be
-    // swapped after it is picked: a TOCTOU window). Tests inject an in-memory
+    // never trust a separate XFile.length() probe to decide (a file can grow or
+    // be swapped after it is picked: a TOCTOU window); it only sizes the buffer. Tests inject an in-memory
     // XFile / synthetic stream + a small maxBytes (mirroring
     // ArchiveIntakeService's injectable maxBytes) so no real picker plugin runs
     // and no giant allocation is needed.
@@ -1080,10 +1083,109 @@ void main() {
       },
     );
 
+    group('readCappedBytes size hint', () {
+      final data = List<int>.generate(1000, (i) => (i * 7) % 251);
+      Stream<List<int>> chunked(List<int> bytes, int size) async* {
+        for (var i = 0; i < bytes.length; i += size) {
+          yield bytes.sublist(i, math.min(i + size, bytes.length));
+        }
+      }
+
+      for (final hint in <int?>[null, 0, 10, 999, 1000, 1001, 5000]) {
+        test('reads the same bytes whatever the hint ($hint)', () async {
+          final out = await readCappedBytes(
+            chunked(data, 64),
+            maxBytes: 5000,
+            sizeHint: hint,
+          );
+          expect(out, data);
+        });
+      }
+
+      test(
+        'an overshooting hint does not leave the wasted buffer attached',
+        () async {
+          final out = await readCappedBytes(
+            chunked(data, 64),
+            maxBytes: 5000,
+            sizeHint: 5000,
+          );
+          expect(out.buffer.lengthInBytes, data.length);
+        },
+      );
+
+      test(
+        'the cap is enforced from the stream, whatever the hint says',
+        () async {
+          for (final hint in <int?>[null, 100, 1500, 100000]) {
+            await expectLater(
+              readCappedBytes(
+                chunked(List<int>.filled(2000, 1), 100),
+                maxBytes: 1500,
+                sizeHint: hint,
+              ),
+              throwsA(
+                isA<ImportFileTooLargeException>().having(
+                  (e) => e.length,
+                  'length',
+                  greaterThan(1500),
+                ),
+              ),
+              reason: 'hint $hint',
+            );
+          }
+        },
+      );
+
+      test(
+        'a hint that undersold a growing file cannot slip it past the cap',
+        () async {
+          // Sized for exactly the cap, then the file turns out one byte over.
+          await expectLater(
+            readCappedBytes(
+              chunked(List<int>.filled(1001, 1), 100),
+              maxBytes: 1000,
+              sizeHint: 1000,
+            ),
+            throwsA(isA<ImportFileTooLargeException>()),
+          );
+          expect(
+            await readCappedBytes(
+              chunked(List<int>.filled(1000, 1), 100),
+              maxBytes: 1000,
+              sizeHint: 1000,
+            ),
+            hasLength(1000),
+          );
+        },
+      );
+
+      test('a huge hint allocates no more than the cap', () async {
+        final out = await readCappedBytes(
+          chunked(<int>[1, 2, 3], 2),
+          maxBytes: 100,
+          sizeHint: 1 << 40,
+        );
+        expect(out, [1, 2, 3]);
+      });
+
+      test(
+        'readImportBytesCapped still reads a file whose length() fails',
+        () async {
+          final out = await readImportBytesCapped(
+            _NoLengthFile(Uint8List.fromList(data)),
+            maxBytes: 5000,
+          );
+          expect(out, data);
+        },
+      );
+    });
+
     // A Caller's Companion .USR grows with the user's data (a tester's file was
-    // ~30 MB), so its picker has its own, higher cap than the share-bundle path.
-    test('the .USR cap is 64 MiB, above the general import cap', () {
-      expect(kMaxImportUsrBytes, 64 * 1024 * 1024);
+    // ~30 MB; a modelled 20,000-dance library is ~237 MiB), so its picker has
+    // its own, higher cap than the share-bundle path.
+    test('the .USR cap is 256 MiB, above the general import cap', () {
+      expect(kMaxImportUsrBytes, 256 * 1024 * 1024);
       expect(kMaxImportUsrBytes, greaterThan(kMaxImportFileBytes));
     });
 
@@ -1119,6 +1221,22 @@ void main() {
       // (cap / 4096) - 1 body sectors. If the sector guard were tighter than
       // the byte cap, it — not the cap — would be the effective ceiling.
       expect(kMaxFmpSectors, greaterThanOrEqualTo(kMaxImportUsrBytes ~/ 4096));
+      // ...and it is exactly that, not padded: a looser guard would just be a
+      // second number to keep in sync (and to forget).
+      expect(kMaxFmpSectors, kMaxImportUsrBytes ~/ 4096);
+    });
+  });
+
+  group('defaultImportSources', () {
+    test('the .USR source decodes on a background isolate', () {
+      final usr = defaultImportSources().singleWhere(
+        (s) => s.kind == ImportSourceKind.callersCompanionUsr,
+      );
+      final adapter = usr.adapterFactory() as CallersCompanionUsrAdapter;
+      // Behaviourally an isolate read and a synchronous one are identical, so
+      // this is the only place the wiring can be pinned: a library-sized file
+      // takes seconds to parse and must not run on the UI isolate.
+      expect(adapter.reader, same(readCcUsrArchiveInIsolate));
     });
   });
 
@@ -1154,4 +1272,13 @@ void main() {
       expect(contraDbProgramIdFromInput('1' * 18), '1' * 18);
     });
   });
+}
+
+/// An in-memory file that cannot report its size, as some platform picker
+/// results cannot.
+class _NoLengthFile extends XFile {
+  _NoLengthFile(super.bytes) : super.fromData(name: 'x.bin');
+
+  @override
+  Future<int> length() => throw StateError('no size available');
 }

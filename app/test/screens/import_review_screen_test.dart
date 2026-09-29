@@ -170,6 +170,41 @@ Future<void> _pumpForEdit(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  testWidgets('planning shows determinate progress that tracks the parse', (
+    tester,
+  ) async {
+    // Hold planning open on the sixth of ten records: the first five are done,
+    // so the spinner must read 50%, not spin forever like a hang.
+    final gate = Completer<void>();
+    final repos = openTestRepositories();
+    await _pump(
+      tester,
+      repos,
+      payload: _archivePayload([
+        for (var i = 0; i < 10; i++) _dance('d$i', 'Dance $i'),
+      ]),
+      adapterFactory: () => _GatedJsonAdapter(gate, gateAtFetch: 6),
+    );
+    await tester.tap(find.byKey(const ValueKey('import-choose-file')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('import-continue')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    final spinner = tester.widget<CircularProgressIndicator>(
+      find.descendant(
+        of: find.byKey(const ValueKey('import-planning')),
+        matching: find.byType(CircularProgressIndicator),
+      ),
+    );
+    expect(spinner.value, closeTo(0.5, 1e-9));
+
+    gate.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('Dance 0'), findsOneWidget);
+    expect(find.byKey(const ValueKey('import-planning')), findsNothing);
+  });
+
   testWidgets('an oversized text import file is rejected with a friendly '
       'SnackBar', (tester) async {
     await tester.binding.setSurfaceSize(const Size(1000, 1600));
@@ -1731,6 +1766,139 @@ void main() {
       expect(find.text('2 of 2 will be imported'), findsOneWidget);
     });
 
+    testWidgets('the file is released once planning succeeds, kept when it '
+        'fails', (tester) async {
+      // A `.USR` of tens of thousands of dances is ~250 MB. Once planned, its
+      // rows live in the batch and nothing later needs the file, so the screen
+      // lets it go; going back to the input step then has no file "ready".
+      // A file that could not be planned is kept, so it can be tried again.
+      Uint8List programsOnly() => buildFmp12Fixture([
+        FmpFixtureTable(
+          index: 1,
+          name: 'Dance',
+          columnNames: ['zk_Dance_ID', 'Name'],
+          rows: const [],
+        ),
+        FmpFixtureTable(
+          index: 3,
+          name: 'Set',
+          columnNames: ['zk_Set_ID', 'Location'],
+          rows: [
+            MapEntry(1, {1: '9', 2: 'Grange Hall'}),
+          ],
+        ),
+      ]);
+
+      final repos = openTestRepositories();
+      Future<void> planAndGoBack(Uint8List bytes) async {
+        // Start each scenario from a fresh screen (its own State, and so its
+        // own selected source).
+        await tester.pumpWidget(const SizedBox.shrink());
+        await _pump(
+          tester,
+          repos,
+          payload: 'unused',
+          sources: sourcesFor(() async => bytes),
+          bytePicker: () async => bytes,
+        );
+        await selectUsr(tester);
+        await tester.tap(find.byKey(const ValueKey('import-choose-usr-file')));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('import-usr-chosen')), findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('import-continue')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('import-back-to-input')));
+        await tester.pumpAndSettle();
+      }
+
+      await planAndGoBack(programsOnly());
+      expect(
+        find.byKey(const ValueKey('import-usr-chosen')),
+        findsNothing,
+        reason: 'a planned file is released',
+      );
+
+      await planAndGoBack(Uint8List.fromList(List<int>.filled(8192, 0x41)));
+      expect(
+        find.byKey(const ValueKey('import-usr-chosen')),
+        findsOneWidget,
+        reason: 'a file that failed to plan stays for another attempt',
+      );
+    });
+
+    testWidgets('committing does not decode the .USR a second time', (
+      tester,
+    ) async {
+      var reads = 0;
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: [
+          ImportSource(
+            kind: ImportSourceKind.callersCompanionUsr,
+            adapterFactory: () => CallersCompanionUsrAdapter(
+              reader: (bytes, limits) async {
+                reads++;
+                return readCcUsrArchive(bytes, limits: limits);
+              },
+            ),
+            bytePicker: () async => ccUsrBytes(),
+          ),
+        ],
+        bytePicker: () async => ccUsrBytes(),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('import-choose-usr-file')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('import-continue')));
+      await tester.pumpAndSettle();
+      expect(reads, 1, reason: 'planning reads the file once');
+
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Programs: 1'), findsOneWidget);
+      expect(reads, 1, reason: 'commit built its programs from that read');
+    });
+
+    testWidgets('the default .USR source parses on a background isolate and '
+        'still plans and commits', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: defaultImportSources(),
+        bytePicker: () async => ccUsrBytes(),
+      );
+
+      await selectUsr(tester);
+      await tester.tap(find.byKey(const ValueKey('import-choose-usr-file')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('import-continue')));
+      // The isolate needs real wall-clock time, which the fake-async test zone
+      // does not give it on its own.
+      Future<void> untilFound(Finder f) async {
+        for (var i = 0; i < 100 && f.evaluate().isEmpty; i++) {
+          await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 50)),
+          );
+          await tester.pump();
+        }
+      }
+
+      await untilFound(find.text('Simplicity Swing'));
+      expect(find.text('Simplicity Swing'), findsOneWidget);
+      expect(find.text('Petronella'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await untilFound(find.byKey(const ValueKey('import-result-dialog')));
+      expect(find.text('Created: 2'), findsOneWidget);
+      expect(find.text('Programs: 1'), findsOneWidget);
+    });
+
     testWidgets('committing persists dances AND programs and surfaces the '
         'program names + notes', (tester) async {
       final repos = openTestRepositories();
@@ -3106,4 +3274,20 @@ class _PartlyBrokenAdapter implements SourceAdapter {
     ),
     raw: raw,
   );
+}
+
+/// A [GenericJsonAdapter] whose [fetch] of the [gateAtFetch]th record waits on
+/// [gate], holding a plan open at a known point.
+class _GatedJsonAdapter extends GenericJsonAdapter {
+  _GatedJsonAdapter(this.gate, {required this.gateAtFetch});
+
+  final Completer<void> gate;
+  final int gateAtFetch;
+  int _fetches = 0;
+
+  @override
+  Future<RawRecord> fetch(DiscoveredRecord record) async {
+    if (++_fetches == gateAtFetch) await gate.future;
+    return super.fetch(record);
+  }
 }
