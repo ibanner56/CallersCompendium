@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:compendium_core/compendium_core.dart';
@@ -203,6 +204,120 @@ void main() {
   }
 
   group('import (end-to-end from .USR bytes)', () {
+    test('decodes the file exactly once', () async {
+      var reads = 0;
+      final counting = CallersCompanionUsrImporter(
+        pipeline,
+        programs,
+        venues,
+        adapter: CallersCompanionUsrAdapter(
+          reader: (bytes, limits) async {
+            reads++;
+            return readCcUsrArchive(bytes, limits: limits);
+          },
+        ),
+      );
+      final result = await counting.import(
+        _ccUsrBytes(),
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+        newSlotId: sequentialIds(),
+      );
+      expect(reads, 1);
+      // ...and the programs still came from that one read.
+      expect(result.insertedProgramIds, isNotEmpty);
+    });
+
+    test(
+      'an unreadable file fails once, with the error planning captured',
+      () async {
+        // `plan` turns a failed discovery into an error batch instead of
+        // rethrowing. Decoding the bytes again to find out why would fail the same
+        // way after a second full scan of a file that may be hundreds of MiB, so
+        // `import` surfaces the error planning already has.
+        var reads = 0;
+        final counting = CallersCompanionUsrImporter(
+          pipeline,
+          programs,
+          venues,
+          adapter: CallersCompanionUsrAdapter(
+            reader: (bytes, limits) async {
+              reads++;
+              return readCcUsrArchive(bytes, limits: limits);
+            },
+          ),
+        );
+        await expectLater(
+          counting.import(
+            Uint8List.fromList(List<int>.filled(64, 0x41)),
+            now: now,
+            venueEntityMode: false,
+            newId: nextId,
+            newSlotId: sequentialIds(),
+          ),
+          throwsA(
+            isA<ImportError>().having(
+              (e) => e.stage,
+              'stage',
+              ImportStage.discover,
+            ),
+          ),
+        );
+        expect(reads, 1);
+        expect(await dances.listAll(), isEmpty);
+      },
+    );
+
+    test('a file over its limits fails once with the friendly error', () async {
+      var reads = 0;
+      final counting = CallersCompanionUsrImporter(
+        pipeline,
+        programs,
+        venues,
+        adapter: CallersCompanionUsrAdapter(
+          limits: const FmpReadLimits(maxTables: 1),
+          reader: (bytes, limits) async {
+            reads++;
+            return readCcUsrArchive(bytes, limits: limits);
+          },
+        ),
+      );
+      await expectLater(
+        counting.import(
+          _ccUsrBytes(),
+          now: now,
+          venueEntityMode: false,
+          newId: nextId,
+          newSlotId: sequentialIds(),
+        ),
+        throwsA(
+          isA<ImportError>().having(
+            (e) => e.message,
+            'message',
+            'That file is too large to import.',
+          ),
+        ),
+      );
+      expect(reads, 1);
+    });
+
+    test('never decodes a file outside its adapter', () {
+      // The count above sees only reads made through the adapter's reader, so
+      // a direct `readCcUsrArchive(bytes)` in the importer would slip past it
+      // (it is exactly how the file used to be decoded twice, and it would also
+      // bypass an isolate-backed reader).
+      final src = File(
+        'lib/src/imports/callers_companion_usr_import.dart',
+      ).readAsStringSync();
+      final code = src
+          .split('\n')
+          .where((l) => !l.trimLeft().startsWith('//'))
+          .join('\n');
+      expect(code, isNot(contains('readCcUsrArchive(')));
+      expect(code, isNot(contains('readFmp12(')));
+    });
+
     test('commits dances and persists FK-mapped programs', () async {
       final result = await importer.import(
         _ccUsrBytes(),

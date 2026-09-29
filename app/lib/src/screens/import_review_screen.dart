@@ -291,6 +291,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// sources plan/commit from these bytes instead of [_pasteController]'s text.
   Uint8List? _payloadBytes;
 
+  /// The archive [_plan] read from a Caller's Companion `.USR` (without its
+  /// dances, which live on in the batch), kept so [_commit] can build programs
+  /// from it. It is what lets [_plan] release [_payloadBytes] once planning
+  /// succeeds. Null for every other source, and reset with [_payloadBytes].
+  CcUsrArchive? _usrArchive;
+
   /// A [SharedBundleImport] decoded from the current paste-field text when
   /// that text is a valid [CompendiumArchive] that carries programs, or a
   /// standalone dance plus referenced metadata.
@@ -428,6 +434,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// `null` when no title-list resolution is running.
   (int, int)? _titleListProgress;
 
+  /// How far through parsing the file/paste [_plan] is, 0–1, or `null` before
+  /// the first report (an indeterminate spinner). A large `.USR` takes tens of
+  /// seconds to parse; a spinner that never moves reads as a hang.
+  double? _planProgress;
+
   /// Set when the user cancels an in-flight title-list resolution; read by the
   /// resolver between titles so the run stops without issuing further requests.
   /// Nothing is ever written during resolution, so a cancel simply discards the
@@ -533,6 +544,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       _selected = source;
       _sourceManuallySelected = true;
       _payloadBytes = null;
+      _usrArchive = null;
       _sourceUri = null;
       _fetchError = null;
       _titleListError = null;
@@ -631,7 +643,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     try {
       final bytes = await picker();
       if (!mounted || bytes == null) return;
-      setState(() => _payloadBytes = bytes);
+      setState(() {
+        _payloadBytes = bytes;
+        _usrArchive = null;
+      });
     } on ImportFileTooLargeException catch (e, stackTrace) {
       logCaughtError(
         e,
@@ -731,6 +746,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     setState(() {
       _phase = _Phase.planning;
       _planError = null;
+      _planProgress = null;
     });
     try {
       final pipeline = ImportPipeline(
@@ -749,13 +765,37 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               _selected.kind != ImportSourceKind.genericJson
           ? GenericJsonAdapter.new
           : _selected.adapterFactory;
+      final planAdapter = adapterFactory();
       final batch = await pipeline.plan(
-        adapterFactory(),
+        planAdapter,
         request,
         index: index,
         preserveCanonicalDifficultyIds: _effectiveSharedBundle != null,
+        onProgress: (done, total) {
+          if (!mounted || total == 0) return;
+          final fraction = done / total;
+          // Repaint per whole percent, not per record: 20,000 records would
+          // otherwise be 20,000 rebuilds.
+          if ((fraction * 100).floor() ==
+              ((_planProgress ?? -1) * 100).floor()) {
+            return;
+          }
+          setState(() => _planProgress = fraction);
+        },
       );
+      _usrArchive = planAdapter is CallersCompanionUsrAdapter
+          ? planAdapter.discoveredArchive
+          : null;
       await _adoptBatch(batch);
+      // A `.USR`'s rows now live in the batch and its programs in the archive
+      // kept above, so nothing later needs the file itself — and it is by far
+      // the largest thing this screen holds (~250 MB for a library of tens of
+      // thousands of dances, on devices that may be killed for using little
+      // more than a gigabyte). Let it go rather than carry it through the
+      // review; going back to the input step asks for the file again.
+      if (mounted && _usrArchive != null) {
+        setState(() => _payloadBytes = null);
+      }
     } catch (e, stackTrace) {
       if (!mounted) return;
       // `payload`/`bytes` here is the raw pasted/fetched/file content the user
@@ -1314,12 +1354,21 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           _repos.programs,
           _repos.venues,
         );
-        final archive = readCcUsrArchive(_payloadBytes!);
+        // Read up front: a BuildContext must not be used across an async gap,
+        // and the commit below is one.
+        final venueEntityMode = VenueEntityModeScope.of(context);
+        // The archive planning read. Commit reaches this step only after a
+        // successful plan, which sets it and releases the file's bytes, so the
+        // file is not available to decode again — and needs no decoding.
+        final archive = _usrArchive;
+        if (archive == null) {
+          throw StateError('Committing a .USR import that was never planned.');
+        }
         final result = await importer.commit(
           commitBatch,
           archive,
           now: DateTime.now().toUtc(),
-          venueEntityMode: VenueEntityModeScope.of(context),
+          venueEntityMode: venueEntityMode,
           newId: uuidV4,
           newSlotId: uuidV4,
           resolutions: resolutions,
@@ -1849,9 +1898,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final l10n = AppLocalizations.of(context);
     final progress = _titleListProgress;
     if (progress == null) {
-      return const Center(
-        key: ValueKey('import-planning'),
-        child: CircularProgressIndicator(),
+      return Center(
+        key: const ValueKey('import-planning'),
+        child: CircularProgressIndicator(value: _planProgress),
       );
     }
     final (done, total) = progress;
@@ -1942,6 +1991,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                       // them when switching so a `.USR` can't plan through a
                       // text adapter (or vice versa).
                       _payloadBytes = null;
+                      _usrArchive = null;
                       // A cap refusal belongs to the title-list source; it must
                       // not linger over a different source's input.
                       _titleListError = null;

@@ -1,9 +1,0 @@
-{
-  "id": "1434-share-fields-core",
-  "user_visible": false,
-  "core": {
-    "added": [
-      "Add DanceShareField and field-gated rendering (author, formation, level, mixer, status, phrase, calling notes, walkthrough, tunes) to danceToPlainText and programToPlainText, behind new optional parameters no existing caller passes yet."
-    ]
-  }
-}

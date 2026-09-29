@@ -219,7 +219,7 @@ const int _fmpIterations = 2000;
 const int _scsuIterations = 2000;
 
 /// Structural ceiling for every generated container (well under `#443`'s
-/// 64 MiB `kMaxImportUsrBytes`), keeping allocation + traversal bounded.
+/// 256 MiB `kMaxImportUsrBytes`), keeping allocation + traversal bounded.
 const int _maxCandidateBytes = 64 * 1024;
 
 const int _sectorSize = 4096;

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:compendium_core/compendium_core.dart';
@@ -8,6 +9,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:http/http.dart' as http;
 
 import '../search/collection_query.dart' show ByPhraseSelections;
+import 'usr_archive_isolate.dart';
 
 /// Hard cap on the size of a **local file** chosen for import, in bytes.
 ///
@@ -33,14 +35,18 @@ const int kMaxImportFileBytes = 25 * 1024 * 1024;
 ///
 /// Higher than [kMaxImportFileBytes] because a `.USR` is a FileMaker container
 /// that grows with the user's own data: the ~20 MB shipped sample is already
-/// close to the general cap, and a tester's real file measured ~30 MB. The
-/// share-bundle text path and the archive intake keep the 25 MiB cap — only the
-/// `.USR` byte path is widened. Enforced the same way (a bounded stream, failing
-/// closed the moment the cap is crossed), so the raise costs at most ~64 MiB of
-/// peak allocation before the structural bounds in `FmpReadLimits` take over.
-/// `kMaxFmpSectors` is sized to this cap (64 MiB of 4 KiB sectors); raise them
+/// close to the general cap, a tester's real file measured ~30 MB, and a
+/// modelled ~20,000-dance library (Caller's Box scale, with FileMaker's own
+/// indexes) is ~237 MiB. The share-bundle text path and the archive intake keep
+/// the 25 MiB cap — only the `.USR` byte path is widened. Enforced the same way
+/// (a bounded stream, failing closed the moment the cap is crossed), so the
+/// raise costs up to this many bytes of buffered input — one buffer, sized from
+/// the file's length up front and filled in place — before the structural
+/// bounds in `FmpReadLimits` take over, and more once the reader has decoded the
+/// file.
+/// `kMaxFmpSectors` is sized to this cap (256 MiB of 4 KiB sectors); raise them
 /// together, or the sector guard becomes the effective ceiling.
-const int kMaxImportUsrBytes = 64 * 1024 * 1024;
+const int kMaxImportUsrBytes = 256 * 1024 * 1024;
 
 /// Raised when a picked import file exceeds [kMaxImportFileBytes], so the
 /// oversized case is rejected *without* buffering the whole file into memory
@@ -69,37 +75,72 @@ class ImportFileTooLargeException implements Exception {
 /// moment the bound is crossed. A file of exactly [maxBytes] is accepted (the
 /// boundary is inclusive), mirroring the archive intake cap.
 ///
+/// [sizeHint], when given, is **only an allocation hint**: the buffer starts at
+/// that size (clamped to [maxBytes]) so a large file is filled in place instead
+/// of being collected as chunks and then joined into a second buffer, which held
+/// about twice the file in memory at once (measured: 613 MB peak for a 249 MB
+/// file, against 378 MB preallocated). A wrong hint — a file that grew, shrank
+/// or was swapped — costs nothing worse than that old peak: the buffer grows if
+/// the stream outruns it, the cap is still enforced from what actually arrives,
+/// and an overshooting hint is trimmed away.
+///
 /// Stream-typed (rather than [XFile]-typed) so the fail-closed behaviour is
 /// unit-testable against a synthetic multi-chunk stream that keeps producing
 /// data, with no real file or picker plugin.
 Future<Uint8List> readCappedBytes(
   Stream<List<int>> stream, {
   int maxBytes = kMaxImportFileBytes,
+  int? sizeHint,
 }) async {
-  final builder = BytesBuilder(copy: false);
+  var capacity = (sizeHint ?? 0).clamp(0, maxBytes);
+  var buffer = Uint8List(capacity);
+  var length = 0;
   await for (final chunk in stream) {
-    builder.add(chunk);
-    if (builder.length > maxBytes) {
+    final total = length + chunk.length;
+    if (total > maxBytes) {
       // `await for` cancels the subscription when we throw, so we never read
       // (or buffer) the rest of the file — allocation stays bounded even if the
       // underlying file keeps growing.
-      throw ImportFileTooLargeException(builder.length);
+      throw ImportFileTooLargeException(total);
     }
+    if (total > capacity) {
+      // The stream outran the hint (or there was none): grow geometrically, but
+      // never past the cap, which was just checked.
+      capacity = math.min(math.max(total, capacity * 2), maxBytes);
+      buffer = Uint8List(capacity)..setRange(0, length, buffer);
+    }
+    buffer.setRange(length, total, chunk);
+    length = total;
   }
-  return builder.takeBytes();
+  if (length == capacity) return buffer;
+  final used = Uint8List.sublistView(buffer, 0, length);
+  // A view pins the whole buffer; only worth keeping when little is wasted.
+  return length >= capacity * 0.9 ? used : Uint8List.fromList(used);
 }
 
 /// Reads [file]'s raw bytes, failing closed via [readCappedBytes] if the file
 /// exceeds [maxBytes]. Consumes [XFile.openRead] so the cap is enforced *while*
 /// reading — an oversized (or mid-read growing) file is never fully buffered,
 /// unlike a `length()`-then-`readAsBytes()` check, which trusts a stale length
-/// and still allocates the whole file. Split out from [pickImportUsrFile] so
-/// the cap is unit-testable without the native picker (tests inject an [XFile]
-/// + a small [maxBytes], mirroring `ArchiveIntakeService`).
+/// and still allocates the whole file. [XFile.length] is consulted only to size
+/// the buffer up front (see [readCappedBytes]'s `sizeHint`), never to decide
+/// whether the file is acceptable. Split out from [pickImportUsrFile] so the cap
+/// is unit-testable without the native picker (tests inject an [XFile] + a small
+/// [maxBytes], mirroring `ArchiveIntakeService`).
 Future<Uint8List> readImportBytesCapped(
   XFile file, {
   int maxBytes = kMaxImportFileBytes,
-}) => readCappedBytes(file.openRead(), maxBytes: maxBytes);
+}) async {
+  int? hint;
+  try {
+    hint = await file.length();
+  } on Object {
+    // diagnostics: silent — the size is only an allocation hint; without it the
+    // read is merely less frugal, and nothing about the file is lost or hidden.
+    hint = null;
+  }
+  return readCappedBytes(file.openRead(), maxBytes: maxBytes, sizeHint: hint);
+}
 
 /// Reads a picked `.USR` [file]'s bytes under [kMaxImportUsrBytes] — the
 /// `.USR`-specific counterpart to [readImportBytesCapped]'s general cap. Split
@@ -1801,7 +1842,10 @@ List<ImportSource> defaultImportSources() => [
   ),
   ImportSource(
     kind: ImportSourceKind.callersCompanionUsr,
-    adapterFactory: CallersCompanionUsrAdapter.new,
+    // Parsed on a background isolate: a library-sized file takes seconds to
+    // read, which would otherwise freeze the review screen.
+    adapterFactory: () =>
+        CallersCompanionUsrAdapter(reader: readCcUsrArchiveInIsolate),
     bytePicker: pickImportUsrFile,
   ),
 ];
