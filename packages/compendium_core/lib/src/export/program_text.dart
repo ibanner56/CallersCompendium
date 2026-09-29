@@ -30,6 +30,15 @@ import 'export_labels.dart';
 /// - [formatDate] formats [Program.eventDate]; defaults to an ISO `yyyy-MM-dd`
 ///   date. The app passes a locale-aware formatter
 ///   (`MaterialLocalizations.formatMediumDate`).
+/// - [authorNamesFor] resolves a slot's `danceId` to its already-resolved
+///   choreographer *names* (issue #1434) — same privacy contract as
+///   `danceToPlainText`'s `authorNames`: never a `Choreographer` record, so
+///   private contact fields have no path in. `null` (the default) omits the
+///   author suffix entirely, preserving the pre-#1434 slot-line format for
+///   every existing caller. When supplied, a slot whose resolver call returns
+///   an empty list (or all-blank names) also omits the suffix — this is
+///   independent of the figures-appendix opt-in, so it appears on every
+///   numbered dance, whether or not that dance has any figures.
 ///
 /// Layout:
 /// ```
@@ -39,7 +48,7 @@ import 'export_labels.dart';
 /// Caller: <caller>
 /// Level: <dancerLevel>
 ///
-/// 1. <dance title | free text>[ — <slot note>][ (guest: <x>; <n> min)][ [performed]]
+/// 1. <dance title | free text>[ — <author suffix>][ — <slot note>][ (guest: <x>; <n> min)][ [performed]]
 ///    ALT: <alt line, same format, no number>
 /// 2. ...
 ///
@@ -59,6 +68,7 @@ String programToPlainText(
   FigureRenderer? renderer,
   Dialect? dialect,
   bool canonicalizeDiscouragedTerms = false,
+  List<String> Function(String danceId)? authorNamesFor,
 }) {
   if (canonicalizeDiscouragedTerms && (renderer == null || dialect == null)) {
     throw ArgumentError(
@@ -113,6 +123,7 @@ String programToPlainText(
         renderer: renderer,
         dialect: dialect,
         canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+        authorNamesFor: authorNamesFor,
       );
       lines.add('$n. $primary');
       for (final alt in group.alternates) {
@@ -123,6 +134,7 @@ String programToPlainText(
           renderer: renderer,
           dialect: dialect,
           canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+          authorNamesFor: authorNamesFor,
         );
         lines.add('   ${labels.alt}: $alternate');
       }
@@ -147,8 +159,9 @@ String programToPlainText(
 }
 
 /// Builds the content of a single slot line (without the number or `ALT:`
-/// prefix): the dance title or free text, an optional per-slot note, an optional
-/// `(guest: …; N min)` suffix, and a trailing `[performed]` marker.
+/// prefix): the dance title or free text, an optional author suffix, an
+/// optional per-slot note, an optional `(guest: …; N min)` suffix, and a
+/// trailing `[performed]` marker.
 String _slotLine(
   ProgramSlot slot,
   String? Function(String danceId) titleFor,
@@ -156,12 +169,24 @@ String _slotLine(
   FigureRenderer? renderer,
   Dialect? dialect,
   bool canonicalizeDiscouragedTerms = false,
+  List<String> Function(String danceId)? authorNamesFor,
 }) {
   final buffer = StringBuffer();
 
   if (slot.danceId != null) {
     final title = titleFor(slot.danceId!);
     buffer.write(_has(title) ? title!.trim() : labels.unknownDance);
+    // Author suffix (issue #1434): resolved independently of whether this
+    // dance has any figures, so it appears on every numbered dance rather
+    // than only the ones reachable via the figures-appendix opt-in.
+    final authorNames = authorNamesFor
+        ?.call(slot.danceId!)
+        .map((n) => n.trim())
+        .where((n) => n.isNotEmpty)
+        .toList();
+    if (authorNames != null && authorNames.isNotEmpty) {
+      buffer.write(' — ${labels.by(authorNames.join(', '))}');
+    }
     // On a dance slot, `text` is a per-slot caller note.
     if (_has(slot.text)) {
       final note =
