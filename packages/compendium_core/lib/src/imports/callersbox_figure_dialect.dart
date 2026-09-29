@@ -2044,8 +2044,16 @@ FigureMatch? _weaveSlideAnnotation(String scrubbed) {
   );
   if (match == null || match.moveId != 'zig_zag') return null;
 
+  // A body that is ONLY the slide pair (`R;L`, `r;l`) is fully consumed by
+  // `slide`; the case-insensitive match must not let a lowercase spelling pass
+  // the lowercase prose gate and duplicate it as a note.
   final prose = annotations
-      .where((b) => _annotationBodyHasLowercase(b) && !_looksLikePerRoleBody(b))
+      .where(
+        (b) =>
+            _annotationBodyHasLowercase(b) &&
+            !_looksLikePerRoleBody(b) &&
+            !_weaveBareSlideRe.hasMatch(b),
+      )
       .toList();
   return _withAnnotationNote(
     match,
@@ -2060,6 +2068,11 @@ final RegExp _weaveAnchor = RegExp(r'\bweave\b', caseSensitive: false);
 /// `R;L2`, `R;Lx` and a longer pass list `R;L;R` are not slide-shaped).
 /// Bounded: the body is already capped at 120 characters by
 /// [_parenAnnotationRe].
+final RegExp _weaveBareSlideRe = RegExp(
+  r'^[RL]\s*;\s*[RL]$',
+  caseSensitive: false,
+);
+
 final RegExp _weaveSlideRe = RegExp(
   r'^([RL])\s*;\s*([RL])(?=\s|$)',
   caseSensitive: false,

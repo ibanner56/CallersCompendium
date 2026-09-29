@@ -10,7 +10,7 @@
   "core": {
     "fixed": [
       "Read the `(R;L …)` / `(L;R …)` bracket on a Caller's Box `Weave the line` line into `zig_zag.slide` (`_weaveSlideAnnotation`); a non-mirrored pair keeps the default.",
-      "Fold a `long_lines`/`slice` core `while` a `roll_away`/`give_and_take` into a `modifier` container in both the Caller's Box (`modifierFromWhile`) and Contra DB (`parseContraDbFigureLine`) front-ends through one shared `whileModifierContainer`; every other `while` line is unchanged.",
+      "Fold a `long_lines`/`slice` core `while` a `roll_away`/`give_and_take` into a `modifier` container in both the Caller's Box (`modifierFromWhile`) and Contra DB (`parseContraDbFigureLine`) front-ends through one shared `whileModifierContainer`; other `while` lines keep their previous reading.",
       "Rank a container with a custom child below a fully structured reading in the free-text/reparse fan-out, so a later front-end's clean parse is no longer shadowed."
     ]
   }

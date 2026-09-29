@@ -315,6 +315,12 @@ void main() {
       expect(f.note, isNull);
     });
 
+    test('a bare lowercase "(r;l)" reads like "(R;L)": slide, no note', () {
+      final f = _parse('Weave the line with partner (r;l)');
+      expect(f!.params['slide'], 'right');
+      expect(f.note, isNull);
+    });
+
     test('the pair is read through the plural entry point too', () {
       final figures = _parseAll(
         'Weave the line with partner (R;L to N2)',
