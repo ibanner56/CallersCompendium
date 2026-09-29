@@ -82,19 +82,20 @@ Open a program and choose **Export**. Five actions:
 | **Export / print PDF** | Builds a PDF set list and opens your system's print dialog |
 
 The set list — text and PDF alike — is titles, event details, and slot notes by
-default, with each dance's author shown next to its title. Settings › Defaults
-lets you choose which other dance fields (formation, level, mixer, status,
-phrase, calling notes, walkthrough, and suggested tunes) show up too — see
-[Choose which dance fields appear](#choose-which-dance-fields-appear) below.
-When you choose **Share set list (text)**, **Copy set list**, or **Export /
-print PDF**, the app asks **Include figures?** with two choices:
+default, with each dance's author shown next to its title if you have authors
+turned on (see [Choose which dance fields
+appear](#choose-which-dance-fields-appear) below). When you choose **Share set
+list (text)**, **Copy set list**, or **Export / print PDF**, the app asks
+**Include figures?** with two choices:
 
-- **Set list only** — titles, event details, slot notes, and your selected
-  dance fields (the default).
-- **Set list and figures** — appends a full figure card for each dance after
-  the set list, also honouring your selected fields. The cards use your app
-  language for field labels; the figure text uses your active dialect.
-  Alternate dances are marked "Alternate".
+- **Set list only** — titles, event details, slot notes, and the author
+  (the default). None of your other selected dance fields appear here —
+  formation, level, mixer, status, phrase, calling notes, walkthrough, and
+  tunes only ever show up on the richer per-dance card described next.
+- **Set list and figures** — appends a full card for each dance after the set
+  list, showing every dance field you've selected alongside its figures. The
+  cards use your app language for field labels; the figure text uses your
+  active dialect. Alternate dances are marked "Alternate".
 
 If none of the program's dances have any structured figures, the question is
 skipped and the export proceeds as set-list-only automatically.
@@ -107,15 +108,18 @@ If something goes wrong the app says so plainly — "Couldn't share this set lis
 
 ### Choose which dance fields appear
 
-Settings › Defaults has a checklist for every non-figures dance field a set
-list or a dance card can show: author, formation, level, mixer, status,
-phrase, calling notes, walkthrough, and suggested tunes. Author is on by
-default, matching every export before this setting existed; suggested tunes
-is off by default, since no export showed them before. Turning a field off
-removes it everywhere it would otherwise appear — the numbered set-list line,
-the "Set list and figures" per-dance card, a single dance's own text card, and
-every PDF. Figures are not part of this list; they stay controlled by the
-**Include figures?** choice above.
+Settings › Defaults has a checklist for every non-figures dance field a dance
+card can show: author, formation, level, mixer, status, phrase, calling
+notes, walkthrough, and suggested tunes. Author is on by default, matching
+every export before this setting existed; suggested tunes is off by default,
+since no export showed them before.
+
+Turning a field off removes it everywhere it would otherwise appear — but
+**author is the only one of these fields the plain numbered set-list line
+ever shows.** The rest only appear on the richer per-dance card: the "Set
+list and figures" appendix, a single dance's own **Share dance (text)**/
+**Copy dance** card, or any PDF. Figures are not part of this list; they stay
+controlled by the **Include figures?** choice above.
 
 ### Share a program with its dances
 

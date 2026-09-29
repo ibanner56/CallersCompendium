@@ -385,13 +385,16 @@ menu:
 - **Export / print PDF** — builds a PDF and opens your system's print dialog.
 
 A set list is titles, event details, and slot notes by default, with each
-dance's author shown next to its title. Settings › Defaults lets you choose
-which other dance fields appear too — see
+dance's author shown next to its title if you have authors turned on.
+Settings › Defaults lets you choose other dance fields too, but they only
+appear on the richer per-dance card, not the numbered set-list line itself —
+see
 [Choose which dance fields appear](./sharing.md#choose-which-dance-fields-appear).
 When you share, copy, or export as PDF the app asks **"Include figures?"** —
-choose **Set list only** to keep titles, notes, and your selected fields, or
-**Set list and figures** to append a full figure card for each dance after the
-set list. If none of the program's dances have structured figures, the
+choose **Set list only** to keep titles, notes, and the author, or
+**Set list and figures** to append a full card for each dance, showing every
+selected field alongside its figures, after the set list. If none of the
+program's dances have structured figures, the
 question is skipped. If your program is linked to
 a [venue](./glossary.md#venue) with contact people recorded, the PDF, JSON, and
 **Share (program + dances)** exports first ask whether to include those
