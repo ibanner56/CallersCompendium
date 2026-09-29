@@ -56,6 +56,7 @@ export 'src/imports/share_metadata_import.dart';
 export 'src/imports/source_adapter.dart';
 export 'src/imports/structured_draft.dart';
 export 'src/imports/venue_dedupe.dart';
+export 'src/imports/while_container.dart';
 export 'src/model/choreographer.dart';
 export 'src/model/collection_import_event.dart';
 export 'src/model/custom_field.dart';

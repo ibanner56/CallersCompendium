@@ -6,6 +6,7 @@ import '../taxonomy/taxonomy.dart';
 import '../validation/validation.dart';
 import 'figure_parser.dart';
 import 'figure_text_scrub.dart';
+import 'while_container.dart';
 
 /// The CallersBox / The Caller's Box (TCB) figure-text **front-end**: the
 /// source-specific grammar that lowers TCB's free-text dialect toward the
@@ -95,6 +96,11 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     // prose pass so `W roll R, M side-step L` becomes canonical role tokens
     // rather than verbatim gendered shorthand.
     _bracketAnnotation,
+    // `Weave the line … (R;L to N2)` (#1415): the bracket's first letter is the
+    // slide direction. Listed after `_bracketAnnotation` (a square-bracket line
+    // keeps that handler) and before the prose/side-run handlers that would
+    // otherwise preserve the bracket as a note without reading it.
+    _weaveSlideAnnotation,
     _perRoleChoreoAnnotation,
     // General prose annotations (#744): shape-gated verbatim preserve for any
     // structured figure with lowercase-containing annotations.
@@ -217,6 +223,18 @@ List<Figure> parseFigureLines(
 
   final clauses = _splitTopLevel(rawText, ';');
   if (clauses.length < 2) {
+    // A `<whole-set move> while <modifier>` line (`long lines … while N2
+    // neighbor roll away (…)`) becomes a `modifier` container. Declines (→ the
+    // ordinary reading, custom for such a line) for every other `while` line.
+    final whileModifier = modifierFromWhile(
+      rawText,
+      beats: beats,
+      progression: progression,
+      taxonomy: taxonomy,
+      scrub: scrub,
+      frontEnd: frontEnd,
+    );
+    if (whileModifier != null) return [whileModifier];
     // No top-level separator: this is the one place a single line may still fan
     // out into several figures — TCB's `Grand right and left (<pass list>)`
     // shorthand (#295). Declines (→ the ordinary whole-line reading) for any
@@ -648,6 +666,68 @@ Figure? meanwhileFromDoublePipe(
   return Figure.meanwhile(
     figures: figures,
     beats: safeBeats,
+    progression: progression,
+  );
+}
+
+/// Fans a top-level `while` line whose two sides are a whole-set core and a
+/// modifier into a [Figure.modifier] container (#1415), or returns `null` so the
+/// caller keeps its existing reading.
+///
+/// Unlike [meanwhileFromDoublePipe] this is deliberately narrow: TCB's `||` is
+/// its own explicit simultaneity marker and always builds a meanwhile, whereas a
+/// literal `while` only structures when [whileModifierContainer] recognizes the
+/// pairing. Any other `while` line (`larks X while robins Y`, a reversed pair, a
+/// side that stays custom) is left exactly as it was.
+///
+/// - The split is on the FIRST top-level `while` only ([splitTopLevelOnWord]),
+///   so a `while` inside `(W roll L, M side-step R)` is never a boundary and
+///   the work is linear in the line length.
+/// - A named recognizer keeps first crack at the WHOLE line: a non-custom whole
+///   parse whose note did not swallow the connective wins untouched, mirroring
+///   `parseContraDbFigureLine`.
+/// - The source's one beat total rides on the container; both sides are
+///   beats-absent (the `||` fan-out's rule).
+Figure? modifierFromWhile(
+  String rawText, {
+  required int beats,
+  required bool progression,
+  required Taxonomy? taxonomy,
+  required String Function(String)? scrub,
+  required FigureFrontEnd frontEnd,
+}) {
+  final sides = splitTopLevelOnWord(rawText, whileConnective);
+  if (sides == null || sides.any((s) => s.isEmpty)) return null;
+
+  final whole = parseFigureLine(
+    rawText,
+    beats: beats,
+    progression: progression,
+    taxonomy: taxonomy,
+    scrub: scrub,
+    frontEnd: frontEnd,
+  );
+  if (whole != null &&
+      !whole.isCustom &&
+      !(whole.note != null &&
+          splitTopLevelOnWord(whole.note!, whileConnective) != null)) {
+    return null;
+  }
+
+  final figures = <Figure>[];
+  for (final side in sides) {
+    final f = parseFigureLine(
+      side,
+      taxonomy: taxonomy,
+      scrub: scrub,
+      frontEnd: frontEnd,
+    );
+    if (f == null) return null;
+    figures.add(f);
+  }
+  return whileModifierContainer(
+    figures,
+    beats: beats,
     progression: progression,
   );
 }
@@ -1915,6 +1995,70 @@ FigureMatch? _proseAnnotation(String scrubbed) {
 /// is all-uppercase / code-like.
 bool _annotationBodyHasLowercase(String body) =>
     body.codeUnits.any((c) => c >= 97 && c <= 122); // 'a'..'z'
+
+// --- Weave-the-line slide direction (#1415) ---------------------------------
+
+/// TCB writes `Weave the line with partner (R;L to N2)`. The bracket is a
+/// SLIDE direction, not a pass list: `R;L` slides right, then left, so the line
+/// is `zig_zag` with `slide: right` (`L;R` → `left`). The shared
+/// [_weaveTheLine] recognizer cannot read it because `_normalize` drops the
+/// bracket first, so `slide` fell back to the taxonomy default `left` and
+/// `(R;L …)` and `(L;R …)` imported identically.
+///
+/// Declines (→ today's reading, `slide` defaulted, bracket kept as a note when
+/// it has prose) unless EXACTLY ONE bracket has the shape `<R|L>;<the other
+/// letter>` optionally followed by a word boundary and more text. A
+/// non-mirrored pair (`R;R`) cannot be shown faithfully — the renderer always
+/// derives the zag as the mirror of the zig (`renderer.dart`) — and a line
+/// that is not `zig_zag` after annotation stripping is not a weave.
+///
+/// The annotation is kept as the note whenever it carries prose (`R;L to N2`:
+/// the destination is not modelled), through the same lowercase shape gate
+/// [_proseAnnotation] applies. A bare `(R;L)` is all-uppercase shorthand that
+/// gate never preserves, and the fact it states now lives in `slide`, so it
+/// gets no note.
+FigureMatch? _weaveSlideAnnotation(String scrubbed) {
+  if (!_weaveAnchor.hasMatch(scrubbed)) return null;
+  final annotations = _parenAnnotations(scrubbed);
+  String? slide;
+  var slideShaped = 0;
+  for (final body in annotations) {
+    final m = _weaveSlideRe.firstMatch(body);
+    if (m == null) continue;
+    final first = m.group(1)!.toUpperCase();
+    final second = m.group(2)!.toUpperCase();
+    slideShaped++;
+    if (first == second) return null;
+    slide = first == 'R' ? 'right' : 'left';
+  }
+  if (slideShaped != 1 || slide == null) return null;
+
+  final match = recognizeSharedFigureLine(
+    scrubbed,
+    recognitionNormalize: _stripAnnotations,
+  );
+  if (match == null || match.moveId != 'zig_zag') return null;
+
+  final prose = annotations
+      .where((b) => _annotationBodyHasLowercase(b) && !_looksLikePerRoleBody(b))
+      .toList();
+  return _withAnnotationNote(
+    match,
+    _joinAnnotations(prose),
+    extraParams: {'slide': slide},
+  );
+}
+
+final RegExp _weaveAnchor = RegExp(r'\bweave\b', caseSensitive: false);
+
+/// `R;L`/`L;R` at the start of a bracket body, then end or whitespace (so
+/// `R;L2`, `R;Lx` and a longer pass list `R;L;R` are not slide-shaped).
+/// Bounded: the body is already capped at 120 characters by
+/// [_parenAnnotationRe].
+final RegExp _weaveSlideRe = RegExp(
+  r'^([RL])\s*;\s*([RL])(?=\s|$)',
+  caseSensitive: false,
+);
 
 // --- Square-bracket annotation classifier (#744) ----------------------------
 

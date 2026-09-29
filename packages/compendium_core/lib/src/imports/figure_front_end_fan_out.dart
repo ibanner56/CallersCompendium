@@ -109,10 +109,17 @@ _AttemptTier _classify(
       result.any((f) => _noteSwallowedCompound(f.note))) {
     return _AttemptTier.none;
   }
-  return result.any((f) => f.note != null)
+  return result.any((f) => f.note != null || _hasCustomDescendant(f))
       ? _AttemptTier.noteBearing
       : _AttemptTier.clean;
 }
+
+/// Whether a container [f] holds a custom child. A container is never itself
+/// [Figure.isCustom], so without this a `meanwhile[long_lines, custom]` built by
+/// one front-end's `while` fan-out would rank [_AttemptTier.clean] and shadow a
+/// later front-end's genuinely structured reading of the same line (#1415).
+bool _hasCustomDescendant(Figure f) =>
+    f.isContainer && f.subFigures.any((c) => c.isCustom || _hasCustomDescendant(c));
 
 /// Runs one [frontEnd] over [rawText] for the PLURAL (free-text entry) path,
 /// returning one [Figure] per emitted clause.
@@ -206,6 +213,15 @@ Figure? _attemptLine(
       frontEnd: frontEnd,
     );
     if (meanwhile != null) return meanwhile;
+    final whileModifier = modifierFromWhile(
+      rawText,
+      beats: beats,
+      progression: progression,
+      taxonomy: taxonomy,
+      scrub: null,
+      frontEnd: frontEnd,
+    );
+    if (whileModifier != null) return whileModifier;
     return parseFigureLine(
       rawText,
       beats: beats,
