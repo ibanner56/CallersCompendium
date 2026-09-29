@@ -9,6 +9,7 @@ export '../export/share_file.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
+import '../data/dance_share_fields_scope.dart';
 import '../export/export_labels_l10n.dart';
 import '../export/program_pdf.dart';
 import '../export/program_share_bundle.dart';
@@ -126,6 +127,24 @@ class ProgramExportMenu extends StatelessWidget {
     return venue == null ? null : sanitizeVenueForShare(venue).displayName;
   }
 
+  /// Resolves [danceId]'s author names via [danceFor] + [choreographerFor] —
+  /// names only, never a [Choreographer] record (same privacy contract as
+  /// the per-dance card at [_plainTextWithFigures]). Works for any dance the
+  /// program references, not just the ones [_orderedExportDances] dedupes,
+  /// so it also resolves a dance with no figures (issue #1434: this is what
+  /// lets the author suffix reach a program whose dances have no figures at
+  /// all, which the figures-appendix opt-in never could).
+  List<String> _authorNamesFor(String danceId) {
+    final dance = danceFor?.call(danceId);
+    if (dance == null) return const [];
+    return [
+      for (final id in dance.authorIds)
+        if (choreographerFor?.call(id)?.name case final String name
+            when name.isNotEmpty)
+          name,
+    ];
+  }
+
   String _plainText(BuildContext context) => programToPlainText(
     program,
     titleFor: titleFor,
@@ -135,6 +154,10 @@ class ProgramExportMenu extends StatelessWidget {
     renderer: FigureRenderer(contraTaxonomy),
     dialect: ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
     canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(context),
+    authorNamesFor:
+        DanceShareFieldsScope.of(context).contains(DanceShareField.authors)
+        ? _authorNamesFor
+        : null,
   );
 
   /// Walks [program.outputGrouped] and yields every primary and alternate dance
@@ -212,15 +235,10 @@ class ProgramExportMenu extends StatelessWidget {
       // Mark alternates on the separator line so the title from
       // danceToPlainText appears exactly once (ruling 8: mark, not duplicate).
       buf.writeln(entry.isAlternate ? '--- $alternate' : '---');
-      // Resolve metadata for the full dance card (ruling 6).
-      // authorNames: names only via choreographerFor — no deviceLocal fields
+      // Resolve metadata for the full dance card (ruling 6). Names only, via
+      // the shared _authorNamesFor resolver — no deviceLocal fields
       // (email/location/deceased) enter because the API accepts List<String>.
-      final authorNames = [
-        for (final id in dance.authorIds)
-          if (choreographerFor?.call(id)?.name case final String name
-              when name.isNotEmpty)
-            name,
-      ];
+      final authorNames = _authorNamesFor(dance.id);
       // Level label mirrors the dance_detail_screen pattern.
       final String? levelLabel;
       final difficultyLevel =
@@ -253,6 +271,7 @@ class ProgramExportMenu extends StatelessWidget {
           ),
           renderer: renderer,
           labels: danceLabels,
+          fields: DanceShareFieldsScope.of(context),
         ),
       );
     }

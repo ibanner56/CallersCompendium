@@ -19,6 +19,7 @@ DanceExportLabels danceExportLabels(AppLocalizations l10n) => DanceExportLabels(
   figures: l10n.exportLabelFigures,
   callingNotes: l10n.exportLabelCallingNotes,
   walkthrough: l10n.exportLabelWalkthrough,
+  tunes: l10n.exportLabelTunes,
   beats: l10n.exportBeatsLabel,
 );
 
@@ -40,6 +41,7 @@ ProgramExportLabels programExportLabels(AppLocalizations l10n) =>
       sponsor: l10n.exportLabelSponsor,
       figures: l10n.exportLabelFigures,
       alternate: l10n.exportIncludeFiguresAlternate,
+      by: l10n.exportSlotAuthorSuffix,
     );
 
 ProgramMatrixExportLabels programMatrixExportLabels(AppLocalizations l10n) =>
