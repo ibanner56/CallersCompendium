@@ -4188,6 +4188,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportLabelWalkthrough => 'ウォークスルー';
 
   @override
+  String get exportLabelTunes => 'チューン';
+
+  @override
+  String exportSlotAuthorSuffix(String names) {
+    return '作: $names';
+  }
+
+  @override
   String exportBeatsLabel(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

@@ -6909,6 +6909,18 @@ abstract class AppLocalizations {
   /// **'Walkthrough'**
   String get exportLabelWalkthrough;
 
+  /// Section heading for the suggested tune list on an exported dance card (plain text and PDF), issue #1434.
+  ///
+  /// In en, this message translates to:
+  /// **'Tunes'**
+  String get exportLabelTunes;
+
+  /// Author-names suffix appended to a numbered set-list slot line, e.g. "1. Waltz Quadrille — by Jane Smith" (issue #1434).
+  ///
+  /// In en, this message translates to:
+  /// **'by {names}'**
+  String exportSlotAuthorSuffix(String names);
+
   /// Beat-count suffix for a figure on an exported dance card, e.g. '16 beats' or '1 beat'.
   ///
   /// In en, this message translates to:

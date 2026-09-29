@@ -1,0 +1,9 @@
+{
+  "id": "1434-share-fields-pdf",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "The Settings › Defaults dance-field checkboxes now take effect on every PDF export: a program's numbered set list gains the same author suffix its text export got, and a program's \"Set list and figures\" appendix card now shows the same formation/level/mixer/status/phrase/calling-notes/walkthrough/tunes fields a single dance's own PDF already did, instead of just its title and figures."
+    ]
+  }
+}

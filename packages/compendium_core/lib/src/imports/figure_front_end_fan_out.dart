@@ -42,6 +42,8 @@ final List<FigureFrontEnd> figureFanOutFrontEnds = List.unmodifiable([
 /// while still honouring precedence WITHIN each tier.
 enum _AttemptTier {
   /// Non-empty, every figure structured (non-custom), and none carries a note.
+  /// A container with a custom child is NOT clean (see [_hasCustomDescendant]):
+  /// it is a partial parse, accepted only when no front-end reads the line whole.
   clean,
 
   /// Structured, but at least one figure carries a note — an acceptable
@@ -109,10 +111,18 @@ _AttemptTier _classify(
       result.any((f) => _noteSwallowedCompound(f.note))) {
     return _AttemptTier.none;
   }
-  return result.any((f) => f.note != null)
+  return result.any((f) => f.note != null || _hasCustomDescendant(f))
       ? _AttemptTier.noteBearing
       : _AttemptTier.clean;
 }
+
+/// Whether a container [f] holds a custom child. A container is never itself
+/// [Figure.isCustom], so without this a `meanwhile[long_lines, custom]` built by
+/// one front-end's `while` fan-out would rank [_AttemptTier.clean] and shadow a
+/// later front-end's genuinely structured reading of the same line (#1415).
+bool _hasCustomDescendant(Figure f) =>
+    f.isContainer &&
+    f.subFigures.any((c) => c.isCustom || _hasCustomDescendant(c));
 
 /// Runs one [frontEnd] over [rawText] for the PLURAL (free-text entry) path,
 /// returning one [Figure] per emitted clause.
@@ -173,7 +183,8 @@ List<Figure> _attemptLines(
 /// `while` simultaneity fan-out IS extended to this path (#591/#572,
 /// maintainer decision 2026-07-31): the reparse-upgrade mechanism exists
 /// precisely to upgrade an old whole-custom figure when recognition
-/// improves, so an old `||`/`while` whole-custom gets the SAME upgrade a
+/// improves, so an old `||`/`while` whole-custom (including a TCB
+/// `<core> while <modifier>` line, [modifierFromWhile]) gets the SAME upgrade a
 /// freshly-imported line does. [tcbFigureFrontEnd] tries
 /// [meanwhileFromDoublePipe] first (falling back to a plain [parseFigureLine]
 /// attempt when it declines — no top-level `||`, or a malformed/oversized
@@ -206,6 +217,15 @@ Figure? _attemptLine(
       frontEnd: frontEnd,
     );
     if (meanwhile != null) return meanwhile;
+    final whileModifier = modifierFromWhile(
+      rawText,
+      beats: beats,
+      progression: progression,
+      taxonomy: taxonomy,
+      scrub: null,
+      frontEnd: frontEnd,
+    );
+    if (whileModifier != null) return whileModifier;
     return parseFigureLine(
       rawText,
       beats: beats,

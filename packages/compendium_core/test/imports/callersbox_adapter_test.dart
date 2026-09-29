@@ -1595,4 +1595,45 @@ void main() {
       });
     });
   });
+
+  group('weave slide and while-modifier through the adapter (#1415)', () {
+    // Synthetic: hand-built from the lines quoted in the issue for dance 6026
+    // (not a verbatim capture of `dance.php?id=6026`).
+    final payload = jsonEncode(
+      _dance(
+        id: '6026',
+        phrases: [
+          _phrase('A1', [
+            '(4) Weave the line with partner (R;L to N2)',
+            '(4) Weave the line with partner (L;R to N2)',
+          ]),
+          _phrase('B2', [
+            '(8) In long lines, go forward and back while N2 neighbor roll '
+                'away (W roll L, M side-step R)',
+          ]),
+        ],
+      ),
+    );
+
+    test('A1 weaves import with their own slide; B2 is a modifier', () async {
+      final draft = await _importOne(payload);
+      final figures = figuresOf(draft.dance);
+      final weaves = figures.where((f) => f.move == 'zig_zag').toList();
+      expect(weaves.map((f) => f.params['slide']), ['right', 'left']);
+      expect(weaves.map((f) => f.params['who']), ['partners', 'partners']);
+      final modifier = figures.singleWhere((f) => f.isModifier);
+      expect(modifier.params['beats'], 8);
+      expect(modifier.subFigures.map((s) => s.move), [
+        'long_lines',
+        'roll_away',
+      ]);
+      expect(figures.where((f) => f.isCustom), isEmpty);
+    });
+
+    test('the imported modifier survives a JSON round-trip', () async {
+      final draft = await _importOne(payload);
+      final modifier = figuresOf(draft.dance).singleWhere((f) => f.isModifier);
+      expect(figureFromJson(figureToJson(modifier)), modifier);
+    });
+  });
 }

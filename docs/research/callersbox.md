@@ -81,7 +81,9 @@ B2: (8) Ladies chain to neighbor / (8) Star left 1
 - People: `N` neighbor (`N2`/`N3` future, `N0`/`N-1` past), `P` partner, `M`/`W`
   role, `S` shadow, `C1..C3` corners, `O` opposite, `TB` trail buddy, `1`/`2`
   ones/twos, `1CC/2CC` contra corners, `SRN` same-role neighbor.
-- Operators: `;` then · `,`/`||` while · `[]` who does it · `()` detail ·
+- Operators: `;` then · `,`/`||` while (a literal `while` also appears in
+  prose, e.g. `long lines … while N2 neighbor roll away (…)`; the importer reads
+  the core+modifier pairings only, #1415) · `[]` who does it · `()` detail ·
   `~` partial hey pass · `//` either-or · `&` in fractions (`1 & 1/2`) ·
   `" "` spoken vs `' '` literal-from-source.
 - Rotation amounts: allemandes in quarters (`allemande left 1 & 1/2`), circles/
