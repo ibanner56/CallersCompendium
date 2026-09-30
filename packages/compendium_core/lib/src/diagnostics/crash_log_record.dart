@@ -30,6 +30,9 @@ class CrashLogRecord {
   /// future format change can be migrated or skipped rather than mis-parsed.
   static const int schemaVersion = 1;
 
+  /// Written in place of a non-empty [errorMessage] by [scrubbed].
+  static const String withheldMessage = '[message withheld from scrubbed export]';
+
   /// When the error was captured, always in UTC.
   final DateTime timestampUtc;
 

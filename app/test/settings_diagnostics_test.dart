@@ -180,6 +180,42 @@ void main() {
     expect(find.text('Diagnostics log exported.'), findsOneWidget);
   });
 
+  testWidgets('default export withholds a message whose value is in no term', (
+    tester,
+  ) async {
+    // The value was never persisted (or was purged), so the provider's term
+    // set does not contain it: only withholding the message protects it.
+    const unsavedValue = 'Nonpersisted Jig';
+    await store.append(
+      CrashLogRecord(
+        timestampUtc: DateTime.utc(2026, 3, 2, 1),
+        appVersion: '0.1.0',
+        platform: 'testos 1.0',
+        source: 'dance_editor._save',
+        errorType: 'StateError',
+        errorMessage: 'Saving "$unsavedValue" failed',
+        stack: '#0 save (package:compendium_app/main.dart:10:3)',
+      ),
+    );
+
+    String? exported;
+    await _pumpDiagnostics(
+      tester,
+      store: store,
+      onExport: (contents) => exported = contents,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('diagnostics-export')));
+    await tester.pumpAndSettle();
+
+    expect(exported, isNotNull);
+    final text = exported!;
+    expect(text, contains('Mode: scrubbed'));
+    expect(text, isNot(contains(unsavedValue)));
+    expect(text, contains('StateError'));
+    expect(text, contains('dance_editor._save'));
+  });
+
   testWidgets('full-detail toggle exports the unredacted log', (tester) async {
     await store.append(_seededRecord());
 

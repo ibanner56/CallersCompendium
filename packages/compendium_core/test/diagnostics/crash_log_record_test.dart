@@ -110,6 +110,40 @@ void main() {
     expect(scrubbed.errorType, 'FormatException');
   });
 
+  test('scrubbed() withholds the message even when no term matches it', () {
+    // A value that was never persisted (or was hard-purged) is absent from the
+    // redactor's term set, so term redaction alone cannot be what protects it.
+    final raw = CrashLogRecord(
+      timestampUtc: DateTime.utc(2026),
+      appVersion: '0.1.0',
+      platform: 'macos',
+      source: 'zone',
+      errorType: 'FormatException',
+      errorMessage: 'could not save "Nonpersisted Jig" (Wren Hollow Hall)',
+      stack: '#0 main (package:compendium_app/main.dart:10:2)',
+    );
+    final scrubbed = raw.scrubbed(CrashRedactor());
+    expect(scrubbed.errorMessage, CrashLogRecord.withheldMessage);
+    expect(scrubbed.errorMessage, isNot(contains('Nonpersisted Jig')));
+    expect(scrubbed.errorMessage, isNot(contains('Wren Hollow Hall')));
+    expect(scrubbed.toReadable(), isNot(contains('Nonpersisted Jig')));
+    expect(scrubbed.errorType, 'FormatException');
+    expect(scrubbed.stack, contains('main.dart:10:2'));
+  });
+
+  test('scrubbed() leaves an empty message empty', () {
+    final raw = CrashLogRecord(
+      timestampUtc: DateTime.utc(2026),
+      appVersion: '0.1.0',
+      platform: 'macos',
+      source: 'zone',
+      errorType: 'StateError',
+      errorMessage: '',
+      stack: '',
+    );
+    expect(raw.scrubbed(CrashRedactor()).errorMessage, isEmpty);
+  });
+
   test('summary and toReadable are concise and complete', () {
     expect(record.summary, 'StateError: Bad state: no active dance');
     final readable = record.toReadable();
