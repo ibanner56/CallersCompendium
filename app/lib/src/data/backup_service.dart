@@ -173,6 +173,8 @@ class BackupRestoreOutcome {
     this.incompleteCore = false,
     this.integrityFailed = false,
     this.settingsFailed = false,
+    this.newerSchema = false,
+    this.missingAppSection = false,
   });
 
   final List<ArchiveError> errors;
@@ -197,6 +199,16 @@ class BackupRestoreOutcome {
   /// checksum** (issue #536) — corrupt or altered file, nothing applied. Lets
   /// the UI say so specifically instead of a generic "invalid file".
   final bool integrityFailed;
+
+  /// Whether a replace was refused because the backup was written under a
+  /// newer schema than this build reads ([BackupReadResult.newerSchema]) —
+  /// restoring it would silently drop the fields this build doesn't know.
+  final bool newerSchema;
+
+  /// Whether a replace was refused because the backup has no `app` section
+  /// ([BackupReadResult.hasAppSection]), so it cannot say what the preferences,
+  /// themes and dialects should become. Nothing was written.
+  final bool missingAppSection;
 
   /// Whether the **core** content restored and committed successfully but the
   /// subsequent **app-settings** apply step failed (issue #608).
