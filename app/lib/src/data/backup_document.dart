@@ -11,7 +11,8 @@ import 'custom_theme.dart';
 /// The reader is forward-compatible in the spirit of the 6.6 core codec: it
 /// tolerates unknown keys, treats a missing version as the current one, and
 /// reads a newer version on a best-effort basis with a warning rather than
-/// failing.
+/// failing — but flags it ([BackupReadResult.newerSchema]) so a destructive
+/// replace restore refuses it (`BackupService.restoreFromJson`).
 const int backupSchemaVersion = 1;
 
 /// Current version of the backup **container** envelope (issue #536).
@@ -271,8 +272,11 @@ BackupReadResult _fatalBackup(String message) => BackupReadResult(
 
 /// Decodes a backup string into a [BackupDocument]. Forward-compatible and
 /// partial-failure tolerant: unknown keys are ignored, a newer `backupVersion`
-/// reads best-effort with a warning, and a malformed section is skipped and
-/// recorded in [BackupReadResult.errors] while the rest still loads.
+/// (or core `schemaVersion`) reads best-effort with a warning and sets
+/// [BackupReadResult.newerSchema], and a malformed section is skipped and
+/// recorded in [BackupReadResult.errors] while the rest still loads. Which
+/// `app` sections were actually present is reported on the result, because an
+/// absent section decodes to the same empty value as an empty one.
 ///
 /// Accepts two shapes (issue #536):
 /// - the current **container** — `{backupContainer, checksum, payload}` — whose
@@ -588,7 +592,7 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
     final rawSettings = app['settings'];
     if (rawSettings is Map) {
       hasSettingsSection = true;
-      settings =rawSettings.cast<String, Object?>();
+      settings = rawSettings.cast<String, Object?>();
     }
   }
 

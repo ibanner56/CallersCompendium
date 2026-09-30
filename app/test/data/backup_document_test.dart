@@ -109,23 +109,28 @@ void main() {
     expect(decoded.document.schemaVersion, 999);
   });
 
-  test('a newer backupVersion or newer core schemaVersion sets newerSchema', () {
-    expect(
-      decodeBackup('{"backupVersion": 999, "core": {}, "app": {}}').newerSchema,
-      isTrue,
-    );
-    expect(
-      decodeBackup(
-        '{"backupVersion": 1, "app": {}, '
-        '"core": {"schemaVersion": ${archiveSchemaVersion + 1}}}',
-      ).newerSchema,
-      isTrue,
-    );
-    expect(
-      decodeBackup('{"backupVersion": 1, "core": {}, "app": {}}').newerSchema,
-      isFalse,
-    );
-  });
+  test(
+    'a newer backupVersion or newer core schemaVersion sets newerSchema',
+    () {
+      expect(
+        decodeBackup(
+          '{"backupVersion": 999, "core": {}, "app": {}}',
+        ).newerSchema,
+        isTrue,
+      );
+      expect(
+        decodeBackup(
+          '{"backupVersion": 1, "app": {}, '
+          '"core": {"schemaVersion": ${archiveSchemaVersion + 1}}}',
+        ).newerSchema,
+        isTrue,
+      );
+      expect(
+        decodeBackup('{"backupVersion": 1, "core": {}, "app": {}}').newerSchema,
+        isFalse,
+      );
+    },
+  );
 
   test('app section presence is tracked per section', () {
     BackupReadResult read(String app) =>
