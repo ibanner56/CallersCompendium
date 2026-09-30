@@ -266,13 +266,17 @@ class _GeneralSectionState extends State<GeneralSection> {
         if (!mounted) return;
         // Distinguish the refusal reasons so the user gets an accurate message:
         // a failed integrity checksum (corrupt/altered file, #536), a
-        // valid-but-incomplete backup refused to protect live data (#430), or a
-        // genuinely unreadable file.
+        // valid-but-incomplete backup refused to protect live data (#430), a
+        // backup from a newer schema, a backup with no app section (replace
+        // would clear settings it never described), or a genuinely unreadable
+        // file.
         final String message;
         if (outcome.integrityFailed) {
           message = l10n.backupRestoreIntegrityFailed;
-        } else if (outcome.incompleteCore) {
+        } else if (outcome.incompleteCore || outcome.newerSchema) {
           message = l10n.backupRestoreIncompatibleVersion;
+        } else if (outcome.missingAppSection) {
+          message = l10n.backupRestoreMissingAppSection;
         } else {
           message = l10n.backupRestoreInvalidFile;
         }
