@@ -1,0 +1,16 @@
+{
+  "id": "tombstoned-tag-associations",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "If you delete a tag, edit a dance that had it, and then restore the tag, the dance now has the tag again instead of losing it when it was edited.",
+      "A full backup now keeps tags you have deleted, so restoring the backup and then restoring a deleted tag brings back the dances it was on."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "`DanceRepository` writes no longer delete a dance's `dance_tags` rows for tombstoned tags, so an unrelated edit (or a sync-applied body) does not destroy the association a tag tombstone retains.",
+      "Full backups carry tombstoned tags and their retained dance joins in a new `deletedTags` archive array (schema v7, backup mode only, stamped only when one exists), and replace/merge restore re-applies them."
+    ]
+  }
+}
