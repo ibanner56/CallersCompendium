@@ -47,6 +47,24 @@ class CollectionData {
 
   final Map<String, Dance> dancesById;
 
+  late final Map<String, CustomFieldDef> _customFieldsById = {
+    for (final d in customFieldDefs) d.id: d,
+  };
+  late final Map<String, Tag> _tagsById = {for (final t in tags) t.id: t};
+  late final Map<String, PublishedSource> _sourcesById = {
+    for (final s in citedSources) s.id: s,
+  };
+
+  /// Resolves a custom-field definition (private ones included) by id, for
+  /// share paths that must know each field's `shareable` flag.
+  CustomFieldDef? customFieldFor(String id) => _customFieldsById[id];
+
+  /// Resolves a tag carried by a live dance, by id.
+  Tag? tagFor(String id) => _tagsById[id];
+
+  /// Resolves a published source cited by a dance, by id.
+  PublishedSource? publishedSourceFor(String id) => _sourcesById[id];
+
   /// All choreographers keyed by id, so a share/export path can resolve a
   /// dance's `authorIds` to full [Choreographer] records (mirrors [dancesById]).
   final Map<String, Choreographer> choreographersById;

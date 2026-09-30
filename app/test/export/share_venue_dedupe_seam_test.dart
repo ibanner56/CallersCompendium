@@ -99,6 +99,9 @@ void main() {
         _program,
         danceFor: (id) => id == 'd1' ? _dance : null,
         choreographerFor: (_) => null,
+        tagFor: (_) => null,
+        publishedSourceFor: (_) => null,
+        customFieldFor: (_) => null,
         venueFor: (id) => id == 'v1' ? _venue() : null,
         now: _now,
       );

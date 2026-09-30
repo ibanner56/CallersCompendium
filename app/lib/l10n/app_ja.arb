@@ -2020,6 +2020,10 @@
   "@backupRestoreIncompatibleVersion": {
     "x-sourceSha256": "4cca4f4742b1bcd00ac4a601911f0c19d6796b9029987531919994b579d25f26"
   },
+  "backupRestoreMissingAppSection": "このバックアップにはアプリの設定、テーマ、ダイアレクトが含まれていないため、現在のデータを置き換えることはできません。復元はキャンセルされました。データは変更されていません。",
+  "@backupRestoreMissingAppSection": {
+    "x-sourceSha256": "b55cd0d43e0c720326340fc6ca5c699881b6c66fee51287d9efcd49ef3da7424"
+  },
   "backupRestoreInvalidFile": "復元できません：有効なバックアップファイルではありません。データは変更されていません。",
   "@backupRestoreInvalidFile": {
     "x-sourceSha256": "0c5e97241e94cd45d0deaa203216594b06f2561c8f017282adcefc77dcab19d4"

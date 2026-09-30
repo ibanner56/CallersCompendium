@@ -1853,6 +1853,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Diese Sicherung enthält Elemente, die diese App-Version nicht lesen kann (sie stammt möglicherweise von einer neueren Version), daher wurde die Wiederherstellung abgebrochen. Ihre Daten sind unverändert.';
 
   @override
+  String get backupRestoreMissingAppSection =>
+      'Diese Sicherung enthält Ihre App-Einstellungen, Designs und Dialekte nicht und kann Ihre aktuellen Daten daher nicht ersetzen. Die Wiederherstellung wurde abgebrochen. Ihre Daten sind unverändert.';
+
+  @override
   String get backupRestoreInvalidFile =>
       'Wiederherstellung fehlgeschlagen: Die Datei ist keine gültige Sicherung. Ihre Daten sind unverändert.';
 

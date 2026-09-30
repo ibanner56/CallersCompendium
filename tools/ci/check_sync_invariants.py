@@ -77,6 +77,17 @@ APPLY_UNDO_EXCLUSION_RE = re.compile(
     r"sync-invariant-exclusion:\s*apply-undo\b[^\n]*",
     re.IGNORECASE,
 )
+# Raw `UPDATE ... SET updated_at` on a sync-record table whose body changed
+# through a *join*, not through a column of that row: a dance's wire body
+# carries a custom-field value only while its definition is live and shareable,
+# so the definition's write changes the dance without touching the dance's row.
+# I2's column check cannot see that. Its own pattern for the same reason as
+# `apply-undo` above: it is consulted by the raw-SQL I2 check alone, so it
+# excuses nothing about I1 and nothing about the typed-write boundary.
+JOIN_HYDRATED_BODY_RE = re.compile(
+    r"sync-invariant-exclusion:\s*join-hydrated-body\b[^\n]*",
+    re.IGNORECASE,
+)
 SOFT_JOIN_EXCEPTION_RE = re.compile(
     r"sync-invariant-exception:\s*soft-delete-join\b[^\n]*",
     re.IGNORECASE,
@@ -557,6 +568,7 @@ def _write_violations(source: str, path: str) -> list[Violation]:
                 and not content_columns
                 and not has_existence
                 and not _exception_on_line(source, line, NON_SYNC_WRITE_EXCLUSION_RE)
+                and not _exception_on_line(source, line, JOIN_HYDRATED_BODY_RE)
             ):
                 violations.append(
                     Violation(

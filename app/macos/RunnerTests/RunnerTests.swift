@@ -43,3 +43,73 @@ class RunnerTests: XCTestCase {
   }
 
 }
+
+/// Bounded staging of incoming files (`IncomingFileStager`): an over-cap file is
+/// refused without leaving a staged copy behind, and an at-cap file still stages.
+/// Runs against throwaway temp directories.
+final class IncomingFileStagerTests: XCTestCase {
+  private var workDirectory: URL!
+
+  override func setUpWithError() throws {
+    try super.setUpWithError()
+    workDirectory = FileManager.default.temporaryDirectory
+      .appendingPathComponent("IncomingFileStagerTests-\(UUID().uuidString)", isDirectory: true)
+    try FileManager.default.createDirectory(
+      at: workDirectory, withIntermediateDirectories: true)
+  }
+
+  override func tearDownWithError() throws {
+    if let workDirectory {
+      try? FileManager.default.removeItem(at: workDirectory)
+    }
+    workDirectory = nil
+    try super.tearDownWithError()
+  }
+
+  private func makeSource(bytes: Int) throws -> URL {
+    let url = workDirectory.appendingPathComponent("source-\(UUID().uuidString).json")
+    try Data(repeating: 0x61, count: bytes).write(to: url)
+    return url
+  }
+
+  private var stagingDirectory: URL {
+    workDirectory.appendingPathComponent("staging", isDirectory: true)
+  }
+
+  private func stagedFiles() -> [URL] {
+    (try? FileManager.default.contentsOfDirectory(
+      at: stagingDirectory, includingPropertiesForKeys: nil)) ?? []
+  }
+
+  func testFileAtTheCapIsStaged() throws {
+    let source = try makeSource(bytes: 100)
+
+    let outcome = IncomingFileStager.stage(source, into: stagingDirectory, maxBytes: 100)
+
+    guard case .copied(let path) = outcome else {
+      return XCTFail("expected .copied, got \(outcome)")
+    }
+    XCTAssertTrue(FileManager.default.fileExists(atPath: path))
+  }
+
+  func testFileOverTheCapIsRefusedAndNothingIsStaged() throws {
+    let source = try makeSource(bytes: 101)
+
+    let outcome = IncomingFileStager.stage(source, into: stagingDirectory, maxBytes: 100)
+
+    XCTAssertEqual(outcome, .tooLarge)
+    XCTAssertTrue(stagedFiles().isEmpty)
+  }
+
+  func testNonFileURLFails() {
+    let outcome = IncomingFileStager.stage(
+      URL(string: "https://example.com/a.json")!, into: stagingDirectory)
+
+    XCTAssertEqual(outcome, .failed)
+  }
+
+  /// The cap in the stager is the same 25 MiB Dart enforces.
+  func testDefaultCapIs25MiB() {
+    XCTAssertEqual(IncomingFileStager.maxBytes, 25 * 1024 * 1024)
+  }
+}

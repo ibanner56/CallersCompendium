@@ -1863,6 +1863,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Cette sauvegarde contient des éléments que cette version de l’application ne peut pas lire (elle provient peut-être d’une version plus récente), donc la restauration a été annulée. Vos données sont inchangées.';
 
   @override
+  String get backupRestoreMissingAppSection =>
+      'Cette sauvegarde n’inclut pas les réglages, thèmes ou dialectes de l’application, elle ne peut donc pas remplacer vos données actuelles. La restauration a été annulée et vos données sont inchangées.';
+
+  @override
   String get backupRestoreInvalidFile =>
       'Impossible de restaurer : le fichier n’est pas une sauvegarde valide. Vos données sont inchangées.';
 
