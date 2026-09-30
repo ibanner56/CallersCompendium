@@ -15,6 +15,7 @@ import '../../model/figure.dart';
 import '../../model/formation.dart';
 import '../../imports/reparse_custom_figures.dart';
 import '../../model/partial_date.dart';
+import '../../model/phrase_structure.dart';
 import '../../model/provenance.dart' as model;
 import '../../model/source_citation.dart';
 import '../../search/search_sort.dart';
@@ -2751,7 +2752,9 @@ class DanceRepository {
       form: row.form,
       formation: Formation(row.formationShape, detail: row.formationDetail),
       progression: row.progression,
-      phraseStructure: row.phraseStructure,
+      // Tolerant: the editor and importers once accepted unbounded counts, so
+      // a stored value may be out of bounds; it must not block loading.
+      phraseStructure: PhraseStructure.parseOrStandard(row.phraseStructure).raw,
       figuresSource: _figureSourceFor(row.figuresJson),
       hook: row.hook,
       callingNotes: row.callingNotes,

@@ -96,7 +96,7 @@ void main() {
         '1*1*1001',
         // Every component is within its own bound; the totals are not.
         '600*1*1 + 401*1*1',
-        '1000*1000*1',
+        '1000*1000*2',
         // 65 components, each valid.
         List.filled(65, '1*1*1').join(' + '),
         // Wraps an int64 product to a non-positive total if unchecked.
