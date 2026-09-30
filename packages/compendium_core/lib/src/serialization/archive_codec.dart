@@ -78,13 +78,18 @@ Map<String, Object?> archiveToJson(
     for (final f in archive.customFields)
       if (mode == ArchiveSerializationMode.share && !f.shareable) f.id,
   };
+  // Share mode never writes `deletedTags`, so they must not raise the stamp.
+  final requiredVersion = requiredSchemaVersion(
+    archive,
+    includeDeletedTags: mode == ArchiveSerializationMode.backup,
+  );
   return {
     // Stamp at least the version the content requires so an older reader warns
     // rather than silently dropping fields, while honoring an explicitly
     // higher requested version.
-    'schemaVersion': archive.schemaVersion > requiredSchemaVersion(archive)
+    'schemaVersion': archive.schemaVersion > requiredVersion
         ? archive.schemaVersion
-        : requiredSchemaVersion(archive),
+        : requiredVersion,
     'exportedAt': archiveIso(archive.exportedAt),
     'choreographers': [
       for (final c in _sortedById(archive.choreographers, (c) => c.id))

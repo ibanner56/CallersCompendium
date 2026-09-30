@@ -389,14 +389,20 @@ class TagRepository {
         final byId = await (_db.select(
           _db.tags,
         )..where((t) => t.id.equals(tag.id))).getSingleOrNull();
-        if (byId != null) return byId.deletedAt == null ? null : byId.id;
-        final heldBy = await idByName(tag.name, includeDeleted: true);
-        if (heldBy != null) {
-          final holder = await (_db.select(
-            _db.tags,
-          )..where((t) => t.id.equals(heldBy))).getSingle();
-          return holder.deletedAt == null ? null : holder.id;
+        final heldByName = await idByName(tag.name, includeDeleted: true);
+        final byName = heldByName == null || heldByName == byId?.id
+            ? null
+            : await (_db.select(
+                _db.tags,
+              )..where((t) => t.id.equals(heldByName))).getSingle();
+        // Any live holder of the id or the name blocks the tombstone, whichever
+        // of the two it holds.
+        if ((byId != null && byId.deletedAt == null) ||
+            (byName != null && byName.deletedAt == null)) {
+          return null;
         }
+        if (byId != null) return byId.id;
+        if (byName != null) return byName.id;
         final id = await upsert(tag, at: at);
         await delete(id, at: at);
         return id;

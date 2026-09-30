@@ -126,7 +126,14 @@ const int archiveSchemaVersionDeletedTags = 7;
 /// venue-bearing archives always advertise v2 (old readers warn instead of
 /// dropping venues) while venue-less archives stay backward-compatible at v1 —
 /// and an explicitly higher requested version is still honored.
-int requiredSchemaVersion(CompendiumArchive archive) {
+///
+/// [includeDeletedTags] is `false` when the archive is being encoded for
+/// sharing, where `deletedTags` is never written, so it must not raise the
+/// stamp either.
+int requiredSchemaVersion(
+  CompendiumArchive archive, {
+  bool includeDeletedTags = true,
+}) {
   final hasDifficulty =
       archive.difficultyLevels.isNotEmpty ||
       archive.dances.any((d) => d.difficultyLevelId != null);
@@ -138,7 +145,9 @@ int requiredSchemaVersion(CompendiumArchive archive) {
   // list requires v6, and only if there is none does an undecodable
   // transcription pull the archive to v5. Keep new cases in descending version
   // order or a lower version will shadow a higher one.
-  if (archive.deletedTags.isNotEmpty) return archiveSchemaVersionDeletedTags;
+  if (includeDeletedTags && archive.deletedTags.isNotEmpty) {
+    return archiveSchemaVersionDeletedTags;
+  }
   if (archive.dances.any((d) => d.tunesSource is UnreadableTunes)) {
     return archiveSchemaVersionUnreadableTunes;
   }

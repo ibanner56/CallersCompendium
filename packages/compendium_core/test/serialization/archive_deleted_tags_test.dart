@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 // A full backup must carry a deleted tag and the `dance_tags` rows that
 // `TagRepository.delete` deliberately retains, so that restoring the tag after
 // a backup/restore round trip brings its dances back.
@@ -114,6 +116,10 @@ void main() {
     final shared = encodeArchive(archive);
     expect(shared, isNot(contains('deletedTags')));
     expect(shared, isNot(contains('Easy')));
+    expect(
+      (jsonDecode(shared) as Map<String, Object?>)['schemaVersion'],
+      lessThan(archiveSchemaVersionDeletedTags),
+    );
   });
 
   test('a backup without deleted items omits the tombstones', () async {
@@ -168,6 +174,25 @@ void main() {
     expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
     expect((await target.tags.getById('t1'))?.name, 'Renamed');
   });
+
+  test(
+    'a live name holder blocks a tombstone that holds only the id',
+    () async {
+      final at = DateTime.utc(2026, 7);
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't1', name: 'Old'));
+      await repos.tags.delete('t1', at: at);
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't2', name: 'Easy'));
+
+      final adopted = await repos.tags.restoreArchivedTombstone(
+        Tag(id: 't1', name: 'Easy'),
+        at: at,
+      );
+
+      expect(adopted, isNull);
+    },
+  );
 
   test('a retained join naming a dance that is not there is ignored', () async {
     final archive = CompendiumArchive(
