@@ -414,7 +414,8 @@ Entries marked ⚠ contain a point we specifically want reviewers to check.
 The second transcription batch (§3) doesn't overturn any decision in §5.
 It does do three things:
 
-- It exposes figures that are missing from the registry.
+- It exposed figures missing from the first registry. Four have since been
+  added to §7; *up a double and back* is still open.
 - It gives enough examples of **lead** and **cast** to start defining them.
 - It shows a few places where the draft parameters don't match how
   captions actually express extent.
@@ -422,7 +423,7 @@ It does do three things:
 Counts below are for the second batch only (12 dances, 100 captions) unless
 stated. Each count is of captions, not of performances.
 
-**Figures that appear in the transcriptions but not in §7:**
+**Figures the transcriptions showed were missing from the first registry:**
 
 | Figure as captioned | Where | Observation |
 | --- | --- | --- |
