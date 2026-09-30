@@ -382,8 +382,9 @@ void main() {
           '${initial.blobDirectory.path}/$idKey/$epoch/zz/zz/$stray',
         )..parent.createSync(recursive: true);
         wrongShard.writeAsBytesSync([0]);
-        File('${initial.blobDirectory.path}/$idKey/$epoch/not-a-hash')
-            .writeAsBytesSync([0]);
+        File(
+          '${initial.blobDirectory.path}/$idKey/$epoch/not-a-hash',
+        ).writeAsBytesSync([0]);
       }
       initial.close();
 

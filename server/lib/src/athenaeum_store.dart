@@ -13,10 +13,8 @@ import 'athenaeum_schema.dart';
 
 typedef DirectoryDelete = void Function(Directory directory);
 typedef FileDelete = void Function(File file);
-typedef AthenaeumOperationalFailureSink = void Function(
-  String source,
-  Object error,
-);
+typedef AthenaeumOperationalFailureSink =
+    void Function(String source, Object error);
 
 class AthenaeumQuotaLimits {
   const AthenaeumQuotaLimits({
