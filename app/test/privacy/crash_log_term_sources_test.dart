@@ -17,6 +17,10 @@
 /// the whole row — contact names, street address, locality — into the crash
 /// record's `errorMessage`, and the export scrubs only what it has terms for.
 ///
+/// (Superseded for the message itself: `CrashLogRecord.scrubbed` now withholds
+/// `errorMessage` entirely, so this list is defence in depth for the stack and
+/// other redacted text, not the only barrier.)
+///
 /// Shape follows `share_bundle_egress_test.dart` and the coverage ratchet in
 /// `packages/compendium_core/test/privacy/`: derive the required set from the
 /// real artefact (every TEXT column whose registry subject is `thirdParty` or

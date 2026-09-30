@@ -87,8 +87,8 @@ class _DiagnosticsSectionState extends State<DiagnosticsSection> {
       ..writeln(
         full
             ? 'Mode: FULL DETAIL — may contain your content and file paths'
-            : 'Mode: scrubbed — user content, file paths, emails, and phone '
-                  'numbers removed',
+            : 'Mode: scrubbed — error messages, user content, file paths, '
+                  'emails, and phone numbers removed',
       )
       ..writeln('Records: ${records.length}')
       ..writeln('=' * 60);
