@@ -692,6 +692,38 @@ void main() {
       expect(sink.closeCalls, 1);
       expect(dest.existsSync(), isFalse);
     });
+
+    test(
+      'cancelling while a flush never settles still resolves promptly',
+      () async {
+        final flushGate = Completer<void>(); // never completed
+        final sink = _FakeSink(flushGate: flushGate);
+        final body = StreamController<List<int>>();
+        final token = DownloadCancelToken();
+        const total = half * 4;
+
+        final result = downloadArtifact(
+          _artifact(size: total),
+          destination: _SinkFile(dest, sink),
+          client: bodyClient(body, total),
+          cancelToken: token,
+        );
+        await listening(body);
+        body.add(bytes(half));
+        body.add(bytes(half));
+        await pump();
+        expect(body.isPaused, isTrue);
+
+        token.cancel();
+        final outcome = await result.timeout(
+          kDownloadCancelPollInterval * 10,
+          onTimeout: () => fail('cancel hung behind a stuck flush'),
+        );
+        expect(outcome.kind, DownloadResultKind.cancelled);
+        expect(sink.closeCalls, 1);
+        expect(dest.existsSync(), isFalse);
+      },
+    );
   });
 }
 

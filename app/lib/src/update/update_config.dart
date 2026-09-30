@@ -115,6 +115,10 @@ const int kMaxArtifactDownloadBytes = 1024 * 1024 * 1024;
 /// roughly this value (plus one chunk) instead of the whole artifact.
 const int kDownloadWriteHighWaterBytes = 1024 * 1024;
 
+/// How often [downloadArtifact] polls its cancel token while the response is
+/// paused waiting for a sink flush (no chunk arrives to observe it then).
+const Duration kDownloadCancelPollInterval = Duration(milliseconds: 200);
+
 /// The maximum number of HTTP redirects [downloadArtifact] follows before giving
 /// up. Redirects are followed **manually** so each hop can be re-validated as
 /// https (GitHub serves release assets via an `https → https` redirect); this

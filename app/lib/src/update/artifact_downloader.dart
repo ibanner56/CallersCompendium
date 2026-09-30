@@ -21,7 +21,8 @@ import 'update_config.dart';
 import 'update_manifest.dart';
 
 /// A cooperative cancel signal for an in-flight [downloadArtifact]. The engine
-/// checks [isCancelled] as each chunk arrives and aborts (deleting the partial
+/// checks [isCancelled] as each chunk arrives (and on a short poll while reads
+/// are paused for a sink flush) and aborts (deleting the partial
 /// file) the moment it is set, so a user "Cancel" resolves promptly.
 class DownloadCancelToken {
   bool _cancelled = false;
@@ -136,7 +137,8 @@ typedef ArtifactDownloader =
 /// sha256 gate). An **idle timeout** ([kUpdateDownloadTimeout]) guards a stalled
 /// connection without capping a legitimately long transfer (it is suspended
 /// while reads are paused for a flush, so a slow disk is not reported as a stalled
-/// connection, which also means a write that never completes is not timed out),
+/// connection; a flush that never completes is bounded by a separate write
+/// watchdog of the same duration),
 /// and the transfer is
 /// aborted the moment it would exceed the manifest's declared `size` (or
 /// [kMaxArtifactDownloadBytes] when the artifact is unsized) so an oversized
@@ -312,19 +314,41 @@ Future<DownloadOutcome> downloadArtifact(
         // mark of bytes is pending, stop reading until the sink has flushed them.
         // While paused no event (chunk, error, done) is delivered, so nothing
         // else can touch the sink or complete [done] until the flush settles.
-        // The idle timer is stopped meanwhile: a slow disk is not a stalled
-        // connection, and the timer is re-armed on resume.
+        // While paused, `onData` cannot observe cancellation and the idle timer
+        // does not apply (a slow disk is not a stalled connection), so two
+        // timers stand in: a write watchdog bounding the flush by
+        // [kUpdateDownloadTimeout], and a short poll of [cancelToken]. Either
+        // completes [done]; the flush/close below then runs as usual.
         if (unflushed >= kDownloadWriteHighWaterBytes) {
           unflushed = 0;
           idle?.cancel();
+          final watchdog = Timer(kUpdateDownloadTimeout, () {
+            if (!done.isCompleted) {
+              done.complete(DownloadOutcome.networkError('file write stalled'));
+            }
+          });
+          final cancelPoll = cancelToken == null
+              ? null
+              : Timer.periodic(kDownloadCancelPollInterval, (_) {
+                  if (cancelToken.isCancelled && !done.isCompleted) {
+                    done.complete(DownloadOutcome.cancelled());
+                  }
+                });
+          void stopGuards() {
+            watchdog.cancel();
+            cancelPoll?.cancel();
+          }
+
           sub.pause();
           sink.flush().then(
             (_) {
+              stopGuards();
               if (done.isCompleted) return;
               bumpIdle();
               sub.resume();
             },
             onError: (Object e) {
+              stopGuards();
               // diagnostics: silent — returns DownloadOutcome to the
               // update-layer caller, not UI.
               if (!done.isCompleted) {
@@ -368,6 +392,22 @@ Future<DownloadOutcome> downloadArtifact(
     // hand a partial/corrupt file to sha256 verification or the OS handoff.
     // (A non-success outcome already deletes the file below, so its kind is
     // preserved even if the close also fails.)
+    //
+    // A non-success outcome (cancel, stall, over-budget) discards the file, so
+    // there is nothing to flush: close without awaiting. Awaiting here would
+    // re-block on the very flush a cancel or write watchdog just gave up on.
+    if (!outcome.isSuccess) {
+      sinkClosed = true;
+      unawaited(
+        sink.close().then<void>(
+          (_) {},
+          // diagnostics: silent — the outcome is already determined; the file
+          // is discarded.
+          onError: (Object _) {},
+        ),
+      );
+      return outcome;
+    }
     try {
       await sink.flush();
       await sink.close();
