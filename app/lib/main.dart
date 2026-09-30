@@ -825,26 +825,19 @@ class _CompendiumAppState extends State<CompendiumApp> {
       return;
     }
     try {
+      // Native refused to stage an over-cap file: there is no path to read or
+      // delete, so surface the same rejection intake would have produced.
+      if (incomingFile.rejection == IncomingFileRejection.tooLarge) {
+        if (!mounted) return;
+        _showIncomingFileRejection(ArchiveIntakeRejectionReason.tooLarge);
+        return;
+      }
       final intake = ArchiveIntakeService(readBytes: widget.incomingFileReader);
       final validation = await intake.validateFromPath(incomingFile.path);
       if (!mounted) return;
 
       if (validation.isRejected) {
-        final messenger = _messengerKey.currentState;
-        final messengerContext = _messengerKey.currentContext;
-        if (messenger != null &&
-            messengerContext != null &&
-            messengerContext.mounted) {
-          final l10n = AppLocalizations.of(messengerContext);
-          messenger.showSnackBar(
-            SnackBar(
-              key: const ValueKey('shared-import-error'),
-              content: Text(
-                archiveIntakeRejectionMessage(l10n, validation.reason!),
-              ),
-            ),
-          );
-        }
+        _showIncomingFileRejection(validation.reason!);
         return;
       }
 
@@ -863,6 +856,23 @@ class _CompendiumAppState extends State<CompendiumApp> {
     } finally {
       await _cleanupOwnedIncomingFile(incomingFile.path);
     }
+  }
+
+  void _showIncomingFileRejection(ArchiveIntakeRejectionReason reason) {
+    final messenger = _messengerKey.currentState;
+    final messengerContext = _messengerKey.currentContext;
+    if (messenger == null ||
+        messengerContext == null ||
+        !messengerContext.mounted) {
+      return;
+    }
+    final l10n = AppLocalizations.of(messengerContext);
+    messenger.showSnackBar(
+      SnackBar(
+        key: const ValueKey('shared-import-error'),
+        content: Text(archiveIntakeRejectionMessage(l10n, reason)),
+      ),
+    );
   }
 
   void _trackOwnedIncomingFile(IncomingFile incomingFile) {
