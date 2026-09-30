@@ -61,6 +61,16 @@ import 'share_sanitization.dart';
 /// unsanitized venue. All venue-descriptive fields (name/address/schedule/…)
 /// are kept, matching the choreographer precedent.
 ///
+/// [tagFor], [publishedSourceFor] and [customFieldFor] resolve the tags,
+/// published sources and custom-field definitions the bundled dances reference,
+/// so a recipient can import those dances completely. They are **required and
+/// strict**: an id that resolves to nothing throws a [StateError] (as
+/// `buildDanceShareBundle` does). This is a privacy guard, not just
+/// completeness — a custom field whose `shareable` flag is `false` has its
+/// definition **and every value** dropped by [encodeArchive], but only for
+/// definitions present in the archive; without the definition the value would
+/// be emitted.
+///
 /// [now] stamps the archive's `exportedAt`; it defaults to the current time and
 /// is injectable for deterministic tests.
 ///
@@ -86,6 +96,9 @@ String buildProgramShareBundle(
   required Dance? Function(String danceId) danceFor,
   required Choreographer? Function(String id) choreographerFor,
   required Venue? Function(String venueId) venueFor,
+  required Tag? Function(String id) tagFor,
+  required PublishedSource? Function(String id) publishedSourceFor,
+  required CustomFieldDef? Function(String id) customFieldFor,
   DifficultyLevel? Function(String id)? difficultyLevelFor,
   Set<VenueContactField> includeVenueContact = const {},
   DateTime? now,
@@ -124,6 +137,47 @@ String buildProgramShareBundle(
     }
   }
 
+  // Definitions for everything the bundled dances reference. Unlike the
+  // best-effort lookups above, these are strict (mirrors
+  // `buildDanceShareBundle`): the archive codec decides which custom-field
+  // values to omit from the *definitions* it is given, so a definition that
+  // cannot be resolved means its `shareable` flag is unknown and the share must
+  // fail rather than emit the value.
+  final tags = <Tag>[];
+  final seenTags = <String>{};
+  final sources = <PublishedSource>[];
+  final seenSources = <String>{};
+  final customFields = <CustomFieldDef>[];
+  final seenFields = <String>{};
+  for (final dance in dances) {
+    for (final id in dance.tagIds) {
+      if (!seenTags.add(id)) continue;
+      final tag = tagFor(id);
+      if (tag == null) throw StateError('dance references missing tag "$id"');
+      tags.add(tag);
+    }
+    for (final citation in dance.sourceCitations) {
+      if (!seenSources.add(citation.sourceId)) continue;
+      final source = publishedSourceFor(citation.sourceId);
+      if (source == null) {
+        throw StateError(
+          'dance references missing published source "${citation.sourceId}"',
+        );
+      }
+      sources.add(source);
+    }
+    for (final value in dance.customFields) {
+      if (!seenFields.add(value.fieldId)) continue;
+      final field = customFieldFor(value.fieldId);
+      if (field == null) {
+        throw StateError(
+          'dance references missing custom field "${value.fieldId}"',
+        );
+      }
+      customFields.add(field);
+    }
+  }
+
   final difficultyLevels = <DifficultyLevel>[];
   final seenLevels = <String>{};
   for (final dance in dances) {
@@ -149,6 +203,9 @@ String buildProgramShareBundle(
       dances: dances,
       choreographers: choreographers,
       venues: venues,
+      publishedSources: sources,
+      customFields: customFields,
+      tags: tags,
       difficultyLevels: difficultyLevels,
     ),
     mode: ArchiveSerializationMode.share,

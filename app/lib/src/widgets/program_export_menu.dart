@@ -64,6 +64,9 @@ class ProgramExportMenu extends StatelessWidget {
     this.venuesById = const {},
     this.danceFor,
     this.choreographerFor,
+    this.tagFor,
+    this.publishedSourceFor,
+    this.customFieldFor,
     this.difficultyLevelFor,
     this.shareInvoker,
     this.bundleFileWriter,
@@ -92,6 +95,17 @@ class ProgramExportMenu extends StatelessWidget {
   /// best-effort: an unresolved id is simply omitted from the bundle.
   final Choreographer? Function(String id)? choreographerFor;
   final DifficultyLevel? Function(String danceId)? difficultyLevelFor;
+
+  /// Resolve the tags, published sources and custom-field definitions that the
+  /// bundled dances reference. Strict, unlike [choreographerFor]: an unresolved
+  /// id makes the share fail (nothing is written) instead of being skipped,
+  /// because a missing custom-field definition means its `shareable` flag is
+  /// unknown and a private value could otherwise leave the device. When `null`,
+  /// nothing resolves, so a dance carrying any tag, source or custom-field
+  /// value cannot be shared through this menu.
+  final Tag? Function(String id)? tagFor;
+  final PublishedSource? Function(String id)? publishedSourceFor;
+  final CustomFieldDef? Function(String id)? customFieldFor;
 
   /// Test seam for the share call; defaults to [SharePlus.instance.share].
   final ShareInvoker? shareInvoker;
@@ -348,7 +362,9 @@ class ProgramExportMenu extends StatelessWidget {
   /// there is deliberately no second encoder, so the two can never drift.
   ///
   /// The bundle *carries* the program plus the full definition of every dance
-  /// its slots reference, and the receive side imports both.
+  /// its slots reference, together with the tags, sources and shareable
+  /// custom-field definitions those dances use, and the receive side imports
+  /// them. Custom fields marked not shareable are omitted, values included.
   Future<void> _shareBundle(
     BuildContext context,
     Rect? origin, {
@@ -390,6 +406,9 @@ class ProgramExportMenu extends StatelessWidget {
       danceFor: resolveDance,
       choreographerFor: choreographerFor ?? (_) => null,
       venueFor: (id) => venuesById[id],
+      tagFor: tagFor ?? (_) => null,
+      publishedSourceFor: publishedSourceFor ?? (_) => null,
+      customFieldFor: customFieldFor ?? (_) => null,
       difficultyLevelFor: (id) {
         for (final dance in _orderedExportDances().map(
           (entry) => entry.dance,
