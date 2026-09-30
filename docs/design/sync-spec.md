@@ -1811,7 +1811,10 @@ arrays, so either can gain a field without a `v` bump:
 ```
 
 `missing` is the subset of `hashes` the store lacks; a hash the store already
-holds is omitted. Every hash in the request MUST match `^[0-9a-f]{64}$`
+holds is omitted. A store "holds" a hash only if it can serve the bytes: a hash
+whose reference exists but whose file is absent (external file loss or a
+partial restore) MUST be reported missing, so the client's ordinary `PUT`
+below can repair it. Every hash in the request MUST match `^[0-9a-f]{64}$`
 (§7.1) — the whole request is rejected `400` if any does not, rather than the
 offending hash being skipped, so a client cannot read a short response as
 "present".
@@ -1823,8 +1826,11 @@ would break the content-addressing that "Immutable; long `Cache-Control`"
 depends on and let a peer serve one record's bytes under another's name. A
 `PUT` to a hash the store already holds MUST be treated as a no-op returning
 `200` and MUST NOT overwrite the stored bytes; once verified the bytes are
-identical by definition, so a rewrite can only be a downgrade. The no-op MUST
-NOT update `uploaded_at` either. That column is the sole input to §7.3's grace
+identical by definition, so a rewrite can only be a downgrade. The one
+exception is a hash whose reference exists but whose file is absent: there are
+no stored bytes to protect, so the `PUT` writes the verified body back (still
+`200`), after checking it against the recorded size, and MUST NOT charge quota
+again or alter the reference. The no-op MUST NOT update `uploaded_at` either. That column is the sole input to §7.3's grace
 window, so refreshing it on each repeat `PUT` would let a client that re-uploads
 the same never-manifested blob every pass keep it collection-immune
 indefinitely, and the window would bound nothing.

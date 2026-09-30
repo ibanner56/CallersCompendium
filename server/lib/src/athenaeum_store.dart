@@ -48,6 +48,12 @@ const int maxFailedResolutionsServerWide = 1000;
 const int maxPendingDeletionRetriesPerRequest = 16;
 const int maxPendingDeletionRetriesPerSweep = 1000;
 
+/// Wall-clock budget for the cleanup a single request performs. The job-count
+/// cap alone does not bound latency: one directory job is a recursive delete.
+/// The budget is checked between jobs, so a job that has started always
+/// finishes, and at least one job runs per call so the queue still drains.
+const Duration requestPendingDeletionBudget = Duration(milliseconds: 50);
+
 final RegExp _deviceIdPattern = RegExp(r'^[A-Za-z0-9_-]{1,64}$');
 final RegExp _hashPattern = RegExp(r'^[0-9a-f]{64}$');
 final RegExp _epochPattern = RegExp(r'^[0-9a-f]{32}$');
@@ -151,36 +157,82 @@ class AthenaeumStore {
     _diagnosticDatabase.select('SELECT 1');
   }
 
+  /// Queues crash-orphaned final blob files and temporary upload artifacts.
+  ///
+  /// `dart:io` has no lazy synchronous directory iteration, so this still
+  /// blocks startup; it bounds the work instead. The tree is walked one
+  /// `<idKey>/<epoch>` directory at a time rather than listed whole, each
+  /// epoch's refs are read with one select rather than one per file, and each
+  /// epoch's jobs are queued in one transaction.
   void _reconcileOrphanedBlobFiles() {
     if (!blobDirectory.existsSync()) return;
     final queuedAt = _clock().millisecondsSinceEpoch ~/ 1000;
-    for (final entity in blobDirectory.listSync(recursive: true)) {
-      if (entity is! File) continue;
-      final segments = p.split(
-        p.relative(entity.path, from: blobDirectory.path),
-      );
-      if (segments.length != 5) continue;
-      final idKey = segments[0];
-      final epoch = segments[1];
-      final filename = segments[4];
-      final temporaryMatch = _temporaryBlobPattern.firstMatch(filename);
-      final hash = temporaryMatch?.group(1) ?? filename;
-      if (!_hashPattern.hasMatch(idKey) ||
-          !_epochPattern.hasMatch(epoch) ||
-          !_hashPattern.hasMatch(hash) ||
-          segments[2] != hash.substring(0, 2) ||
-          segments[3] != hash.substring(2, 4) ||
-          (temporaryMatch == null && filename != hash)) {
-        continue;
+    for (final idDirectory in blobDirectory.listSync().whereType<Directory>()) {
+      final idKey = p.basename(idDirectory.path);
+      if (!_hashPattern.hasMatch(idKey)) continue;
+      for (final epochDirectory
+          in idDirectory.listSync().whereType<Directory>()) {
+        final epoch = p.basename(epochDirectory.path);
+        if (!_epochPattern.hasMatch(epoch)) continue;
+        _queueOrphansInEpoch(idKey, epoch, epochDirectory, queuedAt);
       }
-      if (temporaryMatch == null && blobRef(idKey, epoch, hash) != null) {
-        continue;
+    }
+  }
+
+  void _queueOrphansInEpoch(
+    String idKey,
+    String epoch,
+    Directory epochDirectory,
+    int queuedAt,
+  ) {
+    Set<String>? referenced;
+    var inTransaction = false;
+    try {
+      for (final entity in epochDirectory.listSync(recursive: true)) {
+        if (entity is! File) continue;
+        final segments = p.split(
+          p.relative(entity.path, from: epochDirectory.path),
+        );
+        if (segments.length != 3) continue;
+        final filename = segments[2];
+        final temporaryMatch = _temporaryBlobPattern.firstMatch(filename);
+        final hash = temporaryMatch?.group(1) ?? filename;
+        if (!_hashPattern.hasMatch(hash) ||
+            segments[0] != hash.substring(0, 2) ||
+            segments[1] != hash.substring(2, 4) ||
+            (temporaryMatch == null && filename != hash)) {
+          continue;
+        }
+        if (!inTransaction) {
+          _database.execute('BEGIN IMMEDIATE');
+          inTransaction = true;
+        }
+        if (temporaryMatch == null) {
+          referenced ??= {
+            for (final row in _database.select(
+              'SELECT hash FROM blob_refs WHERE id_key = ? AND epoch = ?',
+              [idKey, epoch],
+            ))
+              row['hash'] as String,
+          };
+          if (referenced.contains(hash)) continue;
+        }
+        _database.execute(
+          'INSERT OR IGNORE INTO blob_deletion_jobs '
+          '(id_key, epoch, hash, queued_at) VALUES (?, ?, ?, ?)',
+          [idKey, epoch, hash, queuedAt],
+        );
       }
-      _database.execute(
-        'INSERT OR IGNORE INTO blob_deletion_jobs '
-        '(id_key, epoch, hash, queued_at) VALUES (?, ?, ?, ?)',
-        [idKey, epoch, hash, queuedAt],
-      );
+      if (inTransaction) {
+        _database.execute('COMMIT');
+        inTransaction = false;
+      }
+    } catch (error) {
+      try {
+        if (inTransaction) _database.execute('ROLLBACK');
+      } finally {
+        rethrow;
+      }
     }
   }
 
@@ -424,7 +476,13 @@ class AthenaeumStore {
         'AND hash IN ($placeholders)',
         [idKey, epoch, ...batch],
       );
-      present.addAll(rows.map((row) => row['hash'] as String));
+      // A ref without its file is reported missing so the client re-uploads it
+      // and `putBlob` can repair the file (sync-spec §7.1).
+      present.addAll(
+        rows
+            .map((row) => row['hash'] as String)
+            .where((hash) => blobFile(idKey, epoch, hash).existsSync()),
+      );
     }
     return [
       for (final hash in hashes)
@@ -762,7 +820,21 @@ class AthenaeumStore {
     try {
       _database.execute('BEGIN IMMEDIATE');
       inTransaction = true;
-      if (blobRef(idKey, epoch, hash) != null) {
+      final existing = blobRef(idKey, epoch, hash);
+      if (existing != null) {
+        file = blobFile(idKey, epoch, hash);
+        if (!file.existsSync()) {
+          // The ref survived but its file did not. Rewrite the file only; the
+          // ref, `uploaded_at` and `bytes_used` already account for it, so
+          // quota is not charged again.
+          if (body.length != existing.size || rawBodyHash(body) != hash) {
+            throw const StoreBlobMismatch();
+          }
+          file.parent.createSync(recursive: true);
+          temporary = _temporaryBlobFile(file);
+          temporary.writeAsBytesSync(body, flush: true);
+          temporary.renameSync(file.path);
+        }
         _database.execute('ROLLBACK');
         inTransaction = false;
         return false;
@@ -799,10 +871,7 @@ class AthenaeumStore {
       }
       file = blobFile(idKey, epoch, hash);
       file.parent.createSync(recursive: true);
-      final nonce = Random.secure().nextInt(1 << 32).toRadixString(16);
-      temporary = File(
-        '${file.path}.$pid.${_clock().microsecondsSinceEpoch}.$nonce.tmp',
-      );
+      temporary = _temporaryBlobFile(file);
       temporary.writeAsBytesSync(body, flush: true);
       temporary.renameSync(file.path);
       published = true;
@@ -833,6 +902,13 @@ class AthenaeumStore {
         rethrow;
       }
     }
+  }
+
+  File _temporaryBlobFile(File file) {
+    final nonce = Random.secure().nextInt(1 << 32).toRadixString(16);
+    return File(
+      '${file.path}.$pid.${_clock().microsecondsSinceEpoch}.$nonce.tmp',
+    );
   }
 
   File blobFile(String idKey, String epoch, String hash) {
@@ -927,18 +1003,31 @@ class AthenaeumStore {
   void retryPendingDeletions({
     int maxJobs = maxPendingDeletionRetriesPerRequest,
     bool reportFailures = false,
+    Duration? maxDuration,
   }) {
+    final started = _clock();
+    bool budgetSpent() =>
+        maxDuration != null && _clock().difference(started) >= maxDuration;
     final rows = _database.select(
       'SELECT id_key, epoch FROM deletion_jobs '
       'ORDER BY queued_at, rowid LIMIT ?',
       [maxJobs],
     );
+    var ran = 0;
     for (final row in rows) {
+      if (ran > 0 && budgetSpent()) return;
       final idKey = row['id_key'] as String;
       final epoch = row['epoch'] as String;
       _retryPendingDirectory(idKey, epoch, reportFailure: reportFailures);
+      ran++;
     }
-    retryPendingBlobDeletions(maxJobs: maxJobs, reportFailures: reportFailures);
+    if (ran > 0 && budgetSpent()) return;
+    retryPendingBlobDeletions(
+      maxJobs: maxJobs,
+      reportFailures: reportFailures,
+      budgetSpent: maxDuration == null ? null : budgetSpent,
+      jobsAlreadyRun: ran,
+    );
   }
 
   void _retryPendingDirectory(
@@ -1004,13 +1093,18 @@ class AthenaeumStore {
   void retryPendingBlobDeletions({
     int maxJobs = maxPendingDeletionRetriesPerRequest,
     bool reportFailures = false,
+    bool Function()? budgetSpent,
+    int jobsAlreadyRun = 0,
   }) {
+    var ran = jobsAlreadyRun;
     final rows = _database.select(
       'SELECT id_key, epoch, hash FROM blob_deletion_jobs '
       'ORDER BY queued_at, rowid LIMIT ?',
       [maxJobs],
     );
     for (final row in rows) {
+      if (ran > 0 && budgetSpent != null && budgetSpent()) return;
+      ran++;
       final idKey = row['id_key'] as String;
       final epoch = row['epoch'] as String;
       final hash = row['hash'] as String;
@@ -1116,6 +1210,11 @@ class StoreAlreadyExists implements Exception {
 
 class StoreEpochMismatch implements Exception {
   const StoreEpochMismatch();
+}
+
+/// A repair upload whose body does not match the stored blob's size or hash.
+class StoreBlobMismatch implements Exception {
+  const StoreBlobMismatch();
 }
 
 class StoreQuotaExceeded implements Exception {

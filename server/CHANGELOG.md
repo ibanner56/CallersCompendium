@@ -8,6 +8,19 @@ the app and of `compendium_core`; version headings below refer to
 
 ## [Unreleased]
 
+### Fixed
+
+- `POST /v1/blobs/missing` reports a blob whose reference survives but whose
+  file is gone, and a repeated `PUT` of the same bytes now restores the file
+  without charging quota again or changing the reference. A body that does not
+  match the recorded size or hash is rejected `400`.
+
+### Changed
+
+- Request-path cleanup retry stops between jobs once a 50 ms wall-clock budget
+  is spent (at least one job always runs). Startup orphan reconciliation walks
+  one store epoch at a time and queues each epoch in a single transaction.
+
 ## [0.2.1] - 2026-09-24
 
 ### Changed
