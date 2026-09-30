@@ -214,6 +214,8 @@ class CustomFieldDefRepository {
   /// them off the editor's path.
   Future<void> _restampDancesHolding(String fieldId, DateTime at) {
     assertUtc(at, 'at');
+    // normalization-structure-exempt: writes `updated_at` only, no shareable
+    // text.
     return _db.customUpdate(
       // sync-invariant-exclusion: join-hydrated-body the dance body changes with its field definition's wire eligibility.
       'UPDATE dances SET updated_at = ? '
