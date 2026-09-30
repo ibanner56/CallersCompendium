@@ -17,7 +17,7 @@ the app and of `compendium_core`; version headings below refer to
 
 ### Changed
 
-- Request-path cleanup retry stops between jobs once a 50 ms wall-clock budget
+- Request-path cleanup retry stops between jobs once a 50 ms monotonic-clock budget
   is spent (at least one job always runs). Startup orphan reconciliation walks
   one store epoch at a time and queues each epoch in a single transaction.
   

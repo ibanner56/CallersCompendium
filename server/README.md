@@ -68,7 +68,7 @@ document root before enabling the vhost. The reference vhost is
 Store deletion removes the epoch directory immediately when possible; a
 durable cleanup record retries failed filesystem removal in a larger bounded
 batch on requests and server start, and the hourly sweep drains the remainder.
-Request-path retry is bounded by both job count and a 50 ms wall-clock budget
+Request-path retry is bounded by a total job count (shared by the directory and blob queues) and a 50 ms monotonic-clock budget
 checked between jobs (at least one job always runs, and a job that has started
 always finishes, so one very large directory can still take longer). Request-path
 retry failures are isolated so they do not change protocol responses.
