@@ -8,7 +8,8 @@ import 'figure.dart';
 /// Persisted as a compact string on the dance (`""` = the standard
 /// 4×16-beat A1 A2 B1 B2; otherwise one or more ordered
 /// `phrases*bars*beatsPerBar` components separated by ` + `, e.g. `6*8*2` or
-/// `3*8*2 + 1*4*2`). Section labels (A1, B2, …) are **derived** from cumulative
+/// `3*8*2 + 1*4*2`), bounded by [PhraseStructure.maxComponentNumber] and its
+/// sibling limits. Section labels (A1, B2, …) are **derived** from cumulative
 /// figure beats against this structure — never stored — so reordering figures
 /// or editing beats stays consistent.
 @immutable
@@ -20,11 +21,41 @@ class PhraseStructure {
     PhraseComponent._(4, 8, 2),
   ], '');
 
+  /// Largest accepted value for any one of `phrases`, `bars` or `beatsPerBar`.
+  static const int maxComponentNumber = 1000;
+
+  /// Most `+`-separated components a structure may have.
+  static const int maxComponents = 64;
+
+  /// Most phrases accepted across all components.
+  static const int maxPhraseCount = 1000;
+
+  /// Most beats accepted across all components. Together with
+  /// [maxComponentNumber] this keeps every product inside 53 bits (web ints).
+  static const int maxTotalBeats = 1000000;
+
+  /// Parses a phrase-structure string, falling back to [standard] when [raw]
+  /// is not a valid, in-bounds structure.
+  ///
+  /// For reading values that are already stored: a value written before the
+  /// bounds existed must not stop its dance from loading.
+  static PhraseStructure parseOrStandard(String raw) {
+    try {
+      return PhraseStructure.parse(raw);
+    } on FormatException {
+      // diagnostics: silent — the documented fallback for a stored value that
+      // is unreadable or was written before the bounds existed.
+      return standard;
+    }
+  }
+
   /// Parses a phrase-structure string.
   ///
   /// Accepts `""` (standard), a `phrases*bars*beatsPerBar` component, or
   /// ordered components separated by `+`. Component numbers must be positive
-  /// integers; whitespace is allowed around, but not inside, a component.
+  /// integers no larger than [maxComponentNumber]; there may be at most
+  /// [maxComponents] components, [maxPhraseCount] phrases and [maxTotalBeats]
+  /// beats in all. Whitespace is allowed around, but not inside, a component.
   /// Throws [FormatException] otherwise.
   factory PhraseStructure.parse(String raw) {
     final trimmed = raw.trim();
@@ -39,13 +70,29 @@ class PhraseStructure {
       );
     }
 
-    return PhraseStructure._(
-      List.unmodifiable([
-        for (final component in componentStrings)
-          _parseComponent(component.trim(), raw),
-      ]),
-      trimmed,
-    );
+    if (componentStrings.length > maxComponents) {
+      throw FormatException(
+        'phrase structure has more than $maxComponents components: "$raw"',
+        raw,
+      );
+    }
+
+    final components = List<PhraseComponent>.unmodifiable([
+      for (final component in componentStrings)
+        _parseComponent(component.trim(), raw),
+    ]);
+    // Each number is already <= maxComponentNumber, so these sums and products
+    // cannot overflow before they are checked.
+    final phrases = components.fold(0, (sum, c) => sum + c.phraseCount);
+    final beats = components.fold(0, (sum, c) => sum + c.totalBeats);
+    if (phrases > maxPhraseCount || beats > maxTotalBeats) {
+      throw FormatException(
+        'phrase structure is larger than $maxPhraseCount phrases or '
+        '$maxTotalBeats beats: "$raw"',
+        raw,
+      );
+    }
+    return PhraseStructure._(components, trimmed);
   }
 
   static PhraseComponent _parseComponent(String component, String raw) {
@@ -65,6 +112,12 @@ class PhraseStructure {
     if (numbers.any((number) => number == null || number <= 0)) {
       throw FormatException(
         'phrase structure parts must be positive integers: "$raw"',
+        raw,
+      );
+    }
+    if (numbers.any((number) => number! > maxComponentNumber)) {
+      throw FormatException(
+        'phrase structure parts must be at most $maxComponentNumber: "$raw"',
         raw,
       );
     }
@@ -100,16 +153,19 @@ class PhraseStructure {
   /// contra/ECD music. An odd phrase count leaves the last pair incomplete,
   /// e.g. 3 phrases label as `A1 A2 B1` (the trailing phrase gets the next
   /// letter's `1`, not a full pair).
-  List<String> get labels => List.generate(phraseCount, (i) {
+  List<String> get labels =>
+      List.generate(phraseCount, _labelForPhrase, growable: false);
+
+  static String _labelForPhrase(int i) {
     final letter = String.fromCharCode('A'.codeUnitAt(0) + i ~/ 2);
     return '$letter${i % 2 + 1}';
-  });
+  }
 
   /// Label of the phrase containing [beat] (0-based). Beats past the end of
   /// the structure wrap (dances are repeated to the tune).
   String labelAtBeat(int beat) {
     if (beat < 0) throw ArgumentError.value(beat, 'beat', 'must be >= 0');
-    return labels[_phraseIndexAtBeat(beat)];
+    return _labelForPhrase(_phraseIndexAtBeat(beat));
   }
 
   /// Whether [beat] falls at the start of a phrase, wrapping at the end of the
