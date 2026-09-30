@@ -637,6 +637,97 @@ void main() {
       },
     );
 
+    group('private custom fields in the program bundle', () {
+      final privateField = CustomFieldDef(
+        id: 'f-private',
+        key: 'secret',
+        label: 'Secret',
+        type: CustomFieldType.text,
+        shareable: false,
+      );
+      final privateDance = Dance(
+        id: 'dp',
+        title: 'Has A Secret',
+        figures: [
+          Figure(move: 'swing', params: {'beats': 16, 'who': 'partners'}),
+        ],
+        sourceCitations: const [],
+        customFields: [
+          CustomFieldValue(fieldId: 'f-private', value: 'PRIVATE-VALUE'),
+        ],
+        createdAt: _now,
+        updatedAt: _now,
+      );
+
+      Future<({List<String> written, ShareParams? shared})> share(
+        WidgetTester tester, {
+        CustomFieldDef? Function(String)? customFieldFor,
+      }) async {
+        final written = <String>[];
+        ShareParams? shared;
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  ProgramExportMenu(
+                    program: _program(
+                      slots: [
+                        ProgramSlot(id: 's1', position: 0, danceId: 'dp'),
+                      ],
+                    ),
+                    titleFor: _titles,
+                    danceFor: (id) => id == 'dp' ? privateDance : null,
+                    customFieldFor: customFieldFor,
+                    bundleFileWriter: (json, fileName) async {
+                      written.add(json);
+                      return XFile.fromData(
+                        utf8.encode(json),
+                        mimeType: 'application/json',
+                        name: fileName,
+                      );
+                    },
+                    shareInvoker: (params) async => shared = params,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Share (program + dances)'));
+        await tester.pumpAndSettle();
+        return (written: written, shared: shared);
+      }
+
+      testWidgets('a resolved private field is omitted from the file', (
+        tester,
+      ) async {
+        final result = await share(
+          tester,
+          customFieldFor: (id) => id == 'f-private' ? privateField : null,
+        );
+
+        expect(result.shared, isNotNull);
+        expect(result.written.single, isNot(contains('PRIVATE-VALUE')));
+        expect(result.written.single, contains('Has A Secret'));
+      });
+
+      testWidgets('without a definition resolver nothing is written', (
+        tester,
+      ) async {
+        final result = await share(tester);
+
+        expect(result.written, isEmpty);
+        expect(result.shared, isNull);
+        expect(find.text("Couldn't share this program"), findsOneWidget);
+      });
+    });
+
     testWidgets('surfaces a SnackBar when the bundle share throws', (
       tester,
     ) async {
