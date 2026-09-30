@@ -2654,6 +2654,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                     choreographerFor: (id) =>
                         _createdChoreographers[id] ??
                         _data?.choreographersById[id],
+                    tagFor: (id) => _data?.tagFor(id),
+                    publishedSourceFor: (id) => _data?.publishedSourceFor(id),
+                    customFieldFor: (id) => _data?.customFieldFor(id),
                     difficultyLevelFor: (id) {
                       final dance = _danceById(id);
                       if (dance == null) return null;
