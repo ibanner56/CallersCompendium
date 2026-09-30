@@ -398,8 +398,9 @@ derivation logic:
 
 `_rebuildDerived` iterates `dance.sectionedFigures` (instead of `figures`
 alone) and writes `section: Value(sectioned.label)` into each
-`DanceFiguresCompanion`. Labels come straight from `PhraseStructure.labels`
-(`A1 A2 B1 B2 …`); a figure whose start beat can't be labelled (empty structure
+`DanceFiguresCompanion`. Labels come from `PhraseStructure.labelAtBeat`, which
+derives each label from the phrase index without building the full `labels`
+list (`A1 A2 B1 B2 …`); a figure whose start beat can't be labelled (empty structure
 never happens — it defaults to standard 4×16) yields a non-null label in all
 current cases, but the column stays nullable to stay forward-compatible with
 future structureless forms.

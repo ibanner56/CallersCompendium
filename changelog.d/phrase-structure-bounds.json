@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "Typing or importing an absurdly large phrase structure (for example `100000000*1*1`) no longer freezes the app or exhausts memory. Phrase structures are now limited to 1,000 phrases, and an imported structure beyond that falls back to the standard one with a warning."
+      "Typing or importing an absurdly large phrase structure (for example `100000000*1*1`) no longer freezes the app or exhausts memory. Phrase structures are now limited to 1,000 phrases, and a Caller's Box import with a structure beyond that falls back to the standard one with a warning (other import formats skip the affected dance as unreadable)."
     ]
   },
   "core": {
