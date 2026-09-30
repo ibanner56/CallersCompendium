@@ -200,7 +200,9 @@ class CustomFieldDefRepository {
   }
 
   /// Advances `updated_at` on every dance holding a value for [fieldId], live or
-  /// tombstoned, to [at] (sync-spec §6.5 I1).
+  /// tombstoned, to [at] (sync-spec §6.5 I1). A dance already stamped at or
+  /// after [at] moves one stored tick past its own stamp instead, so the stamp
+  /// never ties or moves backward.
   ///
   /// A dance's wire body carries a custom-field value only while its definition
   /// is live and shareable, so a change to that state changes the body of every
@@ -218,7 +220,7 @@ class CustomFieldDefRepository {
     // text.
     return _db.customUpdate(
       // sync-invariant-exclusion: join-hydrated-body the dance body changes with its field definition's wire eligibility.
-      'UPDATE dances SET updated_at = ? '
+      'UPDATE dances SET updated_at = MAX(updated_at + 1, ?) '
       'WHERE id IN (SELECT dance_id FROM custom_field_values WHERE field_id = ?)',
       variables: [Variable<int>(unixSeconds(at)), Variable<String>(fieldId)],
       updates: {_db.dances},

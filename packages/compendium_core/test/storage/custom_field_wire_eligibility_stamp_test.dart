@@ -95,6 +95,31 @@ void main() {
       });
     }
 
+    test('a dance already stamped at the flip instant advances one tick, '
+        'not a tie', () async {
+      await device.seed(shareable: true);
+      await device.repositories.dances.update(
+        _dance('d1').copyWith(updatedAt: _t2),
+      );
+
+      // ignore: unused_result
+      await device.defs.upsert(_def(shareable: false), at: _t2);
+
+      expect(await device.updatedAt('d1'), _t2.add(const Duration(seconds: 1)));
+    });
+
+    test('a dance stamped later than the flip never moves backward', () async {
+      await device.seed(shareable: true);
+      await device.repositories.dances.update(
+        _dance('d1').copyWith(updatedAt: _t4),
+      );
+
+      // ignore: unused_result
+      await device.defs.upsert(_def(shareable: false), at: _t2);
+
+      expect(await device.updatedAt('d1'), _t4.add(const Duration(seconds: 1)));
+    });
+
     test('an edit that leaves shareability alone stamps nothing', () async {
       await device.seed(shareable: true);
 

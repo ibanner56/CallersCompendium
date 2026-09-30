@@ -2412,7 +2412,8 @@ input to every dance holding a value for it. Changing it — flipping `shareable
 deleting the definition, or restoring it — MUST advance `updated_at` on every
 such dance, live or tombstoned, in the same transaction, and MUST NOT when
 eligibility is unchanged (a private definition's delete or restore alters no
-body, so I2 forbids the stamp). Inbound definition writes are exempt (§6.7).
+body, so I2 forbids the stamp). The stamp is at least one stored tick past the dance's current `updated_at`, so
+it never ties or moves backward. Inbound definition writes are exempt (§6.7).
 Without the stamp two devices hold one `updatedAt` over two bodies and §6.3
 reports `equalUpdatedAt` on every pass.
 
