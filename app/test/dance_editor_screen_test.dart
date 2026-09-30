@@ -825,6 +825,76 @@ void main() {
     expect(await repos.tags.listAll(), isEmpty);
   });
 
+  testWidgets(
+    'a draft-cleanup failure after a committed new-dance save is not reported '
+    'as a failed save and cannot be retried into a duplicate',
+    (tester) async {
+      final db = openWidgetTestDatabase();
+      final settings = _FailingDraftRemoveSettingsRepository(db);
+      final repos = CompendiumRepositories(
+        db,
+        contraTaxonomy,
+        settings: settings,
+      );
+      await _pumpEditor(tester, repos);
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Committed dance',
+      );
+      // Let the debounced autosave write the draft that cleanup must remove.
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+      expect(await repos.settings.get('editor_draft:new'), isNotNull);
+
+      settings.removeFailuresRemaining = 1000;
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      // The fault fired (a test whose fault never fires proves nothing) and
+      // cleanup was retried a bounded number of times, not once and not forever.
+      expect(settings.draftRemoveCalls, 3);
+      // The dance committed exactly once and the save is not reported failed.
+      expect(await repos.dances.listAll(), hasLength(1));
+      expect(find.text("Couldn't save the dance."), findsNothing);
+      // The editor closed back to the launching route, so there is no editor
+      // left on which to press Save again and mint a second dance.
+      expect(find.byKey(const ValueKey('open-editor')), findsOneWidget);
+      expect(find.byKey(const ValueKey('save-dance')), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'a transient draft-cleanup failure after a committed save is retried and '
+    'the draft is removed',
+    (tester) async {
+      final db = openWidgetTestDatabase();
+      final settings = _FailingDraftRemoveSettingsRepository(db);
+      final repos = CompendiumRepositories(
+        db,
+        contraTaxonomy,
+        settings: settings,
+      );
+      await _pumpEditor(tester, repos);
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Committed dance',
+      );
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+      expect(await repos.settings.get('editor_draft:new'), isNotNull);
+
+      settings.removeFailuresRemaining = 1;
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      expect(settings.draftRemoveCalls, 2);
+      expect(await repos.settings.get('editor_draft:new'), isNull);
+      expect(await repos.dances.listAll(), hasLength(1));
+      expect(find.text("Couldn't save the dance."), findsNothing);
+      expect(find.byKey(const ValueKey('open-editor')), findsOneWidget);
+    },
+  );
+
   testWidgets('an empty tag entry does not add a chip or corrupt state', (
     tester,
   ) async {
@@ -3134,5 +3204,27 @@ class _GatedDanceRepository extends DanceRepository {
     softDeleteCalls++;
     await _gate.future;
     await super.softDelete(id, at: at);
+  }
+}
+
+/// Throws from [remove] for a dance-editor draft key while
+/// [removeFailuresRemaining] is positive, then delegates. Counts every draft
+/// removal so a test can prove the injected fault actually fired.
+class _FailingDraftRemoveSettingsRepository extends SettingsRepository {
+  _FailingDraftRemoveSettingsRepository(super.db);
+
+  int removeFailuresRemaining = 0;
+  int draftRemoveCalls = 0;
+
+  @override
+  Future<void> remove(String key, {DateTime? at, bool permanent = false}) {
+    if (key.startsWith(kDanceEditorDraftKeyPrefix)) {
+      draftRemoveCalls++;
+      if (removeFailuresRemaining > 0) {
+        removeFailuresRemaining--;
+        return Future.error(StateError('injected draft remove failure'));
+      }
+    }
+    return super.remove(key, at: at, permanent: permanent);
   }
 }
