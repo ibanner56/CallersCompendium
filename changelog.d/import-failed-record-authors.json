@@ -1,0 +1,14 @@
+{
+  "id": "import-failed-record-authors",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "When a dance in an import or re-import can't be saved, the authors it would have added are no longer left behind in your author list."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "`ImportPipeline.commit` takes back the choreographer rows a failed record created or revived, and checks a reimport/link target before resolving authors, so a record that fails leaves no author writes."
+    ]
+  }
+}
