@@ -1282,6 +1282,165 @@ void main() {
       expect(await countingChoreographers.listAll(), hasLength(2));
     });
   });
+
+  group('a record that fails leaves no author writes', () {
+    late _FailingDanceRepository failing;
+    late ImportPipeline failingPipeline;
+
+    setUp(() {
+      failing = _FailingDanceRepository(db, contraTaxonomy);
+      failingPipeline = ImportPipeline(failing, choreographers);
+    });
+
+    Future<List<String>> liveAuthorNames() async => [
+      for (final c in await choreographers.listAll()) c.name,
+    ];
+
+    Future<String> seedDance(String externalId, String title) async {
+      final s = await failingPipeline.commit(
+        await failingPipeline.plan(
+          FakeSourceAdapter([record(externalId, title)]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+      );
+      return s.insertedDanceIds.single;
+    }
+
+    test('reimport onto a hard-deleted target creates no author', () async {
+      final target = await seedDance('fake-1', 'Original');
+      final batch = await failingPipeline.plan(
+        FakeSourceAdapter([
+          record('fake-1', 'Revised', authorNames: ['Fresh Author']),
+        ]),
+        const ImportRequest(),
+      );
+      expect(batch.records.single.verdict.isReimport, isTrue);
+      await dances.hardDelete([target]);
+
+      final session = await failingPipeline.commit(
+        batch,
+        now: now,
+        newId: nextId,
+      );
+
+      expect(
+        session.records.single.error?.message,
+        contains('no longer exists'),
+      );
+      expect(await liveAuthorNames(), isNot(contains('Fresh Author')));
+      expect(session.createdChoreographerIds, isEmpty);
+      expect(session.revivedChoreographerIds, isEmpty);
+    });
+
+    test('a throwing create rolls back the new author', () async {
+      failing.failTitles.add('Doomed');
+      final session = await failingPipeline.commit(
+        await failingPipeline.plan(
+          FakeSourceAdapter([
+            record('fake-1', 'Doomed', authorNames: ['Fresh Author']),
+          ]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+      );
+
+      expect(session.records.single.error, isNotNull);
+      expect(await liveAuthorNames(), isNot(contains('Fresh Author')));
+      expect(session.createdChoreographerIds, isEmpty);
+    });
+
+    test('a throwing reimport update rolls back the new author', () async {
+      final target = await seedDance('fake-1', 'Original');
+      failing.failTitles.add('Revised');
+      final session = await failingPipeline.commit(
+        await failingPipeline.plan(
+          FakeSourceAdapter([
+            record('fake-1', 'Revised', authorNames: ['Fresh Author']),
+          ]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+      );
+
+      expect(session.records.single.error, isNotNull);
+      expect(await liveAuthorNames(), isNot(contains('Fresh Author')));
+      expect((await dances.getById(target))!.title, 'Original');
+    });
+
+    test('a failed record puts a revived author back to tombstoned', () async {
+      // ignore: unused_result
+      await choreographers.upsert(Choreographer(id: 'old', name: 'Old Hand'));
+      await choreographers.delete('old');
+      expect(await liveAuthorNames(), isNot(contains('Old Hand')));
+
+      failing.failTitles.add('Doomed');
+      final session = await failingPipeline.commit(
+        await failingPipeline.plan(
+          FakeSourceAdapter([
+            record('fake-1', 'Doomed', authorNames: ['Old Hand']),
+          ]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+      );
+
+      expect(session.records.single.error, isNotNull);
+      expect(await liveAuthorNames(), isNot(contains('Old Hand')));
+      expect(session.revivedChoreographerIds, isEmpty);
+    });
+
+    test('a later record may credit the author a failed record rolled back '
+        '(no phantom id left in the batch name map)', () async {
+      failing.failTitles.add('Doomed');
+      final session = await failingPipeline.commit(
+        await failingPipeline.plan(
+          FakeSourceAdapter([
+            record('fake-1', 'Doomed', authorNames: ['Shared Author']),
+            record('fake-2', 'Survivor', authorNames: ['Shared Author']),
+          ]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+      );
+
+      expect(session.records[0].error, isNotNull);
+      expect(session.records[1].error, isNull);
+      final survivor = (await dances.getById(session.insertedDanceIds.single))!;
+      final authors = await choreographers.listAll();
+      expect(authors.where((c) => c.name == 'Shared Author'), hasLength(1));
+      expect(survivor.authorIds, [authors.single.id]);
+      expect(session.createdChoreographerIds, [authors.single.id]);
+    });
+
+    test('a failed record does not delete an author an earlier record in '
+        'the batch created and credited', () async {
+      failing.failTitles.add('Doomed');
+      final session = await failingPipeline.commit(
+        await failingPipeline.plan(
+          FakeSourceAdapter([
+            record('fake-1', 'Survivor', authorNames: ['Shared Author']),
+            record('fake-2', 'Doomed', authorNames: ['Shared Author']),
+          ]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+      );
+
+      expect(session.records[1].error, isNotNull);
+      final survivor = (await dances.getById(session.insertedDanceIds.single))!;
+      final authors = await choreographers.listAll();
+      expect(authors.map((c) => c.name), ['Shared Author']);
+      expect(survivor.authorIds, [authors.single.id]);
+      expect(session.createdChoreographerIds, [authors.single.id]);
+    });
+  });
 }
 
 /// A [FakeSourceAdapter] that notes, at each `parse`, how many event-loop timer
@@ -1296,5 +1455,29 @@ class _TickRecordingAdapter extends FakeSourceAdapter {
   StructuredDraft parse(RawRecord raw) {
     _seen.add(_ticks());
     return super.parse(raw);
+  }
+}
+
+/// A [DanceRepository] whose `create`/`update` throw for chosen titles, to drive
+/// a failure after the pipeline has already resolved a record's authors.
+class _FailingDanceRepository extends DanceRepository {
+  _FailingDanceRepository(super.db, super.taxonomy);
+
+  final Set<String> failTitles = {};
+
+  @override
+  Future<void> create(Dance dance) {
+    if (failTitles.contains(dance.title)) {
+      throw StateError('injected create failure');
+    }
+    return super.create(dance);
+  }
+
+  @override
+  Future<void> update(Dance dance, {bool localUserEdit = false}) {
+    if (failTitles.contains(dance.title)) {
+      throw StateError('injected update failure');
+    }
+    return super.update(dance, localUserEdit: localUserEdit);
   }
 }
