@@ -95,10 +95,13 @@ the loopback-only forwarded-address trust boundary.
 ## Proxy and security contract
 
 The vhost must preserve `Authorization`, allow a 32 MiB wire body (the
-application enforces the 16 MiB decoded manifest limit), avoid decompressing
+application enforces the 16 MiB decoded manifest limit and also caps gzip
+bytes on the wire per route, so `LimitRequestBody` is defence in depth), avoid decompressing
 request bodies, overwrite `X-Forwarded-For` with the connecting client
 address, and proxy only over loopback. The application trusts that header only
-when the socket peer is loopback; Apache derives it from the underlying
+when the socket peer is loopback, and then reads only the rightmost entry, so a
+client-supplied prefix cannot choose the rate-limit key even behind a proxy that
+appends instead of overwriting; Apache derives it from the underlying
 connection peer (`CONN_REMOTE_ADDR`) even if host-level `mod_remoteip` is
 enabled, and the application otherwise uses its peer address. The
 limits are independent: 10 failures per IP per minute, a burst of 20 failures

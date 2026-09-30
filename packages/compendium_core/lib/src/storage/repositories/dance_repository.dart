@@ -712,13 +712,31 @@ class DanceRepository {
             );
       }
 
-      await (_db.delete(
-        _db.danceTags,
-      )..where((t) => t.danceId.equals(dance.id))).go();
+      // Joins to a tombstoned tag are kept. `TagRepository.delete` leaves them
+      // so a revived tag returns with its dances, and `_tagsForMany` hides the
+      // tombstoned tag, so `dance.tagIds` never lists it: clearing every row
+      // here would read that absence as a removal and destroy the association
+      // on any unrelated edit (a peer body cannot list it either, so this holds
+      // for the sync-applied paths too). A join to a live or missing tag is
+      // replaced by `dance.tagIds` as before.
+      final tombstonedTagIds = _db.selectOnly(_db.tags)
+        ..addColumns([_db.tags.id])
+        ..where(_db.tags.deletedAt.isNotNull());
+      await (_db.delete(_db.danceTags)..where(
+            (t) =>
+                t.danceId.equals(dance.id) &
+                t.tagId.isNotInQuery(tombstonedTagIds),
+          ))
+          .go();
       for (final tagId in dance.tagIds) {
+        // `insertOrIgnore`: a retained tombstoned join may already hold this
+        // (dance, tag) primary key, which is the intended outcome, not an error.
         await _db
             .into(_db.danceTags)
-            .insert(DanceTagsCompanion.insert(danceId: dance.id, tagId: tagId));
+            .insert(
+              DanceTagsCompanion.insert(danceId: dance.id, tagId: tagId),
+              mode: InsertMode.insertOrIgnore,
+            );
       }
 
       await (_db.delete(

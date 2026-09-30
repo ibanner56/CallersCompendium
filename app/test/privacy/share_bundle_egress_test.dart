@@ -206,6 +206,18 @@ final _choreographer = Choreographer(
   deceased: true,
 );
 
+/// A user-defined field marked "not shareable" and a value for it. Unlike the
+/// registry columns above this is user data the *user* classified, so it has no
+/// probe; it is checked by its own test below.
+const _privateFieldValue = 'leak-custom-field-value';
+final _privateField = CustomFieldDef(
+  id: 'f-private',
+  key: 'secret',
+  label: 'Secret',
+  type: CustomFieldType.text,
+  shareable: false,
+);
+
 final _dance = Dance(
   id: 'd1',
   title: "Rory O'More",
@@ -214,7 +226,9 @@ final _dance = Dance(
     Figure(move: 'swing', params: const {'beats': 16, 'who': 'partners'}),
   ],
   sourceCitations: const [],
-  customFields: const [],
+  customFields: [
+    CustomFieldValue(fieldId: 'f-private', value: _privateFieldValue),
+  ],
   createdAt: _now,
   updatedAt: _now,
 );
@@ -239,6 +253,9 @@ String _export({Set<VenueContactField> includeVenueContact = const {}}) =>
       _program,
       danceFor: (id) => id == 'd1' ? _dance : null,
       choreographerFor: (id) => id == 'c1' ? _choreographer : null,
+      tagFor: (_) => null,
+      publishedSourceFor: (_) => null,
+      customFieldFor: (id) => id == 'f-private' ? _privateField : null,
       venueFor: (id) => id == 'v1' ? _venue : null,
       includeVenueContact: includeVenueContact,
       now: _now,
@@ -355,6 +372,14 @@ void main() {
             'NOT in archive_codec.dart, which also serializes the user\'s own '
             'backup:\n  ${leaked.join('\n  ')}',
       );
+    });
+
+    test('a non-shareable custom field never reaches the program bundle', () {
+      final json = _export();
+
+      expect(json, isNot(contains(_privateFieldValue)));
+      expect(_entities(json, 'customFields'), isEmpty);
+      expect(_entities(json, 'dances').single['customFields'], isEmpty);
     });
 
     test('shareable fields still survive the redaction', () {

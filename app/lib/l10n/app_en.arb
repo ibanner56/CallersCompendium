@@ -2226,6 +2226,10 @@
   "@backupRestoreIncompatibleVersion": {
     "description": "Snackbar shown when a valid backup contains data too new for this app version, so restore is refused without changing local data."
   },
+  "backupRestoreMissingAppSection": "This backup doesn't include your app settings, themes or dialects, so it can't replace your current data. The restore was cancelled and your data is unchanged.",
+  "@backupRestoreMissingAppSection": {
+    "description": "Snackbar shown when a replace restore is refused because the backup file has no app section (an older, hand-edited or incomplete file), so restoring it would clear preferences, themes and dialects it never described. Existing data is unchanged."
+  },
   "backupRestoreInvalidFile": "Couldn't restore: the file isn't a valid backup. Your data is unchanged.",
   "@backupRestoreInvalidFile": {
     "description": "Snackbar shown when the selected restore file is not a valid backup. Existing data is unchanged."

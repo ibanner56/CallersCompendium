@@ -660,6 +660,10 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
               venuesById: _venuesById,
               danceFor: (id) => _dances[id],
               choreographerFor: (id) => _collectionData?.choreographersById[id],
+              tagFor: (id) => _collectionData?.tagFor(id),
+              publishedSourceFor: (id) =>
+                  _collectionData?.publishedSourceFor(id),
+              customFieldFor: (id) => _collectionData?.customFieldFor(id),
               difficultyLevelFor: (id) => _difficultyLevelFor(_dances[id]),
             ),
             if (program.slots.any((s) => s.danceId != null))

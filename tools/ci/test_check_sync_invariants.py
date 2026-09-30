@@ -301,6 +301,32 @@ def test_typed_drift_writes_fail_closed() -> None:
     )
 
 
+def test_join_hydrated_body_excuses_only_the_raw_i2_check() -> None:
+    stamp = "final q = 'UPDATE dances SET updated_at = ? WHERE id = ?';\n"
+    marker = "// sync-invariant-exclusion: join-hydrated-body\n"
+    assert any(v.kind == "I2" for v in _write_violations(stamp, "fixture.dart"))
+    assert_no(_write_violations(marker + stamp, "fixture.dart"))
+    # Line-scoped: the marker does not cover a statement one line further on.
+    assert any(
+        v.kind == "I2"
+        for v in _write_violations(marker + "\n" + stamp, "fixture.dart")
+    )
+    # It excuses I2 only. A content write without updated_at is still I1, and
+    # the typed boundary is untouched.
+    raw_i1 = "final q = 'UPDATE dances SET figures_json = ? WHERE id = ?';\n"
+    assert any(
+        v.kind == "I1" for v in _write_violations(marker + raw_i1, "fixture.dart")
+    )
+    typed_i2 = (
+        "await db.update(db.dances).write("
+        "DancesCompanion(updatedAt: Value(now)));\n"
+    )
+    assert any(
+        v.kind == "typed-I2"
+        for v in _drift_write_violations(marker + typed_i2, "fixture.dart")
+    )
+
+
 def test_sync_write_path_rejects_the_interactive_upsert() -> None:
     offending = "await repositories.tags.upsert(tag, at: record.updatedAt);\n"
     compliant = "await repositories.tags.writeFromSync(tag, at: record.updatedAt);\n"
