@@ -2758,12 +2758,12 @@ void main() {
   //   (dance-only), the program is never committed, and the assertions on
   //   repos.programs.listAll() fail.
   // - The staleness test (overwrite paste field with dance-only payload): mutate-out
-  //   _onPasteChanged's bundle-detection logic so it always leaves
+  //   _refreshPickedBundle's bundle-detection logic so it always leaves
   //   _cachedPickedBundle null. The hazard is that _commit could route on a
   //   stale cache; the mutate-out restores that path. A revert is wrong here
   //   because the hazard only exists in code introduced by this PR.
   // - The harmless-edit test (trailing-newline edit keeps programs): also
-  //   mutate-out. With the listener-based cache, a harmless edit to an archive
+  //   mutate-out. With plan-time detection, a harmless edit to an archive
   //   re-decodes and keeps the bundle — but a stale-equality check (the round-3
   //   approach) would drop it. Mutate-out restores that stale check.
 
@@ -2999,8 +2999,8 @@ void main() {
         // action — changed the text, cleared the check, and silently dropped
         // the program. Issue #852 recurring via a trivial edit.
         //
-        // The listener-based cache (_onPasteChanged) re-decodes on every
-        // change, so a trailing newline that still decodes to an archive with
+        // The plan-time detection (_refreshPickedBundle) re-decodes the text at each
+        // Continue, so a trailing newline that still decodes to an archive with
         // programs updates the cache with the new decode rather than clearing
         // it. Both the dance and the program must commit.
         //
@@ -3056,12 +3056,12 @@ void main() {
         // only what is in the paste field — the program from the originally
         // picked archive must not bleed through.
         //
-        // With the listener-based cache, _onPasteChanged re-decodes on each
-        // change and updates _cachedPickedBundle to match the current text.
+        // With plan-time detection, _refreshPickedBundle re-decodes at each
+        // Continue and updates _cachedPickedBundle to match the current text.
         // An overwrite with dance-only JSON produces a cache miss (no programs),
         // and _commit falls through to GenericJsonAdapter.
         //
-        // Mutate-out target: disable program detection in _onPasteChanged so
+        // Mutate-out target: disable program detection in _refreshPickedBundle so
         // _cachedPickedBundle is always null. The round-3 stale-equality check
         // had the same surface — with it, the cache is set at pick time and
         // cleared when the text changes; with its absence, the cache stays set
