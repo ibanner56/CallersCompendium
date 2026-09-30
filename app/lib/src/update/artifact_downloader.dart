@@ -124,14 +124,20 @@ typedef ArtifactDownloader =
 ///
 /// Uses `client.send` (streamed) rather than a buffered `get` so a large
 /// artifact never fully materializes in memory and progress/cancel work while
-/// the body is still arriving. The `url` — and **every redirect hop** — must be
+/// the body is still arriving. Writes pace reads: once
+/// [kDownloadWriteHighWaterBytes] are pending in the file sink the response
+/// is paused until they flush, so a fast network against a slow disk cannot
+/// queue the whole artifact in memory. The `url` — and **every redirect hop** — must be
 /// an https URL whose host is on [kAllowedArtifactHosts] (with no userinfo and
 /// only the default 443 port); redirects are followed manually so an
 /// `https→http` downgrade or an off-allowlist / userinfo / non-443 hop is
 /// refused ([DownloadResultKind.refusedHost]) rather than silently followed
 /// (defense-in-depth alongside the manifest signature+parse checks and the
 /// sha256 gate). An **idle timeout** ([kUpdateDownloadTimeout]) guards a stalled
-/// connection without capping a legitimately long transfer, and the transfer is
+/// connection without capping a legitimately long transfer (it is suspended
+/// while reads are paused for a flush, so a slow disk is not reported as a stalled
+/// connection, which also means a write that never completes is not timed out),
+/// and the transfer is
 /// aborted the moment it would exceed the manifest's declared `size` (or
 /// [kMaxArtifactDownloadBytes] when the artifact is unsized) so an oversized
 /// body cannot fill the disk. After the stream ends, the written byte count is
@@ -257,6 +263,9 @@ Future<DownloadOutcome> downloadArtifact(
     final done = Completer<DownloadOutcome>();
     late StreamSubscription<List<int>> sub;
     Timer? idle;
+    // Bytes handed to the sink since the last flush; see the backpressure note
+    // in the listener below.
+    var unflushed = 0;
 
     void bumpIdle() {
       idle?.cancel();
@@ -293,10 +302,39 @@ Future<DownloadOutcome> downloadArtifact(
         }
         sink!.add(chunk);
         received += chunk.length;
+        unflushed += chunk.length;
         bumpIdle();
         onProgress?.call(
           DownloadProgress(bytesReceived: received, totalBytes: total),
         );
+        // Backpressure: `IOSink.add` never blocks, so a fast network against a
+        // slow disk would queue the whole artifact in memory. Once a high-water
+        // mark of bytes is pending, stop reading until the sink has flushed them.
+        // While paused no event (chunk, error, done) is delivered, so nothing
+        // else can touch the sink or complete [done] until the flush settles.
+        // The idle timer is stopped meanwhile: a slow disk is not a stalled
+        // connection, and the timer is re-armed on resume.
+        if (unflushed >= kDownloadWriteHighWaterBytes) {
+          unflushed = 0;
+          idle?.cancel();
+          sub.pause();
+          sink.flush().then(
+            (_) {
+              if (done.isCompleted) return;
+              bumpIdle();
+              sub.resume();
+            },
+            onError: (Object e) {
+              // diagnostics: silent — returns DownloadOutcome to the
+              // update-layer caller, not UI.
+              if (!done.isCompleted) {
+                done.complete(
+                  DownloadOutcome.networkError('could not write file: $e'),
+                );
+              }
+            },
+          );
+        }
       },
       onError: (Object e) {
         // diagnostics: silent — returns DownloadOutcome to the update-layer
@@ -330,13 +368,23 @@ Future<DownloadOutcome> downloadArtifact(
     // hand a partial/corrupt file to sha256 verification or the OS handoff.
     // (A non-success outcome already deletes the file below, so its kind is
     // preserved even if the close also fails.)
-    sinkClosed = true;
     try {
       await sink.flush();
       await sink.close();
+      sinkClosed = true;
     } on Object catch (e) {
       // diagnostics: silent — sink flush/close failed; returns DownloadOutcome to update-layer caller, not UI.
       succeeded = false;
+      // Release the handle before the partial file is deleted in `finally`
+      // (an open handle blocks the delete on Windows). Marking the sink closed
+      // first prevents `finally` from closing it a second time.
+      sinkClosed = true;
+      try {
+        await sink.close();
+      } on Object {
+        // diagnostics: silent — the flush/close failure above is the real
+        // outcome; never mask it with a second close error.
+      }
       if (outcome.isSuccess) {
         return DownloadOutcome.networkError(
           'could not finish writing file: $e',
