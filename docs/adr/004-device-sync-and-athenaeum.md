@@ -847,7 +847,9 @@ requirements, not deployment taste, and each has a concrete failure mode:
   socket peer is loopback: trusting a spoofable forwarding header is strictly
   worse than having no limit at all, because an attacker sets a fresh value per
   request and buys unlimited guesses while an honest shared-NAT user is still
-  throttled. Both failure directions are silent. See spec §7.5, requirement 6.
+  throttled. Both failure directions are silent. As defence in depth the server
+  reads only the rightmost entry of the header, so an appending proxy cannot
+  let a client choose its own key. See spec §7.5, requirement 6.
 
 **On the backend port.** `127.0.0.1:33333` sits inside Linux's default ephemeral
 range (`32768–60999`), so the kernel may transiently assign it as an outbound

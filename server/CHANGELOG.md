@@ -8,6 +8,17 @@ the app and of `compendium_core`; version headings below refer to
 
 ## [Unreleased]
 
+### Security
+
+- Gzip request bodies are now capped on their encoded (wire) size per route, and
+  an over-long `Content-Length` on a gzip body is rejected up front with `413`.
+  Previously a stream of empty gzip members decoded to no chunks and evaded the
+  size checks.
+- When forwarded headers are trusted (loopback peer), the rightmost
+  `X-Forwarded-For` entry keys the per-client budget instead of the leftmost.
+  Behaviour behind the reference Apache (which overwrites the header) is
+  unchanged.
+
 ## [0.2.1] - 2026-09-24
 
 ### Changed
