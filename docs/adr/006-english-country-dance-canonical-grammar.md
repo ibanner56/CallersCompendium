@@ -393,7 +393,7 @@ transcriptions (§3). Each count is of captions, not of performances.
 | --- | --- | --- | --- |
 | `balance` | `who`, `where`, `hand` | *as contra* | Captions include "partner right hand balance" and "balance forward and back". |
 | `balance_ring` | none | `balance the ring` | |
-| `circle` | `who`, `direction`, `places`, `singleFile`, `step` | *as contra*; with `step`, the step word replaces "circle" ("slip left 3 places"); with `who`, prefixed "{who}, ..." | `who` is offered only outside duple minor ("2s and 3s circle left"). Evidence: 10 captions in 7 dances. 6 give the extent as "half" or "half way", not a number of places. One states a side ("circle six left"). Single-file circles are called clockwise/counter-clockwise. ⚠ Should `circle` take a `fraction`, given that converting "half" to places depends on the size of the ring? (§8.4) |
+| `circle` | `who`, `direction`, `places`, `singleFile`, `step` | *as contra*; with `step`, the step word replaces "circle" ("slip left 3 places"); with `who`, prefixed "{who}, ..." | `who` is offered only outside duple minor ("2s and 3s circle left"). Evidence: 10 captions in 7 dances. 6 give the extent as "half" or "half way", not a number of places. One states a side ("circle six left"). Single-file circles are called clockwise/counter-clockwise. "Half" and "half way" are stored as `places`, derived from the size of the ring: half the number of dancers in it. The ring is normally set by the formation: two places in a duple minor (four dancers), three in a triple minor (six dancers). When `who` names only some of the couples, the ring is those couples: "1s+2s circle half" in a triple minor is two places (§8.4). |
 | `star` | `who`, `hand`, `places`, `grip` | *as contra*, with a "{who}, ..." prefix when `who` is set | ECD's usual star is hands across, not contra's wrist grip. Evidence: all 3 transcribed stars say "hands across". One gives the extent as "once around", not places. ⚠ Should an unspecified grip *display* as hands across? Should `star` take a turn amount? |
 | `form_short_wave` | `axis`, `balance`, `center`, `centerHand`, `sides` | *as contra* | `balance` is a yes/no flag ("wave and balance"). |
 | `form_long_wave` | `who`, `whom`, `whomHand`, `balance` | *as contra* | ⚠ Tidal-wave topology is unresolved (§10). |
@@ -517,18 +517,17 @@ dialect. The rotation is not stated, so it is `unspecified`.
 ```
 
 ```text
-circle       singleFile=true  direction=clockwise         places=?
+circle       singleFile=true  direction=clockwise         places=2
 turn_single  shoulder=left    destination=unspecified
-circle       singleFile=true  direction=counterclockwise  places=?
+circle       singleFile=true  direction=counterclockwise  places=2
 turn_single  shoulder=right   destination=unspecified
 ```
 
-This passage shows three gaps in the current definitions:
+Points to notice:
 
-- **`circle` extent.** The source says "half", but `circle` measures its
-  extent in `places`. In a ring of four, half is two places. Writing
-  `places=2` turns what the caller said into something they didn't say,
-  and the conversion depends on the ring size.
+- **`circle` extent.** "Half" becomes `places=2`. *Midwinter Maggot* is a
+  duple minor, so the ring has four dancers, and half of it is two places
+  (§7.3).
 - **`circle` ending state.** "(all home)" is an ending state, but `circle`
   has no `destination` parameter (Q3).
 - **`turn_single` side.** "Turn single left" is stored as `shoulder=left`,
@@ -634,8 +633,8 @@ figures, or should merge with another?
 - Does ECD have arm turns other than once around?
 - Siding's `style` values are `straight` and `swirly`. Are those the words
   callers would recognize? Is there any other style of siding?
-- Should `circle` (and perhaps `star`) accept a `fraction` or turn amount
-  ("circle half", "star once around"), as well as or instead of `places`?
+- Should `star` accept a turn amount ("star once around"), as well as or
+  instead of `places`?
 - Should the turn single's side be called `shoulder` or `direction`, given
   that sources say "turn single left/right"?
 - Should `two_hand_turn`, `cross` and `fall_back` gain `endFacing` or
