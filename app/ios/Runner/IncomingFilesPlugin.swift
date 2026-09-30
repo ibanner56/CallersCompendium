@@ -277,9 +277,9 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
 /// Stages an incoming file into a private temp directory, refusing anything over
 /// `maxBytes`. Incoming size limits used to be enforced only in Dart, after the
 /// whole payload had already been copied. The source's size attribute is checked
-/// before any copy is started, and the copy's actual size is verified afterwards
-/// because the attribute can be missing or the source can grow between the check
-/// and the copy. An oversize or failed copy is deleted.
+/// first as a cheap early refusal, then the copy itself is chunked and counted, so
+/// it stops once `maxBytes` is crossed even if the attribute is missing or the
+/// source grows mid-copy. An oversize or failed copy is deleted.
 ///
 /// `internal` (not `private`) so the `RunnerTests` target can exercise it via
 /// `@testable import Runner`.
@@ -320,9 +320,7 @@ enum IncomingFileStager {
       if fileManager.fileExists(atPath: dest.path) {
         try fileManager.removeItem(at: dest)
       }
-      try fileManager.copyItem(at: url, to: dest)
-      let copied = try dest.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
-      if Int64(copied) > maxBytes {
+      guard try copyBounded(from: url, to: dest, maxBytes: maxBytes) else {
         try? fileManager.removeItem(at: dest)
         return .tooLarge
       }
@@ -333,6 +331,37 @@ enum IncomingFileStager {
       }
       return .failed
     }
+  }
+
+  /// Copies `source` to `destination` in fixed-size chunks, stopping as soon as
+  /// more than `maxBytes` have been read. Returns false (leaving a partial
+  /// destination for the caller to delete) when the limit is crossed. This bounds
+  /// the work even when the size attribute is missing or the source grows mid-copy.
+  private static func copyBounded(
+    from source: URL, to destination: URL, maxBytes: Int64
+  ) throws -> Bool {
+    let input = try FileHandle(forReadingFrom: source)
+    defer { try? input.close() }
+    guard FileManager.default.createFile(atPath: destination.path, contents: nil) else {
+      throw CocoaError(.fileWriteUnknown)
+    }
+    let output = try FileHandle(forWritingTo: destination)
+    defer { try? output.close() }
+    let chunkSize = 64 * 1024
+    var total: Int64 = 0
+    while true {
+      let done: Bool = try autoreleasepool {
+        guard let chunk = try input.read(upToCount: chunkSize), !chunk.isEmpty else {
+          return true
+        }
+        total += Int64(chunk.count)
+        if total > maxBytes { return true }
+        try output.write(contentsOf: chunk)
+        return false
+      }
+      if done { break }
+    }
+    return total <= maxBytes
   }
 }
 

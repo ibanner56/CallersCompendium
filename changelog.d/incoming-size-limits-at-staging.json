@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "Sharing or opening a very large file, or sharing a very long piece of text to the iOS Share Extension, is now refused up front instead of first being copied or read in full. A file that is too large now shows the \"too large to import\" message on Android, iOS and macOS."
+      "Sharing or opening a very large file, or sharing a very long piece of text to the iOS Share Extension, is now refused once it crosses the size limit, instead of being copied or read in full first (the iOS Share Extension still has to load shared text into memory before it can measure it). A file that is too large now shows the \"too large to import\" message on Android, iOS and macOS."
     ]
   }
 }
