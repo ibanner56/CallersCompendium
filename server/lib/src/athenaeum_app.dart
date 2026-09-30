@@ -266,7 +266,7 @@ class AthenaeumApp {
       return _rateLimitedResponse();
     }
     try {
-      store.retryPendingDeletions();
+      store.retryPendingDeletions(maxDuration: requestPendingDeletionBudget);
     } on Object catch (error) {
       stderr.writeln(
         'Athenaeum request cleanup retry failed (${error.runtimeType})',
@@ -573,6 +573,11 @@ class AthenaeumApp {
           epoch: current.epoch,
           hash: hash,
           body: body,
+        );
+      } on StoreBlobMismatch {
+        throw const _RequestFailure(
+          400,
+          'blob body does not match the stored blob',
         );
       } on StoreQuotaExceeded catch (error) {
         throw _RequestFailure(507, error.message);

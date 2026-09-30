@@ -1,0 +1,9 @@
+{
+  "id": "remove-unused-search-dances",
+  "user_visible": false,
+  "core": {
+    "removed": [
+      "Remove the unused `DanceRepository.searchDances`, which hydrated each search result with separate child-relation queries; use `search` for ids and the batched loaders (`listAll`) for full objects."
+    ]
+  }
+}

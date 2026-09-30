@@ -711,6 +711,19 @@ void main() {
             ),
             isTrue,
           );
+
+          // Syntactically valid but absurdly large: must not reach the
+          // derived-index write as a 100M-label allocation.
+          final huge = await _importOne(
+            jsonEncode(_dance(phraseStructure: '100000000*1*1')),
+          );
+          expect(huge.dance.phraseStructure.raw, '');
+          expect(
+            huge.issues.any(
+              (i) => i.code == 'callersbox_phrase_structure_unreadable',
+            ),
+            isTrue,
+          );
         },
       );
 

@@ -109,6 +109,16 @@ const Duration kUpdateDownloadTimeout = Duration(seconds: 60);
 /// installer (1 GiB) so it never truncates a legitimate update.
 const int kMaxArtifactDownloadBytes = 1024 * 1024 * 1024;
 
+/// The most bytes [downloadArtifact] lets accumulate in the file sink's pending
+/// queue before it pauses the response stream and waits for the sink to flush.
+/// This bounds the memory a fast network can build up against a slow disk to
+/// roughly this value (plus one chunk) instead of the whole artifact.
+const int kDownloadWriteHighWaterBytes = 1024 * 1024;
+
+/// How often [downloadArtifact] polls its cancel token while the response is
+/// paused waiting for a sink flush (no chunk arrives to observe it then).
+const Duration kDownloadCancelPollInterval = Duration(milliseconds: 200);
+
 /// The maximum number of HTTP redirects [downloadArtifact] follows before giving
 /// up. Redirects are followed **manually** so each hop can be re-validated as
 /// https (GitHub serves release assets via an `https → https` redirect); this
