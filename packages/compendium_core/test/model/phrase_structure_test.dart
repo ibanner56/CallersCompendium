@@ -87,6 +87,56 @@ void main() {
       }
     });
 
+    test('rejects counts past the structural bounds (audit finding 12)', () {
+      for (final bad in [
+        // The audit repro: 100M labels were allocated per figure.
+        '100000000*1*1',
+        '1001*1*1',
+        '1*1001*1',
+        '1*1*1001',
+        // Every component is within its own bound; the totals are not.
+        '600*1*1 + 401*1*1',
+        '1000*1000*1',
+        // 65 components, each valid.
+        List.filled(65, '1*1*1').join(' + '),
+        // Wraps an int64 product to a non-positive total if unchecked.
+        '3037000500*3037000500*1',
+        '2*4611686018427387904*1',
+      ]) {
+        expect(
+          () => PhraseStructure.parse(bad),
+          throwsFormatException,
+          reason: bad,
+        );
+      }
+    });
+
+    test('accepts the largest in-bounds structures', () {
+      expect(PhraseStructure.parse('1000*1*1').phraseCount, 1000);
+      expect(PhraseStructure.parse('1*1000*1000').totalBeats, 1000000);
+      expect(
+        PhraseStructure.parse(List.filled(64, '1*1*1').join(' + ')).phraseCount,
+        64,
+      );
+    });
+
+    test('labelAtBeat agrees with labels at every phrase start', () {
+      // Equivalence guard for computing a label without building `labels`.
+      // (The allocation itself is not observable at the bounded size, so this
+      // guards the refactor's result, not its cost.)
+      final s = PhraseStructure.parse('3*8*2 + 1*4*2 + 5*2*1');
+      final labels = s.labels;
+      var beat = 0;
+      var index = 0;
+      for (final c in s.components) {
+        for (var i = 0; i < c.phraseCount; i++) {
+          expect(s.labelAtBeat(beat), labels[index], reason: 'beat $beat');
+          beat += c.beatsPerPhrase;
+          index++;
+        }
+      }
+    });
+
     test('round-trips its raw representation', () {
       expect(PhraseStructure.parse('6*8*2').raw, '6*8*2');
       expect(PhraseStructure.parse('3*8*2 + 1*4*2').raw, '3*8*2 + 1*4*2');

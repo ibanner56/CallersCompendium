@@ -840,6 +840,30 @@ void main() {
     });
   });
 
+  group('oversized stored phrase structure', () {
+    test('loading tolerates a legacy out-of-bounds value rather than '
+        'throwing (audit finding 12)', () async {
+      // The editor and importer once accepted unbounded counts, so such a row
+      // can already be on disk. Hydration must not let it block the library.
+      await dances.create(sampleDance(id: 'a', title: 'Huge'));
+      await dances.create(sampleDance(id: 'b', title: 'Fine'));
+      await db.customStatement(
+        'UPDATE dances SET phrase_structure = ? WHERE id = ?',
+        ['100000000*1*1', 'a'],
+      );
+
+      final single = await dances.getById('a');
+      expect(single!.phraseStructure, PhraseStructure.standard);
+
+      final all = await dances.listAll();
+      expect(all.map((d) => d.id), containsAll(['a', 'b']));
+      expect(
+        all.firstWhere((d) => d.id == 'a').phraseStructure,
+        PhraseStructure.standard,
+      );
+    });
+  });
+
   group('orphan reference GC after purge (#462)', () {
     late PublishedSourceRepository sources;
 
