@@ -3179,6 +3179,165 @@ void main() {
       expect(find.byKey(const ValueKey('import-programs-label')), findsNothing);
     },
   );
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Bundle routing is decided once per plan, from decoded JSON keys
+  // (local audit issue 13: findings 22 and 23)
+  // ──────────────────────────────────────────────────────────────────────────
+
+  group('bundle detection runs once per plan on decoded keys', () {
+    Future<void> pumpCounting(
+      WidgetTester tester,
+      CompendiumRepositories repos,
+      String payload,
+      List<int> calls,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1000, 1600));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: RepositoriesScope(
+            repositories: repos,
+            child: ImportReviewScreen(
+              sources: [
+                ImportSource(
+                  kind: ImportSourceKind.genericJson,
+                  adapterFactory: GenericJsonAdapter.new,
+                ),
+              ],
+              picker: () async => payload,
+              archiveDecoder: (root) {
+                calls.add(1);
+                return archiveFromJson(root);
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    // One dance carrying one tag: a metadata bundle, which only the archive
+    // importer route stages.
+    String taggedPayload() => encodeArchive(
+      CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        tags: [Tag(id: 't1', name: 'Escaped Tag')],
+        dances: [
+          Dance(
+            id: 'd1',
+            title: 'Tagged Reel',
+            tagIds: const ['t1'],
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 1, 1),
+          ),
+        ],
+      ),
+    );
+
+    Future<void> edit(WidgetTester tester, String text) async {
+      await tester.enterText(
+        find.byKey(const ValueKey('import-paste-field')),
+        text,
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('picking and editing does not decode; Continue decodes once', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final calls = <int>[];
+      final payload = taggedPayload();
+      await pumpCounting(tester, repos, payload, calls);
+
+      await tester.tap(find.byKey(const ValueKey('import-choose-file')));
+      await tester.pumpAndSettle();
+      for (var i = 0; i < 5; i++) {
+        await edit(tester, '$payload${' ' * (i + 1)}');
+      }
+      expect(calls, isEmpty, reason: 'no decode while editing');
+
+      await tester.tap(find.byKey(const ValueKey('import-continue')));
+      await tester.pumpAndSettle();
+      expect(calls, hasLength(1));
+    });
+
+    testWidgets('an escaped "dances" key with a tag routes as a bundle', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final calls = <int>[];
+      final literal = taggedPayload();
+      final escaped = literal.replaceFirst(
+        '"dances"',
+        '"${String.fromCharCode(0x5c)}u0064ances"',
+      );
+      expect(escaped, isNot(literal), reason: 'fixture must contain the key');
+      expect(escaped.contains('"dances"'), isFalse);
+      await pumpCounting(tester, repos, escaped, calls);
+
+      await _toReview(tester);
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+
+      expect((await repos.tags.listAll()).map((t) => t.name), ['Escaped Tag']);
+      // The archive-importer route reports through the Undo snackbar, never the
+      // dance-only result dialog.
+      expect(find.byKey(const ValueKey('import-result-dialog')), findsNothing);
+    });
+
+    testWidgets('unrelated JSON and a dances-less object skip the archive '
+        'decode', (tester) async {
+      final repos = openTestRepositories();
+      final calls = <int>[];
+      await pumpCounting(tester, repos, '{"foo": 1}', calls);
+      await _toReview(tester);
+      expect(calls, isEmpty);
+    });
+
+    testWidgets('a malformed dances value leaves the bundle null and does not '
+        'throw', (tester) async {
+      final repos = openTestRepositories();
+      final calls = <int>[];
+      await pumpCounting(tester, repos, '{"dances": "x"}', calls);
+      await _toReview(tester);
+      expect(tester.takeException(), isNull);
+      expect(
+        find.byKey(const ValueKey('shared-import-undo-snackbar')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('re-planning unchanged text does not decode again; changed '
+        'text does', (tester) async {
+      final repos = openTestRepositories();
+      final calls = <int>[];
+      // Zero dances and no programs → the "nothing to import" message, which
+      // offers "Try another" back to the input step.
+      await pumpCounting(tester, repos, '{"dances": []}', calls);
+      await _toReview(tester);
+      expect(calls, hasLength(1));
+
+      await tester.tap(find.byKey(const ValueKey('import-back-to-input')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('import-continue')));
+      await tester.pumpAndSettle();
+      expect(calls, hasLength(1), reason: 'unchanged text is memoised');
+
+      await tester.tap(find.byKey(const ValueKey('import-back-to-input')));
+      await tester.pumpAndSettle();
+      await edit(tester, taggedPayload());
+      await tester.tap(find.byKey(const ValueKey('import-continue')));
+      await tester.pumpAndSettle();
+      expect(calls, hasLength(2), reason: 'changed text is decoded again');
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+      expect(await repos.tags.listAll(), hasLength(1));
+    });
+  });
 }
 
 /// A [SourceAdapter] that records the [ImportRequest] it was planned with, so a
