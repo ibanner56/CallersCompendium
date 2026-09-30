@@ -149,6 +149,26 @@ void main() {
     );
   });
 
+  test('merge restore keeps a live tag that shares only the id', () async {
+    await seedDeletedTag();
+    final archive = await ArchiveExporter(repos).export(exportedAt: exportedAt);
+
+    final targetDb = openTestDatabase();
+    addTearDown(targetDb.close);
+    final target = CompendiumRepositories(targetDb, contraTaxonomy);
+    // Same id as the archived tombstone, different name: only the id guard
+    // in `restoreArchivedTombstone` protects this row.
+    // ignore: unused_result
+    await target.tags.upsert(Tag(id: 't1', name: 'Renamed'));
+
+    final result = await ArchiveRestorer(
+      target,
+    ).restore(archive, mode: RestoreMode.merge);
+
+    expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+    expect((await target.tags.getById('t1'))?.name, 'Renamed');
+  });
+
   test('a retained join naming a dance that is not there is ignored', () async {
     final archive = CompendiumArchive(
       exportedAt: exportedAt,
