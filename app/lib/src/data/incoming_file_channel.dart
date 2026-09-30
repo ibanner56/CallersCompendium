@@ -116,6 +116,12 @@ class IncomingFileChannel {
       return raw.isNotEmpty ? IncomingFile(path: raw, appOwned: false) : null;
     }
     if (raw is Map) {
+      // Native refused to stage the file (over the size cap). No path exists;
+      // an unrecognised reason is dropped like any other junk payload.
+      final rejected = raw['rejected'];
+      if (rejected == IncomingFileRejection.tooLarge.wireName) {
+        return const IncomingFile.rejected(IncomingFileRejection.tooLarge);
+      }
       final path = raw['path'];
       final appOwned = raw['appOwned'];
       if (path is String && path.isNotEmpty && appOwned is bool) {
@@ -126,21 +132,44 @@ class IncomingFileChannel {
   }
 }
 
+/// Why native code refused to stage an incoming file, so no path exists.
+enum IncomingFileRejection {
+  /// The file exceeded the incoming-archive size cap while being staged.
+  tooLarge('tooLarge');
+
+  const IncomingFileRejection(this.wireName);
+
+  /// Value of the `rejected` key in the channel payload.
+  final String wireName;
+}
+
 /// A file handed to the app by the operating system.
 ///
 /// [appOwned] is supplied by the native producer when it created a private
 /// staging copy. It is never inferred from [path], because path layouts differ
 /// by platform and a path alone cannot prove ownership.
+///
+/// When native refused to stage the file, [rejection] is set and [path] is
+/// empty: there is no staged copy to read or delete.
 class IncomingFile {
-  const IncomingFile({required this.path, required this.appOwned});
+  const IncomingFile({required this.path, required this.appOwned})
+    : rejection = null;
+
+  const IncomingFile.rejected(IncomingFileRejection this.rejection)
+    : path = '',
+      appOwned = false;
 
   final String path;
   final bool appOwned;
+  final IncomingFileRejection? rejection;
 
   @override
   bool operator ==(Object other) =>
-      other is IncomingFile && other.path == path && other.appOwned == appOwned;
+      other is IncomingFile &&
+      other.path == path &&
+      other.appOwned == appOwned &&
+      other.rejection == rejection;
 
   @override
-  int get hashCode => Object.hash(path, appOwned);
+  int get hashCode => Object.hash(path, appOwned, rejection);
 }
