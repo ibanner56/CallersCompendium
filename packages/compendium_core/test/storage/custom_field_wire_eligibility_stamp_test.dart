@@ -5,7 +5,6 @@
 // advance their `updatedAt` anyway. Without that, two devices carry the same
 // `updatedAt` over different bodies and merge reports `equalUpdatedAt` forever.
 import 'package:compendium_core/compendium_core.dart';
-import 'package:compendium_core/src/storage/database.dart';
 import 'package:compendium_core/testing.dart';
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:test/test.dart';

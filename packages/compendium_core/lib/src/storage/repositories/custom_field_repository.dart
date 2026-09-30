@@ -216,9 +216,8 @@ class CustomFieldDefRepository {
     assertUtc(at, 'at');
     return _db.customUpdate(
       // sync-invariant-exclusion: join-hydrated-body the dance body changes with its field definition's wire eligibility.
-      'UPDATE ${_db.dances.actualTableName} SET updated_at = ? '
-      'WHERE id IN (SELECT dance_id FROM '
-      '${_db.customFieldValues.actualTableName} WHERE field_id = ?)',
+      'UPDATE dances SET updated_at = ? '
+      'WHERE id IN (SELECT dance_id FROM custom_field_values WHERE field_id = ?)',
       variables: [Variable<int>(unixSeconds(at)), Variable<String>(fieldId)],
       updates: {_db.dances},
       updateKind: UpdateKind.update,
