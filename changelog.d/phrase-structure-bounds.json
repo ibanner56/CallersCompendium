@@ -1,0 +1,16 @@
+{
+  "id": "phrase-structure-bounds",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Typing or importing an absurdly large phrase structure (for example `100000000*1*1`) no longer freezes the app or exhausts memory. Phrase structures are now limited to 1,000 phrases, and an imported structure beyond that falls back to the standard one with a warning."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "`PhraseStructure.parse` now rejects components above 1,000, more than 64 components, more than 1,000 phrases, or more than 1,000,000 beats with a `FormatException`; this also closes a `totalBeats` overflow that could divide by zero.",
+      "`PhraseStructure.labelAtBeat` computes the label from the phrase index instead of building every label.",
+      "Dances whose stored phrase structure is out of bounds still load, as the standard structure (`PhraseStructure.parseOrStandard`)."
+    ]
+  }
+}

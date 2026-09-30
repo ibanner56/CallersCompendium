@@ -8,7 +8,8 @@ import 'figure.dart';
 /// Persisted as a compact string on the dance (`""` = the standard
 /// 4×16-beat A1 A2 B1 B2; otherwise one or more ordered
 /// `phrases*bars*beatsPerBar` components separated by ` + `, e.g. `6*8*2` or
-/// `3*8*2 + 1*4*2`). Section labels (A1, B2, …) are **derived** from cumulative
+/// `3*8*2 + 1*4*2`), bounded by [PhraseStructure.maxComponentNumber] and its
+/// sibling limits. Section labels (A1, B2, …) are **derived** from cumulative
 /// figure beats against this structure — never stored — so reordering figures
 /// or editing beats stays consistent.
 @immutable
