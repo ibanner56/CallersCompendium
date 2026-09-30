@@ -99,9 +99,11 @@ setting up a new device or recovering after a problem.
 On success, you'll see a **Backup restored.** confirmation. If a few
 items in the file couldn't be read, the app still restores everything
 else and tells you how many were skipped. If the file is invalid or
-corrupt, or comes from a newer version of the app that this one can't
-read, the restore stops *before* any of your current data is touched — so
-you never lose what you already have by trying.
+corrupt, comes from a newer version of the app that this one can't
+read, or has no app-settings section (an older, hand-edited or incomplete
+file that couldn't say what your settings, themes and dialects should
+become), the restore stops *before* any of your current data is touched —
+so you never lose what you already have by trying.
 
 > **If your settings don't come back, your dances still did.** Occasionally a
 > restore succeeds for your content but fails while re-applying your saved
