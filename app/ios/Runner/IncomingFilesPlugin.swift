@@ -46,6 +46,11 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
   /// by the `getInitialFile` pull once the Dart UI is ready.
   private var pendingInitialPath: String?
 
+  /// Set when a launch (cold-start) file was refused as over the size cap. The
+  /// `getInitialFile` pull reports it only when no staged path is pending, so a
+  /// rejection never displaces a file that was staged successfully.
+  private var pendingInitialTooLarge = false
+
   /// Shared URLs drained from the App Group *before* Dart performed its
   /// one-time cold-start `getInitialUrl` pull. The UI isn't ready yet, so they
   /// wait here; the pull returns the first (opened over the app shell) and
@@ -74,8 +79,16 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
     switch call.method {
     case "getInitialFile":
       let path = pendingInitialPath
+      let tooLarge = pendingInitialTooLarge
       pendingInitialPath = nil
-      result(path.map(filePayload))
+      pendingInitialTooLarge = false
+      if let path = path {
+        result(filePayload(path))
+      } else if tooLarge {
+        result(tooLargePayload())
+      } else {
+        result(nil)
+      }
     case "getInitialUrl":
       result(takeInitialSharedURL())
     default:
@@ -99,12 +112,20 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
     guard let contexts = connectionOptions?.urlContexts, !contexts.isEmpty else {
       return false
     }
-    guard let path = localCopyPath(forContexts: contexts) else { return false }
-    if let previous = pendingInitialPath {
-      deleteStagedCopy(at: previous)
+    switch stagedCopy(forContexts: contexts) {
+    case .copied(let path):
+      if let previous = pendingInitialPath {
+        deleteStagedCopy(at: previous)
+      }
+      pendingInitialPath = path
+      pendingInitialTooLarge = false
+      return true
+    case .tooLarge:
+      pendingInitialTooLarge = true
+      return true
+    case .failed:
+      return false
     }
-    pendingInitialPath = path
-    return true
   }
 
   /// Warm start: a file or a legacy Share Extension custom-scheme wake arrives
@@ -120,9 +141,16 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
       drainSharedURLs()
       return true
     }
-    guard let path = localCopyPath(forContexts: URLContexts) else { return false }
-    channel?.invokeMethod("fileOpened", arguments: filePayload(path))
-    return true
+    switch stagedCopy(forContexts: URLContexts) {
+    case .copied(let path):
+      channel?.invokeMethod("fileOpened", arguments: filePayload(path))
+      return true
+    case .tooLarge:
+      channel?.invokeMethod("fileOpened", arguments: tooLargePayload())
+      return true
+    case .failed:
+      return false
+    }
   }
 
   /// Authoritative foreground drain (issue #428): fires on every activation, so
@@ -191,7 +219,9 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
     if let defaults = UserDefaults(suiteName: Self.appGroupId) {
       let rawLegacy = defaults.object(forKey: Self.legacySharedUrlKey)
       defaults.removeObject(forKey: Self.legacySharedUrlKey)
-      if let normalized = SharedImportQueue.normalizedURLString(rawLegacy as? String) {
+      if let normalized = SharedImportQueue.normalizedURLString(rawLegacy as? String),
+        normalized.utf8.count <= SharedImportQueue.maxPayloadBytes
+      {
         urls.append(normalized)
       }
     }
@@ -201,17 +231,31 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
   // MARK: - File helpers (issue #298)
 
   @available(iOS 13.0, *)
-  private func localCopyPath(forContexts contexts: Set<UIOpenURLContext>) -> String? {
+  private func stagedCopy(
+    forContexts contexts: Set<UIOpenURLContext>
+  ) -> IncomingFileStager.Outcome {
+    var sawTooLarge = false
     for context in contexts {
-      if let path = localCopyPath(for: context.url) {
-        return path
+      switch localCopy(for: context.url) {
+      case .copied(let path):
+        return .copied(path)
+      case .tooLarge:
+        sawTooLarge = true
+      case .failed:
+        break
       }
     }
-    return nil
+    return sawTooLarge ? .tooLarge : .failed
   }
 
   private func filePayload(_ path: String) -> [String: Any] {
     ["path": path, "appOwned": true]
+  }
+
+  /// Payload telling Dart the file was refused for exceeding the size cap; there
+  /// is no staged copy, so nothing for Dart to read or delete.
+  private func tooLargePayload() -> [String: Any] {
+    ["rejected": "tooLarge"]
   }
 
   private func deleteStagedCopy(at path: String) {
@@ -220,35 +264,104 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
     try? fileManager.removeItem(atPath: path)
   }
 
-  /// Copies a file URL into a private temp directory and returns the copy's
-  /// path. Returns `nil` for non-file URLs or on any I/O error (intake then
-  /// simply does nothing — the native side never crashes the app).
-  private func localCopyPath(for url: URL) -> String? {
-    guard url.isFileURL else { return nil }
+  /// Stages a file URL into a private temp directory (see `IncomingFileStager`).
+  /// `.failed` on non-file URLs or any I/O error (intake then simply does
+  /// nothing — the native side never crashes the app).
+  private func localCopy(for url: URL) -> IncomingFileStager.Outcome {
+    let tempDir = FileManager.default.temporaryDirectory
+      .appendingPathComponent("incoming_share", isDirectory: true)
+    return IncomingFileStager.stage(url, into: tempDir)
+  }
+}
+
+/// Stages an incoming file into a private temp directory, refusing anything over
+/// `maxBytes`. Incoming size limits used to be enforced only in Dart, after the
+/// whole payload had already been copied. The source's size attribute is checked
+/// first as a cheap early refusal, then the copy itself is chunked and counted, so
+/// it stops once `maxBytes` is crossed even if the attribute is missing or the
+/// source grows mid-copy. An oversize or failed copy is deleted.
+///
+/// `internal` (not `private`) so the `RunnerTests` target can exercise it via
+/// `@testable import Runner`.
+enum IncomingFileStager {
+  /// Must equal `kMaxIncomingArchiveBytes` in
+  /// `lib/src/data/archive_intake_service.dart` (25 MiB); a Dart test
+  /// (`incoming_native_limits_test.dart`) fails if they drift.
+  static let maxBytes: Int64 = 26_214_400
+
+  enum Outcome: Equatable {
+    case copied(String)
+    case tooLarge
+    case failed
+  }
+
+  static func stage(
+    _ url: URL,
+    into directory: URL,
+    maxBytes: Int64 = IncomingFileStager.maxBytes
+  ) -> Outcome {
+    guard url.isFileURL else { return .failed }
     let scoped = url.startAccessingSecurityScopedResource()
     defer {
       if scoped { url.stopAccessingSecurityScopedResource() }
     }
     let fileManager = FileManager.default
-    let tempDir = fileManager.temporaryDirectory
-      .appendingPathComponent("incoming_share", isDirectory: true)
     var destination: URL?
     do {
-      try fileManager.createDirectory(at: tempDir, withIntermediateDirectories: true)
-      let dest = tempDir.appendingPathComponent(
+      if let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize,
+        Int64(size) > maxBytes
+      {
+        return .tooLarge
+      }
+      try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
+      let dest = directory.appendingPathComponent(
         UUID().uuidString + "-" + url.lastPathComponent)
       destination = dest
       if fileManager.fileExists(atPath: dest.path) {
         try fileManager.removeItem(at: dest)
       }
-      try fileManager.copyItem(at: url, to: dest)
-      return dest.path
+      guard try copyBounded(from: url, to: dest, maxBytes: maxBytes) else {
+        try? fileManager.removeItem(at: dest)
+        return .tooLarge
+      }
+      return .copied(dest.path)
     } catch {
       if let destination = destination {
-        deleteStagedCopy(at: destination.path)
+        try? fileManager.removeItem(at: destination)
       }
-      return nil
+      return .failed
     }
+  }
+
+  /// Copies `source` to `destination` in fixed-size chunks, stopping as soon as
+  /// more than `maxBytes` have been read. Returns false (leaving a partial
+  /// destination for the caller to delete) when the limit is crossed. This bounds
+  /// the work even when the size attribute is missing or the source grows mid-copy.
+  private static func copyBounded(
+    from source: URL, to destination: URL, maxBytes: Int64
+  ) throws -> Bool {
+    let input = try FileHandle(forReadingFrom: source)
+    defer { try? input.close() }
+    guard FileManager.default.createFile(atPath: destination.path, contents: nil) else {
+      throw CocoaError(.fileWriteUnknown)
+    }
+    let output = try FileHandle(forWritingTo: destination)
+    defer { try? output.close() }
+    let chunkSize = 64 * 1024
+    var total: Int64 = 0
+    while true {
+      let done: Bool = try autoreleasepool {
+        guard let chunk = try input.read(upToCount: chunkSize), !chunk.isEmpty else {
+          return true
+        }
+        total += Int64(chunk.count)
+        if total > maxBytes { return true }
+        try output.write(contentsOf: chunk)
+        return false
+      }
+      if done { break }
+    }
+    return total <= maxBytes
   }
 }
 
@@ -273,6 +386,13 @@ enum SharedImportQueue {
   /// atomic-write temp file) are ignored.
   static let payloadExtension = "ccurl"
 
+  /// Upper bound on one queued payload, in UTF-8 bytes (see the Share
+  /// Extension's `maxPayloadBytes`, which enforces it at write time; this
+  /// enforces it again at read time because the queue is written by another
+  /// process). Must match it; a Dart test (`incoming_native_limits_test.dart`)
+  /// fails if they drift.
+  static let maxPayloadBytes = 32_768
+
   /// Queue directory inside the given App Group container, or `nil` when the
   /// container is unavailable.
   static func directory(forAppGroup appGroupId: String) -> URL? {
@@ -287,7 +407,8 @@ enum SharedImportQueue {
   /// I/O failure. Primarily used by tests here.
   @discardableResult
   static func enqueue(_ payload: String, into directory: URL) -> Bool {
-    guard let data = payload.data(using: .utf8) else { return false }
+    guard let data = payload.data(using: .utf8), data.count <= maxPayloadBytes
+    else { return false }
     let fileManager = FileManager.default
     do {
       try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -308,7 +429,7 @@ enum SharedImportQueue {
     guard
       let entries = try? fileManager.contentsOfDirectory(
         at: directory,
-        includingPropertiesForKeys: [.creationDateKey],
+        includingPropertiesForKeys: [.creationDateKey, .fileSizeKey],
         options: [.skipsHiddenFiles])
     else { return [] }
     let payloads =
@@ -317,7 +438,12 @@ enum SharedImportQueue {
       .sorted { creationDate(of: $0) < creationDate(of: $1) }
     var urls: [String] = []
     for file in payloads {
-      let contents = try? String(contentsOf: file, encoding: .utf8)
+      // The queue is written by another process, so bound the read itself: an
+      // oversize (or unsized) file is deleted unread rather than loaded whole.
+      let size = try? file.resourceValues(forKeys: [.fileSizeKey]).fileSize
+      let contents: String? =
+        (size.map { $0 <= maxPayloadBytes } ?? false)
+        ? (try? String(contentsOf: file, encoding: .utf8)) : nil
       // Delete before yielding so a re-entrant drain (legacy wake + foreground)
       // can't take the same file twice; whichever drain removed it owns delivery.
       try? fileManager.removeItem(at: file)

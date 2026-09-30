@@ -3141,6 +3141,12 @@ abstract class AppLocalizations {
   /// **'This backup contains items this version of the app can\'t read (it may be from a newer version), so the restore was cancelled. Your data is unchanged.'**
   String get backupRestoreIncompatibleVersion;
 
+  /// Snackbar shown when a replace restore is refused because the backup file has no app section (an older, hand-edited or incomplete file), so restoring it would clear preferences, themes and dialects it never described. Existing data is unchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'This backup doesn\'t include your app settings, themes or dialects, so it can\'t replace your current data. The restore was cancelled and your data is unchanged.'**
+  String get backupRestoreMissingAppSection;
+
   /// Snackbar shown when the selected restore file is not a valid backup. Existing data is unchanged.
   ///
   /// In en, this message translates to:

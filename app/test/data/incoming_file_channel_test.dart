@@ -87,6 +87,47 @@ void main() {
       ]);
     });
 
+    test('a native tooLarge rejection is surfaced with no path', () async {
+      final channel = IncomingFileChannel();
+      addTearDown(channel.dispose);
+      channel.start();
+
+      final files = <IncomingFile>[];
+      final sub = channel.files.listen(files.add);
+      addTearDown(sub.cancel);
+
+      await sendFromNative('fileOpened', <String, Object>{
+        'rejected': 'tooLarge',
+      });
+      await sendFromNative('fileOpened', <String, Object>{
+        'rejected': 'somethingElse',
+      });
+      await pumpEventQueue();
+
+      expect(files, <IncomingFile>[
+        const IncomingFile.rejected(IncomingFileRejection.tooLarge),
+      ]);
+      expect(files.single.path, isEmpty);
+      expect(files.single.appOwned, isFalse);
+    });
+
+    test(
+      'a cold-start tooLarge rejection is returned by initialFile',
+      () async {
+        messenger.setMockMethodCallHandler(platformChannel, (call) async {
+          expect(call.method, 'getInitialFile');
+          return <String, Object>{'rejected': 'tooLarge'};
+        });
+
+        final file = await IncomingFileChannel().initialFile();
+
+        expect(
+          file,
+          const IncomingFile.rejected(IncomingFileRejection.tooLarge),
+        );
+      },
+    );
+
     test('multiple drained URLs are each delivered in order', () async {
       final channel = IncomingFileChannel();
       addTearDown(channel.dispose);

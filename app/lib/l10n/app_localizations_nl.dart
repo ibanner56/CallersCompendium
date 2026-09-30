@@ -1841,6 +1841,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Deze back-up bevat items die deze versie van de app niet kan lezen (mogelijk van een nieuwere versie), dus het herstel is geannuleerd. Je gegevens zijn ongewijzigd.';
 
   @override
+  String get backupRestoreMissingAppSection =>
+      'Deze back-up bevat je app-instellingen, thema’s en dialecten niet, dus hij kan je huidige gegevens niet vervangen. Het herstel is geannuleerd en je gegevens zijn ongewijzigd.';
+
+  @override
   String get backupRestoreInvalidFile =>
       'Herstel mislukt: het bestand is geen geldige back-up. Je gegevens zijn ongewijzigd.';
 

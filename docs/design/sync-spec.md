@@ -1908,7 +1908,7 @@ Every limit MUST be enforced before allocation, streaming-abort style.
 | Devices per store | 32 |
 | Hashes per `POST /v1/blobs/missing` request | 10,000 |
 | JSON parse depth | 32 |
-| Decompressed size of a `Content-Encoding: gzip` body (§4) | 10× compressed, cap 32 MB |
+| Decompressed size of a `Content-Encoding: gzip` body (§4) | 10× compressed, cap 32 MB; encoded size also capped per route (decoded limit plus gzip framing slack) |
 | Request rate, per client IP | 60/minute, burst 120 |
 | Request rate, per store (`id_key`) | 600/minute |
 | **Failed store resolutions**, per client IP | 10/minute, burst 20 |
@@ -2411,6 +2411,17 @@ I1 protects the merge discriminator; a record's serialised form includes fields
 hydrated from other tables, so a write that never touches the record's own row
 can still change what it publishes. I2 protects the repair classifier in §6.9,
 which compares body hashes: a metadata-only re-stamp would be invisible to it.
+
+A dance's body carries a custom-field value only while that field's definition is
+live and shareable, so the definition's wire eligibility is such a join-hydrated
+input to every dance holding a value for it. Changing it — flipping `shareable`,
+deleting the definition, or restoring it — MUST advance `updated_at` on every
+such dance, live or tombstoned, in the same transaction, and MUST NOT when
+eligibility is unchanged (a private definition's delete or restore alters no
+body, so I2 forbids the stamp). The stamp is at least one stored tick past the dance's current `updated_at`, so
+it never ties or moves backward. Inbound definition writes are exempt (§6.7).
+Without the stamp two devices hold one `updatedAt` over two bodies and §6.3
+reports `equalUpdatedAt` on every pass.
 
 **Inbound envelope timestamp normalisation is a separate, narrower exception.**
 For `dance` and `program`, a receiver MAY change only the body's redundant

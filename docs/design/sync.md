@@ -4216,6 +4216,7 @@ Every limit is enforced **before** allocation, streaming-abort style, following
 | Devices per store | 32 | Generous for a person; bounds manifest fan-out. |
 | JSON parse depth | 32 | **New bound.** The codec has no general depth cap; `kMaxContainerDepth` (2) bounds *figure* nesting only, so the server needs its own guard against deeply-nested JSON. |
 | Decompressed size | 10x compressed, cap 32 MB | Decompression bomb. |
+| Encoded gzip size | Per route: decoded limit plus gzip framing slack, cap 32 MB | A stream of empty gzip members decodes to zero chunks and evades the decoded-size checks. |
 | Request rate | per-IP and per-store | Brute force. |
 
 Text arriving from a peer is passed through `sanitizeImportedText`, exactly as

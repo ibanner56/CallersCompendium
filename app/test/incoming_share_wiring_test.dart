@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:compendium_app/l10n/app_localizations_en.dart';
 import 'package:compendium_app/main.dart';
 import 'package:compendium_app/src/data/app_database.dart';
 import 'package:compendium_app/src/data/archive_intake_service.dart';
@@ -272,6 +273,46 @@ void main() {
     expect(find.byType(ImportReviewScreen), findsNothing);
     expect(await appData.repositories.programs.listAll(), isEmpty);
   });
+
+  testWidgets(
+    'a file native refused as too large shows the tooLarge snackbar without '
+    'reading or deleting anything',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+      final readPaths = <String>[];
+      final deletedPaths = <String>[];
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          incomingFileChannel: _FakeIncomingFileChannel(
+            initialFileFuture: Future.value(
+              const IncomingFile.rejected(IncomingFileRejection.tooLarge),
+            ),
+          ),
+          incomingFileReader: (path) async {
+            readPaths.add(path);
+            return Uint8List(0);
+          },
+          incomingFileDeleter: (path) async => deletedPaths.add(path),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('shared-import-error')), findsOneWidget);
+      expect(
+        find.text(AppLocalizationsEn().archiveIntakeRejectedTooLarge),
+        findsOneWidget,
+      );
+      expect(readPaths, isEmpty);
+      expect(deletedPaths, isEmpty);
+      expect(find.byType(ImportReviewScreen), findsNothing);
+    },
+  );
 
   testWidgets('a rejected shared file removes its staging copy', (
     tester,

@@ -1830,6 +1830,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Denne sikkerhedskopi indeholder elementer, som denne version af appen ikke kan læse (den kan stamme fra en nyere version), så gendannelsen blev annulleret. Dine data er uændret.';
 
   @override
+  String get backupRestoreMissingAppSection =>
+      'Denne sikkerhedskopi indeholder ikke dine appindstillinger, temaer eller dialekter, så den kan ikke erstatte dine nuværende data. Gendannelsen blev annulleret, og dine data er uændret.';
+
+  @override
   String get backupRestoreInvalidFile =>
       'Kunne ikke gendanne: filen er ikke en gyldig sikkerhedskopi. Dine data er uændret.';
 

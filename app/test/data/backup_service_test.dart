@@ -729,4 +729,160 @@ void main() {
       expect(await repos.settings.get(kSortIgnoreArticlesKey), true);
     },
   );
+
+  group('replace preflight: incomplete or newer backups', () {
+    const stamp = '"createdAt":"2026-07-15T00:00:00.000Z"';
+    const backupDance =
+        '{"id":"b1","title":"Backup Dance",'
+        '"createdAt":"2026-01-01T00:00:00.000Z",'
+        '"updatedAt":"2026-01-01T00:00:00.000Z"}';
+
+    Future<CompendiumRepositories> seeded() async {
+      final repos = openTestRepositories();
+      await _seed(repos);
+      return repos;
+    }
+
+    Future<void> expectSettingsIntact(CompendiumRepositories repos) async {
+      expect(await repos.settings.get(kSortIgnoreArticlesKey), false);
+      expect(await repos.settings.get(kActiveCustomThemeKey), 'custom-1');
+      expect(await repos.settings.get(kActiveDialectRefKey), 'My Dialect');
+      expect(await repos.settings.get(kCustomThemesKey) as List, hasLength(1));
+      expect(
+        await repos.settings.get(kCustomDialectsKey) as List,
+        hasLength(1),
+      );
+    }
+
+    Future<void> expectLiveIntact(CompendiumRepositories repos) async {
+      expect((await repos.dances.listAll()).map((d) => d.id), ['d1']);
+      await expectSettingsIntact(repos);
+    }
+
+    test('REPLACE refuses a backup with no app section', () async {
+      final repos = await seeded();
+      const json =
+          '{"backupVersion":1,$stamp,"core":{"dances":[$backupDance]}}';
+
+      final outcome = await BackupService(repos).restoreFromJson(json);
+
+      expect(outcome.applied, isFalse);
+      expect(outcome.missingAppSection, isTrue);
+      await expectLiveIntact(repos);
+    });
+
+    test('REPLACE refuses a non-object app section', () async {
+      final repos = await seeded();
+      const json =
+          '{"backupVersion":1,$stamp,"core":{"dances":[$backupDance]},'
+          '"app":5}';
+
+      final outcome = await BackupService(repos).restoreFromJson(json);
+
+      expect(outcome.applied, isFalse);
+      expect(outcome.missingAppSection, isTrue);
+      await expectLiveIntact(repos);
+    });
+
+    test('REPLACE refuses a newer backupVersion', () async {
+      final repos = await seeded();
+      const json =
+          '{"backupVersion":999,$stamp,"core":{"dances":[$backupDance]},'
+          '"app":{}}';
+
+      final outcome = await BackupService(repos).restoreFromJson(json);
+
+      expect(outcome.applied, isFalse);
+      expect(outcome.newerSchema, isTrue);
+      await expectLiveIntact(repos);
+    });
+
+    test('REPLACE refuses a newer core schemaVersion', () async {
+      final repos = await seeded();
+      final json =
+          '{"backupVersion":1,$stamp,'
+          '"core":{"schemaVersion":${archiveSchemaVersion + 1},'
+          '"dances":[$backupDance]},"app":{}}';
+
+      final outcome = await BackupService(repos).restoreFromJson(json);
+
+      expect(outcome.applied, isFalse);
+      expect(outcome.newerSchema, isTrue);
+      await expectLiveIntact(repos);
+    });
+
+    test('MERGE with no app section applies core and leaves settings, '
+        'themes and dialects intact', () async {
+      final repos = await seeded();
+      const json =
+          '{"backupVersion":1,$stamp,"core":{"dances":[$backupDance]}}';
+
+      final outcome = await BackupService(
+        repos,
+      ).restoreFromJson(json, mode: RestoreMode.merge);
+
+      expect(outcome.applied, isTrue);
+      expect((await repos.dances.listAll()).map((d) => d.id).toSet(), {
+        'd1',
+        'b1',
+      });
+      await expectSettingsIntact(repos);
+    });
+
+    test('MERGE of a newer backupVersion stays best-effort', () async {
+      final repos = await seeded();
+      const json =
+          '{"backupVersion":999,$stamp,"core":{"dances":[$backupDance]},'
+          '"app":{}}';
+
+      final outcome = await BackupService(
+        repos,
+      ).restoreFromJson(json, mode: RestoreMode.merge);
+
+      expect(outcome.applied, isTrue);
+      expect(outcome.warnings, isNotEmpty);
+    });
+
+    test('REPLACE with an empty app object restores core but leaves every '
+        'undescribed settings section alone', () async {
+      final repos = await seeded();
+      const json =
+          '{"backupVersion":1,$stamp,"core":{"dances":[$backupDance]},'
+          '"app":{}}';
+
+      final outcome = await BackupService(repos).restoreFromJson(json);
+
+      expect(outcome.applied, isTrue);
+      expect((await repos.dances.listAll()).map((d) => d.id), ['b1']);
+      await expectSettingsIntact(repos);
+    });
+
+    test('REPLACE applies only the app sections the backup describes', () async {
+      final repos = await seeded();
+      const json =
+          '{"backupVersion":1,$stamp,"core":{"dances":[$backupDance]},'
+          '"app":{"settings":{}}}';
+
+      final outcome = await BackupService(repos).restoreFromJson(json);
+
+      expect(outcome.applied, isTrue);
+      // The described (empty) settings section replaces the stale preference...
+      expect(await repos.settings.get(kSortIgnoreArticlesKey), isNull);
+      // ...but themes and dialects, which the backup never mentioned, stay.
+      expect(await repos.settings.get(kActiveCustomThemeKey), 'custom-1');
+      expect(await repos.settings.get(kActiveDialectRefKey), 'My Dialect');
+      expect(await repos.settings.get(kCustomThemesKey) as List, hasLength(1));
+    });
+
+    test('retryApplySettings with no app section clears nothing', () async {
+      final repos = await seeded();
+      const json =
+          '{"backupVersion":1,$stamp,"core":{"dances":[$backupDance]}}';
+
+      final outcome = await BackupService(repos).retryApplySettings(json);
+
+      expect(outcome.settingsFailed, isFalse);
+      await expectLiveIntact(repos);
+    });
+  });
 }
