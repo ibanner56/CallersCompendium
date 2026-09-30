@@ -15,6 +15,7 @@ import '../../model/figure.dart';
 import '../../model/formation.dart';
 import '../../imports/reparse_custom_figures.dart';
 import '../../model/partial_date.dart';
+import '../../model/phrase_structure.dart';
 import '../../model/provenance.dart' as model;
 import '../../model/source_citation.dart';
 import '../../search/search_sort.dart';
@@ -2464,33 +2465,6 @@ class DanceRepository {
     }
   }
 
-  /// Like [search] but returns hydrated [Dance]s in the same order. Convenience
-  /// for callers that immediately need the full objects; the id-returning
-  /// [search] is the primary contract.
-  Future<List<Dance>> searchDances(
-    DanceFilter filter, {
-    SearchSort sort = SearchSort.title,
-    SortDirection? direction,
-    Dialect? dialect,
-    SearchEnrichment? enrichment,
-    bool ignoreLeadingArticles = false,
-  }) async {
-    final ids = await search(
-      filter,
-      sort: sort,
-      direction: direction,
-      dialect: dialect,
-      enrichment: enrichment,
-      ignoreLeadingArticles: ignoreLeadingArticles,
-    );
-    final result = <Dance>[];
-    for (final id in ids) {
-      final dance = await getById(id);
-      if (dance != null) result.add(dance);
-    }
-    return result;
-  }
-
   /// Alphabetizes [ids] by title with a leading article ignored (see
   /// [titleSortKey]). [ids] arrive in SQL title (base) order, kept as a stable
   /// tiebreak for equal keys (e.g. "Rose" vs "The Rose" both key to "rose").
@@ -2769,7 +2743,9 @@ class DanceRepository {
       form: row.form,
       formation: Formation(row.formationShape, detail: row.formationDetail),
       progression: row.progression,
-      phraseStructure: row.phraseStructure,
+      // Tolerant: the editor and importers once accepted unbounded counts, so
+      // a stored value may be out of bounds; it must not block loading.
+      phraseStructure: PhraseStructure.parseOrStandard(row.phraseStructure).raw,
       figuresSource: _figureSourceFor(row.figuresJson),
       hook: row.hook,
       callingNotes: row.callingNotes,

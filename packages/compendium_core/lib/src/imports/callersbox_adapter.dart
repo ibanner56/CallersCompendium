@@ -1628,8 +1628,8 @@ class CallersBoxAdapter implements SourceAdapter {
           severity: ImportIssueSeverity.warning,
           code: 'callersbox_phrase_structure_unreadable',
           message:
-              'PhraseStructure "$text" is not "phrases*bars*beatsPerBar"; '
-              'default structure used.',
+              'PhraseStructure "$text" is not "phrases*bars*beatsPerBar" or is larger '
+              'than supported; default structure used.',
         ),
       );
       return '';
