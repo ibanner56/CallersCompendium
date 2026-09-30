@@ -662,6 +662,20 @@ what the fix removes is the fabricated dancers and the doubled balance.
   through explicit serialization modes: share mode omits custom fields marked
   `shareable = false`, while backup mode preserves every custom field and value.
   Versioned schema; forward-compatible reader.
+- Deleted tags (schema v7). Tags are soft-deleted and their `dance_tags` rows are
+  kept, so restoring a tag brings its dances back; a dance's `tagIds` never lists a
+  tombstoned tag. A **backup-mode** archive therefore carries a `deletedTags` array,
+  one entry per tombstoned tag: the tag (`id`, `name`, `color`), its `deletedAt`, and
+  `danceIds`, the dances (including tombstoned dances) whose retained join names it.
+  Share mode never writes it. The array is separate from `tags` on purpose: a pre-v7
+  reader ignores an unknown key and restores only live tags, whereas a marker inside
+  `tags` would be ignored and the deleted tag would come back live. The archive is
+  stamped v7 only when a tombstoned tag exists. On restore a tombstone is written
+  and stamped like any other deletion, then its joins are re-attached to dances that
+  exist; a tag the destination already holds **live** (by id or name) is never
+  tombstoned by a backup, and its retained joins are not applied. Tombstoned
+  choreographers, sources and custom-field definitions are not carried: they are
+  referentially guarded, so no retained join can name one.
 - Receive key. A received dance is stored under `(json, externalId)`, where the
   external id is the dance's **upstream** provenance namespaced by its source —
   `contradb:457` — because upstream sources hand out overlapping small integer
