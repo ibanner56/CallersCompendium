@@ -1350,6 +1350,40 @@ void main() {
       expect(stored!.choices, ['driving', 'lyrical']);
     });
 
+    test('keeps every other flag, including a private field private', () async {
+      final repos = openTestRepositories();
+      // Every flag off its constructor default, so a property dropped from the
+      // rebuilt definition shows up as a difference.
+      final def = CustomFieldDef(
+        id: 'adj',
+        key: 'adjectives',
+        label: 'Adjectives',
+        type: CustomFieldType.choice,
+        choices: const ['driving'],
+        showInList: true,
+        searchable: false,
+        shareable: false,
+      );
+      final controller = await controllerWith(repos, def);
+      addTearDown(controller.dispose);
+
+      final result = await controller.addChoiceOption('adj', 'lyrical');
+
+      expect(result, AddChoiceResult.added);
+      final expected = CustomFieldDef(
+        id: 'adj',
+        key: 'adjectives',
+        label: 'Adjectives',
+        type: CustomFieldType.choice,
+        choices: const ['driving', 'lyrical'],
+        showInList: true,
+        searchable: false,
+        shareable: false,
+      );
+      expect(controller.fieldDefs.single, expected);
+      expect(await repos.customFieldDefs.getById('adj'), expected);
+    });
+
     test('rejects a case-sensitive duplicate without persisting', () async {
       final repos = openTestRepositories();
       final controller = await controllerWith(repos, choiceDef());
