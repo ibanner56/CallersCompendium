@@ -1150,6 +1150,9 @@ class DanceEditorController extends ChangeNotifier {
       choices: [...existing, normalized],
       showInList: def.showInList,
       searchable: def.searchable,
+      // Preserve the privacy flag: the constructor defaults to `true`, so
+      // omitting it would silently make a private field shareable.
+      shareable: def.shareable,
     );
     // Safe discard: `updated` is built from `def.id` (an already-persisted row),
     // not a fresh UUID. Tombstone adoption requires a minting caller; it cannot

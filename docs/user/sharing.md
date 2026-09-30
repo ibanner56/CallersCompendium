@@ -129,8 +129,15 @@ evening to another caller. It builds a single self-contained file — a
 
 - the program itself;
 - every dance the program's slots refer to;
-- the choreographers credited on those dances; and
+- the choreographers credited on those dances;
+- the tags, published sources, and [custom fields](./glossary.md#custom-field)
+  those dances use, so the recipient can import them completely; and
 - the program's linked [venue](./glossary.md#venue), if it has one.
+
+Custom fields with **Include in sharing** turned off are left out, values
+included, exactly as they are for a single dance. If a definition one of the
+dances depends on cannot be found, the share stops with an error instead of
+sending the file.
 
 The file goes to your system's share sheet, so how it travels is up to you —
 AirDrop, email, a messaging app, a USB stick.
