@@ -1,7 +1,8 @@
 # ADR-006: English Country Dance canonical figure grammar
 
-- **Status**: Proposed. Draft v0.2 (29 September 2026; §3 and §7.6 revised
-  30 September 2026 for the expanded transcription set), circulated for review
+- **Status**: Proposed. Draft v0.2 (29 September 2026; revised
+  30 September 2026 for the expanded transcription set and four added
+  figures), circulated for review
   by ECDDB contributors and other ECD callers, dancers and archivists before
   anything is implemented.
 - **Roadmap item**: "ECD and Squares support" (Later milestones in
@@ -46,7 +47,7 @@ dances. For contra dance it already stores each figure as structured data
 like to do the same for English Country Dance, and we want the vocabulary to be
 right before any of it is built.
 
-This document proposes a small set of named movements, about 40 candidates,
+This document proposes a small set of named movements, about 44 candidates,
 each described by a fixed list of named parameters. For example, a right-hand
 turn once around by partners is stored as the movement `hand_turn` with
 `who = partners`, `hand = right`, `travel = 1`. It is not stored as a separate
@@ -63,12 +64,13 @@ turn once around by partners is stored as the movement `hand_turn` with
 - **Readable.** Every stored figure renders back to a plain English line a
   caller could read aloud.
 
-The proposal is incomplete on purpose. Of 40 candidate movements, 32 have
+The proposal is incomplete on purpose. Of 44 candidate movements, 36 have
 draft parameters and 8 are deferred because we lack the evidence or the
 community knowledge to define them well. A larger set of dance
-transcriptions (§3) also turned up common figures the list does not yet
-have, such as *up a double and back* and *siding* (§7.6). Those are the
-questions where ECDDB contributors can help most.
+transcriptions (§3) turned up figures the first list lacked. Four of them
+are now added (siding, turn alone, box the gnat, swat the flea), but *up a
+double and back* is still open (§7.6). Those open questions are where
+ECDDB contributors can help most.
 
 ## 2. Background: why a canonical grammar?
 
@@ -354,11 +356,14 @@ Entries marked ⚠ contain a point we specifically want reviewers to check.
 | 5 | `hand_turn` | `who`, `hand`, `travel` | `{who} {hand}-hand turn {travel}` | Modelled on contra `allemande` in *parameters* only. "Allemande" is **not** an ECD alias. |
 | 6 | `two_hand_turn` | `who`, `direction`, `travel` | *as contra, plus direction* | Contra `two_hand_turn` has no `direction`. ECD adds one ("two-hand turn anticlockwise"). ⚠ Needs a rendering and default. None of the 19 two-hand turns in the second batch states a rotation, but 11 state an extent and 2 an ending facing (§7.6). |
 | 7 | `arm_turn` | `who`, `hand` | `{who} arm {hand}` | No `travel` yet: every arm turn we have documented goes once around, and none of the transcribed ones states an extent. ⚠ Examples of a half or 1½ arm turn would change this. |
-| 8 | `shoulder_round` | `who`, `shoulder`, `travel` | *as contra* | Aliases: "gypsy", "gyre". ⚠ *Siding* appears in the transcriptions with a stated shoulder and may need its own entry (§7.6). |
+| 8 | `shoulder_round` | `who`, `shoulder`, `travel` | *as contra* | Aliases: "gypsy", "gyre". *Siding* is a separate figure (#41). |
 | 9 | `swing` | `who`, `endFacing` | *as contra* | Rare in ECD, included for coverage. "Balance and swing" is two figures. |
 | 30 | `gate` | `who`, `whom`, `pair`, `direction`, `travel`, `endFacing` | *as contra* | |
 | 33 | `orbit` | `who`, `whom`, `direction`, `travel` | `{who} orbit {direction} {travel} [around {whom}]` | |
 | 40 | `mad_robin` | `who`, `whom`, `travel`, `direction` | *as contra* | Newly added candidate. |
+| 42 | `turn_alone` | `who`, `custom` | *as contra*: `{who} turn alone` | Added 30 September 2026. Behaves and displays as contra `turn_alone`. A separate figure from `turn_single`, not an alias of it. `custom` is contra's free-text note. |
+| 43 | `box_the_gnat` | `who`, `hand`, `balance` | *as contra*: `{who} box the gnat` | Added 30 September 2026. Behaves and displays as contra `box_the_gnat`, including its `balance` flag for a preceding balance. That flag is an exception to §5.4, like the wave `balance` flags. |
+| 44 | `swat_the_flea` | *as `box_the_gnat`*, with `hand` fixed to `left` | *as contra*: `{who} swat the flea` | Added 30 September 2026. As in contra, it is a separately named entry that stores as `box_the_gnat` with the hand fixed, so the two names never merge. |
 
 ### 7.3 Rings, stars and balances
 
@@ -394,6 +399,7 @@ Entries marked ⚠ contain a point we specifically want reviewers to check.
 | 23 | `cast` | **deferred** | | Direction and destination; how it differs from lead, cross and fall back. See Q7. Now well attested: see §7.6. |
 | 24 | `fall_back` | `who`, `where` | `[{who}] fall back [{where}]` | `where` defaults to `across` and is then not shown. `who` defaults to everyone. ⚠ All 4 transcribed fall-backs say "with neighbor", which suggests a `whom`. |
 | 25 | `back_to_back` | `who`, `shoulder`, `travel`, `where` | `{who} {shoulder}-shoulder back-to-back [{where}] {travel}` | Like contra dosido, but always named by shoulder, plus `where` (across/along). |
+| 41 | `siding` | `who`, `shoulder`, `travel`, `where`, `style` | `{who} {shoulder}-shoulder [{style}] siding [{where}] {travel}` (draft) | Added 30 September 2026. Same parameters as `back_to_back`, plus `style`: `straight` or `swirly`. An unstated style stays `unspecified` (§5.3). Captioned "Right shoulder siding", "Left Siding". |
 | 26 | `pass_through` | `who`, `where`, `shoulder` | `[{who}] pass through {shoulder} shoulders {where}` | |
 | 27 | `promenade` | `who`, `where`, `direction`, `fraction`, `places`, `singleFile` | `{who} [single file] promenade {fraction \| N places} {direction} {where}` | `fraction` when in couples, `places` when single file. |
 | 28 | `poussette` | `who`, `whom`, `fraction`, `direction` | *as contra* | ⚠ Contra defaults to half, clockwise. We have one ECD source that states *both* extent and rotation (*The Parson's Cap*: half, counter-clockwise). Both transcribed poussettes are half with a named pushing role, and neither states a rotation. See Q8. |
@@ -421,9 +427,9 @@ stated. Each count is of captions, not of performances.
 | Figure as captioned | Where | Observation |
 | --- | --- | --- |
 | "Up a double, and back", "Down a double, and back", "All up a double, and back", "Lines of three forward and back", "Line of four up a double and back"; also "Forward" on its own | *Helena*, *Midwinter Maggot*, *Double Jubilee*, *Honeysuckle Cottage* | The most common figure missing from §7. Has a direction (`up`, `down`, `forward`), an optional return ("and back"), and sometimes a formation ("lines of three"). "A double" is also used as an extent for *fall back*. Contra's nearest move is `long_lines` (forward, optionally back). It overlaps the deferred `line` entry. See Q12. |
-| "Right shoulder siding", "Left shoulder siding"; "Left Siding" | *Double Jubilee* (later passes of the video); *Alexander's Birth Day* (first batch) | Siding is captioned with a stated shoulder. It has no entry of its own and is not obviously a `shoulder_round`. See Q13. |
-| "Box the gnat" | *Honeysuckle Cottage* | Appears as an ECD figure in its own right, not only as an alias. Contra has `box_the_gnat` (`who`, `hand`, `balance`). See Q11. |
-| "turn alone" | *Double Jubilee* ("Lead partner down, turn alone, lead back") | Possibly an alias of `turn_single`. Contra has a separate `turn_alone`. |
+| "Right shoulder siding", "Left shoulder siding"; "Left Siding" | *Double Jubilee* (later passes of the video); *Alexander's Birth Day* (first batch) | Siding is captioned with a stated shoulder. **Now added** as `siding` (#41). |
+| "Box the gnat" | *Honeysuckle Cottage* | Appears as an ECD figure in its own right, not only as an alias. **Now added**, as contra, with `swat_the_flea` (#43, #44). |
+| "turn alone" | *Double Jubilee* ("Lead partner down, turn alone, lead back") | **Now added** as `turn_alone` (#42), as contra. It is not an alias of `turn_single`. |
 | "Serpentine" | *Beach Spring* | A named figure, described in the caption as a sequence of crosses ("followed by other members of their circle"). Treated as a one-off (§10). |
 
 **Lead and cast (Q7).**
@@ -660,9 +666,8 @@ English-style sources that describe it precisely.
 - Chevron/Pothooks and mirror heys need their own definitions.
 
 **Q11. Aliases that should not merge.**
-Box the Gnat and Swat the Flea are related but use different hands and must
-not collapse into one. Box the gnat also appears as a figure in its own right
-in a transcribed ECD dance (*Honeysuckle Cottage*). Which other pairs look alike but must stay distinct?
+Box the Gnat and Swat the Flea are now separate entries, as in contra
+(#43, #44). Which other pairs look alike but must stay distinct?
 Which of these are the same: Jersey/Nevada twirl, Gay Gordons/Varsouvienne
 hold, box circulate, "matchboxes", and chassé/slide/sashay/slice? What does
 Heywood's "Back to back for four" mean?
@@ -671,16 +676,14 @@ Heywood's "Back to back for four" mean?
 Which common ECD figures are absent from §7? Which entries are really two
 figures, or should merge with another? The transcriptions already point to
 **up a double / forward and back** (with or without "and back", in lines
-or as all), **siding**, **box the gnat** and **turn alone** (§7.6). How
-should "up a double and back" relate to the deferred `line` entry and to
-`fall_back`?
+or as all). Siding, turn alone, box the gnat and swat the flea have since
+been added. How should "up a double and back" relate to the deferred
+`line` entry and to `fall_back`?
 
 **Q13. Specific value questions.**
 - Does ECD have arm turns other than once around?
-- How is "siding" related to shoulder rounds? Transcribed captions say
-  "Right shoulder siding" and "Left Siding". Does siding need its own entry,
-  with a `shoulder` parameter? Does the answer differ between Pat Shaw's
-  siding and the older (Cecil Sharp) interpretation?
+- Siding's `style` values are `straight` and `swirly`. Are those the
+  words callers would recognize? Is there any other style of siding?
 - Should `circle` (and perhaps `star`) accept a `fraction` or turn amount
   ("circle half", "star once around"), as well as or instead of `places`?
 - Should the turn single's side be called `shoulder` or `direction`,
@@ -751,6 +754,9 @@ brackets are shown only when set. ECD would diverge where its notes say so.
 | `two_hand_turn` | `who` (partners), `travel` (1) | `{who} two hand turn {travel}` |
 | `shoulder_round` | `who` (neighbors), `shoulder` (right), `travel` (1) | `{who} shoulder round {travel}` |
 | `swing` | `who` (partners), `endFacing` (in) | `{who} swing` |
+| `turn_alone` | `who` (everyone), `custom` (free text) | `{who} turn alone` |
+| `box_the_gnat` | `who` (partners), `hand` (right), `balance` (no) | `{who} box the gnat` |
+| `swat_the_flea` | stored as `box_the_gnat` with `hand` fixed to left | `{who} swat the flea` |
 | `circle` | `direction` (left), `places` (4), `singleFile` (no) | `circle {direction} {places}` |
 | `star` | `hand` (right), `places` (4), `grip` (none) | `star {hand} {places}` plus a "hands across" / "wrist grip" clause when grip is set |
 | `figure_8` | `who` (ones), `where` (none / above / below / across), `lead` (a single dancer, ones' role2), `fraction` (half) | `{who} {fraction} figure 8` |
