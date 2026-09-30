@@ -432,9 +432,9 @@ void main() {
       await seedDanceWithEverything();
       await repos.tags.delete('t1', at: t0.add(const Duration(minutes: 1)));
 
-      final incoming = (await repos.dances.getById('d1'))!.copyWith(
-        title: 'From peer',
-      );
+      final incoming = (await repos.dances.getById(
+        'd1',
+      ))!.copyWith(title: 'From peer');
       await repos.dances.writeFromSync(incoming);
       await repos.tags.restore('t1', at: t0.add(const Duration(minutes: 2)));
 

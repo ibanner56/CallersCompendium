@@ -53,6 +53,20 @@ class ArchiveExporter {
         publishedSources: await _repos.publishedSources.listAll(),
         customFields: await _repos.customFieldDefs.listAll(),
         tags: await _repos.tags.listAll(),
+        // A tombstoned tag and its retained dance joins are not reachable
+        // through `listAll` or through a dance's hydrated `tagIds`, so a
+        // backup that is meant to be faithful reads them here.
+        deletedTags: includeDeleted
+            ? [
+                for (final t
+                    in await _repos.tags.listTombstonesWithRetainedJoins())
+                  ArchivedDeletedTag(
+                    tag: t.tag,
+                    deletedAt: t.deletedAt,
+                    danceIds: t.danceIds,
+                  ),
+              ]
+            : const [],
         venues: await _repos.venues.listAll(),
         difficultyLevels: await _repos.difficultyLevels.listAll(),
       ),
@@ -288,6 +302,25 @@ class ArchiveRestorer {
         ));
       }
     }
+    // Tombstoned tags (v7). Written after the live tags so a name a live tag
+    // holds wins, and before dances so a dance never meets a missing tag.
+    final deletedTagIds = <String, String>{};
+    for (final d in archive.deletedTags) {
+      final errorsBefore = errors.length;
+      await _guard('deletedTag', d.tag.id, errors, () async {
+        final writtenId = await _repos.tags.restoreArchivedTombstone(
+          d.tag,
+          at: causalAt,
+        );
+        if (writtenId != null) deletedTagIds[d.tag.id] = writtenId;
+      });
+      if (errors.length == errorsBefore && deletedTagIds[d.tag.id] != null) {
+        restoredRecords.add((
+          kind: SyncRecordKind.tag,
+          recordId: deletedTagIds[d.tag.id]!,
+        ));
+      }
+    }
     for (final f in archive.customFields) {
       final errorsBefore = errors.length;
       await _guard('customField', f.id, errors, () async {
@@ -347,6 +380,15 @@ class ArchiveRestorer {
       if (errors.length == errorsBefore) {
         restoredRecords.add((kind: SyncRecordKind.dance, recordId: d.id));
       }
+    }
+    // Retained joins to the tombstoned tags, now that the dances exist. A tag
+    // that was skipped (a live tag holds its id or name) gets none.
+    for (final d in archive.deletedTags) {
+      final tagId = deletedTagIds[d.tag.id];
+      if (tagId == null || d.danceIds.isEmpty) continue;
+      await _guard('deletedTag', d.tag.id, errors, () async {
+        await _repos.tags.restoreRetainedJoins(tagId, d.danceIds);
+      });
     }
     // Venues before programs: a program's `venueId` soft-references a venue, so
     // the referenced record must land first for the link to resolve.

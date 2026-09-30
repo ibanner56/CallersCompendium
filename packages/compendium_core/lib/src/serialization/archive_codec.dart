@@ -98,6 +98,18 @@ Map<String, Object?> archiveToJson(
       for (final t in _sortedById(archive.tags, (t) => t.id))
         archiveTagToJson(t),
     ],
+    // Tombstoned tags and their retained dance joins are a full-backup concern
+    // only: a shared archive must not reveal what the owner deleted.
+    if (mode == ArchiveSerializationMode.backup &&
+        archive.deletedTags.isNotEmpty)
+      'deletedTags': [
+        for (final d in _sortedById(archive.deletedTags, (d) => d.tag.id))
+          {
+            ...archiveTagToJson(d.tag),
+            'deletedAt': archiveIso(d.deletedAt),
+            'danceIds': [...d.danceIds]..sort(),
+          },
+      ],
     // Difficulty levels are an ordered vocabulary, not an unordered entity
     // collection: position (and then id from repository reads) defines display
     // order, so preserve the caller's supplied sequence.
@@ -238,6 +250,18 @@ ArchiveReadResult archiveFromJson(Map<String, Object?> root) {
     warnings,
     dropped,
   );
+  final deletedTags = _decodeList(
+    root['deletedTags'],
+    'deletedTag',
+    (m) => ArchivedDeletedTag(
+      tag: _tagFromJson(m),
+      deletedAt: _dt(m, 'deletedAt'),
+      danceIds: _stringList(m, 'danceIds'),
+    ),
+    errors,
+    warnings,
+    dropped,
+  );
   final customFields = _decodeList(
     root['customFields'],
     'customField',
@@ -326,6 +350,7 @@ ArchiveReadResult archiveFromJson(Map<String, Object?> root) {
       tags: tags,
       venues: venues,
       difficultyLevels: difficultyLevels,
+      deletedTags: deletedTags,
     ),
     errors: errors,
     warnings: warnings,

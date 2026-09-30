@@ -44,7 +44,12 @@ const ListEquality<Object?> _listEq = ListEquality<Object?>();
 ///   `tunes_json` could not be decoded, carried verbatim beside a well-formed
 ///   empty `tunes` array. Stamped only when such a dance is present, so an
 ///   archive with undecodable figures but readable tunes still stamps v5.
-const int archiveSchemaVersion = archiveSchemaVersionUnreadableTunes;
+/// * **v7** — adds `deletedTags`: tombstoned tags with their deletion instant
+///   and the dances whose retained `dance_tags` row still points at them, so a
+///   full backup restores a deleted tag and its association. Written by backup
+///   mode only, and only when a tombstoned tag exists. See
+///   [archiveSchemaVersionDeletedTags].
+const int archiveSchemaVersion = archiveSchemaVersionDeletedTags;
 
 /// The original, pre-venue archive envelope version.
 const int archiveSchemaVersionBase = 1;
@@ -94,6 +99,22 @@ const int archiveSchemaVersionUnreadableFigures = 5;
 /// undecodable figures but readable tunes still stamps v5.
 const int archiveSchemaVersionUnreadableTunes = 6;
 
+/// The envelope version introduced for tombstoned tags in a full backup.
+///
+/// Tags are soft-deleted and their `dance_tags` rows are deliberately kept, so a
+/// restored tag returns with its dances. Before v7 a backup wrote live tags
+/// only, and dance hydration hides tombstoned ones, so a backup/restore round
+/// trip silently dropped both the tombstone and the retained association.
+///
+/// Tombstones live in their own `deletedTags` array rather than inside `tags`
+/// on purpose: a pre-v7 reader ignores an unknown key, so it restores exactly
+/// the live tags it always did, whereas a `deletedAt` marker inside `tags` would
+/// be ignored by that reader and the deleted tag would come back **live**. The
+/// bump makes the older reader's omission audible ("newer than supported").
+/// Stamped only when the archive carries a tombstoned tag, so a library that has
+/// never deleted a tag still writes its earlier version byte-identically.
+const int archiveSchemaVersionDeletedTags = 7;
+
 /// The minimum envelope version required to represent [archive] without silent
 /// data loss on an older reader: [archiveSchemaVersionProgramSlotMarkers] when
 /// it carries a purge-caption marker, [archiveSchemaVersionDifficultyLevels]
@@ -112,10 +133,12 @@ int requiredSchemaVersion(CompendiumArchive archive) {
   final hasPurgeMarker = archive.programs.any(
     (p) => p.slots.any((s) => s.isPurgedDance != null),
   );
-  // Checked highest-version first, so the first match wins: an undecodable tune
+  // Checked highest-version first, so the first match wins: a tombstoned tag
+  // requires v7, an undecodable tune
   // list requires v6, and only if there is none does an undecodable
   // transcription pull the archive to v5. Keep new cases in descending version
   // order or a lower version will shadow a higher one.
+  if (archive.deletedTags.isNotEmpty) return archiveSchemaVersionDeletedTags;
   if (archive.dances.any((d) => d.tunesSource is UnreadableTunes)) {
     return archiveSchemaVersionUnreadableTunes;
   }
@@ -168,6 +191,7 @@ class CompendiumArchive {
     this.tags = const [],
     this.venues = const [],
     this.difficultyLevels = const [],
+    this.deletedTags = const [],
   });
 
   /// The [archiveSchemaVersion] this archive is stamped as. Defaults to
@@ -194,6 +218,10 @@ class CompendiumArchive {
   /// Configurable difficulty vocabulary in display order.
   final List<DifficultyLevel> difficultyLevels;
 
+  /// Tombstoned tags of a full backup ([ArchiveSerializationMode.backup]);
+  /// empty in a share archive and in any archive that predates v7.
+  final List<ArchivedDeletedTag> deletedTags;
+
   @override
   bool operator ==(Object other) =>
       other is CompendiumArchive &&
@@ -206,7 +234,8 @@ class CompendiumArchive {
       _listEq.equals(other.customFields, customFields) &&
       _listEq.equals(other.tags, tags) &&
       _listEq.equals(other.venues, venues) &&
-      _listEq.equals(other.difficultyLevels, difficultyLevels);
+      _listEq.equals(other.difficultyLevels, difficultyLevels) &&
+      _listEq.equals(other.deletedTags, deletedTags);
 
   @override
   int get hashCode => Object.hash(
@@ -220,7 +249,40 @@ class CompendiumArchive {
     _listEq.hash(tags),
     _listEq.hash(venues),
     _listEq.hash(difficultyLevels),
+    _listEq.hash(deletedTags),
   );
+}
+
+/// A tombstoned [Tag] in a full backup: the tag, when it was deleted, and the
+/// dances whose retained `dance_tags` row still names it.
+///
+/// [danceIds] is the same information as a per-dance list of retained tag ids,
+/// grouped by tag so that the tombstone and the associations it can restore
+/// travel as one record and cannot disagree. It includes tombstoned dances.
+@immutable
+class ArchivedDeletedTag {
+  const ArchivedDeletedTag({
+    required this.tag,
+    required this.deletedAt,
+    this.danceIds = const [],
+  });
+
+  final Tag tag;
+
+  /// When the tag was deleted (UTC).
+  final DateTime deletedAt;
+
+  final List<String> danceIds;
+
+  @override
+  bool operator ==(Object other) =>
+      other is ArchivedDeletedTag &&
+      other.tag == tag &&
+      other.deletedAt == deletedAt &&
+      _listEq.equals(other.danceIds, danceIds);
+
+  @override
+  int get hashCode => Object.hash(tag, deletedAt, _listEq.hash(danceIds));
 }
 
 /// The number of entities a shared/imported [archive] would write into the
@@ -241,7 +303,8 @@ int compendiumArchiveEntityCount(CompendiumArchive archive) =>
     archive.difficultyLevels.length +
     archive.publishedSources.length +
     archive.customFields.length +
-    archive.tags.length;
+    archive.tags.length +
+    archive.deletedTags.length;
 
 /// Which phase produced an [ArchiveError].
 enum ArchiveErrorKind {
