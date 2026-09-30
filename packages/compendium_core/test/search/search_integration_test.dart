@@ -1979,16 +1979,6 @@ void main() {
     });
   });
 
-  group('searchDances convenience', () {
-    test('returns hydrated dances in id order', () async {
-      await dances.create(_dance(id: 'a', title: 'Apple'));
-      await dances.create(_dance(id: 'b', title: 'Banana'));
-      final result = await dances.searchDances(const AndFilter([]));
-      expect(result.map((d) => d.id), ['a', 'b']);
-      expect(result.first, isA<Dance>());
-    });
-  });
-
   // #465: the author / last-called post-sorts restrict their aggregate reads to
   // the incoming result ids (chunked `dance_id IN (…)`) instead of scanning the
   // whole collection. These prove the narrowed sort output is byte-for-byte the

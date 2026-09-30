@@ -2464,33 +2464,6 @@ class DanceRepository {
     }
   }
 
-  /// Like [search] but returns hydrated [Dance]s in the same order. Convenience
-  /// for callers that immediately need the full objects; the id-returning
-  /// [search] is the primary contract.
-  Future<List<Dance>> searchDances(
-    DanceFilter filter, {
-    SearchSort sort = SearchSort.title,
-    SortDirection? direction,
-    Dialect? dialect,
-    SearchEnrichment? enrichment,
-    bool ignoreLeadingArticles = false,
-  }) async {
-    final ids = await search(
-      filter,
-      sort: sort,
-      direction: direction,
-      dialect: dialect,
-      enrichment: enrichment,
-      ignoreLeadingArticles: ignoreLeadingArticles,
-    );
-    final result = <Dance>[];
-    for (final id in ids) {
-      final dance = await getById(id);
-      if (dance != null) result.add(dance);
-    }
-    return result;
-  }
-
   /// Alphabetizes [ids] by title with a leading article ignored (see
   /// [titleSortKey]). [ids] arrive in SQL title (base) order, kept as a stable
   /// tiebreak for equal keys (e.g. "Rose" vs "The Rose" both key to "rose").
