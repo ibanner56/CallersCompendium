@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:compendium_core/compendium_core.dart';
@@ -694,8 +695,21 @@ class AthenaeumApp {
       throw const _RequestFailure(415, 'unsupported content encoding');
     }
 
+    // Encoded bytes are capped independently of what the decoder yields: a
+    // stream of empty gzip members decodes to no chunks at all, so the
+    // decoded-size checks in the loop below would never run for it.
+    final encodedCeiling = _encodedCeiling(maxBytes);
+    if (encoding == 'gzip' &&
+        declaredLength != null &&
+        declaredLength > encodedCeiling) {
+      throw const _RequestFailure(413, 'request body exceeds limit');
+    }
     final compressed = _ByteCounter();
-    Stream<List<int>> input = _countingStream(request.read(), compressed);
+    Stream<List<int>> input = _countingStream(
+      request.read(),
+      compressed,
+      encoding == 'gzip' ? encodedCeiling : null,
+    );
     if (encoding == 'gzip') input = gzip.decoder.bind(input);
     final output = BytesBuilder(copy: false);
     var size = 0;
@@ -746,12 +760,22 @@ class AthenaeumApp {
         length > maxBytes;
   }
 
+  /// The most encoded (gzip) bytes a body may occupy on the wire for a route
+  /// whose decoded limit is [maxBytes]: the decoded limit plus room for gzip's
+  /// framing of incompressible data, never above [maxGzipBytes].
+  static int _encodedCeiling(int maxBytes) =>
+      min(maxGzipBytes, maxBytes + (maxBytes >> 8) + 1024);
+
   static Stream<List<int>> _countingStream(
     Stream<List<int>> source,
     _ByteCounter counter,
+    int? ceiling,
   ) async* {
     await for (final chunk in source) {
       counter.value += chunk.length;
+      if (ceiling != null && counter.value > ceiling) {
+        throw const _RequestFailure(413, 'request body exceeds limit');
+      }
       yield chunk;
     }
   }
@@ -1040,7 +1064,9 @@ class AthenaeumApp {
     if (peer == null) return 'unknown';
     final forwarded = request.headers['x-forwarded-for'];
     if (trustForwardedHeaders && peer.isLoopback && forwarded != null) {
-      final candidate = forwarded.split(',').first.trim();
+      // Rightmost entry: the one the trusted proxy itself appended. Earlier
+      // entries are whatever the client sent.
+      final candidate = forwarded.split(',').last.trim();
       if (InternetAddress.tryParse(candidate) != null) return candidate;
     }
     return peer.address;

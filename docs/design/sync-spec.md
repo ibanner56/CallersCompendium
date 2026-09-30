@@ -1902,7 +1902,7 @@ Every limit MUST be enforced before allocation, streaming-abort style.
 | Devices per store | 32 |
 | Hashes per `POST /v1/blobs/missing` request | 10,000 |
 | JSON parse depth | 32 |
-| Decompressed size of a `Content-Encoding: gzip` body (§4) | 10× compressed, cap 32 MB |
+| Decompressed size of a `Content-Encoding: gzip` body (§4) | 10× compressed, cap 32 MB; encoded size also capped per route (decoded limit plus gzip framing slack) |
 | Request rate, per client IP | 60/minute, burst 120 |
 | Request rate, per store (`id_key`) | 600/minute |
 | **Failed store resolutions**, per client IP | 10/minute, burst 20 |
