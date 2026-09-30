@@ -604,9 +604,14 @@ Who sets, who links, and where does each dancer end? Please point to
 English-style sources that describe it precisely.
 
 **Q10. Other open movements.**
-- *Up a double / forward and back*: one movement with a direction and an
-  optional return, or more than one? How does it relate to `line` and
-  `fall_back`, and what should its ID be?
+- *Up a double / forward and back*:
+  - How should "and back" be recorded? One option is a yes/no flag on one
+    movement, the way contra `long_lines` has `goBack`, so a bare "Forward"
+    is the flag set to no. The other is two adjacent figures, "forward" and
+    "back".
+  - What should its ID be: `forward_and_back`, `up_a_double`, or something
+    else?
+  - How does it relate to `line` and `fall_back`?
 - `galop`: is it a movement or a travelling style?
 - `line` and `bend_line`: are they formations, actions, or (for
   `bend_line`) a modifier?
