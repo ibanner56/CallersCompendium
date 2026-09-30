@@ -7,3 +7,5 @@
 "share_extension.message.no_link" = "Deze deelactie bevatte geen link die Caller's Compendium kan importeren.";
 "share_extension.title.save_failed" = "Link kon niet worden opgeslagen";
 "share_extension.message.save_failed" = "Caller's Compendium kon deze link niet opslaan voor import. Probeer het opnieuw.";
+"share_extension.title.too_long" = "Tekst is te lang";
+"share_extension.message.too_long" = "Deze gedeelde tekst is te lang om in Caller's Compendium te importeren. Probeer alleen de link te delen.";

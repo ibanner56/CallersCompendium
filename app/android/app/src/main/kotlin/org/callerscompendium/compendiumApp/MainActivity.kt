@@ -33,6 +33,11 @@ class MainActivity : FlutterActivity() {
      * `getInitialFile` pull. */
     private var pendingInitialPath: String? = null
 
+    /** Set when a launch (cold-start) file was refused as over the size cap.
+     * Consumed by the `getInitialFile` pull only when no staged path is pending,
+     * so a rejection never displaces a file that was staged successfully. */
+    private var pendingInitialTooLarge = false
+
     /** URL captured from a launch (cold-start) intent, consumed once by the
      * `getInitialUrl` pull. */
     private var pendingInitialUrl: String? = null
@@ -51,9 +56,17 @@ class MainActivity : FlutterActivity() {
             when (call.method) {
                 "getInitialFile" -> {
                     val path = pendingInitialPath
+                    val tooLarge = pendingInitialTooLarge
                     pendingInitialPath = null
+                    pendingInitialTooLarge = false
                     initialPayloadPulled = true
-                    result.success(path?.let { filePayload(it) })
+                    result.success(
+                        when {
+                            path != null -> filePayload(path)
+                            tooLarge -> tooLargePayload()
+                            else -> null
+                        }
+                    )
                 }
                 "getInitialUrl" -> {
                     val url = pendingInitialUrl
@@ -97,34 +110,79 @@ class MainActivity : FlutterActivity() {
             else -> null
         }
         if (uri == null) return
-        val path = copyToCache(uri) ?: return
+        val staged = copyToCache(uri)
+        if (staged is StagedCopy.TooLarge) {
+            // Nothing was kept; tell Dart so the user sees the size rejection
+            // instead of a share that silently does nothing.
+            if (initialPayloadPulled) {
+                channel?.invokeMethod("fileOpened", tooLargePayload())
+            } else {
+                pendingInitialTooLarge = true
+            }
+            return
+        }
+        val path = (staged as? StagedCopy.Copied)?.path ?: return
         if (initialPayloadPulled) {
             channel?.invokeMethod("fileOpened", filePayload(path))
         } else {
             pendingInitialPath?.let(::deleteStagedCopy)
             pendingInitialPath = path
+            pendingInitialTooLarge = false
         }
     }
 
     private fun filePayload(path: String): Map<String, Any> =
         mapOf("path" to path, "appOwned" to true)
 
-    /** Copies the content of [uri] into a private cache file and returns its
-     * path, or `null` on any error (intake then simply does nothing — the
-     * native side never crashes the app). */
-    private fun copyToCache(uri: Uri): String? {
+    private fun tooLargePayload(): Map<String, Any> =
+        mapOf("rejected" to "tooLarge")
+
+    /** Outcome of staging an incoming file. */
+    private sealed class StagedCopy {
+        class Copied(val path: String) : StagedCopy()
+        object TooLarge : StagedCopy()
+        object Failed : StagedCopy()
+    }
+
+    /** Copies the content of [uri] into a private cache file, refusing to write
+     * more than [MAX_INCOMING_BYTES]. The copy is counted as it streams, so a
+     * source that under-reports (or does not report) its length is still bounded,
+     * and the partial file is deleted on rejection or error. [StagedCopy.Failed]
+     * on any other error (intake then simply does nothing — the native side never
+     * crashes the app). */
+    private fun copyToCache(uri: Uri): StagedCopy {
         val dir = File(cacheDir, "incoming_share")
         val name = uri.lastPathSegment?.substringAfterLast('/') ?: "bundle.json"
         val dest = File(dir, "${System.nanoTime()}-$name")
         return try {
             dir.mkdirs()
-            contentResolver.openInputStream(uri)?.use { input ->
-                FileOutputStream(dest).use { output -> input.copyTo(output) }
-            } ?: return null
-            dest.absolutePath
+            val input = contentResolver.openInputStream(uri) ?: return StagedCopy.Failed
+            var tooLarge = false
+            input.use {
+                FileOutputStream(dest).use { output ->
+                    val buffer = ByteArray(COPY_BUFFER_BYTES)
+                    var total = 0L
+                    while (true) {
+                        val read = input.read(buffer)
+                        if (read < 0) break
+                        total += read
+                        if (total > MAX_INCOMING_BYTES) {
+                            tooLarge = true
+                            break
+                        }
+                        output.write(buffer, 0, read)
+                    }
+                }
+            }
+            if (tooLarge) {
+                deleteStagedCopy(dest.absolutePath)
+                StagedCopy.TooLarge
+            } else {
+                StagedCopy.Copied(dest.absolutePath)
+            }
         } catch (e: Exception) {
             deleteStagedCopy(dest.absolutePath)
-            null
+            StagedCopy.Failed
         }
     }
 
@@ -136,5 +194,13 @@ class MainActivity : FlutterActivity() {
             // A failed cleanup must not crash the activity while handling an
             // already-failed or superseded share.
         }
+    }
+
+    private companion object {
+        /** Must equal `kMaxIncomingArchiveBytes` in
+         * `lib/src/data/archive_intake_service.dart` (25 MiB); a Dart test
+         * (`incoming_native_limits_test.dart`) fails if they drift. */
+        const val MAX_INCOMING_BYTES = 26214400L
+        const val COPY_BUFFER_BYTES = 8192
     }
 }

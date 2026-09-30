@@ -489,6 +489,47 @@ void main() {
     expect(dances.map((d) => d.id), ['stale']);
   });
 
+  for (final (label, json, expected) in [
+    (
+      'a newer-schema backup',
+      '{"backupVersion":999,"createdAt":"2026-07-15T00:00:00.000Z",'
+          '"core":{},"app":{}}',
+      "can't read",
+    ),
+    (
+      'a backup with no app section',
+      '{"backupVersion":1,"createdAt":"2026-07-15T00:00:00.000Z","core":{}}',
+      "doesn't include your app settings",
+    ),
+  ]) {
+    testWidgets('restoring $label is refused with its own message and leaves '
+        'live data untouched', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance('stale', 'Old Dance'));
+      var refreshed = false;
+      await _pumpGeneral(
+        tester,
+        repos,
+        onRestored: () async => refreshed = true,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('restore-paste-field')),
+        json,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('restore-confirm')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Backup restored.'), findsNothing);
+      expect(find.textContaining(expected), findsOneWidget);
+      expect(refreshed, isFalse);
+      expect((await repos.dances.listAll()).map((d) => d.id), ['stale']);
+    });
+  }
+
   testWidgets('restore dialog can be cancelled without touching data', (
     tester,
   ) async {

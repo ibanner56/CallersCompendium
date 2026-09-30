@@ -110,6 +110,52 @@ void main() {
   });
 
   test(
+    'a newer backupVersion or newer core schemaVersion sets newerSchema',
+    () {
+      expect(
+        decodeBackup(
+          '{"backupVersion": 999, "core": {}, "app": {}}',
+        ).newerSchema,
+        isTrue,
+      );
+      expect(
+        decodeBackup(
+          '{"backupVersion": 1, "app": {}, '
+          '"core": {"schemaVersion": ${archiveSchemaVersion + 1}}}',
+        ).newerSchema,
+        isTrue,
+      );
+      expect(
+        decodeBackup('{"backupVersion": 1, "core": {}, "app": {}}').newerSchema,
+        isFalse,
+      );
+    },
+  );
+
+  test('app section presence is tracked per section', () {
+    BackupReadResult read(String app) =>
+        decodeBackup('{"backupVersion": 1, "core": {}$app}');
+
+    expect(read('').hasAppSection, isFalse);
+    expect(read(', "app": 5').hasAppSection, isFalse);
+
+    final empty = read(', "app": {}');
+    expect(empty.hasAppSection, isTrue);
+    expect(empty.hasSettingsSection, isFalse);
+    expect(empty.hasDialectsSection, isFalse);
+    expect(empty.hasThemesSection, isFalse);
+
+    final full = read(
+      ', "app": {"settings": {}, "dialects": {}, "themes": {}}',
+    );
+    expect(full.hasSettingsSection, isTrue);
+    expect(full.hasDialectsSection, isTrue);
+    expect(full.hasThemesSection, isTrue);
+
+    expect(read(', "app": {"settings": 5}').hasSettingsSection, isFalse);
+  });
+
+  test(
     'a malformed custom-theme entry is skipped and recorded, rest loads',
     () {
       final decoded = decodeBackup(

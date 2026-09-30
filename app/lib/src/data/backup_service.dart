@@ -173,6 +173,8 @@ class BackupRestoreOutcome {
     this.incompleteCore = false,
     this.integrityFailed = false,
     this.settingsFailed = false,
+    this.newerSchema = false,
+    this.missingAppSection = false,
   });
 
   final List<ArchiveError> errors;
@@ -197,6 +199,16 @@ class BackupRestoreOutcome {
   /// checksum** (issue #536) — corrupt or altered file, nothing applied. Lets
   /// the UI say so specifically instead of a generic "invalid file".
   final bool integrityFailed;
+
+  /// Whether a replace was refused because the backup was written under a
+  /// newer schema than this build reads ([BackupReadResult.newerSchema]) —
+  /// restoring it would silently drop the fields this build doesn't know.
+  final bool newerSchema;
+
+  /// Whether a replace was refused because the backup has no `app` section
+  /// ([BackupReadResult.hasAppSection]), so it cannot say what the preferences,
+  /// themes and dialects should become. Nothing was written.
+  final bool missingAppSection;
 
   /// Whether the **core** content restored and committed successfully but the
   /// subsequent **app-settings** apply step failed (issue #608).
@@ -294,10 +306,17 @@ class BackupService {
   ///     value written by a newer app version.
   ///   Committing a partially-decoded or reduced archive in replace mode would
   ///   swap the user's data for an incomplete copy — exactly the loss this
-  ///   guard prevents (issue #430). Such a restore returns
-  ///   [BackupRestoreOutcome.applied] `false` with the live app untouched.
+  ///   guard prevents (issue #430). A replace is likewise refused when the
+  ///   backup was written under a **newer schema**
+  ///   ([BackupReadResult.newerSchema]; unknown fields were dropped at decode)
+  ///   or has **no `app` section** ([BackupReadResult.hasAppSection]; it cannot
+  ///   say what preferences, themes and dialects should become). Such a restore
+  ///   returns [BackupRestoreOutcome.applied] `false` with the live app
+  ///   untouched.
   /// - [RestoreMode.merge] is **additive** and stays tolerant: it applies
-  ///   whatever decoded, keeping survivors and recording the rest.
+  ///   whatever decoded, keeping survivors and recording the rest. A newer
+  ///   schema is read best-effort with a warning. Settings, themes and dialects
+  ///   the backup does not describe are left as they are.
   ///
   /// A fatal envelope is refused in both modes. In replace mode, if the core
   /// restore itself fails it is rolled back atomically and this method returns
@@ -342,6 +361,29 @@ class BackupService {
       );
     }
 
+    // Replace must also refuse a backup it cannot faithfully represent even
+    // though every entity decoded: one written by a newer schema (unknown
+    // fields were dropped, so richer live records would be swapped for reduced
+    // ones), or one with no `app` section (it describes no preferences, themes
+    // or dialects, so "absent" must not be read as "empty"). Merge is additive
+    // and stays best-effort; its settings apply skips whatever the file omits.
+    if (mode == RestoreMode.replace && read.newerSchema) {
+      return BackupRestoreOutcome(
+        errors: errors,
+        warnings: warnings,
+        applied: false,
+        newerSchema: true,
+      );
+    }
+    if (mode == RestoreMode.replace && !read.hasAppSection) {
+      return BackupRestoreOutcome(
+        errors: errors,
+        warnings: warnings,
+        applied: false,
+        missingAppSection: true,
+      );
+    }
+
     final doc = read.document;
     final restoreResult = await ArchiveRestorer(
       _repos,
@@ -378,7 +420,7 @@ class BackupService {
     // routine "settings failed". Log the caught failure (guarded so it never
     // reaches a release build, per #617) so the failure isn't invisible.
     try {
-      await _applyAppSettings(doc, warnings);
+      await _applyAppSettings(read, warnings);
     } on Exception catch (e, st) {
       // diagnostics: silent — settings-apply failed; outcome returned to caller (general_section._onRestoreBackup) which handles user surface.
       if (kDebugMode) {
@@ -412,9 +454,10 @@ class BackupService {
   /// JSON / missing core / failed checksum) yields `applied: false` and nothing
   /// is applied.
   ///
-  /// Idempotent: [_applyAppSettings] is a full REPLACE of the backup-eligible
-  /// settings keys (it removes stale eligible keys, then re-sets each backed-up
-  /// key), so running it once or several times converges to the same state.
+  /// Idempotent: for each section the backup describes, [_applyAppSettings] is
+  /// a full REPLACE of that section (for settings: it removes stale eligible
+  /// keys, then re-sets each backed-up key), and it leaves undescribed sections
+  /// alone, so running it once or several times converges to the same state.
   /// This makes the retry safe to invoke repeatedly, and a settings-apply
   /// failure that recurs is reported (again) as [BackupRestoreOutcome.applied]
   /// `true` with [BackupRestoreOutcome.settingsFailed] `true` rather than thrown
@@ -438,7 +481,7 @@ class BackupService {
     }
 
     try {
-      await _applyAppSettings(read.document, warnings);
+      await _applyAppSettings(read, warnings);
     } on Exception catch (e, st) {
       // diagnostics: silent — settings-apply retry failed; outcome returned to caller (general_section._retrySettingsRestore) which handles user surface.
       if (kDebugMode) {
@@ -462,43 +505,58 @@ class BackupService {
   /// Writes the backup's app-local pieces into the `settings` table so the
   /// dialect/theme controllers and preference notifiers pick them up on reload.
   ///
-  /// This is a **replace**: existing non-denylisted preference keys that are
+  /// Each section the backup **describes** (`app.settings`, `app.dialects`,
+  /// `app.themes` present as objects — see [BackupReadResult.hasSettingsSection]
+  /// and siblings) is a **replace**: existing non-denylisted preference keys
   /// absent from the backup are removed first, so restoring an older backup
-  /// can't leave stale preferences behind. Denylisted keys (device-local
-  /// geometry, backup metadata, and the structurally-represented dialect/theme
-  /// keys) are preserved and handled explicitly below.
+  /// can't leave stale preferences behind, and the dialect/theme libraries are
+  /// rewritten. A section the file does not describe is left untouched — absent
+  /// is not "empty" — so a backup lacking `app` (or one of its sections) never
+  /// clears live preferences, themes or dialects, in either restore mode.
+  /// Denylisted keys (device-local geometry, backup metadata, and the
+  /// structurally-represented dialect/theme keys) are preserved and handled
+  /// explicitly below.
   Future<void> _applyAppSettings(
-    BackupDocument doc,
+    BackupReadResult read,
     List<String> warnings,
   ) async {
+    final doc = read.document;
     final settings = _repos.settings;
 
-    final existing = await settings.all();
-    final backedUp = doc.settings.keys.toSet();
-    for (final key in existing.keys) {
-      if (!isBackupEligibleSettingKey(key)) continue;
-      if (backedUp.contains(key)) continue;
-      await settings.remove(key);
+    if (read.hasSettingsSection) {
+      final existing = await settings.all();
+      final backedUp = doc.settings.keys.toSet();
+      for (final key in existing.keys) {
+        if (!isBackupEligibleSettingKey(key)) continue;
+        if (backedUp.contains(key)) continue;
+        await settings.remove(key);
+      }
     }
 
     // Dialect library: rewrite the custom list and the active ref, plus keep the
     // legacy full-blob key in sync for any reader that still resolves the active
     // dialect from it.
-    await settings.set(kCustomDialectsKey, [
-      for (final d in doc.customDialects) d.toJson(),
-    ]);
-    await settings.set(kActiveDialectRefKey, doc.activeDialectRef);
-    final active = Dialect.resolveByName(
-      doc.activeDialectRef,
-      candidates: doc.customDialects,
-    );
-    if (active != null) await settings.set(kActiveDialectKey, active.toJson());
+    if (read.hasDialectsSection) {
+      await settings.set(kCustomDialectsKey, [
+        for (final d in doc.customDialects) d.toJson(),
+      ]);
+      await settings.set(kActiveDialectRefKey, doc.activeDialectRef);
+      final active = Dialect.resolveByName(
+        doc.activeDialectRef,
+        candidates: doc.customDialects,
+      );
+      if (active != null) {
+        await settings.set(kActiveDialectKey, active.toJson());
+      }
+    }
 
     // Custom themes: rewrite the list and the active id.
-    await settings.set(kCustomThemesKey, [
-      for (final t in doc.customThemes) t.toJson(),
-    ]);
-    await settings.set(kActiveCustomThemeKey, doc.activeCustomThemeId);
+    if (read.hasThemesSection) {
+      await settings.set(kCustomThemesKey, [
+        for (final t in doc.customThemes) t.toJson(),
+      ]);
+      await settings.set(kActiveCustomThemeKey, doc.activeCustomThemeId);
+    }
 
     // Preference settings: re-apply every backed-up key. The eligibility
     // predicate guards against a hand-edited or hostile backup smuggling a

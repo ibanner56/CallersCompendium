@@ -393,6 +393,54 @@ void main() {
       );
     });
 
+    test('editing a dance keeps the join to a tombstoned tag', () async {
+      // The tombstone deliberately keeps `dance_tags` so a revived tag comes
+      // back with its dances. Hydration hides the tombstoned tag, so the
+      // edited `Dance` no longer lists it; the write must not read that
+      // absence as "the user removed the tag".
+      await seedDanceWithEverything();
+      await repos.tags.delete('t1', at: t0.add(const Duration(minutes: 1)));
+
+      final edited = (await repos.dances.getById('d1'))!;
+      await repos.dances.update(
+        edited.copyWith(title: 'Renamed'),
+        localUserEdit: true,
+      );
+      await repos.tags.restore('t1', at: t0.add(const Duration(minutes: 2)));
+
+      expect((await repos.dances.getById('d1'))!.tagIds, ['t1']);
+    });
+
+    test('editing a dance still removes a live tag the user dropped', () async {
+      // Counterpart of the test above: the retention is for tombstoned tags
+      // only, so an ordinary tag removal must still delete the join.
+      await seedDanceWithEverything();
+
+      final edited = (await repos.dances.getById('d1'))!;
+      await repos.dances.update(edited.copyWith(tagIds: const []));
+
+      expect((await repos.dances.getById('d1'))!.tagIds, isEmpty);
+      final joins = await db
+          .customSelect('SELECT COUNT(*) AS n FROM dance_tags')
+          .get();
+      expect(joins.single.read<int>('n'), 0);
+    });
+
+    test('a sync-applied body keeps a locally tombstoned tag join', () async {
+      // `writeFromSync` shares `_upsert`; the peer body cannot name a tag this
+      // device has tombstoned, so its absence is not a removal either.
+      await seedDanceWithEverything();
+      await repos.tags.delete('t1', at: t0.add(const Duration(minutes: 1)));
+
+      final incoming = (await repos.dances.getById(
+        'd1',
+      ))!.copyWith(title: 'From peer');
+      await repos.dances.writeFromSync(incoming);
+      await repos.tags.restore('t1', at: t0.add(const Duration(minutes: 2)));
+
+      expect((await repos.dances.getById('d1'))!.tagIds, ['t1']);
+    });
+
     test('a tag search stops matching once the tag is deleted', () async {
       await seedDanceWithEverything();
       expect(await repos.dances.search(TagFilter('t1')), hasLength(1));
