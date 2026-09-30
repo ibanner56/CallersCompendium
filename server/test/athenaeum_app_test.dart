@@ -1197,6 +1197,35 @@ void main() {
     },
   );
 
+  test('repeated forwarded-for header lines resolve to the last entry', () async {
+    final productionApp = AthenaeumApp(config: app.config, store: app.store);
+    Future<Response> failedRequest(List<String> lines) => productionApp.call(
+      Request(
+        'GET',
+        Uri.parse('http://127.0.0.1/v1/store'),
+        headers: {'authorization': 'Bearer ******', 'x-forwarded-for': lines},
+        context: {
+          'shelf.io.connection_info': _FakeConnectionInfo(
+            InternetAddress.loopbackIPv4,
+          ),
+        },
+      ),
+    );
+
+    // dart:io (verified) presents repeated lines joined in order with ", ", so
+    // a client line followed by the proxy's appended line keys on the proxy's.
+    for (var attempt = 0; attempt < maxFailedResolutionsPerIpBurst; attempt++) {
+      expect(
+        (await failedRequest(['198.51.100.$attempt', '192.0.2.20'])).statusCode,
+        401,
+      );
+    }
+    expect(
+      (await failedRequest(['203.0.113.9', '192.0.2.20'])).statusCode,
+      429,
+    );
+  });
+
   group('encoded gzip bytes', () {
     Future<Response> gzipRequest(
       String method,
