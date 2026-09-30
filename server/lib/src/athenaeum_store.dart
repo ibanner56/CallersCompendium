@@ -13,8 +13,10 @@ import 'athenaeum_schema.dart';
 
 typedef DirectoryDelete = void Function(Directory directory);
 typedef FileDelete = void Function(File file);
-typedef AthenaeumOperationalFailureSink =
-    void Function(String source, Object error);
+typedef AthenaeumOperationalFailureSink = void Function(
+  String source,
+  Object error,
+);
 
 class AthenaeumQuotaLimits {
   const AthenaeumQuotaLimits({
@@ -70,6 +72,7 @@ class AthenaeumStore {
     DirectoryDelete? deleteDirectory,
     FileDelete? deleteFile,
     DateTime Function()? clock,
+    Duration Function()? elapsed,
     this.quotaLimits = const AthenaeumQuotaLimits(),
     this.diagnosticRowLimit = maxDiagnosticRows,
     this.operationalFailureSink,
@@ -81,7 +84,8 @@ class AthenaeumStore {
            diagnosticDatabase ?? _openDiagnosticDatabase(config.dataDirectory),
        _deleteDirectory = deleteDirectory ?? _deleteDirectoryRecursively,
        _deleteFile = deleteFile ?? _deleteFileSync,
-       _clock = clock ?? DateTime.now {
+       _clock = clock ?? DateTime.now,
+       _elapsed = elapsed ?? _monotonicElapsed() {
     Directory(config.dataDirectory).createSync(recursive: true);
     _database.execute('PRAGMA foreign_keys = ON');
     _database.execute('PRAGMA journal_mode = WAL');
@@ -125,6 +129,10 @@ class AthenaeumStore {
   final DirectoryDelete _deleteDirectory;
   final FileDelete _deleteFile;
   final DateTime Function() _clock;
+
+  /// Monotonic elapsed time, used only for request-path budgets. [_clock] is
+  /// wall time and can step backwards, so it is kept for persisted timestamps.
+  final Duration Function() _elapsed;
   final AthenaeumOperationalFailureSink? operationalFailureSink;
   final AthenaeumQuotaLimits quotaLimits;
   final int diagnosticRowLimit;
@@ -1005,9 +1013,9 @@ class AthenaeumStore {
     bool reportFailures = false,
     Duration? maxDuration,
   }) {
-    final started = _clock();
+    final started = _elapsed();
     bool budgetSpent() =>
-        maxDuration != null && _clock().difference(started) >= maxDuration;
+        maxDuration != null && _elapsed() - started >= maxDuration;
     final rows = _database.select(
       'SELECT id_key, epoch FROM deletion_jobs '
       'ORDER BY queued_at, rowid LIMIT ?',
@@ -1022,8 +1030,10 @@ class AthenaeumStore {
       ran++;
     }
     if (ran > 0 && budgetSpent()) return;
+    // maxJobs caps the whole call, not each queue.
+    if (ran >= maxJobs) return;
     retryPendingBlobDeletions(
-      maxJobs: maxJobs,
+      maxJobs: maxJobs - ran,
       reportFailures: reportFailures,
       budgetSpent: maxDuration == null ? null : budgetSpent,
       jobsAlreadyRun: ran,
@@ -1159,6 +1169,11 @@ class AthenaeumStore {
   }
 
   static void _deleteFileSync(File file) => file.deleteSync();
+
+  static Duration Function() _monotonicElapsed() {
+    final stopwatch = Stopwatch()..start();
+    return () => stopwatch.elapsed;
+  }
 
   Iterable<File> _temporaryBlobFiles(String idKey, String epoch, String hash) {
     final directory = blobFile(idKey, epoch, hash).parent;

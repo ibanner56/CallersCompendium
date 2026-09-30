@@ -200,6 +200,7 @@ void main() {
         config: _config(dataDirectory),
         database: database,
         clock: () => now,
+        elapsed: () => now.difference(DateTime.utc(2026, 1, 1)),
         deleteDirectory: (directory) {
           deleted.add(directory.path);
           now = now.add(const Duration(milliseconds: 400));
@@ -239,6 +240,7 @@ void main() {
         config: _config(dataDirectory),
         database: database,
         clock: () => now,
+        elapsed: () => now.difference(DateTime.utc(2026, 1, 1)),
         deleteDirectory: (_) {
           now = now.add(const Duration(seconds: 2));
         },
@@ -278,6 +280,67 @@ void main() {
       // the first always runs, then 400 ms each against 1 s admits three.
       store.retryPendingDeletions(maxDuration: const Duration(seconds: 1));
       expect(blobDeletes, 3);
+    });
+
+    test('a backwards wall-clock step does not defeat the budget', () {
+      final dataDirectory = _tempDirectory('athenaeum-retry-budget-wall-');
+      var wall = DateTime.utc(2026, 1, 1);
+      var elapsed = Duration.zero;
+      var deleted = 0;
+      final database = sqlite3.openInMemory();
+      final store = AthenaeumStore(
+        config: _config(dataDirectory),
+        database: database,
+        clock: () => wall,
+        elapsed: () => elapsed,
+        deleteDirectory: (_) {
+          deleted++;
+          elapsed += const Duration(milliseconds: 400);
+          wall = wall.subtract(const Duration(hours: 1));
+        },
+      );
+      addTearDown(store.close);
+      for (var index = 0; index < 8; index++) {
+        database.execute(
+          'INSERT INTO deletion_jobs (id_key, epoch, queued_at) '
+          'VALUES (?, ?, ?)',
+          ['a' * 64, 'epoch$index', index],
+        );
+      }
+      store.retryPendingDeletions(maxDuration: const Duration(seconds: 1));
+      expect(deleted, 3);
+    });
+
+    test('maxJobs caps directory and blob jobs together', () {
+      final dataDirectory = _tempDirectory('athenaeum-retry-cap-total-');
+      var blobDeletes = 0;
+      final database = sqlite3.openInMemory();
+      final store = AthenaeumStore(
+        config: _config(dataDirectory),
+        database: database,
+        deleteDirectory: (_) {},
+        deleteFile: (_) => blobDeletes++,
+      );
+      addTearDown(store.close);
+      for (var index = 0; index < 3; index++) {
+        database.execute(
+          'INSERT INTO deletion_jobs (id_key, epoch, queued_at) '
+          'VALUES (?, ?, ?)',
+          ['a' * 64, 'epoch$index', index],
+        );
+        final hash = index.toRadixString(16).padLeft(64, '0');
+        store.blobFile('b' * 64, 'c' * 32, hash)
+          ..parent.createSync(recursive: true)
+          ..writeAsBytesSync([index]);
+        database.execute(
+          'INSERT INTO blob_deletion_jobs (id_key, epoch, hash, queued_at) '
+          'VALUES (?, ?, ?, ?)',
+          ['b' * 64, 'c' * 32, hash, index],
+        );
+      }
+      store.retryPendingDeletions(maxJobs: 4);
+      expect(database.select('SELECT * FROM deletion_jobs'), isEmpty);
+      expect(blobDeletes, 1);
     });
   });
 
@@ -319,13 +382,12 @@ void main() {
           '${initial.blobDirectory.path}/$idKey/$epoch/zz/zz/$stray',
         )..parent.createSync(recursive: true);
         wrongShard.writeAsBytesSync([0]);
-        File(
-          '${initial.blobDirectory.path}/$idKey/$epoch/not-a-hash',
-        ).writeAsBytesSync([0]);
+        File('${initial.blobDirectory.path}/$idKey/$epoch/not-a-hash')
+            .writeAsBytesSync([0]);
       }
       initial.close();
 
-      // Startup also drains up to 16 jobs, so make deletion fail to keep the
+      // Startup also drains up to 16 jobs in total, so make deletion fail to keep the
       // queued set observable.
       final recovered = AthenaeumStore(
         config: config,
