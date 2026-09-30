@@ -1189,13 +1189,31 @@ void main() {
       expect((await failedRequest('203.0.113.9, 192.0.2.10')).statusCode, 429);
       // A different real client is not drained by the spoofed entries.
       expect((await failedRequest('192.0.2.10, 192.0.2.11')).statusCode, 401);
-      // An unparseable rightmost entry falls back to the socket peer.
-      expect(
-        (await failedRequest('192.0.2.12, not-an-address')).statusCode,
-        401,
-      );
     },
   );
+
+  test('an unparseable rightmost entry falls back to the socket peer', () async {
+    final productionApp = AthenaeumApp(config: app.config, store: app.store);
+    Future<Response> failedRequest(String forwarded) => productionApp.call(
+      _requestWithPeer(
+        InternetAddress.loopbackIPv4,
+        forwardedAddress: forwarded,
+      ),
+    );
+
+    // Varying malformed values all draw on the one socket-peer bucket. If each
+    // malformed string were trusted as its own key, none would ever be limited.
+    for (var attempt = 0; attempt < maxFailedResolutionsPerIpBurst; attempt++) {
+      expect(
+        (await failedRequest('192.0.2.12, not-an-address-$attempt')).statusCode,
+        401,
+      );
+    }
+    expect(
+      (await failedRequest('192.0.2.12, another-bad-value')).statusCode,
+      429,
+    );
+  });
 
   group('encoded gzip bytes', () {
     Future<Response> gzipRequest(
