@@ -31,7 +31,8 @@ class CrashLogRecord {
   static const int schemaVersion = 1;
 
   /// Written in place of a non-empty [errorMessage] by [scrubbed].
-  static const String withheldMessage = '[message withheld from scrubbed export]';
+  static const String withheldMessage =
+      '[message withheld from scrubbed export]';
 
   /// When the error was captured, always in UTC.
   final DateTime timestampUtc;
@@ -53,7 +54,7 @@ class CrashLogRecord {
   final String errorType;
 
   /// The error's message (`error.toString()`); may contain user content, so it
-  /// is scrubbed for the default export (see [scrubbed]).
+  /// is withheld from the default export (see [scrubbed]).
   final String errorMessage;
 
   /// The captured stack trace text; may contain absolute paths, so it is
@@ -130,16 +131,21 @@ class CrashLogRecord {
     return firstLine.isEmpty ? errorType : '$errorType: $firstLine';
   }
 
-  /// Returns a copy with the free-text fields ([errorMessage], [stack]) scrubbed
-  /// by [redactor]. The timestamp, version, platform, source, and error *type*
-  /// are structural diagnostics with no user content, so they are preserved.
+  /// Returns a copy safe for the default (scrubbed) export: [errorMessage] is
+  /// replaced by [withheldMessage] and [stack] is scrubbed by [redactor].
+  ///
+  /// The message is withheld rather than term-redacted because a redactor only
+  /// knows the values in the database at export time; a value that was never
+  /// saved, or was later purged, would survive. The timestamp, version,
+  /// platform, source, and error *type* are structural diagnostics with no user
+  /// content, so they are preserved.
   CrashLogRecord scrubbed(CrashRedactor redactor) => CrashLogRecord(
     timestampUtc: timestampUtc,
     appVersion: appVersion,
     platform: platform,
     source: source,
     errorType: errorType,
-    errorMessage: redactor.scrub(errorMessage),
+    errorMessage: errorMessage.isEmpty ? '' : withheldMessage,
     stack: redactor.scrub(stack),
   );
 

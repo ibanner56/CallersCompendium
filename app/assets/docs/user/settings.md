@@ -478,8 +478,8 @@ still lets you try to export or clear it.
 ### Export
 
 - **Include full detail (may contain your content)** — **off by default**. Left
-  off, the export removes your content, file paths, email addresses, and phone
-  numbers. Turn it on only when you mean to share the full, unredacted log.
+  off, the export removes the text of error messages, your content, file paths,
+  email addresses, and phone numbers. Turn it on only when you mean to share the full, unredacted log.
 - **Export / share log** — hands the log to your system's share or save dialog.
   The row tells you which kind you're about to send: a scrubbed copy safe to
   attach to a bug report, or the full unredacted log. If the app can't prepare a
