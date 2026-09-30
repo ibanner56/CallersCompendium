@@ -431,8 +431,8 @@ community knowledge we don't yet have. Each is tied to a question in §9.
 | Movement | What is known | Question |
 | --- | --- | --- |
 | *up a double / forward and back* (ID not chosen) | Evidence: 6 captions in 4 dances ("Up a double, and back", "Down a double, and back", "All up a double, and back", "Lines of three forward and back", "Line of four up a double and back, bending the line", "Forward"). It has a direction (up, down, forward), an optional return ("and back"), and sometimes a formation ("lines of three"). "A double" is also used as an extent for *fall back*. Contra's nearest move is `long_lines` (forward, optionally back). | Q10 |
-| `lead` | Evidence (lead and cast together): 16 captions in 11 dances. They consistently state who, where ("up", "down", "to middle", "back") and a destination ("to progressed place", "home", "to 2nd place", "to the ends of a line of four"). Some state a route ("through 2s"). A likely starting set of parameters is `who`, `where`, `destination` and a route ("through {whom}"). | Q7 |
-| `cast` | As for `lead`, plus a side ("cast left around neighbor"). One couple casting (or crossing and going below) while another leads the other way occurs in 9 captions in 7 dances. Five join the two with "as", which gives a `meanwhile`. Four use only a comma (§5.6). | Q7 |
+| `lead` | A distinct movement from `cast`. Evidence (counted together with cast, because the two often share a caption): 16 captions in 11 dances. They consistently state who, where ("up", "down", "to middle", "back") and a destination ("to progressed place", "home", "to 2nd place", "to the ends of a line of four"). Some state a route ("through 2s"). A likely starting set of parameters is `who`, `where`, `destination` and a route ("through {whom}"). | Q7 |
+| `cast` | A distinct movement from `lead`. The captions state the same kinds of information, plus a side ("cast left around neighbor"). One couple casting (or crossing and going below) while another leads the other way occurs in 9 captions in 7 dances. Five join the two with "as", which gives a `meanwhile`. Four use only a comma (§5.6). | Q7 |
 | `set_and_link` | A single named movement (§5.4), including "tandem set and link". Roles, route and display are undefined. | Q9 |
 | `hey` | Covers the number of dancers (3, 4, ...), straight/diagonal/end/parallel paths, and reels. Evidence: "1s left shoulder heys with end couples" (two heys for three danced at once, with a stated shoulder) and "a Shetland (tandem) reel for three couples". | Q4 |
 | `grand_chain` | Evidence: 2 captions in 2 dances. Both are counted in changes ("six changes of a grand chain", "three changes of a grand chain"), like rights and lefts, and one states a hand. *The American Husband* names grand chain, ladies' chain and rights and lefts as distinct figures within one dance. | Q5 |
@@ -585,9 +585,10 @@ from "cross", or the same figure with a `hand` parameter? The transcriptions
 use one word or the other in any given dance, never both.
 
 **Q7. Lead and cast.**
-What parameters do "lead up/down/out", "lead through", "cast off/up/down",
-"cast around" and "long corners cast" need? What separates cast from lead,
-cross and fall back? Is `who`, `where`, `destination` and a route a
+Lead and cast are two distinct movements. What parameters does each need to
+cover "lead up/down/out", "lead through", "cast off/up/down", "cast around"
+and "long corners cast"? What separates cast from cross and fall back?
+Is `who`, `where`, `destination` and a route a
 sufficient starting set (§7.6)? When one couple casts while another leads
 and the source joins them with only a comma, should we record them as
 happening together?
