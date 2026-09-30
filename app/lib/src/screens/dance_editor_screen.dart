@@ -384,8 +384,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       return;
     }
     setState(() => _saving = true);
+    final Dance dance;
     try {
-      final dance = _controller.buildDance();
+      dance = _controller.buildDance();
       await _repos.transaction(() async {
         final tagIds = <String, String>{};
         for (final tag in _controller.stagedTags.values) {
@@ -408,13 +409,6 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           original: _controller.original,
         );
       });
-      // Clear the autosave draft — work is now committed.
-      await _controller.clearDraft();
-      _controller.clearStagedTags();
-      _controller.markSaved();
-      if (mounted) {
-        Navigator.of(context).pop(dance.id);
-      }
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'dance_editor_screen._save');
       if (kDebugMode) {
@@ -426,6 +420,39 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.danceEditorSaveError)));
+      return;
+    }
+    // The dance is committed. Nothing below may report the save as failed or
+    // leave the editor open: for a new dance a second Save would mint a fresh
+    // id (`buildDance`) and insert a duplicate.
+    await _clearDraftAfterCommit();
+    _controller.clearStagedTags();
+    _controller.markSaved();
+    if (mounted) {
+      Navigator.of(context).pop(dance.id);
+    }
+  }
+
+  /// How many times [_clearDraftAfterCommit] tries to remove the autosave draft
+  /// before giving up.
+  static const int _draftCleanupAttempts = 3;
+
+  /// Best-effort removal of the autosave draft after a committed save. A
+  /// failure is logged, not surfaced: the work is already saved, so the editor
+  /// still closes. If every attempt fails the stale draft remains and would be
+  /// offered for restore the next time an editor opens on the same draft key.
+  Future<void> _clearDraftAfterCommit() async {
+    for (var attempt = 1; attempt <= _draftCleanupAttempts; attempt++) {
+      try {
+        await _controller.clearDraft();
+        return;
+      } catch (error, stackTrace) {
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'dance_editor_screen._clearDraftAfterCommit',
+        );
+      }
     }
   }
 
