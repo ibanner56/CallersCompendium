@@ -1812,6 +1812,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'This backup contains items this version of the app can\'t read (it may be from a newer version), so the restore was cancelled. Your data is unchanged.';
 
   @override
+  String get backupRestoreMissingAppSection =>
+      'This backup doesn\'t include your app settings, themes or dialects, so it can\'t replace your current data. The restore was cancelled and your data is unchanged.';
+
+  @override
   String get backupRestoreInvalidFile =>
       'Couldn\'t restore: the file isn\'t a valid backup. Your data is unchanged.';
 

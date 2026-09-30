@@ -1757,6 +1757,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'このバックアップにはこのバージョンのアプリで読めないアイテムが含まれています（新しいバージョンのものかもしれません）。復元はキャンセルされました。データは変更されていません。';
 
   @override
+  String get backupRestoreMissingAppSection =>
+      'このバックアップにはアプリの設定、テーマ、ダイアレクトが含まれていないため、現在のデータを置き換えることはできません。復元はキャンセルされました。データは変更されていません。';
+
+  @override
   String get backupRestoreInvalidFile =>
       '復元できません：有効なバックアップファイルではありません。データは変更されていません。';
 
