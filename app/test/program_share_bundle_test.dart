@@ -107,6 +107,9 @@ void main() {
         program,
         danceFor: danceFor,
         choreographerFor: choreographerFor,
+        tagFor: (_) => null,
+        publishedSourceFor: (_) => null,
+        customFieldFor: (_) => null,
         venueFor: (_) => null,
         now: _now,
       );
@@ -142,6 +145,9 @@ void main() {
           program,
           danceFor: danceFor,
           choreographerFor: choreographerFor,
+          tagFor: (_) => null,
+          publishedSourceFor: (_) => null,
+          customFieldFor: (_) => null,
           venueFor: (_) => null,
         ),
       ).archive;
@@ -162,6 +168,9 @@ void main() {
           program,
           danceFor: danceFor,
           choreographerFor: choreographerFor,
+          tagFor: (_) => null,
+          publishedSourceFor: (_) => null,
+          customFieldFor: (_) => null,
           venueFor: (_) => null,
         ),
       ).archive;
@@ -186,6 +195,9 @@ void main() {
           program,
           danceFor: danceFor,
           choreographerFor: choreographerFor,
+          tagFor: (_) => null,
+          publishedSourceFor: (_) => null,
+          customFieldFor: (_) => null,
           venueFor: (_) => null,
           now: _now,
         );
@@ -234,6 +246,9 @@ void main() {
             program,
             danceFor: authoredDanceFor,
             choreographerFor: choreographerCatalogFor,
+            tagFor: (_) => null,
+            publishedSourceFor: (_) => null,
+            customFieldFor: (_) => null,
             venueFor: (_) => null,
             now: _now,
           ),
@@ -257,6 +272,9 @@ void main() {
             program,
             danceFor: authoredDanceFor,
             choreographerFor: choreographerCatalogFor,
+            tagFor: (_) => null,
+            publishedSourceFor: (_) => null,
+            customFieldFor: (_) => null,
             venueFor: (_) => null,
             now: _now,
           ),
@@ -278,6 +296,9 @@ void main() {
             program,
             danceFor: authoredDanceFor,
             choreographerFor: choreographerCatalogFor,
+            tagFor: (_) => null,
+            publishedSourceFor: (_) => null,
+            customFieldFor: (_) => null,
             venueFor: (_) => null,
             now: _now,
           ),
@@ -301,6 +322,9 @@ void main() {
             program,
             danceFor: authoredDanceFor,
             choreographerFor: choreographerCatalogFor,
+            tagFor: (_) => null,
+            publishedSourceFor: (_) => null,
+            customFieldFor: (_) => null,
             venueFor: (_) => null,
             now: _now,
           ),
@@ -321,6 +345,9 @@ void main() {
           program,
           danceFor: authoredDanceFor,
           choreographerFor: choreographerCatalogFor,
+          tagFor: (_) => null,
+          publishedSourceFor: (_) => null,
+          customFieldFor: (_) => null,
           venueFor: (_) => null,
           now: _now,
         );
@@ -351,6 +378,9 @@ void main() {
           program,
           danceFor: danceFor,
           choreographerFor: choreographerFor,
+          tagFor: (_) => null,
+          publishedSourceFor: (_) => null,
+          customFieldFor: (_) => null,
           venueFor: (id) =>
               id == 'v1' ? _venue('v1', withContacts: true) : null,
           now: _now,
@@ -386,6 +416,9 @@ void main() {
           program,
           danceFor: danceFor,
           choreographerFor: choreographerFor,
+          tagFor: (_) => null,
+          publishedSourceFor: (_) => null,
+          customFieldFor: (_) => null,
           venueFor: (_) => _venue('v1', withContacts: true),
           includeVenueContact: {VenueContactField.contact1Email},
           now: _now,
@@ -416,6 +449,9 @@ void main() {
             program,
             danceFor: danceFor,
             choreographerFor: choreographerFor,
+            tagFor: (_) => null,
+            publishedSourceFor: (_) => null,
+            customFieldFor: (_) => null,
             venueFor: (_) => null,
             now: _now,
           ),
@@ -435,6 +471,9 @@ void main() {
             program,
             danceFor: danceFor,
             choreographerFor: choreographerFor,
+            tagFor: (_) => null,
+            publishedSourceFor: (_) => null,
+            customFieldFor: (_) => null,
             venueFor: (_) {
               called = true;
               return null;
@@ -461,6 +500,9 @@ void main() {
           program,
           danceFor: danceFor,
           choreographerFor: choreographerFor,
+          tagFor: (_) => null,
+          publishedSourceFor: (_) => null,
+          customFieldFor: (_) => null,
           venueFor: (_) => _venue('v1', withContacts: true),
           now: _now,
         );
@@ -565,6 +607,9 @@ void main() {
                 location: 'Lexington, KY',
               )
             : null,
+        tagFor: (_) => null,
+        publishedSourceFor: (_) => null,
+        customFieldFor: (_) => null,
         venueFor: (_) => null,
         now: _now,
       );
@@ -611,6 +656,9 @@ void main() {
             : null,
         choreographerFor: (id) =>
             id == 'sender-cary' ? _choreographer(id, 'Cary Ravitz') : null,
+        tagFor: (_) => null,
+        publishedSourceFor: (_) => null,
+        customFieldFor: (_) => null,
         venueFor: (_) => null,
         now: _now,
       );
@@ -637,6 +685,9 @@ void main() {
           program,
           danceFor: (id) => id == 'd1' ? _dance('d1', 'Anonymous Reel') : null,
           choreographerFor: (_) => null,
+          tagFor: (_) => null,
+          publishedSourceFor: (_) => null,
+          customFieldFor: (_) => null,
           venueFor: (_) => null,
           now: _now,
         );
@@ -661,6 +712,9 @@ void main() {
         program,
         danceFor: (id) => id == 'd1' ? _dance('d1', 'Rory O\'More') : null,
         choreographerFor: (_) => null,
+        tagFor: (_) => null,
+        publishedSourceFor: (_) => null,
+        customFieldFor: (_) => null,
         venueFor: (id) => id == 'v1' ? _venue('v1', withContacts: true) : null,
         now: _now,
       );
@@ -707,6 +761,9 @@ void main() {
           program,
           danceFor: (id) => id == 'd1' ? _dance('d1', 'Rory O\'More') : null,
           choreographerFor: (_) => null,
+          tagFor: (_) => null,
+          publishedSourceFor: (_) => null,
+          customFieldFor: (_) => null,
           venueFor: (_) => null,
           now: _now,
         );
@@ -723,5 +780,137 @@ void main() {
         expect(await repos.venues.listAll(), isEmpty);
       },
     );
+  });
+
+  // #01 (supplemental audit): the archive codec drops a non-shareable custom
+  // field's definition AND values only for definitions the archive carries, so
+  // a program bundle that supplied none leaked every private value.
+  group('custom fields, tags and sources in a program bundle', () {
+    final publicField = CustomFieldDef(
+      id: 'f-public',
+      key: 'teach',
+      label: 'Needs teaching',
+      type: CustomFieldType.text,
+    );
+    final privateField = CustomFieldDef(
+      id: 'f-private',
+      key: 'secret',
+      label: 'Secret',
+      type: CustomFieldType.text,
+      shareable: false,
+    );
+    final tag = Tag(id: 't1', name: 'chestnut');
+    final source = PublishedSource(id: 's1', title: 'A book');
+
+    Dance richDance(String id) => Dance(
+      id: id,
+      title: 'Rich $id',
+      figures: [
+        Figure(move: 'swing', params: {'beats': 16, 'who': 'partners'}),
+      ],
+      sourceCitations: [SourceCitation(sourceId: 's1')],
+      tagIds: const ['t1'],
+      customFields: [
+        CustomFieldValue(fieldId: 'f-public', value: 'yes'),
+        CustomFieldValue(fieldId: 'f-private', value: 'PRIVATE-VALUE'),
+      ],
+      createdAt: _now,
+      updatedAt: _now,
+    );
+
+    String build({
+      CustomFieldDef? Function(String)? customFieldFor,
+      Tag? Function(String)? tagFor,
+      PublishedSource? Function(String)? publishedSourceFor,
+    }) => buildProgramShareBundle(
+      _program(
+        slots: [
+          _slot(0, danceId: 'a'),
+          _slot(1, danceId: 'b'),
+        ],
+      ),
+      danceFor: (id) => richDance(id),
+      choreographerFor: (_) => null,
+      venueFor: (_) => null,
+      tagFor: tagFor ?? (id) => id == 't1' ? tag : null,
+      publishedSourceFor:
+          publishedSourceFor ?? (id) => id == 's1' ? source : null,
+      customFieldFor:
+          customFieldFor ??
+          (id) => switch (id) {
+            'f-public' => publicField,
+            'f-private' => privateField,
+            _ => null,
+          },
+      now: _now,
+    );
+
+    test('a non-shareable field is absent, value and definition', () {
+      final json = build();
+
+      expect(json, isNot(contains('PRIVATE-VALUE')));
+      expect(json, isNot(contains('f-private')));
+      final archive = decodeArchive(json).archive;
+      expect(archive.customFields.map((f) => f.id), ['f-public']);
+      for (final dance in archive.dances) {
+        expect(dance.customFields.map((v) => v.fieldId), ['f-public']);
+        expect(dance.customFields.single.value, 'yes');
+      }
+    });
+
+    test('tag and source definitions are included once each', () {
+      final archive = decodeArchive(build()).archive;
+
+      expect(archive.dances.length, 2);
+      expect(archive.tags.map((t) => t.id), ['t1']);
+      expect(archive.publishedSources.map((s) => s.id), ['s1']);
+    });
+
+    test('an unresolvable custom field fails closed', () {
+      expect(
+        () => build(
+          customFieldFor: (id) => id == 'f-public' ? publicField : null,
+        ),
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    test('an unresolvable tag fails', () {
+      expect(() => build(tagFor: (_) => null), throwsA(isA<StateError>()));
+    });
+
+    test('an unresolvable published source fails', () {
+      expect(
+        () => build(publishedSourceFor: (_) => null),
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    test('the bundle imports completely on the receiver', () async {
+      final repos = openTestRepositories();
+      final json = build();
+      final archive = decodeArchive(json).archive;
+      await CompendiumArchiveImporter(
+        ImportPipeline(repos.dances, repos.choreographers),
+        repos.programs,
+        repos.venues,
+        repositories: repos,
+        tags: repos.tags,
+        sources: repos.publishedSources,
+        customFields: repos.customFieldDefs,
+      ).import(json, archive, now: DateTime.utc(2026, 7, 20));
+
+      expect((await repos.tags.listAll()).map((t) => t.name), ['chestnut']);
+      expect((await repos.publishedSources.listAll()).map((s) => s.title), [
+        'A book',
+      ]);
+      expect((await repos.customFieldDefs.listAll()).map((f) => f.key), [
+        'teach',
+      ]);
+      final dance = (await repos.dances.listAll()).first;
+      expect(dance.tagIds, hasLength(1));
+      expect(dance.sourceCitations, hasLength(1));
+      expect(dance.customFields.single.value, 'yes');
+    });
   });
 }
