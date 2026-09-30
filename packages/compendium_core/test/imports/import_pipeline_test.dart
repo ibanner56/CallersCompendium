@@ -1283,7 +1283,7 @@ void main() {
     });
   });
 
-  group('a record that fails leaves no author writes', () {
+  group('a record that fails leaves no dance or author writes', () {
     late _FailingDanceRepository failing;
     late ImportPipeline failingPipeline;
 
@@ -1294,6 +1294,12 @@ void main() {
 
     Future<List<String>> liveAuthorNames() async => [
       for (final c in await choreographers.listAll()) c.name,
+    ];
+
+    // Live and tombstoned rows: tells an erased author from a tombstoned one.
+    Future<List<String>> allAuthorNames() async => [
+      for (final c in await choreographers.listAll(includeDeleted: true))
+        c.name,
     ];
 
     Future<String> seedDance(String externalId, String title) async {
@@ -1348,7 +1354,38 @@ void main() {
       );
 
       expect(session.records.single.error, isNotNull);
-      expect(await liveAuthorNames(), isNot(contains('Fresh Author')));
+      // Across tombstones too: a created author is erased, not tombstoned —
+      // no peer ever saw it, so a deletion record would advertise nothing.
+      expect(await allAuthorNames(), isNot(contains('Fresh Author')));
+      expect(session.createdChoreographerIds, isEmpty);
+    });
+
+    test('a variation whose reciprocal target update throws leaves neither '
+        'the new dance nor its author', () async {
+      final target = await seedDance('fake-1', 'The Nice Combination');
+      final batch = await failingPipeline.plan(
+        FakeSourceAdapter([
+          record('fake-2', 'Nice Combination', authorNames: ['Fresh Author']),
+        ]),
+        const ImportRequest(),
+      );
+      expect(batch.records.single.verdict.isAmbiguous, isTrue);
+      // The new dance's create succeeds; only the target's link-back fails.
+      failing.failTitles.add('The Nice Combination');
+
+      final session = await failingPipeline.commit(
+        batch,
+        now: now,
+        newId: nextId,
+        resolutions: {0: DedupeResolution.variation(target)},
+      );
+
+      expect(session.records.single.error, isNotNull);
+      expect([for (final d in await dances.listAll()) d.id], [target]);
+      expect((await dances.getById(target))!.links, isEmpty);
+      expect(session.insertedDanceIds, isEmpty);
+      expect(session.updatedDancePriorStates, isEmpty);
+      expect(await allAuthorNames(), isNot(contains('Fresh Author')));
       expect(session.createdChoreographerIds, isEmpty);
     });
 
@@ -1391,6 +1428,9 @@ void main() {
 
       expect(session.records.single.error, isNotNull);
       expect(await liveAuthorNames(), isNot(contains('Old Hand')));
+      // Re-tombstoned, not erased: the row predates the import and stays
+      // restorable.
+      expect(await allAuthorNames(), contains('Old Hand'));
       expect(session.revivedChoreographerIds, isEmpty);
     });
 

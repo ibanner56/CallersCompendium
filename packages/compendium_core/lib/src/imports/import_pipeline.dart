@@ -567,11 +567,12 @@ class ImportPipeline {
   /// Commits a planned [batch], writing each dance and its provenance row.
   /// Records are independent: one that fails is reported in its
   /// [CommittedRecord.error] and leaves no dance and no author writes behind
-  /// (see `_rollbackRecordAuthors`); the rest still commit. The batch as a whole
-  /// is not one transaction — [undo] reverts the records that did commit. [resolutions] resolves ambiguous records, keyed by their
-  /// index into `batch.records`; an ambiguous record with no resolution is
-  /// skipped (never guessed). New/duplicate inserts get a fresh id from
-  /// [newId]; re-imports/links update the matched dance, preserving its
+  /// (see `_rollbackRecordDances` and `_rollbackRecordAuthors`); the rest still
+  /// commit. The batch as a whole is not one transaction — [undo] reverts the
+  /// records that did commit. [resolutions] resolves ambiguous records, keyed
+  /// by their index into `batch.records`; an ambiguous record with no
+  /// resolution is skipped (never guessed). New/duplicate inserts get a fresh
+  /// id from [newId]; re-imports/links update the matched dance, preserving its
   /// `createdAt`.
   ///
   /// Returns an [ImportSession] recording what was written so the batch can be
@@ -632,6 +633,11 @@ class ImportPipeline {
       // take back exactly its own writes (see the `catch` below).
       final createdBefore = createdChoreographerIds.length;
       final revivedBefore = revivedChoreographerIds.length;
+      final priorBefore = priorStates.length;
+      // The new dance this record created, if any. A default variation writes
+      // twice (the new dance, then the reciprocal link on its target), so the
+      // second write can fail after the first has landed.
+      String? createdDanceId;
 
       try {
         final writesNewDance =
@@ -720,6 +726,7 @@ class ImportPipeline {
             provenance: prov,
           );
           await _dances.create(dance);
+          createdDanceId = id;
           insertedIds.add(id);
           if (wantsLinkBack) {
             // Symmetric reciprocal link on the TARGET side, so the
@@ -785,6 +792,15 @@ class ImportPipeline {
           );
         }
       } catch (e) {
+        // Dance writes first: the created dance credits this record's authors,
+        // so the repository would refuse to delete them while it stands.
+        await _rollbackRecordDances(
+          createdDanceId: createdDanceId,
+          insertedIds: insertedIds,
+          priorStates: priorStates,
+          priorCapturedFor: priorCapturedFor,
+          priorFrom: priorBefore,
+        );
         await _rollbackRecordAuthors(
           nameToId: nameToId,
           createdChoreographerIds: createdChoreographerIds,
@@ -983,6 +999,39 @@ class ImportPipeline {
   /// is worse than a near-duplicate row.
   String _normalizeName(String name) =>
       nfc(name).trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
+
+  /// Takes back the dance writes one failed record made, so a record that
+  /// fails leaves no dance behind either.
+  ///
+  /// The only dance write that can precede a failure is a variation's new
+  /// dance ([createdDanceId]), when the reciprocal update on its target throws;
+  /// it is erased like [undo] erases inserted dances. Every other dance write is
+  /// the record's last, so a throw means it did not land. The prior state this
+  /// record captured (from index [priorFrom]) is dropped with it: its update
+  /// never landed, and leaving it would have [undo] rewrite an unchanged
+  /// target — or, were a later record to link the same target, skip capturing
+  /// the state that later write really replaced. If the erase itself fails the
+  /// dance stays in [insertedIds], so [undo] still owns it.
+  Future<void> _rollbackRecordDances({
+    required String? createdDanceId,
+    required List<String> insertedIds,
+    required List<Dance> priorStates,
+    required Set<String> priorCapturedFor,
+    required int priorFrom,
+  }) async {
+    for (final prior in priorStates.sublist(priorFrom)) {
+      priorCapturedFor.remove(prior.id);
+    }
+    priorStates.removeRange(priorFrom, priorStates.length);
+    if (createdDanceId == null) return;
+    try {
+      await _dances.hardDelete([createdDanceId], gcOrphanedRefs: false);
+      insertedIds.remove(createdDanceId);
+    } catch (_) {
+      // Best effort, as for authors: the record's own error is the one worth
+      // reporting, and the dance left behind stays tracked for `undo`.
+    }
+  }
 
   /// Takes back the author writes one failed record made, so a record that
   /// fails leaves no choreographer rows behind (`_resolveAuthors` commits each
