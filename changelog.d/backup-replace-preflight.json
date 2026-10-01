@@ -1,9 +1,0 @@
-{
-  "id": "backup-replace-preflight",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "Restoring a backup can no longer quietly wipe your preferences, themes or dialects. A restore that replaces your data now refuses a backup made by a newer version of the app, or one with no app-settings section, and leaves everything unchanged. Any part of a backup's settings, themes or dialects that the file doesn't describe is left as it is."
-    ]
-  }
-}

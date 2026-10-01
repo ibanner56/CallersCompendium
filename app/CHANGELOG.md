@@ -38,6 +38,33 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 _Nothing yet._
 
+## [0.5.2] - 2026-10-01
+
+### Changed
+
+- Importing dances is much faster: figure text is now read several times faster, and a Caller's Companion library with thousands of dances that took tens of seconds to prepare for review now takes a few.
+- You can now import a Caller's Companion file of up to 256 MB (up from 64 MB), enough for a library of around 20,000 dances.
+- Importing a large Caller's Companion file no longer freezes the app while it reads, and the import screen now shows real progress instead of an endless spinner.
+- Importing a very large Caller's Companion library (tens of thousands of dances) is several times faster and uses far less memory.
+
+### Fixed
+
+- Restoring a backup can no longer quietly wipe your preferences, themes or dialects. A restore that replaces your data now refuses a backup made by a newer version of the app, or one with no app-settings section, and leaves everything unchanged. Any part of a backup's settings, themes or dialects that the file doesn't describe is left as it is.
+- Saving a dance no longer reports "Couldn't save the dance" when the dance was saved but tidying up its autosaved draft failed. Previously the editor stayed open and saving again created a second copy of a new dance; now the editor closes and the dance is saved once.
+- A dance whose figure line had a note after a walk-forward and a later figure could fail to import; it now imports, and such a note stays with the figure it follows.
+- When a dance in an import or re-import can't be saved, the authors it would have added are no longer left behind in your author list, and a variation whose link back to the original can't be saved no longer leaves the new dance behind.
+- Editing a large pasted or picked archive in the import screen no longer stalls on every keystroke; the archive is read once when you review the import.
+- An archive whose `dances` key is written with JSON Unicode escapes now imports its tags, custom fields, and difficulty levels like any other archive.
+- Sharing or opening a very large file, or sharing a very long piece of text to the iOS Share Extension, is now refused once it crosses the size limit, instead of being copied or read in full first (the iOS Share Extension still has to load shared text into memory before it can measure it). A file that is too large now shows the "too large to import" message on Android, iOS and macOS.
+- Typing or importing an absurdly large phrase structure (for example `100000000*1*1`) no longer freezes the app or exhausts memory. Phrase structures are now limited to 1,000 phrases, and a Caller's Box import with a structure beyond that falls back to the standard one with a warning (other import formats skip the affected dance as unreadable).
+- Sharing a program no longer includes custom-field values you turned "Include in sharing" off for. The shared file now also carries the tags, sources, and shareable custom fields its dances use, so the recipient can import those dances completely.
+- Adding a new option to a choice custom field from the dance editor no longer turns its "Include in sharing" setting back on.
+- The scrubbed diagnostics export no longer includes the text of error messages, so a value that was never saved or was later deleted can't appear in it. Error types, sources and file names are still included.
+- Making a custom field private or shareable on one device now reaches your other synced devices: dances that use the field are updated there instead of staying out of step with a sync conflict.
+- If you delete a tag, edit a dance that had it, and then restore the tag, the dance now has the tag again instead of losing it when it was edited.
+- A full backup now keeps tags you have deleted, so restoring the backup and then restoring a deleted tag brings back the dances it was on.
+- Downloading an update to a slow disk no longer builds up a large amount of memory, and a download that fails while saving now closes and removes its partial file, including on Windows.
+
 ## [0.5.1] - 2026-09-29
 
 ### Added

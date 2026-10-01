@@ -1,9 +1,0 @@
-{
-  "id": "update-downloader-write-pacing",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "Downloading an update to a slow disk no longer builds up a large amount of memory, and a download that fails while saving now closes and removes its partial file, including on Windows."
-    ]
-  }
-}

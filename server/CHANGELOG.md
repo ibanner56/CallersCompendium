@@ -8,6 +8,8 @@ the app and of `compendium_core`; version headings below refer to
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-10-01
+
 ### Fixed
 
 - `POST /v1/blobs/missing` reports a blob whose reference survives but whose

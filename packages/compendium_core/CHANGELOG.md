@@ -23,6 +23,36 @@ core version. They are left that way deliberately — do not renumber them.
 
 _Nothing yet._
 
+## [0.6.2] - 2026-10-01
+
+### Changed
+
+- Speed up the shared figure parser (~10x on Caller's Box-style input, more with repeated lines): share one tokenization of a line across the ContraDB recognizers, hoist per-call `RegExp` construction, memoize the last `scrubFigureText`, and cache the canonical-dialect `Substitutor`s. Output is unchanged.
+- `mapCallersCompanionDance` accepts an optional bounded `CcFigureLineCache`; `CallersCompanionUsrAdapter` keeps one so a body line repeated across dances parses once.
+- `CrashLogRecord.scrubbed` replaces a non-empty `errorMessage` with `CrashLogRecord.withheldMessage` instead of term-redacting it; the stack is still scrubbed.
+- Raise the FileMaker reader's ceilings to admit a ~20,000-dance Caller's Companion library: `kMaxFmpSectors` from 16,384 to 65,536 (exactly the app's 256 MiB `.USR` cap in 4 KiB sectors), `kMaxFmpRecords` from 200,000 to 500,000, and `kMaxCcPhraseRows` from 20,000 to 150,000.
+- `readFmp12` gains optional `tables` and `columnFilter` arguments, and discards the sectors that hold indexes, media and layouts instead of caching them; `readCcUsrArchive` uses them to read only the tables, and on `Dance`/`Phrase` only the columns, the importer needs. `CcDanceEntry.rawColumns` now holds only those columns.
+- `CallersCompanionUsrAdapter` takes an injectable `CcUsrArchiveReader`, exposes `discoveredArchive`, and `CallersCompanionUsrImporter.import` decodes the file once.
+- `ImportPipeline.plan` yields to the event loop while parsing and accepts an `onProgress` callback.
+- `DanceRepository` no longer runs its per-dance FTS delete-by-scan when creating a new dance, which made a bulk import quadratic.
+
+### Fixed
+
+- Fix a `RangeError` in the Caller's Box `;`-clause note fallback when a note followed a walk-forward fold and a later figure, and a note between figures hanging on the figure after it: the host figure is now recorded when the clause is declined instead of reconstructed from clause counts.
+- `ImportPipeline.commit` checks a reimport/link target before resolving authors, takes back the choreographer rows a failed record created or revived, and erases a variation's new dance when the reciprocal link write on its target fails, so a record that fails leaves no dance or author writes.
+- `PhraseStructure.parse` now rejects components above 1,000, more than 64 components, more than 1,000 phrases, or more than 1,000,000 beats with a `FormatException`; this also closes a `totalBeats` overflow that could divide by zero.
+- `PhraseStructure.labelAtBeat` computes the label from the phrase index instead of building every label.
+- Dances whose stored phrase structure is out of bounds still load, as the standard structure (`PhraseStructure.parseOrStandard`).
+- `CustomFieldDefRepository` now advances `updated_at` on every dance holding a value for a field, live or tombstoned, when the definition's wire eligibility changes (a `shareable` flip, or delete/restore of a shareable definition), in the same transaction (sync-spec §6.5 I1). Previously peers reported `equalUpdatedAt` for those dances indefinitely. Inbound definition writes still stamp nothing.
+- Add the `sync-invariant-exclusion: join-hydrated-body` marker to `tools/ci/check_sync_invariants.py`; it excuses only the raw-SQL I2 check, for a dance stamp whose body change comes from a join.
+- `DanceRepository` writes no longer delete a dance's `dance_tags` rows for tombstoned tags, so an unrelated edit (or a sync-applied body) does not destroy the association a tag tombstone retains.
+- Full backups carry tombstoned tags and their retained dance joins in a new `deletedTags` archive array (schema v7, backup mode only, stamped only when one exists), and replace/merge restore re-applies them.
+- Importing a large number of dances in one batch no longer slows down as the batch grows.
+
+### Removed
+
+- Remove the unused `DanceRepository.searchDances`, which hydrated each search result with separate child-relation queries; use `search` for ids and the batched loaders (`listAll`) for full objects.
+
 ## [0.6.1] - 2026-09-29
 
 ### Added
