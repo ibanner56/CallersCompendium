@@ -301,6 +301,172 @@ class AppLocalizationsDe extends AppLocalizations {
       'Die letzte Synchronisierung ist fehlgeschlagen.';
 
   @override
+  String get settingsSyncFailureUnreachable =>
+      'Der Synchronisierungsserver war nicht erreichbar.';
+
+  @override
+  String get settingsSyncFailureUnreachableAdvice =>
+      'Prüfe, ob dieses Gerät online ist. Wenn du einen eigenen Server betreibst, prüfe, ob er läuft und ob seine Adresse stimmt.';
+
+  @override
+  String get settingsSyncFailureTimedOut =>
+      'Der Synchronisierungsserver hat zu lange für eine Antwort gebraucht.';
+
+  @override
+  String get settingsSyncFailureTimedOutAdvice =>
+      'Meist liegt das an einer langsamen oder instabilen Verbindung. Versuche es erneut, wenn die Verbindung besser ist.';
+
+  @override
+  String get settingsSyncFailureServerError =>
+      'Beim Synchronisierungsserver selbst ist ein Problem aufgetreten.';
+
+  @override
+  String get settingsSyncFailureServerErrorAdvice =>
+      'Mit diesem Gerät und deiner Bibliothek ist alles in Ordnung. Warte eine Weile und versuche es erneut. Wenn es weiterhin passiert, gib der Person Bescheid, die den Server betreibt, und nenne die hier angezeigten Details.';
+
+  @override
+  String get settingsSyncFailureRateLimited =>
+      'Der Synchronisierungsserver hat dieses Gerät gebeten, langsamer zu machen.';
+
+  @override
+  String get settingsSyncFailureRateLimitedAdvice =>
+      'Er hat in kurzer Zeit zu viele Anfragen erhalten. Warte ein paar Minuten, bevor du es erneut versuchst.';
+
+  @override
+  String get settingsSyncFailureStoreFull =>
+      'Dein Speicher hat den gesamten Platz belegt, den der Synchronisierungsserver erlaubt.';
+
+  @override
+  String get settingsSyncFailureStoreFullAdvice =>
+      'Änderungen von diesem Gerät können erst gespeichert werden, wenn wieder Platz ist. Wenn du Ungenutzte importierte Tänze überspringen einschaltest, lädt dieses Gerät weniger hoch. Wenn du einen eigenen Server betreibst, erhöhe sein Speicherlimit.';
+
+  @override
+  String get settingsSyncFailureTooLarge =>
+      'Etwas, das dieses Gerät hochladen wollte, ist größer, als der Synchronisierungsserver annimmt.';
+
+  @override
+  String get settingsSyncFailureTooLargeAdvice =>
+      'Wenn du eine große importierte Sammlung hast, bringt sie das Einschalten von Ungenutzte importierte Tänze überspringen vielleicht unter das Limit. Wenn du einen eigenen Server betreibst, prüfe sein Limit für die Uploadgröße.';
+
+  @override
+  String get settingsSyncFailureRejected =>
+      'Der Synchronisierungsserver hat abgelehnt, was dieses Gerät gesendet hat.';
+
+  @override
+  String get settingsSyncFailureRejectedAdvice =>
+      'Das bedeutet meist, dass diese App und der Server unterschiedliche Versionen haben. Aktualisiere die App auf diesem Gerät. Wenn du einen eigenen Server betreibst, aktualisiere ihn ebenfalls.';
+
+  @override
+  String get settingsSyncFailureAccessDenied =>
+      'Der Synchronisierungsserver hat die Synchronisierungsphrase dieses Geräts nicht akzeptiert.';
+
+  @override
+  String get settingsSyncFailureAccessDeniedAdvice =>
+      'Vergleiche die Phrase mit der auf deinem anderen Gerät und prüfe, ob die Serveradresse stimmt.';
+
+  @override
+  String get settingsSyncFailureUnexpectedResponse =>
+      'Der Synchronisierungsserver hat eine Antwort gesendet, mit der diese App nichts anfangen kann.';
+
+  @override
+  String get settingsSyncFailureUnexpectedResponseAdvice =>
+      'Wenn du einen eigenen Server betreibst, prüfe seine Adresse und ob er eine Version hat, die diese App unterstützt. Andernfalls aktualisiere die App und versuche es später erneut.';
+
+  @override
+  String get settingsSyncFailurePeerUnavailable =>
+      'Was eines deiner anderen Geräte zuletzt geteilt hat, konnte nicht gelesen werden.';
+
+  @override
+  String get settingsSyncFailurePeerUnavailableAdvice =>
+      'Um sich mit einem Speicher zu verbinden, wird die neueste Liste jedes Geräts darin benötigt. Öffne die App auf deinen anderen Geräten, lass sie synchronisieren und versuche es dann erneut. Wenn ein Gerät endgültig weg ist, entferne es unter Andere Geräte.';
+
+  @override
+  String get settingsSyncFailureInternal =>
+      'Beim Synchronisieren ist in der App etwas schiefgegangen.';
+
+  @override
+  String get settingsSyncFailureInternalAdvice =>
+      'Das liegt nicht an deiner Verbindung oder am Server. Versuche es erneut. Wenn es weiterhin passiert, exportiere das Protokoll unter Einstellungen ▸ Diagnose und füge es bei, wenn du das Problem meldest.';
+
+  @override
+  String settingsSyncFailureStep(String step) {
+    String _temp0 = intl.Intl.selectLogic(step, {
+      'lookup': 'Beim Suchen des Speichers abgebrochen.',
+      'download': 'Beim Herunterladen von deinen anderen Geräten abgebrochen.',
+      'upload': 'Beim Hochladen der Änderungen dieses Geräts abgebrochen.',
+      'publish':
+          'Beim Veröffentlichen der Änderungen dieses Geräts abgebrochen.',
+      'createStore': 'Beim Erstellen des Speichers abgebrochen.',
+      'other': 'Mittendrin abgebrochen.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncFailureStatusCode(int code) {
+    return 'Der Server antwortete mit HTTP-Status $code.';
+  }
+
+  @override
+  String settingsSyncFailureDetails(String details) {
+    return 'Details: $details';
+  }
+
+  @override
+  String commonSyncFailed(String explanation) {
+    return 'Die Synchronisierung wurde nicht abgeschlossen. $explanation';
+  }
+
+  @override
+  String settingsSyncNoticeAffected(String records) {
+    return 'Betrifft: $records';
+  }
+
+  @override
+  String get settingsSyncNoticeListSeparator => ', ';
+
+  @override
+  String settingsSyncNoticeRecordNamed(String kind, String name) {
+    return '$kind „$name“';
+  }
+
+  @override
+  String settingsSyncNoticeRecordNotHere(String kind) {
+    return '$kind, nicht auf diesem Gerät';
+  }
+
+  @override
+  String settingsSyncNoticeAffectedMore(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'und $count weitere',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeFromDevices(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Von $count anderen Geräten.',
+      one: 'Von 1 anderen Gerät.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncDevicesFailedBecause(String explanation) {
+    return 'Die Geräteliste konnte nicht geladen werden. $explanation';
+  }
+
+  @override
+  String settingsSyncAdminFailedBecause(String message, String explanation) {
+    return '$message $explanation';
+  }
+
+  @override
   String get settingsSyncStatusStaleStore =>
       'Dieser Speicher wurde seit deiner letzten Synchronisierung von einem anderen Gerät ersetzt. Die nächste Synchronisierung verbindet sich mit dem neuen.';
 
@@ -551,10 +717,6 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsSyncPairingAlreadyInUse =>
       'Diese Phrase wird bereits von einem anderen Speicher verwendet. Erzeuge eine andere.';
-
-  @override
-  String get settingsSyncPairingUnreachable =>
-      'Die Gerätesynchronisierung ist gerade nicht verfügbar. Prüfe deine Verbindung und versuche es erneut.';
 
   @override
   String settingsSyncPairingCustomEndpointTitle(String host) {

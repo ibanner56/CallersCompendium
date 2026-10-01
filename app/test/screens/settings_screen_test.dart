@@ -27,6 +27,8 @@ import 'package:compendium_app/src/data/walkthrough_snippet_library_scope.dart';
 import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
 import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
+import 'package:compendium_app/src/screens/settings/sync_notice_labels.dart'
+    show kSyncNoticeNamedLimit;
 import 'package:compendium_app/src/screens/settings/sync_pairing_screen.dart';
 import 'package:compendium_app/src/sync/sync_controller.dart';
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
@@ -1845,7 +1847,14 @@ void main() {
         /// pass returns whatever [result] currently holds, so a test can walk
         /// a sequence of passes through the real controller and widget rather
         /// than an inline fake of either.
-        Future<({SyncController controller, List<int> passes})> pumpPassing(
+        Future<
+          ({
+            SyncController controller,
+            List<int> passes,
+            CompendiumRepositories repos,
+          })
+        >
+        pumpPassing(
           WidgetTester tester,
           SyncPassResult Function() result,
         ) async {
@@ -1869,7 +1878,7 @@ void main() {
           );
           addTearDown(_syncCoordinator!.dispose);
           await openExperimental(tester);
-          return (controller: controller, passes: passes);
+          return (controller: controller, passes: passes, repos: harness.repos);
         }
 
         Future<void> syncNow(WidgetTester tester) async {
@@ -2128,6 +2137,107 @@ void main() {
           expect(find.byKey(divergence), findsOneWidget);
           expect(
             find.byKey(const ValueKey('sync-notice-clock')),
+            findsOneWidget,
+          );
+        });
+
+        // "Edit one of them" is only actionable if the user can tell which
+        // ones: the notice names them as this device stores them, and says so
+        // when this device has no such record rather than dropping it.
+        testWidgets('a notice names the records it is about', (tester) async {
+          late SyncPassResult result;
+          final pumped = await pumpPassing(tester, () => result);
+          final tagId = await pumped.repos.tags.upsert(
+            Tag(id: 'tag-1', name: 'Contra corners'),
+          );
+          result = SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [
+              SyncReport(
+                code: SyncReportCode.equalUpdatedAt,
+                kind: SyncRecordKind.tag,
+                recordId: tagId,
+                message: 'tie',
+              ),
+              const SyncReport(
+                code: SyncReportCode.equalUpdatedAt,
+                kind: SyncRecordKind.dance,
+                recordId: 'not-on-this-device',
+                message: 'tie',
+              ),
+            ],
+          );
+          await syncNow(tester);
+
+          expect(
+            tester
+                .widget<Text>(
+                  find.byKey(const ValueKey('sync-notice-divergence-records')),
+                )
+                .data,
+            'Affects: Tag “Contra corners”, Dance not on this device',
+          );
+        });
+
+        testWidgets('a notice counts the records it does not name', (
+          tester,
+        ) async {
+          final result = SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [
+              for (var i = 0; i < kSyncNoticeNamedLimit + 2; i++)
+                SyncReport(
+                  code: SyncReportCode.malformedRecord,
+                  kind: SyncRecordKind.setting,
+                  recordId: 'setting-$i',
+                  peerId: i.isEven ? 'peer-a' : 'peer-b',
+                  message: 'skipped',
+                ),
+            ],
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          final records = tester
+              .widget<Text>(
+                find.byKey(const ValueKey('sync-notice-skippedRecord-records')),
+              )
+              .data!;
+          expect(records, endsWith('and 2 more'));
+          expect(find.text('From 2 other devices.'), findsOneWidget);
+        });
+
+        // "Last sync failed." alone leaves the user nothing to act on or
+        // report; the cause, its advice and the step and status to quote do.
+        testWidgets('a failed pass explains its cause and what to quote', (
+          tester,
+        ) async {
+          const result = SyncPassResult(
+            SyncPassStatus.failed,
+            failure: SyncFailure(
+              SyncFailureCause.serverError,
+              step: SyncFailureStep.publish,
+              statusCode: 503,
+            ),
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          expect(find.text('Last sync failed.'), findsOneWidget);
+          expect(
+            find.text(
+              'The sync server ran into a problem of its own. Nothing is '
+              'wrong with this device or your library. Wait a while and try '
+              'again. If it keeps happening, let whoever runs the server '
+              'know, and quote the details shown here.',
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.text(
+              "Details: Stopped while publishing this device's changes. The "
+              'server answered with HTTP status 503.',
+            ),
             findsOneWidget,
           );
         });
@@ -3477,10 +3587,12 @@ void main() {
           await tester.pumpAndSettle();
 
           expect(tester.takeException(), isNull);
+          // Named as a timeout, not a generic outage: the remedy differs.
           expect(
             find.text(
-              "Device Sync isn't available right now. Check your "
-              "connection and try again.",
+              'The sync server took too long to answer. A slow or unsteady '
+              'connection is the usual cause. Try again when the connection '
+              'is stronger.',
             ),
             findsOneWidget,
           );

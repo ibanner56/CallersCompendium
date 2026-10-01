@@ -295,6 +295,171 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSyncStatusFailed => 'Last sync failed.';
 
   @override
+  String get settingsSyncFailureUnreachable =>
+      'Couldn\'t reach the sync server.';
+
+  @override
+  String get settingsSyncFailureUnreachableAdvice =>
+      'Check that this device is online. If you run your own server, check that it\'s running and that its address is right.';
+
+  @override
+  String get settingsSyncFailureTimedOut =>
+      'The sync server took too long to answer.';
+
+  @override
+  String get settingsSyncFailureTimedOutAdvice =>
+      'A slow or unsteady connection is the usual cause. Try again when the connection is stronger.';
+
+  @override
+  String get settingsSyncFailureServerError =>
+      'The sync server ran into a problem of its own.';
+
+  @override
+  String get settingsSyncFailureServerErrorAdvice =>
+      'Nothing is wrong with this device or your library. Wait a while and try again. If it keeps happening, let whoever runs the server know, and quote the details shown here.';
+
+  @override
+  String get settingsSyncFailureRateLimited =>
+      'The sync server asked this device to slow down.';
+
+  @override
+  String get settingsSyncFailureRateLimitedAdvice =>
+      'It has had too many requests in a short time. Wait a few minutes before trying again.';
+
+  @override
+  String get settingsSyncFailureStoreFull =>
+      'Your store has used all the space the sync server allows.';
+
+  @override
+  String get settingsSyncFailureStoreFullAdvice =>
+      'Changes from this device can\'t be stored until there is room. Turning on Skip unused imported dances cuts what this device uploads. If you run your own server, raise its storage limit.';
+
+  @override
+  String get settingsSyncFailureTooLarge =>
+      'Something this device tried to upload is larger than the sync server accepts.';
+
+  @override
+  String get settingsSyncFailureTooLargeAdvice =>
+      'If you have a large imported collection, turning on Skip unused imported dances may bring it under the limit. If you run your own server, check its upload size limit.';
+
+  @override
+  String get settingsSyncFailureRejected =>
+      'The sync server refused what this device sent.';
+
+  @override
+  String get settingsSyncFailureRejectedAdvice =>
+      'This usually means this app and the server are on different versions. Update the app on this device. If you run your own server, update it too.';
+
+  @override
+  String get settingsSyncFailureAccessDenied =>
+      'The sync server didn\'t accept this device\'s sync phrase.';
+
+  @override
+  String get settingsSyncFailureAccessDeniedAdvice =>
+      'Check the phrase against the one on your other device, and check that the server address is right.';
+
+  @override
+  String get settingsSyncFailureUnexpectedResponse =>
+      'The sync server sent a reply this app couldn\'t use.';
+
+  @override
+  String get settingsSyncFailureUnexpectedResponseAdvice =>
+      'If you run your own server, check its address and that it\'s a version this app supports. Otherwise, update the app and try again later.';
+
+  @override
+  String get settingsSyncFailurePeerUnavailable =>
+      'Couldn\'t read what one of your other devices last shared.';
+
+  @override
+  String get settingsSyncFailurePeerUnavailableAdvice =>
+      'Connecting to a store needs the latest list from every device on it. Open the app on your other devices and let them sync, then try again. If a device is gone for good, remove it under Other devices.';
+
+  @override
+  String get settingsSyncFailureInternal =>
+      'Something went wrong inside the app while syncing.';
+
+  @override
+  String get settingsSyncFailureInternalAdvice =>
+      'This isn\'t a problem with your connection or the server. Try again. If it keeps happening, export the log from Settings ▸ Diagnostics and include it when you report the problem.';
+
+  @override
+  String settingsSyncFailureStep(String step) {
+    String _temp0 = intl.Intl.selectLogic(step, {
+      'lookup': 'Stopped while looking up the store.',
+      'download': 'Stopped while downloading from your other devices.',
+      'upload': 'Stopped while uploading this device\'s changes.',
+      'publish': 'Stopped while publishing this device\'s changes.',
+      'createStore': 'Stopped while creating the store.',
+      'other': 'Stopped partway through.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncFailureStatusCode(int code) {
+    return 'The server answered with HTTP status $code.';
+  }
+
+  @override
+  String settingsSyncFailureDetails(String details) {
+    return 'Details: $details';
+  }
+
+  @override
+  String commonSyncFailed(String explanation) {
+    return 'Sync didn\'t finish. $explanation';
+  }
+
+  @override
+  String settingsSyncNoticeAffected(String records) {
+    return 'Affects: $records';
+  }
+
+  @override
+  String get settingsSyncNoticeListSeparator => ', ';
+
+  @override
+  String settingsSyncNoticeRecordNamed(String kind, String name) {
+    return '$kind “$name”';
+  }
+
+  @override
+  String settingsSyncNoticeRecordNotHere(String kind) {
+    return '$kind not on this device';
+  }
+
+  @override
+  String settingsSyncNoticeAffectedMore(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'and $count more',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeFromDevices(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'From $count other devices.',
+      one: 'From 1 other device.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncDevicesFailedBecause(String explanation) {
+    return 'Couldn\'t load the device list. $explanation';
+  }
+
+  @override
+  String settingsSyncAdminFailedBecause(String message, String explanation) {
+    return '$message $explanation';
+  }
+
+  @override
   String get settingsSyncStatusStaleStore =>
       'This store was replaced by another device since your last sync. The next sync will join the new one.';
 
@@ -543,10 +708,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsSyncPairingAlreadyInUse =>
       'That phrase is already in use by another store. Generate a different one.';
-
-  @override
-  String get settingsSyncPairingUnreachable =>
-      'Device Sync isn\'t available right now. Check your connection and try again.';
 
   @override
   String settingsSyncPairingCustomEndpointTitle(String host) {

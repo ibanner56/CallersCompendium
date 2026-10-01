@@ -580,6 +580,210 @@ abstract class AppLocalizations {
   /// **'Last sync failed.'**
   String get settingsSyncStatusFailed;
 
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the transport could not connect at all: DNS failure, refused or dropped connection, or a failed secure (TLS) handshake.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reach the sync server.'**
+  String get settingsSyncFailureUnreachable;
+
+  /// What the user can do about settingsSyncFailureUnreachable, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'Check that this device is online. If you run your own server, check that it\'s running and that its address is right.'**
+  String get settingsSyncFailureUnreachableAdvice;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when a request did not finish within the transport deadline.
+  ///
+  /// In en, this message translates to:
+  /// **'The sync server took too long to answer.'**
+  String get settingsSyncFailureTimedOut;
+
+  /// What the user can do about settingsSyncFailureTimedOut, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'A slow or unsteady connection is the usual cause. Try again when the connection is stronger.'**
+  String get settingsSyncFailureTimedOutAdvice;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the server answered with a 5xx status: a fault on the server's side.
+  ///
+  /// In en, this message translates to:
+  /// **'The sync server ran into a problem of its own.'**
+  String get settingsSyncFailureServerError;
+
+  /// What the user can do about settingsSyncFailureServerError, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing is wrong with this device or your library. Wait a while and try again. If it keeps happening, let whoever runs the server know, and quote the details shown here.'**
+  String get settingsSyncFailureServerErrorAdvice;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 429 Too Many Requests.
+  ///
+  /// In en, this message translates to:
+  /// **'The sync server asked this device to slow down.'**
+  String get settingsSyncFailureRateLimited;
+
+  /// What the user can do about settingsSyncFailureRateLimited, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'It has had too many requests in a short time. Wait a few minutes before trying again.'**
+  String get settingsSyncFailureRateLimitedAdvice;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 507: the store's storage quota is exhausted. Must not suggest deleting the store (spec §5.3 forbids offering a wipe as the first response to a 507). 'Skip unused imported dances' is the exact title of the setting settingsSyncExcludeImportsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your store has used all the space the sync server allows.'**
+  String get settingsSyncFailureStoreFull;
+
+  /// What the user can do about settingsSyncFailureStoreFull, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'Changes from this device can\'t be stored until there is room. Turning on Skip unused imported dances cuts what this device uploads. If you run your own server, raise its storage limit.'**
+  String get settingsSyncFailureStoreFullAdvice;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 413 Payload Too Large. 'Skip unused imported dances' is the exact title of the setting settingsSyncExcludeImportsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Something this device tried to upload is larger than the sync server accepts.'**
+  String get settingsSyncFailureTooLarge;
+
+  /// What the user can do about settingsSyncFailureTooLarge, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'If you have a large imported collection, turning on Skip unused imported dances may bring it under the limit. If you run your own server, check its upload size limit.'**
+  String get settingsSyncFailureTooLargeAdvice;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 400, 415 or 422: it refused the request as invalid.
+  ///
+  /// In en, this message translates to:
+  /// **'The sync server refused what this device sent.'**
+  String get settingsSyncFailureRejected;
+
+  /// What the user can do about settingsSyncFailureRejected, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'This usually means this app and the server are on different versions. Update the app on this device. If you run your own server, update it too.'**
+  String get settingsSyncFailureRejectedAdvice;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 401 or 403.
+  ///
+  /// In en, this message translates to:
+  /// **'The sync server didn\'t accept this device\'s sync phrase.'**
+  String get settingsSyncFailureAccessDenied;
+
+  /// What the user can do about settingsSyncFailureAccessDenied, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'Check the phrase against the one on your other device, and check that the server address is right.'**
+  String get settingsSyncFailureAccessDeniedAdvice;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when an unexpected status, a redirect the app will not follow, or a malformed or oversized response body.
+  ///
+  /// In en, this message translates to:
+  /// **'The sync server sent a reply this app couldn\'t use.'**
+  String get settingsSyncFailureUnexpectedResponse;
+
+  /// What the user can do about settingsSyncFailureUnexpectedResponse, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'If you run your own server, check its address and that it\'s a version this app supports. Otherwise, update the app and try again later.'**
+  String get settingsSyncFailureUnexpectedResponseAdvice;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when a first connection to a store needs every peer's manifest and at least one could not be read. 'Other devices' is the exact title of the settingsSyncDevicesTitle row.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t read what one of your other devices last shared.'**
+  String get settingsSyncFailurePeerUnavailable;
+
+  /// What the user can do about settingsSyncFailurePeerUnavailable, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting to a store needs the latest list from every device on it. Open the app on your other devices and let them sync, then try again. If a device is gone for good, remove it under Other devices.'**
+  String get settingsSyncFailurePeerUnavailableAdvice;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when a failure inside the app rather than on the network. 'Diagnostics' is the exact title of the settingsDiagnosticsTitle section.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong inside the app while syncing.'**
+  String get settingsSyncFailureInternal;
+
+  /// What the user can do about settingsSyncFailureInternal, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'This isn\'t a problem with your connection or the server. Try again. If it keeps happening, export the log from Settings ▸ Diagnostics and include it when you report the problem.'**
+  String get settingsSyncFailureInternalAdvice;
+
+  /// Part of the technical details line under a Device Sync failure, naming the step that failed so the user can describe the problem. The select values are internal identifiers and must not be translated.
+  ///
+  /// In en, this message translates to:
+  /// **'{step, select, lookup{Stopped while looking up the store.} download{Stopped while downloading from your other devices.} upload{Stopped while uploading this device\'s changes.} publish{Stopped while publishing this device\'s changes.} createStore{Stopped while creating the store.} other{Stopped partway through.}}'**
+  String settingsSyncFailureStep(String step);
+
+  /// Part of the technical details line under a Device Sync failure: the HTTP status code the server answered with, for the user to quote when reporting the problem.
+  ///
+  /// In en, this message translates to:
+  /// **'The server answered with HTTP status {code}.'**
+  String settingsSyncFailureStatusCode(int code);
+
+  /// Technical details line under a Device Sync failure. {details} is settingsSyncFailureStep and/or settingsSyncFailureStatusCode joined by a space.
+  ///
+  /// In en, this message translates to:
+  /// **'Details: {details}'**
+  String settingsSyncFailureDetails(String details);
+
+  /// Snackbar shown when the toolbar Sync now button on the Collection or Programs page ran a pass that did not complete. {explanation} is the failure reason and advice (settingsSyncFailure* strings) or a status line such as settingsSyncStatusStoreUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync didn\'t finish. {explanation}'**
+  String commonSyncFailed(String explanation);
+
+  /// Second line of a Device Sync notice listing the records it is about, so the user knows which ones to look at. {records} is a list of settingsSyncNoticeRecordNamed / settingsSyncNoticeRecordNotHere / kind labels joined by settingsSyncNoticeListSeparator, optionally ending with settingsSyncNoticeAffectedMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Affects: {records}'**
+  String settingsSyncNoticeAffected(String records);
+
+  /// Separator between items in the settingsSyncNoticeAffected list. Include any spacing your language uses.
+  ///
+  /// In en, this message translates to:
+  /// **', '**
+  String get settingsSyncNoticeListSeparator;
+
+  /// One record in the settingsSyncNoticeAffected list: its kind (a syncReviewKind* label such as "Dance") and its title or name as stored on this device.
+  ///
+  /// In en, this message translates to:
+  /// **'{kind} “{name}”'**
+  String settingsSyncNoticeRecordNamed(String kind, String name);
+
+  /// One record in the settingsSyncNoticeAffected list that this device does not have, so there is no name to show — typically a record from another device that was skipped. {kind} is a syncReviewKind* label such as "Dance".
+  ///
+  /// In en, this message translates to:
+  /// **'{kind} not on this device'**
+  String settingsSyncNoticeRecordNotHere(String kind);
+
+  /// Ends the settingsSyncNoticeAffected list when it names only the first few records.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, other{and {count} more}}'**
+  String settingsSyncNoticeAffectedMore(int count);
+
+  /// Line on a Device Sync notice saying how many other devices the records it is about came from.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{From 1 other device.} other{From {count} other devices.}}'**
+  String settingsSyncNoticeFromDevices(int count);
+
+  /// Shown on the Other devices screen when the device list could not be loaded and the reason is known. {explanation} is a settingsSyncFailure* reason and its advice.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the device list. {explanation}'**
+  String settingsSyncDevicesFailedBecause(String explanation);
+
+  /// Joins a Device Sync action failure (settingsSyncDeviceRemoveFailed or settingsSyncWipeFailed) with the reason it failed (a settingsSyncFailure* reason). Reorder if your language puts the reason first.
+  ///
+  /// In en, this message translates to:
+  /// **'{message} {explanation}'**
+  String settingsSyncAdminFailedBecause(String message, String explanation);
+
   /// Status shown when the last sync attempt found the connected store had moved on to a new epoch (another device confirmed a replacement). No action is needed: the next pass attaches to the replaced store on its own.
   ///
   /// In en, this message translates to:
@@ -987,12 +1191,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That phrase is already in use by another store. Generate a different one.'**
   String get settingsSyncPairingAlreadyInUse;
-
-  /// Error shown when the pairing request fails for a reason other than 404/409 (network, server).
-  ///
-  /// In en, this message translates to:
-  /// **'Device Sync isn\'t available right now. Check your connection and try again.'**
-  String get settingsSyncPairingUnreachable;
 
   /// Heading of the warning shown during pairing when the server address is not the default Device Sync server (spec §8).
   ///

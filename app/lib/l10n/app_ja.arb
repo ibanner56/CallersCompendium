@@ -316,6 +316,142 @@
   "@settingsSyncStatusFailed": {
     "x-sourceSha256": "53fa99d78ec8627b66d1f608b171626f6d73f1d7d70a1c3eab42afa83106af14"
   },
+  "settingsSyncFailureUnreachable": "同期サーバーに接続できませんでした。",
+  "@settingsSyncFailureUnreachable": {
+    "x-sourceSha256": "1fec844573d970b89ddae666fddb4c01cf8065fb587bcb5fa4de0e8f4fcce1c7"
+  },
+  "settingsSyncFailureUnreachableAdvice": "このデバイスがオンラインになっているか確認してください。独自のサーバーを運用している場合は、サーバーが動作していること、アドレスが正しいことを確認してください。",
+  "@settingsSyncFailureUnreachableAdvice": {
+    "x-sourceSha256": "ea38a758f977c2fdbc84b142090e2473515b8590f8c60e28d8c6583c60b09948"
+  },
+  "settingsSyncFailureTimedOut": "同期サーバーの応答に時間がかかりすぎました。",
+  "@settingsSyncFailureTimedOut": {
+    "x-sourceSha256": "464ebebc445aaff574f2eaa11829ded903602b89cab69d5307f81121b90aa490"
+  },
+  "settingsSyncFailureTimedOutAdvice": "通常は、接続が遅いか不安定なことが原因です。接続が安定してから、もう一度お試しください。",
+  "@settingsSyncFailureTimedOutAdvice": {
+    "x-sourceSha256": "0c81f465ce533eb89de05aa483e1a26cc6e3e4a44ba247a4c53ec6d22149bf8f"
+  },
+  "settingsSyncFailureServerError": "同期サーバー側で問題が発生しました。",
+  "@settingsSyncFailureServerError": {
+    "x-sourceSha256": "bcd7f14f51fab6da5c554f1af0b283fba58d90746158bcfc15e1dad5d15a7c94"
+  },
+  "settingsSyncFailureServerErrorAdvice": "このデバイスやライブラリには問題はありません。しばらく待ってから、もう一度お試しください。何度も起こる場合は、サーバーの運営者に知らせ、ここに表示されている詳細を伝えてください。",
+  "@settingsSyncFailureServerErrorAdvice": {
+    "x-sourceSha256": "e375d5052be6afb964cdf1b43d9e1a8c77257c75025caa3a710ba20dad7bdeb4"
+  },
+  "settingsSyncFailureRateLimited": "同期サーバーから、このデバイスのリクエストを減らすよう求められました。",
+  "@settingsSyncFailureRateLimited": {
+    "x-sourceSha256": "80e0d4ffb219e4f8871bfb1deab9f03ac4c9ead3df2076c8ed7929232fde5a5e"
+  },
+  "settingsSyncFailureRateLimitedAdvice": "短時間にリクエストが多すぎました。数分待ってから、もう一度お試しください。",
+  "@settingsSyncFailureRateLimitedAdvice": {
+    "x-sourceSha256": "66f91724ff9a8ff9962da293dd168113c17ab48d52ea4ddebda07803709cd530"
+  },
+  "settingsSyncFailureStoreFull": "ストアが同期サーバーで使える容量をすべて使い切りました。",
+  "@settingsSyncFailureStoreFull": {
+    "x-sourceSha256": "18dea407dfb731dd13ec988fd58ef55a6711674a25fd2c59b07439bd365c5f92"
+  },
+  "settingsSyncFailureStoreFullAdvice": "空きができるまで、このデバイスの変更は保存できません。「未使用の取り込んだダンスをスキップ」をオンにすると、このデバイスがアップロードする量を減らせます。独自のサーバーを運用している場合は、ストレージの上限を引き上げてください。",
+  "@settingsSyncFailureStoreFullAdvice": {
+    "x-sourceSha256": "8118c7463bdf1d540145735a494d7b6c9748386039bda9c0f6789e3403b86548"
+  },
+  "settingsSyncFailureTooLarge": "このデバイスがアップロードしようとしたデータが、同期サーバーで受け付けられるサイズを超えています。",
+  "@settingsSyncFailureTooLarge": {
+    "x-sourceSha256": "0f5b2479a4a67fcc162a38d2a6259b45a4bfe2cb5a9367558777657492a4d100"
+  },
+  "settingsSyncFailureTooLargeAdvice": "取り込んだコレクションが大きい場合は、「未使用の取り込んだダンスをスキップ」をオンにすると上限内に収まることがあります。独自のサーバーを運用している場合は、アップロードサイズの上限を確認してください。",
+  "@settingsSyncFailureTooLargeAdvice": {
+    "x-sourceSha256": "f30c59fd533ca30a49e5a82ccf7040955fe1a9190357e5ae5d7e3e04ceb98cf6"
+  },
+  "settingsSyncFailureRejected": "このデバイスが送信した内容を、同期サーバーが拒否しました。",
+  "@settingsSyncFailureRejected": {
+    "x-sourceSha256": "61dd076ba854551584746708a144209da7a34dd5345d897952357542e5dbfc50"
+  },
+  "settingsSyncFailureRejectedAdvice": "通常は、このアプリとサーバーのバージョンが異なることが原因です。このデバイスのアプリを更新してください。独自のサーバーを運用している場合は、サーバーも更新してください。",
+  "@settingsSyncFailureRejectedAdvice": {
+    "x-sourceSha256": "88cf23ed721267c5050248947b735afd120c8bab651404fd3b870dd4eb1896a9"
+  },
+  "settingsSyncFailureAccessDenied": "同期サーバーが、このデバイスの同期フレーズを受け付けませんでした。",
+  "@settingsSyncFailureAccessDenied": {
+    "x-sourceSha256": "807c859e76ad3cbc3b441faa54c32f0850840ee9d8b37370ff031933b0fa427f"
+  },
+  "settingsSyncFailureAccessDeniedAdvice": "フレーズをもう一方のデバイスのものと照合し、サーバーアドレスが正しいことを確認してください。",
+  "@settingsSyncFailureAccessDeniedAdvice": {
+    "x-sourceSha256": "d8aee437fcba68b92d16a6026b98d8c5806ce4e2571e35060540d7ed26d92108"
+  },
+  "settingsSyncFailureUnexpectedResponse": "同期サーバーから、このアプリで扱えない応答が返されました。",
+  "@settingsSyncFailureUnexpectedResponse": {
+    "x-sourceSha256": "384f76375dc8203ecad0f82054f085908ffbaaeccd72e549277612cba79b327b"
+  },
+  "settingsSyncFailureUnexpectedResponseAdvice": "独自のサーバーを運用している場合は、アドレスと、このアプリが対応しているバージョンかどうかを確認してください。それ以外の場合は、アプリを更新して、後でもう一度お試しください。",
+  "@settingsSyncFailureUnexpectedResponseAdvice": {
+    "x-sourceSha256": "28d5baae4557d1f5ac4ac1e9e2eb730e090d9b4c97c3c494fd8425953b86d9e8"
+  },
+  "settingsSyncFailurePeerUnavailable": "他のデバイスのいずれかが最後に共有した内容を読み取れませんでした。",
+  "@settingsSyncFailurePeerUnavailable": {
+    "x-sourceSha256": "58814e7e830bb6b7942a74fe19642750e35d0414cb7ae53a238ecf74dc1e226a"
+  },
+  "settingsSyncFailurePeerUnavailableAdvice": "ストアに接続するには、そのストアを使うすべてのデバイスの最新の一覧が必要です。他のデバイスでアプリを開いて同期させてから、もう一度お試しください。もう使わないデバイスがある場合は、「他のデバイス」で削除してください。",
+  "@settingsSyncFailurePeerUnavailableAdvice": {
+    "x-sourceSha256": "68d34d85a75b3b0d989123c0c9c38d0948e5bca6b0be66bff443752f489d904a"
+  },
+  "settingsSyncFailureInternal": "同期中にアプリ内部で問題が発生しました。",
+  "@settingsSyncFailureInternal": {
+    "x-sourceSha256": "2f7c0cd517e44bc340727aac932a0a74ed7996a5529cb78f9c6655f730a24ee4"
+  },
+  "settingsSyncFailureInternalAdvice": "接続やサーバーの問題ではありません。もう一度お試しください。何度も起こる場合は、設定 ▸ 診断 からログをエクスポートし、問題を報告するときに添付してください。",
+  "@settingsSyncFailureInternalAdvice": {
+    "x-sourceSha256": "9fd02ba66ee20762e3ee342f194caa3d0190cbdf1f05819de589b069ec9e9a90"
+  },
+  "settingsSyncFailureStep": "{step, select, lookup{ストアの検索中に停止しました。} download{他のデバイスからのダウンロード中に停止しました。} upload{このデバイスの変更のアップロード中に停止しました。} publish{このデバイスの変更の公開中に停止しました。} createStore{ストアの作成中に停止しました。} other{途中で停止しました。}}",
+  "@settingsSyncFailureStep": {
+    "x-sourceSha256": "4575bcef920388d21598add9216203979f69d89156d31d48e93db37a15726059"
+  },
+  "settingsSyncFailureStatusCode": "サーバーは HTTP ステータス {code} で応答しました。",
+  "@settingsSyncFailureStatusCode": {
+    "x-sourceSha256": "e145850e452c3d909edf069be12cbbe898ffc96f24c7d22d9ab4641d7866cb9b"
+  },
+  "settingsSyncFailureDetails": "詳細: {details}",
+  "@settingsSyncFailureDetails": {
+    "x-sourceSha256": "0090e7573cf43b828736bd9e94d6a913087cb4bdcc827324b24ce5900bdcf1dc"
+  },
+  "commonSyncFailed": "同期が完了しませんでした。{explanation}",
+  "@commonSyncFailed": {
+    "x-sourceSha256": "40aeb0f078a33c257860357bb350ed3e4251f5fac4ddc02ee1c39136f2ecbe61"
+  },
+  "settingsSyncNoticeAffected": "対象: {records}",
+  "@settingsSyncNoticeAffected": {
+    "x-sourceSha256": "85c7e77a5f09410e426b8a246c94f222f2cb41a185a5b1e3f1f220a622dacfa0"
+  },
+  "settingsSyncNoticeListSeparator": "、",
+  "@settingsSyncNoticeListSeparator": {
+    "x-sourceSha256": "0a07f659461970d8d8dcefe4fff96a1745599810dc7d47391e95c803b7b2072c"
+  },
+  "settingsSyncNoticeRecordNamed": "{kind}「{name}」",
+  "@settingsSyncNoticeRecordNamed": {
+    "x-sourceSha256": "31cac53311e22d47a6a18fccbb1fc1e9dd687d7afb1f5e75f21c71940e57712b"
+  },
+  "settingsSyncNoticeRecordNotHere": "{kind}（このデバイスにはありません）",
+  "@settingsSyncNoticeRecordNotHere": {
+    "x-sourceSha256": "26cb94ed02bbe50614443d20b73107a471d16600fe41f3425c65f60cded6a9e0"
+  },
+  "settingsSyncNoticeAffectedMore": "{count, plural, other{ほか{count}件}}",
+  "@settingsSyncNoticeAffectedMore": {
+    "x-sourceSha256": "8dc9d0f45df2d0a3db76ebea5523ebe0c6c39caf7c19393565ab989263ef4433"
+  },
+  "settingsSyncNoticeFromDevices": "{count, plural, other{他の{count}台のデバイスから。}}",
+  "@settingsSyncNoticeFromDevices": {
+    "x-sourceSha256": "aad552755d7cc30b4282db05b93d127a3e46e698078bb3700d1f18a9ca4a38e4"
+  },
+  "settingsSyncDevicesFailedBecause": "デバイス一覧を読み込めませんでした。{explanation}",
+  "@settingsSyncDevicesFailedBecause": {
+    "x-sourceSha256": "ede437d835d23937abd0a5d23d431af2bffacf6f400cc7d34e7ca41c33b2d484"
+  },
+  "settingsSyncAdminFailedBecause": "{message}{explanation}",
+  "@settingsSyncAdminFailedBecause": {
+    "x-sourceSha256": "26ba3e687fa63fbd44788c06935392fca46497d643f608dcc6f5a773f1afd450"
+  },
   "settingsSyncStatusStaleStore": "前回の同期以降、このストアは別のデバイスによって置き換えられました。次回の同期で新しいストアに参加します。",
   "@settingsSyncStatusStaleStore": {
     "x-sourceSha256": "7e0535051294ba8f0749e72c2fd6b08430fedf9cddd44531793bb00c568c7f4f"
@@ -587,10 +723,6 @@
   "settingsSyncPairingAlreadyInUse": "そのフレーズはすでに別のストアで使用されています。別のフレーズを生成してください。",
   "@settingsSyncPairingAlreadyInUse": {
     "x-sourceSha256": "a36988588079609c9bf3ae1c4c6d9f3195f235b388f61041b990c2bb47099f1c"
-  },
-  "settingsSyncPairingUnreachable": "デバイス同期は現在利用できません。接続を確認して、もう一度お試しください。",
-  "@settingsSyncPairingUnreachable": {
-    "x-sourceSha256": "6b46c1f7e1eaefe2de8cff490ba510bd32a56d8978f101b56f17263fd184ce00"
   },
   "settingsSyncPairingCustomEndpointTitle": "カスタムサーバー: {host}",
   "@settingsSyncPairingCustomEndpointTitle": {

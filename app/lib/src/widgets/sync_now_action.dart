@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../screens/settings/sync_failure_labels.dart';
 import '../sync/sync_controller.dart';
+import '../sync/sync_coordinator.dart' show SyncPassStatus;
 import '../sync/sync_scope.dart';
 
 /// A toolbar button that starts a manual Device Sync pass from the Collection
@@ -59,10 +61,14 @@ class _SyncNowActionState extends State<SyncNowAction> {
     );
   }
 
-  /// Runs the manual pass and explains a §6.12 gate that stopped it. A pass
-  /// that ran says nothing here, as in Settings: its result is the status line
-  /// there. The metered wording differs from Settings' on purpose — that one
-  /// points at a tile "below", and nothing is below a toolbar button.
+  /// Runs the manual pass and explains a §6.12 gate that stopped it, or a pass
+  /// that ran and did not succeed. A successful pass says nothing.
+  ///
+  /// A failure is reported here, and not left to the Settings status line
+  /// alone, because that line is several screens away: a tap that spins and
+  /// then shows nothing reads as success to someone who never opens Settings.
+  /// The metered wording differs from Settings' on purpose — that one points
+  /// at a tile "below", and nothing is below a toolbar button.
   ///
   /// The messenger and localizations are resolved only after the await, and
   /// only if this button is still mounted: the outcome can arrive after the
@@ -83,12 +89,28 @@ class _SyncNowActionState extends State<SyncNowAction> {
       SyncGateOutcome.suppressedMetered => l10n.commonSyncMeteredBlocked,
       SyncGateOutcome.suppressedOffline => l10n.settingsSyncOffline,
       SyncGateOutcome.notPaired => l10n.settingsSyncNotPairedNow,
-      SyncGateOutcome.ran || SyncGateOutcome.disabled => null,
+      // `ran` means this tap's pass is the one `lastResult` holds.
+      SyncGateOutcome.ran => switch (controller.lastResult) {
+        final result? => switch (syncPassResultExplanation(l10n, result)) {
+          final explanation? => l10n.commonSyncFailed(explanation),
+          null when result.status == SyncPassStatus.failed =>
+            l10n.settingsSyncStatusFailed,
+          null => null,
+        },
+        null => null,
+      },
+      SyncGateOutcome.disabled => null,
     };
     if (message != null) {
-      ScaffoldMessenger.maybeOf(
-        context,
-      )?.showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          key: const ValueKey('sync-now-action-message'),
+          content: Text(message),
+          // Long enough to read a reason and its advice.
+          duration: const Duration(seconds: 10),
+          showCloseIcon: true,
+        ),
+      );
     }
   }
 }

@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../theme/app_spacing.dart';
+import 'settings/sync_notice_labels.dart' show syncRecordKindLabel;
 
 /// Displays persisted sync decisions and exposes merge / keep-both actions for
 /// every reason the resolver supports: the §6.6 baseline-absence tombstone,
@@ -51,19 +52,6 @@ class _SyncReviewScreenState extends State<SyncReviewScreen> {
 
   String _itemKey(SyncReviewQueueItem item) =>
       '${item.row.kind.name}:${item.row.recordId}:${item.row.counterpartId}';
-
-  String _kindLabel(AppLocalizations l10n, SyncRecordKind kind) =>
-      switch (kind) {
-        SyncRecordKind.choreographer => l10n.syncReviewKindChoreographer,
-        SyncRecordKind.tag => l10n.syncReviewKindTag,
-        SyncRecordKind.customFieldDef => l10n.syncReviewKindCustomField,
-        SyncRecordKind.difficultyLevel => l10n.syncReviewKindDifficulty,
-        SyncRecordKind.dance => l10n.syncReviewKindDance,
-        SyncRecordKind.program => l10n.syncReviewKindProgram,
-        SyncRecordKind.publishedSource => l10n.syncReviewKindPublishedSource,
-        SyncRecordKind.venue => l10n.syncReviewKindVenue,
-        SyncRecordKind.setting => l10n.syncReviewKindSetting,
-      };
 
   String _candidateIdentity(AppLocalizations l10n, SyncReviewQueueItem item) {
     final label = item.candidateLabel;
@@ -211,7 +199,7 @@ class _SyncReviewScreenState extends State<SyncReviewScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _kindLabel(l10n, item.row.kind),
+              syncRecordKindLabel(l10n, item.row.kind),
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: AppSpacing.xs),

@@ -301,6 +301,173 @@ class AppLocalizationsNl extends AppLocalizations {
       'De laatste synchronisatie is mislukt.';
 
   @override
+  String get settingsSyncFailureUnreachable =>
+      'Kan de synchronisatieserver niet bereiken.';
+
+  @override
+  String get settingsSyncFailureUnreachableAdvice =>
+      'Controleer of dit apparaat online is. Als je een eigen server gebruikt, controleer dan of die draait en of het adres klopt.';
+
+  @override
+  String get settingsSyncFailureTimedOut =>
+      'De synchronisatieserver deed te lang over een antwoord.';
+
+  @override
+  String get settingsSyncFailureTimedOutAdvice =>
+      'Een trage of onstabiele verbinding is meestal de oorzaak. Probeer het opnieuw als de verbinding beter is.';
+
+  @override
+  String get settingsSyncFailureServerError =>
+      'De synchronisatieserver liep zelf tegen een probleem aan.';
+
+  @override
+  String get settingsSyncFailureServerErrorAdvice =>
+      'Er is niets mis met dit apparaat of je bibliotheek. Wacht even en probeer het opnieuw. Blijft het gebeuren, laat het dan weten aan wie de server beheert en geef de details door die hier staan.';
+
+  @override
+  String get settingsSyncFailureRateLimited =>
+      'De synchronisatieserver vroeg dit apparaat het rustiger aan te doen.';
+
+  @override
+  String get settingsSyncFailureRateLimitedAdvice =>
+      'Hij kreeg te veel verzoeken in korte tijd. Wacht een paar minuten voordat je het opnieuw probeert.';
+
+  @override
+  String get settingsSyncFailureStoreFull =>
+      'Je opslag heeft alle ruimte gebruikt die de synchronisatieserver toestaat.';
+
+  @override
+  String get settingsSyncFailureStoreFullAdvice =>
+      'Wijzigingen van dit apparaat kunnen pas worden opgeslagen als er ruimte is. Als je Ongebruikte geïmporteerde dansen overslaan aanzet, uploadt dit apparaat minder. Als je een eigen server gebruikt, verhoog dan de opslaglimiet.';
+
+  @override
+  String get settingsSyncFailureTooLarge =>
+      'Iets wat dit apparaat probeerde te uploaden is groter dan de synchronisatieserver accepteert.';
+
+  @override
+  String get settingsSyncFailureTooLargeAdvice =>
+      'Als je een grote geïmporteerde collectie hebt, kan het aanzetten van Ongebruikte geïmporteerde dansen overslaan die onder de limiet brengen. Als je een eigen server gebruikt, controleer dan de limiet voor uploadgrootte.';
+
+  @override
+  String get settingsSyncFailureRejected =>
+      'De synchronisatieserver weigerde wat dit apparaat stuurde.';
+
+  @override
+  String get settingsSyncFailureRejectedAdvice =>
+      'Dit betekent meestal dat deze app en de server verschillende versies hebben. Werk de app op dit apparaat bij. Als je een eigen server gebruikt, werk die dan ook bij.';
+
+  @override
+  String get settingsSyncFailureAccessDenied =>
+      'De synchronisatieserver accepteerde de synchronisatiezin van dit apparaat niet.';
+
+  @override
+  String get settingsSyncFailureAccessDeniedAdvice =>
+      'Vergelijk de zin met die op je andere apparaat en controleer of het serveradres klopt.';
+
+  @override
+  String get settingsSyncFailureUnexpectedResponse =>
+      'De synchronisatieserver stuurde een antwoord waar deze app niets mee kon.';
+
+  @override
+  String get settingsSyncFailureUnexpectedResponseAdvice =>
+      'Als je een eigen server gebruikt, controleer dan het adres en of het een versie is die deze app ondersteunt. Werk anders de app bij en probeer het later opnieuw.';
+
+  @override
+  String get settingsSyncFailurePeerUnavailable =>
+      'Kan niet lezen wat een van je andere apparaten het laatst heeft gedeeld.';
+
+  @override
+  String get settingsSyncFailurePeerUnavailableAdvice =>
+      'Om verbinding te maken met een opslag is de nieuwste lijst van elk apparaat erop nodig. Open de app op je andere apparaten, laat ze synchroniseren en probeer het dan opnieuw. Is een apparaat voorgoed weg, verwijder het dan onder Andere apparaten.';
+
+  @override
+  String get settingsSyncFailureInternal =>
+      'Er ging iets mis in de app tijdens het synchroniseren.';
+
+  @override
+  String get settingsSyncFailureInternalAdvice =>
+      'Dit is geen probleem met je verbinding of de server. Probeer het opnieuw. Blijft het gebeuren, exporteer dan het log via Instellingen ▸ Diagnostics en voeg het toe wanneer je het probleem meldt.';
+
+  @override
+  String settingsSyncFailureStep(String step) {
+    String _temp0 = intl.Intl.selectLogic(step, {
+      'lookup': 'Gestopt tijdens het opzoeken van de opslag.',
+      'download': 'Gestopt tijdens het downloaden van je andere apparaten.',
+      'upload':
+          'Gestopt tijdens het uploaden van de wijzigingen van dit apparaat.',
+      'publish':
+          'Gestopt tijdens het publiceren van de wijzigingen van dit apparaat.',
+      'createStore': 'Gestopt tijdens het aanmaken van de opslag.',
+      'other': 'Halverwege gestopt.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncFailureStatusCode(int code) {
+    return 'De server antwoordde met HTTP-status $code.';
+  }
+
+  @override
+  String settingsSyncFailureDetails(String details) {
+    return 'Details: $details';
+  }
+
+  @override
+  String commonSyncFailed(String explanation) {
+    return 'De synchronisatie is niet afgerond. $explanation';
+  }
+
+  @override
+  String settingsSyncNoticeAffected(String records) {
+    return 'Betreft: $records';
+  }
+
+  @override
+  String get settingsSyncNoticeListSeparator => ', ';
+
+  @override
+  String settingsSyncNoticeRecordNamed(String kind, String name) {
+    return '$kind ‘$name’';
+  }
+
+  @override
+  String settingsSyncNoticeRecordNotHere(String kind) {
+    return '$kind, niet op dit apparaat';
+  }
+
+  @override
+  String settingsSyncNoticeAffectedMore(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'en nog $count',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeFromDevices(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Van $count andere apparaten.',
+      one: 'Van 1 ander apparaat.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncDevicesFailedBecause(String explanation) {
+    return 'Kan de apparatenlijst niet laden. $explanation';
+  }
+
+  @override
+  String settingsSyncAdminFailedBecause(String message, String explanation) {
+    return '$message $explanation';
+  }
+
+  @override
   String get settingsSyncStatusStaleStore =>
       'Deze opslag is sinds je laatste synchronisatie vervangen door een ander apparaat. De volgende synchronisatie sluit zich aan bij de nieuwe.';
 
@@ -551,10 +718,6 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get settingsSyncPairingAlreadyInUse =>
       'Die zin is al in gebruik door een andere opslag. Genereer een andere.';
-
-  @override
-  String get settingsSyncPairingUnreachable =>
-      'Apparaatsynchronisatie is nu niet beschikbaar. Controleer je verbinding en probeer het opnieuw.';
 
   @override
   String settingsSyncPairingCustomEndpointTitle(String host) {

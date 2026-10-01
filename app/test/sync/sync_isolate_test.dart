@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
+import 'package:compendium_app/src/sync/sync_failure.dart';
 import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_app/src/sync/sync_isolate.dart';
 import 'package:compendium_app/src/sync/sync_invalidation.dart';
@@ -95,6 +96,97 @@ void main() {
       'POST /v1/blobs/missing',
       'PUT /v1/manifests/device-a',
     ]);
+  });
+
+  // A failure's cause must survive the port back to the parent: the status
+  // surface can explain only what reaches it.
+  test(
+    "carries a failed pass's cause, step and status across the isolate",
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'compendium-sync-isolate-',
+      );
+      final database = CompendiumDatabase(
+        NativeDatabase(File('${directory.path}/compendium.sqlite')),
+      );
+      final repositories = CompendiumRepositories(database, contraTaxonomy);
+      await repositories.ensureMigrated();
+      await repositories.syncLocal.replaceBaseline(epoch: 'epoch-1');
+
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      server.listen((request) async {
+        await request.drain<void>();
+        request.response.headers.contentType = ContentType.json;
+        if (request.method == 'GET' && request.uri.path == '/v1/store') {
+          request.response.write(
+            jsonEncode({'epoch': 'epoch-1', 'devices': <String>[]}),
+          );
+        } else if (request.method == 'POST' &&
+            request.uri.path == '/v1/blobs/missing') {
+          request.response.write(jsonEncode({'missing': <String>[]}));
+        } else {
+          request.response
+            ..statusCode = HttpStatus.serviceUnavailable
+            ..write('{}');
+        }
+        await request.response.close();
+      });
+      addTearDown(() async {
+        await server.close(force: true);
+        await database.close();
+        await directory.delete(recursive: true);
+      });
+
+      final result = await IsolatedSyncPassOperation(
+        databasePath: '${directory.path}/compendium.sqlite',
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}'),
+        syncId: 'alpha-beta-gamma-delta',
+        deviceId: 'device-a',
+      ).call();
+
+      expect(result.status, SyncPassStatus.failed);
+      expect(result.failure?.cause, SyncFailureCause.serverError);
+      expect(result.failure?.step, SyncFailureStep.publish);
+      expect(result.failure?.statusCode, 503);
+    },
+  );
+
+  // A connection failure is thrown inside the worker and reaches the parent as
+  // text, so the worker has to classify it before it is flattened.
+  test('classifies a worker throw before it crosses the isolate', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'compendium-sync-isolate-',
+    );
+    final database = CompendiumDatabase(
+      NativeDatabase(File('${directory.path}/compendium.sqlite')),
+    );
+    final repositories = CompendiumRepositories(database, contraTaxonomy);
+    await repositories.ensureMigrated();
+    await repositories.syncLocal.replaceBaseline(epoch: 'epoch-1');
+    // A port that was just listening and now is not: connection refused.
+    final closed = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    final port = closed.port;
+    await closed.close(force: true);
+    addTearDown(() async {
+      await database.close();
+      await directory.delete(recursive: true);
+    });
+
+    await expectLater(
+      IsolatedSyncPassOperation(
+        databasePath: '${directory.path}/compendium.sqlite',
+        endpoint: Uri.parse('http://127.0.0.1:$port'),
+        syncId: 'alpha-beta-gamma-delta',
+        deviceId: 'device-a',
+      ).call(),
+      throwsA(
+        isA<SyncWorkerFailure>().having(
+          (failure) => failure.cause,
+          'cause',
+          SyncFailureCause.unreachable,
+        ),
+      ),
+    );
   });
 
   test(

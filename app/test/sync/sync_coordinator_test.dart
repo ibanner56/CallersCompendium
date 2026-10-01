@@ -4020,6 +4020,80 @@ void main() {
     expect(store.advancedEntries, isEmpty);
     expect(transport.blobCalls, 0);
   });
+
+  // A failed pass says why, at the step it stopped, so the status surface can
+  // explain it instead of saying only that it failed.
+  group('failure causes', () {
+    SyncCoordinator coordinatorFor(
+      _FakeStore store,
+      _FakeTransport transport,
+    ) => SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: store,
+      transport: transport,
+    );
+
+    test(
+      'a refused manifest publication names the publish step and status',
+      () async {
+        final result = await coordinatorFor(
+          _FakeStore(),
+          _FakeTransport(putManifestStatus: 500),
+        ).syncNow();
+
+        expect(result.status, SyncPassStatus.failed);
+        expect(result.failure?.cause, SyncFailureCause.serverError);
+        expect(result.failure?.step, SyncFailureStep.publish);
+        expect(result.failure?.statusCode, 500);
+      },
+    );
+
+    test('a refused upload names the upload step and status', () async {
+      final candidate = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'local'),
+      );
+      final result = await coordinatorFor(
+        _FakeStore(local: {candidate.address: candidate}),
+        _FakeTransport(postMissingStatuses: [500]),
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.failed);
+      expect(result.failure?.cause, SyncFailureCause.serverError);
+      expect(result.failure?.step, SyncFailureStep.upload);
+      expect(result.failure?.statusCode, 500);
+    });
+
+    test(
+      'a fresh attach missing a peer manifest blames the peer, not the server',
+      () async {
+        final result = await coordinatorFor(
+          _FakeStore(epoch: null),
+          _FakeTransport(
+            devices: ['peer'],
+            peerManifest: _manifest(deviceId: 'peer', records: const {}),
+            manifestResponses: {
+              'peer': [_FakeTransport.response(500)],
+            },
+          ),
+        ).syncNow();
+
+        expect(result.status, SyncPassStatus.failed);
+        expect(result.failure?.cause, SyncFailureCause.peerUnavailable);
+        expect(result.failure?.step, SyncFailureStep.download);
+      },
+    );
+
+    test('a completed pass carries no failure', () async {
+      final result = await coordinatorFor(
+        _FakeStore(),
+        _FakeTransport(),
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(result.failure, isNull);
+    });
+  });
 }
 
 final class _SnapshotInterleavingStore

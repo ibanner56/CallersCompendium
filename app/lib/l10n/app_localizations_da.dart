@@ -300,6 +300,171 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsSyncStatusFailed => 'Sidste synkronisering mislykkedes.';
 
   @override
+  String get settingsSyncFailureUnreachable =>
+      'Synkroniseringsserveren kunne ikke nås.';
+
+  @override
+  String get settingsSyncFailureUnreachableAdvice =>
+      'Tjek, at denne enhed er online. Hvis du kører din egen server, så tjek, at den kører, og at dens adresse er rigtig.';
+
+  @override
+  String get settingsSyncFailureTimedOut =>
+      'Synkroniseringsserveren var for længe om at svare.';
+
+  @override
+  String get settingsSyncFailureTimedOutAdvice =>
+      'En langsom eller ustabil forbindelse er den sædvanlige årsag. Prøv igen, når forbindelsen er bedre.';
+
+  @override
+  String get settingsSyncFailureServerError =>
+      'Synkroniseringsserveren løb selv ind i et problem.';
+
+  @override
+  String get settingsSyncFailureServerErrorAdvice =>
+      'Der er intet galt med denne enhed eller dit bibliotek. Vent et stykke tid, og prøv igen. Hvis det bliver ved, så giv den, der driver serveren, besked, og oplys de detaljer, der vises her.';
+
+  @override
+  String get settingsSyncFailureRateLimited =>
+      'Synkroniseringsserveren bad denne enhed om at sætte tempoet ned.';
+
+  @override
+  String get settingsSyncFailureRateLimitedAdvice =>
+      'Den har fået for mange forespørgsler på kort tid. Vent et par minutter, før du prøver igen.';
+
+  @override
+  String get settingsSyncFailureStoreFull =>
+      'Dit lager har brugt al den plads, synkroniseringsserveren tillader.';
+
+  @override
+  String get settingsSyncFailureStoreFullAdvice =>
+      'Ændringer fra denne enhed kan ikke gemmes, før der er plads. Hvis du slår Spring ubrugte importerede danse over til, uploader denne enhed mindre. Hvis du kører din egen server, så hæv dens lagergrænse.';
+
+  @override
+  String get settingsSyncFailureTooLarge =>
+      'Noget, denne enhed forsøgte at uploade, er større, end synkroniseringsserveren accepterer.';
+
+  @override
+  String get settingsSyncFailureTooLargeAdvice =>
+      'Hvis du har en stor importeret samling, kan det bringe den under grænsen at slå Spring ubrugte importerede danse over til. Hvis du kører din egen server, så tjek dens grænse for uploadstørrelse.';
+
+  @override
+  String get settingsSyncFailureRejected =>
+      'Synkroniseringsserveren afviste det, denne enhed sendte.';
+
+  @override
+  String get settingsSyncFailureRejectedAdvice =>
+      'Det betyder som regel, at denne app og serveren har forskellige versioner. Opdater appen på denne enhed. Hvis du kører din egen server, så opdater også den.';
+
+  @override
+  String get settingsSyncFailureAccessDenied =>
+      'Synkroniseringsserveren accepterede ikke denne enheds synkroniseringssætning.';
+
+  @override
+  String get settingsSyncFailureAccessDeniedAdvice =>
+      'Tjek sætningen mod den på din anden enhed, og tjek, at serveradressen er rigtig.';
+
+  @override
+  String get settingsSyncFailureUnexpectedResponse =>
+      'Synkroniseringsserveren sendte et svar, som denne app ikke kunne bruge.';
+
+  @override
+  String get settingsSyncFailureUnexpectedResponseAdvice =>
+      'Hvis du kører din egen server, så tjek dens adresse, og at den har en version, som denne app understøtter. Ellers kan du opdatere appen og prøve igen senere.';
+
+  @override
+  String get settingsSyncFailurePeerUnavailable =>
+      'Det, en af dine andre enheder sidst delte, kunne ikke læses.';
+
+  @override
+  String get settingsSyncFailurePeerUnavailableAdvice =>
+      'For at forbinde til et lager skal den nyeste liste fra hver enhed på det bruges. Åbn appen på dine andre enheder, lad dem synkronisere, og prøv så igen. Hvis en enhed er væk for altid, så fjern den under Andre enheder.';
+
+  @override
+  String get settingsSyncFailureInternal =>
+      'Noget gik galt inde i appen under synkroniseringen.';
+
+  @override
+  String get settingsSyncFailureInternalAdvice =>
+      'Det er ikke et problem med din forbindelse eller serveren. Prøv igen. Hvis det bliver ved, så eksportér loggen fra Indstillinger ▸ Diagnostik, og vedhæft den, når du rapporterer problemet.';
+
+  @override
+  String settingsSyncFailureStep(String step) {
+    String _temp0 = intl.Intl.selectLogic(step, {
+      'lookup': 'Stoppede under opslag af lageret.',
+      'download': 'Stoppede under download fra dine andre enheder.',
+      'upload': 'Stoppede under upload af denne enheds ændringer.',
+      'publish': 'Stoppede under udgivelse af denne enheds ændringer.',
+      'createStore': 'Stoppede under oprettelse af lageret.',
+      'other': 'Stoppede undervejs.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncFailureStatusCode(int code) {
+    return 'Serveren svarede med HTTP-status $code.';
+  }
+
+  @override
+  String settingsSyncFailureDetails(String details) {
+    return 'Detaljer: $details';
+  }
+
+  @override
+  String commonSyncFailed(String explanation) {
+    return 'Synkroniseringen blev ikke færdig. $explanation';
+  }
+
+  @override
+  String settingsSyncNoticeAffected(String records) {
+    return 'Berører: $records';
+  }
+
+  @override
+  String get settingsSyncNoticeListSeparator => ', ';
+
+  @override
+  String settingsSyncNoticeRecordNamed(String kind, String name) {
+    return '$kind »$name«';
+  }
+
+  @override
+  String settingsSyncNoticeRecordNotHere(String kind) {
+    return '$kind, ikke på denne enhed';
+  }
+
+  @override
+  String settingsSyncNoticeAffectedMore(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'og $count mere',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeFromDevices(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Fra $count andre enheder.',
+      one: 'Fra 1 anden enhed.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncDevicesFailedBecause(String explanation) {
+    return 'Enhedslisten kunne ikke indlæses. $explanation';
+  }
+
+  @override
+  String settingsSyncAdminFailedBecause(String message, String explanation) {
+    return '$message $explanation';
+  }
+
+  @override
   String get settingsSyncStatusStaleStore =>
       'Dette lager er blevet erstattet af en anden enhed siden din sidste synkronisering. Næste synkronisering tilslutter sig det nye.';
 
@@ -550,10 +715,6 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get settingsSyncPairingAlreadyInUse =>
       'Den sætning er allerede i brug af et andet lager. Generér en anden.';
-
-  @override
-  String get settingsSyncPairingUnreachable =>
-      'Enhedssynkronisering er ikke tilgængelig lige nu. Tjek din forbindelse, og prøv igen.';
 
   @override
   String settingsSyncPairingCustomEndpointTitle(String host) {

@@ -10,9 +10,11 @@ import '../../data/repositories_scope.dart';
 import '../../diagnostics/error_log.dart';
 import '../../sync/sync_controller.dart';
 import '../../sync/sync_coordinator.dart' show SyncPassStatus;
+import '../../sync/sync_failure.dart';
 import '../../sync/sync_http_client.dart';
 import '../../sync/sync_scope.dart';
 import '../../theme/app_spacing.dart';
+import 'sync_failure_labels.dart';
 
 /// Whether the user is creating a new store or attaching to one that already
 /// exists. The pairing surface must ask this explicitly and never infer it
@@ -170,7 +172,9 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
         } on Object catch (e, st) {
           if (!mounted) return;
           logCaughtError(e, st, source: 'sync_pairing_screen._submit.create');
-          setState(() => _fieldError = l10n.settingsSyncPairingUnreachable);
+          setState(
+            () => _fieldError = _probeError(l10n, SyncFailure.fromError(e)),
+          );
           return;
         }
         if (!mounted) return;
@@ -179,7 +183,12 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
           return;
         }
         if (!response.isSuccess) {
-          setState(() => _fieldError = l10n.settingsSyncPairingUnreachable);
+          setState(
+            () => _fieldError = _probeError(
+              l10n,
+              SyncFailure.fromResponse(response, SyncFailureStep.createStore),
+            ),
+          );
           return;
         }
       } else {
@@ -191,7 +200,9 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
         } on Object catch (e, st) {
           if (!mounted) return;
           logCaughtError(e, st, source: 'sync_pairing_screen._submit.connect');
-          setState(() => _fieldError = l10n.settingsSyncPairingUnreachable);
+          setState(
+            () => _fieldError = _probeError(l10n, SyncFailure.fromError(e)),
+          );
           return;
         }
         if (!mounted) return;
@@ -200,7 +211,12 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
           return;
         }
         if (!result.response.isSuccess) {
-          setState(() => _fieldError = l10n.settingsSyncPairingUnreachable);
+          setState(
+            () => _fieldError = _probeError(
+              l10n,
+              SyncFailure.fromResponse(result.response, SyncFailureStep.lookup),
+            ),
+          );
           return;
         }
       }
@@ -216,6 +232,16 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
     if (mounted) Navigator.of(context).pop();
   }
 
+  /// The form error for a pairing request that did not succeed: what went
+  /// wrong, what to do, and the step and status to quote. Every failure used
+  /// to read "Device Sync isn't available right now" — true of an outage, and
+  /// misleading for a refused phrase or a server on the wrong version, which
+  /// no amount of waiting fixes.
+  String _probeError(AppLocalizations l10n, SyncFailure failure) => [
+    syncFailureExplanation(l10n, failure),
+    ?syncFailureDetails(l10n, failure),
+  ].join('\n');
+
   /// What the completion dialog says about the first sync.
   ///
   /// [SyncController.completePairing] awaits that pass, so by the time this is
@@ -229,10 +255,18 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
     SyncController controller,
     SyncGateOutcome outcome,
   ) => switch (outcome) {
-    SyncGateOutcome.ran =>
-      controller.lastResult?.status == SyncPassStatus.completed
-          ? l10n.settingsSyncPairingCompleteBody
-          : l10n.settingsSyncPairingCompleteFailed,
+    SyncGateOutcome.ran => switch (controller.lastResult) {
+      final result? when result.status == SyncPassStatus.completed =>
+        l10n.settingsSyncPairingCompleteBody,
+      // Pairing succeeded, so this still leads with that; what stopped the
+      // first sync follows, because "it will try again" is no help when the
+      // reason is one that retrying alone will not clear.
+      final result? => [
+        l10n.settingsSyncPairingCompleteFailed,
+        ?syncPassResultExplanation(l10n, result),
+      ].join(' '),
+      null => l10n.settingsSyncPairingCompleteFailed,
+    },
     SyncGateOutcome.suppressedMetered =>
       l10n.settingsSyncPairingCompleteMetered,
     SyncGateOutcome.suppressedOffline =>

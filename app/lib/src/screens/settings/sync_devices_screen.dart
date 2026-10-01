@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../sync/sync_controller.dart';
+import '../../sync/sync_failure.dart';
 import '../../sync/sync_scope.dart';
 import '../../theme/app_spacing.dart';
+import 'sync_failure_labels.dart';
 
 /// Pushes the list of the *other* devices attached to this store.
 ///
@@ -55,11 +57,33 @@ Future<void> confirmAndWipeStore(
       messenger?.showSnackBar(
         SnackBar(
           key: const ValueKey('sync-wipe-failed'),
-          content: Text(l10n.settingsSyncWipeFailed),
+          content: Text(
+            _withReason(
+              l10n,
+              l10n.settingsSyncWipeFailed,
+              controller.lastAdminFailure,
+            ),
+          ),
         ),
       );
   }
 }
+
+/// [message] followed by why the action failed, when that is known.
+///
+/// The reason only, not the advice: these snackbars already say what state
+/// the device was left in and what to do next, and the generic advice would
+/// contradict them (a wipe's "check your other devices before trying again").
+String _withReason(
+  AppLocalizations l10n,
+  String message,
+  SyncFailure? failure,
+) => failure == null
+    ? message
+    : l10n.settingsSyncAdminFailedBecause(
+        message,
+        syncFailureReason(l10n, failure.cause),
+      );
 
 /// The strongest confirmation in the app. Returns true only on an explicit
 /// confirm. The destructive styling is not decoration: this is the one Device
@@ -176,7 +200,13 @@ class _SyncDevicesScreenState extends State<SyncDevicesScreen> {
       messenger?.showSnackBar(
         SnackBar(
           key: const ValueKey('sync-device-remove-failed'),
-          content: Text(l10n.settingsSyncDeviceRemoveFailed),
+          content: Text(
+            _withReason(
+              l10n,
+              l10n.settingsSyncDeviceRemoveFailed,
+              controller.lastAdminFailure,
+            ),
+          ),
         ),
       );
     }
@@ -203,7 +233,7 @@ class _SyncDevicesScreenState extends State<SyncDevicesScreen> {
     }
     final result = _result;
     if (result == null || result.outcome != SyncAdminOutcome.done) {
-      return _failure(context, l10n, result?.outcome);
+      return _failure(context, l10n, result);
     }
     return ListView(
       children: [
@@ -245,11 +275,12 @@ class _SyncDevicesScreenState extends State<SyncDevicesScreen> {
   Widget _failure(
     BuildContext context,
     AppLocalizations l10n,
-    SyncAdminOutcome? outcome,
+    SyncDeviceListResult? result,
   ) {
     // A store that has gone is a different fact from a request that failed,
     // and only one of them is worth retrying.
-    final storeMissing = outcome == SyncAdminOutcome.storeMissing;
+    final storeMissing = result?.outcome == SyncAdminOutcome.storeMissing;
+    final failure = result?.failure;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.md),
@@ -259,10 +290,25 @@ class _SyncDevicesScreenState extends State<SyncDevicesScreen> {
             Text(
               storeMissing
                   ? l10n.settingsSyncDevicesStoreMissing
-                  : l10n.settingsSyncDevicesFailed,
+                  : failure == null
+                  ? l10n.settingsSyncDevicesFailed
+                  : l10n.settingsSyncDevicesFailedBecause(
+                      syncFailureExplanation(l10n, failure),
+                    ),
               key: const ValueKey('sync-devices-failed'),
               textAlign: TextAlign.center,
             ),
+            if (!storeMissing && failure != null)
+              if (syncFailureDetails(l10n, failure) case final details?)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.xs),
+                  child: Text(
+                    details,
+                    key: const ValueKey('sync-devices-failed-details'),
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
             if (!storeMissing)
               Padding(
                 padding: const EdgeInsets.only(top: AppSpacing.md),
