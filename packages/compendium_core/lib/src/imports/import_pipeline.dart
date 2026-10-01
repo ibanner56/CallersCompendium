@@ -224,7 +224,7 @@ class _PendingPlanRecord {
 }
 
 /// Drives a [SourceAdapter] through the full pipeline: `discover → fetch →
-/// parse → dedupe` (planning, non-destructive) and then `commit` (transactional
+/// parse → dedupe` (planning, non-destructive) and then `commit` (per-record
 /// write of dances + provenance) with session-scoped undo.
 ///
 /// Pure framework: it performs no source I/O itself (adapters own that) and
@@ -564,11 +564,15 @@ class ImportPipeline {
     );
   }
 
-  /// Commits a planned [batch] transactionally, writing each dance and its
-  /// provenance row. [resolutions] resolves ambiguous records, keyed by their
-  /// index into `batch.records`; an ambiguous record with no resolution is
-  /// skipped (never guessed). New/duplicate inserts get a fresh id from
-  /// [newId]; re-imports/links update the matched dance, preserving its
+  /// Commits a planned [batch], writing each dance and its provenance row.
+  /// Records are independent: one that fails is reported in its
+  /// [CommittedRecord.error] and leaves no dance and no author writes behind
+  /// (see `_rollbackRecordDances` and `_rollbackRecordAuthors`); the rest still
+  /// commit. The batch as a whole is not one transaction — [undo] reverts the
+  /// records that did commit. [resolutions] resolves ambiguous records, keyed
+  /// by their index into `batch.records`; an ambiguous record with no
+  /// resolution is skipped (never guessed). New/duplicate inserts get a fresh
+  /// id from [newId]; re-imports/links update the matched dance, preserving its
   /// `createdAt`.
   ///
   /// Returns an [ImportSession] recording what was written so the batch can be
@@ -625,7 +629,44 @@ class ImportPipeline {
         continue;
       }
 
+      // What this record adds to the batch-wide author state, so a failure can
+      // take back exactly its own writes (see the `catch` below).
+      final createdBefore = createdChoreographerIds.length;
+      final revivedBefore = revivedChoreographerIds.length;
+      final priorBefore = priorStates.length;
+      // The new dance this record created, if any. A default variation writes
+      // twice (the new dance, then the reciprocal link on its target), so the
+      // second write can fail after the first has landed.
+      String? createdDanceId;
+
       try {
+        final writesNewDance =
+            action == CommitAction.create ||
+            action == CommitAction.duplicate ||
+            action == CommitAction.variation;
+        // reimport / link update the matched dance in place, so the target must
+        // still exist. Checked BEFORE authors are resolved: a vanished target
+        // (hard-deleted since planning) otherwise skips the record only after
+        // `_resolveAuthors` has already written its choreographers.
+        Dance? prior;
+        if (!writesNewDance) {
+          prior = await _dances.getById(targetId!, includeDeleted: true);
+          if (prior == null) {
+            committed.add(
+              CommittedRecord(
+                action: action,
+                externalId: plan.draft.raw.externalId,
+                error: commitError(
+                  plan.draft.raw.source,
+                  'Target dance "$targetId" no longer exists',
+                  externalId: plan.draft.raw.externalId,
+                ),
+              ),
+            );
+            continue;
+          }
+        }
+
         // Resolve the record's author names to Choreographer ids, creating rows
         // as needed. Done before the write so both create and reimport/link
         // paths get real authorIds. Reimport/link REPLACES authors wholesale
@@ -647,9 +688,7 @@ class ImportPipeline {
             : [for (final r in authorResolutions) r.choreographerId];
 
         final prov = _provenanceFrom(plan.draft, now);
-        if (action == CommitAction.create ||
-            action == CommitAction.duplicate ||
-            action == CommitAction.variation) {
+        if (writesNewDance) {
           final id = newId();
           // #686: a `.variation` commit with `linkBack` (the default) attaches
           // a `relatedDance` link to the target BEFORE `_rebuildWithIdentity`
@@ -687,6 +726,7 @@ class ImportPipeline {
             provenance: prov,
           );
           await _dances.create(dance);
+          createdDanceId = id;
           insertedIds.add(id);
           if (wantsLinkBack) {
             // Symmetric reciprocal link on the TARGET side, so the
@@ -730,27 +770,14 @@ class ImportPipeline {
         } else {
           // reimport / link: update the matched dance in place.
           final id = targetId!;
-          final prior = await _dances.getById(id, includeDeleted: true);
-          if (prior == null) {
-            committed.add(
-              CommittedRecord(
-                action: action,
-                externalId: plan.draft.raw.externalId,
-                error: commitError(
-                  plan.draft.raw.source,
-                  'Target dance "$id" no longer exists',
-                  externalId: plan.draft.raw.externalId,
-                ),
-              ),
-            );
-            continue;
-          }
-          if (priorCapturedFor.add(id)) priorStates.add(prior);
+          // Non-null: a missing target `continue`d before authors were resolved.
+          final existing = prior!;
+          if (priorCapturedFor.add(id)) priorStates.add(existing);
           final dance = _rebuildWithIdentity(
             plan.draft.dance,
             id: id,
             authorIds: authorIds,
-            createdAt: prior.createdAt,
+            createdAt: existing.createdAt,
             updatedAt: now,
             provenance: prov,
           );
@@ -765,6 +792,22 @@ class ImportPipeline {
           );
         }
       } catch (e) {
+        // Dance writes first: the created dance credits this record's authors,
+        // so the repository would refuse to delete them while it stands.
+        await _rollbackRecordDances(
+          createdDanceId: createdDanceId,
+          insertedIds: insertedIds,
+          priorStates: priorStates,
+          priorCapturedFor: priorCapturedFor,
+          priorFrom: priorBefore,
+        );
+        await _rollbackRecordAuthors(
+          nameToId: nameToId,
+          createdChoreographerIds: createdChoreographerIds,
+          revivedChoreographerIds: revivedChoreographerIds,
+          createdFrom: createdBefore,
+          revivedFrom: revivedBefore,
+        );
         committed.add(
           CommittedRecord(
             action: action,
@@ -956,6 +999,90 @@ class ImportPipeline {
   /// is worse than a near-duplicate row.
   String _normalizeName(String name) =>
       nfc(name).trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
+
+  /// Takes back the dance writes one failed record made, so a record that
+  /// fails leaves no dance behind either.
+  ///
+  /// The only dance write that can precede a failure is a variation's new
+  /// dance ([createdDanceId]), when the reciprocal update on its target throws;
+  /// it is erased like [undo] erases inserted dances. Every other dance write is
+  /// the record's last, so a throw means it did not land. The prior state this
+  /// record captured (from index [priorFrom]) is dropped with it: its update
+  /// never landed, and leaving it would have [undo] rewrite an unchanged
+  /// target — or, were a later record to link the same target, skip capturing
+  /// the state that later write really replaced. If the erase itself fails the
+  /// dance stays in [insertedIds], so [undo] still owns it.
+  Future<void> _rollbackRecordDances({
+    required String? createdDanceId,
+    required List<String> insertedIds,
+    required List<Dance> priorStates,
+    required Set<String> priorCapturedFor,
+    required int priorFrom,
+  }) async {
+    for (final prior in priorStates.sublist(priorFrom)) {
+      priorCapturedFor.remove(prior.id);
+    }
+    priorStates.removeRange(priorFrom, priorStates.length);
+    if (createdDanceId == null) return;
+    try {
+      await _dances.hardDelete([createdDanceId], gcOrphanedRefs: false);
+      insertedIds.remove(createdDanceId);
+    } catch (_) {
+      // Best effort, as for authors: the record's own error is the one worth
+      // reporting, and the dance left behind stays tracked for `undo`.
+    }
+  }
+
+  /// Takes back the author writes one failed record made, so a record that
+  /// fails leaves no choreographer rows behind (`_resolveAuthors` commits each
+  /// upsert on its own, before the dance write that can still fail).
+  ///
+  /// Only ids appended at or after [createdFrom] / [revivedFrom] are touched:
+  /// authors an earlier record created, or that already existed, stay. Mirrors
+  /// [undo]'s per-row treatment (created → permanent delete, revived → back to
+  /// a tombstone) and, like it, leaves a row a surviving dance still credits.
+  /// A rolled-back id must also leave [nameToId] and the session lists, or a
+  /// later record crediting the same name would resolve to a row that no longer
+  /// exists. A row that could not be removed stays in all three, so `undo`
+  /// still owns it.
+  Future<void> _rollbackRecordAuthors({
+    required Map<String, String> nameToId,
+    required List<String> createdChoreographerIds,
+    required List<String> revivedChoreographerIds,
+    required int createdFrom,
+    required int revivedFrom,
+  }) async {
+    Future<void> rollBack(
+      List<String> ids,
+      int from, {
+      required bool permanent,
+    }) async {
+      final removed = <String>{};
+      for (final id in ids.sublist(from)) {
+        try {
+          await _choreographers.delete(id, permanent: permanent);
+          removed.add(id);
+        } on StateError {
+          // Still referenced by a surviving dance — leave it in place.
+        } catch (_) {
+          // Cleanup is best effort: the record's own error is the one worth
+          // reporting, and a row left behind stays tracked for `undo`.
+        }
+      }
+      if (removed.isEmpty) return;
+      nameToId.removeWhere((_, id) => removed.contains(id));
+      // Preserve the order of the ids that stay (the list tail is this record's).
+      final kept = [
+        for (final id in ids.sublist(from))
+          if (!removed.contains(id)) id,
+      ];
+      ids.removeRange(from, ids.length);
+      ids.addAll(kept);
+    }
+
+    await rollBack(createdChoreographerIds, createdFrom, permanent: true);
+    await rollBack(revivedChoreographerIds, revivedFrom, permanent: false);
+  }
 
   /// Resolves [names] to [Choreographer] ids: matches an existing row by
   /// normalized name, else creates a new row (name only) via [newId] + upsert.
