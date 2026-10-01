@@ -43,16 +43,22 @@ String? syncPassProblemText(
 /// pass that did not succeed; null when it succeeded or there is nothing to
 /// add.
 ///
-/// A `failed` pass is explained by its cause. One without a cause (a path
-/// that never set one) gets null rather than "Last sync failed.", which would
-/// only repeat the sentence it follows.
+/// A `failed` pass is explained by its cause, followed by its Details line
+/// when one is known: some advice tells the user to quote "the details shown
+/// here", so every surface that shows the advice must show the details too.
+/// One without a cause (a path that never set one) gets null rather than
+/// "Last sync failed.", which would only repeat the sentence it follows.
 String? syncPassResultExplanation(
   AppLocalizations l10n,
   SyncPassResult result,
 ) {
   if (result.status == SyncPassStatus.failed) {
     final failure = result.failure;
-    return failure == null ? null : syncFailureExplanation(l10n, failure);
+    if (failure == null) return null;
+    return [
+      syncFailureExplanation(l10n, failure),
+      ?syncFailureDetails(l10n, failure),
+    ].join(' ');
   }
   return syncPassProblemText(l10n, result.status);
 }

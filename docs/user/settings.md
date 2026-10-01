@@ -580,9 +580,12 @@ Sync is off and open while it is on.
   update arrived while you were editing the same record, so it waits for the
   next sync; and when changes from this device still haven't reached your
   other devices after several syncs. Each notice lists the records it is
-  about — by the title or name this device has for them, the first few by name
-  and the rest as a count — so you know which ones to look at; a record this
-  device doesn't have is listed as not on this device. A notice about records
+  about, the first few individually and the rest as a count, so you know
+  which ones to look at. Dances, programs, choreographers, tags and venues are
+  named by the title or name this device has for them, and one this device
+  doesn't have is listed as not on this device; other kinds of record —
+  settings, custom fields, difficulty levels, published sources — are listed
+  by kind only. A notice about records
   from other devices also says how many devices they came from. A notice is
   only ever a message — it
   never blocks an edit, never holds up a sync, and there is nothing to dismiss.

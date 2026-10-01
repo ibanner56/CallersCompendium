@@ -2603,6 +2603,8 @@ void main() {
         late List<String> removed;
         late int wipes;
         late SyncResponseKind wipeKind;
+        late SyncResponseKind listKind;
+        late SyncResponseKind removeKind;
 
         SyncHttpResponse response(SyncResponseKind kind, {String? body}) =>
             SyncHttpResponse(
@@ -2616,6 +2618,8 @@ void main() {
           removed = [];
           wipes = 0;
           wipeKind = SyncResponseKind.success;
+          listKind = SyncResponseKind.success;
+          removeKind = SyncResponseKind.success;
           _syncNetwork.kind = SyncNetworkKind.unmetered;
           _syncCoordinator = null;
           _pairingProbeFactory = null;
@@ -2623,7 +2627,7 @@ void main() {
           _deviceAdminFactory = (syncId, endpoint) => SyncDeviceAdmin(
             getStore: ({required previouslyUsed}) async => SyncStoreResult(
               response: response(
-                SyncResponseKind.success,
+                listKind,
                 body: jsonEncode({
                   'epoch': 'epoch-1',
                   'devices': ['this_device', 'peer_a'],
@@ -2632,7 +2636,7 @@ void main() {
             ),
             deleteManifest: (deviceId) async {
               removed.add(deviceId);
-              return response(SyncResponseKind.success);
+              return response(removeKind);
             },
             deleteStore: () async {
               wipes++;
@@ -2865,6 +2869,62 @@ void main() {
             findsOneWidget,
           );
           expect(find.textContaining('Nothing was changed'), findsNothing);
+          // And why, so the user can tell a server fault from their own.
+          expect(
+            find.textContaining(
+              'The sync server ran into a problem of its own.',
+            ),
+            findsOneWidget,
+          );
+        });
+
+        testWidgets('a device list that fails to load says why, and what to '
+            'quote', (tester) async {
+          listKind = SyncResponseKind.serverError;
+          await pumpPaired(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-devices')));
+          await tester.pumpAndSettle();
+
+          expect(
+            tester
+                .widget<Text>(find.byKey(const ValueKey('sync-devices-failed')))
+                .data,
+            startsWith(
+              "Couldn't load the device list. The sync server ran into a "
+              'problem of its own.',
+            ),
+          );
+          expect(
+            tester
+                .widget<Text>(
+                  find.byKey(const ValueKey('sync-devices-failed-details')),
+                )
+                .data,
+            'Details: The server answered with HTTP status 500.',
+          );
+        });
+
+        testWidgets('a removal the server refuses says why', (tester) async {
+          removeKind = SyncResponseKind.serverError;
+          await pumpPaired(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-devices')));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('sync-device-remove-peer_a')),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('sync-device-remove-confirm')),
+          );
+          await tester.pumpAndSettle();
+
+          expect(
+            find.text(
+              "Couldn't remove that device. It is still connected; try "
+              'again. The sync server ran into a problem of its own.',
+            ),
+            findsOneWidget,
+          );
         });
 
         testWidgets('a wipe whose local clear fails says the store is gone, '
@@ -3599,6 +3659,43 @@ void main() {
         },
       );
 
+      // A refused phrase used to read "isn't available right now", which no
+      // amount of waiting fixes; the step and status are there to quote.
+      testWidgets('a refused create names the cause, step and status', (
+        tester,
+      ) async {
+        _pairingProbeFactory = (syncId, endpoint) => SyncPairingProbe(
+          getStore: ({required previouslyUsed}) async =>
+              throw UnimplementedError(),
+          createStore: () async => const SyncHttpResponse(
+            statusCode: 403,
+            kind: SyncResponseKind.invalidSyncId,
+            headers: {},
+            body: [],
+          ),
+        );
+        await enableAndOpenPairing(tester);
+        await tester.tap(find.byKey(const ValueKey('sync-pairing-create')));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('sync-pairing-backup-skip')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('sync-pairing-continue')));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text(
+            "The sync server didn't accept this device's sync phrase. Check "
+            'the phrase against the one on your other device, and check that '
+            'the server address is right.\n'
+            'Details: Stopped while creating the store. The server answered '
+            'with HTTP status 403.',
+          ),
+          findsOneWidget,
+        );
+      });
+
       testWidgets(
         'the backup offer never starts automatically: skip exports nothing, '
         'accept exports exactly once (spec §6.14 item 3)',
@@ -3747,14 +3844,18 @@ void main() {
         CompendiumRepositories repos, {
         SyncPassStatus status = SyncPassStatus.completed,
         int duplicateCount = 0,
+        SyncFailure? failure,
       }) {
         _syncCoordinator = SyncCoordinator(
           syncId: 'configured',
           deviceId: 'device',
           store: CompendiumSyncCoordinatorStore(repos),
           transport: NoopSyncCoordinatorTransport(),
-          passOperation: ({initialStore}) async =>
-              SyncPassResult(status, duplicateCount: duplicateCount),
+          passOperation: ({initialStore}) async => SyncPassResult(
+            status,
+            duplicateCount: duplicateCount,
+            failure: failure,
+          ),
         );
         addTearDown(_syncCoordinator!.dispose);
       }
@@ -3976,6 +4077,47 @@ void main() {
           },
         );
       }
+
+      // Pairing succeeded, but "it will try again" is no help when the cause
+      // is one retrying will not clear, so the dialog says what stopped the
+      // first sync — with the Details line its advice tells the user to quote.
+      testWidgets('the completion dialog says why a failed first pass failed', (
+        tester,
+      ) async {
+        stubCreateProbe();
+        final harness = await _pumpSettings(tester);
+        await openExperimental(tester);
+        await tester.tap(find.byKey(const ValueKey('sync-enabled-toggle')));
+        await tester.pumpAndSettle();
+        stubCoordinator(
+          harness.repos,
+          status: SyncPassStatus.failed,
+          failure: const SyncFailure(
+            SyncFailureCause.serverError,
+            step: SyncFailureStep.upload,
+            statusCode: 502,
+          ),
+        );
+        _syncNetwork.kind = SyncNetworkKind.unmetered;
+        await tester.tap(find.byKey(const ValueKey('sync-connect')));
+        await tester.pumpAndSettle();
+        await createToCompletion(tester);
+
+        expect(
+          tester
+              .widget<Text>(
+                find.byKey(const ValueKey('sync-pairing-complete-state')),
+              )
+              .data,
+          "Your library is connected, but the first sync didn't finish. It "
+          'will try again on its own. The sync server ran into a problem of '
+          'its own. Nothing is wrong with this device or your library. Wait '
+          'a while and try again. If it keeps happening, let whoever runs the '
+          'server know, and quote the details shown here. Details: Stopped '
+          "while uploading this device's changes. The server answered with "
+          'HTTP status 502.',
+        );
+      });
 
       testWidgets(
         'a pairing whose coordinator could not be built says nothing has '

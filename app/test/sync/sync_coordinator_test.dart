@@ -4081,6 +4081,7 @@ void main() {
         expect(result.status, SyncPassStatus.failed);
         expect(result.failure?.cause, SyncFailureCause.peerUnavailable);
         expect(result.failure?.step, SyncFailureStep.download);
+        expect(result.failure?.statusCode, 500);
       },
     );
 

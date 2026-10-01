@@ -1007,6 +1007,10 @@ class SyncCoordinator {
     final peerManifests = <({String peerId, SyncManifest manifest})>[];
     final unresolved = <SyncRecordAddress>{};
     var allPeerManifestsAvailable = true;
+    // The status of the first peer manifest the server refused, kept for the
+    // failure a fresh attach reports: the user can quote it, and it is what
+    // separates a server fault from a peer whose list is merely unreadable.
+    int? unavailableManifestStatus;
     for (final peerId in metadata.devices) {
       if (peerId == deviceId) continue;
       final cached = _peerManifestCache[peerId];
@@ -1025,6 +1029,7 @@ class SyncCoordinator {
       }
       if (!response.isSuccess) {
         allPeerManifestsAvailable = false;
+        unavailableManifestStatus ??= response.statusCode;
         unresolved.addAll(normalizedBaseline.keys);
         reports.add(
           SyncReport(
@@ -1160,9 +1165,10 @@ class SyncCoordinator {
         reports: reports.reports,
         message:
             'fresh attach requires every peer manifest', // i18n-ignore: internal status
-        failure: const SyncFailure(
+        failure: SyncFailure(
           SyncFailureCause.peerUnavailable,
           step: SyncFailureStep.download,
+          statusCode: unavailableManifestStatus,
         ),
       );
     }

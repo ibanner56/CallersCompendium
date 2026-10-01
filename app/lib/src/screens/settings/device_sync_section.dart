@@ -582,10 +582,11 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
 /// One notice group, with the records it is about.
 ///
 /// A notice that says "some records" and asks the user to edit "one of them"
-/// gives them nothing to look for, so the tile names the records — by the
-/// title or name this device stores, looked up here because a report carries
-/// only a kind and an id. Peer records this device does not have are said to
-/// be absent rather than left out, so the count stays honest.
+/// gives them nothing to look for, so the tile lists the records, looked up
+/// here because a report carries only a kind and an id. Only the kinds
+/// [lookupSyncNoticeRecordName] looks up are named, and only those can be said
+/// to be absent from this device; every other kind is listed by kind alone.
+/// Nothing is left out, so the count stays honest.
 class _SyncNoticeTile extends StatefulWidget {
   const _SyncNoticeTile({
     super.key,
