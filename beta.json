@@ -1,37 +1,37 @@
 {
   "manifestSchemaVersion": 1,
   "channel": "beta",
-  "version": "0.5.1-beta",
-  "releaseNotesUrl": "https://github.com/ibanner56/CallersCompendium/releases/tag/v0.5.1-beta",
-  "pubDate": "2026-09-29T21:52:55Z",
+  "version": "0.5.2-beta",
+  "releaseNotesUrl": "https://github.com/ibanner56/CallersCompendium/releases/tag/v0.5.2-beta",
+  "pubDate": "2026-10-01T17:24:19Z",
   "artifacts": [
     {
       "platform": "android",
       "arch": "universal",
-      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.5.1-beta/CallersCompendium-0.5.1-beta-android-universal.apk",
-      "sha256": "6e747cdb94f8107351c6d06145528cf9d756f91063c9a408b2a761a9c772a587",
-      "size": 101025212
+      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.5.2-beta/CallersCompendium-0.5.2-beta-android-universal.apk",
+      "sha256": "4cfbf4e501468791318e48fceef8fd170cb2333bb7c1ad85bba1eb2f9065405c",
+      "size": 101271164
     },
     {
       "platform": "linux",
       "arch": "x64",
-      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.5.1-beta/CallersCompendium-0.5.1-beta-linux-x64.AppImage",
-      "sha256": "c85c8b74765345653fe0b7d1f87f321fd7c37a10a94bda28045c56ebb5d29200",
-      "size": 19843576
+      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.5.2-beta/CallersCompendium-0.5.2-beta-linux-x64.AppImage",
+      "sha256": "da31cbf36310ed22917bfb8b424913c64b3c6cdb16ef41cebdec48fc0dc510b4",
+      "size": 19864056
     },
     {
       "platform": "macos",
       "arch": "universal",
-      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.5.1-beta/CallersCompendium-0.5.1-beta-macos-universal.dmg",
-      "sha256": "3cd2335ea39c76e227187e298d50ecb749cfd846e04b510ce78512a5f0cb8e24",
-      "size": 38155969
+      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.5.2-beta/CallersCompendium-0.5.2-beta-macos-universal.dmg",
+      "sha256": "789b4cfe4bf961f359136abb5f00927defefa2617287cfd6e417de57b8be772a",
+      "size": 38387749
     },
     {
       "platform": "windows",
       "arch": "x64",
-      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.5.1-beta/CallersCompendium-0.5.1-beta-windows-x64.exe",
-      "sha256": "254b81d30194d6ab72d47c595b8db8cf2058f41be02481419a499d73f12be4e1",
-      "size": 18149464
+      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.5.2-beta/CallersCompendium-0.5.2-beta-windows-x64.exe",
+      "sha256": "4590dcafca89ce0913b5825df668ffdf43aa0fa99c3b5f86a35232b61153e5c5",
+      "size": 18164592
     }
   ],
   "codename": "Balance and Swing"
