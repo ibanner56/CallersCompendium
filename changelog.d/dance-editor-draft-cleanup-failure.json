@@ -1,9 +1,0 @@
-{
-  "id": "dance-editor-draft-cleanup-failure",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "Saving a dance no longer reports \"Couldn't save the dance\" when the dance was saved but tidying up its autosaved draft failed. Previously the editor stayed open and saving again created a second copy of a new dance; now the editor closes and the dance is saved once."
-    ]
-  }
-}
