@@ -929,6 +929,31 @@ void main() {
       expect(saved.map((d) => d.title), contains("Money Musk"));
     });
 
+    test('import applies defaultTagIds to the new dance, and only when '
+        'passed (program callers omit them)', () async {
+      final repos = openTestRepositories();
+      await repos.tags.upsert(Tag(id: 't1', name: 'No card'));
+      final online = onlineWithJson(_danceJson());
+      final preview = await online.loadPreview(repos, result());
+
+      final untagged = await online.import(repos, preview.plan);
+      expect(
+        (await repos.dances.getById(untagged.danceId!))!.tagIds,
+        isEmpty,
+        reason: 'the default must be no tags',
+      );
+
+      final repos2 = openTestRepositories();
+      final tagId2 = await repos2.tags.upsert(Tag(id: 't1', name: 'No card'));
+      final preview2 = await online.loadPreview(repos2, result());
+      final tagged = await online.import(
+        repos2,
+        preview2.plan,
+        defaultTagIds: [tagId2],
+      );
+      expect((await repos2.dances.getById(tagged.danceId!))!.tagIds, [tagId2]);
+    });
+
     test('re-importing the same dance reports already-in-collection', () async {
       final repos = openTestRepositories();
       final online = onlineWithJson(_danceJson());

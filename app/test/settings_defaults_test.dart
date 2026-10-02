@@ -240,6 +240,72 @@ void main() {
     },
   );
 
+  group('default import tags (#1476)', () {
+    Future<void> openImportGroup(WidgetTester tester) async {
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('defaults-import-group')),
+      );
+      await tester.tap(find.byKey(const ValueKey('defaults-import-group')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('choosing and clearing a tag persists the selection', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.tags.upsert(Tag(id: 't1', name: 'No card'));
+      await repos.tags.upsert(Tag(id: 't2', name: 'Smooth'));
+      await _pumpDefaults(tester, repos);
+      await openImportGroup(tester);
+
+      await tester.tap(find.byKey(const ValueKey('defaults-import-tag-t1')));
+      await tester.pumpAndSettle();
+      expect(
+        tryDecodeDefaultImportTagIds(
+          await repos.settings.get(kDefaultImportTagIdsKey),
+        ),
+        ['t1'],
+      );
+
+      await tester.tap(find.byKey(const ValueKey('defaults-import-tag-t2')));
+      await tester.tap(find.byKey(const ValueKey('defaults-import-tag-t1')));
+      await tester.pumpAndSettle();
+      expect(
+        tryDecodeDefaultImportTagIds(
+          await repos.settings.get(kDefaultImportTagIdsKey),
+        ),
+        ['t2'],
+      );
+    });
+
+    testWidgets('a saved selection shows as chosen, and a deleted tag is '
+        'dropped on the next save', (tester) async {
+      final repos = openTestRepositories();
+      await repos.tags.upsert(Tag(id: 't1', name: 'No card'));
+      await repos.tags.upsert(Tag(id: 't2', name: 'Smooth'));
+      await repos.settings.set(
+        kDefaultImportTagIdsKey,
+        encodeDefaultImportTagIds(['t1', 'gone']),
+      );
+      await _pumpDefaults(tester, repos);
+      await openImportGroup(tester);
+
+      final chip = tester.widget<FilterChip>(
+        find.byKey(const ValueKey('defaults-import-tag-t1')),
+      );
+      expect(chip.selected, isTrue);
+
+      await tester.tap(find.byKey(const ValueKey('defaults-import-tag-t2')));
+      await tester.pumpAndSettle();
+      expect(
+        tryDecodeDefaultImportTagIds(
+          await repos.settings.get(kDefaultImportTagIdsKey),
+        ),
+        ['t1', 't2'],
+      );
+    });
+  });
+
   testWidgets('Defaults appears as a settings section', (tester) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);

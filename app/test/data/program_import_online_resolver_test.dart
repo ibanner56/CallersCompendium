@@ -1,3 +1,4 @@
+import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/online_search.dart';
 import 'package:compendium_app/src/data/plaintext_program_import.dart';
 import 'package:compendium_app/src/data/program_import_online_resolver.dart';
@@ -94,6 +95,7 @@ class _FakeOnlineService implements OnlineSearchService {
     ImportRecordPlan plan, {
     DateTime? now,
     DedupeResolution? ambiguousResolution,
+    List<String> defaultTagIds = const [],
   }) async {
     final title = plan.draft.dance.title;
     importedIds.add(title);
@@ -427,6 +429,45 @@ void main() {
       );
     },
   );
+
+  test('a dance created for a program slot gets no default import tags '
+      '(#1476)', () async {
+    final repos = openTestRepositories();
+    final tagId = await repos.tags.upsert(Tag(id: 'no-card', name: 'No card'));
+    await repos.settings.set(
+      kDefaultImportTagIdsKey,
+      encodeDefaultImportTagIds([tagId]),
+    );
+    await repos.dances.create(
+      _localDance(
+        id: 'local-existing',
+        figures: [
+          Figure(move: 'swing', params: {'who': 'partners', 'beats': 8}),
+        ],
+      ),
+    );
+    final service = _FakeOnlineService(
+      rowsByTitle: {
+        'money musk': [_row('Money Musk', id: '10600')],
+      },
+      confidentTitles: {'money musk'},
+      previewFiguresByTitle: {
+        'money musk': [
+          Figure(move: 'swing', params: {'who': 'neighbors', 'beats': 8}),
+        ],
+      },
+    );
+
+    final danceId = await resolveConfidentOnlineDanceId(
+      'Money Musk',
+      service: service,
+      repos: repos,
+    );
+
+    final created = (await repos.dances.getById(danceId!))!;
+    expect(created.id, isNot('local-existing'));
+    expect(created.tagIds, isEmpty);
+  });
 
   test('a search error keeps the note fallback and does not throw', () async {
     final repos = openTestRepositories();

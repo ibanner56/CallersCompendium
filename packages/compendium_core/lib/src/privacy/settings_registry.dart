@@ -229,6 +229,15 @@ final Map<String, DataClassification> settingsClassifications = {
         'themselves. Personal data, shareable for the same reason as '
         'programs.caller.',
   ),
+  'default_import_tag_ids': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'User-chosen list of tag ids added to dances imported on their own. '
+        "The ids reference the user's own tags, so it travels with the user "
+        'preference in local backups; ids with no live tag are ignored.',
+  ),
   'default_starting_program': const DataClassification(
     term: DpvTerm.nonPersonal,
     subject: DataSubject.appUser,

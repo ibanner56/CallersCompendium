@@ -228,6 +228,7 @@ class CallersCompanionUsrImporter {
     String Function()? newId,
     String Function()? newSlotId,
     Map<int, DedupeResolution> resolutions = const {},
+    List<String> defaultTagIds = const [],
   }) async {
     final mintId = newId ?? uuidV4;
     final danceSession = await _pipeline.commit(
@@ -235,6 +236,8 @@ class CallersCompanionUsrImporter {
       now: now,
       newId: mintId,
       resolutions: resolutions,
+      // Dances only: programs carry no tags.
+      defaultTagIds: defaultTagIds,
     );
 
     final danceIdByCcRowId = _danceIdByCcRowId(danceSession);

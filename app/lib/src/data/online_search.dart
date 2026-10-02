@@ -258,5 +258,6 @@ abstract interface class OnlineSearchService {
     ImportRecordPlan plan, {
     DateTime? now,
     DedupeResolution? ambiguousResolution,
+    List<String> defaultTagIds = const [],
   });
 }

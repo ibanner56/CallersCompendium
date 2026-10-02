@@ -1468,6 +1468,22 @@
   "@settingsDefaultsCollectionFiltersSubtitle": {
     "x-sourceSha256": "fe9b11fa483a593aae54741b5b3cb3abc94b60c4f1575d98df4c16d55b9b5022"
   },
+  "settingsDefaultsImportHeader": "Import-Standardwerte",
+  "@settingsDefaultsImportHeader": {
+    "x-sourceSha256": "dc7da5fd80477b92351f03109e1ca729aff1eff5bf548b10c4b0a9159e124de7"
+  },
+  "settingsDefaultsImportTagsTitle": "Tags für importierte Tänze",
+  "@settingsDefaultsImportTagsTitle": {
+    "x-sourceSha256": "b1dd2d836caef6fe35201a4a9633de08a139ef06a2d899cf238a707968aff9b3"
+  },
+  "settingsDefaultsImportTagsSubtitle": "Wird jedem neuen Tanz hinzugefügt, den du einzeln importierst. Tänze, die beim Import eines Programms entstehen, und Tänze, die aus einem Compendium-Archiv wiederhergestellt werden, erhalten keine Tags.",
+  "@settingsDefaultsImportTagsSubtitle": {
+    "x-sourceSha256": "bd3b68ca22a52c38aa563a2777ac99a8624ec843d438cebd52f12aaec06833db"
+  },
+  "settingsDefaultsImportTagsEmpty": "Du hast noch keine Tags. Füge im Editor einem Tanz eines hinzu und wähle es dann hier aus.",
+  "@settingsDefaultsImportTagsEmpty": {
+    "x-sourceSha256": "5217ace699ce1f4987a89eaa2d027105d4520ea841355d8cfd89223f41730ae6"
+  },
   "settingsDefaultsAuthoringHeader": "Standardwerte für die Tanzerstellung",
   "@settingsDefaultsAuthoringHeader": {
     "x-sourceSha256": "482854f4cc0c72562a4c8a593046db1f9154cbc2787f0474b4a866f28685f347"

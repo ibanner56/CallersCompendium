@@ -139,6 +139,47 @@ const String kDefaultProgramCallerKey = 'default_program_caller';
 /// empty ⇒ no prefill (the field opens blank).
 const String kDefaultProgramBandKey = 'default_program_band';
 
+/// Key used to persist the tags applied to dances imported on their own
+/// (issue #1476). A JSON-encoded list of tag ids, read through
+/// [tryDecodeDefaultImportTagIds]. Ids rather than names: a tag can be renamed,
+/// and a name reference would silently stop matching. Absent, empty or
+/// unreadable ⇒ no tags are added. Ids of tags that have since been deleted are
+/// ignored at import time (see `resolveDefaultImportTagIds`).
+const String kDefaultImportTagIdsKey = 'default_import_tag_ids';
+
+/// Upper bound on [kDefaultImportTagIdsKey] entries; a restored backup is not
+/// trusted to carry a sane count.
+const int kMaxDefaultImportTags = 50;
+
+/// Encodes default import tag ids for [kDefaultImportTagIdsKey]: blanks and
+/// duplicates dropped, order kept, capped at [kMaxDefaultImportTags].
+String encodeDefaultImportTagIds(Iterable<String> ids) =>
+    jsonEncode(_cleanTagIds(ids).take(kMaxDefaultImportTags).toList());
+
+/// Decodes a stored [kDefaultImportTagIdsKey] value, returning `null` for
+/// anything that is not a JSON list of non-blank strings within
+/// [kMaxDefaultImportTags]. Callers treat `null` as "no default tags".
+List<String>? tryDecodeDefaultImportTagIds(Object? stored) {
+  if (stored is! String) return null;
+  try {
+    final decoded = jsonDecode(stored);
+    if (decoded is! List || decoded.length > kMaxDefaultImportTags) return null;
+    if (decoded.any((e) => e is! String || e.trim().isEmpty)) return null;
+    return _cleanTagIds(decoded.cast<String>()).toList();
+  } catch (_) {
+    // diagnostics: silent — malformed settings data returns null.
+    return null;
+  }
+}
+
+Iterable<String> _cleanTagIds(Iterable<String> ids) sync* {
+  final seen = <String>{};
+  for (final id in ids) {
+    final trimmed = id.trim();
+    if (trimmed.isNotEmpty && seen.add(trimmed)) yield trimmed;
+  }
+}
+
 /// Key used to persist the semantic slot template for manually created
 /// programs. Generated slot ids and positions are intentionally omitted.
 const String kDefaultStartingProgramKey = 'default_starting_program';

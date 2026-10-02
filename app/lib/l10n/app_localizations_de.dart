@@ -1379,6 +1379,20 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wählen Sie aus, welche Filter erscheinen, wenn Sie die Sammlung filtern und wenn Sie Tänze für ein Programm auswählen. Standardmäßig werden alle Filter angezeigt. Beim Ausblenden eines Filters wird seine Auswahl zurückgesetzt.';
 
   @override
+  String get settingsDefaultsImportHeader => 'Import-Standardwerte';
+
+  @override
+  String get settingsDefaultsImportTagsTitle => 'Tags für importierte Tänze';
+
+  @override
+  String get settingsDefaultsImportTagsSubtitle =>
+      'Wird jedem neuen Tanz hinzugefügt, den du einzeln importierst. Tänze, die beim Import eines Programms entstehen, und Tänze, die aus einem Compendium-Archiv wiederhergestellt werden, erhalten keine Tags.';
+
+  @override
+  String get settingsDefaultsImportTagsEmpty =>
+      'Du hast noch keine Tags. Füge im Editor einem Tanz eines hinzu und wähle es dann hier aus.';
+
+  @override
   String get settingsDefaultsAuthoringHeader =>
       'Standardwerte für die Tanzerstellung';
 

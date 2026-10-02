@@ -1713,6 +1713,22 @@
   "@settingsDefaultsCollectionFiltersSubtitle": {
     "description": "Subtitle describing the filter-visibility checkboxes (#1419)."
   },
+  "settingsDefaultsImportHeader": "Import defaults",
+  "@settingsDefaultsImportHeader": {
+    "description": "Section header for defaults applied to dances imported on their own."
+  },
+  "settingsDefaultsImportTagsTitle": "Tags for imported dances",
+  "@settingsDefaultsImportTagsTitle": {
+    "description": "Title of the Import defaults setting that picks the tags added to newly imported dances."
+  },
+  "settingsDefaultsImportTagsSubtitle": "Added to each new dance you import on its own. Dances created while importing a program, and dances restored from a Compendium archive, are not tagged.",
+  "@settingsDefaultsImportTagsSubtitle": {
+    "description": "Explains which imports the default import tags apply to and which they skip."
+  },
+  "settingsDefaultsImportTagsEmpty": "You have no tags yet. Add one to a dance in the editor, then pick it here.",
+  "@settingsDefaultsImportTagsEmpty": {
+    "description": "Shown in place of the tag chips when the user has no tags."
+  },
   "settingsDefaultsAuthoringHeader": "Dance-authoring defaults",
   "@settingsDefaultsAuthoringHeader": {
     "description": "Section header for defaults applied when authoring a new dance."

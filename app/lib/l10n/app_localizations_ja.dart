@@ -1325,6 +1325,20 @@ class AppLocalizationsJa extends AppLocalizations {
       'コレクションを絞り込むときと、プログラム用にダンスを選ぶときに表示するフィルターを選択します。既定ではすべてのフィルターが表示されます。フィルターを非表示にすると、その選択は解除されます。';
 
   @override
+  String get settingsDefaultsImportHeader => 'インポートのデフォルト設定';
+
+  @override
+  String get settingsDefaultsImportTagsTitle => 'インポートしたダンスのタグ';
+
+  @override
+  String get settingsDefaultsImportTagsSubtitle =>
+      '単独でインポートした新しいダンスごとに追加されます。プログラムのインポート中に作成されたダンスや、Compendiumアーカイブから復元されたダンスにはタグは付きません。';
+
+  @override
+  String get settingsDefaultsImportTagsEmpty =>
+      'まだタグがありません。エディターでダンスにタグを追加してから、ここで選択してください。';
+
+  @override
   String get settingsDefaultsAuthoringHeader => 'ダンス作成のデフォルト設定';
 
   @override

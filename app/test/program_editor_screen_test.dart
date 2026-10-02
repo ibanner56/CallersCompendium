@@ -164,6 +164,7 @@ class _ProgramOnlineService implements OnlineSearchService {
     ImportRecordPlan plan, {
     DateTime? now,
     DedupeResolution? ambiguousResolution,
+    List<String> defaultTagIds = const [],
   }) async {
     // ignore: unused_result
     await repos.choreographers.upsert(
@@ -195,6 +196,7 @@ class _QueuedProgramOnlineService extends _ProgramOnlineService {
     ImportRecordPlan plan, {
     DateTime? now,
     DedupeResolution? ambiguousResolution,
+    List<String> defaultTagIds = const [],
   }) async {
     final index = _importIndex++;
     final result = await super.import(
