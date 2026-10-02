@@ -1,14 +1,12 @@
 // The automatic retry after a transient failure, the resume trigger and the
 // store-quota latch (spec §5.2, §6.12): the parts of `SyncController` that act
 // on a pass's outcome after it has been recorded.
-import 'dart:async';
 
 import 'package:compendium_app/src/screens/settings/settings_keys.dart';
 import 'package:compendium_app/src/sync/sync_controller.dart';
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_app/src/sync/sync_network.dart';
-import 'package:compendium_app/src/sync/sync_runtime.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter_test/flutter_test.dart';
