@@ -170,6 +170,14 @@ abstract interface class SyncCoordinatorStore
   /// candidates after inbound writes.
   Future<SyncFreshAttachDedupeResult> refreshDanceAmbiguityReviews();
 
+  /// Queues this pass's conflict choices and drops those it no longer raises
+  /// (sync-spec §6.3, §6.6). [unevaluated] names addresses the merge skipped,
+  /// whose queued choices must survive the pass untouched.
+  Future<int> refreshConflictReviews(
+    Iterable<SyncMergeDecision> reviews, {
+    Set<SyncRecordAddress> unevaluated,
+  });
+
   Future<void> replaceBaseline({
     required String epoch,
     required Iterable<SyncBaselineEntry> entries,
@@ -285,6 +293,12 @@ final class CompendiumSyncCoordinatorStore
   @override
   Future<SyncFreshAttachDedupeResult> refreshDanceAmbiguityReviews() =>
       storage.refreshDanceAmbiguityReviews();
+
+  @override
+  Future<int> refreshConflictReviews(
+    Iterable<SyncMergeDecision> reviews, {
+    Set<SyncRecordAddress> unevaluated = const {},
+  }) => storage.refreshConflictReviews(reviews, unevaluated: unevaluated);
 
   @override
   Future<void> replaceBaseline({
@@ -1379,6 +1393,13 @@ class SyncCoordinator {
       for (final address in applyResult.applied) address.kind,
     };
 
+    // Ties and whole-collection conflicts wait for the user rather than
+    // being reported every pass. Queued after apply, beside the dance
+    // review refresh, so one pass leaves the queue matching what it found.
+    await store.refreshConflictReviews(
+      plan.reviews,
+      unevaluated: {...normalizedUnresolved, ...mergeQuarantined},
+    );
     final dedupe = freshAttach
         ? await store.deduplicateFreshAttach()
         : await store.refreshDanceAmbiguityReviews();
@@ -1613,9 +1634,16 @@ class SyncCoordinator {
         ),
       );
     }
+    // A record waiting on the user's choice is unreflected by design until
+    // they decide; counting it would raise a second notice for the same
+    // record, pointing at the wrong remedy.
+    final awaitingChoice = {
+      for (final decision in plan.reviews) decision.address,
+    };
     final uploadManifestHashes = <SyncRecordAddress, String>{
       for (final address in publicationPlan.uploadAddresses)
-        address: publicationPlan.manifestHashes[address]!,
+        if (!awaitingChoice.contains(address))
+          address: publicationPlan.manifestHashes[address]!,
     };
     _recordUnreflectedPublications(
       uploadManifestHashes,
