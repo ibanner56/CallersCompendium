@@ -291,6 +291,7 @@ void main() {
 
     test('a batch is all or nothing', () async {
       await repositories.settings.set('theme_mode', 'dark', at: tie);
+      // ignore: unused_result
       await repositories.tags.upsert(
         Tag(id: 'tag-1', name: 'Local'),
         at: tie,
@@ -342,6 +343,7 @@ void main() {
 
     test('keeping another device\'s version of an entity applies it through '
         'the inbound path', () async {
+      // ignore: unused_result
       await repositories.tags.upsert(
         Tag(id: 'tag-1', name: 'Local'),
         at: tie,
