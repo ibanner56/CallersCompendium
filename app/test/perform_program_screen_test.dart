@@ -695,13 +695,21 @@ void main() {
 
       expect(find.byType(PerformCard), findsOneWidget);
       expect(find.byKey(const ValueKey('perform-text')), findsNothing);
-      expect(find.text('Gone Dance'), findsOneWidget);
+      // The card itself carries the deleted marker and the dance's figures.
+      expect(find.text('Gone Dance (deleted dance)'), findsOneWidget);
+      expect(find.text('robins chain'), findsOneWidget);
       expect(find.text('Untitled slot'), findsNothing);
       expect(find.text('Dance unavailable'), findsNothing);
 
       await tester.tap(find.byKey(const ValueKey('perform-jump')));
       await tester.pumpAndSettle();
-      expect(find.text('Gone Dance (deleted dance)'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('perform-jump-list')),
+          matching: find.text('Gone Dance (deleted dance)'),
+        ),
+        findsOneWidget,
+      );
     },
   );
 

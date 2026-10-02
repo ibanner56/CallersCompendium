@@ -133,8 +133,8 @@ through any others, then back to the primary). This only changes what you are
 looking at; the program itself stays as it is.
 
 If a dance in your program has been deleted, its slot still shows the figures
-as long as the dance is in Recently deleted, and **Jump to slot** marks it
-"(deleted dance)". A dance that no longer exists at all shows "Dance
+as long as the dance is in Recently deleted, and both the card title and
+**Jump to slot** mark it "(deleted dance)". A dance that no longer exists at all shows "Dance
 unavailable" instead; your note for that slot, if you have notes turned on,
 appears underneath.
 

@@ -1260,8 +1260,16 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
   Widget _buildCard(ProgramSlot slot, Dialect dialect) {
     if (slot.danceId != null) {
-      final dance = _danceForSlot(slot);
+      var dance = _danceForSlot(slot);
       if (dance != null) {
+        // A soft-deleted dance keeps its figures but says so in its title.
+        if (dance.isDeleted) {
+          dance = dance.copyWith(
+            title:
+                '${dance.title} '
+                '${AppLocalizations.of(context).programsDeletedDanceFallback}',
+          );
+        }
         return PerformCard(
           dance: dance,
           callerNote: _showProgramSlotCallerNotes == true ? slot.text : null,
@@ -1325,10 +1333,11 @@ Future<Map<String, Dance>> resolveDeletedSlotDances(
   CollectionData data,
 ) async {
   final resolved = <String, Dance>{};
+  final attempted = <String>{};
   for (final slot in program.slots) {
     final id = slot.danceId;
     if (id == null || data.dancesById.containsKey(id)) continue;
-    if (resolved.containsKey(id)) continue;
+    if (!attempted.add(id)) continue;
     final dance = await dances.getById(id, includeDeleted: true);
     if (dance != null) resolved[id] = dance;
   }

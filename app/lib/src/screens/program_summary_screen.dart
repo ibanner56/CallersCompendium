@@ -178,6 +178,10 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   CollectionData? _collectionData;
   List<DifficultyLevel> _difficultyLevels = const [];
   bool _loading = true;
+
+  /// True while [_performProgram] resolves deleted dances, so a double tap
+  /// cannot push two Perform screens.
+  bool _resolvingPerform = false;
   Object? _error;
 
   /// In-memory Perform resume state (issue #434) — same pattern as
@@ -564,12 +568,19 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     final program = _program;
     final data = _collectionData;
     if (program == null || data == null || program.slots.isEmpty) return;
+    if (_resolvingPerform) return;
+    _resolvingPerform = true;
     _invalidateBulkUndo();
-    final deletedDances = await resolveDeletedSlotDances(
-      _repos.dances,
-      program,
-      data,
-    );
+    final Map<String, Dance> deletedDances;
+    try {
+      deletedDances = await resolveDeletedSlotDances(
+        _repos.dances,
+        program,
+        data,
+      );
+    } finally {
+      _resolvingPerform = false;
+    }
     if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute<void>(

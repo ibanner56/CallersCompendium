@@ -151,6 +151,10 @@ class ProgramEditorScreen extends StatefulWidget {
 class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     with SingleTickerProviderStateMixin {
   late CompendiumRepositories _repos;
+
+  /// True while [_performProgram] resolves deleted dances, so a double tap
+  /// cannot push two Perform screens.
+  bool _resolvingPerform = false;
   late DanceReimportCoordinator _reimport;
   late final TabController _tabController;
   final _formKey = GlobalKey<FormState>();
@@ -1769,12 +1773,19 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final data = _data;
     final program = _programToPerform(AppLocalizations.of(context));
     if (data == null || program == null) return;
+    if (_resolvingPerform) return;
+    _resolvingPerform = true;
     _invalidateBulkUndo();
-    final deletedDances = await resolveDeletedSlotDances(
-      _repos.dances,
-      program,
-      data,
-    );
+    final Map<String, Dance> deletedDances;
+    try {
+      deletedDances = await resolveDeletedSlotDances(
+        _repos.dances,
+        program,
+        data,
+      );
+    } finally {
+      _resolvingPerform = false;
+    }
     if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
