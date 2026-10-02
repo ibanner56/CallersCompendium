@@ -38,6 +38,15 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 _Nothing yet._
 
+## [0.5.3] - 2026-10-02
+
+### Changed
+
+- When Device Sync fails, Settings now tells you why — the server couldn't be reached or took too long, had a problem of its own, your store is full, the server refused what was sent or your sync phrase, and so on — with what you can do about it and a Details line (the step that stopped and the server's HTTP status) you can quote when reporting it.
+- Connecting a device, loading Other devices, removing a device and deleting the store now say why they failed instead of a generic "not available right now".
+- The Sync now button on the Collection and Programs pages now tells you when a sync didn't finish, and why.
+- Device Sync notices now list the records they are about — dances, programs, choreographers, tags and venues by name, so "edit one of them" tells you which — and say how many other devices skipped records came from.
+
 ## [0.5.2] - 2026-10-01
 
 ### Changed
