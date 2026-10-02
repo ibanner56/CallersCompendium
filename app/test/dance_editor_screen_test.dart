@@ -644,6 +644,53 @@ void main() {
     expect(dance.authorIds.single, choreographers.single.id);
   });
 
+  testWidgets('new dance focuses the title field after load', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpEditor(tester, repos, danceId: null);
+
+    final titleEditable = find.descendant(
+      of: find.byKey(const ValueKey('title-field')),
+      matching: find.byType(EditableText),
+    );
+    final editable = tester.widget<EditableText>(titleEditable);
+    expect(editable.focusNode.hasPrimaryFocus, isTrue);
+
+    // Typing with no tap or finder-based enterText lands in the title: the
+    // simulated IME reaches whichever field holds focus.
+    tester.testTextInput.enterText('p');
+    await tester.pump();
+    expect(editable.controller.text, 'p');
+  });
+
+  testWidgets('existing dance keeps focus inside the editor after load', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+    await _pumpEditor(tester, repos, danceId: 'd1');
+
+    // The outer shortcut Focus must own focus so Ctrl-Z/Ctrl-Y fire without a
+    // tap; the title is not stolen for an existing dance.
+    final primary = FocusManager.instance.primaryFocus;
+    expect(primary, isNotNull);
+    expect(
+      find.descendant(
+        of: find.byType(Scaffold).first,
+        matching: find.byKey(const ValueKey('title-field')),
+      ),
+      findsOneWidget,
+    );
+    final scaffoldContext = tester.element(find.byType(Scaffold).first);
+    expect(Focus.of(scaffoldContext).hasPrimaryFocus, isTrue);
+    final titleEditable = tester.widget<EditableText>(
+      find.descendant(
+        of: find.byKey(const ValueKey('title-field')),
+        matching: find.byType(EditableText),
+      ),
+    );
+    expect(titleEditable.focusNode.hasPrimaryFocus, isFalse);
+  });
+
   testWidgets('author chip opens details dialog and saves shared edits', (
     tester,
   ) async {

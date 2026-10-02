@@ -289,6 +289,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     );
   }
 
+  /// Whether the one-shot title focus request for a new dance has been made.
+  bool _titleFocusRequested = false;
+
   @override
   void dispose() {
     if (_dependenciesInitialized) {
@@ -910,6 +913,14 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     // restyle) when the active dialect changes; also passed down to the lingo
     // hints so they reflect the current dialect's discouraged terms.
     final dialect = ActiveDialectScope.of(context);
+    // The outer shortcut Focus(autofocus: true) owns focus from the spinner
+    // frame, so the title's own autofocus is dropped; request it once here.
+    if (widget.isNew && !_titleFocusRequested) {
+      _titleFocusRequested = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _controller.titleFocusNode.requestFocus();
+      });
+    }
     return DanceEditorForm(
       controller: _controller,
       formKey: _formKey,
