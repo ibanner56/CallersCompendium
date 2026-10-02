@@ -505,8 +505,23 @@ class AppLocalizationsJa extends AppLocalizations {
       '同じレコードを編集している間に別のデバイスからの更新が届いたため、適用されませんでした。次回の同期で取り込まれます。';
 
   @override
-  String get settingsSyncNoticeUnreflectedPublication =>
-      'このデバイスでの変更が、数回同期しても他のデバイスに表示されていません。他のデバイスでアプリを開いて同期してください。';
+  String settingsSyncNoticePeerNotTaking(int count, String tag) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Device $tag is syncing but isn\'t taking $count changes from this device. They\'re safe here; that device may need an app update.',
+      one:
+          'Device $tag is syncing but isn\'t taking 1 change from this device. The change is safe here; that device may need an app update.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsSyncNoticeNeedsYou => 'Needs you';
+
+  @override
+  String get settingsSyncNoticeSeeDevices => 'See other devices';
 
   @override
   String get settingsSyncNotBackup =>
@@ -553,6 +568,52 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsSyncDevicesCaution =>
       'サーバーは各デバイスを自動生成した識別子でしか把握していないため、ここにデバイス名は表示されず、このデバイスも一覧に含まれません。どれを削除すべきか分からない場合は、そのままにしておいても問題ありません。削除したデバイスは同期フレーズがあれば再び接続できます。';
+
+  @override
+  String settingsSyncDevicesThisDevice(String tag) {
+    return 'This device: $tag';
+  }
+
+  @override
+  String settingsSyncDeviceTag(String tag) {
+    return 'Device $tag';
+  }
+
+  @override
+  String get settingsSyncDeviceLastSharedToday => 'Last shared changes today';
+
+  @override
+  String settingsSyncDeviceLastSharedDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Last shared changes $count days ago',
+      one: 'Last shared changes yesterday',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncDeviceLastSharedWeeks(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Last shared changes about $count weeks ago',
+      one: 'Last shared changes about a week ago',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncDeviceWaiting(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count changes from this device are waiting for it.',
+      one: '1 change from this device is waiting for it.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get settingsSyncDevicesEmpty => 'このストアに接続されている他のデバイスはありません。';

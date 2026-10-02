@@ -27,7 +27,12 @@ final class _FixedNetwork implements SyncNetworkClassifier {
 /// Records what the surface asked the transport to do, so a test can
 /// assert the *request* rather than only its visible effect.
 final class _Admin {
-  _Admin({this.storeBody});
+  _Admin({
+    this.storeBody,
+    this.devices = const ['device_1', 'peer_a', 'peer_b'],
+    this.manifests = const {},
+    this.storeGate,
+  });
 
   /// Overrides the generated store body when a test needs a malformed one.
   final String? storeBody;
@@ -35,7 +40,23 @@ final class _Admin {
   /// Ids returned by `GET /v1/store`, including this device's own — as the
   /// server sends them (spec §5: "including the caller if it has
   /// published").
-  final List<String> devices = const ['device_1', 'peer_a', 'peer_b'];
+  final List<String> devices;
+
+  /// What `GET /v1/manifests/{id}` answers: a manifest, or a status code for
+  /// a refusal. An id with no entry answers `404`.
+  final Map<String, Object> manifests;
+
+  /// Holds `GET /v1/store` until completed, when set.
+  final Completer<void>? storeGate;
+
+  /// Runs as `GET /v1/store` arrives, before it is answered.
+  Future<void> Function()? onStoreRead;
+
+  /// Every request, in order, as `METHOD path`.
+  final List<String> requests = [];
+
+  /// The per-request deadline each client was built with.
+  final List<Duration?> requestTimeouts = [];
 
   /// Assigned per test rather than constructed, so each case reads as the one
   /// answer it changes.
@@ -60,9 +81,17 @@ final class _Admin {
         body: body == null ? const [] : utf8.encode(body),
       );
 
+  SyncDeviceAdmin adminWith({Duration? requestTimeout}) {
+    requestTimeouts.add(requestTimeout);
+    return admin;
+  }
+
   SyncDeviceAdmin get admin => SyncDeviceAdmin(
     getStore: ({required previouslyUsed}) async {
       storeReads++;
+      requests.add('GET store');
+      await onStoreRead?.call();
+      await storeGate?.future;
       return SyncStoreResult(
         response: _response(
           storeKind,
@@ -71,7 +100,28 @@ final class _Admin {
         ),
       );
     },
+    getManifest: (deviceId) async {
+      requests.add('GET manifests/$deviceId');
+      return switch (manifests[deviceId]) {
+        final SyncManifest manifest => SyncHttpResponse(
+          statusCode: 200,
+          kind: SyncResponseKind.success,
+          headers: const {},
+          body: encodeSyncManifestUtf8(manifest),
+        ),
+        final int status => SyncHttpResponse(
+          statusCode: status,
+          kind: status == 404
+              ? SyncResponseKind.notFound
+              : SyncResponseKind.serverError,
+          headers: const {},
+          body: const [],
+        ),
+        _ => _response(SyncResponseKind.notFound),
+      };
+    },
     deleteManifest: (deviceId) async {
+      requests.add('DELETE manifests/$deviceId');
       removed.add(deviceId);
       return _response(manifestKind);
     },
@@ -586,6 +636,59 @@ void main() {
         hasLength(1),
         reason: 'a real preference edit after re-enabling is a record',
       );
+    });
+  });
+
+  group('peer summaries (the Other devices list)', () {
+    test('a completed survey replaces them, a pass that surveyed nothing '
+        'keeps them, and detach forgets them', () async {
+      final results = <SyncPassResult>[];
+      final summary = SyncPeerSummary(
+        peerId: 'peer_a',
+        writtenAt: DateTime.utc(2026, 9, 19),
+        waitingCount: 3,
+      );
+      coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device',
+        store: CompendiumSyncCoordinatorStore(repos),
+        transport: NoopSyncCoordinatorTransport(),
+        passOperation: ({initialStore}) async => results.removeAt(0),
+      );
+      addTearDown(() => coordinator?.dispose());
+      await repos.settings.set(kSyncIdKey, 'correct horse battery staple');
+      await repos.settings.set(kSyncEndpointKey, 'https://sync.example.test/');
+      final controller = build();
+      await controller.load();
+      await controller.setEnabled(true);
+
+      results.add(SyncPassResult(SyncPassStatus.completed, peers: [summary]));
+      await controller.syncNow();
+      expect(controller.peerSummaries, {'peer_a': summary});
+
+      results.add(
+        const SyncPassResult(
+          SyncPassStatus.failed,
+          failure: SyncFailure(SyncFailureCause.unreachable),
+        ),
+      );
+      await controller.syncNow();
+      expect(controller.peerSummaries, {
+        'peer_a': summary,
+      }, reason: 'a pass that read no manifest says nothing about the peers');
+
+      results.add(const SyncPassResult(SyncPassStatus.completed, peers: []));
+      await controller.syncNow();
+      expect(
+        controller.peerSummaries,
+        isEmpty,
+        reason: 'an empty survey is a finding: no other device was seen',
+      );
+
+      results.add(SyncPassResult(SyncPassStatus.completed, peers: [summary]));
+      await controller.syncNow();
+      await controller.detach();
+      expect(controller.peerSummaries, isEmpty);
     });
   });
 
@@ -1289,9 +1392,16 @@ void main() {
   });
 
   group('detach (spec glossary, §6.2 step 3)', () {
+    /// The store the detach clean-up talks to. By default this device's own
+    /// manifest is not on it, so the clean-up stops after two reads.
+    late _Admin admin;
+
+    setUp(() => admin = _Admin());
+
     Future<SyncController> paired({
       Future<void> Function(Future<void> Function() operation)? runExclusive,
       Future<void> Function({bool startPass})? reconfigure,
+      Duration detachCleanupDeadline = kSyncDetachCleanupDeadline,
     }) async {
       await repos.settings.set(kSyncEnabledKey, true);
       await repos.settings.set(kSyncIdKey, 'correct horse battery staple');
@@ -1306,8 +1416,11 @@ void main() {
         coordinator: () => coordinator,
         reconfigure: reconfigure ?? ({bool startPass = true}) async {},
         runExclusive: runExclusive ?? (operation) => operation(),
+        deviceAdminFactory: (syncId, endpoint, {requestTimeout}) =>
+            admin.adminWith(requestTimeout: requestTimeout),
         classifier: network,
         now: () => clock,
+        detachCleanupDeadline: detachCleanupDeadline,
       );
       addTearDown(controller.dispose);
       await controller.load();
@@ -1455,6 +1568,314 @@ void main() {
     });
   });
 
+  group('detach clean-up: removing this device\'s own manifest', () {
+    late _Admin admin;
+
+    /// This device's manifest, or a peer's, in the store's epoch.
+    SyncManifest manifest(
+      String deviceId,
+      Map<String, String> settings, {
+      String epoch = 'epoch-1',
+    }) => SyncManifest(
+      deviceId: deviceId,
+      epoch: epoch,
+      writtenAt: DateTime.utc(2026, 9, 20, 12),
+      records: {SyncRecordKind.setting: settings},
+    );
+
+    String hash(String character) => List.filled(64, character).join();
+
+    Future<SyncController> paired({
+      Duration detachCleanupDeadline = kSyncDetachCleanupDeadline,
+    }) async {
+      await repos.settings.set(kSyncEnabledKey, true);
+      await repos.settings.set(kSyncIdKey, 'correct horse battery staple');
+      await repos.settings.set(kSyncEndpointKey, 'https://sync.example.test/');
+      await repos.settings.set(kSyncDeviceIdKey, 'device_1');
+      final controller = SyncController(
+        settings: repos.settings,
+        syncLocal: repos.syncLocal,
+        coordinator: () => coordinator,
+        reconfigure: ({bool startPass = true}) async {},
+        deviceAdminFactory: (syncId, endpoint, {requestTimeout}) {
+          expect(
+            syncId,
+            'correct horse battery staple',
+            reason: 'the clean-up must address the store being left',
+          );
+          return admin.adminWith(requestTimeout: requestTimeout);
+        },
+        classifier: network,
+        now: () => clock,
+        detachCleanupDeadline: detachCleanupDeadline,
+      );
+      addTearDown(controller.dispose);
+      await controller.load();
+      return controller;
+    }
+
+    /// Every entry of `device_1`'s manifest is carried by some peer, with the
+    /// identical hash — `a` by one peer and `b` by the other.
+    _Admin reflected({Completer<void>? storeGate}) => _Admin(
+      storeGate: storeGate,
+      manifests: {
+        'device_1': manifest('device_1', {'a': hash('1'), 'b': hash('2')}),
+        'peer_a': manifest('peer_a', {'a': hash('1')}),
+        'peer_b': manifest('peer_b', {'b': hash('2'), 'c': hash('3')}),
+      },
+    );
+
+    test('removes it when every entry is carried by a peer, with short '
+        'timeouts', () async {
+      admin = reflected();
+      final controller = await paired();
+
+      await controller.detach();
+
+      expect(
+        await controller.detachCleanup,
+        SyncDetachCleanupOutcome.deleteSent,
+      );
+      expect(admin.requests, [
+        'GET store',
+        'GET manifests/device_1',
+        'GET manifests/peer_a',
+        'GET manifests/peer_b',
+        'DELETE manifests/device_1',
+      ]);
+      expect(admin.requestTimeouts, [kSyncDetachCleanupRequestTimeout]);
+      expect(admin.closes, 1, reason: 'the clean-up owns its client');
+    });
+
+    test('keeps it when its last edit is on no peer', () async {
+      admin = _Admin(
+        manifests: {
+          'device_1': manifest('device_1', {'a': hash('1'), 'b': hash('9')}),
+          'peer_a': manifest('peer_a', {'a': hash('1')}),
+          // Carries `b`, but an older version of it.
+          'peer_b': manifest('peer_b', {'b': hash('2')}),
+        },
+      );
+      final controller = await paired();
+
+      await controller.detach();
+
+      expect(
+        await controller.detachCleanup,
+        SyncDetachCleanupOutcome.skippedNotReflected,
+      );
+      expect(admin.removed, isEmpty);
+    });
+
+    test('keeps it when a peer manifest is in another epoch', () async {
+      admin = _Admin(
+        manifests: {
+          'device_1': manifest('device_1', {'a': hash('1')}),
+          'peer_a': manifest('peer_a', {'a': hash('1')}, epoch: 'epoch-0'),
+          'peer_b': manifest('peer_b', {'a': hash('1')}),
+        },
+      );
+      final controller = await paired();
+
+      await controller.detach();
+
+      expect(
+        await controller.detachCleanup,
+        SyncDetachCleanupOutcome.skippedUnknown,
+      );
+      expect(admin.removed, isEmpty);
+    });
+
+    test('keeps it when a peer manifest cannot be read', () async {
+      admin = _Admin(
+        manifests: {
+          'device_1': manifest('device_1', {'a': hash('1')}),
+          'peer_a': manifest('peer_a', {'a': hash('1')}),
+          'peer_b': 500,
+        },
+      );
+      final controller = await paired();
+
+      await controller.detach();
+
+      expect(
+        await controller.detachCleanup,
+        SyncDetachCleanupOutcome.skippedUnknown,
+      );
+      expect(admin.removed, isEmpty);
+    });
+
+    test('the only device in a store keeps it', () async {
+      admin = _Admin(
+        devices: const ['device_1'],
+        manifests: {
+          'device_1': manifest('device_1', {'a': hash('1')}),
+        },
+      );
+      final controller = await paired();
+
+      await controller.detach();
+
+      expect(
+        await controller.detachCleanup,
+        SyncDetachCleanupOutcome.skippedOnlyDevice,
+      );
+      expect(admin.requests, ['GET store']);
+    });
+
+    test('a manifest that is not there is left alone', () async {
+      admin = _Admin(
+        manifests: {
+          'peer_a': manifest('peer_a', {'a': hash('1')}),
+        },
+      );
+      final controller = await paired();
+
+      await controller.detach();
+
+      expect(
+        await controller.detachCleanup,
+        SyncDetachCleanupOutcome.skippedNoManifest,
+      );
+      expect(admin.requests, ['GET store', 'GET manifests/device_1']);
+    });
+
+    test('offline makes no request at all', () async {
+      admin = reflected();
+      network.kind = SyncNetworkKind.offline;
+      final controller = await paired();
+
+      await controller.detach();
+
+      expect(
+        await controller.detachCleanup,
+        SyncDetachCleanupOutcome.skippedConnection,
+      );
+      expect(admin.requests, isEmpty);
+    });
+
+    test('a metered connection with Sync only on WiFi makes no request, and '
+        'does not send the user to the setting', () async {
+      admin = reflected();
+      network.kind = SyncNetworkKind.metered;
+      final controller = await paired();
+      expect(controller.wifiOnly, isTrue);
+
+      await controller.detach();
+
+      expect(
+        await controller.detachCleanup,
+        SyncDetachCleanupOutcome.skippedConnection,
+      );
+      expect(admin.requests, isEmpty);
+      expect(controller.wifiSettingRequests.value, 0);
+    });
+
+    test('detach completes before any network work, which starts only '
+        'after the clear', () async {
+      final gate = Completer<void>();
+      addTearDown(() {
+        if (!gate.isCompleted) gate.complete();
+      });
+      admin = reflected(storeGate: gate);
+      Object? phraseAtFirstRequest = 'not read';
+      Object? deviceIdAtFirstRequest = 'not read';
+      admin.onStoreRead = () async {
+        phraseAtFirstRequest = await repos.settings.get(kSyncIdKey);
+        deviceIdAtFirstRequest = await repos.settings.get(kSyncDeviceIdKey);
+      };
+      final controller = await paired();
+
+      await controller.detach();
+
+      expect(controller.paired, isFalse);
+      expect(
+        admin.requests,
+        isEmpty,
+        reason: 'detach returned before the clean-up sent anything',
+      );
+      await pumpEventQueue();
+      expect(admin.requests, [
+        'GET store',
+      ], reason: 'the clean-up runs on its own once detach has returned');
+      expect(
+        phraseAtFirstRequest,
+        isNull,
+        reason: 'the phrase was forgotten on disk before anything was sent',
+      );
+      expect(deviceIdAtFirstRequest, isNull);
+      gate.complete();
+      expect(
+        await controller.detachCleanup,
+        SyncDetachCleanupOutcome.deleteSent,
+      );
+    });
+
+    test('a new pairing cancels it', () async {
+      final gate = Completer<void>();
+      addTearDown(() {
+        if (!gate.isCompleted) gate.complete();
+      });
+      admin = reflected(storeGate: gate);
+      final controller = await paired();
+
+      await controller.detach();
+      final cleanup = controller.detachCleanup;
+      expect(cleanup, isNotNull);
+      await pumpEventQueue();
+      expect(admin.requests, ['GET store'], reason: 'cancelled mid-request');
+      // Building the probe is where a pairing starts; it sends nothing yet.
+      controller
+          .probeFor(
+            'correct-horse-battery-staple',
+            Uri.parse('https://sync.example.test/'),
+          )
+          .close
+          ?.call();
+      gate.complete();
+
+      expect(await cleanup, SyncDetachCleanupOutcome.cancelled);
+      expect(admin.requests, ['GET store']);
+      expect(admin.closes, 1, reason: 'cancelling closes the client');
+      expect(controller.detachCleanup, isNull);
+    });
+
+    test('a failed DELETE is ignored', () async {
+      admin = reflected()..manifestKind = SyncResponseKind.serverError;
+      final controller = await paired();
+
+      await controller.detach();
+
+      expect(
+        await controller.detachCleanup,
+        SyncDetachCleanupOutcome.deleteSent,
+      );
+      expect(admin.removed, ['device_1']);
+      expect(controller.paired, isFalse);
+      expect(controller.lastAdminFailure, isNull);
+      expect(controller.notices, isEmpty);
+    });
+
+    test('gives up at its deadline', () async {
+      final gate = Completer<void>();
+      addTearDown(() {
+        if (!gate.isCompleted) gate.complete();
+      });
+      admin = reflected(storeGate: gate);
+      final controller = await paired(
+        detachCleanupDeadline: const Duration(milliseconds: 20),
+      );
+
+      await controller.detach();
+
+      expect(await controller.detachCleanup, SyncDetachCleanupOutcome.timedOut);
+      expect(admin.closes, 1);
+      gate.complete();
+      await pumpEventQueue();
+      expect(admin.removed, isEmpty, reason: 'nothing follows a timeout');
+    });
+  });
+
   group('device management (spec §3.3, glossary wipe / §5.3)', () {
     /// An attached device whose own protocol id is `device_1`.
     Future<SyncController> paired(
@@ -1480,9 +1901,9 @@ void main() {
         coordinator: () => coordinator,
         reconfigure: ({bool startPass = true}) async {},
         runExclusive: runExclusive ?? (operation) => operation(),
-        deviceAdminFactory: (syncId, endpoint) {
+        deviceAdminFactory: (syncId, endpoint, {requestTimeout}) {
           onAdminRequested?.call(syncId);
-          return fake.admin;
+          return fake.adminWith(requestTimeout: requestTimeout);
         },
         classifier: network,
         now: () => clock,
@@ -1520,6 +1941,11 @@ void main() {
               'offering to remove this device would be a different action',
         );
         expect(fake.closes, 1, reason: 'the listing owns the client it built');
+        expect(
+          result.selfDeviceId,
+          'device_1',
+          reason: 'the list shows this device its own tag',
+        );
       },
     );
 
@@ -1761,6 +2187,11 @@ void main() {
         }
       }
 
+      // Offline, so the detach clean-up — which does address the old store,
+      // deliberately and only after the clear — sends nothing and builds no
+      // client: every credential recorded below can only be the removal's.
+      // The removal itself is not gated on the connection.
+      network.kind = SyncNetworkKind.offline;
       final controller = await paired(
         fake,
         runExclusive: writerBoundary,
@@ -1866,7 +2297,8 @@ void main() {
         syncLocal: repos.syncLocal,
         coordinator: () => coordinator,
         reconfigure: ({bool startPass = true}) async {},
-        deviceAdminFactory: (syncId, endpoint) => fake.admin,
+        deviceAdminFactory: (syncId, endpoint, {requestTimeout}) =>
+            fake.adminWith(requestTimeout: requestTimeout),
         classifier: network,
       );
       addTearDown(controller.dispose);

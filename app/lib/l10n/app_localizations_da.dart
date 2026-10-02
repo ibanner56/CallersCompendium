@@ -524,8 +524,23 @@ class AppLocalizationsDa extends AppLocalizations {
       'En opdatering fra en anden enhed kom, mens du redigerede den samme post, så den blev ikke anvendt. Næste synkronisering tager den med.';
 
   @override
-  String get settingsSyncNoticeUnreflectedPublication =>
-      'Ændringer fra denne enhed er ikke dukket op på dine andre enheder efter flere synkroniseringer. Åbn appen på dem, og synkronisér.';
+  String settingsSyncNoticePeerNotTaking(int count, String tag) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Device $tag is syncing but isn\'t taking $count changes from this device. They\'re safe here; that device may need an app update.',
+      one:
+          'Device $tag is syncing but isn\'t taking 1 change from this device. The change is safe here; that device may need an app update.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsSyncNoticeNeedsYou => 'Needs you';
+
+  @override
+  String get settingsSyncNoticeSeeDevices => 'See other devices';
 
   @override
   String get settingsSyncNotBackup =>
@@ -574,6 +589,52 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get settingsSyncDevicesCaution =>
       'Serveren kender kun hver enhed på en identifikator, den selv har fundet på, så der står ingen enhedsnavne her, og denne enhed er ikke med på listen. Hvis du er i tvivl om, hvilken du skal fjerne, er det trygt at lade den stå: En enhed, du fjerner, kan forbinde igen med synkroniseringssætningen.';
+
+  @override
+  String settingsSyncDevicesThisDevice(String tag) {
+    return 'This device: $tag';
+  }
+
+  @override
+  String settingsSyncDeviceTag(String tag) {
+    return 'Device $tag';
+  }
+
+  @override
+  String get settingsSyncDeviceLastSharedToday => 'Last shared changes today';
+
+  @override
+  String settingsSyncDeviceLastSharedDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Last shared changes $count days ago',
+      one: 'Last shared changes yesterday',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncDeviceLastSharedWeeks(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Last shared changes about $count weeks ago',
+      one: 'Last shared changes about a week ago',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncDeviceWaiting(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count changes from this device are waiting for it.',
+      one: '1 change from this device is waiting for it.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get settingsSyncDevicesEmpty =>

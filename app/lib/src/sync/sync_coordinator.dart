@@ -35,6 +35,7 @@ class SyncPassResult {
     this.failure,
     this.duplicateCount = 0,
     this.appliedKinds = const [],
+    this.peers,
   });
 
   final SyncPassStatus status;
@@ -54,7 +55,46 @@ class SyncPassResult {
   /// crosses the worker boundary so the owning Drift connection can invalidate
   /// its live queries after the worker has closed its connection.
   final List<SyncRecordKind> appliedKinds;
+
+  /// What this pass saw of each other device whose manifest it read, or null
+  /// when the pass did not get as far as publishing and so surveyed nothing.
+  ///
+  /// Null and empty mean different things, and the controller relies on it: an
+  /// empty list is a completed survey that found no other device, which
+  /// replaces what it held, while null leaves the previous survey standing.
+  final List<SyncPeerSummary>? peers;
 }
+
+/// One other device as a completed pass saw it, for the *Other devices* list.
+///
+/// Built from the manifest the pass already fetched, so showing it costs no
+/// request of its own.
+final class SyncPeerSummary {
+  const SyncPeerSummary({
+    required this.peerId,
+    required this.writtenAt,
+    required this.waitingCount,
+  });
+
+  final String peerId;
+
+  /// The peer's own manifest `writtenAt`: when it last published, by *its*
+  /// clock. Only ever shown rounded to the day.
+  final DateTime writtenAt;
+
+  /// How many records this device publishes whose current hash that peer's
+  /// manifest does not carry — changes from here that are waiting for it.
+  final int waitingCount;
+}
+
+/// When this device first published one record's current hash in this sync
+/// session: the pass sequence number and the local time after its manifest
+/// `PUT` succeeded.
+typedef SyncOwnPublication = ({String hash, DateTime publishedAt, int pass});
+
+/// One distinct manifest `writtenAt` seen for a peer, and the pass sequence
+/// number on which it was first seen.
+typedef SyncPeerPublication = ({DateTime writtenAt, int pass});
 
 /// The data needed to construct a local manifest and calculate a pass.
 class SyncCoordinatorSnapshot {
@@ -456,25 +496,50 @@ final class SyncPeerManifestCacheEntry {
 /// Isolate boundaries cannot retain the coordinator instance, so this cache
 /// has an explicit message representation that the pass operation can return
 /// to its owner after each worker finishes.
+///
+/// It also carries the session-scoped evidence the §6.9 unreflected-publication
+/// judgement is made from: when this device first published each record's
+/// current hash ([publications]), and the distinct manifest `writtenAt` values
+/// seen for each peer since ([peerPublications]), both stamped with
+/// [passSequence] so "seen after" never depends on comparing two devices'
+/// clocks alone.
 final class SyncPeerManifestCache {
   SyncPeerManifestCache({
     Map<String, SyncPeerManifestCacheEntry>? entries,
     Set<String>? rejectedHashes,
-    Map<SyncRecordAddress, int>? unreflectedPasses,
-    this.unreflectedEpoch,
+    Map<SyncRecordAddress, SyncOwnPublication>? publications,
+    Map<String, List<SyncPeerPublication>>? peerPublications,
+    this.passSequence = 0,
+    this.publicationEpoch,
   }) : _entries = {...?entries},
        rejectedHashes = {...?rejectedHashes},
-       unreflectedPasses = {...?unreflectedPasses};
+       publications = {...?publications},
+       peerPublications = {
+         for (final entry in (peerPublications ?? const {}).entries)
+           entry.key: [...entry.value],
+       };
+
+  /// How many distinct `writtenAt` values are kept per peer. Two is what the
+  /// judgement needs: a peer is taken to be refusing a record only once it has
+  /// published twice since this device published it, and the values are kept
+  /// in the order they were first seen, so the two newest are the only two
+  /// that can both postdate a publication.
+  static const peerPublicationsKept = 2;
 
   final Map<String, SyncPeerManifestCacheEntry> _entries;
   final Set<String> rejectedHashes;
-  final Map<SyncRecordAddress, int> unreflectedPasses;
-  String? unreflectedEpoch;
+  final Map<SyncRecordAddress, SyncOwnPublication> publications;
+  final Map<String, List<SyncPeerPublication>> peerPublications;
+  int passSequence;
+  String? publicationEpoch;
 
-  void beginUnreflectedEpoch(String epoch) {
-    if (unreflectedEpoch == epoch) return;
-    unreflectedPasses.clear();
-    unreflectedEpoch = epoch;
+  /// Starts the unreflected-publication evidence afresh when the store's epoch
+  /// has changed: hashes and manifests from another epoch prove nothing here.
+  void beginPublicationEpoch(String epoch) {
+    if (publicationEpoch == epoch) return;
+    publications.clear();
+    peerPublications.clear();
+    publicationEpoch = epoch;
   }
 
   SyncPeerManifestCacheEntry? operator [](String peerId) => _entries[peerId];
@@ -490,8 +555,10 @@ final class SyncPeerManifestCache {
   void clear() {
     _entries.clear();
     rejectedHashes.clear();
-    unreflectedPasses.clear();
-    unreflectedEpoch = null;
+    publications.clear();
+    peerPublications.clear();
+    passSequence = 0;
+    publicationEpoch = null;
   }
 
   void replaceFrom(SyncPeerManifestCache source) {
@@ -501,10 +568,17 @@ final class SyncPeerManifestCache {
     rejectedHashes
       ..clear()
       ..addAll(source.rejectedHashes);
-    unreflectedPasses
+    publications
       ..clear()
-      ..addAll(source.unreflectedPasses);
-    unreflectedEpoch = source.unreflectedEpoch;
+      ..addAll(source.publications);
+    peerPublications
+      ..clear()
+      ..addAll({
+        for (final entry in source.peerPublications.entries)
+          entry.key: [...entry.value],
+      });
+    passSequence = source.passSequence;
+    publicationEpoch = source.publicationEpoch;
   }
 
   Map<String, Object?> toMessage() => {
@@ -517,15 +591,28 @@ final class SyncPeerManifestCache {
         },
     },
     '_rejectedHashes': rejectedHashes.toList(growable: false),
-    '_unreflectedPasses': [
-      for (final entry in unreflectedPasses.entries)
+    '_publications': [
+      for (final entry in publications.entries)
         {
           'kind': entry.key.kind.name,
           'recordId': entry.key.recordId,
-          'count': entry.value,
+          'hash': entry.value.hash,
+          'publishedAt': entry.value.publishedAt.microsecondsSinceEpoch,
+          'pass': entry.value.pass,
         },
     ],
-    '_unreflectedEpoch': unreflectedEpoch,
+    '_peerPublications': {
+      for (final entry in peerPublications.entries)
+        entry.key: [
+          for (final seen in entry.value)
+            {
+              'writtenAt': seen.writtenAt.microsecondsSinceEpoch,
+              'pass': seen.pass,
+            },
+        ],
+    },
+    '_passSequence': passSequence,
+    '_publicationEpoch': publicationEpoch,
   };
 
   static SyncPeerManifestCache fromMessage(Object? message) {
@@ -535,7 +622,6 @@ final class SyncPeerManifestCache {
     }
     final entries = <String, SyncPeerManifestCacheEntry>{};
     final rejectedHashes = <String>{};
-    final unreflectedPasses = <SyncRecordAddress, int>{};
     final rawEntries = message['_entries'];
     if (rawEntries is! Map<Object?, Object?>) {
       throw const FormatException('sync isolate returned a malformed cache');
@@ -567,39 +653,76 @@ final class SyncPeerManifestCache {
     }
     rejectedHashes.addAll(rawHashes.cast<String>());
 
-    final rawPasses = message['_unreflectedPasses'];
-    if (rawPasses is! List<Object?>) {
-      throw const FormatException(
-        'sync isolate returned malformed unreflected diagnostics',
-      );
-    }
-    for (final rawPass in rawPasses) {
-      if (rawPass is! Map<Object?, Object?> ||
-          rawPass['kind'] is! String ||
-          rawPass['recordId'] is! String ||
-          rawPass['count'] is! int ||
-          (rawPass['count']! as int) < 1) {
-        throw const FormatException(
-          'sync isolate returned malformed unreflected diagnostic',
-        );
+    const malformedPublications = FormatException(
+      'sync isolate returned malformed publication evidence',
+    );
+    final publications = <SyncRecordAddress, SyncOwnPublication>{};
+    final rawPublications = message['_publications'];
+    if (rawPublications is! List<Object?>) throw malformedPublications;
+    for (final raw in rawPublications) {
+      if (raw is! Map<Object?, Object?> ||
+          raw['kind'] is! String ||
+          raw['recordId'] is! String ||
+          raw['hash'] is! String ||
+          raw['publishedAt'] is! int ||
+          raw['pass'] is! int) {
+        throw malformedPublications;
       }
-      final address = (
-        kind: SyncRecordKind.values.byName(rawPass['kind']! as String),
-        recordId: rawPass['recordId']! as String,
+      final kind = SyncRecordKind.values.asNameMap()[raw['kind']];
+      if (kind == null) throw malformedPublications;
+      publications[(kind: kind, recordId: raw['recordId']! as String)] = (
+        hash: raw['hash']! as String,
+        publishedAt: DateTime.fromMicrosecondsSinceEpoch(
+          raw['publishedAt']! as int,
+          isUtc: true,
+        ),
+        pass: raw['pass']! as int,
       );
-      unreflectedPasses[address] = rawPass['count']! as int;
     }
-    final rawUnreflectedEpoch = message['_unreflectedEpoch'];
-    if (rawUnreflectedEpoch != null && rawUnreflectedEpoch is! String) {
+    final peerPublications = <String, List<SyncPeerPublication>>{};
+    final rawPeerPublications = message['_peerPublications'];
+    if (rawPeerPublications is! Map<Object?, Object?>) {
+      throw malformedPublications;
+    }
+    for (final entry in rawPeerPublications.entries) {
+      final peerId = entry.key;
+      final rawSeen = entry.value;
+      if (peerId is! String || rawSeen is! List<Object?>) {
+        throw malformedPublications;
+      }
+      peerPublications[peerId] = [
+        for (final seen in rawSeen)
+          if (seen is Map<Object?, Object?> &&
+              seen['writtenAt'] is int &&
+              seen['pass'] is int)
+            (
+              writtenAt: DateTime.fromMicrosecondsSinceEpoch(
+                seen['writtenAt']! as int,
+                isUtc: true,
+              ),
+              pass: seen['pass']! as int,
+            )
+          else
+            throw malformedPublications,
+      ];
+    }
+    final rawPassSequence = message['_passSequence'];
+    if (rawPassSequence is! int || rawPassSequence < 0) {
+      throw malformedPublications;
+    }
+    final rawPublicationEpoch = message['_publicationEpoch'];
+    if (rawPublicationEpoch != null && rawPublicationEpoch is! String) {
       throw const FormatException(
-        'sync isolate returned malformed unreflected epoch',
+        'sync isolate returned a malformed publication epoch',
       );
     }
     return SyncPeerManifestCache(
       entries: entries,
       rejectedHashes: rejectedHashes,
-      unreflectedPasses: unreflectedPasses,
-      unreflectedEpoch: rawUnreflectedEpoch as String?,
+      publications: publications,
+      peerPublications: peerPublications,
+      passSequence: rawPassSequence,
+      publicationEpoch: rawPublicationEpoch as String?,
     );
   }
 }
@@ -973,7 +1096,7 @@ class SyncCoordinator {
         ),
       );
     }
-    _peerManifestCache.beginUnreflectedEpoch(metadata.epoch);
+    _peerManifestCache.beginPublicationEpoch(metadata.epoch);
     final attachContinuation =
         continuation && continuationEpoch != null && deferredBaseline != null;
     if (attachContinuation && metadata.epoch != continuationEpoch) {
@@ -1460,6 +1583,7 @@ class SyncCoordinator {
           ...appliedKinds,
           ...continuationResult.appliedKinds,
         }.toList(),
+        peers: continuationResult.peers,
       );
     }
     Future<
@@ -1617,9 +1741,13 @@ class SyncCoordinator {
       for (final address in publicationPlan.uploadAddresses)
         address: publicationPlan.manifestHashes[address]!,
     };
-    _recordUnreflectedPublications(
+    final peerSummaries = _recordUnreflectedPublications(
       uploadManifestHashes,
+      ownCandidates: publicationPlan.uploadCandidates,
+      peerManifests: peerManifests,
       peerManifestHashes: peerManifestHashes,
+      peerCandidates: rawPeerMaps,
+      storeDevices: metadata.devices,
       reports: reports,
     );
     final dropped = {
@@ -1651,6 +1779,7 @@ class SyncCoordinator {
       reports: reports.reports,
       duplicateCount: dedupe.duplicateCount,
       appliedKinds: appliedKinds.toList(),
+      peers: peerSummaries,
     );
   }
 
@@ -1822,40 +1951,126 @@ class SyncCoordinator {
     );
   }
 
-  void _recordUnreflectedPublications(
+  /// Judges, per peer, whether the records this device publishes are reaching
+  /// it, and summarises each peer for the *Other devices* list (spec §6.9).
+  ///
+  /// Called once per pass, after this device's manifest `PUT` has succeeded,
+  /// with the manifests the pass already fetched — so it costs no request.
+  ///
+  /// A peer missing one of this device's hashes is in one of two states, and
+  /// only one of them is worth the user's attention:
+  ///
+  /// * **asleep** — it has not published since this device published the
+  ///   record. Its app is simply not running, which is the common case and not
+  ///   a fault. Never reported; the device list shows the record as waiting.
+  /// * **refusing** — it has published at least twice since, with distinct
+  ///   `writtenAt` values, and still does not carry the hash. Twice, not once:
+  ///   a pass that was already running when this device published can finish
+  ///   afterwards without having read its manifest, but the pass after it
+  ///   cannot. Reported per record and peer, naming the peer.
+  ///
+  /// "Since" needs both clocks to agree: a `writtenAt` counts only when it was
+  /// first seen on a later pass than the publication **and** is later than the
+  /// local time the publication's `PUT` succeeded. The pass order guards
+  /// against a peer clock running fast; the timestamp guards against a peer
+  /// that published while this device was still uploading. Either guard alone
+  /// errs towards "refusing"; together they err towards "asleep", which costs
+  /// only a notice that comes later.
+  ///
+  /// A peer that holds a version of the record **no older** than this
+  /// device's is never judged refusing, whatever its hash: that is a
+  /// disagreement, not a refusal. Either this device is about to adopt the
+  /// peer's version, or the two are tied or one side's copy was skipped, and
+  /// each of those has a notice of its own with the right remedy — "it may
+  /// need an app update" would be the wrong one. Nor is one whose copy this
+  /// pass could not read: what is wrong there is already reported as skipped.
+  ///
+  /// Zero observed peers is not evidence (§6.9): with none, nothing is judged
+  /// and no peer can be refusing.
+  List<SyncPeerSummary> _recordUnreflectedPublications(
     Map<SyncRecordAddress, String> publishableHashes, {
-    required Iterable<Map<SyncRecordAddress, String>> peerManifestHashes,
+    required Map<String, SyncMergeCandidate> ownCandidates,
+    required List<({String peerId, SyncManifest manifest})> peerManifests,
+    required List<Map<SyncRecordAddress, String>> peerManifestHashes,
+    required List<Map<SyncRecordAddress, SyncMergeCandidate?>> peerCandidates,
+    required Iterable<String> storeDevices,
     required SyncReportSink reports,
   }) {
-    final peers = peerManifestHashes.toList(growable: false);
-    if (peers.isEmpty) {
-      _peerManifestCache.unreflectedPasses.clear();
-      return;
-    }
-    final publishedAddresses = publishableHashes.keys.toSet();
-    _peerManifestCache.unreflectedPasses.removeWhere(
-      (address, _) => !publishedAddresses.contains(address),
+    final cache = _peerManifestCache;
+    final pass = ++cache.passSequence;
+    final listed = storeDevices.toSet();
+    cache.peerPublications.removeWhere((peerId, _) => !listed.contains(peerId));
+    cache.publications.removeWhere(
+      (address, _) => !publishableHashes.containsKey(address),
     );
-    for (final entry in publishableHashes.entries) {
-      final reflected = peers.any((peer) => peer[entry.key] == entry.value);
-      if (reflected) {
-        _peerManifestCache.unreflectedPasses.remove(entry.key);
-        continue;
+
+    final summaries = <SyncPeerSummary>[];
+    for (final (index, peer) in peerManifests.indexed) {
+      final writtenAt = peer.manifest.writtenAt;
+      final seen = cache.peerPublications.putIfAbsent(peer.peerId, () => []);
+      if (seen.isEmpty || seen.last.writtenAt != writtenAt) {
+        seen.add((writtenAt: writtenAt, pass: pass));
+        if (seen.length > SyncPeerManifestCache.peerPublicationsKept) {
+          seen.removeAt(0);
+        }
       }
-      final count = (_peerManifestCache.unreflectedPasses[entry.key] ?? 0) + 1;
-      _peerManifestCache.unreflectedPasses[entry.key] = count;
-      if (count < 3) continue;
-      reports.add(
-        SyncReport(
-          code: SyncReportCode.unreflectedPublication,
-          kind: entry.key.kind,
-          recordId: entry.key.recordId,
-          message:
-              'A published record was not reflected by any observed peer ' // i18n-ignore: internal status
-              'for three consecutive passes.', // i18n-ignore: internal status
+      final hashes = peerManifestHashes[index];
+      var waiting = 0;
+      for (final entry in publishableHashes.entries) {
+        if (hashes[entry.key] == entry.value) continue;
+        waiting++;
+        final published = cache.publications[entry.key];
+        if (published == null || published.hash != entry.value) continue;
+        if (hashes.containsKey(entry.key)) {
+          final theirs = peerCandidates[index][entry.key];
+          final ours = ownCandidates[entry.value];
+          if (theirs == null || ours == null) continue;
+          if (!theirs.updatedAt.isBefore(ours.updatedAt) ||
+              !theirs.existenceAt.isBefore(ours.existenceAt)) {
+            continue;
+          }
+        }
+        final since = seen.where(
+          (publication) =>
+              publication.pass > published.pass &&
+              publication.writtenAt.isAfter(published.publishedAt),
+        );
+        if (since.length < 2) continue;
+        reports.add(
+          SyncReport(
+            code: SyncReportCode.unreflectedPublication,
+            kind: entry.key.kind,
+            recordId: entry.key.recordId,
+            peerId: peer.peerId,
+            message:
+                'A peer that published twice since this record was published ' // i18n-ignore: internal status
+                'does not carry its hash.', // i18n-ignore: internal status
+          ),
+        );
+      }
+      summaries.add(
+        SyncPeerSummary(
+          peerId: peer.peerId,
+          writtenAt: writtenAt,
+          waitingCount: waiting,
         ),
       );
     }
+
+    // Recorded after judging, so a hash first published on this pass cannot
+    // count this pass's peer manifests — all fetched before the `PUT` — as
+    // evidence about itself.
+    final publishedAt = now().toUtc();
+    for (final entry in publishableHashes.entries) {
+      final existing = cache.publications[entry.key];
+      if (existing != null && existing.hash == entry.value) continue;
+      cache.publications[entry.key] = (
+        hash: entry.value,
+        publishedAt: publishedAt,
+        pass: pass,
+      );
+    }
+    return List.unmodifiable(summaries);
   }
 
   static bool _shouldReplaceNormalizedAddress(
