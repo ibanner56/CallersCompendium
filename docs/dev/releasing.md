@@ -360,8 +360,7 @@ The draft release body is produced by `tools/release/gen_release_notes.py`
   same section serves the beta and the eventual stable release.
 - For a bare **beta** tag it prepends a clear **Beta / pre-release** banner.
 - It always appends the safety footer: the per-platform signing posture, a
-  reminder to verify against `SHA256SUMS`, and a note that a maintainer
-  publishes the draft after review. The Windows and macOS lines are **each
+  reminder to verify against `SHA256SUMS`. The Windows and macOS lines are **each
   honest about the actual signing outcome** — the publish job passes
   `--macos-signing configured` only when the Apple secrets are present (so macOS
   was Developer ID-signed & notarized) and `--windows-signing configured` only

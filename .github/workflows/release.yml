@@ -1554,7 +1554,7 @@ jobs:
 
       # Release notes come from app/CHANGELOG.md (A12): gen_release_notes.py
       # extracts the required `## [x.y.z]` section, adds a beta banner for a
-      # bare beta tag, and appends the signing/verify/maintainer footer. The
+      # bare beta tag, and appends the signing/verify footer. The
       # meta job rejects a missing section before any build begins.
       #
       # The footer's Windows and macOS lines must match what actually happened in

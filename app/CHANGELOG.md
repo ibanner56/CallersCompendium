@@ -19,17 +19,17 @@ from that tag, so new entries need no visible or manually maintained suffix.
   Play Store — ask about joining if you'd prefer that. The Play build and the
   `.apk` are signed with **different keys**, so you can't upgrade between them in
   place; pick one and stick with it (back up before switching).
-- **iOS** — delivered through **TestFlight** to invited testers; by design there is
-  no `.ipa` on this Releases page.
+- **iOS** — delivered through **TestFlight** (public open-beta link, see the
+  installation guide); by design there is no `.ipa` on this Releases page.
 - **macOS** (universal) — **signed with an Apple Developer ID and notarized**, you
   may see a confirmation on first launch.
 - **Linux** (x64) — desktop artifacts are **unsigned**, but Linux generally has no
   signing prompt:
   - The **`.tar.gz`** is the no-setup path — extract and run. The `.AppImage`
-    needs the **FUSE 2** runtime (`libfuse.so.2`) — package `libfuse2` on
-    Debian/Ubuntu, `fuse-libs` on Fedora — which some recent distros don't
-    preinstall; install it, or launch with
-    `./CallersCompendium-*.AppImage --appimage-extract-and-run`.
+    needs a `fusermount`/`fusermount3` binary (package `fuse3` on
+    Debian/Ubuntu/Fedora), which some recent distros don't preinstall — without
+    it you will see "No suitable fusermount binary found on the $PATH". Install
+    it, or launch with `./CallersCompendium-*.AppImage --appimage-extract-and-run`.
 - **Windows** (x64) — release artifacts are signed via Azure Trusted Signing but
   may show a **SmartScreen** warning; choose **More info → Run anyway** on the
   blue **Windows protected your PC** prompt.
