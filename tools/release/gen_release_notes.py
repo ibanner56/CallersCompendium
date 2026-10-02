@@ -46,8 +46,7 @@ from pathlib import Path
 # (Azure Trusted Signing) and macOS on the Apple secrets (ADR-002 §6); when a
 # leg's credentials are absent it ships UNSIGNED and the footer says exactly that.
 _VERIFY_LINE = (
-    "Verify downloads against `SHA256SUMS`. A maintainer publishes this draft "
-    "after review."
+    "Verify downloads against `SHA256SUMS`."
 )
 _ADR_REF = "see ADR-002 §6"
 _CORE = r"(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)"
@@ -138,8 +137,8 @@ def validate_release(*, version: str, tag: str, channel: str) -> str:
 def _beta_banner(tag: str) -> str:
     return (
         f"> ⚠️ **Beta / pre-release (`beta` channel).** This is a pre-release "
-        f"build (`{tag}`) intended for testing and may be unstable. Use the "
-        f"stable channel for production."
+        f"build (`{tag}`) intended for testing and may be unstable; back up "
+        f"before upgrading."
     )
 
 

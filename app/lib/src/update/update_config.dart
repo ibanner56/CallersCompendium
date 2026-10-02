@@ -7,8 +7,9 @@ import '../utils/safe_name.dart';
 import 'update_manifest.dart';
 
 /// The GitHub Pages base under which the per-channel manifests are published
-/// (ADR-002 §1). **Not live until A11c publishes it** — so a 404/unreachable
-/// manifest is a silent no-op, never an error (see the fetcher and ADR-002 §5).
+/// (ADR-002 §1); the `beta.json` manifest is served from the `gh-pages` branch.
+/// A 404/unreachable manifest is still a silent no-op, never an error (see the
+/// fetcher and ADR-002 §5).
 const String kUpdateManifestBaseUrl =
     'https://ibanner56.github.io/CallersCompendium';
 
