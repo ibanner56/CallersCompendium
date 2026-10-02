@@ -1,0 +1,9 @@
+{
+  "id": "import-batch-warnings",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Importing a Caller's Companion .USR file that was only partly copied now warns that the file looks incomplete, instead of reporting a successful import of whatever was readable. Files from a newer version of the app also show a single \"update first\" warning."
+    ]
+  }
+}
