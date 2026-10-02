@@ -1580,7 +1580,13 @@ void main() {
     }) => SyncManifest(
       deviceId: deviceId,
       epoch: epoch,
-      writtenAt: writtenAt ?? DateTime.utc(2026, 9, 20, 12),
+      // Peers publish after this device by default, as live devices that
+      // synced since would; a test that is about the timing says so.
+      writtenAt:
+          writtenAt ??
+          (deviceId == 'device_1'
+              ? DateTime.utc(2026, 9, 20, 12)
+              : DateTime.utc(2026, 9, 20, 12, 5)),
       records: {SyncRecordKind.setting: settings},
     );
 
@@ -1674,13 +1680,43 @@ void main() {
       expect(admin.removed, isEmpty);
     });
 
-    test('a carrier that wrote at the same time as this device still '
-        'counts', () async {
+    test('keeps it when the only carrier wrote in the same second — a '
+        'leftover from an attachment left and replaced within it', () async {
+      // `writtenAt` is stored to the whole second, so a leftover from an
+      // attachment that was detached, re-paired and published within one
+      // second reads the same as this one. Equal is not later.
+      admin = _Admin(
+        devices: const ['device_1', 'leftover'],
+        manifests: {
+          'device_1': manifest('device_1', {
+            'a': hash('1'),
+          }, writtenAt: DateTime.utc(2026, 9, 20, 12)),
+          'leftover': manifest('leftover', {
+            'a': hash('1'),
+          }, writtenAt: DateTime.utc(2026, 9, 20, 12)),
+        },
+      );
+      final controller = await paired();
+
+      await controller.detach();
+
+      expect(
+        await controller.detachCleanup,
+        SyncDetachCleanupOutcome.skippedNotReflected,
+      );
+      expect(admin.removed, isEmpty);
+    });
+
+    test('a carrier written one second later counts', () async {
       admin = _Admin(
         devices: const ['device_1', 'peer_a'],
         manifests: {
-          'device_1': manifest('device_1', {'a': hash('1')}),
-          'peer_a': manifest('peer_a', {'a': hash('1')}),
+          'device_1': manifest('device_1', {
+            'a': hash('1'),
+          }, writtenAt: DateTime.utc(2026, 9, 20, 12)),
+          'peer_a': manifest('peer_a', {
+            'a': hash('1'),
+          }, writtenAt: DateTime.utc(2026, 9, 20, 12, 0, 1)),
         },
       );
       final controller = await paired();
