@@ -7,7 +7,8 @@ import '../diagnostics/error_log.dart';
 import 'sync_failure.dart';
 import 'sync_http_client.dart';
 
-export 'sync_failure.dart' show SyncFailure, SyncFailureCause, SyncFailureStep;
+export 'sync_failure.dart'
+    show SyncFailure, SyncFailureCause, SyncFailureCauseTier, SyncFailureStep;
 
 DateTime _syncNowUtc() => DateTime.now().toUtc();
 
