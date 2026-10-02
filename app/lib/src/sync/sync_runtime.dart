@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 
 import '../data/app_database.dart' show resolveDatabaseFile;
 import '../screens/settings/settings_keys.dart'
@@ -54,12 +55,7 @@ final class ConfiguredSyncCoordinatorFactory {
     }
     final databasePath = (await resolveDatabaseFile()).path;
 
-    final rawDeviceId = await repositories.settings.get(kSyncDeviceIdKey);
-    final deviceId = switch (rawDeviceId) {
-      null => await _createDeviceId(repositories),
-      String value when _validDeviceId.hasMatch(value) => value,
-      _ => throw const FormatException('stored sync device ID is invalid'),
-    };
+    final deviceId = await resolveSyncDeviceId(repositories.settings);
 
     final client = SyncHttpClient(endpoint: endpoint, syncId: syncId);
     return SyncCoordinator(
@@ -79,12 +75,27 @@ final class ConfiguredSyncCoordinatorFactory {
       ).call,
     );
   }
+}
 
-  Future<String> _createDeviceId(CompendiumRepositories repositories) async {
-    final bytes = List<int>.generate(18, (_) => Random.secure().nextInt(256));
-    final deviceId = base64Url.encode(bytes).replaceAll('=', '');
-    await repositories.settings.set(kSyncDeviceIdKey, deviceId);
-    return deviceId;
+/// This device's stored sync device ID, minting and persisting a new one when
+/// none is stored.
+///
+/// The only place a device ID is created. A stored value that is not a valid
+/// identifier throws rather than being replaced, so corruption is loud instead
+/// of silently giving the device a second identity in the store.
+@visibleForTesting
+Future<String> resolveSyncDeviceId(SettingsRepository settings) async {
+  final raw = await settings.get(kSyncDeviceIdKey);
+  switch (raw) {
+    case null:
+      final bytes = List<int>.generate(18, (_) => Random.secure().nextInt(256));
+      final deviceId = base64Url.encode(bytes).replaceAll('=', '');
+      await settings.set(kSyncDeviceIdKey, deviceId);
+      return deviceId;
+    case String value when _validDeviceId.hasMatch(value):
+      return value;
+    default:
+      throw const FormatException('stored sync device ID is invalid');
   }
 }
 
