@@ -130,3 +130,133 @@ String syncNoticeText(
   SyncNoticeGroup.unreflectedPublication =>
     l10n.settingsSyncNoticeUnreflectedPublication,
 };
+
+/// How many records a notice names before summarising the rest as a count.
+const int kSyncNoticeNamedLimit = 5;
+
+/// One record a notice is about, as the reports identify it.
+typedef SyncNoticeRecord = ({SyncRecordKind kind, String recordId});
+
+/// The records [group]'s reports in [reports] are about, deduplicated, in
+/// report order. Reports that name no record — a pass-wide clock suspicion, a
+/// blob the store asked for by hash — contribute nothing.
+List<SyncNoticeRecord> syncNoticeRecords(
+  SyncNoticeGroup group,
+  Iterable<SyncReport> reports,
+) {
+  final seen = <SyncNoticeRecord>{};
+  return [
+    for (final report in reports)
+      if (syncNoticeGroupFor(report) == group)
+        if ((report.kind, report.recordId) case (final kind?, final id?))
+          if (seen.add((kind: kind, recordId: id))) (kind: kind, recordId: id),
+  ];
+}
+
+/// How many distinct other devices [group]'s reports in [reports] came from.
+int syncNoticePeerCount(SyncNoticeGroup group, Iterable<SyncReport> reports) =>
+    {
+      for (final report in reports)
+        if (syncNoticeGroupFor(report) == group) ?report.peerId,
+    }.length;
+
+/// The user-facing label for a record kind ("Dance", "Program", …).
+String syncRecordKindLabel(AppLocalizations l10n, SyncRecordKind kind) =>
+    switch (kind) {
+      SyncRecordKind.choreographer => l10n.syncReviewKindChoreographer,
+      SyncRecordKind.tag => l10n.syncReviewKindTag,
+      SyncRecordKind.customFieldDef => l10n.syncReviewKindCustomField,
+      SyncRecordKind.difficultyLevel => l10n.syncReviewKindDifficulty,
+      SyncRecordKind.dance => l10n.syncReviewKindDance,
+      SyncRecordKind.program => l10n.syncReviewKindProgram,
+      SyncRecordKind.publishedSource => l10n.syncReviewKindPublishedSource,
+      SyncRecordKind.venue => l10n.syncReviewKindVenue,
+      SyncRecordKind.setting => l10n.syncReviewKindSetting,
+    };
+
+/// What this device knows a notice's record by.
+sealed class SyncNoticeRecordName {
+  const SyncNoticeRecordName();
+}
+
+/// The record is here, under [name].
+final class SyncNoticeRecordNamed extends SyncNoticeRecordName {
+  const SyncNoticeRecordNamed(this.name);
+  final String name;
+}
+
+/// The record's kind has names, and this device has no live record with that
+/// id: typically a skipped record from another device.
+final class SyncNoticeRecordNotHere extends SyncNoticeRecordName {
+  const SyncNoticeRecordNotHere();
+}
+
+/// The kind has no single display name to look up (a setting, a custom
+/// field), or no repositories were available; only the kind is shown.
+final class SyncNoticeRecordUnnamed extends SyncNoticeRecordName {
+  const SyncNoticeRecordUnnamed();
+}
+
+/// Looks up what the user calls [record] on this device.
+///
+/// Only the kinds a user browses by name are looked up. Everything else is
+/// [SyncNoticeRecordUnnamed] rather than [SyncNoticeRecordNotHere]: not
+/// looking is not evidence of absence.
+Future<SyncNoticeRecordName> lookupSyncNoticeRecordName(
+  CompendiumRepositories repositories,
+  SyncNoticeRecord record,
+) async {
+  final id = record.recordId;
+  final String? name = switch (record.kind) {
+    SyncRecordKind.dance => (await repositories.dances.getById(id))?.title,
+    SyncRecordKind.program => (await repositories.programs.getById(id))?.title,
+    SyncRecordKind.choreographer => (await repositories.choreographers.getById(
+      id,
+    ))?.name,
+    SyncRecordKind.tag => (await repositories.tags.getById(id))?.name,
+    SyncRecordKind.venue => (await repositories.venues.getById(id))?.name,
+    SyncRecordKind.customFieldDef ||
+    SyncRecordKind.difficultyLevel ||
+    SyncRecordKind.publishedSource ||
+    SyncRecordKind.setting => null,
+  };
+  if (name != null && name.trim().isNotEmpty) {
+    return SyncNoticeRecordNamed(name);
+  }
+  return switch (record.kind) {
+    SyncRecordKind.dance ||
+    SyncRecordKind.program ||
+    SyncRecordKind.choreographer ||
+    SyncRecordKind.tag ||
+    SyncRecordKind.venue when name == null => const SyncNoticeRecordNotHere(),
+    _ => const SyncNoticeRecordUnnamed(),
+  };
+}
+
+/// The "Affects: …" line for [named] — the first [kSyncNoticeNamedLimit]
+/// records with what they resolved to — out of [total] records in all.
+String syncNoticeAffectedText(
+  AppLocalizations l10n,
+  List<(SyncNoticeRecord, SyncNoticeRecordName)> named,
+  int total,
+) {
+  final items = [
+    for (final (record, name) in named)
+      switch (name) {
+        SyncNoticeRecordNamed(:final name) =>
+          l10n.settingsSyncNoticeRecordNamed(
+            syncRecordKindLabel(l10n, record.kind),
+            name,
+          ),
+        SyncNoticeRecordNotHere() => l10n.settingsSyncNoticeRecordNotHere(
+          syncRecordKindLabel(l10n, record.kind),
+        ),
+        SyncNoticeRecordUnnamed() => syncRecordKindLabel(l10n, record.kind),
+      },
+    if (total > named.length)
+      l10n.settingsSyncNoticeAffectedMore(total - named.length),
+  ];
+  return l10n.settingsSyncNoticeAffected(
+    items.join(l10n.settingsSyncNoticeListSeparator),
+  );
+}

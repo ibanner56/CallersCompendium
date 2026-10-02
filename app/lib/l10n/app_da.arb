@@ -316,6 +316,142 @@
   "@settingsSyncStatusFailed": {
     "x-sourceSha256": "53fa99d78ec8627b66d1f608b171626f6d73f1d7d70a1c3eab42afa83106af14"
   },
+  "settingsSyncFailureUnreachable": "Synkroniseringsserveren kunne ikke nås.",
+  "@settingsSyncFailureUnreachable": {
+    "x-sourceSha256": "1fec844573d970b89ddae666fddb4c01cf8065fb587bcb5fa4de0e8f4fcce1c7"
+  },
+  "settingsSyncFailureUnreachableAdvice": "Tjek, at denne enhed er online. Hvis du kører din egen server, så tjek, at den kører, og at dens adresse er rigtig.",
+  "@settingsSyncFailureUnreachableAdvice": {
+    "x-sourceSha256": "ea38a758f977c2fdbc84b142090e2473515b8590f8c60e28d8c6583c60b09948"
+  },
+  "settingsSyncFailureTimedOut": "Synkroniseringsserveren var for længe om at svare.",
+  "@settingsSyncFailureTimedOut": {
+    "x-sourceSha256": "464ebebc445aaff574f2eaa11829ded903602b89cab69d5307f81121b90aa490"
+  },
+  "settingsSyncFailureTimedOutAdvice": "En langsom eller ustabil forbindelse er den sædvanlige årsag. Prøv igen, når forbindelsen er bedre.",
+  "@settingsSyncFailureTimedOutAdvice": {
+    "x-sourceSha256": "0c81f465ce533eb89de05aa483e1a26cc6e3e4a44ba247a4c53ec6d22149bf8f"
+  },
+  "settingsSyncFailureServerError": "Synkroniseringsserveren løb selv ind i et problem.",
+  "@settingsSyncFailureServerError": {
+    "x-sourceSha256": "bcd7f14f51fab6da5c554f1af0b283fba58d90746158bcfc15e1dad5d15a7c94"
+  },
+  "settingsSyncFailureServerErrorAdvice": "Der er intet galt med denne enhed eller dit bibliotek. Vent et stykke tid, og prøv igen. Hvis det bliver ved, så giv den, der driver serveren, besked, og oplys de detaljer, der vises her.",
+  "@settingsSyncFailureServerErrorAdvice": {
+    "x-sourceSha256": "e375d5052be6afb964cdf1b43d9e1a8c77257c75025caa3a710ba20dad7bdeb4"
+  },
+  "settingsSyncFailureRateLimited": "Synkroniseringsserveren bad denne enhed om at sætte tempoet ned.",
+  "@settingsSyncFailureRateLimited": {
+    "x-sourceSha256": "80e0d4ffb219e4f8871bfb1deab9f03ac4c9ead3df2076c8ed7929232fde5a5e"
+  },
+  "settingsSyncFailureRateLimitedAdvice": "Den har fået for mange forespørgsler på kort tid. Vent et par minutter, før du prøver igen.",
+  "@settingsSyncFailureRateLimitedAdvice": {
+    "x-sourceSha256": "66f91724ff9a8ff9962da293dd168113c17ab48d52ea4ddebda07803709cd530"
+  },
+  "settingsSyncFailureStoreFull": "Dit lager har brugt al den plads, synkroniseringsserveren tillader.",
+  "@settingsSyncFailureStoreFull": {
+    "x-sourceSha256": "18dea407dfb731dd13ec988fd58ef55a6711674a25fd2c59b07439bd365c5f92"
+  },
+  "settingsSyncFailureStoreFullAdvice": "Ændringer fra denne enhed kan ikke gemmes, før der er plads. Hvis du slår Spring ubrugte importerede danse over til, uploader denne enhed mindre. Hvis du kører din egen server, så hæv dens lagergrænse.",
+  "@settingsSyncFailureStoreFullAdvice": {
+    "x-sourceSha256": "8118c7463bdf1d540145735a494d7b6c9748386039bda9c0f6789e3403b86548"
+  },
+  "settingsSyncFailureTooLarge": "Noget, denne enhed forsøgte at uploade, er større, end synkroniseringsserveren accepterer.",
+  "@settingsSyncFailureTooLarge": {
+    "x-sourceSha256": "0f5b2479a4a67fcc162a38d2a6259b45a4bfe2cb5a9367558777657492a4d100"
+  },
+  "settingsSyncFailureTooLargeAdvice": "Hvis du har en stor importeret samling, kan det bringe den under grænsen at slå Spring ubrugte importerede danse over til. Hvis du kører din egen server, så tjek dens grænse for uploadstørrelse.",
+  "@settingsSyncFailureTooLargeAdvice": {
+    "x-sourceSha256": "f30c59fd533ca30a49e5a82ccf7040955fe1a9190357e5ae5d7e3e04ceb98cf6"
+  },
+  "settingsSyncFailureRejected": "Synkroniseringsserveren afviste det, denne enhed sendte.",
+  "@settingsSyncFailureRejected": {
+    "x-sourceSha256": "61dd076ba854551584746708a144209da7a34dd5345d897952357542e5dbfc50"
+  },
+  "settingsSyncFailureRejectedAdvice": "Det betyder som regel, at denne app og serveren har forskellige versioner. Opdater appen på denne enhed. Hvis du kører din egen server, så opdater også den.",
+  "@settingsSyncFailureRejectedAdvice": {
+    "x-sourceSha256": "88cf23ed721267c5050248947b735afd120c8bab651404fd3b870dd4eb1896a9"
+  },
+  "settingsSyncFailureAccessDenied": "Synkroniseringsserveren accepterede ikke denne enheds synkroniseringssætning.",
+  "@settingsSyncFailureAccessDenied": {
+    "x-sourceSha256": "807c859e76ad3cbc3b441faa54c32f0850840ee9d8b37370ff031933b0fa427f"
+  },
+  "settingsSyncFailureAccessDeniedAdvice": "Tjek sætningen mod den på din anden enhed, og tjek, at serveradressen er rigtig.",
+  "@settingsSyncFailureAccessDeniedAdvice": {
+    "x-sourceSha256": "d8aee437fcba68b92d16a6026b98d8c5806ce4e2571e35060540d7ed26d92108"
+  },
+  "settingsSyncFailureUnexpectedResponse": "Synkroniseringsserveren sendte et svar, som denne app ikke kunne bruge.",
+  "@settingsSyncFailureUnexpectedResponse": {
+    "x-sourceSha256": "384f76375dc8203ecad0f82054f085908ffbaaeccd72e549277612cba79b327b"
+  },
+  "settingsSyncFailureUnexpectedResponseAdvice": "Hvis du kører din egen server, så tjek dens adresse, og at den har en version, som denne app understøtter. Ellers kan du opdatere appen og prøve igen senere.",
+  "@settingsSyncFailureUnexpectedResponseAdvice": {
+    "x-sourceSha256": "28d5baae4557d1f5ac4ac1e9e2eb730e090d9b4c97c3c494fd8425953b86d9e8"
+  },
+  "settingsSyncFailurePeerUnavailable": "Det, en af dine andre enheder sidst delte, kunne ikke læses.",
+  "@settingsSyncFailurePeerUnavailable": {
+    "x-sourceSha256": "58814e7e830bb6b7942a74fe19642750e35d0414cb7ae53a238ecf74dc1e226a"
+  },
+  "settingsSyncFailurePeerUnavailableAdvice": "For at forbinde til et lager skal den nyeste liste fra hver enhed på det bruges. Åbn appen på dine andre enheder, lad dem synkronisere, og prøv så igen. Hvis en enhed er væk for altid, så fjern den under Andre enheder.",
+  "@settingsSyncFailurePeerUnavailableAdvice": {
+    "x-sourceSha256": "68d34d85a75b3b0d989123c0c9c38d0948e5bca6b0be66bff443752f489d904a"
+  },
+  "settingsSyncFailureInternal": "Noget gik galt inde i appen under synkroniseringen.",
+  "@settingsSyncFailureInternal": {
+    "x-sourceSha256": "2f7c0cd517e44bc340727aac932a0a74ed7996a5529cb78f9c6655f730a24ee4"
+  },
+  "settingsSyncFailureInternalAdvice": "Det er ikke et problem med din forbindelse eller serveren. Prøv igen. Hvis det bliver ved, så eksportér loggen fra Indstillinger ▸ Diagnostik, og vedhæft den, når du rapporterer problemet.",
+  "@settingsSyncFailureInternalAdvice": {
+    "x-sourceSha256": "9fd02ba66ee20762e3ee342f194caa3d0190cbdf1f05819de589b069ec9e9a90"
+  },
+  "settingsSyncFailureStep": "{step, select, lookup{Stoppede under opslag af lageret.} download{Stoppede under download fra dine andre enheder.} upload{Stoppede under upload af denne enheds ændringer.} publish{Stoppede under udgivelse af denne enheds ændringer.} createStore{Stoppede under oprettelse af lageret.} other{Stoppede undervejs.}}",
+  "@settingsSyncFailureStep": {
+    "x-sourceSha256": "4575bcef920388d21598add9216203979f69d89156d31d48e93db37a15726059"
+  },
+  "settingsSyncFailureStatusCode": "Serveren svarede med HTTP-status {code}.",
+  "@settingsSyncFailureStatusCode": {
+    "x-sourceSha256": "e145850e452c3d909edf069be12cbbe898ffc96f24c7d22d9ab4641d7866cb9b"
+  },
+  "settingsSyncFailureDetails": "Detaljer: {details}",
+  "@settingsSyncFailureDetails": {
+    "x-sourceSha256": "0090e7573cf43b828736bd9e94d6a913087cb4bdcc827324b24ce5900bdcf1dc"
+  },
+  "commonSyncFailed": "Synkroniseringen blev ikke færdig. {explanation}",
+  "@commonSyncFailed": {
+    "x-sourceSha256": "40aeb0f078a33c257860357bb350ed3e4251f5fac4ddc02ee1c39136f2ecbe61"
+  },
+  "settingsSyncNoticeAffected": "Berører: {records}",
+  "@settingsSyncNoticeAffected": {
+    "x-sourceSha256": "85c7e77a5f09410e426b8a246c94f222f2cb41a185a5b1e3f1f220a622dacfa0"
+  },
+  "settingsSyncNoticeListSeparator": ", ",
+  "@settingsSyncNoticeListSeparator": {
+    "x-sourceSha256": "0a07f659461970d8d8dcefe4fff96a1745599810dc7d47391e95c803b7b2072c"
+  },
+  "settingsSyncNoticeRecordNamed": "{kind} »{name}«",
+  "@settingsSyncNoticeRecordNamed": {
+    "x-sourceSha256": "31cac53311e22d47a6a18fccbb1fc1e9dd687d7afb1f5e75f21c71940e57712b"
+  },
+  "settingsSyncNoticeRecordNotHere": "{kind}, ikke på denne enhed",
+  "@settingsSyncNoticeRecordNotHere": {
+    "x-sourceSha256": "26cb94ed02bbe50614443d20b73107a471d16600fe41f3425c65f60cded6a9e0"
+  },
+  "settingsSyncNoticeAffectedMore": "{count, plural, other{og {count} mere}}",
+  "@settingsSyncNoticeAffectedMore": {
+    "x-sourceSha256": "8dc9d0f45df2d0a3db76ebea5523ebe0c6c39caf7c19393565ab989263ef4433"
+  },
+  "settingsSyncNoticeFromDevices": "{count, plural, =1{Fra 1 anden enhed.} other{Fra {count} andre enheder.}}",
+  "@settingsSyncNoticeFromDevices": {
+    "x-sourceSha256": "aad552755d7cc30b4282db05b93d127a3e46e698078bb3700d1f18a9ca4a38e4"
+  },
+  "settingsSyncDevicesFailedBecause": "Enhedslisten kunne ikke indlæses. {explanation}",
+  "@settingsSyncDevicesFailedBecause": {
+    "x-sourceSha256": "ede437d835d23937abd0a5d23d431af2bffacf6f400cc7d34e7ca41c33b2d484"
+  },
+  "settingsSyncAdminFailedBecause": "{message} {explanation}",
+  "@settingsSyncAdminFailedBecause": {
+    "x-sourceSha256": "26ba3e687fa63fbd44788c06935392fca46497d643f608dcc6f5a773f1afd450"
+  },
   "settingsSyncStatusStaleStore": "Dette lager er blevet erstattet af en anden enhed siden din sidste synkronisering. Næste synkronisering tilslutter sig det nye.",
   "@settingsSyncStatusStaleStore": {
     "x-sourceSha256": "7e0535051294ba8f0749e72c2fd6b08430fedf9cddd44531793bb00c568c7f4f"
@@ -587,10 +723,6 @@
   "settingsSyncPairingAlreadyInUse": "Den sætning er allerede i brug af et andet lager. Generér en anden.",
   "@settingsSyncPairingAlreadyInUse": {
     "x-sourceSha256": "a36988588079609c9bf3ae1c4c6d9f3195f235b388f61041b990c2bb47099f1c"
-  },
-  "settingsSyncPairingUnreachable": "Enhedssynkronisering er ikke tilgængelig lige nu. Tjek din forbindelse, og prøv igen.",
-  "@settingsSyncPairingUnreachable": {
-    "x-sourceSha256": "6b46c1f7e1eaefe2de8cff490ba510bd32a56d8978f101b56f17263fd184ce00"
   },
   "settingsSyncPairingCustomEndpointTitle": "Brugerdefineret server: {host}",
   "@settingsSyncPairingCustomEndpointTitle": {

@@ -1,13 +1,16 @@
 // Part of the Settings screen: the Device Sync group of the Experimental pane.
 import 'dart:async';
 
-import 'package:compendium_core/compendium_core.dart' show syncIdWordCount;
+import 'package:compendium_core/compendium_core.dart'
+    show SyncReport, syncIdWordCount;
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../data/backup_io.dart';
+import '../../data/repositories_scope.dart';
 import '../../diagnostics/error_log.dart';
 import '../../sync/sync_controller.dart';
 import '../../sync/sync_coordinator.dart' show SyncPassStatus;
@@ -17,6 +20,7 @@ import '../../theme/app_spacing.dart';
 import '../../widgets/collapsible_section.dart';
 import '../../widgets/section_header.dart';
 import 'sync_devices_screen.dart';
+import 'sync_failure_labels.dart';
 import 'sync_notice_labels.dart';
 import 'sync_pairing_screen.dart';
 
@@ -350,6 +354,34 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
               builder: (tileContext) {
                 final failureText = _failureText(l10n, controller);
                 final lastSuccess = controller.lastSuccessAt;
+                // Only a `failed` pass has a structured cause; the other
+                // failure lines are already explanations in their own right.
+                final failure = failureText == null
+                    ? null
+                    : controller.lastResult?.failure;
+                final details = failure == null
+                    ? null
+                    : syncFailureDetails(l10n, failure);
+                final subtitleLines = [
+                  if (failure != null)
+                    Text(
+                      syncFailureExplanation(l10n, failure),
+                      key: const ValueKey('sync-status-failure-explanation'),
+                    ),
+                  if (failureText != null && lastSuccess != null)
+                    Text(
+                      l10n.settingsSyncStatusLastSynced(
+                        _formatWhen(tileContext, lastSuccess),
+                      ),
+                      key: const ValueKey('sync-status-last-success'),
+                    ),
+                  if (details != null)
+                    Text(
+                      details,
+                      key: const ValueKey('sync-status-failure-details'),
+                      style: theme.textTheme.bodySmall,
+                    ),
+                ];
                 return ListTile(
                   key: const ValueKey('sync-status'),
                   leading: Icon(
@@ -361,14 +393,20 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
                   title: Text(
                     failureText ?? _statusText(tileContext, controller),
                   ),
-                  subtitle: failureText != null && lastSuccess != null
-                      ? Text(
-                          l10n.settingsSyncStatusLastSynced(
-                            _formatWhen(tileContext, lastSuccess),
-                          ),
-                          key: const ValueKey('sync-status-last-success'),
-                        )
-                      : null,
+                  subtitle: subtitleLines.isEmpty
+                      ? null
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            for (final (i, line) in subtitleLines.indexed)
+                              Padding(
+                                padding: EdgeInsets.only(
+                                  top: i == 0 ? 0 : AppSpacing.xxs,
+                                ),
+                                child: line,
+                              ),
+                          ],
+                        ),
                   trailing: controller.paired
                       ? null
                       : FilledButton(
@@ -387,13 +425,10 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
             // sit beside the status rather than in it because a pass can
             // complete successfully and still have something to say.
             for (final group in syncNoticeGroups(controller.notices))
-              ListTile(
-                key: ValueKey('sync-notice-${group.name}'),
-                leading: Icon(
-                  Icons.info_outline,
-                  color: theme.colorScheme.tertiary,
-                ),
-                title: Text(syncNoticeText(l10n, group)),
+              _SyncNoticeTile(
+                key: ValueKey(group),
+                group: group,
+                reports: controller.notices,
               ),
             // What this device merged when it last fresh-attached, for the rest
             // of this app session — the latch is in memory, so it does not
@@ -536,35 +571,133 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
   /// success, or null when the last attempt succeeded, nothing has run yet in
   /// this session, or a pass is currently running (the syncing status on
   /// [_statusText] takes priority over a stale failure from an earlier pass).
-  ///
-  /// The two missing-store outcomes are deliberately kept apart, as spec §6.2
-  /// and the pairing flow keep them apart: `replacementRequired` is a store
-  /// this device *had* used and that has since gone, so it may have expired
-  /// or been removed — never claimed as either, per §6.14 item 6 — and the
-  /// replacement dialog owns the decision; `firstTimeStoreRequired` is a
-  /// stored phrase no store has ever answered to, which is the mistyped or
-  /// never-created case, and saying "expired" there would explain a store
-  /// that never existed. A stale epoch needs no action: the next pass
-  /// fresh-attaches to the replaced store on its own.
+  /// Which line each status gets is [syncPassProblemText]'s decision.
   String? _failureText(AppLocalizations l10n, SyncController controller) {
     if (controller.running || !controller.paired) return null;
-    return switch (controller.lastResult?.status) {
-      SyncPassStatus.failed => l10n.settingsSyncStatusFailed,
-      SyncPassStatus.staleEpoch => l10n.settingsSyncStatusStaleStore,
-      SyncPassStatus.replacementRequired =>
-        l10n.settingsSyncStatusStoreUnavailable,
-      SyncPassStatus.firstTimeStoreRequired =>
-        l10n.settingsSyncStatusStoreNotFound,
-      // Declining a replacement leaves sync configured but paused so a later
-      // action can reconsider (spec §6.3 step 1, §6.14 item 6). Every
-      // automatic trigger then answers `paused` without running a pass, so
-      // without this arm the surface fell back to the last success — a date
-      // belonging to a store that no longer exists. `declineReplacement` is
-      // the only thing that pauses the coordinator, so naming the missing
-      // store here claims nothing the pause does not already mean.
-      SyncPassStatus.paused => l10n.settingsSyncStatusPaused,
-      _ => null,
-    };
+    final status = controller.lastResult?.status;
+    return status == null ? null : syncPassProblemText(l10n, status);
+  }
+}
+
+/// One notice group, with the records it is about.
+///
+/// A notice that says "some records" and asks the user to edit "one of them"
+/// gives them nothing to look for, so the tile lists the records, looked up
+/// here because a report carries only a kind and an id. Only the kinds
+/// [lookupSyncNoticeRecordName] looks up are named, and only those can be said
+/// to be absent from this device; every other kind is listed by kind alone.
+/// Nothing is left out, so the count stays honest.
+class _SyncNoticeTile extends StatefulWidget {
+  const _SyncNoticeTile({
+    super.key,
+    required this.group,
+    required this.reports,
+  });
+
+  final SyncNoticeGroup group;
+  final List<SyncReport> reports;
+
+  @override
+  State<_SyncNoticeTile> createState() => _SyncNoticeTileState();
+}
+
+class _SyncNoticeTileState extends State<_SyncNoticeTile> {
+  List<SyncNoticeRecord> _records = const [];
+  Future<List<(SyncNoticeRecord, SyncNoticeRecordName)>>? _names;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _resolve();
+  }
+
+  @override
+  void didUpdateWidget(_SyncNoticeTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.reports, widget.reports) ||
+        oldWidget.group != widget.group) {
+      _resolve();
+    }
+  }
+
+  void _resolve() {
+    final records = syncNoticeRecords(widget.group, widget.reports);
+    // The controller notifies at the start and end of every pass, and each
+    // notification rebuilds this tile; looking the names up again when the
+    // records have not changed would flash the line away and back.
+    if (_names != null && listEquals(records, _records)) return;
+    _records = records;
+    // Optional rather than required: a host without a repository scope still
+    // gets the notice and its record kinds, just not their names.
+    final repositories = context
+        .getInheritedWidgetOfExactType<RepositoriesScope>()
+        ?.repositories;
+    final shown = records.take(kSyncNoticeNamedLimit).toList();
+    _names = Future(() async {
+      final named = <(SyncNoticeRecord, SyncNoticeRecordName)>[];
+      for (final record in shown) {
+        SyncNoticeRecordName name = const SyncNoticeRecordUnnamed();
+        if (repositories != null) {
+          try {
+            name = await lookupSyncNoticeRecordName(repositories, record);
+          } on Object catch (e, st) {
+            // The notice itself is what matters; a lookup that fails degrades
+            // this record to its kind rather than hiding the whole line.
+            logCaughtErrorTypeOnly(e, st, source: 'sync_notice_tile.lookup');
+          }
+        }
+        named.add((record, name));
+      }
+      return named;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final peers = syncNoticePeerCount(widget.group, widget.reports);
+    final total = _records.length;
+    return ListTile(
+      key: ValueKey('sync-notice-${widget.group.name}'),
+      leading: Icon(Icons.info_outline, color: theme.colorScheme.tertiary),
+      title: Text(syncNoticeText(l10n, widget.group)),
+      subtitle: total == 0 && peers == 0
+          ? null
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (total > 0)
+                  FutureBuilder(
+                    future: _names,
+                    builder: (context, snapshot) {
+                      final named = snapshot.data;
+                      // Until the names arrive, the kinds alone still say
+                      // what to look for.
+                      final shown =
+                          named ??
+                          [
+                            for (final record in _records.take(
+                              kSyncNoticeNamedLimit,
+                            ))
+                              (record, const SyncNoticeRecordUnnamed()),
+                          ];
+                      return Text(
+                        syncNoticeAffectedText(l10n, shown, total),
+                        key: ValueKey(
+                          'sync-notice-${widget.group.name}-records',
+                        ),
+                      );
+                    },
+                  ),
+                if (peers > 0)
+                  Text(
+                    l10n.settingsSyncNoticeFromDevices(peers),
+                    key: ValueKey('sync-notice-${widget.group.name}-peers'),
+                  ),
+              ],
+            ),
+    );
   }
 }
 

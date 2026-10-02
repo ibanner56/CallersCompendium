@@ -316,6 +316,142 @@
   "@settingsSyncStatusFailed": {
     "x-sourceSha256": "53fa99d78ec8627b66d1f608b171626f6d73f1d7d70a1c3eab42afa83106af14"
   },
+  "settingsSyncFailureUnreachable": "Der Synchronisierungsserver war nicht erreichbar.",
+  "@settingsSyncFailureUnreachable": {
+    "x-sourceSha256": "1fec844573d970b89ddae666fddb4c01cf8065fb587bcb5fa4de0e8f4fcce1c7"
+  },
+  "settingsSyncFailureUnreachableAdvice": "Prüfe, ob dieses Gerät online ist. Wenn du einen eigenen Server betreibst, prüfe, ob er läuft und ob seine Adresse stimmt.",
+  "@settingsSyncFailureUnreachableAdvice": {
+    "x-sourceSha256": "ea38a758f977c2fdbc84b142090e2473515b8590f8c60e28d8c6583c60b09948"
+  },
+  "settingsSyncFailureTimedOut": "Der Synchronisierungsserver hat zu lange für eine Antwort gebraucht.",
+  "@settingsSyncFailureTimedOut": {
+    "x-sourceSha256": "464ebebc445aaff574f2eaa11829ded903602b89cab69d5307f81121b90aa490"
+  },
+  "settingsSyncFailureTimedOutAdvice": "Meist liegt das an einer langsamen oder instabilen Verbindung. Versuche es erneut, wenn die Verbindung besser ist.",
+  "@settingsSyncFailureTimedOutAdvice": {
+    "x-sourceSha256": "0c81f465ce533eb89de05aa483e1a26cc6e3e4a44ba247a4c53ec6d22149bf8f"
+  },
+  "settingsSyncFailureServerError": "Beim Synchronisierungsserver selbst ist ein Problem aufgetreten.",
+  "@settingsSyncFailureServerError": {
+    "x-sourceSha256": "bcd7f14f51fab6da5c554f1af0b283fba58d90746158bcfc15e1dad5d15a7c94"
+  },
+  "settingsSyncFailureServerErrorAdvice": "Mit diesem Gerät und deiner Bibliothek ist alles in Ordnung. Warte eine Weile und versuche es erneut. Wenn es weiterhin passiert, gib der Person Bescheid, die den Server betreibt, und nenne die hier angezeigten Details.",
+  "@settingsSyncFailureServerErrorAdvice": {
+    "x-sourceSha256": "e375d5052be6afb964cdf1b43d9e1a8c77257c75025caa3a710ba20dad7bdeb4"
+  },
+  "settingsSyncFailureRateLimited": "Der Synchronisierungsserver hat dieses Gerät gebeten, langsamer zu machen.",
+  "@settingsSyncFailureRateLimited": {
+    "x-sourceSha256": "80e0d4ffb219e4f8871bfb1deab9f03ac4c9ead3df2076c8ed7929232fde5a5e"
+  },
+  "settingsSyncFailureRateLimitedAdvice": "Er hat in kurzer Zeit zu viele Anfragen erhalten. Warte ein paar Minuten, bevor du es erneut versuchst.",
+  "@settingsSyncFailureRateLimitedAdvice": {
+    "x-sourceSha256": "66f91724ff9a8ff9962da293dd168113c17ab48d52ea4ddebda07803709cd530"
+  },
+  "settingsSyncFailureStoreFull": "Dein Speicher hat den gesamten Platz belegt, den der Synchronisierungsserver erlaubt.",
+  "@settingsSyncFailureStoreFull": {
+    "x-sourceSha256": "18dea407dfb731dd13ec988fd58ef55a6711674a25fd2c59b07439bd365c5f92"
+  },
+  "settingsSyncFailureStoreFullAdvice": "Änderungen von diesem Gerät können erst gespeichert werden, wenn wieder Platz ist. Wenn du Ungenutzte importierte Tänze überspringen einschaltest, lädt dieses Gerät weniger hoch. Wenn du einen eigenen Server betreibst, erhöhe sein Speicherlimit.",
+  "@settingsSyncFailureStoreFullAdvice": {
+    "x-sourceSha256": "8118c7463bdf1d540145735a494d7b6c9748386039bda9c0f6789e3403b86548"
+  },
+  "settingsSyncFailureTooLarge": "Etwas, das dieses Gerät hochladen wollte, ist größer, als der Synchronisierungsserver annimmt.",
+  "@settingsSyncFailureTooLarge": {
+    "x-sourceSha256": "0f5b2479a4a67fcc162a38d2a6259b45a4bfe2cb5a9367558777657492a4d100"
+  },
+  "settingsSyncFailureTooLargeAdvice": "Wenn du eine große importierte Sammlung hast, bringt sie das Einschalten von Ungenutzte importierte Tänze überspringen vielleicht unter das Limit. Wenn du einen eigenen Server betreibst, prüfe sein Limit für die Uploadgröße.",
+  "@settingsSyncFailureTooLargeAdvice": {
+    "x-sourceSha256": "f30c59fd533ca30a49e5a82ccf7040955fe1a9190357e5ae5d7e3e04ceb98cf6"
+  },
+  "settingsSyncFailureRejected": "Der Synchronisierungsserver hat abgelehnt, was dieses Gerät gesendet hat.",
+  "@settingsSyncFailureRejected": {
+    "x-sourceSha256": "61dd076ba854551584746708a144209da7a34dd5345d897952357542e5dbfc50"
+  },
+  "settingsSyncFailureRejectedAdvice": "Das bedeutet meist, dass diese App und der Server unterschiedliche Versionen haben. Aktualisiere die App auf diesem Gerät. Wenn du einen eigenen Server betreibst, aktualisiere ihn ebenfalls.",
+  "@settingsSyncFailureRejectedAdvice": {
+    "x-sourceSha256": "88cf23ed721267c5050248947b735afd120c8bab651404fd3b870dd4eb1896a9"
+  },
+  "settingsSyncFailureAccessDenied": "Der Synchronisierungsserver hat die Synchronisierungsphrase dieses Geräts nicht akzeptiert.",
+  "@settingsSyncFailureAccessDenied": {
+    "x-sourceSha256": "807c859e76ad3cbc3b441faa54c32f0850840ee9d8b37370ff031933b0fa427f"
+  },
+  "settingsSyncFailureAccessDeniedAdvice": "Vergleiche die Phrase mit der auf deinem anderen Gerät und prüfe, ob die Serveradresse stimmt.",
+  "@settingsSyncFailureAccessDeniedAdvice": {
+    "x-sourceSha256": "d8aee437fcba68b92d16a6026b98d8c5806ce4e2571e35060540d7ed26d92108"
+  },
+  "settingsSyncFailureUnexpectedResponse": "Der Synchronisierungsserver hat eine Antwort gesendet, mit der diese App nichts anfangen kann.",
+  "@settingsSyncFailureUnexpectedResponse": {
+    "x-sourceSha256": "384f76375dc8203ecad0f82054f085908ffbaaeccd72e549277612cba79b327b"
+  },
+  "settingsSyncFailureUnexpectedResponseAdvice": "Wenn du einen eigenen Server betreibst, prüfe seine Adresse und ob er eine Version hat, die diese App unterstützt. Andernfalls aktualisiere die App und versuche es später erneut.",
+  "@settingsSyncFailureUnexpectedResponseAdvice": {
+    "x-sourceSha256": "28d5baae4557d1f5ac4ac1e9e2eb730e090d9b4c97c3c494fd8425953b86d9e8"
+  },
+  "settingsSyncFailurePeerUnavailable": "Was eines deiner anderen Geräte zuletzt geteilt hat, konnte nicht gelesen werden.",
+  "@settingsSyncFailurePeerUnavailable": {
+    "x-sourceSha256": "58814e7e830bb6b7942a74fe19642750e35d0414cb7ae53a238ecf74dc1e226a"
+  },
+  "settingsSyncFailurePeerUnavailableAdvice": "Um sich mit einem Speicher zu verbinden, wird die neueste Liste jedes Geräts darin benötigt. Öffne die App auf deinen anderen Geräten, lass sie synchronisieren und versuche es dann erneut. Wenn ein Gerät endgültig weg ist, entferne es unter Andere Geräte.",
+  "@settingsSyncFailurePeerUnavailableAdvice": {
+    "x-sourceSha256": "68d34d85a75b3b0d989123c0c9c38d0948e5bca6b0be66bff443752f489d904a"
+  },
+  "settingsSyncFailureInternal": "Beim Synchronisieren ist in der App etwas schiefgegangen.",
+  "@settingsSyncFailureInternal": {
+    "x-sourceSha256": "2f7c0cd517e44bc340727aac932a0a74ed7996a5529cb78f9c6655f730a24ee4"
+  },
+  "settingsSyncFailureInternalAdvice": "Das liegt nicht an deiner Verbindung oder am Server. Versuche es erneut. Wenn es weiterhin passiert, exportiere das Protokoll unter Einstellungen ▸ Diagnose und füge es bei, wenn du das Problem meldest.",
+  "@settingsSyncFailureInternalAdvice": {
+    "x-sourceSha256": "9fd02ba66ee20762e3ee342f194caa3d0190cbdf1f05819de589b069ec9e9a90"
+  },
+  "settingsSyncFailureStep": "{step, select, lookup{Beim Suchen des Speichers abgebrochen.} download{Beim Herunterladen von deinen anderen Geräten abgebrochen.} upload{Beim Hochladen der Änderungen dieses Geräts abgebrochen.} publish{Beim Veröffentlichen der Änderungen dieses Geräts abgebrochen.} createStore{Beim Erstellen des Speichers abgebrochen.} other{Mittendrin abgebrochen.}}",
+  "@settingsSyncFailureStep": {
+    "x-sourceSha256": "4575bcef920388d21598add9216203979f69d89156d31d48e93db37a15726059"
+  },
+  "settingsSyncFailureStatusCode": "Der Server antwortete mit HTTP-Status {code}.",
+  "@settingsSyncFailureStatusCode": {
+    "x-sourceSha256": "e145850e452c3d909edf069be12cbbe898ffc96f24c7d22d9ab4641d7866cb9b"
+  },
+  "settingsSyncFailureDetails": "Details: {details}",
+  "@settingsSyncFailureDetails": {
+    "x-sourceSha256": "0090e7573cf43b828736bd9e94d6a913087cb4bdcc827324b24ce5900bdcf1dc"
+  },
+  "commonSyncFailed": "Die Synchronisierung wurde nicht abgeschlossen. {explanation}",
+  "@commonSyncFailed": {
+    "x-sourceSha256": "40aeb0f078a33c257860357bb350ed3e4251f5fac4ddc02ee1c39136f2ecbe61"
+  },
+  "settingsSyncNoticeAffected": "Betrifft: {records}",
+  "@settingsSyncNoticeAffected": {
+    "x-sourceSha256": "85c7e77a5f09410e426b8a246c94f222f2cb41a185a5b1e3f1f220a622dacfa0"
+  },
+  "settingsSyncNoticeListSeparator": ", ",
+  "@settingsSyncNoticeListSeparator": {
+    "x-sourceSha256": "0a07f659461970d8d8dcefe4fff96a1745599810dc7d47391e95c803b7b2072c"
+  },
+  "settingsSyncNoticeRecordNamed": "{kind} „{name}“",
+  "@settingsSyncNoticeRecordNamed": {
+    "x-sourceSha256": "31cac53311e22d47a6a18fccbb1fc1e9dd687d7afb1f5e75f21c71940e57712b"
+  },
+  "settingsSyncNoticeRecordNotHere": "{kind}, nicht auf diesem Gerät",
+  "@settingsSyncNoticeRecordNotHere": {
+    "x-sourceSha256": "26cb94ed02bbe50614443d20b73107a471d16600fe41f3425c65f60cded6a9e0"
+  },
+  "settingsSyncNoticeAffectedMore": "{count, plural, other{und {count} weitere}}",
+  "@settingsSyncNoticeAffectedMore": {
+    "x-sourceSha256": "8dc9d0f45df2d0a3db76ebea5523ebe0c6c39caf7c19393565ab989263ef4433"
+  },
+  "settingsSyncNoticeFromDevices": "{count, plural, =1{Von 1 anderen Gerät.} other{Von {count} anderen Geräten.}}",
+  "@settingsSyncNoticeFromDevices": {
+    "x-sourceSha256": "aad552755d7cc30b4282db05b93d127a3e46e698078bb3700d1f18a9ca4a38e4"
+  },
+  "settingsSyncDevicesFailedBecause": "Die Geräteliste konnte nicht geladen werden. {explanation}",
+  "@settingsSyncDevicesFailedBecause": {
+    "x-sourceSha256": "ede437d835d23937abd0a5d23d431af2bffacf6f400cc7d34e7ca41c33b2d484"
+  },
+  "settingsSyncAdminFailedBecause": "{message} {explanation}",
+  "@settingsSyncAdminFailedBecause": {
+    "x-sourceSha256": "26ba3e687fa63fbd44788c06935392fca46497d643f608dcc6f5a773f1afd450"
+  },
   "settingsSyncStatusStaleStore": "Dieser Speicher wurde seit deiner letzten Synchronisierung von einem anderen Gerät ersetzt. Die nächste Synchronisierung verbindet sich mit dem neuen.",
   "@settingsSyncStatusStaleStore": {
     "x-sourceSha256": "7e0535051294ba8f0749e72c2fd6b08430fedf9cddd44531793bb00c568c7f4f"
@@ -587,10 +723,6 @@
   "settingsSyncPairingAlreadyInUse": "Diese Phrase wird bereits von einem anderen Speicher verwendet. Erzeuge eine andere.",
   "@settingsSyncPairingAlreadyInUse": {
     "x-sourceSha256": "a36988588079609c9bf3ae1c4c6d9f3195f235b388f61041b990c2bb47099f1c"
-  },
-  "settingsSyncPairingUnreachable": "Die Gerätesynchronisierung ist gerade nicht verfügbar. Prüfe deine Verbindung und versuche es erneut.",
-  "@settingsSyncPairingUnreachable": {
-    "x-sourceSha256": "6b46c1f7e1eaefe2de8cff490ba510bd32a56d8978f101b56f17263fd184ce00"
   },
   "settingsSyncPairingCustomEndpointTitle": "Eigener Server: {host}",
   "@settingsSyncPairingCustomEndpointTitle": {

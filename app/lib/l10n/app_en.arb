@@ -388,6 +388,216 @@
   "@settingsSyncStatusFailed": {
     "description": "Status shown when the most recent sync attempt did not complete. The time of the last successful sync, if any, is shown separately below this line."
   },
+  "settingsSyncFailureUnreachable": "Couldn't reach the sync server.",
+  "@settingsSyncFailureUnreachable": {
+    "description": "Device Sync failure reason, one sentence, shown under \"Last sync failed.\" on the status surface and in pairing, device-list and toolbar errors. Used when the transport could not connect at all: DNS failure, refused or dropped connection, or a failed secure (TLS) handshake."
+  },
+  "settingsSyncFailureUnreachableAdvice": "Check that this device is online. If you run your own server, check that it's running and that its address is right.",
+  "@settingsSyncFailureUnreachableAdvice": {
+    "description": "What the user can do about settingsSyncFailureUnreachable, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions (\"above\", \"below\")."
+  },
+  "settingsSyncFailureTimedOut": "The sync server took too long to answer.",
+  "@settingsSyncFailureTimedOut": {
+    "description": "Device Sync failure reason, one sentence, shown under \"Last sync failed.\" on the status surface and in pairing, device-list and toolbar errors. Used when a request did not finish within the transport deadline."
+  },
+  "settingsSyncFailureTimedOutAdvice": "A slow or unsteady connection is the usual cause. Try again when the connection is stronger.",
+  "@settingsSyncFailureTimedOutAdvice": {
+    "description": "What the user can do about settingsSyncFailureTimedOut, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions (\"above\", \"below\")."
+  },
+  "settingsSyncFailureServerError": "The sync server ran into a problem of its own.",
+  "@settingsSyncFailureServerError": {
+    "description": "Device Sync failure reason, one sentence, shown under \"Last sync failed.\" on the status surface and in pairing, device-list and toolbar errors. Used when the server answered with a 5xx status: a fault on the server's side."
+  },
+  "settingsSyncFailureServerErrorAdvice": "Nothing is wrong with this device or your library. Wait a while and try again. If it keeps happening, let whoever runs the server know, and quote the details shown here.",
+  "@settingsSyncFailureServerErrorAdvice": {
+    "description": "What the user can do about settingsSyncFailureServerError, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions (\"above\", \"below\")."
+  },
+  "settingsSyncFailureRateLimited": "The sync server asked this device to slow down.",
+  "@settingsSyncFailureRateLimited": {
+    "description": "Device Sync failure reason, one sentence, shown under \"Last sync failed.\" on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 429 Too Many Requests."
+  },
+  "settingsSyncFailureRateLimitedAdvice": "It has had too many requests in a short time. Wait a few minutes before trying again.",
+  "@settingsSyncFailureRateLimitedAdvice": {
+    "description": "What the user can do about settingsSyncFailureRateLimited, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions (\"above\", \"below\")."
+  },
+  "settingsSyncFailureStoreFull": "Your store has used all the space the sync server allows.",
+  "@settingsSyncFailureStoreFull": {
+    "description": "Device Sync failure reason, one sentence, shown under \"Last sync failed.\" on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 507: the store's storage quota is exhausted. Must not suggest deleting the store (spec §5.3 forbids offering a wipe as the first response to a 507). 'Skip unused imported dances' is the exact title of the setting settingsSyncExcludeImportsTitle."
+  },
+  "settingsSyncFailureStoreFullAdvice": "Changes from this device can't be stored until there is room. Turning on Skip unused imported dances cuts what this device uploads. If you run your own server, raise its storage limit.",
+  "@settingsSyncFailureStoreFullAdvice": {
+    "description": "What the user can do about settingsSyncFailureStoreFull, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions (\"above\", \"below\")."
+  },
+  "settingsSyncFailureTooLarge": "Something this device tried to upload is larger than the sync server accepts.",
+  "@settingsSyncFailureTooLarge": {
+    "description": "Device Sync failure reason, one sentence, shown under \"Last sync failed.\" on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 413 Payload Too Large. 'Skip unused imported dances' is the exact title of the setting settingsSyncExcludeImportsTitle."
+  },
+  "settingsSyncFailureTooLargeAdvice": "If you have a large imported collection, turning on Skip unused imported dances may bring it under the limit. If you run your own server, check its upload size limit.",
+  "@settingsSyncFailureTooLargeAdvice": {
+    "description": "What the user can do about settingsSyncFailureTooLarge, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions (\"above\", \"below\")."
+  },
+  "settingsSyncFailureRejected": "The sync server refused what this device sent.",
+  "@settingsSyncFailureRejected": {
+    "description": "Device Sync failure reason, one sentence, shown under \"Last sync failed.\" on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 400, 415 or 422: it refused the request as invalid."
+  },
+  "settingsSyncFailureRejectedAdvice": "This usually means this app and the server are on different versions. Update the app on this device. If you run your own server, update it too.",
+  "@settingsSyncFailureRejectedAdvice": {
+    "description": "What the user can do about settingsSyncFailureRejected, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions (\"above\", \"below\")."
+  },
+  "settingsSyncFailureAccessDenied": "The sync server didn't accept this device's sync phrase.",
+  "@settingsSyncFailureAccessDenied": {
+    "description": "Device Sync failure reason, one sentence, shown under \"Last sync failed.\" on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 401 or 403."
+  },
+  "settingsSyncFailureAccessDeniedAdvice": "Check the phrase against the one on your other device, and check that the server address is right.",
+  "@settingsSyncFailureAccessDeniedAdvice": {
+    "description": "What the user can do about settingsSyncFailureAccessDenied, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions (\"above\", \"below\")."
+  },
+  "settingsSyncFailureUnexpectedResponse": "The sync server sent a reply this app couldn't use.",
+  "@settingsSyncFailureUnexpectedResponse": {
+    "description": "Device Sync failure reason, one sentence, shown under \"Last sync failed.\" on the status surface and in pairing, device-list and toolbar errors. Used when an unexpected status, a redirect the app will not follow, or a malformed or oversized response body."
+  },
+  "settingsSyncFailureUnexpectedResponseAdvice": "If you run your own server, check its address and that it's a version this app supports. Otherwise, update the app and try again later.",
+  "@settingsSyncFailureUnexpectedResponseAdvice": {
+    "description": "What the user can do about settingsSyncFailureUnexpectedResponse, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions (\"above\", \"below\")."
+  },
+  "settingsSyncFailurePeerUnavailable": "Couldn't read what one of your other devices last shared.",
+  "@settingsSyncFailurePeerUnavailable": {
+    "description": "Device Sync failure reason, one sentence, shown under \"Last sync failed.\" on the status surface and in pairing, device-list and toolbar errors. Used when a first connection to a store needs every peer's manifest and at least one could not be read. 'Other devices' is the exact title of the settingsSyncDevicesTitle row."
+  },
+  "settingsSyncFailurePeerUnavailableAdvice": "Connecting to a store needs the latest list from every device on it. Open the app on your other devices and let them sync, then try again. If a device is gone for good, remove it under Other devices.",
+  "@settingsSyncFailurePeerUnavailableAdvice": {
+    "description": "What the user can do about settingsSyncFailurePeerUnavailable, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions (\"above\", \"below\")."
+  },
+  "settingsSyncFailureInternal": "Something went wrong inside the app while syncing.",
+  "@settingsSyncFailureInternal": {
+    "description": "Device Sync failure reason, one sentence, shown under \"Last sync failed.\" on the status surface and in pairing, device-list and toolbar errors. Used when a failure inside the app rather than on the network. 'Diagnostics' is the exact title of the settingsDiagnosticsTitle section."
+  },
+  "settingsSyncFailureInternalAdvice": "This isn't a problem with your connection or the server. Try again. If it keeps happening, export the log from Settings ▸ Diagnostics and include it when you report the problem.",
+  "@settingsSyncFailureInternalAdvice": {
+    "description": "What the user can do about settingsSyncFailureInternal, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions (\"above\", \"below\")."
+  },
+  "settingsSyncFailureStep": "{step, select, lookup{Stopped while looking up the store.} download{Stopped while downloading from your other devices.} upload{Stopped while uploading this device's changes.} publish{Stopped while publishing this device's changes.} createStore{Stopped while creating the store.} other{Stopped partway through.}}",
+  "@settingsSyncFailureStep": {
+    "description": "Part of the technical details line under a Device Sync failure, naming the step that failed so the user can describe the problem. The select values are internal identifiers and must not be translated.",
+    "placeholders": {
+      "step": {
+        "type": "String",
+        "example": "upload"
+      }
+    }
+  },
+  "settingsSyncFailureStatusCode": "The server answered with HTTP status {code}.",
+  "@settingsSyncFailureStatusCode": {
+    "description": "Part of the technical details line under a Device Sync failure: the HTTP status code the server answered with, for the user to quote when reporting the problem.",
+    "placeholders": {
+      "code": {
+        "type": "int",
+        "example": "503"
+      }
+    }
+  },
+  "settingsSyncFailureDetails": "Details: {details}",
+  "@settingsSyncFailureDetails": {
+    "description": "Technical details line under a Device Sync failure. {details} is settingsSyncFailureStep and/or settingsSyncFailureStatusCode joined by a space.",
+    "placeholders": {
+      "details": {
+        "type": "String",
+        "example": "Stopped while uploading this device's changes. The server answered with HTTP status 503."
+      }
+    }
+  },
+  "commonSyncFailed": "Sync didn't finish. {explanation}",
+  "@commonSyncFailed": {
+    "description": "Snackbar shown when the toolbar Sync now button on the Collection or Programs page ran a pass that did not complete. {explanation} is the failure reason and advice (settingsSyncFailure* strings) or a status line such as settingsSyncStatusStoreUnavailable.",
+    "placeholders": {
+      "explanation": {
+        "type": "String",
+        "example": "Couldn't reach the sync server. Check that this device is online."
+      }
+    }
+  },
+  "settingsSyncNoticeAffected": "Affects: {records}",
+  "@settingsSyncNoticeAffected": {
+    "description": "Second line of a Device Sync notice listing the records it is about, so the user knows which ones to look at. {records} is a list of settingsSyncNoticeRecordNamed / settingsSyncNoticeRecordNotHere / kind labels joined by settingsSyncNoticeListSeparator, optionally ending with settingsSyncNoticeAffectedMore.",
+    "placeholders": {
+      "records": {
+        "type": "String",
+        "example": "Dance “Petronella”, Program “Saturday social”"
+      }
+    }
+  },
+  "settingsSyncNoticeListSeparator": ", ",
+  "@settingsSyncNoticeListSeparator": {
+    "description": "Separator between items in the settingsSyncNoticeAffected list. Include any spacing your language uses."
+  },
+  "settingsSyncNoticeRecordNamed": "{kind} “{name}”",
+  "@settingsSyncNoticeRecordNamed": {
+    "description": "One record in the settingsSyncNoticeAffected list: its kind (a syncReviewKind* label such as \"Dance\") and its title or name as stored on this device.",
+    "placeholders": {
+      "kind": {
+        "type": "String",
+        "example": "Dance"
+      },
+      "name": {
+        "type": "String",
+        "example": "Petronella"
+      }
+    }
+  },
+  "settingsSyncNoticeRecordNotHere": "{kind} not on this device",
+  "@settingsSyncNoticeRecordNotHere": {
+    "description": "One record in the settingsSyncNoticeAffected list that this device does not have, so there is no name to show — typically a record from another device that was skipped. {kind} is a syncReviewKind* label such as \"Dance\".",
+    "placeholders": {
+      "kind": {
+        "type": "String",
+        "example": "Dance"
+      }
+    }
+  },
+  "settingsSyncNoticeAffectedMore": "{count, plural, other{and {count} more}}",
+  "@settingsSyncNoticeAffectedMore": {
+    "description": "Ends the settingsSyncNoticeAffected list when it names only the first few records.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncNoticeFromDevices": "{count, plural, =1{From 1 other device.} other{From {count} other devices.}}",
+  "@settingsSyncNoticeFromDevices": {
+    "description": "Line on a Device Sync notice saying how many other devices the records it is about came from.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "settingsSyncDevicesFailedBecause": "Couldn't load the device list. {explanation}",
+  "@settingsSyncDevicesFailedBecause": {
+    "description": "Shown on the Other devices screen when the device list could not be loaded and the reason is known. {explanation} is a settingsSyncFailure* reason and its advice.",
+    "placeholders": {
+      "explanation": {
+        "type": "String",
+        "example": "The sync server took too long to answer. Try again when the connection is stronger."
+      }
+    }
+  },
+  "settingsSyncAdminFailedBecause": "{message} {explanation}",
+  "@settingsSyncAdminFailedBecause": {
+    "description": "Joins a Device Sync action failure (settingsSyncDeviceRemoveFailed or settingsSyncWipeFailed) with the reason it failed (a settingsSyncFailure* reason). Reorder if your language puts the reason first.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "Couldn't remove that device. It is still connected; try again."
+      },
+      "explanation": {
+        "type": "String",
+        "example": "Couldn't reach the sync server."
+      }
+    }
+  },
   "settingsSyncStatusStaleStore": "This store was replaced by another device since your last sync. The next sync will join the new one.",
   "@settingsSyncStatusStaleStore": {
     "description": "Status shown when the last sync attempt found the connected store had moved on to a new epoch (another device confirmed a replacement). No action is needed: the next pass attaches to the replaced store on its own."
@@ -659,10 +869,6 @@
   "settingsSyncPairingAlreadyInUse": "That phrase is already in use by another store. Generate a different one.",
   "@settingsSyncPairingAlreadyInUse": {
     "description": "Error shown when creating a store whose ID is already taken (409)."
-  },
-  "settingsSyncPairingUnreachable": "Device Sync isn't available right now. Check your connection and try again.",
-  "@settingsSyncPairingUnreachable": {
-    "description": "Error shown when the pairing request fails for a reason other than 404/409 (network, server)."
   },
   "settingsSyncPairingCustomEndpointTitle": "Custom server: {host}",
   "@settingsSyncPairingCustomEndpointTitle": {

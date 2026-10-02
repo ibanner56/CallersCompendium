@@ -27,6 +27,8 @@ import 'package:compendium_app/src/data/walkthrough_snippet_library_scope.dart';
 import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
 import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
+import 'package:compendium_app/src/screens/settings/sync_notice_labels.dart'
+    show kSyncNoticeNamedLimit;
 import 'package:compendium_app/src/screens/settings/sync_pairing_screen.dart';
 import 'package:compendium_app/src/sync/sync_controller.dart';
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
@@ -1845,7 +1847,14 @@ void main() {
         /// pass returns whatever [result] currently holds, so a test can walk
         /// a sequence of passes through the real controller and widget rather
         /// than an inline fake of either.
-        Future<({SyncController controller, List<int> passes})> pumpPassing(
+        Future<
+          ({
+            SyncController controller,
+            List<int> passes,
+            CompendiumRepositories repos,
+          })
+        >
+        pumpPassing(
           WidgetTester tester,
           SyncPassResult Function() result,
         ) async {
@@ -1869,7 +1878,7 @@ void main() {
           );
           addTearDown(_syncCoordinator!.dispose);
           await openExperimental(tester);
-          return (controller: controller, passes: passes);
+          return (controller: controller, passes: passes, repos: harness.repos);
         }
 
         Future<void> syncNow(WidgetTester tester) async {
@@ -2128,6 +2137,107 @@ void main() {
           expect(find.byKey(divergence), findsOneWidget);
           expect(
             find.byKey(const ValueKey('sync-notice-clock')),
+            findsOneWidget,
+          );
+        });
+
+        // "Edit one of them" is only actionable if the user can tell which
+        // ones: the notice names them as this device stores them, and says so
+        // when this device has no such record rather than dropping it.
+        testWidgets('a notice names the records it is about', (tester) async {
+          late SyncPassResult result;
+          final pumped = await pumpPassing(tester, () => result);
+          final tagId = await pumped.repos.tags.upsert(
+            Tag(id: 'tag-1', name: 'Contra corners'),
+          );
+          result = SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [
+              SyncReport(
+                code: SyncReportCode.equalUpdatedAt,
+                kind: SyncRecordKind.tag,
+                recordId: tagId,
+                message: 'tie',
+              ),
+              const SyncReport(
+                code: SyncReportCode.equalUpdatedAt,
+                kind: SyncRecordKind.dance,
+                recordId: 'not-on-this-device',
+                message: 'tie',
+              ),
+            ],
+          );
+          await syncNow(tester);
+
+          expect(
+            tester
+                .widget<Text>(
+                  find.byKey(const ValueKey('sync-notice-divergence-records')),
+                )
+                .data,
+            'Affects: Tag “Contra corners”, Dance not on this device',
+          );
+        });
+
+        testWidgets('a notice counts the records it does not name', (
+          tester,
+        ) async {
+          final result = SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [
+              for (var i = 0; i < kSyncNoticeNamedLimit + 2; i++)
+                SyncReport(
+                  code: SyncReportCode.malformedRecord,
+                  kind: SyncRecordKind.setting,
+                  recordId: 'setting-$i',
+                  peerId: i.isEven ? 'peer-a' : 'peer-b',
+                  message: 'skipped',
+                ),
+            ],
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          final records = tester
+              .widget<Text>(
+                find.byKey(const ValueKey('sync-notice-skippedRecord-records')),
+              )
+              .data!;
+          expect(records, endsWith('and 2 more'));
+          expect(find.text('From 2 other devices.'), findsOneWidget);
+        });
+
+        // "Last sync failed." alone leaves the user nothing to act on or
+        // report; the cause, its advice and the step and status to quote do.
+        testWidgets('a failed pass explains its cause and what to quote', (
+          tester,
+        ) async {
+          const result = SyncPassResult(
+            SyncPassStatus.failed,
+            failure: SyncFailure(
+              SyncFailureCause.serverError,
+              step: SyncFailureStep.publish,
+              statusCode: 503,
+            ),
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          expect(find.text('Last sync failed.'), findsOneWidget);
+          expect(
+            find.text(
+              'The sync server ran into a problem of its own. Nothing is '
+              'wrong with this device or your library. Wait a while and try '
+              'again. If it keeps happening, let whoever runs the server '
+              'know, and quote the details shown here.',
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.text(
+              "Details: Stopped while publishing this device's changes. The "
+              'server answered with HTTP status 503.',
+            ),
             findsOneWidget,
           );
         });
@@ -2493,6 +2603,8 @@ void main() {
         late List<String> removed;
         late int wipes;
         late SyncResponseKind wipeKind;
+        late SyncResponseKind listKind;
+        late SyncResponseKind removeKind;
 
         SyncHttpResponse response(SyncResponseKind kind, {String? body}) =>
             SyncHttpResponse(
@@ -2506,6 +2618,8 @@ void main() {
           removed = [];
           wipes = 0;
           wipeKind = SyncResponseKind.success;
+          listKind = SyncResponseKind.success;
+          removeKind = SyncResponseKind.success;
           _syncNetwork.kind = SyncNetworkKind.unmetered;
           _syncCoordinator = null;
           _pairingProbeFactory = null;
@@ -2513,7 +2627,7 @@ void main() {
           _deviceAdminFactory = (syncId, endpoint) => SyncDeviceAdmin(
             getStore: ({required previouslyUsed}) async => SyncStoreResult(
               response: response(
-                SyncResponseKind.success,
+                listKind,
                 body: jsonEncode({
                   'epoch': 'epoch-1',
                   'devices': ['this_device', 'peer_a'],
@@ -2522,7 +2636,7 @@ void main() {
             ),
             deleteManifest: (deviceId) async {
               removed.add(deviceId);
-              return response(SyncResponseKind.success);
+              return response(removeKind);
             },
             deleteStore: () async {
               wipes++;
@@ -2755,6 +2869,62 @@ void main() {
             findsOneWidget,
           );
           expect(find.textContaining('Nothing was changed'), findsNothing);
+          // And why, so the user can tell a server fault from their own.
+          expect(
+            find.textContaining(
+              'The sync server ran into a problem of its own.',
+            ),
+            findsOneWidget,
+          );
+        });
+
+        testWidgets('a device list that fails to load says why, and what to '
+            'quote', (tester) async {
+          listKind = SyncResponseKind.serverError;
+          await pumpPaired(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-devices')));
+          await tester.pumpAndSettle();
+
+          expect(
+            tester
+                .widget<Text>(find.byKey(const ValueKey('sync-devices-failed')))
+                .data,
+            startsWith(
+              "Couldn't load the device list. The sync server ran into a "
+              'problem of its own.',
+            ),
+          );
+          expect(
+            tester
+                .widget<Text>(
+                  find.byKey(const ValueKey('sync-devices-failed-details')),
+                )
+                .data,
+            'Details: The server answered with HTTP status 500.',
+          );
+        });
+
+        testWidgets('a removal the server refuses says why', (tester) async {
+          removeKind = SyncResponseKind.serverError;
+          await pumpPaired(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-devices')));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('sync-device-remove-peer_a')),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('sync-device-remove-confirm')),
+          );
+          await tester.pumpAndSettle();
+
+          expect(
+            find.text(
+              "Couldn't remove that device. It is still connected; try "
+              'again. The sync server ran into a problem of its own.',
+            ),
+            findsOneWidget,
+          );
         });
 
         testWidgets('a wipe whose local clear fails says the store is gone, '
@@ -3477,15 +3647,54 @@ void main() {
           await tester.pumpAndSettle();
 
           expect(tester.takeException(), isNull);
+          // Named as a timeout, not a generic outage: the remedy differs.
           expect(
             find.text(
-              "Device Sync isn't available right now. Check your "
-              "connection and try again.",
+              'The sync server took too long to answer. A slow or unsteady '
+              'connection is the usual cause. Try again when the connection '
+              'is stronger.',
             ),
             findsOneWidget,
           );
         },
       );
+
+      // A refused phrase used to read "isn't available right now", which no
+      // amount of waiting fixes; the step and status are there to quote.
+      testWidgets('a refused create names the cause, step and status', (
+        tester,
+      ) async {
+        _pairingProbeFactory = (syncId, endpoint) => SyncPairingProbe(
+          getStore: ({required previouslyUsed}) async =>
+              throw UnimplementedError(),
+          createStore: () async => const SyncHttpResponse(
+            statusCode: 403,
+            kind: SyncResponseKind.invalidSyncId,
+            headers: {},
+            body: [],
+          ),
+        );
+        await enableAndOpenPairing(tester);
+        await tester.tap(find.byKey(const ValueKey('sync-pairing-create')));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('sync-pairing-backup-skip')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('sync-pairing-continue')));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text(
+            "The sync server didn't accept this device's sync phrase. Check "
+            'the phrase against the one on your other device, and check that '
+            'the server address is right.\n'
+            'Details: Stopped while creating the store. The server answered '
+            'with HTTP status 403.',
+          ),
+          findsOneWidget,
+        );
+      });
 
       testWidgets(
         'the backup offer never starts automatically: skip exports nothing, '
@@ -3635,14 +3844,18 @@ void main() {
         CompendiumRepositories repos, {
         SyncPassStatus status = SyncPassStatus.completed,
         int duplicateCount = 0,
+        SyncFailure? failure,
       }) {
         _syncCoordinator = SyncCoordinator(
           syncId: 'configured',
           deviceId: 'device',
           store: CompendiumSyncCoordinatorStore(repos),
           transport: NoopSyncCoordinatorTransport(),
-          passOperation: ({initialStore}) async =>
-              SyncPassResult(status, duplicateCount: duplicateCount),
+          passOperation: ({initialStore}) async => SyncPassResult(
+            status,
+            duplicateCount: duplicateCount,
+            failure: failure,
+          ),
         );
         addTearDown(_syncCoordinator!.dispose);
       }
@@ -3864,6 +4077,47 @@ void main() {
           },
         );
       }
+
+      // Pairing succeeded, but "it will try again" is no help when the cause
+      // is one retrying will not clear, so the dialog says what stopped the
+      // first sync — with the Details line its advice tells the user to quote.
+      testWidgets('the completion dialog says why a failed first pass failed', (
+        tester,
+      ) async {
+        stubCreateProbe();
+        final harness = await _pumpSettings(tester);
+        await openExperimental(tester);
+        await tester.tap(find.byKey(const ValueKey('sync-enabled-toggle')));
+        await tester.pumpAndSettle();
+        stubCoordinator(
+          harness.repos,
+          status: SyncPassStatus.failed,
+          failure: const SyncFailure(
+            SyncFailureCause.serverError,
+            step: SyncFailureStep.upload,
+            statusCode: 502,
+          ),
+        );
+        _syncNetwork.kind = SyncNetworkKind.unmetered;
+        await tester.tap(find.byKey(const ValueKey('sync-connect')));
+        await tester.pumpAndSettle();
+        await createToCompletion(tester);
+
+        expect(
+          tester
+              .widget<Text>(
+                find.byKey(const ValueKey('sync-pairing-complete-state')),
+              )
+              .data,
+          "Your library is connected, but the first sync didn't finish. It "
+          'will try again on its own. The sync server ran into a problem of '
+          'its own. Nothing is wrong with this device or your library. Wait '
+          'a while and try again. If it keeps happening, let whoever runs the '
+          'server know, and quote the details shown here. Details: Stopped '
+          "while uploading this device's changes. The server answered with "
+          'HTTP status 502.',
+        );
+      });
 
       testWidgets(
         'a pairing whose coordinator could not be built says nothing has '

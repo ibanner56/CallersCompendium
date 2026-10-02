@@ -6,6 +6,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/native.dart';
 
 import 'sync_coordinator.dart';
+import 'sync_failure.dart';
 import 'sync_http_client.dart';
 
 /// Coordinates an interruption test at the first successful inbound write.
@@ -199,11 +200,16 @@ final class IsolatedSyncPassOperation {
             }
           }
           final messageText = message['message'];
+          final causeName = message['failureCause'];
           completeError(
-            StateError(
+            SyncWorkerFailure(
               messageText is String
                   ? messageText
                   : 'sync isolate failed without an error message',
+              causeName is String
+                  ? SyncFailureCause.values.asNameMap()[causeName] ??
+                        SyncFailureCause.internal
+                  : SyncFailureCause.internal,
             ),
           );
       }
@@ -310,6 +316,10 @@ Future<void> _runSyncPassWorker(_SyncPassRequest request) async {
     request.resultPort.send({
       'type': 'error',
       'message': '$error',
+      // Classified here because the parent only ever sees the text: a
+      // `SocketException` and an app bug are the same string-typed throw once
+      // they cross the port, and they call for different things from the user.
+      'failureCause': syncFailureCauseForError(error).name,
       'stack': '$stack',
       '_peerManifestCache': peerManifestCache?.toMessage(),
       'ack': acknowledgementPort.sendPort,
@@ -440,6 +450,7 @@ SyncStoreResult? _decodeStoreResult(Map<String, Object?>? encoded) {
 Map<String, Object?> _encodeResult(SyncPassResult result) => {
   'status': result.status.name,
   'message': result.message,
+  'failure': result.failure?.encode(),
   'duplicateCount': result.duplicateCount,
   'appliedKinds': [for (final kind in result.appliedKinds) kind.name],
   'reports': [
@@ -457,6 +468,7 @@ Map<String, Object?> _encodeResult(SyncPassResult result) => {
 SyncPassResult _decodeResult(Map<String, Object?> encoded) {
   final rawStatus = encoded['status'];
   final rawMessage = encoded['message'];
+  final rawFailure = encoded['failure'];
   final rawDuplicateCount = encoded['duplicateCount'];
   final rawAppliedKinds = encoded['appliedKinds'];
   final rawReports = encoded['reports'];
@@ -513,6 +525,7 @@ SyncPassResult _decodeResult(Map<String, Object?> encoded) {
     status,
     reports: reports,
     message: rawMessage as String?,
+    failure: rawFailure == null ? null : SyncFailure.decode(rawFailure),
     duplicateCount: rawDuplicateCount as int? ?? 0,
     appliedKinds: appliedKinds,
   );
