@@ -18,7 +18,7 @@ class _BundledLicense {
 
 /// The bundled fonts and their license texts.
 ///
-/// All four are SIL Open Font License 1.1. Notably the bundled **Roboto**
+/// All five are SIL Open Font License 1.1. Notably the bundled **Roboto**
 /// (`Roboto-VariableFont.ttf`, v3.015 from googlefonts/roboto-classic) ships
 /// under the OFL — its own `name` table reads "…licensed under the SIL Open
 /// Font License, Version 1.1…" — *not* Apache-2.0, so there is no Apache NOTICE
@@ -31,6 +31,11 @@ class _BundledLicense {
 /// reading/UI font (not listed in the About section's typography credits
 /// alongside Fraunces/Roboto), but its license text is still bundled/
 /// registered here since it ships as a font asset under the OFL.
+///
+/// `NotoSansJP-Regular-Subset.ttf` is likewise a `fonttools subset` instance
+/// (Hiragana, Katakana, CJK punctuation/fullwidth forms and the JIS X 0208
+/// level 1 kanji) of Google's **Noto Sans JP** (OFL 1.1), bundled only as the
+/// PDF export's CJK fallback font (`program_pdf.dart`).
 const List<_BundledLicense> _bundledFontLicenses = [
   _BundledLicense(
     packages: ['Fraunces (OFL 1.1)'],
@@ -47,6 +52,10 @@ const List<_BundledLicense> _bundledFontLicenses = [
   _BundledLicense(
     packages: ['Noto Sans Symbols 2 (OFL 1.1)'],
     assetPath: 'assets/fonts/NotoSansSymbols2-OFL.txt',
+  ),
+  _BundledLicense(
+    packages: ['Noto Sans JP (OFL 1.1)'],
+    assetPath: 'assets/fonts/NotoSansJP-OFL.txt',
   ),
 ];
 

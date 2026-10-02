@@ -32,6 +32,9 @@ operating system's own dialog opens, and from there you can send it to a printer
 save it as a PDF, or cancel. This works on every platform the app runs on,
 including Linux.
 
+A PDF can print Japanese text (hiragana, katakana and the everyday kanji). Rarer
+kanji, Chinese-only characters and Korean may still show as empty boxes.
+
 ### Which words a dance export uses
 
 Text you share or copy, and a PDF you print, are written in your **active

@@ -112,6 +112,7 @@ Future<Uint8List> buildDancePdf(
                   )
                 : fig.renderFreeText(dance.callingNotes.trim(), dialect),
             style: const pw.TextStyle(fontSize: 12),
+            overflow: pw.TextOverflow.span,
           ),
         ],
         if (fields.contains(DanceShareField.walkthrough) &&
@@ -130,6 +131,7 @@ Future<Uint8List> buildDancePdf(
                   )
                 : fig.renderFreeText(dance.walkthrough.trim(), dialect),
             style: const pw.TextStyle(fontSize: 12),
+            overflow: pw.TextOverflow.span,
           ),
         ],
         if (danceCardTuneNames(dance, fields) case final tunes
