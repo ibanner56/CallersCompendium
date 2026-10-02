@@ -73,6 +73,21 @@ class AppLocalizationsNl extends AppLocalizations {
   String get appBootstrapError => 'De collectie kon niet worden voorbereid.';
 
   @override
+  String appBootstrapErrorType(String errorType) {
+    return 'Fout: $errorType';
+  }
+
+  @override
+  String get appBootstrapCopyDetails => 'Details kopiëren';
+
+  @override
+  String get appBootstrapCopiedDetails => 'Gekopieerd';
+
+  @override
+  String get appBootstrapLogHint =>
+      'De details zijn ook naar het diagnoselogboek in de supportmap van de app geschreven.';
+
+  @override
   String get migrationDowngradeMessage =>
       'Deze gegevens zijn gemaakt met een nieuwere versie van Caller’s Compendium — werk de app bij.';
 

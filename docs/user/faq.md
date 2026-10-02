@@ -113,6 +113,25 @@ too — otherwise the check won't find them. See
 
 ## Troubleshooting
 
+### The app shows "Could not prepare the collection."
+
+The app couldn't open or get your collection ready at startup. Try, in order:
+
+1. **Fix the likely cause, then choose Retry.** Retry reopens the database from
+   scratch, so it works without relaunching the app once the cause is gone —
+   for example, free some disk space, or make sure the folder holding the
+   database (see [Where is my data stored?](#where-is-my-data-stored)) exists and
+   is writable.
+2. **Use Copy details** to copy the error type and its stack trace (never your
+   data or the error's message) if you want to report the problem.
+3. **Look at the diagnostics log.** The app also writes the failure to a
+   `diagnostics/crash.log` file in its support folder, which is available even
+   when the database can't be opened. On Linux that is
+   `~/.local/share/org.callerscompendium.compendiumApp/diagnostics/crash.log`.
+
+On Linux, a machine without `xdg-user-dirs` has no `Documents` folder to put the
+database in; see [Where is my data stored?](#where-is-my-data-stored).
+
 ### Why can't I find a dance I imported?
 
 A few things to check:

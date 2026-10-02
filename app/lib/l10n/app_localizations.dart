@@ -214,6 +214,30 @@ abstract class AppLocalizations {
   /// **'Could not prepare the collection.'**
   String get appBootstrapError;
 
+  /// Detail line on the startup error screen naming the kind of failure (the error's type name only, never its message).
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {errorType}'**
+  String appBootstrapErrorType(String errorType);
+
+  /// Button on the startup error screen that copies the error type and stack trace (not the message) to the clipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy details'**
+  String get appBootstrapCopyDetails;
+
+  /// Label of the startup error screen's Copy details button after the details were copied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get appBootstrapCopiedDetails;
+
+  /// Hint on the startup error screen that the failure was recorded in the on-device diagnostics (crash) log.
+  ///
+  /// In en, this message translates to:
+  /// **'Details were also written to the diagnostics log in the app’s support folder.'**
+  String get appBootstrapLogHint;
+
   /// Terminal startup-screen message shown when the on-disk data was written by a newer app version than the one running (no downgrade path). No Retry is offered.
   ///
   /// In en, this message translates to:

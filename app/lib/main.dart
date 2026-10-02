@@ -595,7 +595,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
       _incomingFileSub = channel.files.listen(_handleIncomingFile);
       _incomingUrlSub = channel.urls.listen(_handleIncomingUrl);
     }
-    _bootstrap = _startupSequence();
+    _bootstrap = _runBootstrap();
   }
 
   void _initializeDatabaseBackedServices(AppData appData) {
@@ -790,14 +790,25 @@ class _CompendiumAppState extends State<CompendiumApp> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       try {
-        await _startupSequence();
+        await _runBootstrap();
         bootstrap.complete();
       } on Object catch (error, stackTrace) {
-        // diagnostics: silent — FutureBuilder receives and surfaces this
-        // bootstrap error in the recovery UI.
+        // diagnostics: silent — already logged (main.bootstrap) by
+        // `_runBootstrap`; the FutureBuilder surfaces it in the recovery UI.
         bootstrap.completeError(error, stackTrace);
       }
     });
+  }
+
+  /// Runs [_startupSequence], recording any failure in the crash log (source
+  /// `main.bootstrap`) exactly once before rethrowing it to the recovery UI.
+  Future<void> _runBootstrap() async {
+    try {
+      await _startupSequence();
+    } on Object catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'main.bootstrap');
+      rethrow;
+    }
   }
 
   /// Mirrors the library's resolved active dialect into [_dialectNotifier] so
@@ -1704,10 +1715,23 @@ class _CompendiumAppState extends State<CompendiumApp> {
   Future<bool> _runIntegrityCheck() =>
       (widget.integrityCheck ?? _appData.db.quickCheck)();
 
-  void _retry() {
+  /// Retry from the generic startup-error screen. Rebuilds the database-backed
+  /// world (as the reset path does, minus the file deletion) because a failed
+  /// database open is cached by the drift connection and would rethrow on every
+  /// later query against the same [AppData].
+  Future<void> _retry() async {
+    await _disposeSyncCoordinator();
+    try {
+      await _appData.close();
+    } on Object catch (_) {
+      // diagnostics: silent — closing a connection whose open failed rethrows
+      // that same cached failure, which `_runBootstrap` already logged; it must
+      // not stop Retry from reopening a fresh connection.
+    }
+    if (!mounted) return;
     setState(() {
-      _corruptionBannerShown = false;
-      _bootstrap = _startupSequence();
+      _replaceDatabaseBackedServices();
+      _startBootstrap();
     });
   }
 

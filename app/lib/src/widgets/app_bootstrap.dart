@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/migration_error_labels.dart';
@@ -126,22 +127,10 @@ class AppBootstrap extends StatelessWidget {
               ),
             );
           }
-          return Scaffold(
-            body: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.error_outline, size: 48),
-                  const SizedBox(height: 8),
-                  Text(l10n.appBootstrapError),
-                  const SizedBox(height: 8),
-                  FilledButton(
-                    onPressed: onRetry,
-                    child: Text(l10n.commonRetry),
-                  ),
-                ],
-              ),
-            ),
+          return _BootstrapErrorScreen(
+            errorType: '${error.runtimeType}',
+            stackTrace: snapshot.stackTrace,
+            onRetry: onRetry,
           );
         }
         return builder(context);
@@ -290,6 +279,95 @@ class _BelowFloorRecoveryScreenState extends State<_BelowFloorRecoveryScreen> {
                 child: Text(databaseBelowFloorResetOnly(l10n)),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The generic startup-failure screen: the error's *type* (never its message),
+/// a Copy details control, where the log lives, and Retry.
+///
+/// The message is withheld on purpose. It can carry file paths or text derived
+/// from the database that just failed (#1469, CWE-209), and scrubbing needs
+/// `SensitiveTerms`, which is gathered from that same database. The full record
+/// is in the on-device crash log (source `main.bootstrap`).
+class _BootstrapErrorScreen extends StatefulWidget {
+  const _BootstrapErrorScreen({
+    required this.errorType,
+    required this.stackTrace,
+    required this.onRetry,
+  });
+
+  final String errorType;
+  final StackTrace? stackTrace;
+  final VoidCallback onRetry;
+
+  @override
+  State<_BootstrapErrorScreen> createState() => _BootstrapErrorScreenState();
+}
+
+class _BootstrapErrorScreenState extends State<_BootstrapErrorScreen> {
+  bool _copied = false;
+
+  Future<void> _copy() async {
+    try {
+      await Clipboard.setData(
+        ClipboardData(text: '${widget.errorType}\n\n${widget.stackTrace}'),
+      );
+      if (mounted) setState(() => _copied = true);
+    } catch (_) {
+      // diagnostics: silent — copying is best-effort; the same failure is
+      // already in the crash log, and the error screen must not throw while
+      // reporting a startup failure.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Scaffold(
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline, size: 48),
+                const SizedBox(height: 8),
+                Text(l10n.appBootstrapError, textAlign: TextAlign.center),
+                const SizedBox(height: 8),
+                Text(
+                  l10n.appBootstrapErrorType(widget.errorType),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  l10n.appBootstrapLogHint,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: widget.onRetry,
+                  child: Text(l10n.commonRetry),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  key: const ValueKey('bootstrap-copy-details'),
+                  onPressed: _copied ? null : _copy,
+                  icon: Icon(_copied ? Icons.check : Icons.copy_outlined),
+                  label: Text(
+                    _copied
+                        ? l10n.appBootstrapCopiedDetails
+                        : l10n.appBootstrapCopyDetails,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
