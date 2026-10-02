@@ -3115,8 +3115,14 @@ General. It is the one feature that sends a user's collection off the device, so
 it is surfaced at the same level as the decision it represents, showing the
 endpoint URL, the sync ID, paired-device count and last-sync status in one place.
 
-Turning it off again stops all network activity and detaches. Detach forgets the
-sync ID entirely, so re-enabling is a fresh attach.
+Turning it off again stops all network activity but does **not** detach: the
+sync ID, endpoint and attachment are kept, so re-enabling resumes syncing the
+same store. Detaching is the separate *Disconnect this device* action, which
+forgets the sync ID entirely, so the next pairing is a fresh attach.
+
+*Amended 2026-10-02: this paragraph said turning sync off detaches. It never
+has: `SyncController.setEnabled` leaves the attachment in place, and only
+`SyncController.detach` and `wipeStore` clear it.*
 
 ### Attach
 
