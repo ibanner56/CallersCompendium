@@ -2606,6 +2606,7 @@ class DanceRepository {
   }) async {
     final query =
         _db.select(_db.danceFigures).join([
+          // join-columns: needed — the loop reads readTable(_db.dances).id
           innerJoin(
             _db.dances,
             _db.dances.id.equalsExp(_db.danceFigures.danceId),

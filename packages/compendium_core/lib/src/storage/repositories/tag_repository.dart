@@ -301,16 +301,22 @@ class TagRepository {
   /// available to administrative surfaces, while pickers that attach tags to
   /// dances should not offer rows that have no live dance reference.
   Future<List<Tag>> listReferencedByLiveDances() async {
+    // Both joins are `useColumns: false`: they only filter, so drift must not
+    // materialise every `dance_tags` and `dances` column (figures JSON, notes)
+    // for each of the thousands of links. Only `tags` is read below, so
+    // `row.readTable(_db.dances)` here would throw. SQLite de-duplicates.
     final rows =
-        await (_db.select(_db.tags).join([
+        await (_db.select(_db.tags, distinct: true).join([
                 innerJoin(
                   _db.danceTags,
                   _db.danceTags.tagId.equalsExp(_db.tags.id),
+                  useColumns: false,
                 ),
                 innerJoin(
                   _db.dances,
                   _db.dances.id.equalsExp(_db.danceTags.danceId) &
                       _db.dances.deletedAt.isNull(),
+                  useColumns: false,
                 ),
               ])
               ..where(_db.tags.deletedAt.isNull())
@@ -319,12 +325,7 @@ class TagRepository {
                 OrderingTerm(expression: _db.tags.id),
               ]))
             .get();
-    final unique = <String, Tag>{};
-    for (final row in rows) {
-      final tag = _toModel(row.readTable(_db.tags));
-      unique[tag.id] = tag;
-    }
-    return unique.values.toList();
+    return [for (final row in rows) _toModel(row.readTable(_db.tags))];
   }
 
   Future<List<({Tag tag, bool deleted})>> listAllWithDeleted() async {
@@ -487,6 +488,7 @@ class TagRepository {
   Future<void> delete(String id, {DateTime? at, bool permanent = false}) =>
       _db.transaction(() async {
         if (permanent) {
+          // join-columns: needed — replaced by liveDanceCitationCount in CS-14b
           final liveUses =
               await (_db.select(_db.danceTags).join([
                     innerJoin(

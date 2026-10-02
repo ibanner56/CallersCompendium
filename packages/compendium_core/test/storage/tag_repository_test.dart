@@ -153,6 +153,36 @@ void main() {
   });
 
   test(
+    'lists a tag once however many live dances carry it, in name order',
+    () async {
+      // ignore: unused_result
+      await repo.upsert(Tag(id: 't1', name: 'Zeta'));
+      // ignore: unused_result
+      await repo.upsert(Tag(id: 't2', name: 'Alpha'));
+      for (final (id, tags) in [
+        ('d1', ['t1', 't2']),
+        ('d2', ['t1']),
+        ('d3', ['t1']),
+      ]) {
+        await dances.create(
+          Dance(
+            id: id,
+            title: id,
+            tagIds: tags,
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+      }
+
+      expect((await repo.listReferencedByLiveDances()).map((tag) => tag.id), [
+        't2',
+        't1',
+      ]);
+    },
+  );
+
+  test(
     'deleting and restoring a tag preserves its dance association',
     () async {
       // ignore: unused_result

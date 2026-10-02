@@ -329,6 +329,7 @@ class CustomFieldDefRepository {
       // `ChoreographerRepository.delete`.
       final stillUsed =
           await (_db.select(_db.customFieldValues).join([
+                // join-columns: needed — replaced by liveDanceCitationCount in CS-14b
                 innerJoin(
                   _db.dances,
                   _db.dances.id.equalsExp(_db.customFieldValues.danceId),
