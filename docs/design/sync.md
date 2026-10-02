@@ -3746,15 +3746,25 @@ failure after that transaction commits can therefore leave local data changed
 while the published manifest and baseline remain old, so the next attempt
 republishes and converges.
 
-- Network unreachable, DNS failure, TLS failure, `5xx` → retry with exponential
-  backoff and jitter, cap 6 hours.
-- `429` → honour `Retry-After`.
+- Network unreachable, DNS failure, TLS failure, a timeout, `5xx` other than
+  `507`, `429` → *transient*: shown as a calm "waiting to sync" status, and
+  retried by itself after 1, 2, 4, 8, 16 and then every 30 minutes, never
+  sooner than `Retry-After` (sync-spec.md §6.12). This list used to say
+  "exponential backoff and jitter, cap 6 hours"; the shipped schedule is
+  Isaac's (maintainer) decision of 2026-10-02 — a 30-minute cap, because a
+  phone user waiting half a day for a dropped connection to heal reads as sync
+  being broken. It has no jitter yet.
 - `401` / `403` → stop, surface to the user. Do not retry.
-- `422` → **stop and surface loudly.** A client bug tried to upload a
-  device-local field.
-- `507` → surface a **size breakdown by category**, with the *exclude imported
-  dances* toggle offered inline, since imports are usually the bulk and that
-  setting is the lever.
+- `400` / `415` / `422` → **stop and surface; never retried.** In practice this
+  is the app being newer than the server (ADR-004's release-ordering
+  consequence), so on the default server the user is told their changes are
+  safe and will sync once the server is updated, and on a self-hosted one they
+  are asked to update it.
+- `507` → surface it as needing the user, with the *exclude imported dances*
+  toggle described in the advice, since imports are usually the bulk and that
+  setting is the lever. Before it gets that far, the store's `quota` (§5.2)
+  raises an "almost full" warning at 80% that offers the toggle directly. The
+  size breakdown by category once planned here is not built.
 - Partial upload → harmless. Blobs are content-addressed and immutable; the
   manifest is written last, so a half-finished sync publishes no new manifest
   or baseline, while any already-committed local apply remains.
@@ -3766,7 +3776,10 @@ transaction that already committed locally.
 ### Triggers
 
 - On app start, once, after any pending migration completes.
+- When the app returns to the foreground, unless any pass started in the last
+  five minutes.
 - Debounced 30s after a local change.
+- After a transient failure, the automatic retry above.
 - Manually via "Sync now" — from Settings, or from the sync glyph on the
   Collection and Programs toolbars (shown only while sync is on and paired) —
   a **delta pass**, identical to an automatic one. A
@@ -5029,7 +5042,7 @@ Recorded so the reasoning is not re-litigated.
 | `programs.venue` label | Stays `shareable` — a label the user typed, and a program is meaningless without it. |
 | "Sync now" | Delta pass; full re-verify behind a long-press or Settings action. |
 | Metered connections | *Sync only on WiFi*, default on; manual attempts route to the setting via a snackbar. |
-| Quota exhaustion | Size breakdown by category with the exclude-imports toggle inline. |
+| Quota exhaustion | An "almost full" warning from the store's `quota` at 80%, with the exclude-imports toggle inline; a `507` is surfaced with the toggle in its advice. (The size breakdown by category first decided here is not built.) |
 | Naming | **Athenaeum** — the earlier "Athanaeum" was a typo; DNS corrected and verified. |
 | Default state | **Off on every installation.** Opt-in only; an unconfigured app makes no sync network call at all. Device Sync gets its own top-level Settings blade. |
 | Access log | **Separate database**, holding a derived sync-ID key and a timestamp. Separate so reaping a store cannot destroy evidence of access to it. |

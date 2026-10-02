@@ -1368,7 +1368,7 @@ Nine kinds produce blobs: `dance`, `program`, `choreographer`, `tag`,
 
 | Field | Requirement |
 | --- | --- |
-| `v` | Envelope version. A client MUST refuse an unknown value rather than guess. |
+| `v` | Envelope version. A client MUST refuse an unknown value rather than guess. It MUST read `v` before any other envelope check — the exact key set included — so that a newer envelope which also adds a key is refused as *newer* and reported as such (§6.9), not as malformed. The same applies to a manifest's `v` (§4.5). |
 | `kind` | One of the nine above. |
 | `id` | The record's id — a UUID for entity kinds other than `difficultyLevel`, one of the fixed shipped IDs or a UUID for `difficultyLevel`, and the settings key for `kind: "setting"` (§4.4). Unique **within its kind only**; see §4.5. |
 | `updatedAt` | Content discriminator. UTC, one-tick precision (§2). Plain local clock. |
@@ -1765,6 +1765,16 @@ except as traffic.
 | `devices` | Device ids with a manifest in this store, including the caller if it has published. Order is unspecified; a client MUST NOT depend on it. |
 | `quota.blobs`, `quota.bytes` | Current usage. |
 | `quota.maxBlobs`, `quota.maxBytes` | The §5.4 caps, echoed so a client can warn before hitting them rather than discovering a `507`. |
+
+**A client warns from the quota, and does not depend on it.** The reference
+client warns that the store is almost full once either `blobs / maxBlobs` or
+`bytes / maxBytes` reaches **80%**, and offers the one remedy this device can
+apply by itself — turning on `sync_exclude_imports` (§6.1) — while that setting
+is off; it MUST NOT offer a wipe there (§5.3). The quota is advice, so a client
+MUST NOT fail a pass because `quota` is absent or malformed: it loses the
+warning and nothing else. Every pass that reads the store carries the reading
+to the status surface, a pass that later fails included, so a `507` at upload
+is shown beside how full the store already was.
 
 `devices` is the peer set that drives step 3's per-peer manifest fetches. A
 client MUST exclude its own id from that iteration.
@@ -2926,6 +2936,17 @@ record, includes the peer identity when the coordinator knows it, and is
 coalesced by code, kind, record, and peer for the pass. The receiver MUST NOT
 silently repair arbitrary text or keys under the peer's timestamp and hash.
 
+**A newer envelope is not a malformed one.** A blob or manifest whose `v` is
+greater than the receiver's MUST be refused (§4.3) and reported with code
+`newerWireVersion` rather than `malformedRecord`, because the remedy differs:
+nothing is wrong with the record, and the only fix is updating the app on the
+*receiving* device. A blob's report carries its kind and id; a manifest's
+carries only the peer, since a manifest the receiver cannot read does not say
+what it lists. The status surface shows it as a needs-you notice naming how
+many items are waiting when the reports name any. A blob reaches an older
+client through any server (§7.2 accepts an unknown blob `v`); a newer manifest
+reaches it only once the server has been updated first.
+
 Rejecting both fields is what makes a poisoned value always **local**.
 
 **Quarantine.** A record whose own `existenceAt` or `updatedAt` exceeds
@@ -3253,9 +3274,52 @@ converges. The ordering cannot be reversed to make the two atomic, because
 publishing a manifest before applying would advertise content this device has
 not stored.
 
-Triggers: app start, a debounced interval after a change, and a manual "Sync
-now" (a delta pass). *Sync only on WiFi* defaults to on; on a metered connection
-automatic sync does not run and a manual attempt routes to the setting.
+Triggers: app start, the app returning to the foreground, a debounced interval
+after a change, a manual "Sync now" (a delta pass), and the automatic retry
+below. *Sync only on WiFi* defaults to on; on a metered connection automatic
+sync does not run and a manual attempt routes to the setting. Every trigger
+passes the same connection gate, and a pass the gate suppresses runs at the next
+trigger.
+
+> **Amended 2026-10-02.** This section said only that "a failure MUST retry on
+> the next trigger", and the client did exactly that: a pass that failed on a
+> dropped connection waited for the next app start, edit or manual Sync now.
+> Isaac (maintainer) decided in planning that a failure which clears by itself
+> should also be retried by itself, and that returning to the app should sync.
+> The two rules below are that decision.
+
+**A transient failure is retried by itself.** A failure is *transient* when
+the server could not be reached, a request timed out, the server answered
+`5xx` other than `507`, or it answered `429`. After a transient failure the
+client MUST schedule one automatic retry, waiting 1, 2, 4, 8 and 16 minutes for
+successive failures and 30 minutes for every one after that. A `Retry-After`
+on the response is a floor on that wait, never a ceiling; the reference client
+holds the floor to at most one day, so one answer cannot park retries
+indefinitely while every other trigger still runs. A completed pass resets the
+sequence; any other result cancels a pending retry without resetting it.
+Disabling sync, detaching, wiping, pairing and shutting down cancel it. A retry
+the connection gate suppresses is not rescheduled: it waits, as any suppressed
+pass does, for the next trigger. Every other failure is *needs-you*, and is not
+retried by itself: §5.3 forbids that for `507` and `422`, and nothing else
+that fails clears by waiting. A failed replacement confirmation (§6.3 step 1)
+is not retried either, since confirming creates a store and that stays the
+user's decision.
+
+**Returning to the foreground is a trigger, at most once per five minutes.**
+It starts a pass unless any pass started in the last five minutes; a resume
+the connection gate suppresses started nothing, and does not count. Both new
+triggers are automatic, so neither lifts the pause a declined replacement
+leaves (§6.3 step 1).
+
+**How the status surface speaks about a failure.** A transient failure is shown
+as a calm status — the user's changes are saved on this device and the client
+is retrying — with no error styling; a long-running one is escalated only by the
+§6.14 item 4 expiry warning. A needs-you failure keeps its warning, always with
+text and never colour alone, its cause and the one thing to do. When the server
+refuses an upload (`400`, `415`, `422`) the advice names the side that has to
+act: on the default server the app is ahead of it (ADR-004's release-ordering
+consequence), so the user's changes wait safely until the server is updated;
+on a server the user chose, the user is asked to update it.
 
 **At most one sync pass MUST be in flight per installation.** A trigger that
 fires while a pass is running MUST be coalesced into at most one queued
@@ -4758,7 +4822,16 @@ manual attempt routes to the setting rather than failing; and a pass suppressed
 for either reason runs at the next trigger without user action (mutation: treat
 a suppressed pass as a completed one — nothing reports an error, and the device
 simply stops syncing on any connection it considers metered, which the user
-experiences as sync having quietly stopped working). These are client-side and
+experiences as sync having quietly stopped working). **A transient failure is
+retried by itself and a needs-you one is not**: an unreachable server, a
+timeout, a `5xx` other than `507` or a `429` schedules one retry on the §6.12
+backoff, never sooner than `Retry-After`, while a `507` or `422` schedules
+none (mutation: drop the transient test — every retry test still passes, and a
+store that is full is hammered every few minutes against §5.3's rule). **A
+newer envelope is reported as `newerWireVersion`, a newer one that also adds
+a key included** (mutation: run the exact-key check before the version check —
+the plain `v` bump still passes, and the newer envelope that adds a key is
+reported as malformed). These are client-side and
 are grouped here rather than under **Server** because the server never parses
 record content beyond §7.2's key check — a server suite written from a list that
 included them would be testing rules its implementation is forbidden to have.

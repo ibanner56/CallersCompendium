@@ -1089,6 +1089,19 @@ makes self-hosting materially harder, which constraint 4 forbids.
   retried. This binds release ordering for every future schema change, and it
   applies to self-hosters too: their upgrade has to lead the app's, which is a
   real obligation to document rather than a deployment detail.
+
+  > **Amended 2026-10-02.** The rejection is still surfaced and never retried,
+  > but it now says which side has to act, because the client knows whether it
+  > is on the default server. On the default server it tells the user this
+  > version of the app is newer than the server, that their changes are saved
+  > on the device, and that they will sync once the server is updated; on a
+  > self-hosted server it asks the user to update that server. Previously both
+  > got one generic "different versions" message that told the user to update
+  > the app, which on the default server is the side already ahead. Decided by
+  > Isaac (maintainer) in planning; the wording is in sync-spec.md §6.12.
+  > Separately, a peer whose envelope `v` is newer than this device's is now
+  > reported as its own condition, `newerWireVersion`, asking the user to update
+  > *this* device (sync-spec.md §6.9).
 - **Settings sync requires a schema migration, and it should ship first.**
   `settings` is `(key, value_json)` with no timestamp, so the `updatedAt`
   conflict rule cannot reach it. The sync migration adds `updated_at`, stamping existing

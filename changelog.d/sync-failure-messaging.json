@@ -1,0 +1,25 @@
+{
+  "id": "sync-failure-messaging",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Device Sync tries again by itself after a dropped connection, a timeout or a server hiccup, waiting a little longer each time, and syncs when you come back to the app.",
+      "Device Sync warns you when your sync store is almost full, and offers to stop syncing imported dances.",
+      "When another device is using a newer version of the app, Device Sync says so and asks you to update this device, instead of reporting skipped records.",
+      "Every Device Sync warning has a Copy details button that copies a short code you can paste into a request for help. Nothing is sent anywhere.",
+      "The diagnostics export includes a short Device Sync section, without your sync phrase, titles or anything identifying a device or record."
+    ],
+    "changed": [
+      "A sync that can't finish for a reason that sorts itself out now reads \"Waiting to sync. Your changes are saved here.\" instead of an error.",
+      "When the sync server refuses what this device sent, the advice now says whether you need to do anything: on the Caller's Compendium server your changes wait safely until the server is updated, and on your own server you're asked to update it."
+    ],
+    "fixed": [
+      "When the first sync with a store stopped near the end, Device Sync now says why it stopped, instead of only that it failed."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add SyncNewerWireVersionException and SyncReportCode.newerWireVersion; the record-blob and manifest decoders check the envelope version before the key set."
+    ]
+  }
+}

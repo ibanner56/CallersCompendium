@@ -22,9 +22,11 @@ typedef SensitiveTermsProvider = Future<Set<String>> Function();
 /// Surfaces the **local, offline** crash log: the most recent captured errors,
 /// an Export/Share action, and Clear. Export defaults to a **scrubbed** variant
 /// (contact info + user content removed); a clearly-labelled "Include full
-/// detail" toggle produces the raw variant for local troubleshooting. Nothing
-/// here is ever transmitted — export always goes through the OS save/share
-/// flow the user explicitly invokes.
+/// detail" toggle produces the raw variant for local troubleshooting. Both
+/// end with a Device Sync section when sync has something to report
+/// ([syncDiagnosticsSection]), which is why an export can run with an empty
+/// crash log. Nothing here is ever transmitted — export always goes through
+/// the OS save/share flow the user explicitly invokes.
 class DiagnosticsSection extends StatefulWidget {
   const DiagnosticsSection({
     super.key,

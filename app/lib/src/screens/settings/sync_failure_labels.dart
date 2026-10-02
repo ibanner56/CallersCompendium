@@ -1,7 +1,11 @@
 // Maps a structured sync failure onto the localized copy every Device Sync
 // surface shows for it: the status line, the pairing form, the device list,
 // and the toolbar button. One mapping, so the same failure reads the same
-// wherever the user meets it.
+// wherever the user meets it — with one deliberate exception: the status line
+// and the toolbar button show a transient failure (`isTransient`) as a calm
+// "waiting to sync" line instead of its reason and advice, because the
+// controller retries it by itself. The pairing form and the device list keep
+// the full explanation, since there the user is waiting on that one request.
 import '../../../l10n/app_localizations.dart';
 import '../../sync/sync_coordinator.dart' show SyncPassResult, SyncPassStatus;
 import '../../sync/sync_failure.dart';
@@ -96,7 +100,8 @@ String syncFailureReason(AppLocalizations l10n, SyncFailureCause cause) =>
 /// What the user can do about [cause], or who to tell when they can't.
 ///
 /// [customServer] decides who has to act on a refusal. ADR-004 has the client
-/// usually be the newer side, so on the project's own server the device has
+/// usually be the newer side (its release-ordering consequence: a client
+/// released ahead of the server has its new fields rejected), so on the project's own server the device has
 /// nothing to do but wait for the server to catch up, while a self-hosted
 /// server is the user's to update. It is required, not defaulted, so every
 /// surface has to say which server it is describing.

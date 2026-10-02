@@ -491,9 +491,10 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
                 ),
               ),
             // The conditions the last pass to raise any had to report (spec
-            // §2 *report*): non-blocking, no dismissal, nothing to tap. They
-            // sit beside the status rather than in it because a pass can
-            // complete successfully and still have something to say.
+            // §2 *report*): non-blocking and with no dismissal. A needs-you
+            // group adds Copy details, which copies a code and clears
+            // nothing. They sit beside the status rather than in it because a
+            // pass can complete successfully and still have something to say.
             for (final group in syncNoticeGroups(controller.notices))
               _SyncNoticeTile(
                 key: ValueKey(group),
