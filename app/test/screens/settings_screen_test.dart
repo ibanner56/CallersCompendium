@@ -2846,10 +2846,14 @@ void main() {
       group('disconnect (spec glossary: detach)', () {
         late List<String> requests;
 
+        // The peer published after this device did: only a manifest written
+        // strictly after this device's own counts as carrying its entries.
         SyncManifest manifest(String deviceId) => SyncManifest(
           deviceId: deviceId,
           epoch: 'epoch-1',
-          writtenAt: DateTime.utc(2026, 9, 20),
+          writtenAt: deviceId == 'this_device'
+              ? DateTime.utc(2026, 9, 20)
+              : DateTime.utc(2026, 9, 21),
           records: {
             SyncRecordKind.setting: {'a': List.filled(64, '1').join()},
           },
