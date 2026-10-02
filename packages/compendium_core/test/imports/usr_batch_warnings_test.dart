@@ -72,6 +72,25 @@ void main() {
       expect(archive.warnings.any((w) => w.contains('ends early')), isTrue);
     });
 
+    test(
+      'a cut inside or right after the header carries usr_file_truncated',
+      () {
+        final full = _usrBytes();
+        // 1024 bytes passes the header check; 4096 is the header sector alone.
+        for (final length in [1024, 2000, 4096, 4096 + 100]) {
+          final archive = readCcUsrArchive(
+            Uint8List.sublistView(full, 0, length),
+          );
+          expect(
+            archive.warningCodes,
+            contains('usr_file_truncated'),
+            reason: 'cut at $length bytes',
+          );
+          expect(archive.dances, isEmpty);
+        }
+      },
+    );
+
     test('codes are distinct and withoutDances keeps them', () {
       final archive = extractCcUsrArchive(
         _db([

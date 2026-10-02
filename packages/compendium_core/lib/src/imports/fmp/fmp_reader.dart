@@ -480,6 +480,9 @@ class _FmpReader {
     // lives at offset (N+1)*4096. blocks[0].nextId reports the body count.
     final firstOffset = _sectorSize;
     if (firstOffset + _sectorSize > _bytes.length) {
+      // A valid header with no complete body sector after it is a file cut
+      // short, not an empty database.
+      _truncated = true;
       _warnings.add('File has no body sectors.');
       _blocks = const [];
       return;
