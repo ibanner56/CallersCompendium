@@ -8679,10 +8679,10 @@ abstract class AppLocalizations {
   /// **'Possible match — choose how to import:'**
   String get importReviewPossibleMatch;
 
-  /// Per-record option: link to a candidate existing dance with a match percentage. The title is an untrusted local value rendered as plain text.
+  /// Per-record option: treat this record as the same dance as a candidate existing dance, with a match percentage. The existing dance keeps its identity but its content is replaced by the imported version, so the label says so. The title is an untrusted local value rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'Link to \"{title}\" ({percent}% match)'**
+  /// **'Same dance — replace \"{title}\" with this version ({percent}% match)'**
   String importReviewOptionLink(String title, int percent);
 
   /// Pre-commit warning stating how many existing local dances a commit will overwrite.
@@ -8835,10 +8835,10 @@ abstract class AppLocalizations {
   /// **'Import as a variation of \"{title}\"'**
   String importReviewOptionVariation(String title);
 
-  /// Per-record option in the issue #686 variation block: treat this record as the same dance as the matched candidate (equivalent to the ordinary link option). The title is an untrusted local value rendered as plain text.
+  /// Per-record option in the issue #686 variation block: treat this record as the same dance as the matched candidate (equivalent to the ordinary link option): the existing dance keeps its identity but its content is replaced by the imported version. The title is an untrusted local value rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'Same dance as \"{title}\" (link/update)'**
+  /// **'Same dance — replace \"{title}\" with this version'**
   String importReviewOptionSameDance(String title);
 
   /// Checkbox label controlling whether choosing "import as a variation" also creates a symmetric relatedDance link back to the matched dance (issue #686). Defaults on. The title is an untrusted local value rendered as plain text.

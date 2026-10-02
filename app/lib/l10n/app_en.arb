@@ -7248,9 +7248,9 @@
   "@importReviewPossibleMatch": {
     "description": "Prompt above the options for a record that ambiguously matches existing dances."
   },
-  "importReviewOptionLink": "Link to \"{title}\" ({percent}% match)",
+  "importReviewOptionLink": "Same dance — replace \"{title}\" with this version ({percent}% match)",
   "@importReviewOptionLink": {
-    "description": "Per-record option: link to a candidate existing dance with a match percentage. The title is an untrusted local value rendered as plain text.",
+    "description": "Per-record option: treat this record as the same dance as a candidate existing dance, with a match percentage. The existing dance keeps its identity but its content is replaced by the imported version, so the label says so. The title is an untrusted local value rendered as plain text.",
     "placeholders": {
       "title": {
         "type": "String",
@@ -7460,9 +7460,9 @@
       }
     }
   },
-  "importReviewOptionSameDance": "Same dance as \"{title}\" (link/update)",
+  "importReviewOptionSameDance": "Same dance — replace \"{title}\" with this version",
   "@importReviewOptionSameDance": {
-    "description": "Per-record option in the issue #686 variation block: treat this record as the same dance as the matched candidate (equivalent to the ordinary link option). The title is an untrusted local value rendered as plain text.",
+    "description": "Per-record option in the issue #686 variation block: treat this record as the same dance as the matched candidate (equivalent to the ordinary link option): the existing dance keeps its identity but its content is replaced by the imported version. The title is an untrusted local value rendered as plain text.",
     "placeholders": {
       "title": {
         "type": "String",

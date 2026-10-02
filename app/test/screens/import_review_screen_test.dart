@@ -590,7 +590,7 @@ void main() {
       find.byKey(const ValueKey('import-row-0-duplicate')),
       findsOneWidget,
     );
-    expect(find.textContaining('Link to'), findsOneWidget);
+    expect(find.textContaining('Same dance — replace'), findsOneWidget);
     expect(find.text('0 of 1 will be imported'), findsOneWidget);
     // Commit is disabled while everything is skipped (no misleading control).
     final commit = tester.widget<FilledButton>(
@@ -772,10 +772,10 @@ void main() {
           find.byKey(const ValueKey('import-row-0-link-local-1')),
           findsOneWidget,
         );
-        // The plain scored "Link to Money Musk (NN%)" row is NOT offered for
+        // The plain scored "… with this version (NN% match)" row is NOT offered for
         // a confident+differing candidate — it's replaced by the richer pair
         // above.
-        expect(find.textContaining('Link to "Money Musk"'), findsNothing);
+        expect(find.textContaining('with this version ('), findsNothing);
       },
     );
 
@@ -826,7 +826,7 @@ void main() {
           find.byKey(const ValueKey('import-row-0-link-local-1')),
           findsOneWidget,
         );
-        expect(find.textContaining('Link to "Money Musk"'), findsOneWidget);
+        expect(find.textContaining('with this version ('), findsOneWidget);
       },
     );
 

@@ -2340,9 +2340,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final programCount = effectiveBundle?.archive.programs.length ?? 0;
     final hasPrograms = programCount > 0;
     // How many *distinct* existing local dances a commit would overwrite (issue
-    // #446): the unique re-import target ids across rows the user has set to
-    // "Re-import onto …", excluding rows already committed on their own via
-    // Edit. Counting unique targets (not rows) is deliberate — planning reuses
+    // #446): the unique target ids across rows the user has set to "Re-import
+    // onto …" or to link to an existing dance (Link and the variation block's
+    // "Same dance" share `_ActionKind.link`; the pipeline rewrites the matched
+    // dance from the incoming record for both), excluding rows already
+    // committed on their own via Edit. Counting unique targets (not rows) is deliberate — planning reuses
     // one DedupeIndex, so several incoming records that share a provenance key
     // can all target the same local dance; only that one dance is overwritten.
     // Surfaced as a warning before commit so an overwrite is always a
@@ -2350,7 +2352,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final overwriteTargets = <String>{
       for (var i = 0; i < _choices.length; i++)
         if (!_committed.contains(i) &&
-            _choices[i].kind == _ActionKind.reimport &&
+            (_choices[i].kind == _ActionKind.reimport ||
+                _choices[i].kind == _ActionKind.link) &&
             _choices[i].linkTargetId != null)
           _choices[i].linkTargetId!,
     };

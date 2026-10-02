@@ -5666,7 +5666,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String importReviewOptionLink(String title, int percent) {
-    return 'Koppelen aan “$title” ($percent% overeenkomst)';
+    return 'Dezelfde dans – “$title” vervangen door deze versie ($percent% overeenkomst)';
   }
 
   @override
@@ -5833,7 +5833,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String importReviewOptionSameDance(String title) {
-    return 'Dezelfde dans als \"$title\" (koppelen/bijwerken)';
+    return 'Dezelfde dans – “$title” vervangen door deze versie';
   }
 
   @override

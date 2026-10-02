@@ -382,9 +382,13 @@ watches for matches:
   batch review screen still marks the row for you to decide.
 - **Looks like something you already have.** If a dance closely matches one
   already in your collection by title and author but did not come from the same
-  source, the app marks it as **unsure** and asks you to choose: **link** the two,
-  keep both as a **duplicate**, or **skip** the new one. It never merges dances
-  on its own.
+  source, the app marks it as **unsure** and asks you to choose:
+  **Same dance — replace**, keep both as a **duplicate**, or **skip** the new
+  one. **Same dance — replace** keeps the existing dance's identity (its id,
+  created date and history) but replaces its content with the imported version,
+  including calling notes, rating, tags, custom fields, hook, walkthrough,
+  status, links and source citations. The review warns how many existing dances
+  will be overwritten before you commit.
 - **Same name, different choreography.** When the title and author match
   confidently but the *figures* differ, the app shows a **Variation?** block with
   an inline diff of exactly which lines changed, and offers **Import as a

@@ -5421,7 +5421,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String importReviewOptionLink(String title, int percent) {
-    return '「$title」にリンク（$percent%一致）';
+    return '同じダンス – 「$title」をこのバージョンで置き換える（$percent%一致）';
   }
 
   @override
@@ -5575,7 +5575,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String importReviewOptionSameDance(String title) {
-    return '「$title」と同じダンス（リンク/更新）';
+    return '同じダンス – 「$title」をこのバージョンで置き換える';
   }
 
   @override
