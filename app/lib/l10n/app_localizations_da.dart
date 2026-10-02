@@ -367,8 +367,46 @@ class AppLocalizationsDa extends AppLocalizations {
       'Synkroniseringsserveren afviste det, denne enhed sendte.';
 
   @override
-  String get settingsSyncFailureRejectedAdvice =>
-      'Det betyder som regel, at denne app og serveren har forskellige versioner. Opdater appen på denne enhed. Hvis du kører din egen server, så opdater også den.';
+  String get settingsSyncFailureRejectedAdviceDefaultServer =>
+      'Denne version af appen er nyere end synkroniseringsserveren. Dine ændringer er gemt her og bliver synkroniseret, når serveren er opdateret.';
+
+  @override
+  String get settingsSyncFailureRejectedAdviceCustomServer =>
+      'Opdater din synkroniseringsserver, så den passer til denne version af appen.';
+
+  @override
+  String get settingsSyncStatusWaiting =>
+      'Venter på at synkronisere. Dine ændringer er gemt her.';
+
+  @override
+  String get settingsSyncQuotaNearlyFull => 'Dit lager er næsten fuldt.';
+
+  @override
+  String get settingsSyncQuotaExcludeImports =>
+      'Stop med at synkronisere importerede danse';
+
+  @override
+  String settingsSyncNoticeNewerVersion(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage $count elementer.',
+      one:
+          'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage 1 element.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsSyncNoticeNewerVersionUncounted =>
+      'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage dens ændringer.';
+
+  @override
+  String get settingsSyncCopyDetails => 'Kopiér detaljer';
+
+  @override
+  String get settingsSyncDetailsCopied => 'Detaljer kopieret.';
 
   @override
   String get settingsSyncFailureAccessDenied =>

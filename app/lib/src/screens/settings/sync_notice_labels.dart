@@ -17,8 +17,13 @@ import '../../../l10n/app_localizations.dart';
 /// pointed at :614 and the sentence had since moved to :652.
 ///
 /// Declaration order is the order notices appear, so a pass raising several
-/// conditions renders deterministically.
+/// conditions renders deterministically. The one needs-you group comes first.
 enum SyncNoticeGroup {
+  /// Another device shared records in an envelope version this build cannot
+  /// read. Needs you: updating the app on this device is the only remedy, and
+  /// nothing about the records themselves is wrong.
+  newerVersion,
+
   /// Two devices hold different bodies with the same `updatedAt`. Neither
   /// wins and neither is applied (spec §6.3); only a human edit settles it.
   divergence,
@@ -99,7 +104,7 @@ SyncNoticeGroup syncNoticeGroupFor(SyncReport report) => switch (report.code) {
     SyncNoticeGroup.unreflectedPublication,
   SyncReportCode.withheldUnreadableRecord =>
     SyncNoticeGroup.withheldUnreadableLocal,
-  SyncReportCode.newerWireVersion => SyncNoticeGroup.skippedRecord,
+  SyncReportCode.newerWireVersion => SyncNoticeGroup.newerVersion,
 };
 
 /// The groups [reports] raise, deduplicated, in [SyncNoticeGroup] order.
@@ -111,15 +116,40 @@ List<SyncNoticeGroup> syncNoticeGroups(Iterable<SyncReport> reports) {
   ];
 }
 
-/// The notice text for [group].
+/// Whether [group] needs the user to act, and so is shown with the warning
+/// styling, a text label and a copyable support code; every other group is an
+/// informational heads-up.
+///
+/// Exhaustive with no `_` arm so a new group must be placed in a tier.
+bool syncNoticeNeedsYou(SyncNoticeGroup group) => switch (group) {
+  SyncNoticeGroup.newerVersion => true,
+  SyncNoticeGroup.divergence ||
+  SyncNoticeGroup.keptLocalCreation ||
+  SyncNoticeGroup.quarantinedLocal ||
+  SyncNoticeGroup.withheldUnreadableLocal ||
+  SyncNoticeGroup.skippedRecord ||
+  SyncNoticeGroup.clock ||
+  SyncNoticeGroup.deferredInbound ||
+  SyncNoticeGroup.unreflectedPublication => false,
+};
+
+/// The notice text for [group]. [recordCount] is how many distinct records
+/// its reports name ([syncNoticeRecords]); only [SyncNoticeGroup.newerVersion]
+/// says it, and falls back to an uncounted sentence when no report could name
+/// a record — a newer manifest does not say what it lists.
 ///
 /// Never the report's own `message`: those are internal diagnostics written
 /// for a maintainer reading a log — they name wire paths, status codes and
 /// hashes, and they are English by design.
 String syncNoticeText(
   AppLocalizations l10n,
-  SyncNoticeGroup group,
-) => switch (group) {
+  SyncNoticeGroup group, {
+  required int recordCount,
+}) => switch (group) {
+  SyncNoticeGroup.newerVersion =>
+    recordCount > 0
+        ? l10n.settingsSyncNoticeNewerVersion(recordCount)
+        : l10n.settingsSyncNoticeNewerVersionUncounted,
   SyncNoticeGroup.divergence => l10n.settingsSyncNoticeDivergence,
   SyncNoticeGroup.keptLocalCreation => l10n.settingsSyncNoticeKeptLocalCreation,
   SyncNoticeGroup.quarantinedLocal => l10n.settingsSyncNoticeQuarantinedLocal,

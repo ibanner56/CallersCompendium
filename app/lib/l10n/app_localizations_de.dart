@@ -368,8 +368,46 @@ class AppLocalizationsDe extends AppLocalizations {
       'Der Synchronisierungsserver hat abgelehnt, was dieses Gerät gesendet hat.';
 
   @override
-  String get settingsSyncFailureRejectedAdvice =>
-      'Das bedeutet meist, dass diese App und der Server unterschiedliche Versionen haben. Aktualisiere die App auf diesem Gerät. Wenn du einen eigenen Server betreibst, aktualisiere ihn ebenfalls.';
+  String get settingsSyncFailureRejectedAdviceDefaultServer =>
+      'Diese Version der App ist neuer als der Synchronisierungsserver. Deine Änderungen sind hier gespeichert und werden synchronisiert, sobald der Server aktualisiert ist.';
+
+  @override
+  String get settingsSyncFailureRejectedAdviceCustomServer =>
+      'Aktualisiere deinen Synchronisierungsserver passend zu dieser Version der App.';
+
+  @override
+  String get settingsSyncStatusWaiting =>
+      'Warten auf Synchronisierung. Deine Änderungen sind hier gespeichert.';
+
+  @override
+  String get settingsSyncQuotaNearlyFull => 'Dein Speicher ist fast voll.';
+
+  @override
+  String get settingsSyncQuotaExcludeImports =>
+      'Importierte Tänze nicht mehr synchronisieren';
+
+  @override
+  String settingsSyncNoticeNewerVersion(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um $count Elemente zu erhalten.',
+      one:
+          'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um 1 Element zu erhalten.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsSyncNoticeNewerVersionUncounted =>
+      'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um seine Änderungen zu erhalten.';
+
+  @override
+  String get settingsSyncCopyDetails => 'Details kopieren';
+
+  @override
+  String get settingsSyncDetailsCopied => 'Details kopiert.';
 
   @override
   String get settingsSyncFailureAccessDenied =>

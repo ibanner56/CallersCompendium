@@ -384,9 +384,41 @@
   "@settingsSyncFailureRejected": {
     "x-sourceSha256": "61dd076ba854551584746708a144209da7a34dd5345d897952357542e5dbfc50"
   },
-  "settingsSyncFailureRejectedAdvice": "Das bedeutet meist, dass diese App und der Server unterschiedliche Versionen haben. Aktualisiere die App auf diesem Gerät. Wenn du einen eigenen Server betreibst, aktualisiere ihn ebenfalls.",
-  "@settingsSyncFailureRejectedAdvice": {
-    "x-sourceSha256": "88cf23ed721267c5050248947b735afd120c8bab651404fd3b870dd4eb1896a9"
+  "settingsSyncFailureRejectedAdviceDefaultServer": "Diese Version der App ist neuer als der Synchronisierungsserver. Deine Änderungen sind hier gespeichert und werden synchronisiert, sobald der Server aktualisiert ist.",
+  "@settingsSyncFailureRejectedAdviceDefaultServer": {
+    "x-sourceSha256": "b97fec109c98321048e0752ad2bcabb5973a0c668589b453e242bd7486949738"
+  },
+  "settingsSyncFailureRejectedAdviceCustomServer": "Aktualisiere deinen Synchronisierungsserver passend zu dieser Version der App.",
+  "@settingsSyncFailureRejectedAdviceCustomServer": {
+    "x-sourceSha256": "b93ae9124bf62a93b837b22683fbca46e87e2ca5a745e0ca78a7fd7502088437"
+  },
+  "settingsSyncStatusWaiting": "Warten auf Synchronisierung. Deine Änderungen sind hier gespeichert.",
+  "@settingsSyncStatusWaiting": {
+    "x-sourceSha256": "9094e5e7a92ad9b12fa90cf7ecfb6357e7da8e03376a319b9a5f7f8532ea6e99"
+  },
+  "settingsSyncQuotaNearlyFull": "Dein Speicher ist fast voll.",
+  "@settingsSyncQuotaNearlyFull": {
+    "x-sourceSha256": "ee9eeab2d4546db0aff91e5d1a4ac537b1e9e94b19418e1797d5f6e318445d29"
+  },
+  "settingsSyncQuotaExcludeImports": "Importierte Tänze nicht mehr synchronisieren",
+  "@settingsSyncQuotaExcludeImports": {
+    "x-sourceSha256": "57f9dc81543868c93b67c796229b979d9d5d2ed0e78ffacf318e6df67f043f0c"
+  },
+  "settingsSyncNoticeNewerVersion": "{count, plural, =1{Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um 1 Element zu erhalten.} other{Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um {count} Elemente zu erhalten.}}",
+  "@settingsSyncNoticeNewerVersion": {
+    "x-sourceSha256": "eb7af9734a27d73e8a4ae6ad21b99db63b7a2e8ec2cb98047314bd10f7befde4"
+  },
+  "settingsSyncNoticeNewerVersionUncounted": "Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um seine Änderungen zu erhalten.",
+  "@settingsSyncNoticeNewerVersionUncounted": {
+    "x-sourceSha256": "ca371c7f36b6a2ca97e5fb9d8cd18cc2909af04e2973dec1a999d4e7a50fb339"
+  },
+  "settingsSyncCopyDetails": "Details kopieren",
+  "@settingsSyncCopyDetails": {
+    "x-sourceSha256": "ec7ee2826c849564576c1de2ff4bb666e39c191c746d2325d0ab110921491a96"
+  },
+  "settingsSyncDetailsCopied": "Details kopiert.",
+  "@settingsSyncDetailsCopied": {
+    "x-sourceSha256": "e0e4dc7ff134b574f0a71a29b8a005570ea3454b8008a40e2721763a7c2defe2"
   },
   "settingsSyncFailureAccessDenied": "Der Synchronisierungsserver hat die Synchronisierungsphrase dieses Geräts nicht akzeptiert.",
   "@settingsSyncFailureAccessDenied": {

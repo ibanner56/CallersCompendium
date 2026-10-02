@@ -682,11 +682,59 @@ abstract class AppLocalizations {
   /// **'The sync server refused what this device sent.'**
   String get settingsSyncFailureRejected;
 
-  /// What the user can do about settingsSyncFailureRejected, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  /// What the user can do about settingsSyncFailureRejected when this device uses the project's own sync server: the app is ahead of the server, nothing is lost, and nothing needs doing on the device. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
   ///
   /// In en, this message translates to:
-  /// **'This usually means this app and the server are on different versions. Update the app on this device. If you run your own server, update it too.'**
-  String get settingsSyncFailureRejectedAdvice;
+  /// **'This version of the app is newer than the sync server. Your changes are saved here and will sync once the server is updated.'**
+  String get settingsSyncFailureRejectedAdviceDefaultServer;
+
+  /// What the user can do about settingsSyncFailureRejected when this device uses a sync server the user chose (self-hosted): the server needs updating. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'Update your sync server to match this version of the app.'**
+  String get settingsSyncFailureRejectedAdviceCustomServer;
+
+  /// Calm Device Sync status line after a sync attempt that failed for a reason that clears by itself (no connection, a timeout, a server fault, or a request to slow down). The app retries on its own, so this is not shown as an error. Also the snackbar text when the toolbar Sync now button hits such a failure. Must not say when the next try is.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting to sync. Your changes are saved here.'**
+  String get settingsSyncStatusWaiting;
+
+  /// Warning on the Device Sync status surface when the store has used 80% or more of the space or record count the sync server allows. 'Store' is the shared place devices sync through, as elsewhere in Device Sync.
+  ///
+  /// In en, this message translates to:
+  /// **'Your sync store is almost full.'**
+  String get settingsSyncQuotaNearlyFull;
+
+  /// Button under settingsSyncQuotaNearlyFull. Turns on the setting titled settingsSyncExcludeImportsTitle, which stops this device uploading imported dances nothing else uses. Shown only while that setting is off.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop syncing imported dances'**
+  String get settingsSyncQuotaExcludeImports;
+
+  /// Device Sync notice when another device shared items in a newer format than this version of the app can read. {count} is how many items are waiting. The remedy is always updating the app on THIS device.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Another device is using a newer version of the app. Update the app on this device to receive 1 item.} other{Another device is using a newer version of the app. Update the app on this device to receive {count} items.}}'**
+  String settingsSyncNoticeNewerVersion(int count);
+
+  /// Variant of settingsSyncNoticeNewerVersion used when this device cannot tell how many items are waiting, because the other device's list of what it shares is itself in the newer format.
+  ///
+  /// In en, this message translates to:
+  /// **'Another device is using a newer version of the app. Update the app on this device to receive its changes.'**
+  String get settingsSyncNoticeNewerVersionUncounted;
+
+  /// Tooltip of the button on a Device Sync problem that copies a short code describing it (for example SYNC-STORE-FULL), so the user can paste it into a message asking for help. Nothing is sent anywhere.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy details'**
+  String get settingsSyncCopyDetails;
+
+  /// Snackbar confirming the short Device Sync problem code was copied to the clipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Details copied.'**
+  String get settingsSyncDetailsCopied;
 
   /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 401 or 403.
   ///

@@ -362,8 +362,45 @@ class AppLocalizationsEn extends AppLocalizations {
       'The sync server refused what this device sent.';
 
   @override
-  String get settingsSyncFailureRejectedAdvice =>
-      'This usually means this app and the server are on different versions. Update the app on this device. If you run your own server, update it too.';
+  String get settingsSyncFailureRejectedAdviceDefaultServer =>
+      'This version of the app is newer than the sync server. Your changes are saved here and will sync once the server is updated.';
+
+  @override
+  String get settingsSyncFailureRejectedAdviceCustomServer =>
+      'Update your sync server to match this version of the app.';
+
+  @override
+  String get settingsSyncStatusWaiting =>
+      'Waiting to sync. Your changes are saved here.';
+
+  @override
+  String get settingsSyncQuotaNearlyFull => 'Your sync store is almost full.';
+
+  @override
+  String get settingsSyncQuotaExcludeImports => 'Stop syncing imported dances';
+
+  @override
+  String settingsSyncNoticeNewerVersion(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Another device is using a newer version of the app. Update the app on this device to receive $count items.',
+      one:
+          'Another device is using a newer version of the app. Update the app on this device to receive 1 item.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsSyncNoticeNewerVersionUncounted =>
+      'Another device is using a newer version of the app. Update the app on this device to receive its changes.';
+
+  @override
+  String get settingsSyncCopyDetails => 'Copy details';
+
+  @override
+  String get settingsSyncDetailsCopied => 'Details copied.';
 
   @override
   String get settingsSyncFailureAccessDenied =>

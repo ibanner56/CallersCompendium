@@ -373,8 +373,46 @@ class AppLocalizationsFr extends AppLocalizations {
       'Le serveur de synchronisation a refusé ce que cet appareil a envoyé.';
 
   @override
-  String get settingsSyncFailureRejectedAdvice =>
-      'Cela signifie généralement que cette application et le serveur ne sont pas à la même version. Mettez à jour l’application sur cet appareil. Si vous utilisez votre propre serveur, mettez-le à jour aussi.';
+  String get settingsSyncFailureRejectedAdviceDefaultServer =>
+      'Cette version de l’application est plus récente que le serveur de synchronisation. Vos modifications sont enregistrées ici et seront synchronisées dès que le serveur sera mis à jour.';
+
+  @override
+  String get settingsSyncFailureRejectedAdviceCustomServer =>
+      'Mettez à jour votre serveur de synchronisation pour qu’il corresponde à cette version de l’application.';
+
+  @override
+  String get settingsSyncStatusWaiting =>
+      'En attente de synchronisation. Vos modifications sont enregistrées ici.';
+
+  @override
+  String get settingsSyncQuotaNearlyFull => 'Votre espace est presque plein.';
+
+  @override
+  String get settingsSyncQuotaExcludeImports =>
+      'Ne plus synchroniser les danses importées';
+
+  @override
+  String settingsSyncNoticeNewerVersion(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Un autre appareil utilise une version plus récente de l’application. Mettez à jour l’application sur cet appareil pour recevoir $count éléments.',
+      one:
+          'Un autre appareil utilise une version plus récente de l’application. Mettez à jour l’application sur cet appareil pour recevoir 1 élément.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsSyncNoticeNewerVersionUncounted =>
+      'Un autre appareil utilise une version plus récente de l’application. Mettez à jour l’application sur cet appareil pour recevoir ses modifications.';
+
+  @override
+  String get settingsSyncCopyDetails => 'Copier les détails';
+
+  @override
+  String get settingsSyncDetailsCopied => 'Détails copiés.';
 
   @override
   String get settingsSyncFailureAccessDenied =>

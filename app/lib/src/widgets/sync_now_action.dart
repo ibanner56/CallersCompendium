@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../screens/settings/sync_failure_labels.dart';
 import '../sync/sync_controller.dart';
-import '../sync/sync_coordinator.dart' show SyncPassStatus;
+import '../sync/sync_coordinator.dart'
+    show SyncFailureCauseTier, SyncPassStatus;
 import '../sync/sync_scope.dart';
 
 /// A toolbar button that starts a manual Device Sync pass from the Collection
@@ -89,9 +90,19 @@ class _SyncNowActionState extends State<SyncNowAction> {
       SyncGateOutcome.suppressedMetered => l10n.commonSyncMeteredBlocked,
       SyncGateOutcome.suppressedOffline => l10n.settingsSyncOffline,
       SyncGateOutcome.notPaired => l10n.settingsSyncNotPairedNow,
-      // `ran` means this tap's pass is the one `lastResult` holds.
+      // `ran` means this tap's pass is the one `lastResult` holds. A
+      // transient failure reads calmly, as the status line does: the
+      // controller retries it by itself, and the user's work is safe here.
       SyncGateOutcome.ran => switch (controller.lastResult) {
-        final result? => switch (syncPassResultExplanation(l10n, result)) {
+        final result?
+            when result.status == SyncPassStatus.failed &&
+                (result.failure?.cause.isTransient ?? false) =>
+          l10n.settingsSyncStatusWaiting,
+        final result? => switch (syncPassResultExplanation(
+          l10n,
+          result,
+          customServer: syncUsesCustomServer(controller.endpoint),
+        )) {
           final explanation? => l10n.commonSyncFailed(explanation),
           null when result.status == SyncPassStatus.failed =>
             l10n.settingsSyncStatusFailed,

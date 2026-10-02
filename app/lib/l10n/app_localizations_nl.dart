@@ -368,8 +368,46 @@ class AppLocalizationsNl extends AppLocalizations {
       'De synchronisatieserver weigerde wat dit apparaat stuurde.';
 
   @override
-  String get settingsSyncFailureRejectedAdvice =>
-      'Dit betekent meestal dat deze app en de server verschillende versies hebben. Werk de app op dit apparaat bij. Als je een eigen server gebruikt, werk die dan ook bij.';
+  String get settingsSyncFailureRejectedAdviceDefaultServer =>
+      'Deze versie van de app is nieuwer dan de synchronisatieserver. Je wijzigingen zijn hier opgeslagen en worden gesynchroniseerd zodra de server is bijgewerkt.';
+
+  @override
+  String get settingsSyncFailureRejectedAdviceCustomServer =>
+      'Werk je synchronisatieserver bij zodat die past bij deze versie van de app.';
+
+  @override
+  String get settingsSyncStatusWaiting =>
+      'Wachten op synchronisatie. Je wijzigingen zijn hier opgeslagen.';
+
+  @override
+  String get settingsSyncQuotaNearlyFull => 'Je opslag is bijna vol.';
+
+  @override
+  String get settingsSyncQuotaExcludeImports =>
+      'Geïmporteerde dansen niet meer synchroniseren';
+
+  @override
+  String settingsSyncNoticeNewerVersion(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om $count items te ontvangen.',
+      one:
+          'Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om 1 item te ontvangen.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsSyncNoticeNewerVersionUncounted =>
+      'Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om de wijzigingen ervan te ontvangen.';
+
+  @override
+  String get settingsSyncCopyDetails => 'Details kopiëren';
+
+  @override
+  String get settingsSyncDetailsCopied => 'Details gekopieerd.';
 
   @override
   String get settingsSyncFailureAccessDenied =>

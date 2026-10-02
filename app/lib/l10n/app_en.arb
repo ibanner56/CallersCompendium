@@ -462,9 +462,47 @@
   "@settingsSyncFailureRejected": {
     "description": "Device Sync failure reason, one sentence, shown under \"Last sync failed.\" on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 400, 415 or 422: it refused the request as invalid."
   },
-  "settingsSyncFailureRejectedAdvice": "This usually means this app and the server are on different versions. Update the app on this device. If you run your own server, update it too.",
-  "@settingsSyncFailureRejectedAdvice": {
-    "description": "What the user can do about settingsSyncFailureRejected, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions (\"above\", \"below\")."
+  "settingsSyncFailureRejectedAdviceDefaultServer": "This version of the app is newer than the sync server. Your changes are saved here and will sync once the server is updated.",
+  "@settingsSyncFailureRejectedAdviceDefaultServer": {
+    "description": "What the user can do about settingsSyncFailureRejected when this device uses the project's own sync server: the app is ahead of the server, nothing is lost, and nothing needs doing on the device. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions (\"above\", \"below\")."
+  },
+  "settingsSyncFailureRejectedAdviceCustomServer": "Update your sync server to match this version of the app.",
+  "@settingsSyncFailureRejectedAdviceCustomServer": {
+    "description": "What the user can do about settingsSyncFailureRejected when this device uses a sync server the user chose (self-hosted): the server needs updating. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions (\"above\", \"below\")."
+  },
+  "settingsSyncStatusWaiting": "Waiting to sync. Your changes are saved here.",
+  "@settingsSyncStatusWaiting": {
+    "description": "Calm Device Sync status line after a sync attempt that failed for a reason that clears by itself (no connection, a timeout, a server fault, or a request to slow down). The app retries on its own, so this is not shown as an error. Also the snackbar text when the toolbar Sync now button hits such a failure. Must not say when the next try is."
+  },
+  "settingsSyncQuotaNearlyFull": "Your sync store is almost full.",
+  "@settingsSyncQuotaNearlyFull": {
+    "description": "Warning on the Device Sync status surface when the store has used 80% or more of the space or record count the sync server allows. 'Store' is the shared place devices sync through, as elsewhere in Device Sync."
+  },
+  "settingsSyncQuotaExcludeImports": "Stop syncing imported dances",
+  "@settingsSyncQuotaExcludeImports": {
+    "description": "Button under settingsSyncQuotaNearlyFull. Turns on the setting titled settingsSyncExcludeImportsTitle, which stops this device uploading imported dances nothing else uses. Shown only while that setting is off."
+  },
+  "settingsSyncNoticeNewerVersion": "{count, plural, =1{Another device is using a newer version of the app. Update the app on this device to receive 1 item.} other{Another device is using a newer version of the app. Update the app on this device to receive {count} items.}}",
+  "@settingsSyncNoticeNewerVersion": {
+    "description": "Device Sync notice when another device shared items in a newer format than this version of the app can read. {count} is how many items are waiting. The remedy is always updating the app on THIS device.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "4"
+      }
+    }
+  },
+  "settingsSyncNoticeNewerVersionUncounted": "Another device is using a newer version of the app. Update the app on this device to receive its changes.",
+  "@settingsSyncNoticeNewerVersionUncounted": {
+    "description": "Variant of settingsSyncNoticeNewerVersion used when this device cannot tell how many items are waiting, because the other device's list of what it shares is itself in the newer format."
+  },
+  "settingsSyncCopyDetails": "Copy details",
+  "@settingsSyncCopyDetails": {
+    "description": "Tooltip of the button on a Device Sync problem that copies a short code describing it (for example SYNC-STORE-FULL), so the user can paste it into a message asking for help. Nothing is sent anywhere."
+  },
+  "settingsSyncDetailsCopied": "Details copied.",
+  "@settingsSyncDetailsCopied": {
+    "description": "Snackbar confirming the short Device Sync problem code was copied to the clipboard."
   },
   "settingsSyncFailureAccessDenied": "The sync server didn't accept this device's sync phrase.",
   "@settingsSyncFailureAccessDenied": {

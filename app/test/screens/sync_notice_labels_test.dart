@@ -37,6 +37,11 @@ typedef _Case = ({SyncReportCode code, String? peerId, SyncNoticeGroup group});
 /// unguarded — which is the shape of the hole this file exists to close.
 const _expected = <_Case>[
   (
+    code: SyncReportCode.newerWireVersion,
+    peerId: 'peer-1',
+    group: SyncNoticeGroup.newerVersion,
+  ),
+  (
     code: SyncReportCode.equalUpdatedAt,
     peerId: 'peer-1',
     group: SyncNoticeGroup.divergence,
@@ -132,7 +137,11 @@ void main() {
     // says the records came "from another device" and tells the user to check
     // that device's app version — false in both halves for a row stored here,
     // and the reuse a future simplification would reach for.
-    final text = syncNoticeText(l10n, SyncNoticeGroup.withheldUnreadableLocal);
+    final text = syncNoticeText(
+      l10n,
+      SyncNoticeGroup.withheldUnreadableLocal,
+      recordCount: 0,
+    );
 
     expect(text, isNotEmpty);
     expect(text, isNot(equals(l10n.settingsSyncNoticeSkippedRecord)));
@@ -144,6 +153,36 @@ void main() {
       syncNoticeGroups([_report(SyncReportCode.withheldUnreadableRecord)]),
       contains(SyncNoticeGroup.withheldUnreadableLocal),
     );
+  });
+
+  group('a peer on a newer app version', () {
+    test('is its own notice, not the generic skipped-record one', () {
+      // The generic notice tells the user to check their *other* devices.
+      // A newer envelope is never their fault: this device is the one to
+      // update.
+      expect(
+        syncNoticeText(l10n, SyncNoticeGroup.newerVersion, recordCount: 4),
+        'Another device is using a newer version of the app. Update the app '
+        'on this device to receive 4 items.',
+      );
+    });
+
+    test('says so without a count when no record could be named', () {
+      expect(
+        syncNoticeText(l10n, SyncNoticeGroup.newerVersion, recordCount: 0),
+        l10n.settingsSyncNoticeNewerVersionUncounted,
+      );
+    });
+
+    test('is the only needs-you group', () {
+      expect(
+        [
+          for (final group in SyncNoticeGroup.values)
+            if (syncNoticeNeedsYou(group)) group,
+        ],
+        [SyncNoticeGroup.newerVersion],
+      );
+    });
   });
 
   group('every code maps to the group it is meant to', () {
@@ -194,10 +233,15 @@ void main() {
     // the wrong group or a group pointed at an empty string.
     for (final code in SyncReportCode.values) {
       final group = syncNoticeGroupFor(_report(code));
-      expect(syncNoticeText(l10n, group), isNotEmpty, reason: code.name);
+      expect(
+        syncNoticeText(l10n, group, recordCount: 0),
+        isNotEmpty,
+        reason: code.name,
+      );
     }
     final texts = {
-      for (final group in SyncNoticeGroup.values) syncNoticeText(l10n, group),
+      for (final group in SyncNoticeGroup.values)
+        syncNoticeText(l10n, group, recordCount: 0),
     };
     expect(
       texts,

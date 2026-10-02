@@ -200,8 +200,32 @@ void main() {
 
       // The Settings status line is several screens away; a tap that spins
       // and then shows nothing reads as a success.
-      testWidgets('a pass that fails says why', (tester) async {
+      testWidgets('a pass that fails for a reason the user must act on says '
+          'why', (tester) async {
         await _pump(
+          tester,
+          build(),
+          passResult: const SyncPassResult(
+            SyncPassStatus.failed,
+            failure: SyncFailure(SyncFailureCause.storeFull),
+          ),
+        );
+
+        await tester.tap(find.byKey(_glyph));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.textContaining(
+            "Sync didn't finish. Your store has used all the space the sync "
+            'server allows.',
+          ),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('a pass that fails for a reason that clears by itself reads '
+          'calmly, without the reason or advice', (tester) async {
+        final host = await _pump(
           tester,
           build(),
           passResult: const SyncPassResult(
@@ -214,13 +238,15 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(
-          find.text(
-            "Sync didn't finish. Couldn't reach the sync server. Check that "
-            "this device is online. If you run your own server, check that "
-            "it's running and that its address is right.",
-          ),
+          find.text('Waiting to sync. Your changes are saved here.'),
           findsOneWidget,
         );
+        expect(find.textContaining("Couldn't reach"), findsNothing);
+        expect(find.textContaining("Sync didn't finish"), findsNothing);
+        // The failure armed the automatic retry; turning sync off cancels it,
+        // as it would for a user, so no timer outlives the test.
+        expect(host.controller.pendingRetryDelay, isNotNull);
+        await host.controller.setEnabled(false);
       });
 
       testWidgets('shows a spinner and ignores taps while a pass is running', (

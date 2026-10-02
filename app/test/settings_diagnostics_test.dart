@@ -4,12 +4,19 @@ import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/diagnostics/crash_log_store.dart';
+import 'package:compendium_app/src/screens/settings/settings_keys.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
+import 'package:compendium_app/src/sync/sync_controller.dart';
+import 'package:compendium_app/src/sync/sync_coordinator.dart';
+import 'package:compendium_app/src/sync/sync_runtime.dart';
+import 'package:compendium_app/src/sync/sync_scope.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/l10n_harness.dart';
+import 'support/noop_sync_transport.dart';
+import 'support/sync_test_network.dart';
 import 'support/test_repositories.dart';
 
 // Seeded values that MUST NOT appear in the default (scrubbed) export.
@@ -87,8 +94,10 @@ Future<void> _pumpDiagnostics(
   required CrashLogStore store,
   required void Function(String contents) onExport,
   Set<String> terms = const {_seededTerm},
+  SyncController? sync,
+  CompendiumRepositories? repositories,
 }) async {
-  final repos = openTestRepositories();
+  final repos = repositories ?? openTestRepositories();
   final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
   final theme = ValueNotifier<AppThemeSelection>(AppThemeSelection.system);
   final customThemes = CustomThemesController(repos.settings);
@@ -104,6 +113,8 @@ Future<void> _pumpDiagnostics(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
+      builder: (context, child) =>
+          sync == null ? child! : SyncScope(controller: sync, child: child!),
       home: RepositoriesScope(
         repositories: repos,
         child: AppThemeScope(
@@ -138,6 +149,61 @@ void main() {
 
   setUp(() {
     store = _InMemoryCrashLogStore();
+  });
+
+  // Most failed passes are results, not crashes, so they leave nothing in the
+  // crash log; an export that refused to run without one could never carry
+  // the sync section to whoever is helping.
+  testWidgets('a sync failure is exported even with an empty crash log, with '
+      'its section and nothing identifying', (tester) async {
+    final repos = openTestRepositories();
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device',
+      store: CompendiumSyncCoordinatorStore(repos),
+      transport: NoopSyncCoordinatorTransport(),
+      passOperation: ({initialStore}) async => const SyncPassResult(
+        SyncPassStatus.failed,
+        failure: SyncFailure(
+          SyncFailureCause.storeFull,
+          step: SyncFailureStep.upload,
+          statusCode: 507,
+        ),
+      ),
+    );
+    addTearDown(coordinator.dispose);
+    final sync = SyncController(
+      settings: repos.settings,
+      syncLocal: repos.syncLocal,
+      coordinator: () => coordinator,
+      reconfigure: ({bool startPass = true}) async {},
+      classifier: const UnmeteredSyncNetwork(),
+    );
+    addTearDown(sync.dispose);
+    await repos.settings.set(kSyncEnabledKey, true);
+    await repos.settings.set(kSyncIdKey, 'correct horse battery staple');
+    await sync.load();
+    await sync.syncNow();
+
+    String? exported;
+    await _pumpDiagnostics(
+      tester,
+      store: store,
+      onExport: (contents) => exported = contents,
+      sync: sync,
+      repositories: repos,
+    );
+    await tester.tap(find.byKey(const ValueKey('diagnostics-export')));
+    await tester.pumpAndSettle();
+
+    expect(exported, isNotNull);
+    expect(exported, contains('Mode: scrubbed'));
+    expect(exported, contains('Records: 0'));
+    expect(
+      exported,
+      contains('Last attempt: failed (SYNC-STORE-FULL upload 507)'),
+    );
+    expect(exported, isNot(contains('horse')));
   });
 
   testWidgets('lists recorded entries', (tester) async {

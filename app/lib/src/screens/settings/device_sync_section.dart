@@ -13,7 +13,8 @@ import '../../data/backup_io.dart';
 import '../../data/repositories_scope.dart';
 import '../../diagnostics/error_log.dart';
 import '../../sync/sync_controller.dart';
-import '../../sync/sync_coordinator.dart' show SyncPassStatus;
+import '../../sync/sync_coordinator.dart'
+    show SyncFailureCauseTier, SyncPassResult, SyncPassStatus;
 import '../../sync/sync_http_client.dart' show isDefaultSyncEndpoint;
 import '../../sync/sync_scope.dart';
 import '../../theme/app_spacing.dart';
@@ -23,6 +24,7 @@ import 'sync_devices_screen.dart';
 import 'sync_failure_labels.dart';
 import 'sync_notice_labels.dart';
 import 'sync_pairing_screen.dart';
+import 'sync_support_codes.dart';
 
 /// Device Sync settings and status (spec §6.1, §6.12, §6.14).
 ///
@@ -242,6 +244,21 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
     );
   }
 
+  /// Copies a Device Sync problem's support code ([syncPassSupportCode] and
+  /// its siblings) for the user to paste into a request for help. Only the
+  /// code: it carries no phrase, title or identifier, and nothing is sent.
+  Future<void> _copySupportCode(String code) async {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final l10n = AppLocalizations.of(context);
+    await Clipboard.setData(ClipboardData(text: code));
+    messenger?.showSnackBar(
+      SnackBar(
+        key: const ValueKey('sync-details-copied'),
+        content: Text(l10n.settingsSyncDetailsCopied),
+      ),
+    );
+  }
+
   /// A manual attempt on a metered connection is routed to the setting rather
   /// than failing (spec §6.12).
   void _routeToWifiSetting() {
@@ -352,20 +369,32 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
               ),
             Builder(
               builder: (tileContext) {
-                final failureText = _failureText(l10n, controller);
+                final problem = _problem(controller);
+                final failureText = problem == null
+                    ? null
+                    : syncPassProblemText(l10n, problem.status);
+                // A transient failure clears by itself and is retried by
+                // itself (spec §6.12), so it is a calm status rather than a
+                // problem: no error colour, no reason or advice, and nothing
+                // to copy. Its Details line stays, small, for anyone who
+                // wants it.
+                final transient = problem?.failure?.cause.isTransient ?? false;
+                final needsYou = failureText != null && !transient;
                 final lastSuccess = controller.lastSuccessAt;
                 // Only a `failed` pass has a structured cause; the other
                 // failure lines are already explanations in their own right.
-                final failure = failureText == null
-                    ? null
-                    : controller.lastResult?.failure;
+                final failure = problem?.failure;
                 final details = failure == null
                     ? null
                     : syncFailureDetails(l10n, failure);
                 final subtitleLines = [
-                  if (failure != null)
+                  if (failure != null && !transient)
                     Text(
-                      syncFailureExplanation(l10n, failure),
+                      syncFailureExplanation(
+                        l10n,
+                        failure,
+                        customServer: syncUsesCustomServer(controller.endpoint),
+                      ),
                       key: const ValueKey('sync-status-failure-explanation'),
                     ),
                   if (failureText != null && lastSuccess != null)
@@ -382,16 +411,22 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
                       style: theme.textTheme.bodySmall,
                     ),
                 ];
+                final supportCode = needsYou
+                    ? syncPassSupportCode(problem!)
+                    : null;
                 return ListTile(
                   key: const ValueKey('sync-status'),
                   leading: Icon(
-                    failureText != null
-                        ? Icons.error_outline
-                        : Icons.info_outline,
-                    color: failureText != null ? theme.colorScheme.error : null,
+                    needsYou ? Icons.error_outline : Icons.info_outline,
+                    key: ValueKey(
+                      needsYou ? 'sync-status-needs-you' : 'sync-status-calm',
+                    ),
+                    color: needsYou ? theme.colorScheme.error : null,
                   ),
                   title: Text(
-                    failureText ?? _statusText(tileContext, controller),
+                    transient
+                        ? l10n.settingsSyncStatusWaiting
+                        : failureText ?? _statusText(tileContext, controller),
                   ),
                   subtitle: subtitleLines.isEmpty
                       ? null
@@ -407,19 +442,54 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
                               ),
                           ],
                         ),
-                  trailing: controller.paired
-                      ? null
-                      : FilledButton(
+                  trailing: !controller.paired
+                      ? FilledButton(
                           key: const ValueKey('sync-connect'),
                           onPressed: () => showSyncPairingScreen(
                             tileContext,
                             backupSaver: widget.backupSaver,
                           ),
                           child: Text(l10n.settingsSyncConnectTitle),
+                        )
+                      : supportCode == null
+                      ? null
+                      : _CopyDetailsButton(
+                          key: const ValueKey('sync-status-copy-details'),
+                          onPressed: () => _copySupportCode(supportCode),
                         ),
                 );
               },
             ),
+            // Spec §5.2 echoes the store's limits "so a client can warn before
+            // hitting them rather than discovering a `507`". Needs you, so it
+            // offers the one thing this device can do about it — stop
+            // uploading imported dances nothing uses — only while that is
+            // still off; never a wipe (spec §5.3).
+            if (controller.quotaNearlyFull)
+              ListTile(
+                key: const ValueKey('sync-quota-warning'),
+                leading: Icon(
+                  Icons.error_outline,
+                  color: theme.colorScheme.error,
+                ),
+                title: Text(l10n.settingsSyncQuotaNearlyFull),
+                subtitle: controller.excludeImports
+                    ? null
+                    : Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: TextButton(
+                          key: const ValueKey('sync-quota-exclude-imports'),
+                          onPressed: () => controller.setExcludeImports(true),
+                          child: Text(l10n.settingsSyncQuotaExcludeImports),
+                        ),
+                      ),
+                trailing: _CopyDetailsButton(
+                  key: const ValueKey('sync-quota-copy-details'),
+                  onPressed: () => _copySupportCode(
+                    syncQuotaSupportCode(controller.storeQuota!),
+                  ),
+                ),
+              ),
             // The conditions the last pass to raise any had to report (spec
             // §2 *report*): non-blocking, no dismissal, nothing to tap. They
             // sit beside the status rather than in it because a pass can
@@ -429,6 +499,11 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
                 key: ValueKey(group),
                 group: group,
                 reports: controller.notices,
+                onCopyDetails: syncNoticeNeedsYou(group)
+                    ? () => _copySupportCode(
+                        syncNoticeSupportCode(group, controller.notices),
+                      )
+                    : null,
               ),
             // What this device merged when it last fresh-attached, for the rest
             // of this app session — the latch is in memory, so it does not
@@ -567,15 +642,19 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
     Localizations.localeOf(context).toString(),
   ).add_jm().format(when.toLocal());
 
-  /// The line for the last completed trigger attempt when it was not a
-  /// success, or null when the last attempt succeeded, nothing has run yet in
-  /// this session, or a pass is currently running (the syncing status on
-  /// [_statusText] takes priority over a stale failure from an earlier pass).
-  /// Which line each status gets is [syncPassProblemText]'s decision.
-  String? _failureText(AppLocalizations l10n, SyncController controller) {
+  /// The last completed trigger attempt when it was not a success, or null
+  /// when the last attempt succeeded, nothing has run yet in this session, or
+  /// a pass is currently running (the syncing status on [_statusText] takes
+  /// priority over a stale failure from an earlier pass). Which line each
+  /// status gets is [syncPassProblemText]'s decision.
+  SyncPassResult? _problem(SyncController controller) {
     if (controller.running || !controller.paired) return null;
-    final status = controller.lastResult?.status;
-    return status == null ? null : syncPassProblemText(l10n, status);
+    final result = controller.lastResult;
+    if (result == null) return null;
+    return syncPassProblemText(AppLocalizations.of(context), result.status) ==
+            null
+        ? null
+        : result;
   }
 }
 
@@ -592,10 +671,14 @@ class _SyncNoticeTile extends StatefulWidget {
     super.key,
     required this.group,
     required this.reports,
+    this.onCopyDetails,
   });
 
   final SyncNoticeGroup group;
   final List<SyncReport> reports;
+
+  /// Copies the notice's support code; set for a needs-you group only.
+  final VoidCallback? onCopyDetails;
 
   @override
   State<_SyncNoticeTile> createState() => _SyncNoticeTileState();
@@ -658,10 +741,24 @@ class _SyncNoticeTileState extends State<_SyncNoticeTile> {
     final theme = Theme.of(context);
     final peers = syncNoticePeerCount(widget.group, widget.reports);
     final total = _records.length;
+    final needsYou = syncNoticeNeedsYou(widget.group);
     return ListTile(
       key: ValueKey('sync-notice-${widget.group.name}'),
-      leading: Icon(Icons.info_outline, color: theme.colorScheme.tertiary),
-      title: Text(syncNoticeText(l10n, widget.group)),
+      leading: needsYou
+          ? Icon(
+              Icons.error_outline,
+              key: ValueKey('sync-notice-${widget.group.name}-needs-you'),
+              color: theme.colorScheme.error,
+            )
+          : Icon(Icons.info_outline, color: theme.colorScheme.tertiary),
+      title: Text(syncNoticeText(l10n, widget.group, recordCount: total)),
+      trailing: switch (widget.onCopyDetails) {
+        final onCopy? => _CopyDetailsButton(
+          key: ValueKey('sync-notice-${widget.group.name}-copy-details'),
+          onPressed: onCopy,
+        ),
+        null => null,
+      },
       subtitle: total == 0 && peers == 0
           ? null
           : Column(
@@ -699,6 +796,20 @@ class _SyncNoticeTileState extends State<_SyncNoticeTile> {
             ),
     );
   }
+}
+
+/// The "Copy details" action on a needs-you Device Sync item.
+class _CopyDetailsButton extends StatelessWidget {
+  const _CopyDetailsButton({super.key, required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+    icon: const Icon(Icons.content_copy_outlined),
+    tooltip: AppLocalizations.of(context).settingsSyncCopyDetails,
+    onPressed: onPressed,
+  );
 }
 
 /// The sync phrase this device is attached to, on the status surface so the

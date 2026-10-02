@@ -350,8 +350,42 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsSyncFailureRejected => 'このデバイスが送信した内容を、同期サーバーが拒否しました。';
 
   @override
-  String get settingsSyncFailureRejectedAdvice =>
-      '通常は、このアプリとサーバーのバージョンが異なることが原因です。このデバイスのアプリを更新してください。独自のサーバーを運用している場合は、サーバーも更新してください。';
+  String get settingsSyncFailureRejectedAdviceDefaultServer =>
+      'このバージョンのアプリは同期サーバーより新しいバージョンです。変更はこのデバイスに保存されており、サーバーが更新されると同期されます。';
+
+  @override
+  String get settingsSyncFailureRejectedAdviceCustomServer =>
+      'このバージョンのアプリに合わせて、同期サーバーを更新してください。';
+
+  @override
+  String get settingsSyncStatusWaiting => '同期を待っています。変更はこのデバイスに保存されています。';
+
+  @override
+  String get settingsSyncQuotaNearlyFull => 'ストアの容量がまもなくいっぱいになります。';
+
+  @override
+  String get settingsSyncQuotaExcludeImports => '取り込んだダンスの同期をやめる';
+
+  @override
+  String settingsSyncNoticeNewerVersion(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '別のデバイスで新しいバージョンのアプリが使われています。$count件の項目を受け取るには、このデバイスのアプリを更新してください。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsSyncNoticeNewerVersionUncounted =>
+      '別のデバイスで新しいバージョンのアプリが使われています。その変更を受け取るには、このデバイスのアプリを更新してください。';
+
+  @override
+  String get settingsSyncCopyDetails => '詳細をコピー';
+
+  @override
+  String get settingsSyncDetailsCopied => '詳細をコピーしました。';
 
   @override
   String get settingsSyncFailureAccessDenied =>
