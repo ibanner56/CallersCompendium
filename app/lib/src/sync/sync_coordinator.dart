@@ -1061,11 +1061,13 @@ class SyncCoordinator {
         peerId,
         etag: epochCached?.etag,
       );
-      final manifest = response.kind == SyncResponseKind.notModified
-          ? epochCached?.manifest
-          : response.isSuccess
+      final decoded =
+          response.kind != SyncResponseKind.notModified && response.isSuccess
           ? _decodeManifest(response.body)
           : null;
+      final manifest = response.kind == SyncResponseKind.notModified
+          ? epochCached?.manifest
+          : decoded?.manifest;
       if (response.kind == SyncResponseKind.notModified && manifest == null) {
         _peerManifestCache.remove(peerId);
       }
@@ -1089,10 +1091,16 @@ class SyncCoordinator {
         unresolved.addAll(normalizedBaseline.keys);
         reports.add(
           SyncReport(
-            code: SyncReportCode.malformedRecord,
+            // A manifest this build cannot read because it is newer says
+            // nothing about which records it lists, so the report names only
+            // the peer (spec §6.9).
+            code: decoded?.newer ?? false
+                ? SyncReportCode.newerWireVersion
+                : SyncReportCode.malformedRecord,
             peerId: peerId,
-            message:
-                'Peer manifest was malformed or used a stale epoch.', // i18n-ignore: internal report
+            message: decoded?.newer ?? false
+                ? 'Peer manifest uses a newer wire version.' // i18n-ignore: internal report
+                : 'Peer manifest was malformed or used a stale epoch.', // i18n-ignore: internal report
           ),
         );
         continue;
@@ -1995,17 +2003,20 @@ class SyncCoordinator {
           );
           continue;
         }
-        final blob = _decodeBlob(response.body);
+        final (:blob, :newer) = _decodeBlob(response.body);
         if (blob == null) {
           unresolved.add(address);
           reports.add(
             SyncReport(
-              code: SyncReportCode.malformedRecord,
+              code: newer
+                  ? SyncReportCode.newerWireVersion
+                  : SyncReportCode.malformedRecord,
               kind: address.kind,
               recordId: address.recordId,
               peerId: peerId,
-              message:
-                  'Blob did not decode as a record.', // i18n-ignore: internal report
+              message: newer
+                  ? 'Blob uses a newer wire version.' // i18n-ignore: internal report
+                  : 'Blob did not decode as a record.', // i18n-ignore: internal report
             ),
           );
           continue;
@@ -2147,13 +2158,23 @@ class SyncCoordinator {
     _replacementEvents.add(const SyncReplacementRequiredEvent());
   }
 
-  static SyncManifest? _decodeManifest(List<int> body) {
+  /// The peer manifest in [body], or null with [newer] saying whether it
+  /// failed only because a newer build wrote it.
+  static ({SyncManifest? manifest, bool newer}) _decodeManifest(
+    List<int> body,
+  ) {
     try {
-      return decodeSyncManifest(utf8.decode(body, allowMalformed: false));
+      return (
+        manifest: decodeSyncManifest(utf8.decode(body, allowMalformed: false)),
+        newer: false,
+      );
+    } on SyncNewerWireVersionException {
+      // diagnostics: silent — reported by the caller as newerWireVersion.
+      return (manifest: null, newer: true);
     } on FormatException {
       // diagnostics: silent — malformed peer manifests are reported by the
       // caller as per-record failures.
-      return null;
+      return (manifest: null, newer: false);
     }
   }
 
@@ -2164,13 +2185,21 @@ class SyncCoordinator {
     return null;
   }
 
-  static SyncRecordBlob? _decodeBlob(List<int> body) {
+  /// The peer blob in [body], or null with [newer] saying whether it failed
+  /// only because a newer build wrote it.
+  static ({SyncRecordBlob? blob, bool newer}) _decodeBlob(List<int> body) {
     try {
-      return decodeSyncRecordBlob(utf8.decode(body, allowMalformed: false));
+      return (
+        blob: decodeSyncRecordBlob(utf8.decode(body, allowMalformed: false)),
+        newer: false,
+      );
+    } on SyncNewerWireVersionException {
+      // diagnostics: silent — reported by the caller as newerWireVersion.
+      return (blob: null, newer: true);
     } on FormatException {
       // diagnostics: silent — malformed peer blobs are reported by the caller
       // and do not advance the baseline.
-      return null;
+      return (blob: null, newer: false);
     }
   }
 

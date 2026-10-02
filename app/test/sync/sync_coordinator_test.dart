@@ -4216,6 +4216,94 @@ void main() {
       expect(result.failure, isNull);
     });
   });
+
+  group('a peer running a newer app version (spec §6.9)', () {
+    SyncCoordinator coordinatorFor(_FakeTransport transport) => SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: _FakeStore(),
+      transport: transport,
+    );
+
+    test('a newer blob is reported as newerWireVersion, naming its record, '
+        'not as a malformed record', () async {
+      final newer = utf8.encode(
+        jsonEncode({
+          ..._tag('t-new', 'Newer').toJson(),
+          'v': syncWireVersion + 1,
+          'addedInV2': true,
+        }),
+      );
+      final hash = sha256Hex(newer);
+      final result = await coordinatorFor(
+        _FakeTransport(
+          devices: ['peer'],
+          peerManifest: _manifest(
+            deviceId: 'peer',
+            records: {
+              SyncRecordKind.tag: {'t-new': hash},
+            },
+          ),
+          blobResponses: {hash: _FakeTransport.response(200, body: newer)},
+        ),
+      ).syncNow();
+
+      final report = result.reports.singleWhere(
+        (report) => report.recordId == 't-new',
+      );
+      expect(report.code, SyncReportCode.newerWireVersion);
+      expect(report.kind, SyncRecordKind.tag);
+      expect(report.peerId, 'peer');
+    });
+
+    test('a newer manifest is reported as newerWireVersion for the peer, '
+        'naming no record', () async {
+      final newer = utf8.encode(
+        jsonEncode({
+          ..._manifest(deviceId: 'peer', records: const {}).toJson(),
+          'v': syncWireVersion + 1,
+          'addedInV2': true,
+        }),
+      );
+      final result = await coordinatorFor(
+        _FakeTransport(
+          devices: ['peer'],
+          manifestResponses: {
+            'peer': [_FakeTransport.response(200, body: newer)],
+          },
+        ),
+      ).syncNow();
+
+      final report = result.reports.singleWhere(
+        (report) => report.peerId == 'peer',
+      );
+      expect(report.code, SyncReportCode.newerWireVersion);
+      expect(report.kind, isNull);
+      expect(report.recordId, isNull);
+    });
+
+    test('a genuinely malformed blob is still malformedRecord', () async {
+      final broken = utf8.encode(jsonEncode({'v': syncWireVersion}));
+      final hash = sha256Hex(broken);
+      final result = await coordinatorFor(
+        _FakeTransport(
+          devices: ['peer'],
+          peerManifest: _manifest(
+            deviceId: 'peer',
+            records: {
+              SyncRecordKind.tag: {'t-bad': hash},
+            },
+          ),
+          blobResponses: {hash: _FakeTransport.response(200, body: broken)},
+        ),
+      ).syncNow();
+
+      expect(
+        result.reports.singleWhere((r) => r.recordId == 't-bad').code,
+        SyncReportCode.malformedRecord,
+      );
+    });
+  });
 }
 
 final class _SnapshotInterleavingStore
