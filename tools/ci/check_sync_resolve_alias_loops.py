@@ -10,7 +10,7 @@ for 20k calls against 0.33 ms for a single ``listAliases()``). They now load
 ratchet keeps a per-item store round trip from creeping back into a loop.
 
 A finding is an ``await`` expression containing ``.resolveAlias(`` that sits
-inside the body of a ``for`` / ``while`` / ``do`` loop or a collection-``for``
+inside the body of a ``for`` / ``while`` / ``do`` loop, braced or not, or a collection-``for``
 element. Matching ``await`` plus a *method call* is deliberate: the
 coordinator also passes local ``resolveAlias: (address) => ...`` lambdas over
 already-resolved maps (no ``await``, no store), and those are not store calls.
@@ -52,7 +52,8 @@ REPO_ROOT = HERE.parents[1]
 SEARCH_ROOT = "app/lib/src/sync"
 
 _LOOP_RE = re.compile(r"\b(for|while)\s*\(")
-_DO_RE = re.compile(r"\bdo\s*\{")
+_DO_RE = re.compile(r"\bdo\b")
+_WORD_RE = re.compile(r"[A-Za-z_]\w*")
 # `await` followed, within the same statement, by a `.resolveAlias(` call.
 _AWAITED_RESOLVE_RE = re.compile(r"\bawait\b[^;{}]*?\.resolveAlias\s*\(")
 _MARKER_RE = re.compile(r"alias-loop:\s*allowed\b")
@@ -77,8 +78,8 @@ def _skip_ws(masked: str, i: int) -> int:
 
 
 def _expression_end(masked: str, start: int) -> int:
-    """End of an unbraced loop body: the first unnested `;`, `,` or closing
-    bracket at or after [start] (a statement, or a collection-for element)."""
+    """End of an expression statement or collection-for element: the first
+    unnested `;`, `,` or closing bracket at or after [start]."""
     depth = 0
     for i in range(start, len(masked)):
         c = masked[i]
@@ -93,6 +94,50 @@ def _expression_end(masked: str, start: int) -> int:
     return len(masked)
 
 
+def _word_at(masked: str, i: int) -> str:
+    m = _WORD_RE.match(masked, i)
+    return m.group(0) if m else ""
+
+
+def _statement_end(masked: str, start: int) -> int:
+    """Offset just past the statement beginning at [start].
+
+    A braced block, `if`/`else`, `for`, `while` and `do` end where their own
+    last sub-statement ends, so a following statement is never swallowed (a
+    nested `{ ... }` body must not be read through to the next `;`). Anything
+    else is an expression statement, which ends at its `;`. `switch` and `try`
+    are not modelled and fall back to the expression walk."""
+    n = len(masked)
+    i = _skip_ws(masked, start)
+    if i >= n:
+        return n
+    if masked[i] == "{":
+        close = _match_brace(masked, i)
+        return n if close is None else close + 1
+    word = _word_at(masked, i)
+    if word in ("if", "for", "while"):
+        j = _skip_ws(masked, i + len(word))
+        if j < n and masked[j] == "(":
+            close = _match_paren(masked, j)
+            if close is not None:
+                end = _statement_end(masked, close + 1)
+                if word == "if":
+                    k = _skip_ws(masked, end)
+                    if _word_at(masked, k) == "else":
+                        return _statement_end(masked, k + len("else"))
+                return end
+    elif word == "do":
+        end = _statement_end(masked, i + len("do"))
+        k = _skip_ws(masked, end)
+        if _word_at(masked, k) == "while":
+            j = _skip_ws(masked, k + len("while"))
+            close = _match_paren(masked, j) if j < n and masked[j] == "(" else None
+            if close is not None:
+                return _expression_end(masked, close + 1) + 1
+        return end
+    return _expression_end(masked, i) + 1
+
+
 def _loop_bodies(masked: str) -> list[tuple[int, int, int]]:
     """`(loop_keyword_offset, body_start, body_end)` for every loop."""
     bodies: list[tuple[int, int, int]] = []
@@ -101,21 +146,12 @@ def _loop_bodies(masked: str) -> list[tuple[int, int, int]]:
         if close is None:
             continue
         i = _skip_ws(masked, close + 1)
-        if i >= len(masked):
-            continue
-        if masked[i] == ";":
+        if i >= len(masked) or masked[i] == ";":
             continue  # `while (...);` closing a do-while, or an empty body
-        if masked[i] == "{":
-            end = _match_brace(masked, i)
-            if end is None:
-                continue
-            bodies.append((m.start(), i, end))
-        else:
-            bodies.append((m.start(), i, _expression_end(masked, i)))
+        bodies.append((m.start(), i, _statement_end(masked, i)))
     for m in _DO_RE.finditer(masked):
-        end = _match_brace(masked, m.end() - 1)
-        if end is not None:
-            bodies.append((m.start(), m.end() - 1, end))
+        i = _skip_ws(masked, m.end())
+        bodies.append((m.start(), i, _statement_end(masked, i)))
     return bodies
 
 

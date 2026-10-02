@@ -94,6 +94,31 @@ check(
     == [4],
 )
 
+check(
+    "unbraced do-while body",
+    lines("void f() async {\n  do await store.resolveAlias(a); while (go());\n}\n")
+    == [2],
+)
+check(
+    "unbraced loop over an unbraced if",
+    lines("void f() async {\n  for (final a in xs)\n    if (keep(a)) await store.resolveAlias(a);\n}\n")
+    == [3],
+)
+check(
+    "unbraced loop over an if/else with the call in the else",
+    lines(
+        "void f() async {\n  for (final a in xs)\n    if (keep(a)) use(a); else await store.resolveAlias(a);\n}\n"
+    )
+    == [3],
+)
+check(
+    "unbraced loop over a braced if holding the call",
+    lines(
+        "void f() async {\n  for (final a in xs)\n    if (keep(a)) {\n      await store.resolveAlias(a);\n    }\n}\n"
+    )
+    == [4],
+)
+
 # --- shapes that must stay quiet -------------------------------------------
 
 check(
@@ -132,6 +157,36 @@ check(
 check(
     "while closing a do-while is not a body",
     lines("void f() async {\n  do {\n    g();\n  } while (go());\n  await store.resolveAlias(a);\n}\n")
+    == [],
+)
+check(
+    "await after an unbraced loop over a braced if",
+    lines(
+        "void f() async {\n  for (final a in xs)\n    if (keep(a)) { use(a); }\n"
+        "  await store.resolveAlias(a);\n}\n"
+    )
+    == [],
+    "the nested block must end the loop body",
+)
+check(
+    "await after an unbraced loop over an if/else of blocks",
+    lines(
+        "void f() async {\n  for (final a in xs)\n    if (keep(a)) { use(a); } else { skip(a); }\n"
+        "  await store.resolveAlias(a);\n}\n"
+    )
+    == [],
+)
+check(
+    "await after an unbraced do-while",
+    lines("void f() async {\n  do g(); while (go());\n  await store.resolveAlias(a);\n}\n")
+    == [],
+)
+check(
+    "await after nested unbraced loops",
+    lines(
+        "void f() async {\n  for (final a in xs)\n    for (final b in a) use(b);\n"
+        "  await store.resolveAlias(a);\n}\n"
+    )
     == [],
 )
 check(
