@@ -213,8 +213,9 @@ class ImportReviewScreen extends StatefulWidget {
 }
 
 /// Decodes an already-parsed archive object; [archiveFromJson]'s shape.
-typedef ArchiveMapDecoder =
-    ArchiveReadResult Function(Map<String, Object?> root);
+typedef ArchiveMapDecoder = ArchiveReadResult Function(
+  Map<String, Object?> root,
+);
 
 enum _Phase { input, planning, review, committing }
 
@@ -667,6 +668,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final fetcher = widget.fetcher ?? fetchImportUrl;
     final l10n = AppLocalizations.of(context);
     final input = _urlController.text.trim();
+    // Captured now: the user can change the source dropdown while the request
+    // is in flight, and the failure belongs to the source that was fetched.
+    final kind = _selected.kind;
     // Rewrite the typed input into the URL actually fetched (e.g. build the
     // Caller's Box &format=JSON endpoint). A null builder fetches as typed.
     final String target;
@@ -701,7 +705,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         stackTrace,
         source: 'import_review_screen._fetchFromUrl.fetch',
       );
-      setState(() => _fetchError = importErrorMessage(l10n, e));
+      setState(
+        () => _fetchError = importErrorMessage(
+          l10n,
+          attributeFetchFailure(e, kind),
+        ),
+      );
     } catch (e, stackTrace) {
       if (!mounted) return;
       // Never surface the raw error to the user (CWE-209); keep it for debug
@@ -717,7 +726,15 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         stackTrace,
         source: 'import_review_screen._fetchFromUrl.fetch',
       );
-      setState(() => _fetchError = l10n.importErrorUnreachable);
+      setState(
+        () => _fetchError = importErrorMessage(
+          l10n,
+          attributeFetchFailure(
+            const UrlFetchException(UrlFetchFailureReason.unreachable),
+            kind,
+          ),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _fetching = false);
     }
@@ -2981,9 +2998,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       padding: const EdgeInsets.only(top: 4),
       child: Text(
         details.join(' · '),
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
+        style: Theme.of(context).textTheme.bodySmall
+            ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
       ),
     );
   }

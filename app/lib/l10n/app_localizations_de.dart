@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -5268,8 +5269,9 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get importErrorFileTooLarge =>
-      'Diese Datei ist zu groß zum Importieren.';
+  String importErrorFileTooLarge(int megabytes) {
+    return 'Die Datei überschreitet das Limit von $megabytes MB. Wählen Sie eine kleinere Datei und versuchen Sie es erneut.';
+  }
 
   @override
   String get archiveIntakeRejectedTooLarge =>
@@ -5312,7 +5314,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importErrorTooManyRedirects =>
-      'Diese URL hat zu viele Umleitungen durchgeführt.';
+      'Diese URL wurde zu oft umgeleitet. Öffnen Sie sie in einem Browser, um die endgültige Adresse zu finden, und verwenden Sie stattdessen diese.';
 
   @override
   String get importErrorResponseTooLarge =>
@@ -5332,12 +5334,20 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String importErrorHttpStatus(int status) {
-    return 'Der Server antwortete mit HTTP $status.';
+    return 'Der Server hat eine unerwartete Antwort gesendet (Code $status). Überprüfen Sie die URL und versuchen Sie es erneut.';
   }
 
   @override
+  String get importErrorHttpNotFound =>
+      'Unter dieser Adresse wurde nichts gefunden. Überprüfen Sie die URL und versuchen Sie es erneut.';
+
+  @override
+  String get importErrorHttpBusy =>
+      'Der Server ist ausgelastet oder hat Probleme. Versuchen Sie es in einer Minute erneut.';
+
+  @override
   String get importErrorEmptyResponse =>
-      'Die URL gab eine leere Antwort zurück.';
+      'Die URL hat eine leere Antwort geliefert. Prüfen Sie, ob der Link auf die Daten verweist, die Sie importieren möchten, und versuchen Sie es erneut.';
 
   @override
   String get importErrorCallersBoxEmptyInput =>
@@ -5370,8 +5380,16 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String importErrorCallersBoxHttpStatus(int status) {
-    return 'The Caller\'s Box antwortete mit HTTP $status.';
+    return 'The Caller\'s Box hat eine unerwartete Antwort gesendet (Code $status). Versuchen Sie es in einer Minute erneut.';
   }
+
+  @override
+  String get importErrorCallersBoxHttpNotFound =>
+      'The Caller\'s Box hat keinen Tanz mit dieser ID. Überprüfen Sie die Nummer oder den Link und versuchen Sie es erneut.';
+
+  @override
+  String get importErrorCallersBoxHttpBusy =>
+      'The Caller\'s Box ist gerade ausgelastet. Versuchen Sie es in einer Minute erneut.';
 
   @override
   String get importErrorCallersBoxEmptyPage =>
@@ -5379,7 +5397,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importErrorCallersBoxNoDance =>
-      'The Caller\'s Box hat keinen importierbaren Tanz zurückgegeben.';
+      'The Caller\'s Box hat keinen importierbaren Tanz geliefert. Überprüfen Sie die ID oder den Link und versuchen Sie es erneut.';
 
   @override
   String get importErrorCallersBoxImportFailed =>
@@ -5431,8 +5449,16 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String importErrorContraDbHttpStatus(int status) {
-    return 'ContraDB antwortete mit HTTP $status.';
+    return 'ContraDB hat eine unerwartete Antwort gesendet (Code $status). Versuchen Sie es in einer Minute erneut.';
   }
+
+  @override
+  String get importErrorContraDbHttpNotFound =>
+      'ContraDB hat keinen Tanz mit dieser ID. Überprüfen Sie die Nummer oder den Link und versuchen Sie es erneut.';
+
+  @override
+  String get importErrorContraDbHttpBusy =>
+      'ContraDB ist gerade ausgelastet. Versuchen Sie es in einer Minute erneut.';
 
   @override
   String get importErrorContraDbEmptyResponse =>
@@ -5440,7 +5466,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importErrorContraDbNoDance =>
-      'ContraDB hat keinen importierbaren Tanz zurückgegeben.';
+      'ContraDB hat keinen importierbaren Tanz geliefert. Überprüfen Sie die ID oder den Link und versuchen Sie es erneut.';
 
   @override
   String get importErrorContraDbImportFailed =>
@@ -5773,8 +5799,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           'Dieser Import enthält $count Elemente — mehr als für eine normale Freigabe erwartet.',
-      one:
-          'Dieser Import enthält 1 Element — mehr als für eine normale Freigabe erwartet.',
+      one: 'Dieser Import enthält 1 Element — mehr als für eine normale Freigabe erwartet.',
     );
     return '$_temp0';
   }
@@ -6520,8 +6545,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Figuren hinzugefügt. Geben Sie eine weitere ein oder drücken Sie Escape, um zu beenden.',
-      one:
-          '1 Figur hinzugefügt. Geben Sie eine weitere ein oder drücken Sie Escape, um zu beenden.',
+      one: '1 Figur hinzugefügt. Geben Sie eine weitere ein oder drücken Sie Escape, um zu beenden.',
     );
     return '$_temp0';
   }
@@ -7250,8 +7274,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Kontrastpaare unterhalb von WCAG AA. Sie können trotzdem speichern, aber einiger Text könnte schwer lesbar sein.',
-      one:
-          '1 Kontrastpaar unterhalb von WCAG AA. Sie können trotzdem speichern, aber einiger Text könnte schwer lesbar sein.',
+      one: '1 Kontrastpaar unterhalb von WCAG AA. Sie können trotzdem speichern, aber einiger Text könnte schwer lesbar sein.',
     );
     return '$_temp0';
   }

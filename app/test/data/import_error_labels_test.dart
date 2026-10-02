@@ -55,40 +55,120 @@ void main() {
           l10n,
           const UrlFetchException(
             UrlFetchFailureReason.httpStatus,
-            statusCode: 503,
+            statusCode: 418,
           ),
         ),
-        l10n.importErrorHttpStatus(503),
+        l10n.importErrorHttpStatus(418),
       );
       expect(
         importErrorMessage(
           l10n,
           const UrlFetchException(
             UrlFetchFailureReason.callersBoxHttpStatus,
-            statusCode: 503,
+            statusCode: 418,
           ),
         ),
-        l10n.importErrorCallersBoxHttpStatus(503),
+        l10n.importErrorCallersBoxHttpStatus(418),
       );
       expect(
         importErrorMessage(
           l10n,
           const UrlFetchException(
             UrlFetchFailureReason.contraDbHttpStatus,
-            statusCode: 503,
+            statusCode: 418,
           ),
         ),
-        l10n.importErrorContraDbHttpStatus(503),
+        l10n.importErrorContraDbHttpStatus(418),
       );
     });
 
-    test('status reasons render the status code as plain text', () {
+    // IMP-06: only an *unclassified* status keeps its code. 404 and 429 (and
+    // 5xx) are worded as what to do next, never as "HTTP 4xx".
+    test('an unclassified status renders the status code as plain text', () {
       for (final reason in _statusReasons) {
         expect(
           importErrorMessage(l10n, UrlFetchException(reason, statusCode: 418)),
           contains('418'),
         );
       }
+    });
+
+    test('404 and 429 messages differ and neither shows an HTTP code', () {
+      for (final reason in _statusReasons) {
+        final notFound = importErrorMessage(
+          l10n,
+          UrlFetchException(reason, statusCode: 404),
+        );
+        final busy = importErrorMessage(
+          l10n,
+          UrlFetchException(reason, statusCode: 429),
+        );
+        expect(notFound, isNot(busy), reason: '$reason');
+        for (final message in [notFound, busy]) {
+          expect(message, isNot(contains('HTTP 4')), reason: '$reason');
+          expect(message, isNot(contains('404')), reason: '$reason');
+          expect(message, isNot(contains('429')), reason: '$reason');
+        }
+      }
+    });
+
+    test('429 and every 5xx share the "busy, try again" wording', () {
+      for (final reason in _statusReasons) {
+        final busy = importErrorMessage(
+          l10n,
+          UrlFetchException(reason, statusCode: 429),
+        );
+        for (final status in [500, 502, 503, 599]) {
+          expect(
+            importErrorMessage(
+              l10n,
+              UrlFetchException(reason, statusCode: status),
+            ),
+            busy,
+            reason: '$reason $status',
+          );
+        }
+        // 4xx other than 404/429 and 3xx are unclassified.
+        for (final status in [301, 403, 499, 600]) {
+          expect(
+            importErrorMessage(
+              l10n,
+              UrlFetchException(reason, statusCode: status),
+            ),
+            contains('$status'),
+            reason: '$reason $status',
+          );
+        }
+      }
+    });
+
+    test('404 and busy use each source\'s own getter', () {
+      String msg(UrlFetchFailureReason r, int status) =>
+          importErrorMessage(l10n, UrlFetchException(r, statusCode: status));
+      expect(
+        msg(UrlFetchFailureReason.httpStatus, 404),
+        l10n.importErrorHttpNotFound,
+      );
+      expect(
+        msg(UrlFetchFailureReason.httpStatus, 429),
+        l10n.importErrorHttpBusy,
+      );
+      expect(
+        msg(UrlFetchFailureReason.callersBoxHttpStatus, 404),
+        l10n.importErrorCallersBoxHttpNotFound,
+      );
+      expect(
+        msg(UrlFetchFailureReason.callersBoxHttpStatus, 503),
+        l10n.importErrorCallersBoxHttpBusy,
+      );
+      expect(
+        msg(UrlFetchFailureReason.contraDbHttpStatus, 404),
+        l10n.importErrorContraDbHttpNotFound,
+      );
+      expect(
+        msg(UrlFetchFailureReason.contraDbHttpStatus, 429),
+        l10n.importErrorContraDbHttpBusy,
+      );
     });
 
     test('timeout reasons render the seconds as plain text', () {
@@ -186,11 +266,77 @@ void main() {
   });
 
   group('importFileTooLargeMessage', () {
-    test('returns the generic too-large string without the byte length', () {
+    test('names the cap that applied, not the byte length', () {
       const error = ImportFileTooLargeException(123456789);
       final message = importFileTooLargeMessage(l10n, error);
-      expect(message, l10n.importErrorFileTooLarge);
+      expect(message, l10n.importErrorFileTooLarge(25));
+      expect(message, contains('25 MB'));
       expect(message, isNot(contains('123456789')));
+    });
+
+    test('names the higher .USR cap when that is the one that tripped', () {
+      const error = ImportFileTooLargeException(
+        300 * 1024 * 1024,
+        maxBytes: kMaxImportUsrBytes,
+      );
+      expect(importFileTooLargeMessage(l10n, error), contains('256 MB'));
+    });
+  });
+
+  group('attributeFetchFailure', () {
+    const status404 = UrlFetchException(
+      UrlFetchFailureReason.httpStatus,
+      statusCode: 404,
+    );
+    const offline = UrlFetchException(UrlFetchFailureReason.unreachable);
+
+    test('Caller\'s Box: httpStatus and unreachable take its own reasons', () {
+      final status = attributeFetchFailure(
+        status404,
+        ImportSourceKind.callersBox,
+      );
+      expect(status.reason, UrlFetchFailureReason.callersBoxHttpStatus);
+      expect(status.statusCode, 404);
+      expect(
+        attributeFetchFailure(offline, ImportSourceKind.callersBox).reason,
+        UrlFetchFailureReason.callersBoxUnreachable,
+      );
+    });
+
+    test('ContraDB: httpStatus and unreachable take its own reasons', () {
+      final status = attributeFetchFailure(
+        status404,
+        ImportSourceKind.contraDb,
+      );
+      expect(status.reason, UrlFetchFailureReason.contraDbHttpStatus);
+      expect(status.statusCode, 404);
+      expect(
+        attributeFetchFailure(offline, ImportSourceKind.contraDb).reason,
+        UrlFetchFailureReason.contraDbUnreachable,
+      );
+    });
+
+    test('every other source, and every other reason, is unchanged', () {
+      for (final kind in ImportSourceKind.values) {
+        if (kind == ImportSourceKind.callersBox ||
+            kind == ImportSourceKind.contraDb) {
+          continue;
+        }
+        expect(attributeFetchFailure(status404, kind), same(status404));
+        expect(attributeFetchFailure(offline, kind), same(offline));
+      }
+      const timeout = UrlFetchException(
+        UrlFetchFailureReason.timeout,
+        timeoutSeconds: 30,
+      );
+      const blocked = UrlFetchException(UrlFetchFailureReason.blockedHost);
+      for (final kind in [
+        ImportSourceKind.callersBox,
+        ImportSourceKind.contraDb,
+      ]) {
+        expect(attributeFetchFailure(timeout, kind), same(timeout));
+        expect(attributeFetchFailure(blocked, kind), same(blocked));
+      }
     });
   });
 

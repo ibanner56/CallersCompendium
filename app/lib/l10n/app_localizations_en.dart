@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -4592,8 +4593,7 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           '$count free-text slots (breaks, notes) omitted — the matrix shows dances only.',
-      one:
-          '1 free-text slot (breaks, notes) omitted — the matrix shows dances only.',
+      one: '1 free-text slot (breaks, notes) omitted — the matrix shows dances only.',
     );
     return '$_temp0';
   }
@@ -5191,7 +5191,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get importErrorFileTooLarge => 'That file is too large to import.';
+  String importErrorFileTooLarge(int megabytes) {
+    return 'That file is larger than the $megabytes MB limit. Choose a smaller file and try again.';
+  }
 
   @override
   String get archiveIntakeRejectedTooLarge =>
@@ -5234,7 +5236,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importErrorTooManyRedirects =>
-      'That URL redirected too many times.';
+      'That URL redirected too many times. Open it in a browser to find its final address, then use that instead.';
 
   @override
   String get importErrorResponseTooLarge =>
@@ -5254,11 +5256,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String importErrorHttpStatus(int status) {
-    return 'The server responded with HTTP $status.';
+    return 'The server sent an unexpected response (code $status). Check the URL and try again.';
   }
 
   @override
-  String get importErrorEmptyResponse => 'The URL returned an empty response.';
+  String get importErrorHttpNotFound =>
+      'Nothing was found at that address. Check the URL, then try again.';
+
+  @override
+  String get importErrorHttpBusy =>
+      'That server is busy or having trouble. Try again in a minute.';
+
+  @override
+  String get importErrorEmptyResponse =>
+      'The URL returned an empty response. Check that the link points to the data you want to import, then try again.';
 
   @override
   String get importErrorCallersBoxEmptyInput =>
@@ -5291,8 +5302,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String importErrorCallersBoxHttpStatus(int status) {
-    return 'The Caller\'s Box responded with HTTP $status.';
+    return 'The Caller\'s Box sent an unexpected response (code $status). Try again in a minute.';
   }
+
+  @override
+  String get importErrorCallersBoxHttpNotFound =>
+      'The Caller\'s Box has no dance with that id. Check the number or link, then try again.';
+
+  @override
+  String get importErrorCallersBoxHttpBusy =>
+      'The Caller\'s Box is busy right now. Try again in a minute.';
 
   @override
   String get importErrorCallersBoxEmptyPage =>
@@ -5300,7 +5319,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importErrorCallersBoxNoDance =>
-      'The Caller\'s Box returned no importable dance.';
+      'The Caller\'s Box returned no importable dance. Check the id or link, then try again.';
 
   @override
   String get importErrorCallersBoxImportFailed =>
@@ -5352,8 +5371,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String importErrorContraDbHttpStatus(int status) {
-    return 'ContraDB responded with HTTP $status.';
+    return 'ContraDB sent an unexpected response (code $status). Try again in a minute.';
   }
+
+  @override
+  String get importErrorContraDbHttpNotFound =>
+      'ContraDB has no dance with that id. Check the number or link, then try again.';
+
+  @override
+  String get importErrorContraDbHttpBusy =>
+      'ContraDB is busy right now. Try again in a minute.';
 
   @override
   String get importErrorContraDbEmptyResponse =>
@@ -5361,7 +5388,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importErrorContraDbNoDance =>
-      'ContraDB returned no importable dance.';
+      'ContraDB returned no importable dance. Check the id or link, then try again.';
 
   @override
   String get importErrorContraDbImportFailed =>
@@ -5687,8 +5714,7 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           'This import contains $count items — more than expected for a normal share.',
-      one:
-          'This import contains 1 item — more than expected for a normal share.',
+      one: 'This import contains 1 item — more than expected for a normal share.',
     );
     return '$_temp0';
   }
@@ -7142,8 +7168,7 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           '$count contrast pairs below WCAG AA. You can still save, but some text may be hard to read.',
-      one:
-          '1 contrast pair below WCAG AA. You can still save, but some text may be hard to read.',
+      one: '1 contrast pair below WCAG AA. You can still save, but some text may be hard to read.',
     );
     return '$_temp0';
   }

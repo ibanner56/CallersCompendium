@@ -5264,9 +5264,9 @@
   "@importReviewSummaryNotFound": {
     "x-sourceSha256": "a658a2cf71fcefd9a21232220c6359b409285b680caf4a2638238c2597e919b2"
   },
-  "importErrorFileTooLarge": "Ce fichier est trop volumineux pour être importé.",
+  "importErrorFileTooLarge": "Ce fichier dépasse la limite de {megabytes} Mo. Choisissez un fichier plus petit, puis réessayez.",
   "@importErrorFileTooLarge": {
-    "x-sourceSha256": "27561070b4835d4de2dfe26ee4858606712273f436ef4b0c2150ac2dd103d283"
+    "x-sourceSha256": "a6a1b89f26d0a94639f9d7be61e1d044667eeb39a97439aa3d7b97e51ac24e09"
   },
   "archiveIntakeRejectedTooLarge": "Ce fichier est trop volumineux pour être importé.",
   "@archiveIntakeRejectedTooLarge": {
@@ -5308,9 +5308,9 @@
   "@importErrorUnsupportedSharedLink": {
     "x-sourceSha256": "e9aa5483ef48bad5bbe043ff4eb792f2808d548b017c557e40b9da634263220f"
   },
-  "importErrorTooManyRedirects": "Cette URL a effectué trop de redirections.",
+  "importErrorTooManyRedirects": "Cette URL a été redirigée trop de fois. Ouvrez-la dans un navigateur pour trouver son adresse finale, puis utilisez-la à la place.",
   "@importErrorTooManyRedirects": {
-    "x-sourceSha256": "849e5da3dea6d013f85c5965eef38b9202f621b4e0c2545e3b6647dd9fea1f7d"
+    "x-sourceSha256": "27ff194bd853e2a3b69c8ee2f1d28d833af3f778e360d07df42a33ffacbb4d4e"
   },
   "importErrorResponseTooLarge": "Cette réponse est trop volumineuse pour être importée.",
   "@importErrorResponseTooLarge": {
@@ -5328,13 +5328,21 @@
   "@importErrorUnreachable": {
     "x-sourceSha256": "4ff73e66000d3cb577a1030f0c711e303fbe17ee653f5fa99a2eb24cd13313e6"
   },
-  "importErrorHttpStatus": "Le serveur a répondu avec HTTP {status}.",
+  "importErrorHttpStatus": "Le serveur a envoyé une réponse inattendue (code {status}). Vérifiez l’URL, puis réessayez.",
   "@importErrorHttpStatus": {
-    "x-sourceSha256": "3967687167982af35ddcf77b4277e7ea6abbb1da8db50852c5cb447b3a12ae94"
+    "x-sourceSha256": "d715f5158f6bd8fa30f8c229bd5399d31c3f58e410f55d6af83b6d795ddfb640"
   },
-  "importErrorEmptyResponse": "L’URL a renvoyé une réponse vide.",
+  "importErrorHttpNotFound": "Rien n’a été trouvé à cette adresse. Vérifiez l’URL, puis réessayez.",
+  "@importErrorHttpNotFound": {
+    "x-sourceSha256": "cf5585489bba75ba3b41e367615410f6f6e71954601ab06dfb9b2d5112499d7d"
+  },
+  "importErrorHttpBusy": "Ce serveur est occupé ou rencontre un problème. Réessayez dans une minute.",
+  "@importErrorHttpBusy": {
+    "x-sourceSha256": "cd5dacb33010b3a35f2d93fff910b4574b7973956786e47c3de9e465830886ec"
+  },
+  "importErrorEmptyResponse": "L’URL a renvoyé une réponse vide. Vérifiez que le lien pointe vers les données à importer, puis réessayez.",
   "@importErrorEmptyResponse": {
-    "x-sourceSha256": "f29fdcf4e00b818168f51a4619bcddd8a7c7e389a807ec72b4a8a9cac2eca6b1"
+    "x-sourceSha256": "e4ebf590be59fc1c96250e01b1de6c9c868d171db953062cff138dda7d27d8a9"
   },
   "importErrorCallersBoxEmptyInput": "Saisissez une URL ou un identifiant de danse Caller's Box pour importer.",
   "@importErrorCallersBoxEmptyInput": {
@@ -5364,17 +5372,25 @@
   "@importErrorCallersBoxUnreachable": {
     "x-sourceSha256": "f140c354812d376da6d72cf268e505b4657f1081aacf9a0fb754263af7f8a8ad"
   },
-  "importErrorCallersBoxHttpStatus": "The Caller's Box a répondu avec HTTP {status}.",
+  "importErrorCallersBoxHttpStatus": "The Caller's Box a envoyé une réponse inattendue (code {status}). Réessayez dans une minute.",
   "@importErrorCallersBoxHttpStatus": {
-    "x-sourceSha256": "34e856cf63547960beb23744a9977864dd6f396cac50bba09ef3d58aa61aea88"
+    "x-sourceSha256": "b3f7c0b4214ce8134864c95f5b46449073251df4514a4e53a2487515992bcb96"
+  },
+  "importErrorCallersBoxHttpNotFound": "The Caller's Box n’a aucune danse avec cet identifiant. Vérifiez le numéro ou le lien, puis réessayez.",
+  "@importErrorCallersBoxHttpNotFound": {
+    "x-sourceSha256": "5c0fca4555523554af37924604d4925fb297fd770112d0c38b994ab3a996adb7"
+  },
+  "importErrorCallersBoxHttpBusy": "The Caller's Box est occupé en ce moment. Réessayez dans une minute.",
+  "@importErrorCallersBoxHttpBusy": {
+    "x-sourceSha256": "ef9121c399cb511f779ceb91e4d81f4a7ed45218ddd9ba53307adfddb5af194e"
   },
   "importErrorCallersBoxEmptyPage": "The Caller's Box a renvoyé une page vide.",
   "@importErrorCallersBoxEmptyPage": {
     "x-sourceSha256": "d86d0f42565528063ef25ee4f81ef3a778de6833643bab57b5882cc97ccd48e0"
   },
-  "importErrorCallersBoxNoDance": "The Caller's Box n’a renvoyé aucune danse importable.",
+  "importErrorCallersBoxNoDance": "The Caller's Box n’a renvoyé aucune danse importable. Vérifiez l’identifiant ou le lien, puis réessayez.",
   "@importErrorCallersBoxNoDance": {
-    "x-sourceSha256": "8d2b7b20a119530de3f26932899e845e40d54140b37d587fb3514b0f09e8471e"
+    "x-sourceSha256": "69b4b9c5e620a36ae8e0f964a15acd814b17a24c3c5ffb5bffebc3082031cdc0"
   },
   "importErrorCallersBoxImportFailed": "Impossible d’importer la danse Caller's Box.",
   "@importErrorCallersBoxImportFailed": {
@@ -5424,17 +5440,25 @@
   "@importErrorContraDbUnreachable": {
     "x-sourceSha256": "244e23d8cd2f627e2bc5c60af4e9d9a3d5bcf43152d28f683fc07065e72e5215"
   },
-  "importErrorContraDbHttpStatus": "ContraDB a répondu avec HTTP {status}.",
+  "importErrorContraDbHttpStatus": "ContraDB a envoyé une réponse inattendue (code {status}). Réessayez dans une minute.",
   "@importErrorContraDbHttpStatus": {
-    "x-sourceSha256": "e3770dc519988d27b5753aa2b99a6db1f52bd606c2dda47b151307baaf9cc428"
+    "x-sourceSha256": "ec8a61907d7f12028ab1d0237a8f3cb417fce327e342ef38ca8c63840d7ca3d8"
+  },
+  "importErrorContraDbHttpNotFound": "ContraDB n’a aucune danse avec cet identifiant. Vérifiez le numéro ou le lien, puis réessayez.",
+  "@importErrorContraDbHttpNotFound": {
+    "x-sourceSha256": "3ba27cd63d8a86ee41d992b2e969cbeb9ea9b55540ca11fbb4751801c147bc69"
+  },
+  "importErrorContraDbHttpBusy": "ContraDB est occupé en ce moment. Réessayez dans une minute.",
+  "@importErrorContraDbHttpBusy": {
+    "x-sourceSha256": "923274ccd7fb39ac46b2245d51f2f34c8ce4d6aab066c8de342148315ab7e1c6"
   },
   "importErrorContraDbEmptyResponse": "ContraDB a renvoyé une réponse vide.",
   "@importErrorContraDbEmptyResponse": {
     "x-sourceSha256": "6678f83618b54a5af22b99065f524a3da8e059fc80756b09c78cfdcf0c2b3997"
   },
-  "importErrorContraDbNoDance": "ContraDB n’a renvoyé aucune danse importable.",
+  "importErrorContraDbNoDance": "ContraDB n’a renvoyé aucune danse importable. Vérifiez l’identifiant ou le lien, puis réessayez.",
   "@importErrorContraDbNoDance": {
-    "x-sourceSha256": "2bcdfb5ed404ce1b5d10f9980bacdcad7b0179c5bd4aada34735dcb3863037cc"
+    "x-sourceSha256": "91da0d90fa3c2d68e6337c5e9cc943420670c6922daa786c2a2f9b6acfd3a815"
   },
   "importErrorContraDbImportFailed": "Impossible d’importer la danse ContraDB.",
   "@importErrorContraDbImportFailed": {
