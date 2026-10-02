@@ -93,7 +93,7 @@
       "note": "A formation of couples in two long facing lines. Dance formation name."
     },
     "note": {
-      "note": "A free-text annotation attached to a program slot, figure or dance (a caller's note). NOT a musical note: Dutch 'notitie', not 'noot'; German 'Notiz', not 'Note'."
+      "note": "Context-sensitive. For a caller's note (free text on a program slot, figure or dance) use the everyday word for a written note: nl 'notitie', de 'Notiz'; NOT the musical note (nl 'noot', de 'Note'). In diagnostics or import-warning text a 'note' is a short message or remark; translate it as that, not as a musical note."
     },
     "hook": {
       "note": "A dance's one-line hook: why you would call this dance. NOT a coat hook or fishing hook; keep the English loanword where no established local term exists (nl 'Hook', not 'Haak')."
@@ -103,6 +103,9 @@
     },
     "perform": {
       "note": "Perform mode: the large-print live view a caller uses while calling a dance or program. NOT 'performance' as speed/efficiency (de 'Leistung'); the Settings header 'Performance' means Perform-mode display preferences."
+    },
+    "performance": {
+      "note": "In the Settings header 'Performance' means Perform-mode display preferences (see 'perform'), NOT speed or efficiency (de 'Leistung')."
     }
   }
 }
