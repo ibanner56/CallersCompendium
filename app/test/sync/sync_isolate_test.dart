@@ -101,7 +101,8 @@ void main() {
   // A failure's cause must survive the port back to the parent: the status
   // surface can explain only what reaches it.
   test(
-    "carries a failed pass's cause, step and status across the isolate",
+    "carries a failed pass's cause, step, status, Retry-After and the store's "
+    'quota across the isolate',
     () async {
       final directory = await Directory.systemTemp.createTemp(
         'compendium-sync-isolate-',
@@ -119,7 +120,16 @@ void main() {
         request.response.headers.contentType = ContentType.json;
         if (request.method == 'GET' && request.uri.path == '/v1/store') {
           request.response.write(
-            jsonEncode({'epoch': 'epoch-1', 'devices': <String>[]}),
+            jsonEncode({
+              'epoch': 'epoch-1',
+              'devices': <String>[],
+              'quota': {
+                'blobs': 85,
+                'bytes': 10,
+                'maxBlobs': 100,
+                'maxBytes': 1000,
+              },
+            }),
           );
         } else if (request.method == 'POST' &&
             request.uri.path == '/v1/blobs/missing') {
@@ -127,6 +137,7 @@ void main() {
         } else {
           request.response
             ..statusCode = HttpStatus.serviceUnavailable
+            ..headers.set('retry-after', '120')
             ..write('{}');
         }
         await request.response.close();
@@ -148,6 +159,10 @@ void main() {
       expect(result.failure?.cause, SyncFailureCause.serverError);
       expect(result.failure?.step, SyncFailureStep.publish);
       expect(result.failure?.statusCode, 503);
+      expect(result.failure?.retryAfter, const Duration(seconds: 120));
+      expect(result.quota?.blobs, 85);
+      expect(result.quota?.maxBlobs, 100);
+      expect(result.quota?.nearlyFull, isTrue);
     },
   );
 

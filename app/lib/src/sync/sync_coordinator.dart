@@ -27,6 +27,76 @@ enum SyncPassStatus {
   failed,
 }
 
+/// The share of either store limit at which the status surface warns that the
+/// store is almost full (spec §5.2: the caps are echoed "so a client can warn
+/// before hitting them rather than discovering a `507`").
+const double kSyncQuotaWarningFraction = 0.8;
+
+/// What the store has used of its §5.4 allowance, as `GET /v1/store` reports
+/// it under `quota` (spec §5.2).
+class SyncStoreQuota {
+  const SyncStoreQuota({
+    required this.blobs,
+    required this.bytes,
+    required this.maxBlobs,
+    required this.maxBytes,
+  });
+
+  final int blobs;
+  final int bytes;
+  final int maxBlobs;
+  final int maxBytes;
+
+  /// The larger of the two shares used, from 0; either cap reached is full.
+  double get usedFraction {
+    final byBlobs = blobs / maxBlobs;
+    final byBytes = bytes / maxBytes;
+    return byBlobs > byBytes ? byBlobs : byBytes;
+  }
+
+  /// Whether either limit is at or past [kSyncQuotaWarningFraction].
+  bool get nearlyFull => usedFraction >= kSyncQuotaWarningFraction;
+
+  /// Reads the `quota` object of a store answer, or null when it is absent or
+  /// not the documented shape.
+  ///
+  /// Lenient where the rest of the store answer is strict, deliberately: the
+  /// quota is advice for a warning, and nothing in a pass depends on it, so a
+  /// server that omits it (or a malformed one) costs the warning and nothing
+  /// else, rather than failing every pass.
+  static SyncStoreQuota? tryParse(Object? value) {
+    if (value is! Map) return null;
+    final blobs = value['blobs'];
+    final bytes = value['bytes'];
+    final maxBlobs = value['maxBlobs'];
+    final maxBytes = value['maxBytes'];
+    if (blobs is! int ||
+        bytes is! int ||
+        maxBlobs is! int ||
+        maxBytes is! int ||
+        blobs < 0 ||
+        bytes < 0 ||
+        maxBlobs <= 0 ||
+        maxBytes <= 0) {
+      return null;
+    }
+    return SyncStoreQuota(
+      blobs: blobs,
+      bytes: bytes,
+      maxBlobs: maxBlobs,
+      maxBytes: maxBytes,
+    );
+  }
+
+  /// The isolate-message encoding, in the wire shape [tryParse] reads.
+  Map<String, Object?> encode() => {
+    'blobs': blobs,
+    'bytes': bytes,
+    'maxBlobs': maxBlobs,
+    'maxBytes': maxBytes,
+  };
+}
+
 /// The result returned by a coordinator pass or explicit replacement action.
 class SyncPassResult {
   const SyncPassResult(
@@ -36,6 +106,7 @@ class SyncPassResult {
     this.failure,
     this.duplicateCount = 0,
     this.appliedKinds = const [],
+    this.quota,
   });
 
   final SyncPassStatus status;
@@ -55,6 +126,26 @@ class SyncPassResult {
   /// crosses the worker boundary so the owning Drift connection can invalidate
   /// its live queries after the worker has closed its connection.
   final List<SyncRecordKind> appliedKinds;
+
+  /// The store's usage as the pass's latest store lookup reported it, or null
+  /// when the pass never got a usable lookup or the server sent none. Set on
+  /// any status, a failed pass included: a pass that stopped at its upload
+  /// with a `507` has still read how full the store is.
+  final SyncStoreQuota? quota;
+
+  /// This result with [quota] attached, unless it already carries one.
+  SyncPassResult withQuota(SyncStoreQuota? quota) =>
+      quota == null || this.quota != null
+      ? this
+      : SyncPassResult(
+          status,
+          reports: reports,
+          message: message,
+          failure: failure,
+          duplicateCount: duplicateCount,
+          appliedKinds: appliedKinds,
+          quota: quota,
+        );
 }
 
 /// The data needed to construct a local manifest and calculate a pass.
@@ -672,6 +763,12 @@ class SyncCoordinator {
   /// Set when the user declines while a confirmation is already running.
   bool _replacementDeclined = false;
   var _replacementCreated = false;
+
+  /// The quota the running pass's latest store lookup reported. A field
+  /// rather than threaded through every return in [_runPass], because the
+  /// pass has many exits and every one past the lookup should carry it;
+  /// [_runStartedPass] resets it before a pass and attaches it after.
+  SyncStoreQuota? _passQuota;
   var _disposed = false;
 
   static const _maxMissingHashesPerRequest = 10000;
@@ -881,9 +978,13 @@ class SyncCoordinator {
   Future<SyncPassResult> _runStartedPass({
     SyncStoreResult? initialStore,
   }) async {
+    _passQuota = null;
+    // Under `passOperation` the pass ran in the worker isolate, whose own
+    // coordinator attached the quota; this one's stays null and is ignored.
     final result =
-        await (passOperation?.call(initialStore: initialStore) ??
-            passRunner.run(() => _runPass(initialStore: initialStore)));
+        (await (passOperation?.call(initialStore: initialStore) ??
+                passRunner.run(() => _runPass(initialStore: initialStore))))
+            .withQuota(_passQuota);
     if (result.status == SyncPassStatus.replacementRequired) {
       _emitReplacementRequired();
     }
@@ -974,6 +1075,7 @@ class SyncCoordinator {
         ),
       );
     }
+    _passQuota = metadata.quota;
     _peerManifestCache.beginUnreflectedEpoch(metadata.epoch);
     final attachContinuation =
         continuation && continuationEpoch != null && deferredBaseline != null;
@@ -2218,6 +2320,7 @@ class SyncCoordinator {
       return _StoreMetadata(
         epoch: decoded['epoch'] as String,
         devices: [for (final device in devices) device as String],
+        quota: SyncStoreQuota.tryParse(decoded['quota']),
       );
     } on FormatException {
       // diagnostics: silent — malformed store metadata is surfaced as a
@@ -2264,8 +2367,13 @@ class SyncCoordinator {
 }
 
 class _StoreMetadata {
-  const _StoreMetadata({required this.epoch, required this.devices});
+  const _StoreMetadata({
+    required this.epoch,
+    required this.devices,
+    required this.quota,
+  });
 
   final String epoch;
   final List<String> devices;
+  final SyncStoreQuota? quota;
 }

@@ -453,6 +453,7 @@ Map<String, Object?> _encodeResult(SyncPassResult result) => {
   'failure': result.failure?.encode(),
   'duplicateCount': result.duplicateCount,
   'appliedKinds': [for (final kind in result.appliedKinds) kind.name],
+  'quota': result.quota?.encode(),
   'reports': [
     for (final report in result.reports)
       {
@@ -472,6 +473,11 @@ SyncPassResult _decodeResult(Map<String, Object?> encoded) {
   final rawDuplicateCount = encoded['duplicateCount'];
   final rawAppliedKinds = encoded['appliedKinds'];
   final rawReports = encoded['reports'];
+  final rawQuota = encoded['quota'];
+  final quota = SyncStoreQuota.tryParse(rawQuota);
+  if (rawQuota != null && quota == null) {
+    throw const FormatException('sync isolate returned an invalid quota');
+  }
   if (rawStatus is! String ||
       (rawMessage != null && rawMessage is! String) ||
       (rawDuplicateCount != null && rawDuplicateCount is! int) ||
@@ -528,5 +534,6 @@ SyncPassResult _decodeResult(Map<String, Object?> encoded) {
     failure: rawFailure == null ? null : SyncFailure.decode(rawFailure),
     duplicateCount: rawDuplicateCount as int? ?? 0,
     appliedKinds: appliedKinds,
+    quota: quota,
   );
 }

@@ -4235,6 +4235,93 @@ void main() {
     expect(result.failure?.statusCode, 500);
   });
 
+  group('store quota (spec §5.2)', () {
+    const quota = {
+      'blobs': 900,
+      'bytes': 1000,
+      'maxBlobs': 1000,
+      'maxBytes': 100000,
+    };
+    SyncCoordinator coordinatorFor(_FakeTransport transport) => SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: _FakeStore(),
+      transport: transport,
+    );
+
+    test('a completed pass carries the quota its store lookup read', () async {
+      final result = await coordinatorFor(
+        _FakeTransport(storeQuota: quota),
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(result.quota?.blobs, 900);
+      expect(result.quota?.maxBlobs, 1000);
+      expect(result.quota?.bytes, 1000);
+      expect(result.quota?.maxBytes, 100000);
+      expect(result.quota?.nearlyFull, isTrue);
+    });
+
+    test(
+      'a pass that fails after its lookup still carries the quota',
+      () async {
+        final result = await coordinatorFor(
+          _FakeTransport(storeQuota: quota, putManifestStatus: 500),
+        ).syncNow();
+
+        expect(result.status, SyncPassStatus.failed);
+        expect(result.quota?.blobs, 900);
+      },
+    );
+
+    test('a fresh attach carries the quota', () async {
+      final result = await SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(epoch: null),
+        transport: _FakeTransport(storeQuota: quota),
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(result.quota?.blobs, 900);
+    });
+
+    for (final (name, value) in <(String, Object)>[
+      ('a quota with a missing member', {'blobs': 1, 'bytes': 1}),
+      ('a quota with a zero cap', {...quota, 'maxBytes': 0}),
+      ('a quota with a negative count', {...quota, 'blobs': -1}),
+      ('a quota that is not an object', 'full'),
+    ]) {
+      test('$name costs only the warning, never the pass', () async {
+        final result = await coordinatorFor(
+          _FakeTransport(storeQuota: value),
+        ).syncNow();
+
+        expect(result.status, SyncPassStatus.completed);
+        expect(result.quota, isNull);
+      });
+    }
+
+    test('a server that sends no quota leaves it null', () async {
+      final result = await coordinatorFor(_FakeTransport()).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(result.quota, isNull);
+    });
+  });
+
+  test('the warning threshold is at 80% of either limit, not before', () {
+    SyncStoreQuota q(int blobs, int bytes) => SyncStoreQuota(
+      blobs: blobs,
+      bytes: bytes,
+      maxBlobs: 100,
+      maxBytes: 1000,
+    );
+    expect(q(79, 799).nearlyFull, isFalse);
+    expect(q(80, 0).nearlyFull, isTrue);
+    expect(q(0, 800).nearlyFull, isTrue);
+  });
+
   group('a peer running a newer app version (spec §6.9)', () {
     SyncCoordinator coordinatorFor(_FakeTransport transport) => SyncCoordinator(
       syncId: 'configured',
@@ -4737,6 +4824,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
     this.onManifestGet,
     this.onPostMissing,
     List<int>? postMissingStatuses,
+    this.storeQuota,
   }) : createResponses = [...createResponses ?? const []],
        storeEpochs = [
          ...storeEpochs ?? const ['epoch-1'],
@@ -4755,6 +4843,9 @@ final class _FakeTransport implements SyncCoordinatorTransport {
        };
 
   final SyncStoreMissingKind? missingKind;
+
+  /// The `quota` member of every store answer, verbatim; omitted when null.
+  final Object? storeQuota;
   final Completer<void>? _storeReadGate;
   final List<String> devices;
   final List<String> storeEpochs;
@@ -4803,7 +4894,11 @@ final class _FakeTransport implements SyncCoordinatorTransport {
             : storeEpochs.length - 1];
     final response = _response(
       missingKind == null || storeCalls > 1 ? 200 : 404,
-      body: jsonEncode({'epoch': epoch, 'devices': devices}),
+      body: jsonEncode({
+        'epoch': epoch,
+        'devices': devices,
+        'quota': ?storeQuota,
+      }),
     );
     return SyncStoreResult(
       response: response,

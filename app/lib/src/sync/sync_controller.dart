@@ -230,6 +230,7 @@ class SyncController extends ChangeNotifier {
   bool _excludeImports = false;
   DateTime? _lastSuccessAt;
   SyncPassResult? _lastResult;
+  SyncStoreQuota? _storeQuota;
   int _mergedDuplicates = 0;
   List<SyncReport> _notices = const [];
   int _inFlight = 0;
@@ -336,6 +337,17 @@ class SyncController extends ChangeNotifier {
   SyncFailure? _lastAdminFailure;
 
   bool get running => _inFlight > 0;
+
+  /// The store's usage as the most recent pass to read it reported (spec
+  /// §5.2), or null before any has. Kept across passes that did not reach the
+  /// store lookup, since an offline failure says nothing about usage; dropped
+  /// with the attachment. In memory only, like [lastResult].
+  SyncStoreQuota? get storeQuota => _storeQuota;
+
+  /// Whether the status surface should warn that the store is almost full:
+  /// either limit at [kSyncQuotaWarningFraction] or more.
+  bool get quotaNearlyFull =>
+      _enabled && paired && (_storeQuota?.nearlyFull ?? false);
 
   /// Whether a previously used collection is missing and awaiting the user's
   /// explanation-then-confirm decision (spec §6.3 step 1, §6.14 item 6).
@@ -566,6 +578,7 @@ class SyncController extends ChangeNotifier {
     // store being forgotten; recording it would restore its last-success time.
     if (_detaching) return;
     _lastResult = result;
+    if (result.quota case final quota?) _storeQuota = quota;
     // Latched rather than replaced: see [mergedDuplicates]. A pass that merged
     // nothing says nothing about an earlier attach's count, because every
     // ordinary pass reports zero.
@@ -838,6 +851,7 @@ class SyncController extends ChangeNotifier {
     _endpoint = null;
     _lastSuccessAt = null;
     _lastResult = null;
+    _storeQuota = null;
     _mergedDuplicates = 0;
     _notices = const [];
     _replacementPending = false;
