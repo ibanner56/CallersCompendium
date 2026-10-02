@@ -34,6 +34,7 @@ import '../utils/undo_snack_bar.dart';
 import '../utils/safe_name.dart';
 import '../widgets/add_to_program_sheet.dart';
 import '../widgets/dance_export_menu.dart';
+import '../widgets/export_guard.dart';
 import '../widgets/dialect_quick_switch.dart';
 import '../widgets/colour_dance_theme.dart';
 import '../widgets/figure_table.dart';
@@ -73,6 +74,8 @@ class DanceDetailScreen extends StatefulWidget {
     this.readOnly = false,
     this.onPreviewNavigate,
     this.jsonExportDelivery,
+    this.shareInvoker,
+    this.pdfLayouter,
     this.onClose,
   }) : previewData = null,
        onImport = null;
@@ -95,7 +98,9 @@ class DanceDetailScreen extends StatefulWidget {
        readOnly = false,
        onPreviewNavigate = null,
        onClose = null,
-       jsonExportDelivery = null;
+       jsonExportDelivery = null,
+       shareInvoker = null,
+       pdfLayouter = null;
 
   /// Read-only presentation for an online result. Unlike [preview], this
   /// intentionally exposes neither an import nor any collection mutation.
@@ -112,7 +117,9 @@ class DanceDetailScreen extends StatefulWidget {
        onNavigateTo = null,
        onReimport = null,
        readOnly = true,
-       jsonExportDelivery = null;
+       jsonExportDelivery = null,
+       shareInvoker = null,
+       pdfLayouter = null;
 
   /// Id of the persisted dance to load, or `null` in preview mode (see
   /// [DanceDetailScreen.preview]).
@@ -158,6 +165,14 @@ class DanceDetailScreen extends StatefulWidget {
 
   /// Shared JSON delivery seam for the compact overflow export.
   final JsonExportDelivery? jsonExportDelivery;
+
+  /// Overrides the OS share sheet for the compact overflow's text share.
+  /// Defaults to [SharePlus.instance.share]; tests use it to force a failure.
+  final ShareInvoker? shareInvoker;
+
+  /// Overrides the OS print/save dialog for the compact overflow's PDF export.
+  /// Defaults to [Printing.layoutPdf]; tests use it to force a failure.
+  final PdfLayouter? pdfLayouter;
 
   /// App-bar action layout breakpoint (logical pixels). Below this width the
   /// screen collapses its secondary actions (dialect switch, Export, Duplicate,
@@ -707,8 +722,8 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// Single "⋮" menu holding the secondary actions on narrow widths. Every
   /// entry is a first-class [PopupMenuItem] so it stays keyboard- and
   /// screen-reader-activatable: the dialect choices are [CheckedPopupMenuItem]s
-  /// (mirroring [DialectQuickSwitch]), the three Export actions are flattened in
-  /// from [DanceExportMenu], and Duplicate / Delete call the same handlers as
+  /// (mirroring [DialectQuickSwitch]), the five export items (share text, share dance
+  /// file, copy, share JSON, PDF) are flattened in from [DanceExportMenu], and Duplicate / Delete call the same handlers as
   /// the wide layout. Nothing is a nested popup, so activating any row performs
   /// its action rather than dismissing the menu.
   Widget _overflowMenu(BuildContext context, DanceDetailData detail) {
@@ -718,6 +733,12 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         ? null
         : (controller.activeName ?? controller.active.name);
     final dialect = ActiveDialectScope.of(context);
+    // Resolved here, not inside [exportText]: the closure runs from a menu
+    // item's `onTap` inside guardExport, after the menu route has popped.
+    final canonicalizeDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
+      context,
+    );
+    final shareFields = DanceShareFieldsScope.of(context);
     String exportText() => danceToPlainText(
       detail.dance,
       dialect: dialect,
@@ -726,14 +747,14 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         l10n,
         detail.dance.formation,
         dialect,
-        CanonicalDiscouragedTermsScope.of(context),
+        canonicalizeDiscouragedTerms,
       ),
       levelLabel: _levelLabel(l10n, detail.dance, detail.difficultyLevel),
       statusLabel: danceStatusLabel(l10n, detail.dance.status),
       renderer: _renderer,
       labels: danceExportLabels(l10n),
-      canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(context),
-      fields: DanceShareFieldsScope.of(context),
+      canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+      fields: shareFields,
     );
 
     return PopupMenuButton<void>(
@@ -753,7 +774,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         ],
         PopupMenuItem<void>(
           key: const ValueKey('overflow-share-dance'),
-          onTap: () => _shareDance(exportText(), detail.dance.title),
+          onTap: () => _shareDanceText(exportText, detail.dance.title),
           child: ListTile(
             leading: const Icon(Icons.mail_outline),
             title: Text(l10n.exportShareDanceText),
@@ -771,7 +792,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         ),
         PopupMenuItem<void>(
           key: const ValueKey('overflow-copy-dance'),
-          onTap: () => _copyDance(exportText()),
+          onTap: () => _copyDance(exportText),
           child: ListTile(
             leading: const Icon(Icons.copy_outlined),
             title: Text(l10n.exportCopyDance),
@@ -837,29 +858,31 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   }
 
   // Compact-layout Export handlers. On wide layouts the Export control is the
-  // reusable [DanceExportMenu]; on narrow widths its three actions are flattened
-  // into the overflow menu (above) so each stays an individually activatable
+  // reusable [DanceExportMenu]; on narrow widths its five export items (share text,
+  // share dance file, copy, share JSON, PDF) are flattened into the overflow menu (above) so each stays an individually activatable
   // item instead of a nested popup. The shareable card and PDF are built from
   // the same public `danceToPlainText` / `buildDancePdf` helpers the widget
   // uses, so only the thin share / clipboard / print wiring lives here.
-  Future<void> _shareDance(String text, String subject) async {
+  // The text is built inside the guarded closure: a builder `Error` must reach
+  // guardExport, and `onTap` fires after the menu route pops, so every
+  // context-dependent value is resolved before the closure runs.
+  Future<void> _shareDanceText(String Function() buildText, String subject) {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
-    try {
-      await SharePlus.instance.share(ShareParams(text: text, subject: subject));
-    } on Exception catch (e, stackTrace) {
-      logCaughtError(e, stackTrace, source: 'dance_detail_screen._shareDance');
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.exportShareDanceError)),
-      );
-    }
+    final share = widget.shareInvoker ?? SharePlus.instance.share;
+    return guardExport(messenger, l10n.exportShareDanceError, () async {
+      final text = buildText();
+      await share(ShareParams(text: text, subject: subject));
+    }, source: 'dance_detail_screen._shareDanceText');
   }
 
-  Future<void> _copyDance(String text) async {
+  Future<void> _copyDance(String Function() buildText) {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
-    await Clipboard.setData(ClipboardData(text: text));
-    messenger.showSnackBar(SnackBar(content: Text(l10n.exportDanceCopied)));
+    return guardExport(messenger, l10n.exportDanceError, () async {
+      await Clipboard.setData(ClipboardData(text: buildText()));
+      messenger.showSnackBar(SnackBar(content: Text(l10n.exportDanceCopied)));
+    }, source: 'dance_detail_screen._copyDance');
   }
 
   Future<void> _shareDanceBundle(
@@ -1036,8 +1059,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     );
     final levelLabel = _levelLabel(l10n, detail.dance, detail.difficultyLevel);
     final statusLabel = danceStatusLabel(l10n, detail.dance.status);
-    try {
-      await Printing.layoutPdf(
+    final layoutPdf = widget.pdfLayouter ?? Printing.layoutPdf;
+    await guardExport(
+      messenger,
+      l10n.exportDanceError,
+      () => layoutPdf(
         name: sanitizeExportName(detail.dance.title, fallback: 'dance'),
         onLayout: (format) => buildDancePdf(
           detail.dance,
@@ -1051,15 +1077,9 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
           fields: shareFields,
         ),
-      );
-    } on Exception catch (e, stackTrace) {
-      logCaughtError(
-        e,
-        stackTrace,
-        source: 'dance_detail_screen._exportDancePdf',
-      );
-      messenger.showSnackBar(SnackBar(content: Text(l10n.exportDanceError)));
-    }
+      ),
+      source: 'dance_detail_screen._exportDancePdf',
+    );
   }
 
   @override

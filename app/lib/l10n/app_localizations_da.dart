@@ -5223,7 +5223,9 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get importErrorFileTooLarge => 'Den fil er for stor til at importere.';
+  String importErrorFileTooLarge(int megabytes) {
+    return 'Filen er større end grænsen på $megabytes MB. Vælg en mindre fil, og prøv igen.';
+  }
 
   @override
   String get archiveIntakeRejectedTooLarge =>
@@ -5265,7 +5267,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importErrorTooManyRedirects =>
-      'Den URL omdirigerede for mange gange.';
+      'Den URL blev omdirigeret for mange gange. Åbn den i en browser for at finde den endelige adresse, og brug den i stedet.';
 
   @override
   String get importErrorResponseTooLarge =>
@@ -5285,11 +5287,20 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String importErrorHttpStatus(int status) {
-    return 'Serveren svarede med HTTP $status.';
+    return 'Serveren sendte et uventet svar (kode $status). Kontrollér URL\'en, og prøv igen.';
   }
 
   @override
-  String get importErrorEmptyResponse => 'URL\'en returnerede et tomt svar.';
+  String get importErrorHttpNotFound =>
+      'Der blev ikke fundet noget på den adresse. Kontrollér URL\'en, og prøv igen.';
+
+  @override
+  String get importErrorHttpBusy =>
+      'Serveren har travlt eller har problemer. Prøv igen om et øjeblik.';
+
+  @override
+  String get importErrorEmptyResponse =>
+      'URL\'en returnerede et tomt svar. Kontrollér, at linket peger på de data, du vil importere, og prøv igen.';
 
   @override
   String get importErrorCallersBoxEmptyInput =>
@@ -5322,8 +5333,16 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String importErrorCallersBoxHttpStatus(int status) {
-    return 'The Caller\'s Box svarede med HTTP $status.';
+    return 'The Caller\'s Box sendte et uventet svar (kode $status). Prøv igen om et øjeblik.';
   }
+
+  @override
+  String get importErrorCallersBoxHttpNotFound =>
+      'The Caller\'s Box har ingen dans med det id. Kontrollér nummeret eller linket, og prøv igen.';
+
+  @override
+  String get importErrorCallersBoxHttpBusy =>
+      'The Caller\'s Box har travlt lige nu. Prøv igen om et øjeblik.';
 
   @override
   String get importErrorCallersBoxEmptyPage =>
@@ -5331,7 +5350,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importErrorCallersBoxNoDance =>
-      'The Caller\'s Box returnerede ingen importerbar dans.';
+      'The Caller\'s Box returnerede ingen dans, der kan importeres. Kontrollér id\'et eller linket, og prøv igen.';
 
   @override
   String get importErrorCallersBoxImportFailed =>
@@ -5383,8 +5402,16 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String importErrorContraDbHttpStatus(int status) {
-    return 'ContraDB svarede med HTTP $status.';
+    return 'ContraDB sendte et uventet svar (kode $status). Prøv igen om et øjeblik.';
   }
+
+  @override
+  String get importErrorContraDbHttpNotFound =>
+      'ContraDB har ingen dans med det id. Kontrollér nummeret eller linket, og prøv igen.';
+
+  @override
+  String get importErrorContraDbHttpBusy =>
+      'ContraDB har travlt lige nu. Prøv igen om et øjeblik.';
 
   @override
   String get importErrorContraDbEmptyResponse =>
@@ -5392,7 +5419,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importErrorContraDbNoDance =>
-      'ContraDB returnerede ingen importerbar dans.';
+      'ContraDB returnerede ingen dans, der kan importeres. Kontrollér id\'et eller linket, og prøv igen.';
 
   @override
   String get importErrorContraDbImportFailed =>

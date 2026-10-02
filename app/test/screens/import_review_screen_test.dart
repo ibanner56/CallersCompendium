@@ -237,7 +237,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('import-file-too-large')), findsOneWidget);
-    expect(find.text('That file is too large to import.'), findsOneWidget);
+    expect(
+      find.text(
+        'That file is larger than the 25 MB limit. Choose a smaller file and try again.',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('standalone published seed cannot fall back to editable input', (
@@ -1179,7 +1184,14 @@ void main() {
       await _fetch(tester, 'https://example.com/missing.json');
 
       expect(find.byKey(const ValueKey('import-url-error')), findsOneWidget);
-      expect(find.text('The server responded with HTTP 404.'), findsOneWidget);
+      // A 404 on a generic URL no longer shows the raw status (IMP-06).
+      expect(
+        find.text(
+          'Nothing was found at that address. Check the URL, then try again.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('HTTP'), findsNothing);
       // Still on the input phase; nothing crashed and no review list appeared.
       expect(find.byKey(const ValueKey('import-review-list')), findsNothing);
       expect(tester.takeException(), isNull);
@@ -1198,7 +1210,12 @@ void main() {
       await _fetch(tester, 'https://example.com/empty.json');
 
       expect(find.byKey(const ValueKey('import-url-error')), findsOneWidget);
-      expect(find.text('The URL returned an empty response.'), findsOneWidget);
+      expect(
+        find.text(
+          'The URL returned an empty response. Check that the link points to the data you want to import, then try again.',
+        ),
+        findsOneWidget,
+      );
       expect(tester.takeException(), isNull);
     });
 
@@ -1243,6 +1260,96 @@ void main() {
       await tester.tap(find.text("The Caller's Box").last);
       await tester.pumpAndSettle();
     }
+
+    // IMP-06: the generic fetcher only reports httpStatus / unreachable; the
+    // screen attributes them to the selected source so an id gets id wording.
+    Future<void> failFetchWith(
+      WidgetTester tester,
+      UrlFetchException error,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(),
+        fetcher: (url) async => throw error,
+      );
+      await selectCallersBox(tester);
+      await _fetch(tester, '999999');
+    }
+
+    Text inlineError(WidgetTester tester) => tester.widget<Text>(
+      find.descendant(
+        of: find.byKey(const ValueKey('import-url-error')),
+        matching: find.byType(Text),
+      ),
+    );
+
+    testWidgets('a 404 for an id says there is no dance with that id, not '
+        'HTTP 404', (tester) async {
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      await failFetchWith(
+        tester,
+        const UrlFetchException(
+          UrlFetchFailureReason.httpStatus,
+          statusCode: 404,
+        ),
+      );
+
+      final message = inlineError(tester).data!;
+      expect(message, l10n.importErrorCallersBoxHttpNotFound);
+      expect(message, isNot(contains('HTTP')));
+      expect(message, isNot(contains('404')));
+    });
+
+    testWidgets('a 429 for an id says it is busy, not HTTP 429', (
+      tester,
+    ) async {
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      await failFetchWith(
+        tester,
+        const UrlFetchException(
+          UrlFetchFailureReason.httpStatus,
+          statusCode: 429,
+        ),
+      );
+
+      final message = inlineError(tester).data!;
+      expect(message, l10n.importErrorCallersBoxHttpBusy);
+      expect(message, isNot(contains('HTTP')));
+    });
+
+    testWidgets('offline for an id names The Caller\'s Box, not "the URL"', (
+      tester,
+    ) async {
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      await failFetchWith(
+        tester,
+        const UrlFetchException(UrlFetchFailureReason.unreachable),
+      );
+
+      final message = inlineError(tester).data!;
+      expect(message, l10n.importErrorCallersBoxUnreachable);
+      expect(message, isNot(contains('Check the URL')));
+    });
+
+    testWidgets('a transport error that is not a UrlFetchException is also '
+        'worded for the selected source', (tester) async {
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(),
+        fetcher: (url) async => throw StateError('socket'),
+      );
+      await selectCallersBox(tester);
+      await _fetch(tester, '999999');
+
+      expect(inlineError(tester).data, l10n.importErrorCallersBoxUnreachable);
+    });
 
     testWidgets('a bare id is resolved to the &format=JSON endpoint and '
         'parsed by CallersBoxAdapter', (tester) async {
@@ -1864,7 +1971,12 @@ void main() {
         find.byKey(const ValueKey('import-file-too-large')),
         findsOneWidget,
       );
-      expect(find.text('That file is too large to import.'), findsOneWidget);
+      expect(
+        find.text(
+          'That file is larger than the 25 MB limit. Choose a smaller file and try again.',
+        ),
+        findsOneWidget,
+      );
       // The oversized file was refused before reading, so no payload loaded.
       expect(find.byKey(const ValueKey('import-usr-chosen')), findsNothing);
     });

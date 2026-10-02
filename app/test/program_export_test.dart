@@ -130,6 +130,7 @@ Widget _shareBundleMenu(
   JsonExportChoice? choice = JsonExportChoice.share,
   Future<JsonSaveResult?> Function(String json, String fileName)? saveInvoker,
   JsonClipboardWriter? clipboardWriter,
+  DifficultyLevel? Function(String danceId)? difficultyLevelFor,
 }) => MaterialApp(
   localizationsDelegates: testLocalizationsDelegates,
   supportedLocales: testSupportedLocales,
@@ -141,6 +142,7 @@ Widget _shareBundleMenu(
           titleFor: _titles,
           venuesById: venuesById,
           danceFor: _danceFor,
+          difficultyLevelFor: difficultyLevelFor,
           bundleFileWriter: (json, fileName) async {
             final file = File('${dir.path}/$fileName');
             file.writeAsStringSync(json);
@@ -769,6 +771,86 @@ void main() {
 
       expect(find.text("Couldn't share this program"), findsOneWidget);
     });
+
+    for (final jsonExport in [false, true]) {
+      testWidgets(
+        '${jsonExport ? 'Export as JSON file' : 'Share (program + dances)'} '
+        'carries a custom level that only an alternate uses, with '
+        'hideAlternates',
+        (tester) async {
+          final dir = Directory.systemTemp.createTempSync('alt_level_test');
+          addTearDown(() => dir.deleteSync(recursive: true));
+          final customLevel = DifficultyLevel(
+            id: 'custom-x',
+            label: 'Spicy',
+            position: 9,
+          );
+          _dances['d2x'] = Dance(
+            id: 'd2x',
+            title: 'Alt Only',
+            authorIds: const [],
+            figures: const [],
+            sourceCitations: const [],
+            customFields: const [],
+            difficultyLevelId: 'custom-x',
+            createdAt: _now,
+            updatedAt: _now,
+          );
+          addTearDown(() => _dances.remove('d2x'));
+
+          ShareParams? captured;
+          String? savedJson;
+          await tester.pumpWidget(
+            _shareBundleMenu(
+              _program(
+                hideAlternates: true,
+                slots: [
+                  ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+                  ProgramSlot(
+                    id: 's2',
+                    position: 1,
+                    danceId: 'd2x',
+                    isAlt: true,
+                  ),
+                ],
+              ),
+              const {},
+              dir,
+              (p) => captured = p,
+              choice: JsonExportChoice.save,
+              saveInvoker: (json, fileName) async {
+                savedJson = json;
+                return JsonSaveResult(
+                  path: '${dir.path}/$fileName',
+                  fileName: fileName,
+                );
+              },
+              difficultyLevelFor: (danceId) =>
+                  danceId == 'd2x' ? customLevel : null,
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.text(
+              jsonExport ? 'Export as JSON file' : 'Share (program + dances)',
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(find.text("Couldn't share this program"), findsNothing);
+          expect(find.textContaining("Couldn't"), findsNothing);
+          final json = jsonExport
+              ? savedJson
+              : File(captured!.files!.single.path).readAsStringSync();
+          expect(json, isNotNull);
+          final archive = decodeArchive(json!).archive;
+          expect(archive.dances.map((d) => d.id), containsAll(['d1', 'd2x']));
+          expect(archive.difficultyLevels.map((l) => l.id), ['custom-x']);
+        },
+      );
+    }
 
     testWidgets(
       'venue with contacts: consent dialog defaults off; contacts omitted',
