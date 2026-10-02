@@ -117,6 +117,7 @@ class SyncFailure {
     syncFailureCauseForResponse(response.kind),
     step: step,
     statusCode: response.statusCode,
+    retryAfter: response.retryAfter,
   );
 
   /// The failure a thrown [error] stands for. The step is unknown: a throw
@@ -142,6 +143,7 @@ class SyncFailure {
     'cause': cause.name,
     'step': step?.name,
     'statusCode': statusCode,
+    'retryAfterMs': retryAfter?.inMilliseconds,
   };
 
   /// Reads [encode]'s output, or throws [FormatException].
@@ -152,15 +154,20 @@ class SyncFailure {
     final cause = encoded['cause'];
     final step = encoded['step'];
     final statusCode = encoded['statusCode'];
+    final retryAfterMs = encoded['retryAfterMs'];
     if (cause is! String ||
         (step != null && step is! String) ||
-        (statusCode != null && statusCode is! int)) {
+        (statusCode != null && statusCode is! int) ||
+        (retryAfterMs != null && retryAfterMs is! int)) {
       throw const FormatException('sync isolate returned an invalid failure');
     }
     return SyncFailure(
       SyncFailureCause.values.byName(cause),
       step: step == null ? null : SyncFailureStep.values.byName(step as String),
       statusCode: statusCode as int?,
+      retryAfter: retryAfterMs == null
+          ? null
+          : Duration(milliseconds: retryAfterMs as int),
     );
   }
 }
