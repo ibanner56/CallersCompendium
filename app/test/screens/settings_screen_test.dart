@@ -2428,6 +2428,38 @@ void main() {
           );
         });
 
+        testWidgets('a newer-version notice that a peer\'s unreadable list also '
+            'raised gives no count, which would understate it', (tester) async {
+          const result = SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [
+              SyncReport(
+                code: SyncReportCode.newerWireVersion,
+                kind: SyncRecordKind.dance,
+                recordId: 'd1',
+                peerId: 'peer-a',
+                message: 'Blob uses a newer wire version.',
+              ),
+              SyncReport(
+                code: SyncReportCode.newerWireVersion,
+                peerId: 'peer-b',
+                message: 'Peer manifest uses a newer wire version.',
+              ),
+            ],
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          expect(
+            find.text(
+              'Another device is using a newer version of the app. Update the '
+              'app on this device to receive its changes.',
+            ),
+            findsOneWidget,
+          );
+          expect(find.textContaining('receive 1 item'), findsNothing);
+        });
+
         testWidgets('a peer on a newer app version is a needs-you notice that '
             'counts what is waiting and can be copied', (tester) async {
           final result = SyncPassResult(

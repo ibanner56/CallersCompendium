@@ -79,6 +79,27 @@ void main() {
       );
     });
 
+    test('a notice that also has a report naming no record gives no count, '
+        'since the count would understate it', () {
+      expect(
+        syncNoticeSupportCode(SyncNoticeGroup.newerVersion, const [
+          SyncReport(
+            code: SyncReportCode.newerWireVersion,
+            kind: SyncRecordKind.dance,
+            recordId: 'd1',
+            peerId: 'peer-a',
+            message: 'blob',
+          ),
+          SyncReport(
+            code: SyncReportCode.newerWireVersion,
+            peerId: 'peer-b',
+            message: 'manifest',
+          ),
+        ]),
+        'SYNC-NEWER-VERSION',
+      );
+    });
+
     test('the quota code rounds down, never overstating use', () {
       expect(
         syncQuotaSupportCode(

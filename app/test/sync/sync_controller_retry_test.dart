@@ -2,6 +2,8 @@
 // store-quota latch (spec §5.2, §6.12): the parts of `SyncController` that act
 // on a pass's outcome after it has been recorded.
 
+import 'dart:convert';
+
 import 'package:compendium_app/src/screens/settings/settings_keys.dart';
 import 'package:compendium_app/src/sync/sync_controller.dart';
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
@@ -33,6 +35,14 @@ final class _ScriptedCoordinator extends SyncCoordinator {
 
   final List<SyncPassResult> results;
   final triggers = <SyncTrigger>[];
+  SyncPassResult confirmation = _completed;
+  int confirmations = 0;
+
+  @override
+  Future<SyncPassResult> confirmReplacement() async {
+    confirmations++;
+    return confirmation;
+  }
 
   @override
   Future<SyncPassResult> trigger(SyncTrigger trigger) async {
@@ -52,6 +62,58 @@ SyncPassResult _failed(
 );
 
 const _completed = SyncPassResult(SyncPassStatus.completed);
+
+/// A store that answers with [quotas] in turn (the last repeats; null omits
+/// `quota`), holds nothing and accepts every publish: enough for a real pass
+/// to run end to end through the coordinator.
+final class _QuotaTransport implements SyncCoordinatorTransport {
+  _QuotaTransport(this.quotas);
+
+  final List<Map<String, Object?>?> quotas;
+  int _reads = 0;
+
+  static SyncHttpResponse _ok([Object? body]) => SyncHttpResponse(
+    statusCode: 200,
+    kind: SyncResponseKind.success,
+    headers: const {},
+    body: body == null ? const [] : utf8.encode(jsonEncode(body)),
+  );
+
+  @override
+  Future<SyncStoreResult> getStore({required bool previouslyUsed}) async {
+    final quota = quotas[_reads < quotas.length ? _reads : quotas.length - 1];
+    _reads++;
+    return SyncStoreResult(
+      response: _ok({
+        'epoch': 'epoch-1',
+        'devices': <String>[],
+        'quota': ?quota,
+      }),
+    );
+  }
+
+  @override
+  Future<SyncHttpResponse> postMissing(Iterable<String> hashes) async =>
+      _ok({'missing': <String>[]});
+
+  @override
+  Future<SyncHttpResponse> putManifest(String deviceId, List<int> body) async =>
+      _ok();
+
+  @override
+  Future<SyncHttpResponse> createStore() async => _ok();
+
+  @override
+  Future<SyncHttpResponse> getManifest(String deviceId, {String? etag}) async =>
+      throw StateError('no peers');
+
+  @override
+  Future<SyncHttpResponse> getBlob(String hash) async =>
+      throw StateError('no peers');
+
+  @override
+  Future<SyncHttpResponse> putBlob(String hash, List<int> body) async => _ok();
+}
 
 /// Backoff steps short enough to wait out in a test, and distinct enough that
 /// the step taken is readable from [SyncController.pendingRetryDelay].
@@ -329,6 +391,41 @@ void main() {
     });
   });
 
+  group('a replacement confirmation (spec §6.3 step 1)', () {
+    test('counts as a pass for the resume interval', () async {
+      // Confirming runs a fresh attach — the largest pass sync makes — so a
+      // resume straight after it has nothing new to look at.
+      final controller = await paired([_completed]);
+      expect(await controller.confirmReplacement(), SyncGateOutcome.ran);
+      expect(coordinator.confirmations, 1);
+      expect(await controller.onAppResumed(), isNull);
+      expect(coordinator.triggers, isEmpty);
+    });
+
+    test('that completes resets the backoff', () async {
+      final controller = await paired([_failed(SyncFailureCause.timedOut)]);
+      await controller.syncNow();
+      await controller.syncNow();
+      expect(controller.pendingRetryDelay, _backoff[1]);
+
+      await controller.confirmReplacement();
+      expect(controller.pendingRetryDelay, isNull);
+      await controller.syncNow();
+      expect(
+        controller.pendingRetryDelay,
+        _backoff[0],
+        reason: 'the completed confirmation started the sequence again',
+      );
+    });
+
+    test('that fails schedules no retry', () async {
+      final controller = await paired([_completed]);
+      coordinator.confirmation = _failed(SyncFailureCause.unreachable);
+      await controller.confirmReplacement();
+      expect(controller.pendingRetryDelay, isNull);
+    });
+  });
+
   group('resume (spec §6.12)', () {
     test('coming back to the foreground runs a pass', () async {
       final controller = await paired([_completed]);
@@ -415,6 +512,51 @@ void main() {
       await controller.syncNow();
       await controller.syncNow();
       expect(controller.quotaNearlyFull, isFalse);
+    });
+
+    test('a store read that carries no usable quota clears the warning '
+        'rather than leaving an old reading standing', () async {
+      // Spec §5.2: a missing or malformed quota costs the warning. Only a
+      // pass that never read the store may keep the last reading.
+      await repos.settings.set(kSyncEnabledKey, true);
+      await repos.settings.set(kSyncIdKey, 'correct horse battery staple');
+      final real = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device',
+        store: CompendiumSyncCoordinatorStore(repos),
+        // The first pass is a fresh attach, which reads the store twice (its
+        // continuation reads it again); the second pass reads it once.
+        transport: _QuotaTransport([
+          {'blobs': 90, 'bytes': 0, 'maxBlobs': 100, 'maxBytes': 100},
+          {'blobs': 90, 'bytes': 0, 'maxBlobs': 100, 'maxBytes': 100},
+          null,
+        ]),
+      );
+      addTearDown(real.dispose);
+      final controller = SyncController(
+        settings: repos.settings,
+        syncLocal: repos.syncLocal,
+        coordinator: () => real,
+        reconfigure: ({bool startPass = true}) async {},
+        classifier: network,
+        now: () => clock,
+        retryBackoff: _backoff,
+      );
+      addTearDown(controller.dispose);
+      await controller.load();
+
+      await controller.syncNow();
+      expect(
+        controller.lastResult?.status,
+        SyncPassStatus.completed,
+        reason: '${controller.lastResult?.message}',
+      );
+      expect(controller.quotaNearlyFull, isTrue);
+
+      await controller.syncNow();
+      expect(controller.lastResult?.status, SyncPassStatus.completed);
+      expect(controller.quotaNearlyFull, isFalse);
+      expect(controller.storeQuota, isNull);
     });
 
     test('disconnecting forgets it', () async {
