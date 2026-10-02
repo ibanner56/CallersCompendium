@@ -45,11 +45,13 @@ Program _program({
   required List<ProgramSlot> slots,
   String title = 'Friday Contra',
   String? venueId,
+  bool hideAlternates = false,
 }) => Program(
   id: 'p1',
   title: title,
   slots: slots,
   venueId: venueId,
+  hideAlternates: hideAlternates,
   createdAt: _now,
   updatedAt: _now,
 );
@@ -92,6 +94,56 @@ void main() {
     };
     Dance? danceFor(String id) => catalog[id];
     Choreographer? choreographerFor(String id) => null;
+
+    group('difficultyLevelFor (dance-keyed)', () {
+      final custom = DifficultyLevel(
+        id: 'custom-x',
+        label: 'Spicy',
+        position: 9,
+      );
+      final catalogWithLevel = {
+        'd1': _dance('d1', 'Rory O\'More'),
+        'd2': _dance('d2', 'Alt Only').copyWith(difficultyLevelId: 'custom-x'),
+      };
+      final program = _program(
+        hideAlternates: true,
+        slots: [
+          _slot(0, danceId: 'd1'),
+          _slot(1, danceId: 'd2', isAlt: true),
+        ],
+      );
+
+      String build(DifficultyLevel? Function(Dance)? resolver) =>
+          buildProgramShareBundle(
+            program,
+            danceFor: (id) => catalogWithLevel[id],
+            choreographerFor: (_) => null,
+            venueFor: (_) => null,
+            tagFor: (_) => null,
+            publishedSourceFor: (_) => null,
+            customFieldFor: (_) => null,
+            difficultyLevelFor: resolver,
+            now: _now,
+          );
+
+      test('resolves a custom level used only by an alternate', () {
+        final seen = <String>[];
+        final archive = decodeArchive(
+          build((dance) {
+            seen.add(dance.id);
+            return dance.id == 'd2' ? custom : null;
+          }),
+        ).archive;
+
+        expect(seen, ['d2']);
+        expect(archive.difficultyLevels.map((l) => l.id), ['custom-x']);
+      });
+
+      test('an unresolved custom level id still throws StateError', () {
+        expect(() => build((_) => null), throwsStateError);
+        expect(() => build(null), throwsStateError);
+      });
+    });
 
     test('embeds every referenced dance, deduped, and preserves the program', () {
       final program = _program(

@@ -71,6 +71,12 @@ import 'share_sanitization.dart';
 /// definitions present in the archive; without the definition the value would
 /// be emitted.
 ///
+/// [difficultyLevelFor] is **dance-keyed** and resolves a bundled dance's
+/// custom difficulty level. It is called with every bundled dance — alternates
+/// included, whatever the program's `hideAlternates` flag says — and a `null`
+/// result falls back to the built-in levels. A level id neither knows throws a
+/// [StateError], the same strict contract as the resolvers above.
+///
 /// [now] stamps the archive's `exportedAt`; it defaults to the current time and
 /// is injectable for deterministic tests.
 ///
@@ -99,7 +105,7 @@ String buildProgramShareBundle(
   required Tag? Function(String id) tagFor,
   required PublishedSource? Function(String id) publishedSourceFor,
   required CustomFieldDef? Function(String id) customFieldFor,
-  DifficultyLevel? Function(String id)? difficultyLevelFor,
+  DifficultyLevel? Function(Dance dance)? difficultyLevelFor,
   Set<VenueContactField> includeVenueContact = const {},
   DateTime? now,
 }) {
@@ -186,7 +192,7 @@ String buildProgramShareBundle(
       continue;
     }
     final level =
-        difficultyLevelFor?.call(difficultyLevelId) ??
+        difficultyLevelFor?.call(dance) ??
         DifficultyLevel.knownForId(difficultyLevelId);
     if (level == null) {
       throw StateError(

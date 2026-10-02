@@ -94,6 +94,10 @@ class ProgramExportMenu extends StatelessWidget {
   /// reference and author attribution survives the round-trip. Optional and
   /// best-effort: an unresolved id is simply omitted from the bundle.
   final Choreographer? Function(String id)? choreographerFor;
+
+  /// Resolves the difficulty level of the dance with this id (dance-keyed, not
+  /// level-keyed). Must cover every dance in the program, alternates included:
+  /// the share bundle is complete regardless of `hideAlternates`.
   final DifficultyLevel? Function(String danceId)? difficultyLevelFor;
 
   /// Resolve the tags, published sources and custom-field definitions that the
@@ -409,17 +413,7 @@ class ProgramExportMenu extends StatelessWidget {
       tagFor: tagFor ?? (_) => null,
       publishedSourceFor: publishedSourceFor ?? (_) => null,
       customFieldFor: customFieldFor ?? (_) => null,
-      difficultyLevelFor: (id) {
-        for (final dance in _orderedExportDances().map(
-          (entry) => entry.dance,
-        )) {
-          if (dance.difficultyLevelId == id) {
-            return difficultyLevelFor?.call(dance.id) ??
-                DifficultyLevel.knownForId(id);
-          }
-        }
-        return DifficultyLevel.knownForId(id);
-      },
+      difficultyLevelFor: (dance) => difficultyLevelFor?.call(dance.id),
       includeVenueContact: includeVenueContact,
     );
     final fileName = programShareBundleFileName(
