@@ -537,18 +537,18 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'Device $tag is syncing but isn\'t taking $count changes from this device. They\'re safe here. That device may need an app update, or this device\'s date and time may be wrong.',
+          'L’appareil $tag se synchronise mais n’accepte pas $count modifications de cet appareil. Elles sont en sécurité ici. L’autre appareil a peut-être besoin d’une mise à jour de l’application, ou la date et l’heure de cet appareil-ci sont peut-être fausses.',
       one:
-          'Device $tag is syncing but isn\'t taking 1 change from this device. The change is safe here. That device may need an app update, or this device\'s date and time may be wrong.',
+          'L’appareil $tag se synchronise mais n’accepte pas 1 modification de cet appareil. Elle est en sécurité ici. L’autre appareil a peut-être besoin d’une mise à jour de l’application, ou la date et l’heure de cet appareil-ci sont peut-être fausses.',
     );
     return '$_temp0';
   }
 
   @override
-  String get settingsSyncNoticeNeedsYou => 'Needs you';
+  String get settingsSyncNoticeNeedsYou => 'Action requise';
 
   @override
-  String get settingsSyncNoticeSeeDevices => 'See other devices';
+  String get settingsSyncNoticeSeeDevices => 'Voir les autres appareils';
 
   @override
   String get settingsSyncNotBackup =>
@@ -566,14 +566,14 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncDisconnectSubtitle =>
-      'Arrêter la synchronisation ici. L\'espace et vos autres appareils ne sont pas modifiés.';
+      'Arrêter la synchronisation ici. Votre bibliothèque reste telle quelle, ici et sur vos autres appareils.';
 
   @override
   String get settingsSyncDisconnectConfirmTitle => 'Déconnecter cet appareil ?';
 
   @override
   String get settingsSyncDisconnectConfirmBody =>
-      'Cet appareil arrêtera de se synchroniser et oubliera sa phrase de synchronisation. Votre bibliothèque sur cet appareil reste telle quelle, et l\'espace ainsi que vos autres appareils ne sont pas affectés. Pour vous reconnecter plus tard, vous aurez besoin de la phrase : assurez-vous de l\'avoir.';
+      'Cet appareil arrêtera de se synchroniser et oubliera sa phrase de synchronisation. Votre bibliothèque sur cet appareil reste telle quelle, de même que sur vos autres appareils. La déconnexion retire cet appareil de l’espace de synchronisation si vos autres appareils ont déjà tout ce qui vient de lui. Sinon, il reste listé dans « Autres appareils » jusqu’à ce que vous l’y retiriez. Pour vous reconnecter plus tard, vous aurez besoin de la phrase : assurez-vous de l’avoir.';
 
   @override
   String get settingsSyncDisconnectConfirmAction => 'Déconnecter';
@@ -594,28 +594,29 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncDevicesCaution =>
-      'Le serveur ne connaît chaque appareil que par un identifiant qu\'il a lui-même attribué : il n\'y a donc pas de noms d\'appareils ici, et cet appareil n\'est pas listé. Si vous ne savez pas lequel retirer, vous pouvez sans risque le laisser : un appareil retiré peut se reconnecter avec la phrase de synchronisation.';
+      'Chaque appareil invente son propre identifiant aléatoire, et un nouveau à chaque connexion : les appareils sont donc présentés ici par une courte étiquette tirée de cet identifiant, et non par un nom. Cet appareil n’est pas listé ; sa propre étiquette figure ci-dessous pour que vous puissiez le retrouver sur vos autres appareils. Si vous ne savez pas lequel retirer, vous pouvez sans risque le laisser : un appareil retiré peut se reconnecter avec la phrase de synchronisation.';
 
   @override
   String settingsSyncDevicesThisDevice(String tag) {
-    return 'This device: $tag';
+    return 'Cet appareil : $tag';
   }
 
   @override
   String settingsSyncDeviceTag(String tag) {
-    return 'Device $tag';
+    return 'Appareil $tag';
   }
 
   @override
-  String get settingsSyncDeviceLastSharedToday => 'Last shared changes today';
+  String get settingsSyncDeviceLastSharedToday =>
+      'Dernières modifications partagées aujourd’hui';
 
   @override
   String settingsSyncDeviceLastSharedDays(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Last shared changes $count days ago',
-      one: 'Last shared changes yesterday',
+      other: 'Dernières modifications partagées il y a $count jours',
+      one: 'Dernières modifications partagées hier',
     );
     return '$_temp0';
   }
@@ -625,8 +626,8 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Last shared changes about $count weeks ago',
-      one: 'Last shared changes about a week ago',
+      other: 'Dernières modifications partagées il y a environ $count semaines',
+      one: 'Dernières modifications partagées il y a environ une semaine',
     );
     return '$_temp0';
   }
@@ -636,8 +637,8 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count changes from this device are waiting for it.',
-      one: '1 change from this device is waiting for it.',
+      other: '$count modifications de cet appareil l’attendent encore.',
+      one: '1 modification de cet appareil l’attend encore.',
     );
     return '$_temp0';
   }

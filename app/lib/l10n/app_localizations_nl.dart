@@ -532,18 +532,18 @@ class AppLocalizationsNl extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'Device $tag is syncing but isn\'t taking $count changes from this device. They\'re safe here. That device may need an app update, or this device\'s date and time may be wrong.',
+          'Apparaat $tag synchroniseert, maar neemt $count wijzigingen van dit apparaat niet over. Ze zijn hier veilig. Het andere apparaat heeft misschien een app-update nodig, of de datum en tijd van dit apparaat kloppen niet.',
       one:
-          'Device $tag is syncing but isn\'t taking 1 change from this device. The change is safe here. That device may need an app update, or this device\'s date and time may be wrong.',
+          'Apparaat $tag synchroniseert, maar neemt 1 wijziging van dit apparaat niet over. De wijziging is hier veilig. Het andere apparaat heeft misschien een app-update nodig, of de datum en tijd van dit apparaat kloppen niet.',
     );
     return '$_temp0';
   }
 
   @override
-  String get settingsSyncNoticeNeedsYou => 'Needs you';
+  String get settingsSyncNoticeNeedsYou => 'Actie nodig';
 
   @override
-  String get settingsSyncNoticeSeeDevices => 'See other devices';
+  String get settingsSyncNoticeSeeDevices => 'Andere apparaten bekijken';
 
   @override
   String get settingsSyncNotBackup =>
@@ -561,14 +561,14 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSyncDisconnectSubtitle =>
-      'Stop hier met synchroniseren. De opslag en je andere apparaten veranderen niet.';
+      'Stop hier met synchroniseren. Je bibliotheek blijft zoals ze is, hier en op je andere apparaten.';
 
   @override
   String get settingsSyncDisconnectConfirmTitle => 'Dit apparaat loskoppelen?';
 
   @override
   String get settingsSyncDisconnectConfirmBody =>
-      'Dit apparaat stopt met synchroniseren en vergeet zijn synchronisatiezin. Je bibliotheek op dit apparaat blijft zoals ze is, en de opslag en je andere apparaten worden niet beïnvloed. Om later opnieuw te verbinden heb je de zin nodig, dus zorg dat je hem hebt.';
+      'Dit apparaat stopt met synchroniseren en vergeet zijn synchronisatiezin. Je bibliotheek op dit apparaat blijft zoals ze is, en op je andere apparaten ook. Bij het loskoppelen wordt dit apparaat uit de synchronisatieopslag verwijderd als je andere apparaten er al alles van hebben. Is dat niet zo, dan blijft het onder Andere apparaten in de lijst staan tot je het daar verwijdert. Om later opnieuw te verbinden heb je de zin nodig, dus zorg dat je hem hebt.';
 
   @override
   String get settingsSyncDisconnectConfirmAction => 'Loskoppelen';
@@ -589,28 +589,29 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSyncDevicesCaution =>
-      'De server kent elk apparaat alleen aan een identificatie die hij zelf heeft bedacht, dus er staan hier geen apparaatnamen en dit apparaat staat niet in de lijst. Weet je niet zeker welk apparaat je moet verwijderen, dan kun je het veilig laten staan: een apparaat dat je verwijdert, kan met de synchronisatiezin opnieuw verbinden.';
+      'Elk apparaat bedenkt zijn eigen willekeurige identificatie, en bij elke verbinding een nieuwe, dus apparaten worden hier getoond met een kort label uit die identificatie in plaats van met een naam. Dit apparaat staat niet in de lijst; zijn eigen label staat hieronder, zodat je het op je andere apparaten kunt terugvinden. Weet je niet zeker welk apparaat je moet verwijderen, dan kun je het veilig laten staan: een apparaat dat je verwijdert, kan met de synchronisatiezin opnieuw verbinden.';
 
   @override
   String settingsSyncDevicesThisDevice(String tag) {
-    return 'This device: $tag';
+    return 'Dit apparaat: $tag';
   }
 
   @override
   String settingsSyncDeviceTag(String tag) {
-    return 'Device $tag';
+    return 'Apparaat $tag';
   }
 
   @override
-  String get settingsSyncDeviceLastSharedToday => 'Last shared changes today';
+  String get settingsSyncDeviceLastSharedToday =>
+      'Heeft vandaag voor het laatst wijzigingen gedeeld';
 
   @override
   String settingsSyncDeviceLastSharedDays(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Last shared changes $count days ago',
-      one: 'Last shared changes yesterday',
+      other: 'Heeft $count dagen geleden voor het laatst wijzigingen gedeeld',
+      one: 'Heeft gisteren voor het laatst wijzigingen gedeeld',
     );
     return '$_temp0';
   }
@@ -620,8 +621,10 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Last shared changes about $count weeks ago',
-      one: 'Last shared changes about a week ago',
+      other:
+          'Heeft ongeveer $count weken geleden voor het laatst wijzigingen gedeeld',
+      one:
+          'Heeft ongeveer een week geleden voor het laatst wijzigingen gedeeld',
     );
     return '$_temp0';
   }
@@ -631,8 +634,8 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count changes from this device are waiting for it.',
-      one: '1 change from this device is waiting for it.',
+      other: '$count wijzigingen van dit apparaat wachten nog op dat apparaat.',
+      one: '1 wijziging van dit apparaat wacht nog op dat apparaat.',
     );
     return '$_temp0';
   }

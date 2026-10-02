@@ -17,6 +17,12 @@ enum SyncReportCode {
   concurrentLocalChange,
   quarantinedRecord,
   clockSuspect,
+
+  /// A peer has published at least twice since this device published a
+  /// record, and its manifest still does not carry that record's hash (spec
+  /// §6.9). Judged per peer, so a report always carries `peerId` — the peer
+  /// that is not taking it — with `kind` and `recordId`. A peer that has not
+  /// published since is merely asleep and raises nothing.
   unreflectedPublication,
 
   /// A record on *this* device was withheld from publication and from matching

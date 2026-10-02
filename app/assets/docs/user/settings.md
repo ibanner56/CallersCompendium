@@ -598,8 +598,8 @@ Sync is off and open while it is on.
   enter those figures or tunes again to send them); when records from another
   device couldn't be used and were skipped; when another device's clock looks far off; when an
   update arrived while you were editing the same record, so it waits for the
-  next sync; and when changes from this device still haven't reached your
-  other devices after several syncs. Each notice lists the records it is
+  next sync; and when another device is syncing but isn't taking changes from
+  this one. Each notice lists the records it is
   about, the first few individually and the rest as a count, so you know
   which ones to look at. Dances, programs, choreographers, tags and venues are
   named by the title or name this device has for them, and one this device
@@ -615,6 +615,17 @@ Sync is off and open while it is on.
   of that run rather than disappearing at the next sync and leaving you with
   nothing. Notices are not kept when you close the app; anything still true is
   reported again by the next sync.
+- **"Needs you"** marks the one notice that asks you to do something: a
+  device that is syncing — it has shared its own changes at least twice since
+  this device shared some — but still hasn't taken them. It names that device
+  by its tag from **Other devices**, says how many changes it isn't taking,
+  and has a button to open that list. Your changes are safe on this device
+  either way. The usual causes are that the other device needs an app update,
+  or that this device's date and time are wrong, so the other device refuses
+  its changes as coming from the future. A device that simply hasn't been
+  opened since doesn't raise this notice: it just shows changes waiting for it
+  under **Other devices**. Like every notice, it never blocks anything and goes
+  away on its own once the other device catches up.
 - These settings belong to this device. They are not synced to your other
   devices, and they are not included in a backup, so restoring a backup never
   turns sync on.
@@ -667,16 +678,21 @@ and reports any duplicate dances the first connection merged.
 
 **Disconnecting.** To stop syncing on this device without turning Device Sync
 off, choose **Disconnect this device** and confirm. The device forgets its phrase
-and the server it was using, and stops syncing, but nothing else changes: your
-library here stays as it is, the store keeps everything, and your other devices
-carry on syncing. Nothing is sent when you disconnect. To reconnect — to the
+and the server it was using, and stops syncing: your library here stays as it
+is, and your other devices carry on syncing with everything they have.
+Disconnecting removes this device from the sync store if your other devices
+already have everything from it. If they don't, it stays listed under **Other
+devices** until you remove it there. That removal is one quick try made just
+after the phrase is forgotten, and only on a connection that **Sync only on
+WiFi** would allow; it never holds up disconnecting, and if it can't be made it
+isn't tried again. To reconnect — to the
 same store or a different one — choose **Connect** again; you'll need the phrase,
 so keep it somewhere safe, along with the server address if you changed it.
 Each time this device connects, it makes up a new identifier for itself
-rather than reusing the one from its last connection. If you reconnect to the
-same store, the entry from its earlier connection stays under **Other devices**
-until you remove it there.
-Disconnecting really does forget it, so copy it from **Your sync phrase**
+rather than reusing the one from its last connection, so if an entry from an
+earlier connection was left under **Other devices**, it stays there until you
+remove it.
+Disconnecting really does forget the phrase, so copy it from **Your sync phrase**
 first if it isn't written down anywhere else. Turning **Device Sync** off and on again, by contrast, keeps this device
 connected.
 
@@ -695,16 +711,25 @@ the next time it syncs and reappear in this list, and any device can connect to
 this store again with the phrase. To stop a device syncing you have to
 disconnect it on that device.
 
-The list shows the random identifier each device made up for itself when it
-connected, because that's all the server knows — there are no device names,
-and this device isn't in the list. A device that disconnected and connected
-again appears twice: once for its earlier connection, which no longer changes,
+Each device makes up its own random identifier, and a new one every time it
+connects, so the list shows each device as a short tag from that identifier —
+"Device 7c02Lm", say — never a name. This device isn't in the list, but its own
+tag is shown above it ("This device: k7mQ2x"), so you can look it up in the list
+on your other devices. Under each device you'll see when it last shared changes
+— today, a number of days ago, or roughly how many weeks — rounded to the day,
+never a time; and, if some changes from this device haven't reached it yet, how
+many are waiting for it. Those lines come from this device's last sync, so a
+device that sync couldn't see, or one that connected since, shows its tag only
+until the next one.
+
+A device that disconnected and connected again can appear twice: once for its
+earlier connection, which no longer changes and so never shares anything new,
 and once for its current one. If you can't tell which is which, it's safe to
-leave them, but an extra entry isn't free. It takes one of the 32 places, the
-store keeps the items it shared until it's removed, and because it still lists
-what this device had shared, it can count as a device that already has those
-items — which can hide the notice that your changes haven't reached your other
-devices. Removing an entry you know is an old connection avoids all three.
+leave them, but an extra entry isn't free. It takes one of the 32 places, and
+the store keeps the items it shared until it's removed. Because it still has
+everything this device had shared before it disconnected, its "waiting" line
+counts only what changed since. Removing an entry you know is an old connection
+avoids all of that.
 
 **Deleting the store.** **Disconnect all devices and delete the store** removes
 everything the store holds from the server, for every device at once, and it

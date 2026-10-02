@@ -510,18 +510,16 @@ class AppLocalizationsJa extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'Device $tag is syncing but isn\'t taking $count changes from this device. They\'re safe here. That device may need an app update, or this device\'s date and time may be wrong.',
-      one:
-          'Device $tag is syncing but isn\'t taking 1 change from this device. The change is safe here. That device may need an app update, or this device\'s date and time may be wrong.',
+          'デバイス $tag は同期していますが、このデバイスからの$count件の変更を受け取っていません。変更はこのデバイスに安全に残っています。そのデバイスでアプリの更新が必要か、このデバイスの日付と時刻が正しくない可能性があります。',
     );
     return '$_temp0';
   }
 
   @override
-  String get settingsSyncNoticeNeedsYou => 'Needs you';
+  String get settingsSyncNoticeNeedsYou => '対応が必要';
 
   @override
-  String get settingsSyncNoticeSeeDevices => 'See other devices';
+  String get settingsSyncNoticeSeeDevices => '他のデバイスを表示';
 
   @override
   String get settingsSyncNotBackup =>
@@ -539,14 +537,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsSyncDisconnectSubtitle =>
-      'このデバイスでの同期を停止します。ストアや他のデバイスは変更されません。';
+      'このデバイスでの同期を停止します。ライブラリは、このデバイスでも他のデバイスでもそのまま残ります。';
 
   @override
   String get settingsSyncDisconnectConfirmTitle => 'このデバイスの接続を解除しますか?';
 
   @override
   String get settingsSyncDisconnectConfirmBody =>
-      'このデバイスは同期を停止し、同期フレーズを削除します。このデバイスのライブラリはそのまま残り、ストアや他のデバイスには影響しません。後で再接続するにはフレーズが必要なので、手元にあることを確認してください。';
+      'このデバイスは同期を停止し、同期フレーズを削除します。このデバイスのライブラリはそのまま残り、他のデバイスのライブラリも同様です。他のデバイスがこのデバイスの内容をすべて受け取っている場合、接続を解除するとこのデバイスは同期ストアから削除されます。受け取っていない場合は、「他のデバイス」で削除するまで一覧に残ります。後で再接続するにはフレーズが必要なので、手元にあることを確認してください。';
 
   @override
   String get settingsSyncDisconnectConfirmAction => '接続を解除';
@@ -567,28 +565,28 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsSyncDevicesCaution =>
-      'サーバーは各デバイスを自動生成した識別子でしか把握していないため、ここにデバイス名は表示されず、このデバイスも一覧に含まれません。どれを削除すべきか分からない場合は、そのままにしておいても問題ありません。削除したデバイスは同期フレーズがあれば再び接続できます。';
+      '各デバイスは接続するたびに新しいランダムな識別子を自分で作成するため、ここではデバイスを名前ではなく、その識別子から取った短いタグで表示します。このデバイスは一覧に含まれませんが、他のデバイスで見分けられるよう、このデバイスのタグを下に表示しています。どれを削除すべきか分からない場合は、そのままにしておいても問題ありません。削除したデバイスは同期フレーズがあれば再び接続できます。';
 
   @override
   String settingsSyncDevicesThisDevice(String tag) {
-    return 'This device: $tag';
+    return 'このデバイス: $tag';
   }
 
   @override
   String settingsSyncDeviceTag(String tag) {
-    return 'Device $tag';
+    return 'デバイス $tag';
   }
 
   @override
-  String get settingsSyncDeviceLastSharedToday => 'Last shared changes today';
+  String get settingsSyncDeviceLastSharedToday => '最後に変更を共有したのは今日';
 
   @override
   String settingsSyncDeviceLastSharedDays(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Last shared changes $count days ago',
-      one: 'Last shared changes yesterday',
+      other: '最後に変更を共有したのは$count日前',
+      one: '最後に変更を共有したのは昨日',
     );
     return '$_temp0';
   }
@@ -598,8 +596,7 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Last shared changes about $count weeks ago',
-      one: 'Last shared changes about a week ago',
+      other: '最後に変更を共有したのは約$count週間前',
     );
     return '$_temp0';
   }
@@ -609,8 +606,7 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count changes from this device are waiting for it.',
-      one: '1 change from this device is waiting for it.',
+      other: 'このデバイスからの$count件の変更が、そのデバイスへの反映を待っています。',
     );
     return '$_temp0';
   }

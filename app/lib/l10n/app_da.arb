@@ -512,9 +512,17 @@
   "@settingsSyncNoticeDeferredInbound": {
     "x-sourceSha256": "395ee35f765d5cec102c6a529736ec0a86de8c5af7835967f616210a342acde2"
   },
-  "settingsSyncNoticeUnreflectedPublication": "Ændringer fra denne enhed er ikke dukket op på dine andre enheder efter flere synkroniseringer. Åbn appen på dem, og synkronisér.",
-  "@settingsSyncNoticeUnreflectedPublication": {
-    "x-sourceSha256": "678de9e942bee2b75e03cae7f00ac44553303acf61ee0bbb27663a90f5aa5037"
+  "settingsSyncNoticePeerNotTaking": "{count, plural, =1{Enheden {tag} synkroniserer, men tager ikke imod 1 ændring fra denne enhed. Ændringen er i sikkerhed her. Den anden enhed skal måske have en opdatering af appen, eller også er dato og klokkeslæt forkert på denne enhed.} other{Enheden {tag} synkroniserer, men tager ikke imod {count} ændringer fra denne enhed. De er i sikkerhed her. Den anden enhed skal måske have en opdatering af appen, eller også er dato og klokkeslæt forkert på denne enhed.}}",
+  "@settingsSyncNoticePeerNotTaking": {
+    "x-sourceSha256": "23d0a5d9e3852253a55eaf588f9a609c8082b70652fe7c8a1556438d0683bfe0"
+  },
+  "settingsSyncNoticeNeedsYou": "Kræver din handling",
+  "@settingsSyncNoticeNeedsYou": {
+    "x-sourceSha256": "74b6abdf59690fdffec2059089487cd63658249da5301cbf065e9977518fbd8f"
+  },
+  "settingsSyncNoticeSeeDevices": "Se andre enheder",
+  "@settingsSyncNoticeSeeDevices": {
+    "x-sourceSha256": "7dfff4069880913086af6f2b4047af66c461b42ffa9997e3a0e41519c23b97dd"
   },
   "settingsSyncNotBackup": "Synkronisering er ikke en sikkerhedskopi. Et lager, der ikke bruges i 30 dage, bliver fjernet, så bliv ved med at lave filsikkerhedskopier.",
   "@settingsSyncNotBackup": {
@@ -532,17 +540,17 @@
   "@settingsSyncDisconnectTitle": {
     "x-sourceSha256": "5b0463da95797a1078c49e57743fa8e7ece0b2101bae8d4f6f5b64794c3dd159"
   },
-  "settingsSyncDisconnectSubtitle": "Stop synkroniseringen her. Lageret og dine andre enheder ændres ikke.",
+  "settingsSyncDisconnectSubtitle": "Stop synkroniseringen her. Dit bibliotek forbliver, som det er, her og på dine andre enheder.",
   "@settingsSyncDisconnectSubtitle": {
-    "x-sourceSha256": "66b3c050d9b3ce7bfaf6ab7c42b26081e8bc2ea6e0cb31c67a91e4c3b99ed2b9"
+    "x-sourceSha256": "cd7f33537ebd50b08b4a510f2d92a3d42b29f90a54d657770f44dc0f9df831d6"
   },
   "settingsSyncDisconnectConfirmTitle": "Afbryd forbindelsen på denne enhed?",
   "@settingsSyncDisconnectConfirmTitle": {
     "x-sourceSha256": "368f30952240db8e8850a97232ef46e89fc0d0ec2facc04576d0c33d946f9fdd"
   },
-  "settingsSyncDisconnectConfirmBody": "Denne enhed stopper med at synkronisere og glemmer sin synkroniseringssætning. Dit bibliotek på denne enhed forbliver, som det er, og lageret og dine andre enheder påvirkes ikke. For at forbinde igen senere skal du bruge sætningen, så sørg for, at du har den.",
+  "settingsSyncDisconnectConfirmBody": "Denne enhed stopper med at synkronisere og glemmer sin synkroniseringssætning. Dit bibliotek på denne enhed forbliver, som det er, og det samme gør dine andre enheder. Når du afbryder forbindelsen, fjernes denne enhed fra synkroniseringslageret, hvis dine andre enheder allerede har alt fra den. Hvis de ikke har, bliver den stående under Andre enheder, indtil du fjerner den der. For at forbinde igen senere skal du bruge sætningen, så sørg for, at du har den.",
   "@settingsSyncDisconnectConfirmBody": {
-    "x-sourceSha256": "ef8fe8eddad993cbb235762e998a058f013d6d39a888d9561b3e8abbfd2dfc9b"
+    "x-sourceSha256": "a614391804916146f733c07452ad5b40e3bc4a8ff86a47b6f9be9809cce428df"
   },
   "settingsSyncDisconnectConfirmAction": "Afbryd",
   "@settingsSyncDisconnectConfirmAction": {
@@ -564,9 +572,33 @@
   "@settingsSyncDevicesScreenTitle": {
     "x-sourceSha256": "4e027dbb70b262fc7f99d829e4b5627a44811381c5f630afbdb415bb9e688514"
   },
-  "settingsSyncDevicesCaution": "Serveren kender kun hver enhed på en identifikator, den selv har fundet på, så der står ingen enhedsnavne her, og denne enhed er ikke med på listen. Hvis du er i tvivl om, hvilken du skal fjerne, er det trygt at lade den stå: En enhed, du fjerner, kan forbinde igen med synkroniseringssætningen.",
+  "settingsSyncDevicesCaution": "Hver enhed finder selv på sin egen tilfældige identifikator og en ny, hver gang den forbinder, så enhederne vises her med et kort mærke fra identifikatoren i stedet for et navn. Denne enhed er ikke med på listen; dens eget mærke står nedenfor, så du kan finde den på dine andre enheder. Hvis du er i tvivl om, hvilken du skal fjerne, er det trygt at lade den stå: En enhed, du fjerner, kan forbinde igen med synkroniseringssætningen.",
   "@settingsSyncDevicesCaution": {
-    "x-sourceSha256": "88b8e650ef9354688da2a359b0300257622ba39c1f88eca6b34d489fb276ca0d"
+    "x-sourceSha256": "06095cd7672928619860e48460c6b02e586391aeccd04a7734f82c92ce67bba9"
+  },
+  "settingsSyncDevicesThisDevice": "Denne enhed: {tag}",
+  "@settingsSyncDevicesThisDevice": {
+    "x-sourceSha256": "744526618d198b5d7991b6fc9d3287633e1d9d4adbe8620fdced7384476e5db3"
+  },
+  "settingsSyncDeviceTag": "Enhed {tag}",
+  "@settingsSyncDeviceTag": {
+    "x-sourceSha256": "b21e98404043fc2ee91ec8515bcdf70ab2fb5c17fed6801bfca09ec512f1efea"
+  },
+  "settingsSyncDeviceLastSharedToday": "Delte sidst ændringer i dag",
+  "@settingsSyncDeviceLastSharedToday": {
+    "x-sourceSha256": "5e3f46323fb0881c0d847cde65ea32c3ccb3141e783d93eeb66021f39d1c675f"
+  },
+  "settingsSyncDeviceLastSharedDays": "{count, plural, =1{Delte sidst ændringer i går} other{Delte sidst ændringer for {count} dage siden}}",
+  "@settingsSyncDeviceLastSharedDays": {
+    "x-sourceSha256": "5130df4cb0edfceee6e54eaee5ce1cfad1d51c50ee88ae649b2ab7efb2b0bb4f"
+  },
+  "settingsSyncDeviceLastSharedWeeks": "{count, plural, =1{Delte sidst ændringer for cirka en uge siden} other{Delte sidst ændringer for cirka {count} uger siden}}",
+  "@settingsSyncDeviceLastSharedWeeks": {
+    "x-sourceSha256": "813cea14ea49014db851c80007f10b72d5a2a42fc61055b5def2c2f36988f3c1"
+  },
+  "settingsSyncDeviceWaiting": "{count, plural, =1{1 ændring fra denne enhed venter på at nå frem til den.} other{{count} ændringer fra denne enhed venter på at nå frem til den.}}",
+  "@settingsSyncDeviceWaiting": {
+    "x-sourceSha256": "95b500fa9476a659caa02623419394239d7e50a8ff5311d7d9e7a355db42c042"
   },
   "settingsSyncDevicesEmpty": "Der er ingen andre enheder forbundet til dette lager.",
   "@settingsSyncDevicesEmpty": {
