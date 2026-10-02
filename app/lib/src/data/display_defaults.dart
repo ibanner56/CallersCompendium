@@ -140,42 +140,45 @@ const String kDefaultProgramCallerKey = 'default_program_caller';
 const String kDefaultProgramBandKey = 'default_program_band';
 
 /// Key used to persist the tags applied to dances imported on their own
-/// (issue #1476). A JSON-encoded list of tag ids, read through
-/// [tryDecodeDefaultImportTagIds]. Ids rather than names: a tag can be renamed,
-/// and a name reference would silently stop matching. Absent, empty or
-/// unreadable ⇒ no tags are added. Ids of tags that have since been deleted are
-/// ignored at import time (see `resolveDefaultImportTagIds`).
-const String kDefaultImportTagIdsKey = 'default_import_tag_ids';
+/// (issue #1476). A JSON-encoded list of tag **names**, read through
+/// [tryDecodeDefaultImportTagNames]. Names rather than ids because a tag's name
+/// is its natural key: merge-restore adoption and sync reconciliation can
+/// re-identify a tag under a different id but keep its name, and neither
+/// rewrites settings values. Nothing in the app renames a tag today; if a tag
+/// rename is ever added it must rewrite this setting. Absent, empty or
+/// unreadable ⇒ no tags are added. Names with no live tag are ignored at import
+/// time (see `resolveDefaultImportTagIds`).
+const String kDefaultImportTagNamesKey = 'default_import_tag_names';
 
-/// Upper bound on [kDefaultImportTagIdsKey] entries; a restored backup is not
+/// Upper bound on [kDefaultImportTagNamesKey] entries; a restored backup is not
 /// trusted to carry a sane count.
 const int kMaxDefaultImportTags = 50;
 
-/// Encodes default import tag ids for [kDefaultImportTagIdsKey]: blanks and
+/// Encodes default import tag names for [kDefaultImportTagNamesKey]: blanks and
 /// duplicates dropped, order kept, capped at [kMaxDefaultImportTags].
-String encodeDefaultImportTagIds(Iterable<String> ids) =>
-    jsonEncode(_cleanTagIds(ids).take(kMaxDefaultImportTags).toList());
+String encodeDefaultImportTagNames(Iterable<String> names) =>
+    jsonEncode(_cleanTagNames(names).take(kMaxDefaultImportTags).toList());
 
-/// Decodes a stored [kDefaultImportTagIdsKey] value, returning `null` for
+/// Decodes a stored [kDefaultImportTagNamesKey] value, returning `null` for
 /// anything that is not a JSON list of non-blank strings within
 /// [kMaxDefaultImportTags]. Callers treat `null` as "no default tags".
-List<String>? tryDecodeDefaultImportTagIds(Object? stored) {
+List<String>? tryDecodeDefaultImportTagNames(Object? stored) {
   if (stored is! String) return null;
   try {
     final decoded = jsonDecode(stored);
     if (decoded is! List || decoded.length > kMaxDefaultImportTags) return null;
     if (decoded.any((e) => e is! String || e.trim().isEmpty)) return null;
-    return _cleanTagIds(decoded.cast<String>()).toList();
+    return _cleanTagNames(decoded.cast<String>()).toList();
   } catch (_) {
     // diagnostics: silent — malformed settings data returns null.
     return null;
   }
 }
 
-Iterable<String> _cleanTagIds(Iterable<String> ids) sync* {
+Iterable<String> _cleanTagNames(Iterable<String> names) sync* {
   final seen = <String>{};
-  for (final id in ids) {
-    final trimmed = id.trim();
+  for (final name in names) {
+    final trimmed = name.trim();
     if (trimmed.isNotEmpty && seen.add(trimmed)) yield trimmed;
   }
 }

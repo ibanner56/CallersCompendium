@@ -261,21 +261,49 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('defaults-import-tag-t1')));
       await tester.pumpAndSettle();
       expect(
-        tryDecodeDefaultImportTagIds(
-          await repos.settings.get(kDefaultImportTagIdsKey),
+        tryDecodeDefaultImportTagNames(
+          await repos.settings.get(kDefaultImportTagNamesKey),
         ),
-        ['t1'],
+        ['No card'],
       );
 
       await tester.tap(find.byKey(const ValueKey('defaults-import-tag-t2')));
       await tester.tap(find.byKey(const ValueKey('defaults-import-tag-t1')));
       await tester.pumpAndSettle();
       expect(
-        tryDecodeDefaultImportTagIds(
-          await repos.settings.get(kDefaultImportTagIdsKey),
+        tryDecodeDefaultImportTagNames(
+          await repos.settings.get(kDefaultImportTagNamesKey),
         ),
-        ['t2'],
+        ['Smooth'],
       );
+    });
+
+    testWidgets('at the cap the unchosen tags are disabled, so no visible '
+        'selection is left unsaved', (tester) async {
+      final repos = openTestRepositories();
+      for (var i = 0; i <= kMaxDefaultImportTags; i++) {
+        final _ = await repos.tags.upsert(
+          Tag(id: 't$i', name: 'Tag ${i.toString().padLeft(2, '0')}'),
+        );
+      }
+      await repos.settings.set(
+        kDefaultImportTagNamesKey,
+        encodeDefaultImportTagNames([
+          for (var i = 0; i < kMaxDefaultImportTags; i++)
+            'Tag ${i.toString().padLeft(2, '0')}',
+        ]),
+      );
+      await _pumpDefaults(tester, repos);
+      await openImportGroup(tester);
+
+      final extra = find.byKey(
+        ValueKey('defaults-import-tag-t$kMaxDefaultImportTags'),
+      );
+      await tester.ensureVisible(extra);
+      expect(tester.widget<FilterChip>(extra).onSelected, isNull);
+      final chosen = find.byKey(const ValueKey('defaults-import-tag-t0'));
+      await tester.ensureVisible(chosen);
+      expect(tester.widget<FilterChip>(chosen).onSelected, isNotNull);
     });
 
     testWidgets('a saved selection shows as chosen, and a deleted tag is '
@@ -284,8 +312,8 @@ void main() {
       final _ = await repos.tags.upsert(Tag(id: 't1', name: 'No card'));
       final _ = await repos.tags.upsert(Tag(id: 't2', name: 'Smooth'));
       await repos.settings.set(
-        kDefaultImportTagIdsKey,
-        encodeDefaultImportTagIds(['t1', 'gone']),
+        kDefaultImportTagNamesKey,
+        encodeDefaultImportTagNames(['No card', 'Gone']),
       );
       await _pumpDefaults(tester, repos);
       await openImportGroup(tester);
@@ -298,10 +326,10 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('defaults-import-tag-t2')));
       await tester.pumpAndSettle();
       expect(
-        tryDecodeDefaultImportTagIds(
-          await repos.settings.get(kDefaultImportTagIdsKey),
+        tryDecodeDefaultImportTagNames(
+          await repos.settings.get(kDefaultImportTagNamesKey),
         ),
-        ['t1', 't2'],
+        ['No card', 'Smooth'],
       );
     });
   });

@@ -323,8 +323,8 @@ void main() {
     final repos = openTestRepositories();
     final tagId = await repos.tags.upsert(Tag(id: 'no-card', name: 'No card'));
     await repos.settings.set(
-      kDefaultImportTagIdsKey,
-      encodeDefaultImportTagIds([tagId, 'deleted-tag']),
+      kDefaultImportTagNamesKey,
+      encodeDefaultImportTagNames(['No card', 'Deleted tag']),
     );
     await _pump(
       tester,

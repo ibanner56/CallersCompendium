@@ -433,10 +433,10 @@ void main() {
   test('a dance created for a program slot gets no default import tags '
       '(#1476)', () async {
     final repos = openTestRepositories();
-    final tagId = await repos.tags.upsert(Tag(id: 'no-card', name: 'No card'));
+    final _ = await repos.tags.upsert(Tag(id: 'no-card', name: 'No card'));
     await repos.settings.set(
-      kDefaultImportTagIdsKey,
-      encodeDefaultImportTagIds([tagId]),
+      kDefaultImportTagNamesKey,
+      encodeDefaultImportTagNames(['No card']),
     );
     await repos.dances.create(
       _localDance(

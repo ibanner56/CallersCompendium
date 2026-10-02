@@ -398,8 +398,9 @@ Select **Import defaults** to open this group.
   created for a program slot while importing a program, and dances restored
   from a Compendium archive keep whatever tags they already have. A program in
   a Caller's Companion file or a published collection is still imported, but
-  only its dances receive the tags. If you later delete one of the tags, imports
-  simply skip it. Dances you create in the editor are not tagged either.
+  only its dances receive the tags. You can choose up to 50 tags. The choice is remembered by tag name, so it
+  survives a sync or a merge restore. If you later delete one of the tags,
+  imports simply skip it. Dances you create in the editor are not tagged either.
   Choosing tags here does not change dances already in your collection, and
   **Undo** on an import removes the dances it created along with their tags
   (the tags themselves stay).

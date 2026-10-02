@@ -8,11 +8,13 @@ import '../../diagnostics/error_log.dart';
 import '../../theme/app_spacing.dart';
 
 /// Picks the tags added to dances imported on their own (issue #1476), stored
-/// under [kDefaultImportTagIdsKey].
+/// under [kDefaultImportTagNamesKey].
 ///
 /// Shows every live tag as a toggle chip. Only tags that still exist are shown
-/// as selected, and every save writes back just those, so an id left behind by a
-/// deleted tag is dropped the next time the selection changes.
+/// as selected, and every save writes back just those, so a name left behind by
+/// a deleted tag is dropped the next time the selection changes. Once
+/// [kMaxDefaultImportTags] are chosen the remaining chips are disabled, so the
+/// stored list never silently drops a visible selection.
 class DefaultImportTagsEditor extends StatefulWidget {
   const DefaultImportTagsEditor({super.key});
 
@@ -38,16 +40,15 @@ class _DefaultImportTagsEditorState extends State<DefaultImportTagsEditor> {
   Future<void> _load(CompendiumRepositories repos) async {
     try {
       final tags = await repos.tags.listAll();
-      final stored = tryDecodeDefaultImportTagIds(
-        await repos.settings.get(kDefaultImportTagIdsKey),
+      final stored = tryDecodeDefaultImportTagNames(
+        await repos.settings.get(kDefaultImportTagNamesKey),
       );
       if (!mounted || _userSet) return;
-      final live = {for (final tag in tags) tag.id};
+      final idByName = {for (final tag in tags) tag.name: tag.id};
       setState(() {
         _tags = tags;
         _selected = {
-          for (final id in stored ?? const <String>[])
-            if (live.contains(id)) id,
+          for (final name in stored ?? const <String>[]) ?idByName[name],
         };
       });
     } catch (e, stackTrace) {
@@ -69,14 +70,14 @@ class _DefaultImportTagsEditorState extends State<DefaultImportTagsEditor> {
       }
     });
     // List order, not insertion order, so the stored value is stable.
-    final ids = [
+    final names = [
       for (final t in tags)
-        if (_selected.contains(t.id)) t.id,
+        if (_selected.contains(t.id)) t.name,
     ];
     try {
       await repos.settings.set(
-        kDefaultImportTagIdsKey,
-        encodeDefaultImportTagIds(ids),
+        kDefaultImportTagNamesKey,
+        encodeDefaultImportTagNames(names),
       );
     } catch (e, stackTrace) {
       logCaughtError(e, stackTrace, source: 'DefaultImportTagsEditor._toggle');
@@ -115,7 +116,11 @@ class _DefaultImportTagsEditorState extends State<DefaultImportTagsEditor> {
                     key: ValueKey('defaults-import-tag-${tag.id}'),
                     label: Text(tag.name),
                     selected: _selected.contains(tag.id),
-                    onSelected: (value) => _toggle(tag, value),
+                    onSelected:
+                        _selected.contains(tag.id) ||
+                            _selected.length < kMaxDefaultImportTags
+                        ? (value) => _toggle(tag, value)
+                        : null,
                   ),
               ],
             ),

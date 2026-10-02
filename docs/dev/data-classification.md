@@ -490,7 +490,7 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `default_dance_formation_shape` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_dance_phrase_structure` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_dance_progression` | `dpv:NonPersonalData` | app user | shareable |  |
-| `default_import_tag_ids` | `dpv:NonPersonalData` | app user | shareable | User-chosen list of tag ids added to dances imported on their own. The ids reference the user's own tags, so it travels with the user preference in local backups; ids with no live tag are ignored. |
+| `default_import_tag_names` | `dpv:NonPersonalData` | app user | shareable | User-chosen list of tag names added to dances imported on their own. The names reference the user's own tags by their natural key, so it survives tag re-identification on sync and merge restore; names with no live tag are ignored. |
 | `default_meanwhile_side_figures` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_modifier_figures` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_move_param_overrides` | `dpv:NonPersonalData` | app user | shareable |  |
