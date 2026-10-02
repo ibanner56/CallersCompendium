@@ -14,6 +14,7 @@ import 'package:compendium_app/src/screens/collection_shell.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/screens/programs_list_screen.dart';
 import 'package:compendium_app/src/screens/programs_shell.dart';
+import 'package:compendium_app/src/screens/sync_conflict_sheet.dart';
 import 'package:compendium_app/src/sync/sync_controller.dart';
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_network.dart';
@@ -44,9 +45,10 @@ const _glyph = ValueKey('sync-now-action');
 /// What a screen under test is hosted in: the controller, the network the
 /// controller consults, and the passes the coordinator has been asked to run.
 class _Host {
-  _Host(this.controller, this.network, this.passes, this.gate);
+  _Host(this.controller, this.network, this.passes, this.gate, this.repos);
 
   final SyncController controller;
+  final CompendiumRepositories repos;
   final _Network network;
 
   /// One entry per pass the coordinator actually ran.
@@ -69,6 +71,7 @@ Future<_Host> _pump(
   bool compact = false,
   Size size = const Size(600, 1200),
   SyncPassResult passResult = const SyncPassResult(SyncPassStatus.completed),
+  Future<void> Function(CompendiumRepositories repos)? duringPass,
 }) async {
   final repos = openTestRepositories();
   if (paired) {
@@ -84,6 +87,7 @@ Future<_Host> _pump(
     transport: NoopSyncCoordinatorTransport(),
     passOperation: ({initialStore}) async {
       passes.add(1);
+      await duringPass?.call(repos);
       final gate = host.gate;
       if (gate != null) await gate.future;
       return passResult;
@@ -100,7 +104,7 @@ Future<_Host> _pump(
   addTearDown(controller.dispose);
   await controller.load();
   if (enabled) await controller.setEnabled(true);
-  host = _Host(controller, network, passes, null);
+  host = _Host(controller, network, passes, null, repos);
 
   await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -131,6 +135,28 @@ Future<_Host> _pump(
   );
   await tester.pumpAndSettle();
   return host;
+}
+
+/// Queues a conflict choice for setting [key] as a pass would.
+Future<void> _queueConflict(CompendiumRepositories repos, String key) async {
+  final blob = SyncRecordBlob(
+    kind: SyncRecordKind.setting,
+    id: key,
+    updatedAt: DateTime.utc(2026, 9, 30, 12),
+    deletedAt: null,
+    existenceAt: DateTime.utc(2026, 9, 30, 12),
+    body: const {'value': 'light'},
+  );
+  final hash = SyncMergeCandidate.fromBlob(blob).wireHash;
+  await repos.syncLocal.enqueueReview(
+    kind: SyncRecordKind.setting,
+    recordId: key,
+    counterpartId: hash,
+    reason: syncConflictChoiceReason,
+    candidateBlob: encodeSyncRecordBlob(blob),
+    candidateHash: hash,
+    queuedAt: DateTime.utc(2026, 9, 30, 12),
+  );
 }
 
 void main() {
@@ -186,6 +212,76 @@ void main() {
         await host.controller.setEnabled(false);
         await tester.pumpAndSettle();
         expect(find.byKey(_glyph), findsNothing);
+      });
+
+      testWidgets('badges the glyph with how many items await a choice', (
+        tester,
+      ) async {
+        final host = await _pump(tester, build());
+        await tester.runAsync(() => _queueConflict(host.repos, 'theme_mode'));
+        // A pass ending is what re-reads the count.
+        await tester.runAsync(() async {
+          await tester.tap(find.byKey(_glyph));
+          await tester.pump();
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+        });
+        await tester.pumpAndSettle();
+        // The choice opened (a new conflict); close it to read the badge.
+        await tester.tap(find.byKey(const ValueKey('sync-conflict-later')));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byTooltip('Sync now (1 item needs your choice)'),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('sync-now-conflict-badge')),
+            matching: find.text('1'),
+          ),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('a manual pass that finds a new conflict opens the '
+          'choice', (tester) async {
+        await _pump(
+          tester,
+          build(),
+          duringPass: (repos) => _queueConflict(repos, 'theme_mode'),
+        );
+
+        await tester.runAsync(() async {
+          await tester.tap(find.byKey(_glyph));
+          await tester.pump();
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+        });
+        await tester.pumpAndSettle();
+
+        expect(find.byType(SyncConflictChoice), findsOneWidget);
+      });
+
+      testWidgets('a manual pass that finds nothing new leaves the choice '
+          'closed', (tester) async {
+        final host = await _pump(tester, build());
+        await tester.runAsync(() => _queueConflict(host.repos, 'theme_mode'));
+        await tester.runAsync(() async {
+          await tester.tap(find.byKey(_glyph));
+          await tester.pump();
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+        });
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('sync-conflict-later')));
+        await tester.pumpAndSettle();
+
+        await tester.runAsync(() async {
+          await tester.tap(find.byKey(_glyph));
+          await tester.pump();
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+        });
+        await tester.pumpAndSettle();
+
+        expect(find.byType(SyncConflictChoice), findsNothing);
       });
 
       testWidgets('a tap runs exactly one pass', (tester) async {

@@ -19,6 +19,8 @@ import '../../sync/sync_scope.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/collapsible_section.dart';
 import '../../widgets/section_header.dart';
+import '../sync_conflict_sheet.dart';
+import '../sync_review_screen.dart';
 import 'sync_devices_screen.dart';
 import 'sync_failure_labels.dart';
 import 'sync_notice_labels.dart';
@@ -44,6 +46,29 @@ class DeviceSyncSection extends StatefulWidget {
 class _DeviceSyncSectionState extends State<DeviceSyncSection> {
   final _wifiTileKey = GlobalKey();
   SyncController? _controller;
+
+  /// The conflict count, re-read when a pass ends or the choice closes.
+  Future<int>? _conflictCount;
+  Object? _conflictCountFor;
+  int _conflictGeneration = 0;
+
+  Future<int> _conflictsFor(SyncController controller) {
+    final key = (
+      controller.running,
+      controller.lastResult,
+      _conflictGeneration,
+    );
+    if (_conflictCount == null || key != _conflictCountFor) {
+      _conflictCountFor = key;
+      _conflictCount = syncConflictCount(RepositoriesScope.of(context));
+    }
+    return _conflictCount!;
+  }
+
+  Future<void> _openConflicts() async {
+    await showSyncConflictSheet(context);
+    if (mounted) setState(() => _conflictGeneration++);
+  }
 
   bool _replacementDialogShowing = false;
 
@@ -252,10 +277,19 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
   Future<void> _syncNow(SyncController controller) async {
     final messenger = ScaffoldMessenger.maybeOf(context);
     final l10n = AppLocalizations.of(context);
-    final message = _gateMessage(l10n, await controller.syncNow());
+    final repositories = RepositoriesScope.of(context);
+    final before = await syncConflictCount(repositories);
+    final outcome = await controller.syncNow();
+    final message = _gateMessage(l10n, outcome);
     if (message != null) {
       messenger?.showSnackBar(SnackBar(content: Text(message)));
     }
+    // A manual pass that found new conflicts opens the choice, as the
+    // toolbar button does, unless the user has left this page meanwhile.
+    if (outcome != SyncGateOutcome.ran || !mounted) return;
+    final after = await syncConflictCount(repositories);
+    if (!mounted || after <= before) return;
+    if (ModalRoute.of(context)?.isCurrent ?? true) await _openConflicts();
   }
 
   /// Detach is purely local and reversible only by re-entering the phrase, so
@@ -510,6 +544,38 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
                 title: Text(l10n.settingsSyncNowTitle),
                 enabled: !controller.running,
                 onTap: controller.running ? null : () => _syncNow(controller),
+              ),
+            if (controller.paired)
+              FutureBuilder<int>(
+                future: _conflictsFor(controller),
+                builder: (context, snapshot) {
+                  final count = snapshot.data ?? 0;
+                  if (count == 0) return const SizedBox.shrink();
+                  return ListTile(
+                    key: const ValueKey('sync-conflicts'),
+                    leading: Icon(
+                      Icons.call_split,
+                      color: theme.colorScheme.tertiary,
+                    ),
+                    title: Text(l10n.syncConflictTitle),
+                    subtitle: Text(l10n.settingsSyncConflictsSubtitle(count)),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: _openConflicts,
+                  );
+                },
+              ),
+            if (controller.paired)
+              ListTile(
+                key: const ValueKey('sync-review-button'),
+                leading: const Icon(Icons.rule),
+                title: Text(l10n.syncReviewSettingsTitle),
+                subtitle: Text(l10n.syncReviewSettingsSubtitle),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const SyncReviewScreen(),
+                  ),
+                ),
               ),
             if (controller.paired)
               ListTile(
