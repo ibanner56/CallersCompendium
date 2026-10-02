@@ -7,6 +7,7 @@ import 'package:compendium_app/src/sync/sync_controller.dart';
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_app/src/sync/sync_network.dart';
+import 'package:compendium_app/src/sync/sync_runtime.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:drift/drift.dart' show Variable, driftRuntimeOptions;
@@ -963,6 +964,46 @@ void main() {
       expect(reconfigured, 1);
     });
 
+    test('completePairing never carries a device ID over from an earlier '
+        'attachment', () async {
+      // An install that detached on a version which kept its device ID still
+      // holds that ID while unpaired; the next pairing must not publish as it.
+      await repos.settings.set(kSyncDeviceIdKey, 'stale_device');
+      Object? idAtReconfigure = 'not observed';
+      final controller = SyncController(
+        settings: repos.settings,
+        syncLocal: repos.syncLocal,
+        coordinator: () => coordinator,
+        reconfigure: ({bool startPass = true}) async {
+          idAtReconfigure = await repos.settings.get(kSyncDeviceIdKey);
+        },
+        classifier: network,
+      );
+      addTearDown(controller.dispose);
+      await controller.load();
+      expect(controller.paired, isFalse);
+
+      await controller.completePairing(
+        'correct horse battery staple',
+        Uri.parse('https://sync.example.test/'),
+      );
+
+      expect(
+        idAtReconfigure,
+        isNull,
+        reason:
+            'the coordinator factory mints only when no ID is stored, so a '
+            'stale ID present at reconfigure would be reused',
+      );
+      final rows = await repos.db
+          .customSelect(
+            'SELECT 1 FROM settings WHERE key = ?',
+            variables: [Variable.withString(kSyncDeviceIdKey)],
+          )
+          .get();
+      expect(rows, isEmpty, reason: 'a tombstone would keep the old ID');
+    });
+
     test('completePairing awaits the fresh-attach pass so lastResult carries '
         'the real W8 duplicate count', () async {
       coordinator = SyncCoordinator(
@@ -1158,6 +1199,7 @@ void main() {
   group('detach (spec glossary, §6.2 step 3)', () {
     Future<SyncController> paired({
       Future<void> Function(Future<void> Function() operation)? runExclusive,
+      Future<void> Function({bool startPass})? reconfigure,
     }) async {
       await repos.settings.set(kSyncEnabledKey, true);
       await repos.settings.set(kSyncIdKey, 'correct horse battery staple');
@@ -1170,7 +1212,7 @@ void main() {
         settings: repos.settings,
         syncLocal: repos.syncLocal,
         coordinator: () => coordinator,
-        reconfigure: ({bool startPass = true}) async {},
+        reconfigure: reconfigure ?? ({bool startPass = true}) async {},
         runExclusive: runExclusive ?? (operation) => operation(),
         classifier: network,
         now: () => clock,
@@ -1224,12 +1266,46 @@ void main() {
       expect(await hasRow(kSyncEndpointKey), isFalse);
       expect(await repos.syncLocal.getBaselineState(), isNull);
 
+      expect(
+        await hasRow(kSyncDeviceIdKey),
+        isFalse,
+        reason:
+            'a device ID kept across detach links this attachment to the '
+            'next one, in whatever store or server that is',
+      );
+
       expect(controller.enabled, isTrue, reason: 'detach is not disable');
       expect(await repos.settings.get(kSyncEnabledKey), isTrue);
-      expect(await repos.settings.get(kSyncDeviceIdKey), 'device_1');
       expect(await repos.settings.get(kSyncLastUsedFingerprintKey), [
         'verifier',
       ]);
+    });
+
+    test('pairing again after a detach publishes under a new device '
+        'ID', () async {
+      // Reconfigure resolves the ID exactly as the production factory does,
+      // so this exercises the clear and the mint together rather than each
+      // against a stubbed other half.
+      String? resolved;
+      final controller = await paired(
+        reconfigure: ({bool startPass = true}) async {
+          if (await repos.settings.get(kSyncIdKey) == null) return;
+          resolved = await resolveSyncDeviceId(repos.settings);
+        },
+      );
+
+      await controller.detach();
+      await controller.completePairing(
+        'correct horse battery staple',
+        Uri.parse('https://sync.example.test/'),
+      );
+
+      expect(resolved, isNotNull);
+      expect(
+        resolved,
+        isNot('device_1'),
+        reason: 're-attaching, even to the same store, is a new attachment',
+      );
     });
 
     test(
@@ -1252,6 +1328,7 @@ void main() {
           'https://sync.example.test/',
         );
         expect(await repos.syncLocal.getBaselineState(), isNotNull);
+        expect(await repos.settings.get(kSyncDeviceIdKey), 'device_1');
       },
     );
 
@@ -1483,7 +1560,7 @@ void main() {
       expect(await hasRow(kSyncLastSuccessAtKey), isFalse);
       expect(await repos.syncLocal.getBaselineState(), isNull);
       expect(controller.enabled, isTrue, reason: 'wipe is not disable');
-      expect(await repos.settings.get(kSyncDeviceIdKey), 'device_1');
+      expect(await hasRow(kSyncDeviceIdKey), isFalse);
     });
 
     test('a failed wipe changes nothing locally', () async {
@@ -1503,6 +1580,11 @@ void main() {
         'correct horse battery staple',
       );
       expect(await repos.syncLocal.getBaselineState(), isNotNull);
+      expect(
+        await repos.settings.get(kSyncDeviceIdKey),
+        'device_1',
+        reason: 'the device is still attached and still publishes as itself',
+      );
     });
 
     test('wiping a store that has already gone still detaches', () async {
