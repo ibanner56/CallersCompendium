@@ -24,7 +24,9 @@ Only the marker's presence is checked; the reason is a code-review concern.
 
 Known gap, stated rather than hidden: the walk is lexical. A per-item call
 hidden in a ``forEach`` / ``map`` closure, or behind a helper function that
-the loop calls, is not seen.
+the loop calls, is not seen. Nor is a per-item `aliasMap()` load, which would
+be the same mistake under another name; `normalisation resolves aliases from
+one aliasMap per step` in `sync_coordinator_test.dart` covers that one.
 
 Exit codes: 0 = clean, 1 = at least one unmarked site, 2 = bad input.
 """
