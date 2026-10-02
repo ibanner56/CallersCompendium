@@ -1185,7 +1185,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
                         key: ValueKey(
                           'picker-online-added-${result.source.name}-${result.id}',
                         ),
-                        Icons.check_circle,
+                        Icons.check_circle_outline,
                       ),
                     ),
                   ),

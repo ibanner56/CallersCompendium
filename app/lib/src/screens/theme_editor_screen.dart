@@ -109,7 +109,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
             Row(
               children: [
                 Icon(
-                  Icons.check_circle,
+                  Icons.check_circle_outline,
                   size: 18,
                   color: theme.colorScheme.primary,
                 ),
@@ -253,7 +253,7 @@ class _ContrastBadge extends StatelessWidget {
       child: Row(
         children: [
           Icon(
-            passes ? Icons.check_circle : Icons.error,
+            passes ? Icons.check_circle_outline : Icons.error_outline,
             size: 16,
             color: color,
           ),

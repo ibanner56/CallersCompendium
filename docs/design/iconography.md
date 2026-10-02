@@ -32,6 +32,10 @@ Concept glyphs live in one place so the same idea always reads the same way:
 - `formationIcon` and `progressionIcon` — `app/lib/src/search/facet_labels.dart`.
 - **Dialect** = `Icons.groups_outlined` / `Icons.groups` (idle / active). Used by
   the dance-view dialect quick-switch and the Perform canonical-terms toggle.
+- **ECD dance form** = `Icons.diversity_3_outlined` (`danceFormIcon`) and
+  **dancer level** = `Icons.signal_cellular_alt_outlined` (the same glyph the
+  dance-list level facet and Perform header use). Neither reuses the Dialect
+  pair above, so a form or level marker is never mistaken for the dialect toggle.
 - **Language & region (app locale)** = `Icons.translate_outlined` /
   `Icons.translate`. `Icons.translate` is reserved for app-language/locale only
   and must **not** be reused for dialect selection (they are different concepts).

@@ -1686,7 +1686,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                                 children: [
                                   if (noteDiscouraged) ...[
                                     Icon(
-                                      Icons.warning_amber,
+                                      Icons.warning_amber_outlined,
                                       size: 13,
                                       color: theme.colorScheme.error,
                                     ),
@@ -3708,7 +3708,7 @@ class _BeatSummary extends StatelessWidget {
                 key: _key('beats-warning'),
                 children: [
                   Icon(
-                    Icons.warning_amber,
+                    Icons.warning_amber_outlined,
                     size: 16,
                     color: theme.colorScheme.tertiary,
                   ),

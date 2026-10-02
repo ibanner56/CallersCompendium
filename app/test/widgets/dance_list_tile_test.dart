@@ -268,7 +268,10 @@ void main() {
     final avatar = find.byType(CircleAvatar);
     expect(avatar, findsOneWidget);
     expect(
-      find.descendant(of: avatar, matching: find.byIcon(Icons.groups_outlined)),
+      find.descendant(
+        of: avatar,
+        matching: find.byIcon(Icons.diversity_3_outlined),
+      ),
       findsOneWidget,
     );
     // ...and the meaning is not glyph-only: the form label is the tooltip.

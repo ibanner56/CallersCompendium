@@ -110,6 +110,24 @@ Future<void> _pumpNarrow(
 }
 
 void main() {
+  testWidgets('empty-detail pane body text uses onSurfaceVariant (AA)', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpWide(tester, repos);
+
+    const bodyText = 'Choose a program from the list, or create a new one.';
+    final finder = find.text(bodyText);
+    expect(finder, findsOneWidget);
+
+    // Body text must use a text colour role (onSurfaceVariant, >=4.5:1), not
+    // the hairline outlineVariant role (~1.5:1 against the pane).
+    final textWidget = tester.widget<Text>(finder);
+    final scheme = Theme.of(tester.element(finder)).colorScheme;
+    expect(textWidget.style?.color, scheme.onSurfaceVariant);
+    expect(textWidget.style?.color, isNot(scheme.outlineVariant));
+  });
+
   testWidgets(
     'wide split-pane list and summary FABs coexist and survive a route '
     'transition without a duplicate hero-tag crash',
