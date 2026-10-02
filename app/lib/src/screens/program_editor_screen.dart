@@ -46,6 +46,7 @@ import 'dance_editor_screen.dart';
 import 'dance_detail_screen.dart';
 import 'dance_reimport_flow.dart';
 import 'perform_program_screen.dart';
+import '../widgets/export_guard.dart';
 import '../widgets/program_export_menu.dart';
 import '../widgets/program_matrix_table.dart';
 import '../widgets/program_slot_list_editor.dart';
@@ -117,6 +118,7 @@ class ProgramEditorScreen extends StatefulWidget {
     this.callersBoxOnline,
     this.contraDbOnline,
     this.reimportPicker,
+    this.pdfLayouter,
   });
 
   final String? programId;
@@ -135,6 +137,10 @@ class ProgramEditorScreen extends StatefulWidget {
   final OnlineSearchService? callersBoxOnline;
   final OnlineSearchService? contraDbOnline;
   final ImportPicker? reimportPicker;
+
+  /// Print/share seam for the Matrix tab's PDF export; defaults to
+  /// [Printing.layoutPdf]. Supplied by widget tests.
+  final PdfLayouter? pdfLayouter;
 
   /// Width (of the builder's own constraints) at/above which the picker shows
   /// as a persistent right pane instead of a modal sheet.
@@ -3024,8 +3030,21 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     Taxonomy taxonomy,
     int omittedFreeTextCount,
   ) async {
+    // Resolve every context- and state-dependent value up front: the layouter's
+    // `onLayout` callback can run after further internal awaits (font loading)
+    // or more than once, so a BuildContext read inside it can observe a
+    // different value than at tap time, or a disposed element. Mirrors
+    // dance_detail_screen.dart._exportDancePdf and
+    // program_export_menu.dart._exportPdf (issue #1434).
+    final messenger = ScaffoldMessenger.of(context);
     final localizations = MaterialLocalizations.of(context);
     final l10n = AppLocalizations.of(context);
+    final canonicalizeDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
+      context,
+    );
+    final dialect = _dialect;
+    final config = _matrixColumnConfig;
+    final eventDate = _eventDate;
     final title = _titleController.text.trim();
     // Prefer a linked venue's sanitized display label over free text. The
     // linked-record precedence matches the set-list export and screen.
@@ -3034,29 +3053,33 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _venueController.text,
       _exportVenuesById,
     );
-    await Printing.layoutPdf(
-      name: sanitizeExportName(title, fallback: l10n.exportMatrixPdfFilename),
-      onLayout: (format) => buildProgramMatrixPdf(
-        matrix,
-        taxonomy: taxonomy,
-        dialect: _dialect,
-        programTitle: title,
-        eventDate: _eventDate,
-        venue: venue,
-        omittedFreeTextCount: omittedFreeTextCount,
-        formatDate: localizations.formatMediumDate,
-        labels: programMatrixExportLabels(l10n),
-        formatFormation: (formation) => formationDisplayLabel(
-          l10n,
-          formation,
-          FigureRenderer(contraTaxonomy),
-          _dialect,
-          canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
-            context,
+    final layoutPdf = widget.pdfLayouter ?? Printing.layoutPdf;
+    await guardExport(
+      messenger,
+      l10n.exportSetListError,
+      () => layoutPdf(
+        name: sanitizeExportName(title, fallback: l10n.exportMatrixPdfFilename),
+        onLayout: (format) => buildProgramMatrixPdf(
+          matrix,
+          taxonomy: taxonomy,
+          dialect: dialect,
+          programTitle: title,
+          eventDate: eventDate,
+          venue: venue,
+          omittedFreeTextCount: omittedFreeTextCount,
+          formatDate: localizations.formatMediumDate,
+          labels: programMatrixExportLabels(l10n),
+          formatFormation: (formation) => formationDisplayLabel(
+            l10n,
+            formation,
+            FigureRenderer(contraTaxonomy),
+            dialect,
+            canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
           ),
+          config: config,
         ),
-        config: _matrixColumnConfig,
       ),
+      source: 'program_editor_screen._exportMatrixPdf',
     );
   }
 
