@@ -33,6 +33,13 @@ docs, out of scope here): the shipped AppImage needs **`libfuse2`** at runtime,
 which recent Ubuntu/Fedora do not preinstall, producing a cryptic
 `libfuse.so.2` failure. The `.tar.gz` avoids it, but it is a rough first-run.
 
+> **Note (2026-10):** this paragraph is kept as history and is wrong about the
+> dependency. The shipped AppImage is built with the static type2-runtime
+> (`release.yml`, `--runtime-file runtime-x86_64`), which never loads
+> `libfuse2`; the actual requirement is a `fusermount`/`fusermount3` binary on
+> `$PATH` (package `fuse3`), and its failure reads "No suitable fusermount
+> binary found on the $PATH".
+
 Constraints bounding the answer (per ADR-001 / ADR-002): volunteer maintainers,
 **low operational burden**, **no telemetry**, a privacy-clean update story, and
 a strong preference to avoid self-run infrastructure or GPG key management.

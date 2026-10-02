@@ -49,8 +49,9 @@ device from the sections below.
 
 Alongside the app downloads you'll also see a `SHA256SUMS` file. It's optional —
 see [Verify your download](#verify-your-download-optional) if you'd like to
-double-check a file — and a couple of files the app itself uses that you can
-ignore.
+double-check a file — and three files that you can ignore: `beta.json` and
+`beta.json.sig` (which the app uses to check for updates) and
+`sbom-<version>.cdx.json` (a technical list of what's inside the app).
 
 ## Install on Linux
 
@@ -65,12 +66,15 @@ There are two downloads for Linux (x64); either works.
   3. Open the AppImage to launch the app.
 - **Archive** (`...-linux-x64.tar.gz`) — no setup needed.
   1. Extract the archive to a folder you like.
-  2. Open the app binary inside that folder.
+  2. Open `compendium_app` inside that folder.
 
-> **AppImage won't open?** AppImages need the **FUSE 2** runtime, which some
-> recent distributions don't install by default. Install your distribution's
-> FUSE 2 package (`libfuse2` on Debian and Ubuntu, `fuse-libs` on Fedora), or use
-> the archive instead.
+> **AppImage won't open?** The AppImage needs a `fusermount` (or `fusermount3`)
+> program, which some recent distributions don't install by default. If you see
+> "No suitable fusermount binary found on the $PATH", install your
+> distribution's `fuse3` package (`fuse3` on Debian, Ubuntu and Fedora). You can
+> also run it without FUSE by typing
+> `./CallersCompendium-*.AppImage --appimage-extract-and-run` in a terminal, or
+> use the archive instead.
 
 ## Install on macOS
 
@@ -97,7 +101,7 @@ There are two downloads for Windows (x64).
   3. Follow the installer, then open Caller's Compendium from your Start menu.
 - **Portable copy** (`...-windows-x64.zip`) — no installer needed.
   1. Unzip the folder somewhere convenient.
-  2. Open the app inside that folder to run it.
+  2. Open `compendium_app.exe` inside that folder to run it.
 
 ## Install on Android
 
