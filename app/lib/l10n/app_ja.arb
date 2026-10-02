@@ -2276,6 +2276,10 @@
   "@backupChooseFileAction": {
     "x-sourceSha256": "5c6623857cc7b764cdf1eecad5b2f0f54184bebca4aa2d7f3bbdcedf6a8929d1"
   },
+  "backupChooseFileFailed": "そのファイルを読み込めませんでした。",
+  "@backupChooseFileFailed": {
+    "x-sourceSha256": "800f84ec1a61e01c5a4477e3c3850128f0d522d38c2982d8c3a94ed491632ed3"
+  },
   "backupPasteJsonLabel": "またはバックアップJSONを貼り付け",
   "@backupPasteJsonLabel": {
     "x-sourceSha256": "3523099f6364b6277b63bb16fe6a631089907f35637110337ed8aa211375ffdf"

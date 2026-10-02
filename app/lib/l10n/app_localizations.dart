@@ -3525,6 +3525,12 @@ abstract class AppLocalizations {
   /// **'Choose file…'**
   String get backupChooseFileAction;
 
+  /// Snackbar shown in the restore-from-backup dialog when the chosen file could not be read for a reason other than being too large or not a valid backup.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t read that file.'**
+  String get backupChooseFileFailed;
+
   /// Text field label in the restore-from-backup dialog for pasting raw backup JSON.
   ///
   /// In en, this message translates to:

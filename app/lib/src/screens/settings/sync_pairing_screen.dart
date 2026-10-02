@@ -109,7 +109,7 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
           'callers-compendium-backup-${now.toUtc().toIso8601String().substring(0, 10)}.json',
         );
         if (delivered) await service.recordBackup(now);
-      } on Exception catch (e, st) {
+      } on Object catch (e, st) {
         logCaughtError(e, st, source: 'sync_pairing_screen._offerBackup');
         if (mounted) {
           messenger.showSnackBar(

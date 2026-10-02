@@ -1,0 +1,10 @@
+{
+  "id": "backup-error-guards",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Choosing a backup file that can't be read in Settings \u2192 Restore now shows a message instead of doing nothing.",
+      "Export no longer runs twice when tapped twice, and a failed export or restore always shows a message."
+    ]
+  }
+}

@@ -2019,6 +2019,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get backupChooseFileAction => 'ファイルを選択…';
 
   @override
+  String get backupChooseFileFailed => 'そのファイルを読み込めませんでした。';
+
+  @override
   String get backupPasteJsonLabel => 'またはバックアップJSONを貼り付け';
 
   @override

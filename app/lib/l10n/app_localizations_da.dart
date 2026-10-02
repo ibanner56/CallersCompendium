@@ -2100,6 +2100,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get backupChooseFileAction => 'Vælg fil…';
 
   @override
+  String get backupChooseFileFailed => 'Kunne ikke læse den fil.';
+
+  @override
   String get backupPasteJsonLabel => 'Eller indsæt sikkerhedskopi-JSON';
 
   @override

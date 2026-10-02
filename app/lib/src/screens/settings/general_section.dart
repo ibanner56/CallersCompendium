@@ -62,6 +62,7 @@ class GeneralSection extends StatefulWidget {
 
 class _GeneralSectionState extends State<GeneralSection> {
   bool _restoreOperationInFlight = false;
+  bool _exportInFlight = false;
 
   /// Soft-delete retention window (ROADMAP G.4), as the stored `int` day count
   /// (`0` = never auto-purge). `null` = not yet loaded; the view shows the
@@ -204,6 +205,8 @@ class _GeneralSectionState extends State<GeneralSection> {
   /// cancels the native save/share dialog, this is a clean no-op: no snackbar,
   /// no stamped time.
   Future<void> _onExportBackup() async {
+    if (_exportInFlight) return;
+    _exportInFlight = true;
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
     final repos = RepositoriesScope.of(context);
@@ -223,12 +226,14 @@ class _GeneralSectionState extends State<GeneralSection> {
         _lastBackupAt = now.toUtc();
       });
       messenger.showSnackBar(SnackBar(content: Text(l10n.backupExported)));
-    } on Exception catch (e, st) {
+    } on Object catch (e, st) {
       logCaughtError(e, st, source: 'general_section._onExportBackup');
       if (kDebugMode) {
         debugPrint('Backup export failed: $e\n$st');
       }
       messenger.showSnackBar(SnackBar(content: Text(l10n.backupExportFailed)));
+    } finally {
+      _exportInFlight = false;
     }
   }
 
@@ -306,7 +311,7 @@ class _GeneralSectionState extends State<GeneralSection> {
           ),
         ),
       );
-    } on Exception catch (e, st) {
+    } on Object catch (e, st) {
       logCaughtError(e, st, source: 'general_section._onRestoreBackup');
       if (kDebugMode) {
         debugPrint('Backup restore failed: $e\n$st');
@@ -399,7 +404,7 @@ class _GeneralSectionState extends State<GeneralSection> {
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.backupRestoreSettingsRetried)),
       );
-    } on Exception catch (e, st) {
+    } on Object catch (e, st) {
       logCaughtError(e, st, source: 'general_section._retrySettingsRestore');
       if (kDebugMode) debugPrint('Backup settings retry failed: $e\n$st');
       if (!mounted) return;
@@ -823,6 +828,22 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
       // it crash the picker: the file was never read, so live data is safe.
       if (!mounted) return;
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    } on FormatException catch (e, stackTrace) {
+      logCaughtError(e, stackTrace, source: 'general_section._chooseFile');
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).backupRestoreInvalidFile),
+        ),
+      );
+    } on Object catch (e, stackTrace) {
+      logCaughtError(e, stackTrace, source: 'general_section._chooseFile');
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).backupChooseFileFailed),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _picking = false);
     }
