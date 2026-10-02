@@ -122,8 +122,9 @@ The app couldn't open or get your collection ready at startup. Try, in order:
    for example, free some disk space, or make sure the folder holding the
    database (see [Where is my data stored?](#where-is-my-data-stored)) exists and
    is writable.
-2. **Use Copy details** to copy the error type and its stack trace (never your
-   data or the error's message) if you want to report the problem.
+2. **Use Copy details** to copy the error type and its stack trace (the error's message is left out)
+   if you want to report the problem. The stack trace can still contain file
+   paths, so look it over before you share it.
 3. **Look at the diagnostics log.** The app also writes the failure to a
    `diagnostics/crash.log` file in its support folder, which is available even
    when the database can't be opened. On Linux that is

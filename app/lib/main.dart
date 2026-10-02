@@ -1720,6 +1720,21 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// database open is cached by the drift connection and would rethrow on every
   /// later query against the same [AppData].
   Future<void> _retry() async {
+    // Retry stays tappable while the teardown below awaits; a second call would
+    // replace the replacement `AppData` without closing it and run the startup
+    // sequence twice.
+    if (_retrying) return;
+    _retrying = true;
+    try {
+      await _retryReopen();
+    } finally {
+      _retrying = false;
+    }
+  }
+
+  bool _retrying = false;
+
+  Future<void> _retryReopen() async {
     await _disposeSyncCoordinator();
     try {
       await _appData.close();

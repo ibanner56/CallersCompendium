@@ -13,6 +13,7 @@ import '../data/migration_guard.dart'
         SnapshotFailure,
         SnapshotFailureCause,
         snapshotBeforeMigrate;
+import '../diagnostics/error_log.dart';
 
 /// Gates the app on a startup [future] — the schema migration / derived-index
 /// back-fill run by `CompendiumRepositories.ensureMigrated()`. Shows a loading
@@ -317,10 +318,11 @@ class _BootstrapErrorScreenState extends State<_BootstrapErrorScreen> {
         ClipboardData(text: '${widget.errorType}\n\n${widget.stackTrace}'),
       );
       if (mounted) setState(() => _copied = true);
-    } catch (_) {
-      // diagnostics: silent — copying is best-effort; the same failure is
-      // already in the crash log, and the error screen must not throw while
-      // reporting a startup failure.
+    } catch (error, stackTrace) {
+      // A clipboard failure is new information (the bootstrap failure itself is
+      // already logged). logCaughtError is exception-proof, so a broken
+      // diagnostics store cannot make this screen throw.
+      logCaughtError(error, stackTrace, source: 'app_bootstrap._copy');
     }
   }
 

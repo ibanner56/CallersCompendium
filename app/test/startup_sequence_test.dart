@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show LazyDatabase, driftRuntimeOptions;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart' show SystemChannels, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/main.dart';
@@ -243,60 +243,79 @@ void main() {
     },
   );
 
-  testWidgets(
-    'a failed database open is logged, offers Copy details, and Retry '
-    'reopens the database',
-    (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1200, 900));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
+  testWidgets('a failed database open is logged, offers Copy details, and Retry '
+      'reopens the database', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final sink = _RecordingCrashLogSink();
-      installCaughtErrorLog(sink);
-      addTearDown(resetCaughtErrorLogForTesting);
+    final sink = _RecordingCrashLogSink();
+    installCaughtErrorLog(sink);
+    addTearDown(resetCaughtErrorLogForTesting);
 
-      // drift caches a failed open inside LazyDatabase, so every later query on
-      // this instance rethrows the same error — exactly the production shape.
-      final failingAppData = AppData(
-        CompendiumDatabase(
-          LazyDatabase(() async => throw StateError('open failed')),
-        ),
-      );
-      final healthyAppData = _openAppData();
+    // drift caches a failed open inside LazyDatabase, so every later query on
+    // this instance rethrows the same error — exactly the production shape.
+    final failingAppData = AppData(
+      CompendiumDatabase(
+        LazyDatabase(() async => throw StateError('open failed')),
+      ),
+    );
+    final healthyAppData = _openAppData();
 
-      await tester.pumpWidget(
-        CompendiumApp(
-          appData: failingAppData,
-          appDataFactory: () => healthyAppData,
-          windowService: _NoopWindowService(
-            failingAppData.repositories.settings,
-          ),
-          windowServiceFactory: (settings) => _NoopWindowService(settings),
-          integrityCheck: () async => true,
-        ),
-      );
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(
+      CompendiumApp(
+        appData: failingAppData,
+        appDataFactory: () => healthyAppData,
+        windowService: _NoopWindowService(failingAppData.repositories.settings),
+        windowServiceFactory: (settings) => _NoopWindowService(settings),
+        integrityCheck: () async => true,
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      expect(
-        find.textContaining('Could not prepare the collection'),
-        findsOneWidget,
-      );
-      expect(sink.sources, ['main.bootstrap']);
-      expect(
-        find.byKey(const ValueKey('bootstrap-copy-details')),
-        findsOneWidget,
-      );
-      // The type is shown; the message is withheld (#1469, CWE-209).
-      expect(find.textContaining('StateError'), findsOneWidget);
-      expect(find.textContaining('open failed'), findsNothing);
+    expect(
+      find.textContaining('Could not prepare the collection'),
+      findsOneWidget,
+    );
+    expect(sink.sources, ['main.bootstrap']);
+    expect(
+      find.byKey(const ValueKey('bootstrap-copy-details')),
+      findsOneWidget,
+    );
+    // The type is shown; the message is withheld (#1469, CWE-209).
+    expect(find.textContaining('StateError'), findsOneWidget);
+    expect(find.textContaining('open failed'), findsNothing);
 
-      // Retry must reopen the database: the failed LazyDatabase never recovers.
-      await tester.tap(find.text('Retry'));
-      await tester.pumpAndSettle();
+    // Copy details puts the type and stack on the clipboard, never the message
+    // (#1469, CWE-209).
+    String? copied;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied = (call.arguments as Map)['text'] as String?;
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('bootstrap-copy-details')));
+    await tester.pumpAndSettle();
+    expect(copied, startsWith('StateError\n\n'));
+    expect(copied, isNot(contains('open failed')));
+    expect(find.text('Copied'), findsOneWidget);
 
-      expect(find.byType(AppShell), findsOneWidget);
-      expect(sink.sources, ['main.bootstrap']);
-    },
-  );
+    // Retry must reopen the database: the failed LazyDatabase never recovers.
+    await tester.tap(find.text('Retry'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AppShell), findsOneWidget);
+    expect(sink.sources, ['main.bootstrap']);
+  });
 
   testWidgets(
     'a failing migration reaches the error/retry screen, then retry recovers '
