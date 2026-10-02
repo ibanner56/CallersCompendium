@@ -56,15 +56,17 @@ import 'structured_draft.dart';
 /// library-sized file takes seconds and must not stall the UI. Implementations
 /// must throw exactly what [readCcUsrArchive] throws
 /// ([FmpFormatException], [FmpResourceLimitException]).
-typedef CcUsrArchiveReader =
-    Future<CcUsrArchive> Function(Uint8List bytes, FmpReadLimits limits);
+typedef CcUsrArchiveReader = Future<CcUsrArchive> Function(
+  Uint8List bytes,
+  FmpReadLimits limits,
+);
 
 Future<CcUsrArchive> _readSynchronously(
   Uint8List bytes,
   FmpReadLimits limits,
 ) async => readCcUsrArchive(bytes, limits: limits);
 
-class CallersCompanionUsrAdapter implements SourceAdapter {
+class CallersCompanionUsrAdapter implements SourceAdapter, BatchWarningSource {
   CallersCompanionUsrAdapter({
     this.limits = const FmpReadLimits(),
     CcUsrArchiveReader? reader,
@@ -101,6 +103,26 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
   @override
   ProvenanceSource get source => ProvenanceSource.callersCompanion;
 
+  List<ImportIssue> _batchWarnings = const [];
+
+  static const Map<String, String> _warningMessages = {
+    CcUsrWarningCodes.fileTruncated:
+        'The .USR file ends early; only part of it could be read.',
+    CcUsrWarningCodes.figuresFromDanceRows:
+        'Figures were read from the Dance rows because the Phrase table was '
+        'unreadable.',
+    CcUsrWarningCodes.phraseGroupsOrphaned:
+        'Some Phrase rows could not be attached to a dance and were skipped.',
+    CcUsrWarningCodes.linesDropped: 'Some over-long figure lines were dropped.',
+    CcUsrWarningCodes.setsSkipped:
+        'The Set or SetItem table was missing; programs may be incomplete.',
+    CcUsrWarningCodes.relatedRowsSkipped:
+        'Some related-dance rows were skipped.',
+  };
+
+  @override
+  List<ImportIssue> get batchWarnings => _batchWarnings;
+
   @override
   Future<List<DiscoveredRecord>> discover(ImportRequest request) async {
     // Drop what an earlier discovery left before starting this one. The
@@ -109,6 +131,7 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
     // file's archive and a caller could commit that file's programs for this
     // one.
     _discovered = null;
+    _batchWarnings = const [];
     final bytes = _bytesOf(request);
     final CcUsrArchive archive;
     try {
@@ -134,6 +157,15 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
       );
     }
     _discovered = archive.withoutDances();
+    _batchWarnings = [
+      for (final code in archive.warningCodes)
+        ImportIssue(
+          severity: ImportIssueSeverity.warning,
+          code: code,
+          // Logs only: the app localizes from [code].
+          message: _warningMessages[code] ?? code,
+        ),
+    ];
     return [
       for (final entry in archive.dances)
         DiscoveredRecord(

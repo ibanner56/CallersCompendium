@@ -32,6 +32,7 @@ class CcUsrArchive {
     this.insertCalls = const [],
     this.relatedDancePairs = const [],
     required this.warnings,
+    this.warningCodes = const [],
   });
 
   /// One entry per CC `Dance` row, in file order.
@@ -55,6 +56,12 @@ class CcUsrArchive {
   /// Non-fatal notes (missing tables, guessed column names, reader warnings).
   final List<String> warnings;
 
+  /// Typed twin of the notes in [warnings] that the user should hear about:
+  /// each a [CcUsrWarningCodes] value, distinct, in first-seen order. The prose
+  /// is English for logs; the app localizes from these codes. Notes that need
+  /// no user action (e.g. a missing optional table) carry no code.
+  final List<String> warningCodes;
+
   /// This archive without its [dances] — everything [CallersCompanionUsrImporter]
   /// needs at commit time (programs, shorthands, related-dance links) and
   /// nothing more. The dances have by then been carried through the import
@@ -66,7 +73,55 @@ class CcUsrArchive {
     insertCalls: insertCalls,
     relatedDancePairs: relatedDancePairs,
     warnings: warnings,
+    warningCodes: warningCodes,
   );
+}
+
+/// The typed warning codes a [CcUsrArchive] can carry in
+/// [CcUsrArchive.warningCodes].
+abstract final class CcUsrWarningCodes {
+  /// The sector chain claims more sectors than the file holds: an incomplete
+  /// copy, so some records were never read.
+  static const String fileTruncated = 'usr_file_truncated';
+
+  /// The `Phrase` table could not be read, so figures came from the `Dance`
+  /// rows (usually empty).
+  static const String figuresFromDanceRows = 'usr_figures_from_dance_rows';
+
+  /// `Phrase` rows that could not be attached to a dance were dropped.
+  static const String phraseGroupsOrphaned = 'usr_phrase_groups_orphaned';
+
+  /// Over-long figure lines were dropped.
+  static const String linesDropped = 'usr_lines_dropped';
+
+  /// The `Set`/`SetItem` tables were missing, so programs or their items were
+  /// not imported.
+  static const String setsSkipped = 'usr_sets_skipped';
+
+  /// `Dance_Related` rows with a missing or self-referential id were skipped.
+  static const String relatedRowsSkipped = 'usr_related_rows_skipped';
+
+  static const List<String> all = [
+    fileTruncated,
+    figuresFromDanceRows,
+    phraseGroupsOrphaned,
+    linesDropped,
+    setsSkipped,
+    relatedRowsSkipped,
+  ];
+}
+
+/// Collects the prose notes and their typed codes during extraction.
+class _UsrWarnings {
+  _UsrWarnings(Iterable<String> seed) : messages = [...seed];
+
+  final List<String> messages;
+  final List<String> codes = [];
+
+  void add(String message, {String? code}) {
+    messages.add(message);
+    if (code != null && !codes.contains(code)) codes.add(code);
+  }
 }
 
 /// One CC `Dance_Related` row: a directed pair of CC `zk_Dance_ID` values
@@ -243,7 +298,8 @@ CcUsrArchive extractCcUsrArchive(
   FmpDatabase db, {
   FmpReadLimits limits = const FmpReadLimits(),
 }) {
-  final warnings = <String>[...db.warnings];
+  final warnings = _UsrWarnings(db.warnings);
+  if (db.truncated) warnings.codes.add(CcUsrWarningCodes.fileTruncated);
   final phraseBodies = _extractPhraseBodies(db, warnings, limits);
   final dances = _extractDances(db, warnings, phraseBodies, limits);
   // Phrase rows whose `zk_Dance_ID` matches no `Dance` row are orphans: their
@@ -257,6 +313,7 @@ CcUsrArchive extractCcUsrArchive(
     warnings.add(
       '${orphanIds.length} Caller\'s Companion "Phrase" group(s) referenced a '
       '"zk_Dance_ID" with no matching dance; their figures were skipped.',
+      code: CcUsrWarningCodes.phraseGroupsOrphaned,
     );
   }
   final sets = _extractSets(db, warnings);
@@ -267,7 +324,8 @@ CcUsrArchive extractCcUsrArchive(
     sets: sets,
     insertCalls: insertCalls,
     relatedDancePairs: relatedDancePairs,
-    warnings: warnings,
+    warnings: warnings.messages,
+    warningCodes: warnings.codes,
   );
 }
 
@@ -309,7 +367,7 @@ const List<String> _bodyLabels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
 List<CcDanceEntry> _extractDances(
   FmpDatabase db,
-  List<String> warnings,
+  _UsrWarnings warnings,
   Map<String, List<CcBodySection>> phraseBodies,
   FmpReadLimits limits,
 ) {
@@ -326,6 +384,8 @@ List<CcDanceEntry> _extractDances(
   final danceIdCol = _resolveSpec(table, _danceIdSpec);
   final entries = <CcDanceEntry>[];
   var missingIdCount = 0;
+  // Per-row notes from [ccDanceRecordFromColumns] are all dropped-line notes.
+  final rowNotes = <String>[];
   for (final rec in table.records) {
     final columns = _rowColumns(table, rec);
     final ccId = danceIdCol == null
@@ -340,11 +400,14 @@ List<CcDanceEntry> _extractDances(
           columns,
           bodyOverride: phraseBodies[recordId],
           limits: limits,
-          warnings: warnings,
+          warnings: rowNotes,
         ),
         rawColumns: columns,
       ),
     );
+  }
+  for (final note in rowNotes) {
+    warnings.add(note, code: CcUsrWarningCodes.linesDropped);
   }
   if (missingIdCount > 0) {
     warnings.add(
@@ -515,7 +578,7 @@ const List<String> _phraseOrder = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 ///   grouped, never throwing.
 Map<String, List<CcBodySection>> _extractPhraseBodies(
   FmpDatabase db,
-  List<String> warnings,
+  _UsrWarnings warnings,
   FmpReadLimits limits,
 ) {
   final table = _findTable(db, _phraseTableNames);
@@ -531,6 +594,7 @@ Map<String, List<CcBodySection>> _extractPhraseBodies(
       'The Caller\'s Companion "Phrase" table was found but its '
       'dance-id/text columns could not be resolved; figures were read from the '
       'Dance rows instead (they are usually empty).',
+      code: CcUsrWarningCodes.figuresFromDanceRows,
     );
     return const {};
   }
@@ -570,6 +634,7 @@ Map<String, List<CcBodySection>> _extractPhraseBodies(
       '$missingIdCount Caller\'s Companion "Phrase" row(s) had no '
       '"zk_Dance_ID"; their figures could not be linked to a dance and were '
       'skipped.',
+      code: CcUsrWarningCodes.phraseGroupsOrphaned,
     );
   }
 
@@ -580,9 +645,8 @@ Map<String, List<CcBodySection>> _extractPhraseBodies(
     // Stable sort by canonical PhraseNumber order, unknown/blank labels last.
     final ordered = [for (var i = 0; i < rows.length; i++) MapEntry(i, rows[i])]
       ..sort((a, b) {
-        final rank = _phraseRank(
-          a.value.number,
-        ).compareTo(_phraseRank(b.value.number));
+        final rank = _phraseRank(a.value.number)
+            .compareTo(_phraseRank(b.value.number));
         return rank != 0 ? rank : a.key.compareTo(b.key); // stable on ties
       });
     final sections = <CcBodySection>[];
@@ -615,6 +679,7 @@ Map<String, List<CcBodySection>> _extractPhraseBodies(
       '$overLongCount Caller\'s Companion figure line(s) exceeded the safe '
       'length (> ${limits.maxBodyLineLength} characters) and were dropped; the '
       'rest was imported.',
+      code: CcUsrWarningCodes.linesDropped,
     );
   }
   return result;
@@ -742,12 +807,13 @@ class _PhraseRow {
 const List<String> _setTableNames = ['Set', 'Sets', 'Program', 'Programs'];
 const List<String> _setItemTableNames = ['SetItem', 'SetItems', 'Set_Item'];
 
-List<CcSet> _extractSets(FmpDatabase db, List<String> warnings) {
+List<CcSet> _extractSets(FmpDatabase db, _UsrWarnings warnings) {
   final setTable = _findTable(db, _setTableNames);
   if (setTable == null) {
     warnings.add(
       'No Caller\'s Companion "Set" table was found; no programs were '
       'imported (the dance import is unaffected).',
+      code: CcUsrWarningCodes.setsSkipped,
     );
     return const [];
   }
@@ -755,6 +821,7 @@ List<CcSet> _extractSets(FmpDatabase db, List<String> warnings) {
   if (itemTable == null) {
     warnings.add(
       'No "SetItem" table was found; sets were imported without their items.',
+      code: CcUsrWarningCodes.setsSkipped,
     );
   }
 
@@ -862,7 +929,7 @@ const List<String> _insertCallTableNames = ['InsertCall', 'InsertCalls'];
 ///   text is skipped (nothing to seed), never a throw.
 List<CcInsertCall> _extractInsertCalls(
   FmpDatabase db,
-  List<String> warnings,
+  _UsrWarnings warnings,
   FmpReadLimits limits,
 ) {
   final table = _findTable(db, _insertCallTableNames);
@@ -1015,7 +1082,7 @@ const List<String> _relatedDanceTableNames = ['Dance_Related', 'DanceRelated'];
 ///   reach storage as a dangling `targetDanceId`.
 List<CcRelatedDancePair> _extractRelatedDancePairs(
   FmpDatabase db,
-  List<String> warnings,
+  _UsrWarnings warnings,
   FmpReadLimits limits,
 ) {
   final table = _findTable(db, _relatedDanceTableNames);
@@ -1104,6 +1171,7 @@ List<CcRelatedDancePair> _extractRelatedDancePairs(
     warnings.add(
       '$skippedCount Caller\'s Companion "Dance_Related" row(s) had a '
       'missing or self-referential dance id and were skipped.',
+      code: CcUsrWarningCodes.relatedRowsSkipped,
     );
   }
   return pairs;
