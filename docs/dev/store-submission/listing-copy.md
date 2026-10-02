@@ -88,8 +88,9 @@ IMPORTS
 YOUR DATA STAYS YOURS
 - Local-first: your collection lives on your device and the app works fully
   offline. No account, no telemetry, nothing collected automatically.
-- Device sync is disabled by default, opt-in only, keyed to an anonymous sync store
-  that users can share across devices or to other callers using the app.
+- Device Sync is disabled by default and opt-in only. Once you turn it on and
+  connect a store, it syncs automatically; the store is anonymous and can be shared
+  across your devices or with other callers using the app.
 - Export a full backup to a single human-readable file (with a built-in
   integrity checksum) and restore it anywhere.
 
@@ -154,8 +155,9 @@ Expected result: **Data collected, not linked to you, not used for tracking.**
   - **Purpose:** App Functionality only.
   - **Linked to the user's identity?** **No** (no account; anonymous sync store).
   - **Used for tracking?** **No.**
-  - Optional and **off by default**: nothing is sent until the user enables
-    Device Sync.
+  - Optional and **off by default**: nothing is sent until the user turns on
+    Device Sync and connects a store. Once connected, passes run automatically
+    after local changes and at app start (Wi-Fi only by default).
 - Rationale to keep on file: the app is local-first. Apart from Device Sync it
   makes only **user-initiated** network requests (imports the user chooses to
   run) and an **opt-in, off-by-default** update check; those are not used to
@@ -188,8 +190,9 @@ for a Sync-capable build.
     **off by default**.
   - **Purpose:** App functionality.
   - **Linked to identity?** No account or identity is involved.
-- [ ] **Is all user data encrypted in transit?** → Yes (all network calls the app
-  makes are HTTPS).
+- [ ] **Is all user data encrypted in transit?** → Yes. The default sync
+  endpoint and imports use HTTPS; a user-entered sync endpoint must be HTTPS
+  except plain-HTTP `localhost`/`127.0.0.1`, which never leaves the device.
 - [ ] **Do you provide a way for users to request data deletion?** → Yes:
   disabling Device Sync and deleting the sync store requests removal from the
   service (see `site/privacy/index.html` §7); all local data is under the user's
@@ -239,7 +242,8 @@ Caller's Compendium is an offline organizer/reference for contra dance callers.
 - To exercise an import network feature: open Import and paste a ContraDB program
   URL (e.g. https://contradb.com/programs/1) or a Caller's Box dance id, then
   review and commit. Nothing is uploaded — imports only fetch.
-- Device Sync is disabled by default. When a user enables it, the app transfers
+- Device Sync is disabled by default. When a user enables it and connects a store,
+  the app then syncs automatically, transferring
   configured application settings, choreography, and programming content to an 
   anonymous sync store so the user can share it across devices or with other 
   callers using the app. This data is used only for app functionality, is not 
