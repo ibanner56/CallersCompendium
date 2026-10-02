@@ -292,6 +292,19 @@ revocation if it leaks.
 > identical blobs, so two stores holding the same library remain matchable by
 > what they contain.
 
+> **Amended 2026-10-02.** **Devices are shown to the user only by a short tag
+> of their random identifier and a "last shared changes" day** (@ibanner56's
+> ruling, from a planning session). *Other devices* shows the first six
+> characters of each device ID, lengthened only where two would otherwise be
+> equal, and this device's own tag so the user can match entries across
+> devices; beside each, the day that device last published its manifest
+> (rounded to the day, never a time — data minimisation) and how many of this
+> device's changes are waiting for it. Both come from manifests a pass already
+> fetches, so nothing extra is requested or stored. There are deliberately no
+> names, nicknames, platforms or device types: two people can share a store, so
+> a name one of them typed could be the other's personal data, and the server
+> would learn it.
+
 ### What the server holds
 
 ```
@@ -1416,8 +1429,11 @@ makes self-hosting materially harder, which constraint 4 forbids.
   `deviceScoped` and beyond the sync migration like the others, but it is
   **not** scoped to the store and is never cleared: it records that bytes left
   this device, which a detach does not undo — detach forgets the sync ID
-  locally and leaves this device's manifest on the server, keeping the record
-  downloadable by every peer.
+  locally, and every record this device published stays downloadable by every
+  peer. Its manifest stays on the server unless the detach clean-up removes it,
+  which it does only when every entry is already carried, at the identical
+  hash, by another device's manifest (spec §3.3) — so either way some manifest
+  still names the record.
 
   A device holding a deletion pending advertises the entity as a **tombstone**
   rather than omitting it. Omitting it stops the resurrection but leaves the
@@ -1465,16 +1481,36 @@ makes self-hosting materially harder, which constraint 4 forbids.
   > long-established devices is exactly the case that would lose work. What
   > remains accepted is that the choice is between whole sets: the user
   > keeps one device's dialects, say, not a merge of both.
-- **Re-attaching to the same store leaves the previous attachment behind as
-  an inactive device.** Because each attachment has its own device ID and
-  detach sends no request, the old manifest stays on the server under the old
-  identifier. It shows under *Other devices*, occupies one of the store's 32
-  device slots, keeps its blobs reachable, and — since it lists this device's
-  own hashes — counts as a peer that already carries them, which can hide the
-  warning for records no live device has received. It lasts until a user
+- **Re-attaching to the same store can leave the previous attachment behind
+  as an inactive device.** Because each attachment has its own device ID, an
+  old manifest left on the server stays under the old identifier. It shows
+  under *Other devices*, occupies one of the store's 32 device slots, keeps its
+  blobs reachable, and — since it lists this device's own hashes — counts as a
+  peer that already carries them in the baseline advance. It lasts until a user
   removes it there or the store is reaped. Recognising it as this device's
   would need the very link between attachments the per-attachment identifier
-  removes, so it is accepted rather than fixed.
+  removes, so it is mitigated rather than fixed.
+
+  > **Amended 2026-10-02.** Mitigated by the detach clean-up (@ibanner56's
+  > ruling, from a planning session): after the local clear has committed,
+  > detach makes one best-effort, background attempt to
+  > `DELETE /v1/manifests/{self}`, and only when every entry of that manifest
+  > is carried, at the identical hash, by another device's manifest (spec
+  > §3.3). This changes a guarantee this ADR used to state — that detach sends
+  > no request — and it is safe because of that condition: the removal makes no
+  > publication unreachable, since another manifest still names every one, so
+  > nothing a peer could still fetch is lost. When the condition does not hold,
+  > when the device is offline or on mobile data with *Sync only on WiFi* on, or
+  > when the attempt fails, the old entry remains as described above and is
+  > removed under *Other devices*. A new pairing cancels the attempt, so the old
+  > and new identifiers are never used side by side, as does turning Device
+  > Sync off, and it is never retried.
+  >
+  > A leftover manifest reads as *asleep* in the per-peer judgement (spec §6.9),
+  > so it no longer hides a warning: the warning is now raised per device that
+  > is publishing but not taking changes. What it still does is under-count the
+  > *Other devices* "waiting" line for itself, by every record unchanged since
+  > it was left behind.
 - **Any holder of the sync ID can impersonate a device or wipe the store.**
   Manifest `PUT` accepts a caller-chosen device id, and the same bearer
   authorises `DELETE /v1/store`. This is inherent to the bearer model rather than

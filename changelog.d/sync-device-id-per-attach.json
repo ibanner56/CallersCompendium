@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "Each time a device connects to Device Sync, it makes up a new identifier for itself instead of reusing the one from its last connection, so moving to a new sync phrase no longer carries the same device identifier into your new store. The server can still see the content you sync, so this removes one link between your stores, not every link. If you disconnect and reconnect to the same store, the earlier connection stays under Other devices until you remove it there."
+      "Each time a device connects to Device Sync, it makes up a new identifier for itself instead of reusing the one from its last connection, so moving to a new sync phrase no longer carries the same device identifier into your new store. The server can still see the content you sync, so this removes one link between your stores, not every link. If you disconnect and reconnect to the same store, the earlier connection can stay under Other devices until you remove it there."
     ]
   }
 }

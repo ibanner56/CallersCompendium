@@ -22,6 +22,7 @@ import '../../widgets/collapsible_section.dart';
 import '../../widgets/section_header.dart';
 import '../sync_conflict_sheet.dart';
 import '../sync_review_screen.dart';
+import 'sync_device_labels.dart';
 import 'sync_devices_screen.dart';
 import 'sync_failure_labels.dart';
 import 'sync_notice_labels.dart';
@@ -309,8 +310,11 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
     if (ModalRoute.of(context)?.isCurrent ?? true) await _openConflicts();
   }
 
-  /// Detach is purely local and reversible only by re-entering the phrase, so
-  /// it is confirmed first and says what it does and does not touch.
+  /// Detach forgets the phrase, and is reversible only by re-entering it, so
+  /// it is confirmed first and says what it does and does not touch —
+  /// including the one thing it may send: removing this device's own entry
+  /// from the store when the other devices already have everything from it
+  /// (`SyncController.detach`).
   Future<void> _confirmDisconnect(SyncController controller) async {
     final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
@@ -525,21 +529,49 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
                 ),
               ),
             // The conditions the last pass to raise any had to report (spec
-            // §2 *report*): non-blocking and with no dismissal. A needs-you
-            // group adds Copy details, which copies a code and clears
-            // nothing. They sit beside the status rather than in it because a
-            // pass can complete successfully and still have something to say.
+            // §2 *report*): non-blocking and with no dismissal. They sit
+            // beside the status rather than in it because a pass can complete
+            // successfully and still have something to say. A per-device
+            // group is one tile per device, each naming it by the tag the
+            // *Other devices* list shows it under. A needs-you group adds
+            // Copy details, which copies a code and clears nothing.
             for (final group in syncNoticeGroups(controller.notices))
-              _SyncNoticeTile(
-                key: ValueKey(group),
-                group: group,
-                reports: controller.notices,
-                onCopyDetails: syncNoticeNeedsYou(group)
-                    ? () => _copySupportCode(
-                        syncNoticeSupportCode(group, controller.notices),
-                      )
-                    : null,
-              ),
+              if (syncNoticeIsPerDevice(group))
+                for (final peerId in syncNoticePeerIds(
+                  group,
+                  controller.notices,
+                ))
+                  _SyncNoticeTile(
+                    key: ValueKey((group, peerId)),
+                    group: group,
+                    reports: [
+                      for (final report in controller.notices)
+                        if (report.peerId == peerId) report,
+                    ],
+                    peerTag: syncDeviceTags({
+                      ...controller.peerSummaries.keys,
+                      ...syncNoticePeerIds(group, controller.notices),
+                    })[peerId],
+                    onCopyDetails: syncNoticeNeedsYou(group)
+                        ? () => _copySupportCode(
+                            syncNoticeSupportCode(group, [
+                              for (final report in controller.notices)
+                                if (report.peerId == peerId) report,
+                            ]),
+                          )
+                        : null,
+                  )
+              else
+                _SyncNoticeTile(
+                  key: ValueKey(group),
+                  group: group,
+                  reports: controller.notices,
+                  onCopyDetails: syncNoticeNeedsYou(group)
+                      ? () => _copySupportCode(
+                          syncNoticeSupportCode(group, controller.notices),
+                        )
+                      : null,
+                ),
             // What this device merged when it last fresh-attached, for the rest
             // of this app session — the latch is in memory, so it does not
             // outlive a restart. ADR-004 makes the count the mitigation
@@ -738,11 +770,15 @@ class _SyncNoticeTile extends StatefulWidget {
     super.key,
     required this.group,
     required this.reports,
+    this.peerTag,
     this.onCopyDetails,
   });
 
   final SyncNoticeGroup group;
   final List<SyncReport> reports;
+
+  /// The tag of the one device a per-device notice is about; null otherwise.
+  final String? peerTag;
 
   /// Copies the notice's support code; set for a needs-you group only.
   final VoidCallback? onCopyDetails;
@@ -806,33 +842,55 @@ class _SyncNoticeTileState extends State<_SyncNoticeTile> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final peers = syncNoticePeerCount(widget.group, widget.reports);
+    final perDevice = syncNoticeIsPerDevice(widget.group);
+    // A per-device notice already names its one device in its text.
+    final peers = perDevice
+        ? 0
+        : syncNoticePeerCount(widget.group, widget.reports);
     final total = _records.length;
     final needsYou = syncNoticeNeedsYou(widget.group);
-    return ListTile(
-      key: ValueKey('sync-notice-${widget.group.name}'),
-      leading: needsYou
-          ? Icon(
-              Icons.error_outline,
-              key: ValueKey('sync-notice-${widget.group.name}-needs-you'),
-              color: theme.colorScheme.error,
-            )
-          : Icon(Icons.info_outline, color: theme.colorScheme.tertiary),
-      title: Text(
-        syncNoticeText(
-          l10n,
-          widget.group,
-          recordCount: syncNoticeCountedRecords(widget.group, widget.reports),
-        ),
+    final peerTag = widget.peerTag;
+    final keyName = perDevice && peerTag != null
+        ? '${widget.group.name}-$peerTag'
+        : widget.group.name;
+    final text = Text(
+      syncNoticeText(
+        l10n,
+        widget.group,
+        recordCount: syncNoticeCountedRecords(widget.group, widget.reports),
+        device: perDevice ? (tag: peerTag ?? '', count: total) : null,
       ),
+    );
+    return ListTile(
+      key: ValueKey('sync-notice-$keyName'),
+      // Needs-you is carried by the icon *and* a text label, never by colour
+      // alone.
+      leading: needsYou
+          ? Icon(Icons.warning_amber_outlined, color: theme.colorScheme.error)
+          : Icon(Icons.info_outline, color: theme.colorScheme.tertiary),
+      title: needsYou
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.settingsSyncNoticeNeedsYou,
+                  key: ValueKey('sync-notice-$keyName-needs-you'),
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+                text,
+              ],
+            )
+          : text,
       trailing: switch (widget.onCopyDetails) {
         final onCopy? => _CopyDetailsButton(
-          key: ValueKey('sync-notice-${widget.group.name}-copy-details'),
+          key: ValueKey('sync-notice-$keyName-copy-details'),
           onPressed: onCopy,
         ),
         null => null,
       },
-      subtitle: total == 0 && peers == 0
+      subtitle: total == 0 && peers == 0 && !(needsYou && perDevice)
           ? null
           : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -864,6 +922,19 @@ class _SyncNoticeTileState extends State<_SyncNoticeTile> {
                   Text(
                     l10n.settingsSyncNoticeFromDevices(peers),
                     key: ValueKey('sync-notice-${widget.group.name}-peers'),
+                  ),
+                // A per-device notice's one action: the list where that
+                // device is shown by the same tag, with what is waiting for
+                // it. A newer-version notice's remedy is updating this app,
+                // which nothing on this screen does, so it has none here.
+                if (needsYou && perDevice)
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: TextButton(
+                      key: ValueKey('sync-notice-$keyName-action'),
+                      onPressed: () => showSyncDevicesScreen(context),
+                      child: Text(l10n.settingsSyncNoticeSeeDevices),
+                    ),
                   ),
               ],
             ),

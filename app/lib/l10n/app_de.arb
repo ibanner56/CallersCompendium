@@ -652,9 +652,17 @@
   "@settingsSyncNoticeDeferredInbound": {
     "x-sourceSha256": "395ee35f765d5cec102c6a529736ec0a86de8c5af7835967f616210a342acde2"
   },
-  "settingsSyncNoticeUnreflectedPublication": "Änderungen von diesem Gerät sind nach mehreren Synchronisierungen nicht auf deinen anderen Geräten erschienen. Öffne dort die App und synchronisiere.",
-  "@settingsSyncNoticeUnreflectedPublication": {
-    "x-sourceSha256": "678de9e942bee2b75e03cae7f00ac44553303acf61ee0bbb27663a90f5aa5037"
+  "settingsSyncNoticePeerNotTaking": "{count, plural, =1{Gerät {tag} synchronisiert, nimmt aber 1 Änderung von diesem Gerät nicht an. Die Änderung ist hier sicher. Das andere Gerät braucht vielleicht ein App-Update, oder Datum und Uhrzeit dieses Geräts stimmen nicht.} other{Gerät {tag} synchronisiert, nimmt aber {count} Änderungen von diesem Gerät nicht an. Sie sind hier sicher. Das andere Gerät braucht vielleicht ein App-Update, oder Datum und Uhrzeit dieses Geräts stimmen nicht.}}",
+  "@settingsSyncNoticePeerNotTaking": {
+    "x-sourceSha256": "23d0a5d9e3852253a55eaf588f9a609c8082b70652fe7c8a1556438d0683bfe0"
+  },
+  "settingsSyncNoticeNeedsYou": "Erfordert dein Handeln",
+  "@settingsSyncNoticeNeedsYou": {
+    "x-sourceSha256": "74b6abdf59690fdffec2059089487cd63658249da5301cbf065e9977518fbd8f"
+  },
+  "settingsSyncNoticeSeeDevices": "Andere Geräte anzeigen",
+  "@settingsSyncNoticeSeeDevices": {
+    "x-sourceSha256": "7dfff4069880913086af6f2b4047af66c461b42ffa9997e3a0e41519c23b97dd"
   },
   "settingsSyncNotBackup": "Synchronisierung ist kein Backup. Ein Speicher, der 30 Tage lang nicht genutzt wird, wird entfernt. Erstelle also weiterhin Dateisicherungen.",
   "@settingsSyncNotBackup": {
@@ -672,17 +680,17 @@
   "@settingsSyncDisconnectTitle": {
     "x-sourceSha256": "5b0463da95797a1078c49e57743fa8e7ece0b2101bae8d4f6f5b64794c3dd159"
   },
-  "settingsSyncDisconnectSubtitle": "Die Synchronisierung hier beenden. Der Speicher und deine anderen Geräte bleiben unverändert.",
+  "settingsSyncDisconnectSubtitle": "Die Synchronisierung hier beenden. Deine Bibliothek bleibt, wie sie ist – hier und auf deinen anderen Geräten.",
   "@settingsSyncDisconnectSubtitle": {
-    "x-sourceSha256": "66b3c050d9b3ce7bfaf6ab7c42b26081e8bc2ea6e0cb31c67a91e4c3b99ed2b9"
+    "x-sourceSha256": "cd7f33537ebd50b08b4a510f2d92a3d42b29f90a54d657770f44dc0f9df831d6"
   },
   "settingsSyncDisconnectConfirmTitle": "Dieses Gerät trennen?",
   "@settingsSyncDisconnectConfirmTitle": {
     "x-sourceSha256": "368f30952240db8e8850a97232ef46e89fc0d0ec2facc04576d0c33d946f9fdd"
   },
-  "settingsSyncDisconnectConfirmBody": "Dieses Gerät synchronisiert dann nicht mehr und vergisst seine Synchronisierungsphrase. Deine Bibliothek auf diesem Gerät bleibt, wie sie ist, und der Speicher sowie deine anderen Geräte sind nicht betroffen. Um dich später wieder zu verbinden, brauchst du die Phrase – stell also sicher, dass du sie hast.",
+  "settingsSyncDisconnectConfirmBody": "Dieses Gerät synchronisiert dann nicht mehr und vergisst seine Synchronisierungsphrase. Deine Bibliothek auf diesem Gerät bleibt, wie sie ist, und auf deinen anderen Geräten ebenso. Beim Trennen wird dieses Gerät aus dem Synchronisierungsspeicher entfernt, wenn deine anderen Geräte schon alles von ihm haben. Wenn nicht, bleibt es unter „Andere Geräte“ aufgeführt, bis du es dort entfernst. Um dich später wieder zu verbinden, brauchst du die Phrase – stell also sicher, dass du sie hast.",
   "@settingsSyncDisconnectConfirmBody": {
-    "x-sourceSha256": "ef8fe8eddad993cbb235762e998a058f013d6d39a888d9561b3e8abbfd2dfc9b"
+    "x-sourceSha256": "a614391804916146f733c07452ad5b40e3bc4a8ff86a47b6f9be9809cce428df"
   },
   "settingsSyncDisconnectConfirmAction": "Trennen",
   "@settingsSyncDisconnectConfirmAction": {
@@ -704,9 +712,33 @@
   "@settingsSyncDevicesScreenTitle": {
     "x-sourceSha256": "4e027dbb70b262fc7f99d829e4b5627a44811381c5f630afbdb415bb9e688514"
   },
-  "settingsSyncDevicesCaution": "Der Server kennt jedes Gerät nur an einer Kennung, die er selbst vergeben hat – deshalb stehen hier keine Gerätenamen, und dieses Gerät wird nicht aufgeführt. Wenn du nicht sicher bist, welches du entfernen sollst, kannst du es gefahrlos stehen lassen: Ein entferntes Gerät kann sich mit der Synchronisierungsphrase wieder verbinden.",
+  "settingsSyncDevicesCaution": "Jedes Gerät denkt sich seine eigene zufällige Kennung aus, und bei jeder Verbindung eine neue. Deshalb werden Geräte hier mit einem kurzen Kürzel aus dieser Kennung angezeigt statt mit einem Namen. Dieses Gerät steht nicht in der Liste; sein eigenes Kürzel steht unten, damit du es auf deinen anderen Geräten wiederfindest. Wenn du nicht sicher bist, welches du entfernen sollst, kannst du es gefahrlos stehen lassen: Ein entferntes Gerät kann sich mit der Synchronisierungsphrase wieder verbinden.",
   "@settingsSyncDevicesCaution": {
-    "x-sourceSha256": "88b8e650ef9354688da2a359b0300257622ba39c1f88eca6b34d489fb276ca0d"
+    "x-sourceSha256": "06095cd7672928619860e48460c6b02e586391aeccd04a7734f82c92ce67bba9"
+  },
+  "settingsSyncDevicesThisDevice": "Dieses Gerät: {tag}",
+  "@settingsSyncDevicesThisDevice": {
+    "x-sourceSha256": "744526618d198b5d7991b6fc9d3287633e1d9d4adbe8620fdced7384476e5db3"
+  },
+  "settingsSyncDeviceTag": "Gerät {tag}",
+  "@settingsSyncDeviceTag": {
+    "x-sourceSha256": "b21e98404043fc2ee91ec8515bcdf70ab2fb5c17fed6801bfca09ec512f1efea"
+  },
+  "settingsSyncDeviceLastSharedToday": "Hat heute zuletzt Änderungen geteilt",
+  "@settingsSyncDeviceLastSharedToday": {
+    "x-sourceSha256": "5e3f46323fb0881c0d847cde65ea32c3ccb3141e783d93eeb66021f39d1c675f"
+  },
+  "settingsSyncDeviceLastSharedDays": "{count, plural, =1{Hat gestern zuletzt Änderungen geteilt} other{Hat vor {count} Tagen zuletzt Änderungen geteilt}}",
+  "@settingsSyncDeviceLastSharedDays": {
+    "x-sourceSha256": "5130df4cb0edfceee6e54eaee5ce1cfad1d51c50ee88ae649b2ab7efb2b0bb4f"
+  },
+  "settingsSyncDeviceLastSharedWeeks": "{count, plural, =1{Hat vor etwa einer Woche zuletzt Änderungen geteilt} other{Hat vor etwa {count} Wochen zuletzt Änderungen geteilt}}",
+  "@settingsSyncDeviceLastSharedWeeks": {
+    "x-sourceSha256": "813cea14ea49014db851c80007f10b72d5a2a42fc61055b5def2c2f36988f3c1"
+  },
+  "settingsSyncDeviceWaiting": "{count, plural, =1{1 Änderung von diesem Gerät wartet noch darauf, dort anzukommen.} other{{count} Änderungen von diesem Gerät warten noch darauf, dort anzukommen.}}",
+  "@settingsSyncDeviceWaiting": {
+    "x-sourceSha256": "95b500fa9476a659caa02623419394239d7e50a8ff5311d7d9e7a355db42c042"
   },
   "settingsSyncDevicesEmpty": "Mit diesem Speicher sind keine anderen Geräte verbunden.",
   "@settingsSyncDevicesEmpty": {

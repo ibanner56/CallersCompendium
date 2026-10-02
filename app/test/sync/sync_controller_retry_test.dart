@@ -146,16 +146,25 @@ void main() {
       reconfigure: ({bool startPass = true}) async {},
       runExclusive: runExclusive ?? (operation) => operation(),
       // Never reaches a network: the wipe below is refused by this fake.
-      deviceAdminFactory: (syncId, endpoint) => SyncDeviceAdmin(
-        getStore: ({required previouslyUsed}) => throw UnimplementedError(),
-        deleteManifest: (_) => throw UnimplementedError(),
-        deleteStore: () async => const SyncHttpResponse(
-          statusCode: 500,
-          kind: SyncResponseKind.serverError,
-          headers: {},
-          body: [],
-        ),
-      ),
+      // Never reaches a network. The wipe is refused at the server; the
+      // manifest removal a disconnect now attempts (best effort) succeeds.
+      deviceAdminFactory: (syncId, endpoint, {requestTimeout}) =>
+          SyncDeviceAdmin(
+            getStore: ({required previouslyUsed}) => throw UnimplementedError(),
+            getManifest: (_) => throw UnimplementedError(),
+            deleteManifest: (_) async => const SyncHttpResponse(
+              statusCode: 204,
+              kind: SyncResponseKind.success,
+              headers: {},
+              body: [],
+            ),
+            deleteStore: () async => const SyncHttpResponse(
+              statusCode: 500,
+              kind: SyncResponseKind.serverError,
+              headers: {},
+              body: [],
+            ),
+          ),
       classifier: network,
       now: () => clock,
       retryBackoff: _backoff,

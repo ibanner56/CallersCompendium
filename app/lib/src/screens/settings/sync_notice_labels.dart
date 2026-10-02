@@ -17,7 +17,7 @@ import '../../../l10n/app_localizations.dart';
 /// pointed at :614 and the sentence had since moved to :652.
 ///
 /// Declaration order is the order notices appear, so a pass raising several
-/// conditions renders deterministically. The one needs-you group comes first.
+/// conditions renders deterministically. [newerVersion] comes first: it needs the user, and its remedy is here.
 enum SyncNoticeGroup {
   /// Another device shared records in an envelope version this build cannot
   /// read. Needs you: updating the app on this device is the only remedy, and
@@ -63,10 +63,30 @@ enum SyncNoticeGroup {
   /// the pass was preparing it. It is retried, not lost.
   deferredInbound,
 
-  /// Records this device published have not appeared in any peer's manifest
-  /// for three consecutive passes.
+  /// Another device has published at least twice since this one published
+  /// some records, and still does not carry them (spec §6.9): it is syncing,
+  /// but not taking them — typically an older app version refusing them. A
+  /// *needs you* group, and the one shown per device, naming each by its tag.
+  ///
+  /// A device that has simply not published since is *asleep*, not this; it
+  /// raises no notice, and the *Other devices* list shows what is waiting for
+  /// it instead.
   unreflectedPublication,
 }
+
+/// Whether [group] is shown once per other device rather than once in all.
+bool syncNoticeIsPerDevice(SyncNoticeGroup group) =>
+    group == SyncNoticeGroup.unreflectedPublication;
+
+/// The other devices [group]'s reports in [reports] name, deduplicated, in
+/// report order.
+List<String> syncNoticePeerIds(
+  SyncNoticeGroup group,
+  Iterable<SyncReport> reports,
+) => {
+  for (final report in reports)
+    if (syncNoticeGroupFor(report) == group) ?report.peerId,
+}.toList(growable: false);
 
 /// The group [report] belongs to.
 ///
@@ -116,26 +136,30 @@ List<SyncNoticeGroup> syncNoticeGroups(Iterable<SyncReport> reports) {
   ];
 }
 
-/// Whether [group] needs the user to act, and so is shown with the warning
-/// styling, a text label and a copyable support code; every other group is an
-/// informational heads-up.
+/// Whether [group] asks the user to do something, and so is shown with a
+/// warning icon, a "needs you" label, its action and a copyable support code,
+/// rather than as information.
 ///
 /// Exhaustive with no `_` arm so a new group must be placed in a tier.
 bool syncNoticeNeedsYou(SyncNoticeGroup group) => switch (group) {
-  SyncNoticeGroup.newerVersion => true,
+  SyncNoticeGroup.newerVersion ||
+  SyncNoticeGroup.unreflectedPublication => true,
   SyncNoticeGroup.divergence ||
   SyncNoticeGroup.keptLocalCreation ||
   SyncNoticeGroup.quarantinedLocal ||
   SyncNoticeGroup.withheldUnreadableLocal ||
   SyncNoticeGroup.skippedRecord ||
   SyncNoticeGroup.clock ||
-  SyncNoticeGroup.deferredInbound ||
-  SyncNoticeGroup.unreflectedPublication => false,
+  SyncNoticeGroup.deferredInbound => false,
 };
 
 /// The notice text for [group]. [recordCount] is [syncNoticeCountedRecords];
 /// only [SyncNoticeGroup.newerVersion] says it, and falls back to an
 /// uncounted sentence at 0 — a newer manifest does not say what it lists.
+///
+/// [device] is required for a group [syncNoticeIsPerDevice] says is shown per
+/// device, and ignored otherwise: the device's tag, and how many records the
+/// notice is about.
 ///
 /// Never the report's own `message`: those are internal diagnostics written
 /// for a maintainer reading a log — they name wire paths, status codes and
@@ -144,6 +168,7 @@ String syncNoticeText(
   AppLocalizations l10n,
   SyncNoticeGroup group, {
   required int recordCount,
+  ({String tag, int count})? device,
 }) => switch (group) {
   SyncNoticeGroup.newerVersion =>
     recordCount > 0
@@ -158,7 +183,7 @@ String syncNoticeText(
   SyncNoticeGroup.clock => l10n.settingsSyncNoticeClock,
   SyncNoticeGroup.deferredInbound => l10n.settingsSyncNoticeDeferredInbound,
   SyncNoticeGroup.unreflectedPublication =>
-    l10n.settingsSyncNoticeUnreflectedPublication,
+    l10n.settingsSyncNoticePeerNotTaking(device!.count, device.tag),
 };
 
 /// How many records a notice names before summarising the rest as a count.

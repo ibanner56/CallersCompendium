@@ -37,8 +37,9 @@ typedef SyncPairingProbeFactory =
     SyncPairingProbe Function(String syncId, Uri endpoint);
 
 /// The subset of [SyncHttpClient] the device-management surface needs: the two
-/// server-side removals ADR-004 relies on, plus the store read that carries the
-/// peer set.
+/// server-side removals ADR-004 relies on, the store read that carries the
+/// peer set, and the manifest read the detach clean-up checks before removing
+/// this device's own manifest.
 ///
 /// Deliberately *not* folded into [SyncCoordinatorTransport]: these are owner
 /// actions taken from Settings, not steps of a pass, and putting them on the
@@ -48,6 +49,7 @@ typedef SyncPairingProbeFactory =
 class SyncDeviceAdmin {
   const SyncDeviceAdmin({
     required this.getStore,
+    required this.getManifest,
     required this.deleteManifest,
     required this.deleteStore,
     this.close,
@@ -56,6 +58,10 @@ class SyncDeviceAdmin {
   /// `GET /v1/store`, read for its `devices` list (spec §5, `devices`).
   final Future<SyncStoreResult> Function({required bool previouslyUsed})
   getStore;
+
+  /// `GET /v1/manifests/{deviceId}`, unconditional (spec §5). Used only by the
+  /// detach clean-up ([SyncController.detach]).
+  final Future<SyncHttpResponse> Function(String deviceId) getManifest;
 
   /// `DELETE /v1/manifests/{deviceId}` — removes one peer (spec §3.3).
   final Future<SyncHttpResponse> Function(String deviceId) deleteManifest;
@@ -66,10 +72,59 @@ class SyncDeviceAdmin {
   final void Function()? close;
 }
 
-/// Builds the device-management client for the store this device is attached
-/// to. Defaults to a live [SyncHttpClient]; tests inject a fake.
+/// Builds the device-management client for [syncId] at [endpoint]. Defaults to
+/// a live [SyncHttpClient]; tests inject a fake.
+///
+/// [requestTimeout] is the per-request deadline, when shorter than the
+/// transport's own default ([syncRequestTimeout]): the detach clean-up asks
+/// for [kSyncDetachCleanupRequestTimeout].
 typedef SyncDeviceAdminFactory =
-    SyncDeviceAdmin Function(String syncId, Uri endpoint);
+    SyncDeviceAdmin Function(
+      String syncId,
+      Uri endpoint, {
+      Duration? requestTimeout,
+    });
+
+/// The per-request deadline for the detach clean-up's requests.
+const Duration kSyncDetachCleanupRequestTimeout = Duration(seconds: 10);
+
+/// The deadline for the whole detach clean-up, after which it is abandoned.
+const Duration kSyncDetachCleanupDeadline = Duration(seconds: 30);
+
+/// How the best-effort removal of this device's own manifest on detach ended
+/// (see [SyncController.detach]). Nothing reads it but tests and the log: the
+/// attempt is never reported to the user, because nothing about it is theirs
+/// to act on.
+enum SyncDetachCleanupOutcome {
+  /// The `DELETE` was sent. Its answer is deliberately not examined.
+  deleteSent,
+
+  /// No request was made: no connection, *Sync only on WiFi* on a metered
+  /// one, or Device Sync turned off.
+  skippedConnection,
+
+  /// The store lists no other device, so this manifest is the only place its
+  /// records are published.
+  skippedOnlyDevice,
+
+  /// This device's manifest is not on the server (`404`): nothing to remove.
+  skippedNoManifest,
+
+  /// Some entry of this device's manifest is not carried, with the identical
+  /// hash, by any peer manifest — removing it could lose that record for
+  /// every device that has not yet fetched it.
+  skippedNotReflected,
+
+  /// A read failed or answered something unusable, so the condition could not
+  /// be established.
+  skippedUnknown,
+
+  /// A new pairing started first.
+  cancelled,
+
+  /// The overall deadline passed first.
+  timedOut,
+}
 
 /// What one device-management action did.
 enum SyncAdminOutcome {
@@ -103,10 +158,16 @@ class SyncDeviceListResult {
   const SyncDeviceListResult({
     required this.outcome,
     this.devices = const [],
+    this.selfDeviceId,
     this.failure,
   });
 
   final SyncAdminOutcome outcome;
+
+  /// This attachment's own device ID, so the list can show the user the tag
+  /// this device goes by on their other devices. Null when none has been
+  /// minted yet, and always null unless [outcome] is [SyncAdminOutcome.done].
+  final String? selfDeviceId;
 
   /// Why the listing failed, when [outcome] is [SyncAdminOutcome.failed].
   final SyncFailure? failure;
@@ -185,6 +246,7 @@ class SyncController extends ChangeNotifier {
     DateTime Function()? now,
     this._debounce = kSyncChangeDebounce,
     this._retryBackoff = kSyncRetryBackoff,
+    this._detachCleanupDeadline = kSyncDetachCleanupDeadline,
   }) : assert(_retryBackoff.isNotEmpty),
        _now = now ?? (() => DateTime.now().toUtc());
 
@@ -215,12 +277,16 @@ class SyncController extends ChangeNotifier {
   final DateTime Function() _now;
   final Duration _debounce;
   final List<Duration> _retryBackoff;
+  final Duration _detachCleanupDeadline;
   final SyncPairingProbeFactory? _pairingProbeFactory;
   final SyncDeviceAdminFactory? _deviceAdminFactory;
 
   /// Builds the probe for a pairing attempt. [endpoint] must already have
   /// passed [validateSyncEndpoint] and [syncId] must be a well-formed ID.
   SyncPairingProbe probeFor(String syncId, Uri endpoint) {
+    // A pairing is starting: the clean-up a previous detach left running must
+    // not overlap it (see [detach]).
+    _cancelDetachCleanup();
     final factory = _pairingProbeFactory;
     if (factory != null) return factory(syncId, endpoint);
     final client = SyncHttpClient(endpoint: endpoint, syncId: syncId);
@@ -237,11 +303,26 @@ class SyncController extends ChangeNotifier {
     final syncId = _syncId;
     final endpoint = _endpoint;
     if (syncId == null || endpoint == null) return null;
+    return _deviceAdminFor(syncId, endpoint);
+  }
+
+  SyncDeviceAdmin _deviceAdminFor(
+    String syncId,
+    Uri endpoint, {
+    Duration? requestTimeout,
+  }) {
     final factory = _deviceAdminFactory;
-    if (factory != null) return factory(syncId, endpoint);
-    final client = SyncHttpClient(endpoint: endpoint, syncId: syncId);
+    if (factory != null) {
+      return factory(syncId, endpoint, requestTimeout: requestTimeout);
+    }
+    final client = SyncHttpClient(
+      endpoint: endpoint,
+      syncId: syncId,
+      requestTimeout: requestTimeout ?? syncRequestTimeout,
+    );
     return SyncDeviceAdmin(
       getStore: client.getStore,
+      getManifest: client.getManifest,
       deleteManifest: client.deleteManifest,
       deleteStore: client.deleteStore,
       close: client.close,
@@ -258,6 +339,8 @@ class SyncController extends ChangeNotifier {
   SyncStoreQuota? _storeQuota;
   int _mergedDuplicates = 0;
   List<SyncReport> _notices = const [];
+  Map<String, SyncPeerSummary> _peerSummaries = const {};
+  _DetachCleanup? _detachCleanup;
   int _inFlight = 0;
   bool _dirty = false;
   int _pendingSelfWrites = 0;
@@ -356,6 +439,22 @@ class SyncController extends ChangeNotifier {
   /// peer identifiers, which is a privacy-registry question rather than a
   /// status-surface one.
   List<SyncReport> get notices => _notices;
+
+  /// What the most recent completed pass saw of each other device, by device
+  /// ID: when it last shared changes and how many of this device's are waiting
+  /// for it. Read by the *Other devices* list, which shows a peer the pass
+  /// could not read — or one that joined since — with no line at all rather
+  /// than a guess.
+  ///
+  /// In memory only, like [notices], and for the same reasons: the next pass
+  /// re-derives it, and keeping it would mean a stored field of peer
+  /// identifiers and timestamps.
+  Map<String, SyncPeerSummary> get peerSummaries => _peerSummaries;
+
+  /// The detach clean-up still running, for tests: completes with how it
+  /// ended, or is null when none is running. See [detach].
+  @visibleForTesting
+  Future<SyncDetachCleanupOutcome>? get detachCleanup => _detachCleanup?.done;
 
   /// Why the most recent [removeDevice] or [wipeStore] failed, when it
   /// returned [SyncAdminOutcome.failed] and the reason is known; null
@@ -461,6 +560,8 @@ class SyncController extends ChangeNotifier {
     _pendingSelfWrites = 0;
     _pendingSyncAppliedInvalidations = 0;
     if (value) _expectSelfWrite();
+    // Off means nothing is sent, including a detach clean-up still running.
+    if (!value) _cancelDetachCleanup();
     await _settings.set(kSyncEnabledKey, value);
     if (!value) {
       _debounceTimer?.cancel();
@@ -650,6 +751,11 @@ class SyncController extends ChangeNotifier {
     // nothing says nothing about an earlier attach's count, because every
     // ordinary pass reports zero.
     if (result.duplicateCount > 0) _mergedDuplicates = result.duplicateCount;
+    if (result.peers case final peers?) {
+      _peerSummaries = Map.unmodifiable({
+        for (final peer in peers) peer.peerId: peer,
+      });
+    }
     if (result.status == SyncPassStatus.completed) {
       // A completed pass re-examined everything, so what it raises replaces
       // what stood — with one carve-out. A rejected peer record's wire hash
@@ -881,6 +987,9 @@ class SyncController extends ChangeNotifier {
     // A retry pending for the store this device is leaving must not run
     // against the one it is joining.
     _cancelRetry(reset: true);
+    // Also cancelled when the probe is built; repeated here for a pairing
+    // that skipped the probe.
+    _cancelDetachCleanup();
     // Every attachment publishes under a device ID of its own (spec §3.3), so
     // one a previous attachment left behind is erased before the sync ID is
     // written: the coordinator factory mints only when none is stored. Erased
@@ -919,22 +1028,37 @@ class SyncController extends ChangeNotifier {
 
   /// Stops syncing on this device: forgets the sync ID, the server it was
   /// paired with and the store-scoped local state (spec glossary *detach*,
-  /// §6.2 step 3). Purely local — no request is sent, so the store, this
-  /// device's manifest and every peer are untouched. Also erases this
-  /// attachment's device ID, so the next pairing publishes under a new one.
-  /// Leaves sync enabled, the used-identity verifiers, publication history and
-  /// normalisation skips in place, as the spec requires; the next pairing is a
-  /// fresh attach. Contrast [wipeStore], which destroys the store for every
-  /// device; the local half of the two is shared ([_clearAttachment]) and the
-  /// difference is entirely in what is sent.
+  /// §6.2 step 3). Also erases this attachment's device ID, so the next
+  /// pairing publishes under a new one. Leaves sync enabled, the used-identity
+  /// verifiers, publication history and normalisation skips in place, as the
+  /// spec requires; the next pairing is a fresh attach. Contrast [wipeStore],
+  /// which destroys the store for every device; the local half of the two is
+  /// shared ([_clearAttachment]).
+  ///
+  /// **Then, once the local clear has committed, one best-effort attempt to
+  /// remove this device's own manifest from the store**, so it does not linger
+  /// as a stale entry under *Other devices* (ADR-004, "Re-attaching to the same
+  /// store"). The attempt runs in the background and this method does not wait
+  /// for it: nothing about it can delay or fail the detach, and its outcome is
+  /// never shown. It removes the manifest only when that cannot lose anything —
+  /// every entry is carried, with the identical hash, by some peer manifest —
+  /// and is skipped otherwise; see [_runDetachCleanup] for the conditions. It
+  /// is never retried. The sync phrase, endpoint and old device ID it needs
+  /// are held in memory for its duration only, and a new pairing cancels it.
   Future<void> detach() async {
     if (!paired || _detaching) return;
     _detaching = true;
     _debounceTimer?.cancel();
     _cancelRetry(reset: true);
     _dirty = false;
+    _DetachedStore? leaving;
     try {
       await _runExclusive(() async {
+        // Read before the clear, which erases all three. Held only in memory,
+        // and only for the clean-up below.
+        final selfId = await _selfDeviceId();
+        final syncId = _syncId;
+        final endpoint = _endpoint;
         await _clearAttachment();
         // Inside the boundary, immediately after the transaction commits.
         //
@@ -949,9 +1073,165 @@ class SyncController extends ChangeNotifier {
         // Clearing here makes it structural: no queued writer can observe the
         // old credential, because the clear precedes the release entirely.
         _forgetAttachment();
+        if (selfId != null && syncId != null && endpoint != null) {
+          leaving = (syncId: syncId, endpoint: endpoint, deviceId: selfId);
+        }
       });
     } finally {
       _detaching = false;
+    }
+    // Started only once the boundary has returned — the clear committed and
+    // the coordinator gone — and not awaited: detach is done here.
+    if (leaving case final store?) _startDetachCleanup(store);
+  }
+
+  void _startDetachCleanup(_DetachedStore store) {
+    _cancelDetachCleanup();
+    if (_disposed) return;
+    final cleanup = _DetachCleanup();
+    _detachCleanup = cleanup;
+    cleanup.done = _runDetachCleanup(cleanup, store)
+        .timeout(
+          _detachCleanupDeadline,
+          onTimeout: () {
+            cleanup.cancel();
+            return SyncDetachCleanupOutcome.timedOut;
+          },
+        )
+        .whenComplete(() {
+          cleanup.closeAdmin();
+          if (identical(_detachCleanup, cleanup)) _detachCleanup = null;
+        });
+    unawaited(cleanup.done);
+  }
+
+  void _cancelDetachCleanup() {
+    _detachCleanup?.cancel();
+    _detachCleanup = null;
+  }
+
+  /// The detach clean-up itself. Never throws.
+  ///
+  /// Removes this device's manifest only when **all** of these hold, checked
+  /// in this order so the cheapest refusal costs no request at all:
+  ///
+  /// 1. Device Sync is on and the §6.12 connection policy would allow a pass:
+  ///    online, and not metered while *Sync only on WiFi* is on. Read from the
+  ///    classifier directly — not [_connectionGate], which would route the
+  ///    user to the WiFi setting for an attempt they never made.
+  /// 2. `GET /v1/store` lists at least one device other than this one.
+  /// 3. `GET /v1/manifests/{self}` succeeds; a `404` means there is nothing to
+  ///    remove.
+  /// 4. Every peer manifest the store lists is fetched and well-formed, in the
+  ///    store's current epoch.
+  /// 5. **Every entry** of this device's manifest — kind, id and hash — is
+  ///    carried with the identical hash by at least one of them. Raw hashes,
+  ///    with no alias resolution: that can only make a carried entry look
+  ///    uncarried, so it may skip a safe removal but never permit an unsafe
+  ///    one.
+  ///
+  /// Turning Device Sync off cancels it ([setEnabled]), so condition 1 holds
+  /// for its whole run, not only at its start.
+  ///
+  /// There is no "pending local change" condition, and none is needed: an
+  /// edit this device never synced is not in its server manifest, so removing
+  /// that manifest neither loses nor publishes it. It stays in the library
+  /// here either way.
+  ///
+  /// A peer part-way through a pass may find the manifest gone and report it
+  /// as unreadable for that pass, exactly the hazard [removeDevice] already
+  /// accepts; its next pass no longer lists this device.
+  Future<SyncDetachCleanupOutcome> _runDetachCleanup(
+    _DetachCleanup cleanup,
+    _DetachedStore store,
+  ) async {
+    try {
+      if (!_enabled) return SyncDetachCleanupOutcome.skippedConnection;
+      final network = await _classifier.current();
+      if (network == SyncNetworkKind.offline ||
+          (_wifiOnly && network == SyncNetworkKind.metered)) {
+        return SyncDetachCleanupOutcome.skippedConnection;
+      }
+      if (cleanup.cancelled) return SyncDetachCleanupOutcome.cancelled;
+      final admin = cleanup.admin = _deviceAdminFor(
+        store.syncId,
+        store.endpoint,
+        requestTimeout: kSyncDetachCleanupRequestTimeout,
+      );
+
+      final storeResponse = (await admin.getStore(
+        previouslyUsed: true,
+      )).response;
+      if (cleanup.cancelled) return SyncDetachCleanupOutcome.cancelled;
+      if (!storeResponse.isSuccess) {
+        return SyncDetachCleanupOutcome.skippedUnknown;
+      }
+      final epoch = _decodeStoreEpoch(storeResponse.body);
+      final devices = _decodeDeviceIds(storeResponse.body);
+      if (epoch == null || devices == null) {
+        return SyncDetachCleanupOutcome.skippedUnknown;
+      }
+      final peers = {...devices}..remove(store.deviceId);
+      if (peers.isEmpty) return SyncDetachCleanupOutcome.skippedOnlyDevice;
+
+      final ownResponse = await admin.getManifest(store.deviceId);
+      if (cleanup.cancelled) return SyncDetachCleanupOutcome.cancelled;
+      if (ownResponse.kind == SyncResponseKind.notFound) {
+        return SyncDetachCleanupOutcome.skippedNoManifest;
+      }
+      final own = ownResponse.isSuccess
+          ? _decodeManifest(ownResponse.body)
+          : null;
+      if (own == null || own.deviceId != store.deviceId || own.epoch != epoch) {
+        return SyncDetachCleanupOutcome.skippedUnknown;
+      }
+
+      final peerManifests = <SyncManifest>[];
+      for (final peerId in peers) {
+        final response = await admin.getManifest(peerId);
+        if (cleanup.cancelled) return SyncDetachCleanupOutcome.cancelled;
+        final manifest = response.isSuccess
+            ? _decodeManifest(response.body)
+            : null;
+        if (manifest == null || manifest.epoch != epoch) {
+          return SyncDetachCleanupOutcome.skippedUnknown;
+        }
+        peerManifests.add(manifest);
+      }
+      for (final kindEntry in own.records.entries) {
+        for (final record in kindEntry.value.entries) {
+          final carried = peerManifests.any(
+            (peer) => peer.records[kindEntry.key]?[record.key] == record.value,
+          );
+          if (!carried) return SyncDetachCleanupOutcome.skippedNotReflected;
+        }
+      }
+
+      if (cleanup.cancelled) return SyncDetachCleanupOutcome.cancelled;
+      // The answer is not examined: there is nothing to retry and nobody to
+      // tell. A failure leaves the old manifest listed under *Other devices*,
+      // which is where the user removes it.
+      await admin.deleteManifest(store.deviceId);
+      return SyncDetachCleanupOutcome.deleteSent;
+    } on Object catch (error, stack) {
+      // A cancellation closes the client under an in-flight request, which
+      // surfaces here as a transport error; that is the cancellation working,
+      // not a fault.
+      if (cleanup.cancelled) return SyncDetachCleanupOutcome.cancelled;
+      // Type only, as `trigger` does: a transport failure's message can carry
+      // the request URI, and the diagnostics redactor keeps HTTPS URLs.
+      logCaughtErrorTypeOnly(error, stack, source: 'sync_controller.detach');
+      return SyncDetachCleanupOutcome.skippedUnknown;
+    }
+  }
+
+  static SyncManifest? _decodeManifest(List<int> body) {
+    try {
+      return decodeSyncManifest(utf8.decode(body, allowMalformed: false));
+    } on FormatException {
+      // diagnostics: silent — an unreadable manifest only means the detach
+      // clean-up cannot establish its condition, so it removes nothing.
+      return null;
     }
   }
 
@@ -986,6 +1266,7 @@ class SyncController extends ChangeNotifier {
     _storeQuota = null;
     _mergedDuplicates = 0;
     _notices = const [];
+    _peerSummaries = const {};
     _replacementPending = false;
     _notify();
   }
@@ -1037,6 +1318,7 @@ class SyncController extends ChangeNotifier {
       return SyncDeviceListResult(
         outcome: SyncAdminOutcome.done,
         devices: List.unmodifiable(devices.where((id) => id != self)),
+        selfDeviceId: self,
       );
     } on Object catch (error, stack) {
       // Type only, as `trigger` does: a transport failure's message can carry
@@ -1245,6 +1527,21 @@ class SyncController extends ChangeNotifier {
     }
   }
 
+  /// The `epoch` from a `GET /v1/store` body, or null when it is absent or not
+  /// a non-empty string.
+  static String? _decodeStoreEpoch(List<int> body) {
+    try {
+      final decoded = jsonDecode(utf8.decode(body, allowMalformed: false));
+      if (decoded is! Map) return null;
+      final epoch = decoded['epoch'];
+      return epoch is String && epoch.isNotEmpty ? epoch : null;
+    } on FormatException {
+      // diagnostics: silent — the detach clean-up removes nothing when the
+      // store answer is unreadable, which is its only consequence.
+      return null;
+    }
+  }
+
   void _notify() {
     if (!_disposed) notifyListeners();
   }
@@ -1252,10 +1549,36 @@ class SyncController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _cancelDetachCleanup();
     _debounceTimer?.cancel();
     _cancelRetry();
     unawaited(_replacementSubscription?.cancel());
     wifiSettingRequests.dispose();
     super.dispose();
+  }
+}
+
+/// What the detach clean-up needs from the attachment it is cleaning up after,
+/// captured before the local clear erases it and held only in memory.
+typedef _DetachedStore = ({String syncId, Uri endpoint, String deviceId});
+
+/// One running detach clean-up and the means to stop it.
+final class _DetachCleanup {
+  late final Future<SyncDetachCleanupOutcome> done;
+  SyncDeviceAdmin? admin;
+  bool cancelled = false;
+
+  /// Stops it: no further request is issued, and closing the client abandons
+  /// the one in flight. A request the server has already received may still
+  /// take effect; nothing on this device depends on whether it did.
+  void cancel() {
+    cancelled = true;
+    closeAdmin();
+  }
+
+  void closeAdmin() {
+    final client = admin;
+    admin = null;
+    client?.close?.call();
   }
 }

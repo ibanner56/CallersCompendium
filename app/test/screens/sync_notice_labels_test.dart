@@ -104,9 +104,11 @@ const _expected = <_Case>[
     peerId: 'peer-1',
     group: SyncNoticeGroup.deferredInbound,
   ),
+  // Always names the peer that is not taking the records: the notice is per
+  // device.
   (
     code: SyncReportCode.unreflectedPublication,
-    peerId: null,
+    peerId: 'peer-1',
     group: SyncNoticeGroup.unreflectedPublication,
   ),
   // Always a null peerId by the code's own contract: the unreadable row is on
@@ -174,13 +176,20 @@ void main() {
       );
     });
 
-    test('is the only needs-you group', () {
+    test('needs you, and is shown once rather than per device', () {
+      // Its remedy is on this device, whichever device raised it.
+      expect(syncNoticeNeedsYou(SyncNoticeGroup.newerVersion), isTrue);
+      expect(syncNoticeIsPerDevice(SyncNoticeGroup.newerVersion), isFalse);
+    });
+
+    test('the needs-you groups are exactly the newer version and a device '
+        'not taking changes', () {
       expect(
         [
           for (final group in SyncNoticeGroup.values)
             if (syncNoticeNeedsYou(group)) group,
         ],
-        [SyncNoticeGroup.newerVersion],
+        [SyncNoticeGroup.newerVersion, SyncNoticeGroup.unreflectedPublication],
       );
     });
   });
@@ -231,22 +240,70 @@ void main() {
     // Guards the mapping the new code joined, rather than only the new code:
     // the build catches an unhandled arm, nothing catches an arm pointed at
     // the wrong group or a group pointed at an empty string.
+    // A per-device group's text needs the device; any will do here.
+    String text(SyncNoticeGroup group) => syncNoticeText(
+      l10n,
+      group,
+      recordCount: 0,
+      device: syncNoticeIsPerDevice(group) ? (tag: 'k7mQ2x', count: 2) : null,
+    );
     for (final code in SyncReportCode.values) {
       final group = syncNoticeGroupFor(_report(code));
-      expect(
-        syncNoticeText(l10n, group, recordCount: 0),
-        isNotEmpty,
-        reason: code.name,
-      );
+      expect(text(group), isNotEmpty, reason: code.name);
     }
-    final texts = {
-      for (final group in SyncNoticeGroup.values)
-        syncNoticeText(l10n, group, recordCount: 0),
-    };
+    final texts = {for (final group in SyncNoticeGroup.values) text(group)};
     expect(
       texts,
       hasLength(SyncNoticeGroup.values.length),
       reason: 'two groups sharing one string would make them indistinguishable',
     );
+  });
+
+  group('a device that is syncing but not taking changes', () {
+    SyncReport refused(String peerId, String recordId) => SyncReport(
+      code: SyncReportCode.unreflectedPublication,
+      kind: SyncRecordKind.dance,
+      recordId: recordId,
+      peerId: peerId,
+      message: 'diagnostic',
+    );
+
+    test('needs you, and is the one group shown per device', () {
+      expect(
+        syncNoticeNeedsYou(SyncNoticeGroup.unreflectedPublication),
+        isTrue,
+      );
+      for (final group in SyncNoticeGroup.values) {
+        final perDevice = group == SyncNoticeGroup.unreflectedPublication;
+        expect(syncNoticeIsPerDevice(group), perDevice, reason: group.name);
+      }
+    });
+
+    test('lists each device it names once, in report order', () {
+      expect(
+        syncNoticePeerIds(SyncNoticeGroup.unreflectedPublication, [
+          refused('peer-b', 'dance-1'),
+          refused('peer-a', 'dance-1'),
+          refused('peer-b', 'dance-2'),
+          _report(SyncReportCode.malformedRecord, peerId: 'peer-c'),
+        ]),
+        ['peer-b', 'peer-a'],
+      );
+    });
+
+    test('names the device by tag and says how many changes it is not '
+        'taking', () {
+      expect(
+        syncNoticeText(
+          l10n,
+          SyncNoticeGroup.unreflectedPublication,
+          recordCount: 0,
+          device: (tag: '7c02Lm', count: 4),
+        ),
+        "Device 7c02Lm is syncing but isn't taking 4 changes from this device. "
+        "They're safe here. That device may need an app update, or this device's "
+        "date and time may be wrong.",
+      );
+    });
   });
 }

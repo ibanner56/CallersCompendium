@@ -678,8 +678,23 @@ class AppLocalizationsEn extends AppLocalizations {
       'An update from another device arrived while you were editing the same record, so it wasn\'t applied. The next sync picks it up.';
 
   @override
-  String get settingsSyncNoticeUnreflectedPublication =>
-      'Changes from this device haven\'t appeared on your other devices after several syncs. Open the app on them and sync.';
+  String settingsSyncNoticePeerNotTaking(int count, String tag) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Device $tag is syncing but isn\'t taking $count changes from this device. They\'re safe here. That device may need an app update, or this device\'s date and time may be wrong.',
+      one:
+          'Device $tag is syncing but isn\'t taking 1 change from this device. The change is safe here. That device may need an app update, or this device\'s date and time may be wrong.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsSyncNoticeNeedsYou => 'Needs you';
+
+  @override
+  String get settingsSyncNoticeSeeDevices => 'See other devices';
 
   @override
   String get settingsSyncNotBackup =>
@@ -697,14 +712,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSyncDisconnectSubtitle =>
-      'Stop syncing here. The store and your other devices are not changed.';
+      'Stop syncing here. Your library stays as it is, here and on your other devices.';
 
   @override
   String get settingsSyncDisconnectConfirmTitle => 'Disconnect this device?';
 
   @override
   String get settingsSyncDisconnectConfirmBody =>
-      'This device will stop syncing and forget its sync phrase. Your library on this device stays as it is, and the store and your other devices aren\'t affected. To reconnect later you\'ll need the phrase, so make sure you have it.';
+      'This device will stop syncing and forget its sync phrase. Your library on this device stays as it is, and so do your other devices. Disconnecting removes this device from the sync store if your other devices already have everything from it. If they don\'t, it stays listed under Other devices until you remove it there. To reconnect later you\'ll need the phrase, so make sure you have it.';
 
   @override
   String get settingsSyncDisconnectConfirmAction => 'Disconnect';
@@ -725,7 +740,53 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSyncDevicesCaution =>
-      'The server only knows each device by an identifier it made up, so there are no device names here, and this device isn\'t listed. If you aren\'t sure which one to remove, it\'s safe to leave it: a device you remove can connect again with the sync phrase.';
+      'Each device makes up its own random identifier, and a new one every time it connects, so devices are shown here by a short tag from that identifier rather than by name. This device isn\'t in the list; its own tag is below, so you can find it on your other devices. If you aren\'t sure which one to remove, it\'s safe to leave it: a device you remove can connect again with the sync phrase.';
+
+  @override
+  String settingsSyncDevicesThisDevice(String tag) {
+    return 'This device: $tag';
+  }
+
+  @override
+  String settingsSyncDeviceTag(String tag) {
+    return 'Device $tag';
+  }
+
+  @override
+  String get settingsSyncDeviceLastSharedToday => 'Last shared changes today';
+
+  @override
+  String settingsSyncDeviceLastSharedDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Last shared changes $count days ago',
+      one: 'Last shared changes yesterday',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncDeviceLastSharedWeeks(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Last shared changes about $count weeks ago',
+      one: 'Last shared changes about a week ago',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncDeviceWaiting(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count changes from this device are waiting for it.',
+      one: '1 change from this device is waiting for it.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get settingsSyncDevicesEmpty =>

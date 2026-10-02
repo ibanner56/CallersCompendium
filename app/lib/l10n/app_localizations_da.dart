@@ -688,8 +688,23 @@ class AppLocalizationsDa extends AppLocalizations {
       'En opdatering fra en anden enhed kom, mens du redigerede den samme post, så den blev ikke anvendt. Næste synkronisering tager den med.';
 
   @override
-  String get settingsSyncNoticeUnreflectedPublication =>
-      'Ændringer fra denne enhed er ikke dukket op på dine andre enheder efter flere synkroniseringer. Åbn appen på dem, og synkronisér.';
+  String settingsSyncNoticePeerNotTaking(int count, String tag) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Enheden $tag synkroniserer, men tager ikke imod $count ændringer fra denne enhed. De er i sikkerhed her. Den anden enhed skal måske have en opdatering af appen, eller også er dato og klokkeslæt forkert på denne enhed.',
+      one:
+          'Enheden $tag synkroniserer, men tager ikke imod 1 ændring fra denne enhed. Ændringen er i sikkerhed her. Den anden enhed skal måske have en opdatering af appen, eller også er dato og klokkeslæt forkert på denne enhed.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsSyncNoticeNeedsYou => 'Kræver din handling';
+
+  @override
+  String get settingsSyncNoticeSeeDevices => 'Se andre enheder';
 
   @override
   String get settingsSyncNotBackup =>
@@ -708,7 +723,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncDisconnectSubtitle =>
-      'Stop synkroniseringen her. Lageret og dine andre enheder ændres ikke.';
+      'Stop synkroniseringen her. Dit bibliotek forbliver, som det er, her og på dine andre enheder.';
 
   @override
   String get settingsSyncDisconnectConfirmTitle =>
@@ -716,7 +731,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncDisconnectConfirmBody =>
-      'Denne enhed stopper med at synkronisere og glemmer sin synkroniseringssætning. Dit bibliotek på denne enhed forbliver, som det er, og lageret og dine andre enheder påvirkes ikke. For at forbinde igen senere skal du bruge sætningen, så sørg for, at du har den.';
+      'Denne enhed stopper med at synkronisere og glemmer sin synkroniseringssætning. Dit bibliotek på denne enhed forbliver, som det er, og det samme gør dine andre enheder. Når du afbryder forbindelsen, fjernes denne enhed fra synkroniseringslageret, hvis dine andre enheder allerede har alt fra den. Hvis de ikke har, bliver den stående under Andre enheder, indtil du fjerner den der. For at forbinde igen senere skal du bruge sætningen, så sørg for, at du har den.';
 
   @override
   String get settingsSyncDisconnectConfirmAction => 'Afbryd';
@@ -737,7 +752,53 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncDevicesCaution =>
-      'Serveren kender kun hver enhed på en identifikator, den selv har fundet på, så der står ingen enhedsnavne her, og denne enhed er ikke med på listen. Hvis du er i tvivl om, hvilken du skal fjerne, er det trygt at lade den stå: En enhed, du fjerner, kan forbinde igen med synkroniseringssætningen.';
+      'Hver enhed finder selv på sin egen tilfældige identifikator og en ny, hver gang den forbinder, så enhederne vises her med et kort mærke fra identifikatoren i stedet for et navn. Denne enhed er ikke med på listen; dens eget mærke står nedenfor, så du kan finde den på dine andre enheder. Hvis du er i tvivl om, hvilken du skal fjerne, er det trygt at lade den stå: En enhed, du fjerner, kan forbinde igen med synkroniseringssætningen.';
+
+  @override
+  String settingsSyncDevicesThisDevice(String tag) {
+    return 'Denne enhed: $tag';
+  }
+
+  @override
+  String settingsSyncDeviceTag(String tag) {
+    return 'Enhed $tag';
+  }
+
+  @override
+  String get settingsSyncDeviceLastSharedToday => 'Delte sidst ændringer i dag';
+
+  @override
+  String settingsSyncDeviceLastSharedDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Delte sidst ændringer for $count dage siden',
+      one: 'Delte sidst ændringer i går',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncDeviceLastSharedWeeks(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Delte sidst ændringer for cirka $count uger siden',
+      one: 'Delte sidst ændringer for cirka en uge siden',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncDeviceWaiting(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ændringer fra denne enhed venter på at nå frem til den.',
+      one: '1 ændring fra denne enhed venter på at nå frem til den.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get settingsSyncDevicesEmpty =>
