@@ -5580,6 +5580,38 @@
   "@importRecordErrorDiscover": {
     "x-sourceSha256": "edd03867cafb43bbd83109e83f2fba75ed6caf82dd2fa5bdb4f41813369b032a"
   },
+  "importRecordErrorEmptyFile": "Denne fil eller tekst er tom. Vælg en fil med indhold, eller indsæt teksten igen.",
+  "@importRecordErrorEmptyFile": {
+    "x-sourceSha256": "864910073cbdd31979a1b09d2efea78caef549e877a561a87bad61eabbf0842c"
+  },
+  "importRecordErrorNotJson": "Det er ikke en JSON-fil. Vælg den .json-fil, som kilden har eksporteret, eller indsæt dens JSON igen.",
+  "@importRecordErrorNotJson": {
+    "x-sourceSha256": "9b1a830696880db88b8a5bcb4cb3cbeaa9215b51fce0a0946cc8d1281a5a213d"
+  },
+  "importRecordErrorNotCompendiumArchive": "Det er ikke en Caller's Compendium-fil. Vælg en .json-fil, der er eksporteret fra denne app.",
+  "@importRecordErrorNotCompendiumArchive": {
+    "x-sourceSha256": "fde17c6a25893b79eb3c400e684ba4ee44623ce32f0fb9409311b9e054ba9f30"
+  },
+  "importRecordErrorNotCallersBoxDance": "Det er ikke en Caller's Box-dans. Kontrollér, at du har kopieret en dans fra The Caller's Box, og prøv igen.",
+  "@importRecordErrorNotCallersBoxDance": {
+    "x-sourceSha256": "6efd6c09d2cc77e9173282bb11b4de074b57fb8775252322920759633c1ee068"
+  },
+  "importRecordErrorNotContraDbDance": "Det er ikke en ContraDB-dans. Kontrollér, at du har kopieret en dansesiden fra ContraDB, og prøv igen.",
+  "@importRecordErrorNotContraDbDance": {
+    "x-sourceSha256": "cd1146fd8ebf89b31b249c722894dae4f34c98bace1f556215f989bb14740539"
+  },
+  "importRecordErrorNotUsrDatabase": "Det er ikke en Caller's Companion-biblioteksfil (.USR). Find .USR-filen i Caller's Companions datamappe.",
+  "@importRecordErrorNotUsrDatabase": {
+    "x-sourceSha256": "367e55689a35b7545bc44a12edfa651512a8d4b7fb94a007e2d8bbbf0c96175b"
+  },
+  "importRecordErrorFileTooLarge": "Filen er for stor til at blive importeret. Vælg en mindre fil, eller del den op i dele.",
+  "@importRecordErrorFileTooLarge": {
+    "x-sourceSha256": "79a5829b484be175af4b564873c42fe35b20fbd232e786d533b1c3d0dc782bb4"
+  },
+  "importRecordErrorNoDanceAtId": "Der blev ikke fundet nogen dans der. Kontrollér id'et eller linket til Caller's Box-dansen, og prøv igen.",
+  "@importRecordErrorNoDanceAtId": {
+    "x-sourceSha256": "3d20fe24fc592ad202aee09934afd0ae65b9bed77af1a7473232977d81a74e2d"
+  },
   "importRecordErrorFetch": "Denne post kunne ikke hentes.",
   "@importRecordErrorFetch": {
     "x-sourceSha256": "27c4a90b1314c204a20073e5a7a0930557490d55d3612393de27957a72da417a"
@@ -5655,6 +5687,10 @@
   "importReviewCouldNotRead": "Kunne ikke læse importen",
   "@importReviewCouldNotRead": {
     "x-sourceSha256": "b81447962e16b8fd7ca12c4f1879d6f9486e25d61f56ff0574da84e1409b603a"
+  },
+  "importReviewPlanFailedBody": "Noget gik galt under læsningen af denne import. Prøv igen. Hvis det bliver ved, kan filen være beskadiget.",
+  "@importReviewPlanFailedBody": {
+    "x-sourceSha256": "2968cbc6fd8c52529a2fd7ebb1beffdd7464ad9d17070a5386ee22befd1a79a0"
   },
   "importReviewNoDancesTitle": "Ingen danse fundet",
   "@importReviewNoDancesTitle": {

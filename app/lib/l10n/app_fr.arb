@@ -5580,6 +5580,38 @@
   "@importRecordErrorDiscover": {
     "x-sourceSha256": "edd03867cafb43bbd83109e83f2fba75ed6caf82dd2fa5bdb4f41813369b032a"
   },
+  "importRecordErrorEmptyFile": "Ce fichier ou ce texte est vide. Choisissez un fichier qui a du contenu, ou collez à nouveau le texte.",
+  "@importRecordErrorEmptyFile": {
+    "x-sourceSha256": "864910073cbdd31979a1b09d2efea78caef549e877a561a87bad61eabbf0842c"
+  },
+  "importRecordErrorNotJson": "Ce n'est pas un fichier JSON. Choisissez le fichier .json exporté par la source, ou collez à nouveau son JSON.",
+  "@importRecordErrorNotJson": {
+    "x-sourceSha256": "9b1a830696880db88b8a5bcb4cb3cbeaa9215b51fce0a0946cc8d1281a5a213d"
+  },
+  "importRecordErrorNotCompendiumArchive": "Ce n'est pas un fichier Caller's Compendium. Choisissez un fichier .json exporté depuis cette application.",
+  "@importRecordErrorNotCompendiumArchive": {
+    "x-sourceSha256": "fde17c6a25893b79eb3c400e684ba4ee44623ce32f0fb9409311b9e054ba9f30"
+  },
+  "importRecordErrorNotCallersBoxDance": "Ce n'est pas une danse Caller's Box. Vérifiez que vous avez copié une danse depuis The Caller's Box, puis réessayez.",
+  "@importRecordErrorNotCallersBoxDance": {
+    "x-sourceSha256": "6efd6c09d2cc77e9173282bb11b4de074b57fb8775252322920759633c1ee068"
+  },
+  "importRecordErrorNotContraDbDance": "Ce n'est pas une danse ContraDB. Vérifiez que vous avez copié une page de danse depuis ContraDB, puis réessayez.",
+  "@importRecordErrorNotContraDbDance": {
+    "x-sourceSha256": "cd1146fd8ebf89b31b249c722894dae4f34c98bace1f556215f989bb14740539"
+  },
+  "importRecordErrorNotUsrDatabase": "Ce n'est pas un fichier de bibliothèque Caller's Companion (.USR). Dans Caller's Companion, cherchez le fichier .USR dans son dossier de données.",
+  "@importRecordErrorNotUsrDatabase": {
+    "x-sourceSha256": "367e55689a35b7545bc44a12edfa651512a8d4b7fb94a007e2d8bbbf0c96175b"
+  },
+  "importRecordErrorFileTooLarge": "Ce fichier est trop volumineux pour être importé. Choisissez un fichier plus petit, ou découpez-le en plusieurs parties.",
+  "@importRecordErrorFileTooLarge": {
+    "x-sourceSha256": "79a5829b484be175af4b564873c42fe35b20fbd232e786d533b1c3d0dc782bb4"
+  },
+  "importRecordErrorNoDanceAtId": "Aucune danse n'a été trouvée à cet endroit. Vérifiez l'identifiant ou le lien de la danse Caller's Box, puis réessayez.",
+  "@importRecordErrorNoDanceAtId": {
+    "x-sourceSha256": "3d20fe24fc592ad202aee09934afd0ae65b9bed77af1a7473232977d81a74e2d"
+  },
   "importRecordErrorFetch": "Impossible de récupérer cet enregistrement.",
   "@importRecordErrorFetch": {
     "x-sourceSha256": "27c4a90b1314c204a20073e5a7a0930557490d55d3612393de27957a72da417a"
@@ -5655,6 +5687,10 @@
   "importReviewCouldNotRead": "Impossible de lire l’import",
   "@importReviewCouldNotRead": {
     "x-sourceSha256": "b81447962e16b8fd7ca12c4f1879d6f9486e25d61f56ff0574da84e1409b603a"
+  },
+  "importReviewPlanFailedBody": "Un problème est survenu pendant la lecture de cet import. Réessayez ; si le problème persiste, le fichier est peut-être endommagé.",
+  "@importReviewPlanFailedBody": {
+    "x-sourceSha256": "2968cbc6fd8c52529a2fd7ebb1beffdd7464ad9d17070a5386ee22befd1a79a0"
   },
   "importReviewNoDancesTitle": "Aucune danse trouvée",
   "@importReviewNoDancesTitle": {

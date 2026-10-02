@@ -106,6 +106,7 @@ class CallersCompanionTextAdapter implements SourceAdapter {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
+        code: ImportErrorCode.emptyFile,
         message: 'No Caller\'s Companion text was provided to import.',
       );
     }

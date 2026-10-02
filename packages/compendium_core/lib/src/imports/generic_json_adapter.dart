@@ -84,6 +84,7 @@ class GenericJsonAdapter implements SourceAdapter {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
+        code: ImportErrorCode.emptyFile,
         message: 'No archive payload provided to import.',
       );
     }
@@ -96,6 +97,7 @@ class GenericJsonAdapter implements SourceAdapter {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
+        code: ImportErrorCode.notCompendiumArchive,
         message:
             'Payload is not a decodable Compendium archive: '
             '${rootError.message}',

@@ -375,7 +375,9 @@ declines the collapse.
     and a ~20 000-dance library ~82 000) and
     `maxFiguresPerDance` (512) throw `FmpResourceLimitException`, which the
     adapter's `discover` maps to the friendly "That file is too large to
-    import." — never OOM/throw-through. The byte-level caps are sized together
+    import." — never OOM/throw-through. The error carries
+    `ImportErrorCode.fileTooLarge`, and the review screen shows the localized
+    "too large" string for that code (never the error's `message`). The byte-level caps are sized together
     for a ~20 000-dance library (~237 MiB with FileMaker's own indexes): the
     app's `.USR` byte cap `kMaxImportUsrBytes` is 256 MiB, and the reader's
     `kMaxFmpSectors` (65 536 = 256 MiB / 4 KiB) and `kMaxFmpRecords` (500 000)
@@ -1321,7 +1323,9 @@ and **per-dance beat totals are byte-identical for all 20,515 dances**, so
 ## Error handling & testing
 
 - Every stage yields structured errors with source context (never stack-trace
-  UX); partial batch failure imports the rest and reports.
+  UX); errors carry typed codes (`ImportErrorCode`); messages are
+  diagnostic-only, never rendered. Partial batch failure imports the rest and
+  reports.
 - Adapter test fixtures (`test/imports/`): one real TCB JSON file
   (`support/callersbox/right_where_we_belong_19001.json`) plus inline TCB JSON
   in `callersbox_adapter_test.dart` (ids 1, 1006, 10882); ContraDB HTML

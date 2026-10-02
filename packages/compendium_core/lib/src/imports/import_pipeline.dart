@@ -304,6 +304,10 @@ class ImportPipeline {
     final List<DiscoveredRecord> discovered;
     try {
       discovered = await adapter.discover(request);
+    } on ImportError catch (e) {
+      // An adapter's own failure already carries stage, source and a typed
+      // code; wrapping it would hide the code from the UI.
+      return ImportBatchResult(records: const [], errors: [e]);
     } catch (e) {
       return ImportBatchResult(
         records: const [],

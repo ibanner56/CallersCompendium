@@ -5591,6 +5591,38 @@ class AppLocalizationsDe extends AppLocalizations {
       'Dieser Datensatz konnte nicht gefunden werden.';
 
   @override
+  String get importRecordErrorEmptyFile =>
+      'Diese Datei bzw. dieser Text ist leer. Wähle eine Datei mit Inhalt oder füge den Text erneut ein.';
+
+  @override
+  String get importRecordErrorNotJson =>
+      'Das ist keine JSON-Datei. Wähle die .json-Datei, die die Quelle exportiert hat, oder füge ihr JSON erneut ein.';
+
+  @override
+  String get importRecordErrorNotCompendiumArchive =>
+      'Das ist keine Caller\'s-Compendium-Datei. Wähle eine .json-Datei, die aus dieser App exportiert wurde.';
+
+  @override
+  String get importRecordErrorNotCallersBoxDance =>
+      'Das ist kein Caller\'s-Box-Tanz. Prüfe, ob du einen Tanz aus The Caller\'s Box kopiert hast, und versuche es erneut.';
+
+  @override
+  String get importRecordErrorNotContraDbDance =>
+      'Das ist kein ContraDB-Tanz. Prüfe, ob du eine Tanzseite aus ContraDB kopiert hast, und versuche es erneut.';
+
+  @override
+  String get importRecordErrorNotUsrDatabase =>
+      'Das ist keine Caller\'s-Companion-Bibliotheksdatei (.USR). Suche in Caller\'s Companion die .USR-Datei im zugehörigen Datenordner.';
+
+  @override
+  String get importRecordErrorFileTooLarge =>
+      'Diese Datei ist zu groß für den Import. Wähle eine kleinere Datei oder teile sie in mehrere Teile auf.';
+
+  @override
+  String get importRecordErrorNoDanceAtId =>
+      'Dort wurde kein Tanz gefunden. Prüfe die ID bzw. den Link des Caller\'s-Box-Tanzes und versuche es erneut.';
+
+  @override
   String get importRecordErrorFetch =>
       'Dieser Datensatz konnte nicht abgerufen werden.';
 
@@ -5665,6 +5697,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importReviewCouldNotRead => 'Import konnte nicht gelesen werden';
+
+  @override
+  String get importReviewPlanFailedBody =>
+      'Beim Lesen dieses Imports ist etwas schiefgelaufen. Versuche es erneut; falls das weiterhin passiert, ist die Datei möglicherweise beschädigt.';
 
   @override
   String get importReviewNoDancesTitle => 'Keine Tänze gefunden';

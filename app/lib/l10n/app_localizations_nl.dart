@@ -5567,6 +5567,38 @@ class AppLocalizationsNl extends AppLocalizations {
       'Dit record kon niet worden gevonden.';
 
   @override
+  String get importRecordErrorEmptyFile =>
+      'Dit bestand of deze tekst is leeg. Kies een bestand met inhoud of plak de tekst opnieuw.';
+
+  @override
+  String get importRecordErrorNotJson =>
+      'Dit is geen JSON-bestand. Kies het .json-bestand dat de bron heeft geëxporteerd, of plak de JSON opnieuw.';
+
+  @override
+  String get importRecordErrorNotCompendiumArchive =>
+      'Dit is geen Caller\'s Compendium-bestand. Kies een .json-bestand dat uit deze app is geëxporteerd.';
+
+  @override
+  String get importRecordErrorNotCallersBoxDance =>
+      'Dit is geen Caller\'s Box-dans. Controleer of je een dans van The Caller\'s Box hebt gekopieerd en probeer het opnieuw.';
+
+  @override
+  String get importRecordErrorNotContraDbDance =>
+      'Dit is geen ContraDB-dans. Controleer of je een dansenpagina van ContraDB hebt gekopieerd en probeer het opnieuw.';
+
+  @override
+  String get importRecordErrorNotUsrDatabase =>
+      'Dit is geen Caller\'s Companion-bibliotheekbestand (.USR). Zoek in Caller\'s Companion het .USR-bestand in de gegevensmap.';
+
+  @override
+  String get importRecordErrorFileTooLarge =>
+      'Dit bestand is te groot om te importeren. Kies een kleiner bestand of splits het in delen.';
+
+  @override
+  String get importRecordErrorNoDanceAtId =>
+      'Daar is geen dans gevonden. Controleer de id of link van de Caller\'s Box-dans en probeer het opnieuw.';
+
+  @override
   String get importRecordErrorFetch => 'Dit record kon niet worden opgehaald.';
 
   @override
@@ -5638,6 +5670,10 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importReviewCouldNotRead => 'De import kon niet worden gelezen';
+
+  @override
+  String get importReviewPlanFailedBody =>
+      'Er ging iets mis bij het lezen van deze import. Probeer het opnieuw; als het blijft gebeuren, is het bestand mogelijk beschadigd.';
 
   @override
   String get importReviewNoDancesTitle => 'Geen dansen gevonden';

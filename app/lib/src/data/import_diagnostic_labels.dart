@@ -179,14 +179,28 @@ String? _localizedImportIssue(AppLocalizations l10n, ImportIssue issue) {
 }
 
 /// Localized message for a per-record [ImportError] surfaced in the import
-/// review. Keyed on the [ImportError.stage] discriminator; the raw `message`
-/// (which may wrap opaque parser text) is never rendered — it stays on the
-/// error for logging only (CWE-209).
+/// review. Keyed on the typed [ImportError.code] first, falling back to the
+/// [ImportError.stage] discriminator for [ImportErrorCode.unknown]; the raw
+/// `message` (which may wrap opaque parser text or echo user content) is never
+/// rendered — it stays on the error for logging only (CWE-209).
 String importRecordErrorMessage(AppLocalizations l10n, ImportError error) =>
-    switch (error.stage) {
-      ImportStage.discover => l10n.importRecordErrorDiscover,
-      ImportStage.fetch => l10n.importRecordErrorFetch,
-      ImportStage.parse => l10n.importRecordErrorParse,
-      ImportStage.dedupe => l10n.importRecordErrorDedupe,
-      ImportStage.commit => l10n.importRecordErrorCommit,
+    switch (error.code) {
+      ImportErrorCode.emptyFile => l10n.importRecordErrorEmptyFile,
+      ImportErrorCode.notJson => l10n.importRecordErrorNotJson,
+      ImportErrorCode.notCompendiumArchive =>
+        l10n.importRecordErrorNotCompendiumArchive,
+      ImportErrorCode.notCallersBoxDance =>
+        l10n.importRecordErrorNotCallersBoxDance,
+      ImportErrorCode.notContraDbDance =>
+        l10n.importRecordErrorNotContraDbDance,
+      ImportErrorCode.notUsrDatabase => l10n.importRecordErrorNotUsrDatabase,
+      ImportErrorCode.fileTooLarge => l10n.importRecordErrorFileTooLarge,
+      ImportErrorCode.noDanceAtId => l10n.importRecordErrorNoDanceAtId,
+      ImportErrorCode.unknown => switch (error.stage) {
+        ImportStage.discover => l10n.importRecordErrorDiscover,
+        ImportStage.fetch => l10n.importRecordErrorFetch,
+        ImportStage.parse => l10n.importRecordErrorParse,
+        ImportStage.dedupe => l10n.importRecordErrorDedupe,
+        ImportStage.commit => l10n.importRecordErrorCommit,
+      },
     };

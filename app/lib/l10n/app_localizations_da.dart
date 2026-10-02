@@ -5527,6 +5527,38 @@ class AppLocalizationsDa extends AppLocalizations {
   String get importRecordErrorDiscover => 'Denne post kunne ikke findes.';
 
   @override
+  String get importRecordErrorEmptyFile =>
+      'Denne fil eller tekst er tom. Vælg en fil med indhold, eller indsæt teksten igen.';
+
+  @override
+  String get importRecordErrorNotJson =>
+      'Det er ikke en JSON-fil. Vælg den .json-fil, som kilden har eksporteret, eller indsæt dens JSON igen.';
+
+  @override
+  String get importRecordErrorNotCompendiumArchive =>
+      'Det er ikke en Caller\'s Compendium-fil. Vælg en .json-fil, der er eksporteret fra denne app.';
+
+  @override
+  String get importRecordErrorNotCallersBoxDance =>
+      'Det er ikke en Caller\'s Box-dans. Kontrollér, at du har kopieret en dans fra The Caller\'s Box, og prøv igen.';
+
+  @override
+  String get importRecordErrorNotContraDbDance =>
+      'Det er ikke en ContraDB-dans. Kontrollér, at du har kopieret en dansesiden fra ContraDB, og prøv igen.';
+
+  @override
+  String get importRecordErrorNotUsrDatabase =>
+      'Det er ikke en Caller\'s Companion-biblioteksfil (.USR). Find .USR-filen i Caller\'s Companions datamappe.';
+
+  @override
+  String get importRecordErrorFileTooLarge =>
+      'Filen er for stor til at blive importeret. Vælg en mindre fil, eller del den op i dele.';
+
+  @override
+  String get importRecordErrorNoDanceAtId =>
+      'Der blev ikke fundet nogen dans der. Kontrollér id\'et eller linket til Caller\'s Box-dansen, og prøv igen.';
+
+  @override
   String get importRecordErrorFetch => 'Denne post kunne ikke hentes.';
 
   @override
@@ -5597,6 +5629,10 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importReviewCouldNotRead => 'Kunne ikke læse importen';
+
+  @override
+  String get importReviewPlanFailedBody =>
+      'Noget gik galt under læsningen af denne import. Prøv igen. Hvis det bliver ved, kan filen være beskadiget.';
 
   @override
   String get importReviewNoDancesTitle => 'Ingen danse fundet';

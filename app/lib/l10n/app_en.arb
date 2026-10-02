@@ -7118,6 +7118,38 @@
   "@importRecordErrorDiscover": {
     "description": "Import review: a per-record error at the discover stage. Generic; raw error detail is not shown (CWE-209)."
   },
+  "importRecordErrorEmptyFile": "That file or text is empty. Choose a file that has content, or paste the text again.",
+  "@importRecordErrorEmptyFile": {
+    "description": "Import review: the file or pasted text was empty (ImportErrorCode.emptyFile). Typed; raw error detail is not shown (CWE-209)."
+  },
+  "importRecordErrorNotJson": "This isn't a JSON file. Choose the .json file the source exported, or paste its JSON again.",
+  "@importRecordErrorNotJson": {
+    "description": "Import review: the content was not valid JSON (ImportErrorCode.notJson). Typed; raw error detail is not shown (CWE-209)."
+  },
+  "importRecordErrorNotCompendiumArchive": "This isn't a Caller's Compendium file. Choose a .json exported from this app.",
+  "@importRecordErrorNotCompendiumArchive": {
+    "description": "Import review: the content is not a Caller's Compendium archive (ImportErrorCode.notCompendiumArchive). Typed; raw error detail is not shown (CWE-209)."
+  },
+  "importRecordErrorNotCallersBoxDance": "This isn't a Caller's Box dance. Check that you copied a dance from The Caller's Box, then try again.",
+  "@importRecordErrorNotCallersBoxDance": {
+    "description": "Import review: the content is not a Caller's Box dance export (ImportErrorCode.notCallersBoxDance). Typed; raw error detail is not shown (CWE-209)."
+  },
+  "importRecordErrorNotContraDbDance": "This isn't a ContraDB dance. Check that you copied a dance page from ContraDB, then try again.",
+  "@importRecordErrorNotContraDbDance": {
+    "description": "Import review: the content is not a ContraDB dance export or page (ImportErrorCode.notContraDbDance). Typed; raw error detail is not shown (CWE-209)."
+  },
+  "importRecordErrorNotUsrDatabase": "This isn't a Caller's Companion library file (.USR). In Caller's Companion, find the .USR file in its data folder.",
+  "@importRecordErrorNotUsrDatabase": {
+    "description": "Import review: the file is not a readable Caller's Companion .USR database (ImportErrorCode.notUsrDatabase). Typed; raw error detail is not shown (CWE-209)."
+  },
+  "importRecordErrorFileTooLarge": "That file is too large to import. Choose a smaller file, or split it into parts.",
+  "@importRecordErrorFileTooLarge": {
+    "description": "Import review: the file exceeds the import size or structure limits (ImportErrorCode.fileTooLarge). Typed; raw error detail is not shown (CWE-209)."
+  },
+  "importRecordErrorNoDanceAtId": "No dance was found there. Check the Caller's Box dance id or link, then try again.",
+  "@importRecordErrorNoDanceAtId": {
+    "description": "Import review: the Caller's Box response contained no dance (ImportErrorCode.noDanceAtId). Typed; raw error detail is not shown (CWE-209)."
+  },
   "importRecordErrorFetch": "This record couldn't be fetched.",
   "@importRecordErrorFetch": {
     "description": "Import review: a per-record error at the fetch stage. Generic; raw error detail is not shown (CWE-209)."
@@ -7211,6 +7243,10 @@
   "importReviewCouldNotRead": "Couldn't read the import",
   "@importReviewCouldNotRead": {
     "description": "Title shown when the import payload could not be parsed."
+  },
+  "importReviewPlanFailedBody": "Something went wrong reading this import. Try again; if it keeps happening, the file may be damaged.",
+  "@importReviewPlanFailedBody": {
+    "description": "Body text shown when planning the import threw an unexpected error. Generic; the error text is never shown (CWE-209)."
   },
   "importReviewNoDancesTitle": "No dances found",
   "@importReviewNoDancesTitle": {

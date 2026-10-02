@@ -8523,6 +8523,54 @@ abstract class AppLocalizations {
   /// **'This record couldn\'t be found.'**
   String get importRecordErrorDiscover;
 
+  /// Import review: the file or pasted text was empty (ImportErrorCode.emptyFile). Typed; raw error detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'That file or text is empty. Choose a file that has content, or paste the text again.'**
+  String get importRecordErrorEmptyFile;
+
+  /// Import review: the content was not valid JSON (ImportErrorCode.notJson). Typed; raw error detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'This isn\'t a JSON file. Choose the .json file the source exported, or paste its JSON again.'**
+  String get importRecordErrorNotJson;
+
+  /// Import review: the content is not a Caller's Compendium archive (ImportErrorCode.notCompendiumArchive). Typed; raw error detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'This isn\'t a Caller\'s Compendium file. Choose a .json exported from this app.'**
+  String get importRecordErrorNotCompendiumArchive;
+
+  /// Import review: the content is not a Caller's Box dance export (ImportErrorCode.notCallersBoxDance). Typed; raw error detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'This isn\'t a Caller\'s Box dance. Check that you copied a dance from The Caller\'s Box, then try again.'**
+  String get importRecordErrorNotCallersBoxDance;
+
+  /// Import review: the content is not a ContraDB dance export or page (ImportErrorCode.notContraDbDance). Typed; raw error detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'This isn\'t a ContraDB dance. Check that you copied a dance page from ContraDB, then try again.'**
+  String get importRecordErrorNotContraDbDance;
+
+  /// Import review: the file is not a readable Caller's Companion .USR database (ImportErrorCode.notUsrDatabase). Typed; raw error detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'This isn\'t a Caller\'s Companion library file (.USR). In Caller\'s Companion, find the .USR file in its data folder.'**
+  String get importRecordErrorNotUsrDatabase;
+
+  /// Import review: the file exceeds the import size or structure limits (ImportErrorCode.fileTooLarge). Typed; raw error detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'That file is too large to import. Choose a smaller file, or split it into parts.'**
+  String get importRecordErrorFileTooLarge;
+
+  /// Import review: the Caller's Box response contained no dance (ImportErrorCode.noDanceAtId). Typed; raw error detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'No dance was found there. Check the Caller\'s Box dance id or link, then try again.'**
+  String get importRecordErrorNoDanceAtId;
+
   /// Import review: a per-record error at the fetch stage. Generic; raw error detail is not shown (CWE-209).
   ///
   /// In en, this message translates to:
@@ -8636,6 +8684,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t read the import'**
   String get importReviewCouldNotRead;
+
+  /// Body text shown when planning the import threw an unexpected error. Generic; the error text is never shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong reading this import. Try again; if it keeps happening, the file may be damaged.'**
+  String get importReviewPlanFailedBody;
 
   /// Title shown when the import payload parsed but contained no dances.
   ///

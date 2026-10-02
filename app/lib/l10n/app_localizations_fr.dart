@@ -5603,6 +5603,38 @@ class AppLocalizationsFr extends AppLocalizations {
   String get importRecordErrorDiscover => 'Cet enregistrement est introuvable.';
 
   @override
+  String get importRecordErrorEmptyFile =>
+      'Ce fichier ou ce texte est vide. Choisissez un fichier qui a du contenu, ou collez à nouveau le texte.';
+
+  @override
+  String get importRecordErrorNotJson =>
+      'Ce n\'est pas un fichier JSON. Choisissez le fichier .json exporté par la source, ou collez à nouveau son JSON.';
+
+  @override
+  String get importRecordErrorNotCompendiumArchive =>
+      'Ce n\'est pas un fichier Caller\'s Compendium. Choisissez un fichier .json exporté depuis cette application.';
+
+  @override
+  String get importRecordErrorNotCallersBoxDance =>
+      'Ce n\'est pas une danse Caller\'s Box. Vérifiez que vous avez copié une danse depuis The Caller\'s Box, puis réessayez.';
+
+  @override
+  String get importRecordErrorNotContraDbDance =>
+      'Ce n\'est pas une danse ContraDB. Vérifiez que vous avez copié une page de danse depuis ContraDB, puis réessayez.';
+
+  @override
+  String get importRecordErrorNotUsrDatabase =>
+      'Ce n\'est pas un fichier de bibliothèque Caller\'s Companion (.USR). Dans Caller\'s Companion, cherchez le fichier .USR dans son dossier de données.';
+
+  @override
+  String get importRecordErrorFileTooLarge =>
+      'Ce fichier est trop volumineux pour être importé. Choisissez un fichier plus petit, ou découpez-le en plusieurs parties.';
+
+  @override
+  String get importRecordErrorNoDanceAtId =>
+      'Aucune danse n\'a été trouvée à cet endroit. Vérifiez l\'identifiant ou le lien de la danse Caller\'s Box, puis réessayez.';
+
+  @override
   String get importRecordErrorFetch =>
       'Impossible de récupérer cet enregistrement.';
 
@@ -5676,6 +5708,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importReviewCouldNotRead => 'Impossible de lire l’import';
+
+  @override
+  String get importReviewPlanFailedBody =>
+      'Un problème est survenu pendant la lecture de cet import. Réessayez ; si le problème persiste, le fichier est peut-être endommagé.';
 
   @override
   String get importReviewNoDancesTitle => 'Aucune danse trouvée';
