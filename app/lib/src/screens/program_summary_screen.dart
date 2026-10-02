@@ -178,6 +178,10 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   CollectionData? _collectionData;
   List<DifficultyLevel> _difficultyLevels = const [];
   bool _loading = true;
+
+  /// True while [_performProgram] resolves deleted dances, so a double tap
+  /// cannot push two Perform screens.
+  bool _resolvingPerform = false;
   Object? _error;
 
   /// In-memory Perform resume state (issue #434) — same pattern as
@@ -560,16 +564,30 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// Launches the large-print Perform view for the current saved program,
   /// mirroring [ProgramEditorScreen]'s perform launch. No-op when there is
   /// nothing to perform or the reference data has not finished loading.
-  void _performProgram() {
+  Future<void> _performProgram() async {
     final program = _program;
     final data = _collectionData;
     if (program == null || data == null || program.slots.isEmpty) return;
+    if (_resolvingPerform) return;
+    _resolvingPerform = true;
     _invalidateBulkUndo();
+    final Map<String, Dance> deletedDances;
+    try {
+      deletedDances = await resolveDeletedSlotDances(
+        _repos.dances,
+        program,
+        data,
+      );
+    } finally {
+      _resolvingPerform = false;
+    }
+    if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => PerformProgramScreen(
           program: program,
           data: data,
+          danceOverrides: deletedDances,
           difficultyLevels: _difficultyLevels,
           renderer: _performRenderer,
           // Resume where the caller left off (issue #434).
