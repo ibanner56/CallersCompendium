@@ -3,9 +3,11 @@
 Everything you paste into App Store Connect and the Play Console, drafted for
 **Caller's Compendium** and ready to review/tweak. Character limits are noted so
 you don't overflow a field. Wording is deliberately accurate about what the
-pre-Sync app does and does **not** do (no data collection, no accounts) so it
-survives review. Re-answer the marked data-practice sections before any beta
-where Device Sync can transfer content.
+app does and does **not** do (no accounts, no analytics; content leaves the
+device only through optional, off-by-default Device Sync) so it survives review.
+Device Sync ships in every build, so the data-practice sections below declare
+its transfer; the live store answers are updated by the maintainer from this
+file.
 
 > These are **drafts for your review**, not final marketing. Adjust voice to
 > taste; keep the factual claims (offline, no telemetry, free, open-source) intact
@@ -51,7 +53,8 @@ both.)
 Caller's Compendium is a free, open-source, local-first organizer for contra
 dance callers. Catalog your dances, build programs for your gigs, and call from a
 large-print, stage-ready view — all on your own device, fully offline, with
-nothing to sign in to and no data that ever leaves your phone or tablet.
+nothing to sign in to. Nothing leaves your phone or tablet unless you turn on
+optional Device Sync.
 
 Built by a caller, for callers.
 
@@ -84,9 +87,10 @@ IMPORTS
 
 YOUR DATA STAYS YOURS
 - Local-first: your collection lives on your device and the app works fully
-  offline. No account, no cloud, no telemetry, nothing collected automatically.
-- Device sync is disabled by default, opt-in only, keyed to an anonymous sync store
-  that users can share across devices or to other callers using the app.
+  offline. No account, no telemetry, nothing collected automatically.
+- Device Sync is disabled by default and opt-in only. Once you turn it on and
+  connect a store, it syncs automatically; the store is anonymous and can be shared
+  across your devices or with other callers using the app.
 - Export a full backup to a single human-readable file (with a built-in
   integrity checksum) and restore it anywhere.
 
@@ -112,8 +116,8 @@ Reuse per release; keep it tester-focused. Source of truth is
 ```
 Thanks for testing Caller's Compendium! This build adds new Perform and analysis
 tools, richer ContraDB and browser-share importing, and quality-of-life polish
-across browsing, editing, and sharing. Everything stays on your device — no
-account, no telemetry. Please send feedback from within TestFlight / Play, or on
+across browsing, editing, and sharing. Everything stays on your device unless
+you turn on optional Device Sync — no account, no telemetry. Please send feedback from within TestFlight / Play, or on
 GitHub. Tell us your device, the version, and what you were doing.
 ```
 
@@ -125,7 +129,7 @@ GitHub. Tell us your device, the version, and what you were doing.
   catalog dances, build programs, and call from a large-print Perform mode. This
   beta is for real callers to use it at real gigs and tell us what breaks. No
   account or sign-in; everything works offline. Optional: try an import (paste a
-  ContraDB program link) to exercise the one network feature.
+  ContraDB program link) to exercise a network feature.
   ```
 - **Feedback email:** compendium@contra.dance
 - **Marketing URL:** https://ibanner56.github.io/CallersCompendium/
@@ -137,41 +141,66 @@ GitHub. Tell us your device, the version, and what you were doing.
 
 ## App Privacy (Apple)
 
-For a pre-Sync build, set in App Store Connect → App Privacy. Expected result:
-**"Data Not Collected."** Do not use this answer for a beta where Device Sync
-can transfer content; re-answer the questionnaire for that build.
+Set in App Store Connect → App Privacy. Device Sync can transfer content, so
+**"Data Not Collected" is not the right answer** for a Sync-capable build.
+Expected result: **Data collected, not linked to you, not used for tracking.**
 
 - [ ] **"Do you or your third-party partners collect data from this app?"** →
-  **No / Data Not Collected.**
-- Rationale to keep on file: the app is local-first. It makes only **user-initiated**
-  network requests (imports the user chooses to run) and an **opt-in, off-by-default**
-  update check. None of this is used to **collect** data about the user, none is
-  linked to an identity, there is no analytics/tracking SDK, and no advertising
-  identifier is used. That satisfies Apple's definition for "not collected."
+  **Yes.**
+- [ ] **Data type:** **User Content → Other User Content.** This is the
+  choreography, programs, tags and shareable settings that optional Device Sync
+  transfers to the configured sync service (default endpoint
+  `https://athenaeum.callerscompendium.com/`, run by the project). Mirrors
+  `site/privacy/index.html` §1.
+  - **Purpose:** App Functionality only.
+  - **Linked to the user's identity?** **No** (no account; anonymous sync store).
+  - **Used for tracking?** **No.**
+  - Optional and **off by default**: nothing is sent until the user turns on
+    Device Sync and connects a store. Once connected, passes run automatically
+    after local changes and at app start (Wi-Fi only by default).
+- Rationale to keep on file: the app is local-first. Apart from Device Sync it
+  makes only **user-initiated** network requests (imports the user chooses to
+  run) and an **opt-in, off-by-default** update check; those are not used to
+  collect data about the user. There is no analytics/tracking SDK and no
+  advertising identifier is used.
+- Note: a build with Device Sync compiled out would answer "Data Not Collected".
+  No such build exists today; do not use that answer for the shipped app.
 - [ ] **Tracking:** the app does **not** track users across apps/sites → no
   `NSUserTrackingUsageDescription`, no ATT prompt.
 
-> Honesty check: because the update check and imports do contact servers, keep the
-> one-line rationale above handy in case a reviewer asks. It does not change the
-> "Data Not Collected" answer — that answer is about what *you* collect.
+> Honesty check: imports and the update check contact third-party or public
+> servers, and Device Sync contacts the sync service. Keep the rationale above
+> handy in case a reviewer asks; the declared data type is only what Device Sync
+> sends.
 
 ## Data safety (Google Play)
 
-For a pre-Sync build, set in Play Console → App content → Data safety. Expected
-result: **"No data collected" and "No data shared."** Do not use these answers
-for a beta where Device Sync can transfer content; re-answer the questionnaire
-for that build.
+Set in Play Console → App content → Data safety. Device Sync can transfer
+content, so **"No data collected" / "No data shared" is not the right answer**
+for a Sync-capable build.
 
 - [ ] **Does your app collect or share any of the required user data types?** →
-  **No.**
-- [ ] **Is all user data encrypted in transit?** → N/A (no data collected). If the
-  form forces an answer, note that all network calls the app makes are HTTPS.
-- [ ] **Do you provide a way for users to request data deletion?** → N/A (nothing
-  is collected; all data is local and user-controlled via backup/restore and
-  in-app delete).
+  **Yes.**
+- [ ] **Data type:** **App activity → Other user-generated content** (the
+  choreography, programs, tags and shareable settings that optional Device Sync
+  transfers; mirrors `site/privacy/index.html` §1).
+  - **Collected or shared?** Collected (sent to the project's sync service by
+    default). Not shared with third parties.
+  - **Optional?** Yes — users can choose whether to enable Device Sync, which is
+    **off by default**.
+  - **Purpose:** App functionality.
+  - **Linked to identity?** No account or identity is involved.
+- [ ] **Is all user data encrypted in transit?** → Yes. The default sync
+  endpoint and imports use HTTPS; a user-entered sync endpoint must be HTTPS
+  except plain-HTTP `localhost`/`127.0.0.1`, which never leaves the device.
+- [ ] **Do you provide a way for users to request data deletion?** → Yes:
+  disabling Device Sync and deleting the sync store requests removal from the
+  service (see `site/privacy/index.html` §7); all local data is under the user's
+  control via backup/restore and in-app delete.
 - Rationale to keep on file (same as Apple): local-first, no analytics, no ads, no
-  accounts; network use is user-initiated imports + an opt-in update check, which
-  do not send personal user data to the developer.
+  accounts; imports and the opt-in update check do not send personal user data to
+  the developer. A build with Device Sync compiled out would answer "No data
+  collected"; none exists today.
 - [ ] **Advertising ID:** declare the app does **not** use an advertising ID, and
   confirm no dependency adds the `AD_ID` permission.
 
@@ -206,13 +235,15 @@ Caller's Compendium is an offline organizer/reference for contra dance callers.
   launch; the app seeds one sample dance ("The Baby Rose") so the collection is
   never empty.
 - No special device permissions are requested (no camera, microphone, location,
-  contacts, or photos). The only permission is INTERNET, used for user-initiated
-  imports, browsing or importing published collections, an opt-in (off by
+  contacts, or photos). Permissions are INTERNET and ACCESS_NETWORK_STATE (the
+  latter added by the `connectivity_plus` plugin, used to honour the Wi-Fi-only
+  sync setting), used for user-initiated imports, browsing or importing published collections, an opt-in (off by
   default) update check, and Device Sync when the user enables it.
 - To exercise an import network feature: open Import and paste a ContraDB program
   URL (e.g. https://contradb.com/programs/1) or a Caller's Box dance id, then
   review and commit. Nothing is uploaded — imports only fetch.
-- Device Sync is disabled by default. When a user enables it, the app transfers
+- Device Sync is disabled by default. When a user enables it and connects a store,
+  the app then syncs automatically, transferring
   configured application settings, choreography, and programming content to an 
   anonymous sync store so the user can share it across devices or with other 
   callers using the app. This data is used only for app functionality, is not 
