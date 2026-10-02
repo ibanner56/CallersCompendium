@@ -91,6 +91,10 @@ void main() {
     final result = await resultFuture;
 
     expect(result.status, SyncPassStatus.completed);
+    // The store answered without a quota. That the worker read it must still
+    // reach the parent, or an old "almost full" reading would stand (§5.2).
+    expect(result.storeRead, isTrue);
+    expect(result.quota, isNull);
     expect(requests, [
       'GET /v1/store',
       'POST /v1/blobs/missing',

@@ -55,14 +55,15 @@ String? syncPassSupportCode(SyncPassResult result) => switch (result.status) {
   SyncPassStatus.freshAttachRequired => null,
 };
 
-/// The code for the notice [group] raises from [reports]: its group name and
-/// how many records it names, when it names any — `SYNC-NEWER-VERSION ×4`.
+/// The code for the notice [group] raises from [reports]: its group name and,
+/// when the count is complete ([syncNoticeCountedRecords]), how many records
+/// it is about — `SYNC-NEWER-VERSION ×4`.
 String syncNoticeSupportCode(
   SyncNoticeGroup group,
   Iterable<SyncReport> reports,
 ) {
   final code = 'SYNC-${_kebab(group.name)}';
-  final records = syncNoticeRecords(group, reports).length;
+  final records = syncNoticeCountedRecords(group, reports);
   return records == 0 ? code : '$code ×$records';
 }
 

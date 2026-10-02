@@ -643,7 +643,9 @@ class SyncController extends ChangeNotifier {
     // store being forgotten; recording it would restore its last-success time.
     if (_detaching) return;
     _lastResult = result;
-    if (result.quota case final quota?) _storeQuota = quota;
+    // Only a pass that read the store says anything about its usage; one
+    // that did and found no usable quota clears the reading (spec §5.2).
+    if (result.storeRead) _storeQuota = result.quota;
     // Latched rather than replaced: see [mergedDuplicates]. A pass that merged
     // nothing says nothing about an earlier attach's count, because every
     // ordinary pass reports zero.
@@ -794,6 +796,9 @@ class SyncController extends ChangeNotifier {
     // suppressed confirmation sends nothing, and must leave the controller
     // bit-identical.
     _mergedDuplicates = 0;
+    // A confirmation is a full pass — a fresh attach — so it counts for the
+    // resume interval like any pass [trigger] starts.
+    _lastPassStartedAt = _now();
     _inFlight++;
     _notify();
     try {
@@ -832,6 +837,9 @@ class SyncController extends ChangeNotifier {
       // open and unrecoverable without a full re-trigger.
       if (result.status == SyncPassStatus.completed) {
         _replacementPending = false;
+        // A completed pass restarts the backoff, whichever path ran it. A
+        // failed confirmation schedules nothing (see [_planRetry]).
+        _cancelRetry(reset: true);
       }
       return SyncGateOutcome.ran;
     } finally {

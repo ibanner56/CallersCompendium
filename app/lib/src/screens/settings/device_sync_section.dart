@@ -818,7 +818,13 @@ class _SyncNoticeTileState extends State<_SyncNoticeTile> {
               color: theme.colorScheme.error,
             )
           : Icon(Icons.info_outline, color: theme.colorScheme.tertiary),
-      title: Text(syncNoticeText(l10n, widget.group, recordCount: total)),
+      title: Text(
+        syncNoticeText(
+          l10n,
+          widget.group,
+          recordCount: syncNoticeCountedRecords(widget.group, widget.reports),
+        ),
+      ),
       trailing: switch (widget.onCopyDetails) {
         final onCopy? => _CopyDetailsButton(
           key: ValueKey('sync-notice-${widget.group.name}-copy-details'),

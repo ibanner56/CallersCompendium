@@ -133,10 +133,9 @@ bool syncNoticeNeedsYou(SyncNoticeGroup group) => switch (group) {
   SyncNoticeGroup.unreflectedPublication => false,
 };
 
-/// The notice text for [group]. [recordCount] is how many distinct records
-/// its reports name ([syncNoticeRecords]); only [SyncNoticeGroup.newerVersion]
-/// says it, and falls back to an uncounted sentence when no report could name
-/// a record — a newer manifest does not say what it lists.
+/// The notice text for [group]. [recordCount] is [syncNoticeCountedRecords];
+/// only [SyncNoticeGroup.newerVersion] says it, and falls back to an
+/// uncounted sentence at 0 — a newer manifest does not say what it lists.
 ///
 /// Never the report's own `message`: those are internal diagnostics written
 /// for a maintainer reading a log — they name wire paths, status codes and
@@ -182,6 +181,22 @@ List<SyncNoticeRecord> syncNoticeRecords(
         if ((report.kind, report.recordId) case (final kind?, final id?))
           if (seen.add((kind: kind, recordId: id))) (kind: kind, recordId: id),
   ];
+}
+
+/// How many records [group]'s notice may claim it is about: the records
+/// [syncNoticeRecords] names, or 0 when any of the group's reports names no
+/// record. A newer manifest names none, yet stands for everything its peer
+/// shares, so a count beside it would understate what is waiting.
+int syncNoticeCountedRecords(
+  SyncNoticeGroup group,
+  Iterable<SyncReport> reports,
+) {
+  final grouped = [
+    for (final report in reports)
+      if (syncNoticeGroupFor(report) == group) report,
+  ];
+  if (grouped.any((r) => r.kind == null || r.recordId == null)) return 0;
+  return syncNoticeRecords(group, grouped).length;
 }
 
 /// How many distinct other devices [group]'s reports in [reports] came from.

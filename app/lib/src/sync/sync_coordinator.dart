@@ -121,6 +121,7 @@ class SyncPassResult {
     this.duplicateCount = 0,
     this.appliedKinds = const [],
     this.quota,
+    this._storeRead = false,
   });
 
   final SyncPassStatus status;
@@ -147,9 +148,20 @@ class SyncPassResult {
   /// with a `507` has still read how full the store is.
   final SyncStoreQuota? quota;
 
-  /// This result with [quota] attached, unless it already carries one.
-  SyncPassResult withQuota(SyncStoreQuota? quota) =>
-      quota == null || this.quota != null
+  /// Whether the pass read a usable store answer, so that [quota] — null
+  /// included — is what the store says now. A null [quota] alone cannot tell
+  /// "never reached the store" (keep the last reading) from "the store sent
+  /// no usable quota" (spec §5.2: lose the warning). A non-null [quota]
+  /// implies a read.
+  bool get storeRead => _storeRead || quota != null;
+  final bool _storeRead;
+
+  /// This result carrying the store reading the pass took, unless it already
+  /// carries one (a result from the worker isolate does) or none was taken.
+  SyncPassResult withStoreReading({
+    required bool read,
+    SyncStoreQuota? quota,
+  }) => !read || storeRead
       ? this
       : SyncPassResult(
           status,
@@ -159,6 +171,7 @@ class SyncPassResult {
           duplicateCount: duplicateCount,
           appliedKinds: appliedKinds,
           quota: quota,
+          storeRead: true,
         );
 }
 
@@ -808,6 +821,7 @@ class SyncCoordinator {
   /// pass has many exits and every one past the lookup should carry it;
   /// [_runStartedPass] resets it before a pass and attaches it after.
   SyncStoreQuota? _passQuota;
+  bool _passStoreRead = false;
   var _disposed = false;
 
   static const _maxMissingHashesPerRequest = 10000;
@@ -1018,12 +1032,13 @@ class SyncCoordinator {
     SyncStoreResult? initialStore,
   }) async {
     _passQuota = null;
+    _passStoreRead = false;
     // Under `passOperation` the pass ran in the worker isolate, whose own
-    // coordinator attached the quota; this one's stays null and is ignored.
+    // coordinator attached the reading; this one took none and adds nothing.
     final result =
         (await (passOperation?.call(initialStore: initialStore) ??
                 passRunner.run(() => _runPass(initialStore: initialStore))))
-            .withQuota(_passQuota);
+            .withStoreReading(read: _passStoreRead, quota: _passQuota);
     if (result.status == SyncPassStatus.replacementRequired) {
       _emitReplacementRequired();
     }
@@ -1114,6 +1129,7 @@ class SyncCoordinator {
         ),
       );
     }
+    _passStoreRead = true;
     _passQuota = metadata.quota;
     _peerManifestCache.beginUnreflectedEpoch(metadata.epoch);
     final attachContinuation =
