@@ -22,7 +22,7 @@ String danceFormLabel(AppLocalizations l10n, DanceForm form) => switch (form) {
 /// never carried by the glyph alone.
 IconData danceFormIcon(DanceForm form) => switch (form) {
   DanceForm.contra => Icons.view_stream_outlined,
-  DanceForm.ecd => Icons.groups_outlined,
+  DanceForm.ecd => Icons.diversity_3_outlined,
   DanceForm.square => Icons.crop_square,
 };
 

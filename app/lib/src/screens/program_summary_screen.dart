@@ -727,7 +727,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           ),
         if (program.dancerLevel != null)
           _summaryRow(
-            Icons.groups_outlined,
+            Icons.signal_cellular_alt_outlined,
             l10n.programsSummaryLevel(_displayProse(program.dancerLevel!)),
           ),
         if (program.notes.trim().isNotEmpty) ...[

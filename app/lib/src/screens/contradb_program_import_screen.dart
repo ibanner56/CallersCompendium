@@ -671,7 +671,7 @@ class _ContraDbProgramImportScreenState
     final String tooltip;
     final String badgeKey;
     if (marker.isImported) {
-      icon = Icons.check_circle;
+      icon = Icons.check_circle_outline;
       color = scheme.primary;
       label = l10n.importContraDbMarkerImported;
       final importedAt = marker.importedAt;
