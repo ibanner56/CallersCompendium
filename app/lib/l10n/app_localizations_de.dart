@@ -537,7 +537,136 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncNoticeDivergence =>
-      'Einige Einträge wurden im selben Moment auf zwei Geräten geändert. Keine der Fassungen wurde ausgewählt, deine Geräte unterscheiden sich also weiterhin. Bearbeite eine davon, um das zu klären.';
+      'Einige Einträge wurden im selben Moment auf zwei Geräten geändert und unterscheiden sich weiterhin. Wenn sie unter Synchronisierungsentscheidungen aufgeführt sind, wähle dort; andernfalls bearbeite einen davon, um das zu klären.';
+
+  @override
+  String get syncConflictTitle => 'Wähle, welche Fassung du behältst';
+
+  @override
+  String get syncConflictIntro =>
+      'Diese Einträge wurden auf mehr als einem Gerät geändert, und die App kann nicht erkennen, welche Änderung gelten soll. Beide Fassungen bleiben erhalten, bis du wählst.';
+
+  @override
+  String get syncConflictThisDevice => 'Dieses Gerät';
+
+  @override
+  String get syncConflictOtherDevice => 'Ein anderes Gerät';
+
+  @override
+  String syncConflictOtherDeviceNumbered(int number) {
+    return 'Ein anderes Gerät ($number)';
+  }
+
+  @override
+  String get syncConflictKeepAllThisDevice => 'Alle von diesem Gerät behalten';
+
+  @override
+  String get syncConflictKeepAllOtherDevice =>
+      'Alle vom anderen Gerät behalten';
+
+  @override
+  String get syncConflictApply => 'Auswahl behalten';
+
+  @override
+  String get syncConflictDecideLater => 'Später entscheiden';
+
+  @override
+  String syncConflictDiffersIn(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Unterscheidet sich in $count Details',
+      one: 'Unterscheidet sich in 1 Detail',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get syncConflictValueNotSet => 'Nicht festgelegt';
+
+  @override
+  String get syncConflictValueOn => 'Ein';
+
+  @override
+  String get syncConflictValueOff => 'Aus';
+
+  @override
+  String syncConflictValueItems(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Einträge',
+      one: '1 Eintrag',
+      zero: 'Keine',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictValueNamesAndMore(String names, int count) {
+    return '$names und $count weitere';
+  }
+
+  @override
+  String get syncConflictNone => 'Im Moment gibt es nichts zu entscheiden.';
+
+  @override
+  String get syncConflictClockWrong =>
+      'Datum und Uhrzeit dieses Geräts scheinen falsch zu sein, deshalb konnte deine Auswahl nicht gespeichert werden. Korrigiere Datum und Uhrzeit und versuche es dann erneut.';
+
+  @override
+  String get syncConflictFailed =>
+      'Deine Auswahl konnte nicht gespeichert werden. Versuche es erneut.';
+
+  @override
+  String get syncSettingActiveCustomTheme =>
+      'Verwendetes benutzerdefiniertes Design';
+
+  @override
+  String get syncSettingActiveDialect => 'Verwendeter Dialekt';
+
+  @override
+  String get syncSettingLastCollectionSort =>
+      'Sortierung der Sammlung (zuletzt verwendet)';
+
+  @override
+  String get syncSettingLastCollectionSortDirection =>
+      'Sortierrichtung der Sammlung (zuletzt verwendet)';
+
+  @override
+  String get syncSettingLastProgramSort =>
+      'Sortierung der Programme (zuletzt verwendet)';
+
+  @override
+  String get syncSettingLastProgramSortDirection =>
+      'Sortierrichtung der Programme (zuletzt verwendet)';
+
+  @override
+  String get syncSettingPerformStageTheme => 'Bühnen-Design in Perform';
+
+  @override
+  String settingsSyncConflictsSubtitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count Einträge wurden auf zwei Geräten geändert und warten auf deine Wahl.',
+      one:
+          '1 Eintrag wurde auf zwei Geräten geändert und wartet auf deine Wahl.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String commonSyncNowConflictsTooltip(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Jetzt synchronisieren ($count Einträge warten auf deine Wahl)',
+      one: 'Jetzt synchronisieren (1 Eintrag wartet auf deine Wahl)',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get settingsSyncNoticeKeptLocalCreation =>

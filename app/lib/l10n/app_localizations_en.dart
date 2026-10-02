@@ -529,7 +529,129 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSyncNoticeDivergence =>
-      'Some records were changed on two devices at the same moment. Neither copy was chosen, so your devices still differ. Edit one of them to settle it.';
+      'Some items were changed on two devices at the same moment and still differ. If they\'re listed under Sync decisions, choose there; otherwise edit one of them to settle it.';
+
+  @override
+  String get syncConflictTitle => 'Choose which version to keep';
+
+  @override
+  String get syncConflictIntro =>
+      'These were changed on more than one device, and the app can\'t tell which change should win. Both versions are kept until you choose.';
+
+  @override
+  String get syncConflictThisDevice => 'This device';
+
+  @override
+  String get syncConflictOtherDevice => 'Another device';
+
+  @override
+  String syncConflictOtherDeviceNumbered(int number) {
+    return 'Another device ($number)';
+  }
+
+  @override
+  String get syncConflictKeepAllThisDevice => 'Keep all from this device';
+
+  @override
+  String get syncConflictKeepAllOtherDevice => 'Keep all from the other device';
+
+  @override
+  String get syncConflictApply => 'Keep selected';
+
+  @override
+  String get syncConflictDecideLater => 'Decide later';
+
+  @override
+  String syncConflictDiffersIn(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Differs in $count details',
+      one: 'Differs in 1 detail',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get syncConflictValueNotSet => 'Not set';
+
+  @override
+  String get syncConflictValueOn => 'On';
+
+  @override
+  String get syncConflictValueOff => 'Off';
+
+  @override
+  String syncConflictValueItems(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count items',
+      one: '1 item',
+      zero: 'None',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictValueNamesAndMore(String names, int count) {
+    return '$names and $count more';
+  }
+
+  @override
+  String get syncConflictNone => 'Nothing needs choosing right now.';
+
+  @override
+  String get syncConflictClockWrong =>
+      'This device\'s date and time look wrong, so your choice couldn\'t be saved. Correct the date and time, then try again.';
+
+  @override
+  String get syncConflictFailed => 'Your choice couldn\'t be saved. Try again.';
+
+  @override
+  String get syncSettingActiveCustomTheme => 'Custom theme in use';
+
+  @override
+  String get syncSettingActiveDialect => 'Dialect in use';
+
+  @override
+  String get syncSettingLastCollectionSort => 'Collection sort (last used)';
+
+  @override
+  String get syncSettingLastCollectionSortDirection =>
+      'Collection sort direction (last used)';
+
+  @override
+  String get syncSettingLastProgramSort => 'Programs sort (last used)';
+
+  @override
+  String get syncSettingLastProgramSortDirection =>
+      'Programs sort direction (last used)';
+
+  @override
+  String get syncSettingPerformStageTheme => 'Stage theme in Perform';
+
+  @override
+  String settingsSyncConflictsSubtitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count items were changed on two devices and need your choice.',
+      one: '1 item was changed on two devices and needs your choice.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String commonSyncNowConflictsTooltip(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Sync now ($count items need your choice)',
+      one: 'Sync now (1 item needs your choice)',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get settingsSyncNoticeKeptLocalCreation =>

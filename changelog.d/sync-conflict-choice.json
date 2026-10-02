@@ -1,0 +1,22 @@
+{
+  "id": "sync-conflict-choice",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "When the same item was changed differently on two of your devices and the app can't tell which change to keep, Device Sync now asks you: choose This device or Another device for each item, then Keep selected. Settings are shown by name with their values. The Sync now button shows how many items are waiting and opens the choice after a sync that finds new ones."
+    ],
+    "changed": [
+      "If both devices changed your dialects, custom themes, figure shorthands or walkthrough snippets, you now choose which device's set to keep instead of the most recent edit silently replacing the other.",
+      "Sync decisions has moved from General to Device Sync settings."
+    ]
+  },
+  "core": {
+    "changed": [
+      "SyncMergeEngine returns a review decision (SyncMergeAction.review) for differing live bodies at an equal updatedAt and for a changed/changed conflict on a whole-collection setting, instead of an equalUpdatedAt report.",
+      "SyncReviewQueueResolver.list() no longer returns conflict-choice rows; listConflicts() and resolveConflicts() handle them."
+    ],
+    "added": [
+      "CompendiumSyncStorage.refreshConflictReviews and resolveConflicts queue and apply the user's conflict choices; SyncConflictDecision, syncConflictChoiceReason, syncWholeCollectionSettingKeys and SyncReviewFailureCode.clockOutOfRange."
+    ]
+  }
+}

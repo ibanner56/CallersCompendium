@@ -880,11 +880,173 @@ abstract class AppLocalizations {
   /// **'Sync is paused because the store this device used no longer exists. Tap Sync now to decide again.'**
   String get settingsSyncStatusPaused;
 
-  /// Non-blocking notice on the Device Sync status surface for an equal-updatedAt conflict (spec §6.3). Neither body wins and neither is applied; only a human edit resolves it, so the copy asks for one. Needs no dismissal and blocks nothing.
+  /// Non-blocking notice for an equal-updatedAt conflict (spec §6.3) that the conflict choice does not cover: two dances that share a title, which Sync decisions lists, or two tombstones, which an edit settles. Ordinary ties go to the conflict choice instead and raise no notice. Needs no dismissal and blocks nothing.
   ///
   /// In en, this message translates to:
-  /// **'Some records were changed on two devices at the same moment. Neither copy was chosen, so your devices still differ. Edit one of them to settle it.'**
+  /// **'Some items were changed on two devices at the same moment and still differ. If they\'re listed under Sync decisions, choose there; otherwise edit one of them to settle it.'**
   String get settingsSyncNoticeDivergence;
+
+  /// Title of the conflict choice (sync-spec §6.3): a dialog on wide windows, a bottom sheet on phones, listing items changed on more than one device whose versions only the user can choose between.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which version to keep'**
+  String get syncConflictTitle;
+
+  /// Intro under the conflict choice title. Must reassure: nothing is lost before the user chooses, and nothing is chosen for them.
+  ///
+  /// In en, this message translates to:
+  /// **'These were changed on more than one device, and the app can\'t tell which change should win. Both versions are kept until you choose.'**
+  String get syncConflictIntro;
+
+  /// Option label for keeping this device's version of an item in the conflict choice.
+  ///
+  /// In en, this message translates to:
+  /// **'This device'**
+  String get syncConflictThisDevice;
+
+  /// Option label for keeping the other device's version when only one other version is on offer. Devices are never named, by design.
+  ///
+  /// In en, this message translates to:
+  /// **'Another device'**
+  String get syncConflictOtherDevice;
+
+  /// Option label when more than one other version is on offer; {number} tells them apart. Devices are never named, by design.
+  ///
+  /// In en, this message translates to:
+  /// **'Another device ({number})'**
+  String syncConflictOtherDeviceNumbered(int number);
+
+  /// Selects this device's version for every item in the conflict choice; the user still confirms with the apply button.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep all from this device'**
+  String get syncConflictKeepAllThisDevice;
+
+  /// Selects the other device's version for every item, offered only when each item has exactly one other version; the user still confirms.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep all from the other device'**
+  String get syncConflictKeepAllOtherDevice;
+
+  /// Button that saves the chosen versions. Each chosen version then reaches the other devices as an ordinary newer edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep selected'**
+  String get syncConflictApply;
+
+  /// Closes the conflict choice without changing anything; the items stay listed until decided.
+  ///
+  /// In en, this message translates to:
+  /// **'Decide later'**
+  String get syncConflictDecideLater;
+
+  /// How many fields differ between the versions of an item in the conflict choice.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Differs in 1 detail} other{Differs in {count} details}}'**
+  String syncConflictDiffersIn(int count);
+
+  /// Shown for a version of a setting that has no value.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get syncConflictValueNotSet;
+
+  /// Shown for a version of an on/off setting that is on.
+  ///
+  /// In en, this message translates to:
+  /// **'On'**
+  String get syncConflictValueOn;
+
+  /// Shown for a version of an on/off setting that is off.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get syncConflictValueOff;
+
+  /// Summary of a version of a setting whose value is a collection whose entries have no names.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{None} =1{1 item} other{{count} items}}'**
+  String syncConflictValueItems(int count);
+
+  /// Summary of a version of a collection setting: the first few entry names, then how many more there are.
+  ///
+  /// In en, this message translates to:
+  /// **'{names} and {count} more'**
+  String syncConflictValueNamesAndMore(String names, int count);
+
+  /// Shown in the conflict choice when no item is waiting for a choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing needs choosing right now.'**
+  String get syncConflictNone;
+
+  /// Shown when a choice could not be stamped later than every version without leaving this device's clock window: the fix is this device's clock.
+  ///
+  /// In en, this message translates to:
+  /// **'This device\'s date and time look wrong, so your choice couldn\'t be saved. Correct the date and time, then try again.'**
+  String get syncConflictClockWrong;
+
+  /// Shown when saving a conflict choice failed for an unexpected reason.
+  ///
+  /// In en, this message translates to:
+  /// **'Your choice couldn\'t be saved. Try again.'**
+  String get syncConflictFailed;
+
+  /// Name of the synced setting that records which custom theme is active, shown when the user must choose between two versions of it.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom theme in use'**
+  String get syncSettingActiveCustomTheme;
+
+  /// Name of the synced setting that records which dialect is active, shown when the user must choose between two versions of it.
+  ///
+  /// In en, this message translates to:
+  /// **'Dialect in use'**
+  String get syncSettingActiveDialect;
+
+  /// Name of the synced setting that remembers the last sort chosen on the Collection page.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection sort (last used)'**
+  String get syncSettingLastCollectionSort;
+
+  /// Name of the synced setting that remembers the last sort direction chosen on the Collection page.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection sort direction (last used)'**
+  String get syncSettingLastCollectionSortDirection;
+
+  /// Name of the synced setting that remembers the last sort chosen on the Programs page.
+  ///
+  /// In en, this message translates to:
+  /// **'Programs sort (last used)'**
+  String get syncSettingLastProgramSort;
+
+  /// Name of the synced setting that remembers the last sort direction chosen on the Programs page.
+  ///
+  /// In en, this message translates to:
+  /// **'Programs sort direction (last used)'**
+  String get syncSettingLastProgramSortDirection;
+
+  /// Name of the synced setting that turns on the dark stage theme in Perform.
+  ///
+  /// In en, this message translates to:
+  /// **'Stage theme in Perform'**
+  String get syncSettingPerformStageTheme;
+
+  /// Subtitle of the Device Sync entry that opens the conflict choice; shown only while at least one item is waiting.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 item was changed on two devices and needs your choice.} other{{count} items were changed on two devices and need your choice.}}'**
+  String settingsSyncConflictsSubtitle(int count);
+
+  /// Tooltip of the toolbar Sync now button while items await a conflict choice; the button also shows the count as a badge.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Sync now (1 item needs your choice)} other{Sync now ({count} items need your choice)}}'**
+  String commonSyncNowConflictsTooltip(int count);
 
   /// Non-blocking notice for spec §6.4: a record created locally and never observed by any peer must be reported rather than resolved out of existence. Informational — the record is safe and no action is required.
   ///

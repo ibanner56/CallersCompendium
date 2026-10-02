@@ -46,6 +46,32 @@ const Set<String> syncNaturalKeyRenameCollisionReasons = {
   syncShippedDifficultyRenameCollisionReason,
 };
 
+/// The reason for a record whose versions differ and which only the user can
+/// settle (sync-spec §6.3, §6.6): bodies at an equal `updatedAt`, or a
+/// changed/changed conflict on a whole-collection setting.
+///
+/// One row per offered version that is not this device's own, keyed by that
+/// version's wire hash as `counterpart_id`. `record_id` is the record itself,
+/// and `local_hash` is this device's wire hash when the row was queued, so a
+/// decision made against a copy that has since changed is refused rather than
+/// applied over the newer edit.
+const String syncConflictChoiceReason =
+    'versions of one record differ and need the user to choose which to keep';
+
+/// One user choice in a conflict review: keep [keepCandidateHash]'s version
+/// of the record, or this device's own when it is null.
+class SyncConflictDecision {
+  const SyncConflictDecision({
+    required this.kind,
+    required this.recordId,
+    this.keepCandidateHash,
+  });
+
+  final SyncRecordKind kind;
+  final String recordId;
+  final String? keepCandidateHash;
+}
+
 /// The decisions supported by the persisted sync review surface.
 enum SyncReviewAction { merge, keepBoth }
 
@@ -69,6 +95,11 @@ enum SyncReviewFailureCode {
   /// arises. Merging it with a live record would be an *existence* decision,
   /// and keep-both remains available.
   counterpartDeleted,
+
+  /// The decision could not be stamped later than every version on offer
+  /// without leaving this device's clock window (§6.9), so applying it would
+  /// only quarantine it. The fix is this device's date and time.
+  clockOutOfRange,
 }
 
 /// A failed review decision that left the queue row untouched.
@@ -107,6 +138,9 @@ class SyncReviewQueueItem {
 
   bool get isNaturalKeyRenameCollision =>
       syncNaturalKeyRenameCollisionReasons.contains(row.reason);
+
+  /// A version offered in a conflict review rather than a pair to merge.
+  bool get isConflictChoice => row.reason == syncConflictChoiceReason;
 
   /// The id of the record that exists only on this device.
   ///
@@ -183,10 +217,19 @@ class SyncReviewQueueItem {
     final wellFormedCandidate =
         value != null &&
         value.kind == row.kind &&
-        value.body['id'] == value.id &&
+        // A setting's body is its value; its id is the key, on the envelope.
+        (value.kind == SyncRecordKind.setting ||
+            value.body['id'] == value.id) &&
         sha256Hex(encodeSyncRecordBlobUtf8(value)) == row.candidateHash &&
         _hasValidEntityBody(value);
     if (!wellFormedCandidate) return false;
+    if (row.reason == syncConflictChoiceReason) {
+      // The candidate is another version of `record_id` itself, filed under
+      // its own wire hash.
+      return value.id == row.recordId &&
+          row.counterpartId == row.candidateHash &&
+          value.deletedAt == null;
+    }
     if (syncNaturalKeyRenameCollisionReasons.contains(row.reason)) {
       // Step 1: the candidate updates `record_id`, and `counterpart_id` is the
       // other local row that currently holds the natural key.
@@ -214,6 +257,9 @@ class SyncReviewQueueItem {
 }
 
 bool _hasValidEntityBody(SyncRecordBlob candidate) {
+  // A setting's body is a value, not an archive entity, and is validated by
+  // inbound admission instead (`resolveConflicts`).
+  if (candidate.kind == SyncRecordKind.setting) return true;
   try {
     validateSyncReviewCandidateBody(candidate.kind, candidate.body);
     return true;

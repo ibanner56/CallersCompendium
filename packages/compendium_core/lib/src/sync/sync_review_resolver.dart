@@ -1,5 +1,25 @@
+import 'sync_record_kind.dart';
 import 'sync_review.dart';
 import 'sync_storage.dart';
+
+/// One record awaiting the user's choice between its versions.
+///
+/// [localBody] is this device's current copy as it would sync, or null when
+/// this device holds no live copy (two other devices tied). [candidates] are
+/// the other versions on offer, one queue row each.
+class SyncConflictGroup {
+  const SyncConflictGroup({
+    required this.kind,
+    required this.recordId,
+    required this.localBody,
+    required this.candidates,
+  });
+
+  final SyncRecordKind kind;
+  final String recordId;
+  final Map<String, Object?>? localBody;
+  final List<SyncReviewQueueItem> candidates;
+}
 
 /// Coordinates the persisted queue with the production sync storage adapter.
 ///
@@ -11,9 +31,57 @@ final class SyncReviewQueueResolver {
 
   final CompendiumSyncStorage storage;
 
+  /// Every queued pair decision — merge or keep both. Conflict choices are
+  /// listed by [listConflicts] instead, because they are decided on a
+  /// different surface with different actions.
   Future<List<SyncReviewQueueItem>> list() async {
     final rows = await storage.repositories.syncLocal.listReviewQueue();
-    return [for (final row in rows) SyncReviewQueueItem.fromRow(row)];
+    return [
+      for (final row in rows)
+        if (row.reason != syncConflictChoiceReason)
+          SyncReviewQueueItem.fromRow(row),
+    ];
+  }
+
+  /// How many records await a conflict choice.
+  Future<int> conflictCount() async {
+    final rows = await storage.repositories.syncLocal.listReviewQueue();
+    return {
+      for (final row in rows)
+        if (row.reason == syncConflictChoiceReason) (row.kind, row.recordId),
+    }.length;
+  }
+
+  /// The records awaiting a conflict choice, oldest first, each with this
+  /// device's current copy for comparison.
+  Future<List<SyncConflictGroup>> listConflicts() async {
+    final rows = await storage.repositories.syncLocal.listReviewQueue();
+    final grouped = <(SyncRecordKind, String), List<SyncReviewQueueItem>>{};
+    for (final row in rows) {
+      if (row.reason != syncConflictChoiceReason) continue;
+      grouped
+          .putIfAbsent((row.kind, row.recordId), () => [])
+          .add(SyncReviewQueueItem.fromRow(row));
+    }
+    final groups = <SyncConflictGroup>[];
+    for (final entry in grouped.entries) {
+      final (kind, recordId) = entry.key;
+      final items = entry.value
+        ..sort((a, b) => a.row.candidateHash.compareTo(b.row.candidateHash));
+      groups.add(
+        SyncConflictGroup(
+          kind: kind,
+          recordId: recordId,
+          localBody: await storage.read((kind: kind, recordId: recordId)),
+          candidates: List.unmodifiable(items),
+        ),
+      );
+    }
+    DateTime first(SyncConflictGroup group) => group.candidates
+        .map((item) => item.row.queuedAt)
+        .reduce((a, b) => a.isBefore(b) ? a : b);
+    groups.sort((a, b) => first(a).compareTo(first(b)));
+    return groups;
   }
 
   Future<void> resolve({
@@ -25,4 +93,10 @@ final class SyncReviewQueueResolver {
     action: action,
     newNaturalKey: newNaturalKey,
   );
+
+  /// Applies the user's conflict choices, all or none, and returns the kinds
+  /// written (see [CompendiumSyncStorage.resolveConflicts]).
+  Future<Set<SyncRecordKind>> resolveConflicts(
+    Iterable<SyncConflictDecision> decisions,
+  ) => storage.resolveConflicts(decisions);
 }

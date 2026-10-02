@@ -535,7 +535,133 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncNoticeDivergence =>
-      'Nogle poster blev ændret på to enheder i samme øjeblik. Ingen af kopierne blev valgt, så dine enheder er stadig forskellige. Rediger en af dem for at afgøre det.';
+      'Nogle elementer blev ændret på to enheder i samme øjeblik og er stadig forskellige. Hvis de står under Synkroniseringsbeslutninger, så vælg der; ellers kan du redigere et af dem for at afgøre det.';
+
+  @override
+  String get syncConflictTitle => 'Vælg hvilken version du vil beholde';
+
+  @override
+  String get syncConflictIntro =>
+      'Disse blev ændret på mere end én enhed, og appen kan ikke afgøre, hvilken ændring der skal gælde. Begge versioner bevares, indtil du vælger.';
+
+  @override
+  String get syncConflictThisDevice => 'Denne enhed';
+
+  @override
+  String get syncConflictOtherDevice => 'En anden enhed';
+
+  @override
+  String syncConflictOtherDeviceNumbered(int number) {
+    return 'En anden enhed ($number)';
+  }
+
+  @override
+  String get syncConflictKeepAllThisDevice => 'Behold alle fra denne enhed';
+
+  @override
+  String get syncConflictKeepAllOtherDevice =>
+      'Behold alle fra den anden enhed';
+
+  @override
+  String get syncConflictApply => 'Behold valgte';
+
+  @override
+  String get syncConflictDecideLater => 'Beslut senere';
+
+  @override
+  String syncConflictDiffersIn(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Afviger i $count detaljer',
+      one: 'Afviger i 1 detalje',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get syncConflictValueNotSet => 'Ikke angivet';
+
+  @override
+  String get syncConflictValueOn => 'Til';
+
+  @override
+  String get syncConflictValueOff => 'Fra';
+
+  @override
+  String syncConflictValueItems(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count elementer',
+      one: '1 element',
+      zero: 'Ingen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictValueNamesAndMore(String names, int count) {
+    return '$names og $count mere';
+  }
+
+  @override
+  String get syncConflictNone => 'Der er intet at vælge lige nu.';
+
+  @override
+  String get syncConflictClockWrong =>
+      'Dato og klokkeslæt på denne enhed ser forkerte ud, så dit valg kunne ikke gemmes. Ret dato og klokkeslæt, og prøv så igen.';
+
+  @override
+  String get syncConflictFailed => 'Dit valg kunne ikke gemmes. Prøv igen.';
+
+  @override
+  String get syncSettingActiveCustomTheme => 'Brugerdefineret tema i brug';
+
+  @override
+  String get syncSettingActiveDialect => 'Dialekt i brug';
+
+  @override
+  String get syncSettingLastCollectionSort =>
+      'Samlingens sortering (senest brugt)';
+
+  @override
+  String get syncSettingLastCollectionSortDirection =>
+      'Samlingens sorteringsretning (senest brugt)';
+
+  @override
+  String get syncSettingLastProgramSort =>
+      'Programmernes sortering (senest brugt)';
+
+  @override
+  String get syncSettingLastProgramSortDirection =>
+      'Programmernes sorteringsretning (senest brugt)';
+
+  @override
+  String get syncSettingPerformStageTheme => 'Scenetema i Fremfør';
+
+  @override
+  String settingsSyncConflictsSubtitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count elementer blev ændret på to enheder og venter på dit valg.',
+      one: '1 element blev ændret på to enheder og venter på dit valg.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String commonSyncNowConflictsTooltip(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Synkronisér nu ($count elementer venter på dit valg)',
+      one: 'Synkronisér nu (1 element venter på dit valg)',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get settingsSyncNoticeKeptLocalCreation =>

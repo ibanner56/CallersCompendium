@@ -674,9 +674,157 @@
   "@settingsSyncStatusPaused": {
     "description": "Status shown after the user declined to replace a store that had gone missing. Per spec §6.3 step 1 declining leaves sync configured but paused; a manual 'Sync now' reopens the replacement decision. Automatic syncs do nothing while paused."
   },
-  "settingsSyncNoticeDivergence": "Some records were changed on two devices at the same moment. Neither copy was chosen, so your devices still differ. Edit one of them to settle it.",
+  "settingsSyncNoticeDivergence": "Some items were changed on two devices at the same moment and still differ. If they're listed under Sync decisions, choose there; otherwise edit one of them to settle it.",
   "@settingsSyncNoticeDivergence": {
-    "description": "Non-blocking notice on the Device Sync status surface for an equal-updatedAt conflict (spec §6.3). Neither body wins and neither is applied; only a human edit resolves it, so the copy asks for one. Needs no dismissal and blocks nothing."
+    "description": "Non-blocking notice for an equal-updatedAt conflict (spec §6.3) that the conflict choice does not cover: two dances that share a title, which Sync decisions lists, or two tombstones, which an edit settles. Ordinary ties go to the conflict choice instead and raise no notice. Needs no dismissal and blocks nothing."
+  },
+  "syncConflictTitle": "Choose which version to keep",
+  "@syncConflictTitle": {
+    "description": "Title of the conflict choice (sync-spec §6.3): a dialog on wide windows, a bottom sheet on phones, listing items changed on more than one device whose versions only the user can choose between."
+  },
+  "syncConflictIntro": "These were changed on more than one device, and the app can't tell which change should win. Both versions are kept until you choose.",
+  "@syncConflictIntro": {
+    "description": "Intro under the conflict choice title. Must reassure: nothing is lost before the user chooses, and nothing is chosen for them."
+  },
+  "syncConflictThisDevice": "This device",
+  "@syncConflictThisDevice": {
+    "description": "Option label for keeping this device's version of an item in the conflict choice."
+  },
+  "syncConflictOtherDevice": "Another device",
+  "@syncConflictOtherDevice": {
+    "description": "Option label for keeping the other device's version when only one other version is on offer. Devices are never named, by design."
+  },
+  "syncConflictOtherDeviceNumbered": "Another device ({number})",
+  "@syncConflictOtherDeviceNumbered": {
+    "description": "Option label when more than one other version is on offer; {number} tells them apart. Devices are never named, by design.",
+    "placeholders": {
+      "number": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "syncConflictKeepAllThisDevice": "Keep all from this device",
+  "@syncConflictKeepAllThisDevice": {
+    "description": "Selects this device's version for every item in the conflict choice; the user still confirms with the apply button."
+  },
+  "syncConflictKeepAllOtherDevice": "Keep all from the other device",
+  "@syncConflictKeepAllOtherDevice": {
+    "description": "Selects the other device's version for every item, offered only when each item has exactly one other version; the user still confirms."
+  },
+  "syncConflictApply": "Keep selected",
+  "@syncConflictApply": {
+    "description": "Button that saves the chosen versions. Each chosen version then reaches the other devices as an ordinary newer edit."
+  },
+  "syncConflictDecideLater": "Decide later",
+  "@syncConflictDecideLater": {
+    "description": "Closes the conflict choice without changing anything; the items stay listed until decided."
+  },
+  "syncConflictDiffersIn": "{count, plural, =1{Differs in 1 detail} other{Differs in {count} details}}",
+  "@syncConflictDiffersIn": {
+    "description": "How many fields differ between the versions of an item in the conflict choice.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "syncConflictValueNotSet": "Not set",
+  "@syncConflictValueNotSet": {
+    "description": "Shown for a version of a setting that has no value."
+  },
+  "syncConflictValueOn": "On",
+  "@syncConflictValueOn": {
+    "description": "Shown for a version of an on/off setting that is on."
+  },
+  "syncConflictValueOff": "Off",
+  "@syncConflictValueOff": {
+    "description": "Shown for a version of an on/off setting that is off."
+  },
+  "syncConflictValueItems": "{count, plural, =0{None} =1{1 item} other{{count} items}}",
+  "@syncConflictValueItems": {
+    "description": "Summary of a version of a setting whose value is a collection whose entries have no names.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "syncConflictValueNamesAndMore": "{names} and {count} more",
+  "@syncConflictValueNamesAndMore": {
+    "description": "Summary of a version of a collection setting: the first few entry names, then how many more there are.",
+    "placeholders": {
+      "names": {
+        "type": "String",
+        "example": "Larks/Robins, Leads/Follows"
+      },
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "syncConflictNone": "Nothing needs choosing right now.",
+  "@syncConflictNone": {
+    "description": "Shown in the conflict choice when no item is waiting for a choice."
+  },
+  "syncConflictClockWrong": "This device's date and time look wrong, so your choice couldn't be saved. Correct the date and time, then try again.",
+  "@syncConflictClockWrong": {
+    "description": "Shown when a choice could not be stamped later than every version without leaving this device's clock window: the fix is this device's clock."
+  },
+  "syncConflictFailed": "Your choice couldn't be saved. Try again.",
+  "@syncConflictFailed": {
+    "description": "Shown when saving a conflict choice failed for an unexpected reason."
+  },
+  "syncSettingActiveCustomTheme": "Custom theme in use",
+  "@syncSettingActiveCustomTheme": {
+    "description": "Name of the synced setting that records which custom theme is active, shown when the user must choose between two versions of it."
+  },
+  "syncSettingActiveDialect": "Dialect in use",
+  "@syncSettingActiveDialect": {
+    "description": "Name of the synced setting that records which dialect is active, shown when the user must choose between two versions of it."
+  },
+  "syncSettingLastCollectionSort": "Collection sort (last used)",
+  "@syncSettingLastCollectionSort": {
+    "description": "Name of the synced setting that remembers the last sort chosen on the Collection page."
+  },
+  "syncSettingLastCollectionSortDirection": "Collection sort direction (last used)",
+  "@syncSettingLastCollectionSortDirection": {
+    "description": "Name of the synced setting that remembers the last sort direction chosen on the Collection page."
+  },
+  "syncSettingLastProgramSort": "Programs sort (last used)",
+  "@syncSettingLastProgramSort": {
+    "description": "Name of the synced setting that remembers the last sort chosen on the Programs page."
+  },
+  "syncSettingLastProgramSortDirection": "Programs sort direction (last used)",
+  "@syncSettingLastProgramSortDirection": {
+    "description": "Name of the synced setting that remembers the last sort direction chosen on the Programs page."
+  },
+  "syncSettingPerformStageTheme": "Stage theme in Perform",
+  "@syncSettingPerformStageTheme": {
+    "description": "Name of the synced setting that turns on the dark stage theme in Perform."
+  },
+  "settingsSyncConflictsSubtitle": "{count, plural, =1{1 item was changed on two devices and needs your choice.} other{{count} items were changed on two devices and need your choice.}}",
+  "@settingsSyncConflictsSubtitle": {
+    "description": "Subtitle of the Device Sync entry that opens the conflict choice; shown only while at least one item is waiting.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "commonSyncNowConflictsTooltip": "{count, plural, =1{Sync now (1 item needs your choice)} other{Sync now ({count} items need your choice)}}",
+  "@commonSyncNowConflictsTooltip": {
+    "description": "Tooltip of the toolbar Sync now button while items await a conflict choice; the button also shows the count as a badge.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
   },
   "settingsSyncNoticeKeptLocalCreation": "Something created on this device would have been removed by another device that had never seen it. It was kept here instead.",
   "@settingsSyncNoticeKeptLocalCreation": {
