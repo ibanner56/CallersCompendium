@@ -505,115 +505,120 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncNoticeDivergence =>
-      'Certaines fiches ont été modifiées sur deux appareils au même instant. Aucune version n’a été retenue, vos appareils restent donc différents. Modifiez l’une d’elles pour trancher.';
+      'Certains éléments ont été modifiés sur deux appareils au même instant et restent différents. S’ils figurent dans Décisions de synchronisation, faites votre choix là ; sinon, modifiez l’un d’eux pour trancher.';
 
   @override
-  String get syncConflictTitle => 'Choose which version to keep';
+  String get syncConflictTitle => 'Choisissez la version à conserver';
 
   @override
   String get syncConflictIntro =>
-      'These were changed on more than one device, and the app can\'t tell which change should win. Both versions are kept until you choose.';
+      'Ces éléments ont été modifiés sur plusieurs appareils, et l’application ne peut pas savoir quelle modification doit l’emporter. Les deux versions sont conservées jusqu’à votre choix.';
 
   @override
-  String get syncConflictThisDevice => 'This device';
+  String get syncConflictThisDevice => 'Cet appareil';
 
   @override
-  String get syncConflictOtherDevice => 'Another device';
+  String get syncConflictOtherDevice => 'Un autre appareil';
 
   @override
   String syncConflictOtherDeviceNumbered(int number) {
-    return 'Another device ($number)';
+    return 'Un autre appareil ($number)';
   }
 
   @override
-  String get syncConflictKeepAllThisDevice => 'Keep all from this device';
+  String get syncConflictKeepAllThisDevice => 'Tout conserver de cet appareil';
 
   @override
-  String get syncConflictKeepAllOtherDevice => 'Keep all from the other device';
+  String get syncConflictKeepAllOtherDevice =>
+      'Tout conserver de l’autre appareil';
 
   @override
-  String get syncConflictApply => 'Keep selected';
+  String get syncConflictApply => 'Conserver la sélection';
 
   @override
-  String get syncConflictDecideLater => 'Decide later';
+  String get syncConflictDecideLater => 'Décider plus tard';
 
   @override
   String syncConflictDiffersIn(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Differs in $count details',
-      one: 'Differs in 1 detail',
+      other: 'Diffère sur $count détails',
+      one: 'Diffère sur 1 détail',
     );
     return '$_temp0';
   }
 
   @override
-  String get syncConflictValueNotSet => 'Not set';
+  String get syncConflictValueNotSet => 'Non défini';
 
   @override
-  String get syncConflictValueOn => 'On';
+  String get syncConflictValueOn => 'Activé';
 
   @override
-  String get syncConflictValueOff => 'Off';
+  String get syncConflictValueOff => 'Désactivé';
 
   @override
   String syncConflictValueItems(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count items',
-      one: '1 item',
-      zero: 'None',
+      other: '$count éléments',
+      one: '1 élément',
+      zero: 'Aucun',
     );
     return '$_temp0';
   }
 
   @override
   String syncConflictValueNamesAndMore(String names, int count) {
-    return '$names and $count more';
+    return '$names et $count autres';
   }
 
   @override
-  String get syncConflictNone => 'Nothing needs choosing right now.';
+  String get syncConflictNone => 'Il n’y a rien à choisir pour le moment.';
 
   @override
   String get syncConflictClockWrong =>
-      'This device\'s date and time look wrong, so your choice couldn\'t be saved. Correct the date and time, then try again.';
+      'La date et l’heure de cet appareil semblent incorrectes, votre choix n’a donc pas pu être enregistré. Corrigez la date et l’heure, puis réessayez.';
 
   @override
-  String get syncConflictFailed => 'Your choice couldn\'t be saved. Try again.';
+  String get syncConflictFailed =>
+      'Votre choix n’a pas pu être enregistré. Réessayez.';
 
   @override
-  String get syncSettingActiveCustomTheme => 'Custom theme in use';
+  String get syncSettingActiveCustomTheme => 'Thème personnalisé utilisé';
 
   @override
-  String get syncSettingActiveDialect => 'Dialect in use';
+  String get syncSettingActiveDialect => 'Dialecte utilisé';
 
   @override
-  String get syncSettingLastCollectionSort => 'Collection sort (last used)';
+  String get syncSettingLastCollectionSort =>
+      'Tri de la collection (dernier utilisé)';
 
   @override
   String get syncSettingLastCollectionSortDirection =>
-      'Collection sort direction (last used)';
+      'Sens du tri de la collection (dernier utilisé)';
 
   @override
-  String get syncSettingLastProgramSort => 'Programs sort (last used)';
+  String get syncSettingLastProgramSort =>
+      'Tri des programmes (dernier utilisé)';
 
   @override
   String get syncSettingLastProgramSortDirection =>
-      'Programs sort direction (last used)';
+      'Sens du tri des programmes (dernier utilisé)';
 
   @override
-  String get syncSettingPerformStageTheme => 'Stage theme in Perform';
+  String get syncSettingPerformStageTheme => 'Thème scène dans Perform';
 
   @override
   String settingsSyncConflictsSubtitle(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count items were changed on two devices and need your choice.',
-      one: '1 item was changed on two devices and needs your choice.',
+      other:
+          '$count éléments ont été modifiés sur deux appareils et attendent votre choix.',
+      one: '1 élément a été modifié sur deux appareils et attend votre choix.',
     );
     return '$_temp0';
   }
@@ -623,8 +628,8 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Sync now ($count items need your choice)',
-      one: 'Sync now (1 item needs your choice)',
+      other: 'Synchroniser maintenant ($count éléments attendent votre choix)',
+      one: 'Synchroniser maintenant (1 élément attend votre choix)',
     );
     return '$_temp0';
   }

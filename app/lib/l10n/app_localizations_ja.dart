@@ -478,115 +478,110 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsSyncNoticeDivergence =>
-      '一部のレコードが2台のデバイスで同時に変更されました。どちらのコピーも選ばれなかったため、デバイス間の差は残っています。どちらかを編集すると解消されます。';
+      '一部の項目が2台のデバイスで同時に変更され、まだ異なっています。「同期の判断」に表示されている場合はそこで選択してください。表示されていない場合は、どちらかを編集すると解消されます。';
 
   @override
-  String get syncConflictTitle => 'Choose which version to keep';
+  String get syncConflictTitle => '残すバージョンを選択';
 
   @override
   String get syncConflictIntro =>
-      'These were changed on more than one device, and the app can\'t tell which change should win. Both versions are kept until you choose.';
+      'これらの項目は複数のデバイスで変更されており、どちらの変更を優先すべきかアプリでは判断できません。選択するまで両方のバージョンが保持されます。';
 
   @override
-  String get syncConflictThisDevice => 'This device';
+  String get syncConflictThisDevice => 'このデバイス';
 
   @override
-  String get syncConflictOtherDevice => 'Another device';
+  String get syncConflictOtherDevice => '別のデバイス';
 
   @override
   String syncConflictOtherDeviceNumbered(int number) {
-    return 'Another device ($number)';
+    return '別のデバイス（$number）';
   }
 
   @override
-  String get syncConflictKeepAllThisDevice => 'Keep all from this device';
+  String get syncConflictKeepAllThisDevice => 'すべてこのデバイスのものを残す';
 
   @override
-  String get syncConflictKeepAllOtherDevice => 'Keep all from the other device';
+  String get syncConflictKeepAllOtherDevice => 'すべて別のデバイスのものを残す';
 
   @override
-  String get syncConflictApply => 'Keep selected';
+  String get syncConflictApply => '選択したものを残す';
 
   @override
-  String get syncConflictDecideLater => 'Decide later';
+  String get syncConflictDecideLater => '後で決める';
 
   @override
   String syncConflictDiffersIn(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Differs in $count details',
-      one: 'Differs in 1 detail',
+      other: '$count件の項目が異なります',
     );
     return '$_temp0';
   }
 
   @override
-  String get syncConflictValueNotSet => 'Not set';
+  String get syncConflictValueNotSet => '未設定';
 
   @override
-  String get syncConflictValueOn => 'On';
+  String get syncConflictValueOn => 'オン';
 
   @override
-  String get syncConflictValueOff => 'Off';
+  String get syncConflictValueOff => 'オフ';
 
   @override
   String syncConflictValueItems(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count items',
-      one: '1 item',
-      zero: 'None',
+      other: '$count件',
+      zero: 'なし',
     );
     return '$_temp0';
   }
 
   @override
   String syncConflictValueNamesAndMore(String names, int count) {
-    return '$names and $count more';
+    return '$names ほか$count件';
   }
 
   @override
-  String get syncConflictNone => 'Nothing needs choosing right now.';
+  String get syncConflictNone => '現在、選択が必要なものはありません。';
 
   @override
   String get syncConflictClockWrong =>
-      'This device\'s date and time look wrong, so your choice couldn\'t be saved. Correct the date and time, then try again.';
+      'このデバイスの日付と時刻が正しくないようなので、選択を保存できませんでした。日付と時刻を修正してから、もう一度お試しください。';
 
   @override
-  String get syncConflictFailed => 'Your choice couldn\'t be saved. Try again.';
+  String get syncConflictFailed => '選択を保存できませんでした。もう一度お試しください。';
 
   @override
-  String get syncSettingActiveCustomTheme => 'Custom theme in use';
+  String get syncSettingActiveCustomTheme => '使用中のカスタムテーマ';
 
   @override
-  String get syncSettingActiveDialect => 'Dialect in use';
+  String get syncSettingActiveDialect => '使用中のダイアレクト';
 
   @override
-  String get syncSettingLastCollectionSort => 'Collection sort (last used)';
+  String get syncSettingLastCollectionSort => 'コレクションの並び替え（前回使用）';
 
   @override
-  String get syncSettingLastCollectionSortDirection =>
-      'Collection sort direction (last used)';
+  String get syncSettingLastCollectionSortDirection => 'コレクションの並び替え方向（前回使用）';
 
   @override
-  String get syncSettingLastProgramSort => 'Programs sort (last used)';
+  String get syncSettingLastProgramSort => 'プログラムの並び替え（前回使用）';
 
   @override
-  String get syncSettingLastProgramSortDirection =>
-      'Programs sort direction (last used)';
+  String get syncSettingLastProgramSortDirection => 'プログラムの並び替え方向（前回使用）';
 
   @override
-  String get syncSettingPerformStageTheme => 'Stage theme in Perform';
+  String get syncSettingPerformStageTheme => 'パフォームのステージテーマ';
 
   @override
   String settingsSyncConflictsSubtitle(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count items were changed on two devices and need your choice.',
-      one: '1 item was changed on two devices and needs your choice.',
+      other: '$count件の項目が2台のデバイスで変更され、選択を待っています。',
     );
     return '$_temp0';
   }
@@ -596,8 +591,7 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Sync now ($count items need your choice)',
-      one: 'Sync now (1 item needs your choice)',
+      other: '今すぐ同期（$count件が選択を待っています）',
     );
     return '$_temp0';
   }

@@ -499,115 +499,122 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncNoticeDivergence =>
-      'Einige Einträge wurden im selben Moment auf zwei Geräten geändert. Keine der Fassungen wurde ausgewählt, deine Geräte unterscheiden sich also weiterhin. Bearbeite eine davon, um das zu klären.';
+      'Einige Einträge wurden im selben Moment auf zwei Geräten geändert und unterscheiden sich weiterhin. Wenn sie unter Synchronisierungsentscheidungen aufgeführt sind, wähle dort; andernfalls bearbeite einen davon, um das zu klären.';
 
   @override
-  String get syncConflictTitle => 'Choose which version to keep';
+  String get syncConflictTitle => 'Wähle, welche Fassung du behältst';
 
   @override
   String get syncConflictIntro =>
-      'These were changed on more than one device, and the app can\'t tell which change should win. Both versions are kept until you choose.';
+      'Diese Einträge wurden auf mehr als einem Gerät geändert, und die App kann nicht erkennen, welche Änderung gelten soll. Beide Fassungen bleiben erhalten, bis du wählst.';
 
   @override
-  String get syncConflictThisDevice => 'This device';
+  String get syncConflictThisDevice => 'Dieses Gerät';
 
   @override
-  String get syncConflictOtherDevice => 'Another device';
+  String get syncConflictOtherDevice => 'Ein anderes Gerät';
 
   @override
   String syncConflictOtherDeviceNumbered(int number) {
-    return 'Another device ($number)';
+    return 'Ein anderes Gerät ($number)';
   }
 
   @override
-  String get syncConflictKeepAllThisDevice => 'Keep all from this device';
+  String get syncConflictKeepAllThisDevice => 'Alle von diesem Gerät behalten';
 
   @override
-  String get syncConflictKeepAllOtherDevice => 'Keep all from the other device';
+  String get syncConflictKeepAllOtherDevice =>
+      'Alle vom anderen Gerät behalten';
 
   @override
-  String get syncConflictApply => 'Keep selected';
+  String get syncConflictApply => 'Auswahl behalten';
 
   @override
-  String get syncConflictDecideLater => 'Decide later';
+  String get syncConflictDecideLater => 'Später entscheiden';
 
   @override
   String syncConflictDiffersIn(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Differs in $count details',
-      one: 'Differs in 1 detail',
+      other: 'Unterscheidet sich in $count Details',
+      one: 'Unterscheidet sich in 1 Detail',
     );
     return '$_temp0';
   }
 
   @override
-  String get syncConflictValueNotSet => 'Not set';
+  String get syncConflictValueNotSet => 'Nicht festgelegt';
 
   @override
-  String get syncConflictValueOn => 'On';
+  String get syncConflictValueOn => 'Ein';
 
   @override
-  String get syncConflictValueOff => 'Off';
+  String get syncConflictValueOff => 'Aus';
 
   @override
   String syncConflictValueItems(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count items',
-      one: '1 item',
-      zero: 'None',
+      other: '$count Einträge',
+      one: '1 Eintrag',
+      zero: 'Keine',
     );
     return '$_temp0';
   }
 
   @override
   String syncConflictValueNamesAndMore(String names, int count) {
-    return '$names and $count more';
+    return '$names und $count weitere';
   }
 
   @override
-  String get syncConflictNone => 'Nothing needs choosing right now.';
+  String get syncConflictNone => 'Im Moment gibt es nichts zu entscheiden.';
 
   @override
   String get syncConflictClockWrong =>
-      'This device\'s date and time look wrong, so your choice couldn\'t be saved. Correct the date and time, then try again.';
+      'Datum und Uhrzeit dieses Geräts scheinen falsch zu sein, deshalb konnte deine Auswahl nicht gespeichert werden. Korrigiere Datum und Uhrzeit und versuche es dann erneut.';
 
   @override
-  String get syncConflictFailed => 'Your choice couldn\'t be saved. Try again.';
+  String get syncConflictFailed =>
+      'Deine Auswahl konnte nicht gespeichert werden. Versuche es erneut.';
 
   @override
-  String get syncSettingActiveCustomTheme => 'Custom theme in use';
+  String get syncSettingActiveCustomTheme =>
+      'Verwendetes benutzerdefiniertes Design';
 
   @override
-  String get syncSettingActiveDialect => 'Dialect in use';
+  String get syncSettingActiveDialect => 'Verwendeter Dialekt';
 
   @override
-  String get syncSettingLastCollectionSort => 'Collection sort (last used)';
+  String get syncSettingLastCollectionSort =>
+      'Sortierung der Sammlung (zuletzt verwendet)';
 
   @override
   String get syncSettingLastCollectionSortDirection =>
-      'Collection sort direction (last used)';
+      'Sortierrichtung der Sammlung (zuletzt verwendet)';
 
   @override
-  String get syncSettingLastProgramSort => 'Programs sort (last used)';
+  String get syncSettingLastProgramSort =>
+      'Sortierung der Programme (zuletzt verwendet)';
 
   @override
   String get syncSettingLastProgramSortDirection =>
-      'Programs sort direction (last used)';
+      'Sortierrichtung der Programme (zuletzt verwendet)';
 
   @override
-  String get syncSettingPerformStageTheme => 'Stage theme in Perform';
+  String get syncSettingPerformStageTheme => 'Bühnen-Design in Perform';
 
   @override
   String settingsSyncConflictsSubtitle(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count items were changed on two devices and need your choice.',
-      one: '1 item was changed on two devices and needs your choice.',
+      other:
+          '$count Einträge wurden auf zwei Geräten geändert und warten auf deine Wahl.',
+      one:
+          '1 Eintrag wurde auf zwei Geräten geändert und wartet auf deine Wahl.',
     );
     return '$_temp0';
   }
@@ -617,8 +624,8 @@ class AppLocalizationsDe extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Sync now ($count items need your choice)',
-      one: 'Sync now (1 item needs your choice)',
+      other: 'Jetzt synchronisieren ($count Einträge warten auf deine Wahl)',
+      one: 'Jetzt synchronisieren (1 Eintrag wartet auf deine Wahl)',
     );
     return '$_temp0';
   }
