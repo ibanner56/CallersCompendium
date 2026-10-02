@@ -5028,7 +5028,9 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get importErrorFileTooLarge => 'そのファイルはインポートするには大きすぎます。';
+  String importErrorFileTooLarge(int megabytes) {
+    return 'そのファイルは上限の$megabytes MBを超えています。より小さいファイルを選んで、もう一度お試しください。';
+  }
 
   @override
   String get archiveIntakeRejectedTooLarge => 'そのファイルはインポートするには大きすぎます。';
@@ -5063,7 +5065,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importErrorUnsupportedSharedLink => 'このリンクはインポートに対応していません。';
 
   @override
-  String get importErrorTooManyRedirects => 'そのURLはリダイレクトが多すぎました。';
+  String get importErrorTooManyRedirects =>
+      'そのURLはリダイレクトが多すぎます。ブラウザで開いて最終的なアドレスを確認し、そちらを使用してください。';
 
   @override
   String get importErrorResponseTooLarge => 'そのレスポンスはインポートするには大きすぎます。';
@@ -5082,11 +5085,20 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String importErrorHttpStatus(int status) {
-    return 'サーバーがHTTP $statusで応答しました。';
+    return 'サーバーから予期しない応答がありました（コード$status）。URLを確認して、もう一度お試しください。';
   }
 
   @override
-  String get importErrorEmptyResponse => 'そのURLは空のレスポンスを返しました。';
+  String get importErrorHttpNotFound =>
+      'そのアドレスには何も見つかりませんでした。URLを確認して、もう一度お試しください。';
+
+  @override
+  String get importErrorHttpBusy =>
+      'サーバーが混み合っているか、問題が発生しています。1分ほど待ってから、もう一度お試しください。';
+
+  @override
+  String get importErrorEmptyResponse =>
+      'URLから空の応答が返されました。リンクがインポートしたいデータを指しているか確認して、もう一度お試しください。';
 
   @override
   String get importErrorCallersBoxEmptyInput =>
@@ -5119,15 +5131,23 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String importErrorCallersBoxHttpStatus(int status) {
-    return 'The Caller\'s BoxがHTTP $statusで応答しました。';
+    return 'The Caller\'s Boxから予期しない応答がありました（コード$status）。1分ほど待ってから、もう一度お試しください。';
   }
+
+  @override
+  String get importErrorCallersBoxHttpNotFound =>
+      'The Caller\'s Boxにそのidのダンスはありません。番号またはリンクを確認して、もう一度お試しください。';
+
+  @override
+  String get importErrorCallersBoxHttpBusy =>
+      'The Caller\'s Boxは現在混み合っています。1分ほど待ってから、もう一度お試しください。';
 
   @override
   String get importErrorCallersBoxEmptyPage => 'The Caller\'s Boxが空のページを返しました。';
 
   @override
   String get importErrorCallersBoxNoDance =>
-      'The Caller\'s Boxからインポートできるダンスが返されませんでした。';
+      'The Caller\'s Boxからインポートできるダンスが返されませんでした。idまたはリンクを確認して、もう一度お試しください。';
 
   @override
   String get importErrorCallersBoxImportFailed =>
@@ -5179,14 +5199,23 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String importErrorContraDbHttpStatus(int status) {
-    return 'ContraDBがHTTP $statusで応答しました。';
+    return 'ContraDBから予期しない応答がありました（コード$status）。1分ほど待ってから、もう一度お試しください。';
   }
+
+  @override
+  String get importErrorContraDbHttpNotFound =>
+      'ContraDBにそのidのダンスはありません。番号またはリンクを確認して、もう一度お試しください。';
+
+  @override
+  String get importErrorContraDbHttpBusy =>
+      'ContraDBは現在混み合っています。1分ほど待ってから、もう一度お試しください。';
 
   @override
   String get importErrorContraDbEmptyResponse => 'ContraDBが空のレスポンスを返しました。';
 
   @override
-  String get importErrorContraDbNoDance => 'ContraDBからインポートできるダンスが返されませんでした。';
+  String get importErrorContraDbNoDance =>
+      'ContraDBからインポートできるダンスが返されませんでした。idまたはリンクを確認して、もう一度お試しください。';
 
   @override
   String get importErrorContraDbImportFailed => 'ContraDBのダンスをインポートできませんでした。';

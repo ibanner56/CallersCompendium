@@ -8049,11 +8049,11 @@ abstract class AppLocalizations {
   /// **'Not found: {count}'**
   String importReviewSummaryNotFound(int count);
 
-  /// Error shown when a chosen import file exceeds the maximum allowed size.
+  /// Error shown when a chosen import file exceeds the maximum allowed size. Names the limit that applies to the chosen source and says what to do next.
   ///
   /// In en, this message translates to:
-  /// **'That file is too large to import.'**
-  String get importErrorFileTooLarge;
+  /// **'That file is larger than the {megabytes} MB limit. Choose a smaller file and try again.'**
+  String importErrorFileTooLarge(int megabytes);
 
   /// Rejection shown when a shared/AirDropped archive file exceeds the size cap. Generic; never echoes the path or size.
   ///
@@ -8118,7 +8118,7 @@ abstract class AppLocalizations {
   /// Error shown when fetching an import URL exceeded the redirect limit.
   ///
   /// In en, this message translates to:
-  /// **'That URL redirected too many times.'**
+  /// **'That URL redirected too many times. Open it in a browser to find its final address, then use that instead.'**
   String get importErrorTooManyRedirects;
 
   /// Error shown when a fetched import response exceeded the maximum allowed size.
@@ -8148,13 +8148,25 @@ abstract class AppLocalizations {
   /// Error shown when an import URL returned a non-success HTTP status.
   ///
   /// In en, this message translates to:
-  /// **'The server responded with HTTP {status}.'**
+  /// **'The server sent an unexpected response (code {status}). Check the URL and try again.'**
   String importErrorHttpStatus(int status);
+
+  /// Error shown when a generic import URL returned HTTP 404. Deliberately omits the status code; says what to check.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing was found at that address. Check the URL, then try again.'**
+  String get importErrorHttpNotFound;
+
+  /// Error shown when a generic import URL returned HTTP 429 or a 5xx status. Deliberately omits the status code; retrying is the next step.
+  ///
+  /// In en, this message translates to:
+  /// **'That server is busy or having trouble. Try again in a minute.'**
+  String get importErrorHttpBusy;
 
   /// Error shown when an import URL returned an empty body.
   ///
   /// In en, this message translates to:
-  /// **'The URL returned an empty response.'**
+  /// **'The URL returned an empty response. Check that the link points to the data you want to import, then try again.'**
   String get importErrorEmptyResponse;
 
   /// Error shown when the Caller's Box dance URL/id field is empty.
@@ -8202,8 +8214,20 @@ abstract class AppLocalizations {
   /// Error shown when The Caller's Box returned a non-success HTTP status.
   ///
   /// In en, this message translates to:
-  /// **'The Caller\'s Box responded with HTTP {status}.'**
+  /// **'The Caller\'s Box sent an unexpected response (code {status}). Try again in a minute.'**
   String importErrorCallersBoxHttpStatus(int status);
+
+  /// Error shown when The Caller's Box returned HTTP 404 for the id or link the user entered. Deliberately omits the status code.
+  ///
+  /// In en, this message translates to:
+  /// **'The Caller\'s Box has no dance with that id. Check the number or link, then try again.'**
+  String get importErrorCallersBoxHttpNotFound;
+
+  /// Error shown when The Caller's Box returned HTTP 429 or a 5xx status. Deliberately omits the status code; retrying is the next step.
+  ///
+  /// In en, this message translates to:
+  /// **'The Caller\'s Box is busy right now. Try again in a minute.'**
+  String get importErrorCallersBoxHttpBusy;
 
   /// Error shown when a Caller's Box search returned no page content.
   ///
@@ -8214,7 +8238,7 @@ abstract class AppLocalizations {
   /// Error shown when a Caller's Box fetch parsed no importable dance. Generic by design; underlying parse detail is not shown.
   ///
   /// In en, this message translates to:
-  /// **'The Caller\'s Box returned no importable dance.'**
+  /// **'The Caller\'s Box returned no importable dance. Check the id or link, then try again.'**
   String get importErrorCallersBoxNoDance;
 
   /// Error shown when committing a Caller's Box dance failed. Generic by design; underlying error detail is not shown.
@@ -8292,8 +8316,20 @@ abstract class AppLocalizations {
   /// Error shown when ContraDB returned a non-success HTTP status.
   ///
   /// In en, this message translates to:
-  /// **'ContraDB responded with HTTP {status}.'**
+  /// **'ContraDB sent an unexpected response (code {status}). Try again in a minute.'**
   String importErrorContraDbHttpStatus(int status);
+
+  /// Error shown when ContraDB returned HTTP 404 for the id or link the user entered. Deliberately omits the status code.
+  ///
+  /// In en, this message translates to:
+  /// **'ContraDB has no dance with that id. Check the number or link, then try again.'**
+  String get importErrorContraDbHttpNotFound;
+
+  /// Error shown when ContraDB returned HTTP 429 or a 5xx status. Deliberately omits the status code; retrying is the next step.
+  ///
+  /// In en, this message translates to:
+  /// **'ContraDB is busy right now. Try again in a minute.'**
+  String get importErrorContraDbHttpBusy;
 
   /// Error shown when ContraDB returned an empty body.
   ///
@@ -8304,7 +8340,7 @@ abstract class AppLocalizations {
   /// Error shown when a ContraDB fetch parsed no importable dance. Generic by design; underlying parse detail is not shown.
   ///
   /// In en, this message translates to:
-  /// **'ContraDB returned no importable dance.'**
+  /// **'ContraDB returned no importable dance. Check the id or link, then try again.'**
   String get importErrorContraDbNoDance;
 
   /// Error shown when committing a ContraDB dance failed. Generic by design; underlying error detail is not shown.

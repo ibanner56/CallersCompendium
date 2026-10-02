@@ -5283,8 +5283,9 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get importErrorFileTooLarge =>
-      'Ce fichier est trop volumineux pour être importé.';
+  String importErrorFileTooLarge(int megabytes) {
+    return 'Ce fichier dépasse la limite de $megabytes Mo. Choisissez un fichier plus petit, puis réessayez.';
+  }
 
   @override
   String get archiveIntakeRejectedTooLarge =>
@@ -5327,7 +5328,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importErrorTooManyRedirects =>
-      'Cette URL a effectué trop de redirections.';
+      'Cette URL a été redirigée trop de fois. Ouvrez-la dans un navigateur pour trouver son adresse finale, puis utilisez-la à la place.';
 
   @override
   String get importErrorResponseTooLarge =>
@@ -5347,11 +5348,20 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String importErrorHttpStatus(int status) {
-    return 'Le serveur a répondu avec HTTP $status.';
+    return 'Le serveur a envoyé une réponse inattendue (code $status). Vérifiez l’URL, puis réessayez.';
   }
 
   @override
-  String get importErrorEmptyResponse => 'L’URL a renvoyé une réponse vide.';
+  String get importErrorHttpNotFound =>
+      'Rien n’a été trouvé à cette adresse. Vérifiez l’URL, puis réessayez.';
+
+  @override
+  String get importErrorHttpBusy =>
+      'Ce serveur est occupé ou rencontre un problème. Réessayez dans une minute.';
+
+  @override
+  String get importErrorEmptyResponse =>
+      'L’URL a renvoyé une réponse vide. Vérifiez que le lien pointe vers les données à importer, puis réessayez.';
 
   @override
   String get importErrorCallersBoxEmptyInput =>
@@ -5384,8 +5394,16 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String importErrorCallersBoxHttpStatus(int status) {
-    return 'The Caller\'s Box a répondu avec HTTP $status.';
+    return 'The Caller\'s Box a envoyé une réponse inattendue (code $status). Réessayez dans une minute.';
   }
+
+  @override
+  String get importErrorCallersBoxHttpNotFound =>
+      'The Caller\'s Box n’a aucune danse avec cet identifiant. Vérifiez le numéro ou le lien, puis réessayez.';
+
+  @override
+  String get importErrorCallersBoxHttpBusy =>
+      'The Caller\'s Box est occupé en ce moment. Réessayez dans une minute.';
 
   @override
   String get importErrorCallersBoxEmptyPage =>
@@ -5393,7 +5411,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importErrorCallersBoxNoDance =>
-      'The Caller\'s Box n’a renvoyé aucune danse importable.';
+      'The Caller\'s Box n’a renvoyé aucune danse importable. Vérifiez l’identifiant ou le lien, puis réessayez.';
 
   @override
   String get importErrorCallersBoxImportFailed =>
@@ -5445,8 +5463,16 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String importErrorContraDbHttpStatus(int status) {
-    return 'ContraDB a répondu avec HTTP $status.';
+    return 'ContraDB a envoyé une réponse inattendue (code $status). Réessayez dans une minute.';
   }
+
+  @override
+  String get importErrorContraDbHttpNotFound =>
+      'ContraDB n’a aucune danse avec cet identifiant. Vérifiez le numéro ou le lien, puis réessayez.';
+
+  @override
+  String get importErrorContraDbHttpBusy =>
+      'ContraDB est occupé en ce moment. Réessayez dans une minute.';
 
   @override
   String get importErrorContraDbEmptyResponse =>
@@ -5454,7 +5480,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importErrorContraDbNoDance =>
-      'ContraDB n’a renvoyé aucune danse importable.';
+      'ContraDB n’a renvoyé aucune danse importable. Vérifiez l’identifiant ou le lien, puis réessayez.';
 
   @override
   String get importErrorContraDbImportFailed =>

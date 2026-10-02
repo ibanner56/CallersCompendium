@@ -48,19 +48,29 @@ const int kMaxImportFileBytes = 25 * 1024 * 1024;
 /// together, or the sector guard becomes the effective ceiling.
 const int kMaxImportUsrBytes = 256 * 1024 * 1024;
 
-/// Raised when a picked import file exceeds [kMaxImportFileBytes], so the
-/// oversized case is rejected *without* buffering the whole file into memory
+/// Raised when a picked import file exceeds its cap ([kMaxImportFileBytes], or
+/// [kMaxImportUsrBytes] for a `.USR`), so the oversized case is rejected
+/// *without* buffering the whole file into memory
 /// (the bounded read abandons the stream as soon as the cap is crossed).
 ///
-/// Carries only the typed [length] — no user prose. The presentation layer maps
-/// this to a localized message (see `importFileTooLargeMessage` in
+/// Carries only the typed [length] and [maxBytes] — no user prose. The
+/// presentation layer maps this to a localized message (see
+/// `importFileTooLargeMessage` in
 /// `import_error_labels.dart`); the data layer never bakes English in.
 class ImportFileTooLargeException implements Exception {
-  const ImportFileTooLargeException(this.length);
+  const ImportFileTooLargeException(
+    this.length, {
+    this.maxBytes = kMaxImportFileBytes,
+  });
 
   /// The number of bytes consumed before the cap tripped (always greater than
   /// the cap; kept for diagnostics/tests — never shown to the user).
   final int length;
+
+  /// The cap that was exceeded (the `.USR` path uses a higher one than the
+  /// text/JSON path). Shown to the user, rounded down to whole MiB, so the
+  /// message can name the limit that actually applied.
+  final int maxBytes;
 
   @override
   String toString() => 'ImportFileTooLargeException(length: $length)';
@@ -101,7 +111,7 @@ Future<Uint8List> readCappedBytes(
       // `await for` cancels the subscription when we throw, so we never read
       // (or buffer) the rest of the file — allocation stays bounded even if the
       // underlying file keeps growing.
-      throw ImportFileTooLargeException(total);
+      throw ImportFileTooLargeException(total, maxBytes: maxBytes);
     }
     if (total > capacity) {
       // The stream outran the hint (or there was none): grow geometrically, but
