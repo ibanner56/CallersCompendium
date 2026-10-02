@@ -20,6 +20,7 @@ import 'package:compendium_app/src/screens/settings/settings_keys.dart';
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_scope.dart';
 import 'package:compendium_app/src/sync/sync_http_client.dart';
+import 'package:compendium_app/src/sync/sync_network.dart';
 import 'package:compendium_app/src/data/window_service.dart';
 import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
 import 'package:compendium_app/src/diagnostics/error_log.dart';
@@ -54,6 +55,13 @@ class _TrackingSyncCoordinator extends SyncCoordinator {
 /// A [WindowService] whose restore does nothing — the plugin glue is untestable
 /// under `flutter test` (no real window), and these tests only care about the
 /// bootstrap steps that follow the restore.
+final class _SwitchableNetwork implements SyncNetworkClassifier {
+  _SwitchableNetwork(this.kind);
+  SyncNetworkKind kind;
+  @override
+  Future<SyncNetworkKind> current() async => kind;
+}
+
 class _NoopWindowService extends WindowService {
   _NoopWindowService(super.settings);
 
@@ -517,6 +525,74 @@ void main() {
       await tester.pump(const Duration(milliseconds: 30));
       await tester.pumpAndSettle();
       expect(passes, 2, reason: 'bookkeeping alone must not trigger a pass');
+    },
+  );
+
+  testWidgets(
+    'returning to the foreground starts a pass, at most once per interval '
+    '(spec §6.12)',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+      var passes = 0;
+      final network = _SwitchableNetwork(SyncNetworkKind.offline);
+
+      Future<SyncCoordinator?> factory(
+        CompendiumRepositories repositories,
+      ) async => SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device',
+        store: CompendiumSyncCoordinatorStore(repositories),
+        transport: NoopSyncCoordinatorTransport(),
+        passOperation: ({initialStore}) async {
+          passes++;
+          return const SyncPassResult(SyncPassStatus.completed);
+        },
+      );
+
+      await appData.repositories.settings.set(kSyncEnabledKey, true);
+      await appData.repositories.settings.set(
+        kSyncIdKey,
+        'correct horse battery staple',
+      );
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          integrityCheck: () async => true,
+          syncCoordinatorFactory: factory,
+          syncNetworkClassifier: network,
+        ),
+      );
+      await tester.pumpAndSettle();
+      // Offline at start, so the app-start pass was suppressed and started
+      // nothing the resume interval could count from.
+      expect(passes, 0);
+
+      network.kind = SyncNetworkKind.unmetered;
+      for (final state in [
+        AppLifecycleState.inactive,
+        AppLifecycleState.hidden,
+        AppLifecycleState.paused,
+        AppLifecycleState.hidden,
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(state);
+      }
+      await tester.pumpAndSettle();
+      expect(passes, 1, reason: 'the resume pass');
+
+      for (final state in [
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(state);
+      }
+      await tester.pumpAndSettle();
+      expect(passes, 1, reason: 'a second resume inside the interval');
     },
   );
 

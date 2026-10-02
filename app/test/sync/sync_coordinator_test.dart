@@ -1737,6 +1737,15 @@ void main() {
 
     final background = await coordinator.onDebouncedChange();
     expect(background.status, SyncPassStatus.paused);
+    // The automatic retry and the resume trigger are automatic too: neither
+    // may lift a pause the user chose.
+    for (final trigger in [SyncTrigger.retry, SyncTrigger.resume]) {
+      expect(
+        (await coordinator.trigger(trigger)).status,
+        SyncPassStatus.paused,
+        reason: trigger.name,
+      );
+    }
     expect(transport.storeCalls, 1);
 
     final reconsidered = await coordinator.syncNow();

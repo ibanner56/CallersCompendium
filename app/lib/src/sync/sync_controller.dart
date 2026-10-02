@@ -125,6 +125,28 @@ const Duration kSyncExpiryWarningAfter = Duration(days: 21);
 /// The delay between a local change and the automatic pass it triggers.
 const Duration kSyncChangeDebounce = Duration(seconds: 30);
 
+/// The waits before each automatic retry after a transient failure (spec
+/// §6.12), in order; the last repeats. Reset by a completed pass.
+const List<Duration> kSyncRetryBackoff = [
+  Duration(minutes: 1),
+  Duration(minutes: 2),
+  Duration(minutes: 4),
+  Duration(minutes: 8),
+  Duration(minutes: 16),
+  Duration(minutes: 30),
+];
+
+/// The furthest a server's `Retry-After` can push the next automatic retry.
+///
+/// `Retry-After` is a floor on the wait, and an unbounded floor would let one
+/// answer park automatic retries indefinitely. A day is long enough to honour
+/// any real maintenance window; the other triggers are unaffected either way.
+const Duration kSyncRetryAfterCeiling = Duration(days: 1);
+
+/// The shortest gap between a pass starting and the app's return to the
+/// foreground starting another (spec §6.12).
+const Duration kSyncResumeInterval = Duration(minutes: 5);
+
 /// What a trigger request did.
 enum SyncGateOutcome {
   /// The coordinator ran a pass; see [SyncController.lastResult].
@@ -162,7 +184,9 @@ class SyncController extends ChangeNotifier {
     this._classifier = const ConnectivityPlusNetworkClassifier(),
     DateTime Function()? now,
     this._debounce = kSyncChangeDebounce,
-  }) : _now = now ?? (() => DateTime.now().toUtc());
+    this._retryBackoff = kSyncRetryBackoff,
+  }) : assert(_retryBackoff.isNotEmpty),
+       _now = now ?? (() => DateTime.now().toUtc());
 
   final SettingsRepository _settings;
   final SyncCoordinator? Function() _coordinator;
@@ -190,6 +214,7 @@ class SyncController extends ChangeNotifier {
   final SyncNetworkClassifier _classifier;
   final DateTime Function() _now;
   final Duration _debounce;
+  final List<Duration> _retryBackoff;
   final SyncPairingProbeFactory? _pairingProbeFactory;
   final SyncDeviceAdminFactory? _deviceAdminFactory;
 
@@ -240,6 +265,11 @@ class SyncController extends ChangeNotifier {
   bool _replacementPending = false;
   bool _detaching = false;
   Timer? _debounceTimer;
+  Timer? _retryTimer;
+  Duration? _retryDelay;
+  int _retryAttempt = 0;
+  DateTime? _lastPassStartedAt;
+  bool _resumeInFlight = false;
   StreamSubscription<SyncReplacementRequiredEvent>? _replacementSubscription;
   bool _disposed = false;
 
@@ -338,6 +368,11 @@ class SyncController extends ChangeNotifier {
 
   bool get running => _inFlight > 0;
 
+  /// How long the automatic retry now pending waits in all, or null when none
+  /// is. Exposed for tests; nothing on screen promises a time.
+  @visibleForTesting
+  Duration? get pendingRetryDelay => _retryTimer == null ? null : _retryDelay;
+
   /// The store's usage as the most recent pass to read it reported (spec
   /// §5.2), or null before any has. Kept across passes that did not reach the
   /// store lookup, since an offline failure says nothing about usage; dropped
@@ -427,7 +462,10 @@ class SyncController extends ChangeNotifier {
     _pendingSyncAppliedInvalidations = 0;
     if (value) _expectSelfWrite();
     await _settings.set(kSyncEnabledKey, value);
-    if (!value) _debounceTimer?.cancel();
+    if (!value) {
+      _debounceTimer?.cancel();
+      _cancelRetry(reset: true);
+    }
     _notify();
     await _reconfigure();
   }
@@ -453,6 +491,29 @@ class SyncController extends ChangeNotifier {
 
   /// Runs the app-start trigger (spec §6.12).
   Future<SyncGateOutcome> onAppStart() => trigger(SyncTrigger.appStart);
+
+  /// Runs the resume trigger: the app came back to the foreground (spec
+  /// §6.12). Returns null, having done nothing, when sync is off or unpaired,
+  /// when a resume pass is already being attempted, or when any pass started
+  /// less than [kSyncResumeInterval] ago — a resume is a reason to look again,
+  /// and a pass that recent already did.
+  ///
+  /// Goes through [trigger], so it passes the same §6.12 connection gate as
+  /// every automatic trigger; a suppressed attempt starts no pass, so it does
+  /// not count against the interval.
+  Future<SyncGateOutcome?> onAppResumed() async {
+    if (_disposed || !_enabled || !paired || _resumeInFlight) return null;
+    final last = _lastPassStartedAt;
+    if (last != null && _now().difference(last) < kSyncResumeInterval) {
+      return null;
+    }
+    _resumeInFlight = true;
+    try {
+      return await trigger(SyncTrigger.resume);
+    } finally {
+      _resumeInFlight = false;
+    }
+  }
 
   /// Tells the controller a local write happened. Schedules one debounced
   /// automatic pass; repeated changes inside the window share it.
@@ -508,8 +569,11 @@ class SyncController extends ChangeNotifier {
     final suppressed = await _connectionGate(
       manual: trigger == SyncTrigger.manual,
     );
+    // A suppressed attempt — the automatic retry included — leaves any
+    // pending retry as it was, and schedules none: the next trigger runs it.
     if (suppressed != null) return suppressed;
 
+    _lastPassStartedAt = _now();
     _inFlight++;
     _notify();
     try {
@@ -537,6 +601,7 @@ class SyncController extends ChangeNotifier {
         );
       }
       await _recordResult(result);
+      _planRetry(result);
       return SyncGateOutcome.ran;
     } finally {
       _inFlight--;
@@ -609,6 +674,61 @@ class SyncController extends ChangeNotifier {
       _expectSelfWrite();
       await _settings.set(kSyncLastSuccessAtKey, at.toIso8601String());
     }
+  }
+
+  /// Schedules, keeps or cancels the automatic retry after [result] (spec
+  /// §6.12).
+  ///
+  /// Only a transient failure ([SyncFailureCauseTier.isTransient]) is retried:
+  /// a `507` or `422` must not be retried without the user (spec §5.3), and
+  /// nothing else that fails clears by waiting. The wait doubles through
+  /// [kSyncRetryBackoff] and never undercuts the server's `Retry-After`
+  /// (capped at [kSyncRetryAfterCeiling]). A completed pass resets the
+  /// sequence; any other result cancels what was pending without resetting
+  /// it, so a run of mixed failures does not restart at a minute.
+  ///
+  /// Called from [trigger] only. A failed replacement confirmation is not
+  /// retried: confirming creates a store, and that stays the user's decision.
+  void _planRetry(SyncPassResult result) {
+    if (result.status == SyncPassStatus.completed) {
+      _cancelRetry(reset: true);
+      return;
+    }
+    final failure = result.failure;
+    if (result.status != SyncPassStatus.failed ||
+        failure == null ||
+        !failure.cause.isTransient ||
+        _disposed ||
+        _detaching ||
+        !_enabled ||
+        !paired) {
+      _cancelRetry();
+      return;
+    }
+    final step = _retryAttempt < _retryBackoff.length
+        ? _retryAttempt
+        : _retryBackoff.length - 1;
+    _retryAttempt++;
+    var delay = _retryBackoff[step];
+    if (failure.retryAfter case final retryAfter?) {
+      final floor = retryAfter > kSyncRetryAfterCeiling
+          ? kSyncRetryAfterCeiling
+          : retryAfter;
+      if (floor > delay) delay = floor;
+    }
+    _retryTimer?.cancel();
+    _retryDelay = delay;
+    _retryTimer = Timer(delay, () {
+      _retryTimer = null;
+      unawaited(trigger(SyncTrigger.retry));
+    });
+  }
+
+  /// Cancels a pending automatic retry; [reset] also restarts the backoff.
+  void _cancelRetry({bool reset = false}) {
+    _retryTimer?.cancel();
+    _retryTimer = null;
+    if (reset) _retryAttempt = 0;
   }
 
   /// Deduplicates by [SyncReport.coalescingKey], keeping the first of each.
@@ -750,6 +870,9 @@ class SyncController extends ChangeNotifier {
   /// [SyncGateOutcome.suppressedOffline] pass ran nothing at all, which
   /// [lastResult] alone cannot distinguish from an earlier pass's result.
   Future<SyncGateOutcome> completePairing(String syncId, Uri endpoint) async {
+    // A retry pending for the store this device is leaving must not run
+    // against the one it is joining.
+    _cancelRetry(reset: true);
     // Every attachment publishes under a device ID of its own (spec §3.3), so
     // one a previous attachment left behind is erased before the sync ID is
     // written: the coordinator factory mints only when none is stored. Erased
@@ -800,6 +923,7 @@ class SyncController extends ChangeNotifier {
     if (!paired || _detaching) return;
     _detaching = true;
     _debounceTimer?.cancel();
+    _cancelRetry(reset: true);
     _dirty = false;
     try {
       await _runExclusive(() async {
@@ -1020,6 +1144,7 @@ class SyncController extends ChangeNotifier {
     // restore a last-success time for a store that no longer exists.
     _detaching = true;
     _debounceTimer?.cancel();
+    _cancelRetry(reset: true);
     _dirty = false;
     // Distinguishes "the boundary never got us there" from "it did, and found
     // nothing attached". Without it a writer that threw while disposing the
@@ -1120,6 +1245,7 @@ class SyncController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _debounceTimer?.cancel();
+    _cancelRetry();
     unawaited(_replacementSubscription?.cancel());
     wifiSettingRequests.dispose();
     super.dispose();

@@ -12,8 +12,22 @@ export 'sync_failure.dart'
 
 DateTime _syncNowUtc() => DateTime.now().toUtc();
 
-/// The event sources that share the single-flight sync scheduler.
-enum SyncTrigger { appStart, debouncedChange, manual }
+/// The event sources that share the single-flight sync scheduler (spec
+/// §6.12).
+///
+/// Only [manual] is treated differently by the coordinator: it is the one
+/// trigger that resumes a paused coordinator. Every other value is automatic.
+enum SyncTrigger {
+  appStart,
+  debouncedChange,
+  manual,
+
+  /// The automatic retry `SyncController` schedules after a transient failure.
+  retry,
+
+  /// The app returning to the foreground.
+  resume,
+}
 
 /// The terminal state of one coordinator pass.
 enum SyncPassStatus {
