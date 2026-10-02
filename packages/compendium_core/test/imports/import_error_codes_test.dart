@@ -30,6 +30,15 @@ void main() {
     expect(error.copyWith(message: 'y').code, ImportErrorCode.unknown);
   });
 
+  test('CallersCompanionTextAdapter: empty payload → emptyFile', () {
+    expect(
+      () => CallersCompanionTextAdapter().discover(
+        const ImportRequest(payload: '  '),
+      ),
+      throwsA(_importError(ImportErrorCode.emptyFile)),
+    );
+  });
+
   group('GenericJsonAdapter', () {
     test('missing payload → emptyFile', () {
       expect(

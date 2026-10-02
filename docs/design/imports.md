@@ -1323,8 +1323,9 @@ and **per-dance beat totals are byte-identical for all 20,515 dances**, so
 ## Error handling & testing
 
 - Every stage yields structured errors with source context (never stack-trace
-  UX); errors carry typed codes (`ImportErrorCode`); messages are logged, not
-  rendered. Partial batch failure imports the rest and reports.
+  UX); errors carry typed codes (`ImportErrorCode`); messages are
+  diagnostic-only, never rendered. Partial batch failure imports the rest and
+  reports.
 - Adapter test fixtures (`test/imports/`): one real TCB JSON file
   (`support/callersbox/right_where_we_belong_19001.json`) plus inline TCB JSON
   in `callersbox_adapter_test.dart` (ids 1, 1006, 10882); ContraDB HTML

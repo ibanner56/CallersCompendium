@@ -45,8 +45,9 @@ enum ImportErrorCode {
 ///
 /// Errors are values, not thrown control flow, for the per-record path: a
 /// batch collects them and imports the rest (partial-batch tolerance). They
-/// *may* wrap an underlying [cause] for logging, but the [message] is the
-/// user-facing text and never a stack trace.
+/// *may* wrap an underlying [cause] for logging. The [message] is a
+/// diagnostic description for logs and tests only, never a stack trace; it can
+/// echo untrusted parser or user content, so the UI renders [code] instead.
 @immutable
 class ImportError implements Exception {
   const ImportError({
