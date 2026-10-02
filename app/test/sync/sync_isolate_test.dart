@@ -467,11 +467,7 @@ void main() {
     final peerManifestCache = SyncPeerManifestCache(
       rejectedHashes: {rejectedHash},
       publications: {
-        diagnosticAddress: (
-          hash: List.filled(64, 'e').join(),
-          publishedAt: DateTime.utc(2026, 7, 15, 11),
-          pass: 7,
-        ),
+        diagnosticAddress: (hash: List.filled(64, 'e').join(), pass: 7),
       },
       peerPublications: {
         'peer': [(writtenAt: DateTime.utc(2026, 7, 15, 11), pass: 7)],

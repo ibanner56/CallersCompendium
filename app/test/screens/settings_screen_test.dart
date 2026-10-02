@@ -2131,7 +2131,8 @@ void main() {
           expect(
             find.text(
               "Device 7c02Lm is syncing but isn't taking 2 changes from this "
-              "device. They're safe here; that device may need an app update.",
+              "device. They're safe here. That device may need an app update, or this device's "
+              "date and time may be wrong.",
             ),
             findsOneWidget,
           );

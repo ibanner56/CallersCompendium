@@ -87,10 +87,9 @@ final class SyncPeerSummary {
   final int waitingCount;
 }
 
-/// When this device first published one record's current hash in this sync
-/// session: the pass sequence number and the local time after its manifest
-/// `PUT` succeeded.
-typedef SyncOwnPublication = ({String hash, DateTime publishedAt, int pass});
+/// The pass sequence number on which this device first published one record's
+/// current hash in this sync session.
+typedef SyncOwnPublication = ({String hash, int pass});
 
 /// One distinct manifest `writtenAt` seen for a peer, and the pass sequence
 /// number on which it was first seen.
@@ -597,7 +596,6 @@ final class SyncPeerManifestCache {
           'kind': entry.key.kind.name,
           'recordId': entry.key.recordId,
           'hash': entry.value.hash,
-          'publishedAt': entry.value.publishedAt.microsecondsSinceEpoch,
           'pass': entry.value.pass,
         },
     ],
@@ -664,7 +662,6 @@ final class SyncPeerManifestCache {
           raw['kind'] is! String ||
           raw['recordId'] is! String ||
           raw['hash'] is! String ||
-          raw['publishedAt'] is! int ||
           raw['pass'] is! int) {
         throw malformedPublications;
       }
@@ -672,10 +669,6 @@ final class SyncPeerManifestCache {
       if (kind == null) throw malformedPublications;
       publications[(kind: kind, recordId: raw['recordId']! as String)] = (
         hash: raw['hash']! as String,
-        publishedAt: DateTime.fromMicrosecondsSinceEpoch(
-          raw['publishedAt']! as int,
-          isUtc: true,
-        ),
         pass: raw['pass']! as int,
       );
     }
@@ -1969,13 +1962,16 @@ class SyncCoordinator {
   ///   afterwards without having read its manifest, but the pass after it
   ///   cannot. Reported per record and peer, naming the peer.
   ///
-  /// "Since" needs both clocks to agree: a `writtenAt` counts only when it was
-  /// first seen on a later pass than the publication **and** is later than the
-  /// local time the publication's `PUT` succeeded. The pass order guards
-  /// against a peer clock running fast; the timestamp guards against a peer
-  /// that published while this device was still uploading. Either guard alone
-  /// errs towards "refusing"; together they err towards "asleep", which costs
-  /// only a notice that comes later.
+  /// "Since" is judged by the order this device *saw* things, never by
+  /// comparing its clock with the peer's: a `writtenAt` counts only when it
+  /// was first seen on a later pass than the one that published the record.
+  /// Comparing timestamps would go blind in exactly the case §6.9 introduced
+  /// this signal for — a device whose own clock runs fast, whose records its
+  /// peers refuse as future-dated, and whose publication time is therefore
+  /// later than any `writtenAt` a peer will write. The cost of ordering alone
+  /// is one narrow false positive: a peer that completes two whole passes
+  /// while this device is between its manifest reads and its `PUT`. That
+  /// reads as refusing until this device's next pass, which clears it.
   ///
   /// A peer that holds a version of the record **no older** than this
   /// device's is never judged refusing, whatever its hash: that is a
@@ -2031,9 +2027,7 @@ class SyncCoordinator {
           }
         }
         final since = seen.where(
-          (publication) =>
-              publication.pass > published.pass &&
-              publication.writtenAt.isAfter(published.publishedAt),
+          (publication) => publication.pass > published.pass,
         );
         if (since.length < 2) continue;
         reports.add(
@@ -2060,15 +2054,10 @@ class SyncCoordinator {
     // Recorded after judging, so a hash first published on this pass cannot
     // count this pass's peer manifests — all fetched before the `PUT` — as
     // evidence about itself.
-    final publishedAt = now().toUtc();
     for (final entry in publishableHashes.entries) {
       final existing = cache.publications[entry.key];
       if (existing != null && existing.hash == entry.value) continue;
-      cache.publications[entry.key] = (
-        hash: entry.value,
-        publishedAt: publishedAt,
-        pass: pass,
-      );
+      cache.publications[entry.key] = (hash: entry.value, pass: pass);
     }
     return List.unmodifiable(summaries);
   }

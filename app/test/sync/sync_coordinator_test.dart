@@ -24,11 +24,7 @@ void main() {
       kind: SyncRecordKind.setting,
       recordId: 'custom_dialects',
     );
-    final publication = (
-      hash: _hash('c'),
-      publishedAt: DateTime.utc(2026, 7, 15, 12),
-      pass: 3,
-    );
+    final publication = (hash: _hash('c'), pass: 3);
     final seen = [(writtenAt: DateTime.utc(2026, 7, 15, 13), pass: 4)];
     final cache = SyncPeerManifestCache(
       entries: {
@@ -73,13 +69,7 @@ void main() {
       _setting('custom_dialects', 'local'),
     );
     final cache = SyncPeerManifestCache(
-      publications: {
-        candidate.address: (
-          hash: candidate.wireHash,
-          publishedAt: DateTime.utc(2026, 7, 15, 11),
-          pass: 1,
-        ),
-      },
+      publications: {candidate.address: (hash: candidate.wireHash, pass: 1)},
       peerPublications: {
         'peer': [
           (writtenAt: DateTime.utc(2026, 7, 15, 11, 30), pass: 2),
@@ -271,22 +261,27 @@ void main() {
       expect(unreflected(results[2]), isNotEmpty);
     });
 
-    test('a manifest the peer wrote while this device was still publishing '
-        'does not count as a publication since', () async {
+    test('a device whose own clock runs fast is still told its changes are '
+        'not being taken', () async {
+      // The case §6.9 introduced this signal for: peers refuse this device's
+      // records as future-dated, and every `writtenAt` they write is earlier
+      // than this device's idea of now. A judgement that compared the two
+      // clocks would never fire here.
+      final fast = t0.add(const Duration(days: 3));
       final results = await passes([
-        (peerWrittenAt: t0.subtract(const Duration(hours: 1)), clock: t0),
-        // New to this device, but written before its manifest PUT succeeded.
+        (peerWrittenAt: t0.subtract(const Duration(hours: 1)), clock: fast),
         (
-          peerWrittenAt: t0.subtract(const Duration(seconds: 10)),
-          clock: t0.add(const Duration(minutes: 1)),
+          peerWrittenAt: t0.add(const Duration(minutes: 1)),
+          clock: fast.add(const Duration(minutes: 2)),
         ),
         (
-          peerWrittenAt: t0.add(const Duration(minutes: 2)),
-          clock: t0.add(const Duration(minutes: 3)),
+          peerWrittenAt: t0.add(const Duration(minutes: 3)),
+          clock: fast.add(const Duration(minutes: 4)),
         ),
       ]);
 
-      expect(unreflected(results[2]), isEmpty);
+      expect(unreflected(results[1]), isEmpty);
+      expect(unreflected(results[2]), isNotEmpty);
     });
 
     test('a peer holding a newer version of the record is not refusing '

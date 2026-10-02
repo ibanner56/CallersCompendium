@@ -874,10 +874,10 @@ abstract class AppLocalizations {
   /// **'An update from another device arrived while you were editing the same record, so it wasn\'t applied. The next sync picks it up.'**
   String get settingsSyncNoticeDeferredInbound;
 
-  /// Needs-you Device Sync notice, one per other device: that device has synced at least twice since this one shared some changes and still doesn't have them, which usually means it runs an older app version that refuses them. {tag} is the device's short random tag, exactly as on the Other devices screen (settingsSyncDeviceTag); never a name. Leads with the user's work being safe on this device, then the one thing to do.
+  /// Needs-you Device Sync notice, one per other device: that device has synced at least twice since this one shared some changes and still doesn't have them. The two usual causes are named: that device runs an older app version that refuses them, or this device's clock is far ahead so the other device refuses them as dated in the future. {tag} is the device's short random tag, exactly as on the Other devices screen (settingsSyncDeviceTag); never a name. Says the user's work is safe on this device before what to check.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{Device {tag} is syncing but isn\'t taking 1 change from this device. The change is safe here; that device may need an app update.} other{Device {tag} is syncing but isn\'t taking {count} changes from this device. They\'re safe here; that device may need an app update.}}'**
+  /// **'{count, plural, =1{Device {tag} is syncing but isn\'t taking 1 change from this device. The change is safe here. That device may need an app update, or this device\'s date and time may be wrong.} other{Device {tag} is syncing but isn\'t taking {count} changes from this device. They\'re safe here. That device may need an app update, or this device\'s date and time may be wrong.}}'**
   String settingsSyncNoticePeerNotTaking(int count, String tag);
 
   /// Short label beside the warning icon on a Device Sync notice that needs the user to do something, so the urgency is not carried by colour alone.

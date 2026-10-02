@@ -537,9 +537,9 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'Device $tag is syncing but isn\'t taking $count changes from this device. They\'re safe here; that device may need an app update.',
+          'Device $tag is syncing but isn\'t taking $count changes from this device. They\'re safe here. That device may need an app update, or this device\'s date and time may be wrong.',
       one:
-          'Device $tag is syncing but isn\'t taking 1 change from this device. The change is safe here; that device may need an app update.',
+          'Device $tag is syncing but isn\'t taking 1 change from this device. The change is safe here. That device may need an app update, or this device\'s date and time may be wrong.',
     );
     return '$_temp0';
   }
