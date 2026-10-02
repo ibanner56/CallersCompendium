@@ -289,6 +289,164 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsSyncStatusFailed => '前回の同期は失敗しました。';
 
   @override
+  String get settingsSyncFailureUnreachable => '同期サーバーに接続できませんでした。';
+
+  @override
+  String get settingsSyncFailureUnreachableAdvice =>
+      'このデバイスがオンラインになっているか確認してください。独自のサーバーを運用している場合は、サーバーが動作していること、アドレスが正しいことを確認してください。';
+
+  @override
+  String get settingsSyncFailureTimedOut => '同期サーバーの応答に時間がかかりすぎました。';
+
+  @override
+  String get settingsSyncFailureTimedOutAdvice =>
+      '通常は、接続が遅いか不安定なことが原因です。接続が安定してから、もう一度お試しください。';
+
+  @override
+  String get settingsSyncFailureServerError => '同期サーバー側で問題が発生しました。';
+
+  @override
+  String get settingsSyncFailureServerErrorAdvice =>
+      'このデバイスやライブラリには問題はありません。しばらく待ってから、もう一度お試しください。何度も起こる場合は、サーバーの運営者に知らせ、ここに表示されている詳細を伝えてください。';
+
+  @override
+  String get settingsSyncFailureRateLimited =>
+      '同期サーバーから、このデバイスのリクエストを減らすよう求められました。';
+
+  @override
+  String get settingsSyncFailureRateLimitedAdvice =>
+      '短時間にリクエストが多すぎました。数分待ってから、もう一度お試しください。';
+
+  @override
+  String get settingsSyncFailureStoreFull => 'ストアが同期サーバーで使える容量をすべて使い切りました。';
+
+  @override
+  String get settingsSyncFailureStoreFullAdvice =>
+      '空きができるまで、このデバイスの変更は保存できません。「未使用の取り込んだダンスをスキップ」をオンにすると、このデバイスがアップロードする量を減らせます。独自のサーバーを運用している場合は、ストレージの上限を引き上げてください。';
+
+  @override
+  String get settingsSyncFailureTooLarge =>
+      'このデバイスがアップロードしようとしたデータが、同期サーバーで受け付けられるサイズを超えています。';
+
+  @override
+  String get settingsSyncFailureTooLargeAdvice =>
+      '取り込んだコレクションが大きい場合は、「未使用の取り込んだダンスをスキップ」をオンにすると上限内に収まることがあります。独自のサーバーを運用している場合は、アップロードサイズの上限を確認してください。';
+
+  @override
+  String get settingsSyncFailureRejected => 'このデバイスが送信した内容を、同期サーバーが拒否しました。';
+
+  @override
+  String get settingsSyncFailureRejectedAdvice =>
+      '通常は、このアプリとサーバーのバージョンが異なることが原因です。このデバイスのアプリを更新してください。独自のサーバーを運用している場合は、サーバーも更新してください。';
+
+  @override
+  String get settingsSyncFailureAccessDenied =>
+      '同期サーバーが、このデバイスの同期フレーズを受け付けませんでした。';
+
+  @override
+  String get settingsSyncFailureAccessDeniedAdvice =>
+      'フレーズをもう一方のデバイスのものと照合し、サーバーアドレスが正しいことを確認してください。';
+
+  @override
+  String get settingsSyncFailureUnexpectedResponse =>
+      '同期サーバーから、このアプリで扱えない応答が返されました。';
+
+  @override
+  String get settingsSyncFailureUnexpectedResponseAdvice =>
+      '独自のサーバーを運用している場合は、アドレスと、このアプリが対応しているバージョンかどうかを確認してください。それ以外の場合は、アプリを更新して、後でもう一度お試しください。';
+
+  @override
+  String get settingsSyncFailurePeerUnavailable =>
+      '他のデバイスのいずれかが最後に共有した内容を読み取れませんでした。';
+
+  @override
+  String get settingsSyncFailurePeerUnavailableAdvice =>
+      'ストアに接続するには、そのストアを使うすべてのデバイスの最新の一覧が必要です。他のデバイスでアプリを開いて同期させてから、もう一度お試しください。もう使わないデバイスがある場合は、「他のデバイス」で削除してください。';
+
+  @override
+  String get settingsSyncFailureInternal => '同期中にアプリ内部で問題が発生しました。';
+
+  @override
+  String get settingsSyncFailureInternalAdvice =>
+      '接続やサーバーの問題ではありません。もう一度お試しください。何度も起こる場合は、設定 ▸ 診断 からログをエクスポートし、問題を報告するときに添付してください。';
+
+  @override
+  String settingsSyncFailureStep(String step) {
+    String _temp0 = intl.Intl.selectLogic(step, {
+      'lookup': 'ストアの検索中に停止しました。',
+      'download': '他のデバイスからのダウンロード中に停止しました。',
+      'upload': 'このデバイスの変更のアップロード中に停止しました。',
+      'publish': 'このデバイスの変更の公開中に停止しました。',
+      'createStore': 'ストアの作成中に停止しました。',
+      'other': '途中で停止しました。',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncFailureStatusCode(int code) {
+    return 'サーバーは HTTP ステータス $code で応答しました。';
+  }
+
+  @override
+  String settingsSyncFailureDetails(String details) {
+    return '詳細: $details';
+  }
+
+  @override
+  String commonSyncFailed(String explanation) {
+    return '同期が完了しませんでした。$explanation';
+  }
+
+  @override
+  String settingsSyncNoticeAffected(String records) {
+    return '対象: $records';
+  }
+
+  @override
+  String get settingsSyncNoticeListSeparator => '、';
+
+  @override
+  String settingsSyncNoticeRecordNamed(String kind, String name) {
+    return '$kind「$name」';
+  }
+
+  @override
+  String settingsSyncNoticeRecordNotHere(String kind) {
+    return '$kind（このデバイスにはありません）';
+  }
+
+  @override
+  String settingsSyncNoticeAffectedMore(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'ほか$count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeFromDevices(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '他の$count台のデバイスから。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncDevicesFailedBecause(String explanation) {
+    return 'デバイス一覧を読み込めませんでした。$explanation';
+  }
+
+  @override
+  String settingsSyncAdminFailedBecause(String message, String explanation) {
+    return '$message$explanation';
+  }
+
+  @override
   String get settingsSyncStatusStaleStore =>
       '前回の同期以降、このストアは別のデバイスによって置き換えられました。次回の同期で新しいストアに参加します。';
 
@@ -529,10 +687,6 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsSyncPairingAlreadyInUse =>
       'そのフレーズはすでに別のストアで使用されています。別のフレーズを生成してください。';
-
-  @override
-  String get settingsSyncPairingUnreachable =>
-      'デバイス同期は現在利用できません。接続を確認して、もう一度お試しください。';
 
   @override
   String settingsSyncPairingCustomEndpointTitle(String host) {

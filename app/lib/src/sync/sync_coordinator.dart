@@ -4,7 +4,10 @@ import 'dart:convert';
 import 'package:compendium_core/compendium_core.dart';
 
 import '../diagnostics/error_log.dart';
+import 'sync_failure.dart';
 import 'sync_http_client.dart';
+
+export 'sync_failure.dart' show SyncFailure, SyncFailureCause, SyncFailureStep;
 
 DateTime _syncNowUtc() => DateTime.now().toUtc();
 
@@ -29,13 +32,20 @@ class SyncPassResult {
     this.status, {
     this.reports = const [],
     this.message,
+    this.failure,
     this.duplicateCount = 0,
     this.appliedKinds = const [],
   });
 
   final SyncPassStatus status;
   final List<SyncReport> reports;
+
+  /// An English diagnostic for logs and tests. Never shown to the user: the
+  /// status surface explains a failure from [failure].
   final String? message;
+
+  /// Why a [SyncPassStatus.failed] pass failed; null for every other status.
+  final SyncFailure? failure;
   final int duplicateCount;
 
   /// Sync record kinds whose tables were mutated by this pass.
@@ -561,10 +571,18 @@ final class _MissingBlobUploadResult {
   const _MissingBlobUploadResult({
     required this.succeeded,
     required this.unavailableFallbackHashes,
-  });
+  }) : failure = null;
+
+  /// A failed upload, recording [failure] for the pass result.
+  const _MissingBlobUploadResult.failed(SyncFailure this.failure)
+    : succeeded = false,
+      unavailableFallbackHashes = const {};
 
   final bool succeeded;
   final Set<String> unavailableFallbackHashes;
+
+  /// Why the upload did not succeed; null when it did.
+  final SyncFailure? failure;
 }
 
 /// Coordinates one steady-state pass and its explicit replacement decision.
@@ -626,6 +644,7 @@ class SyncCoordinator {
         const SyncPassResult(
           SyncPassStatus.failed,
           message: 'sync coordinator is closed', // i18n-ignore: internal status
+          failure: SyncFailure(SyncFailureCause.internal),
         ),
       );
     }
@@ -675,6 +694,7 @@ class SyncCoordinator {
         const SyncPassResult(
           SyncPassStatus.failed,
           message: 'sync coordinator is closed', // i18n-ignore: internal status
+          failure: SyncFailure(SyncFailureCause.internal),
         ),
       );
     }
@@ -694,6 +714,7 @@ class SyncCoordinator {
         const SyncPassResult(
           SyncPassStatus.failed,
           message: 'sync coordinator is closed', // i18n-ignore: internal status
+          failure: SyncFailure(SyncFailureCause.internal),
         ),
       );
     }
@@ -714,6 +735,7 @@ class SyncCoordinator {
           SyncPassStatus.failed,
           message:
               'no replacement decision is pending', // i18n-ignore: internal status
+          failure: SyncFailure(SyncFailureCause.internal),
         ),
       );
     }
@@ -769,6 +791,7 @@ class SyncCoordinator {
       const SyncPassResult(
         SyncPassStatus.failed,
         message: 'sync coordinator is closed', // i18n-ignore: internal status
+        failure: SyncFailure(SyncFailureCause.internal),
       ),
     );
     final inFlight = _inFlight;
@@ -835,6 +858,7 @@ class SyncCoordinator {
         const SyncPassResult(
           SyncPassStatus.failed,
           message: 'sync coordinator is closed', // i18n-ignore: internal status
+          failure: SyncFailure(SyncFailureCause.internal),
         ),
       );
       return;
@@ -889,6 +913,10 @@ class SyncCoordinator {
         SyncPassStatus.failed,
         message:
             'store lookup returned ${storeResult.response.statusCode}', // i18n-ignore: internal status
+        failure: SyncFailure.fromResponse(
+          storeResult.response,
+          SyncFailureStep.lookup,
+        ),
       );
     }
 
@@ -897,6 +925,10 @@ class SyncCoordinator {
       return const SyncPassResult(
         SyncPassStatus.failed,
         message: 'store metadata was malformed', // i18n-ignore: internal status
+        failure: SyncFailure(
+          SyncFailureCause.unexpectedResponse,
+          step: SyncFailureStep.lookup,
+        ),
       );
     }
     _peerManifestCache.beginUnreflectedEpoch(metadata.epoch);
@@ -975,6 +1007,10 @@ class SyncCoordinator {
     final peerManifests = <({String peerId, SyncManifest manifest})>[];
     final unresolved = <SyncRecordAddress>{};
     var allPeerManifestsAvailable = true;
+    // The status of the first peer manifest the server refused, kept for the
+    // failure a fresh attach reports: the user can quote it, and it is what
+    // separates a server fault from a peer whose list is merely unreadable.
+    int? unavailableManifestStatus;
     for (final peerId in metadata.devices) {
       if (peerId == deviceId) continue;
       final cached = _peerManifestCache[peerId];
@@ -993,6 +1029,7 @@ class SyncCoordinator {
       }
       if (!response.isSuccess) {
         allPeerManifestsAvailable = false;
+        unavailableManifestStatus ??= response.statusCode;
         unresolved.addAll(normalizedBaseline.keys);
         reports.add(
           SyncReport(
@@ -1128,6 +1165,11 @@ class SyncCoordinator {
         reports: reports.reports,
         message:
             'fresh attach requires every peer manifest', // i18n-ignore: internal status
+        failure: SyncFailure(
+          SyncFailureCause.peerUnavailable,
+          step: SyncFailureStep.download,
+          statusCode: unavailableManifestStatus,
+        ),
       );
     }
 
@@ -1353,6 +1395,7 @@ class SyncCoordinator {
           reports: reports.reports,
           message:
               'fresh-attach blob publication failed', // i18n-ignore: internal status
+          failure: uploadResult.failure,
           duplicateCount: dedupe.duplicateCount,
           appliedKinds: appliedKinds.toList(),
         );
@@ -1441,6 +1484,7 @@ class SyncCoordinator {
         reports: reports.reports,
         message:
             'fallback blob availability probe failed', // i18n-ignore: internal status
+        failure: fallbackProbe.failure,
         appliedKinds: appliedKinds.toList(),
       );
     }
@@ -1480,6 +1524,7 @@ class SyncCoordinator {
         reports: reports.reports,
         message:
             'post-apply blob publication failed', // i18n-ignore: internal status
+        failure: finalUploadResult.failure,
         appliedKinds: appliedKinds.toList(),
       );
     }
@@ -1501,6 +1546,7 @@ class SyncCoordinator {
         reports: reports.reports,
         message:
             'manifest publication returned ${published.statusCode}', // i18n-ignore: internal status
+        failure: SyncFailure.fromResponse(published, SyncFailureStep.publish),
         appliedKinds: appliedKinds.toList(),
       );
     }
@@ -1795,15 +1841,28 @@ class SyncCoordinator {
           SyncPassStatus.failed,
           message:
               'store creation returned ${created.statusCode}', // i18n-ignore: internal status
+          failure: SyncFailure.fromResponse(
+            created,
+            SyncFailureStep.createStore,
+          ),
         );
       }
       _replacementCreated = true;
       attached = await transport.getStore(previouslyUsed: false);
       if (attached.missingKind != null || !attached.response.isSuccess) {
-        return const SyncPassResult(
+        return SyncPassResult(
           SyncPassStatus.failed,
           message:
               'fresh attach did not produce a store', // i18n-ignore: internal status
+          failure: attached.response.isSuccess
+              ? const SyncFailure(
+                  SyncFailureCause.unexpectedResponse,
+                  step: SyncFailureStep.createStore,
+                )
+              : SyncFailure.fromResponse(
+                  attached.response,
+                  SyncFailureStep.createStore,
+                ),
         );
       }
       if (onFreshAttach != null) await onFreshAttach!(attached.response);
@@ -1974,16 +2033,17 @@ class SyncCoordinator {
         requestedHashes.sublist(offset, end),
       );
       if (!response.isSuccess) {
-        return const _MissingBlobUploadResult(
-          succeeded: false,
-          unavailableFallbackHashes: {},
+        return _MissingBlobUploadResult.failed(
+          SyncFailure.fromResponse(response, SyncFailureStep.upload),
         );
       }
       final missing = _decodeMissing(response.body);
       if (missing == null) {
-        return const _MissingBlobUploadResult(
-          succeeded: false,
-          unavailableFallbackHashes: {},
+        return const _MissingBlobUploadResult.failed(
+          SyncFailure(
+            SyncFailureCause.unexpectedResponse,
+            step: SyncFailureStep.upload,
+          ),
         );
       }
       for (final hash in missing) {
@@ -2008,9 +2068,11 @@ class SyncCoordinator {
                   'The store requested an unknown local blob.', // i18n-ignore: internal report
             ),
           );
-          return const _MissingBlobUploadResult(
-            succeeded: false,
-            unavailableFallbackHashes: {},
+          return const _MissingBlobUploadResult.failed(
+            SyncFailure(
+              SyncFailureCause.unexpectedResponse,
+              step: SyncFailureStep.upload,
+            ),
           );
         }
         final uploaded = await transport.putBlob(
@@ -2018,9 +2080,8 @@ class SyncCoordinator {
           encodeSyncRecordBlobUtf8(candidate.blob),
         );
         if (!uploaded.isSuccess) {
-          return const _MissingBlobUploadResult(
-            succeeded: false,
-            unavailableFallbackHashes: {},
+          return _MissingBlobUploadResult.failed(
+            SyncFailure.fromResponse(uploaded, SyncFailureStep.upload),
           );
         }
       }

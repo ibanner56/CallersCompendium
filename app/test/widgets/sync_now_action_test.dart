@@ -68,6 +68,7 @@ Future<_Host> _pump(
   bool hasCoordinator = true,
   bool compact = false,
   Size size = const Size(600, 1200),
+  SyncPassResult passResult = const SyncPassResult(SyncPassStatus.completed),
 }) async {
   final repos = openTestRepositories();
   if (paired) {
@@ -85,7 +86,7 @@ Future<_Host> _pump(
       passes.add(1);
       final gate = host.gate;
       if (gate != null) await gate.future;
-      return const SyncPassResult(SyncPassStatus.completed);
+      return passResult;
     },
   );
   addTearDown(coordinator.dispose);
@@ -195,6 +196,31 @@ void main() {
 
         expect(host.passes, hasLength(1));
         expect(find.byType(SnackBar), findsNothing, reason: 'a pass ran');
+      });
+
+      // The Settings status line is several screens away; a tap that spins
+      // and then shows nothing reads as a success.
+      testWidgets('a pass that fails says why', (tester) async {
+        await _pump(
+          tester,
+          build(),
+          passResult: const SyncPassResult(
+            SyncPassStatus.failed,
+            failure: SyncFailure(SyncFailureCause.unreachable),
+          ),
+        );
+
+        await tester.tap(find.byKey(_glyph));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text(
+            "Sync didn't finish. Couldn't reach the sync server. Check that "
+            "this device is online. If you run your own server, check that "
+            "it's running and that its address is right.",
+          ),
+          findsOneWidget,
+        );
       });
 
       testWidgets('shows a spinner and ignores taps while a pass is running', (

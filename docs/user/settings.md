@@ -553,6 +553,18 @@ Sync is off and open while it is on.
   a store that goes unused for 30 days is removed, so keep making file backups.
   From three weeks of disuse the status also warns that the store is close to
   expiring.
+- **When a sync fails**, the status says why, not just that it failed: the
+  sync server couldn't be reached or took too long, the server had a problem
+  of its own or asked this device to slow down, your store is out of space,
+  something was too large to upload, the server refused what was sent or didn't
+  accept the sync phrase, it sent a reply the app couldn't use, another
+  device's latest list couldn't be read during a first connection, or
+  something went wrong inside the app. Each comes with what you can do about
+  it, and — where it's known — a **Details** line naming the step that stopped
+  and the HTTP status the server answered with. If the problem isn't yours to
+  fix, quote that line to whoever runs the server. The **Sync now** button on
+  the Collection and Programs pages reports a failed sync the same way, so you
+  don't need to come here to find out.
 - **Notices** appear under that last-synced line when a sync had something to
   report. A sync can finish successfully and still leave one of these standing,
   which is the point of them: the conditions they name are ones the app will
@@ -567,7 +579,15 @@ Sync is off and open while it is on.
   device couldn't be used and were skipped; when another device's clock looks far off; when an
   update arrived while you were editing the same record, so it waits for the
   next sync; and when changes from this device still haven't reached your
-  other devices after several syncs. A notice is only ever a message — it
+  other devices after several syncs. Each notice lists the records it is
+  about, the first few individually and the rest as a count, so you know
+  which ones to look at. Dances, programs, choreographers, tags and venues are
+  named by the title or name this device has for them, and one this device
+  doesn't have is listed as not on this device; other kinds of record —
+  settings, custom fields, difficulty levels, published sources — are listed
+  by kind only. A notice about records
+  from other devices also says how many devices they came from. A notice is
+  only ever a message — it
   never blocks an edit, never holds up a sync, and there is nothing to dismiss.
   It stays until a sync no longer finds the condition, then goes away on its
   own. One kind is deliberately stickier: a record refused from another device
@@ -620,7 +640,7 @@ skipping it doesn't change what connecting does.
 
 When connecting finishes, the app says so and tells you what actually happened
 to the first sync: that it has finished, that it didn't finish and will try
-again, or that it's waiting — for WiFi if **Sync only on WiFi** is on and
+again (with the reason, as on the status), or that it's waiting — for WiFi if **Sync only on WiFi** is on and
 you're on mobile data, or for a connection if you're offline. It never claims a
 sync is running while you read it. It repeats there that sync is not a backup,
 and reports any duplicate dances the first connection merged.

@@ -100,9 +100,16 @@ enum SyncAdminOutcome {
 
 /// The other devices attached to this store, or why they could not be listed.
 class SyncDeviceListResult {
-  const SyncDeviceListResult({required this.outcome, this.devices = const []});
+  const SyncDeviceListResult({
+    required this.outcome,
+    this.devices = const [],
+    this.failure,
+  });
 
   final SyncAdminOutcome outcome;
+
+  /// Why the listing failed, when [outcome] is [SyncAdminOutcome.failed].
+  final SyncFailure? failure;
 
   /// The store's device ids **excluding this device's own** (spec
   /// §5: "A client MUST exclude its own id"). Empty unless [outcome] is
@@ -319,6 +326,15 @@ class SyncController extends ChangeNotifier {
   /// status-surface one.
   List<SyncReport> get notices => _notices;
 
+  /// Why the most recent [removeDevice] or [wipeStore] failed, when it
+  /// returned [SyncAdminOutcome.failed] and the reason is known; null
+  /// otherwise. Read straight after the call: the next one clears it.
+  ///
+  /// A side channel rather than part of the return value so the outcome stays
+  /// a plain enum every caller switches on.
+  SyncFailure? get lastAdminFailure => _lastAdminFailure;
+  SyncFailure? _lastAdminFailure;
+
   bool get running => _inFlight > 0;
 
   /// Whether a previously used collection is missing and awaiting the user's
@@ -497,6 +513,7 @@ class SyncController extends ChangeNotifier {
           SyncPassStatus.failed,
           message:
               'sync pass threw ${error.runtimeType}', // i18n-ignore: internal status
+          failure: SyncFailure.fromError(error),
         );
       }
       await _recordResult(result);
@@ -662,6 +679,7 @@ class SyncController extends ChangeNotifier {
           SyncPassStatus.failed,
           message:
               'replacement confirmation threw ${error.runtimeType}', // i18n-ignore: internal status
+          failure: SyncFailure.fromError(error),
         );
       }
       await _recordResult(result);
@@ -830,11 +848,17 @@ class SyncController extends ChangeNotifier {
         );
       }
       if (!response.isSuccess) {
-        return const SyncDeviceListResult(outcome: SyncAdminOutcome.failed);
+        return SyncDeviceListResult(
+          outcome: SyncAdminOutcome.failed,
+          failure: SyncFailure.fromResponse(response),
+        );
       }
       final devices = _decodeDeviceIds(response.body);
       if (devices == null) {
-        return const SyncDeviceListResult(outcome: SyncAdminOutcome.failed);
+        return const SyncDeviceListResult(
+          outcome: SyncAdminOutcome.failed,
+          failure: SyncFailure(SyncFailureCause.unexpectedResponse),
+        );
       }
       final self = await _selfDeviceId();
       return SyncDeviceListResult(
@@ -850,7 +874,10 @@ class SyncController extends ChangeNotifier {
         stack,
         source: 'sync_controller.listStoreDevices',
       );
-      return const SyncDeviceListResult(outcome: SyncAdminOutcome.failed);
+      return SyncDeviceListResult(
+        outcome: SyncAdminOutcome.failed,
+        failure: SyncFailure.fromError(error),
+      );
     } finally {
       admin.close?.call();
     }
@@ -871,6 +898,7 @@ class SyncController extends ChangeNotifier {
   /// the user just asked for, not a pass, and deferring it to WiFi would leave
   /// a device the user is trying to retire in the store.
   Future<SyncAdminOutcome> removeDevice(String deviceId) async {
+    _lastAdminFailure = null;
     if (deviceId.isEmpty) return SyncAdminOutcome.refused;
     // Belt and braces behind the list's own exclusion: removing this device's
     // manifest is a different action with a different meaning (it does not
@@ -902,6 +930,9 @@ class SyncController extends ChangeNotifier {
             SyncResponseKind.notFound => SyncAdminOutcome.storeMissing,
             _ => SyncAdminOutcome.failed,
           };
+          if (outcome == SyncAdminOutcome.failed) {
+            _lastAdminFailure = SyncFailure.fromResponse(response);
+          }
         } finally {
           admin.close?.call();
         }
@@ -912,6 +943,7 @@ class SyncController extends ChangeNotifier {
         stack,
         source: 'sync_controller.removeDevice',
       );
+      _lastAdminFailure = SyncFailure.fromError(error);
       return SyncAdminOutcome.failed;
     }
     return outcome;
@@ -940,6 +972,7 @@ class SyncController extends ChangeNotifier {
   /// error surface — spec §5.3 requires that a destructive wipe never be the
   /// first thing offered in response to a `507`.
   Future<SyncAdminOutcome> wipeStore() async {
+    _lastAdminFailure = null;
     if (!paired || _detaching) return SyncAdminOutcome.notPaired;
     // Held for the same reason [detach] holds it: a pass that finishes while
     // this runs belongs to the store being destroyed, and recording it would
@@ -974,7 +1007,10 @@ class SyncController extends ChangeNotifier {
           wiped =
               response.kind == SyncResponseKind.success ||
               response.kind == SyncResponseKind.notFound;
-          if (!wiped) return;
+          if (!wiped) {
+            _lastAdminFailure = SyncFailure.fromResponse(response);
+            return;
+          }
           await _clearAttachment();
           cleared = true;
           // Inside the boundary, for the reason [detach] gives: a writer
@@ -994,6 +1030,9 @@ class SyncController extends ChangeNotifier {
       // action that already succeeded, while leaving this device holding the
       // phrase for a store that no longer exists.
       logCaughtErrorTypeOnly(error, stack, source: 'sync_controller.wipeStore');
+      // Only a throw before the `DELETE` succeeded explains a failed wipe; one
+      // after it belongs to the still-attached outcome, which is not a failure.
+      if (!wiped) _lastAdminFailure = SyncFailure.fromError(error);
     } finally {
       _detaching = false;
     }
