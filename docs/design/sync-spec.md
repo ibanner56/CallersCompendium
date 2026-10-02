@@ -2202,8 +2202,9 @@ republishes, which is an ordinary upload and needs no special path.
    two conforming implementations diverge permanently. It is not an edge case.
    §4.4 makes the settings key the record `id`, so it is a natural key rather
    than a UUID: two attached devices that each set the same shareable preference
-   before the next pass reach exactly this state, and 49 settings keys are
-   `shareable`. Records with UUID ids reach it too, because archive
+   before the next pass reach exactly this state, and 60 settings keys are
+   `shareable` (exact keys in `settingsClassifications` whose egress is
+   `shareable`, counted 2026-10-02; no prefix entry is). Records with UUID ids reach it too, because archive
    import preserves ids, so two devices importing one bundle and then editing it
    locally collide on the same id.
 
