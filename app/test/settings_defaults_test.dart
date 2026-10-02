@@ -253,8 +253,8 @@ void main() {
       tester,
     ) async {
       final repos = openTestRepositories();
-      await repos.tags.upsert(Tag(id: 't1', name: 'No card'));
-      await repos.tags.upsert(Tag(id: 't2', name: 'Smooth'));
+      final _ = await repos.tags.upsert(Tag(id: 't1', name: 'No card'));
+      final _ = await repos.tags.upsert(Tag(id: 't2', name: 'Smooth'));
       await _pumpDefaults(tester, repos);
       await openImportGroup(tester);
 
@@ -281,8 +281,8 @@ void main() {
     testWidgets('a saved selection shows as chosen, and a deleted tag is '
         'dropped on the next save', (tester) async {
       final repos = openTestRepositories();
-      await repos.tags.upsert(Tag(id: 't1', name: 'No card'));
-      await repos.tags.upsert(Tag(id: 't2', name: 'Smooth'));
+      final _ = await repos.tags.upsert(Tag(id: 't1', name: 'No card'));
+      final _ = await repos.tags.upsert(Tag(id: 't2', name: 'Smooth'));
       await repos.settings.set(
         kDefaultImportTagIdsKey,
         encodeDefaultImportTagIds(['t1', 'gone']),

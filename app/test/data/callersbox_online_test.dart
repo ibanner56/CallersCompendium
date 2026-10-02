@@ -932,7 +932,7 @@ void main() {
     test('import applies defaultTagIds to the new dance, and only when '
         'passed (program callers omit them)', () async {
       final repos = openTestRepositories();
-      await repos.tags.upsert(Tag(id: 't1', name: 'No card'));
+      final _ = await repos.tags.upsert(Tag(id: 't1', name: 'No card'));
       final online = onlineWithJson(_danceJson());
       final preview = await online.loadPreview(repos, result());
 

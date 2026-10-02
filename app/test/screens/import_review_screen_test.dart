@@ -349,7 +349,7 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
-    await repos.tags.upsert(Tag(id: 'no-card', name: 'No card'));
+    final _ = await repos.tags.upsert(Tag(id: 'no-card', name: 'No card'));
     await _pump(
       tester,
       repos,
