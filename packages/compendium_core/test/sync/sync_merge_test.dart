@@ -11,9 +11,9 @@ void main() {
   const engine = SyncMergeEngine();
 
   test('covers the total baseline table, including both-side absence', () {
-    final baselineBlob = _setting('custom_dialects', 'baseline');
-    final changedLocal = _setting('custom_dialects', 'local', seconds: 1);
-    final remote = _setting('custom_dialects', 'remote', seconds: 2);
+    final baselineBlob = _setting('theme_mode', 'baseline');
+    final changedLocal = _setting('theme_mode', 'local', seconds: 1);
+    final remote = _setting('theme_mode', 'remote', seconds: 2);
     final absentAddress = _dance('absent', 'absent').address;
 
     final plan = engine.plan(
@@ -101,8 +101,8 @@ void main() {
   });
 
   test('keeps same UUIDs in different kinds independent', () {
-    final setting = _setting('custom_dialects', 'setting');
-    final dance = _dance('custom_dialects', 'dance');
+    final setting = _setting('theme_mode', 'setting');
+    final dance = _dance('theme_mode', 'dance');
     final plan = engine.plan(
       local: {
         setting.address: SyncMergeCandidate.fromBlob(setting),
@@ -119,30 +119,233 @@ void main() {
     });
   });
 
-  test('reports equal updatedAt bodies without choosing either', () {
-    final local = _setting('custom_dialects', 'local');
-    final remote = _setting('custom_dialects', 'remote');
-    final plan = engine.plan(
-      local: {local.address: SyncMergeCandidate.fromBlob(local)},
-      baseline: {
-        local.address: SyncBaselineEntry(
-          kind: local.address.kind,
-          recordId: local.address.recordId,
-          wireHash: SyncMergeCandidate.fromBlob(local).wireHash,
-        ),
-      },
-      peers: [
-        {remote.address: SyncMergeCandidate.fromBlob(remote)},
-      ],
+  group('equal updatedAt with differing bodies (§6.3)', () {
+    SyncBaselineEntry agreedOn(SyncRecordBlob blob) => SyncBaselineEntry(
+      kind: blob.kind,
+      recordId: blob.id,
+      wireHash: SyncMergeCandidate.fromBlob(blob).wireHash,
     );
 
-    expect(plan.decisions.single.action, SyncMergeAction.report);
-    expect(plan.reports.single.code, SyncReportCode.equalUpdatedAt);
+    test('hands the choice to the user and applies neither body', () {
+      final local = _setting('theme_mode', 'local');
+      final remote = _setting('theme_mode', 'remote');
+      final plan = engine.plan(
+        local: {local.address: SyncMergeCandidate.fromBlob(local)},
+        baseline: {local.address: agreedOn(local)},
+        peers: [
+          {remote.address: SyncMergeCandidate.fromBlob(remote, peerId: 'p')},
+        ],
+      );
+
+      final decision = plan.decisions.single;
+      expect(decision.action, SyncMergeAction.review);
+      expect(decision.winner, isNull);
+      expect(plan.downloads, isEmpty);
+      expect(plan.uploads, isEmpty);
+      expect(
+        plan.reports,
+        isEmpty,
+        reason: 'a queued choice replaces the per-pass report',
+      );
+      expect(decision.conflict!.local!.blob.body['value'], 'local');
+      expect(decision.conflict!.candidates.map((c) => c.blob.body['value']), [
+        'remote',
+      ]);
+    });
+
+    test('is a review from both sides, so the choice is offered on either '
+        'device', () {
+      final left = _setting('theme_mode', 'left');
+      final right = _setting('theme_mode', 'right');
+      SyncMergeDecision decide(SyncRecordBlob mine, SyncRecordBlob theirs) =>
+          engine
+              .plan(
+                local: {mine.address: SyncMergeCandidate.fromBlob(mine)},
+                baseline: const {},
+                peers: [
+                  {theirs.address: SyncMergeCandidate.fromBlob(theirs)},
+                ],
+              )
+              .decisions
+              .single;
+
+      expect(decide(left, right).action, SyncMergeAction.review);
+      expect(decide(right, left).action, SyncMergeAction.review);
+    });
+
+    test('offers each distinct body once, however many peers hold it', () {
+      final local = _setting('theme_mode', 'local');
+      final remote = _setting('theme_mode', 'remote');
+      final plan = engine.plan(
+        local: {local.address: SyncMergeCandidate.fromBlob(local)},
+        baseline: const {},
+        peers: [
+          {remote.address: SyncMergeCandidate.fromBlob(remote, peerId: 'a')},
+          {remote.address: SyncMergeCandidate.fromBlob(remote, peerId: 'b')},
+        ],
+      );
+
+      expect(plan.decisions.single.conflict!.candidates, hasLength(1));
+    });
+
+    test('a tie between two peers offers both even when this device holds '
+        'nothing', () {
+      final left = _setting('theme_mode', 'left');
+      final right = _setting('theme_mode', 'right');
+      final plan = engine.plan(
+        local: const {},
+        baseline: const {},
+        peers: [
+          {left.address: SyncMergeCandidate.fromBlob(left)},
+          {right.address: SyncMergeCandidate.fromBlob(right)},
+        ],
+      );
+
+      final decision = plan.decisions.single;
+      expect(decision.action, SyncMergeAction.review);
+      expect(decision.conflict!.local, isNull);
+      expect(
+        decision.conflict!.candidates.map((c) => c.blob.body['value']).toSet(),
+        {'left', 'right'},
+      );
+    });
+
+    test('a tie between tombstones stays a report: there is nothing to '
+        'choose between', () {
+      final local = _setting('theme_mode', 'local', deleted: true);
+      final remote = _setting('theme_mode', 'remote', deleted: true);
+      final plan = engine.plan(
+        local: {local.address: SyncMergeCandidate.fromBlob(local)},
+        baseline: const {},
+        peers: [
+          {remote.address: SyncMergeCandidate.fromBlob(remote)},
+        ],
+      );
+
+      expect(plan.decisions.single.action, SyncMergeAction.report);
+      expect(plan.reports.single.code, SyncReportCode.equalUpdatedAt);
+    });
+
+    test('converges once either device decides, with the decision stamped '
+        'past the tie', () {
+      final address = _setting('theme_mode', 'x').address;
+      final left = _SimulatedDevice(
+        'left',
+        SyncMergeCandidate.fromBlob(_setting('theme_mode', 'left')),
+      );
+      final right = _SimulatedDevice(
+        'right',
+        SyncMergeCandidate.fromBlob(_setting('theme_mode', 'right')),
+      );
+      final devices = [left, right];
+      _runSimulatedPass(left, devices);
+      _runSimulatedPass(right, devices);
+      expect(left.local[address]!.blob.body['value'], 'left');
+      expect(right.local[address]!.blob.body['value'], 'right');
+
+      // The user keeps the right-hand version on the left device: storage
+      // writes it one tick past the tied stamp.
+      final decided = SyncMergeCandidate.fromBlob(
+        _setting('theme_mode', 'right', seconds: 1),
+      );
+      left.local[address] = decided;
+      left.manifest[address] = decided;
+
+      for (var round = 0; round < 2; round++) {
+        for (final device in devices) {
+          _runSimulatedPass(device, devices);
+        }
+      }
+      _expectConverged(devices, address, 'right');
+    });
+  });
+
+  group('whole-collection settings (ADR-004, Consequences)', () {
+    SyncBaselineEntry agreedOn(SyncRecordBlob blob) => SyncBaselineEntry(
+      kind: blob.kind,
+      recordId: blob.id,
+      wireHash: SyncMergeCandidate.fromBlob(blob).wireHash,
+    );
+
+    for (final key in syncWholeCollectionSettingKeys) {
+      test('$key: changed on both devices goes to review even when one '
+          'edit is newer', () {
+        final agreed = _setting(key, 'agreed');
+        final local = _setting(key, 'local set', seconds: 1);
+        final remote = _setting(key, 'remote set', seconds: 2);
+        final plan = engine.plan(
+          local: {local.address: SyncMergeCandidate.fromBlob(local)},
+          baseline: {agreed.address: agreedOn(agreed)},
+          peers: [
+            {remote.address: SyncMergeCandidate.fromBlob(remote)},
+          ],
+        );
+
+        expect(plan.decisions.single.action, SyncMergeAction.review);
+        expect(plan.downloads, isEmpty);
+      });
+    }
+
+    test('first pairing of two devices that each hold a set goes to '
+        'review', () {
+      final local = _setting('custom_dialects', 'local set', seconds: 5);
+      final remote = _setting('custom_dialects', 'remote set', seconds: 9);
+      final plan = engine.plan(
+        local: {local.address: SyncMergeCandidate.fromBlob(local)},
+        baseline: const {},
+        peers: [
+          {remote.address: SyncMergeCandidate.fromBlob(remote)},
+        ],
+        freshAttach: true,
+      );
+
+      expect(plan.decisions.single.action, SyncMergeAction.review);
+    });
+
+    test('an edit made on one device only still syncs without asking', () {
+      final agreed = _setting('custom_dialects', 'agreed');
+      final remote = _setting('custom_dialects', 'remote set', seconds: 2);
+      final downloaded = engine.plan(
+        local: {agreed.address: SyncMergeCandidate.fromBlob(agreed)},
+        baseline: {agreed.address: agreedOn(agreed)},
+        peers: [
+          {remote.address: SyncMergeCandidate.fromBlob(remote)},
+        ],
+      );
+      expect(downloaded.decisions.single.action, SyncMergeAction.download);
+
+      final local = _setting('custom_dialects', 'local set', seconds: 2);
+      final uploaded = engine.plan(
+        local: {local.address: SyncMergeCandidate.fromBlob(local)},
+        baseline: {agreed.address: agreedOn(agreed)},
+        peers: [
+          {agreed.address: SyncMergeCandidate.fromBlob(agreed)},
+        ],
+      );
+      expect(uploaded.decisions.single.action, SyncMergeAction.upload);
+    });
+
+    test('an ordinary preference changed on both devices is still '
+        'last-writer-wins', () {
+      final agreed = _setting('theme_mode', 'agreed');
+      final local = _setting('theme_mode', 'dark', seconds: 1);
+      final remote = _setting('theme_mode', 'light', seconds: 2);
+      final plan = engine.plan(
+        local: {local.address: SyncMergeCandidate.fromBlob(local)},
+        baseline: {agreed.address: agreedOn(agreed)},
+        peers: [
+          {remote.address: SyncMergeCandidate.fromBlob(remote)},
+        ],
+      );
+
+      expect(plan.decisions.single.action, SyncMergeAction.download);
+      expect(plan.decisions.single.winner!.blob.body['value'], 'light');
+    });
   });
 
   test('preserves the peer identity on a remote download winner', () {
     final remote = SyncMergeCandidate.fromBlob(
-      _setting('custom_dialects', 'remote'),
+      _setting('theme_mode', 'remote'),
       peerId: 'peer-a',
     );
     final plan = engine.plan(
@@ -159,9 +362,9 @@ void main() {
   });
 
   test('guards an unequal tombstone over a baseline-absent setting', () {
-    final local = _setting('custom_dialects', 'local');
+    final local = _setting('theme_mode', 'local');
     final tombstone = _setting(
-      'custom_dialects',
+      'theme_mode',
       'remote',
       seconds: 1,
       deleted: true,
@@ -181,8 +384,8 @@ void main() {
   test(
     'equal existenceAt silently chooses the tombstone and fresh attach bypasses guard',
     () {
-      final local = _setting('custom_dialects', 'local');
-      final tombstone = _setting('custom_dialects', 'local', deleted: true);
+      final local = _setting('theme_mode', 'local');
+      final tombstone = _setting('theme_mode', 'local', deleted: true);
       final steadyState = engine.plan(
         local: {local.address: SyncMergeCandidate.fromBlob(local)},
         baseline: const {},
@@ -467,13 +670,13 @@ void main() {
   );
 
   test('keeps an unresolved baseline entry retryable', () {
-    final address = _setting('custom_dialects', 'local').address;
+    final address = _setting('theme_mode', 'local').address;
     final plan = engine.plan(
       local: {address: null},
       baseline: {
         address: const SyncBaselineEntry(
           kind: SyncRecordKind.setting,
-          recordId: 'custom_dialects',
+          recordId: 'theme_mode',
           wireHash: 'baseline-hash',
         ),
       },
@@ -487,8 +690,8 @@ void main() {
   test(
     'skips an unresolved address even when another peer has an older blob',
     () {
-      final local = _setting('custom_dialects', 'local', seconds: 2);
-      final older = _setting('custom_dialects', 'older');
+      final local = _setting('theme_mode', 'local', seconds: 2);
+      final older = _setting('theme_mode', 'older');
       final address = local.address;
       final plan = engine.plan(
         local: {address: SyncMergeCandidate.fromBlob(local)},
@@ -511,9 +714,9 @@ void main() {
   );
 
   test('takes the newest content across three peers', () {
-    final local = _setting('custom_dialects', 'local', seconds: 1);
-    final older = _setting('custom_dialects', 'older');
-    final newest = _setting('custom_dialects', 'newest', seconds: 3);
+    final local = _setting('theme_mode', 'local', seconds: 1);
+    final older = _setting('theme_mode', 'older');
+    final newest = _setting('theme_mode', 'newest', seconds: 3);
     final plan = engine.plan(
       local: {local.address: SyncMergeCandidate.fromBlob(local)},
       baseline: const {},
@@ -530,7 +733,7 @@ void main() {
 
   test('distinguishes all four both-present baseline rows', () {
     final baseline = _settingAt(
-      'custom_dialects',
+      'theme_mode',
       'baseline',
       updatedSeconds: 5,
       existenceSeconds: 0,
@@ -556,7 +759,7 @@ void main() {
 
     final changedSame = planFor(
       _settingAt(
-        'custom_dialects',
+        'theme_mode',
         'local change',
         updatedSeconds: 1,
         existenceSeconds: 0,
@@ -572,7 +775,7 @@ void main() {
     final sameChanged = planFor(
       baseline,
       _settingAt(
-        'custom_dialects',
+        'theme_mode',
         'remote change',
         updatedSeconds: 6,
         existenceSeconds: 0,
@@ -586,13 +789,13 @@ void main() {
 
     final changedChanged = planFor(
       _settingAt(
-        'custom_dialects',
+        'theme_mode',
         'local conflict',
         updatedSeconds: 7,
         existenceSeconds: 0,
       ),
       _settingAt(
-        'custom_dialects',
+        'theme_mode',
         'remote conflict',
         updatedSeconds: 8,
         existenceSeconds: 0,
@@ -608,16 +811,13 @@ void main() {
   test(
     'converges three device manifests and baselines across interleaved passes',
     () {
-      final address = (
-        kind: SyncRecordKind.setting,
-        recordId: 'custom_dialects',
-      );
+      final address = (kind: SyncRecordKind.setting, recordId: 'theme_mode');
       final devices = [
         _SimulatedDevice(
           'device-a',
           SyncMergeCandidate.fromBlob(
             _settingAt(
-              'custom_dialects',
+              'theme_mode',
               'a-initial',
               updatedSeconds: 0,
               existenceSeconds: 0,
@@ -628,7 +828,7 @@ void main() {
           'device-b',
           SyncMergeCandidate.fromBlob(
             _settingAt(
-              'custom_dialects',
+              'theme_mode',
               'b-initial',
               updatedSeconds: 1,
               existenceSeconds: 0,
@@ -639,7 +839,7 @@ void main() {
           'device-c',
           SyncMergeCandidate.fromBlob(
             _settingAt(
-              'custom_dialects',
+              'theme_mode',
               'c-initial',
               updatedSeconds: 2,
               existenceSeconds: 0,
@@ -655,7 +855,7 @@ void main() {
 
       devices[0].local[address] = SyncMergeCandidate.fromBlob(
         _settingAt(
-          'custom_dialects',
+          'theme_mode',
           'a-interleaved',
           updatedSeconds: 3,
           existenceSeconds: 0,
@@ -669,7 +869,7 @@ void main() {
 
       devices[2].local[address] = SyncMergeCandidate.fromBlob(
         _settingAt(
-          'custom_dialects',
+          'theme_mode',
           'c-interleaved',
           updatedSeconds: 4,
           existenceSeconds: 0,
@@ -685,27 +885,27 @@ void main() {
 
   test('resolves body content among candidates in the winning state', () {
     final local = _settingAt(
-      'custom_dialects',
+      'theme_mode',
       'local',
       updatedSeconds: 0,
       existenceSeconds: 0,
     );
     final newestBody = _settingAt(
-      'custom_dialects',
+      'theme_mode',
       'newest body',
       updatedSeconds: 3,
       existenceSeconds: 4,
       deleted: true,
     );
     final newestExistence = _settingAt(
-      'custom_dialects',
+      'theme_mode',
       'stale body',
       updatedSeconds: 2,
       existenceSeconds: 5,
       deleted: true,
     );
     final middle = _settingAt(
-      'custom_dialects',
+      'theme_mode',
       'middle body',
       updatedSeconds: 1,
       existenceSeconds: 2,
@@ -771,6 +971,7 @@ void _runSimulatedPass(
       case SyncMergeAction.none:
       case SyncMergeAction.upload:
       case SyncMergeAction.report:
+      case SyncMergeAction.review:
         break;
     }
   }
