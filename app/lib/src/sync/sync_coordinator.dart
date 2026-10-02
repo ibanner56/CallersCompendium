@@ -1463,6 +1463,7 @@ class SyncCoordinator {
         continuationResult.status,
         reports: [...reports.reports, ...continuationResult.reports],
         message: continuationResult.message,
+        failure: continuationResult.failure,
         duplicateCount:
             dedupe.duplicateCount + continuationResult.duplicateCount,
         appliedKinds: {
