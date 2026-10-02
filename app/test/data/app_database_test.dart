@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:compendium_app/src/data/app_database.dart';
+import 'package:compendium_app/src/data/migration_guard.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -48,5 +49,24 @@ void main() {
       supportDirectory: () async => support,
     );
     expect(file.path, p.join(support.path, name));
+  });
+
+  test('a reset keeps selecting the support database when a Documents '
+      'database also exists', () async {
+    File(p.join(documents.path, name)).writeAsBytesSync(const [1]);
+    File(p.join(support.path, name)).writeAsBytesSync(const [2]);
+    Future<File> resolve() => resolveDatabaseFile(
+      documentsDirectory: () async => documents,
+      supportDirectory: () async => support,
+    );
+
+    final selected = await resolve();
+    final result = await performReset(dbFile: selected, keepPath: true);
+
+    expect(result, isA<ResetComplete>());
+    final reopened = await resolve();
+    expect(reopened.path, p.join(support.path, name));
+    expect(reopened.lengthSync(), 0);
+    expect(File(p.join(documents.path, name)).readAsBytesSync(), const [1]);
   });
 }
