@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import importlib
 import os
 import shutil
 import subprocess
@@ -68,8 +69,8 @@ LOCK_POLL_SECONDS = 2.0
 # `numberOfProcessors / 2` test processes -- 8 here -- and each holds a full
 # engine: measured 5.1 GB peak at 8 against 3.3 GB at 4, for 196s against
 # 208-235s over three capped runs. Half a minute is worth 1.8 GB on a host whose
-# spare commit is ~5 GB. The cap does not reach CI, which runs a 4-core runner
-# and so lands on 2 by itself.
+# spare commit is ~5 GB. CI pins its own concurrency (`--concurrency=4` /
+# `-j 4`, enforced by test_preflight.py), so this cap does not reach it.
 MAX_TEST_JOBS = 4
 TEST_JOBS_ENV = "PREFLIGHT_TEST_JOBS"
 
@@ -326,7 +327,7 @@ STEPS: tuple[Step, ...] = (
             py("tools/release/test_publish_pages_site.py"),
             py("tools/release/test_check_pages_signature_files.py"),
         ),
-        needs_import="cryptography",
+        needs_import="cryptography.hazmat.primitives.asymmetric.ed25519",
     ),
     Step(
         "core-flutter-free-tests",
@@ -389,7 +390,7 @@ STEPS: tuple[Step, ...] = (
     Step(
         "core-tests",
         "compendium_core suite with CI-equivalent LCOV generation",
-        (fvm_py("tools/ci/run_core_tests_with_coverage.py"),),
+        (fvm_py("tools/ci/run_core_tests_with_coverage.py", "-j", str(TEST_JOBS)),),
         fast=False,
         needs_binary="fvm",
     ),
@@ -437,9 +438,19 @@ def _unavailable(step: Step) -> str | None:
         return f"{step.needs_binary} is not on PATH"
     if step.needs_import:
         try:
-            __import__(step.needs_import)
+            importlib.import_module(step.needs_import)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except ImportError:
             return f"python module {step.needs_import!r} is not installed"
+        except BaseException as error:
+            # A broken install can import at the top level and then panic in a
+            # native submodule; pyo3's PanicException derives from
+            # BaseException, so `except Exception` would let it through.
+            return (
+                f"python module {step.needs_import!r} is not importable: "
+                f"{type(error).__name__}"
+            )
     return None
 
 

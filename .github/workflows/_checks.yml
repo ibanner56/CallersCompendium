@@ -373,7 +373,7 @@ jobs:
           key: sqlite3-prebuilt-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.sqlite3.outputs.version }}
       - name: Test app
         working-directory: app
-        run: flutter test
+        run: flutter test --concurrency=4
 
   server-tests:
     name: Test server
@@ -428,7 +428,7 @@ jobs:
         if: steps.server-package.outputs.present == 'true'
       - name: Test server
         working-directory: server
-        run: dart test test
+        run: dart test -j 4 test
         if: steps.server-package.outputs.present == 'true'
       # Save the prebuilt only on a miss, and only once the build hook has
       # actually produced the library. The guard matters: a fetch failure — the
