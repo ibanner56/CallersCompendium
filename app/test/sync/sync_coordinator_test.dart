@@ -4217,6 +4217,24 @@ void main() {
     });
   });
 
+  test('a fresh attach whose continuation fails keeps the continuation\'s '
+      'failure', () async {
+    // The fresh-attach branch rebuilds its result from the continuation's,
+    // and once rebuilt it without `failure`: the status line then had a
+    // failed pass and nothing to explain it with.
+    final result = await SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: _FakeStore(epoch: null),
+      transport: _FakeTransport(putManifestStatus: 500),
+    ).syncNow();
+
+    expect(result.status, SyncPassStatus.failed);
+    expect(result.failure?.cause, SyncFailureCause.serverError);
+    expect(result.failure?.step, SyncFailureStep.publish);
+    expect(result.failure?.statusCode, 500);
+  });
+
   group('a peer running a newer app version (spec §6.9)', () {
     SyncCoordinator coordinatorFor(_FakeTransport transport) => SyncCoordinator(
       syncId: 'configured',
