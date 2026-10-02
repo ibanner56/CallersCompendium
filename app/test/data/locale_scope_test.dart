@@ -184,4 +184,79 @@ void main() {
       expect(nativeLanguageName(const Locale('zz')), 'zz');
     });
   });
+
+  group('resolveSystemLocale', () {
+    const bundled = <Locale>[
+      Locale('da'),
+      Locale('de'),
+      Locale('en'),
+      Locale('fr'),
+      Locale('ja'),
+      Locale('nl'),
+    ];
+
+    test('falls back to English for a null or empty preference list', () {
+      expect(resolveSystemLocale(null, bundled), const Locale('en'));
+      expect(resolveSystemLocale(const [], bundled), const Locale('en'));
+    });
+
+    test('falls back to English, not the first supported, when nothing '
+        'matches', () {
+      expect(
+        resolveSystemLocale(const [Locale('pt', 'BR')], bundled),
+        const Locale('en'),
+      );
+      expect(
+        resolveSystemLocale(const [Locale('und')], bundled),
+        const Locale('en'),
+      );
+    });
+
+    test('takes the first matching entry of the preference list', () {
+      expect(
+        resolveSystemLocale(const [
+          Locale('sv', 'SE'),
+          Locale('de', 'DE'),
+        ], bundled),
+        const Locale('de'),
+      );
+    });
+
+    test('returns the supported locale for a regional device locale', () {
+      expect(
+        resolveSystemLocale(const [Locale('fr', 'CA')], bundled),
+        const Locale('fr'),
+      );
+      expect(
+        resolveSystemLocale(const [Locale('en', 'GB')], bundled),
+        const Locale('en'),
+      );
+    });
+
+    test('prefers an exact tag over a language-only match', () {
+      const withRegion = <Locale>[Locale('pt'), Locale('pt', 'BR')];
+      expect(
+        resolveSystemLocale(const [Locale('pt', 'BR')], withRegion),
+        const Locale('pt', 'BR'),
+      );
+    });
+
+    test('honours script compatibility between same-language variants', () {
+      const chinese = <Locale>[
+        Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
+        Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
+        Locale('en'),
+      ];
+      expect(
+        resolveSystemLocale(const [
+          Locale.fromSubtags(
+            languageCode: 'zh',
+            scriptCode: 'Hant',
+            countryCode: 'TW',
+          ),
+        ], chinese),
+        const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
+      );
+    });
+  });
 }

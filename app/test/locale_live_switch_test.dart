@@ -83,4 +83,68 @@ void main() {
       expect(await appData.repositories.settings.get(kLocaleKey), '');
     },
   );
+
+  // `_appLocale` reads the stored preference (null = follow system); the locale
+  // the UI actually resolved to is only visible through Localizations.
+  group('System default resolution', () {
+    Future<Locale> resolvedFor(
+      WidgetTester tester,
+      List<Locale> deviceLocales,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      tester.platformDispatcher.localesTestValue = deviceLocales;
+      addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+
+      final appData = _openAppData();
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(_appLocale(tester), isNull);
+      return Localizations.localeOf(
+        tester.element(find.byType(Scaffold).first),
+      );
+    }
+
+    testWidgets('system locale es_ES falls back to English', (tester) async {
+      expect(
+        await resolvedFor(tester, const [Locale('es', 'ES')]),
+        const Locale('en'),
+      );
+    });
+
+    testWidgets('an undetermined (C/POSIX) locale falls back to English', (
+      tester,
+    ) async {
+      expect(
+        await resolvedFor(tester, const [Locale('und')]),
+        const Locale('en'),
+      );
+    });
+
+    testWidgets('a later supported entry in the preference list wins', (
+      tester,
+    ) async {
+      expect(
+        await resolvedFor(tester, const [
+          Locale('es', 'ES'),
+          Locale('de', 'DE'),
+        ]),
+        const Locale('de'),
+      );
+    });
+
+    testWidgets('a regional English locale still resolves to English', (
+      tester,
+    ) async {
+      expect(
+        await resolvedFor(tester, const [Locale('en', 'GB')]),
+        const Locale('en'),
+      );
+    });
+  });
 }

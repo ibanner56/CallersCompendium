@@ -2068,6 +2068,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
           locale: _localeNotifier.value,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
+          localeListResolutionCallback: (locales, supported) =>
+              resolveSystemLocale(locales, supported),
           navigatorKey: _navigatorKey,
           scaffoldMessengerKey: _messengerKey,
           theme: lightTheme,
