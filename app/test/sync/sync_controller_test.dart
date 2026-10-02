@@ -1004,6 +1004,48 @@ void main() {
       expect(rows, isEmpty, reason: 'a tombstone would keep the old ID');
     });
 
+    test('pairing a device that holds no device ID leaves no self-write '
+        'expectation armed to swallow the next edit', () async {
+      // Wired as `main.dart` wires production: table updates on the settings
+      // table alone are reported as settings-only changes. Without the
+      // wiring, no expectation is ever consumed and a leaked one is
+      // invisible.
+      final controller = SyncController(
+        settings: repos.settings,
+        syncLocal: repos.syncLocal,
+        coordinator: () => coordinator,
+        reconfigure: ({bool startPass = true}) async {},
+        classifier: network,
+        debounce: const Duration(milliseconds: 1),
+      );
+      addTearDown(controller.dispose);
+      final subscription = repos.db.tableUpdates().listen((updates) {
+        final tables = {for (final u in updates) u.table};
+        controller.notifyLocalChange(
+          settingsOnly: tables.length == 1 && tables.contains('settings'),
+        );
+      });
+      addTearDown(subscription.cancel);
+      await controller.setEnabled(true);
+      await controller.completePairing(
+        'correct horse battery staple',
+        Uri.parse('https://sync.example.test/'),
+      );
+      await pumpEventQueue();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      final before = passes.length;
+
+      await repos.settings.set('reduce_motion', true);
+      await pumpEventQueue();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      expect(
+        passes.length,
+        before + 1,
+        reason: 'a genuine preference change must schedule a pass',
+      );
+    });
+
     test('completePairing awaits the fresh-attach pass so lastResult carries '
         'the real W8 duplicate count', () async {
       coordinator = SyncCoordinator(

@@ -729,6 +729,20 @@ class SyncController extends ChangeNotifier {
   /// [SyncGateOutcome.suppressedOffline] pass ran nothing at all, which
   /// [lastResult] alone cannot distinguish from an earlier pass's result.
   Future<SyncGateOutcome> completePairing(String syncId, Uri endpoint) async {
+    // Every attachment publishes under a device ID of its own (spec §3.3), so
+    // one a previous attachment left behind is erased before the sync ID is
+    // written: the coordinator factory mints only when none is stored. Erased
+    // first so an interrupted pairing never leaves a sync ID beside a stale
+    // device ID. Detach already erases it; this also covers an install that
+    // detached on a version which kept it.
+    //
+    // Armed only when there is a row to delete: a delete that removes nothing
+    // emits no table update, so an expectation armed for it would never be
+    // consumed and would swallow the user's next genuine settings edit.
+    if (await _settings.get(kSyncDeviceIdKey) != null) {
+      _expectSelfWrite();
+      await _settings.remove(kSyncDeviceIdKey, permanent: true);
+    }
     _expectSelfWrite();
     await _settings.set(kSyncEndpointKey, endpoint.toString());
     _expectSelfWrite();
@@ -754,8 +768,9 @@ class SyncController extends ChangeNotifier {
   /// Stops syncing on this device: forgets the sync ID, the server it was
   /// paired with and the store-scoped local state (spec glossary *detach*,
   /// §6.2 step 3). Purely local — no request is sent, so the store, this
-  /// device's manifest and every peer are untouched. Leaves sync enabled, the
-  /// device ID, the used-identity verifiers, publication history and
+  /// device's manifest and every peer are untouched. Also erases this
+  /// attachment's device ID, so the next pairing publishes under a new one.
+  /// Leaves sync enabled, the used-identity verifiers, publication history and
   /// normalisation skips in place, as the spec requires; the next pairing is a
   /// fresh attach. Contrast [wipeStore], which destroys the store for every
   /// device; the local half of the two is shared ([_clearAttachment]) and the
@@ -792,11 +807,14 @@ class SyncController extends ChangeNotifier {
   ///
   /// Shared by [detach] and [wipeStore]: the local half of forgetting a store
   /// is identical whether the store still exists or has just been destroyed.
-  /// The sync ID is erased rather than tombstoned, since a tombstone keeps the
-  /// phrase on disk.
+  /// The sync ID and device ID are erased rather than tombstoned, since a
+  /// tombstone keeps the value on disk. The device ID belongs to the
+  /// attachment being forgotten (spec §3.3): keeping it would let the server
+  /// link this attachment to the next, whatever store or server that is.
   Future<void> _clearAttachment() => _syncLocal.transaction((tx) async {
     await tx.clearOnDetach();
     await _settings.remove(kSyncIdKey, permanent: true);
+    await _settings.remove(kSyncDeviceIdKey, permanent: true);
     await _settings.remove(kSyncEndpointKey, permanent: true);
     await _settings.remove(kSyncLastSuccessAtKey, permanent: true);
   });
@@ -818,13 +836,14 @@ class SyncController extends ChangeNotifier {
     _notify();
   }
 
-  /// This device's own protocol identifier, or null when none has been minted.
+  /// This attachment's own protocol identifier, or null when none has been
+  /// minted.
   ///
-  /// Minted lazily by `ConfiguredSyncCoordinatorFactory` the first time a
-  /// coordinator is built, and deliberately left in place by [detach]. A null
-  /// here means this device has never published a manifest, so its id cannot
-  /// appear in the store's `devices` either — which is why the exclusion below
-  /// is still correct when it excludes nothing.
+  /// Minted by `resolveSyncDeviceId` the first time a coordinator is built for
+  /// an attachment, and erased by [detach], [wipeStore] and [completePairing].
+  /// A null here means this attachment has never published a manifest, so its
+  /// id cannot appear in the store's `devices` either — which is why the
+  /// exclusion below is still correct when it excludes nothing.
   Future<String?> _selfDeviceId() async {
     final raw = await _settings.get(kSyncDeviceIdKey);
     return raw is String && raw.isNotEmpty ? raw : null;
