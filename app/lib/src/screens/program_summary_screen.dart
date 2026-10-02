@@ -560,16 +560,23 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// Launches the large-print Perform view for the current saved program,
   /// mirroring [ProgramEditorScreen]'s perform launch. No-op when there is
   /// nothing to perform or the reference data has not finished loading.
-  void _performProgram() {
+  Future<void> _performProgram() async {
     final program = _program;
     final data = _collectionData;
     if (program == null || data == null || program.slots.isEmpty) return;
     _invalidateBulkUndo();
+    final deletedDances = await resolveDeletedSlotDances(
+      _repos.dances,
+      program,
+      data,
+    );
+    if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => PerformProgramScreen(
           program: program,
           data: data,
+          danceOverrides: deletedDances,
           difficultyLevels: _difficultyLevels,
           renderer: _performRenderer,
           // Resume where the caller left off (issue #434).

@@ -1764,18 +1764,25 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     }
   }
 
-  void _performProgram() {
+  Future<void> _performProgram() async {
     if (_pickerImporting) return;
     final data = _data;
     final program = _programToPerform(AppLocalizations.of(context));
     if (data == null || program == null) return;
     _invalidateBulkUndo();
+    final deletedDances = await resolveDeletedSlotDances(
+      _repos.dances,
+      program,
+      data,
+    );
+    if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => PerformProgramScreen(
           program: program,
           data: data,
-          danceOverrides: Map<String, Dance>.of(_createdDances),
+          // Created dances win over a resolved soft-deleted copy.
+          danceOverrides: {...deletedDances, ..._createdDances},
           difficultyLevels: _difficultyLevels,
           authorNameOverrides: {
             for (final entry in _createdChoreographers.entries)

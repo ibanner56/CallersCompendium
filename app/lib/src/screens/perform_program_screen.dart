@@ -212,7 +212,8 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   }
 
   /// Resolves the dance backing [slot], or `null` for a free-text-only slot or
-  /// an unresolved dance id.
+  /// an unresolved dance id (purged, or soft-deleted and not pre-resolved by
+  /// [resolveDeletedSlotDances]).
   Dance? _danceForSlot(ProgramSlot slot) => slot.danceId == null
       ? null
       : widget.danceOverrides[slot.danceId] ??
@@ -549,21 +550,27 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     final l10n = AppLocalizations.of(context);
     SemanticsService.sendAnnouncement(
       View.of(context),
-      l10n.performShowingSlot(_slotLabel(l10n, slot)),
+      l10n.performShowingSlot(_slotLabel(l10n, slot, markDeleted: true)),
       Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
   }
 
-  /// Display label for a slot: the dance title when it resolves, otherwise its
-  /// free text (or a neutral fallback).
+  /// Display label for a slot: the dance title when it resolves (suffixed with
+  /// the deleted marker when [markDeleted] and the dance is soft-deleted), "Dance
+  /// unavailable" for a dance id that resolves to nothing, otherwise its free
+  /// text (or a neutral fallback).
   String _slotLabel(
     AppLocalizations l10n,
     ProgramSlot slot, {
     bool convert = true,
+    bool markDeleted = false,
   }) {
     if (slot.danceId != null) {
       final dance = _danceForSlot(slot);
-      if (dance != null) return dance.title;
+      if (dance == null) return l10n.programsDanceUnavailable;
+      return markDeleted && dance.isDeleted
+          ? '${dance.title} ${l10n.programsDeletedDanceFallback}'
+          : dance.title;
     }
     final rawText = slot.text?.trim();
     final text =
@@ -615,7 +622,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
               return ListTile(
                 key: ValueKey('perform-jump-slot-$index'),
                 leading: CircleAvatar(child: Text('${index + 1}')),
-                title: Text(_slotLabel(l10n, group.primary)),
+                title: Text(_slotLabel(l10n, group.primary, markDeleted: true)),
                 subtitle: subtitle == null ? null : Text(subtitle),
                 selected: index == _groupIndex,
                 onTap: () => Navigator.of(sheetContext).pop(index),
@@ -1269,9 +1276,20 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       }
     }
     // Free-text-only slot (or an unresolved dance id): a simple large-print
-    // text card with no figures.
+    // text card with no figures. An unresolved id headlines "Dance unavailable";
+    // the caller's note rides underneath only when the display preference is on.
+    final l10n = AppLocalizations.of(context);
+    final note = slot.text?.trim();
     return PerformTextCard(
-      text: _slotLabel(AppLocalizations.of(context), slot, convert: false),
+      text: slot.danceId == null
+          ? _slotLabel(l10n, slot, convert: false)
+          : [
+              l10n.programsDanceUnavailable,
+              if (_showProgramSlotCallerNotes == true &&
+                  note != null &&
+                  note.isNotEmpty)
+                note,
+            ].join('\n'),
       textScale: _textScale,
       renderer: widget.renderer,
       dialect: dialect,
@@ -1294,4 +1312,25 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     }
     return null;
   }
+}
+
+/// Soft-deleted dances behind [program]'s slots, keyed by id, for
+/// [PerformProgramScreen.danceOverrides]. [CollectionData] excludes deleted
+/// dances, so without this a slot whose dance sits in Recently deleted would
+/// lose its figures mid-program. Ids already in [data] are not duplicated, and
+/// purged ids are absent from the result.
+Future<Map<String, Dance>> resolveDeletedSlotDances(
+  DanceRepository dances,
+  Program program,
+  CollectionData data,
+) async {
+  final resolved = <String, Dance>{};
+  for (final slot in program.slots) {
+    final id = slot.danceId;
+    if (id == null || data.dancesById.containsKey(id)) continue;
+    if (resolved.containsKey(id)) continue;
+    final dance = await dances.getById(id, includeDeleted: true);
+    if (dance != null) resolved[id] = dance;
+  }
+  return resolved;
 }

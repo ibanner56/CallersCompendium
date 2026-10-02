@@ -620,6 +620,32 @@ void main() {
     'unresolved dance-linked caller notes use the display preference',
     (tester) async {
       final data = await _dataWith(const []);
+      final program = _program([
+        _slot(
+          id: 's1',
+          position: 0,
+          danceId: 'missing-dance',
+          text: 'Gypsy with the gents',
+          isPurgedDance: null,
+        ),
+      ]);
+      await _pumpProgram(tester, data: data, program: program);
+
+      // The card headlines "Dance unavailable"; the converted note is only a
+      // secondary line (PRF-02 — it used to be the whole card).
+      final card = tester.widget<PerformTextCard>(find.byType(PerformTextCard));
+      expect(card.text, startsWith('Dance unavailable'));
+      expect(
+        find.textContaining('Shoulder round with the larks'),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'unresolved dance-linked slot hides the note when notes are off',
+    (tester) async {
+      final data = await _dataWith(const []);
       await _pumpProgram(
         tester,
         data: data,
@@ -632,9 +658,97 @@ void main() {
             isPurgedDance: null,
           ),
         ]),
+        showProgramSlotCallerNotes: false,
       );
 
-      expect(find.text('Shoulder round with the larks'), findsOneWidget);
+      expect(find.text('Dance unavailable'), findsOneWidget);
+      expect(find.textContaining('Shoulder round'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'a soft-deleted slot dance still shows its figures and is marked deleted',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Gone Dance'));
+      await repos.dances.softDelete('d1', at: _now);
+      final data = await CollectionData.load(repos);
+      final program = _program([
+        _slot(
+          id: 's1',
+          position: 0,
+          danceId: 'd1',
+          text: 'Remember to teach the shoulder round slowly',
+        ),
+      ]);
+      expect(data.dancesById.containsKey('d1'), isFalse);
+      await _pumpProgram(
+        tester,
+        data: data,
+        program: program,
+        danceOverrides: await resolveDeletedSlotDances(
+          repos.dances,
+          program,
+          data,
+        ),
+      );
+
+      expect(find.byType(PerformCard), findsOneWidget);
+      expect(find.byKey(const ValueKey('perform-text')), findsNothing);
+      expect(find.text('Gone Dance'), findsOneWidget);
+      expect(find.text('Untitled slot'), findsNothing);
+      expect(find.text('Dance unavailable'), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('perform-jump')));
+      await tester.pumpAndSettle();
+      expect(find.text('Gone Dance (deleted dance)'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'an unresolvable slot dance shows Dance unavailable, not Untitled slot',
+    (tester) async {
+      final data = await _dataWith(const []);
+      await _pumpProgram(
+        tester,
+        data: data,
+        program: _program([_slot(id: 's1', position: 0, danceId: 'gone')]),
+      );
+
+      expect(find.text('Dance unavailable'), findsOneWidget);
+      expect(find.text('Untitled slot'), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('perform-jump')));
+      await tester.pumpAndSettle();
+      expect(find.text('Dance unavailable'), findsNWidgets(2));
+      expect(find.text('Untitled slot'), findsNothing);
+    },
+  );
+
+  test(
+    'resolveDeletedSlotDances includes deleted, skips live and missing',
+    () async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'live', title: 'Live Dance'));
+      await repos.dances.create(_dance(id: 'dead', title: 'Dead Dance'));
+      await repos.dances.softDelete('dead', at: _now);
+      final data = await CollectionData.load(repos);
+      final program = _program([
+        _slot(id: 's1', position: 0, danceId: 'live'),
+        _slot(id: 's2', position: 1, danceId: 'dead'),
+        _slot(id: 's3', position: 2, danceId: 'dead', isAlt: true),
+        _slot(id: 's4', position: 3, danceId: 'purged'),
+        _slot(id: 's5', position: 4, text: 'Break'),
+      ]);
+
+      final resolved = await resolveDeletedSlotDances(
+        repos.dances,
+        program,
+        data,
+      );
+
+      expect(resolved.keys, ['dead']);
+      expect(resolved['dead']!.isDeleted, isTrue);
     },
   );
 
