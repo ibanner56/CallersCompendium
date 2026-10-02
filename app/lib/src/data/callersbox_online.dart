@@ -210,6 +210,7 @@ class CallersBoxOnline implements OnlineSearchService {
     ImportRecordPlan plan, {
     DateTime? now,
     DedupeResolution? ambiguousResolution,
+    List<String> defaultTagIds = const [],
   }) async {
     final title = plan.draft.dance.title;
     if (plan.verdict.kind == DedupeKind.reimport) {
@@ -299,6 +300,7 @@ class CallersBoxOnline implements OnlineSearchService {
       now: now ?? DateTime.now().toUtc(),
       newId: uuidV4,
       resolutions: resolutions,
+      defaultTagIds: defaultTagIds,
     );
 
     // A single-record batch: surface a failed/skipped commit as a user-safe

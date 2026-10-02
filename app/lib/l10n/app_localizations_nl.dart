@@ -1372,6 +1372,21 @@ class AppLocalizationsNl extends AppLocalizations {
       'Kies welke filters verschijnen wanneer je de collectie filtert en wanneer je dansen voor een programma kiest. Alle filters worden standaard getoond. Als je een filter verbergt, wordt de selectie ervan gewist.';
 
   @override
+  String get settingsDefaultsImportHeader => 'Importstandaarden';
+
+  @override
+  String get settingsDefaultsImportTagsTitle =>
+      'Tags voor geïmporteerde dansen';
+
+  @override
+  String get settingsDefaultsImportTagsSubtitle =>
+      'Wordt toegevoegd aan elke nieuwe dans die je los importeert. Dansen die tijdens het importeren van een programma worden gemaakt en dansen die uit een Compendium-archief worden hersteld, krijgen geen tags.';
+
+  @override
+  String get settingsDefaultsImportTagsEmpty =>
+      'Je hebt nog geen tags. Voeg er een toe aan een dans in de editor en kies die dan hier.';
+
+  @override
   String get settingsDefaultsAuthoringHeader =>
       'Standaarden voor dansen aanmaken';
 

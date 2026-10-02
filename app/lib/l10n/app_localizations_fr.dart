@@ -1390,6 +1390,21 @@ class AppLocalizationsFr extends AppLocalizations {
       'Choisissez les filtres qui apparaissent lorsque vous filtrez la collection et lorsque vous choisissez des danses pour un programme. Tous les filtres sont affichés par défaut. Masquer un filtre efface sa sélection.';
 
   @override
+  String get settingsDefaultsImportHeader =>
+      'Paramètres par défaut de l\'import';
+
+  @override
+  String get settingsDefaultsImportTagsTitle => 'Tags des danses importées';
+
+  @override
+  String get settingsDefaultsImportTagsSubtitle =>
+      'Ajoutés à chaque nouvelle danse que vous importez seule. Les danses créées lors de l\'import d\'un programme et celles restaurées depuis une archive Compendium ne reçoivent pas de tags.';
+
+  @override
+  String get settingsDefaultsImportTagsEmpty =>
+      'Vous n\'avez pas encore de tags. Ajoutez-en un à une danse dans l\'éditeur, puis choisissez-le ici.';
+
+  @override
   String get settingsDefaultsAuthoringHeader =>
       'Paramètres par défaut de création de danse';
 

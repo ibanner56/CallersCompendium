@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:compendium_app/l10n/app_localizations.dart';
+import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
@@ -320,6 +321,50 @@ void main() {
 
     final all = await repos.dances.listAll();
     expect(all.map((d) => d.title), contains('Brand New Reel'));
+  });
+
+  testWidgets('a collection import tags new dances with the default import '
+      'tags (#1476), and undo leaves the tag itself alone', (tester) async {
+    final repos = openTestRepositories();
+    final tagId = await repos.tags.upsert(Tag(id: 'no-card', name: 'No card'));
+    await repos.settings.set(
+      kDefaultImportTagNamesKey,
+      encodeDefaultImportTagNames(['No card', 'Deleted tag']),
+    );
+    await _pump(
+      tester,
+      repos,
+      payload: _archivePayload([_dance('d1', 'Tagged On Import')]),
+    );
+    await _toReview(tester);
+    await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+    await tester.pumpAndSettle();
+
+    final imported = (await repos.dances.listAll()).single;
+    expect(imported.tagIds, [tagId]);
+
+    await tester.tap(find.byKey(const ValueKey('import-undo-button')));
+    await tester.pumpAndSettle();
+
+    expect(await repos.dances.listAll(), isEmpty);
+    expect(await repos.tags.getById(tagId), isNotNull);
+  });
+
+  testWidgets('with no default import tags a new dance stays untagged', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final _ = await repos.tags.upsert(Tag(id: 'no-card', name: 'No card'));
+    await _pump(
+      tester,
+      repos,
+      payload: _archivePayload([_dance('d1', 'Plain Import')]),
+    );
+    await _toReview(tester);
+    await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+    await tester.pumpAndSettle();
+
+    expect((await repos.dances.listAll()).single.tagIds, isEmpty);
   });
 
   testWidgets('reimport row updates the matched dance in place', (

@@ -4,6 +4,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/callersbox_online.dart';
 import '../data/contradb_online.dart';
 import '../data/dance_reimport.dart';
+import '../data/default_import_tags.dart';
 import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
@@ -411,7 +412,11 @@ class _CollectionShellState extends State<CollectionShell> {
     final l10n = AppLocalizations.of(context);
     try {
       final service = _serviceFor(preview.result.source);
-      var result = await service.import(repos, preview.plan);
+      var result = await service.import(
+        repos,
+        preview.plan,
+        defaultTagIds: await resolveDefaultImportTagIds(repos),
+      );
       if (result.kind == OnlineImportKind.needsConfirmation) {
         if (!mounted) return;
         final existingId = result.danceId;
@@ -436,6 +441,7 @@ class _CollectionShellState extends State<CollectionShell> {
           repos,
           preview.plan,
           ambiguousResolution: resolution,
+          defaultTagIds: await resolveDefaultImportTagIds(repos),
         );
       } else if (result.kind == OnlineImportKind.needsConfirmationIdentical) {
         if (!mounted) return;
@@ -461,6 +467,7 @@ class _CollectionShellState extends State<CollectionShell> {
           repos,
           preview.plan,
           ambiguousResolution: resolution,
+          defaultTagIds: await resolveDefaultImportTagIds(repos),
         );
       }
       if (!mounted) return;

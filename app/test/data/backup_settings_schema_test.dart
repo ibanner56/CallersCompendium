@@ -11,6 +11,7 @@ import 'package:compendium_app/src/data/display_defaults.dart'
     show
         encodeStartingProgramTemplate,
         kCanonicalFigureTextKey,
+        kDefaultImportTagNamesKey,
         kDefaultModifierFiguresKey,
         kDefaultStartingProgramKey,
         StartingProgramTemplateEntry;
@@ -174,6 +175,35 @@ void main() {
       expect(validateBackupSettingValue(kAppThemeKey, true), isFalse);
       expect(validateBackupSettingValue(kAppThemeKey, {'x': 1}), isFalse);
     });
+
+    test(
+      'default import tag names (#1476) accept only a JSON list of strings',
+      () {
+        expect(
+          validateBackupSettingValue(kDefaultImportTagNamesKey, '["a","b"]'),
+          isTrue,
+        );
+        expect(
+          validateBackupSettingValue(kDefaultImportTagNamesKey, '[]'),
+          isTrue,
+        );
+        for (final bad in <Object?>[
+          'not json',
+          '{"a":1}',
+          '[1,2]',
+          '[""]',
+          ['a'],
+          42,
+          null,
+        ]) {
+          expect(
+            validateBackupSettingValue(kDefaultImportTagNamesKey, bad),
+            isFalse,
+            reason: '$bad',
+          );
+        }
+      },
+    );
 
     test('modifier defaults accept only encoded figure strings', () {
       expect(

@@ -443,7 +443,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**92 settings keys**: 59 shareable, 8 device-local, 23 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
+**93 settings keys**: 60 shareable, 8 device-local, 23 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -490,6 +490,7 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `default_dance_formation_shape` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_dance_phrase_structure` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_dance_progression` | `dpv:NonPersonalData` | app user | shareable |  |
+| `default_import_tag_names` | `dpv:NonPersonalData` | app user | shareable | User-chosen list of tag names added to dances imported on their own. The names reference the user's own tags by their natural key, so it survives tag re-identification on sync and merge restore; names with no live tag are ignored. |
 | `default_meanwhile_side_figures` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_modifier_figures` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_move_param_overrides` | `dpv:NonPersonalData` | app user | shareable |  |

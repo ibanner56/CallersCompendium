@@ -9,6 +9,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/callersbox_online.dart';
+import '../data/default_import_tags.dart';
 import '../data/collection_facets_scope.dart';
 import '../data/collection_filter_scope.dart';
 import '../data/collection_tile_fields_scope.dart';
@@ -1133,7 +1134,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final navigator = Navigator.of(context);
     final l10n = AppLocalizations.of(context);
     try {
-      var result = await _online.import(_repos, preview.plan);
+      var result = await _online.import(
+        _repos,
+        preview.plan,
+        defaultTagIds: await resolveDefaultImportTagIds(_repos),
+      );
       if (result.kind == OnlineImportKind.needsConfirmation) {
         if (!mounted) return;
         final existingId = result.danceId;
@@ -1158,6 +1163,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
           _repos,
           preview.plan,
           ambiguousResolution: resolution,
+          defaultTagIds: await resolveDefaultImportTagIds(_repos),
         );
       } else if (result.kind == OnlineImportKind.needsConfirmationIdentical) {
         if (!mounted) return;
@@ -1183,6 +1189,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
           _repos,
           preview.plan,
           ambiguousResolution: resolution,
+          defaultTagIds: await resolveDefaultImportTagIds(_repos),
         );
       }
       if (!mounted) return;
