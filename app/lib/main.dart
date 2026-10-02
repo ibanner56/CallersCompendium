@@ -639,6 +639,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // pass that applied anything.
     widget.productionSyncCoordinatorFactory?.onBeforeAppliedInvalidation =
         _syncController.expectSyncAppliedInvalidation;
+    // Each attach mints a device ID inside the factory; that write is sync
+    // bookkeeping, not an edit that should schedule a second pass.
+    widget.productionSyncCoordinatorFactory?.onBeforeDeviceIdMinted =
+        _syncController.expectOwnSettingsWrite;
     // Local writes schedule one debounced automatic pass (spec §6.12). Settings
     // rows are reported separately because shareable preferences are sync
     // records too, while the controller's own bookkeeping writes to that table

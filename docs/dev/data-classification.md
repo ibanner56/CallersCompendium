@@ -90,7 +90,7 @@ know exists.
 | `shareable` | May travel by any route the user chooses, including project-operated infrastructure: file export, share sheet, device sync |
 | `deviceLocal` | Must never reach project-operated infrastructure. Leaves only by a transfer the user deliberately initiates between their own devices, or in a local backup file they control |
 | `deviceScoped` | Never transmitted **by any route at all**, because the value is meaningless or actively wrong on another device — a window position, a per-device marker, a per-installation key. Distinct from `deviceLocal`: that is withheld for what it *contains*, this for what it *means*. |
-| `protocolIdentifier` | May travel as opaque protocol metadata to the configured endpoint, but carries no user data and is never adopted from a peer — here, the per-installation sync device ID |
+| `protocolIdentifier` | May travel as opaque protocol metadata to the configured endpoint, but carries no user data and is never adopted from a peer — here, the per-attachment sync device ID |
 | `storeAddress` | Names *where* a shared store lives on the configured endpoint — in effect a path on the sync server. It travels only to that endpoint, is never serialised as record content, and is never recoverably retained, logged, or adopted by the server or a proxy — here, the sync ID. **Not a credential or a secret:** the user is expected to hand it to another person so the two can sync together |
 | `derived` | Never transmitted at all. Rebuildable from other fields on arrival, so sending it would be redundant as well as an extra copy to protect |
 
@@ -522,7 +522,7 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `show_program_slot_caller_notes` | `dpv:NonPersonalData` | app user | shareable |  |
 | `soft_delete_retention_days` | `dpv:NonPersonalData` | app user | shareable |  |
 | `sort_ignore_articles` | `dpv:NonPersonalData` | app user | shareable |  |
-| `sync_device_id` | `dpv:NonPersonalData` | — | **protocol-identifier** | Opaque per-installation routing identifier. It must travel in protocol metadata but must never be adopted from another device or restored from a backup. |
+| `sync_device_id` | `dpv:NonPersonalData` | — | **protocol-identifier** | Opaque per-attachment routing identifier, minted anew each time the device attaches so that the identifier itself never links one attachment to the next. Synced content and its blob hashes can still be correlated by the operator; this removes only the identifier as a link. It must travel in protocol metadata but must never be adopted from another device or restored from a backup. |
 | `sync_enabled` | `dpv:NonPersonalData` | — | device-scoped | Per-installation Device Sync consent. Never synced and never restored from a backup: consent given on one device is not consent on another. |
 | `sync_endpoint` | `dpv:NonPersonalData` | — | device-scoped | The Athenaeum server this installation pairs and syncs with. Never synced, because a synced endpoint would let one device silently redirect another, and never restored from a backup. |
 | `sync_exclude_imports` | `dpv:NonPersonalData` | — | device-scoped | Per-installation toggle that trims what this device publishes. It is a statement about this device's upload budget, not the library, so it never syncs or travels in a backup. |

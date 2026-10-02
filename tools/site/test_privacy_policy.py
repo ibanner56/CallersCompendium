@@ -20,6 +20,7 @@ REQUIRED_PHRASES = (
     "freeform venue notes",
     "street address",
     "contact name",
+    "random identifier for each connected device",
 )
 FORBIDDEN_PHRASES = (
     "before it ships",
