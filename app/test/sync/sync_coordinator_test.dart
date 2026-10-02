@@ -174,6 +174,127 @@ void main() {
     expect(store.advancedEntries, [canonical]);
   });
 
+  test('normalisation resolves aliases from one aliasMap per step', () async {
+    Future<int> aliasMapLoads(int aliased) async {
+      final locals = <SyncRecordAddress, SyncMergeCandidate?>{};
+      final baseline = <SyncRecordAddress, SyncBaselineEntry>{};
+      final aliases = <SyncRecordAddress, SyncRecordAddress>{};
+      for (var i = 0; i < aliased; i++) {
+        final candidate = SyncMergeCandidate.fromBlob(
+          _tag('canonical-$i', 'Tag $i'),
+        );
+        final legacy = (kind: SyncRecordKind.tag, recordId: 'legacy-$i');
+        locals[candidate.address] = candidate;
+        baseline[legacy] = SyncBaselineEntry(
+          kind: legacy.kind,
+          recordId: legacy.recordId,
+          wireHash: candidate.wireHash,
+          bodyHash: candidate.bodyHash,
+        );
+        aliases[legacy] = candidate.address;
+      }
+      final store = _FakeStore(
+        local: locals,
+        baseline: baseline,
+        aliases: aliases,
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: _FakeTransport(
+          devices: ['peer'],
+          peerManifest: _manifest(deviceId: 'peer', records: const {}),
+        ),
+      );
+      addTearDown(coordinator.dispose);
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      return store.aliasMapCalls;
+    }
+
+    final few = await aliasMapLoads(3);
+    final many = await aliasMapLoads(30);
+
+    expect(few, greaterThan(0));
+    // One load per normalisation call, however many addresses it resolves:
+    // a per-item load would grow with the library.
+    expect(many, few);
+  });
+
+  group('SyncAliasMap resolves as the repository does', () {
+    const kind = SyncRecordKind.dance;
+
+    Future<SyncAliasMap> loaded(
+      CompendiumRepositories repositories,
+      List<(String, String)> links,
+    ) async {
+      for (final (losing, surviving) in links) {
+        await repositories.syncLocal.upsertAlias(
+          kind: kind,
+          losingId: losing,
+          survivingId: surviving,
+        );
+      }
+      return CompendiumSyncCoordinatorStore(repositories).aliasMap();
+    }
+
+    test('follows a chain to the surviving id', () async {
+      final repositories = openTestRepositories();
+      final aliases = await loaded(repositories, [('a', 'b'), ('b', 'c')]);
+
+      for (final id in ['a', 'b', 'c', 'unaliased']) {
+        expect(
+          aliases.resolve((kind: kind, recordId: id)).recordId,
+          await repositories.syncLocal.resolveAlias(kind: kind, recordId: id),
+          reason: id,
+        );
+      }
+      expect(aliases.resolve((kind: kind, recordId: 'a')).recordId, 'c');
+    });
+
+    test('does not resolve across record kinds', () async {
+      final repositories = openTestRepositories();
+      final aliases = await loaded(repositories, [('a', 'b')]);
+
+      expect(aliases.resolve((kind: SyncRecordKind.tag, recordId: 'a')), (
+        kind: SyncRecordKind.tag,
+        recordId: 'a',
+      ));
+    });
+
+    test('throws a StateError on a cycle, like resolveAlias', () async {
+      final repositories = openTestRepositories();
+      final aliases = await loaded(repositories, [('a', 'b'), ('b', 'a')]);
+
+      await expectLater(
+        repositories.syncLocal.resolveAlias(kind: kind, recordId: 'a'),
+        throwsStateError,
+      );
+      expect(
+        () => aliases.resolve((kind: kind, recordId: 'a')),
+        throwsStateError,
+      );
+    });
+
+    test('a cycle only fails the addresses whose chain reaches it', () async {
+      final repositories = openTestRepositories();
+      final aliases = await loaded(repositories, [
+        ('a', 'b'),
+        ('b', 'a'),
+        ('x', 'y'),
+      ]);
+
+      expect(
+        await repositories.syncLocal.resolveAlias(kind: kind, recordId: 'x'),
+        'y',
+      );
+      expect(aliases.resolve((kind: kind, recordId: 'x')).recordId, 'y');
+    });
+  });
+
   test(
     'rejects a future peer record once while preserving the batch',
     () async {
@@ -4136,8 +4257,7 @@ final class _SnapshotInterleavingStore
       _delegate.snapshotCandidates();
 
   @override
-  Future<SyncRecordAddress> resolveAlias(SyncRecordAddress address) =>
-      _delegate.resolveAlias(address);
+  Future<SyncAliasMap> aliasMap() => _delegate.aliasMap();
 
   @override
   Future<void> markSyncUsed(String syncId) => _delegate.markSyncUsed(syncId);
@@ -4334,6 +4454,7 @@ final class _FakeStore implements SyncCoordinatorStore {
   final List<SyncApplyRecord> writes = [];
   final List<Set<SyncRecordAddress>> retiredPeerAddresses = [];
   int snapshotCalls = 0;
+  int aliasMapCalls = 0;
   int baselineAdvances = 0;
   int baselineReplacements = 0;
   int epochStateClears = 0;
@@ -4365,15 +4486,14 @@ final class _FakeStore implements SyncCoordinatorStore {
   snapshotCandidates() async => currentCandidatesBuilder?.call() ?? local;
 
   @override
-  Future<SyncRecordAddress> resolveAlias(SyncRecordAddress address) async {
-    final visited = <SyncRecordAddress>{};
-    var current = address;
-    while (visited.add(current)) {
-      final next = aliases[current];
-      if (next == null) return current;
-      current = next;
+  Future<SyncAliasMap> aliasMap() async {
+    aliasMapCalls++;
+    final byKind = <SyncRecordKind, Map<String, String>>{};
+    for (final entry in aliases.entries) {
+      byKind.putIfAbsent(entry.key.kind, () => {})[entry.key.recordId] =
+          entry.value.recordId;
     }
-    return current;
+    return SyncAliasMap(byKind);
   }
 
   @override

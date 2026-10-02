@@ -91,6 +91,37 @@ class SyncCoordinatorSnapshot {
   final List<SyncReport> withheld;
 }
 
+/// Persisted ID aliases (`losingId -> survivingId`, per record kind) held in
+/// memory, resolving exactly as `SyncLocalRepository.resolveAlias` does.
+///
+/// Chains are followed on demand rather than collapsed up front, so a cycle
+/// throws only for an address whose chain reaches it, as the per-call SQL
+/// resolution did. An eager collapse would also throw for a cycle that no
+/// queried address touches.
+final class SyncAliasMap {
+  const SyncAliasMap(this._byKind);
+
+  final Map<SyncRecordKind, Map<String, String>> _byKind;
+
+  SyncRecordAddress resolve(SyncRecordAddress address) {
+    final links = _byKind[address.kind];
+    if (links == null) return address;
+    var current = address.recordId;
+    final seen = <String>{current};
+    for (var next = links[current]; next != null; next = links[current]) {
+      if (!seen.add(next)) {
+        throw StateError(
+          'Cyclic sync ID alias for ${address.kind.name}: ${address.recordId}',
+        );
+      }
+      current = next;
+    }
+    return current == address.recordId
+        ? address
+        : (kind: address.kind, recordId: current);
+  }
+}
+
 /// Storage operations that the coordinator must compose with inbound apply.
 ///
 /// The implementation owns the real database transaction. In particular,
@@ -103,7 +134,13 @@ abstract interface class SyncCoordinatorStore
   @override
   Future<Map<SyncRecordAddress, SyncMergeCandidate?>> snapshotCandidates();
 
-  Future<SyncRecordAddress> resolveAlias(SyncRecordAddress address);
+  /// Every persisted ID alias, loaded in one statement.
+  ///
+  /// The normalisation helpers load this once per call and resolve in memory:
+  /// resolving per item through the store is one transaction per record. Do not
+  /// hold the result across coordinator steps. Collision adoption writes
+  /// aliases between them, so a map kept for a whole pass would go stale.
+  Future<SyncAliasMap> aliasMap();
 
   Future<void> markSyncUsed(String syncId);
 
@@ -190,13 +227,18 @@ final class CompendiumSyncCoordinatorStore
         (snapshot) => {...snapshot.local, ...snapshot.pendingLive},
       );
 
+  // Loads the rows the way `CompendiumSyncStorage._aliasMap()` in
+  // compendium_core does, but resolves chains lazily (see [SyncAliasMap]) so a
+  // cycle fails as `resolveAlias` did. That file belongs to the sync-core lane,
+  // so a later change can deduplicate the two.
   @override
-  Future<SyncRecordAddress> resolveAlias(SyncRecordAddress address) async {
-    final recordId = await storage.repositories.syncLocal.resolveAlias(
-      kind: address.kind,
-      recordId: address.recordId,
-    );
-    return (kind: address.kind, recordId: recordId);
+  Future<SyncAliasMap> aliasMap() async {
+    final byKind = <SyncRecordKind, Map<String, String>>{};
+    for (final row in await storage.repositories.syncLocal.listAliases()) {
+      byKind.putIfAbsent(row.kind, () => <String, String>{})[row.losingId] =
+          row.survivingId;
+    }
+    return SyncAliasMap(byKind);
   }
 
   @override
@@ -1615,9 +1657,10 @@ class SyncCoordinator {
   Future<Set<SyncRecordAddress>> _normalizeAddresses(
     Iterable<SyncRecordAddress> addresses,
   ) async {
+    final aliases = await store.aliasMap();
     final normalized = <SyncRecordAddress>{};
     for (final address in addresses) {
-      normalized.add(await store.resolveAlias(address));
+      normalized.add(aliases.resolve(address));
     }
     return normalized;
   }
@@ -1633,10 +1676,11 @@ class SyncCoordinator {
   Future<Map<SyncRecordAddress, SyncBaselineEntry>> _normalizeBaseline(
     Map<SyncRecordAddress, SyncBaselineEntry> baseline,
   ) async {
+    final aliases = await store.aliasMap();
     final normalized = <SyncRecordAddress, SyncBaselineEntry>{};
     final sources = <SyncRecordAddress, SyncRecordAddress>{};
     for (final entry in baseline.entries) {
-      final address = await store.resolveAlias(entry.key);
+      final address = aliases.resolve(entry.key);
       if (_shouldReplaceNormalizedAddress(
         sources[address],
         entry.key,
@@ -1658,10 +1702,11 @@ class SyncCoordinator {
   Future<Map<SyncRecordAddress, SyncMergeCandidate?>> _normalizeCandidates(
     Map<SyncRecordAddress, SyncMergeCandidate?> candidates,
   ) async {
+    final aliases = await store.aliasMap();
     final normalized = <SyncRecordAddress, SyncMergeCandidate?>{};
     final sources = <SyncRecordAddress, SyncRecordAddress>{};
     for (final entry in candidates.entries) {
-      final address = await store.resolveAlias(entry.key);
+      final address = aliases.resolve(entry.key);
       if (_shouldReplaceNormalizedAddress(
         sources[address],
         entry.key,
@@ -1677,12 +1722,13 @@ class SyncCoordinator {
   Future<Map<SyncRecordAddress, String>> _normalizeManifestHashes(
     SyncManifest manifest,
   ) async {
+    final aliases = await store.aliasMap();
     final normalized = <SyncRecordAddress, String>{};
     final sources = <SyncRecordAddress, SyncRecordAddress>{};
     for (final kindEntry in manifest.records.entries) {
       for (final entry in kindEntry.value.entries) {
         final source = (kind: kindEntry.key, recordId: entry.key);
-        final address = await store.resolveAlias(source);
+        final address = aliases.resolve(source);
         if (_shouldReplaceNormalizedAddress(
           sources[address],
           source,
@@ -1707,9 +1753,10 @@ class SyncCoordinator {
         }
       }
     }
+    final aliases = await store.aliasMap();
     final resolved = <SyncRecordAddress, SyncRecordAddress>{};
     for (final reference in references) {
-      final address = await store.resolveAlias(reference);
+      final address = aliases.resolve(reference);
       if (address != reference) resolved[reference] = address;
     }
     return resolved;
