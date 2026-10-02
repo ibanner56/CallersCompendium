@@ -24,7 +24,19 @@ turned on Device Sync.
 
 ### Where is my data stored?
 
-On your device. Nothing is uploaded anywhere unless you choose to turn on
+On your device, in a single database file named `compendium.sqlite`:
+
+- **Windows and Linux:** your `Documents` folder.
+- **Linux without `xdg-user-dirs`:** `$XDG_DATA_HOME/org.callerscompendium.compendiumApp/`
+  (by default `~/.local/share/org.callerscompendium.compendiumApp/`). Once the
+  file is there, the app keeps using it.
+- **Android, iOS and macOS:** the app's own documents folder (on macOS, inside
+  the app's sandbox container).
+
+Safety copies the app makes before updating the database go in a `db_backups`
+folder beside it.
+
+Nothing is uploaded anywhere unless you choose to turn on
 [Device Sync](./settings.md#device-sync) — an optional, experimental feature that
 keeps your library in step across your own devices. It is off until you turn it
 on. Because your library lives with you, *you* keep the safety copy; see

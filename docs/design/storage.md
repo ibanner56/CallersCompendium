@@ -5,8 +5,13 @@ lives in the core package; all access through repositories.*
 
 ## Approach
 
-- One SQLite database file per profile, in the platform app-data directory;
-  user-triggered backup/restore = timestamped JSON export/import (6.6), not
+- One SQLite database file per profile (`compendium.sqlite`), in the
+  application documents directory: `Documents` on Windows and Linux, the app's
+  own documents directory on Android, iOS and macOS. Where Linux cannot resolve
+  Documents (no `xdg-user-dirs`), it is in the application support directory
+  (`$XDG_DATA_HOME/<app id>`) instead, and stays there once created
+  (`resolveDatabaseFile`). Pre-migration snapshots go in `db_backups/` beside
+  the file. User-triggered backup/restore = timestamped JSON export/import (6.6), not
   file copying.
 - **Hybrid figure storage** (fixing ContraDB's unqueryable JSON blob):
   1. `dances.figures_json` — authoritative ordered figure list (named params,

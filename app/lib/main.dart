@@ -115,7 +115,7 @@ const MethodChannel _applicationTerminationChannel = MethodChannel(
 const String _requestApplicationShutdownMethod = 'requestApplicationShutdown';
 
 Future<ResetResult> _resetDatabaseFile(File dbFile) =>
-    performReset(dbFile: dbFile);
+    performReset(dbFile: dbFile, keepPath: true);
 
 Future<void> main() async {
   // Install the local, offline crash log and global error-capture stack (issue
