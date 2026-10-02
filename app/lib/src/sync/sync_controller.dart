@@ -513,6 +513,8 @@ class SyncController extends ChangeNotifier {
     _pendingSelfWrites = 0;
     _pendingSyncAppliedInvalidations = 0;
     if (value) _expectSelfWrite();
+    // Off means nothing is sent, including a detach clean-up still running.
+    if (!value) _cancelDetachCleanup();
     await _settings.set(kSyncEnabledKey, value);
     if (!value) _debounceTimer?.cancel();
     _notify();
@@ -982,6 +984,9 @@ class SyncController extends ChangeNotifier {
   ///    with no alias resolution: that can only make a carried entry look
   ///    uncarried, so it may skip a safe removal but never permit an unsafe
   ///    one.
+  ///
+  /// Turning Device Sync off cancels it ([setEnabled]), so condition 1 holds
+  /// for its whole run, not only at its start.
   ///
   /// There is no "pending local change" condition, and none is needed: an
   /// edit this device never synced is not in its server manifest, so removing

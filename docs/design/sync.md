@@ -1555,7 +1555,8 @@ classify every peer as asleep for exactly the device this section exists to
 warn. Ordering alone has one narrow false positive, a peer completing two whole
 passes while this device is between its manifest reads and its `PUT`, which
 reads as refusing until this device's next pass clears it. A peer that holds a
-version of the record no older than this device's is not judged refusing: that
+version of the record no older than this device's (content at least as new, or
+a strictly newer existence transition) is not judged refusing: that
 is a disagreement owned by the tie, skip and quarantine notices, not a refusal.
 Zero observed peers is not evidence, as before.
 

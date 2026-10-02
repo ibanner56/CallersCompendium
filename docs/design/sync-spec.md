@@ -404,7 +404,7 @@ not counted as waiting for it even when no live device has it.
 make one attempt to `DELETE /v1/manifests/{self}` for the attachment it has just
 left. It MUST NOT delay or fail the detach, MUST NOT be retried later, MUST hold
 the sync ID, endpoint and old device ID only in memory for its duration, and
-MUST be abandoned if a new pairing starts. It MUST NOT send the `DELETE` unless
+MUST be abandoned if a new pairing starts or Device Sync is turned off. It MUST NOT send the `DELETE` unless
 every one of these holds:
 
 1. the connection would permit a pass under §6.12 (online, and not metered while
@@ -3114,7 +3114,9 @@ record — and not by comparing that `writtenAt` with this device's clock: this
 signal exists for the device whose own clock runs fast, whose records its peers
 refuse as future-dated, and that device's publication time is later than any
 `writtenAt` a peer will write. A peer that holds a version of the record no
-older than this device's is not refusing it, whatever its hash; that
+older than this device's — content at least as new, or a strictly newer
+existence transition (an equal `existenceAt` is not newer: an ordinary edit
+leaves it unchanged) — is not refusing it, whatever its hash; that
 disagreement is reported, if at all, by the conditions that own it. The evidence is
 session-scoped and restarts on an epoch change. Zero observed peers is not
 evidence, for the same reason it is not evidence of a slow clock: with no peer

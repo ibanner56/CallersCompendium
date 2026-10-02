@@ -1974,7 +1974,8 @@ class SyncCoordinator {
   /// reads as refusing until this device's next pass, which clears it.
   ///
   /// A peer that holds a version of the record **no older** than this
-  /// device's is never judged refusing, whatever its hash: that is a
+  /// device's — content at least as new, or a strictly newer existence
+  /// transition — is never judged refusing, whatever its hash: that is a
   /// disagreement, not a refusal. Either this device is about to adopt the
   /// peer's version, or the two are tied or one side's copy was skipped, and
   /// each of those has a notice of its own with the right remedy — "it may
@@ -2021,8 +2022,11 @@ class SyncCoordinator {
           final theirs = peerCandidates[index][entry.key];
           final ours = ownCandidates[entry.value];
           if (theirs == null || ours == null) continue;
+          // Newer content, or a strictly newer existence transition. Not an
+          // equal `existenceAt`: an ordinary edit leaves it where it was, so
+          // a peer still holding the previous content shares it.
           if (!theirs.updatedAt.isBefore(ours.updatedAt) ||
-              !theirs.existenceAt.isBefore(ours.existenceAt)) {
+              theirs.existenceAt.isAfter(ours.existenceAt)) {
             continue;
           }
         }
