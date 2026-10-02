@@ -5496,6 +5496,34 @@ class AppLocalizationsDe extends AppLocalizations {
       'Beim Dekodieren der geteilten Datei wurde eine Warnung gemeldet.';
 
   @override
+  String get importIssueArchiveNewerSchema =>
+      'Diese Datei wurde mit einer neueren Version von Caller\'s Compendium erstellt. Aktualisiere die App vor dem Import, sonst fehlen möglicherweise einige Details.';
+
+  @override
+  String get importIssueUsrFileTruncated =>
+      'Diese Datei wirkt unvollständig – nur ein Teil konnte gelesen werden. Kopiere sie erneut vom Original und importiere sie noch einmal.';
+
+  @override
+  String get importIssueUsrFiguresFromDanceRows =>
+      'Die Figuren konnten aus dieser Datei nicht gelesen werden, daher kommen Tänze möglicherweise ohne Figuren an. Prüfe die Originaldatei oder exportiere sie erneut aus Caller\'s Companion.';
+
+  @override
+  String get importIssueUsrPhraseGroupsOrphaned =>
+      'Einige Figuren konnten keinem Tanz zugeordnet werden und wurden weggelassen. Prüfe, ob deine Tänze vollständig angekommen sind, oder kopiere die Datei erneut vom Original.';
+
+  @override
+  String get importIssueUsrLinesDropped =>
+      'Einige sehr lange Figurenzeilen wurden weggelassen. Der Rest jedes Tanzes wurde importiert.';
+
+  @override
+  String get importIssueUsrSetsSkipped =>
+      'Programme konnten aus dieser Datei nicht vollständig gelesen werden, daher fehlen möglicherweise einige oder sie kommen ohne ihre Tänze an. Prüfe sie nach dem Import.';
+
+  @override
+  String get importIssueUsrRelatedRowsSkipped =>
+      'Einige verknüpfte Tänze in dieser Datei waren ungültig und wurden übersprungen.';
+
+  @override
   String get importIssueDirectionUnmapped =>
       'Eine Becket-Richtung wurde nicht erkannt; Standard ist im Uhrzeigersinn.';
 

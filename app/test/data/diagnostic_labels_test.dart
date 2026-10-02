@@ -91,6 +91,7 @@ void main() {
     // adapters (as of this PR). If core adds a code, this list — and the mapper
     // — must grow, or the code will silently render the generic fallback.
     const producedCodes = {
+      'archive_newer_schema',
       'archive_program_empty_slot',
       'archive_program_unresolved_dance',
       'archive_program_unresolved_venue',
@@ -125,6 +126,12 @@ void main() {
       'contradb_param_unmapped',
       'cc_related_dance_unresolved',
       'duplicate_external_id_in_batch',
+      'usr_file_truncated',
+      'usr_figures_from_dance_rows',
+      'usr_phrase_groups_orphaned',
+      'usr_lines_dropped',
+      'usr_sets_skipped',
+      'usr_related_rows_skipped',
     };
 
     test('every produced code is mapped (no silent English leak)', () {

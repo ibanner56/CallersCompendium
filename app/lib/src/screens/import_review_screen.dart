@@ -2308,6 +2308,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
 
     final unreadable = batch.errors;
     final titleList = _titleList;
+    // File-level concerns (an incomplete .USR, an archive from a newer app
+    // version). Shown on every outcome below, including "nothing importable":
+    // a file that lost all its dances is exactly where the user needs the why.
+    final batchWarnings = batch.warnings.isEmpty
+        ? null
+        : _buildBatchWarnings(context, batch.warnings);
     if (batch.records.isEmpty) {
       // A pasted title list with nothing importable is not a dead end (issue
       // #823): the whole point of listing every pasted title is that "you
@@ -2331,10 +2337,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         return _buildSharedProgramsOnlyReview(
           context,
           sharedBundle.archive.programs.length,
+          banner: batchWarnings,
         );
       }
       return _buildMessage(
         context,
+        banner: batchWarnings,
         icon: unreadable.isEmpty ? Icons.inbox_outlined : Icons.error_outline,
         title: unreadable.isEmpty
             ? l10n.importReviewNoDancesTitle
@@ -2402,6 +2410,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             padding: const EdgeInsets.all(12),
             children: [
               if (_showSoftCapWarning) _buildSoftCapWarning(context),
+              ?batchWarnings,
               if (unreadable.isNotEmpty) _buildBatchErrors(context, unreadable),
               if (titleList != null) _buildTitleListSummary(context, titleList),
               for (var i = 0; i < batch.records.length; i++) ...[
@@ -2713,8 +2722,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// soft-cap warning if applicable and honors the same transient Undo.
   Widget _buildSharedProgramsOnlyReview(
     BuildContext context,
-    int programCount,
-  ) {
+    int programCount, {
+    Widget? banner,
+  }) {
     final l10n = AppLocalizations.of(context);
     return Column(
       children: [
@@ -2724,6 +2734,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             padding: const EdgeInsets.all(12),
             children: [
               if (_showSoftCapWarning) _buildSoftCapWarning(context),
+              ?banner,
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -2792,6 +2803,62 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The file-level warnings from [ImportBatchResult.warnings], one bullet per
+  /// distinct code. Styled and announced like [_buildOverwriteWarning]; the copy
+  /// comes from [importIssueMessage], never the issue's English `message`.
+  Widget _buildBatchWarnings(BuildContext context, List<ImportIssue> warnings) {
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final seen = <String>{};
+    final messages = [
+      for (final w in warnings)
+        if (seen.add(w.code)) importIssueMessage(l10n, w),
+    ];
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      label: l10n.importReviewWarningPrefix(messages.join(' ')),
+      child: Card(
+        key: const ValueKey('import-batch-warnings'),
+        color: scheme.errorContainer,
+        child: ExcludeSemantics(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  color: scheme.onErrorContainer,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (final message in messages)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            messages.length == 1 ? message : '• $message',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: scheme.onErrorContainer,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -3224,15 +3291,18 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     required IconData icon,
     required String title,
     required String detail,
+    Widget? banner,
   }) {
     final l10n = AppLocalizations.of(context);
     return Center(
       key: const ValueKey('import-message'),
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            ?banner,
+            if (banner != null) const SizedBox(height: 16),
             Icon(icon, size: 48),
             const SizedBox(height: 12),
             Text(title, style: Theme.of(context).textTheme.titleMedium),

@@ -5510,6 +5510,34 @@ class AppLocalizationsFr extends AppLocalizations {
       'Le fichier partagé a signalé un avertissement lors du décodage.';
 
   @override
+  String get importIssueArchiveNewerSchema =>
+      'Ce fichier a été créé avec une version plus récente de Caller\'s Compendium. Mettez l\'application à jour avant d\'importer, sinon certains détails risquent d\'être omis.';
+
+  @override
+  String get importIssueUsrFileTruncated =>
+      'Ce fichier semble incomplet : seule une partie a pu être lue. Copiez-le de nouveau depuis l\'original, puis réimportez-le.';
+
+  @override
+  String get importIssueUsrFiguresFromDanceRows =>
+      'Les figures n\'ont pas pu être lues dans ce fichier ; des danses risquent donc d\'arriver sans figures. Vérifiez le fichier d\'origine ou réexportez-le depuis Caller\'s Companion.';
+
+  @override
+  String get importIssueUsrPhraseGroupsOrphaned =>
+      'Certaines figures n\'ont pas pu être associées à une danse et ont été omises. Vérifiez que vos danses sont bien arrivées en entier, ou copiez de nouveau le fichier depuis l\'original.';
+
+  @override
+  String get importIssueUsrLinesDropped =>
+      'Certaines lignes de figures très longues ont été omises. Le reste de chaque danse a été importé.';
+
+  @override
+  String get importIssueUsrSetsSkipped =>
+      'Les programmes n\'ont pas pu être lus en entier dans ce fichier ; certains peuvent manquer ou arriver sans leurs danses. Vérifiez-les après l\'import.';
+
+  @override
+  String get importIssueUsrRelatedRowsSkipped =>
+      'Certains liens entre danses de ce fichier étaient invalides et ont été ignorés.';
+
+  @override
   String get importIssueDirectionUnmapped =>
       'Une direction Becket n\'a pas été reconnue ; sens horaire par défaut.';
 

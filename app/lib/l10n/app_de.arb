@@ -5488,6 +5488,34 @@
   "@importIssueArchiveReadWarning": {
     "x-sourceSha256": "fe85dd330b19b95b4d3576c70949c46fe4cd90ad9f04668ad5c5f7e35d08043b"
   },
+  "importIssueArchiveNewerSchema": "Diese Datei wurde mit einer neueren Version von Caller's Compendium erstellt. Aktualisiere die App vor dem Import, sonst fehlen möglicherweise einige Details.",
+  "@importIssueArchiveNewerSchema": {
+    "x-sourceSha256": "55b8932da3e9592c9bf8da0f1b79c8728970f80ff2204193a6db17fbe1bc61df"
+  },
+  "importIssueUsrFileTruncated": "Diese Datei wirkt unvollständig – nur ein Teil konnte gelesen werden. Kopiere sie erneut vom Original und importiere sie noch einmal.",
+  "@importIssueUsrFileTruncated": {
+    "x-sourceSha256": "4927a27ef23f58466c5d7037d86f2e3003ab27cf31d3bb0b83ea9c77673f823d"
+  },
+  "importIssueUsrFiguresFromDanceRows": "Die Figuren konnten aus dieser Datei nicht gelesen werden, daher kommen Tänze möglicherweise ohne Figuren an. Prüfe die Originaldatei oder exportiere sie erneut aus Caller's Companion.",
+  "@importIssueUsrFiguresFromDanceRows": {
+    "x-sourceSha256": "6c18376b09271433d25af248c6d15da9aec1b217c0f056cfc9ff053e28f13446"
+  },
+  "importIssueUsrPhraseGroupsOrphaned": "Einige Figuren konnten keinem Tanz zugeordnet werden und wurden weggelassen. Prüfe, ob deine Tänze vollständig angekommen sind, oder kopiere die Datei erneut vom Original.",
+  "@importIssueUsrPhraseGroupsOrphaned": {
+    "x-sourceSha256": "2a9645753f955b8aa89c8e5fcecd40286bfa28f3ba75d2ce548a3f9256f6bcf4"
+  },
+  "importIssueUsrLinesDropped": "Einige sehr lange Figurenzeilen wurden weggelassen. Der Rest jedes Tanzes wurde importiert.",
+  "@importIssueUsrLinesDropped": {
+    "x-sourceSha256": "9c14c55dcd5917dfc9dcae75ffb3912b52be6aa4ba2a66b2afa51c1de06b934c"
+  },
+  "importIssueUsrSetsSkipped": "Programme konnten aus dieser Datei nicht vollständig gelesen werden, daher fehlen möglicherweise einige oder sie kommen ohne ihre Tänze an. Prüfe sie nach dem Import.",
+  "@importIssueUsrSetsSkipped": {
+    "x-sourceSha256": "5f5400d8510ba5ebe48553f47bcf44943b6d8315388ec8c5d4a3f658fe0c0429"
+  },
+  "importIssueUsrRelatedRowsSkipped": "Einige verknüpfte Tänze in dieser Datei waren ungültig und wurden übersprungen.",
+  "@importIssueUsrRelatedRowsSkipped": {
+    "x-sourceSha256": "35f91356e72f9ee0df050fbf3bf9315f36f031b59b2f8e26b953ba95cbfb8c5b"
+  },
   "importIssueDirectionUnmapped": "Eine Becket-Richtung wurde nicht erkannt; Standard ist im Uhrzeigersinn.",
   "@importIssueDirectionUnmapped": {
     "x-sourceSha256": "055717da02ed80a5a6563dcf6ff6cdbbe571b4a6cadea1549b53c6d88c973d32"

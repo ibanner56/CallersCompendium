@@ -5488,6 +5488,34 @@
   "@importIssueArchiveReadWarning": {
     "x-sourceSha256": "fe85dd330b19b95b4d3576c70949c46fe4cd90ad9f04668ad5c5f7e35d08043b"
   },
+  "importIssueArchiveNewerSchema": "Denne fil er lavet med en nyere version af Caller's Compendium. Opdater appen, før du importerer, ellers kan nogle detaljer mangle.",
+  "@importIssueArchiveNewerSchema": {
+    "x-sourceSha256": "55b8932da3e9592c9bf8da0f1b79c8728970f80ff2204193a6db17fbe1bc61df"
+  },
+  "importIssueUsrFileTruncated": "Denne fil ser ufuldstændig ud – kun en del af den kunne læses. Kopiér den igen fra originalen, og importér den på ny.",
+  "@importIssueUsrFileTruncated": {
+    "x-sourceSha256": "4927a27ef23f58466c5d7037d86f2e3003ab27cf31d3bb0b83ea9c77673f823d"
+  },
+  "importIssueUsrFiguresFromDanceRows": "Figurerne kunne ikke læses fra denne fil, så danse kan komme uden figurer. Tjek originalfilen, eller eksportér den igen fra Caller's Companion.",
+  "@importIssueUsrFiguresFromDanceRows": {
+    "x-sourceSha256": "6c18376b09271433d25af248c6d15da9aec1b217c0f056cfc9ff053e28f13446"
+  },
+  "importIssueUsrPhraseGroupsOrphaned": "Nogle figurer kunne ikke knyttes til en dans og blev udeladt. Tjek, at dine danse kom helt med, eller kopiér filen igen fra originalen.",
+  "@importIssueUsrPhraseGroupsOrphaned": {
+    "x-sourceSha256": "2a9645753f955b8aa89c8e5fcecd40286bfa28f3ba75d2ce548a3f9256f6bcf4"
+  },
+  "importIssueUsrLinesDropped": "Nogle meget lange figurlinjer blev udeladt. Resten af hver dans blev importeret.",
+  "@importIssueUsrLinesDropped": {
+    "x-sourceSha256": "9c14c55dcd5917dfc9dcae75ffb3912b52be6aa4ba2a66b2afa51c1de06b934c"
+  },
+  "importIssueUsrSetsSkipped": "Programmer kunne ikke læses helt fra denne fil, så nogle mangler måske eller kommer uden deres danse. Tjek dem efter importen.",
+  "@importIssueUsrSetsSkipped": {
+    "x-sourceSha256": "5f5400d8510ba5ebe48553f47bcf44943b6d8315388ec8c5d4a3f658fe0c0429"
+  },
+  "importIssueUsrRelatedRowsSkipped": "Nogle relaterede dansekoblinger i denne fil var ugyldige og blev sprunget over.",
+  "@importIssueUsrRelatedRowsSkipped": {
+    "x-sourceSha256": "35f91356e72f9ee0df050fbf3bf9315f36f031b59b2f8e26b953ba95cbfb8c5b"
+  },
   "importIssueDirectionUnmapped": "En Becket-retning blev ikke genkendt; standard er med uret.",
   "@importIssueDirectionUnmapped": {
     "x-sourceSha256": "055717da02ed80a5a6563dcf6ff6cdbbe571b4a6cadea1549b53c6d88c973d32"

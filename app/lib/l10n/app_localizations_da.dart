@@ -5435,6 +5435,34 @@ class AppLocalizationsDa extends AppLocalizations {
       'Den delte fil rapporterede en advarsel under afkodning.';
 
   @override
+  String get importIssueArchiveNewerSchema =>
+      'Denne fil er lavet med en nyere version af Caller\'s Compendium. Opdater appen, før du importerer, ellers kan nogle detaljer mangle.';
+
+  @override
+  String get importIssueUsrFileTruncated =>
+      'Denne fil ser ufuldstændig ud – kun en del af den kunne læses. Kopiér den igen fra originalen, og importér den på ny.';
+
+  @override
+  String get importIssueUsrFiguresFromDanceRows =>
+      'Figurerne kunne ikke læses fra denne fil, så danse kan komme uden figurer. Tjek originalfilen, eller eksportér den igen fra Caller\'s Companion.';
+
+  @override
+  String get importIssueUsrPhraseGroupsOrphaned =>
+      'Nogle figurer kunne ikke knyttes til en dans og blev udeladt. Tjek, at dine danse kom helt med, eller kopiér filen igen fra originalen.';
+
+  @override
+  String get importIssueUsrLinesDropped =>
+      'Nogle meget lange figurlinjer blev udeladt. Resten af hver dans blev importeret.';
+
+  @override
+  String get importIssueUsrSetsSkipped =>
+      'Programmer kunne ikke læses helt fra denne fil, så nogle mangler måske eller kommer uden deres danse. Tjek dem efter importen.';
+
+  @override
+  String get importIssueUsrRelatedRowsSkipped =>
+      'Nogle relaterede dansekoblinger i denne fil var ugyldige og blev sprunget over.';
+
+  @override
   String get importIssueDirectionUnmapped =>
       'En Becket-retning blev ikke genkendt; standard er med uret.';
 

@@ -8385,6 +8385,48 @@ abstract class AppLocalizations {
   /// **'The shared file reported a warning while decoding.'**
   String get importIssueArchiveReadWarning;
 
+  /// Import review warning: the shared file was written by a newer app version than this one, so fields the newer version added are dropped. Tells the user to update first. Shown once for the whole file.
+  ///
+  /// In en, this message translates to:
+  /// **'This file was made by a newer version of Caller\'s Compendium. Update the app before importing, or some details may be left out.'**
+  String get importIssueArchiveNewerSchema;
+
+  /// Import review warning: a Caller's Companion .USR file ends early (an incomplete copy), so some dances were never read. Tells the user to recopy the original. Shown once for the whole file.
+  ///
+  /// In en, this message translates to:
+  /// **'This file looks incomplete — only part of it could be read. Copy it again from the original and re-import.'**
+  String get importIssueUsrFileTruncated;
+
+  /// Import review warning: the .USR Phrase table (where figures live) couldn't be read, so figures came from the Dance rows, which are usually empty.
+  ///
+  /// In en, this message translates to:
+  /// **'The figures couldn\'t be read from this file, so dances may arrive without figures. Check the original file, or re-export it from Caller\'s Companion.'**
+  String get importIssueUsrFiguresFromDanceRows;
+
+  /// Import review warning: some .USR Phrase rows had no matching dance (or no dance id), so their figures were skipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Some figures couldn\'t be matched to a dance and were left out. Check that your dances arrived complete, or copy the file again from the original.'**
+  String get importIssueUsrPhraseGroupsOrphaned;
+
+  /// Import review warning: .USR figure lines over the safe length were dropped; everything else was imported.
+  ///
+  /// In en, this message translates to:
+  /// **'Some very long figure lines were left out. The rest of each dance was imported.'**
+  String get importIssueUsrLinesDropped;
+
+  /// Import review warning: the .USR Set or SetItem table was missing, so programs (or their items) were not imported.
+  ///
+  /// In en, this message translates to:
+  /// **'Programs couldn\'t be fully read from this file, so some may be missing or arrive without their dances. Check them after importing.'**
+  String get importIssueUsrSetsSkipped;
+
+  /// Import review warning: .USR Dance_Related rows with a missing or self-referential dance id were skipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Some related-dance links in this file were invalid and were skipped.'**
+  String get importIssueUsrRelatedRowsSkipped;
+
   /// Import note: a Becket rotation direction wasn't 'CW' or 'CCW' and was defaulted to clockwise.
   ///
   /// In en, this message translates to:
