@@ -267,6 +267,31 @@ someone they want to sync with. It is therefore not a secret, and must not be
 described as one. It also means there is no recovery if it is lost and no
 revocation if it leaks.
 
+> **Amended 2026-10-02.** **A device ID belongs to one attachment, not to one
+> installation** (@ibanner56's ruling, recorded with the change that implements
+> it). It was minted once and kept across detach, so it followed a device into
+> every store it ever joined and to every server, self-hosted ones included.
+> That defeated this design's own remedy for a leaked phrase: moving every
+> device to a new sync ID left their device IDs unchanged, so anyone able to
+> read the server could link the abandoned store to its replacement. Detach and
+> wipe now erase the device ID with the sync ID, pairing erases any value an
+> earlier attachment left behind, and every attach mints a new one (spec §3.3).
+>
+> Two paths keep the identifier, and that exemption is a judgement I proposed
+> and @ibanner56 approved: confirming a replacement store, and the automatic
+> rejoin on a changed epoch. Both re-use the same sync ID, and its `id_key`
+> already links them, so a new device ID there would buy no unlinkability while
+> requiring the coordinator — which holds the pending-replacement state — to be
+> rebuilt mid-decision.
+>
+> The store key alone does not identify a person: the server cannot tell one
+> caller with three devices from three callers sharing a phrase. What a stable
+> device ID added was the link *across* stores and servers, and that is what
+> this removes. It removes the identifier as a link, not every link: the
+> operator can still read synced content, and identical records hash to
+> identical blobs, so two stores holding the same library remain matchable by
+> what they contain.
+
 ### What the server holds
 
 ```
@@ -1406,6 +1431,16 @@ makes self-hosting materially harder, which constraint 4 forbids.
   changed/changed conflict discards one device's complete set with no review
   queue. Accepted, and it belongs beside "sharing is not collaboration": the
   first pairing of two long-established devices is the case that loses work.
+- **Re-attaching to the same store leaves the previous attachment behind as
+  an inactive device.** Because each attachment has its own device ID and
+  detach sends no request, the old manifest stays on the server under the old
+  identifier. It shows under *Other devices*, occupies one of the store's 32
+  device slots, keeps its blobs reachable, and — since it lists this device's
+  own hashes — counts as a peer that already carries them, which can hide the
+  warning for records no live device has received. It lasts until a user
+  removes it there or the store is reaped. Recognising it as this device's
+  would need the very link between attachments the per-attachment identifier
+  removes, so it is accepted rather than fixed.
 - **Any holder of the sync ID can impersonate a device or wipe the store.**
   Manifest `PUT` accepts a caller-chosen device id, and the same bearer
   authorises `DELETE /v1/store`. This is inherent to the bearer model rather than

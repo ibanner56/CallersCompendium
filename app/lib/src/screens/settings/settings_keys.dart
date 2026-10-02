@@ -159,8 +159,9 @@ const String kSyncIdKey = 'sync_id';
 /// never backed up.
 const String kSyncEndpointKey = 'sync_endpoint';
 
-/// Key used to persist this installation's Device Sync routing identifier. It
-/// is minted locally and is never adopted from a peer or included in backups.
+/// Key used to persist the current attachment's Device Sync routing
+/// identifier. It is minted locally for each attachment, erased when the device
+/// detaches, and never adopted from a peer or included in backups.
 const String kSyncDeviceIdKey = 'sync_device_id';
 
 /// Device-local set of salted, slow verifiers for every store address this
