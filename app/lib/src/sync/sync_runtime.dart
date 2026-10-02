@@ -18,8 +18,10 @@ import 'sync_invalidation.dart';
 /// Sync is off until the user turns it on (spec §6.1): the coordinator is built
 /// only when `sync_enabled` is exactly `true`, so an unconfigured or disabled
 /// installation constructs no client and makes no sync-related network call.
-/// A missing sync ID is also the disabled state. The device identifier is generated
-/// once when a user enables sync and is never taken from a peer or a backup.
+/// A missing sync ID is also the disabled state. The device identifier belongs
+/// to one attachment: it is generated when the first coordinator for that
+/// attachment is built, erased when the device detaches, and never taken from a
+/// peer or a backup.
 ///
 /// The endpoint is the one recorded at pairing, which always writes it before
 /// the sync ID; a missing endpoint is therefore also the disabled state.

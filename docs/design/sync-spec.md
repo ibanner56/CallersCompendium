@@ -352,7 +352,8 @@ devices one manifest. A `protocolIdentifier` value MUST:
 2. never be serialised into a record blob, exactly as the other four
    non-`shareable` classes;
 3. never be **applied** from a received record or envelope — a device's own
-   identifier is minted once and only ever read from local storage; and
+   identifier is minted locally for each attachment and only ever read from
+   local storage; and
 4. carry a stated retention bound wherever the server durably records it,
    including logs (§7.3) — for `sync_device_id` that bound is the store's
    lifetime rather than the device's, which the paragraph below states
@@ -362,6 +363,27 @@ Rule 3 is the one no other class expresses. `shareable` permits adoption and
 `deviceScoped` forbids it only by forbidding transmission outright, so a value
 that must travel *and* must never be adopted had no correct classification
 before this member existed.
+
+**`sync_device_id` identifies one attachment, not one installation.** Detach
+and wipe MUST erase it with the sync ID, and pairing MUST erase any value an
+earlier attachment left behind, so every attach — first attach, re-attach after
+detach (to the same store or another), and a new endpoint — publishes under an
+identifier minted for it. A value kept across attachments would let the server,
+or anyone reading its logs, link a device's old store to its new one: exactly
+the step this design tells a user to take when a sync phrase leaks. Two paths
+keep the identifier because they are not new attachments: confirming a
+replacement store (§6.3 step 1) and the automatic rejoin on a changed epoch.
+Both re-use the same sync ID, whose derived `id_key` already links them, so a
+new identifier there would buy no unlinkability.
+
+The cost falls on re-attaching to the **same** store. The previous
+attachment's manifest stays on the server under its old identifier — detach
+sends no request — so it appears as another device: it occupies one of §5.4's
+device slots, keeps its blobs reachable, and, because it lists this device's
+own hashes, counts as a peer carrying them in §6.3 step 9's baseline advance
+and in §6.9's check for records no observed peer reflects, until it is removed
+under *Other devices*. Recognising it as this device's would need exactly the link between
+attachments that the rule removes.
 
 **Rule 4's bound is the store's lifetime, not the device's.** §7.3 reaps a
 store after 30 days of disuse and cascades its manifests, but `last_seen` is
@@ -2067,7 +2089,8 @@ republishes, which is an ordinary upload and needs no special path.
    from §6.3 step 1, where durable prior success permits the client to explain
    disappearance and offer replacement.
 3. **Fresh attach** always: on first attach, on re-attach after detach, and on
-   `409`. Detach MUST forget the sync ID entirely.
+   `409`. Detach MUST forget the sync ID entirely, and the device ID with it
+   (§3.3); the attach that follows mints a new one.
 4. Upload every local record; download every remote record. Inbound rejection
    (§6.9) applies here as in steady state.
 5. **Union**, then dedupe (§6.10). **Absence never deletes during a fresh
@@ -3609,11 +3632,11 @@ MUST be disclosed alongside §7.4's.
 request paths.** `GET`, `PUT` and `DELETE /v1/manifests/{deviceId}` therefore
 put a `protocolIdentifier` (§3.3) into the default log line of every common
 server and proxy, without anyone deciding to log it. That identifier is
-linkable: it correlates every request one installation ever makes, alongside
+linkable: it correlates every request one attachment ever makes, alongside
 whatever else the format records. So either the `{deviceId}` segment MUST be
 redacted before the line is written, or the log MUST carry a bounded retention
 stated and disclosed on the same terms as §7.4's. An operator who does neither
-holds an indefinite per-installation request history while passing every other
+holds an indefinite per-attachment request history while passing every other
 test in §9.
 
 The sync ID is governed more strictly and separately: §7.5 requirement 4 forbids

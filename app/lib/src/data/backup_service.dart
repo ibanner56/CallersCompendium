@@ -94,7 +94,7 @@ const String kNormalisationDerivedIndexRepairDoneKey =
 ///   `settings_registry.dart`: a marker says a pass has run over *this*
 ///   database's rows, which is false on any other install.
 /// - **sync attachment state** — the store address this device is attached to,
-///   its per-installation routing identifier, and the markers derived from
+///   its per-attachment routing identifier, and the markers derived from
 ///   addresses it has used. A backup restored onto another device must not
 ///   silently attach it to someone else's store or clone a routing identity,
 ///   so these never travel even though their transport-specific privacy

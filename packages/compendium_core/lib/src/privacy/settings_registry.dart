@@ -130,7 +130,7 @@ final Map<String, DataClassification> settingsClassifications = {
 
   // Device Sync transport values are not ordinary preferences. The sync ID is
   // the address of a shared store and may contain personal information; the
-  // device ID is an opaque per-installation routing identifier.
+  // device ID is an opaque per-attachment routing identifier.
   'sync_id': const DataClassification(
     term: DpvTerm.unclassifiedPersonal,
     subject: DataSubject.appUser,
@@ -157,9 +157,10 @@ final Map<String, DataClassification> settingsClassifications = {
     subject: DataSubject.none,
     egress: EgressClass.protocolIdentifier,
     note:
-        'Opaque per-installation routing identifier. It must travel in '
-        'protocol metadata but must never be adopted from another device or '
-        'restored from a backup.',
+        'Opaque per-attachment routing identifier, minted anew each time the '
+        'device attaches so the server cannot link one attachment to the '
+        'next. It must travel in protocol metadata but must never be adopted '
+        'from another device or restored from a backup.',
   ),
   'sync_last_used_fingerprint': const DataClassification(
     term: DpvTerm.unclassifiedPersonal,

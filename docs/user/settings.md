@@ -672,6 +672,10 @@ library here stays as it is, the store keeps everything, and your other devices
 carry on syncing. Nothing is sent when you disconnect. To reconnect — to the
 same store or a different one — choose **Connect** again; you'll need the phrase,
 so keep it somewhere safe, along with the server address if you changed it.
+Each time this device connects, it makes up a new identifier for itself
+rather than reusing the one from its last connection. If you reconnect to the
+same store, the entry from its earlier connection stays under **Other devices**
+until you remove it there.
 Disconnecting really does forget it, so copy it from **Your sync phrase**
 first if it isn't written down anywhere else. Turning **Device Sync** off and on again, by contrast, keeps this device
 connected.
@@ -691,10 +695,12 @@ the next time it syncs and reappear in this list, and any device can connect to
 this store again with the phrase. To stop a device syncing you have to
 disconnect it on that device.
 
-The list shows the identifiers the server made up for each device, because
-that's all the server knows — there are no device names, and this device isn't
-in the list. If you can't tell which is which, it's safe to leave them: the
-only cost of an extra entry is one of the 32 places.
+The list shows the random identifier each device made up for itself when it
+connected, because that's all the server knows — there are no device names,
+and this device isn't in the list. A device that disconnected and connected
+again appears twice: once for its earlier connection, which no longer changes,
+and once for its current one. If you can't tell which is which, it's safe to
+leave them: the only cost of an extra entry is one of the 32 places.
 
 **Deleting the store.** **Disconnect all devices and delete the store** removes
 everything the store holds from the server, for every device at once, and it
