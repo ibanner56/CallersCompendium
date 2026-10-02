@@ -111,6 +111,13 @@ void main() {
       find.byKey(const ValueKey('sync-conflict-apply')),
     );
     expect(apply.onPressed, isNull, reason: 'a choice is only the user\'s');
+    expect(
+      tester
+          .widget<RadioGroup<String>>(find.byType(RadioGroup<String>))
+          .groupValue,
+      isNull,
+      reason: 'no version is shown as chosen until the user picks one',
+    );
   });
 
   testWidgets('keeping the other device\'s version writes it and closes '
