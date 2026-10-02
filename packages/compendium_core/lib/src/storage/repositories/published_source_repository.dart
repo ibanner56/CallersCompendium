@@ -148,6 +148,7 @@ class PublishedSourceRepository {
       // `ChoreographerRepository.delete`.
       final stillUsed =
           await (_db.select(_db.danceSources).join([
+                // join-columns: needed — replaced by liveDanceCitationCount in CS-14b
                 innerJoin(
                   _db.dances,
                   _db.dances.id.equalsExp(_db.danceSources.danceId),

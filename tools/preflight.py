@@ -252,6 +252,14 @@ STEPS: tuple[Step, ...] = (
         ),
     ),
     Step(
+        "join-columns",
+        "repository joins onto dances carry useColumns or a marker",
+        (
+            py("tools/ci/test_check_join_use_columns.py"),
+            py("tools/ci/check_join_use_columns.py"),
+        ),
+    ),
+    Step(
         "sync-invariants",
         "soft-delete joins, sync writes, certificate hatches, and normalizers",
         (

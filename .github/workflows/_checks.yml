@@ -133,6 +133,12 @@ jobs:
         run: python3 tools/ci/test_check_settings_marker_reads.py
       - name: Guard raw settings reads (must filter deleted_at IS NULL)
         run: python3 tools/ci/check_settings_marker_reads.py
+      # A repository join onto `dances` must say whether it reads the joined
+      # columns; the tag facet read materialised every dances column (CS-14a).
+      - name: Test the join useColumns ratchet
+        run: python3 tools/ci/test_check_join_use_columns.py
+      - name: Guard repository joins onto dances (useColumns)
+        run: python3 tools/ci/check_join_use_columns.py
       # Device Sync depends on every soft-delete join and write boundary keeping
       # its causal invariants; the certificate and normalizer scans prevent
       # regressions before sync client/server units exist.
