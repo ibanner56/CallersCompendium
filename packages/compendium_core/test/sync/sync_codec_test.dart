@@ -322,6 +322,87 @@ void main() {
   });
 
   group('strict decoding', () {
+    group('a newer wire version', () {
+      // A newer build may add envelope keys as well as bump `v`. The version
+      // has to be read first, or the added key fails the exact-key check and
+      // the newer envelope is indistinguishable from a broken one.
+      Map<String, Object?> newerBlob({bool extraKey = false}) => {
+        ..._danceBlob().toJson(),
+        'v': syncWireVersion + 1,
+        if (extraKey) 'addedInV2': true,
+      };
+      Map<String, Object?> newerManifest({bool extraKey = false}) => {
+        ..._manifest().toJson(),
+        'v': syncWireVersion + 1,
+        if (extraKey) 'addedInV2': true,
+      };
+      final isNewer = isA<SyncNewerWireVersionException>().having(
+        (e) => e.version,
+        'version',
+        syncWireVersion + 1,
+      );
+
+      test('a record blob is reported as newer, with or without new keys', () {
+        for (final extraKey in [false, true]) {
+          expect(
+            () => SyncRecordBlob.fromJson(newerBlob(extraKey: extraKey)),
+            throwsA(isNewer),
+            reason: 'extraKey: $extraKey',
+          );
+          expect(
+            () =>
+                decodeSyncRecordBlob(jsonEncode(newerBlob(extraKey: extraKey))),
+            throwsA(isNewer),
+            reason: 'decodeSyncRecordBlob, extraKey: $extraKey',
+          );
+        }
+      });
+
+      test('a manifest is reported as newer, with or without new keys', () {
+        for (final extraKey in [false, true]) {
+          expect(
+            () => SyncManifest.fromJson(newerManifest(extraKey: extraKey)),
+            throwsA(isNewer),
+            reason: 'extraKey: $extraKey',
+          );
+          expect(
+            () => decodeSyncManifest(
+              jsonEncode(newerManifest(extraKey: extraKey)),
+            ),
+            throwsA(isNewer),
+            reason: 'decodeSyncManifest, extraKey: $extraKey',
+          );
+        }
+      });
+
+      test('it is still a FormatException, so every existing caller that '
+          'treats it as malformed keeps doing so', () {
+        expect(
+          () => SyncManifest.fromJson(newerManifest(extraKey: true)),
+          throwsFormatException,
+        );
+      });
+
+      test(
+        'an older, unknown or malformed version is not reported as newer',
+        () {
+          for (final v in <Object?>[0, syncWireVersion - 1, '2', 2.0, null]) {
+            expect(
+              () => SyncRecordBlob.fromJson({..._danceBlob().toJson(), 'v': v}),
+              throwsA(
+                isA<FormatException>().having(
+                  (e) => e is SyncNewerWireVersionException,
+                  'is newer',
+                  isFalse,
+                ),
+              ),
+              reason: 'v: $v',
+            );
+          }
+        },
+      );
+    });
+
     test('rejects malformed required record envelope fields', () {
       final valid = _danceBlob().toJson();
       final missingFields = [
@@ -541,3 +622,12 @@ CustomFieldDef _customField({bool shareable = true}) => CustomFieldDef(
 DifficultyLevel _difficultyLevel() => DifficultyLevel.intermediate;
 
 Venue _venue() => Venue(id: 'v1', name: 'Hall', address1: 'private address');
+
+SyncManifest _manifest() => SyncManifest(
+  deviceId: 'device-1',
+  epoch: 'epoch-1',
+  writtenAt: _stamp,
+  records: {
+    SyncRecordKind.dance: {'d1': 'a' * 64},
+  },
+);

@@ -20,6 +20,23 @@ import 'wire_mapping.dart';
 /// The record-blob and manifest envelope version defined by W3.
 const int syncWireVersion = 1;
 
+/// A record blob or manifest written in an envelope version newer than
+/// [syncWireVersion]: another device runs a newer build of the app, and this
+/// one cannot read what it shares until it is updated.
+///
+/// A [FormatException] subtype, so every caller that already treats an
+/// undecodable envelope as malformed — the server's manifest validation, the
+/// local storage decoders — keeps doing exactly that. Only the client's peer
+/// download distinguishes it, to report `SyncReportCode.newerWireVersion`
+/// instead of a generic malformed record (spec §6.9).
+class SyncNewerWireVersionException extends FormatException {
+  const SyncNewerWireVersionException(String label, this.version)
+    : super('$label uses a newer sync wire version');
+
+  /// The envelope's own `v`, always greater than [syncWireVersion].
+  final int version;
+}
+
 /// A validated, versioned Device Sync record blob.
 class SyncRecordBlob {
   SyncRecordBlob({
@@ -59,6 +76,7 @@ class SyncRecordBlob {
   };
 
   static SyncRecordBlob fromJson(Map<String, Object?> value) {
+    _rejectNewerVersion(value, 'record blob');
     _requireExactKeys(value, const {
       'v',
       'kind',
@@ -193,6 +211,7 @@ class SyncManifest {
   };
 
   static SyncManifest fromJson(Map<String, Object?> value) {
+    _rejectNewerVersion(value, 'manifest');
     _requireExactKeys(value, const {
       'v',
       'deviceId',
@@ -578,6 +597,20 @@ Object? _freezeJsonValue(Object? value, Set<Object> active) {
     }
   }
   return value;
+}
+
+/// Throws [SyncNewerWireVersionException] when [value] declares an envelope
+/// version newer than this build's.
+///
+/// Runs before every other check, the exact key set included: a newer version
+/// is free to add envelope keys, and checked second, that added key made a
+/// newer envelope fail as a malformed one — leaving the user told something
+/// was broken when the remedy was to update the app.
+void _rejectNewerVersion(Map<String, Object?> value, String label) {
+  final version = value['v'];
+  if (version is int && version > syncWireVersion) {
+    throw SyncNewerWireVersionException(label, version);
+  }
 }
 
 void _requireExactKeys(

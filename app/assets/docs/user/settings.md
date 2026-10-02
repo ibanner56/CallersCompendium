@@ -476,8 +476,17 @@ still lets you try to export or clear it.
   safe scrubbed copy it saves nothing and tells you, rather than sending more than
   you asked for.
 
-If there is nothing in the log, the app says **No diagnostics to export** instead
-of producing an empty file.
+If Device Sync is on or has done anything since the app opened, the export
+ends with a short **Device Sync** part: how the last sync went (the same short
+code **Copy details** gives, plus the step and HTTP status), how full the store
+is if the app knows, and which kinds of notice are showing with how many of
+each and for which kinds of record. It never includes your sync phrase, the
+server's address, titles, or anything that identifies a device or a record, so
+it's in the scrubbed copy too. This part is always in English, like the rest
+of the export.
+
+If there is nothing in the log and Device Sync has nothing to report, the app
+says **No diagnostics to export** instead of producing an empty file.
 
 ### Clear log
 
@@ -507,7 +516,8 @@ Sync is off and open while it is on.
   sync waits, and pressing **Sync now** tells you why. In this section it points
   at this setting; from the sync icon on **Collection** or **Programs** it tells
   you to turn the setting off here in Settings.
-  A pass that was skipped runs the next time sync is triggered; you do not need
+  A pass that was skipped runs the next time sync is triggered — when you
+  change something, open the app, or come back to it — and you do not need
   to do anything.
 - **Skip unused imported dances** is off by default. If you have a large
   imported collection, turning it on cuts what this device uploads — but a
@@ -542,18 +552,41 @@ Sync is off and open while it is on.
   a store that goes unused for 30 days is removed, so keep making file backups.
   From three weeks of disuse the status also warns that the store is close to
   expiring.
-- **When a sync fails**, the status says why, not just that it failed: the
-  sync server couldn't be reached or took too long, the server had a problem
-  of its own or asked this device to slow down, your store is out of space,
-  something was too large to upload, the server refused what was sent or didn't
-  accept the sync phrase, it sent a reply the app couldn't use, another
-  device's latest list couldn't be read during a first connection, or
-  something went wrong inside the app. Each comes with what you can do about
-  it, and — where it's known — a **Details** line naming the step that stopped
-  and the HTTP status the server answered with. If the problem isn't yours to
-  fix, quote that line to whoever runs the server. The **Sync now** button on
-  the Collection and Programs pages reports a failed sync the same way, so you
-  don't need to come here to find out.
+- **When a sync can't finish for a reason that sorts itself out** — the sync
+  server couldn't be reached or took too long, the server had a problem of its
+  own, or it asked this device to slow down — the status calmly says **Waiting
+  to sync. Your changes are saved here.** Nothing is wrong with your library,
+  and you don't need to do anything: the app tries again by itself, waiting a
+  little longer each time (from a minute up to half an hour, and never sooner
+  than the server asked), and also tries when you come back to the app. A small
+  **Details** line still names the step that stopped and the HTTP status, if
+  you're curious. If this goes on for weeks, the expiry warning below is what
+  tells you.
+- **When a sync fails for a reason you need to deal with**, the status shows a
+  warning and says why: your store is out of space, something was too large to
+  upload, the server refused what was sent or didn't accept the sync phrase, it
+  sent a reply the app couldn't use, another device's latest list couldn't be
+  read during a first connection, or something went wrong inside the app. Each
+  comes with what you can do about it, and — where it's known — a **Details**
+  line naming the step that stopped and the HTTP status the server answered
+  with. If the server refused what was sent, the advice depends on the server:
+  on the Caller's Compendium server it means this version of the app is newer
+  than the server, your changes are saved here, and they'll sync once the
+  server is updated; on a server you run yourself, it asks you to update that
+  server. These are not retried by themselves, because waiting won't fix
+  them. The **Sync now** button on the Collection and Programs pages reports a
+  failed sync the same way — calmly or with the reason — so you don't need to
+  come here to find out.
+- **Copy details** sits beside every warning. It puts a short code on the
+  clipboard — something like `SYNC-STORE-FULL upload 507` — that you can paste
+  into a message to whoever helps you. The code names the problem and nothing
+  else: no phrase, no titles, nothing about your devices. Nothing is sent
+  anywhere; you choose where to paste it.
+- **When your store is almost full** — 80% or more of the space or the number
+  of items the server allows — the status warns **Your sync store is almost
+  full.** If **Skip unused imported dances** is still off, the warning offers
+  **Stop syncing imported dances**, which turns it on, since imported dances
+  are usually most of what a store holds.
 - **Notices** appear under that last-synced line when a sync had something to
   report. A sync can finish successfully and still leave one of these standing,
   which is the point of them: the conditions they name are ones the app will
@@ -565,8 +598,12 @@ Sync is off and open while it is on.
   device has a date the app can't trust, so it isn't being sent anywhere
   (check this device's clock); when some dances here have saved figures or
   tunes the app can't read, so they aren't being sent (nothing is deleted —
-  enter those figures or tunes again to send them); when records from another
-  device couldn't be used and were skipped; when another device's clock looks far off; when an
+  enter those figures or tunes again to send them); when another device is
+  using a newer version of the app, so this device can't read some of what it
+  shared — that one is a warning, says how many items are waiting when it can
+  tell, and is fixed by updating the app on this device; when records from
+  another device couldn't be used and were skipped; when another device's clock
+  looks far off; when an
   update arrived while you were editing the same record, so it waits for the
   next sync; and when another device is syncing but isn't taking changes from
   this one. Each notice lists the records it is
@@ -585,9 +622,11 @@ Sync is off and open while it is on.
   of that run rather than disappearing at the next sync and leaving you with
   nothing. Notices are not kept when you close the app; anything still true is
   reported again by the next sync.
-- **"Needs you"** marks the one notice that asks you to do something: a
-  device that is syncing — it has shared its own changes at least twice since
-  this device shared some — but still hasn't taken them. It names that device
+- **"Needs you"** marks the notices that ask you to do something, and each
+  has **Copy details** beside it. One is the newer-version notice above, which
+  you fix by updating the app on this device. The other is a device that is
+  syncing — it has shared its own changes at least twice since this device
+  shared some — but still hasn't taken them. It names that device
   by its tag from **Other devices**, says how many changes it isn't taking,
   and has a button to open that list. Your changes are safe on this device
   either way. The usual causes are that the other device needs an app update,

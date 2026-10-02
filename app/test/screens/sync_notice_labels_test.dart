@@ -37,6 +37,11 @@ typedef _Case = ({SyncReportCode code, String? peerId, SyncNoticeGroup group});
 /// unguarded — which is the shape of the hole this file exists to close.
 const _expected = <_Case>[
   (
+    code: SyncReportCode.newerWireVersion,
+    peerId: 'peer-1',
+    group: SyncNoticeGroup.newerVersion,
+  ),
+  (
     code: SyncReportCode.equalUpdatedAt,
     peerId: 'peer-1',
     group: SyncNoticeGroup.divergence,
@@ -134,7 +139,11 @@ void main() {
     // says the records came "from another device" and tells the user to check
     // that device's app version — false in both halves for a row stored here,
     // and the reuse a future simplification would reach for.
-    final text = syncNoticeText(l10n, SyncNoticeGroup.withheldUnreadableLocal);
+    final text = syncNoticeText(
+      l10n,
+      SyncNoticeGroup.withheldUnreadableLocal,
+      recordCount: 0,
+    );
 
     expect(text, isNotEmpty);
     expect(text, isNot(equals(l10n.settingsSyncNoticeSkippedRecord)));
@@ -146,6 +155,43 @@ void main() {
       syncNoticeGroups([_report(SyncReportCode.withheldUnreadableRecord)]),
       contains(SyncNoticeGroup.withheldUnreadableLocal),
     );
+  });
+
+  group('a peer on a newer app version', () {
+    test('is its own notice, not the generic skipped-record one', () {
+      // The generic notice tells the user to check their *other* devices.
+      // A newer envelope is never their fault: this device is the one to
+      // update.
+      expect(
+        syncNoticeText(l10n, SyncNoticeGroup.newerVersion, recordCount: 4),
+        'Another device is using a newer version of the app. Update the app '
+        'on this device to receive 4 items.',
+      );
+    });
+
+    test('says so without a count when no record could be named', () {
+      expect(
+        syncNoticeText(l10n, SyncNoticeGroup.newerVersion, recordCount: 0),
+        l10n.settingsSyncNoticeNewerVersionUncounted,
+      );
+    });
+
+    test('needs you, and is shown once rather than per device', () {
+      // Its remedy is on this device, whichever device raised it.
+      expect(syncNoticeNeedsYou(SyncNoticeGroup.newerVersion), isTrue);
+      expect(syncNoticeIsPerDevice(SyncNoticeGroup.newerVersion), isFalse);
+    });
+
+    test('the needs-you groups are exactly the newer version and a device '
+        'not taking changes', () {
+      expect(
+        [
+          for (final group in SyncNoticeGroup.values)
+            if (syncNoticeNeedsYou(group)) group,
+        ],
+        [SyncNoticeGroup.newerVersion, SyncNoticeGroup.unreflectedPublication],
+      );
+    });
   });
 
   group('every code maps to the group it is meant to', () {
@@ -198,6 +244,7 @@ void main() {
     String text(SyncNoticeGroup group) => syncNoticeText(
       l10n,
       group,
+      recordCount: 0,
       device: syncNoticeIsPerDevice(group) ? (tag: 'k7mQ2x', count: 2) : null,
     );
     for (final code in SyncReportCode.values) {
@@ -221,10 +268,13 @@ void main() {
       message: 'diagnostic',
     );
 
-    test('is the one needs-you group, and is shown per device', () {
+    test('needs you, and is the one group shown per device', () {
+      expect(
+        syncNoticeNeedsYou(SyncNoticeGroup.unreflectedPublication),
+        isTrue,
+      );
       for (final group in SyncNoticeGroup.values) {
         final perDevice = group == SyncNoticeGroup.unreflectedPublication;
-        expect(syncNoticeNeedsYou(group), perDevice, reason: group.name);
         expect(syncNoticeIsPerDevice(group), perDevice, reason: group.name);
       }
     });
@@ -247,6 +297,7 @@ void main() {
         syncNoticeText(
           l10n,
           SyncNoticeGroup.unreflectedPublication,
+          recordCount: 0,
           device: (tag: '7c02Lm', count: 4),
         ),
         "Device 7c02Lm is syncing but isn't taking 4 changes from this device. "

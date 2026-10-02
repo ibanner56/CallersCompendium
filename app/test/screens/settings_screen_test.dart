@@ -1856,10 +1856,14 @@ void main() {
         >
         pumpPassing(
           WidgetTester tester,
-          SyncPassResult Function() result,
-        ) async {
+          SyncPassResult Function() result, {
+          String? endpoint,
+        }) async {
           final harness = await _pumpSettings(tester);
           await harness.repos.settings.set('sync_id', 'correct horse battery');
+          if (endpoint != null) {
+            await harness.repos.settings.set(kSyncEndpointKey, endpoint);
+          }
           final controller = SyncScope.of(
             tester.element(find.byType(SettingsScreen)),
           );
@@ -2257,9 +2261,75 @@ void main() {
 
         // "Last sync failed." alone leaves the user nothing to act on or
         // report; the cause, its advice and the step and status to quote do.
-        testWidgets('a failed pass explains its cause and what to quote', (
-          tester,
-        ) async {
+        testWidgets('a failure the user must act on explains its cause and '
+            'what to quote, as a warning', (tester) async {
+          const result = SyncPassResult(
+            SyncPassStatus.failed,
+            failure: SyncFailure(
+              SyncFailureCause.rejected,
+              step: SyncFailureStep.upload,
+              statusCode: 422,
+            ),
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          expect(find.text('Last sync failed.'), findsOneWidget);
+          expect(
+            find.byKey(const ValueKey('sync-status-needs-you')),
+            findsOneWidget,
+          );
+          expect(
+            find.text(
+              'The sync server refused what this device sent. This version of '
+              'the app is newer than the sync server. Your changes are saved '
+              'here and will sync once the server is updated.',
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.text(
+              "Details: Stopped while uploading this device's changes. The "
+              'server answered with HTTP status 422.',
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-status-copy-details')),
+            findsOneWidget,
+          );
+        });
+
+        testWidgets('a refusal from a server the user runs asks them to update '
+            'it', (tester) async {
+          const result = SyncPassResult(
+            SyncPassStatus.failed,
+            failure: SyncFailure(SyncFailureCause.rejected, statusCode: 400),
+          );
+          await pumpPassing(
+            tester,
+            () => result,
+            endpoint: 'https://sync.example.test/',
+          );
+          await syncNow(tester);
+
+          expect(
+            find.textContaining(
+              'Update your sync server to match this version of the app.',
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.textContaining('newer than the sync server'),
+            findsNothing,
+          );
+        });
+
+        // A dropped connection used to look exactly like a refused one: the
+        // error icon and colour, a reason and advice. It clears by itself and
+        // is retried by itself, so it reads as a calm status instead.
+        testWidgets('a failure that clears by itself is a calm status, with '
+            'its details kept and nothing to copy', (tester) async {
           const result = SyncPassResult(
             SyncPassStatus.failed,
             failure: SyncFailure(
@@ -2268,18 +2338,21 @@ void main() {
               statusCode: 503,
             ),
           );
-          await pumpPassing(tester, () => result);
+          final pumped = await pumpPassing(tester, () => result);
           await syncNow(tester);
 
-          expect(find.text('Last sync failed.'), findsOneWidget);
           expect(
-            find.text(
-              'The sync server ran into a problem of its own. Nothing is '
-              'wrong with this device or your library. Wait a while and try '
-              'again. If it keeps happening, let whoever runs the server '
-              'know, and quote the details shown here.',
-            ),
+            find.text('Waiting to sync. Your changes are saved here.'),
             findsOneWidget,
+          );
+          expect(find.text('Last sync failed.'), findsNothing);
+          expect(
+            find.byKey(const ValueKey('sync-status-calm')),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-status-failure-explanation')),
+            findsNothing,
           );
           expect(
             find.text(
@@ -2287,6 +2360,191 @@ void main() {
               'server answered with HTTP status 503.',
             ),
             findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-status-copy-details')),
+            findsNothing,
+          );
+          final icon = tester.widget<Icon>(
+            find.byKey(const ValueKey('sync-status-calm')),
+          );
+          expect(icon.color, isNull, reason: 'no error colour');
+          // The failure armed the automatic retry. Turning sync off cancels
+          // it, so no timer outlives the test.
+          await pumped.controller.setEnabled(false);
+        });
+
+        testWidgets('Copy details copies the short code, and only the code', (
+          tester,
+        ) async {
+          String? clipboardText;
+          tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            SystemChannels.platform,
+            (call) async {
+              if (call.method == 'Clipboard.setData') {
+                clipboardText = (call.arguments as Map)['text'] as String?;
+              }
+              return null;
+            },
+          );
+          addTearDown(
+            () => tester.binding.defaultBinaryMessenger
+                .setMockMethodCallHandler(SystemChannels.platform, null),
+          );
+          const result = SyncPassResult(
+            SyncPassStatus.failed,
+            failure: SyncFailure(
+              SyncFailureCause.storeFull,
+              step: SyncFailureStep.upload,
+              statusCode: 507,
+            ),
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          await tester.tap(
+            find.byKey(const ValueKey('sync-status-copy-details')),
+          );
+          await tester.pumpAndSettle();
+
+          expect(clipboardText, 'SYNC-STORE-FULL upload 507');
+          expect(
+            find.byKey(const ValueKey('sync-details-copied')),
+            findsOneWidget,
+          );
+        });
+
+        testWidgets('a nearly full store warns, and offers to stop syncing '
+            'imported dances only while that is off', (tester) async {
+          const result = SyncPassResult(
+            SyncPassStatus.completed,
+            quota: SyncStoreQuota(
+              blobs: 81,
+              bytes: 0,
+              maxBlobs: 100,
+              maxBytes: 100,
+            ),
+          );
+          final pumped = await pumpPassing(tester, () => result);
+          expect(
+            find.byKey(const ValueKey('sync-quota-warning')),
+            findsNothing,
+          );
+          await syncNow(tester);
+
+          expect(find.text('Your sync store is almost full.'), findsOneWidget);
+          expect(
+            find.byKey(const ValueKey('sync-quota-copy-details')),
+            findsOneWidget,
+          );
+          final action = find.byKey(
+            const ValueKey('sync-quota-exclude-imports'),
+          );
+          expect(action, findsOneWidget);
+          expect(pumped.controller.excludeImports, isFalse);
+
+          await tester.ensureVisible(action);
+          await tester.tap(action);
+          await tester.pumpAndSettle();
+
+          expect(pumped.controller.excludeImports, isTrue);
+          expect(
+            find.byKey(const ValueKey('sync-quota-exclude-imports')),
+            findsNothing,
+          );
+          expect(find.text('Your sync store is almost full.'), findsOneWidget);
+        });
+
+        testWidgets('a store below the threshold shows no warning', (
+          tester,
+        ) async {
+          const result = SyncPassResult(
+            SyncPassStatus.completed,
+            quota: SyncStoreQuota(
+              blobs: 79,
+              bytes: 79,
+              maxBlobs: 100,
+              maxBytes: 100,
+            ),
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          expect(
+            find.byKey(const ValueKey('sync-quota-warning')),
+            findsNothing,
+          );
+        });
+
+        testWidgets('a newer-version notice that a peer\'s unreadable list also '
+            'raised gives no count, which would understate it', (tester) async {
+          const result = SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [
+              SyncReport(
+                code: SyncReportCode.newerWireVersion,
+                kind: SyncRecordKind.dance,
+                recordId: 'd1',
+                peerId: 'peer-a',
+                message: 'Blob uses a newer wire version.',
+              ),
+              SyncReport(
+                code: SyncReportCode.newerWireVersion,
+                peerId: 'peer-b',
+                message: 'Peer manifest uses a newer wire version.',
+              ),
+            ],
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          expect(
+            find.text(
+              'Another device is using a newer version of the app. Update the '
+              'app on this device to receive its changes.',
+            ),
+            findsOneWidget,
+          );
+          expect(find.textContaining('receive 1 item'), findsNothing);
+        });
+
+        testWidgets('a peer on a newer app version is a needs-you notice that '
+            'counts what is waiting and can be copied', (tester) async {
+          final result = SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [
+              for (final id in ['d1', 'd2', 'd3'])
+                SyncReport(
+                  code: SyncReportCode.newerWireVersion,
+                  kind: SyncRecordKind.dance,
+                  recordId: id,
+                  peerId: 'peer-a',
+                  message: 'Blob uses a newer wire version.',
+                ),
+            ],
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          expect(
+            find.text(
+              'Another device is using a newer version of the app. Update the '
+              'app on this device to receive 3 items.',
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-notice-newerVersion-needs-you')),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-notice-newerVersion-copy-details')),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-notice-skippedRecord')),
+            findsNothing,
+            reason: 'not the generic "check your other devices" notice',
           );
         });
 
@@ -4309,6 +4567,11 @@ void main() {
           "while uploading this device's changes. The server answered with "
           'HTTP status 502.',
         );
+        // The transient failure armed the automatic retry the dialog promises;
+        // turning sync off cancels it, so no timer outlives the test.
+        await SyncScope.of(
+          tester.element(find.byType(SettingsScreen, skipOffstage: false)),
+        ).setEnabled(false);
       });
 
       testWidgets(

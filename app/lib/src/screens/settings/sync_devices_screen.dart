@@ -361,7 +361,13 @@ class _SyncDevicesScreenState extends State<SyncDevicesScreen> {
                   : failure == null
                   ? l10n.settingsSyncDevicesFailed
                   : l10n.settingsSyncDevicesFailedBecause(
-                      syncFailureExplanation(l10n, failure),
+                      syncFailureExplanation(
+                        l10n,
+                        failure,
+                        customServer: syncUsesCustomServer(
+                          SyncScope.of(context).endpoint,
+                        ),
+                      ),
                     ),
               key: const ValueKey('sync-devices-failed'),
               textAlign: TextAlign.center,

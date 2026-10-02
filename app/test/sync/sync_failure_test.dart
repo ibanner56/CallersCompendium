@@ -64,6 +64,62 @@ void main() {
     }
   });
 
+  group('Retry-After (spec §5.3)', () {
+    // Parsed by the HTTP client and, until this was fixed, dropped right here,
+    // so the automatic retry had no floor to respect.
+    test('a failure built from a response keeps its Retry-After', () {
+      const response = SyncHttpResponse(
+        statusCode: 429,
+        kind: SyncResponseKind.rateLimited,
+        headers: {'retry-after': '120'},
+        body: [],
+        retryAfter: Duration(seconds: 120),
+      );
+      final failure = SyncFailure.fromResponse(
+        response,
+        SyncFailureStep.upload,
+      );
+      expect(failure.retryAfter, const Duration(seconds: 120));
+    });
+
+    test('Retry-After survives the isolate encoding', () {
+      const failure = SyncFailure(
+        SyncFailureCause.rateLimited,
+        statusCode: 429,
+        retryAfter: Duration(milliseconds: 90500),
+      );
+      expect(
+        SyncFailure.decode(failure.encode()).retryAfter,
+        const Duration(milliseconds: 90500),
+      );
+    });
+
+    test('an absent Retry-After stays absent', () {
+      const failure = SyncFailure(SyncFailureCause.serverError);
+      expect(SyncFailure.decode(failure.encode()).retryAfter, isNull);
+    });
+  });
+
+  group('tiers', () {
+    test('exactly the causes that clear by themselves are transient', () {
+      expect(
+        {
+          for (final cause in SyncFailureCause.values)
+            if (cause.isTransient) cause,
+        },
+        {
+          SyncFailureCause.unreachable,
+          SyncFailureCause.timedOut,
+          SyncFailureCause.serverError,
+          SyncFailureCause.rateLimited,
+        },
+        reason:
+            'spec §5.3 forbids retrying 507 and 422 without the user, so '
+            'storeFull and rejected must never be transient',
+      );
+    });
+  });
+
   test('a failure survives the isolate encoding intact', () {
     const failure = SyncFailure(
       SyncFailureCause.storeFull,

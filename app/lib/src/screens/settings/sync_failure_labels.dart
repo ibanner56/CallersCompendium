@@ -1,10 +1,21 @@
 // Maps a structured sync failure onto the localized copy every Device Sync
 // surface shows for it: the status line, the pairing form, the device list,
 // and the toolbar button. One mapping, so the same failure reads the same
-// wherever the user meets it.
+// wherever the user meets it — with one deliberate exception: the status line
+// and the toolbar button show a transient failure (`isTransient`) as a calm
+// "waiting to sync" line instead of its reason and advice, because the
+// controller retries it by itself. The pairing form and the device list keep
+// the full explanation, since there the user is waiting on that one request.
 import '../../../l10n/app_localizations.dart';
 import '../../sync/sync_coordinator.dart' show SyncPassResult, SyncPassStatus;
 import '../../sync/sync_failure.dart';
+import '../../sync/sync_http_client.dart' show isDefaultSyncEndpoint;
+
+/// Whether [endpoint] is a sync server the user chose rather than the
+/// project's own. Null — no endpoint known yet — counts as the default, which
+/// is what the pairing form starts from.
+bool syncUsesCustomServer(Uri? endpoint) =>
+    endpoint != null && !isDefaultSyncEndpoint(endpoint);
 
 /// The status line for a pass that ended at [status] without succeeding, or
 /// null for a status that needs no line.
@@ -48,15 +59,17 @@ String? syncPassProblemText(
 /// here", so every surface that shows the advice must show the details too.
 /// One without a cause (a path that never set one) gets null rather than
 /// "Last sync failed.", which would only repeat the sentence it follows.
+/// [customServer] is [syncUsesCustomServer] of the endpoint the pass used.
 String? syncPassResultExplanation(
   AppLocalizations l10n,
-  SyncPassResult result,
-) {
+  SyncPassResult result, {
+  required bool customServer,
+}) {
   if (result.status == SyncPassStatus.failed) {
     final failure = result.failure;
     if (failure == null) return null;
     return [
-      syncFailureExplanation(l10n, failure),
+      syncFailureExplanation(l10n, failure, customServer: customServer),
       ?syncFailureDetails(l10n, failure),
     ].join(' ');
   }
@@ -85,29 +98,45 @@ String syncFailureReason(AppLocalizations l10n, SyncFailureCause cause) =>
     };
 
 /// What the user can do about [cause], or who to tell when they can't.
-String syncFailureAdvice(AppLocalizations l10n, SyncFailureCause cause) =>
-    switch (cause) {
-      SyncFailureCause.unreachable => l10n.settingsSyncFailureUnreachableAdvice,
-      SyncFailureCause.timedOut => l10n.settingsSyncFailureTimedOutAdvice,
-      SyncFailureCause.serverError => l10n.settingsSyncFailureServerErrorAdvice,
-      SyncFailureCause.rateLimited => l10n.settingsSyncFailureRateLimitedAdvice,
-      SyncFailureCause.storeFull => l10n.settingsSyncFailureStoreFullAdvice,
-      SyncFailureCause.tooLarge => l10n.settingsSyncFailureTooLargeAdvice,
-      SyncFailureCause.rejected => l10n.settingsSyncFailureRejectedAdvice,
-      SyncFailureCause.accessDenied =>
-        l10n.settingsSyncFailureAccessDeniedAdvice,
-      SyncFailureCause.unexpectedResponse =>
-        l10n.settingsSyncFailureUnexpectedResponseAdvice,
-      SyncFailureCause.peerUnavailable =>
-        l10n.settingsSyncFailurePeerUnavailableAdvice,
-      SyncFailureCause.internal => l10n.settingsSyncFailureInternalAdvice,
-    };
+///
+/// [customServer] decides who has to act on a refusal. ADR-004 has the client
+/// usually be the newer side (its release-ordering consequence: a client
+/// released ahead of the server has its new fields rejected), so on the project's own server the device has
+/// nothing to do but wait for the server to catch up, while a self-hosted
+/// server is the user's to update. It is required, not defaulted, so every
+/// surface has to say which server it is describing.
+String syncFailureAdvice(
+  AppLocalizations l10n,
+  SyncFailureCause cause, {
+  required bool customServer,
+}) => switch (cause) {
+  SyncFailureCause.unreachable => l10n.settingsSyncFailureUnreachableAdvice,
+  SyncFailureCause.timedOut => l10n.settingsSyncFailureTimedOutAdvice,
+  SyncFailureCause.serverError => l10n.settingsSyncFailureServerErrorAdvice,
+  SyncFailureCause.rateLimited => l10n.settingsSyncFailureRateLimitedAdvice,
+  SyncFailureCause.storeFull => l10n.settingsSyncFailureStoreFullAdvice,
+  SyncFailureCause.tooLarge => l10n.settingsSyncFailureTooLargeAdvice,
+  SyncFailureCause.rejected =>
+    customServer
+        ? l10n.settingsSyncFailureRejectedAdviceCustomServer
+        : l10n.settingsSyncFailureRejectedAdviceDefaultServer,
+  SyncFailureCause.accessDenied => l10n.settingsSyncFailureAccessDeniedAdvice,
+  SyncFailureCause.unexpectedResponse =>
+    l10n.settingsSyncFailureUnexpectedResponseAdvice,
+  SyncFailureCause.peerUnavailable =>
+    l10n.settingsSyncFailurePeerUnavailableAdvice,
+  SyncFailureCause.internal => l10n.settingsSyncFailureInternalAdvice,
+};
 
 /// The reason followed by the advice, for surfaces with room for one block of
 /// text (a snackbar, a form error).
-String syncFailureExplanation(AppLocalizations l10n, SyncFailure failure) =>
+String syncFailureExplanation(
+  AppLocalizations l10n,
+  SyncFailure failure, {
+  required bool customServer,
+}) =>
     '${syncFailureReason(l10n, failure.cause)} '
-    '${syncFailureAdvice(l10n, failure.cause)}';
+    '${syncFailureAdvice(l10n, failure.cause, customServer: customServer)}';
 
 /// The technical line a user can quote when describing the problem: which
 /// step stopped and what the server answered. Null when neither is known —

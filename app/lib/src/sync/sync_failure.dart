@@ -52,6 +52,35 @@ enum SyncFailureCause {
   internal,
 }
 
+/// Whether a [SyncFailureCause] is one that passes on its own, or one the user
+/// has to do something about.
+///
+/// The split decides how the status surface speaks (a calm "waiting" line
+/// against a warning) and whether `SyncController` retries by itself. It is
+/// not a judgement about severity: a transient cause that never clears is
+/// still escalated, by the 21-day expiry warning (spec §6.14 item 4).
+extension SyncFailureCauseTier on SyncFailureCause {
+  /// True for a failure that clears without the user: the network, a server
+  /// fault, or a request to slow down. Spec §5.3 forbids an automatic retry of
+  /// `507` and `422`, which is why [SyncFailureCause.storeFull] and
+  /// [SyncFailureCause.rejected] are not here.
+  ///
+  /// Exhaustive with no `_` arm so a new cause must be placed in a tier.
+  bool get isTransient => switch (this) {
+    SyncFailureCause.unreachable ||
+    SyncFailureCause.timedOut ||
+    SyncFailureCause.serverError ||
+    SyncFailureCause.rateLimited => true,
+    SyncFailureCause.storeFull ||
+    SyncFailureCause.tooLarge ||
+    SyncFailureCause.rejected ||
+    SyncFailureCause.accessDenied ||
+    SyncFailureCause.unexpectedResponse ||
+    SyncFailureCause.peerUnavailable ||
+    SyncFailureCause.internal => false,
+  };
+}
+
 /// What a failed pass was doing when it stopped.
 enum SyncFailureStep {
   /// Looking up the store.
@@ -76,7 +105,7 @@ enum SyncFailureStep {
 /// message is an English maintainer diagnostic, and the status surface must
 /// never show it (see `syncNoticeText`).
 class SyncFailure {
-  const SyncFailure(this.cause, {this.step, this.statusCode});
+  const SyncFailure(this.cause, {this.step, this.statusCode, this.retryAfter});
 
   /// The failure a non-success [response] at [step] stands for. [step] is
   /// omitted for a request that is not part of a pass, such as removing a
@@ -88,6 +117,7 @@ class SyncFailure {
     syncFailureCauseForResponse(response.kind),
     step: step,
     statusCode: response.statusCode,
+    retryAfter: response.retryAfter,
   );
 
   /// The failure a thrown [error] stands for. The step is unknown: a throw
@@ -103,11 +133,17 @@ class SyncFailure {
   /// The HTTP status the server answered with, when it answered at all.
   final int? statusCode;
 
+  /// How long the server asked this device to wait before trying again
+  /// (`Retry-After`, spec §5.3), when it said. The automatic retry never runs
+  /// sooner than this (`SyncController`, spec §6.12).
+  final Duration? retryAfter;
+
   /// The isolate-message encoding read back by [SyncFailure.decode].
   Map<String, Object?> encode() => {
     'cause': cause.name,
     'step': step?.name,
     'statusCode': statusCode,
+    'retryAfterMs': retryAfter?.inMilliseconds,
   };
 
   /// Reads [encode]'s output, or throws [FormatException].
@@ -118,15 +154,20 @@ class SyncFailure {
     final cause = encoded['cause'];
     final step = encoded['step'];
     final statusCode = encoded['statusCode'];
+    final retryAfterMs = encoded['retryAfterMs'];
     if (cause is! String ||
         (step != null && step is! String) ||
-        (statusCode != null && statusCode is! int)) {
+        (statusCode != null && statusCode is! int) ||
+        (retryAfterMs != null && retryAfterMs is! int)) {
       throw const FormatException('sync isolate returned an invalid failure');
     }
     return SyncFailure(
       SyncFailureCause.values.byName(cause),
       step: step == null ? null : SyncFailureStep.values.byName(step as String),
       statusCode: statusCode as int?,
+      retryAfter: retryAfterMs == null
+          ? null
+          : Duration(milliseconds: retryAfterMs as int),
     );
   }
 }

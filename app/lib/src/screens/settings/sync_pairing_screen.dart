@@ -238,7 +238,11 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
   /// misleading for a refused phrase or a server on the wrong version, which
   /// no amount of waiting fixes.
   String _probeError(AppLocalizations l10n, SyncFailure failure) => [
-    syncFailureExplanation(l10n, failure),
+    syncFailureExplanation(
+      l10n,
+      failure,
+      customServer: _customEndpoint != null,
+    ),
     ?syncFailureDetails(l10n, failure),
   ].join('\n');
 
@@ -263,7 +267,11 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
       // reason is one that retrying alone will not clear.
       final result? => [
         l10n.settingsSyncPairingCompleteFailed,
-        ?syncPassResultExplanation(l10n, result),
+        ?syncPassResultExplanation(
+          l10n,
+          result,
+          customServer: syncUsesCustomServer(controller.endpoint),
+        ),
       ].join(' '),
       null => l10n.settingsSyncPairingCompleteFailed,
     },

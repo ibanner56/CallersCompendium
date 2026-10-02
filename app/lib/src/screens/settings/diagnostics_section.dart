@@ -8,6 +8,8 @@ import '../../diagnostics/crash_log_io.dart';
 import '../../diagnostics/crash_log_store.dart';
 import '../../diagnostics/error_log.dart';
 import '../../diagnostics/sensitive_terms.dart';
+import '../../diagnostics/sync_diagnostics.dart';
+import '../../sync/sync_scope.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/section_header.dart';
 
@@ -20,9 +22,11 @@ typedef SensitiveTermsProvider = Future<Set<String>> Function();
 /// Surfaces the **local, offline** crash log: the most recent captured errors,
 /// an Export/Share action, and Clear. Export defaults to a **scrubbed** variant
 /// (contact info + user content removed); a clearly-labelled "Include full
-/// detail" toggle produces the raw variant for local troubleshooting. Nothing
-/// here is ever transmitted — export always goes through the OS save/share
-/// flow the user explicitly invokes.
+/// detail" toggle produces the raw variant for local troubleshooting. Both
+/// end with a Device Sync section when sync has something to report
+/// ([syncDiagnosticsSection]), which is why an export can run with an empty
+/// crash log. Nothing here is ever transmitted — export always goes through
+/// the OS save/share flow the user explicitly invokes.
 class DiagnosticsSection extends StatefulWidget {
   const DiagnosticsSection({
     super.key,
@@ -80,7 +84,15 @@ class _DiagnosticsSectionState extends State<DiagnosticsSection> {
   // PDF/text export builders it stays English pending the product decision on
   // whether exports follow the UI language (see docs/dev/localization.md
   // "permanent exceptions"), so these lines are intentionally not localized.
-  String _buildExportText(List<CrashLogRecord> records, {required bool full}) {
+  //
+  // [sync] is the Device Sync section ([syncDiagnosticsSection]), appended in
+  // both modes: it is built from enum names and counts only, so there is
+  // nothing in it for the scrubbed mode to remove.
+  String _buildExportText(
+    List<CrashLogRecord> records, {
+    required bool full,
+    String? sync,
+  }) {
     final buffer = StringBuffer()
       ..writeln("Caller's Compendium — diagnostics log")
       ..writeln('Exported (UTC): ${DateTime.now().toUtc().toIso8601String()}')
@@ -97,6 +109,11 @@ class _DiagnosticsSectionState extends State<DiagnosticsSection> {
         ..writeln(record.toReadable())
         ..writeln();
     }
+    if (sync != null) {
+      buffer
+        ..writeln('=' * 60)
+        ..writeln(sync);
+    }
     return buffer.toString().trimRight();
   }
 
@@ -111,9 +128,14 @@ class _DiagnosticsSectionState extends State<DiagnosticsSection> {
     final repositories = provider == null
         ? RepositoriesScope.of(context)
         : null;
+    // Read now, for the same reason: the section describes the sync state at
+    // the moment the user asked for the export.
+    final sync = syncDiagnosticsSection(SyncScope.maybeOf(context));
     try {
       final records = await _store.readRecords(newestFirst: false);
-      if (records.isEmpty) {
+      // A sync problem is worth exporting on its own: most failed passes are
+      // results, not crashes, and leave nothing in the crash log.
+      if (records.isEmpty && sync == null) {
         messenger.showSnackBar(
           SnackBar(content: Text(l10n.diagnosticsNoDiagnosticsToExport)),
         );
@@ -146,7 +168,7 @@ class _DiagnosticsSectionState extends State<DiagnosticsSection> {
         final redactor = CrashRedactor(userContentTerms: terms);
         forExport = [for (final r in records) r.scrubbed(redactor)];
       }
-      final text = _buildExportText(forExport, full: full);
+      final text = _buildExportText(forExport, full: full, sync: sync);
       final saver = widget.logSaver ?? saveDiagnosticsLog;
       final delivered = await saver(text, diagnosticsLogFileName());
       messenger.showSnackBar(

@@ -508,6 +508,13 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// once per launch after preferences load.
   late UpdateController _updateController;
   late SyncController _syncController;
+
+  /// Starts a Device Sync pass when the app returns to the foreground (spec
+  /// §6.12). The rate limit and the §6.12 gate are the controller's
+  /// ([SyncController.onAppResumed]); this only forwards the event. Reads
+  /// [_syncController] at the event, so a controller rebuilt by
+  /// [_replaceDatabaseBackedServices] is the one asked.
+  late final AppLifecycleListener _syncLifecycleListener;
   StreamSubscription<Set<TableUpdate>>? _syncChangeSubscription;
   SyncCoordinator? _syncCoordinator;
   Future<void>? _syncCoordinatorDisposeFuture;
@@ -586,6 +593,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
         widget.editorDraftShutdownController ?? EditorDraftShutdownController();
     _windowService = widget.windowService;
     _initializeDatabaseBackedServices(widget.appData);
+    _syncLifecycleListener = AppLifecycleListener(onResume: _onAppResumed);
     widget.applicationShutdownController?.replaceCloseApp(_closeForShutdown);
     // Listen for files opened while the app is running (AirDrop / "Open with"
     // on an already-launched app). The cold-start file is pulled once the ready
@@ -1386,6 +1394,19 @@ class _CompendiumAppState extends State<CompendiumApp> {
     unawaited(_runSyncStart());
   }
 
+  void _onAppResumed() {
+    if (_shutdownRequested) return;
+    unawaited(_runSyncResume());
+  }
+
+  Future<void> _runSyncResume() async {
+    try {
+      await _syncController.onAppResumed();
+    } on Object catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'main.sync-resume');
+    }
+  }
+
   Future<void> _runSyncStart() async {
     try {
       await _syncController.onAppStart();
@@ -1719,6 +1740,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _walkthroughSnippets.dispose();
     _updateController.dispose();
     unawaited(_syncChangeSubscription?.cancel());
+    _syncLifecycleListener.dispose();
     _syncController.dispose();
     _windowService.dispose();
     super.dispose();

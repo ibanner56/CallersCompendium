@@ -7,12 +7,27 @@ import '../diagnostics/error_log.dart';
 import 'sync_failure.dart';
 import 'sync_http_client.dart';
 
-export 'sync_failure.dart' show SyncFailure, SyncFailureCause, SyncFailureStep;
+export 'sync_failure.dart'
+    show SyncFailure, SyncFailureCause, SyncFailureCauseTier, SyncFailureStep;
 
 DateTime _syncNowUtc() => DateTime.now().toUtc();
 
-/// The event sources that share the single-flight sync scheduler.
-enum SyncTrigger { appStart, debouncedChange, manual }
+/// The event sources that share the single-flight sync scheduler (spec
+/// §6.12).
+///
+/// Only [manual] is treated differently by the coordinator: it is the one
+/// trigger that resumes a paused coordinator. Every other value is automatic.
+enum SyncTrigger {
+  appStart,
+  debouncedChange,
+  manual,
+
+  /// The automatic retry `SyncController` schedules after a transient failure.
+  retry,
+
+  /// The app returning to the foreground.
+  resume,
+}
 
 /// The terminal state of one coordinator pass.
 enum SyncPassStatus {
@@ -26,6 +41,76 @@ enum SyncPassStatus {
   failed,
 }
 
+/// The share of either store limit at which the status surface warns that the
+/// store is almost full (spec §5.2: the caps are echoed "so a client can warn
+/// before hitting them rather than discovering a `507`").
+const double kSyncQuotaWarningFraction = 0.8;
+
+/// What the store has used of its §5.4 allowance, as `GET /v1/store` reports
+/// it under `quota` (spec §5.2).
+class SyncStoreQuota {
+  const SyncStoreQuota({
+    required this.blobs,
+    required this.bytes,
+    required this.maxBlobs,
+    required this.maxBytes,
+  });
+
+  final int blobs;
+  final int bytes;
+  final int maxBlobs;
+  final int maxBytes;
+
+  /// The larger of the two shares used, from 0; either cap reached is full.
+  double get usedFraction {
+    final byBlobs = blobs / maxBlobs;
+    final byBytes = bytes / maxBytes;
+    return byBlobs > byBytes ? byBlobs : byBytes;
+  }
+
+  /// Whether either limit is at or past [kSyncQuotaWarningFraction].
+  bool get nearlyFull => usedFraction >= kSyncQuotaWarningFraction;
+
+  /// Reads the `quota` object of a store answer, or null when it is absent or
+  /// not the documented shape.
+  ///
+  /// Lenient where the rest of the store answer is strict, deliberately: the
+  /// quota is advice for a warning, and nothing in a pass depends on it, so a
+  /// server that omits it (or a malformed one) costs the warning and nothing
+  /// else, rather than failing every pass.
+  static SyncStoreQuota? tryParse(Object? value) {
+    if (value is! Map) return null;
+    final blobs = value['blobs'];
+    final bytes = value['bytes'];
+    final maxBlobs = value['maxBlobs'];
+    final maxBytes = value['maxBytes'];
+    if (blobs is! int ||
+        bytes is! int ||
+        maxBlobs is! int ||
+        maxBytes is! int ||
+        blobs < 0 ||
+        bytes < 0 ||
+        maxBlobs <= 0 ||
+        maxBytes <= 0) {
+      return null;
+    }
+    return SyncStoreQuota(
+      blobs: blobs,
+      bytes: bytes,
+      maxBlobs: maxBlobs,
+      maxBytes: maxBytes,
+    );
+  }
+
+  /// The isolate-message encoding, in the wire shape [tryParse] reads.
+  Map<String, Object?> encode() => {
+    'blobs': blobs,
+    'bytes': bytes,
+    'maxBlobs': maxBlobs,
+    'maxBytes': maxBytes,
+  };
+}
+
 /// The result returned by a coordinator pass or explicit replacement action.
 class SyncPassResult {
   const SyncPassResult(
@@ -35,6 +120,8 @@ class SyncPassResult {
     this.failure,
     this.duplicateCount = 0,
     this.appliedKinds = const [],
+    this.quota,
+    this._storeRead = false,
     this.peers,
   });
 
@@ -55,6 +142,39 @@ class SyncPassResult {
   /// crosses the worker boundary so the owning Drift connection can invalidate
   /// its live queries after the worker has closed its connection.
   final List<SyncRecordKind> appliedKinds;
+
+  /// The store's usage as the pass's latest store lookup reported it, or null
+  /// when the pass never got a usable lookup or the server sent none. Set on
+  /// any status, a failed pass included: a pass that stopped at its upload
+  /// with a `507` has still read how full the store is.
+  final SyncStoreQuota? quota;
+
+  /// Whether the pass read a usable store answer, so that [quota] — null
+  /// included — is what the store says now. A null [quota] alone cannot tell
+  /// "never reached the store" (keep the last reading) from "the store sent
+  /// no usable quota" (spec §5.2: lose the warning). A non-null [quota]
+  /// implies a read.
+  bool get storeRead => _storeRead || quota != null;
+  final bool _storeRead;
+
+  /// This result carrying the store reading the pass took, unless it already
+  /// carries one (a result from the worker isolate does) or none was taken.
+  SyncPassResult withStoreReading({
+    required bool read,
+    SyncStoreQuota? quota,
+  }) => !read || storeRead
+      ? this
+      : SyncPassResult(
+          status,
+          reports: reports,
+          message: message,
+          failure: failure,
+          duplicateCount: duplicateCount,
+          appliedKinds: appliedKinds,
+          quota: quota,
+          storeRead: true,
+          peers: peers,
+        );
 
   /// What this pass saw of each other device whose manifest it read, or null
   /// when the pass did not get as far as publishing and so surveyed nothing.
@@ -812,6 +932,13 @@ class SyncCoordinator {
   /// Set when the user declines while a confirmation is already running.
   bool _replacementDeclined = false;
   var _replacementCreated = false;
+
+  /// The quota the running pass's latest store lookup reported. A field
+  /// rather than threaded through every return in [_runPass], because the
+  /// pass has many exits and every one past the lookup should carry it;
+  /// [_runStartedPass] resets it before a pass and attaches it after.
+  SyncStoreQuota? _passQuota;
+  bool _passStoreRead = false;
   var _disposed = false;
 
   static const _maxMissingHashesPerRequest = 10000;
@@ -1021,9 +1148,14 @@ class SyncCoordinator {
   Future<SyncPassResult> _runStartedPass({
     SyncStoreResult? initialStore,
   }) async {
+    _passQuota = null;
+    _passStoreRead = false;
+    // Under `passOperation` the pass ran in the worker isolate, whose own
+    // coordinator attached the reading; this one took none and adds nothing.
     final result =
-        await (passOperation?.call(initialStore: initialStore) ??
-            passRunner.run(() => _runPass(initialStore: initialStore)));
+        (await (passOperation?.call(initialStore: initialStore) ??
+                passRunner.run(() => _runPass(initialStore: initialStore))))
+            .withStoreReading(read: _passStoreRead, quota: _passQuota);
     if (result.status == SyncPassStatus.replacementRequired) {
       _emitReplacementRequired();
     }
@@ -1114,6 +1246,8 @@ class SyncCoordinator {
         ),
       );
     }
+    _passStoreRead = true;
+    _passQuota = metadata.quota;
     _peerManifestCache.beginPublicationEpoch(metadata.epoch);
     final attachContinuation =
         continuation && continuationEpoch != null && deferredBaseline != null;
@@ -1202,11 +1336,13 @@ class SyncCoordinator {
         peerId,
         etag: epochCached?.etag,
       );
-      final manifest = response.kind == SyncResponseKind.notModified
-          ? epochCached?.manifest
-          : response.isSuccess
+      final decoded =
+          response.kind != SyncResponseKind.notModified && response.isSuccess
           ? _decodeManifest(response.body)
           : null;
+      final manifest = response.kind == SyncResponseKind.notModified
+          ? epochCached?.manifest
+          : decoded?.manifest;
       if (response.kind == SyncResponseKind.notModified && manifest == null) {
         _peerManifestCache.remove(peerId);
       }
@@ -1230,10 +1366,16 @@ class SyncCoordinator {
         unresolved.addAll(normalizedBaseline.keys);
         reports.add(
           SyncReport(
-            code: SyncReportCode.malformedRecord,
+            // A manifest this build cannot read because it is newer says
+            // nothing about which records it lists, so the report names only
+            // the peer (spec §6.9).
+            code: decoded?.newer ?? false
+                ? SyncReportCode.newerWireVersion
+                : SyncReportCode.malformedRecord,
             peerId: peerId,
-            message:
-                'Peer manifest was malformed or used a stale epoch.', // i18n-ignore: internal report
+            message: decoded?.newer ?? false
+                ? 'Peer manifest uses a newer wire version.' // i18n-ignore: internal report
+                : 'Peer manifest was malformed or used a stale epoch.', // i18n-ignore: internal report
           ),
         );
         continue;
@@ -1602,6 +1744,7 @@ class SyncCoordinator {
         continuationResult.status,
         reports: [...reports.reports, ...continuationResult.reports],
         message: continuationResult.message,
+        failure: continuationResult.failure,
         duplicateCount:
             dedupe.duplicateCount + continuationResult.duplicateCount,
         appliedKinds: {
@@ -2245,17 +2388,20 @@ class SyncCoordinator {
           );
           continue;
         }
-        final blob = _decodeBlob(response.body);
+        final (:blob, :newer) = _decodeBlob(response.body);
         if (blob == null) {
           unresolved.add(address);
           reports.add(
             SyncReport(
-              code: SyncReportCode.malformedRecord,
+              code: newer
+                  ? SyncReportCode.newerWireVersion
+                  : SyncReportCode.malformedRecord,
               kind: address.kind,
               recordId: address.recordId,
               peerId: peerId,
-              message:
-                  'Blob did not decode as a record.', // i18n-ignore: internal report
+              message: newer
+                  ? 'Blob uses a newer wire version.' // i18n-ignore: internal report
+                  : 'Blob did not decode as a record.', // i18n-ignore: internal report
             ),
           );
           continue;
@@ -2397,13 +2543,23 @@ class SyncCoordinator {
     _replacementEvents.add(const SyncReplacementRequiredEvent());
   }
 
-  static SyncManifest? _decodeManifest(List<int> body) {
+  /// The peer manifest in [body], or null with [newer] saying whether it
+  /// failed only because a newer build wrote it.
+  static ({SyncManifest? manifest, bool newer}) _decodeManifest(
+    List<int> body,
+  ) {
     try {
-      return decodeSyncManifest(utf8.decode(body, allowMalformed: false));
+      return (
+        manifest: decodeSyncManifest(utf8.decode(body, allowMalformed: false)),
+        newer: false,
+      );
+    } on SyncNewerWireVersionException {
+      // diagnostics: silent — reported by the caller as newerWireVersion.
+      return (manifest: null, newer: true);
     } on FormatException {
       // diagnostics: silent — malformed peer manifests are reported by the
       // caller as per-record failures.
-      return null;
+      return (manifest: null, newer: false);
     }
   }
 
@@ -2414,13 +2570,21 @@ class SyncCoordinator {
     return null;
   }
 
-  static SyncRecordBlob? _decodeBlob(List<int> body) {
+  /// The peer blob in [body], or null with [newer] saying whether it failed
+  /// only because a newer build wrote it.
+  static ({SyncRecordBlob? blob, bool newer}) _decodeBlob(List<int> body) {
     try {
-      return decodeSyncRecordBlob(utf8.decode(body, allowMalformed: false));
+      return (
+        blob: decodeSyncRecordBlob(utf8.decode(body, allowMalformed: false)),
+        newer: false,
+      );
+    } on SyncNewerWireVersionException {
+      // diagnostics: silent — reported by the caller as newerWireVersion.
+      return (blob: null, newer: true);
     } on FormatException {
       // diagnostics: silent — malformed peer blobs are reported by the caller
       // and do not advance the baseline.
-      return null;
+      return (blob: null, newer: false);
     }
   }
 
@@ -2437,6 +2601,7 @@ class SyncCoordinator {
       return _StoreMetadata(
         epoch: decoded['epoch'] as String,
         devices: [for (final device in devices) device as String],
+        quota: SyncStoreQuota.tryParse(decoded['quota']),
       );
     } on FormatException {
       // diagnostics: silent — malformed store metadata is surfaced as a
@@ -2483,8 +2648,13 @@ class SyncCoordinator {
 }
 
 class _StoreMetadata {
-  const _StoreMetadata({required this.epoch, required this.devices});
+  const _StoreMetadata({
+    required this.epoch,
+    required this.devices,
+    required this.quota,
+  });
 
   final String epoch;
   final List<String> devices;
+  final SyncStoreQuota? quota;
 }
