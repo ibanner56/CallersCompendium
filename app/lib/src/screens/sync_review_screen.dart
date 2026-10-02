@@ -167,6 +167,8 @@ class _SyncReviewScreenState extends State<SyncReviewScreen> {
     SyncReviewFailureCode.invalidCustomFieldKey => l10n.customFieldsKeyInvalid,
     SyncReviewFailureCode.counterpartDeleted =>
       l10n.syncReviewCounterpartDeleted,
+    // Raised only by a conflict choice, which this screen does not list.
+    SyncReviewFailureCode.clockOutOfRange => l10n.syncConflictClockWrong,
   };
 
   /// The explanation shown on an actionable row.

@@ -1,7 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import 'package:compendium_core/compendium_core.dart'
+    show CompendiumRepositories;
+
 import '../../l10n/app_localizations.dart';
+import '../data/repositories_scope.dart';
+import '../diagnostics/error_log.dart';
 import '../screens/settings/sync_failure_labels.dart';
+import '../screens/sync_conflict_sheet.dart';
 import '../sync/sync_controller.dart';
 import '../sync/sync_coordinator.dart' show SyncPassStatus;
 import '../sync/sync_scope.dart';
@@ -26,6 +34,12 @@ import '../sync/sync_scope.dart';
 /// It depends on [SyncScope] itself (rather than its host screen doing so)
 /// because that scope notifies at the start and end of every pass, and a host
 /// list screen should not rebuild wholesale for a spinner.
+///
+/// A badge counts the records waiting for the user's conflict choice
+/// (sync-spec §6.3), re-read whenever a pass ends. When a manual pass finds
+/// conflicts the badge did not already count, the choice opens — but only if
+/// this button's page is still the one showing, so it never lands on top of
+/// wherever the user went while the pass ran.
 class SyncNowAction extends StatefulWidget {
   const SyncNowAction({super.key});
 
@@ -40,6 +54,41 @@ class _SyncNowActionState extends State<SyncNowAction> {
   /// that would disable the button.
   bool _attempting = false;
 
+  /// Records awaiting a conflict choice, as of the last pass to end.
+  int _conflicts = 0;
+  bool? _lastRunning;
+
+  CompendiumRepositories? get _repositories => context
+      .dependOnInheritedWidgetOfExactType<RepositoriesScope>()
+      ?.repositories;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final controller = SyncScope.maybeOf(context);
+    final running = controller?.running ?? false;
+    if (_lastRunning != running) {
+      _lastRunning = running;
+      if (!running) unawaited(_refreshConflicts());
+    }
+  }
+
+  Future<int> _refreshConflicts() async {
+    final repositories = _repositories;
+    final controller = SyncScope.maybeOf(context);
+    if (repositories == null || controller == null || !controller.paired) {
+      return _conflicts;
+    }
+    try {
+      final count = await syncConflictCount(repositories);
+      if (mounted && count != _conflicts) setState(() => _conflicts = count);
+      return count;
+    } on Object catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'sync_now_action.conflicts');
+      return _conflicts;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = SyncScope.maybeOf(context);
@@ -50,14 +99,21 @@ class _SyncNowActionState extends State<SyncNowAction> {
     final busy = controller.running || _attempting;
     return IconButton(
       key: const ValueKey('sync-now-action'),
-      tooltip: l10n.commonSyncNowTooltip,
+      tooltip: _conflicts > 0
+          ? l10n.commonSyncNowConflictsTooltip(_conflicts)
+          : l10n.commonSyncNowTooltip,
       onPressed: busy ? null : () => _syncNow(controller),
       icon: controller.running
           ? const SizedBox.square(
               dimension: 20,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : const Icon(Icons.sync),
+          : Badge(
+              key: const ValueKey('sync-now-conflict-badge'),
+              isLabelVisible: _conflicts > 0,
+              label: Text('$_conflicts'),
+              child: const Icon(Icons.sync),
+            ),
     );
   }
 
@@ -77,6 +133,9 @@ class _SyncNowActionState extends State<SyncNowAction> {
   Future<void> _syncNow(SyncController controller) async {
     if (_attempting) return;
     setState(() => _attempting = true);
+    // Read now, not from the cached badge: that refresh may still be in
+    // flight, and a stale zero would make a conflict already waiting look new.
+    final conflictsBefore = await _refreshConflicts();
     final SyncGateOutcome outcome;
     try {
       outcome = await controller.syncNow();
@@ -101,6 +160,16 @@ class _SyncNowActionState extends State<SyncNowAction> {
       },
       SyncGateOutcome.disabled => null,
     };
+    if (outcome == SyncGateOutcome.ran) {
+      final conflicts = await _refreshConflicts();
+      if (!mounted) return;
+      if (conflicts > conflictsBefore &&
+          (ModalRoute.of(context)?.isCurrent ?? true)) {
+        await showSyncConflictSheet(context);
+        if (mounted) await _refreshConflicts();
+        return;
+      }
+    }
     if (message != null) {
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         SnackBar(

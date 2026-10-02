@@ -1019,9 +1019,9 @@ Because the pass never touches `updated_at`, the shared record id then presents
 to the skipping device as `same`/`changed` with **equal** `updatedAt` — its own
 copy is unchanged against its baseline; the peer's has changed. Per §6.3 that
 row's `>` is strict, so the difference is left un-downloaded rather than guessed
-at, and MUST be reported on that pass and on every subsequent pass until a human
-edits one side. The peer meanwhile sees an ordinary `changed`/`same` and
-uploads, so the report is raised by the skipping device; it is a standing,
+at, and MUST be queued for the user's choice (§6.3) until the user decides.
+The peer meanwhile sees an ordinary `changed`/`same` and uploads, so the
+choice is raised by the skipping device; it is a standing,
 visible, non-convergent state over a pair the user already has reason to look
 at, which this specification prefers to a silent merge, but which is a real cost
 and not a formality.
@@ -1514,7 +1514,7 @@ content-bearing text breaks
 sender's manifest advertised, so under §6.3 step 9 **neither** device's baseline
 ever advances, both then read `changed`/`changed`, and because the receiver
 copies the envelope's `updatedAt` the tie is equal and §6.3 declines to resolve
-it. The result is not a bad pass; it is a conflict reported on both devices on
+it. The result is not a bad pass; it is a conflict raised on both devices on
 every pass, forever, triggered by a user pasting a zero-width space from a web
 page. Sanitising *inbound* is a no-op against a conforming peer for the same
 reason NFC is — the sender already ran it, and the function returns its input
@@ -2112,14 +2112,19 @@ republishes, which is an ordinary upload and needs no special path.
    deleted. Where two peers advertise the same id with different content, the
    higher `updatedAt` wins. Where the two `updatedAt` values are **equal** and
    the bodies differ, §6.3's tie treatment applies here too: neither body wins,
-   the local one is left in place, and the divergence MUST be reported. **No
-   peer carries the local hash, so step 6 records no baseline entry for that
-   record** (§6.3 step 9). It is absent from the baseline on both sides, resolves
-   as `changed`/`changed` on every later pass, and carries §6.3's reporting duty
-   from then on. What a fresh attach MUST NOT do is apply one body over the
-   other silently. The two devices do not converge either way — that is why this
-   sits in §10 — so the report is the whole of the requirement, and suppressing
-   it is the whole of the harm.
+   the local one is left in place, and the versions MUST be queued for the
+   user's choice (§6.6, *Conflict choices*). **No peer carries the local hash,
+   so step 6 records no baseline entry for that record** (§6.3 step 9). It is
+   absent from the baseline on both sides, resolves as `changed`/`changed` on
+   every later pass, and stays queued until the user chooses. What a fresh
+   attach MUST NOT do is apply one body over the other silently. The two devices
+   do not converge until someone chooses, so the queued choice is the whole of
+   the requirement, and dropping it is the whole of the harm.
+
+   *Amended 2026-10-02: this step required the divergence to be reported. A
+   report re-raised the same tie on every pass and offered no way to settle it
+   but an unrelated edit; the queue asks the question once and terminates when
+   it is answered, for the reason §6.6 step 2 already routes there.*
 
    *Amended 2026-09-22: this step used to have step 6 baseline the tied local
    body's hash, so the record would present as `same`/`changed` afterwards. That
@@ -2220,31 +2225,46 @@ republishes, which is an ordinary upload and needs no special path.
    two conforming implementations diverge permanently. It is not an edge case.
    §4.4 makes the settings key the record `id`, so it is a natural key rather
    than a UUID: two attached devices that each set the same shareable preference
-   before the next pass reach exactly this state, and 49 settings keys are
-   `shareable`. Records with UUID ids reach it too, because archive
+   before the next pass reach exactly this state, and 60 settings keys are
+   `shareable` (exact keys in `settingsClassifications` whose egress is
+   `shareable`, counted 2026-10-02; no prefix entry is). Records with UUID ids reach it too, because archive
    import preserves ids, so two devices importing one bundle and then editing it
    locally collide on the same id.
 
    Resolving it as `changed`/`changed` rather than inventing a rule keeps one
    tie-break in the document: the higher `updatedAt` wins, an equal `updatedAt`
-   with differing bodies does not resolve and MUST be reported, and §6.2 step
-   5 — which already specifies this situation for fresh attach — stays
-   consistent with steady state instead of being the only place it is written
-   down.
+   with differing live bodies does not resolve and MUST be queued for the
+   user's choice, and §6.2 step 5 — which already specifies this situation for
+   fresh attach — stays consistent with steady state instead of being the only
+   place it is written down.
 
    Both `updatedAt` comparisons are strict, and that is deliberate. Where
-   `updatedAt` is **equal** and the bodies differ, the `changed`/`changed` row
-   does **not** resolve: neither side wins, neither body is applied, and the
-   divergence MUST be reported. The `same`/`changed` row's strict `>` likewise
-   leaves an equal-`updatedAt` difference un-downloaded rather than guessing,
-   and MUST report it on the same terms. That row carries a reporting duty
-   because it is where a tie left unresolved anywhere else — including at a
-   fresh attach (§6.2 step 5) — resurfaces on every subsequent pass; without it
-   the divergence would be permanent *and* silent, and §10's claim that ties are
-   reported bilaterally would be false. An implementation MUST NOT invent a
-   tie-break — silently keeping local and silently taking remote are both
-   non-convergent, and a device choosing either disagrees permanently with a
-   peer that chose the other.
+   `updatedAt` is **equal** and the live bodies differ, the `changed`/`changed`
+   row does **not** resolve: neither side wins, neither body is applied, and
+   every distinct version MUST be queued for the user's choice (§6.6,
+   *Conflict choices*). The `same`/`changed` row's strict `>` likewise leaves
+   an equal-`updatedAt` difference un-downloaded rather than guessing, and MUST
+   queue it on the same terms. That row carries the duty because it is where a
+   tie left unresolved anywhere else — including at a fresh attach (§6.2 step
+   5) — resurfaces on every subsequent pass; without it the divergence would be
+   permanent *and* silent. Where the tied versions are all tombstones there is
+   nothing a user could choose between, and the divergence MUST be reported
+   instead. An implementation MUST NOT invent a tie-break — silently keeping
+   local and silently taking remote are both non-convergent, and a device
+   choosing either disagrees permanently with a peer that chose the other — and
+   it MUST NOT substitute a convergent rule (an ordering of body hashes, say)
+   for the user's choice: a rule that converges still discards one device's
+   edit without asking, which is the outcome this row exists to prevent
+   (@ibanner56's ruling, 2026-10-02).
+
+   **Whole-collection settings.** Four settings keys hold a whole user-built
+   collection behind one key: `custom_dialects`, `custom_themes`,
+   `shorthand_mappings` and `walkthrough_snippets`. For these, a
+   `changed`/`changed` conflict MUST be queued for the user's choice whatever
+   the two `updatedAt` values, because last-writer-wins would discard one
+   device's entire set rather than one edit. Both sides must have changed since
+   the baseline; with no baseline (a fresh attach) both count as changed. A
+   one-sided change still uploads or downloads as the table says.
 
    One tick is one second (§2), so this is reachable in ordinary use: bulk
    imports, fresh attaches, and concurrent repairs (§6.9) all produce edits that
@@ -2304,9 +2324,8 @@ any path.
 existence silently, on any path that reaches this rule.** Where the comparison
 above would resolve a local row to non-existence and that row is **absent from
 this device's baseline** — created here, never observed on any peer manifest —
-the resolution MUST be reported rather than applied, on the same terms as
-§6.3's equal-`updatedAt` divergence. Report and leave the local row in place; do
-not invent a tie-break. §6.6 step 2 states the same obligation for the
+the resolution MUST be reported rather than applied. Report and leave the local
+row in place; do not invent a tie-break. §6.6 step 2 states the same obligation for the
 natural-key collision path, which reaches non-existence without consulting this
 comparison at all; both paths need it, and neither subsumes the other. The
 obligation is shared but the **outcome is not**: §6.6 step 2 routes its pair to
@@ -2428,12 +2447,20 @@ both:
 > advance its `updatedAt`.
 
 > **I2.** No write may advance `updatedAt` while leaving both `body` and the
-> record's existence state unchanged.
+> record's existence state unchanged — except a conflict choice that keeps
+> this device's version (§6.6, *Conflict choices*).
 
 I1 protects the merge discriminator; a record's serialised form includes fields
 hydrated from other tables, so a write that never touches the record's own row
 can still change what it publishes. I2 protects the repair classifier in §6.9,
 which compares body hashes: a metadata-only re-stamp would be invisible to it.
+
+I2's one exception is the user keeping their own version in a conflict choice.
+The body is unchanged by definition, and the re-stamp is the only thing that
+lets it reach the other devices as a newer edit. It does not weaken what I2
+protects: the stamp is computed from the versions on offer and the local clock,
+and a decision that would land outside the clock window is refused rather than
+written (§6.6), so the re-stamp can never be the poisoned value §6.9 repairs.
 
 A dance's body carries a custom-field value only while that field's definition is
 live and shareable, so the definition's wire eligibility is such a join-hydrated
@@ -2444,7 +2471,7 @@ eligibility is unchanged (a private definition's delete or restore alters no
 body, so I2 forbids the stamp). The stamp is at least one stored tick past the dance's current `updated_at`, so
 it never ties or moves backward. Inbound definition writes are exempt (§6.7).
 Without the stamp two devices hold one `updatedAt` over two bodies and §6.3
-reports `equalUpdatedAt` on every pass.
+raises the same conflict on every pass.
 
 **Inbound envelope timestamp normalisation is a separate, narrower exception.**
 For `dance` and `program`, a receiver MAY change only the body's redundant
@@ -2772,6 +2799,41 @@ manifest each pass.
 
 `venues` and `published_sources` have no `UNIQUE` key and insert without
 reconciliation.
+
+#### Conflict choices (amended 2026-10-02)
+
+A record whose versions only the user can settle — an equal-`updatedAt` live
+tie (§6.3, §6.2 step 5), or a `changed`/`changed` conflict on a
+whole-collection setting (§6.3) — is queued in `review_queue` under its own
+reason:
+
+- one row per offered version that is not this device's own, with `record_id`
+  the record itself and `counterpart_id` the version's wire hash, so the
+  primary key stays unique however many devices disagree;
+- `candidate_blob` holding that version, newest copy per distinct body;
+- `local_hash` holding this device's wire hash when the row was queued, null
+  when this device holds no live copy.
+
+Every pass MUST bring the queue in line with that pass's merge: queue each
+conflict it raises, drop every queued choice it no longer raises, and leave
+untouched the rows of any address the merge skipped (a peer that could not be
+read is not evidence the conflict ended). An unchanged row keeps its
+`queued_at`. A record awaiting a choice is excluded from §6.9's
+unreflected-publication count, which would otherwise report it a second time.
+
+Deciding writes the kept version — this device's, or one of the queued
+candidates — through the inbound apply path, with `updatedAt` one tick past
+every version that was on offer, or the local clock if later, and with
+existence untouched: a content choice decides nothing about existence. A batch
+of decisions is all or none. A decision MUST be refused, writing nothing, when
+this device's copy has changed since the row was queued (its wire hash no
+longer matches `local_hash`), and when the stamp would fall outside the local
+clock window (§6.9). The written version reaches every other device as an
+ordinary newer edit, so their queued choices for that record clear on their
+next pass. If two devices decide before either syncs, the later decision wins,
+by the same last-writer-wins — unless both decisions land in the same stored
+tick with different bodies, which is itself an equal-`updatedAt` tie and is
+queued again.
 
 ### 6.7 Apply
 
@@ -3113,10 +3175,10 @@ MUST be taken. This is the one place the survivor's values win, and it does not
 reopen the rule above: at a tie there is no more-recently-edited copy to
 prefer, so nothing is lost by falling back to the ordering the merge already
 uses, while "keep local" and "take remote" are the same non-convergent pair
-§6.3 rejects. **Unlike §6.3 this path cannot report the tie and leave both
+§6.3 rejects. **Unlike §6.3 this path cannot queue the tie and leave both
 bodies in place**, because the merge has already collapsed two rows into one;
 declining to choose here would leave two devices holding different bodies under
-a single surviving id, which is the divergence §6.3's reporting duty exists to
+a single surviving id, which is the divergence §6.3's conflict choice exists to
 prevent rather than an instance of it. One tick is one second (§2), so the tie
 is reachable in ordinary use: two devices that separately entered or imported
 the same dance carry different UUIDs, and their last edits need only land in
@@ -4254,8 +4316,13 @@ test passes while one record's body lands under another's id).
 
 **Merge.** Every row of the table, both directions. A stale peer does not roll
 back newer data (mutation: remove the `updatedAt` comparison). Equal `updatedAt`
-with differing bodies ties and is reported, rather than producing a silent
-winner (mutations: break the tie by keeping local; break it by taking remote).
+with differing live bodies is queued for the user's choice from both sides,
+rather than producing a silent winner (mutations: break the tie by keeping
+local; break it by taking remote; break it by any convergent rule). A
+whole-collection setting changed on both sides is queued even when one edit is
+newer (mutation: drop the whole-collection rule). A decision converges every
+device on the kept version (mutation: stamp the decision at the tie instead of
+one tick past it).
 ≥3-device convergence with interleaved edits. A record absent from the baseline
 and present on **both** sides converges — two devices independently setting the
 same shareable settings key, whose id is the key itself, is the cheapest fixture
@@ -4369,8 +4436,9 @@ therefore matches the one a peer computes over the same visible text (mutation:
 sanitise on the inbound apply path *instead* of on write, which is the reading
 the archive decoder already models — every single-device test passes, both
 devices then hold one record id and two byte strings, and the resulting
-`changed`/`changed` has an equal `updatedAt`, so §6.3 reports it on every pass
-and no edit on either device resolves it). A second vector asserts the transform
+`changed`/`changed` has an equal `updatedAt`, so §6.3 queues it for a choice
+that no choice can settle, because both devices then re-derive the divergence
+from their own sanitisation). A second vector asserts the transform
 is a **no-op on the inbound path against conforming input**, which is what makes
 "the hash identifies the content" true; a receiver whose sanitiser can alter a
 conforming peer's bytes has broken it regardless of what the write path does.
@@ -4505,10 +4573,10 @@ remap without it, then hard-delete the survivor while a peer still advertises
 the losing id).
 
 **Attach and restore.** Epoch mismatch → fresh attach, never deletion. Union and
-silent merge. An equal-`updatedAt` fresh-attach tie is reported rather than
-swallowed, and is reported again on the next steady pass (mutation: apply the
-remote body and skip the report — a mutation that merely keeps local is
-indistinguishable from the rule). Fresh attach stays referentially closed across
+silent merge. An equal-`updatedAt` fresh-attach tie is queued for the user's
+choice rather than swallowed, and stays queued across the next steady pass
+(mutation: apply the remote body and skip the queue — a mutation that merely
+keeps local is indistinguishable from the rule). Fresh attach stays referentially closed across
 a pending hold. Three-peer fresh attach (deleter, pending holder, stale peer). A
 restore converges rather than diverging. **An attach publishes**: after
 attaching to an empty store, this device appears in §7.1's `devices` list and a
@@ -4800,19 +4868,21 @@ The following are recorded as known and are not specified here:
   on the order of one expected finding per year against 500 stores from a
   hundred attacking addresses, and ten times that from a thousand. Generated
   IDs, which is the default, are unaffected at ~2⁵².
-- Equal `updatedAt` with differing bodies does not converge on the paths that
-  compare one record against its own counterpart (§6.2 step 5, §6.3). The
-  divergence is reported bilaterally rather than resolved, because every
-  tie-break available *there* is non-convergent. §6.10's dance merge is not an
-  exception: having already collapsed two rows into one, it has the surviving
-  UUID to order by, and takes that row's value. These paths differ in what they
-  can still decline to do, not in how they read a clock.
+- Equal `updatedAt` with differing bodies does not converge on its own on the
+  paths that compare one record against its own counterpart (§6.2 step 5,
+  §6.3). It is queued for the user's choice on every device that sees it, and
+  converges once anyone decides; until then the devices differ. No automatic
+  rule decides it: the non-convergent ones disagree forever, and a convergent
+  one discards an edit without asking (@ibanner56's ruling, 2026-10-02).
+  §6.10's dance merge is not an exception: having already collapsed two rows
+  into one, it has the surviving UUID to order by, and takes that row's value.
+  These paths differ in what they can still decline to do, not in how they read
+  a clock.
 - **The baseline-absence guard diverges by design** (§6.4). Where §6.4's copy
   fires, the creating device reports and keeps its row while the deleting
   device applies its own tombstone and reports nothing, so the two hold
   different states permanently until a human acts. That is the intended trade —
-  a reported divergence in place of a silent loss — and it is structurally the
-  same accepted case as the equal-`updatedAt` entry above. **§6.6 step 2's copy
+  a reported divergence in place of a silent loss. **§6.6 step 2's copy
   is deliberately not listed here.** It routes to `review_queue` instead of
   reporting, so its divergence lasts until the user answers a question they
   were actually asked, rather than until a human happens to notice a report.

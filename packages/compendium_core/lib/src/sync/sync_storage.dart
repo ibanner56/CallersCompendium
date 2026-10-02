@@ -32,7 +32,8 @@ import 'sync_admission.dart';
 import 'sync_codec.dart';
 import 'sync_id.dart';
 import 'sync_merge.dart';
-import 'sync_quarantine.dart' show syncRecordReferences;
+import 'sync_quarantine.dart'
+    show syncQuarantineWindowEnd, syncRecordReferences;
 import 'sync_record_kind.dart';
 import 'sync_reconciliation.dart';
 import 'sync_report.dart';
@@ -1354,6 +1355,216 @@ final class CompendiumSyncStorage
   @override
   Future<T> transaction<T>(Future<T> Function() action) =>
       repositories.transaction(action);
+
+  /// Brings the queued conflict choices in line with one pass's merge
+  /// (sync-spec §6.3, §6.6).
+  ///
+  /// Queues one row per version the user may choose that is not this
+  /// device's own, and drops every queued choice the merge no longer raises —
+  /// typically because the user decided on another device and that decision,
+  /// stamped past the tie, arrived here as an ordinary newer edit. Addresses in
+  /// [unevaluated] were skipped by the merge, so their rows are kept untouched:
+  /// a peer that could not be read this pass is not evidence the conflict
+  /// ended. An unchanged row keeps its `queued_at`. Returns how many rows
+  /// this call added.
+  Future<int> refreshConflictReviews(
+    Iterable<SyncMergeDecision> reviews, {
+    Set<SyncRecordAddress> unevaluated = const {},
+  }) => repositories.transaction(() async {
+    final expected =
+        <(SyncRecordKind, String, String), ({String blob, String? local})>{};
+    for (final decision in reviews) {
+      final conflict = decision.conflict;
+      if (conflict == null) continue;
+      for (final candidate in conflict.candidates) {
+        expected[(
+          decision.address.kind,
+          decision.address.recordId,
+          candidate.wireHash,
+        )] = (
+          blob: encodeSyncRecordBlob(candidate.blob),
+          local: conflict.local?.wireHash,
+        );
+      }
+    }
+    final existing = {
+      for (final row in await repositories.syncLocal.listReviewQueue())
+        if (row.reason == syncConflictChoiceReason)
+          (row.kind, row.recordId, row.counterpartId): row,
+    };
+    for (final entry in existing.entries) {
+      final (kind, recordId, _) = entry.key;
+      if (unevaluated.contains((kind: kind, recordId: recordId))) continue;
+      final want = expected[entry.key];
+      if (want != null &&
+          want.blob == entry.value.candidateBlob &&
+          want.local == entry.value.localHash) {
+        continue;
+      }
+      await repositories.syncLocal.deleteReview(
+        kind: kind,
+        recordId: recordId,
+        counterpartId: entry.key.$3,
+      );
+    }
+    var added = 0;
+    final queuedAt = DateTime.now().toUtc();
+    for (final entry in expected.entries) {
+      final current = existing[entry.key];
+      if (current != null &&
+          current.candidateBlob == entry.value.blob &&
+          current.localHash == entry.value.local) {
+        continue;
+      }
+      final (kind, recordId, hash) = entry.key;
+      await repositories.syncLocal.enqueueReview(
+        kind: kind,
+        recordId: recordId,
+        counterpartId: hash,
+        reason: syncConflictChoiceReason,
+        candidateBlob: entry.value.blob,
+        candidateHash: hash,
+        localHash: entry.value.local,
+        queuedAt: queuedAt,
+      );
+      if (current == null) added++;
+    }
+    return added;
+  });
+
+  /// Applies the user's conflict choices, all or none.
+  ///
+  /// Each kept version is written with `updatedAt` one tick past every
+  /// version that was on offer (or the clock, if later), so it reaches every
+  /// other device as an ordinary newer edit and their queued choices clear on
+  /// their next pass. Keeping this device's own version re-stamps an
+  /// unchanged body: the one write I2 permits for that reason (§6.5).
+  /// Existence is not touched — a content choice must not revive or delete.
+  ///
+  /// Writes go through the inbound apply engine, so the kept version is
+  /// admitted, reference-checked and overlaid exactly like a peer's blob, and
+  /// a local edit made since the choice was queued refuses the whole batch
+  /// rather than being overwritten. Returns the kinds written, so the caller
+  /// can reload in-memory preferences when a setting changed.
+  Future<Set<SyncRecordKind>> resolveConflicts(
+    Iterable<SyncConflictDecision> decisions, {
+    DateTime Function()? now,
+  }) => repositories.transaction(() async {
+    final clockNow = (now ?? DateTime.now)().toUtc();
+    final localNow = DateTime.fromMillisecondsSinceEpoch(
+      clockNow.millisecondsSinceEpoch - clockNow.millisecondsSinceEpoch % 1000,
+      isUtc: true,
+    );
+    final snapshot = await this.snapshot();
+    final local = {...snapshot.local, ...snapshot.pendingLive};
+    final rows = [
+      for (final row in await repositories.syncLocal.listReviewQueue())
+        if (row.reason == syncConflictChoiceReason) row,
+    ];
+    final writes = <SyncMergeCandidate>[];
+    final expected = <SyncRecordAddress, String?>{};
+    final decided = <SyncRecordAddress>{};
+    for (final decision in decisions) {
+      final address = (kind: decision.kind, recordId: decision.recordId);
+      if (!decided.add(address)) continue;
+      final recordRows = [
+        for (final row in rows)
+          if (row.kind == decision.kind && row.recordId == decision.recordId)
+            row,
+      ];
+      if (recordRows.isEmpty) {
+        throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
+      }
+      final current = local[address];
+      final localLive = current != null && !current.isDeleted ? current : null;
+      if (recordRows.any((row) => row.localHash != current?.wireHash)) {
+        throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
+      }
+      final offered = <SyncRecordBlob>[];
+      for (final row in recordRows) {
+        final SyncRecordBlob blob;
+        try {
+          blob = decodeSyncRecordBlob(row.candidateBlob);
+        } on Object {
+          throw const SyncReviewException(
+            SyncReviewFailureCode.candidateInvalid,
+          );
+        }
+        if (sha256Hex(encodeSyncRecordBlobUtf8(blob)) != row.candidateHash ||
+            row.counterpartId != row.candidateHash ||
+            blob.kind != decision.kind ||
+            blob.id != decision.recordId ||
+            blob.deletedAt != null) {
+          throw const SyncReviewException(
+            SyncReviewFailureCode.candidateInvalid,
+          );
+        }
+        offered.add(blob);
+      }
+      final SyncRecordBlob kept;
+      final keepHash = decision.keepCandidateHash;
+      if (keepHash == null) {
+        if (localLive == null) {
+          throw const SyncReviewException(SyncReviewFailureCode.targetMissing);
+        }
+        kept = localLive.blob;
+      } else {
+        final index = recordRows.indexWhere(
+          (row) => row.candidateHash == keepHash,
+        );
+        if (index < 0) {
+          throw const SyncReviewException(
+            SyncReviewFailureCode.candidateChanged,
+          );
+        }
+        kept = offered[index];
+      }
+      var latest = kept.updatedAt;
+      for (final blob in [?localLive?.blob, ...offered]) {
+        if (blob.updatedAt.isAfter(latest)) latest = blob.updatedAt;
+      }
+      final superseding = latest.toUtc().add(existenceStampTick);
+      final stamp = superseding.isAfter(localNow) ? superseding : localNow;
+      if (stamp.isAfter(syncQuarantineWindowEnd(clockNow))) {
+        throw const SyncReviewException(SyncReviewFailureCode.clockOutOfRange);
+      }
+      final admission = admitSyncInboundCandidate(
+        SyncMergeCandidate.fromBlob(
+          SyncRecordBlob(
+            v: kept.v,
+            kind: kept.kind,
+            id: kept.id,
+            updatedAt: stamp,
+            deletedAt: null,
+            existenceAt: localLive?.existenceAt ?? kept.existenceAt,
+            body: kept.body,
+          ),
+        ),
+      );
+      final admitted = admission.candidate;
+      if (admitted == null) {
+        throw const SyncReviewException(SyncReviewFailureCode.candidateInvalid);
+      }
+      writes.add(admitted);
+      expected[address] = current?.wireHash;
+    }
+    final result = await SyncApplyEngine(
+      now: () => clockNow,
+    ).apply(candidates: writes, storage: this, expectedWireHashes: expected);
+    if (result.applied.toSet().length != writes.length) {
+      throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
+    }
+    for (final row in rows) {
+      if (decided.contains((kind: row.kind, recordId: row.recordId))) {
+        await repositories.syncLocal.deleteReview(
+          kind: row.kind,
+          recordId: row.recordId,
+          counterpartId: row.counterpartId,
+        );
+      }
+    }
+    return {for (final address in decided) address.kind};
+  });
 
   /// Resolves persisted W8 choreography and W14 tombstone review decisions.
   ///

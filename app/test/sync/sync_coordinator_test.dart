@@ -3523,14 +3523,16 @@ void main() {
   test(
     'skips a remote winner when its local address changed mid-pass',
     () async {
+      // An ordinary preference: a whole-collection key changed on both
+      // sides would go to review, never reaching the apply this test guards.
       final local = SyncMergeCandidate.fromBlob(
-        _setting('custom_dialects', 'local'),
+        _setting('theme_mode', 'local'),
       );
       final concurrent = SyncMergeCandidate.fromBlob(
-        _setting('custom_dialects', 'concurrent', seconds: 1),
+        _setting('theme_mode', 'concurrent', seconds: 1),
       );
       final remote = SyncMergeCandidate.fromBlob(
-        _setting('custom_dialects', 'remote', seconds: 2),
+        _setting('theme_mode', 'remote', seconds: 2),
       );
       final store = _FakeStore(
         local: {local.address: local},
@@ -3573,7 +3575,7 @@ void main() {
         utf8.decode(transport.manifestBodies.single),
       );
       expect(
-        manifest.records[SyncRecordKind.setting]!['custom_dialects'],
+        manifest.records[SyncRecordKind.setting]!['theme_mode'],
         concurrent.wireHash,
       );
     },
@@ -3849,7 +3851,8 @@ void main() {
     },
   );
 
-  test('an equal-time peer tie does not advance the baseline', () async {
+  test('an equal-time peer tie is queued for the user and does not advance '
+      'the baseline', () async {
     final local = SyncMergeCandidate.fromBlob(
       _setting('custom_dialects', 'local'),
     );
@@ -3892,12 +3895,101 @@ void main() {
 
     expect(
       result.reports.map((report) => report.code),
-      contains(SyncReportCode.equalUpdatedAt),
+      isNot(contains(SyncReportCode.equalUpdatedAt)),
+      reason: 'a queued choice replaces the report raised every pass',
     );
+    final queued = store.conflictReviewCalls.single;
+    expect(queued.single.address, local.address);
+    expect(queued.single.conflict!.candidates.single.wireHash, remote.wireHash);
     expect(store.freshAttachDedupeCalls, 0);
     expect(store.steadyStateReviewRefreshCalls, 1);
     expect(store.advancedEntries, isEmpty);
   });
+
+  test('a choice queued in an earlier pass is not reported as unreflected '
+      'even when this pass raises no conflict for it', () async {
+    // The peer never carries this device's version; what keeps the record
+    // out of the count is the queued choice alone, as when its peer blob was
+    // unreadable this pass and the merge skipped it.
+    final local = SyncMergeCandidate.fromBlob(_setting('theme_mode', 'local'));
+    final other = SyncMergeCandidate.fromBlob(
+      _setting('reduce_motion', 'other'),
+    );
+    final store = _FakeStore(local: {local.address: local})
+      ..queuedConflicts = {local.address};
+    final transport = _FakeTransport(
+      devices: ['peer'],
+      peerManifest: _manifest(
+        deviceId: 'peer',
+        records: {
+          SyncRecordKind.setting: {other.blob.id: other.wireHash},
+        },
+      ),
+      blobResponses: {
+        other.wireHash: _FakeTransport.response(
+          200,
+          body: utf8.encode(encodeSyncRecordBlob(other.blob)),
+        ),
+      },
+    );
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: store,
+      transport: transport,
+    );
+
+    final codes = <SyncReportCode>[];
+    for (var pass = 0; pass < 4; pass++) {
+      final result = await coordinator.syncNow();
+      codes.addAll(result.reports.map((report) => report.code));
+    }
+
+    expect(codes, isNot(contains(SyncReportCode.unreflectedPublication)));
+  });
+
+  test(
+    "a record awaiting the user's choice is not reported as unreflected",
+    () async {
+      final local = SyncMergeCandidate.fromBlob(
+        _setting('theme_mode', 'local'),
+      );
+      final remote = SyncMergeCandidate.fromBlob(
+        _setting('theme_mode', 'remote'),
+      );
+      final store = _FakeStore(local: {local.address: local});
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        peerManifest: _manifest(
+          deviceId: 'peer',
+          records: {
+            SyncRecordKind.setting: {remote.blob.id: remote.wireHash},
+          },
+        ),
+        blobResponses: {
+          remote.wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(remote.blob)),
+          ),
+        },
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+      );
+
+      final codes = <SyncReportCode>[];
+      for (var pass = 0; pass < 4; pass++) {
+        final result = await coordinator.syncNow();
+        codes.addAll(result.reports.map((report) => report.code));
+      }
+
+      expect(store.conflictReviewCalls, hasLength(4));
+      expect(codes, isNot(contains(SyncReportCode.unreflectedPublication)));
+    },
+  );
 
   test('filters noncanonical peer candidates before merge planning', () async {
     final noncanonical = SyncRecordBlob(
@@ -4285,6 +4377,16 @@ final class _SnapshotInterleavingStore
       _delegate.refreshDanceAmbiguityReviews();
 
   @override
+  Future<int> refreshConflictReviews(
+    Iterable<SyncMergeDecision> reviews, {
+    Set<SyncRecordAddress> unevaluated = const {},
+  }) => _delegate.refreshConflictReviews(reviews, unevaluated: unevaluated);
+
+  @override
+  Future<Set<SyncRecordAddress>> queuedConflictAddresses() =>
+      _delegate.queuedConflictAddresses();
+
+  @override
   Future<void> replaceBaseline({
     required String epoch,
     required Iterable<SyncBaselineEntry> entries,
@@ -4576,6 +4678,25 @@ final class _FakeStore implements SyncCoordinatorStore {
     steadyStateReviewRefreshCalls++;
     return const SyncFreshAttachDedupeResult(duplicateCount: 0, reports: []);
   }
+
+  /// Every pass's conflict reviews, in call order.
+  final List<List<SyncMergeDecision>> conflictReviewCalls = [];
+
+  @override
+  Future<int> refreshConflictReviews(
+    Iterable<SyncMergeDecision> reviews, {
+    Set<SyncRecordAddress> unevaluated = const {},
+  }) async {
+    conflictReviewCalls.add(reviews.toList());
+    return 0;
+  }
+
+  /// Conflict choices already queued, as storage would return them.
+  Set<SyncRecordAddress> queuedConflicts = {};
+
+  @override
+  Future<Set<SyncRecordAddress>> queuedConflictAddresses() async =>
+      queuedConflicts;
 
   @override
   Future<void> replaceBaseline({
