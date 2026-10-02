@@ -102,12 +102,18 @@ flutter:
     # #633) — not a variable font, and not registered as a Flutter `fonts:`
     # family since it's loaded directly via `pw.Font.ttf` for PDF export only.
     - assets/fonts/ProgramMatrixMarkers-Regular.ttf
+    # Static `fonttools subset` of Noto Sans JP Regular (OFL), used only as the
+    # PDF theme's `fontFallback` so Japanese text renders instead of boxes
+    # (see program_pdf.dart). Hiragana, Katakana, CJK/fullwidth punctuation and
+    # the JIS X 0208 level 1 kanji; not a Flutter `fonts:` family.
+    - assets/fonts/NotoSansJP-Regular-Subset.ttf
     # Bundled font license texts, loaded at runtime via LicenseRegistry so
     # they appear in showLicensePage (Settings ▸ About ▸ View licenses).
     - assets/fonts/Fraunces-OFL.txt
     - assets/fonts/AtkinsonHyperlegible-OFL.txt
     - assets/fonts/Roboto-OFL.txt
     - assets/fonts/NotoSansSymbols2-OFL.txt
+    - assets/fonts/NotoSansJP-OFL.txt
     # License text of the `fmptools` project that fmp_reader.dart and scsu.dart
     # are ported from (MIT — the notice must ship with the port, #1392). Loaded
     # the same way, via licenses.dart.

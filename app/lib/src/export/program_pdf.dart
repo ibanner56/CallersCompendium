@@ -26,6 +26,18 @@ import 'program_figure_widgets.dart';
 /// on-screen. These are pinned-axis instances of the exact same upstream
 /// Roboto (same family/copyright/license, see `Roboto-OFL.txt`), generated
 /// with `fonttools varLib.instancer`.
+///
+/// Roboto has no CJK glyphs, and the `pdf` package draws a placeholder box
+/// for any rune no font covers (printing a notice only inside an `assert`, so
+/// release builds are silent). The theme therefore carries a
+/// [pw.TextStyle.fontFallback] of `NotoSansJP-Regular-Subset.ttf` — a static
+/// (`fvar`-free) `fonttools subset` of Noto Sans JP (SIL OFL 1.1) holding
+/// Hiragana, Katakana, CJK/fullwidth punctuation and forms, and the JIS X 0208
+/// level 1 kanji (plus the kanji the app's own Japanese strings use). It is
+/// needed in *every* UI language, since a Japanese program or dance title
+/// prints in an English export too. Kanji outside the subset (JIS level 2,
+/// Simplified Chinese, Hangul) still draw as boxes. The fallback has no bold
+/// face, so CJK text inside a bold heading is drawn at regular weight.
 pw.ThemeData? _cachedTheme;
 
 Future<pw.ThemeData> loadProgramPdfTheme() async {
@@ -42,10 +54,14 @@ Future<pw.ThemeData> loadProgramPdfTheme() async {
   final regularFuture = rootBundle.load('assets/fonts/Roboto-Regular.ttf');
   final boldFuture = rootBundle.load('assets/fonts/Roboto-Bold.ttf');
   final italicFuture = rootBundle.load('assets/fonts/Roboto-Italic.ttf');
+  final cjkFuture = rootBundle.load(
+    'assets/fonts/NotoSansJP-Regular-Subset.ttf',
+  );
   return _cachedTheme = pw.ThemeData.withFont(
     base: pw.Font.ttf(await regularFuture),
     bold: pw.Font.ttf(await boldFuture),
     italic: pw.Font.ttf(await italicFuture),
+    fontFallback: [pw.Font.ttf(await cjkFuture)],
   );
 }
 
@@ -202,6 +218,7 @@ Future<Uint8List> buildProgramPdf(
                   )
                 : program.notes.trim(),
             style: const pw.TextStyle(fontSize: 12),
+            overflow: pw.TextOverflow.span,
           ),
         ],
         if (appendDances != null && appendDances.isNotEmpty) ...[
@@ -312,6 +329,7 @@ List<pw.Widget> _figureAppendixWidgets(
                   )
                 : renderer.renderFreeText(dance.callingNotes.trim(), dialect),
             style: const pw.TextStyle(fontSize: 11),
+            overflow: pw.TextOverflow.span,
           ),
         );
       }
@@ -333,6 +351,7 @@ List<pw.Widget> _figureAppendixWidgets(
                   )
                 : renderer.renderFreeText(dance.walkthrough.trim(), dialect),
             style: const pw.TextStyle(fontSize: 11),
+            overflow: pw.TextOverflow.span,
           ),
         );
       }
@@ -375,12 +394,18 @@ List<pw.Widget> _slotWidgets(
       canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
       authorNamesFor: authorNamesFor,
     );
+    // Slot lines are direct `pw.Text(overflow: span)` children, spaced with
+    // `SizedBox`es: `pw.Padding` is not a `SpanningWidget`, so a note longer
+    // than a page inside one would make `MultiPage` throw.
+    widgets.add(pw.SizedBox(height: 2));
     widgets.add(
-      pw.Padding(
-        padding: const pw.EdgeInsets.symmetric(vertical: 2),
-        child: pw.Text('$n. $primary', style: const pw.TextStyle(fontSize: 13)),
+      pw.Text(
+        '$n. $primary',
+        style: const pw.TextStyle(fontSize: 13),
+        overflow: pw.TextOverflow.span,
       ),
     );
+    widgets.add(pw.SizedBox(height: 2));
     for (final alt in group.alternates) {
       final alternate = _slotLine(
         alt,
@@ -391,15 +416,15 @@ List<pw.Widget> _slotWidgets(
         canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
         authorNamesFor: authorNamesFor,
       );
+      widgets.add(pw.SizedBox(height: 1));
       widgets.add(
-        pw.Padding(
-          padding: const pw.EdgeInsets.only(left: 20, top: 1, bottom: 1),
-          child: pw.Text(
-            '${labels.alt}: $alternate',
-            style: pw.TextStyle(fontSize: 12, color: PdfColors.grey700),
-          ),
+        pw.Text(
+          '${labels.alt}: $alternate',
+          style: pw.TextStyle(fontSize: 12, color: PdfColors.grey700),
+          overflow: pw.TextOverflow.span,
         ),
       );
+      widgets.add(pw.SizedBox(height: 1));
     }
     n++;
   }
