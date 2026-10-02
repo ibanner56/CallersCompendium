@@ -2136,6 +2136,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get backupChooseFileAction => 'Choisir un fichier…';
 
   @override
+  String get backupChooseFileFailed => 'Impossible de lire ce fichier.';
+
+  @override
   String get backupPasteJsonLabel => 'Ou collez le JSON de sauvegarde';
 
   @override

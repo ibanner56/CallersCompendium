@@ -2114,6 +2114,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get backupChooseFileAction => 'Bestand kiezen…';
 
   @override
+  String get backupChooseFileFailed => 'Dat bestand kon niet worden gelezen.';
+
+  @override
   String get backupPasteJsonLabel => 'Of plak back-up JSON';
 
   @override

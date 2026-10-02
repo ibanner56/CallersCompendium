@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/sync_writer_lifecycle_scope.dart';
@@ -579,6 +580,97 @@ void main() {
     expect(find.textContaining('too large'), findsOneWidget);
     final dances = await repos.dances.listAll();
     expect(dances.map((d) => d.id), ['stale']);
+  });
+
+  testWidgets('a picker that throws FormatException shows a message', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpGeneral(
+      tester,
+      repos,
+      picker: () async => throw const FormatException('bad utf-8'),
+    );
+    final l10n = AppLocalizations.of(
+      tester.element(find.byType(SettingsScreen)),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('restore-choose-file')));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.backupRestoreInvalidFile), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a picker that throws another Object shows a generic message', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpGeneral(
+      tester,
+      repos,
+      picker: () async => throw StateError('picker'),
+    );
+    final l10n = AppLocalizations.of(
+      tester.element(find.byType(SettingsScreen)),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('restore-choose-file')));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.backupChooseFileFailed), findsOneWidget);
+  });
+
+  testWidgets('a saver that throws an Error shows backupExportFailed', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpGeneral(
+      tester,
+      repos,
+      saver: (_, _) async => throw StateError('disk'),
+    );
+    final l10n = AppLocalizations.of(
+      tester.element(find.byType(SettingsScreen)),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('backup-export-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.backupExportFailed), findsOneWidget);
+  });
+
+  testWidgets('a double tap on Export calls the saver once', (tester) async {
+    final repos = openTestRepositories();
+    final gate = Completer<bool>();
+    var calls = 0;
+    await _pumpGeneral(
+      tester,
+      repos,
+      saver: (_, _) {
+        calls++;
+        return gate.future;
+      },
+    );
+
+    final button = find.byKey(const ValueKey('backup-export-button'));
+    await tester.tap(button);
+    await tester.pump();
+    await tester.tap(button);
+    await tester.pump();
+    gate.complete(true);
+    await tester.pumpAndSettle();
+
+    expect(calls, 1);
+
+    // The flag is cleared afterwards: a later export runs again.
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+    expect(calls, 2);
   });
 
   testWidgets(

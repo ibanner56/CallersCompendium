@@ -2574,6 +2574,10 @@
   "@backupChooseFileAction": {
     "description": "Button label in the restore-from-backup dialog that opens a file chooser."
   },
+  "backupChooseFileFailed": "Couldn't read that file.",
+  "@backupChooseFileFailed": {
+    "description": "Snackbar shown in the restore-from-backup dialog when the chosen file could not be read for a reason other than being too large or not a valid backup."
+  },
   "backupPasteJsonLabel": "Or paste backup JSON",
   "@backupPasteJsonLabel": {
     "description": "Text field label in the restore-from-backup dialog for pasting raw backup JSON."
