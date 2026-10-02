@@ -54,7 +54,40 @@ class SyncMergeCandidate {
 }
 
 /// The action required for one address after comparing all available copies.
-enum SyncMergeAction { none, upload, download, report, dropBaseline }
+///
+/// [review] leaves both sides untouched and hands the user the choice
+/// (sync-spec §6.3): differing bodies at an equal `updatedAt`, which no
+/// convergent rule may decide on the user's behalf, and a changed/changed
+/// conflict on a whole-collection setting, where last-writer-wins would discard
+/// one device's entire set.
+enum SyncMergeAction { none, upload, download, report, review, dropBaseline }
+
+/// The settings keys whose single value is a whole user-built collection.
+///
+/// A changed/changed conflict on one of these is routed to review instead of
+/// resolved by last-writer-wins, because the losing side is not one edit but
+/// every dialect, theme, shorthand or snippet that device holds (ADR-004,
+/// *Consequences*). The app declares the same keys beside the controllers that
+/// own them; `app/test/sync/sync_whole_collection_keys_test.dart` holds the
+/// two together.
+const Set<String> syncWholeCollectionSettingKeys = {
+  'custom_dialects',
+  'custom_themes',
+  'shorthand_mappings',
+  'walkthrough_snippets',
+};
+
+/// A conflict the user must decide: the versions on offer for one record.
+///
+/// [local] is this device's live copy, when it holds one. [candidates] are the
+/// other versions, one per distinct body, each the newest copy of that body.
+/// Neither is applied; storage queues them for review (sync-spec §6.6).
+class SyncMergeConflict {
+  const SyncMergeConflict({required this.local, required this.candidates});
+
+  final SyncMergeCandidate? local;
+  final List<SyncMergeCandidate> candidates;
+}
 
 /// One result of the total baseline merge table.
 class SyncMergeDecision {
@@ -63,12 +96,16 @@ class SyncMergeDecision {
     required this.action,
     this.winner,
     this.report,
+    this.conflict,
   });
 
   final SyncRecordAddress address;
   final SyncMergeAction action;
   final SyncMergeCandidate? winner;
   final SyncReport? report;
+
+  /// Set exactly when [action] is [SyncMergeAction.review].
+  final SyncMergeConflict? conflict;
 
   bool get changesLocalState =>
       action == SyncMergeAction.download ||
@@ -88,6 +125,9 @@ class SyncMergePlan {
   Iterable<SyncMergeDecision> get downloads => decisions.where(
     (decision) => decision.action == SyncMergeAction.download,
   );
+
+  Iterable<SyncMergeDecision> get reviews =>
+      decisions.where((decision) => decision.action == SyncMergeAction.review);
 }
 
 /// One deterministic live-dance merge discovered during a fresh attach.
@@ -462,7 +502,15 @@ class SyncMergeEngine {
           baselineEntry: baselineEntry,
           freshAttach: freshAttach,
         );
-        if (resolution.report != null) {
+        if (resolution.conflict != null) {
+          decisions.add(
+            SyncMergeDecision(
+              address: address,
+              action: SyncMergeAction.review,
+              conflict: resolution.conflict,
+            ),
+          );
+        } else if (resolution.report != null) {
           reports.add(resolution.report!);
           decisions.add(
             SyncMergeDecision(
@@ -489,6 +537,16 @@ class SyncMergeEngine {
         baselineEntry: baselineEntry,
         freshAttach: freshAttach,
       );
+      if (resolution.conflict != null) {
+        decisions.add(
+          SyncMergeDecision(
+            address: address,
+            action: SyncMergeAction.review,
+            conflict: resolution.conflict,
+          ),
+        );
+        continue;
+      }
       if (resolution.report != null) {
         reports.add(resolution.report!);
         decisions.add(
@@ -583,6 +641,13 @@ class SyncMergeEngine {
         contentCandidates = [local, ...changedRemotes];
       }
     }
+    final wholeCollection = _wholeCollectionConflict(
+      local: local,
+      contentCandidates: contentCandidates,
+      baselineEntry: baselineEntry,
+      deletedWins: deletedWins,
+    );
+    if (wholeCollection != null) return _Resolution.review(wholeCollection);
     final maximumUpdated = contentCandidates
         .map((candidate) => candidate.updatedAt)
         .reduce((left, right) => left.isAfter(right) ? left : right);
@@ -593,6 +658,18 @@ class SyncMergeEngine {
         .map((candidate) => candidate.bodyHash)
         .toSet();
     if (hashes.length > 1) {
+      // A live tie goes to the user (§6.3): there is no newer edit to prefer,
+      // and any rule that picked one would discard the other without asking.
+      // A tie between tombstones offers nothing a user could meaningfully
+      // choose between, so it stays a report.
+      if (!deletedWins) {
+        return _Resolution.review(
+          _conflict(
+            local: local != null && !local.isDeleted ? local : null,
+            offered: updatedWinners,
+          ),
+        );
+      }
       final first = updatedWinners.first;
       return _Resolution.report(
         SyncReport(
@@ -631,6 +708,71 @@ class SyncMergeEngine {
     return _Resolution.winner(winner);
   }
 
+  /// A changed/changed conflict on a whole-collection setting, or null.
+  ///
+  /// The conflict is between every version that changed since the baseline
+  /// — this device's and any peer's alike; with no baseline (a fresh attach,
+  /// or a key the devices never agreed on) every version counts as changed.
+  /// Two or more distinct changed bodies go to review, whichever devices hold
+  /// them: two peers that each changed the set while this device held the
+  /// agreed one, or held none, would otherwise have the newer set silently
+  /// discard the other. A single changed version is an ordinary one-sided
+  /// edit and syncs normally.
+  SyncMergeConflict? _wholeCollectionConflict({
+    required SyncMergeCandidate? local,
+    required List<SyncMergeCandidate> contentCandidates,
+    required SyncBaselineEntry? baselineEntry,
+    required bool deletedWins,
+  }) {
+    if (deletedWins || contentCandidates.isEmpty) return null;
+    final key = contentCandidates.first.blob;
+    if (key.kind != SyncRecordKind.setting ||
+        !syncWholeCollectionSettingKeys.contains(key.id)) {
+      return null;
+    }
+    final changed = [
+      for (final candidate in contentCandidates)
+        if (!candidate.isDeleted &&
+            (baselineEntry == null ||
+                candidate.wireHash != baselineEntry.wireHash))
+          candidate,
+    ];
+    if (changed.map((candidate) => candidate.bodyHash).toSet().length < 2) {
+      return null;
+    }
+    return _conflict(
+      local: local != null && !local.isDeleted ? local : null,
+      offered: changed,
+    );
+  }
+
+  /// Builds the user's choice: this device's live copy, plus one candidate
+  /// per distinct non-local body. Each is the newest copy of its body, ties
+  /// broken by wire hash, so every pass queues the same rows.
+  SyncMergeConflict _conflict({
+    required SyncMergeCandidate? local,
+    required List<SyncMergeCandidate> offered,
+  }) {
+    final byBody = <String, SyncMergeCandidate>{};
+    for (final candidate in offered) {
+      if (identical(candidate, local)) continue;
+      if (local != null && candidate.bodyHash == local.bodyHash) continue;
+      final current = byBody[candidate.bodyHash];
+      if (current == null ||
+          candidate.updatedAt.isAfter(current.updatedAt) ||
+          (candidate.updatedAt == current.updatedAt &&
+              candidate.wireHash.compareTo(current.wireHash) < 0)) {
+        byBody[candidate.bodyHash] = candidate;
+      }
+    }
+    final candidates = byBody.values.toList()
+      ..sort((left, right) => left.wireHash.compareTo(right.wireHash));
+    return SyncMergeConflict(
+      local: local,
+      candidates: List.unmodifiable(candidates),
+    );
+  }
+
   static int _compareAddress(SyncRecordAddress left, SyncRecordAddress right) {
     final kind = left.kind.index.compareTo(right.kind.index);
     return kind == 0 ? left.recordId.compareTo(right.recordId) : kind;
@@ -638,13 +780,17 @@ class SyncMergeEngine {
 }
 
 class _Resolution {
-  const _Resolution._({this.winner, this.report});
+  const _Resolution._({this.winner, this.report, this.conflict});
 
   const _Resolution.winner(SyncMergeCandidate candidate)
     : this._(winner: candidate);
 
   const _Resolution.report(SyncReport report) : this._(report: report);
 
+  const _Resolution.review(SyncMergeConflict conflict)
+    : this._(conflict: conflict);
+
   final SyncMergeCandidate? winner;
   final SyncReport? report;
+  final SyncMergeConflict? conflict;
 }

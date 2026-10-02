@@ -71,37 +71,6 @@ the full picture.
   then purged. For how soft-delete and restore work, see
   [Collection & search](./collection.md).
 
-### Sync decisions
-
-- **Sync decisions** — review conflicts that [Device Sync](#device-sync)
-  couldn't settle on its own, and choose how each one is resolved. Three kinds of
-  conflict offer a decision:
-  - **A device deleted something another device still has.** One of your
-    devices deleted a choreographer, tag, custom field, or difficulty level
-    that this device had already created on its own under the same name,
-    before either device had seen the other's copy. **Merge** accepts the
-    deletion, so this device's copy goes too. **Keep both** gives this
-    device's record a new, distinct name so it survives alongside the
-    deletion. Dances never enter this decision; they use the dance one below.
-  - **Another device renamed a record onto a name this device already uses.**
-    Both records already exist here — they may well be two different people or
-    two different tags — so nothing is merged behind your back. **Merge** keeps
-    one record and points everything that referred to the other at it.
-    **Keep both** asks you for a new name for the record that currently holds
-    the name, and then applies the other device's rename. Until you choose, the
-    other device's change is not applied.
-
-    Merging two choreographers is the one case that loses something: an email
-    address, location, and deceased marker are kept only on your own device and
-    are never sent to your other devices, so the ones on the record that is not
-    kept cannot be recovered. The app asks you to confirm before this happens.
-  - **Two devices independently created dances with the same title but
-    different choreography.** This turns up when a device first connects to a
-    store that already has dances in it. **Merge** combines the two dances into
-    one. **Keep both** renames one of the dances so both are kept separately.
-  Any other kind of conflict is listed and kept as it is, with no action to
-  choose.
-
 ### Import
 
 - **Import dances** — the entry point for bringing dances in from other sources.
@@ -589,8 +558,9 @@ Sync is off and open while it is on.
   report. A sync can finish successfully and still leave one of these standing,
   which is the point of them: the conditions they name are ones the app will
   not guess its way out of. You'll see a notice when the same record was
-  changed on two devices in the same moment and neither copy could be chosen
-  (edit either one to settle it); when something created here was kept rather
+  changed on two devices in the same moment and isn't something you can pick
+  a version of here (if it's listed under **Sync decisions**, choose there;
+  otherwise edit either one to settle it); when something created here was kept rather
   than removed by a device that had never seen it; when something on *this*
   device has a date the app can't trust, so it isn't being sent anywhere
   (check this device's clock); when some dances here have saved figures or
@@ -766,6 +736,70 @@ on, the [venue](./glossary.md#venue) editor shows a note on a venue whose
 address and contact fields are blank, naming exactly those fields. (Notes
 does sync — if you've put contact information there, it travels with the
 note.)
+
+#### Choosing which version to keep
+
+Sometimes the same item is changed on two of your devices before they've
+synced — the same setting changed in the same second, say, or your dialects
+edited on both a laptop and a phone. The app can't tell which change you meant
+to keep, so it doesn't pick one: both versions stay as they are, and it asks
+you.
+
+- On the **Collection** and **Programs** pages, the **Sync now** button shows a
+  number badge while anything is waiting for your choice. When a sync you
+  started finds something new to choose, the choice opens straight away.
+- In **Device Sync**, **Choose which version to keep** lists everything that's
+  waiting.
+
+For each item you see **This device** and **Another device**, with a short
+description of each version — the value of a setting, the names in a list, or
+how many details differ. Nothing is selected for you. Pick the version you want
+for each item, then choose **Keep selected**; with several items, **Keep all
+from this device** or **Keep all from the other device** fills in every choice
+at once, and you still confirm. **Decide later** closes the list and changes
+nothing.
+
+The version you keep becomes the newest edit, so your other devices take it
+the next time they sync and stop asking. If you choose on two devices before
+either has synced, the later choice wins — unless you made different choices
+in the same second, in which case you're asked again.
+
+Your dialects, custom themes, figure shorthands and walkthrough snippets are
+each one whole set, so if both devices changed them you choose one device's
+set — the app can't combine the two.
+
+#### Sync decisions
+
+- **Sync decisions**, under **Device Sync** while a store is connected — review
+  conflicts that Device Sync couldn't settle on its own, and choose how each one is resolved. Three kinds of
+  conflict offer a decision:
+  - **A device deleted something another device still has.** One of your
+    devices deleted a choreographer, tag, custom field, or difficulty level
+    that this device had already created on its own under the same name,
+    before either device had seen the other's copy. **Merge** accepts the
+    deletion, so this device's copy goes too. **Keep both** gives this
+    device's record a new, distinct name so it survives alongside the
+    deletion. Dances never enter this decision; they use the dance one below.
+  - **Another device renamed a record onto a name this device already uses.**
+    Both records already exist here — they may well be two different people or
+    two different tags — so nothing is merged behind your back. **Merge** keeps
+    one record and points everything that referred to the other at it.
+    **Keep both** asks you for a new name for the record that currently holds
+    the name, and then applies the other device's rename. Until you choose, the
+    other device's change is not applied.
+
+    Merging two choreographers is the one case that loses something: an email
+    address, location, and deceased marker are kept only on your own device and
+    are never sent to your other devices, so the ones on the record that is not
+    kept cannot be recovered. The app asks you to confirm before this happens.
+  - **Two devices independently created dances with the same title but
+    different choreography.** This turns up when a device first connects to a
+    store that already has dances in it. **Merge** combines the two dances into
+    one. **Keep both** renames one of the dances so both are kept separately.
+  Any other kind of conflict is listed and kept as it is, with no action to
+  choose. When the same item was simply changed differently on two devices,
+  you choose between the versions instead — see
+  [Choosing which version to keep](#choosing-which-version-to-keep).
 
 ## About
 

@@ -575,13 +575,13 @@ void main() {
     final repositories = CompendiumRepositories(database, contraTaxonomy);
     await repositories.ensureMigrated();
     await repositories.settings.set(
-      'custom_dialects',
+      'theme_mode',
       'before-first',
       at: DateTime.utc(2026, 7, 15, 11),
     );
     await repositories.syncLocal.replaceBaseline(epoch: 'epoch-1');
 
-    final incoming = _setting('custom_dialects', 'after-first', seconds: 1);
+    final incoming = _setting('theme_mode', 'after-first', seconds: 1);
     final incomingHash = sha256Hex(encodeSyncRecordBlobUtf8(incoming));
     final peerManifest = SyncManifest(
       deviceId: 'peer',
@@ -625,7 +625,7 @@ void main() {
     final changes = StreamIterator(
       (database.select(
         database.settings,
-      )..where((table) => table.key.equals('custom_dialects'))).watch(),
+      )..where((table) => table.key.equals('theme_mode'))).watch(),
     );
     addTearDown(() async {
       await changes.cancel();
@@ -653,7 +653,7 @@ void main() {
 
     final persisted = await (database.select(
       database.settings,
-    )..where((table) => table.key.equals('custom_dialects'))).getSingle();
+    )..where((table) => table.key.equals('theme_mode'))).getSingle();
     expect(jsonDecode(persisted.valueJson), 'after-first');
     expect(appliedKinds, {SyncRecordKind.setting});
     expect(
@@ -672,7 +672,7 @@ void main() {
     final repositories = CompendiumRepositories(database, contraTaxonomy);
     await repositories.ensureMigrated();
     await repositories.settings.set(
-      'custom_dialects',
+      'theme_mode',
       'before-first',
       at: DateTime.utc(2026, 7, 15, 11),
     );
@@ -684,7 +684,7 @@ void main() {
     await repositories.syncLocal.replaceBaseline(epoch: 'epoch-1');
     await database.close();
 
-    final first = _setting('custom_dialects', 'after-first', seconds: 1);
+    final first = _setting('theme_mode', 'after-first', seconds: 1);
     final second = _setting('default_program_band', 'after-second', seconds: 2);
     final firstHash = sha256Hex(encodeSyncRecordBlobUtf8(first));
     final secondHash = sha256Hex(encodeSyncRecordBlobUtf8(second));
@@ -769,15 +769,13 @@ void main() {
       contraTaxonomy,
     );
     final values = {
-      'custom_dialects': await verificationRepositories.settings.get(
-        'custom_dialects',
-      ),
+      'theme_mode': await verificationRepositories.settings.get('theme_mode'),
       'default_program_band': await verificationRepositories.settings.get(
         'default_program_band',
       ),
     };
     expect(values, {
-      'custom_dialects': 'before-first',
+      'theme_mode': 'before-first',
       'default_program_band': 'before-second',
     });
     expect(

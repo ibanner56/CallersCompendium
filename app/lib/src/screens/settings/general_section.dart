@@ -26,7 +26,6 @@ import '../../widgets/section_header.dart';
 import '../import_review_screen.dart';
 import '../published_collection_navigation.dart';
 import '../reparse_custom_figures_screen.dart';
-import '../sync_review_screen.dart';
 
 /// The General settings section: app-wide toggles, soft-delete retention,
 /// backup/restore, and the import launcher. Owns its async loads + load-race
@@ -446,12 +445,6 @@ class _GeneralSectionState extends State<GeneralSection> {
   Future<void> _onPublishedCollections() =>
       pushPublishedCollectionCatalog(context);
 
-  Future<void> _onSyncReview() async {
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const SyncReviewScreen()));
-  }
-
   Future<void> _onSortIgnoreArticlesChanged(bool value) async {
     // Same instant-notifier-then-persist pattern: flip the live notifier so the
     // dance list re-sorts immediately, then persist in the background.
@@ -509,7 +502,6 @@ class _GeneralSectionState extends State<GeneralSection> {
       lastBackupAt: _lastBackupAt,
       onExportBackup: _onExportBackup,
       onRestoreBackup: _onRestoreBackup,
-      onSyncReview: _onSyncReview,
       onImportDances: _onImportDances,
       onPublishedCollections: _onPublishedCollections,
       onReparseCustomFigures: _onReparseCustomFigures,
@@ -541,7 +533,6 @@ class _GeneralView extends StatelessWidget {
     required this.lastBackupAt,
     required this.onExportBackup,
     required this.onRestoreBackup,
-    required this.onSyncReview,
     required this.onImportDances,
     required this.onPublishedCollections,
     required this.onReparseCustomFigures,
@@ -571,7 +562,6 @@ class _GeneralView extends StatelessWidget {
   final DateTime? lastBackupAt;
   final Future<void> Function() onExportBackup;
   final Future<void> Function() onRestoreBackup;
-  final Future<void> Function() onSyncReview;
 
   /// Opens the import review flow (ROADMAP 6.3).
   final Future<void> Function() onImportDances;
@@ -653,13 +643,6 @@ class _GeneralView extends StatelessWidget {
               ),
             ],
           ),
-        ),
-        ListTile(
-          key: const ValueKey('sync-review-button'),
-          title: Text(l10n.syncReviewSettingsTitle),
-          subtitle: Text(l10n.syncReviewSettingsSubtitle),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: onSyncReview,
         ),
         SectionHeader(title: l10n.settingsGeneralImportHeader),
         ListTile(

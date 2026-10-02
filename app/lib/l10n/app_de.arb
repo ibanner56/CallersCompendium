@@ -484,9 +484,117 @@
   "@settingsSyncStatusPaused": {
     "x-sourceSha256": "9951cbd96bc1256a19254ff7c403db58f67549cbd3fbb716b1aba6a650e29150"
   },
-  "settingsSyncNoticeDivergence": "Einige Einträge wurden im selben Moment auf zwei Geräten geändert. Keine der Fassungen wurde ausgewählt, deine Geräte unterscheiden sich also weiterhin. Bearbeite eine davon, um das zu klären.",
+  "settingsSyncNoticeDivergence": "Einige Einträge wurden im selben Moment auf zwei Geräten geändert und unterscheiden sich weiterhin. Wenn sie unter Synchronisierungsentscheidungen aufgeführt sind, wähle dort; andernfalls bearbeite einen davon, um das zu klären.",
   "@settingsSyncNoticeDivergence": {
-    "x-sourceSha256": "c7fb96371231c93b42bf20abb1d074d0f48d0d361314ee2e9cc66b0de4325f37"
+    "x-sourceSha256": "60da106ed68c71ed1abf23ea5199c9e8f14a3d3e3cc7c4b1d78921dede108136"
+  },
+  "syncConflictTitle": "Wähle, welche Fassung du behältst",
+  "@syncConflictTitle": {
+    "x-sourceSha256": "69b6a12956b4b679555a5fb04c7353020074145a06f6c278b74386296f78b28a"
+  },
+  "syncConflictIntro": "Diese Einträge wurden auf mehr als einem Gerät geändert, und die App kann nicht erkennen, welche Änderung gelten soll. Beide Fassungen bleiben erhalten, bis du wählst.",
+  "@syncConflictIntro": {
+    "x-sourceSha256": "1e54a85a858728395b6613988d17ef50e730c97d513831dfeb3aaf1aaea0ee95"
+  },
+  "syncConflictThisDevice": "Dieses Gerät",
+  "@syncConflictThisDevice": {
+    "x-sourceSha256": "d052579c6a317b1b81f020a5ba300deafc57dc64ef56cb04e755a1d3fbe884ce"
+  },
+  "syncConflictOtherDevice": "Ein anderes Gerät",
+  "@syncConflictOtherDevice": {
+    "x-sourceSha256": "0d557cdf264a5c813ef57d29200df60b242ece8b3d38fb24868ad045f1c57c91"
+  },
+  "syncConflictOtherDeviceNumbered": "Ein anderes Gerät ({number})",
+  "@syncConflictOtherDeviceNumbered": {
+    "x-sourceSha256": "f72aefab49a9be96bb0cf977b7d0ba17442b65bcb56c4e719f9f09b92f23686a"
+  },
+  "syncConflictKeepAllThisDevice": "Alle von diesem Gerät behalten",
+  "@syncConflictKeepAllThisDevice": {
+    "x-sourceSha256": "f029e455730554d093853bb00c5260f5fcbe59fad0585532ce37e91bd3bc55d3"
+  },
+  "syncConflictKeepAllOtherDevice": "Alle vom anderen Gerät behalten",
+  "@syncConflictKeepAllOtherDevice": {
+    "x-sourceSha256": "87f7ab9c18e483faea681bfcc5c9abd0438c75887bd8fa1b20ebe1de4fd568d8"
+  },
+  "syncConflictApply": "Auswahl behalten",
+  "@syncConflictApply": {
+    "x-sourceSha256": "41ee079dc6efd0bab1a19db4dd86b886f15e395320b8298bbdda231344eebc96"
+  },
+  "syncConflictDecideLater": "Später entscheiden",
+  "@syncConflictDecideLater": {
+    "x-sourceSha256": "892c45a22edb0db9ba0cd725f06f38d7860c7867e1615ec6826f1f5bcbf057c8"
+  },
+  "syncConflictDiffersIn": "{count, plural, =1{Unterscheidet sich in 1 Detail} other{Unterscheidet sich in {count} Details}}",
+  "@syncConflictDiffersIn": {
+    "x-sourceSha256": "da5a4e742829220ee27c2d1b34064310562f4bdbf554abd9a176ae967eca4bf2"
+  },
+  "syncConflictValueNotSet": "Nicht festgelegt",
+  "@syncConflictValueNotSet": {
+    "x-sourceSha256": "4895f73177ab5d67c30c183a49d2477e014a2ef69b65150762d17e877f4f5b95"
+  },
+  "syncConflictValueOn": "Ein",
+  "@syncConflictValueOn": {
+    "x-sourceSha256": "130011756125313c72f2cab730db4347e2841526d236a89cb25f38789fa49229"
+  },
+  "syncConflictValueOff": "Aus",
+  "@syncConflictValueOff": {
+    "x-sourceSha256": "ca7981b46ecf2c1787b6d76d81d9fd7fa0ca95842e2fcc2a452869891a9334d1"
+  },
+  "syncConflictValueItems": "{count, plural, =0{Keine} =1{1 Eintrag} other{{count} Einträge}}",
+  "@syncConflictValueItems": {
+    "x-sourceSha256": "181547f9e08a60180051b917e9478dbfe12da6d0f88211564a5a2cc73c9258c5"
+  },
+  "syncConflictValueNamesAndMore": "{names} und {count} weitere",
+  "@syncConflictValueNamesAndMore": {
+    "x-sourceSha256": "b9c56c1be9164bcc189a5b162c3683c7bcb490a0caeca53b5d3777b35d5d4cbc"
+  },
+  "syncConflictNone": "Im Moment gibt es nichts zu entscheiden.",
+  "@syncConflictNone": {
+    "x-sourceSha256": "aafccaa65dc78789057af4dbe88df70d476a36d665b57331b1f728698a895a8d"
+  },
+  "syncConflictClockWrong": "Datum und Uhrzeit dieses Geräts scheinen falsch zu sein, deshalb konnte deine Auswahl nicht gespeichert werden. Korrigiere Datum und Uhrzeit und versuche es dann erneut.",
+  "@syncConflictClockWrong": {
+    "x-sourceSha256": "c297ebf0099100f881eff0675cd10fd53d7411403406b340c1fa0f1c1efcfa89"
+  },
+  "syncConflictFailed": "Deine Auswahl konnte nicht gespeichert werden. Versuche es erneut.",
+  "@syncConflictFailed": {
+    "x-sourceSha256": "fe05c22b547cfe63b104fb6370c0e329c70b832e501a96ff3792ec195205777d"
+  },
+  "syncSettingActiveCustomTheme": "Verwendetes benutzerdefiniertes Design",
+  "@syncSettingActiveCustomTheme": {
+    "x-sourceSha256": "8f849f242d97d54eaa93eb4758ee2409c469fcd442721080d9a978eb8a3d608c"
+  },
+  "syncSettingActiveDialect": "Verwendeter Dialekt",
+  "@syncSettingActiveDialect": {
+    "x-sourceSha256": "dc6bdaeb55d04a7142cf245b2d11e5f3627e1ddfcc1362969882303059f8d24e"
+  },
+  "syncSettingLastCollectionSort": "Sortierung der Sammlung (zuletzt verwendet)",
+  "@syncSettingLastCollectionSort": {
+    "x-sourceSha256": "5676b1a7f3ae09749c74c471bac9b959b685012209eb565b6d1ba00d178d6807"
+  },
+  "syncSettingLastCollectionSortDirection": "Sortierrichtung der Sammlung (zuletzt verwendet)",
+  "@syncSettingLastCollectionSortDirection": {
+    "x-sourceSha256": "4643d230499a4ed1184195eb58277f531e95003c98a7b4730f057a503e180f57"
+  },
+  "syncSettingLastProgramSort": "Sortierung der Programme (zuletzt verwendet)",
+  "@syncSettingLastProgramSort": {
+    "x-sourceSha256": "d3530d529ed3610c0dd92b607fa12f42f9f8e8c86da7ab537bf8aff45b6f8883"
+  },
+  "syncSettingLastProgramSortDirection": "Sortierrichtung der Programme (zuletzt verwendet)",
+  "@syncSettingLastProgramSortDirection": {
+    "x-sourceSha256": "5a4f0099f2621a3fcef84cf43e172910e2dc32ad516e3a1854b203ed2875f431"
+  },
+  "syncSettingPerformStageTheme": "Bühnen-Design in Perform",
+  "@syncSettingPerformStageTheme": {
+    "x-sourceSha256": "54bfa2402ef66801c0f8fc5f7696b44b2a5569d030a58591c70043e990dcc45b"
+  },
+  "settingsSyncConflictsSubtitle": "{count, plural, =1{1 Eintrag wurde auf zwei Geräten geändert und wartet auf deine Wahl.} other{{count} Einträge wurden auf zwei Geräten geändert und warten auf deine Wahl.}}",
+  "@settingsSyncConflictsSubtitle": {
+    "x-sourceSha256": "fda77cdb41bdca627b9072e4fd6eb1104fd8e1fdeb8b45a41a83a14cd07b6d01"
+  },
+  "commonSyncNowConflictsTooltip": "{count, plural, =1{Jetzt synchronisieren (1 Eintrag wartet auf deine Wahl)} other{Jetzt synchronisieren ({count} Einträge warten auf deine Wahl)}}",
+  "@commonSyncNowConflictsTooltip": {
+    "x-sourceSha256": "9f484617ad8c5c7b7f348011989c3612a4c229fe322d59ff138f9d8a769a66d4"
   },
   "settingsSyncNoticeKeptLocalCreation": "Etwas, das auf diesem Gerät erstellt wurde, wäre von einem anderen Gerät entfernt worden, das es nie gesehen hatte. Es wurde stattdessen hier behalten.",
   "@settingsSyncNoticeKeptLocalCreation": {
