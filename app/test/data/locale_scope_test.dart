@@ -240,5 +240,23 @@ void main() {
         const Locale('pt', 'BR'),
       );
     });
+
+    test('honours script compatibility between same-language variants', () {
+      const chinese = <Locale>[
+        Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
+        Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
+        Locale('en'),
+      ];
+      expect(
+        resolveSystemLocale(const [
+          Locale.fromSubtags(
+            languageCode: 'zh',
+            scriptCode: 'Hant',
+            countryCode: 'TW',
+          ),
+        ], chinese),
+        const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
+      );
+    });
   });
 }

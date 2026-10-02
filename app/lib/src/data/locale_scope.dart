@@ -115,9 +115,9 @@ Locale? localeFromStored(Object? stored, Iterable<Locale> supported) {
 /// unsupported device language such as `es_ES`, `pt_BR`, or the POSIX `C`
 /// locale would otherwise open the app in Danish.
 ///
-/// Walks [preferred] in order and returns the first entry with an exact
-/// language/script/country match in [supported], else the first entry whose
-/// language code matches a supported locale's. The returned value is always the
+/// Walks [preferred] in order and returns the first entry that [localeFromStored]
+/// can match against [supported] (exact tag, then script/region-compatible, then
+/// an unambiguous language-only match). The returned value is always the
 /// *supported* [Locale] (so `fr_CA` yields `fr`), never the device's. A null or
 /// empty list, or one with no supported language, yields `Locale('en')`.
 Locale resolveSystemLocale(
@@ -127,12 +127,10 @@ Locale resolveSystemLocale(
   if (preferred == null || preferred.isEmpty) return const Locale('en');
   final supportedList = supported.toList();
   for (final device in preferred) {
-    final exact = supportedList.where((s) => s == device);
-    if (exact.isNotEmpty) return exact.first;
-    final sameLanguage = supportedList.where(
-      (s) => s.languageCode == device.languageCode,
-    );
-    if (sameLanguage.isNotEmpty) return sameLanguage.first;
+    // Reuse the stored-tag matcher so script/region variants are honoured
+    // (`zh-Hant-TW` must not resolve to `zh-Hans`) and order never decides.
+    final match = localeFromStored(localeToTag(device), supportedList);
+    if (match != null) return match;
   }
   return const Locale('en');
 }
