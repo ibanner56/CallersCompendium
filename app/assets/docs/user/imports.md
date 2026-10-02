@@ -274,7 +274,9 @@ Moving from **Caller's Companion**? Caller's Compendium can read its exported
 
 1. Open **Settings**, choose **General**, and choose **Import…**.
 2. In the source selector, choose **a Caller's Companion .USR file**.
-3. Choose your `.USR` file when the app asks for it.
+3. Choose your `.USR` file when the app asks for it. Files over **256 MiB** are
+   turned away before they are read; a typical Caller's Companion library is
+   around 20 MB, far below that.
 4. Review and commit, as described in
    [Review before anything changes](#review-before-anything-changes).
 
@@ -404,8 +406,8 @@ watches for matches:
   batch review screen still marks the row for you to decide.
 - **Looks like something you already have.** If a dance closely matches one
   already in your collection by title and author but did not come from the same
-  source, the app marks it as **unsure** and asks you to choose:
-  **Same dance — replace**, keep both as a **duplicate**, or **skip** the new
+  source, the review shows **Possible match — choose how to import:** and asks you
+  to choose: **Same dance — replace**, keep both as a **duplicate**, or **skip** the new
   one. **Same dance — replace** keeps the existing dance's identity (its id,
   created date and history) but replaces its content with the imported version,
   including calling notes, rating, tags, custom fields, hook, walkthrough,
@@ -434,9 +436,12 @@ doubt which one it will touch. Choose it and the incoming version updates the
 dance you already have instead of adding a second copy, which is how you pick up a
 correction an archive has made since you first imported.
 
-Dances already in your collection are marked **Imported** in the review list, and
-the commit summary counts them separately — **Re-imported: 4** — so you can see at
-a glance how much of an import was new material and how much was an update.
+Dances already in your collection show **Re-import** and **Skip** choices in the
+review list, and **Skip** is the default, so choose **Re-import** on the ones you
+want updated. The commit summary counts re-imports separately — **Re-imported: 4**
+— so you can see at a glance how much of an import was new material and how much
+was an update. The **Imported** badge appears only on a row you saved with **Edit**
+during review.
 
 Re-importing overwrites that dance with the incoming version, so if you have
 edited your copy, look before you commit. The **Undo** on the summary reverses the
