@@ -102,6 +102,31 @@ DanceListEntry _richEntry() => DanceListEntry(
 );
 
 void main() {
+  testWidgets('selection checkbox toggles through the required onTap', (
+    tester,
+  ) async {
+    var taps = 0;
+    final entry = _entry();
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: DanceListTile(
+            entry: entry,
+            selectionMode: true,
+            onTap: () => taps++,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(ValueKey('batch-checkbox-${entry.dance.id}')));
+    expect(taps, 1);
+    await tester.tap(find.byType(ListTile));
+    expect(taps, 2);
+  });
+
   testWidgets('shows the drill-in chevron by default', (tester) async {
     await _pump(tester, _entry());
 

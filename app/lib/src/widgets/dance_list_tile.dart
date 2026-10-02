@@ -8,16 +8,16 @@ import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/formation_colors_scope.dart';
 import '../models/dance_list_entry.dart';
-import '../screens/dance_detail_screen.dart';
 import '../search/facet_labels.dart';
 import '../theme/set_list_accents.dart';
 import 'program_status_chip.dart';
 import 'tag_chip.dart';
 
 /// One Collection result row: title, authors, formation chip, status/tag chips
-/// and `showInList` custom fields (Phase 3.1 rendering). Tapping it opens
-/// [DanceDetailScreen]. Pass an [onTap] to override the default navigation
-/// (e.g. when the caller needs to await a result from the detail route).
+/// and `showInList` custom fields (Phase 3.1 rendering). The tile is
+/// navigation-agnostic: the caller's [onTap] decides what a tap does (the
+/// Collection pushes the detail route, the program picker adds the dance,
+/// selection mode toggles the row).
 ///
 /// When [selectionMode] is true (Collection batch-tag multi-select,
 /// `docs/design/ux.md` §1) the leading avatar is replaced by a [Checkbox]
@@ -30,7 +30,7 @@ class DanceListTile extends StatelessWidget {
   const DanceListTile({
     super.key,
     required this.entry,
-    this.onTap,
+    required this.onTap,
     this.onLongPress,
     this.selected = false,
     this.selectionMode = false,
@@ -50,9 +50,8 @@ class DanceListTile extends StatelessWidget {
 
   final DanceListEntry entry;
 
-  /// Optional override for the tap action. When null, the default behaviour
-  /// (push [DanceDetailScreen] without awaiting a result) is used.
-  final VoidCallback? onTap;
+  /// What tapping the row does. Required: the tile owns no navigation.
+  final VoidCallback onTap;
 
   /// Optional long-press handler (e.g. to enter batch-selection mode).
   final VoidCallback? onLongPress;
@@ -66,7 +65,7 @@ class DanceListTile extends StatelessWidget {
   final bool selectionMode;
 
   /// Whether to show the normal drill-in chevron. Defaults to true so callers
-  /// that override [onTap] retain the existing affordance unless they opt out.
+  /// that supply their own [onTap] retain the existing affordance unless they opt out.
   final bool showChevron;
 
   /// Whether this row is currently checked in batch multi-select mode.
@@ -142,7 +141,7 @@ class DanceListTile extends StatelessWidget {
               value: selectedForBatch,
               // Toggled by tapping the row (ListTile.onTap); the checkbox
               // mirrors that so pointer taps on the box itself also work.
-              onChanged: onTap == null ? null : (_) => onTap!(),
+              onChanged: (_) => onTap(),
               semanticLabel: l10n.collectionSelectDanceLabel(dance.title),
             )
           : Tooltip(
@@ -302,13 +301,7 @@ class DanceListTile extends StatelessWidget {
       ),
       isThreeLine: false,
       trailing: selectionMode ? null : _buildTrailing(l10n),
-      onTap:
-          onTap ??
-          () => Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => DanceDetailScreen(danceId: dance.id),
-            ),
-          ),
+      onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
     );
   }
