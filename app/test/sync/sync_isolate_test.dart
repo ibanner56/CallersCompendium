@@ -736,9 +736,7 @@ void main() {
       contraTaxonomy,
     );
     final values = {
-      'theme_mode': await verificationRepositories.settings.get(
-        'theme_mode',
-      ),
+      'theme_mode': await verificationRepositories.settings.get('theme_mode'),
       'default_program_band': await verificationRepositories.settings.get(
         'default_program_band',
       ),

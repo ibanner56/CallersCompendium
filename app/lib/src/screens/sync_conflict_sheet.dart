@@ -154,7 +154,8 @@ class _SyncConflictChoiceState extends State<SyncConflictChoice> {
       _choices.clear();
       await _load();
       if (mounted && (_groups?.isEmpty ?? true)) Navigator.of(context).pop();
-    } on SyncReviewException catch (error) {
+    } on SyncReviewException catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'sync_conflict_sheet._apply');
       if (!mounted) return;
       setState(
         () => _error = error.code == SyncReviewFailureCode.clockOutOfRange
