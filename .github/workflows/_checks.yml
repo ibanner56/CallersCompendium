@@ -145,6 +145,13 @@ jobs:
         run: python3 tools/ci/test_check_join_use_columns.py
       - name: Guard repository joins onto dances (useColumns)
         run: python3 tools/ci/check_join_use_columns.py
+      # P7: the coordinator's normalisation helpers load store.aliasMap() once
+      # per call; an awaited store.resolveAlias inside a loop is one SQL
+      # transaction per record. See tools/ci/check_sync_resolve_alias_loops.py.
+      - name: Test the sync resolveAlias-loop ratchet
+        run: python3 tools/ci/test_check_sync_resolve_alias_loops.py
+      - name: Guard sync loops against per-item resolveAlias
+        run: python3 tools/ci/check_sync_resolve_alias_loops.py
       # Device Sync depends on every soft-delete join and write boundary keeping
       # its causal invariants; the certificate and normalizer scans prevent
       # regressions before sync client/server units exist.

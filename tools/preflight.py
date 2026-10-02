@@ -268,6 +268,14 @@ STEPS: tuple[Step, ...] = (
         ),
     ),
     Step(
+        "sync-resolve-alias-loops",
+        "no per-item store.resolveAlias awaited inside a sync loop",
+        (
+            py("tools/ci/test_check_sync_resolve_alias_loops.py"),
+            py("tools/ci/check_sync_resolve_alias_loops.py"),
+        ),
+    ),
+    Step(
         "sync-invariants",
         "soft-delete joins, sync writes, certificate hatches, and normalizers",
         (
