@@ -142,6 +142,7 @@ class DanceEditorForm extends StatelessWidget {
                 TextFormField(
                   key: const ValueKey('title-field'),
                   controller: controller.titleController,
+                  focusNode: controller.titleFocusNode,
                   autofocus: isNew,
                   textInputAction: TextInputAction.next,
                   decoration: InputDecoration(

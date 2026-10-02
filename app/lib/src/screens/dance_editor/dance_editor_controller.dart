@@ -112,6 +112,12 @@ class DanceEditorController extends ChangeNotifier {
 
   // ---- Prose (lingo-styled) text controllers ----
   final LingoTextEditingController titleController;
+
+  /// Focus node for the title field, so the screen can request focus on a new
+  /// dance once the form has built (the field's own `autofocus` loses to the
+  /// screen's shortcut `Focus(autofocus: true)`, which claims focus on the
+  /// spinner frame).
+  final FocusNode titleFocusNode = FocusNode(debugLabel: 'dance-title');
   final LingoTextEditingController hookController;
   final LingoTextEditingController notesController;
 
@@ -1452,6 +1458,7 @@ class DanceEditorController extends ChangeNotifier {
     _undoTimer?.cancel();
     _autosaveTimer?.cancel();
     titleController.dispose();
+    titleFocusNode.dispose();
     hookController.dispose();
     notesController.dispose();
     walkthroughController.dispose();
