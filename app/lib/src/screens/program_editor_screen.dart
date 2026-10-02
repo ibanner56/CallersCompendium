@@ -117,6 +117,7 @@ class ProgramEditorScreen extends StatefulWidget {
     this.callersBoxOnline,
     this.contraDbOnline,
     this.reimportPicker,
+    this.pdfLayouter,
   });
 
   final String? programId;
@@ -135,6 +136,10 @@ class ProgramEditorScreen extends StatefulWidget {
   final OnlineSearchService? callersBoxOnline;
   final OnlineSearchService? contraDbOnline;
   final ImportPicker? reimportPicker;
+
+  /// Print/share seam for the Matrix tab's PDF export; defaults to
+  /// [Printing.layoutPdf]. Supplied by widget tests.
+  final PdfLayouter? pdfLayouter;
 
   /// Width (of the builder's own constraints) at/above which the picker shows
   /// as a persistent right pane instead of a modal sheet.
@@ -3034,7 +3039,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _venueController.text,
       _exportVenuesById,
     );
-    await Printing.layoutPdf(
+    final layoutPdf = widget.pdfLayouter ?? Printing.layoutPdf;
+    await layoutPdf(
       name: sanitizeExportName(title, fallback: l10n.exportMatrixPdfFilename),
       onLayout: (format) => buildProgramMatrixPdf(
         matrix,

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/testing.dart' show testFigure;
@@ -9,6 +10,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
+import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/online_search.dart';
 import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
@@ -18,6 +21,7 @@ import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/perform_program_screen.dart';
 import 'package:compendium_app/src/widgets/collection_picker.dart';
 import 'package:compendium_app/src/widgets/online_result_tile.dart';
+import 'package:compendium_app/src/widgets/program_export_menu.dart' show PdfLayouter;
 import 'package:compendium_app/src/widgets/program_slot_list_editor.dart';
 
 import 'support/test_repositories.dart';
@@ -59,6 +63,7 @@ Future<void> _pumpBuilder(
   void Function(String)? onNavigateTo,
   OnlineSearchService? callersBoxOnline,
   OnlineSearchService? contraDbOnline,
+  PdfLayouter? pdfLayouter,
   Size size = const Size(1200, 2000),
 }) async {
   await tester.binding.setSurfaceSize(size);
@@ -88,6 +93,7 @@ Future<void> _pumpBuilder(
         onNavigateTo: onNavigateTo,
         callersBoxOnline: callersBoxOnline,
         contraDbOnline: contraDbOnline,
+        pdfLayouter: pdfLayouter,
       ),
     ),
   );
@@ -3943,6 +3949,70 @@ void main() {
     expect(focusNode.hasPrimaryFocus, isTrue);
   });
 
+  testWidgets('matrix PDF export shows a snackbar and logs when the layouter '
+      'throws', (tester) async {
+    final sink = _RecordingSink();
+    installCaughtErrorLog(sink);
+    addTearDown(resetCaughtErrorLogForTesting);
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        title: 'Matrix Dance',
+        figures: [Figure(move: 'swing'), Figure(move: 'balance')],
+      ),
+    );
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(
+      tester,
+      repos,
+      programId: 'p1',
+      pdfLayouter: ({required name, required onLayout}) async =>
+          throw StateError('no printer'),
+    );
+    await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('program-matrix-export-pdf')));
+    await tester.pumpAndSettle();
+
+    expect(find.text("Couldn't export this set list"), findsOneWidget);
+    expect(sink.sources, ['program_editor_screen._exportMatrixPdf']);
+  });
+
+  test('_exportMatrixPdf reads no BuildContext or state inside onLayout', () {
+    final src = File('lib/src/screens/program_editor_screen.dart')
+        .readAsStringSync();
+    final start = src.indexOf('Future<void> _exportMatrixPdf(');
+    expect(start, isNonNegative);
+    final onLayout = src.indexOf('onLayout:', start);
+    expect(onLayout, isNonNegative);
+    // Walk the parens of the `onLayout: (format) => buildProgramMatrixPdf(`
+    // call to its close, rather than windowing by lines.
+    final open = src.indexOf('buildProgramMatrixPdf(', onLayout);
+    expect(open, isNonNegative);
+    var depth = 0;
+    var end = -1;
+    for (var i = open + 'buildProgramMatrixPdf'.length; i < src.length; i++) {
+      if (src[i] == '(') depth++;
+      if (src[i] == ')' && --depth == 0) {
+        end = i;
+        break;
+      }
+    }
+    expect(end, greaterThan(open));
+    final body = src.substring(onLayout, end);
+    expect(body, isNot(contains('.of(context)')));
+    expect(body, isNot(contains('_dialect')));
+    expect(body, isNot(contains('_matrixColumnConfig')));
+  });
+
   testWidgets('Matrix export control is disabled for an empty matrix', (
     tester,
   ) async {
@@ -4599,4 +4669,13 @@ class _GatedProgramRepository extends ProgramRepository {
     await _gate.future;
     await super.softDelete(id, at: at);
   }
+}
+
+/// Records the `source` of every logged caught error.
+class _RecordingSink implements CrashLogSink {
+  final List<String> sources = [];
+
+  @override
+  void record(Object error, StackTrace? stack, {required String source}) =>
+      sources.add(source);
 }
