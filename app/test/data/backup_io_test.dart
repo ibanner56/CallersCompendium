@@ -315,16 +315,27 @@ void main() {
         final chmod = await Process.run('chmod', ['0500', dir.path]);
         expect(chmod.exitCode, 0, reason: '${chmod.stderr}');
 
-        // Prove the directory is no longer writable for new siblings (what this
-        // regression guard relies on).
-        final sibling = File('${target.path}.tmp');
-        await expectLater(
-          sibling.writeAsString('SHOULD-NOT-WRITE'),
-          throwsA(isA<FileSystemException>()),
-        );
-        expect(await sibling.exists(), isFalse);
-
         try {
+          // Prove the directory is no longer writable for new siblings (what
+          // this regression guard relies on). Inside the try so the chmod
+          // restore below runs on every path.
+          final sibling = File('${target.path}.tmp');
+          var denied = false;
+          try {
+            await sibling.writeAsString('SHOULD-NOT-WRITE');
+          } on FileSystemException {
+            denied = true;
+          }
+          if (!denied) {
+            // `markTestSkipped` does not abort the body: return explicitly.
+            await sibling.delete();
+            markTestSkipped(
+              'directory permissions not enforced (running as root?)',
+            );
+            return;
+          }
+          expect(await sibling.exists(), isFalse);
+
           await writeStringToUserSelectedPath(target.path, 'BACKUP');
         } finally {
           final restore = await Process.run('chmod', ['0700', dir.path]);
