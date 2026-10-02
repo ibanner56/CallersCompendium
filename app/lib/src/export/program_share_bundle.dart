@@ -72,9 +72,12 @@ import 'share_sanitization.dart';
 /// be emitted.
 ///
 /// [difficultyLevelFor] is **dance-keyed** and resolves a bundled dance's
-/// custom difficulty level. It is called with every bundled dance — alternates
-/// included, whatever the program's `hideAlternates` flag says — and a `null`
-/// result falls back to the built-in levels. A level id neither knows throws a
+/// custom difficulty level. It is called once per distinct level id, with the
+/// first bundled dance that carries it (dances without a level are skipped), so
+/// it must resolve from the dance's level whichever dance it is handed.
+/// Alternates are among the bundled dances whatever the program's
+/// `hideAlternates` flag says. A `null` result falls back to the built-in
+/// levels. A level id neither knows throws a
 /// [StateError], the same strict contract as the resolvers above.
 ///
 /// [now] stamps the archive's `exportedAt`; it defaults to the current time and
