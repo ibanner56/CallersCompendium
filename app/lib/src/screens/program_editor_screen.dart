@@ -1872,6 +1872,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 // whole notification (issue #768).
                 return;
               } on Exception catch (_) {
+                // export-guard: exempt — mark-performed stamp, not an export
                 // diagnostics: silent — slot mark-performed stamp failed; keeps working state.
               }
             }

@@ -124,6 +124,12 @@ jobs:
         run: python3 tools/ci/test_check_caught_error_logged.py
       - name: Guard caught errors (must log via logCaughtError or be marked silent)
         run: python3 tools/ci/check_caught_error_logged.py
+      # Export / share / backup files must catch Object, not Exception, so an
+      # Error still shows the user a message (ERR-04; #1395).
+      - name: Test the export-guard catch ratchet
+        run: python3 tools/ci/test_check_export_guard_catches.py
+      - name: Guard export catches (`on Exception` needs an export-guard marker)
+        run: python3 tools/ci/check_export_guard_catches.py
       # Every raw SELECT from settings WHERE key must filter deleted_at IS NULL.
       # The invariant is load-bearing: repositories.dart performs a deliberate
       # hard DELETE and justifies it in prose by asserting that every raw read

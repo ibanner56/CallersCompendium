@@ -244,6 +244,14 @@ STEPS: tuple[Step, ...] = (
         ),
     ),
     Step(
+        "export-guard-catches",
+        "export/share/backup files catch Object, not Exception",
+        (
+            py("tools/ci/test_check_export_guard_catches.py"),
+            py("tools/ci/check_export_guard_catches.py"),
+        ),
+    ),
+    Step(
         "settings-reads",
         "raw settings reads filter deleted_at IS NULL",
         (
