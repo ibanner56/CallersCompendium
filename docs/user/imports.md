@@ -275,8 +275,7 @@ Moving from **Caller's Companion**? Caller's Compendium can read its exported
 1. Open **Settings**, choose **General**, and choose **Import…**.
 2. In the source selector, choose **a Caller's Companion .USR file**.
 3. Choose your `.USR` file when the app asks for it. Files over **256 MiB** are
-   turned away before they are read; a typical Caller's Companion library is
-   around 20 MB, far below that.
+   refused; a typical Caller's Companion library is around 20 MB, far below that.
 4. Review and commit, as described in
    [Review before anything changes](#review-before-anything-changes).
 

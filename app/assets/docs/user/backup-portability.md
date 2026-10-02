@@ -82,7 +82,8 @@ half-finished edits you hadn't saved yet, your last-backup date, and everything 
 [Device Sync](./settings.md#device-sync) — so restoring a backup never turns
 sync on or connects a device to a store. All your real content comes
 along, and so does your reminder cadence (off / weekly / monthly) — but the
-reminder's clock starts fresh, since the last-backup date does not.
+last-backup date does not travel, so restoring leaves this device's own
+last-backup date as it was.
 
 ## Restore from a backup
 
