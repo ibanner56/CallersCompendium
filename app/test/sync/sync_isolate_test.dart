@@ -462,10 +462,18 @@ void main() {
       recordId: 'difficulty-beginner',
     );
     final rejectedHash = List.filled(64, 'f').join();
+    // Evidence from earlier in the session: a publication under a hash the
+    // store no longer has for that record, and one observation of the peer.
     final peerManifestCache = SyncPeerManifestCache(
       rejectedHashes: {rejectedHash},
-      unreflectedPasses: {diagnosticAddress: 2},
-      unreflectedEpoch: 'epoch-1',
+      publications: {
+        diagnosticAddress: (hash: List.filled(64, 'e').join(), pass: 7),
+      },
+      peerPublications: {
+        'peer': [(writtenAt: DateTime.utc(2026, 7, 15, 11), pass: 7)],
+      },
+      passSequence: 7,
+      publicationEpoch: 'epoch-1',
     );
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     server.listen((request) async {
@@ -515,13 +523,30 @@ void main() {
       peerManifestCache: peerManifestCache,
     );
 
-    expect((await operation.call()).status, SyncPassStatus.completed);
+    final first = await operation.call();
+    expect(first.status, SyncPassStatus.completed);
     expect((await operation.call()).status, SyncPassStatus.completed);
     expect(manifestEtags, [null, '"peer-v1"']);
     expect(peerManifestCache.rejectedHashes, {rejectedHash});
-    expect(peerManifestCache.unreflectedPasses[diagnosticAddress], 4);
+    // The peer summary crosses the boundary with the result: the peer lists
+    // nothing, so everything this device publishes is waiting for it.
+    final summary = first.peers!.single;
+    expect(summary.peerId, 'peer');
+    expect(summary.writtenAt, DateTime.utc(2026, 7, 15, 12));
+    expect(summary.waitingCount, peerManifestCache.publications.length);
+    expect(summary.waitingCount, greaterThan(0));
+    // Both passes' evidence came back across the boundary: the sequence
+    // advanced once per pass from where the session left it, the peer's new
+    // `writtenAt` was recorded beside the older one on the first pass and
+    // not again on the second, and the publications the first pass recorded
+    // were still there — unrenumbered — after the second.
+    expect(peerManifestCache.passSequence, 9);
+    expect(peerManifestCache.peerPublications['peer'], [
+      (writtenAt: DateTime.utc(2026, 7, 15, 11), pass: 7),
+      (writtenAt: DateTime.utc(2026, 7, 15, 12), pass: 8),
+    ]);
     expect(
-      peerManifestCache.unreflectedPasses.keys,
+      peerManifestCache.publications.keys,
       containsAll([
         diagnosticAddress,
         (
@@ -531,6 +556,14 @@ void main() {
         (kind: SyncRecordKind.difficultyLevel, recordId: 'difficulty-advanced'),
       ]),
     );
+    expect(
+      peerManifestCache.publications[diagnosticAddress]?.pass,
+      8,
+      reason: 'a changed hash restarts the evidence for that record',
+    );
+    expect(peerManifestCache.publications.values.map((p) => p.pass).toSet(), {
+      8,
+    });
   }, timeout: const Timeout(Duration(minutes: 2)));
 
   test('refreshes a main-isolate watch after inbound worker write', () async {

@@ -336,9 +336,11 @@ than solved.** A device that stops syncing without being removed keeps listing
 the losing id in its last-published manifest, and so keeps that alias alive
 indefinitely — there is no per-device aging, and `stores.last_seen` is refreshed
 by any device, so the store never expires while others use it. A client-side
-detach does not help either: it forgets the sync ID locally and leaves the
-manifest in place. Pruning is therefore bounded in practice by someone removing
-the devices that are genuinely gone — which Settings ▸ Device Sync ▸ *Other
+detach helps only sometimes: it forgets the sync ID locally, and its best-effort
+clean-up removes the manifest only when every entry is already carried by a
+peer (spec §3.3) — a device that stopped syncing out of step keeps its manifest
+in place. Pruning is therefore bounded in practice by someone removing the
+devices that are genuinely gone — which Settings ▸ Device Sync ▸ *Other
 devices* does, issuing `DELETE /v1/manifests/{deviceId}` for the peer the user
 picks (issue #1360).
 
@@ -715,10 +717,12 @@ user's deletion is reversed, with nothing to report it — the shape of #903,
 reached through the detach path rather than the undo path.
 
 What makes it wrong is not that the rule was insufficiently cautious. It is that
-**detach does not un-publish anything.** Detach forgets the sync ID locally and
-leaves this device's manifest on the server; there is no `DELETE
-/v1/manifests/{self}`, and a successful publication stays reachable while any
-manifest for its store references it. The marker is retained because a failed
+**detach does not un-publish anything.** Detach forgets the sync ID locally. Its
+clean-up may then `DELETE /v1/manifests/{self}`, but only when every entry of
+that manifest is carried, at the identical hash, by a peer's manifest (spec
+§3.3, amended 2026-10-02; before that, detach sent nothing at all) — so a
+successful publication stays reachable while any manifest for its store
+references it, and the clean-up never removes the last one that does. The marker is retained because a failed
 attempt cannot later be distinguished from a publication that peers may have
 fetched. Clearing it would discard the conservative protection and every
 consequence follows from that one error.
@@ -735,7 +739,8 @@ once, never cleared by an epoch reset, a detach or a restore.
 That also settles retirement, which `id_aliases` gets and this deliberately does
 not. An alias retires once no current peer manifest lists the losing id; that
 bound is unavailable here, because *this device's own manifest* is one of the
-manifests keeping the record reachable and it outlives the detach. The failure
+manifests keeping the record reachable and it outlives the detach, unless a
+peer's manifest already carries everything it lists. The failure
 modes decide the rest: a wrongly-retired alias skips one record and reports it,
 whereas a wrongly-retired marker silently resurrects a deletion. Permanence is
 therefore required rather than merely tolerated, and the cost is small — though
@@ -1528,29 +1533,47 @@ device *created* is stored by no peer at all when its blob is refused, so there
 is no peer value to compare against — the case a trailing-value test cannot see,
 and exactly the case a user seeding a library on a fast device would hit.
 
-The report fires when **every** record this device published in a pass goes
-unreflected by every peer whose manifest it observed, across **three consecutive
-passes**, with **at least one peer observed** in each. Zero observed peers is not
-evidence, for the same reason it is not evidence of a slow clock.
+The report is judged **per peer**, from the manifest `writtenAt` a pass already
+fetches. A peer missing one of this device's hashes is in one of two states, and
+only one is a fault:
 
-**The streak counter is in-memory, per session, and that is a real limitation.**
-The per-record part is derived — reflection is already computed to advance the
-baseline — but "the last three passes were each fully unreflected" is a temporal
-aggregate that outlives a pass, and an earlier draft claimed the whole signal
-"needs no new state" by carrying over language that is true only of the derived
-half. It is state, and this design requires state that survives a restart to be
-named, placed and classified; rather than add a persisted counter for a
-diagnostic, the counter is scoped to the session and the cost is stated instead:
-**a device restarted between passes may never reach three, and may never surface
-the report at all.** That weakens exactly the dead-RTC case the signal exists for,
-since a phone rarely runs three uninterrupted passes in one session.
+- **asleep** — it has not published since this device published the record.
+  Its app is not running. That is the app's central usage pattern (a phone used
+  daily, a tablet opened before a dance), so it is never reported; the *Other
+  devices* list shows how many changes are waiting for it instead.
+- **refusing** — it has published at least twice since, with distinct
+  `writtenAt` values, and still lacks the hash. It is running and not taking
+  the record. That is reported, once per record and peer, naming the peer.
 
-It is kept anyway because the alternative is worse. Persisting it would mean new
-`deviceScoped` state, a migration and a classification for a warning message,
-where the same fault already surfaces through the records it poisons; and a
-single-pass trigger would fire on any transient network failure, which is the
-false positive that made the previous formulation useless. Three consecutive
-in-session passes is a compromise that is honest about being one.
+Twice rather than once because one publication since can come from a pass that
+was already under way when this device published, and that read its manifest
+first. "Since" is judged by **the order this device observed the values**, never
+by comparing the peer's `writtenAt` with this device's clock — and that is the
+choice this signal depends on most. A device whose own clock is fast publishes
+"later" than any `writtenAt` its peers will write; a clock comparison would
+classify every peer as asleep for exactly the device this section exists to
+warn. Ordering alone has one narrow false positive, a peer completing two whole
+passes while this device is between its manifest reads and its `PUT`, which
+reads as refusing until this device's next pass clears it. A peer that holds a
+version of the record no older than this device's (content at least as new, or
+a strictly newer existence transition) is not judged refusing: that
+is a disagreement owned by the tie, skip and quarantine notices, not a refusal.
+Zero observed peers is not evidence, as before.
+
+The evidence is session-scoped, and that remains a stated limitation rather
+than a solved one: a restart between passes discards it, so a device restarted
+before a peer has published twice since may need another session to report.
+Persisting it would mean new `deviceScoped` state, a migration and a
+classification for a warning message.
+
+*Amended 2026-10-02 (@ibanner56's ruling, from a planning session): this section
+used to fire when **every** record published in a pass went unreflected by
+every observed peer across **three consecutive passes**, from an in-memory
+streak counter. In practice that fired chiefly because another device had not
+been opened, which is the staleness this section argues against below; it named
+no device; and a restart reset its streak. The per-peer judgement replaces it.
+Its notice names both causes the user can act on — the other device's app
+version, and this device's date and time.*
 
 A draft instead required peer values to *trail* this device's by more than the
 acceptance window, across three records. That does not distinguish the fault from
@@ -4542,11 +4565,14 @@ must say this plainly rather than implying sync is opaque to us.
   `updatedAt` has no inbound rejection to stop it either.
 - **The fast-clock report fires on rejection, not on staleness** — a healthy
   device paired with a peer that has not synced in a month; assert it does *not*
-  report. Then refuse its uploads for three consecutive passes and assert it
-  does. Mutation-proved by testing whether peer values trail this device's by
-  more than the window, which fires on the healthy pairing — the app's central
-  usage pattern — and stays silent for a create-dominant device whose refused
-  records no peer stores at all.
+  report. Then have the peer publish twice without this device's records and
+  assert it does, naming that peer — with this device's clock days ahead of the
+  peer's. Mutation-proved three ways: by testing whether peer values trail this
+  device's by more than the window, which fires on the healthy pairing — the
+  app's central usage pattern — and stays silent for a create-dominant device
+  whose refused records no peer stores at all; by the three-pass streak this
+  replaced, which fires on the month-old peer; and by comparing the peer's
+  `writtenAt` with this device's clock, which never fires for the fast device.
 - **A poisoned `updatedAt` never enters circulation** — a device with a dead RTC
   makes an ordinary content edit, so its `existenceAt` is untouched and only its
   `updatedAt` is poisoned; assert peers refuse the blob rather than accepting it.

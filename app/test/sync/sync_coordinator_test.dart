@@ -24,6 +24,8 @@ void main() {
       kind: SyncRecordKind.setting,
       recordId: 'custom_dialects',
     );
+    final publication = (hash: _hash('c'), pass: 3);
+    final seen = [(writtenAt: DateTime.utc(2026, 7, 15, 13), pass: 4)];
     final cache = SyncPeerManifestCache(
       entries: {
         '_rejectedHashes': SyncPeerManifestCacheEntry(
@@ -31,62 +33,363 @@ void main() {
           etag: '"peer"',
           manifest: peerManifest,
         ),
-        '_unreflectedPasses': SyncPeerManifestCacheEntry(
+        '_publications': SyncPeerManifestCacheEntry(
           epoch: 'epoch-1',
           etag: '"diagnostic"',
           manifest: peerManifest,
         ),
       },
       rejectedHashes: {'rejected-hash'},
-      unreflectedPasses: {diagnosticAddress: 2},
-      unreflectedEpoch: 'epoch-1',
+      publications: {diagnosticAddress: publication},
+      peerPublications: {'_publications': seen},
+      passSequence: 4,
+      publicationEpoch: 'epoch-1',
     );
 
     final restored = SyncPeerManifestCache.fromMessage(cache.toMessage());
 
     expect(restored['_rejectedHashes']?.etag, '"peer"');
-    expect(restored['_unreflectedPasses']?.etag, '"diagnostic"');
+    expect(restored['_publications']?.etag, '"diagnostic"');
     expect(restored.rejectedHashes, {'rejected-hash'});
-    expect(restored.unreflectedPasses, {diagnosticAddress: 2});
-    expect(restored.unreflectedEpoch, 'epoch-1');
+    expect(restored.publications, {diagnosticAddress: publication});
+    expect(restored.peerPublications, {'_publications': seen});
+    expect(restored.passSequence, 4);
+    expect(restored.publicationEpoch, 'epoch-1');
 
-    restored.beginUnreflectedEpoch('epoch-1');
-    expect(restored.unreflectedPasses, {diagnosticAddress: 2});
-    restored.beginUnreflectedEpoch('epoch-2');
-    expect(restored.unreflectedPasses, isEmpty);
+    restored.beginPublicationEpoch('epoch-1');
+    expect(restored.publications, {diagnosticAddress: publication});
+    restored.beginPublicationEpoch('epoch-2');
+    expect(restored.publications, isEmpty);
+    expect(restored.peerPublications, isEmpty);
   });
 
-  test(
-    'resets an unreflected publication streak when the store epoch changes',
-    () async {
-      final candidate = SyncMergeCandidate.fromBlob(
+  test('restarts the unreflected-publication evidence when the store epoch '
+      'changes', () async {
+    final candidate = SyncMergeCandidate.fromBlob(
+      _setting('custom_dialects', 'local'),
+    );
+    final cache = SyncPeerManifestCache(
+      publications: {candidate.address: (hash: candidate.wireHash, pass: 1)},
+      peerPublications: {
+        'peer': [
+          (writtenAt: DateTime.utc(2026, 7, 15, 11, 30), pass: 2),
+          (writtenAt: DateTime.utc(2026, 7, 15, 11, 45), pass: 3),
+        ],
+      },
+      passSequence: 3,
+      publicationEpoch: 'epoch-old',
+    );
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: _FakeStore(local: {candidate.address: candidate}),
+      transport: _FakeTransport(
+        devices: ['peer'],
+        peerManifest: _manifest(deviceId: 'peer', records: const {}),
+      ),
+      peerManifestCache: cache,
+      now: () => DateTime.utc(2026, 7, 15, 12, 30),
+    );
+    addTearDown(coordinator.dispose);
+
+    final result = await coordinator.syncNow();
+
+    expect(
+      result.reports.map((report) => report.code),
+      isNot(contains(SyncReportCode.unreflectedPublication)),
+      reason:
+          'the two later publications were seen in another epoch, so they '
+          'say nothing about this one',
+    );
+    expect(cache.publications[candidate.address]?.pass, 4);
+    expect(cache.peerPublications['peer'], [
+      (writtenAt: DateTime.utc(2026, 7, 15, 12), pass: 4),
+    ]);
+  });
+
+  group('per-peer reflection (spec §6.9)', () {
+    final t0 = DateTime.utc(2026, 7, 15, 12);
+    late SyncMergeCandidate candidate;
+    late SyncMergeCandidate other;
+
+    setUp(() {
+      candidate = SyncMergeCandidate.fromBlob(
         _setting('custom_dialects', 'local'),
       );
-      final cache = SyncPeerManifestCache(
-        unreflectedPasses: {candidate.address: 2},
-        unreflectedEpoch: 'epoch-old',
+      other = SyncMergeCandidate.fromBlob(
+        _setting('shorthand_mappings', 'local'),
       );
+    });
+
+    SyncManifest peerAt(
+      DateTime writtenAt, {
+      Map<SyncRecordKind, Map<String, String>> records = const {},
+    }) => SyncManifest(
+      deviceId: 'peer',
+      epoch: 'epoch-1',
+      writtenAt: writtenAt,
+      records: records,
+    );
+
+    /// Runs one pass per step: the peer's manifest as written at
+    /// `step.peerWrittenAt`, with this device's clock at `step.clock`.
+    Future<List<SyncPassResult>> passes(
+      List<({DateTime peerWrittenAt, DateTime clock})> steps, {
+      Map<SyncRecordKind, Map<String, String>> peerRecords = const {},
+      Map<String, SyncHttpResponse> blobResponses = const {},
+    }) async {
+      final local = {candidate.address: candidate, other.address: other};
+      final peers = <String, SyncManifest>{};
+      var clock = t0;
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(
+          local: local,
+          snapshotBuilder: (_) => SyncCoordinatorSnapshot(
+            epoch: 'epoch-1',
+            previouslyUsed: false,
+            local: local,
+            publication: local,
+            baseline: const {},
+          ),
+        ),
+        transport: _FakeTransport(
+          devices: ['device-a', 'peer'],
+          peerManifests: peers,
+          blobResponses: blobResponses,
+        ),
+        now: () => clock,
+      );
+      addTearDown(coordinator.dispose);
+      final results = <SyncPassResult>[];
+      for (final step in steps) {
+        peers['peer'] = peerAt(step.peerWrittenAt, records: peerRecords);
+        clock = step.clock;
+        final result = await coordinator.syncNow();
+        expect(result.status, SyncPassStatus.completed);
+        results.add(result);
+      }
+      return results;
+    }
+
+    Iterable<SyncReport> unreflected(SyncPassResult result) =>
+        result.reports.where(
+          (report) => report.code == SyncReportCode.unreflectedPublication,
+        );
+
+    test('a peer that has not published since is asleep: never a notice, '
+        'and the summary counts what is waiting for it', () async {
+      final asleepAt = t0.subtract(const Duration(hours: 1));
+      final results = await passes(
+        [
+          for (var minute = 0; minute < 5; minute++)
+            (peerWrittenAt: asleepAt, clock: t0.add(Duration(minutes: minute))),
+        ],
+        peerRecords: {
+          SyncRecordKind.setting: {'shorthand_mappings': other.wireHash},
+        },
+      );
+
+      for (final result in results) {
+        expect(unreflected(result), isEmpty);
+      }
+      final summary = results.last.peers!.single;
+      expect(summary.peerId, 'peer');
+      expect(summary.writtenAt, asleepAt);
+      expect(
+        summary.waitingCount,
+        1,
+        reason: 'the peer carries one of the two records at this hash',
+      );
+    });
+
+    test('a peer that published twice since without the record is named as '
+        'not taking it', () async {
+      final results = await passes([
+        (peerWrittenAt: t0.subtract(const Duration(hours: 1)), clock: t0),
+        (
+          peerWrittenAt: t0.add(const Duration(minutes: 1)),
+          clock: t0.add(const Duration(minutes: 2)),
+        ),
+        (
+          peerWrittenAt: t0.add(const Duration(minutes: 3)),
+          clock: t0.add(const Duration(minutes: 4)),
+        ),
+      ]);
+
+      expect(unreflected(results[0]), isEmpty);
+      expect(
+        unreflected(results[1]),
+        isEmpty,
+        reason:
+            'one publication since can be a pass that started before this '
+            'device published and never read its manifest',
+      );
+      final reports = unreflected(results[2]).toList();
+      expect(
+        {for (final report in reports) report.recordId},
+        {'custom_dialects', 'shorthand_mappings'},
+      );
+      expect(reports.map((report) => report.peerId).toSet(), {
+        'peer',
+      }, reason: 'the notice names the device by its tag, so it needs the id');
+      expect(results[2].peers!.single.waitingCount, 2);
+    });
+
+    test('a peer whose clock runs fast is not judged on what it wrote before '
+        'this device published', () async {
+      final results = await passes([
+        (peerWrittenAt: t0.add(const Duration(hours: 1)), clock: t0),
+        (
+          peerWrittenAt: t0.add(const Duration(hours: 2)),
+          clock: t0.add(const Duration(minutes: 1)),
+        ),
+        (
+          peerWrittenAt: t0.add(const Duration(hours: 3)),
+          clock: t0.add(const Duration(minutes: 2)),
+        ),
+      ]);
+
+      expect(
+        unreflected(results[1]),
+        isEmpty,
+        reason:
+            'the first manifest was fetched before this device published, '
+            'however late its clock says it was written',
+      );
+      expect(unreflected(results[2]), isNotEmpty);
+    });
+
+    test('a device whose own clock runs fast is still told its changes are '
+        'not being taken', () async {
+      // The case §6.9 introduced this signal for: peers refuse this device's
+      // records as future-dated, and every `writtenAt` they write is earlier
+      // than this device's idea of now. A judgement that compared the two
+      // clocks would never fire here.
+      final fast = t0.add(const Duration(days: 3));
+      final results = await passes([
+        (peerWrittenAt: t0.subtract(const Duration(hours: 1)), clock: fast),
+        (
+          peerWrittenAt: t0.add(const Duration(minutes: 1)),
+          clock: fast.add(const Duration(minutes: 2)),
+        ),
+        (
+          peerWrittenAt: t0.add(const Duration(minutes: 3)),
+          clock: fast.add(const Duration(minutes: 4)),
+        ),
+      ]);
+
+      expect(unreflected(results[1]), isEmpty);
+      expect(unreflected(results[2]), isNotEmpty);
+    });
+
+    test('a peer holding a newer version of the record is not refusing '
+        'it', () async {
+      final newer = _setting('custom_dialects', 'theirs', seconds: 30);
+      final newerCandidate = SyncMergeCandidate.fromBlob(newer);
+      final results = await passes(
+        [
+          (peerWrittenAt: t0.subtract(const Duration(hours: 1)), clock: t0),
+          (
+            peerWrittenAt: t0.add(const Duration(minutes: 1)),
+            clock: t0.add(const Duration(minutes: 2)),
+          ),
+          (
+            peerWrittenAt: t0.add(const Duration(minutes: 3)),
+            clock: t0.add(const Duration(minutes: 4)),
+          ),
+        ],
+        peerRecords: {
+          SyncRecordKind.setting: {
+            'custom_dialects': newerCandidate.wireHash,
+            'shorthand_mappings': other.wireHash,
+          },
+        },
+        blobResponses: {
+          newerCandidate.wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(newer)),
+          ),
+        },
+      );
+
+      expect(
+        unreflected(results[2]),
+        isEmpty,
+        reason:
+            'a disagreement is resolving towards the peer, or has a notice '
+            'of its own; "it may need an app update" would be false',
+      );
+    });
+
+    test('a peer holding an older edit of the record is refusing it, though '
+        'an edit leaves existenceAt where it was', () async {
+      // An ordinary content edit advances `updatedAt` and leaves
+      // `existenceAt` alone, so the peer's stale copy shares this device's
+      // `existenceAt`. Equal is not newer. A choreographer, not a setting:
+      // a whole-collection setting that differs is a queued conflict choice,
+      // which is judged neither asleep nor refusing.
+      final edited = _choreographer(
+        'author-1',
+        'Edited name',
+        updatedAt: t0.add(const Duration(seconds: 30)),
+        existenceAt: t0,
+      );
+      candidate = SyncMergeCandidate.fromBlob(edited);
+      final stale = _choreographer('author-1', 'Old name', updatedAt: t0);
+      final staleCandidate = SyncMergeCandidate.fromBlob(stale);
+      expect(staleCandidate.existenceAt, candidate.existenceAt);
+      final results = await passes(
+        [
+          (peerWrittenAt: t0.subtract(const Duration(hours: 1)), clock: t0),
+          (
+            peerWrittenAt: t0.add(const Duration(minutes: 1)),
+            clock: t0.add(const Duration(minutes: 2)),
+          ),
+          (
+            peerWrittenAt: t0.add(const Duration(minutes: 3)),
+            clock: t0.add(const Duration(minutes: 4)),
+          ),
+        ],
+        peerRecords: {
+          SyncRecordKind.choreographer: {'author-1': staleCandidate.wireHash},
+          SyncRecordKind.setting: {'shorthand_mappings': other.wireHash},
+        },
+        blobResponses: {
+          staleCandidate.wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(stale)),
+          ),
+        },
+      );
+
+      expect(unreflected(results[2]).map((report) => report.recordId), [
+        'author-1',
+      ]);
+    });
+
+    test('zero observed peers judges nothing and is an empty survey, not '
+        'a missing one', () async {
+      var clock = t0;
       final coordinator = SyncCoordinator(
         syncId: 'configured',
         deviceId: 'device-a',
         store: _FakeStore(local: {candidate.address: candidate}),
-        transport: _FakeTransport(
-          devices: ['peer'],
-          peerManifest: _manifest(deviceId: 'peer', records: const {}),
-        ),
-        peerManifestCache: cache,
+        transport: _FakeTransport(devices: ['device-a']),
+        now: () => clock,
       );
       addTearDown(coordinator.dispose);
 
-      final result = await coordinator.syncNow();
-
-      expect(
-        result.reports.map((report) => report.code),
-        isNot(contains(SyncReportCode.unreflectedPublication)),
-      );
-      expect(cache.unreflectedPasses, {candidate.address: 1});
-    },
-  );
+      for (var minute = 0; minute < 4; minute++) {
+        clock = t0.add(Duration(minutes: minute));
+        final result = await coordinator.syncNow();
+        expect(unreflected(result), isEmpty);
+        expect(result.peers, isEmpty);
+        expect(result.peers, isNotNull);
+      }
+    });
+  });
 
   test(
     'coordinator store dispatches inbound reconciliation before apply',
@@ -1434,53 +1737,6 @@ void main() {
     },
   );
 
-  test(
-    'reports an unreflected publication on the third observed pass',
-    () async {
-      final candidate = SyncMergeCandidate.fromBlob(
-        _setting('custom_dialects', 'local'),
-      );
-      final store = _FakeStore(
-        local: {candidate.address: candidate},
-        snapshotBuilder: (_) => SyncCoordinatorSnapshot(
-          epoch: 'epoch-1',
-          previouslyUsed: false,
-          local: {candidate.address: candidate},
-          publication: {candidate.address: candidate},
-          baseline: const {},
-        ),
-      );
-      final coordinator = SyncCoordinator(
-        syncId: 'configured',
-        deviceId: 'device-a',
-        store: store,
-        transport: _FakeTransport(
-          devices: ['peer'],
-          peerManifest: _manifest(deviceId: 'peer', records: const {}),
-        ),
-        now: () => DateTime.utc(2026, 7, 15, 12),
-      );
-      addTearDown(coordinator.dispose);
-
-      final first = await coordinator.syncNow();
-      final second = await coordinator.syncNow();
-      final third = await coordinator.syncNow();
-
-      expect(
-        first.reports.map((report) => report.code),
-        isNot(contains(SyncReportCode.unreflectedPublication)),
-      );
-      expect(
-        second.reports.map((report) => report.code),
-        isNot(contains(SyncReportCode.unreflectedPublication)),
-      );
-      expect(
-        third.reports.map((report) => report.code),
-        contains(SyncReportCode.unreflectedPublication),
-      );
-    },
-  );
-
   test('unconfigured triggers make no transport calls', () async {
     final transport = _FakeTransport();
     final coordinator = SyncCoordinator(
@@ -2545,6 +2801,45 @@ void main() {
       expect(store.baselineAdvances, 0);
       expect(store.epochStateClears, 1);
       expect(postMissingCall, 2);
+    },
+  );
+
+  test(
+    'a fresh attach reports what its steady continuation saw of each peer',
+    () async {
+      final candidate = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'local'),
+      );
+      final store = _FakeStore(
+        epoch: null,
+        local: {candidate.address: candidate},
+        snapshotEpochs: [null, null, 'epoch-1'],
+      );
+      final peerWrittenAt = DateTime.utc(2026, 7, 14, 9);
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: _FakeTransport(
+          devices: ['device-a', 'peer'],
+          peerManifest: SyncManifest(
+            deviceId: 'peer',
+            epoch: 'epoch-1',
+            writtenAt: peerWrittenAt,
+            records: const {},
+          ),
+        ),
+      );
+      addTearDown(coordinator.dispose);
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(store.epochStateClears, 1, reason: 'this was a fresh attach');
+      final summary = result.peers!.single;
+      expect(summary.peerId, 'peer');
+      expect(summary.writtenAt, peerWrittenAt);
+      expect(summary.waitingCount, 1);
     },
   );
 

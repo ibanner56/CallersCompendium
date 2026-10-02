@@ -183,10 +183,11 @@ final class IsolatedSyncPassOperation {
           }
         case 'error':
           // Adopt whatever the failed pass learned before it threw. Without
-          // this the §6.9 session counters restart at every failure, so a
-          // device on a flaky link never reaches the three consecutive passes
-          // the unreflected-publication report is defined over, and every peer
-          // manifest it had already verified is downloaded again.
+          // this the §6.9 session evidence restarts at every failure, so a
+          // device on a flaky link never sees a peer publish twice after one
+          // of its own publications — the unreflected-publication judgement
+          // needs both inside one session — and every peer manifest it had
+          // already verified is downloaded again.
           final failedCache = message['_peerManifestCache'];
           if (failedCache != null) {
             try {
@@ -308,11 +309,11 @@ Future<void> _runSyncPassWorker(_SyncPassRequest request) async {
     // diagnostics: silent — worker errors are serialized to the parent isolate.
   } on Object catch (error, stack) {
     // The cache carries the session-scoped state §6.9 depends on — the
-    // unreflected-publication counter, the reported-once rejected hashes — and
+    // unreflected-publication evidence, the reported-once rejected hashes — and
     // every peer ETag. A fresh isolate per pass means anything not returned
     // here is lost, so a pass that throws late (a manifest PUT on a flaky
-    // link) would reset counters the spec defines over consecutive passes and
-    // force a full re-download of manifests it had already verified.
+    // link) would discard evidence the spec gathers across passes and force a
+    // full re-download of manifests it had already verified.
     request.resultPort.send({
       'type': 'error',
       'message': '$error',
@@ -463,6 +464,17 @@ Map<String, Object?> _encodeResult(SyncPassResult result) => {
         'peerId': report.peerId,
       },
   ],
+  'peers': switch (result.peers) {
+    null => null,
+    final peers => [
+      for (final peer in peers)
+        {
+          'peerId': peer.peerId,
+          'writtenAt': peer.writtenAt.microsecondsSinceEpoch,
+          'waitingCount': peer.waitingCount,
+        },
+    ],
+  },
 };
 
 SyncPassResult _decodeResult(Map<String, Object?> encoded) {
@@ -472,11 +484,13 @@ SyncPassResult _decodeResult(Map<String, Object?> encoded) {
   final rawDuplicateCount = encoded['duplicateCount'];
   final rawAppliedKinds = encoded['appliedKinds'];
   final rawReports = encoded['reports'];
+  final rawPeers = encoded['peers'];
   if (rawStatus is! String ||
       (rawMessage != null && rawMessage is! String) ||
       (rawDuplicateCount != null && rawDuplicateCount is! int) ||
       rawAppliedKinds is! List<Object?> ||
-      rawReports is! List<Object?>) {
+      rawReports is! List<Object?> ||
+      (rawPeers != null && rawPeers is! List<Object?>)) {
     throw const FormatException('sync isolate returned a malformed result');
   }
 
@@ -521,6 +535,32 @@ SyncPassResult _decodeResult(Map<String, Object?> encoded) {
     );
   }
 
+  List<SyncPeerSummary>? peers;
+  if (rawPeers != null) {
+    peers = [];
+    for (final rawPeer in rawPeers as List<Object?>) {
+      if (rawPeer is! Map<Object?, Object?> ||
+          rawPeer['peerId'] is! String ||
+          rawPeer['writtenAt'] is! int ||
+          rawPeer['waitingCount'] is! int ||
+          (rawPeer['waitingCount']! as int) < 0) {
+        throw const FormatException(
+          'sync isolate returned an invalid peer summary',
+        );
+      }
+      peers.add(
+        SyncPeerSummary(
+          peerId: rawPeer['peerId']! as String,
+          writtenAt: DateTime.fromMicrosecondsSinceEpoch(
+            rawPeer['writtenAt']! as int,
+            isUtc: true,
+          ),
+          waitingCount: rawPeer['waitingCount']! as int,
+        ),
+      );
+    }
+  }
+
   return SyncPassResult(
     status,
     reports: reports,
@@ -528,5 +568,6 @@ SyncPassResult _decodeResult(Map<String, Object?> encoded) {
     failure: rawFailure == null ? null : SyncFailure.decode(rawFailure),
     duplicateCount: rawDuplicateCount as int? ?? 0,
     appliedKinds: appliedKinds,
+    peers: peers,
   );
 }

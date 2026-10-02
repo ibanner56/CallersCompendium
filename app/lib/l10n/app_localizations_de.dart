@@ -655,8 +655,23 @@ class AppLocalizationsDe extends AppLocalizations {
       'Eine Aktualisierung von einem anderen Gerät kam an, während du denselben Eintrag bearbeitet hast, und wurde daher nicht übernommen. Die nächste Synchronisierung holt sie nach.';
 
   @override
-  String get settingsSyncNoticeUnreflectedPublication =>
-      'Änderungen von diesem Gerät sind nach mehreren Synchronisierungen nicht auf deinen anderen Geräten erschienen. Öffne dort die App und synchronisiere.';
+  String settingsSyncNoticePeerNotTaking(int count, String tag) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Gerät $tag synchronisiert, nimmt aber $count Änderungen von diesem Gerät nicht an. Sie sind hier sicher. Das andere Gerät braucht vielleicht ein App-Update, oder Datum und Uhrzeit dieses Geräts stimmen nicht.',
+      one:
+          'Gerät $tag synchronisiert, nimmt aber 1 Änderung von diesem Gerät nicht an. Die Änderung ist hier sicher. Das andere Gerät braucht vielleicht ein App-Update, oder Datum und Uhrzeit dieses Geräts stimmen nicht.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsSyncNoticeNeedsYou => 'Erfordert dein Handeln';
+
+  @override
+  String get settingsSyncNoticeSeeDevices => 'Andere Geräte anzeigen';
 
   @override
   String get settingsSyncNotBackup =>
@@ -674,14 +689,14 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncDisconnectSubtitle =>
-      'Die Synchronisierung hier beenden. Der Speicher und deine anderen Geräte bleiben unverändert.';
+      'Die Synchronisierung hier beenden. Deine Bibliothek bleibt, wie sie ist – hier und auf deinen anderen Geräten.';
 
   @override
   String get settingsSyncDisconnectConfirmTitle => 'Dieses Gerät trennen?';
 
   @override
   String get settingsSyncDisconnectConfirmBody =>
-      'Dieses Gerät synchronisiert dann nicht mehr und vergisst seine Synchronisierungsphrase. Deine Bibliothek auf diesem Gerät bleibt, wie sie ist, und der Speicher sowie deine anderen Geräte sind nicht betroffen. Um dich später wieder zu verbinden, brauchst du die Phrase – stell also sicher, dass du sie hast.';
+      'Dieses Gerät synchronisiert dann nicht mehr und vergisst seine Synchronisierungsphrase. Deine Bibliothek auf diesem Gerät bleibt, wie sie ist, und auf deinen anderen Geräten ebenso. Beim Trennen wird dieses Gerät aus dem Synchronisierungsspeicher entfernt, wenn deine anderen Geräte schon alles von ihm haben. Wenn nicht, bleibt es unter „Andere Geräte“ aufgeführt, bis du es dort entfernst. Um dich später wieder zu verbinden, brauchst du die Phrase – stell also sicher, dass du sie hast.';
 
   @override
   String get settingsSyncDisconnectConfirmAction => 'Trennen';
@@ -702,7 +717,55 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncDevicesCaution =>
-      'Der Server kennt jedes Gerät nur an einer Kennung, die er selbst vergeben hat – deshalb stehen hier keine Gerätenamen, und dieses Gerät wird nicht aufgeführt. Wenn du nicht sicher bist, welches du entfernen sollst, kannst du es gefahrlos stehen lassen: Ein entferntes Gerät kann sich mit der Synchronisierungsphrase wieder verbinden.';
+      'Jedes Gerät denkt sich seine eigene zufällige Kennung aus, und bei jeder Verbindung eine neue. Deshalb werden Geräte hier mit einem kurzen Kürzel aus dieser Kennung angezeigt statt mit einem Namen. Dieses Gerät steht nicht in der Liste; sein eigenes Kürzel steht unten, damit du es auf deinen anderen Geräten wiederfindest. Wenn du nicht sicher bist, welches du entfernen sollst, kannst du es gefahrlos stehen lassen: Ein entferntes Gerät kann sich mit der Synchronisierungsphrase wieder verbinden.';
+
+  @override
+  String settingsSyncDevicesThisDevice(String tag) {
+    return 'Dieses Gerät: $tag';
+  }
+
+  @override
+  String settingsSyncDeviceTag(String tag) {
+    return 'Gerät $tag';
+  }
+
+  @override
+  String get settingsSyncDeviceLastSharedToday =>
+      'Hat heute zuletzt Änderungen geteilt';
+
+  @override
+  String settingsSyncDeviceLastSharedDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Hat vor $count Tagen zuletzt Änderungen geteilt',
+      one: 'Hat gestern zuletzt Änderungen geteilt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncDeviceLastSharedWeeks(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Hat vor etwa $count Wochen zuletzt Änderungen geteilt',
+      one: 'Hat vor etwa einer Woche zuletzt Änderungen geteilt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncDeviceWaiting(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count Änderungen von diesem Gerät warten noch darauf, dort anzukommen.',
+      one: '1 Änderung von diesem Gerät wartet noch darauf, dort anzukommen.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get settingsSyncDevicesEmpty =>

@@ -41,7 +41,7 @@ merging, user accounts, and any sharing of fields not classified `shareable`.
 | **epoch** | An opaque 128-bit value identifying one incarnation of a store. |
 | **pass** | One complete sync cycle. |
 | **quarantine** | Local state of a record whose timestamps are implausible. |
-| **detach** | Stop syncing on *this* device: forget the sync ID and the baseline locally. Purely local. It sends no request, leaves this device's manifest and every blob on the server, and affects no peer. |
+| **detach** | Stop syncing on *this* device: forget the sync ID and the baseline locally. The forgetting is local and never waits on the network. Afterwards the client MAY make one best-effort request to remove this device's own manifest, and only when every entry of it is already carried by a peer manifest (§3.3, *detach clean-up*); otherwise it leaves this device's manifest and every blob on the server. It affects no peer's data. |
 | **wipe** | Destroy the whole store server-side via `DELETE /v1/store`, for every device at once. Not reversible, and not what the Settings detach control does. |
 | **report** | Surface a condition to the user as a non-blocking notice that survives the pass which raised it. Reporting MUST NOT block a write, gate a pass, or require a gesture to clear. Distinct from `review_queue`, which holds candidate *records* awaiting a decision: a report names a condition, not a pending choice. |
 | **tick** | The smallest interval the timestamp storage representation can distinguish. Currently **one second**: `DateTimeColumn` persists as a unix second count, so a sub-second increment does not survive a write. Every `+ 1 tick` in this document means this quantity, not a fixed millisecond. |
@@ -296,12 +296,20 @@ An epoch reset un-publishes nothing: peers that already downloaded a record
 still hold it live, and that liveness is exactly what forfeiture guards against.
 **Detach un-publishes nothing either**, and it is worth being precise about why,
 because a store-scoped reading is the intuitive one. Detach forgets the sync ID
-*locally* (§6.2 step 3); it does not `DELETE /v1/manifests/{self}`, so a
-successful publication remains reachable while the store's manifest references
-it. The marker is retained because a failed attempt cannot later be
-distinguished from a publication that peers may have fetched. Clearing on
-detach would convert "the deletion sticks" into "the deletion silently
-reverts", which is the defect this rule exists to prevent.
+*locally* (§6.2 step 3). The detach clean-up (§3.3) may then
+`DELETE /v1/manifests/{self}`, but only when every entry of that manifest is
+carried, with the identical hash, by a peer manifest — so every publication it
+named stays reachable through the store's other manifests, and a successful
+publication remains reachable while any manifest references it. The marker is
+retained because a failed attempt cannot later be distinguished from a
+publication that peers may have fetched. Clearing on detach would convert "the
+deletion sticks" into "the deletion silently reverts", which is the defect this
+rule exists to prevent.
+
+*Amended 2026-10-02: this paragraph said detach does not
+`DELETE /v1/manifests/{self}`. It now may, under the detach clean-up's
+reflected-everywhere condition (§3.3); the conclusion is unchanged, because
+that condition is exactly "no publication becomes unreachable".*
 
 Restore needs no revalidation for the same reason it needs no clearing: the
 marker's only consumer is the forfeiture check at hard-delete time, so a row
@@ -311,8 +319,8 @@ restore brought back is still correct.
 **No retirement rule, deliberately.** `id_aliases` retires on a content bound —
 no current peer manifest lists the losing id (§6.6) — and that bound is not
 available here. This device's own manifest is one of the manifests keeping the
-record reachable, and it survives detach; retiring against peer manifests alone
-would ignore it. The failure modes are also asymmetric, which is what settles
+record reachable, and it survives detach unless a peer manifest carries every
+entry of it (§3.3); retiring against peer manifests alone would ignore it. The failure modes are also asymmetric, which is what settles
 it: a wrongly-retired alias skips and reports one record, while a
 wrongly-retired marker silently resurrects a deletion. Growth is bounded by the
 number of records ever selected for publication rather than by activity: one
@@ -377,13 +385,53 @@ Both re-use the same sync ID, whose derived `id_key` already links them, so a
 new identifier there would buy no unlinkability.
 
 The cost falls on re-attaching to the **same** store. The previous
-attachment's manifest stays on the server under its old identifier — detach
-sends no request — so it appears as another device: it occupies one of §5.4's
-device slots, keeps its blobs reachable, and, because it lists this device's
-own hashes, counts as a peer carrying them in §6.3 step 9's baseline advance
-and in §6.9's check for records no observed peer reflects, until it is removed
-under *Other devices*. Recognising it as this device's would need exactly the link between
-attachments that the rule removes.
+attachment's manifest can stay on the server under its old identifier, and then
+it appears as another device: it occupies one of §5.4's device slots, keeps its
+blobs reachable, and, because it lists this device's own hashes, counts as a
+peer carrying them in §6.3 step 9's baseline advance, until it is removed under
+*Other devices*. Recognising it as this device's would need exactly the link
+between attachments that the rule removes. The detach clean-up below removes it
+in the common case, where the other devices already have everything it lists;
+it remains when they do not, or when the attempt could not be made.
+
+For §6.9's per-peer judgement such a leftover manifest reads as **asleep** — it
+never publishes again — so it raises no notice. It still lists the hashes this
+device published before it detached, so the *Other devices* line for it counts
+as waiting only what changed since, and a record unchanged since that detach is
+not counted as waiting for it even when no live device has it.
+
+**Detach clean-up.** After detach has committed its local clear, a client MAY
+make one attempt to `DELETE /v1/manifests/{self}` for the attachment it has just
+left. It MUST NOT delay or fail the detach, MUST NOT be retried later, MUST hold
+the sync ID, endpoint and old device ID only in memory for its duration, and
+MUST be abandoned if a new pairing starts or Device Sync is turned off. It MUST NOT send the `DELETE` unless
+every one of these holds:
+
+1. the connection would permit a pass under §6.12 (online, and not metered while
+   *Sync only on WiFi* is on), and Device Sync is on;
+2. `GET /v1/store` succeeds and lists at least one device other than this one;
+3. `GET /v1/manifests/{self}` succeeds (a `404` means there is nothing to do);
+4. every other listed device's manifest is fetched, well formed, and in the
+   store's current epoch; and
+5. **every entry** of this device's server-side manifest — kind, id and hash —
+   is carried with the identical hash by at least one of those manifests.
+   Hashes are compared raw, with no alias resolution: that can only make a
+   carried entry look uncarried, so it may skip a safe removal but never permit
+   an unsafe one.
+
+There is no condition on unsynced local edits, and none is needed: an edit this
+device never published is not in its server manifest, so removing that manifest
+neither loses nor publishes it. The `DELETE`'s answer is not examined. A peer
+part-way through a pass may find the manifest gone and report it as unreadable
+for that pass, which is the hazard removing a device under *Other devices*
+already accepts. The reference client uses a 10-second per-request and 30-second
+overall deadline.
+
+*Amended 2026-10-02 (@ibanner56's ruling, from a planning session): detach used
+to send no request at all, which left every re-attach's previous manifest
+behind. The clean-up is safe because of condition 5 — with it, removing the
+manifest makes no publication unreachable — and best-effort because nothing
+about it is the user's to act on.*
 
 **Rule 4's bound is the store's lifetime, not the device's.** §7.3 reaps a
 store after 30 days of disuse and cascades its manifests, but `last_seen` is
@@ -2818,8 +2866,9 @@ Every pass MUST bring the queue in line with that pass's merge: queue each
 conflict it raises, drop every queued choice it no longer raises, and leave
 untouched the rows of any address the merge skipped (a peer that could not be
 read is not evidence the conflict ended). An unchanged row keeps its
-`queued_at`. A record awaiting a choice is excluded from §6.9's
-unreflected-publication count, which would otherwise report it a second time.
+`queued_at`. A record awaiting a choice is excluded from §6.9's per-peer
+judgement: it is judged neither asleep nor refusing and is not counted as
+waiting, since it would otherwise be reported a second time.
 
 Deciding writes the kept version — this device's, or one of the queued
 candidates — through the inbound apply path, with `updatedAt` one tick past
@@ -3107,13 +3156,42 @@ peer's agreement is observed. There is no safe backfill.
 **Clock-suspect** is a derived per-pass diagnostic: it holds when at least one
 peer value was observed and every value observed in that pass fell outside the
 local window. Zero observed peers is NOT clock-suspect. It gates nothing and
-MUST NOT restrict user writes. A device MUST also report when its own published
-records go unreflected by every observed peer across three consecutive passes
-(session-scoped counter), **with at least one peer observed in each of those
-passes**. Zero observed peers is not evidence, for the same reason it is not
-evidence of a slow clock: with no peer observed, "unreflected by every observed
-peer" is vacuously true, and a solo install would otherwise report its uploads
-as unreachable forever.
+MUST NOT restrict user writes. A device MUST also judge, **per observed peer**,
+whether the records it publishes are reaching that peer, from the peer
+manifest's `writtenAt`:
+
+- **Asleep** — the peer has not published since this device published the
+  record. This is the ordinary state of a device that is not running, and MUST
+  NOT be reported. A client SHOULD show it as a status line instead (the
+  reference client's *Other devices* list counts the changes waiting for each
+  peer).
+- **Refusing** — the peer has published at least twice since, with distinct
+  `writtenAt` values, and its manifest still does not carry the record's hash.
+  This MUST be reported, once per record and peer, and the report MUST carry
+  the peer's id. Twice, not once: a pass that was already running when this
+  device published can finish afterwards without having read its manifest.
+
+"Since" MUST be judged by the order in which this device observed the peer's
+`writtenAt` values — first seen on a later pass than the one that published the
+record — and not by comparing that `writtenAt` with this device's clock: this
+signal exists for the device whose own clock runs fast, whose records its peers
+refuse as future-dated, and that device's publication time is later than any
+`writtenAt` a peer will write. A peer that holds a version of the record no
+older than this device's — content at least as new, or a strictly newer
+existence transition (an equal `existenceAt` is not newer: an ordinary edit
+leaves it unchanged) — is not refusing it, whatever its hash; that
+disagreement is reported, if at all, by the conditions that own it. A record
+with a conflict choice queued (§6.6) is judged neither asleep nor refusing and
+is not counted as waiting. The evidence is
+session-scoped and restarts on an epoch change. Zero observed peers is not
+evidence, for the same reason it is not evidence of a slow clock: with no peer
+observed, no peer can be refusing anything.
+
+*Amended 2026-10-02 (@ibanner56's ruling, from a planning session): this
+paragraph required a report when published records went unreflected by every
+observed peer across three consecutive passes. That fired chiefly because
+another device had not been opened, named no device, and could not tell the two
+cases apart.*
 
 A solo install has no repair path. A never-corrected clock does not self-heal.
 
@@ -4571,6 +4649,30 @@ proceeds without a tombstone and the peer's live copy is downloaded back).
 Reconciliation carries the publication marker onto the survivor (mutation:
 remap without it, then hard-delete the survivor while a peer still advertises
 the losing id).
+
+**Per-peer reflection (§6.9).** A peer that has not published since raises no
+report however many passes run (mutation: report after three passes unreflected
+by every peer, the rule this replaced). A peer that has published twice since
+without the record is reported, naming it; after once, it is not (mutation:
+accept one publication). A manifest first seen on the publishing pass is not
+evidence (mutation: drop the pass-order test, with a peer clock running fast).
+A device whose own clock runs fast is still reported against (mutation: compare
+the peer's `writtenAt` with this device's clock). A peer holding a newer version
+is not refusing it (mutation: judge on hash inequality alone). Zero observed
+peers judges nothing.
+
+**Detach clean-up (§3.3).** Removes this device's manifest when every entry is
+carried with the identical hash by some peer; keeps it when one entry is carried
+only at another hash (mutation: drop the per-entry check), when a peer manifest
+cannot be read (mutation: skip it), when a peer manifest is in another epoch
+(mutation: drop the epoch check), and when no other device is listed (mutation:
+drop that check — the per-entry check then refuses it anyway, so the test asserts
+no manifest was read). Sends nothing offline or on a metered connection with
+*Sync only on WiFi* on, and does not route the user to that setting (mutation:
+reuse the manual-sync gate). Detach returns before the first request, which
+finds the phrase already gone from disk. The device ID is read before the clear
+(mutation: read it after — the clear has erased it, and nothing is ever sent). A new pairing cancels it (mutation: drop the
+cancel). It gives up at its deadline.
 
 **Attach and restore.** Epoch mismatch → fresh attach, never deletion. Union and
 silent merge. An equal-`updatedAt` fresh-attach tie is queued for the user's

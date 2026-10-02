@@ -1036,11 +1036,23 @@ abstract class AppLocalizations {
   /// **'An update from another device arrived while you were editing the same record, so it wasn\'t applied. The next sync picks it up.'**
   String get settingsSyncNoticeDeferredInbound;
 
-  /// Non-blocking notice raised when records this device published have been absent from every observed peer manifest for three consecutive passes, which usually means another device has stopped syncing.
+  /// Needs-you Device Sync notice, one per other device: that device has synced at least twice since this one shared some changes and still doesn't have them. The two usual causes are named: that device runs an older app version that refuses them, or this device's clock is far ahead so the other device refuses them as dated in the future. {tag} is the device's short random tag, exactly as on the Other devices screen (settingsSyncDeviceTag); never a name. Says the user's work is safe on this device before what to check.
   ///
   /// In en, this message translates to:
-  /// **'Changes from this device haven\'t appeared on your other devices after several syncs. Open the app on them and sync.'**
-  String get settingsSyncNoticeUnreflectedPublication;
+  /// **'{count, plural, =1{Device {tag} is syncing but isn\'t taking 1 change from this device. The change is safe here. That device may need an app update, or this device\'s date and time may be wrong.} other{Device {tag} is syncing but isn\'t taking {count} changes from this device. They\'re safe here. That device may need an app update, or this device\'s date and time may be wrong.}}'**
+  String settingsSyncNoticePeerNotTaking(int count, String tag);
+
+  /// Short label beside the warning icon on a Device Sync notice that needs the user to do something, so the urgency is not carried by colour alone.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs you'**
+  String get settingsSyncNoticeNeedsYou;
+
+  /// Button on the settingsSyncNoticePeerNotTaking notice that opens the Other devices screen (settingsSyncDevicesScreenTitle), where the device it names is listed by the same tag.
+  ///
+  /// In en, this message translates to:
+  /// **'See other devices'**
+  String get settingsSyncNoticeSeeDevices;
 
   /// Disclosure that sync does not replace a file backup. Spec §6.14 item 3 requires it wherever the UI reports success, so it is shown both on the Device Sync status surface and in the dialog shown when pairing completes; a third success report would need it too.
   ///
@@ -1060,16 +1072,16 @@ abstract class AppLocalizations {
   /// **'Sync now'**
   String get settingsSyncNowTitle;
 
-  /// Status-surface action that detaches this device from its Device Sync store (spec: detach). Local only.
+  /// Status-surface action that detaches this device from its Device Sync store (spec: detach). Forgets the sync phrase on this device; afterwards the app may remove this device's entry from the store if the other devices already have everything it shared.
   ///
   /// In en, this message translates to:
   /// **'Disconnect this device'**
   String get settingsSyncDisconnectTitle;
 
-  /// Subtitle under the Device Sync disconnect action.
+  /// Subtitle under the Device Sync disconnect action. Must not say the store is unchanged: disconnecting may remove this device's entry from it (settingsSyncDisconnectConfirmBody).
   ///
   /// In en, this message translates to:
-  /// **'Stop syncing here. The store and your other devices are not changed.'**
+  /// **'Stop syncing here. Your library stays as it is, here and on your other devices.'**
   String get settingsSyncDisconnectSubtitle;
 
   /// Title of the confirmation dialog before detaching this device from its Device Sync store.
@@ -1078,10 +1090,10 @@ abstract class AppLocalizations {
   /// **'Disconnect this device?'**
   String get settingsSyncDisconnectConfirmTitle;
 
-  /// Body of the Device Sync disconnect confirmation: local-only, keeps the library, needs the phrase to reconnect (spec §6.14 item 2: no recovery).
+  /// Body of the Device Sync disconnect confirmation: keeps the library, removes this device's entry from the store only when the other devices already have everything from it (otherwise it stays under Other devices, the exact title of settingsSyncDevicesTitle), and needs the phrase to reconnect (spec §6.14 item 2: no recovery).
   ///
   /// In en, this message translates to:
-  /// **'This device will stop syncing and forget its sync phrase. Your library on this device stays as it is, and the store and your other devices aren\'t affected. To reconnect later you\'ll need the phrase, so make sure you have it.'**
+  /// **'This device will stop syncing and forget its sync phrase. Your library on this device stays as it is, and so do your other devices. Disconnecting removes this device from the sync store if your other devices already have everything from it. If they don\'t, it stays listed under Other devices until you remove it there. To reconnect later you\'ll need the phrase, so make sure you have it.'**
   String get settingsSyncDisconnectConfirmBody;
 
   /// Confirm button of the Device Sync disconnect dialog.
@@ -1114,11 +1126,47 @@ abstract class AppLocalizations {
   /// **'Other devices'**
   String get settingsSyncDevicesScreenTitle;
 
-  /// Explains that the Device Sync device list shows opaque identifiers only, excludes this device, and that removal is reversible by re-pairing.
+  /// Explains that the Device Sync device list shows each device by a short tag of the random identifier that device made up for itself (a new one at every connection), never a name; that this device is not listed but its own tag is shown below (settingsSyncDevicesThisDevice); and that removal is reversible by re-pairing.
   ///
   /// In en, this message translates to:
-  /// **'The server only knows each device by an identifier it made up, so there are no device names here, and this device isn\'t listed. If you aren\'t sure which one to remove, it\'s safe to leave it: a device you remove can connect again with the sync phrase.'**
+  /// **'Each device makes up its own random identifier, and a new one every time it connects, so devices are shown here by a short tag from that identifier rather than by name. This device isn\'t in the list; its own tag is below, so you can find it on your other devices. If you aren\'t sure which one to remove, it\'s safe to leave it: a device you remove can connect again with the sync phrase.'**
   String get settingsSyncDevicesCaution;
+
+  /// Line on the Other devices screen giving this device's own short tag, so the user can tell which entry is this device when looking at the list on another device.
+  ///
+  /// In en, this message translates to:
+  /// **'This device: {tag}'**
+  String settingsSyncDevicesThisDevice(String tag);
+
+  /// Title of one entry on the Other devices screen. {tag} is a short, random, case-sensitive tag cut from the device's identifier; never a name.
+  ///
+  /// In en, this message translates to:
+  /// **'Device {tag}'**
+  String settingsSyncDeviceTag(String tag);
+
+  /// Line under a device on the Other devices screen: that device last published its list of changes today. Rounded to the day on purpose; never a time.
+  ///
+  /// In en, this message translates to:
+  /// **'Last shared changes today'**
+  String get settingsSyncDeviceLastSharedToday;
+
+  /// Line under a device on the Other devices screen: how many calendar days ago that device last published its list of changes, from 1 to 13.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Last shared changes yesterday} other{Last shared changes {count} days ago}}'**
+  String settingsSyncDeviceLastSharedDays(int count);
+
+  /// Line under a device on the Other devices screen: roughly how many weeks ago that device last published its list of changes, used from two weeks on.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Last shared changes about a week ago} other{Last shared changes about {count} weeks ago}}'**
+  String settingsSyncDeviceLastSharedWeeks(int count);
+
+  /// Line under a device on the Other devices screen when that device doesn't yet have some of this device's changes, usually because it hasn't been opened since. Calm status, not a warning.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 change from this device is waiting for it.} other{{count} changes from this device are waiting for it.}}'**
+  String settingsSyncDeviceWaiting(int count);
 
   /// Empty state when this is the only device with a manifest in the Device Sync store.
   ///

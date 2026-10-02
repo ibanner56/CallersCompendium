@@ -2095,18 +2095,21 @@ void main() {
           );
         });
 
-        testWidgets('a publication no peer has reflected is surfaced', (
-          tester,
-        ) async {
-          var result = const SyncPassResult(
+        testWidgets('a device that is syncing but not taking changes gets '
+            'a needs-you notice of its own, naming it by tag', (tester) async {
+          SyncReport refused(String peerId, String recordId) => SyncReport(
+            code: SyncReportCode.unreflectedPublication,
+            kind: SyncRecordKind.dance,
+            recordId: recordId,
+            peerId: peerId,
+            message: 'Published twice since without the record.',
+          );
+          var result = SyncPassResult(
             SyncPassStatus.completed,
             reports: [
-              SyncReport(
-                code: SyncReportCode.unreflectedPublication,
-                kind: SyncRecordKind.dance,
-                recordId: 'dance-3',
-                message: 'Not reflected for three consecutive passes.',
-              ),
+              refused('7c02LmQx9aZ0', 'dance-3'),
+              refused('7c02LmQx9aZ0', 'dance-4'),
+              refused('Hk3pWq0aZZb1', 'dance-3'),
             ],
           );
           await pumpPassing(tester, () => result);
@@ -2114,7 +2117,52 @@ void main() {
 
           expect(
             find.byKey(const ValueKey('sync-notice-unreflectedPublication')),
+            findsNothing,
+            reason: 'one notice per device, never one for all of them',
+          );
+          const first = ValueKey('sync-notice-unreflectedPublication-7c02Lm');
+          expect(find.byKey(first), findsOneWidget);
+          expect(
+            find.byKey(
+              const ValueKey('sync-notice-unreflectedPublication-Hk3pWq'),
+            ),
             findsOneWidget,
+          );
+          expect(
+            find.text(
+              "Device 7c02Lm is syncing but isn't taking 2 changes from this "
+              "device. They're safe here. That device may need an app update, or this device's "
+              "date and time may be wrong.",
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(
+              const ValueKey(
+                'sync-notice-unreflectedPublication-7c02Lm-needs-you',
+              ),
+            ),
+            findsOneWidget,
+            reason: 'needs-you is a text label, not only a colour',
+          );
+          expect(
+            find.descendant(
+              of: find.byKey(first),
+              matching: find.byIcon(Icons.warning_amber_outlined),
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.descendant(
+              of: find.byKey(first),
+              matching: find.byKey(
+                const ValueKey(
+                  'sync-notice-unreflectedPublication-7c02Lm-peers',
+                ),
+              ),
+            ),
+            findsNothing,
+            reason: 'the text already names the one device',
           );
         });
 
@@ -2538,12 +2586,75 @@ void main() {
       });
 
       group('disconnect (spec glossary: detach)', () {
+        late List<String> requests;
+
+        SyncManifest manifest(String deviceId) => SyncManifest(
+          deviceId: deviceId,
+          epoch: 'epoch-1',
+          writtenAt: DateTime.utc(2026, 9, 20),
+          records: {
+            SyncRecordKind.setting: {'a': List.filled(64, '1').join()},
+          },
+        );
+
+        setUp(() {
+          requests = [];
+          _syncNetwork.kind = SyncNetworkKind.unmetered;
+          // Detach's clean-up talks to the store being left. Both devices
+          // carry the same entry, so it is safe to remove this one's.
+          _deviceAdminFactory = (syncId, endpoint, {requestTimeout}) =>
+              SyncDeviceAdmin(
+                getStore: ({required previouslyUsed}) async {
+                  requests.add('GET store');
+                  return SyncStoreResult(
+                    response: SyncHttpResponse(
+                      statusCode: 200,
+                      kind: SyncResponseKind.success,
+                      headers: const {},
+                      body: utf8.encode(
+                        jsonEncode({
+                          'epoch': 'epoch-1',
+                          'devices': ['this_device', 'peer_a'],
+                        }),
+                      ),
+                    ),
+                  );
+                },
+                getManifest: (deviceId) async {
+                  requests.add('GET $deviceId');
+                  return SyncHttpResponse(
+                    statusCode: 200,
+                    kind: SyncResponseKind.success,
+                    headers: const {},
+                    body: encodeSyncManifestUtf8(manifest(deviceId)),
+                  );
+                },
+                deleteManifest: (deviceId) async {
+                  requests.add('DELETE $deviceId');
+                  return const SyncHttpResponse(
+                    statusCode: 204,
+                    kind: SyncResponseKind.success,
+                    headers: {},
+                    body: [],
+                  );
+                },
+                deleteStore: () async => throw StateError('not a wipe'),
+              );
+        });
+
+        tearDown(() => _deviceAdminFactory = null);
+
         Future<CompendiumRepositories> pumpPaired(WidgetTester tester) async {
           final harness = await _pumpSettings(tester);
           await harness.repos.settings.set(
             'sync_id',
             'alpha-bravo-charlie-delta',
           );
+          await harness.repos.settings.set(
+            'sync_endpoint',
+            'https://sync.example.test/',
+          );
+          await harness.repos.settings.set('sync_device_id', 'this_device');
           final controller = SyncScope.of(
             tester.element(find.byType(SettingsScreen)),
           );
@@ -2597,6 +2708,36 @@ void main() {
           expect(await repos.settings.get('sync_enabled'), isTrue);
           expect(find.text('Not connected to a store yet.'), findsOneWidget);
         });
+
+        testWidgets('the dialog says when this device is removed from the '
+            'store, and confirming removes it once the others have '
+            'everything', (tester) async {
+          await pumpPaired(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-disconnect')));
+          await tester.pumpAndSettle();
+          expect(
+            find.textContaining(
+              'Disconnecting removes this device from the sync store if your '
+              'other devices already have everything from it. If they '
+              "don't, it stays listed under Other devices until you remove "
+              'it there.',
+            ),
+            findsOneWidget,
+          );
+          expect(requests, isEmpty, reason: 'nothing is sent before confirm');
+
+          await tester.tap(
+            find.byKey(const ValueKey('sync-disconnect-confirm')),
+          );
+          await tester.pumpAndSettle();
+
+          expect(requests, [
+            'GET store',
+            'GET this_device',
+            'GET peer_a',
+            'DELETE this_device',
+          ]);
+        });
       });
 
       group('device management (spec §3.3, glossary wipe)', () {
@@ -2624,25 +2765,28 @@ void main() {
           _syncCoordinator = null;
           _pairingProbeFactory = null;
           // The server reports this device too; the surface must not.
-          _deviceAdminFactory = (syncId, endpoint) => SyncDeviceAdmin(
-            getStore: ({required previouslyUsed}) async => SyncStoreResult(
-              response: response(
-                listKind,
-                body: jsonEncode({
-                  'epoch': 'epoch-1',
-                  'devices': ['this_device', 'peer_a'],
-                }),
-              ),
-            ),
-            deleteManifest: (deviceId) async {
-              removed.add(deviceId);
-              return response(removeKind);
-            },
-            deleteStore: () async {
-              wipes++;
-              return response(wipeKind);
-            },
-          );
+          _deviceAdminFactory = (syncId, endpoint, {requestTimeout}) =>
+              SyncDeviceAdmin(
+                getStore: ({required previouslyUsed}) async => SyncStoreResult(
+                  response: response(
+                    listKind,
+                    body: jsonEncode({
+                      'epoch': 'epoch-1',
+                      'devices': ['this_device', 'peer_a'],
+                    }),
+                  ),
+                ),
+                getManifest: (deviceId) async =>
+                    response(SyncResponseKind.notFound),
+                deleteManifest: (deviceId) async {
+                  removed.add(deviceId);
+                  return response(removeKind);
+                },
+                deleteStore: () async {
+                  wipes++;
+                  return response(wipeKind);
+                },
+              );
         });
 
         tearDown(() => _deviceAdminFactory = null);
@@ -2732,6 +2876,54 @@ void main() {
               reason: '${entry.key} must not be tappable mid-pass',
             );
           }
+        });
+
+        testWidgets('each device is shown by a short tag, with when it last '
+            'shared changes and what is waiting for it', (tester) async {
+          final repos = await pumpPaired(tester);
+          final writtenAt = DateTime.now().subtract(const Duration(days: 3));
+          _syncCoordinator = SyncCoordinator(
+            syncId: 'configured',
+            deviceId: 'this_device',
+            store: CompendiumSyncCoordinatorStore(repos),
+            transport: NoopSyncCoordinatorTransport(),
+            passOperation: ({initialStore}) async => SyncPassResult(
+              SyncPassStatus.completed,
+              peers: [
+                SyncPeerSummary(
+                  peerId: 'peer_a',
+                  writtenAt: writtenAt.toUtc(),
+                  waitingCount: 4,
+                ),
+              ],
+            ),
+          );
+          addTearDown(_syncCoordinator!.dispose);
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+
+          await tester.tap(find.byKey(const ValueKey('sync-devices')));
+          await tester.pumpAndSettle();
+
+          expect(find.text('Device peer_a'), findsOneWidget);
+          expect(find.text('This device: this_d'), findsOneWidget);
+          expect(
+            tester
+                .widget<Text>(
+                  find.byKey(const ValueKey('sync-device-last-shared-peer_a')),
+                )
+                .data,
+            'Last shared changes 3 days ago',
+          );
+          expect(
+            find.text('4 changes from this device are waiting for it.'),
+            findsOneWidget,
+          );
+          expect(
+            find.textContaining(RegExp(r'\d:\d\d')),
+            findsNothing,
+            reason: 'rounded to the day: never a time of day',
+          );
         });
 
         testWidgets('the list shows the other devices and never this one', (

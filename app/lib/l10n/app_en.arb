@@ -812,9 +812,27 @@
   "@settingsSyncNoticeDeferredInbound": {
     "description": "Non-blocking notice for an inbound update held back because the local row changed while the pass was preparing it. Self-resolving: the copy must not send the user to fix anything."
   },
-  "settingsSyncNoticeUnreflectedPublication": "Changes from this device haven't appeared on your other devices after several syncs. Open the app on them and sync.",
-  "@settingsSyncNoticeUnreflectedPublication": {
-    "description": "Non-blocking notice raised when records this device published have been absent from every observed peer manifest for three consecutive passes, which usually means another device has stopped syncing."
+  "settingsSyncNoticePeerNotTaking": "{count, plural, =1{Device {tag} is syncing but isn't taking 1 change from this device. The change is safe here. That device may need an app update, or this device's date and time may be wrong.} other{Device {tag} is syncing but isn't taking {count} changes from this device. They're safe here. That device may need an app update, or this device's date and time may be wrong.}}",
+  "@settingsSyncNoticePeerNotTaking": {
+    "description": "Needs-you Device Sync notice, one per other device: that device has synced at least twice since this one shared some changes and still doesn't have them. The two usual causes are named: that device runs an older app version that refuses them, or this device's clock is far ahead so the other device refuses them as dated in the future. {tag} is the device's short random tag, exactly as on the Other devices screen (settingsSyncDeviceTag); never a name. Says the user's work is safe on this device before what to check.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "4"
+      },
+      "tag": {
+        "type": "String",
+        "example": "7c02Lm"
+      }
+    }
+  },
+  "settingsSyncNoticeNeedsYou": "Needs you",
+  "@settingsSyncNoticeNeedsYou": {
+    "description": "Short label beside the warning icon on a Device Sync notice that needs the user to do something, so the urgency is not carried by colour alone."
+  },
+  "settingsSyncNoticeSeeDevices": "See other devices",
+  "@settingsSyncNoticeSeeDevices": {
+    "description": "Button on the settingsSyncNoticePeerNotTaking notice that opens the Other devices screen (settingsSyncDevicesScreenTitle), where the device it names is listed by the same tag."
   },
   "settingsSyncNotBackup": "Sync is not a backup. A store that goes unused for 30 days is removed, so keep making file backups.",
   "@settingsSyncNotBackup": {
@@ -830,19 +848,19 @@
   },
   "settingsSyncDisconnectTitle": "Disconnect this device",
   "@settingsSyncDisconnectTitle": {
-    "description": "Status-surface action that detaches this device from its Device Sync store (spec: detach). Local only."
+    "description": "Status-surface action that detaches this device from its Device Sync store (spec: detach). Forgets the sync phrase on this device; afterwards the app may remove this device's entry from the store if the other devices already have everything it shared."
   },
-  "settingsSyncDisconnectSubtitle": "Stop syncing here. The store and your other devices are not changed.",
+  "settingsSyncDisconnectSubtitle": "Stop syncing here. Your library stays as it is, here and on your other devices.",
   "@settingsSyncDisconnectSubtitle": {
-    "description": "Subtitle under the Device Sync disconnect action."
+    "description": "Subtitle under the Device Sync disconnect action. Must not say the store is unchanged: disconnecting may remove this device's entry from it (settingsSyncDisconnectConfirmBody)."
   },
   "settingsSyncDisconnectConfirmTitle": "Disconnect this device?",
   "@settingsSyncDisconnectConfirmTitle": {
     "description": "Title of the confirmation dialog before detaching this device from its Device Sync store."
   },
-  "settingsSyncDisconnectConfirmBody": "This device will stop syncing and forget its sync phrase. Your library on this device stays as it is, and the store and your other devices aren't affected. To reconnect later you'll need the phrase, so make sure you have it.",
+  "settingsSyncDisconnectConfirmBody": "This device will stop syncing and forget its sync phrase. Your library on this device stays as it is, and so do your other devices. Disconnecting removes this device from the sync store if your other devices already have everything from it. If they don't, it stays listed under Other devices until you remove it there. To reconnect later you'll need the phrase, so make sure you have it.",
   "@settingsSyncDisconnectConfirmBody": {
-    "description": "Body of the Device Sync disconnect confirmation: local-only, keeps the library, needs the phrase to reconnect (spec §6.14 item 2: no recovery)."
+    "description": "Body of the Device Sync disconnect confirmation: keeps the library, removes this device's entry from the store only when the other devices already have everything from it (otherwise it stays under Other devices, the exact title of settingsSyncDevicesTitle), and needs the phrase to reconnect (spec §6.14 item 2: no recovery)."
   },
   "settingsSyncDisconnectConfirmAction": "Disconnect",
   "@settingsSyncDisconnectConfirmAction": {
@@ -864,9 +882,63 @@
   "@settingsSyncDevicesScreenTitle": {
     "description": "App bar title of the screen listing the other devices in the Device Sync store."
   },
-  "settingsSyncDevicesCaution": "The server only knows each device by an identifier it made up, so there are no device names here, and this device isn't listed. If you aren't sure which one to remove, it's safe to leave it: a device you remove can connect again with the sync phrase.",
+  "settingsSyncDevicesCaution": "Each device makes up its own random identifier, and a new one every time it connects, so devices are shown here by a short tag from that identifier rather than by name. This device isn't in the list; its own tag is below, so you can find it on your other devices. If you aren't sure which one to remove, it's safe to leave it: a device you remove can connect again with the sync phrase.",
   "@settingsSyncDevicesCaution": {
-    "description": "Explains that the Device Sync device list shows opaque identifiers only, excludes this device, and that removal is reversible by re-pairing."
+    "description": "Explains that the Device Sync device list shows each device by a short tag of the random identifier that device made up for itself (a new one at every connection), never a name; that this device is not listed but its own tag is shown below (settingsSyncDevicesThisDevice); and that removal is reversible by re-pairing."
+  },
+  "settingsSyncDevicesThisDevice": "This device: {tag}",
+  "@settingsSyncDevicesThisDevice": {
+    "description": "Line on the Other devices screen giving this device's own short tag, so the user can tell which entry is this device when looking at the list on another device.",
+    "placeholders": {
+      "tag": {
+        "type": "String",
+        "example": "k7mQ2x"
+      }
+    }
+  },
+  "settingsSyncDeviceTag": "Device {tag}",
+  "@settingsSyncDeviceTag": {
+    "description": "Title of one entry on the Other devices screen. {tag} is a short, random, case-sensitive tag cut from the device's identifier; never a name.",
+    "placeholders": {
+      "tag": {
+        "type": "String",
+        "example": "7c02Lm"
+      }
+    }
+  },
+  "settingsSyncDeviceLastSharedToday": "Last shared changes today",
+  "@settingsSyncDeviceLastSharedToday": {
+    "description": "Line under a device on the Other devices screen: that device last published its list of changes today. Rounded to the day on purpose; never a time."
+  },
+  "settingsSyncDeviceLastSharedDays": "{count, plural, =1{Last shared changes yesterday} other{Last shared changes {count} days ago}}",
+  "@settingsSyncDeviceLastSharedDays": {
+    "description": "Line under a device on the Other devices screen: how many calendar days ago that device last published its list of changes, from 1 to 13.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncDeviceLastSharedWeeks": "{count, plural, =1{Last shared changes about a week ago} other{Last shared changes about {count} weeks ago}}",
+  "@settingsSyncDeviceLastSharedWeeks": {
+    "description": "Line under a device on the Other devices screen: roughly how many weeks ago that device last published its list of changes, used from two weeks on.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncDeviceWaiting": "{count, plural, =1{1 change from this device is waiting for it.} other{{count} changes from this device are waiting for it.}}",
+  "@settingsSyncDeviceWaiting": {
+    "description": "Line under a device on the Other devices screen when that device doesn't yet have some of this device's changes, usually because it hasn't been opened since. Calm status, not a warning.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "4"
+      }
+    }
   },
   "settingsSyncDevicesEmpty": "No other devices are connected to this store.",
   "@settingsSyncDevicesEmpty": {
