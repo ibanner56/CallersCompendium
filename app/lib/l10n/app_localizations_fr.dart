@@ -74,6 +74,21 @@ class AppLocalizationsFr extends AppLocalizations {
   String get appBootstrapError => 'Impossible de préparer la collection.';
 
   @override
+  String appBootstrapErrorType(String errorType) {
+    return 'Erreur : $errorType';
+  }
+
+  @override
+  String get appBootstrapCopyDetails => 'Copier les détails';
+
+  @override
+  String get appBootstrapCopiedDetails => 'Copié';
+
+  @override
+  String get appBootstrapLogHint =>
+      'Les détails ont aussi été écrits dans le journal de diagnostic, dans le dossier de support de l’application.';
+
+  @override
   String get migrationDowngradeMessage =>
       'Ces données ont été créées avec une version plus récente de Caller’s Compendium — veuillez mettre à jour l\'application.';
 

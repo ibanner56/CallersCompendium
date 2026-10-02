@@ -72,6 +72,22 @@
   "@appBootstrapError": {
     "x-sourceSha256": "4c6db492b2ae5913888a1822b01dfe0ea7da9c0d85da2cb746e260b410f159c4"
   },
+  "appBootstrapErrorType": "Erreur : {errorType}",
+  "@appBootstrapErrorType": {
+    "x-sourceSha256": "fa82b1e0dcd1f6fd18ce1944824c75cfc31d6744e7d9a14026f29e2e478f919f"
+  },
+  "appBootstrapCopyDetails": "Copier les détails",
+  "@appBootstrapCopyDetails": {
+    "x-sourceSha256": "ec7ee2826c849564576c1de2ff4bb666e39c191c746d2325d0ab110921491a96"
+  },
+  "appBootstrapCopiedDetails": "Copié",
+  "@appBootstrapCopiedDetails": {
+    "x-sourceSha256": "8d525e5f158b9afe05f3122af363ac67763bdc4e1395b46597b320c289766ce3"
+  },
+  "appBootstrapLogHint": "Les détails ont aussi été écrits dans le journal de diagnostic, dans le dossier de support de l’application.",
+  "@appBootstrapLogHint": {
+    "x-sourceSha256": "24e159922c67836b22a4a64e83817e471c51035d6ef0943eff679c60039d4399"
+  },
   "migrationDowngradeMessage": "Ces données ont été créées avec une version plus récente de Caller’s Compendium — veuillez mettre à jour l'application.",
   "@migrationDowngradeMessage": {
     "x-sourceSha256": "5cc72c824106a61526d695c3a2f0bca5287d5a97935ec78445ef6a34891372b6"

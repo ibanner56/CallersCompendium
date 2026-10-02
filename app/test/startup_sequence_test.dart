@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
+import 'package:drift/drift.dart' show LazyDatabase, driftRuntimeOptions;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart' show SystemChannels, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/main.dart';
@@ -243,6 +243,80 @@ void main() {
     },
   );
 
+  testWidgets('a failed database open is logged, offers Copy details, and Retry '
+      'reopens the database', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final sink = _RecordingCrashLogSink();
+    installCaughtErrorLog(sink);
+    addTearDown(resetCaughtErrorLogForTesting);
+
+    // drift caches a failed open inside LazyDatabase, so every later query on
+    // this instance rethrows the same error — exactly the production shape.
+    final failingAppData = AppData(
+      CompendiumDatabase(
+        LazyDatabase(() async => throw StateError('open failed')),
+      ),
+    );
+    final healthyAppData = _openAppData();
+
+    await tester.pumpWidget(
+      CompendiumApp(
+        appData: failingAppData,
+        appDataFactory: () => healthyAppData,
+        windowService: _NoopWindowService(failingAppData.repositories.settings),
+        windowServiceFactory: (settings) => _NoopWindowService(settings),
+        integrityCheck: () async => true,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('Could not prepare the collection'),
+      findsOneWidget,
+    );
+    expect(sink.sources, ['main.bootstrap']);
+    expect(
+      find.byKey(const ValueKey('bootstrap-copy-details')),
+      findsOneWidget,
+    );
+    // The type is shown; the message is withheld (#1469, CWE-209).
+    expect(find.textContaining('StateError'), findsOneWidget);
+    expect(find.textContaining('open failed'), findsNothing);
+
+    // Copy details puts the type and stack on the clipboard, never the message
+    // (#1469, CWE-209).
+    String? copied;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied = (call.arguments as Map)['text'] as String?;
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('bootstrap-copy-details')));
+    await tester.pumpAndSettle();
+    expect(copied, startsWith('StateError\n\n'));
+    expect(copied, isNot(contains('open failed')));
+    expect(find.text('Copied'), findsOneWidget);
+
+    // Retry must reopen the database: the failed LazyDatabase never recovers.
+    await tester.tap(find.text('Retry'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AppShell), findsOneWidget);
+    expect(sink.sources, ['main.bootstrap']);
+  });
+
   testWidgets(
     'a failing migration reaches the error/retry screen, then retry recovers '
     'into the app (Stage 1 bootstrap)',
@@ -253,6 +327,7 @@ void main() {
       final db = openWidgetTestDatabase(closeOnTearDown: false);
       final appData = _FailOnceMigrationAppData(db);
       addTearDown(appData.close);
+      final retryAppData = _openAppData();
 
       // Durably mark that a derived-index rebuild is owed so ensureMigrated()
       // invokes runDerivedRebuild() (which throws on its first attempt).
@@ -266,6 +341,12 @@ void main() {
         CompendiumApp(
           appData: appData,
           windowService: _NoopWindowService(appData.repositories.settings),
+          // Retry now reopens the database (see the failed-open test above), so
+          // it asks for a replacement AppData rather than reusing the failed
+          // one; hand it a fresh healthy in-memory one instead of the real
+          // on-disk database.
+          appDataFactory: () => retryAppData,
+          windowServiceFactory: (settings) => _NoopWindowService(settings),
           // Keep the (advisory) integrity probe green so the only failure under
           // test is the migration itself.
           integrityCheck: () async => true,
@@ -283,8 +364,8 @@ void main() {
       expect(find.byType(AppShell), findsNothing);
       expect(appData.repositories.rebuildAttempts, 1);
 
-      // Retry: ensureMigrated cleared its memo and the durable marker survived,
-      // so the rebuild runs again — now succeeding — and the app recovers.
+      // Retry rebuilds the database-backed world from appDataFactory; the fresh
+      // healthy AppData migrates cleanly and the app recovers.
       await tester.tap(find.text('Retry'));
       await tester.pumpAndSettle();
 
@@ -293,7 +374,10 @@ void main() {
         findsNothing,
       );
       expect(find.byType(AppShell), findsOneWidget);
-      expect(appData.repositories.rebuildAttempts, 2);
+      // The flaky instance is no longer in use after Retry, so its attempt
+      // count stays at 1; the cross-instance `== 2` assertion this test used to
+      // make (same AppData re-run) no longer describes Retry.
+      expect(appData.repositories.rebuildAttempts, 1);
     },
   );
 

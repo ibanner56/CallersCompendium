@@ -72,6 +72,21 @@ class AppLocalizationsDa extends AppLocalizations {
   String get appBootstrapError => 'Kunne ikke forberede samlingen.';
 
   @override
+  String appBootstrapErrorType(String errorType) {
+    return 'Fejl: $errorType';
+  }
+
+  @override
+  String get appBootstrapCopyDetails => 'Kopiér detaljer';
+
+  @override
+  String get appBootstrapCopiedDetails => 'Kopieret';
+
+  @override
+  String get appBootstrapLogHint =>
+      'Detaljer blev også skrevet til diagnostiklogget i appens supportmappe.';
+
+  @override
   String get migrationDowngradeMessage =>
       'Disse data blev oprettet med en nyere version af Caller’s Compendium — opdatér appen.';
 
