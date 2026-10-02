@@ -5624,7 +5624,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String importReviewOptionLink(String title, int percent) {
-    return 'Knyt til „$title“ ($percent% match)';
+    return 'Samme dans – erstat „$title“ med denne version ($percent% match)';
   }
 
   @override
@@ -5789,7 +5789,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String importReviewOptionSameDance(String title) {
-    return 'Samme dans som \"$title\" (link/opdater)';
+    return 'Samme dans – erstat „$title“ med denne version';
   }
 
   @override

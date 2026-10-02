@@ -5693,7 +5693,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String importReviewOptionLink(String title, int percent) {
-    return 'Mit „$title“ verknüpfen ($percent % Übereinstimmung)';
+    return 'Derselbe Tanz – „$title“ durch diese Version ersetzen ($percent % Übereinstimmung)';
   }
 
   @override
@@ -5861,7 +5861,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String importReviewOptionSameDance(String title) {
-    return 'Derselbe Tanz wie „$title“ (verknüpfen/aktualisieren)';
+    return 'Derselbe Tanz – „$title“ durch diese Version ersetzen';
   }
 
   @override

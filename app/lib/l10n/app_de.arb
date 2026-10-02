@@ -5684,9 +5684,9 @@
   "@importReviewPossibleMatch": {
     "x-sourceSha256": "7ee5b6b8742356f4ce77e8ee288919c91abd3a8f38aa3769aebd59c349c5bde6"
   },
-  "importReviewOptionLink": "Mit „{title}“ verknüpfen ({percent} % Übereinstimmung)",
+  "importReviewOptionLink": "Derselbe Tanz – „{title}“ durch diese Version ersetzen ({percent} % Übereinstimmung)",
   "@importReviewOptionLink": {
-    "x-sourceSha256": "0d663120ac03b53028de2ea65567ad8e395416e7d2fdbaa08d5b4bb3cfcbf181"
+    "x-sourceSha256": "1810b96d67888bc8245f7786dc3583508c6180055b2fe28922df8ec4d13baf05"
   },
   "importReviewOverwriteWarning": "{count, plural, =1{1 vorhandener Tanz wird überschrieben} other{{count} vorhandene Tänze werden überschrieben}}",
   "@importReviewOverwriteWarning": {
@@ -5788,9 +5788,9 @@
   "@importReviewOptionVariation": {
     "x-sourceSha256": "5d50d82194529cf0f6214e60d3c0cf62db2795ffe0c8d3b6fa0ac2c243649a77"
   },
-  "importReviewOptionSameDance": "Derselbe Tanz wie „{title}“ (verknüpfen/aktualisieren)",
+  "importReviewOptionSameDance": "Derselbe Tanz – „{title}“ durch diese Version ersetzen",
   "@importReviewOptionSameDance": {
-    "x-sourceSha256": "7ffa1631a6694720e69a94226366528316a7ba97a8107a855252156a8a805c7d"
+    "x-sourceSha256": "4c97cd9489f823bb5b64caf129c802d63b316f64ae2b468f056198e0e722f32b"
   },
   "importReviewOptionLinkBack": "Auch mit „{title}“ als verwandten Tanz zurückverknüpfen",
   "@importReviewOptionLinkBack": {

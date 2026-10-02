@@ -590,7 +590,7 @@ void main() {
       find.byKey(const ValueKey('import-row-0-duplicate')),
       findsOneWidget,
     );
-    expect(find.textContaining('Link to'), findsOneWidget);
+    expect(find.textContaining('Same dance — replace'), findsOneWidget);
     expect(find.text('0 of 1 will be imported'), findsOneWidget);
     // Commit is disabled while everything is skipped (no misleading control).
     final commit = tester.widget<FilledButton>(
@@ -624,6 +624,13 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('import-row-0-link-cand')));
     await tester.pumpAndSettle();
+    // Link rewrites the matched dance with the incoming content, exactly like
+    // re-import, so it must raise the same overwrite warning before commit.
+    expect(
+      find.byKey(const ValueKey('import-overwrite-warning')),
+      findsOneWidget,
+    );
+    expect(find.text('1 existing dance will be overwritten'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('import-commit-button')));
     await tester.pumpAndSettle();
 
@@ -765,10 +772,10 @@ void main() {
           find.byKey(const ValueKey('import-row-0-link-local-1')),
           findsOneWidget,
         );
-        // The plain scored "Link to Money Musk (NN%)" row is NOT offered for
+        // The plain scored "… with this version (NN% match)" row is NOT offered for
         // a confident+differing candidate — it's replaced by the richer pair
         // above.
-        expect(find.textContaining('Link to "Money Musk"'), findsNothing);
+        expect(find.textContaining('with this version ('), findsNothing);
       },
     );
 
@@ -819,7 +826,7 @@ void main() {
           find.byKey(const ValueKey('import-row-0-link-local-1')),
           findsOneWidget,
         );
-        expect(find.textContaining('Link to "Money Musk"'), findsOneWidget);
+        expect(find.textContaining('with this version ('), findsOneWidget);
       },
     );
 
@@ -955,7 +962,7 @@ void main() {
     );
 
     testWidgets(
-      'choosing "Same dance (link/update)" behaves like the existing link '
+      'choosing "Same dance — replace" behaves like the existing link '
       'option',
       (tester) async {
         final repos = openTestRepositories();
@@ -995,6 +1002,14 @@ void main() {
           find.byKey(const ValueKey('import-row-0-link-local-1')),
         );
         await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('import-overwrite-warning')),
+          findsOneWidget,
+        );
+        expect(
+          find.text('1 existing dance will be overwritten'),
+          findsOneWidget,
+        );
         await tester.tap(find.byKey(const ValueKey('import-commit-button')));
         await tester.pumpAndSettle();
 
