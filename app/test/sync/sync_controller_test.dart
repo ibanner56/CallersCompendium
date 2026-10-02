@@ -1840,6 +1840,27 @@ void main() {
       expect(controller.detachCleanup, isNull);
     });
 
+    test('turning Device Sync off stops it before its next request', () async {
+      final gate = Completer<void>();
+      addTearDown(() {
+        if (!gate.isCompleted) gate.complete();
+      });
+      admin = reflected(storeGate: gate);
+      final controller = await paired();
+
+      await controller.detach();
+      final cleanup = controller.detachCleanup;
+      await pumpEventQueue();
+      expect(admin.requests, ['GET store']);
+      await controller.setEnabled(false);
+      gate.complete();
+
+      expect(await cleanup, SyncDetachCleanupOutcome.cancelled);
+      expect(admin.requests, [
+        'GET store',
+      ], reason: 'while Device Sync is off the app sends nothing anywhere');
+    });
+
     test('a failed DELETE is ignored', () async {
       admin = reflected()..manifestKind = SyncResponseKind.serverError;
       final controller = await paired();

@@ -323,6 +323,54 @@ void main() {
       );
     });
 
+    test('a peer holding an older edit of the record is refusing it, though '
+        'an edit leaves existenceAt where it was', () async {
+      // An ordinary content edit advances `updatedAt` and leaves
+      // `existenceAt` alone, so the peer's stale copy shares this device's
+      // `existenceAt`. Equal is not newer.
+      final edited = SyncRecordBlob(
+        kind: SyncRecordKind.setting,
+        id: 'custom_dialects',
+        updatedAt: t0.add(const Duration(seconds: 30)),
+        deletedAt: null,
+        existenceAt: t0,
+        body: const {'value': 'edited'},
+      );
+      candidate = SyncMergeCandidate.fromBlob(edited);
+      final stale = _setting('custom_dialects', 'before');
+      final staleCandidate = SyncMergeCandidate.fromBlob(stale);
+      expect(staleCandidate.existenceAt, candidate.existenceAt);
+      final results = await passes(
+        [
+          (peerWrittenAt: t0.subtract(const Duration(hours: 1)), clock: t0),
+          (
+            peerWrittenAt: t0.add(const Duration(minutes: 1)),
+            clock: t0.add(const Duration(minutes: 2)),
+          ),
+          (
+            peerWrittenAt: t0.add(const Duration(minutes: 3)),
+            clock: t0.add(const Duration(minutes: 4)),
+          ),
+        ],
+        peerRecords: {
+          SyncRecordKind.setting: {
+            'custom_dialects': staleCandidate.wireHash,
+            'shorthand_mappings': other.wireHash,
+          },
+        },
+        blobResponses: {
+          staleCandidate.wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(stale)),
+          ),
+        },
+      );
+
+      expect(unreflected(results[2]).map((report) => report.recordId), [
+        'custom_dialects',
+      ]);
+    });
+
     test('zero observed peers judges nothing and is an empty survey, not '
         'a missing one', () async {
       var clock = t0;
