@@ -20,6 +20,23 @@ import 'wire_mapping.dart';
 /// The record-blob and manifest envelope version defined by W3.
 const int syncWireVersion = 1;
 
+/// A record blob or manifest written in an envelope version newer than
+/// [syncWireVersion]: another device runs a newer build of the app, and this
+/// one cannot read what it shares until it is updated.
+///
+/// A [FormatException] subtype, so every caller that already treats an
+/// undecodable envelope as malformed — the server's manifest validation, the
+/// local storage decoders — keeps doing exactly that. Only the client's peer
+/// download distinguishes it, to report `SyncReportCode.newerWireVersion`
+/// instead of a generic malformed record (spec §6.9).
+class SyncNewerWireVersionException extends FormatException {
+  const SyncNewerWireVersionException(String label, this.version)
+    : super('$label uses a newer sync wire version');
+
+  /// The envelope's own `v`, always greater than [syncWireVersion].
+  final int version;
+}
+
 /// A validated, versioned Device Sync record blob.
 class SyncRecordBlob {
   SyncRecordBlob({

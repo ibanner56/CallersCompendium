@@ -36,6 +36,17 @@ enum SyncReportCode {
   /// read the row it would otherwise speak for. Reports carry `kind` and
   /// `recordId`, and always a null `peerId`.
   withheldUnreadableRecord,
+
+  /// A peer's manifest or record blob was written in an envelope version newer
+  /// than this build understands (`SyncNewerWireVersionException`): another
+  /// device runs a newer version of the app.
+  ///
+  /// Deliberately not [malformedRecord], whose notice cannot say which side
+  /// has to act. Here it is always this device: nothing is wrong with the
+  /// record, and updating the app is the whole remedy. A blob's report carries
+  /// `kind` and `recordId`; a manifest's carries only `peerId`, because a
+  /// manifest this build cannot read does not say what it lists.
+  newerWireVersion,
 }
 
 /// A structured, non-blocking diagnostic produced by a sync pass.

@@ -99,6 +99,7 @@ SyncNoticeGroup syncNoticeGroupFor(SyncReport report) => switch (report.code) {
     SyncNoticeGroup.unreflectedPublication,
   SyncReportCode.withheldUnreadableRecord =>
     SyncNoticeGroup.withheldUnreadableLocal,
+  SyncReportCode.newerWireVersion => SyncNoticeGroup.skippedRecord,
 };
 
 /// The groups [reports] raise, deduplicated, in [SyncNoticeGroup] order.
