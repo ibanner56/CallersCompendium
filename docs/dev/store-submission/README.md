@@ -66,7 +66,7 @@ Keep this handy — every form asks some slice of it.
 | Source & issues | <https://github.com/ibanner56/CallersCompendium> |
 | Privacy policy URL | <https://ibanner56.github.io/CallersCompendium/privacy/> (published — source in [`privacy-policy.md`](privacy-policy.md), page at `site/privacy/index.html`) |
 | License | AGPL-3.0 (source-available) |
-| Data collection | **Pre-Sync release:** none. **Device Sync beta:** selected Other User Content, not linked to you, used for App Functionality when the user opts in. |
+| Data collection | Selected Other User Content via optional Device Sync, not linked to you, used for App Functionality when the user opts in. |
 | Network use | User-initiated imports (Caller's Box, ContraDB, JSON) over HTTPS; published-collection browsing/imports from a developer-hosted catalog; opt-in update check (off by default); opt-in Device Sync for selected shareable content |
 | Age rating | Suitable for everyone (no objectionable content) |
 | Primary category | Productivity (secondary: Reference / Tools) |
@@ -207,17 +207,15 @@ Apple has no equivalent tester-count gate: once your first external build passes
 - **App Privacy ("nutrition label")** — the data-practices disclosure on your
   App Store listing. The submitted disclosure is **"Data Not Linked to You"**:
   **User Content → Other User Content**, used for **App Functionality**. It
-  is the answer for a pre-Sync build. Before any beta that enables Device Sync,
-  update the answer to describe the selected content that the opt-in feature
-  transfers.
+  describes the selected content that the opt-in Device Sync transfers.
 - **Play Console** — Google's web console (the counterpart to ASC).
 - **Testing tracks (Play)** — **Internal** (≤100 testers, instant), **Closed**
   (named testers/lists), **Open** (anyone can join = public beta), **Production**
   (public store). New personal accounts must clear closed testing first.
 - **Data safety (Play)** — Google's data-practices form (counterpart to Apple's
-  App Privacy). The pre-Sync answer is "No data collected / no data shared."
-  Re-answer it before any beta that enables Device Sync; do not copy Apple's
-  disclosure into Play without checking Play's then-current definitions.
+  App Privacy). The answer declares the Device Sync transfer (other
+  user-generated content, optional); do not copy Apple's disclosure into Play
+  without checking Play's then-current definitions.
 - **Content / age rating** — a questionnaire (Apple's own; Google uses **IARC**)
   that yields an age label. Ours comes out "everyone / 4+".
 - **`.aab` (Android App Bundle)** — the upload format Play requires (Play generates
