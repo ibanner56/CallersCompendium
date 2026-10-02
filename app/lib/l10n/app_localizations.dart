@@ -2313,6 +2313,30 @@ abstract class AppLocalizations {
   /// **'Choose which filters appear when you filter the Collection and when you pick dances for a program. All filters are shown by default. Hiding a filter clears its selection.'**
   String get settingsDefaultsCollectionFiltersSubtitle;
 
+  /// Section header for defaults applied to dances imported on their own.
+  ///
+  /// In en, this message translates to:
+  /// **'Import defaults'**
+  String get settingsDefaultsImportHeader;
+
+  /// Title of the Import defaults setting that picks the tags added to newly imported dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags for imported dances'**
+  String get settingsDefaultsImportTagsTitle;
+
+  /// Explains which imports the default import tags apply to and which they skip.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to each new dance you import on its own. Dances created while importing a program, and dances restored from a Compendium archive, are not tagged.'**
+  String get settingsDefaultsImportTagsSubtitle;
+
+  /// Shown in place of the tag chips when the user has no tags.
+  ///
+  /// In en, this message translates to:
+  /// **'You have no tags yet. Add one to a dance in the editor, then pick it here.'**
+  String get settingsDefaultsImportTagsEmpty;
+
   /// Section header for defaults applied when authoring a new dance.
   ///
   /// In en, this message translates to:

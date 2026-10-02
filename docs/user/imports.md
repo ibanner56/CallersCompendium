@@ -115,6 +115,9 @@ A few honest notes about these online imports:
   online search leaves those out.
 - Figures come in as recognised moves where the app can read them and as
   plain-text figures otherwise, the same as every other import.
+- To have every dance you import on its own tagged automatically — a "no card"
+  tag, say — choose the tags under **Settings → Defaults → Import defaults**.
+  See [Settings](./settings.md#import-defaults).
 
 ### What the app will and won't fetch
 

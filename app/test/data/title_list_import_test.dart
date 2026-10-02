@@ -64,6 +64,7 @@ class _CountingOnlineService implements OnlineSearchService {
     ImportRecordPlan plan, {
     DateTime? now,
     DedupeResolution? ambiguousResolution,
+    List<String> defaultTagIds = const [],
   }) async {
     // The Collection title-list path must never reach this. Failing loudly here
     // is what turns "it accidentally commits" into a red test rather than a

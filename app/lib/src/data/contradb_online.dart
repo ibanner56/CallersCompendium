@@ -164,6 +164,7 @@ class ContraDbOnline implements OnlineSearchService {
     ImportRecordPlan plan, {
     DateTime? now,
     DedupeResolution? ambiguousResolution,
+    List<String> defaultTagIds = const [],
   }) async {
     final title = plan.draft.dance.title;
     if (plan.verdict.kind == DedupeKind.reimport) {
@@ -251,6 +252,7 @@ class ContraDbOnline implements OnlineSearchService {
       now: now ?? DateTime.now().toUtc(),
       newId: uuidV4,
       resolutions: resolutions,
+      defaultTagIds: defaultTagIds,
     );
 
     final record = session.records.first;

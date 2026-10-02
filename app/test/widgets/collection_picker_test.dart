@@ -206,6 +206,7 @@ class _DedupeOnlineService implements OnlineSearchService {
     ImportRecordPlan plan, {
     DateTime? now,
     DedupeResolution? ambiguousResolution,
+    List<String> defaultTagIds = const [],
   }) async {
     importCalls++;
     if (importFailure != null) throw importFailure!;

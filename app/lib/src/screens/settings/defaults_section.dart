@@ -28,6 +28,7 @@ import '../../widgets/figure_param_editors.dart';
 import '../../widgets/move_autocomplete.dart';
 import '../../widgets/collection_picker.dart';
 import '../../widgets/section_header.dart';
+import 'default_import_tags_editor.dart';
 import 'settings_keys.dart';
 
 /// The Defaults settings section: owns all Display/Program/Dance-authoring
@@ -1670,6 +1671,14 @@ class _DefaultsView extends StatelessWidget {
               onReorder: onReorderStartingProgramEntry,
             ),
           ],
+        ),
+        ExpansionTile(
+          key: const ValueKey('defaults-import-group'),
+          title: Text(
+            l10n.settingsDefaultsImportHeader,
+            style: sectionTitleStyle,
+          ),
+          children: const [DefaultImportTagsEditor()],
         ),
         ExpansionTile(
           key: const ValueKey('defaults-authoring-group'),
