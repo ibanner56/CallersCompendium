@@ -962,7 +962,7 @@ void main() {
     );
 
     testWidgets(
-      'choosing "Same dance (link/update)" behaves like the existing link '
+      'choosing "Same dance — replace" behaves like the existing link '
       'option',
       (tester) async {
         final repos = openTestRepositories();

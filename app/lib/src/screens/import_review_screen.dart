@@ -2344,19 +2344,35 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // onto …" or to link to an existing dance (Link and the variation block's
     // "Same dance" share `_ActionKind.link`; the pipeline rewrites the matched
     // dance from the incoming record for both), excluding rows already
-    // committed on their own via Edit. Counting unique targets (not rows) is deliberate — planning reuses
-    // one DedupeIndex, so several incoming records that share a provenance key
-    // can all target the same local dance; only that one dance is overwritten.
+    // committed on their own via Edit. Counting unique targets (not rows) is
+    // deliberate — planning reuses one DedupeIndex, so several incoming records
+    // that share a provenance key can all target the same local dance; only
+    // that one dance is overwritten. Mirrors [_buildCommitBatch]'s one-row-per-
+    // ambiguity-group backstop, so a row it would skip is not counted.
     // Surfaced as a warning before commit so an overwrite is always a
     // deliberate choice, never silent.
-    final overwriteTargets = <String>{
-      for (var i = 0; i < _choices.length; i++)
-        if (!_committed.contains(i) &&
-            (_choices[i].kind == _ActionKind.reimport ||
-                _choices[i].kind == _ActionKind.link) &&
-            _choices[i].linkTargetId != null)
-          _choices[i].linkTargetId!,
+    final decidedGroups = <String>{
+      for (var i = 0; i < _ambiguousGroupOfRow.length; i++)
+        if (_committed.contains(i) && _ambiguousGroupOfRow[i] != null)
+          _ambiguousGroupOfRow[i]!,
     };
+    final overwriteTargets = <String>{};
+    for (var i = 0; i < _choices.length; i++) {
+      if (_committed.contains(i) || _choices[i].kind == _ActionKind.skip) {
+        continue;
+      }
+      if (i < _ambiguousGroupOfRow.length &&
+          _ambiguousGroupOfRow[i] != null &&
+          !decidedGroups.add(_ambiguousGroupOfRow[i]!)) {
+        continue;
+      }
+      final kind = _choices[i].kind;
+      final target = _choices[i].linkTargetId;
+      if ((kind == _ActionKind.reimport || kind == _ActionKind.link) &&
+          target != null) {
+        overwriteTargets.add(target);
+      }
+    }
     final overwriteCount = overwriteTargets.length;
     return Column(
       children: [

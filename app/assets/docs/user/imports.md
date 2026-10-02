@@ -393,7 +393,7 @@ watches for matches:
   confidently but the *figures* differ, the app shows a **Variation?** block with
   an inline diff of exactly which lines changed, and offers **Import as a
   variation** — which keeps it as its own dance, optionally linked back to the
-  original as a related dance — or **Same dance (link/update)**. Two dances that
+  original as a related dance — or **Same dance — replace**. Two dances that
   differ only in timing or in which figure carries the progression count as the
   same dance and never raise the prompt.
 

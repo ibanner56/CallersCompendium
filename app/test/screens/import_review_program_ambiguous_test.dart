@@ -37,6 +37,13 @@ ImportRecordPlan _plan(String title, String id) => ImportRecordPlan(
   verdict: DedupeVerdict.isNew(),
 );
 
+/// Like [_plan], but previewed as a re-import onto the local dance [targetId].
+ImportRecordPlan _reimportPlan(String title, String id, String targetId) =>
+    ImportRecordPlan(
+      draft: _plan(title, id).draft,
+      verdict: DedupeVerdict.reimport(targetId),
+    );
+
 Future<void> _pump(
   WidgetTester tester,
   CompendiumRepositories repos, {
@@ -230,6 +237,43 @@ void main() {
         hasLength(1),
         reason: 'only the first candidate for the line should ever commit',
       );
+    },
+  );
+
+  testWidgets(
+    'overwrite warning counts only the candidate the commit honours when two '
+    'candidates in one line are both set to re-import',
+    (tester) async {
+      final repos = openTestRepositories();
+      final seed = ProgramAmbiguousImport(
+        lines: [
+          ProgramAmbiguousLine(
+            originalLineIndex: 0,
+            lineText: 'Petronella',
+            candidates: [
+              _reimportPlan('Petronella', 'cb-1', 'local-a'),
+              _reimportPlan('Petronella', 'cd-1', 'local-b'),
+            ],
+          ),
+        ],
+      );
+
+      await _pump(
+        tester,
+        repos,
+        programAmbiguousImport: seed,
+        onProgramCommitted: (_) {},
+      );
+
+      await tester.tap(find.byKey(const ValueKey('import-row-0-reimport')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('import-row-1-reimport')));
+      await tester.pumpAndSettle();
+
+      // The commit backstop honours only the first row of the line, so only
+      // one existing dance can be overwritten.
+      expect(find.text('1 existing dance will be overwritten'), findsOneWidget);
+      expect(find.textContaining('2 existing dances'), findsNothing);
     },
   );
 
