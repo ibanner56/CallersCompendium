@@ -21,7 +21,8 @@ import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/perform_program_screen.dart';
 import 'package:compendium_app/src/widgets/collection_picker.dart';
 import 'package:compendium_app/src/widgets/online_result_tile.dart';
-import 'package:compendium_app/src/widgets/program_export_menu.dart' show PdfLayouter;
+import 'package:compendium_app/src/widgets/program_export_menu.dart'
+    show PdfLayouter;
 import 'package:compendium_app/src/widgets/program_slot_list_editor.dart';
 
 import 'support/test_repositories.dart';
@@ -3959,7 +3960,10 @@ void main() {
       _dance(
         id: 'd1',
         title: 'Matrix Dance',
-        figures: [Figure(move: 'swing'), Figure(move: 'balance')],
+        figures: [
+          Figure(move: 'swing'),
+          Figure(move: 'balance'),
+        ],
       ),
     );
     await repos.programs.create(
@@ -3987,8 +3991,9 @@ void main() {
   });
 
   test('_exportMatrixPdf reads no BuildContext or state inside onLayout', () {
-    final src = File('lib/src/screens/program_editor_screen.dart')
-        .readAsStringSync();
+    final src = File(
+      'lib/src/screens/program_editor_screen.dart',
+    ).readAsStringSync();
     final start = src.indexOf('Future<void> _exportMatrixPdf(');
     expect(start, isNonNegative);
     final onLayout = src.indexOf('onLayout:', start);
