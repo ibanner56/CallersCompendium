@@ -624,6 +624,13 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('import-row-0-link-cand')));
     await tester.pumpAndSettle();
+    // Link rewrites the matched dance with the incoming content, exactly like
+    // re-import, so it must raise the same overwrite warning before commit.
+    expect(
+      find.byKey(const ValueKey('import-overwrite-warning')),
+      findsOneWidget,
+    );
+    expect(find.text('1 existing dance will be overwritten'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('import-commit-button')));
     await tester.pumpAndSettle();
 
@@ -995,6 +1002,14 @@ void main() {
           find.byKey(const ValueKey('import-row-0-link-local-1')),
         );
         await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('import-overwrite-warning')),
+          findsOneWidget,
+        );
+        expect(
+          find.text('1 existing dance will be overwritten'),
+          findsOneWidget,
+        );
         await tester.tap(find.byKey(const ValueKey('import-commit-button')));
         await tester.pumpAndSettle();
 
