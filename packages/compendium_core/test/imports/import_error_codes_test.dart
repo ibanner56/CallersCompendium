@@ -5,7 +5,6 @@ import 'dart:typed_data';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
-import '../figures_support.dart';
 import '../storage/test_database.dart';
 
 /// Every adapter's discover-time failure carries a typed [ImportErrorCode], so
