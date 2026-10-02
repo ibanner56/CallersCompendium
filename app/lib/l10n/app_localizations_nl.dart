@@ -5488,6 +5488,34 @@ class AppLocalizationsNl extends AppLocalizations {
       'Bij het decoderen van het gedeelde bestand is een waarschuwing gemeld.';
 
   @override
+  String get importIssueArchiveNewerSchema =>
+      'Dit bestand is gemaakt met een nieuwere versie van Caller\'s Compendium. Werk de app bij voordat je importeert, anders ontbreken mogelijk sommige details.';
+
+  @override
+  String get importIssueUsrFileTruncated =>
+      'Dit bestand lijkt onvolledig – slechts een deel kon worden gelezen. Kopieer het opnieuw van het origineel en importeer het nogmaals.';
+
+  @override
+  String get importIssueUsrFiguresFromDanceRows =>
+      'De figuren konden niet uit dit bestand worden gelezen, dus dansen komen mogelijk zonder figuren binnen. Controleer het originele bestand of exporteer het opnieuw vanuit Caller\'s Companion.';
+
+  @override
+  String get importIssueUsrPhraseGroupsOrphaned =>
+      'Sommige figuren konden niet aan een dans worden gekoppeld en zijn weggelaten. Controleer of je dansen volledig zijn binnengekomen, of kopieer het bestand opnieuw van het origineel.';
+
+  @override
+  String get importIssueUsrLinesDropped =>
+      'Enkele zeer lange figuurregels zijn weggelaten. De rest van elke dans is geïmporteerd.';
+
+  @override
+  String get importIssueUsrSetsSkipped =>
+      'Programma\'s konden niet volledig uit dit bestand worden gelezen, dus sommige ontbreken mogelijk of komen zonder hun dansen binnen. Controleer ze na het importeren.';
+
+  @override
+  String get importIssueUsrRelatedRowsSkipped =>
+      'Enkele gekoppelde dansen in dit bestand waren ongeldig en zijn overgeslagen.';
+
+  @override
   String get importIssueDirectionUnmapped =>
       'Een Becket-richting werd niet herkend; standaard met de klok mee.';
 

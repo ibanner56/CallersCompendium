@@ -5255,6 +5255,34 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importIssueArchiveReadWarning => '共有ファイルのデコード中に警告が報告されました。';
 
   @override
+  String get importIssueArchiveNewerSchema =>
+      'このファイルは新しいバージョンの Caller\'s Compendium で作成されました。インポートする前にアプリを更新してください。更新しないと、一部の詳細が含まれない場合があります。';
+
+  @override
+  String get importIssueUsrFileTruncated =>
+      'このファイルは不完全のようです。一部しか読み取れませんでした。元のファイルからもう一度コピーして、再度インポートしてください。';
+
+  @override
+  String get importIssueUsrFiguresFromDanceRows =>
+      'このファイルから フィギュアを読み取れなかったため、ダンスが フィギュアなしで取り込まれる場合があります。元のファイルを確認するか、Caller\'s Companion から再度エクスポートしてください。';
+
+  @override
+  String get importIssueUsrPhraseGroupsOrphaned =>
+      '一部のフィギュアをダンスに関連付けられなかったため、除外しました。ダンスが完全に取り込まれているか確認するか、元のファイルからもう一度コピーしてください。';
+
+  @override
+  String get importIssueUsrLinesDropped =>
+      '非常に長いフィギュアの行の一部を除外しました。各ダンスの残りはインポートされています。';
+
+  @override
+  String get importIssueUsrSetsSkipped =>
+      'このファイルからプログラムを完全には読み取れなかったため、一部が欠けているか、ダンスなしで取り込まれる場合があります。インポート後に確認してください。';
+
+  @override
+  String get importIssueUsrRelatedRowsSkipped =>
+      'このファイル内の関連ダンスのリンクの一部が無効だったため、スキップしました。';
+
+  @override
   String get importIssueDirectionUnmapped =>
       'Becketの方向を認識できませんでした。既定で時計回りにしました。';
 

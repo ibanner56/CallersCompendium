@@ -5504,6 +5504,34 @@
   "@importIssueArchiveReadWarning": {
     "x-sourceSha256": "fe85dd330b19b95b4d3576c70949c46fe4cd90ad9f04668ad5c5f7e35d08043b"
   },
+  "importIssueArchiveNewerSchema": "このファイルは新しいバージョンの Caller's Compendium で作成されました。インポートする前にアプリを更新してください。更新しないと、一部の詳細が含まれない場合があります。",
+  "@importIssueArchiveNewerSchema": {
+    "x-sourceSha256": "55b8932da3e9592c9bf8da0f1b79c8728970f80ff2204193a6db17fbe1bc61df"
+  },
+  "importIssueUsrFileTruncated": "このファイルは不完全のようです。一部しか読み取れませんでした。元のファイルからもう一度コピーして、再度インポートしてください。",
+  "@importIssueUsrFileTruncated": {
+    "x-sourceSha256": "4927a27ef23f58466c5d7037d86f2e3003ab27cf31d3bb0b83ea9c77673f823d"
+  },
+  "importIssueUsrFiguresFromDanceRows": "このファイルから フィギュアを読み取れなかったため、ダンスが フィギュアなしで取り込まれる場合があります。元のファイルを確認するか、Caller's Companion から再度エクスポートしてください。",
+  "@importIssueUsrFiguresFromDanceRows": {
+    "x-sourceSha256": "6c18376b09271433d25af248c6d15da9aec1b217c0f056cfc9ff053e28f13446"
+  },
+  "importIssueUsrPhraseGroupsOrphaned": "一部のフィギュアをダンスに関連付けられなかったため、除外しました。ダンスが完全に取り込まれているか確認するか、元のファイルからもう一度コピーしてください。",
+  "@importIssueUsrPhraseGroupsOrphaned": {
+    "x-sourceSha256": "2a9645753f955b8aa89c8e5fcecd40286bfa28f3ba75d2ce548a3f9256f6bcf4"
+  },
+  "importIssueUsrLinesDropped": "非常に長いフィギュアの行の一部を除外しました。各ダンスの残りはインポートされています。",
+  "@importIssueUsrLinesDropped": {
+    "x-sourceSha256": "9c14c55dcd5917dfc9dcae75ffb3912b52be6aa4ba2a66b2afa51c1de06b934c"
+  },
+  "importIssueUsrSetsSkipped": "このファイルからプログラムを完全には読み取れなかったため、一部が欠けているか、ダンスなしで取り込まれる場合があります。インポート後に確認してください。",
+  "@importIssueUsrSetsSkipped": {
+    "x-sourceSha256": "5f5400d8510ba5ebe48553f47bcf44943b6d8315388ec8c5d4a3f658fe0c0429"
+  },
+  "importIssueUsrRelatedRowsSkipped": "このファイル内の関連ダンスのリンクの一部が無効だったため、スキップしました。",
+  "@importIssueUsrRelatedRowsSkipped": {
+    "x-sourceSha256": "35f91356e72f9ee0df050fbf3bf9315f36f031b59b2f8e26b953ba95cbfb8c5b"
+  },
   "importIssueDirectionUnmapped": "Becketの方向を認識できませんでした。既定で時計回りにしました。",
   "@importIssueDirectionUnmapped": {
     "x-sourceSha256": "055717da02ed80a5a6563dcf6ff6cdbbe571b4a6cadea1549b53c6d88c973d32"

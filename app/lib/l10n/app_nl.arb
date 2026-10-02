@@ -5504,6 +5504,34 @@
   "@importIssueArchiveReadWarning": {
     "x-sourceSha256": "fe85dd330b19b95b4d3576c70949c46fe4cd90ad9f04668ad5c5f7e35d08043b"
   },
+  "importIssueArchiveNewerSchema": "Dit bestand is gemaakt met een nieuwere versie van Caller's Compendium. Werk de app bij voordat je importeert, anders ontbreken mogelijk sommige details.",
+  "@importIssueArchiveNewerSchema": {
+    "x-sourceSha256": "55b8932da3e9592c9bf8da0f1b79c8728970f80ff2204193a6db17fbe1bc61df"
+  },
+  "importIssueUsrFileTruncated": "Dit bestand lijkt onvolledig – slechts een deel kon worden gelezen. Kopieer het opnieuw van het origineel en importeer het nogmaals.",
+  "@importIssueUsrFileTruncated": {
+    "x-sourceSha256": "4927a27ef23f58466c5d7037d86f2e3003ab27cf31d3bb0b83ea9c77673f823d"
+  },
+  "importIssueUsrFiguresFromDanceRows": "De figuren konden niet uit dit bestand worden gelezen, dus dansen komen mogelijk zonder figuren binnen. Controleer het originele bestand of exporteer het opnieuw vanuit Caller's Companion.",
+  "@importIssueUsrFiguresFromDanceRows": {
+    "x-sourceSha256": "6c18376b09271433d25af248c6d15da9aec1b217c0f056cfc9ff053e28f13446"
+  },
+  "importIssueUsrPhraseGroupsOrphaned": "Sommige figuren konden niet aan een dans worden gekoppeld en zijn weggelaten. Controleer of je dansen volledig zijn binnengekomen, of kopieer het bestand opnieuw van het origineel.",
+  "@importIssueUsrPhraseGroupsOrphaned": {
+    "x-sourceSha256": "2a9645753f955b8aa89c8e5fcecd40286bfa28f3ba75d2ce548a3f9256f6bcf4"
+  },
+  "importIssueUsrLinesDropped": "Enkele zeer lange figuurregels zijn weggelaten. De rest van elke dans is geïmporteerd.",
+  "@importIssueUsrLinesDropped": {
+    "x-sourceSha256": "9c14c55dcd5917dfc9dcae75ffb3912b52be6aa4ba2a66b2afa51c1de06b934c"
+  },
+  "importIssueUsrSetsSkipped": "Programma's konden niet volledig uit dit bestand worden gelezen, dus sommige ontbreken mogelijk of komen zonder hun dansen binnen. Controleer ze na het importeren.",
+  "@importIssueUsrSetsSkipped": {
+    "x-sourceSha256": "5f5400d8510ba5ebe48553f47bcf44943b6d8315388ec8c5d4a3f658fe0c0429"
+  },
+  "importIssueUsrRelatedRowsSkipped": "Enkele gekoppelde dansen in dit bestand waren ongeldig en zijn overgeslagen.",
+  "@importIssueUsrRelatedRowsSkipped": {
+    "x-sourceSha256": "35f91356e72f9ee0df050fbf3bf9315f36f031b59b2f8e26b953ba95cbfb8c5b"
+  },
   "importIssueDirectionUnmapped": "Een Becket-richting werd niet herkend; standaard met de klok mee.",
   "@importIssueDirectionUnmapped": {
     "x-sourceSha256": "055717da02ed80a5a6563dcf6ff6cdbbe571b4a6cadea1549b53c6d88c973d32"

@@ -5432,6 +5432,34 @@ class AppLocalizationsEn extends AppLocalizations {
       'The shared file reported a warning while decoding.';
 
   @override
+  String get importIssueArchiveNewerSchema =>
+      'This file was made by a newer version of Caller\'s Compendium. Update the app before importing, or some details may be left out.';
+
+  @override
+  String get importIssueUsrFileTruncated =>
+      'This file looks incomplete — only part of it could be read. Copy it again from the original and re-import.';
+
+  @override
+  String get importIssueUsrFiguresFromDanceRows =>
+      'The figures couldn\'t be read from this file, so dances may arrive without figures. Check the original file, or re-export it from Caller\'s Companion.';
+
+  @override
+  String get importIssueUsrPhraseGroupsOrphaned =>
+      'Some figures couldn\'t be matched to a dance and were left out. Check that your dances arrived complete, or copy the file again from the original.';
+
+  @override
+  String get importIssueUsrLinesDropped =>
+      'Some very long figure lines were left out. The rest of each dance was imported.';
+
+  @override
+  String get importIssueUsrSetsSkipped =>
+      'Programs couldn\'t be fully read from this file, so some may be missing or arrive without their dances. Check them after importing.';
+
+  @override
+  String get importIssueUsrRelatedRowsSkipped =>
+      'Some related-dance links in this file were invalid and were skipped.';
+
+  @override
   String get importIssueDirectionUnmapped =>
       'A Becket direction wasn\'t recognized; defaulted to clockwise.';
 

@@ -9,6 +9,10 @@ import 'raw_record.dart';
 import 'source_adapter.dart';
 import 'structured_draft.dart';
 
+/// [ImportIssue.code] of the batch warning raised when an archive was written
+/// by a newer app version than this one.
+const String archiveNewerSchemaCode = 'archive_newer_schema';
+
 /// A [SourceAdapter] that imports dances from our own canonical
 /// [CompendiumArchive] JSON — the generic-JSON format written by
 /// `encodeArchive`/`archiveToJson` (`docs/design/imports.md` §"Generic JSON
@@ -41,7 +45,7 @@ import 'structured_draft.dart';
 ///   (parse-never-fails); it throws only when the payload is not a valid record
 ///   of this source (undecodable / zero dances). Codec errors and warnings are
 ///   surfaced as non-fatal [ImportIssue]s on the draft.
-class GenericJsonAdapter implements SourceAdapter {
+class GenericJsonAdapter implements SourceAdapter, BatchWarningSource {
   GenericJsonAdapter();
 
   @override
@@ -70,6 +74,13 @@ class GenericJsonAdapter implements SourceAdapter {
   /// [RawRecord.sourceVersion] and used to re-serialize single-dance archives.
   int _schemaVersion = archiveSchemaVersion;
 
+  List<ImportIssue> _batchWarnings = const [];
+
+  /// One `archive_newer_schema` warning when the archive was written by a newer
+  /// app version, whose extra fields this version drops; empty otherwise.
+  @override
+  List<ImportIssue> get batchWarnings => _batchWarnings;
+
   @override
   Future<List<DiscoveredRecord>> discover(ImportRequest request) async {
     // Reset discovery state up front so a failed attempt never leaves stale
@@ -78,6 +89,7 @@ class GenericJsonAdapter implements SourceAdapter {
     _choreographersById.clear();
     _difficultyLevelsById.clear();
     _schemaVersion = archiveSchemaVersion;
+    _batchWarnings = const [];
 
     final payload = request.payload;
     if (payload == null || payload.trim().isEmpty) {
@@ -112,6 +124,18 @@ class GenericJsonAdapter implements SourceAdapter {
       result.archive.difficultyLevels.map((l) => MapEntry(l.id, l)),
     );
     _schemaVersion = result.archive.schemaVersion;
+    if (_schemaVersion > archiveSchemaVersion) {
+      _batchWarnings = [
+        ImportIssue(
+          severity: ImportIssueSeverity.warning,
+          code: archiveNewerSchemaCode,
+          message:
+              'archive schemaVersion $_schemaVersion is newer than supported '
+              '$archiveSchemaVersion; fields added by the newer version are '
+              'left out',
+        ),
+      ];
+    }
 
     return [
       for (final dance in result.archive.dances)
@@ -220,6 +244,12 @@ class GenericJsonAdapter implements SourceAdapter {
     return level == null ? const [] : [level];
   }
 
+  /// Prefix of the codec's newer-schema warning (`archive_codec.dart`).
+  static const String _newerSchemaPrefix = 'archive schemaVersion ';
+
+  static bool _isNewerSchema(RawRecord raw) =>
+      (int.tryParse(raw.sourceVersion ?? '') ?? 0) > archiveSchemaVersion;
+
   @override
   StructuredDraft parse(RawRecord raw) {
     final result = decodeArchive(raw.payload);
@@ -257,11 +287,15 @@ class GenericJsonAdapter implements SourceAdapter {
           message: e.toString(),
         ),
       for (final w in result.warnings)
-        ImportIssue(
-          severity: ImportIssueSeverity.info,
-          code: 'archive_read_warning',
-          message: w,
-        ),
+        // The newer-version note is raised once for the whole file as a batch
+        // warning; repeating it on every dance would bury the real per-row
+        // notes.
+        if (!(_isNewerSchema(raw) && w.startsWith(_newerSchemaPrefix)))
+          ImportIssue(
+            severity: ImportIssueSeverity.info,
+            code: 'archive_read_warning',
+            message: w,
+          ),
     ];
 
     // Recover author display names from the payload's own choreographers (a

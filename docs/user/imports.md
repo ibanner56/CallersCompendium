@@ -232,6 +232,12 @@ through the review queue; it does not replace what you already have. To move an
 entire library and replace what is on a device, use **Restore** instead — see
 below.
 
+A file made by a **newer version** of Caller's Compendium can still be reviewed
+and imported, but this version only understands the details it already knows
+about. The review then shows one warning, *"This file was made by a newer version
+of Caller's Compendium. Update the app before importing, or some details may be
+left out."* Update the app first if you want everything that file carries.
+
 ### Open a shared program someone sent you
 
 If another caller shares a **program bundle** with you — the
@@ -291,6 +297,16 @@ creates a fresh venue rather than guessing). That happens when venue entities
 are switched on; with them off, the location is kept as plain text exactly as
 before. Dances that pointed at each other in Caller's Companion arrive linked as
 **related dances**.
+
+If the `.USR` file is an **incomplete copy** — cut short by an interrupted
+download or copy — the review shows a warning above the list: *"This file looks
+incomplete — only part of it could be read."* Dances after the cut are missing,
+and the count of dances to import only reflects what could be read, so the
+warning is the sign that something is absent. Copy the file again from the
+original and import it again; dances you already imported are recognised and
+offered as updates rather than duplicated. The same warning area
+also tells you when figures, programs or related-dance links in the file could
+not be read.
 
 One thing does not come across yet: custom **glossary terms** stay behind, because
 the app has no glossary of its own to put them in.
@@ -353,6 +369,9 @@ source you pick:
    dance, kept as a separate **duplicate**, or **skipped**. Anything the app is
    unsure about defaults to **skip**, so it never guesses its way into your
    library.
+   If something is wrong with the **whole file** — an incomplete `.USR`, or a
+   file from a newer version of the app — a warning at the top of the list says
+   so, and what to do about it.
 4. **Commit** — only now are the dances you accepted written to your collection.
 5. **Undo** — right after committing, the summary offers **Undo**, which removes
    everything that import added. This is the review-and-undo queue for

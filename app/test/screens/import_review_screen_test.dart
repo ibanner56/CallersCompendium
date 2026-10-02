@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:compendium_app/l10n/app_localizations.dart';
@@ -2249,6 +2250,150 @@ void main() {
       );
       expect(await repos.dances.listAll(), isEmpty);
       expect(await repos.programs.listAll(), isEmpty);
+    });
+
+    group('incomplete file (IMP-02)', () {
+      // Many small sectors, so cutting the bytes short really does lose rows
+      // the way an incomplete copy of a real file does.
+      Uint8List fullUsr() => buildFmp12FixtureMultiSector([
+        FmpFixtureTable(
+          index: 1,
+          name: 'Dance',
+          columnNames: ['zk_Dance_ID', 'Name', 'Author1'],
+          rows: [
+            for (var i = 1; i <= 60; i++)
+              MapEntry(1000 + i, {1: '$i', 2: 'Dance number $i', 3: 'Trad'}),
+          ],
+        ),
+        FmpFixtureTable(
+          index: 2,
+          name: 'Set',
+          columnNames: ['zk_Set_ID', 'Location'],
+          rows: [
+            MapEntry(1, {1: '1', 2: 'Grange Hall'}),
+          ],
+        ),
+        FmpFixtureTable(
+          index: 3,
+          name: 'SetItem',
+          columnNames: ['zk_Set_ID', 'zk_Dance_ID'],
+          rows: [
+            MapEntry(1, {1: '1', 2: '1'}),
+          ],
+        ),
+        FmpFixtureTable(
+          index: 4,
+          name: 'Dance_Related',
+          columnNames: ['zk_Dance1_ID', 'zk_Dance2_ID'],
+          rows: const [],
+        ),
+      ], options: const FmpMultiSectorOptions(sectorBudget: 300));
+
+      Future<void> reviewBytes(WidgetTester tester, Uint8List bytes) async {
+        final repos = openTestRepositories();
+        await _pump(
+          tester,
+          repos,
+          payload: 'unused',
+          sources: sourcesFor(() async => bytes),
+          bytePicker: () async => bytes,
+        );
+        await selectUsr(tester);
+        await chooseAndReview(tester);
+      }
+
+      testWidgets('a complete file shows no incomplete-file warning', (
+        tester,
+      ) async {
+        await reviewBytes(tester, fullUsr());
+
+        expect(
+          find.byKey(const ValueKey('import-batch-warnings')),
+          findsNothing,
+        );
+        expect(find.text('60 of 60 will be imported'), findsOneWidget);
+      });
+
+      testWidgets('a file cut in half warns before commit while some dances '
+          'were read', (tester) async {
+        final full = fullUsr();
+        await reviewBytes(
+          tester,
+          Uint8List.sublistView(full, 0, full.length ~/ 2),
+        );
+
+        final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+        expect(
+          find.byKey(const ValueKey('import-batch-warnings')),
+          findsOneWidget,
+        );
+        expect(find.text(l10n.importIssueUsrFileTruncated), findsOneWidget);
+        // Some dances survived, so this is the normal review with a banner.
+        expect(
+          find.byKey(const ValueKey('import-commit-button')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const ValueKey('import-message')), findsNothing);
+      });
+
+      testWidgets('a file that lost every dance still says why', (
+        tester,
+      ) async {
+        final full = fullUsr();
+        // Header, the first body sector and little else: no Dance rows survive.
+        await reviewBytes(tester, Uint8List.sublistView(full, 0, 4096 * 3));
+
+        final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+        expect(find.byKey(const ValueKey('import-message')), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('import-batch-warnings')),
+          findsOneWidget,
+        );
+        expect(find.text(l10n.importIssueUsrFileTruncated), findsOneWidget);
+      });
+    });
+  });
+
+  group('file from a newer version (IMP-10)', () {
+    String patchedVersion(int version) {
+      final json =
+          jsonDecode(_archivePayload([_dance('a', 'Alpha')]))
+              as Map<String, Object?>;
+      json['schemaVersion'] = version;
+      return jsonEncode(json);
+    }
+
+    testWidgets('shows one update-first banner and no per-row decoding note', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        payload: patchedVersion(archiveSchemaVersion + 1),
+      );
+      await _toReview(tester);
+
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      expect(
+        find.byKey(const ValueKey('import-batch-warnings')),
+        findsOneWidget,
+      );
+      expect(find.text(l10n.importIssueArchiveNewerSchema), findsOneWidget);
+      expect(find.text(l10n.importIssueArchiveReadWarning), findsNothing);
+      // The dance itself is still importable.
+      expect(
+        find.byKey(const ValueKey('import-commit-button')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('an archive from this version shows no banner', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos, payload: patchedVersion(archiveSchemaVersion));
+      await _toReview(tester);
+
+      expect(find.byKey(const ValueKey('import-batch-warnings')), findsNothing);
     });
   });
 

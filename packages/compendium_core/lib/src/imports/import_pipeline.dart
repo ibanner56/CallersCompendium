@@ -70,11 +70,18 @@ class ImportBatchResult {
   ImportBatchResult({
     required this.records,
     List<ImportError> errors = const [],
+    List<ImportIssue> warnings = const [],
     this.dedupeIndex,
-  }) : errors = List.unmodifiable(errors);
+  }) : errors = List.unmodifiable(errors),
+       warnings = List.unmodifiable(warnings);
 
   final List<ImportRecordPlan> records;
   final List<ImportError> errors;
+
+  /// Concerns about the whole file (not one record) the adapter raised during
+  /// discover — see [BatchWarningSource]. The batch is still plannable; these
+  /// tell the user it may be incomplete.
+  final List<ImportIssue> warnings;
 
   /// The [DedupeIndex] snapshot [plan] used to build these [records], if any.
   /// [ImportPipeline.commit] reuses its
@@ -321,6 +328,11 @@ class ImportPipeline {
         ],
       );
     }
+    // Read right after discover: the adapter's warnings describe this file and
+    // are replaced by its next discover.
+    final batchWarnings = adapter is BatchWarningSource
+        ? List<ImportIssue>.of((adapter as BatchWarningSource).batchWarnings)
+        : const <ImportIssue>[];
 
     final configuredLevels = _difficultyLevels == null
         ? null
@@ -505,6 +517,7 @@ class ImportPipeline {
     return ImportBatchResult(
       records: records,
       errors: errors,
+      warnings: batchWarnings,
       dedupeIndex: dedupe,
     );
   }
