@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -416,7 +415,8 @@ class AppLocalizationsFr extends AppLocalizations {
       'download':
           'Interrompu pendant le téléchargement depuis vos autres appareils.',
       'upload': 'Interrompu pendant l’envoi des modifications de cet appareil.',
-      'publish': 'Interrompu pendant la publication des modifications de cet appareil.',
+      'publish':
+          'Interrompu pendant la publication des modifications de cet appareil.',
       'createStore': 'Interrompu pendant la création de l’espace.',
       'other': 'Interrompu en cours de route.',
     });
@@ -5810,7 +5810,8 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           'Cet import contient $count éléments — plus que prévu pour un partage normal.',
-      one: 'Cet import contient 1 élément — plus que prévu pour un partage normal.',
+      one:
+          'Cet import contient 1 élément — plus que prévu pour un partage normal.',
     );
     return '$_temp0';
   }
@@ -6559,7 +6560,8 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           '$count figures ajoutées. Saisissez-en une autre ou appuyez sur Échap pour terminer.',
-      one: '1 figure ajoutée. Saisissez-en une autre ou appuyez sur Échap pour terminer.',
+      one:
+          '1 figure ajoutée. Saisissez-en une autre ou appuyez sur Échap pour terminer.',
     );
     return '$_temp0';
   }
@@ -7289,7 +7291,8 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           '$count paires de contraste inférieures au WCAG AA. Vous pouvez quand même enregistrer, mais certains textes pourraient être difficiles à lire.',
-      one: '1 paire de contraste inférieure au WCAG AA. Vous pouvez quand même enregistrer, mais certains textes pourraient être difficiles à lire.',
+      one:
+          '1 paire de contraste inférieure au WCAG AA. Vous pouvez quand même enregistrer, mais certains textes pourraient être difficiles à lire.',
     );
     return '$_temp0';
   }
