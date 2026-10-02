@@ -2764,6 +2764,45 @@ void main() {
   );
 
   test(
+    'a fresh attach reports what its steady continuation saw of each peer',
+    () async {
+      final candidate = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'local'),
+      );
+      final store = _FakeStore(
+        epoch: null,
+        local: {candidate.address: candidate},
+        snapshotEpochs: [null, null, 'epoch-1'],
+      );
+      final peerWrittenAt = DateTime.utc(2026, 7, 14, 9);
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: _FakeTransport(
+          devices: ['device-a', 'peer'],
+          peerManifest: SyncManifest(
+            deviceId: 'peer',
+            epoch: 'epoch-1',
+            writtenAt: peerWrittenAt,
+            records: const {},
+          ),
+        ),
+      );
+      addTearDown(coordinator.dispose);
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(store.epochStateClears, 1, reason: 'this was a fresh attach');
+      final summary = result.peers!.single;
+      expect(summary.peerId, 'peer');
+      expect(summary.writtenAt, peerWrittenAt);
+      expect(summary.waitingCount, 1);
+    },
+  );
+
+  test(
     'incomplete fresh attach retries before applying or publishing a partial union',
     () async {
       final local = SyncMergeCandidate.fromBlob(
