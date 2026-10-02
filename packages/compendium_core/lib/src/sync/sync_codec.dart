@@ -76,6 +76,7 @@ class SyncRecordBlob {
   };
 
   static SyncRecordBlob fromJson(Map<String, Object?> value) {
+    _rejectNewerVersion(value, 'record blob');
     _requireExactKeys(value, const {
       'v',
       'kind',
@@ -210,6 +211,7 @@ class SyncManifest {
   };
 
   static SyncManifest fromJson(Map<String, Object?> value) {
+    _rejectNewerVersion(value, 'manifest');
     _requireExactKeys(value, const {
       'v',
       'deviceId',
@@ -595,6 +597,20 @@ Object? _freezeJsonValue(Object? value, Set<Object> active) {
     }
   }
   return value;
+}
+
+/// Throws [SyncNewerWireVersionException] when [value] declares an envelope
+/// version newer than this build's.
+///
+/// Runs before every other check, the exact key set included: a newer version
+/// is free to add envelope keys, and checked second, that added key made a
+/// newer envelope fail as a malformed one — leaving the user told something
+/// was broken when the remedy was to update the app.
+void _rejectNewerVersion(Map<String, Object?> value, String label) {
+  final version = value['v'];
+  if (version is int && version > syncWireVersion) {
+    throw SyncNewerWireVersionException(label, version);
+  }
 }
 
 void _requireExactKeys(
