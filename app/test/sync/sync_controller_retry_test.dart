@@ -307,6 +307,9 @@ void main() {
         ], disposeInTearDown: false);
         await controller.syncNow();
         controller.dispose();
+        // `trigger` already refuses after dispose, so a leaked timer would run
+        // no pass; what dispose owes is not leaving one armed at all.
+        expect(controller.pendingRetryDelay, isNull);
         await Future<void>.delayed(_backoff[0] * 3);
         expect(coordinator.triggers, [SyncTrigger.manual]);
       });
