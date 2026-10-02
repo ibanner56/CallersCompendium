@@ -25,7 +25,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsDefaultsMeanwhileSubtitle =>
-      'Meanwhileコンテナを追加すると挿入されるサイド図形です。空にすると2つの空のサイドになり、1つだけ設定すると空のサイドが1つ追加されます。挿入後にコンテナを編集できます。';
+      'Meanwhileコンテナを追加すると挿入されるサイドのフィギュアです。空にすると2つの空のサイドになり、1つだけ設定すると空のサイドが1つ追加されます。挿入後にコンテナを編集できます。';
 
   @override
   String get settingsDefaultsModifierTitle => 'モディファイアのデフォルト';
@@ -1647,19 +1647,19 @@ class AppLocalizationsJa extends AppLocalizations {
       '各カードのサイズを調整して、ダンスまたはスロット全体がスクロールなしで画面に収まるようにします。A- / A+で自分でサイズを設定する場合はオフにしてください。';
 
   @override
-  String get settingsShowIndividualPerformTimerTitle => '個別のPerformでタイマーを表示';
+  String get settingsShowIndividualPerformTimerTitle => '個別のパフォームでタイマーを表示';
 
   @override
   String get settingsShowIndividualPerformTimerSubtitle =>
-      '1曲だけをPerformしている間の経過時間を表示します。タイマーが表示されると開始し、一時停止できます。';
+      '1曲だけをパフォームしている間の経過時間を表示します。タイマーが表示されると開始し、一時停止できます。';
 
   @override
   String get settingsShowProgramSlotCallerNotesTitle =>
-      'プログラムのPerformでコーラーのメモを表示';
+      'プログラムのパフォームでコーラーのメモを表示';
 
   @override
   String get settingsShowProgramSlotCallerNotesSubtitle =>
-      'プログラムのPerformで、空でないスロットごとのコーラーメモをダンス名の上に表示します。';
+      'プログラムのパフォームで、空でないスロットごとのコーラーメモをダンス名の上に表示します。';
 
   @override
   String get settingsGeneralCallingHistoryHeader => 'コーリング履歴';
@@ -6302,13 +6302,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorConvertToMeanwhile => 'Meanwhileに変換';
 
   @override
-  String get danceEditorConvertToModifier => 'Modifierに変換';
+  String get danceEditorConvertToModifier => 'モディファイアに変換';
 
   @override
   String get danceEditorUngroupMeanwhile => 'Meanwhileのグループ化を解除';
 
   @override
-  String get danceEditorUngroupModifier => 'Modifierのグループ化を解除';
+  String get danceEditorUngroupModifier => 'モディファイアのグループ化を解除';
 
   @override
   String danceEditorModifierGroupLabel(num count) {
@@ -6344,14 +6344,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorModifierCoreLabel => 'コア';
 
   @override
-  String get danceEditorModifierChildLabel => 'Modifier';
+  String get danceEditorModifierChildLabel => 'モディファイア';
 
   @override
-  String get danceEditorModifierCoreSemantic => 'ModifierグループのコアFigure。';
+  String get danceEditorModifierCoreSemantic => 'モディファイアグループのコアフィギュア。';
 
   @override
   String danceEditorModifierChildSemantic(int number, int total) {
-    return 'Modifier Figure $number/$total。';
+    return 'モディファイアフィギュア $number/$total。';
   }
 
   @override

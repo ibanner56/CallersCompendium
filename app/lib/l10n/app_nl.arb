@@ -3280,7 +3280,7 @@
   "@danceFigureProgressionSemantic": {
     "x-sourceSha256": "0fa9dcf7d979be46947d2c7e82c397b1657e67b8fc794fd741897eb913db8b79"
   },
-  "danceFigureNote": "noot: {note}",
+  "danceFigureNote": "notitie: {note}",
   "@danceFigureNote": {
     "x-sourceSha256": "1cda15176bc066a071fc86723c373628bcb0f846905a7c45e8a59531dbc2650b"
   },
@@ -3868,7 +3868,7 @@
   "@programsDanceUnavailable": {
     "x-sourceSha256": "9d95900b4ab614941ea821016ffbda4e12b0eb45af2188021586dc739b73b566"
   },
-  "programsSummaryNote": "Noot: {note}",
+  "programsSummaryNote": "Notitie: {note}",
   "@programsSummaryNote": {
     "x-sourceSha256": "fde7554e474d36dab6521aecb9fc8c4ef60c663fc627f64dc70a768cf6e331c0"
   },
@@ -3884,11 +3884,11 @@
   "@programsSlotCount": {
     "x-sourceSha256": "caa898d6da7283b1c6390e2d3c4bc26411578269d37aff2208672d7bc25efc30"
   },
-  "programsSlotNoteFallback": "Noot",
+  "programsSlotNoteFallback": "Notitie",
   "@programsSlotNoteFallback": {
     "x-sourceSha256": "d8da2c49df39d91df7ecd199b92da7bf264f026242ccc69b08daeadfe587c45b"
   },
-  "programsSlotEditorEmpty": "Nog geen slots. Voeg een dans of een noot toe om te beginnen.",
+  "programsSlotEditorEmpty": "Nog geen slots. Voeg een dans of een notitie toe om te beginnen.",
   "@programsSlotEditorEmpty": {
     "x-sourceSha256": "1591a8eb737e1ae69093f4aed66693852377cc2692dd1e41d74a84d8520ca821"
   },
@@ -4000,11 +4000,11 @@
   "@programsReplacedDanceAnnounce": {
     "x-sourceSha256": "81545740acf5aaf40fd7913f9073161ce69bb1beaf05c089d1d7f10e2d530891"
   },
-  "programsEditNoteTitle": "Noot bewerken",
+  "programsEditNoteTitle": "Notitie bewerken",
   "@programsEditNoteTitle": {
     "x-sourceSha256": "299e604ccff332f5d5f5f89eb9d36772dc5b9370c843583c89430e8db3b5bbc6"
   },
-  "programsCallerNoteLabel": "Callernoot (optioneel)",
+  "programsCallerNoteLabel": "Callernotitie (optioneel)",
   "@programsCallerNoteLabel": {
     "x-sourceSha256": "72124dc9dd25c16e0c8da9a2e6c5c2866e09fd6de4519906f4193cb4bfe2e013"
   },
@@ -4044,7 +4044,7 @@
   "@programsMatrixSemanticLabel": {
     "x-sourceSha256": "796444e814dc03ab3c43c8c7c94eda4964bb7fd87e7c1e990ab53899efb712b0"
   },
-  "programsMatrixOmittedCaption": "{count, plural, =1{1 vrije-tekstslot} other{{count} vrije-tekstslots}} (pauzes, noten) weggelaten — de matrix toont alleen dansen.",
+  "programsMatrixOmittedCaption": "{count, plural, =1{1 vrije-tekstslot} other{{count} vrije-tekstslots}} (pauzes, notities) weggelaten — de matrix toont alleen dansen.",
   "@programsMatrixOmittedCaption": {
     "x-sourceSha256": "82f5856ecf62b9ca32acf5c706251045400d2276e3a88d60a61d5a58f3f82d4c"
   },
@@ -4252,7 +4252,7 @@
   "@performInsertedAnnounce": {
     "x-sourceSha256": "7c25d376018b02af5ee23adc8f1f6cb1ee494247c0ebd5ce5fa5fd5a1e03e214"
   },
-  "performAddedNoteAnnounce": "Noot toegevoegd",
+  "performAddedNoteAnnounce": "Notitie toegevoegd",
   "@performAddedNoteAnnounce": {
     "x-sourceSha256": "ff429174e6b07e8c4c1881b91ede7cfa90f8937f5823e098b07afb131cbd1c61"
   },
@@ -4284,7 +4284,7 @@
   "@performInsertDanceFromSearch": {
     "x-sourceSha256": "586cff65d647a7d3035f0eefe98e33fa3e595094995eab3a2926fd9e9a53d6eb"
   },
-  "performAdHocNoteLabel": "Improvisatienoot / pauze",
+  "performAdHocNoteLabel": "Improvisatienotitie / pauze",
   "@performAdHocNoteLabel": {
     "x-sourceSha256": "44b68025688f35e28bec5d676173b32f672bc4ec46d3a57da1a5e1e863a37383"
   },
@@ -4292,7 +4292,7 @@
   "@performAdHocNoteHint": {
     "x-sourceSha256": "08b9591ff962d7efd49e46a4975077ebb887c79e4dc09509d1fe5f0cbeacb9d9"
   },
-  "performAddNote": "Noot toevoegen",
+  "performAddNote": "Notitie toevoegen",
   "@performAddNote": {
     "x-sourceSha256": "63565c0485fec4f743719849734553a5d7947f5962ec9e831e3bce131b3c47fb"
   },
@@ -4440,7 +4440,7 @@
   "@performProgression": {
     "x-sourceSha256": "f193d07c37765ecb1de9acb1af52d788851273a68ddd8b3791e4288c5e85ef77"
   },
-  "performFigureSemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progressie} other{}}, {beats, plural, =1{1 beat} other{{beats} beats}}{hasNote, select, yes{, noot: {note}} other{}}",
+  "performFigureSemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progressie} other{}}, {beats, plural, =1{1 beat} other{{beats} beats}}{hasNote, select, yes{, notitie: {note}} other{}}",
   "@performFigureSemantic": {
     "x-sourceSha256": "8d80202ff6be06e607cc29eda341e32192b8990564c815166530272d593245a9"
   },
@@ -4748,7 +4748,7 @@
   "@exportMatrixLegendCollisionBeats": {
     "x-sourceSha256": "0a365ce270024cc558afcc42e8145ea39eac9b4782a421d840c23c22c66eafb4"
   },
-  "exportMatrixOmittedCaption": "{count, plural, =1{1 vrije-tekstslot} other{{count} vrije-tekstslots}} (pauzes, noten) weggelaten — de matrix toont alleen dansen.",
+  "exportMatrixOmittedCaption": "{count, plural, =1{1 vrije-tekstslot} other{{count} vrije-tekstslots}} (pauzes, notities) weggelaten — de matrix toont alleen dansen.",
   "@exportMatrixOmittedCaption": {
     "x-sourceSha256": "e0d9473b7bc6d55ffa119bf9cca749256aaebb7ed7acc683270c9a3ca095b09d"
   },
@@ -4920,7 +4920,7 @@
   "@importProgramCreateError": {
     "x-sourceSha256": "be713e8bf097fe80b8f80dd1d1384ea01412f2147230fcbbb85933ff957e3423"
   },
-  "importProgramCommitted": "“{title}” geïmporteerd — {slots, plural, =1{1 slot} other{{slots} slots}} ({linked} gekoppeld, {notes, plural, =1{1 noot} other{{notes} noten}}).",
+  "importProgramCommitted": "“{title}” geïmporteerd — {slots, plural, =1{1 slot} other{{slots} slots}} ({linked} gekoppeld, {notes, plural, =1{1 notitie} other{{notes} notities}}).",
   "@importProgramCommitted": {
     "x-sourceSha256": "a1a4877d16d3889771c3a497ebe7127e81b3ced85e2c2b7c060cb35c583b64ac"
   },
@@ -5004,7 +5004,7 @@
   "@importContraDbPastePrompt": {
     "x-sourceSha256": "96aa8d2109e517a157e8eedf134312561c299cfdd016ba57db606154da335713"
   },
-  "importContraDbEmptyProgram": "Geen dansen of noten gevonden op die programmapagina.",
+  "importContraDbEmptyProgram": "Geen dansen of notities gevonden op die programmapagina.",
   "@importContraDbEmptyProgram": {
     "x-sourceSha256": "bbbbe3dff74c28ccede5c11caaa2745e860f3c0f44f0cf9ff372254ef39e5f53"
   },
@@ -5012,7 +5012,7 @@
   "@importContraDbResolveError": {
     "x-sourceSha256": "62c90ed70c6cec758aafc15d73c546f9ccdf6fc712b8b7067cb451004c81bd97"
   },
-  "importContraDbActivityCount": "{activities, plural, =1{1 activiteit} other{{activities} activiteiten}} ({dances, plural, =1{1 dans} other{{dances} dansen}}, {notes, plural, =1{1 noot} other{{notes} noten}})",
+  "importContraDbActivityCount": "{activities, plural, =1{1 activiteit} other{{activities} activiteiten}} ({dances, plural, =1{1 dans} other{{dances} dansen}}, {notes, plural, =1{1 notitie} other{{notes} notities}})",
   "@importContraDbActivityCount": {
     "x-sourceSha256": "daa88207884e597a966a7016042d636ce053de951a712b16c3cb3d71b5167ffa"
   },
@@ -5052,7 +5052,7 @@
   "@importTitleListDancesLabel": {
     "x-sourceSha256": "7eef2f0500e10e18a40c1722a5342bebb6a786d12beb6b69d1a4109b45621648"
   },
-  "importTitleListDancesHint": "Plak één danstitel per regel.\nNiet-herkende regels worden als noten bewaard.",
+  "importTitleListDancesHint": "Plak één danstitel per regel.\nNiet-herkende regels worden als notities bewaard.",
   "@importTitleListDancesHint": {
     "x-sourceSha256": "310c41d6144cd1627160b2f934b2f57fcf4106eb8d205ddcf0581eb65bb7418d"
   },
@@ -5076,11 +5076,11 @@
   "@importPlaintextLinked": {
     "x-sourceSha256": "7053df6be3297e7deaf8341b54123a3315635e5b91e9b89793e160a9f1901577"
   },
-  "importPlaintextAmbiguous": "Meerdere overeenkomsten — als noot toegevoegd",
+  "importPlaintextAmbiguous": "Meerdere overeenkomsten — als notitie toegevoegd",
   "@importPlaintextAmbiguous": {
     "x-sourceSha256": "ef3748b8399beb0a790efd561b7aea0eb4ac7b06f6c9ced5f21538a05d2e1628"
   },
-  "importPlaintextUnmatched": "Geen overeenkomst — als noot toegevoegd",
+  "importPlaintextUnmatched": "Geen overeenkomst — als notitie toegevoegd",
   "@importPlaintextUnmatched": {
     "x-sourceSha256": "c75529d1966c53eff681e20bff89285e46d5a95113b5386ba9b0d0933f354fd3"
   },
@@ -5860,7 +5860,7 @@
   "@danceEditorCallingNotesLabel": {
     "x-sourceSha256": "d929944e5b1d40ac916a7b526de1016a08cf6c56c19d490bb365c62d58962298"
   },
-  "danceEditorHookLabel": "Haak",
+  "danceEditorHookLabel": "Hook",
   "@danceEditorHookLabel": {
     "x-sourceSha256": "536ff5051d2541c9be5975c589b2b2bfecd85c1eb316522080db20c2bf27ccee"
   },
@@ -6260,7 +6260,7 @@
   "@danceEditorMissingDance": {
     "x-sourceSha256": "4aa4c04222bbb9da2207e669e5ac2f60ec017ec15fa6c189ce61728725468e2e"
   },
-  "danceEditorNoteOptionalLabel": "Noot (optioneel)",
+  "danceEditorNoteOptionalLabel": "Notitie (optioneel)",
   "@danceEditorNoteOptionalLabel": {
     "x-sourceSha256": "f9b73e1abc37cf5b13937f56c9e8bfd59f9fcd548145f1755bf28dc62db92362"
   },
@@ -6540,7 +6540,7 @@
   "@danceEditorEmptyFigureSemantic": {
     "x-sourceSha256": "1bd403500c41dd51299339ab217294d9b4154a4b19d5a264768c7ff218ec3d7b"
   },
-  "danceEditorFigureSummarySemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progressie} other{}}{hasMove, select, yes{, {beats, plural, =1{1 beat} other{{beats} beats}}} other{}}{hasNote, select, yes{, noot: {note}} other{}}. Figuur {position} van {total}.",
+  "danceEditorFigureSummarySemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progressie} other{}}{hasMove, select, yes{, {beats, plural, =1{1 beat} other{{beats} beats}}} other{}}{hasNote, select, yes{, notitie: {note}} other{}}. Figuur {position} van {total}.",
   "@danceEditorFigureSummarySemantic": {
     "x-sourceSha256": "e6e055515213aca43227e08180eedb9332836f9adc9dff767e7e5b0d47d55858"
   },
@@ -6680,7 +6680,7 @@
   "@danceEditorMoreOptions": {
     "x-sourceSha256": "0afe5a729905fec7a9cb256f039fb6a1796f3040968a598987c86f644a9dc6e3"
   },
-  "danceEditorAddNote": "Noot toevoegen",
+  "danceEditorAddNote": "Notitie toevoegen",
   "@danceEditorAddNote": {
     "x-sourceSha256": "63565c0485fec4f743719849734553a5d7947f5962ec9e831e3bce131b3c47fb"
   },

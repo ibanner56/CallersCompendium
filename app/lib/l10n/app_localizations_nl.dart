@@ -3070,7 +3070,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String danceFigureNote(String note) {
-    return 'noot: $note';
+    return 'notitie: $note';
   }
 
   @override
@@ -3645,7 +3645,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String programsSummaryNote(String note) {
-    return 'Noot: $note';
+    return 'Notitie: $note';
   }
 
   @override
@@ -3668,11 +3668,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get programsSlotNoteFallback => 'Noot';
+  String get programsSlotNoteFallback => 'Notitie';
 
   @override
   String get programsSlotEditorEmpty =>
-      'Nog geen slots. Voeg een dans of een noot toe om te beginnen.';
+      'Nog geen slots. Voeg een dans of een notitie toe om te beginnen.';
 
   @override
   String get programsSlotMovedUp => 'Slot omhoog verplaatst.';
@@ -3773,10 +3773,10 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get programsEditNoteTitle => 'Noot bewerken';
+  String get programsEditNoteTitle => 'Notitie bewerken';
 
   @override
-  String get programsCallerNoteLabel => 'Callernoot (optioneel)';
+  String get programsCallerNoteLabel => 'Callernotitie (optioneel)';
 
   @override
   String get programsCallerNoteHint => 'bijv. leer de hey eerst';
@@ -3822,7 +3822,7 @@ class AppLocalizationsNl extends AppLocalizations {
       other: '$count vrije-tekstslots',
       one: '1 vrije-tekstslot',
     );
-    return '$_temp0 (pauzes, noten) weggelaten — de matrix toont alleen dansen.';
+    return '$_temp0 (pauzes, notities) weggelaten — de matrix toont alleen dansen.';
   }
 
   @override
@@ -4134,7 +4134,7 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get performAddedNoteAnnounce => 'Noot toegevoegd';
+  String get performAddedNoteAnnounce => 'Notitie toegevoegd';
 
   @override
   String get performInsertADance => 'Een dans invoegen';
@@ -4158,13 +4158,13 @@ class AppLocalizationsNl extends AppLocalizations {
   String get performInsertDanceFromSearch => 'Dans invoegen via zoeken';
 
   @override
-  String get performAdHocNoteLabel => 'Improvisatienoot / pauze';
+  String get performAdHocNoteLabel => 'Improvisatienotitie / pauze';
 
   @override
   String get performAdHocNoteHint => 'bijv. Wals, aankondigingen';
 
   @override
-  String get performAddNote => 'Noot toevoegen';
+  String get performAddNote => 'Notitie toevoegen';
 
   @override
   String performAlternatesCount(int count) {
@@ -4363,7 +4363,7 @@ class AppLocalizationsNl extends AppLocalizations {
       one: '1 beat',
     );
     String _temp3 = intl.Intl.selectLogic(hasNote, {
-      'yes': ', noot: $note',
+      'yes': ', notitie: $note',
       'other': '',
     });
     return '$main$_temp0$_temp1, $_temp2$_temp3';
@@ -4630,7 +4630,7 @@ class AppLocalizationsNl extends AppLocalizations {
       other: '$count vrije-tekstslots',
       one: '1 vrije-tekstslot',
     );
-    return '$_temp0 (pauzes, noten) weggelaten — de matrix toont alleen dansen.';
+    return '$_temp0 (pauzes, notities) weggelaten — de matrix toont alleen dansen.';
   }
 
   @override
@@ -4819,8 +4819,8 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp1 = intl.Intl.pluralLogic(
       notes,
       locale: localeName,
-      other: '$notes noten',
-      one: '1 noot',
+      other: '$notes notities',
+      one: '1 notitie',
     );
     return '“$title” geïmporteerd — $_temp0 ($linked gekoppeld, $_temp1).';
   }
@@ -4897,7 +4897,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importContraDbEmptyProgram =>
-      'Geen dansen of noten gevonden op die programmapagina.';
+      'Geen dansen of notities gevonden op die programmapagina.';
 
   @override
   String get importContraDbResolveError =>
@@ -4920,8 +4920,8 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp2 = intl.Intl.pluralLogic(
       notes,
       locale: localeName,
-      other: '$notes noten',
-      one: '1 noot',
+      other: '$notes notities',
+      one: '1 notitie',
     );
     return '$_temp0 ($_temp1, $_temp2)';
   }
@@ -4957,7 +4957,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importTitleListDancesHint =>
-      'Plak één danstitel per regel.\nNiet-herkende regels worden als noten bewaard.';
+      'Plak één danstitel per regel.\nNiet-herkende regels worden als notities bewaard.';
 
   @override
   String get importTitleListEmptyHint =>
@@ -4977,11 +4977,11 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importPlaintextAmbiguous =>
-      'Meerdere overeenkomsten — als noot toegevoegd';
+      'Meerdere overeenkomsten — als notitie toegevoegd';
 
   @override
   String get importPlaintextUnmatched =>
-      'Geen overeenkomst — als noot toegevoegd';
+      'Geen overeenkomst — als notitie toegevoegd';
 
   @override
   String get importPlaintextSearchError => 'Kon niet online zoeken.';
@@ -5900,7 +5900,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorCallingNotesLabel => 'Callnotities';
 
   @override
-  String get danceEditorHookLabel => 'Haak';
+  String get danceEditorHookLabel => 'Hook';
 
   @override
   String get danceEditorHookHint => 'Één zin “waarom deze dans callen”';
@@ -6249,7 +6249,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorMissingDance => '(ontbrekende dans)';
 
   @override
-  String get danceEditorNoteOptionalLabel => 'Noot (optioneel)';
+  String get danceEditorNoteOptionalLabel => 'Notitie (optioneel)';
 
   @override
   String get danceEditorRemoveRelatedDanceTooltip =>
@@ -6540,7 +6540,7 @@ class AppLocalizationsNl extends AppLocalizations {
       'other': '',
     });
     String _temp4 = intl.Intl.selectLogic(hasNote, {
-      'yes': ', noot: $note',
+      'yes': ', notitie: $note',
       'other': '',
     });
     return '$main$_temp0$_temp1$_temp3$_temp4. Figuur $position van $total.';
@@ -6711,7 +6711,7 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get danceEditorAddNote => 'Noot toevoegen';
+  String get danceEditorAddNote => 'Notitie toevoegen';
 
   @override
   String get danceEditorBoldTooltip => 'Vet (*tekst*)';
