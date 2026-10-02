@@ -80,19 +80,63 @@ def is_export_file(masked: str) -> bool:
     return bool(_EXPORT_TOKEN_RE.search(masked))
 
 
+def _comment_spans(text: str, masked: str) -> list[tuple[int, int]]:
+    """`(start, end)` offsets of every real comment in [text].
+
+    A comment is a run the masker blanked that begins with `//` or `/*` in the
+    original; a blanked run starting with a quote is a string literal, whose
+    contents (even `export-guard: exempt`) must never count as a marker.
+    """
+    spans: list[tuple[int, int]] = []
+    i = 0
+    n = len(text)
+    while i < n:
+        if masked[i] == " " and text[i] != " " and text.startswith(("//", "/*"), i):
+            if text.startswith("//", i):
+                end = text.find("\n", i)
+                end = n if end == -1 else end
+            else:
+                end = text.find("*/", i + 2)
+                end = n if end == -1 else end + 2
+            spans.append((i, end))
+            i = end
+            continue
+        i += 1
+    return spans
+
+
 def find_offenders(text: str) -> list[tuple[int, str]]:
     """``(line_no, source_line)`` of each unmarked ``on Exception`` clause in an
-    export file; empty when [text] is not an export file."""
+    export file; empty when [text] is not an export file.
+
+    A clause is exempt only if a real comment inside its own extent (its line
+    through the end of its body) carries the marker. Strings never count, and a
+    marker inside a *nested* ``on Exception`` clause belongs to that nested
+    clause, not to the clause that encloses it.
+    """
     masked = mask_source(text)
     if not is_export_file(masked):
         return []
     lines = text.split("\n")
+    comments = [
+        (a, b) for a, b in _comment_spans(text, masked) if _EXEMPT_RE.search(text[a:b])
+    ]
+    clauses = [
+        (m.start(), _clause_end(masked, m.end()))
+        for m in _ON_EXCEPTION_RE.finditer(masked)
+    ]
     offenders: list[tuple[int, str]] = []
-    for m in _ON_EXCEPTION_RE.finditer(masked):
-        line_no = masked.count("\n", 0, m.start()) + 1
-        line = lines[line_no - 1]
-        if not _EXEMPT_RE.search(text[m.start() : _clause_end(masked, m.end())]):
-            offenders.append((line_no, line.strip()))
+    for start, end in clauses:
+        nested = [(a, b) for a, b in clauses if start < a and b <= end]
+        owns_marker = any(
+            start <= a
+            and b <= end
+            and not any(na <= a and b <= nb for na, nb in nested)
+            for a, b in comments
+        )
+        if not owns_marker:
+            line_no = masked.count("\n", 0, start) + 1
+            offenders.append((line_no, lines[line_no - 1].strip()))
     return offenders
 
 

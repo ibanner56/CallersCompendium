@@ -81,6 +81,29 @@ def test_passed() -> None:
         "}\n"
     )
     check("marker outside the clause does not count", lines(other) == [2], str(lines(other)))
+    in_string = (
+        "final f = x ?? saveBackupToFile;\n"
+        "} on Exception catch (_) {\n"
+        "  final s = 'export-guard: exempt — not a comment';\n"
+        "}\n"
+    )
+    check("marker text in a string does not exempt", lines(in_string) == [2], str(lines(in_string)))
+    nested = (
+        "final f = x ?? saveBackupToFile;\n"
+        "} on Exception catch (_) {\n"
+        "  try {\n"
+        "  } on Exception catch (_) { // export-guard: exempt — inner only\n"
+        "  }\n"
+        "}\n"
+    )
+    check("nested clause's marker does not exempt the outer", lines(nested) == [2], str(lines(nested)))
+    both = nested.replace(
+        "} on Exception catch (_) {\n  try {",
+        "} on Exception catch (_) { // export-guard: exempt — outer\n  try {",
+    )
+    check("each clause needs its own marker", lines(both) == [], str(lines(both)))
+    block = "final f = x ?? saveBackupToFile;\n} on Exception catch (_) { /* export-guard: exempt — r */ }\n"
+    check("block-comment marker counts", lines(block) == [], str(lines(block)))
     obj = "final f = x ?? saveBackupToFile;\n} on Object catch (e) {\n"
     check("`on Object` is fine", lines(obj) == [])
     unrelated = "Future<void> g() async {\n} on Exception catch (e) {\n}\n"
