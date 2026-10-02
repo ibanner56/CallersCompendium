@@ -4016,6 +4016,7 @@ void main() {
     expect(body, isNot(contains('.of(context)')));
     expect(body, isNot(contains('_dialect')));
     expect(body, isNot(contains('_matrixColumnConfig')));
+    expect(body, isNot(contains('_eventDate')));
   });
 
   testWidgets('Matrix export control is disabled for an empty matrix', (
