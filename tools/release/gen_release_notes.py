@@ -14,8 +14,7 @@ Behaviour:
 * For a bare beta (``--channel beta``) a clear **Beta / pre-release** banner is
   prepended so ``-beta`` never produces misleading stable wording.
 * A short footer is always appended: it states the per-platform signing
-  posture, tells users to verify against ``SHA256SUMS``, and notes that a
-  maintainer publishes the draft after review. The Windows and macOS sentences
+  posture and tells users to verify against ``SHA256SUMS``. The Windows and macOS sentences
   are **each conditional on the actual signing outcome** (``--windows-signing`` /
   ``--macos-signing``): Windows is described as **signed via Azure Trusted
   Signing** only when the pipeline actually signed it (the five ``AZURE_*``
