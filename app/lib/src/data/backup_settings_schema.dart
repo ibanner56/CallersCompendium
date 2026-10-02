@@ -25,12 +25,14 @@ import 'display_defaults.dart'
         kDefaultMoveParamOverridesKey,
         kDefaultProgramBandKey,
         kDefaultProgramCallerKey,
+        kDefaultImportTagNamesKey,
         kDefaultProgramSortKey,
         kDefaultStartingProgramKey,
         kLastUsedCollectionSortDirectionKey,
         kLastUsedCollectionSortKey,
         kLastUsedProgramSortDirectionKey,
         kLastUsedProgramSortKey,
+        tryDecodeDefaultImportTagNames,
         tryDecodeStartingProgramTemplate;
 import 'formation_colors_controller.dart' show kFormationColorOverridesKey;
 import 'locale_scope.dart' show kLocaleKey;
@@ -140,6 +142,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   // The starting-program template is a JSON string with an invariant-checked
   // semantic codec, not merely an arbitrary string.
   kDefaultStartingProgramKey: _isValidStartingProgramTemplate,
+  kDefaultImportTagNamesKey: _isValidDefaultImportTagNames,
 
   // Numbers. The in-Perform manual text scale is used for layout sizing, so a
   // non-finite (NaN/Infinity) value is rejected outright rather than flowing
@@ -186,6 +189,9 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
 
 bool _isBool(Object? v) => v is bool;
 bool _isString(Object? v) => v is String;
+bool _isValidDefaultImportTagNames(Object? v) =>
+    tryDecodeDefaultImportTagNames(v) != null;
+
 bool _isValidStartingProgramTemplate(Object? v) =>
     tryDecodeStartingProgramTemplate(v) != null;
 bool _isNonNegativeInt(Object? v) => v is int && v >= 0;

@@ -83,6 +83,7 @@ class _FakePreviewService implements OnlineSearchService {
     ImportRecordPlan plan, {
     DateTime? now,
     DedupeResolution? ambiguousResolution,
+    List<String> defaultTagIds = const [],
   }) async => throw UnimplementedError('not exercised by these tests');
 }
 

@@ -12,6 +12,7 @@ import 'package:path/path.dart' as p;
 import 'l10n/app_localizations.dart';
 import 'src/data/active_dialect_scope.dart';
 import 'src/data/aggressive_beats_update_scope.dart';
+import 'src/data/default_import_tags.dart';
 import 'src/data/application_shutdown_controller.dart';
 import 'src/data/app_database.dart';
 import 'src/data/app_theme_scope.dart';
@@ -1106,7 +1107,11 @@ class _CompendiumAppState extends State<CompendiumApp> {
     }
     final l10n = AppLocalizations.of(navContext);
     try {
-      var imported = await service.import(_appData.repositories, preview.plan);
+      var imported = await service.import(
+        _appData.repositories,
+        preview.plan,
+        defaultTagIds: await resolveDefaultImportTagIds(_appData.repositories),
+      );
       if (imported.kind == OnlineImportKind.needsConfirmation) {
         final existingId = imported.danceId;
         assert(existingId != null, 'needsConfirmation must carry a dance id');
@@ -1126,6 +1131,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
           _appData.repositories,
           preview.plan,
           ambiguousResolution: resolution,
+          defaultTagIds: await resolveDefaultImportTagIds(
+            _appData.repositories,
+          ),
         );
       } else if (imported.kind == OnlineImportKind.needsConfirmationIdentical) {
         final existingId = imported.danceId;
@@ -1149,6 +1157,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
           _appData.repositories,
           preview.plan,
           ambiguousResolution: resolution,
+          defaultTagIds: await resolveDefaultImportTagIds(
+            _appData.repositories,
+          ),
         );
       }
       if (mounted && navigator.canPop()) navigator.pop(imported);

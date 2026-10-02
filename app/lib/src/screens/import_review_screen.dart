@@ -16,6 +16,7 @@ import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/shorthand_mappings_scope.dart';
 import '../data/sync_writer_lifecycle_scope.dart';
+import '../data/default_import_tags.dart';
 import '../data/title_list_import.dart';
 import '../data/venue_entity_mode_scope.dart';
 import '../diagnostics/error_log.dart';
@@ -1296,6 +1297,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         resolutions: resolution == null
             ? const <int, DedupeResolution>{}
             : {0: resolution},
+        defaultTagIds: await resolveDefaultImportTagIds(_repos),
       );
       if (!mounted) return;
       final committed = session.records
@@ -1400,6 +1402,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           newId: uuidV4,
           newSlotId: uuidV4,
           resolutions: resolutions,
+          defaultTagIds: await resolveDefaultImportTagIds(_repos),
         );
         if (!mounted) return;
         setState(() => _phase = _Phase.review);
@@ -1423,6 +1426,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           now: DateTime.now().toUtc(),
           newId: uuidV4,
           resolutions: resolutions,
+          defaultTagIds: await resolveDefaultImportTagIds(_repos),
         );
         try {
           await _repos.collectionImports.record(result.event);
@@ -1450,6 +1454,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           now: DateTime.now().toUtc(),
           newId: uuidV4,
           resolutions: resolutions,
+          // Only this generic dance path and the two importers above tag.
+          // The shared-bundle branch restores the sender's own tags, and no
+          // program path reaches here.
+          defaultTagIds: await resolveDefaultImportTagIds(_repos),
         );
         if (!mounted) return;
         // Leave the progress phase before showing the (awaited) result dialog so

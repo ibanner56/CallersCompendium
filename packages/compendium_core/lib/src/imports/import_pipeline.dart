@@ -592,6 +592,14 @@ class ImportPipeline {
   /// id from [newId]; re-imports/links update the matched dance, preserving its
   /// `createdAt`.
   ///
+  /// [defaultTagIds] are added to every dance this commit **creates**
+  /// (create / duplicate / variation), after any tags the draft already
+  /// carries. Re-imports and links update an existing dance and never receive
+  /// them. The default is empty so callers that must not tag (program-driven
+  /// creation, archive restore) are unaffected by construction. Callers pass
+  /// only ids of live tags: a tombstoned id would attach a join row that
+  /// `DanceRepository` hides, and an erased one fails that record's write.
+  ///
   /// Returns an [ImportSession] recording what was written so the batch can be
   /// [undo]ne.
   Future<ImportSession> commit(
@@ -599,6 +607,7 @@ class ImportPipeline {
     required DateTime now,
     required String Function() newId,
     Map<int, DedupeResolution> resolutions = const {},
+    List<String> defaultTagIds = const [],
   }) async {
     final committed = <CommittedRecord>[];
     final insertedIds = <String>[];
@@ -713,6 +722,13 @@ class ImportPipeline {
           // place the new dance's link list can be extended at creation time
           // (no second write needed on the new-dance side).
           var draftDance = plan.draft.dance;
+          if (defaultTagIds.isNotEmpty) {
+            draftDance = draftDance.copyWith(
+              tagIds: [
+                ...{...draftDance.tagIds, ...defaultTagIds},
+              ],
+            );
+          }
           final wantsLinkBack =
               action == CommitAction.variation &&
               (resolution?.linkBack ?? false);

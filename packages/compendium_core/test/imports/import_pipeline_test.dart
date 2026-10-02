@@ -324,6 +324,153 @@ void main() {
     });
   });
 
+  group('defaultTagIds (issue #1476)', () {
+    late TagRepository tags;
+    late String smooth;
+    late String noCard;
+
+    setUp(() async {
+      tags = TagRepository(db);
+      smooth = await tags.upsert(Tag(id: 'tag-smooth', name: 'Smooth'));
+      noCard = await tags.upsert(Tag(id: 'tag-no-card', name: 'No card'));
+    });
+
+    Future<ImportBatchResult> planOne(String title) => pipeline.plan(
+      FakeSourceAdapter([record('fake-$title', title)]),
+      const ImportRequest(),
+    );
+
+    Future<int> joinRows(String danceId) async =>
+        (await db
+                .customSelect(
+                  'SELECT COUNT(*) AS n FROM dance_tags WHERE dance_id = ?',
+                  variables: [Variable<String>(danceId)],
+                )
+                .getSingle())
+            .read<int>('n');
+
+    test('a created dance receives them, in the given order', () async {
+      final session = await pipeline.commit(
+        await planOne('Fresh'),
+        now: now,
+        newId: nextId,
+        defaultTagIds: [noCard, smooth],
+      );
+      final dance = (await dances.getById(session.insertedDanceIds.single))!;
+      expect(dance.tagIds, [noCard, smooth]);
+    });
+
+    test('omitting them leaves the dance untagged (program and archive '
+        'callers rely on this default)', () async {
+      final session = await pipeline.commit(
+        await planOne('Fresh'),
+        now: now,
+        newId: nextId,
+      );
+      final dance = (await dances.getById(session.insertedDanceIds.single))!;
+      expect(dance.tagIds, isEmpty);
+    });
+
+    test(
+      'tags the draft already carries are kept, first and not duplicated',
+      () async {
+        final batch = await planOne('Fresh');
+        final plan = batch.records.single;
+        final withOwnTag = ImportBatchResult(
+          records: [
+            ImportRecordPlan(
+              draft: plan.draft.copyWith(
+                dance: plan.draft.dance.copyWith(tagIds: [smooth]),
+              ),
+              verdict: plan.verdict,
+            ),
+          ],
+        );
+        final session = await pipeline.commit(
+          withOwnTag,
+          now: now,
+          newId: nextId,
+          defaultTagIds: [noCard, smooth],
+        );
+        final dance = (await dances.getById(session.insertedDanceIds.single))!;
+        expect(dance.tagIds, [smooth, noCard]);
+      },
+    );
+
+    test('a variation (a new dance) receives them', () async {
+      final seed = await pipeline.commit(
+        await planOne('The Nice Combination'),
+        now: now,
+        newId: nextId,
+      );
+      final existingId = seed.insertedDanceIds.single;
+      final session = await pipeline.commit(
+        await planOne('Nice Combination'),
+        now: now,
+        newId: nextId,
+        resolutions: {0: DedupeResolution.variation(existingId)},
+        defaultTagIds: [noCard],
+      );
+      final created = (await dances.getById(session.records.single.danceId!))!;
+      expect(created.tagIds, [noCard]);
+      // The target is only link-edited; it is not a new dance.
+      expect((await dances.getById(existingId))!.tagIds, isEmpty);
+    });
+
+    test('a re-import of an existing dance does not receive them', () async {
+      final first = await pipeline.commit(
+        await planOne('Fresh'),
+        now: now,
+        newId: nextId,
+      );
+      final id = first.insertedDanceIds.single;
+      final again = await planOne('Fresh');
+      expect(again.records.single.verdict.isReimport, isTrue);
+      final second = await pipeline.commit(
+        again,
+        now: now,
+        newId: nextId,
+        defaultTagIds: [noCard],
+      );
+      expect(second.insertedDanceIds, isEmpty);
+      expect((await dances.getById(id))!.tagIds, isEmpty);
+    });
+
+    test(
+      'undo removes the new dance and its tag joins, and keeps the tag',
+      () async {
+        final session = await pipeline.commit(
+          await planOne('Fresh'),
+          now: now,
+          newId: nextId,
+          defaultTagIds: [noCard],
+        );
+        final id = session.insertedDanceIds.single;
+        expect(await joinRows(id), 1);
+
+        await pipeline.undo(session);
+
+        expect(await dances.getById(id), isNull);
+        expect(await joinRows(id), 0);
+        expect(await tags.getById(noCard), isNotNull);
+      },
+    );
+
+    test(
+      'an id with no tag row fails that record and leaves no dance behind',
+      () async {
+        final session = await pipeline.commit(
+          await planOne('Fresh'),
+          now: now,
+          newId: nextId,
+          defaultTagIds: ['no-such-tag'],
+        );
+        expect(session.records.single.succeeded, isFalse);
+        expect(await dances.listAll(), isEmpty);
+      },
+    );
+  });
+
   group('re-import by (source, externalId)', () {
     test('updates the same dance + provenance, preserving createdAt', () async {
       final first = FakeSourceAdapter([

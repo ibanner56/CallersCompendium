@@ -1359,6 +1359,20 @@ class AppLocalizationsEn extends AppLocalizations {
       'Choose which filters appear when you filter the Collection and when you pick dances for a program. All filters are shown by default. Hiding a filter clears its selection.';
 
   @override
+  String get settingsDefaultsImportHeader => 'Import defaults';
+
+  @override
+  String get settingsDefaultsImportTagsTitle => 'Tags for imported dances';
+
+  @override
+  String get settingsDefaultsImportTagsSubtitle =>
+      'Added to each new dance you import on its own. Dances created while importing a program, and dances restored from a Compendium archive, are not tagged.';
+
+  @override
+  String get settingsDefaultsImportTagsEmpty =>
+      'You have no tags yet. Add one to a dance in the editor, then pick it here.';
+
+  @override
   String get settingsDefaultsAuthoringHeader => 'Dance-authoring defaults';
 
   @override

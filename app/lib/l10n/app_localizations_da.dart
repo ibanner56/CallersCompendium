@@ -1370,6 +1370,20 @@ class AppLocalizationsDa extends AppLocalizations {
       'Vælg hvilke filtre der vises, når du filtrerer samlingen, og når du vælger danse til et program. Alle filtre vises som standard. Når du skjuler et filter, ryddes dets valg.';
 
   @override
+  String get settingsDefaultsImportHeader => 'Importstandarder';
+
+  @override
+  String get settingsDefaultsImportTagsTitle => 'Tags til importerede danse';
+
+  @override
+  String get settingsDefaultsImportTagsSubtitle =>
+      'Føjes til hver ny dans, du importerer på egen hånd. Danse, der oprettes under import af et program, og danse, der gendannes fra et Compendium-arkiv, får ikke tags.';
+
+  @override
+  String get settingsDefaultsImportTagsEmpty =>
+      'Du har endnu ingen tags. Føj et til en dans i editoren, og vælg det derefter her.';
+
+  @override
   String get settingsDefaultsAuthoringHeader => 'Standarder for dansforfatning';
 
   @override
