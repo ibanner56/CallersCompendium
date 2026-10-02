@@ -158,9 +158,11 @@ final Map<String, DataClassification> settingsClassifications = {
     egress: EgressClass.protocolIdentifier,
     note:
         'Opaque per-attachment routing identifier, minted anew each time the '
-        'device attaches so the server cannot link one attachment to the '
-        'next. It must travel in protocol metadata but must never be adopted '
-        'from another device or restored from a backup.',
+        'device attaches so that the identifier itself never links one '
+        'attachment to the next. Synced content and its blob hashes can '
+        'still be correlated by the operator; this removes only the '
+        'identifier as a link. It must travel in protocol metadata but must '
+        'never be adopted from another device or restored from a backup.',
   ),
   'sync_last_used_fingerprint': const DataClassification(
     term: DpvTerm.unclassifiedPersonal,

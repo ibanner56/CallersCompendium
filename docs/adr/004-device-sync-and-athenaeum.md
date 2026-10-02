@@ -287,7 +287,10 @@ revocation if it leaks.
 > The store key alone does not identify a person: the server cannot tell one
 > caller with three devices from three callers sharing a phrase. What a stable
 > device ID added was the link *across* stores and servers, and that is what
-> this removes.
+> this removes. It removes the identifier as a link, not every link: the
+> operator can still read synced content, and identical records hash to
+> identical blobs, so two stores holding the same library remain matchable by
+> what they contain.
 
 ### What the server holds
 

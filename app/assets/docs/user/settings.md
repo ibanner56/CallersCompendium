@@ -700,7 +700,11 @@ connected, because that's all the server knows — there are no device names,
 and this device isn't in the list. A device that disconnected and connected
 again appears twice: once for its earlier connection, which no longer changes,
 and once for its current one. If you can't tell which is which, it's safe to
-leave them: the only cost of an extra entry is one of the 32 places.
+leave them, but an extra entry isn't free. It takes one of the 32 places, the
+store keeps the items it shared until it's removed, and because it still lists
+what this device had shared, it can count as a device that already has those
+items — which can hide the notice that your changes haven't reached your other
+devices. Removing an entry you know is an old connection avoids all three.
 
 **Deleting the store.** **Disconnect all devices and delete the store** removes
 everything the store holds from the server, for every device at once, and it
