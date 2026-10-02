@@ -286,6 +286,45 @@ void main() {
       });
     }
 
+    test('two other devices that each changed the set go to review while '
+        'this device still holds the agreed one', () {
+      final agreed = _setting('custom_dialects', 'agreed');
+      final left = _setting('custom_dialects', 'left set', seconds: 1);
+      final right = _setting('custom_dialects', 'right set', seconds: 2);
+      final plan = engine.plan(
+        local: {agreed.address: SyncMergeCandidate.fromBlob(agreed)},
+        baseline: {agreed.address: agreedOn(agreed)},
+        peers: [
+          {left.address: SyncMergeCandidate.fromBlob(left)},
+          {right.address: SyncMergeCandidate.fromBlob(right)},
+        ],
+      );
+
+      final decision = plan.decisions.single;
+      expect(decision.action, SyncMergeAction.review);
+      expect(
+        decision.conflict!.candidates.map((c) => c.blob.body['value']).toSet(),
+        {'left set', 'right set'},
+      );
+    });
+
+    test('two other devices that each hold a set go to review when this '
+        'device holds none', () {
+      final left = _setting('custom_dialects', 'left set', seconds: 1);
+      final right = _setting('custom_dialects', 'right set', seconds: 2);
+      final plan = engine.plan(
+        local: const {},
+        baseline: const {},
+        peers: [
+          {left.address: SyncMergeCandidate.fromBlob(left)},
+          {right.address: SyncMergeCandidate.fromBlob(right)},
+        ],
+      );
+
+      expect(plan.decisions.single.action, SyncMergeAction.review);
+      expect(plan.decisions.single.conflict!.local, isNull);
+    });
+
     test('first pairing of two devices that each hold a set goes to '
         'review', () {
       final local = _setting('custom_dialects', 'local set', seconds: 5);

@@ -226,9 +226,9 @@ void main() {
           await Future<void>.delayed(const Duration(milliseconds: 100));
         });
         await tester.pumpAndSettle();
-        // The choice opened (a new conflict); close it to read the badge.
-        await tester.tap(find.byKey(const ValueKey('sync-conflict-later')));
-        await tester.pumpAndSettle();
+        // The conflict was already waiting before the tap, so the choice
+        // stays closed and the badge shows it.
+        expect(find.byType(SyncConflictChoice), findsNothing);
 
         expect(
           find.byTooltip('Sync now (1 item needs your choice)'),
@@ -261,16 +261,43 @@ void main() {
         expect(find.byType(SyncConflictChoice), findsOneWidget);
       });
 
-      testWidgets('a manual pass that finds nothing new leaves the choice '
-          'closed', (tester) async {
+      testWidgets('a conflict already waiting when the badge has not caught up '
+          'is not mistaken for a new one', (tester) async {
         final host = await _pump(tester, build());
+        // Queued with no pass ending, so the badge still reads zero.
         await tester.runAsync(() => _queueConflict(host.repos, 'theme_mode'));
+
         await tester.runAsync(() async {
           await tester.tap(find.byKey(_glyph));
           await tester.pump();
           await Future<void>.delayed(const Duration(milliseconds: 100));
         });
         await tester.pumpAndSettle();
+
+        expect(find.byType(SyncConflictChoice), findsNothing);
+      });
+
+      testWidgets('a manual pass that finds nothing new leaves the choice '
+          'closed', (tester) async {
+        // The first pass queues a conflict, which opens the choice; the
+        // second finds nothing new.
+        var queued = false;
+        await _pump(
+          tester,
+          build(),
+          duringPass: (repos) async {
+            if (queued) return;
+            queued = true;
+            await _queueConflict(repos, 'theme_mode');
+          },
+        );
+        await tester.runAsync(() async {
+          await tester.tap(find.byKey(_glyph));
+          await tester.pump();
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+        });
+        await tester.pumpAndSettle();
+        expect(find.byType(SyncConflictChoice), findsOneWidget);
         await tester.tap(find.byKey(const ValueKey('sync-conflict-later')));
         await tester.pumpAndSettle();
 

@@ -3906,6 +3906,48 @@ void main() {
     expect(store.advancedEntries, isEmpty);
   });
 
+  test('a choice queued in an earlier pass is not reported as unreflected '
+      'even when this pass raises no conflict for it', () async {
+    // The peer never carries this device's version; what keeps the record
+    // out of the count is the queued choice alone, as when its peer blob was
+    // unreadable this pass and the merge skipped it.
+    final local = SyncMergeCandidate.fromBlob(_setting('theme_mode', 'local'));
+    final other = SyncMergeCandidate.fromBlob(
+      _setting('reduce_motion', 'other'),
+    );
+    final store = _FakeStore(local: {local.address: local})
+      ..queuedConflicts = {local.address};
+    final transport = _FakeTransport(
+      devices: ['peer'],
+      peerManifest: _manifest(
+        deviceId: 'peer',
+        records: {
+          SyncRecordKind.setting: {other.blob.id: other.wireHash},
+        },
+      ),
+      blobResponses: {
+        other.wireHash: _FakeTransport.response(
+          200,
+          body: utf8.encode(encodeSyncRecordBlob(other.blob)),
+        ),
+      },
+    );
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: store,
+      transport: transport,
+    );
+
+    final codes = <SyncReportCode>[];
+    for (var pass = 0; pass < 4; pass++) {
+      final result = await coordinator.syncNow();
+      codes.addAll(result.reports.map((report) => report.code));
+    }
+
+    expect(codes, isNot(contains(SyncReportCode.unreflectedPublication)));
+  });
+
   test(
     "a record awaiting the user's choice is not reported as unreflected",
     () async {
@@ -4341,6 +4383,10 @@ final class _SnapshotInterleavingStore
   }) => _delegate.refreshConflictReviews(reviews, unevaluated: unevaluated);
 
   @override
+  Future<Set<SyncRecordAddress>> queuedConflictAddresses() =>
+      _delegate.queuedConflictAddresses();
+
+  @override
   Future<void> replaceBaseline({
     required String epoch,
     required Iterable<SyncBaselineEntry> entries,
@@ -4644,6 +4690,13 @@ final class _FakeStore implements SyncCoordinatorStore {
     conflictReviewCalls.add(reviews.toList());
     return 0;
   }
+
+  /// Conflict choices already queued, as storage would return them.
+  Set<SyncRecordAddress> queuedConflicts = {};
+
+  @override
+  Future<Set<SyncRecordAddress>> queuedConflictAddresses() async =>
+      queuedConflicts;
 
   @override
   Future<void> replaceBaseline({

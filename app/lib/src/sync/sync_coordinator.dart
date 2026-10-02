@@ -178,6 +178,10 @@ abstract interface class SyncCoordinatorStore
     Set<SyncRecordAddress> unevaluated,
   });
 
+  /// Every record with a conflict choice queued, including those a pass kept
+  /// untouched because the merge skipped them.
+  Future<Set<SyncRecordAddress>> queuedConflictAddresses();
+
   Future<void> replaceBaseline({
     required String epoch,
     required Iterable<SyncBaselineEntry> entries,
@@ -299,6 +303,13 @@ final class CompendiumSyncCoordinatorStore
     Iterable<SyncMergeDecision> reviews, {
     Set<SyncRecordAddress> unevaluated = const {},
   }) => storage.refreshConflictReviews(reviews, unevaluated: unevaluated);
+
+  @override
+  Future<Set<SyncRecordAddress>> queuedConflictAddresses() async => {
+    for (final row in await storage.repositories.syncLocal.listReviewQueue())
+      if (row.reason == syncConflictChoiceReason)
+        (kind: row.kind, recordId: row.recordId),
+  };
 
   @override
   Future<void> replaceBaseline({
@@ -1636,9 +1647,12 @@ class SyncCoordinator {
     }
     // A record waiting on the user's choice is unreflected by design until
     // they decide; counting it would raise a second notice for the same
-    // record, pointing at the wrong remedy.
+    // record, pointing at the wrong remedy. Every queued choice counts, not
+    // only those this pass raised: a choice kept because a peer could not be
+    // read this pass is still awaiting the user.
     final awaitingChoice = {
       for (final decision in plan.reviews) decision.address,
+      ...await store.queuedConflictAddresses(),
     };
     final uploadManifestHashes = <SyncRecordAddress, String>{
       for (final address in publicationPlan.uploadAddresses)

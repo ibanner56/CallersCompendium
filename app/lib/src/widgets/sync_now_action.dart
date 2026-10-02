@@ -133,7 +133,9 @@ class _SyncNowActionState extends State<SyncNowAction> {
   Future<void> _syncNow(SyncController controller) async {
     if (_attempting) return;
     setState(() => _attempting = true);
-    final conflictsBefore = _conflicts;
+    // Read now, not from the cached badge: that refresh may still be in
+    // flight, and a stale zero would make a conflict already waiting look new.
+    final conflictsBefore = await _refreshConflicts();
     final SyncGateOutcome outcome;
     try {
       outcome = await controller.syncNow();

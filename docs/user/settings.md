@@ -736,7 +736,8 @@ nothing.
 
 The version you keep becomes the newest edit, so your other devices take it
 the next time they sync and stop asking. If you choose on two devices before
-either has synced, the later choice wins.
+either has synced, the later choice wins — unless you made different choices
+in the same second, in which case you're asked again.
 
 Your dialects, custom themes, figure shorthands and walkthrough snippets are
 each one whole set, so if both devices changed them you choose one device's

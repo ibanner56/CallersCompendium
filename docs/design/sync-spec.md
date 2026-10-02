@@ -2831,7 +2831,9 @@ longer matches `local_hash`), and when the stamp would fall outside the local
 clock window (§6.9). The written version reaches every other device as an
 ordinary newer edit, so their queued choices for that record clear on their
 next pass. If two devices decide before either syncs, the later decision wins,
-by the same last-writer-wins.
+by the same last-writer-wins — unless both decisions land in the same stored
+tick with different bodies, which is itself an equal-`updatedAt` tie and is
+queued again.
 
 ### 6.7 Apply
 

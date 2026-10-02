@@ -68,7 +68,8 @@ enum SyncMergeAction { none, upload, download, report, review, dropBaseline }
 /// resolved by last-writer-wins, because the losing side is not one edit but
 /// every dialect, theme, shorthand or snippet that device holds (ADR-004,
 /// *Consequences*). The app declares the same keys beside the controllers that
-/// own them; `sync_whole_collection_keys_test.dart` holds the two together.
+/// own them; `app/test/sync/sync_whole_collection_keys_test.dart` holds the
+/// two together.
 const Set<String> syncWholeCollectionSettingKeys = {
   'custom_dialects',
   'custom_themes',
@@ -709,36 +710,40 @@ class SyncMergeEngine {
 
   /// A changed/changed conflict on a whole-collection setting, or null.
   ///
-  /// Both sides must have changed since the baseline; with no baseline (a
-  /// fresh attach, or a key the devices never agreed on) both count as
-  /// changed. A peer that merely has not caught up is filtered out before this
-  /// by the baseline classification above, so a one-sided edit still
-  /// downloads or uploads normally.
+  /// The conflict is between every version that changed since the baseline
+  /// — this device's and any peer's alike; with no baseline (a fresh attach,
+  /// or a key the devices never agreed on) every version counts as changed.
+  /// Two or more distinct changed bodies go to review, whichever devices hold
+  /// them: two peers that each changed the set while this device held the
+  /// agreed one, or held none, would otherwise have the newer set silently
+  /// discard the other. A single changed version is an ordinary one-sided
+  /// edit and syncs normally.
   SyncMergeConflict? _wholeCollectionConflict({
     required SyncMergeCandidate? local,
     required List<SyncMergeCandidate> contentCandidates,
     required SyncBaselineEntry? baselineEntry,
     required bool deletedWins,
   }) {
-    if (local == null || deletedWins || local.isDeleted) return null;
-    if (local.blob.kind != SyncRecordKind.setting ||
-        !syncWholeCollectionSettingKeys.contains(local.blob.id)) {
+    if (deletedWins || contentCandidates.isEmpty) return null;
+    final key = contentCandidates.first.blob;
+    if (key.kind != SyncRecordKind.setting ||
+        !syncWholeCollectionSettingKeys.contains(key.id)) {
       return null;
     }
-    if (!contentCandidates.contains(local)) return null;
-    final localChanged =
-        baselineEntry == null || local.wireHash != baselineEntry.wireHash;
-    if (!localChanged) return null;
-    final others = [
+    final changed = [
       for (final candidate in contentCandidates)
-        if (!identical(candidate, local) &&
-            candidate.bodyHash != local.bodyHash &&
+        if (!candidate.isDeleted &&
             (baselineEntry == null ||
                 candidate.wireHash != baselineEntry.wireHash))
           candidate,
     ];
-    if (others.isEmpty) return null;
-    return _conflict(local: local, offered: others);
+    if (changed.map((candidate) => candidate.bodyHash).toSet().length < 2) {
+      return null;
+    }
+    return _conflict(
+      local: local != null && !local.isDeleted ? local : null,
+      offered: changed,
+    );
   }
 
   /// Builds the user's choice: this device's live copy, plus one candidate
