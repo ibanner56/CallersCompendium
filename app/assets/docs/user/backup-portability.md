@@ -78,11 +78,12 @@ A backup holds **everything** you've built, including:
 
 A few device-specific things are left out on purpose, so a restored device
 doesn't inherit the old one's quirks: window size and position, any
-half-finished edits you hadn't saved yet, your backup-reminder setting and
-last-backup date, and everything about
+half-finished edits you hadn't saved yet, your last-backup date, and everything about
 [Device Sync](./settings.md#device-sync) — so restoring a backup never turns
 sync on or connects a device to a store. All your real content comes
-along.
+along, and so does your reminder cadence (off / weekly / monthly) — but the
+last-backup date does not travel, so restoring leaves this device's own
+last-backup date as it was.
 
 ## Restore from a backup
 
@@ -96,9 +97,10 @@ setting up a new device or recovering after a problem.
    or paste the backup text into **Or paste backup JSON**.
 5. Confirm with **Replace all data**.
 
-On success, you'll see a **Backup restored.** confirmation. If a few
-items in the file couldn't be read, the app still restores everything
-else and tells you how many were skipped. If the file is invalid or
+On success, you'll see a **Backup restored.** confirmation. If any
+dance, program or other core item in the file can't be read, the restore
+stops *before* anything changes and tells you; only optional extras (custom
+dialects and themes) can be skipped, and the app tells you how many. If the file is invalid or
 corrupt, comes from a newer version of the app that this one can't
 read, or has no app-settings section (an older, hand-edited or incomplete
 file that couldn't say what your settings, themes and dialects should

@@ -141,13 +141,11 @@ any track (including testing) can go live. Answers are drafted in
   utility for adult callers; select adult age bands (13+/18+ as you prefer) and
   **not** "designed for children," so the **Families policy / Play for Families**
   rules don't apply.
-- [x] **[Gate]** **Data safety form** — for a pre-Sync build, declare **No data
-  collected, no data shared**. Note the app makes user-initiated network
-  requests (imports) and an opt-in update check, but the developer **collects**
-  nothing. Full answer set in
-  [`listing-copy.md`](listing-copy.md#data-safety-google-play). Re-answer it
-  before any beta where opt-in Device Sync transfers content; do not carry the
-  pre-Sync answer into that beta.
+- [x] **[Gate]** **Data safety form** — declare the optional Device Sync
+  transfer (other user-generated content, optional, app functionality, not
+  shared with third parties), not "No data collected". Imports and the opt-in
+  update check are user-initiated. Full answer set in
+  [`listing-copy.md`](listing-copy.md#data-safety-google-play).
 - [x] **[Gate]** **Government apps / financial / health / etc.** declarations —
   all **No** for us.
 - [x] **[Gate]** **News app?** — **No**.
@@ -216,9 +214,8 @@ flowchart LR
 - [ ] Read tester feedback and reviews; reply from the console.
 - [ ] Keep `targetSdk`, the privacy policy URL, and Data safety answers current —
   Play emails deadlines for policy changes and target-API bumps.
-- [ ] Re-affirm Data safety at each release. A pre-Sync release remains "no data
-  collected"; re-answer the form before any beta where Device Sync can transfer
-  content.
+- [ ] Re-affirm Data safety at each release; it must keep declaring the Device
+  Sync transfer.
 
 ---
 
@@ -233,7 +230,7 @@ flowchart LR
 | Signing | Play App Signing; existing upload keystore = upload key |
 | Open beta = | **Open testing** track — but only **after** the closed-testing gate |
 | Closed-testing gate | **12+ testers, 14 continuous days** (new personal accounts) |
-| Data safety | **No data collected / no data shared** |
+| Data safety | **Other user-generated content (Device Sync), optional; not shared** |
 | Content rating | IARC → **Everyone** |
 | Feature graphic | 1024×500 (required by Play) |
 | Ads / IAP | None / None |
