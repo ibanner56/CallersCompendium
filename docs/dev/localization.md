@@ -376,8 +376,14 @@ You do **not** need to write code to translate the app.
    `<string>fr</string>`, `<string>pt-BR</string>`, `<string>zh-Hant</string>`) —
    not the underscore filename form. iOS advertises the languages an app supports
    from this list, so without it a contributed language isn't offered by the
-   system. Other platforms pick up the supported locales automatically, so no
-   extra step is needed there.
+   system. The Dart side needs nothing further: `resolveSystemLocale`
+   (`locale_scope.dart`) matches the device's language list against the
+   supported locales and falls back to **English** — not `supportedLocales.first`,
+   which is alphabetical (`da`) — when none match. The OS per-app language
+   pickers do depend on platform manifests, though: macOS `knownRegions` in
+   `app/macos/Runner.xcodeproj/project.pbxproj` lists only `en, Base`, and
+   Android declares no `localeConfig`, so those pickers do not yet offer every
+   bundled language.
 6. That's it — your language automatically appears in **Settings ▸ Language &
    region ▸ App language**, shown by its native name, with no code change. If the
    endonym doesn't yet have an entry in `nativeLanguageName` it falls back to the

@@ -106,6 +106,37 @@ Locale? localeFromStored(Object? stored, Iterable<Locale> supported) {
   return null;
 }
 
+/// Resolves the device's preferred locales to one of [supported], falling back
+/// to **English** when none of them is supported.
+///
+/// Used as `MaterialApp.localeListResolutionCallback` for the "System default"
+/// language. Flutter's own resolution returns `supported.first` when nothing
+/// matches, and the generated list is alphabetical (`da` first), so an
+/// unsupported device language such as `es_ES`, `pt_BR`, or the POSIX `C`
+/// locale would otherwise open the app in Danish.
+///
+/// Walks [preferred] in order and returns the first entry with an exact
+/// language/script/country match in [supported], else the first entry whose
+/// language code matches a supported locale's. The returned value is always the
+/// *supported* [Locale] (so `fr_CA` yields `fr`), never the device's. A null or
+/// empty list, or one with no supported language, yields `Locale('en')`.
+Locale resolveSystemLocale(
+  List<Locale>? preferred,
+  Iterable<Locale> supported,
+) {
+  if (preferred == null || preferred.isEmpty) return const Locale('en');
+  final supportedList = supported.toList();
+  for (final device in preferred) {
+    final exact = supportedList.where((s) => s == device);
+    if (exact.isNotEmpty) return exact.first;
+    final sameLanguage = supportedList.where(
+      (s) => s.languageCode == device.languageCode,
+    );
+    if (sameLanguage.isNotEmpty) return sameLanguage.first;
+  }
+  return const Locale('en');
+}
+
 /// The BCP-47 language tag persisted for [locale], or the empty string for
 /// `null` (follow the system locale). The empty string is a benign sentinel:
 /// [localeFromStored] resolves it back to `null`.

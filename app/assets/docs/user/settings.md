@@ -340,6 +340,8 @@ The **Language & region** section handles formats and localization.
 - **App language** — choose **System default** or one of the bundled languages
   (currently English, German, French, Japanese, Danish, and Dutch). Changing it
   re-renders the app immediately and is remembered next time you open the app.
+  With **System default**, the app follows your device's language when it is one
+  of those bundled languages and otherwise uses English.
   Your dance content — figure and call wording — is governed by your chosen
   [dialect](./dialects.md), independent of the interface language.
 
