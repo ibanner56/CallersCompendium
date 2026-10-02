@@ -356,6 +356,14 @@ class SyncController extends ChangeNotifier {
   /// observed, and this cannot mistake it for that recording.
   void _expectSelfWrite() => _pendingSelfWrites++;
 
+  /// Marks the next settings-only change as sync bookkeeping written outside
+  /// this controller — the coordinator factory persisting a device ID it has
+  /// just minted — so it is not mistaken for a user edit.
+  void expectOwnSettingsWrite() {
+    if (_disposed) return;
+    _expectSelfWrite();
+  }
+
   /// Marks that a table invalidation the controller is about to observe is
   /// the direct result of applying inbound records during the pass currently
   /// running — the isolate boundary's `onAppliedKinds` hook, wired through

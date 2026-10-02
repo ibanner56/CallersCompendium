@@ -21,6 +21,21 @@ void main() {
       expect(await repos.settings.get(kSyncDeviceIdKey), minted);
     });
 
+    test('announces a mint, and only a '
+        'mint', () async {
+      final observed = <Object?>[];
+      await resolveSyncDeviceId(
+        repos.settings,
+        beforeMint: () => observed.add('mint'),
+      );
+      await resolveSyncDeviceId(
+        repos.settings,
+        beforeMint: () => observed.add('reuse'),
+      );
+
+      expect(observed, ['mint']);
+    });
+
     test('returns the stored identifier unchanged while one exists', () async {
       await repos.settings.set(kSyncDeviceIdKey, 'device_1');
 

@@ -1046,6 +1046,56 @@ void main() {
       );
     });
 
+    test('pairing runs exactly one pass, although the coordinator mints a '
+        'device ID as it is built', () async {
+      // Production wiring: table updates on `settings` alone reach the
+      // controller as settings-only changes, and reconfigure resolves the
+      // device ID the way `ConfiguredSyncCoordinatorFactory` does, with the
+      // factory's mint hook pointed at the controller.
+      late SyncController controller;
+      controller = SyncController(
+        settings: repos.settings,
+        syncLocal: repos.syncLocal,
+        coordinator: () => coordinator,
+        reconfigure: ({bool startPass = true}) async {
+          if (await repos.settings.get(kSyncIdKey) == null) return;
+          await resolveSyncDeviceId(
+            repos.settings,
+            beforeMint: controller.expectOwnSettingsWrite,
+          );
+        },
+        classifier: network,
+        debounce: const Duration(milliseconds: 1),
+      );
+      addTearDown(controller.dispose);
+      final subscription = repos.db.tableUpdates().listen((updates) {
+        final tables = {for (final u in updates) u.table};
+        controller.notifyLocalChange(
+          settingsOnly: tables.length == 1 && tables.contains('settings'),
+        );
+      });
+      addTearDown(subscription.cancel);
+      await controller.setEnabled(true);
+      await pumpEventQueue();
+      final before = passes.length;
+
+      await controller.completePairing(
+        'correct horse battery staple',
+        Uri.parse('https://sync.example.test/'),
+      );
+      await pumpEventQueue();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      expect(await repos.settings.get(kSyncDeviceIdKey), isNotNull);
+      expect(
+        passes.length - before,
+        1,
+        reason:
+            'the minted ID is bookkeeping; treating it as an edit schedules '
+            'a second, debounced pass after every attach',
+      );
+    });
+
     test('completePairing awaits the fresh-attach pass so lastResult carries '
         'the real W8 duplicate count', () async {
       coordinator = SyncCoordinator(

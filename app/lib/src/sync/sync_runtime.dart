@@ -38,6 +38,14 @@ final class ConfiguredSyncCoordinatorFactory {
   /// [SyncCoordinator] and never call through this factory.
   void Function()? onBeforeAppliedInvalidation;
 
+  /// Notified immediately before this factory persists a newly minted device
+  /// ID, so the controller can mark that settings write as its own
+  /// bookkeeping rather than a user edit that schedules a pass. Every attach
+  /// mints one, so unmarked it would add a debounced pass after each pairing's
+  /// own. Assigned by `_CompendiumAppState` once the controller exists, for
+  /// the same reason as [onBeforeAppliedInvalidation].
+  void Function()? onBeforeDeviceIdMinted;
+
   Future<SyncCoordinator?> call(CompendiumRepositories repositories) async {
     if (await repositories.settings.get(kSyncEnabledKey) != true) return null;
     final rawSyncId = await repositories.settings.get(kSyncIdKey);
@@ -57,7 +65,10 @@ final class ConfiguredSyncCoordinatorFactory {
     }
     final databasePath = (await resolveDatabaseFile()).path;
 
-    final deviceId = await resolveSyncDeviceId(repositories.settings);
+    final deviceId = await resolveSyncDeviceId(
+      repositories.settings,
+      beforeMint: onBeforeDeviceIdMinted,
+    );
 
     final client = SyncHttpClient(endpoint: endpoint, syncId: syncId);
     return SyncCoordinator(
@@ -84,14 +95,19 @@ final class ConfiguredSyncCoordinatorFactory {
 ///
 /// The only place a device ID is created. A stored value that is not a valid
 /// identifier throws rather than being replaced, so corruption is loud instead
-/// of silently giving the device a second identity in the store.
+/// of silently giving the device a second identity in the store. [beforeMint]
+/// runs immediately before a minted ID is written, and only then.
 @visibleForTesting
-Future<String> resolveSyncDeviceId(SettingsRepository settings) async {
+Future<String> resolveSyncDeviceId(
+  SettingsRepository settings, {
+  void Function()? beforeMint,
+}) async {
   final raw = await settings.get(kSyncDeviceIdKey);
   switch (raw) {
     case null:
       final bytes = List<int>.generate(18, (_) => Random.secure().nextInt(256));
       final deviceId = base64Url.encode(bytes).replaceAll('=', '');
+      beforeMint?.call();
       await settings.set(kSyncDeviceIdKey, deviceId);
       return deviceId;
     case String value when _validDeviceId.hasMatch(value):
