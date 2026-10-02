@@ -667,8 +667,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final fetcher = widget.fetcher ?? fetchImportUrl;
     final l10n = AppLocalizations.of(context);
     final input = _urlController.text.trim();
-    // Captured now: the user can change the source dropdown while the request
-    // is in flight, and the failure belongs to the source that was fetched.
+    // The source this request is for; the failure is worded for it. (The
+    // dropdown is disabled while fetching, so this is request-local by intent
+    // rather than because the selection can change mid-flight.)
     final kind = _selected.kind;
     // Rewrite the typed input into the URL actually fetched (e.g. build the
     // Caller's Box &format=JSON endpoint). A null builder fetches as typed.
