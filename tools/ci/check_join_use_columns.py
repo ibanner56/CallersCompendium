@@ -150,11 +150,13 @@ def check_text(text: str, path: str) -> list[Violation]:
         return text.count("\n", 0, off) + 1
 
     violations: list[Violation] = []
+    prev_join_end = -1
     for m in _JOIN_ON_DANCES_RE.finditer(code):
         start = m.start()
         end = _call_end(code, code.index("(", start))
         line = lineno(start)
         span = code[start : end + 1]
+        floor, prev_join_end = prev_join_end, end
         if _USE_COLUMNS_RE.search(span):
             continue
 
@@ -163,7 +165,12 @@ def check_text(text: str, path: str) -> list[Violation]:
         # call, its own lines, and a comment above `final x = await (...)` --
         # `dart format` re-lays-out a whole expression when a comment sits
         # inside it, so the marker may live on the enclosing statement.
-        stmt_start = max(code.rfind(ch, 0, start) for ch in ";{}") + 1
+        # A marker belongs to one join: the search starts after the previous
+        # dance join in the same statement, so one marker cannot exempt two.
+        stmt_start = max(
+            max(code.rfind(ch, 0, start) for ch in ";{}") + 1,
+            floor + 1,
+        )
         line_end = text.find("\n", end)
         line_end = len(text) if line_end == -1 else line_end
         candidates = [

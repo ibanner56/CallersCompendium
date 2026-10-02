@@ -109,6 +109,30 @@ Future<void> f() async {
     assert check_text(src, "a.dart") == []
 
 
+def test_one_marker_does_not_exempt_two_joins() -> None:
+    src = """
+final q = s.join([
+  // join-columns: needed — first join reads dances
+  innerJoin(_db.dances, a),
+  innerJoin(_db.dances, b),
+]);
+"""
+    (v,) = check_text(src, "a.dart")
+    assert v.kind == MISSING and v.line == 5, v
+
+
+def test_each_join_with_its_own_marker_passes() -> None:
+    src = """
+final q = s.join([
+  // join-columns: needed — first
+  innerJoin(_db.dances, a),
+  // join-columns: needed — second
+  leftOuterJoin(_db.dances, b),
+]);
+"""
+    assert check_text(src, "a.dart") == []
+
+
 def test_marker_without_reason_is_flagged() -> None:
     src = _body(
         "innerJoin(_db.dances, x)",
