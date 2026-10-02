@@ -1736,7 +1736,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsMatrixColumnsCompoundDeleteConfirm => 'Spalte löschen';
 
   @override
-  String get settingsGeneralPerformanceHeader => 'Leistung';
+  String get settingsGeneralPerformanceHeader => 'Perform-Modus';
 
   @override
   String get settingsGeneralAutoSizePerformTitle =>
@@ -3393,7 +3393,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get programsUndoPerformedError =>
-      'Die Markierung konnte nicht rückgängig gemacht werden; die Erledigt-Markierungen bleiben gespeichert.';
+      'Die Markierung konnte nicht rückgängig gemacht werden; die Aufführungsmarkierungen bleiben gespeichert.';
 
   @override
   String get programsUndoRefreshError =>

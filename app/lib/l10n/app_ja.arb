@@ -20,7 +20,7 @@
   "@settingsDefaultsMeanwhileTitle": {
     "x-sourceSha256": "13461f7f717e0763c8fb3e523fcb2ee3806b233a39f02b93885e0a0747f61210"
   },
-  "settingsDefaultsMeanwhileSubtitle": "Meanwhileコンテナを追加すると挿入されるサイド図形です。空にすると2つの空のサイドになり、1つだけ設定すると空のサイドが1つ追加されます。挿入後にコンテナを編集できます。",
+  "settingsDefaultsMeanwhileSubtitle": "Meanwhileコンテナを追加すると挿入されるサイドのフィギュアです。空にすると2つの空のサイドになり、1つだけ設定すると空のサイドが1つ追加されます。挿入後にコンテナを編集できます。",
   "@settingsDefaultsMeanwhileSubtitle": {
     "x-sourceSha256": "fd52415a558ae2a3b71aec64d34d88e66dbb87e764af095eddf7880b8de71bfc"
   },
@@ -1868,19 +1868,19 @@
   "@settingsGeneralAutoSizePerformSubtitle": {
     "x-sourceSha256": "5fc58c7fdd31965d66905ccee7c0b386915c511918a7c617de33fdd92c66d0f0"
   },
-  "settingsShowIndividualPerformTimerTitle": "個別のPerformでタイマーを表示",
+  "settingsShowIndividualPerformTimerTitle": "個別のパフォームでタイマーを表示",
   "@settingsShowIndividualPerformTimerTitle": {
     "x-sourceSha256": "e9260de6229a91b26d5792f5b6bb8ea2d5332f23a8943c2e3c6157f2e2e58ef0"
   },
-  "settingsShowIndividualPerformTimerSubtitle": "1曲だけをPerformしている間の経過時間を表示します。タイマーが表示されると開始し、一時停止できます。",
+  "settingsShowIndividualPerformTimerSubtitle": "1曲だけをパフォームしている間の経過時間を表示します。タイマーが表示されると開始し、一時停止できます。",
   "@settingsShowIndividualPerformTimerSubtitle": {
     "x-sourceSha256": "c3f8f61c6df18fe8d4ce2b3aa7fd6b904e66b2f7874e047dee26af2c2ed7f46f"
   },
-  "settingsShowProgramSlotCallerNotesTitle": "プログラムのPerformでコーラーのメモを表示",
+  "settingsShowProgramSlotCallerNotesTitle": "プログラムのパフォームでコーラーのメモを表示",
   "@settingsShowProgramSlotCallerNotesTitle": {
     "x-sourceSha256": "b4907be54d3c1a8b08fb8a4f29d9209dac0d2a4bd0d4ae4b6f70de7ca34c577f"
   },
-  "settingsShowProgramSlotCallerNotesSubtitle": "プログラムのPerformで、空でないスロットごとのコーラーメモをダンス名の上に表示します。",
+  "settingsShowProgramSlotCallerNotesSubtitle": "プログラムのパフォームで、空でないスロットごとのコーラーメモをダンス名の上に表示します。",
   "@settingsShowProgramSlotCallerNotesSubtitle": {
     "x-sourceSha256": "3643d4c4bffc8af03f4f7feb2363c0cf70bacf9663bb4c84a84f2eed5fb51b1c"
   },
@@ -6640,7 +6640,7 @@
   "@danceEditorConvertToMeanwhile": {
     "x-sourceSha256": "c9efabb132e41899d095163d93026cd838ce238a4a4cbafa6f6a3ab1efbd6f1e"
   },
-  "danceEditorConvertToModifier": "Modifierに変換",
+  "danceEditorConvertToModifier": "モディファイアに変換",
   "@danceEditorConvertToModifier": {
     "x-sourceSha256": "d472575eb0ce29ca55b563b8be186114c56e7cada317484cb17d604f9ce51ccc"
   },
@@ -6648,7 +6648,7 @@
   "@danceEditorUngroupMeanwhile": {
     "x-sourceSha256": "5efde75b4147394c5e486cc900c3b195ce11afcdc5c52dc69eb76796dbff6502"
   },
-  "danceEditorUngroupModifier": "Modifierのグループ化を解除",
+  "danceEditorUngroupModifier": "モディファイアのグループ化を解除",
   "@danceEditorUngroupModifier": {
     "x-sourceSha256": "bfe76e0aa465b4517d011bd395490f9e997539c3ee67f58b12839d7746d4c152"
   },
@@ -6668,15 +6668,15 @@
   "@danceEditorModifierCoreLabel": {
     "x-sourceSha256": "70ea1983c983deacc1b61805aea3d43648afd932f346fb2e5d9b15facd4035c2"
   },
-  "danceEditorModifierChildLabel": "Modifier",
+  "danceEditorModifierChildLabel": "モディファイア",
   "@danceEditorModifierChildLabel": {
     "x-sourceSha256": "42e37604b638b62790fde6210fe9af90567961220206ec36e2739e075c85a7ae"
   },
-  "danceEditorModifierCoreSemantic": "ModifierグループのコアFigure。",
+  "danceEditorModifierCoreSemantic": "モディファイアグループのコアフィギュア。",
   "@danceEditorModifierCoreSemantic": {
     "x-sourceSha256": "53f5ef9b783ec30dd69e4eb51333f0688e737627334e311081e83e2236d90bb5"
   },
-  "danceEditorModifierChildSemantic": "Modifier Figure {number}/{total}。",
+  "danceEditorModifierChildSemantic": "モディファイアフィギュア {number}/{total}。",
   "@danceEditorModifierChildSemantic": {
     "x-sourceSha256": "e6e69c89629a50eefb521524515708a5d7b62d71c565372b086bac4d3811a524"
   },

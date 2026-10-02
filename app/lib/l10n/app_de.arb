@@ -1856,7 +1856,7 @@
   "@settingsMatrixColumnsCompoundDeleteConfirm": {
     "x-sourceSha256": "837dbb2c66b1a90f46e7de1ea5b51e2da583a675dd6a3d4131dc2a7d44b0eaef"
   },
-  "settingsGeneralPerformanceHeader": "Leistung",
+  "settingsGeneralPerformanceHeader": "Perform-Modus",
   "@settingsGeneralPerformanceHeader": {
     "x-sourceSha256": "442aded87a55aa8c8f7d5ff0c30228150d4b1cb8756e4be138d615ca4708fc26"
   },
@@ -3572,7 +3572,7 @@
   "@programsSaveError": {
     "x-sourceSha256": "d7e01bbd514104d066f03048e26a473d8dc2fa0a33a8adeba5030ce82b89d863"
   },
-  "programsUndoPerformedError": "Die Markierung konnte nicht rückgängig gemacht werden; die Erledigt-Markierungen bleiben gespeichert.",
+  "programsUndoPerformedError": "Die Markierung konnte nicht rückgängig gemacht werden; die Aufführungsmarkierungen bleiben gespeichert.",
   "@programsUndoPerformedError": {
     "x-sourceSha256": "fbfde0b54bb73c9f0d1ddc9adbfd71d55cd0c8c3b218a2d419349ad85f5c9aa0"
   },
