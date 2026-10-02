@@ -362,10 +362,8 @@ FmpDatabase readFmp12(
 /// [FmpRecord] with the same [FmpRecord.id], and still counts toward
 /// [FmpReadLimits.maxRecords]. [FmpTable.columns] always holds the complete
 /// schema.
-typedef FmpColumnFilter = Set<int>? Function(
-  String tableName,
-  List<FmpColumn> columns,
-);
+typedef FmpColumnFilter =
+    Set<int>? Function(String tableName, List<FmpColumn> columns);
 
 class _FmpReader {
   _FmpReader(

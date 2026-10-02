@@ -645,8 +645,9 @@ Map<String, List<CcBodySection>> _extractPhraseBodies(
     // Stable sort by canonical PhraseNumber order, unknown/blank labels last.
     final ordered = [for (var i = 0; i < rows.length; i++) MapEntry(i, rows[i])]
       ..sort((a, b) {
-        final rank = _phraseRank(a.value.number)
-            .compareTo(_phraseRank(b.value.number));
+        final rank = _phraseRank(
+          a.value.number,
+        ).compareTo(_phraseRank(b.value.number));
         return rank != 0 ? rank : a.key.compareTo(b.key); // stable on ties
       });
     final sections = <CcBodySection>[];
