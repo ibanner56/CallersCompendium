@@ -318,6 +318,21 @@ cannot distinguish "the peer edited this" from "the peer has not caught up yet",
 and the latter would roll a newer local record backwards. With N peers, the
 newest `updatedAt` wins.
 
+> **Amended 2026-10-02.** **When the newest `updatedAt` is shared by differing
+> live bodies, the user chooses** (@ibanner56's ruling). Timestamps have
+> one-second precision, so this is ordinary — two devices that each change the
+> same setting before syncing reach it. It used to be reported on every pass
+> and left unresolved, with the advice to edit one side, which the user could
+> not act on: the report named no setting and the devices stayed different.
+> A convergent automatic rule — keep whichever body hashes lower — was
+> considered and rejected: it would settle the tie, but by discarding one
+> device's edit without asking, which may undo something the user meant.
+> Instead every distinct version is queued in `review_queue` and offered to the
+> user; the kept version is re-stamped one tick past the tie and reaches every
+> other device as an ordinary newer edit (spec §6.3, §6.6 *Conflict choices*).
+> Keeping this device's own version re-stamps an unchanged body, the one write
+> spec invariant I2 now permits for that reason (§6.5).
+
 **Absence never means deletion.** Deletions travel as `deletedAt` tombstones.
 `Dances` and `Programs` carry `deletedAt` today; the sync migration adds it to the other
 seven kinds and converts their repositories from hard to soft delete, because a
@@ -1400,12 +1415,18 @@ makes self-hosting materially harder, which constraint 4 forbids.
   blob carries. The serialiser hazard and this deserialiser hazard are
   symmetric, and the second is the more dangerous: it destroys the user's own
   data rather than exposing it.
-- **Settings whose value is a whole collection collide destructively.**
+- **Settings whose value is a whole collection collide as a unit.**
   `custom_dialects`, `custom_themes`, `shorthand_mappings` and
-  `walkthrough_snippets` each hold an entire set behind one key, so a
-  changed/changed conflict discards one device's complete set with no review
-  queue. Accepted, and it belongs beside "sharing is not collaboration": the
-  first pairing of two long-established devices is the case that loses work.
+  `walkthrough_snippets` each hold an entire set behind one key, so
+  last-writer-wins on a changed/changed conflict would discard one device's
+  complete set.
+
+  > **Amended 2026-10-02.** This was accepted with no review queue. It is now
+  > routed to the user's choice whatever the two timestamps
+  > (@ibanner56's ruling; spec §6.3), because the first pairing of two
+  > long-established devices is exactly the case that would lose work. What
+  > remains accepted is that the choice is between whole sets: the user
+  > keeps one device's dialects, say, not a merge of both.
 - **Any holder of the sync ID can impersonate a device or wipe the store.**
   Manifest `PUT` accepts a caller-chosen device id, and the same bearer
   authorises `DELETE /v1/store`. This is inherent to the bearer model rather than

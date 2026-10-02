@@ -1765,8 +1765,9 @@ So: for `kind: "setting"`, the **per-key classification in
 
 Note also that settings whose value is an entire collection —
 `custom_dialects`, `custom_themes`, `shorthand_mappings`,
-`walkthrough_snippets` — collide as a unit: a changed/changed conflict discards
-one device's whole set. Accepted; see ADR-004 consequences.
+`walkthrough_snippets` — collide as a unit, so a changed/changed conflict on
+one of them goes to the user's choice between the whole sets rather than to
+last-writer-wins (spec §6.3; ADR-004 consequences).
 
 This requires a schema change: `settings` is `(key, value_json)` with **no
 timestamp and no tombstone**, so neither the conflict rule nor deletion can reach
