@@ -49,11 +49,13 @@ const int kMaxImportFileBytes = 25 * 1024 * 1024;
 const int kMaxImportUsrBytes = 256 * 1024 * 1024;
 
 /// Raised when a picked import file exceeds its cap ([kMaxImportFileBytes], or
-/// [kMaxImportUsrBytes] for a `.USR`), so the oversized case is rejected *without* buffering the whole file into memory
+/// [kMaxImportUsrBytes] for a `.USR`), so the oversized case is rejected
+/// *without* buffering the whole file into memory
 /// (the bounded read abandons the stream as soon as the cap is crossed).
 ///
 /// Carries only the typed [length] and [maxBytes] — no user prose. The
-/// presentation layer maps this to a localized message (see `importFileTooLargeMessage` in
+/// presentation layer maps this to a localized message (see
+/// `importFileTooLargeMessage` in
 /// `import_error_labels.dart`); the data layer never bakes English in.
 class ImportFileTooLargeException implements Exception {
   const ImportFileTooLargeException(
@@ -1565,9 +1567,8 @@ const String contraDbSearchUrl = 'https://contradb.com/api/v1/dances';
 /// [CallersBoxSearchFetcher]):
 /// ContraDB search is a POST to a single fixed endpoint whose JSON body carries
 /// the query, so the transport — not the caller — assembles the request.
-typedef ContraDbSearchFetcher = Future<String> Function(
-  ContraDbSearchRequest request,
-);
+typedef ContraDbSearchFetcher =
+    Future<String> Function(ContraDbSearchRequest request);
 
 /// A validated ContraDB search criterion for the injected transport seam.
 ///
