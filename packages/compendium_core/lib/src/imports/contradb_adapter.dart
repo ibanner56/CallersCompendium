@@ -102,6 +102,7 @@ class ContraDbAdapter implements SourceAdapter {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
+        code: ImportErrorCode.emptyFile,
         message: 'No ContraDB payload provided to import.',
       );
     }
@@ -113,6 +114,7 @@ class ContraDbAdapter implements SourceAdapter {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
+        code: ImportErrorCode.notJson,
         message: 'Payload is not valid JSON: ${e.message}',
         cause: e,
       );
@@ -123,6 +125,7 @@ class ContraDbAdapter implements SourceAdapter {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
+        code: ImportErrorCode.notContraDbDance,
         message:
             'Payload is not a ContraDB export: expected a dance object, an '
             'array of dances, or an object with a "dances"/"records" array.',

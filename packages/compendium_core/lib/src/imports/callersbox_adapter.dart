@@ -102,6 +102,7 @@ class CallersBoxAdapter implements SourceAdapter {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
+        code: ImportErrorCode.emptyFile,
         message: 'No Caller\'s Box payload provided to import.',
       );
     }
@@ -113,6 +114,7 @@ class CallersBoxAdapter implements SourceAdapter {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
+        code: ImportErrorCode.notJson,
         message: 'Payload is not valid JSON: ${e.message}',
         cause: e,
       );
@@ -123,6 +125,7 @@ class CallersBoxAdapter implements SourceAdapter {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
+        code: ImportErrorCode.notCallersBoxDance,
         message:
             'Payload is not a Caller\'s Box dance export: expected a TCB dance '
             'object (with "ID"/"Name"), an array of dances, or an object with '
@@ -136,6 +139,7 @@ class CallersBoxAdapter implements SourceAdapter {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
+        code: ImportErrorCode.noDanceAtId,
         message:
             'Payload does not contain a Caller\'s Box dance: no element has an '
             '"ID" or "Name".',

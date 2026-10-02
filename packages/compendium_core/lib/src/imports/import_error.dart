@@ -5,6 +5,40 @@ import '../model/enums.dart';
 /// Which pipeline stage produced an [ImportError].
 enum ImportStage { discover, fetch, parse, dedupe, commit }
 
+/// Why an import failed, as a closed set the UI can map to one localized,
+/// placeholder-free string. This is the only part of an [ImportError] that is
+/// rendered: [ImportError.message] may echo user content (CWE-209) and is for
+/// logs only. Precedent: `ImportIssue.code` (`structured_draft.dart`).
+enum ImportErrorCode {
+  /// No specific reason is known; the UI falls back to a per-[ImportStage]
+  /// message.
+  unknown,
+
+  /// The file or pasted text was empty.
+  emptyFile,
+
+  /// The content is not JSON.
+  notJson,
+
+  /// The content is JSON (or bytes) but not a Caller's Compendium archive.
+  notCompendiumArchive,
+
+  /// The content is not a Caller's Box dance export.
+  notCallersBoxDance,
+
+  /// The content is not a ContraDB dance export or page.
+  notContraDbDance,
+
+  /// The file is not a readable Caller's Companion `.USR` database.
+  notUsrDatabase,
+
+  /// The file exceeds the import size or structure limits.
+  fileTooLarge,
+
+  /// A Caller's Box payload was read but contains no dance.
+  noDanceAtId,
+}
+
 /// A structured import failure carrying source context, so the UI can report
 /// "record N from The Caller's Box failed to parse" rather than surfacing a
 /// raw stack trace (`docs/design/imports.md`, "Error handling & testing").
@@ -19,6 +53,7 @@ class ImportError implements Exception {
     required this.stage,
     required this.source,
     required this.message,
+    this.code = ImportErrorCode.unknown,
     this.externalId,
     this.cause,
   });
@@ -26,8 +61,13 @@ class ImportError implements Exception {
   final ImportStage stage;
   final ProvenanceSource source;
 
-  /// Human-readable, source-contextual description (no stack traces).
+  /// Human-readable, source-contextual description (no stack traces). For
+  /// logs and tests only: it may embed user content, so the UI renders [code]
+  /// instead.
   final String message;
+
+  /// Typed reason the UI maps to a localized string.
+  final ImportErrorCode code;
 
   /// The source-native id of the record this error concerns, if known.
   final String? externalId;
@@ -40,12 +80,14 @@ class ImportError implements Exception {
     ImportStage? stage,
     ProvenanceSource? source,
     String? message,
+    ImportErrorCode? code,
     String? externalId,
     Object? cause,
   }) => ImportError(
     stage: stage ?? this.stage,
     source: source ?? this.source,
     message: message ?? this.message,
+    code: code ?? this.code,
     externalId: externalId ?? this.externalId,
     cause: cause ?? this.cause,
   );
@@ -53,7 +95,8 @@ class ImportError implements Exception {
   @override
   String toString() {
     final where = externalId == null ? '' : ' (record $externalId)';
-    return 'ImportError[${stage.name}] ${source.name}$where: $message';
+    final codeText = code == ImportErrorCode.unknown ? '' : ' <${code.name}>';
+    return 'ImportError[${stage.name}]$codeText ${source.name}$where: $message';
   }
 }
 

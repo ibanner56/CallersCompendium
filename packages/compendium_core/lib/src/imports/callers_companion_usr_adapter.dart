@@ -56,8 +56,10 @@ import 'structured_draft.dart';
 /// library-sized file takes seconds and must not stall the UI. Implementations
 /// must throw exactly what [readCcUsrArchive] throws
 /// ([FmpFormatException], [FmpResourceLimitException]).
-typedef CcUsrArchiveReader =
-    Future<CcUsrArchive> Function(Uint8List bytes, FmpReadLimits limits);
+typedef CcUsrArchiveReader = Future<CcUsrArchive> Function(
+  Uint8List bytes,
+  FmpReadLimits limits,
+);
 
 Future<CcUsrArchive> _readSynchronously(
   Uint8List bytes,
@@ -120,12 +122,14 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
+        code: ImportErrorCode.fileTooLarge,
         message: 'That file is too large to import.',
       );
     } on FmpFormatException catch (e) {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
+        code: ImportErrorCode.notUsrDatabase,
         message:
             'The file is not a readable Caller\'s Companion .USR '
             '(FileMaker 12) database: ${e.message}',
@@ -221,6 +225,7 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
       throw ImportError(
         stage: ImportStage.parse,
         source: source,
+        code: ImportErrorCode.fileTooLarge,
         message: 'That file is too large to import.',
       );
     }
@@ -249,6 +254,7 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
         throw ImportError(
           stage: ImportStage.discover,
           source: source,
+          code: ImportErrorCode.notUsrDatabase,
           message:
               'The Caller\'s Companion .USR payload was not valid base64; '
               'pass raw bytes via options["bytes"] or a base64 payload.',
@@ -258,6 +264,7 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
     throw ImportError(
       stage: ImportStage.discover,
       source: source,
+      code: ImportErrorCode.emptyFile,
       message:
           'No Caller\'s Companion .USR file was provided (expected bytes in '
           'options["bytes"] or a base64 payload).',
@@ -273,7 +280,8 @@ List<Map<String, Object?>> _encodeBody(List<CcBodySection> body) => [
 ];
 
 /// Rebuilds the figure body from a decoded JSON payload, defensively. The
-/// payload is untrusted (it is persisted provenance that can be re-imported), so
+/// payload is untrusted (source-native content held in memory during fetch,
+/// not persisted since #781; see `raw_record.dart`), so
 /// every element is type-checked and malformed entries are skipped rather than
 /// throwing — mirroring the parse-never-fails posture of the rest of the import
 /// path. Downstream, each surviving line still flows through the mapping's

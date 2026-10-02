@@ -2281,7 +2281,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         context,
         icon: Icons.error_outline,
         title: l10n.importReviewCouldNotRead,
-        detail: '$_planError',
+        // Never the exception text: `_planError` can be any object, including
+        // a programmer error that echoes pasted content (CWE-209). The shape is
+        // already logged by the catch sites.
+        detail: l10n.importReviewPlanFailedBody,
       );
     }
     if (batch == null) return const SizedBox.shrink();
@@ -3227,7 +3230,16 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               child: Text(
                 _isStandalonePublishedSeed
                     ? l10n.commonBack
-                    : l10n.importReviewTryAnother,
+                    : switch (_selected.kind) {
+                        // URL / paste / online sources have no file to swap.
+                        ImportSourceKind.callersBox ||
+                        ImportSourceKind.contraDb ||
+                        ImportSourceKind.titleList => l10n.commonTryAgain,
+                        ImportSourceKind.genericJson ||
+                        ImportSourceKind.callersCompanionUsr ||
+                        ImportSourceKind.publishedCollection =>
+                          l10n.importReviewTryAnother,
+                      },
               ),
             ),
           ],

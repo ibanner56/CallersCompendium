@@ -13,6 +13,14 @@ import 'package:flutter_test/flutter_test.dart';
 import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
 
+/// An online source whose search throws a programmer error (`RangeError`), to
+/// pin that its text never reaches the screen (IMP-04, CWE-209).
+class _ThrowingOnline extends _FakeOnline {
+  @override
+  Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async =>
+      throw RangeError.index(7, const <int>[], 'rows');
+}
+
 /// A canned online source: no network, and `import` throws so an accidental
 /// commit during resolution is a loud failure rather than a silent write.
 class _FakeOnline implements OnlineSearchService {
@@ -730,6 +738,29 @@ void main() {
         reason:
             'only the local-match stage should read titles; an empty batch '
             'has no candidate rows to name',
+      );
+    });
+  });
+
+  group('a title-list import that throws', () {
+    testWidgets('shows the generic body, not the exception text (IMP-04), '
+        'and offers Try again', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos, service: _ThrowingOnline());
+
+      await _paste(tester, 'Money Musk');
+
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      expect(find.textContaining('RangeError'), findsNothing);
+      expect(find.textContaining('Index out of range'), findsNothing);
+      expect(find.text(l10n.importReviewCouldNotRead), findsOneWidget);
+      expect(find.text(l10n.importReviewPlanFailedBody), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('import-back-to-input')),
+          matching: find.text(l10n.commonTryAgain),
+        ),
+        findsOneWidget,
       );
     });
   });

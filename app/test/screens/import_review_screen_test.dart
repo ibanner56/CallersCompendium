@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
@@ -701,6 +702,16 @@ void main() {
     await _pump(tester, repos, payload: 'not json at all');
     await _toReview(tester);
     expect(find.text("Couldn't read the import"), findsOneWidget);
+    final l10n = lookupAppLocalizations(const Locale('en'));
+    // The reason is named; the stage-only "not found" is gone (IMP-01).
+    expect(find.text(l10n.importRecordErrorDiscover), findsNothing);
+    expect(
+      find.text(l10n.importRecordErrorNotCompendiumArchive),
+      findsOneWidget,
+    );
+    expect(find.textContaining("Caller's Compendium file"), findsOneWidget);
+    // A file source still offers to pick another file.
+    expect(find.text(l10n.importReviewTryAnother), findsOneWidget);
   });
 
   group('figure-variation diff prompt (issue #686)', () {
@@ -1734,6 +1745,56 @@ void main() {
       expect(find.byKey(const ValueKey('import-url-field')), findsNothing);
       expect(find.byKey(const ValueKey('import-paste-field')), findsNothing);
       expect(find.byKey(const ValueKey('import-choose-file')), findsNothing);
+    });
+
+    testWidgets('a file that is not a .USR names the problem (IMP-01)', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final random = Uint8List.fromList(List<int>.generate(256, (i) => i));
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(() async => random),
+        bytePicker: () async => random,
+      );
+
+      await selectUsr(tester);
+      await chooseAndReview(tester);
+
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      expect(find.text(l10n.importRecordErrorNotUsrDatabase), findsOneWidget);
+      expect(find.text(l10n.importRecordErrorDiscover), findsNothing);
+      expect(find.text(l10n.importReviewTryAnother), findsOneWidget);
+    });
+
+    testWidgets('a .USR over the resource limits says it is too large '
+        '(IMP-01)', (tester) async {
+      final repos = openTestRepositories();
+      List<ImportSource> sources() => [
+        ImportSource(
+          kind: ImportSourceKind.callersCompanionUsr,
+          adapterFactory: () => CallersCompanionUsrAdapter(
+            reader: (bytes, limits) =>
+                throw const FmpResourceLimitException('too many records'),
+          ),
+          bytePicker: () async => ccUsrBytes(),
+        ),
+      ];
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sources(),
+        bytePicker: () async => ccUsrBytes(),
+      );
+
+      await chooseAndReview(tester);
+
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      expect(find.text(l10n.importRecordErrorFileTooLarge), findsOneWidget);
+      expect(find.text(l10n.importRecordErrorDiscover), findsNothing);
     });
 
     testWidgets('an oversized .USR is rejected with a friendly SnackBar and '

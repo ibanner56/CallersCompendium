@@ -282,6 +282,53 @@ void main() {
   });
 
   group('importRecordErrorMessage (CWE-209)', () {
+    test('every ImportErrorCode maps to a non-generic string', () {
+      final generic = {
+        for (final stage in ImportStage.values)
+          importRecordErrorMessage(
+            l10n,
+            ImportError(
+              stage: stage,
+              source: ProvenanceSource.contradb,
+              message: 'x',
+            ),
+          ),
+      };
+      final seen = <String>{};
+      for (final code in ImportErrorCode.values) {
+        if (code == ImportErrorCode.unknown) continue;
+        for (final stage in ImportStage.values) {
+          final msg = importRecordErrorMessage(
+            l10n,
+            ImportError(
+              stage: stage,
+              source: ProvenanceSource.contradb,
+              message: 'SECRET /Users/isaac/private.json',
+              code: code,
+            ),
+          );
+          expect(msg, isNotEmpty, reason: code.name);
+          expect(generic, isNot(contains(msg)), reason: code.name);
+          expect(msg, isNot(contains('SECRET')), reason: code.name);
+          if (stage == ImportStage.discover) {
+            expect(seen.add(msg), isTrue, reason: '${code.name} is distinct');
+          }
+        }
+      }
+    });
+
+    test('an unknown code falls back to the stage message', () {
+      const error = ImportError(
+        stage: ImportStage.discover,
+        source: ProvenanceSource.contradb,
+        message: 'x',
+      );
+      expect(
+        importRecordErrorMessage(l10n, error),
+        l10n.importRecordErrorDiscover,
+      );
+    });
+
     test('never surfaces the raw error message, whatever the stage', () {
       for (final stage in ImportStage.values) {
         final error = ImportError(

@@ -5312,6 +5312,38 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importRecordErrorDiscover => 'このレコードが見つかりませんでした。';
 
   @override
+  String get importRecordErrorEmptyFile =>
+      'このファイルまたはテキストは空です。内容のあるファイルを選ぶか、テキストをもう一度貼り付けてください。';
+
+  @override
+  String get importRecordErrorNotJson =>
+      'JSONファイルではありません。取得元がエクスポートした .json ファイルを選ぶか、JSONをもう一度貼り付けてください。';
+
+  @override
+  String get importRecordErrorNotCompendiumArchive =>
+      'Caller\'s Compendium のファイルではありません。このアプリからエクスポートした .json ファイルを選んでください。';
+
+  @override
+  String get importRecordErrorNotCallersBoxDance =>
+      'Caller\'s Box のダンスではありません。The Caller\'s Box からダンスをコピーしたか確認して、もう一度お試しください。';
+
+  @override
+  String get importRecordErrorNotContraDbDance =>
+      'ContraDB のダンスではありません。ContraDB からダンスのページをコピーしたか確認して、もう一度お試しください。';
+
+  @override
+  String get importRecordErrorNotUsrDatabase =>
+      'Caller\'s Companion のライブラリファイル（.USR）ではありません。Caller\'s Companion のデータフォルダ内にある .USR ファイルを探してください。';
+
+  @override
+  String get importRecordErrorFileTooLarge =>
+      'ファイルが大きすぎてインポートできません。より小さいファイルを選ぶか、いくつかに分割してください。';
+
+  @override
+  String get importRecordErrorNoDanceAtId =>
+      'ダンスが見つかりませんでした。Caller\'s Box のダンスのIDまたはリンクを確認して、もう一度お試しください。';
+
+  @override
   String get importRecordErrorFetch => 'このレコードを取得できませんでした。';
 
   @override
@@ -5381,6 +5413,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importReviewCouldNotRead => 'インポートを読み取れませんでした';
+
+  @override
+  String get importReviewPlanFailedBody =>
+      'このインポートの読み込み中に問題が発生しました。もう一度お試しください。それでも解決しない場合は、ファイルが破損している可能性があります。';
 
   @override
   String get importReviewNoDancesTitle => 'ダンスが見つかりませんでした';

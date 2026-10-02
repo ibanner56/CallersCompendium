@@ -5495,6 +5495,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importRecordErrorDiscover => 'This record couldn\'t be found.';
 
   @override
+  String get importRecordErrorEmptyFile =>
+      'That file or text is empty. Choose a file that has content, or paste the text again.';
+
+  @override
+  String get importRecordErrorNotJson =>
+      'This isn\'t a JSON file. Choose the .json file the source exported, or paste its JSON again.';
+
+  @override
+  String get importRecordErrorNotCompendiumArchive =>
+      'This isn\'t a Caller\'s Compendium file. Choose a .json exported from this app.';
+
+  @override
+  String get importRecordErrorNotCallersBoxDance =>
+      'This isn\'t a Caller\'s Box dance. Check that you copied a dance from The Caller\'s Box, then try again.';
+
+  @override
+  String get importRecordErrorNotContraDbDance =>
+      'This isn\'t a ContraDB dance. Check that you copied a dance page from ContraDB, then try again.';
+
+  @override
+  String get importRecordErrorNotUsrDatabase =>
+      'This isn\'t a Caller\'s Companion library file (.USR). In Caller\'s Companion, find the .USR file in its data folder.';
+
+  @override
+  String get importRecordErrorFileTooLarge =>
+      'That file is too large to import. Choose a smaller file, or split it into parts.';
+
+  @override
+  String get importRecordErrorNoDanceAtId =>
+      'No dance was found there. Check the Caller\'s Box dance id or link, then try again.';
+
+  @override
   String get importRecordErrorFetch => 'This record couldn\'t be fetched.';
 
   @override
@@ -5565,6 +5597,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importReviewCouldNotRead => 'Couldn\'t read the import';
+
+  @override
+  String get importReviewPlanFailedBody =>
+      'Something went wrong reading this import. Try again; if it keeps happening, the file may be damaged.';
 
   @override
   String get importReviewNoDancesTitle => 'No dances found';
