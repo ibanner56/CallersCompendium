@@ -1126,15 +1126,18 @@ class SyncController extends ChangeNotifier {
   ///    store's current epoch.
   /// 5. **Every entry** of this device's manifest — kind, id and hash — is
   ///    carried with the identical hash by at least one of them **whose
-  ///    `writtenAt` is no earlier than this device's own**. Raw hashes, with
-  ///    no alias resolution: that can only make a carried entry look
+  ///    `writtenAt` is strictly later than this device's own**. Raw hashes,
+  ///    with no alias resolution: that can only make a carried entry look
   ///    uncarried, so it may skip a safe removal but never permit an unsafe
   ///    one. The `writtenAt` floor (@ibanner56's ruling) stops this device's
   ///    own leftover manifest from an earlier attachment — the same hashes,
   ///    written earlier by the same clock — from counting as the carrier,
   ///    which would leave those entries on a manifest the user may remove
-  ///    next. A live peer whose clock runs slow can be excluded too; that
-  ///    only makes the clean-up skip, never remove unsafely.
+  ///    next. Strictly later, because `writtenAt` is stored to the whole
+  ///    second: a leftover from an attachment replaced within one second
+  ///    reads as equal. A live peer whose clock runs slow, or that published
+  ///    in the same second, can be excluded too; that only makes the clean-up
+  ///    skip, never remove unsafely.
   ///
   /// Turning Device Sync off cancels it ([setEnabled]), so condition 1 holds
   /// for its whole run, not only at its start.
@@ -1206,7 +1209,7 @@ class SyncController extends ChangeNotifier {
       }
       final carriers = [
         for (final peer in peerManifests)
-          if (!peer.writtenAt.isBefore(own.writtenAt)) peer,
+          if (peer.writtenAt.isAfter(own.writtenAt)) peer,
       ];
       for (final kindEntry in own.records.entries) {
         for (final record in kindEntry.value.entries) {

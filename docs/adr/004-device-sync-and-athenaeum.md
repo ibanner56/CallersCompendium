@@ -1513,14 +1513,19 @@ makes self-hosting materially harder, which constraint 4 forbids.
   > it was left behind.
   >
   > **Amended 2026-10-02, later the same day** (@ibanner56's ruling). A
-  > carrier must also have been written no earlier than this device's own
-  > manifest (spec §3.3, condition 5). Without that, this device's own
+  > carrier must also have been written strictly later than this device's own
+  > manifest (spec §3.3, condition 5). The ruling was "no earlier than";
+  > strictly later is my narrowing of it, made in review, because
+  > `writtenAt` is stored to the whole second and a leftover from an
+  > attachment replaced within one second would otherwise read as equal and
+  > still count. Without that, this device's own
   > leftover from an earlier attachment — the same hashes, written earlier —
   > could be the only carrier, and removing the current manifest would leave
   > those records only there, one *Other devices* removal away from existing
   > nowhere but this detached device. The floor compares two devices' clocks,
-  > so a live peer with a slow clock can also fail it; the clean-up then
-  > skips, which costs one leftover entry, never data.
+  > so a live peer with a slow clock, or one that published in the same
+  > second, can also fail it; the clean-up then skips, which costs one
+  > leftover entry, never data.
 - **Any holder of the sync ID can impersonate a device or wipe the store.**
   Manifest `PUT` accepts a caller-chosen device id, and the same bearer
   authorises `DELETE /v1/store`. This is inherent to the bearer model rather than
