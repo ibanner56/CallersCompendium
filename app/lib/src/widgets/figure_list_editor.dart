@@ -569,6 +569,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
       _freeTextController.text,
       taxonomy: widget.taxonomy,
       shorthands: widget.shorthandMappings,
+      dialect: _dialect,
     );
     if (figures.isEmpty) {
       // Nothing to insert (blank, or scrubbed to empty) — close the composer.

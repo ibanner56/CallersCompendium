@@ -709,8 +709,17 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       message: message,
       undoLabel: l10n.commonUndo,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
-      onUndo: () =>
-          _applyProgram(previous, announce: l10n.performAdjustmentUndone),
+      onUndo: () {
+        // The snackbar lives on the app-root messenger, so it can outlive this
+        // screen (PRF-03). After unmount there is no view to update: persist
+        // the previous program directly and leave `setState`/`context` alone.
+        if (!mounted) {
+          final onChanged = widget.onProgramChanged;
+          if (onChanged != null) unawaited(onChanged(previous));
+          return;
+        }
+        _applyProgram(previous, announce: l10n.performAdjustmentUndone);
+      },
     );
   }
 
@@ -1076,6 +1085,11 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
               ),
             ),
             bottomNavigationBar: BottomAppBar(
+              // Grow with the system text size (A11Y-01): the fixed 80 px bar
+              // cannot hold the position + timing lines at large scales.
+              height: MediaQuery.textScalerOf(
+                context,
+              ).scale(80).clamp(80.0, 200.0),
               child: Row(
                 children: [
                   _buildPauseButton(),
@@ -1095,20 +1109,24 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                         // outer ambient theme.
                         builder: (context) {
                           final textTheme = Theme.of(context).textTheme;
-                          return Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                l10n.performSlotPosition(
-                                  _groupIndex + 1,
-                                  _groups.length,
+                          // Fallback for scales beyond the clamped bar height.
+                          return FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  l10n.performSlotPosition(
+                                    _groupIndex + 1,
+                                    _groups.length,
+                                  ),
+                                  key: const ValueKey('perform-position'),
+                                  style: textTheme.titleMedium,
                                 ),
-                                key: const ValueKey('perform-position'),
-                                style: textTheme.titleMedium,
-                              ),
-                              const SizedBox(height: 2),
-                              _buildTimingLine(slot, textTheme),
-                            ],
+                                const SizedBox(height: 2),
+                                _buildTimingLine(slot, textTheme),
+                              ],
+                            ),
                           );
                         },
                       ),
