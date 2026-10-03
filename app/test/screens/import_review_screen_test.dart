@@ -2623,6 +2623,68 @@ void main() {
       });
     });
 
+    group('Import and edit on a Link row', () {
+      Future<CompendiumRepositories> pumpLinked(WidgetTester tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance('cand', "Sackett's Harbor"));
+        await _pumpForEdit(
+          tester,
+          repos,
+          payload: _archivePayload([_dance('incoming', 'Sacketts Harbor')]),
+        );
+        await _toReview(tester);
+        await tester.tap(find.byKey(const ValueKey('import-row-0-link-cand')));
+        await tester.pumpAndSettle();
+        return repos;
+      }
+
+      testWidgets('asks first, names the linked dance, and Cancel writes '
+          'nothing', (tester) async {
+        final l10n = lookupAppLocalizations(const Locale('en'));
+        final repos = await pumpLinked(tester);
+
+        await tester.tap(find.byKey(const ValueKey('import-row-0-edit')));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('import-edit-overwrite-confirm')),
+          findsOneWidget,
+        );
+        expect(
+          find.text(l10n.importReviewEditOverwriteBody("Sackett's Harbor")),
+          findsOneWidget,
+        );
+
+        await tester.tap(find.text(l10n.commonCancel));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(DanceEditorScreen), findsNothing);
+        expect(
+          find.byKey(const ValueKey('import-row-0-imported')),
+          findsNothing,
+        );
+        final existing = await repos.dances.getById('cand');
+        expect(existing!.title, "Sackett's Harbor");
+      });
+
+      testWidgets('Continue replaces the linked dance and opens the editor', (
+        tester,
+      ) async {
+        final repos = await pumpLinked(tester);
+
+        await tester.tap(find.byKey(const ValueKey('import-row-0-edit')));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('import-edit-overwrite-continue')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(DanceEditorScreen), findsOneWidget);
+        final existing = await repos.dances.getById('cand');
+        expect(existing!.title, 'Sacketts Harbor');
+      });
+    });
+
     testWidgets('the row button reads "Import and edit"', (tester) async {
       final l10n = lookupAppLocalizations(const Locale('en'));
       final repos = openTestRepositories();
