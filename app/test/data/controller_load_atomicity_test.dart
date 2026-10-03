@@ -35,28 +35,25 @@ Future<(CompendiumRepositories, _FlakySettings)> _open() async {
 /// Every `load()` must be transactional: a read that fails part-way through
 /// leaves the controller exactly as it was, never a mix of old and new state.
 void main() {
-  test(
-    'CustomThemesController keeps its themes when a later read fails',
-    () async {
-      final (_, settings) = await _open();
-      final c = CustomThemesController(settings);
-      await c.upsert(
-        CustomTheme(
-          id: 'a',
-          name: 'Mine',
-          brightness: Brightness.light,
-          roles: CustomTheme.rolesFromScheme(const ColorScheme.light()),
-        ),
-      );
-      await c.load();
-      expect(c.themes.map((t) => t.id), ['a']);
+  test('CustomThemesController keeps its themes when its read fails', () async {
+    final (_, settings) = await _open();
+    final c = CustomThemesController(settings);
+    await c.upsert(
+      CustomTheme(
+        id: 'a',
+        name: 'Mine',
+        brightness: Brightness.light,
+        roles: CustomTheme.rolesFromScheme(const ColorScheme.light()),
+      ),
+    );
+    await c.load();
+    expect(c.themes.map((t) => t.id), ['a']);
 
-      settings.failingKey = kActiveCustomThemeKey;
-      await expectLater(c.load(), throwsStateError);
+    settings.failingKey = kCustomThemesKey;
+    await expectLater(c.load(), throwsStateError);
 
-      expect(c.themes.map((t) => t.id), ['a']);
-    },
-  );
+    expect(c.themes.map((t) => t.id), ['a']);
+  });
 
   test(
     'FormationColorsController keeps its overrides when the read fails',
@@ -74,7 +71,7 @@ void main() {
   );
 
   test(
-    'DialectLibraryController keeps its library when a later read fails',
+    'DialectLibraryController keeps its library when its read fails',
     () async {
       final (_, settings) = await _open();
       final c = DialectLibraryController(settings);
@@ -82,7 +79,7 @@ void main() {
       final created = await c.duplicate(name: 'Mine');
       expect(c.customDialects.map((d) => d.name), [created.name]);
 
-      settings.failingKey = kActiveDialectRefKey;
+      settings.failingKey = kCustomDialectsKey;
       await expectLater(c.load(), throwsStateError);
 
       expect(c.customDialects.map((d) => d.name), [created.name]);
