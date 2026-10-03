@@ -7,6 +7,11 @@ import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/sync_writer_lifecycle_scope.dart';
 import 'package:compendium_app/src/data/backup_io.dart';
 import 'package:compendium_app/src/data/backup_reminder.dart';
+import 'package:compendium_app/src/data/backup_document.dart'
+    show
+        defaultBackupCodecRunner,
+        runBackupCodecInline,
+        runBackupCodecOnIsolate;
 import 'package:compendium_app/src/data/backup_service.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
@@ -98,6 +103,10 @@ void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
   TestWidgetsFlutterBinding.ensureInitialized();
+  // testWidgets' fake async never delivers a worker isolate's reply, so the
+  // service's codec runs inline here (production runs it on an isolate).
+  setUp(() => defaultBackupCodecRunner = runBackupCodecInline);
+  tearDown(() => defaultBackupCodecRunner = runBackupCodecOnIsolate);
 
   testWidgets(
     'export uses the save seam, wraps a checksum container, and stamps the '

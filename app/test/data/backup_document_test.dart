@@ -1,6 +1,10 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
+import 'dart:isolate';
 
 import 'package:compendium_app/src/data/backup_document.dart';
+import 'package:compendium_app/src/data/backup_io.dart'
+    show kMaxBackupFileBytes;
 import 'package:compendium_app/src/data/custom_theme.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart' show Brightness;
@@ -49,6 +53,104 @@ BackupDocument _sampleDoc() => BackupDocument(
 );
 
 void main() {
+  // Ratchet for DAT-04: a 20k-dance library must encode under the restore cap.
+  // Slow (several seconds of encoding, ~30 MiB), so never on the CI path; run
+  // with `BACKUP_SCALE=1 fvm flutter test test/data/backup_document_test.dart`.
+  test(
+    'a synthetic 20k-dance backup encodes under the restore cap',
+    () async {
+      const dances = 20000;
+      final at = DateTime.utc(2026, 1, 1);
+      final doc = BackupDocument(
+        createdAt: at,
+        core: CompendiumArchive(
+          exportedAt: at,
+          dances: [
+            for (var i = 0; i < dances; i++)
+              Dance(
+                id: 'dance-${i.toString().padLeft(8, '0')}-0000-4000-8000',
+                title: 'Synthetic Contra Dance Number $i',
+                // Pads a dance toward the ~1.6 KiB the audit measured for a
+                // lean library entry (31.7 MiB / 20k).
+                callingNotes: 'c' * 500,
+                walkthrough: 'w' * 500,
+                createdAt: at,
+                updatedAt: at,
+              ),
+          ],
+          // #1458 (v7): tombstoned tags each retain the dances still pointing
+          // at them. Stated assumption: 50 deleted tags x 400 dances each.
+          deletedTags: [
+            for (var t = 0; t < 50; t++)
+              ArchivedDeletedTag(
+                tag: Tag(id: 'tag-$t', name: 'Deleted tag $t'),
+                deletedAt: at,
+                danceIds: [
+                  for (var i = t * 400; i < (t + 1) * 400; i++)
+                    'dance-${i.toString().padLeft(8, '0')}-0000-4000-8000',
+                ],
+              ),
+          ],
+        ),
+        customDialects: const [],
+        customThemes: const [],
+        settings: const {},
+      );
+      final sized = await encodeBackupSizedOnIsolate(doc);
+      // ignore: avoid_print
+      print(
+        'bytes/dance: ${(sized.byteLength / dances).toStringAsFixed(0)} '
+        '(total ${(sized.byteLength / (1024 * 1024)).toStringAsFixed(1)} MiB)',
+      );
+      expect(sized.byteLength, lessThan(kMaxBackupFileBytes));
+    },
+    timeout: const Timeout(Duration(minutes: 5)),
+    skip: Platform.environment['BACKUP_SCALE'] == null
+        ? 'slow 20k-dance ratchet; set BACKUP_SCALE=1 to run'
+        : false,
+  );
+
+  group('on a worker isolate', () {
+    test(
+      'encodes and decodes on a different isolate than the caller',
+      () async {
+        final worker = await runBackupCodecOnIsolate(
+          () => Isolate.current.controlPort,
+        );
+        expect(worker, isNot(Isolate.current.controlPort));
+      },
+    );
+
+    test(
+      'encodeBackupOnIsolate equals encodeBackup, with the UTF-8 length',
+      () async {
+        final doc = _sampleDoc();
+        final sized = await encodeBackupSizedOnIsolate(doc);
+        expect(sized.json, encodeBackup(doc));
+        expect(sized.byteLength, utf8.encode(sized.json).length);
+        expect(await encodeBackupOnIsolate(doc), sized.json);
+      },
+    );
+
+    test('decodeBackupOnIsolate round-trips like decodeBackup', () async {
+      final json = encodeBackup(_sampleDoc());
+      final read = await decodeBackupOnIsolate(json);
+      expect(read.hasErrors, isFalse);
+      expect(read.warnings, isEmpty);
+      expect(encodeBackup(read.document), json);
+    });
+
+    test('decodeBackupOnIsolate still reports a failed checksum', () async {
+      final container = jsonDecode(encodeBackup(_sampleDoc())) as Map;
+      container['payload'] = (container['payload'] as String).replaceFirst(
+        'Full Dance',
+        'Full Danse',
+      );
+      final read = await decodeBackupOnIsolate(jsonEncode(container));
+      expect(read.integrityFailed, isTrue);
+    });
+  });
+
   test('backup document round-trips deterministically', () {
     final doc = _sampleDoc();
     final json = encodeBackup(doc);

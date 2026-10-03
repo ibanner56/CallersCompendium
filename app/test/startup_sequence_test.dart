@@ -10,6 +10,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/main.dart';
 import 'package:compendium_app/src/data/app_database.dart';
 import 'package:compendium_app/src/data/application_shutdown_controller.dart';
+import 'package:compendium_app/src/data/backup_document.dart'
+    show
+        defaultBackupCodecRunner,
+        runBackupCodecInline,
+        runBackupCodecOnIsolate;
 import 'package:compendium_app/src/data/backup_service.dart';
 import 'package:compendium_app/src/data/collection_facets_scope.dart';
 import 'package:compendium_app/src/data/editor_draft_shutdown_scope.dart';
@@ -163,6 +168,10 @@ void main() {
   // animating so `pumpAndSettle` never settles); clearing the cache before each
   // test makes the guide load fresh and settle.
   setUp(rootBundle.clear);
+  // testWidgets' fake async never delivers a worker isolate's reply, so the
+  // service's codec runs inline here (production runs it on an isolate).
+  setUp(() => defaultBackupCodecRunner = runBackupCodecInline);
+  tearDown(() => defaultBackupCodecRunner = runBackupCodecOnIsolate);
 
   testWidgets(
     'startup sweep purges programs soft-deleted past the retention window '
