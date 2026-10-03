@@ -1,0 +1,9 @@
+{
+  "id": "1577-dance-copy-error-message",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "If copying a dance from the Export menu fails, you now see an error message instead of nothing happening."
+    ]
+  }
+}

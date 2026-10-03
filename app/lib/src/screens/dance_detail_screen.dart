@@ -2,9 +2,6 @@ import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:printing/printing.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
@@ -19,9 +16,6 @@ import '../data/require_performed_for_history_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
 import '../data/venue_call_count_scope.dart';
 import '../diagnostics/error_log.dart';
-import '../export/dance_pdf.dart';
-import '../export/dance_share_bundle.dart';
-import '../export/export_labels_l10n.dart';
 import '../export/json_export.dart';
 import '../export/share_file.dart';
 import '../search/dance_detail_data.dart';
@@ -31,10 +25,9 @@ import '../theme/app_theme_extension.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/launch_external_url.dart';
 import '../utils/undo_snack_bar.dart';
-import '../utils/safe_name.dart';
 import '../widgets/add_to_program_sheet.dart';
+import '../widgets/dance_export_actions.dart';
 import '../widgets/dance_export_menu.dart';
-import '../widgets/export_guard.dart';
 import '../widgets/dialect_quick_switch.dart';
 import '../widgets/colour_dance_theme.dart';
 import '../widgets/figure_table.dart';
@@ -727,7 +720,8 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// entry is a first-class [PopupMenuItem] so it stays keyboard- and
   /// screen-reader-activatable: the dialect choices are [CheckedPopupMenuItem]s
   /// (mirroring [DialectQuickSwitch]), the five export items (share text, share dance
-  /// file, copy, share JSON, PDF) are flattened in from [DanceExportMenu], and Duplicate / Delete call the same handlers as
+  /// file, copy, share JSON, PDF) are flattened in from [DanceExportMenu] and run through the same
+  /// [DanceExportActions], and Duplicate / Delete call the same handlers as
   /// the wide layout. Nothing is a nested popup, so activating any row performs
   /// its action rather than dismissing the menu.
   Widget _overflowMenu(BuildContext context, DanceDetailData detail) {
@@ -737,14 +731,15 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         ? null
         : (controller.activeName ?? controller.active.name);
     final dialect = ActiveDialectScope.of(context);
-    // Resolved here, not inside [exportText]: the closure runs from a menu
-    // item's `onTap` inside guardExport, after the menu route has popped.
+    // Everything the export actions need is resolved here, before the menu
+    // route pops: the `onTap`s below run after it has, and the actions run
+    // across awaits.
+    final messenger = ScaffoldMessenger.of(context);
     final canonicalizeDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
       context,
     );
-    final shareFields = DanceShareFieldsScope.of(context);
-    String exportText() => danceToPlainText(
-      detail.dance,
+    final exportActions = DanceExportActions(
+      dance: detail.dance,
       dialect: dialect,
       authorNames: detail.authorNames,
       formationLabel: _formationDisplayLabel(
@@ -756,9 +751,25 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       levelLabel: _levelLabel(l10n, detail.dance, detail.difficultyLevel),
       statusLabel: danceStatusLabel(l10n, detail.dance.status),
       renderer: _renderer,
-      labels: danceExportLabels(l10n),
+      fields: DanceShareFieldsScope.of(context),
       canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
-      fields: shareFields,
+      choreographersById: detail.choreographersById,
+      tagsById: detail.tagsById,
+      sourcesById: detail.sourcesById,
+      customFieldsById: detail.customFieldsById,
+      difficultyLevelFor: (id) =>
+          id == detail.dance.difficultyLevelId ? detail.difficultyLevel : null,
+      shareInvoker: widget.shareInvoker,
+      pdfLayouter: widget.pdfLayouter,
+      jsonExportDelivery: widget.jsonExportDelivery,
+    );
+    // The compact menu has no anchor widget to measure, so file shares anchor
+    // to the screen centre (the native popover needs some origin on desktop).
+    final size = MediaQuery.sizeOf(context);
+    final centerOrigin = Rect.fromCenter(
+      center: Offset(size.width / 2, size.height / 2),
+      width: 1,
+      height: 1,
     );
 
     return PopupMenuButton<void>(
@@ -778,7 +789,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         ],
         PopupMenuItem<void>(
           key: const ValueKey('overflow-share-dance'),
-          onTap: () => _shareDanceText(exportText, detail.dance.title),
+          onTap: () => exportActions.shareText(messenger, l10n),
           child: ListTile(
             leading: const Icon(Icons.mail_outline),
             title: Text(l10n.exportShareDanceText),
@@ -787,7 +798,8 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         ),
         PopupMenuItem<void>(
           key: const ValueKey('overflow-share-dance-bundle'),
-          onTap: () => _shareDanceBundle(detail),
+          onTap: () =>
+              exportActions.shareBundle(messenger, l10n, origin: centerOrigin),
           child: ListTile(
             leading: Icon(
               isBundleShareUnsupported()
@@ -804,7 +816,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         ),
         PopupMenuItem<void>(
           key: const ValueKey('overflow-copy-dance'),
-          onTap: () => _copyDance(exportText),
+          onTap: () => exportActions.copyText(messenger, l10n),
           child: ListTile(
             leading: const Icon(Icons.copy_outlined),
             title: Text(l10n.exportCopyDance),
@@ -816,7 +828,14 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           onTap: () {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
-                _shareDanceBundle(detail, extension: danceShareJsonExtension);
+                // The State's context, not the popup item's: the item's route
+                // has popped by now, and the choice dialog needs a live one.
+                exportActions.exportJson(
+                  this.context,
+                  messenger,
+                  l10n,
+                  origin: centerOrigin,
+                );
               }
             });
           },
@@ -828,7 +847,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         ),
         PopupMenuItem<void>(
           key: const ValueKey('overflow-export-pdf'),
-          onTap: () => _exportDancePdf(dialect, detail),
+          onTap: () => exportActions.exportPdf(messenger, l10n),
           child: ListTile(
             leading: const Icon(Icons.picture_as_pdf_outlined),
             title: Text(l10n.exportPrintPdf),
@@ -869,176 +888,6 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     );
   }
 
-  // Compact-layout Export handlers. On wide layouts the Export control is the
-  // reusable [DanceExportMenu]; on narrow widths its five export items (share text,
-  // share dance file, copy, share JSON, PDF) are flattened into the overflow menu (above) so each stays an individually activatable
-  // item instead of a nested popup. The shareable card and PDF are built from
-  // the same public `danceToPlainText` / `buildDancePdf` helpers the widget
-  // uses, so only the thin share / clipboard / print wiring lives here.
-  // The text is built inside the guarded closure: a builder `Error` must reach
-  // guardExport, and `onTap` fires after the menu route pops, so every
-  // context-dependent value is resolved before the closure runs.
-  Future<void> _shareDanceText(String Function() buildText, String subject) {
-    final messenger = ScaffoldMessenger.of(context);
-    final l10n = AppLocalizations.of(context);
-    final share = widget.shareInvoker ?? SharePlus.instance.share;
-    return guardExport(messenger, l10n.exportShareDanceError, () async {
-      final text = buildText();
-      await share(ShareParams(text: text, subject: subject));
-    }, source: 'dance_detail_screen._shareDanceText');
-  }
-
-  Future<void> _copyDance(String Function() buildText) {
-    final messenger = ScaffoldMessenger.of(context);
-    final l10n = AppLocalizations.of(context);
-    return guardExport(messenger, l10n.exportDanceError, () async {
-      await Clipboard.setData(ClipboardData(text: buildText()));
-      messenger.showSnackBar(SnackBar(content: Text(l10n.exportDanceCopied)));
-    }, source: 'dance_detail_screen._copyDance');
-  }
-
-  Future<void> _shareDanceBundle(
-    DanceDetailData detail, {
-    String extension = danceShareBundleExtension,
-  }) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final l10n = AppLocalizations.of(context);
-    final size = MediaQuery.sizeOf(context);
-    final origin = Rect.fromCenter(
-      center: Offset(size.width / 2, size.height / 2),
-      width: 1,
-      height: 1,
-    );
-    if (extension == danceShareJsonExtension) {
-      await _exportDanceJson(detail, origin);
-      return;
-    }
-    try {
-      final json = buildDanceShareBundle(
-        detail.dance,
-        choreographerFor: (id) => detail.choreographersById[id],
-        tagFor: (id) => detail.tagsById[id],
-        publishedSourceFor: (id) => detail.sourcesById[id],
-        customFieldFor: (id) => detail.customFieldsById[id],
-        difficultyLevelFor: (id) => id == detail.dance.difficultyLevelId
-            ? detail.difficultyLevel
-            : null,
-      );
-      final fileName = danceShareBundleFileName(
-        detail.dance.title,
-        extension: extension,
-      );
-      final result = await shareOrSaveBundleFile(
-        json: json,
-        fileName: fileName,
-        subject: detail.dance.title,
-        origin: origin,
-        shareInvoker: widget.shareInvoker,
-        saveInvoker: widget.jsonExportDelivery?.saveInvoker,
-      );
-      announceBundleSaved(messenger, l10n, result);
-    } on Object catch (e, stackTrace) {
-      logCaughtError(
-        e,
-        stackTrace,
-        source: 'dance_detail_screen._shareDanceBundle',
-      );
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.exportShareDanceError)),
-      );
-    }
-  }
-
-  JsonExportDelivery get _jsonDelivery =>
-      widget.jsonExportDelivery ?? const JsonExportDelivery();
-
-  Future<void> _exportDanceJson(DanceDetailData detail, Rect? origin) async {
-    final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    late final String json;
-    late final String fileName;
-    try {
-      json = buildDanceShareBundle(
-        detail.dance,
-        choreographerFor: (id) => detail.choreographersById[id],
-        tagFor: (id) => detail.tagsById[id],
-        publishedSourceFor: (id) => detail.sourcesById[id],
-        customFieldFor: (id) => detail.customFieldsById[id],
-        difficultyLevelFor: (id) => id == detail.dance.difficultyLevelId
-            ? detail.difficultyLevel
-            : null,
-      );
-      fileName = danceShareBundleFileName(
-        detail.dance.title,
-        extension: danceShareJsonExtension,
-      );
-    } on Object catch (e, stackTrace) {
-      logCaughtError(
-        e,
-        stackTrace,
-        source: 'dance_detail_screen._buildJsonExport',
-      );
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.exportJsonShareError)),
-      );
-      return;
-    }
-
-    final choice = await _jsonDelivery.choose(context);
-    if (choice == null || !mounted) return;
-
-    switch (choice) {
-      case JsonExportChoice.save:
-        await _guardJsonDelivery(messenger, l10n.exportJsonSaveError, () async {
-          final result = await _jsonDelivery.save(json, fileName);
-          if (result == null || !mounted) return;
-          final message = result.fileName == null
-              ? l10n.exportJsonSavedGeneric
-              : result.path.isEmpty
-              ? l10n.exportJsonSaved(result.fileName!)
-              : l10n.exportJsonSavedTo(result.fileName!, result.path);
-          messenger.showSnackBar(SnackBar(content: Text(message)));
-        });
-      case JsonExportChoice.copy:
-        await _guardJsonDelivery(messenger, l10n.exportJsonCopyError, () async {
-          await _jsonDelivery.copy(json);
-          if (mounted) {
-            messenger.showSnackBar(
-              SnackBar(content: Text(l10n.exportJsonCopied)),
-            );
-          }
-        });
-      case JsonExportChoice.share:
-        await _guardJsonDelivery(messenger, l10n.exportJsonShareError, () {
-          return _jsonDelivery
-              .share(
-                json: json,
-                fileName: fileName,
-                subject: detail.dance.title,
-                sharePositionOrigin: origin,
-              )
-              .then((result) => announceBundleSaved(messenger, l10n, result));
-        });
-    }
-  }
-
-  Future<void> _guardJsonDelivery(
-    ScaffoldMessengerState messenger,
-    String failureMessage,
-    Future<void> Function() action,
-  ) async {
-    try {
-      await action();
-    } on Object catch (e, stackTrace) {
-      logCaughtError(
-        e,
-        stackTrace,
-        source: 'dance_detail_screen._guardJsonDelivery',
-      );
-      messenger.showSnackBar(SnackBar(content: Text(failureMessage)));
-    }
-  }
-
   String _formationDisplayLabel(
     AppLocalizations l10n,
     Formation formation,
@@ -1051,50 +900,6 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     dialect,
     canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
   );
-
-  Future<void> _exportDancePdf(Dialect dialect, DanceDetailData detail) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final l10n = AppLocalizations.of(context);
-    // Resolve every context-dependent value up front (issue #1434 review
-    // finding): Printing.layoutPdf's `onLayout` callback can run after
-    // further internal awaits (font loading) or more than once, so a
-    // BuildContext read inside it can observe a value different from the one
-    // selected when the export started. Mirrors the eager resolution
-    // program_export_menu.dart._exportPdf already uses for the same reason.
-    final canonicalizeDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
-      context,
-    );
-    final shareFields = DanceShareFieldsScope.of(context);
-    final formationLabel = _formationDisplayLabel(
-      l10n,
-      detail.dance.formation,
-      dialect,
-      canonicalizeDiscouragedTerms,
-    );
-    final levelLabel = _levelLabel(l10n, detail.dance, detail.difficultyLevel);
-    final statusLabel = danceStatusLabel(l10n, detail.dance.status);
-    final layoutPdf = widget.pdfLayouter ?? Printing.layoutPdf;
-    await guardExport(
-      messenger,
-      l10n.exportDanceError,
-      () => layoutPdf(
-        name: sanitizeExportName(detail.dance.title, fallback: 'dance'),
-        onLayout: (format) => buildDancePdf(
-          detail.dance,
-          dialect: dialect,
-          authorNames: detail.authorNames,
-          formationLabel: formationLabel,
-          levelLabel: levelLabel,
-          statusLabel: statusLabel,
-          renderer: _renderer,
-          labels: danceExportLabels(l10n),
-          canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
-          fields: shareFields,
-        ),
-      ),
-      source: 'dance_detail_screen._exportDancePdf',
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
