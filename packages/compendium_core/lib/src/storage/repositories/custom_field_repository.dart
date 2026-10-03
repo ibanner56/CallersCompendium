@@ -14,6 +14,30 @@ import '../shareable_text.dart';
 import '../utc_datetime.dart';
 import 'sync_local_repository.dart';
 
+/// Thrown by [CustomFieldDefRepository.delete] when live dances still hold a
+/// value for the field.
+///
+/// Carries the count so a screen can pluralise its own localised sentence
+/// instead of parsing a message. [toString] names the field id and is for logs
+/// only: screens MUST NOT surface it (CWE-209).
+class CustomFieldInUseException implements Exception {
+  const CustomFieldInUseException({
+    required this.fieldId,
+    required this.danceCount,
+  });
+
+  /// The id of the field definition that could not be deleted.
+  final String fieldId;
+
+  /// How many **live** dances still hold a value for [fieldId].
+  final int danceCount;
+
+  @override
+  String toString() =>
+      'cannot delete custom field "$fieldId": still set on '
+      '$danceCount dance(s)';
+}
+
 /// CRUD for [CustomFieldDef] rows (the user-defined field schema).
 ///
 /// Value storage/reconstruction ([CustomFieldValue]) lives in
@@ -303,7 +327,8 @@ class CustomFieldDefRepository {
     };
   }
 
-  /// Throws if any dance still has a value for [id] — deleting a field
+  /// Throws [CustomFieldInUseException] if any live dance still has a value for
+  /// [id] (counted by `liveDanceCitationCount`) — deleting a field
   /// definition out from under populated data would silently strand values
   /// that can no longer be decoded (their type is only known via the def).
   /// The "still used?" check and the delete run inside a single transaction
@@ -327,23 +352,15 @@ class CustomFieldDefRepository {
       // Live dances only; a soft-deleted dance keeps its `custom_field_values`
       // rows because the tombstone fires no FK cascade. See the note in
       // `ChoreographerRepository.delete`.
-      final stillUsed =
-          await (_db.select(_db.customFieldValues).join([
-                // join-columns: needed — replaced by liveDanceCitationCount in CS-14b
-                innerJoin(
-                  _db.dances,
-                  _db.dances.id.equalsExp(_db.customFieldValues.danceId),
-                ),
-              ])..where(
-                _db.customFieldValues.fieldId.equals(id) &
-                    _db.dances.deletedAt.isNull(),
-              ))
-              .get();
-      if (stillUsed.isNotEmpty) {
-        throw StateError(
-          'cannot delete custom field "$id": still set on '
-          '${stillUsed.length} dance(s)',
-        );
+      final stillUsed = await liveDanceCitationCount(
+        _db,
+        joinTable: _db.customFieldValues,
+        keyColumn: _db.customFieldValues.fieldId,
+        danceIdColumn: _db.customFieldValues.danceId,
+        id: id,
+      );
+      if (stillUsed > 0) {
+        throw CustomFieldInUseException(fieldId: id, danceCount: stillUsed);
       }
 
       final publishedBefore = await _publishesValues(id);

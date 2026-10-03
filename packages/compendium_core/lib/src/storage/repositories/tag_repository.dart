@@ -417,12 +417,7 @@ class TagRepository {
   Future<void> restoreRetainedJoins(String tagId, Iterable<String> danceIds) =>
       _db.transaction(() async {
         for (final danceId in danceIds.toSet()) {
-          final exists =
-              await (_db.select(_db.dances)
-                    ..where((t) => t.id.equals(danceId))
-                    ..limit(1))
-                  .getSingleOrNull();
-          if (exists == null) continue;
+          if (!await danceExists(_db, danceId, includeDeleted: true)) continue;
           await _db
               .into(_db.danceTags)
               .insert(
@@ -488,22 +483,17 @@ class TagRepository {
   Future<void> delete(String id, {DateTime? at, bool permanent = false}) =>
       _db.transaction(() async {
         if (permanent) {
-          // join-columns: needed — replaced by liveDanceCitationCount in CS-14b
-          final liveUses =
-              await (_db.select(_db.danceTags).join([
-                    innerJoin(
-                      _db.dances,
-                      _db.dances.id.equalsExp(_db.danceTags.danceId),
-                    ),
-                  ])..where(
-                    _db.danceTags.tagId.equals(id) &
-                        _db.dances.deletedAt.isNull(),
-                  ))
-                  .get();
-          if (liveUses.isNotEmpty) {
+          final liveUses = await liveDanceCitationCount(
+            _db,
+            joinTable: _db.danceTags,
+            keyColumn: _db.danceTags.tagId,
+            danceIdColumn: _db.danceTags.danceId,
+            id: id,
+          );
+          if (liveUses > 0) {
             throw StateError(
               'cannot delete tag "$id": still applied to '
-              '${liveUses.length} dance(s)',
+              '$liveUses dance(s)',
             );
           }
           // Any surviving `dance_tags` row — necessarily a tombstoned dance's,

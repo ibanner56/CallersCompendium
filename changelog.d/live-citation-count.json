@@ -1,0 +1,9 @@
+{
+  "id": "live-citation-count",
+  "user_visible": false,
+  "core": {
+    "changed": [
+      "CustomFieldDefRepository.delete throws CustomFieldInUseException (carrying the live dance count) instead of StateError; the choreographer, tag, published-source and custom-field delete guards count citations with a scalar COUNT instead of fetching every joined dance row."
+    ]
+  }
+}
