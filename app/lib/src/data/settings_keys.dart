@@ -1,8 +1,9 @@
-/// Persistence keys owned by the Settings screen.
+/// Persistence keys for app settings.
 ///
-/// Kept in their own library (and re-exported from `settings_screen.dart`) so
-/// the section widgets and other consumers (`main.dart`, the Perform screens)
-/// can import them without a dependency cycle. String values are unchanged.
+/// Live in `data/` so `data/` and `sync/` can import them without reaching up
+/// into `screens/`. `screens/settings/settings_keys.dart` and
+/// `settings_screen.dart` re-export this library so screen-side consumers keep
+/// their imports. String values are unchanged.
 library;
 
 /// Key used to persist and load the app theme selection.
