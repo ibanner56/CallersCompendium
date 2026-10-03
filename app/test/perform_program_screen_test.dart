@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/dialect_library_controller.dart';
 import 'package:compendium_app/src/data/dialect_library_scope.dart';
@@ -2075,5 +2076,132 @@ void main() {
         expect(find.text('Slot 2 of 2'), findsOneWidget);
       },
     );
+  });
+
+  group('Perform bottom bar and Undo (CS-36)', () {
+    Future<List<Program>> pumpPushed(
+      WidgetTester tester, {
+      required Program program,
+      required CollectionData data,
+      Size size = const Size(412, 800),
+      double textScale = 1.0,
+    }) async {
+      await tester.binding.setSurfaceSize(size);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+      addTearDown(notifier.dispose);
+      final repos = openTestRepositories();
+      final changed = <Program>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(textScale)),
+            child: RepositoriesScope(
+              repositories: repos,
+              child: ActiveDialectScope(notifier: notifier, child: child!),
+            ),
+          ),
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                key: const ValueKey('open-perform'),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => PerformProgramScreen(
+                      program: program,
+                      data: data,
+                      renderer: _renderer,
+                      onProgramChanged: (p) async => changed.add(p),
+                    ),
+                  ),
+                ),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('open-perform')));
+      await tester.pumpAndSettle();
+      return changed;
+    }
+
+    testWidgets(
+      'Undo on "Program adjusted" after leaving Perform persists the previous '
+      'program without throwing',
+      (tester) async {
+        final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
+        final program = _program([_slot(id: 's1', position: 0, danceId: 'd1')]);
+        final changed = await pumpPushed(
+          tester,
+          program: program,
+          data: data,
+          size: const Size(1200, 2000),
+        );
+
+        await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('adjust-done')));
+        await tester.pumpAndSettle();
+        expect(changed, hasLength(1));
+        expect(changed.last, isNot(equals(program)));
+
+        await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+        await tester.pumpAndSettle();
+        expect(find.byType(PerformProgramScreen), findsNothing);
+
+        final l10n = AppLocalizations.of(
+          tester.element(find.byKey(const ValueKey('open-perform'))),
+        );
+        await tester.tap(find.text(l10n.commonUndo));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(changed, hasLength(2));
+        expect(changed.last, equals(program));
+      },
+    );
+
+    for (final scale in const [1.3, 2.0]) {
+      testWidgets(
+        'the bottom bar shows the clock inside its bounds at $scale× system '
+        'text',
+        (tester) async {
+          final data = await _dataWith([
+            _dance(id: 'd1', title: 'First Dance'),
+          ]);
+          await pumpPushed(
+            tester,
+            program: _program([
+              _slot(
+                id: 's1',
+                position: 0,
+                danceId: 'd1',
+                walkthroughMinutes: 3,
+                danceMinutes: 8,
+              ),
+            ]),
+            data: data,
+            textScale: scale,
+          );
+
+          expect(tester.takeException(), isNull);
+          final bar = tester.getRect(find.byType(BottomAppBar));
+          final clock = tester.getRect(
+            find.byKey(const ValueKey('perform-clock')),
+          );
+          expect(bar.contains(clock.topLeft), isTrue);
+          expect(bar.contains(clock.bottomRight), isTrue);
+        },
+      );
+    }
   });
 }
