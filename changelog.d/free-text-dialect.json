@@ -1,0 +1,9 @@
+{
+  "id": "free-text-dialect",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Free-text figure entry understands the role words of your active dialect, e.g. \"Follows chain\" under Leads/Follows."
+    ]
+  }
+}

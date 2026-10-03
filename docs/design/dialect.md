@@ -118,6 +118,9 @@ function** before persistence: it inverse-maps the user's dialect terms and
 known synonyms/legacy terms (gypsy → shoulder round) back to canonical
 vocabulary, and flags ambiguities inline ("lingo line" underlining: recognized
 terms underlined, discouraged terms struck through, unknown terms plain).
+Free-text figure entry parses the typed line as written first and canonicalises
+against the active dialect only on a parse miss, so a dialect term that is also
+a move word (`lead` in "ones lead down the hall") keeps parsing as the move.
 
 The chokepoint is deliberately **not** applied to long-form hand-typed prose.
 `canonicalize` is a word-boundary substitution over an always-on synonym set

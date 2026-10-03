@@ -1,3 +1,5 @@
+import '../dialect/canonicalize.dart';
+import '../dialect/dialect.dart';
 import '../model/figure.dart';
 import '../taxonomy/taxonomy.dart';
 import 'figure_front_end_fan_out.dart';
@@ -92,6 +94,17 @@ _BeatSplit _splitInlineBeats(String line) {
 /// line arriving from an import — `;`-compounds split all-or-nothing (in the
 /// CallersBox/TCB attempt) and a top-level `||` stays whole-custom.
 ///
+/// When a [dialect] is supplied, the line is parsed RAW first and the
+/// dialect-canonicalised line is tried only if the raw parse is all-custom: the
+/// user's role words (`Follows chain` under [Dialect.leadsFollows]) are not in
+/// the always-on legacy synonym set the parser's scrub applies, so they miss
+/// raw but parse once [canonicalizeText] maps them back to `role1`/`role2`.
+/// Raw goes first because a dialect term can also be a MOVE word — `lead` in
+/// `ones lead down the hall` — and canonicalising first would rewrite it into
+/// a role token and break a line that parses fine as typed. When the retry
+/// also misses, the raw result is returned so the custom keeps exactly what
+/// the user typed. With no [dialect] only the raw parse runs.
+///
 /// Before parsing, an optional inline beat count is peeled off the line and
 /// passed as the `beats` argument:
 /// - a **leading** `16 …` (a bare integer + space), or
@@ -118,6 +131,7 @@ List<Figure> parseFreeTextFigureEntry(
   String input, {
   Taxonomy? taxonomy,
   ShorthandMappings? shorthands,
+  Dialect? dialect,
 }) {
   final trimmed = input.trim();
   if (trimmed.isEmpty || trimmed.length > maxFreeTextEntryLength) {
@@ -137,9 +151,18 @@ List<Figure> parseFreeTextFigureEntry(
   // on a full miss the line stays an import-gap custom (byte-identical to the
   // pre-fan-out CallersBox fallback). Only the TCB attempt `;`-splits, so a
   // `;`-compound still resolves through it, and a top-level `||` stays custom.
-  return parseFigureLinesFanOut(
+  final raw = parseFigureLinesFanOut(
     split.text,
     beats: split.beats,
     taxonomy: taxonomy,
   );
+  if (dialect == null || !raw.every((f) => f.isCustom)) return raw;
+  final canonical = canonicalizeText(split.text, dialect);
+  if (canonical == split.text) return raw;
+  final retried = parseFigureLinesFanOut(
+    canonical,
+    beats: split.beats,
+    taxonomy: taxonomy,
+  );
+  return retried.every((f) => f.isCustom) ? raw : retried;
 }
