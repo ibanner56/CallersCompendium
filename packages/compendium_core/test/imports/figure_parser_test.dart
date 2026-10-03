@@ -582,6 +582,9 @@ void main() {
       'Partner gate counterclockwise', // direction but no turn fraction.
       'Partner gate 3/4', // turn fraction but no direction.
       'Partner gate counterclockwise 3/4 and swing', // trailing second move.
+      // circle: a side and a spin word that disagree are never guessed.
+      'Circle left counterclockwise 3/4',
+      'Circle right clockwise 3/4',
       // A poussette with an unmappable leftover ("draw") stays custom.
       'Neighbor draw poussette clockwise 1/2',
       // "facing star" IS recognised now, but ONLY when BOTH the rotation
@@ -917,6 +920,70 @@ void main() {
       'Partners promenade counter clockwise': (
         move: 'promenade',
         params: {'who': 'partners', 'direction': 'counterclockwise'},
+      ),
+      'Circle clockwise 3/4': (
+        move: 'circle',
+        params: {'direction': 'left', 'places': 3},
+      ),
+      'Circle cw 3/4': (
+        move: 'circle',
+        params: {'direction': 'left', 'places': 3},
+      ),
+      'Circle counterclockwise 3/4': (
+        move: 'circle',
+        params: {'direction': 'right', 'places': 3},
+      ),
+      'Circle counter clockwise 3/4': (
+        move: 'circle',
+        params: {'direction': 'right', 'places': 3},
+      ),
+      'Circle counter-clockwise 3/4': (
+        move: 'circle',
+        params: {'direction': 'right', 'places': 3},
+      ),
+      'Circle anticlockwise 3/4': (
+        move: 'circle',
+        params: {'direction': 'right', 'places': 3},
+      ),
+      'Circle anti-clockwise 3/4': (
+        move: 'circle',
+        params: {'direction': 'right', 'places': 3},
+      ),
+      'Circle anti clockwise 3/4': (
+        move: 'circle',
+        params: {'direction': 'right', 'places': 3},
+      ),
+      'Circle ccw 3/4': (
+        move: 'circle',
+        params: {'direction': 'right', 'places': 3},
+      ),
+      'Circle left clockwise 3/4': (
+        move: 'circle',
+        params: {'direction': 'left', 'places': 3},
+      ),
+      'Circle right counter-clockwise 3/4': (
+        move: 'circle',
+        params: {'direction': 'right', 'places': 3},
+      ),
+      'Ones gate counter clockwise 3/4': (
+        move: 'gate',
+        params: {
+          'pair': 'ones',
+          'direction': 'counterclockwise',
+          'travel': 0.75,
+        },
+      ),
+      'Facing star counter clockwise 3/4': (
+        move: 'facing_star',
+        params: {
+          'who': 'everyone',
+          'direction': 'counterclockwise',
+          'places': 3,
+        },
+      ),
+      'Poussette anti-clockwise 1/2': (
+        move: 'poussette',
+        params: {'direction': 'counterclockwise', 'fraction': 'half'},
       ),
       'Partners promenade across clockwise': (
         move: 'promenade',

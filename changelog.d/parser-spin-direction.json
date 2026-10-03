@@ -1,0 +1,14 @@
+{
+  "id": "parser-spin-direction",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "\"counter clockwise\", \"counter-clockwise\", \"anti-clockwise\" and \"ccw\" are now understood for gates, facing stars and poussettes when you import or type a figure, and clockwise/counterclockwise are understood for circles (clockwise is a circle left, counterclockwise a circle right)."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "Figure parser reads every spin direction through one reader, accepting hyphenated and spaced counter-clockwise forms; circles map spin words to left/right and leave contradictory lines custom."
+    ]
+  }
+}
