@@ -9,6 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/main.dart';
 import 'package:compendium_app/src/data/app_database.dart';
+import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/application_shutdown_controller.dart';
 import 'package:compendium_app/src/data/backup_document.dart'
     show
@@ -17,10 +19,15 @@ import 'package:compendium_app/src/data/backup_document.dart'
         runBackupCodecOnIsolate;
 import 'package:compendium_app/src/data/backup_service.dart';
 import 'package:compendium_app/src/data/collection_facets_scope.dart';
+import 'package:compendium_app/src/data/dance_share_fields_scope.dart';
+import 'package:compendium_app/src/data/dialect_library_controller.dart'
+    show kCustomDialectsKey;
 import 'package:compendium_app/src/data/editor_draft_shutdown_scope.dart';
 import 'package:compendium_app/src/data/sync_writer_lifecycle_scope.dart';
+import 'package:compendium_app/src/data/locale_scope.dart';
 import 'package:compendium_app/src/data/migration_guard.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
+import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/screens/settings/settings_keys.dart';
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_scope.dart';
@@ -147,6 +154,73 @@ class _RecordingAppData extends AppData {
     closeEvents.add(closeLabel);
     await super.close();
   }
+}
+
+/// A [SettingsRepository] whose `get`/`contains` throw for chosen keys, as if
+/// that one row were corrupt or the database were locked during the read.
+class _FlakySettings extends SettingsRepository {
+  _FlakySettings(super.db, this.failingKeys);
+
+  final Set<String> failingKeys;
+
+  @override
+  Future<Object?> get(String key) {
+    if (failingKeys.contains(key)) {
+      return Future<Object?>.error(StateError('injected read failure: $key'));
+    }
+    return super.get(key);
+  }
+
+  @override
+  Future<bool> contains(String key) {
+    if (failingKeys.contains(key)) {
+      return Future<bool>.error(StateError('injected read failure: $key'));
+    }
+    return super.contains(key);
+  }
+}
+
+/// An [AppData] whose settings reads fail for [failingKeys]. Same shape as
+/// [_FailOnceMigrationAppData]: the getter shadows the base facade.
+class _FlakySettingsAppData extends AppData {
+  _FlakySettingsAppData(super.db, Set<String> failingKeys)
+    : _repositories = CompendiumRepositories(
+        db,
+        contraTaxonomy,
+        settings: _FlakySettings(db, failingKeys),
+      );
+
+  final CompendiumRepositories _repositories;
+
+  @override
+  CompendiumRepositories get repositories => _repositories;
+}
+
+AppData _openFlakySettingsAppData(Set<String> failingKeys) {
+  final appData = _FlakySettingsAppData(
+    openWidgetTestDatabase(closeOnTearDown: false),
+    failingKeys,
+  );
+  addTearDown(appData.close);
+  return appData;
+}
+
+/// Drives Settings › General › Restore with [backupJson], which ends in
+/// `reloadFromSettings`.
+Future<void> _restoreFromPaste(WidgetTester tester, String backupJson) async {
+  await tester.tap(find.text('Settings').last);
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('settings-nav-general')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
+  await tester.pumpAndSettle();
+  await tester.enterText(
+    find.byKey(const ValueKey('restore-paste-field')),
+    backupJson,
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('restore-confirm')));
+  await tester.pumpAndSettle();
 }
 
 AppData _openAppData() {
@@ -1269,6 +1343,136 @@ void main() {
       expect(RequirePerformedForHistoryScope.of(context), isFalse);
     },
   );
+
+  testWidgets(
+    'a settings read that throws for one key starts the app with that key at '
+    'its default',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openFlakySettingsAppData({kSortIgnoreArticlesKey});
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AppShell), findsOneWidget);
+      final context = tester.element(find.byType(AppShell));
+      expect(SortIgnoreArticlesScope.of(context), isTrue);
+    },
+  );
+
+  testWidgets(
+    'a custom-dialect library read that throws starts the app on Larks/Robins',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final sink = _RecordingCrashLogSink();
+      installCaughtErrorLog(sink);
+      addTearDown(resetCaughtErrorLogForTesting);
+
+      final appData = _openFlakySettingsAppData({kCustomDialectsKey});
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AppShell), findsOneWidget);
+      final context = tester.element(find.byType(AppShell));
+      expect(ActiveDialectScope.of(context), Dialect.larksRobins);
+      // Not silent: the dialect load can also write, so the failure is logged.
+      expect(sink.sources, contains('startup.dialect_library_load'));
+    },
+  );
+
+  testWidgets(
+    'a same-value restore never exposes the default theme or language to '
+    'listeners',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 2600));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final source = openTestRepositories();
+      await source.settings.set(kAppThemeKey, 'dark');
+      await source.settings.set(kLocaleKey, 'de');
+      final backupJson = await BackupService(source).exportToJson();
+
+      final appData = _openAppData();
+      await appData.repositories.settings.set(kAppThemeKey, 'dark');
+      await appData.repositories.settings.set(kLocaleKey, 'de');
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(AppShell));
+      final themeNotifier = AppThemeScope.notifierOf(context);
+      final localeNotifier = LocaleScope.notifierOf(context);
+      expect(themeNotifier.value, AppThemeSelection.dark);
+      expect(localeNotifier.value, const Locale('de'));
+
+      final themes = <AppThemeSelection>[];
+      final locales = <Locale?>[];
+      void onTheme() => themes.add(themeNotifier.value);
+      void onLocale() => locales.add(localeNotifier.value);
+      themeNotifier.addListener(onTheme);
+      localeNotifier.addListener(onLocale);
+      addTearDown(() => themeNotifier.removeListener(onTheme));
+      addTearDown(() => localeNotifier.removeListener(onLocale));
+
+      await _restoreFromPaste(tester, backupJson);
+
+      expect(themes, isNot(contains(AppThemeSelection.system)));
+      expect(locales, isNot(contains(null)));
+      expect(themeNotifier.value, AppThemeSelection.dark);
+      expect(localeNotifier.value, const Locale('de'));
+    },
+  );
+
+  testWidgets('restoring a backup without the key resets danceShareFields', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 2600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final source = openTestRepositories();
+    final backupJson = await BackupService(source).exportToJson();
+
+    final appData = _openAppData();
+    await appData.repositories.settings.set(kProgramDanceShareFieldsKey, [
+      DanceShareField.authors.name,
+    ]);
+    await tester.pumpWidget(
+      CompendiumApp(
+        appData: appData,
+        windowService: _NoopWindowService(appData.repositories.settings),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    var context = tester.element(find.byType(AppShell));
+    expect(DanceShareFieldsScope.of(context), {DanceShareField.authors});
+
+    await _restoreFromPaste(tester, backupJson);
+
+    expect(
+      await appData.repositories.settings.get(kProgramDanceShareFieldsKey),
+      isNull,
+    );
+    context = tester.element(find.byType(AppShell));
+    expect(DanceShareFieldsScope.of(context), DanceShareField.allExceptTunes);
+  });
 
   testWidgets('a failed below-floor reset restores the recovery screen', (
     tester,

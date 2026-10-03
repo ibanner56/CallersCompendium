@@ -772,8 +772,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
   void _resetAppPreferenceNotifiers() {
     _dialectNotifier.value = Dialect.larksRobins;
     _themeNotifier.value = AppThemeSelection.system;
-    _requirePerformedForHistoryNotifier.value = false;
+    _requirePerformedForHistoryNotifier.value =
+        widget.initialRequirePerformedForHistory;
     _collectionTileFieldsNotifier.value = CollectionTileField.all;
+    _danceShareFieldsNotifier.value = DanceShareField.allExceptTunes;
     _collectionHiddenFacetsNotifier.value = const <String>{};
     _trackHistoryForAllCallersNotifier.value = false;
     _venueCallCountNotifier.value = kVenueCallCountDefault;
@@ -1440,126 +1442,103 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// `settings` table into the live notifiers/controllers. Extracted from the
   /// startup sequence so a backup restore (ROADMAP G.5) can re-run exactly this
   /// step — via [reloadFromSettings] — to refresh the UI without a relaunch.
+  ///
+  /// Two phases: every read is awaited into a local first (each guarded, so one
+  /// unreadable key leaves that preference at its default instead of failing
+  /// startup), then a single synchronous block resets the notifiers and applies
+  /// every decoded value. There is no `await` between the reset and the last
+  /// assignment, so a restore never exposes the default theme or language to
+  /// listeners while the reads are in flight.
   Future<void> _loadPreferences() async {
-    _resetAppPreferenceNotifiers();
+    // Phase 1: read everything.
     // Load the persisted dialect library (custom dialects + active-name ref),
-    // migrating any legacy single-dialect blob one time, then seed the notifier
-    // with the resolved active dialect (defaults to Larks/Robins when unset).
-    await _dialectLibrary.load();
-    _dialectNotifier.value = _dialectLibrary.active;
-    // Load the persisted theme selection, defaulting to System when unset.
-    // Defensive (issue #609): the stored value is untrusted (a restored backup
-    // can smuggle a non-string under this key). Guard with `is String` instead
-    // of an unchecked `as String?` cast so a wrong-typed value degrades to the
-    // System default rather than throwing here and bricking startup on every
-    // subsequent launch.
+    // migrating any legacy single-dialect blob one time. A failure leaves the
+    // Larks/Robins default; it is logged because the load can also write.
+    await _guardedControllerLoad(
+      'startup.dialect_library_load',
+      _dialectLibrary.load,
+    );
+    // Theme selection. Defensive (issue #609): the stored value is untrusted (a
+    // restored backup can smuggle a non-string under this key). Guard with
+    // `is String` instead of an unchecked `as String?` cast so a wrong-typed
+    // value degrades to the System default rather than throwing here and
+    // bricking startup on every subsequent launch.
     final storedTheme = await _appData.repositories.settings
         .get(kAppThemeKey)
         .catchError(
           (_) => null,
         ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    final themeName = storedTheme is String ? storedTheme : null;
-    final selection = AppThemeSelection.forName(themeName);
-    if (selection != null) _themeNotifier.value = selection;
-    // Load the "require mark-performed for calling history" setting (ROADMAP
-    // G.2), defaulting to off (false) when unset.
-    final requirePerformed = await _appData.repositories.settings.get(
-      kRequirePerformedForHistoryKey,
-    );
-    if (requirePerformed is bool) {
-      _requirePerformedForHistoryNotifier.value = requirePerformed;
-    }
-    // Load the "track calling history for all callers" setting (issue #583),
-    // defaulting to off (false) when unset.
-    final trackAllCallers = await _appData.repositories.settings.get(
-      kTrackHistoryForAllCallersKey,
-    );
-    if (trackAllCallers is bool) {
-      _trackHistoryForAllCallersNotifier.value = trackAllCallers;
-    }
-    final venueCallCount = await _appData.repositories.settings.get(
-      kVenueCallCountKey,
-    );
-    _venueCallCountNotifier.value = venueCallCountFromStored(venueCallCount);
-    // Load the "ignore leading articles when sorting" setting, defaulting to
-    // on (true) when unset.
-    final sortIgnoreArticles = await _appData.repositories.settings.get(
-      kSortIgnoreArticlesKey,
-    );
-    if (sortIgnoreArticles is bool) {
-      _sortIgnoreArticlesNotifier.value = sortIgnoreArticles;
-    }
-    // Load the accessibility toggles (ROADMAP G.7). Reduce-motion is tri-state
+    // The "require mark-performed for calling history" setting (ROADMAP G.2).
+    final requirePerformed = await _appData.repositories.settings
+        .get(kRequirePerformedForHistoryKey)
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
+    // The "track calling history for all callers" setting (issue #583).
+    final trackAllCallers = await _appData.repositories.settings
+        .get(kTrackHistoryForAllCallersKey)
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
+    final venueCallCount = await _appData.repositories.settings
+        .get(kVenueCallCountKey)
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
+    // The "ignore leading articles when sorting" setting.
+    final sortIgnoreArticles = await _appData.repositories.settings
+        .get(kSortIgnoreArticlesKey)
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
+    // The accessibility toggles (ROADMAP G.7). Reduce-motion is tri-state
     // (issue #447, WCAG 2.3.3): a stored `bool` is an explicit in-app override,
     // while an absent key leaves the notifier `null` so the scope follows the
-    // OS-level Reduce Motion preference. Only coerce a genuine `bool` into an
-    // override so a missing key (or a read failure, coerced to `null` below)
-    // keeps "follow OS". The remaining toggles default to off (false) when
-    // unset; a read failure falls back so startup never blocks on a settings
-    // hiccup.
+    // OS-level Reduce Motion preference. A read failure is coerced to `null`
+    // so startup never blocks on a settings hiccup.
     final reduceMotion = await _appData.repositories.settings
         .get(kReduceMotionKey)
         .catchError(
           (_) => null,
         ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    if (reduceMotion is bool) _reduceMotionNotifier.value = reduceMotion;
     final verboseFigures = await _appData.repositories.settings
         .get(kVerboseFigureRenderingKey)
         .catchError(
           (_) => null,
         ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    if (verboseFigures is bool) {
-      _verboseFigureRenderingNotifier.value = verboseFigures;
-    }
     final canonicalDiscouragedTerms = await _appData.repositories.settings
         .get(kCanonicalDiscouragedTermsKey)
         .catchError(
           (_) => null,
         ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    _canonicalDiscouragedTermsNotifier.value =
-        canonicalDiscouragedTerms is! bool || canonicalDiscouragedTerms;
-    // Load the "show turns as decimals" display toggle (#368), off by default
-    // when unset. Opt-in, so a read failure or missing key stays off (keeps the
-    // fraction-glyph default). Coerced through `is bool` so a garbage stored
-    // value can never flip the toggle on.
+    // The "show turns as decimals" display toggle (#368). Opt-in, so a read
+    // failure or missing key stays off; coerced through `is bool` so a garbage
+    // stored value can never flip the toggle on.
     final decimalTurns = await _appData.repositories.settings
         .get(kDecimalTurnsKey)
         .catchError(
           (_) => null,
         ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    if (decimalTurns is bool) {
-      _decimalTurnsNotifier.value = decimalTurns;
-    }
-    // Load the "aggressively recompute figure beats" toggle (#689), off by
-    // default when unset. Opt-in, so a read failure or missing/corrupt stored
-    // value keeps today's behavior (only recompute beats while untouched).
+    // The "aggressively recompute figure beats" toggle (#689). Opt-in, so a
+    // read failure or missing/corrupt stored value keeps today's behavior.
     final aggressiveBeatsUpdate = await _appData.repositories.settings
         .get(kAggressiveBeatsUpdateKey)
         .catchError(
           (_) => null,
         ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    if (aggressiveBeatsUpdate is bool) {
-      _aggressiveBeatsUpdateNotifier.value = aggressiveBeatsUpdate;
-    }
     final confirmBeforeDelete = await _appData.repositories.settings
         .get(kConfirmBeforeDeleteKey)
         .catchError(
           (_) => null,
         ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    if (confirmBeforeDelete is bool) {
-      _confirmBeforeDeleteNotifier.value = confirmBeforeDelete;
-    }
-    // Load the "venue entity mode" setting, off by default when unset. Opt-in,
-    // so a read failure or missing key keeps the simple free-text venue field.
+    // The "venue entity mode" setting. Opt-in, so a read failure or missing key
+    // keeps the simple free-text venue field.
     final venueEntityMode = await _appData.repositories.settings
         .get(kVenueEntityModeKey)
         .catchError(
           (_) => null,
         ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    if (venueEntityMode is bool) {
-      _venueEntityModeNotifier.value = venueEntityMode;
-    }
-    // Load the opt-in program-editor auto-commit setting, off by default so
+    // The opt-in program-editor auto-commit setting, off by default so
     // existing editors continue to require explicit Save.
     final autoCommitProgramChanges = await _appData.repositories.settings
         .get(kAutoCommitProgramChangesKey)
@@ -1567,60 +1546,40 @@ class _CompendiumAppState extends State<CompendiumApp> {
           (_) => null,
         ); // diagnostics: silent — preference read failed; preserves
     // explicit-save behavior.
-    if (autoCommitProgramChanges is bool) {
-      _autoCommitProgramChangesNotifier.value = autoCommitProgramChanges;
-    }
-    // Load the colour-tint easter egg (#307), off by default when unset. It is
-    // opt-in, so a read failure or missing key stays off.
+    // The colour-tint easter egg (#307). Opt-in, so a read failure or missing
+    // key stays off.
     final colourDanceTheme = await _appData.repositories.settings
         .get(kColourDanceThemeKey)
         .catchError(
           (_) => null,
         ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    if (colourDanceTheme is bool) {
-      _colourDanceThemeNotifier.value = colourDanceTheme;
-    } else {
-      _colourDanceThemeNotifier.value = false;
-    }
-    // Load the "colour-code set-list rows" Appearance setting (issue #270),
-    // defaulting to on (true) when unset. Defensive: a read failure keeps the
-    // on-by-default state so startup never blocks on a settings hiccup.
+    // The "colour-code set-list rows" Appearance setting (issue #270).
     final setListColorCoding = await _appData.repositories.settings
         .get(kSetListColorCodingKey)
         .catchError(
           (_) => null,
         ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    if (setListColorCoding is bool) {
-      _setListColorCodingNotifier.value = setListColorCoding;
-    }
-    // Load the Programs "flag exact beat overlap only" matrix-collision
-    // setting (issue #962), defaulting to on (true) when unset. Defensive: a
-    // read failure keeps the on-by-default state so startup never blocks on a
-    // settings hiccup.
+    // The Programs "flag exact beat overlap only" matrix-collision setting
+    // (issue #962).
     final matrixExactBeatCollision = await _appData.repositories.settings
         .get(kMatrixExactBeatCollisionKey)
-        .catchError((_) => null);
-    if (matrixExactBeatCollision is bool) {
-      _matrixExactBeatCollisionNotifier.value = matrixExactBeatCollision;
-    }
-    // Load the app-wide program-matrix column configuration (issue #935),
-    // defaulting to the empty config (today's default matrix) when unset. The
-    // codec tolerates a stored blob with dangling built-in ids; a malformed
-    // blob (via a hand-edited DB, say) falls back to empty via tryDecode rather
-    // than throwing during startup.
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
+    // The app-wide program-matrix column configuration (issue #935). The codec
+    // tolerates a stored blob with dangling built-in ids; a malformed blob (via
+    // a hand-edited DB, say) falls back to empty via tryDecode rather than
+    // throwing during startup.
     final programMatrixColumns = await _appData.repositories.settings
         .get(kProgramMatrixColumnsKey)
         .catchError(
           (_) => null,
         ); // diagnostics: silent — startup settings read failed; falls back to the empty (default) config below.
-    _programMatrixColumnsNotifier.value =
-        MatrixColumnConfig.tryDecode(programMatrixColumns) ??
-        MatrixColumnConfig.empty;
-    // Load the regional-format preference (ROADMAP G.8), defaulting to System
-    // when unset. Defensive: a read failure or garbage token resolves to the
-    // safe System default via the resolver. For the custom variant (#584) the
-    // raw pattern is loaded from a second key and validated on use; a
-    // missing/over-long/garbage pattern collapses back to System.
+    // The regional-format preference (ROADMAP G.8). Defensive: a read failure
+    // or garbage token resolves to the safe System default via the resolver. For
+    // the custom variant (#584) the raw pattern is loaded from a second key and
+    // validated on use; a missing/over-long/garbage pattern collapses back to
+    // System.
     final dateFormat = await _appData.repositories.settings
         .get(kDateFormatKey)
         .catchError(
@@ -1631,24 +1590,15 @@ class _CompendiumAppState extends State<CompendiumApp> {
         .catchError(
           (_) => null,
         ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    _dateFormatNotifier.value = dateFormatSettingFromStored(
-      dateFormat,
-      dateFormatCustom,
-    );
-    // Load the first-day-of-week preference (ROADMAP G.8), defaulting to System
-    // when unset. Defensive: a read failure or garbage token resolves to the
-    // safe System default via the resolver.
+    // The first-day-of-week preference (ROADMAP G.8).
     final firstDayOfWeek = await _appData.repositories.settings
         .get(kFirstDayOfWeekKey)
         .catchError(
           (_) => null,
         ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    _firstDayOfWeekNotifier.value = firstDayOfWeekPrefFromStored(
-      firstDayOfWeek,
-    );
-    // Load the app-language preference (ROADMAP G.8). SECURITY (OWASP): the
-    // stored tag is untrusted — [localeFromStored] only ever resolves it to a
-    // locale that is actually in [AppLocalizations.supportedLocales], and a
+    // The app-language preference (ROADMAP G.8). SECURITY (OWASP): the stored
+    // tag is untrusted — [localeFromStored] (phase 2) only ever resolves it to
+    // a locale that is actually in [AppLocalizations.supportedLocales], and a
     // missing/garbage value falls back to the system locale (`null`) without
     // throwing, so a corrupted setting can never crash startup or select an
     // unsupported locale.
@@ -1657,55 +1607,139 @@ class _CompendiumAppState extends State<CompendiumApp> {
         .catchError(
           (_) => null,
         ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    _localeNotifier.value = localeFromStored(
-      locale,
-      AppLocalizations.supportedLocales,
+    // Locally-saved custom themes (and the active one), the per-formation label
+    // colour overrides (issue #367), the shorthand → figure(s) mappings (issue
+    // #420), the personal walkthrough snippet library (#411), the update-check
+    // preferences and the sync settings. Each decodes defensively; a failed or
+    // corrupt load degrades to that controller's empty/default state.
+    await _guardedControllerLoad(
+      'startup.custom_themes_load',
+      _customThemes.load,
     );
-    // Load any locally-saved custom themes and the active one (if set).
-    await _customThemes.load();
-    // Load the user's per-formation label colour overrides (issue #367).
-    await _formationColors.load();
-    // Load the user's shorthand → figure(s) mappings (issue #420). Decoded
-    // defensively; a corrupt payload degrades to "no mappings".
-    await _shorthandMappings.load();
-    // Load the user's personal walkthrough snippet library (#411). Decoded
-    // defensively; a corrupt payload degrades to "no snippets".
-    await _walkthroughSnippets.load();
-    // Load the update-check preferences (beta opt-in, auto-check opt-in, and
-    // the dismissed banner version), all defaulting to the safe off/none state.
-    await _updateController.load();
-    await _syncController.load();
-    // Load the collection tile visible fields preference (issue #767).
-    // Stored as a JSON list of CollectionTileField name strings.
-    // See CollectionTileFieldsScope.decodeStored for the three-case logic.
+    await _guardedControllerLoad(
+      'startup.formation_colors_load',
+      _formationColors.load,
+    );
+    await _guardedControllerLoad(
+      'startup.shorthand_mappings_load',
+      _shorthandMappings.load,
+    );
+    await _guardedControllerLoad(
+      'startup.walkthrough_snippets_load',
+      _walkthroughSnippets.load,
+    );
+    await _guardedControllerLoad('startup.update_load', _updateController.load);
+    await _guardedControllerLoad('startup.sync_load', _syncController.load);
+    // The collection tile visible fields preference (issue #767), a JSON list
+    // of CollectionTileField name strings. See
+    // CollectionTileFieldsScope.decodeStored for the three-case logic.
     final storedTileFields = await _appData.repositories.settings
         .get(kCollectionTileVisibleFieldsKey)
         .catchError(
           (_) => null,
         ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    _collectionTileFieldsNotifier.value =
-        CollectionTileFieldsScope.decodeStored(storedTileFields);
-    // Load the program/dance share-fields preference (issue #1434). Stored
-    // as a JSON list of DanceShareField name strings.
-    // See DanceShareFieldsScope.decodeStored for the three-case logic.
+    // The program/dance share-fields preference (issue #1434), a JSON list of
+    // DanceShareField name strings. See DanceShareFieldsScope.decodeStored for
+    // the three-case logic.
     final storedShareFields = await _appData.repositories.settings
         .get(kProgramDanceShareFieldsKey)
         .catchError(
           (_) => null,
         ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    _danceShareFieldsNotifier.value = DanceShareFieldsScope.decodeStored(
-      storedShareFields,
-    );
-    // Load the hidden filter sections (issue #1419). A deny-list: absent or
+    // The hidden filter sections (issue #1419). A deny-list: absent or
     // unreadable means every filter is shown.
     final storedHiddenFacets = await _appData.repositories.settings
         .get(kCollectionHiddenFacetsKey)
         .catchError(
           (_) => null,
         ); // diagnostics: silent — startup settings read failed; falls back to showing every filter.
+
+    // Phase 2: reset, then apply every decoded value. Synchronous — no `await`
+    // from here to the end of the method.
+    _resetAppPreferenceNotifiers();
+    _dialectNotifier.value = _dialectLibrary.active;
+    final themeName = storedTheme is String ? storedTheme : null;
+    final selection = AppThemeSelection.forName(themeName);
+    if (selection != null) _themeNotifier.value = selection;
+    if (requirePerformed is bool) {
+      _requirePerformedForHistoryNotifier.value = requirePerformed;
+    }
+    if (trackAllCallers is bool) {
+      _trackHistoryForAllCallersNotifier.value = trackAllCallers;
+    }
+    _venueCallCountNotifier.value = venueCallCountFromStored(venueCallCount);
+    if (sortIgnoreArticles is bool) {
+      _sortIgnoreArticlesNotifier.value = sortIgnoreArticles;
+    }
+    if (reduceMotion is bool) _reduceMotionNotifier.value = reduceMotion;
+    if (verboseFigures is bool) {
+      _verboseFigureRenderingNotifier.value = verboseFigures;
+    }
+    _canonicalDiscouragedTermsNotifier.value =
+        canonicalDiscouragedTerms is! bool || canonicalDiscouragedTerms;
+    if (decimalTurns is bool) {
+      _decimalTurnsNotifier.value = decimalTurns;
+    }
+    if (aggressiveBeatsUpdate is bool) {
+      _aggressiveBeatsUpdateNotifier.value = aggressiveBeatsUpdate;
+    }
+    if (confirmBeforeDelete is bool) {
+      _confirmBeforeDeleteNotifier.value = confirmBeforeDelete;
+    }
+    if (venueEntityMode is bool) {
+      _venueEntityModeNotifier.value = venueEntityMode;
+    }
+    if (autoCommitProgramChanges is bool) {
+      _autoCommitProgramChangesNotifier.value = autoCommitProgramChanges;
+    }
+    if (colourDanceTheme is bool) {
+      _colourDanceThemeNotifier.value = colourDanceTheme;
+    } else {
+      _colourDanceThemeNotifier.value = false;
+    }
+    if (setListColorCoding is bool) {
+      _setListColorCodingNotifier.value = setListColorCoding;
+    }
+    if (matrixExactBeatCollision is bool) {
+      _matrixExactBeatCollisionNotifier.value = matrixExactBeatCollision;
+    }
+    _programMatrixColumnsNotifier.value =
+        MatrixColumnConfig.tryDecode(programMatrixColumns) ??
+        MatrixColumnConfig.empty;
+    _dateFormatNotifier.value = dateFormatSettingFromStored(
+      dateFormat,
+      dateFormatCustom,
+    );
+    _firstDayOfWeekNotifier.value = firstDayOfWeekPrefFromStored(
+      firstDayOfWeek,
+    );
+    _localeNotifier.value = localeFromStored(
+      locale,
+      AppLocalizations.supportedLocales,
+    );
+    _collectionTileFieldsNotifier.value =
+        CollectionTileFieldsScope.decodeStored(storedTileFields);
+    _danceShareFieldsNotifier.value = DanceShareFieldsScope.decodeStored(
+      storedShareFields,
+    );
     _collectionHiddenFacetsNotifier.value = CollectionFacetsScope.decodeStored(
       storedHiddenFacets,
     );
+  }
+
+  /// Runs a controller's `load()` so a failure leaves that controller at its
+  /// default state instead of failing startup (or a backup restore). Logged,
+  /// not silent: some loads also write (the dialect library's first-run
+  /// migration), and a swallowed write failure should still be diagnosable.
+  Future<void> _guardedControllerLoad(
+    String source,
+    Future<void> Function() load,
+  ) async {
+    try {
+      await load();
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: source);
+    }
   }
 
   /// Re-reads all preferences and app-local controllers from the (freshly
