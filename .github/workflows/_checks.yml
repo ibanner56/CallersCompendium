@@ -124,6 +124,13 @@ jobs:
         run: python3 tools/ci/test_check_caught_error_logged.py
       - name: Guard caught errors (must log via logCaughtError or be marked silent)
         run: python3 tools/ci/check_caught_error_logged.py
+      # RegExp( compiles per call: in the import dedupe and figure-parsing hot
+      # paths (once per record, or per pair) it must be a top-level or static
+      # final. See tools/ci/check_hot_path_regexp.py.
+      - name: Test the hot-path RegExp ratchet
+        run: python3 tools/ci/test_check_hot_path_regexp.py
+      - name: Guard hot-path RegExp (no per-call RegExp( in dedupe/figure parsing)
+        run: python3 tools/ci/check_hot_path_regexp.py
       # Export / share / backup files must catch Object, not Exception, so an
       # Error still shows the user a message (ERR-04; #1395).
       - name: Test the export-guard catch ratchet

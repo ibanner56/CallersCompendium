@@ -1,0 +1,9 @@
+{
+  "id": "dedupe-bound-and-yield",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Large imports no longer freeze the app while matching incoming dances against your collection."
+    ]
+  }
+}
