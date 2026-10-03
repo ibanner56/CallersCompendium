@@ -972,6 +972,21 @@ class DanceRepository {
     }
   }
 
+  /// [_deleteFtsRows] for many dances. `dance_id` is an `UNINDEXED` FTS column,
+  /// so every statement is a full scan of the index; one `IN` per chunk (see
+  /// [_chunkIds]) keeps a large [hardDelete] from scanning twice per dance.
+  Future<void> _deleteFtsRowsFor(List<String> danceIds) async {
+    for (final chunk in _chunkIds(danceIds)) {
+      final placeholders = List.filled(chunk.length, '?').join(', ');
+      for (final table in const ['dance_fts', 'dance_substring_fts']) {
+        await _db.customStatement(
+          'DELETE FROM $table WHERE dance_id IN ($placeholders)',
+          chunk,
+        );
+      }
+    }
+  }
+
   /// Inserts this dance's `dance_figures` rows and its single `dance_fts` row,
   /// assuming any prior derived rows for it have already been removed by the
   /// caller. Extracted from [_rebuildDerived] so the bulk rebuild can re-insert
@@ -1901,9 +1916,7 @@ class DanceRepository {
       await _cleanupDanglingReferences([
         for (final r in erasableRows) (id: r.id, title: r.title),
       ]);
-      for (final id in erasableIds) {
-        await _deleteFtsRows(id);
-      }
+      await _deleteFtsRowsFor(erasableIds);
       // Chunked (see [_chunkIds]), inside the enclosing transaction.
       for (final chunk in _chunkIds(erasableIds)) {
         await (_db.delete(_db.dances)..where((t) => t.id.isIn(chunk))).go();

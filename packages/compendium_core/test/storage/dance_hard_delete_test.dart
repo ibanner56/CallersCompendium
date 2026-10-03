@@ -55,6 +55,12 @@ SELECT printf('d%06d', n), printf('Dance %06d', n),
        'contra', 'dupleImproper', 'single', 'active', 0, 0
 FROM seq
 ''');
+    // A real import leaves FTS rows too; seed them so the cleanup is exercised.
+    for (final table in const ['dance_fts', 'dance_substring_fts']) {
+      await db.customStatement(
+        'INSERT INTO $table (dance_id, title) SELECT id, title FROM dances',
+      );
+    }
     await dances.create(sampleDance(id: 'keep', title: 'Keeper'));
     final ids = [
       for (var n = 1; n <= count; n++) 'd${n.toString().padLeft(6, '0')}',
@@ -64,6 +70,10 @@ FROM seq
 
     final left = await db.customSelect('SELECT id FROM dances').get();
     expect([for (final r in left) r.read<String>('id')], ['keep']);
+    for (final table in const ['dance_fts', 'dance_substring_fts']) {
+      final fts = await db.customSelect('SELECT dance_id FROM $table').get();
+      expect([for (final r in fts) r.read<String>('dance_id')], ['keep']);
+    }
   });
 
   test('hardDelete ignores unknown ids and an empty list', () async {
