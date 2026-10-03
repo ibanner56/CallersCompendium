@@ -68,7 +68,9 @@ class _ReparseCustomFiguresScreenState
   void _load() {
     final repos = RepositoriesScope.of(context);
     final loader =
-        widget.previewLoader ?? (r) => r.dances.previewImportGapReparse();
+        widget.previewLoader ??
+        (r) =>
+            r.dances.previewImportGapReparse(reparse: reparseImportGapFigures);
     loader(repos)
         .then((previews) {
           if (!mounted) return;
@@ -133,6 +135,7 @@ class _ReparseCustomFiguresScreenState
         widget.applier ??
         (r, danceIds) => r.dances.reparseImportGapFiguresForMany(
           danceIds,
+          reparse: reparseImportGapFigures,
           now: DateTime.now().toUtc(),
         );
     int changed;

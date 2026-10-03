@@ -52,7 +52,9 @@ void main() {
         ),
       );
 
-      final previews = await dances.previewImportGapReparse();
+      final previews = await dances.previewImportGapReparse(
+        reparse: reparseImportGapFigures,
+      );
 
       expect(previews.map((p) => p.danceId), ['a']);
       expect(previews.single.title, 'Alpha');
@@ -72,7 +74,9 @@ void main() {
         ),
       );
 
-      final previews = await dances.previewImportGapReparse();
+      final previews = await dances.previewImportGapReparse(
+        reparse: reparseImportGapFigures,
+      );
       expect(previews.single.upgradeCount, 2);
     });
 
@@ -80,7 +84,10 @@ void main() {
       await dances.create(
         sampleDance(id: 'a', figures: [importGap('hey for four')]),
       );
-      expect(await dances.previewImportGapReparse(), isEmpty);
+      expect(
+        await dances.previewImportGapReparse(reparse: reparseImportGapFigures),
+        isEmpty,
+      );
     });
 
     test('orders previews case-insensitively by title', () async {
@@ -106,7 +113,9 @@ void main() {
         ),
       );
 
-      final previews = await dances.previewImportGapReparse();
+      final previews = await dances.previewImportGapReparse(
+        reparse: reparseImportGapFigures,
+      );
       expect(previews.map((p) => p.title), ['Apple', 'banana', 'zebra']);
     });
 
@@ -116,7 +125,7 @@ void main() {
       );
       final before = (await dances.getById('a'))!.updatedAt;
 
-      await dances.previewImportGapReparse();
+      await dances.previewImportGapReparse(reparse: reparseImportGapFigures);
 
       expect((await dances.getById('a'))!.updatedAt, before);
       expect(figuresOf((await dances.getById('a'))!).single.isCustom, isTrue);
@@ -129,9 +138,11 @@ void main() {
         sampleDance(id: 'a', figures: [importGap('Neighbor swing', beats: 16)]),
       );
 
-      final changed = await dances.reparseImportGapFiguresForMany([
-        'a',
-      ], now: now);
+      final changed = await dances.reparseImportGapFiguresForMany(
+        ['a'],
+        reparse: reparseImportGapFigures,
+        now: now,
+      );
 
       expect(changed, 1);
       final f = figuresOf((await dances.getById('a'))!).single;
@@ -149,7 +160,11 @@ void main() {
       );
       final bBefore = (await dances.getById('b'))!.updatedAt;
 
-      await dances.reparseImportGapFiguresForMany(['a', 'b'], now: now);
+      await dances.reparseImportGapFiguresForMany(
+        ['a', 'b'],
+        reparse: reparseImportGapFigures,
+        now: now,
+      );
 
       expect((await dances.getById('a'))!.updatedAt, now);
       expect((await dances.getById('b'))!.updatedAt, bBefore);
@@ -169,9 +184,11 @@ void main() {
         ),
       );
 
-      final changed = await dances.reparseImportGapFiguresForMany([
-        'a',
-      ], now: now);
+      final changed = await dances.reparseImportGapFiguresForMany(
+        ['a'],
+        reparse: reparseImportGapFigures,
+        now: now,
+      );
 
       expect(changed, 0);
       final figures = figuresOf((await dances.getById('a'))!);
@@ -212,7 +229,11 @@ void main() {
           );
       await dances.create(original);
 
-      await dances.reparseImportGapFiguresForMany(['a'], now: now);
+      await dances.reparseImportGapFiguresForMany(
+        ['a'],
+        reparse: reparseImportGapFigures,
+        now: now,
+      );
 
       final loaded = (await dances.getById('a'))!;
       expect(loaded.title, 'Alpha');
@@ -233,12 +254,23 @@ void main() {
         sampleDance(id: 'a', figures: [importGap('Neighbor swing')]),
       );
 
-      expect(await dances.reparseImportGapFiguresForMany(['a'], now: now), 1);
+      expect(
+        await dances.reparseImportGapFiguresForMany(
+          ['a'],
+          reparse: reparseImportGapFigures,
+          now: now,
+        ),
+        1,
+      );
       final afterFirst = (await dances.getById('a'))!;
 
       final secondNow = now.add(const Duration(days: 1));
       expect(
-        await dances.reparseImportGapFiguresForMany(['a'], now: secondNow),
+        await dances.reparseImportGapFiguresForMany(
+          ['a'],
+          reparse: reparseImportGapFigures,
+          now: secondNow,
+        ),
         0,
       );
       final afterSecond = (await dances.getById('a'))!;
@@ -248,21 +280,34 @@ void main() {
     });
 
     test('empty ids is a no-op returning 0', () async {
-      expect(await dances.reparseImportGapFiguresForMany([], now: now), 0);
+      expect(
+        await dances.reparseImportGapFiguresForMany(
+          [],
+          reparse: reparseImportGapFigures,
+          now: now,
+        ),
+        0,
+      );
     });
 
     test('skips unknown ids', () async {
       expect(
-        await dances.reparseImportGapFiguresForMany(['nope'], now: now),
+        await dances.reparseImportGapFiguresForMany(
+          ['nope'],
+          reparse: reparseImportGapFigures,
+          now: now,
+        ),
         0,
       );
     });
 
     test('rejects a non-UTC now', () async {
       expect(
-        () => dances.reparseImportGapFiguresForMany([
-          'a',
-        ], now: DateTime(2026, 6, 1)),
+        () => dances.reparseImportGapFiguresForMany(
+          ['a'],
+          reparse: reparseImportGapFigures,
+          now: DateTime(2026, 6, 1),
+        ),
         throwsA(isA<AssertionError>()),
       );
     });
