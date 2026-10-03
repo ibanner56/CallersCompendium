@@ -364,6 +364,8 @@ class CollectionData {
               if (!out.isClosed) out.add(snapshot);
             },
             onError: (Object e, StackTrace st) {
+              // diagnostics: silent — forwarded unchanged to the subscriber's
+              // own onError; this stream adds no handling of its own.
               if (!out.isClosed) out.addError(e, st);
             },
           );
