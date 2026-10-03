@@ -8,5 +8,10 @@
     "changed": [
       "Importing a large batch now shows how many dances have been written so far instead of a spinner."
     ]
+  },
+  "core": {
+    "added": [
+      "`ImportPipeline.commit`, `CallersCompanionUsrImporter.commit` and `PublishedCollectionImporter.commit` take an optional `onProgress(done, total)`, called once per record and once more with `(total, total)` when the commit loop ends."
+    ]
   }
 }
