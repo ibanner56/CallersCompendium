@@ -1411,7 +1411,7 @@ void main() {
     },
   );
 
-  for (final heldKey in [kAppThemeKey, kLocaleKey])
+  for (final heldKey in [kAppThemeKey, kLocaleKey]) {
     testWidgets(
       'a same-value restore never shows the default theme or language while '
       'the $heldKey read is in flight',
@@ -1472,6 +1472,7 @@ void main() {
         expect(localeNotifier.value, const Locale('de'));
       },
     );
+  }
 
   testWidgets('restoring a backup without the key resets danceShareFields', (
     tester,
