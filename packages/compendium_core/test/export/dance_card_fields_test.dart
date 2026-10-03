@@ -1,7 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:flutter_test/flutter_test.dart';
-
-import 'package:compendium_app/src/export/dance_card_fields.dart';
+import 'package:test/test.dart';
 
 /// Issue #1434: these tests exercise the shared field-gating logic directly,
 /// as plain data, rather than through a rendered PDF — the existing PDF

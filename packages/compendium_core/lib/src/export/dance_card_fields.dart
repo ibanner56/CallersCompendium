@@ -1,15 +1,17 @@
-/// Pure field-gating logic shared between `buildDancePdf`
-/// (`dance_pdf.dart`) and `buildProgramPdf`'s figure-appendix dance cards
-/// (`program_pdf.dart`), issue #1434, so the two PDF builders can't drift on
-/// which fields a selection turns on or off.
+/// Pure field-gating logic for a dance card (issue #1434): which of the
+/// share-fields picker's [DanceShareField] values turn each line on or off.
 ///
-/// Mirrors `danceToPlainText`'s field ordering and gating exactly. Figures
-/// are handled separately by each caller via the existing
-/// `buildFigureWidgets` (unaffected by this parameter, same as the text
-/// renderer).
+/// This is the single gate used by `danceToPlainText`, `buildDancePdf` and
+/// `buildProgramPdf`'s figure-appendix cards, so the text and PDF renderers
+/// can't drift on which fields a selection emits. Figures are handled
+/// separately by each caller (unaffected by this parameter).
 library;
 
-import 'package:compendium_core/compendium_core.dart';
+import '../model/dance.dart';
+import '../model/enums.dart';
+import '../model/tunes_source.dart';
+import 'dance_share_fields.dart';
+import 'export_labels.dart';
 
 /// The formation/level/mixer/status/phrase lines, gated by [fields] and in
 /// the same order `danceToPlainText` emits them. Each caller wraps the
@@ -53,8 +55,8 @@ List<String> danceCardAuthorNames(
 }
 
 /// Resolved, non-blank tune names for the dance card, gated on
-/// [DanceShareField.tunes]. Mirrors `danceToPlainText`'s tunes block —
-/// unreadable stored tunes render as absent, same as an unreadable figures
+/// [DanceShareField.tunes]. Unreadable stored tunes
+/// render as absent, same as an unreadable figures
 /// list.
 List<String> danceCardTuneNames(Dance dance, Set<DanceShareField> fields) {
   if (!fields.contains(DanceShareField.tunes)) return const [];

@@ -7,7 +7,6 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../data/venue_label.dart';
-import 'dance_card_fields.dart';
 import 'program_figure_widgets.dart';
 
 /// Loads the bundled Unicode font (Roboto, SIL OFL-1.1) used for PDF export.
@@ -142,7 +141,7 @@ Future<pw.Font> loadProgramMatrixMarkerFont() async {
 ///   content exactly (title + figures only); when supplied, each appendix
 ///   card is enriched to the same field set as [buildDancePdf] — gated by
 ///   [fields] (defaults to [DanceShareField.allExceptTunes]) via the shared
-///   `dance_card_fields.dart` helpers, so the two builders can't drift.
+///   core `dance_card_fields.dart` helpers, so the two builders can't drift.
 Future<Uint8List> buildProgramPdf(
   Program program, {
   required String? Function(String danceId) titleFor,
@@ -252,7 +251,7 @@ Future<Uint8List> buildProgramPdf(
 ///
 /// [cardLabelsFor] gates the full field-gated card content added by issue
 /// #1434 (author line, formation/level/mixer/status/phrase, calling notes,
-/// walkthrough, tunes — [fields]-gated via the shared `dance_card_fields.dart`
+/// walkthrough, tunes — [fields]-gated via the shared core `dance_card_fields.dart`
 /// helpers, same as [buildDancePdf]). `null` (the default) preserves the
 /// pre-#1434 content exactly: title + figures only, regardless of [fields].
 List<pw.Widget> _figureAppendixWidgets(
