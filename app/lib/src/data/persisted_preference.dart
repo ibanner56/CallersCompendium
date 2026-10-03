@@ -7,9 +7,11 @@ import '../diagnostics/error_log.dart';
 /// its [defaultValue], and the [decode]/[encode] pair between the stored JSON
 /// value and [T].
 ///
-/// One descriptor replaces the copies of the same preference that used to live
-/// in the reset list, the loader and the field declaration, so a new preference
-/// cannot be added to one and forgotten in another (audit finding D3).
+/// One descriptor holds what used to be copied across the field declaration,
+/// the reset list and the loader. The reset and load iterate a single list of
+/// descriptors, so a preference on that list is reset and loaded together. A
+/// new preference still has to be added to that list (and to the restore test's
+/// cases) by hand (audit finding D3).
 ///
 /// Scopes still receive this as a plain `ValueNotifier<T>`; nothing about
 /// `Scope.of` / `Scope.notifierOf` changes.
