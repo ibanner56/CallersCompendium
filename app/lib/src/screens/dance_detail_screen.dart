@@ -163,10 +163,14 @@ class DanceDetailScreen extends StatefulWidget {
   /// owns routed navigation; the collection shell owns its split-pane preview.
   final Future<void> Function(DanceDetailData detail)? onReimport;
 
-  /// Shared JSON delivery seam for the compact overflow export.
+  /// Shared JSON delivery seam for the compact overflow export. Its
+  /// `saveInvoker` also receives the `.ccshare` bundle where
+  /// [isBundleShareUnsupported] (Linux) turns "Share dance file" into Save As.
   final JsonExportDelivery? jsonExportDelivery;
 
-  /// Overrides the OS share sheet for the compact overflow's text share.
+  /// Overrides the OS share sheet for the compact overflow's text share and
+  /// `.ccshare` file share (the latter is Save As where
+  /// [isBundleShareUnsupported] is true).
   /// Defaults to [SharePlus.instance.share]; tests use it to force a failure.
   final ShareInvoker? shareInvoker;
 

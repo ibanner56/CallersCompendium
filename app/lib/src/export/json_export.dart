@@ -29,6 +29,9 @@ class JsonExportDelivery {
   });
 
   final JsonChoicePicker? choicePicker;
+
+  /// Overrides the Save As path. Also used by [share] (and by the menus'
+  /// `.ccshare` bundle action) where [isBundleShareUnsupported] is true.
   final Future<JsonSaveResult?> Function(String json, String fileName)?
   saveInvoker;
   final JsonClipboardWriter? clipboardWriter;

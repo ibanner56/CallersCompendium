@@ -85,6 +85,8 @@ class DanceExportMenu extends StatelessWidget {
   final DifficultyLevel? Function(String id)? difficultyLevelFor;
 
   /// Test seam for the share call; defaults to [SharePlus.instance.share].
+  /// Not used on platforms where [isBundleShareUnsupported] (Linux) routes the
+  /// file actions to Save As.
   final ShareInvoker? shareInvoker;
 
   /// Test seam for staging a share file.
@@ -95,6 +97,8 @@ class DanceExportMenu extends StatelessWidget {
 
   /// Shared JSON delivery seam. When absent, the legacy share/file seams above
   /// are used for Share while Save, Copy, and the choice dialog use defaults.
+  /// Its `saveInvoker` also receives the `.ccshare` bundle on platforms where
+  /// [isBundleShareUnsupported] (Linux) turns the bundle action into Save As.
   final JsonExportDelivery? jsonExportDelivery;
 
   String _plainText(

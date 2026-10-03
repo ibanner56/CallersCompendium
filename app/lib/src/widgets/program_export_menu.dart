@@ -112,6 +112,8 @@ class ProgramExportMenu extends StatelessWidget {
   final CustomFieldDef? Function(String id)? customFieldFor;
 
   /// Test seam for the share call; defaults to [SharePlus.instance.share].
+  /// Not used on platforms where [isBundleShareUnsupported] (Linux) routes the
+  /// file actions to Save As.
   final ShareInvoker? shareInvoker;
 
   /// Test seam for the bundle temp-file write; defaults to
@@ -123,6 +125,8 @@ class ProgramExportMenu extends StatelessWidget {
 
   /// Shared JSON delivery seam. When absent, the legacy share/file seams above
   /// are used for Share while Save, Copy, and the choice dialog use defaults.
+  /// Its `saveInvoker` also receives the `.ccshare` bundle on platforms where
+  /// [isBundleShareUnsupported] (Linux) turns the bundle action into Save As.
   final JsonExportDelivery? jsonExportDelivery;
 
   String _formatDate(BuildContext context, DateTime date) =>
