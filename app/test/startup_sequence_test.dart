@@ -446,6 +446,92 @@ void main() {
     },
   );
 
+  testWidgets('the shell renders before a slow integrity check completes', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final appData = _openAppData();
+    final probe = Completer<bool>();
+
+    await tester.pumpWidget(
+      CompendiumApp(
+        appData: appData,
+        windowService: _NoopWindowService(appData.repositories.settings),
+        integrityCheck: () => probe.future,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(probe.isCompleted, isFalse);
+    expect(find.byType(AppShell), findsOneWidget);
+
+    probe.complete(true);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('integrity check failed'), findsNothing);
+    expect(find.byType(AppShell), findsOneWidget);
+  });
+
+  testWidgets('a failed deferred integrity check still shows the advisory '
+      'banner exactly once', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final appData = _openAppData();
+    final probe = Completer<bool>();
+
+    await tester.pumpWidget(
+      CompendiumApp(
+        appData: appData,
+        windowService: _NoopWindowService(appData.repositories.settings),
+        integrityCheck: () => probe.future,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(AppShell), findsOneWidget);
+    expect(find.textContaining('integrity check failed'), findsNothing);
+
+    probe.complete(false);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('integrity check failed'), findsOneWidget);
+    expect(find.byType(AppShell), findsOneWidget);
+  });
+
+  testWidgets('a thrown deferred probe is advisory', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final sink = _RecordingCrashLogSink();
+    installCaughtErrorLog(sink);
+    addTearDown(resetCaughtErrorLogForTesting);
+
+    final appData = _openAppData();
+    final probe = Completer<bool>();
+
+    await tester.pumpWidget(
+      CompendiumApp(
+        appData: appData,
+        windowService: _NoopWindowService(appData.repositories.settings),
+        integrityCheck: () => probe.future,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(AppShell), findsOneWidget);
+
+    probe.completeError(StateError('quick_check failed to run'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('integrity check failed'), findsOneWidget);
+    expect(find.byType(AppShell), findsOneWidget);
+    expect(
+      find.textContaining('Could not prepare the collection'),
+      findsNothing,
+    );
+    expect(sink.sources, ['integrity-probe']);
+  });
+
   testWidgets('a healthy database opens without a corruption warning', (
     tester,
   ) async {

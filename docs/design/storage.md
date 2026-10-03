@@ -597,7 +597,7 @@ and does not leak into what the user sees.
 
 ## Durability
 
-- WAL mode; foreign keys ON; nightly-on-launch `PRAGMA quick_check`.
+- WAL mode; foreign keys ON; `PRAGMA quick_check` once per launch, after the first frame (advisory banner on failure).
 - WAL and the busy timeout are set by `applyCompendiumSqliteSetup`, which
   **every** connection to the database file must run. Device Sync opens a
   second connection from its worker isolate, so both it and `openAppDatabase`

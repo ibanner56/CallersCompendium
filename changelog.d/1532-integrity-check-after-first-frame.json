@@ -1,0 +1,9 @@
+{
+  "id": "1532-integrity-check-after-first-frame",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "The app opens faster on large libraries: the database integrity check now runs after the first screen appears instead of before it. A problem still shows the same warning banner."
+    ]
+  }
+}
