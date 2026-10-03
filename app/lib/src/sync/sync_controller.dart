@@ -532,17 +532,22 @@ class SyncController extends ChangeNotifier {
 
   /// Reads the persisted state. Absent keys mean the documented defaults: sync
   /// off, WiFi-only on, import exclusion off.
+  ///
+  /// Transactional: every read finishes before any field changes, so a failing
+  /// read leaves the previous state intact instead of a mix of old and new.
   Future<void> load() async {
-    _enabled = await _settings.get(kSyncEnabledKey) == true;
+    final enabled = await _settings.get(kSyncEnabledKey);
     final wifi = await _settings.get(kSyncWifiOnlyKey);
-    _wifiOnly = wifi is bool ? wifi : true;
-    _excludeImports = await _settings.get(kSyncExcludeImportsKey) == true;
+    final excludeImports = await _settings.get(kSyncExcludeImportsKey);
     final id = await _settings.get(kSyncIdKey);
+    final endpoint = await _settings.get(kSyncEndpointKey);
+    final last = await _settings.get(kSyncLastSuccessAtKey);
+    _enabled = enabled == true;
+    _wifiOnly = wifi is bool ? wifi : true;
+    _excludeImports = excludeImports == true;
     final normalized = id is String ? normalizeSyncId(id) : '';
     _syncId = normalized.isEmpty ? null : normalized;
-    final endpoint = await _settings.get(kSyncEndpointKey);
     _endpoint = endpoint is String ? tryParseSyncEndpoint(endpoint) : null;
-    final last = await _settings.get(kSyncLastSuccessAtKey);
     _lastSuccessAt = last is String ? DateTime.tryParse(last)?.toUtc() : null;
     _notify();
   }

@@ -1603,50 +1603,50 @@ class FigureRenderer {
 
   /// Free-text (notes, hooks, custom figures): apply role-term substitution
   /// with case preservation. Move-name substitution does not apply to prose.
+  /// The compiled substitutor is cached per [Dialect] value (see
+  /// [_displaySubstitutors]), so repeated renders do not recompile it.
   ///
   /// To also convert known discouraged spellings at display time, use
   /// [renderFreeTextWithCanonicalDiscouragedTerms]. Stored text is never
   /// changed.
-  String renderFreeText(String text, Dialect dialect) {
-    final map = <String, String>{};
-    for (final entry in dialect.roles.entries) {
-      map[entry.key] = entry.value.singular; // role1 -> Lark
-      map['${entry.key}s'] = entry.value.plural; // role1s -> Larks
-    }
-    return Substitutor(
-      map,
-      caseInsensitive: true,
-      preserveCase: true,
-    ).apply(text);
-  }
+  String renderFreeText(String text, Dialect dialect) =>
+      _substitutorsFor(dialect).roles.apply(text);
 
   /// Converts only the supported discouraged terms, without applying role-token
   /// substitution.
-  String renderDiscouragedTerms(String text, Dialect dialect) => Substitutor(
-    _discouragedDisplayTerms(dialect),
-    caseInsensitive: true,
-    preserveCase: true,
-  ).apply(text);
+  String renderDiscouragedTerms(String text, Dialect dialect) =>
+      _substitutorsFor(dialect).discouraged.apply(text);
 
   /// Applies discouraged-term conversion and the existing role-token display
   /// substitution to free text in one display-only operation.
   String renderFreeTextWithCanonicalDiscouragedTerms(
     String text,
     Dialect dialect,
-  ) {
-    final map = <String, String>{
-      for (final entry in dialect.roles.entries) ...{
-        entry.key: entry.value.singular,
-        '${entry.key}s': entry.value.plural,
-      },
-      ..._discouragedDisplayTerms(dialect),
-    };
-    return Substitutor(
-      map,
-      caseInsensitive: true,
-      preserveCase: true,
-    ).apply(text);
+  ) => _substitutorsFor(dialect).merged.apply(text);
+
+  /// Display substitutors per [Dialect] value. Callers build a fresh
+  /// [FigureRenderer] (and often an equal [Dialect]) per call, so the memo is
+  /// static and keyed by value rather than held on an instance. Per isolate.
+  /// Cleared when it passes [_maxDisplaySubstitutors] so editing a custom
+  /// dialect cannot grow it without bound.
+  static final Map<Dialect, _DisplaySubstitutors> _displaySubstitutors = {};
+  static const int _maxDisplaySubstitutors = 16;
+
+  static _DisplaySubstitutors _substitutorsFor(Dialect dialect) {
+    final cached = _displaySubstitutors[dialect];
+    if (cached != null) return cached;
+    if (_displaySubstitutors.length >= _maxDisplaySubstitutors) {
+      _displaySubstitutors.clear();
+    }
+    return _displaySubstitutors[dialect] = _DisplaySubstitutors(dialect);
   }
+
+  static Map<String, String> _roleDisplayTerms(Dialect dialect) => {
+    for (final entry in dialect.roles.entries) ...{
+      entry.key: entry.value.singular, // role1 -> Lark
+      '${entry.key}s': entry.value.plural, // role1s -> Larks
+    },
+  };
 
   static Map<String, String> _discouragedDisplayTerms(Dialect dialect) => {
     'gypsy': 'shoulder round',
@@ -3075,4 +3075,28 @@ class FigureRenderer {
     ];
     return (n >= 0 && n < words.length) ? words[n] : n.toString();
   }
+}
+
+/// The three free-text substitutors for one [Dialect], each compiled on first
+/// use. The rules are the same maps the renderer always built per call.
+class _DisplaySubstitutors {
+  _DisplaySubstitutors(this._dialect);
+
+  final Dialect _dialect;
+
+  late final Substitutor roles = _compile(
+    FigureRenderer._roleDisplayTerms(_dialect),
+  );
+
+  late final Substitutor discouraged = _compile(
+    FigureRenderer._discouragedDisplayTerms(_dialect),
+  );
+
+  late final Substitutor merged = _compile({
+    ...FigureRenderer._roleDisplayTerms(_dialect),
+    ...FigureRenderer._discouragedDisplayTerms(_dialect),
+  });
+
+  static Substitutor _compile(Map<String, String> terms) =>
+      Substitutor(terms, caseInsensitive: true, preserveCase: true);
 }

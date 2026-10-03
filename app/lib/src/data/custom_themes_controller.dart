@@ -54,21 +54,27 @@ class CustomThemesController extends ChangeNotifier {
 
   /// Loads persisted themes + active id from storage. Safe to call once at
   /// startup; malformed entries are skipped rather than throwing.
+  ///
+  /// Transactional: both reads finish before any state changes, so a failing
+  /// read leaves the previous themes and active id untouched.
   Future<void> load() async {
-    _themes.clear();
     final raw = await _settings.get(kCustomThemesKey);
+    final activeRaw = await _settings.get(kActiveCustomThemeKey);
+    final loaded = <CustomTheme>[];
     if (raw is List) {
       for (final entry in raw) {
         if (entry is Map) {
           try {
-            _themes.add(CustomTheme.fromJson(entry.cast<String, Object?>()));
+            loaded.add(CustomTheme.fromJson(entry.cast<String, Object?>()));
           } catch (_) {
             // diagnostics: silent — skips a corrupt entry rather than losing every theme
           }
         }
       }
     }
-    final activeRaw = await _settings.get(kActiveCustomThemeKey);
+    _themes
+      ..clear()
+      ..addAll(loaded);
     _activeId = activeRaw is String && byId(activeRaw) != null
         ? activeRaw
         : null;

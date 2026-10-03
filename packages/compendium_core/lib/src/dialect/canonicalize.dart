@@ -45,7 +45,9 @@ const Map<String, String> _legacyRoleSynonyms = {
 /// [_legacyRoleSynonyms] is const and [Dialect.canonical] is an immutable
 /// singleton, so the result is a pure function of the text. (Per isolate: a
 /// static.) Any other dialect, or any [extraRoleSynonyms], is built per call as
-/// before.
+/// before. (Display rendering is
+/// separate: `FigureRenderer.renderFreeText*` caches its substitutors per
+/// [Dialect] value, in `renderer.dart`.)
 ({Substitutor roles, Substitutor? discouraged})? _canonicalSubstitutors;
 
 bool _usesCanonicalSubstitutors(

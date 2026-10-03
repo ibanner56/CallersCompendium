@@ -5540,6 +5540,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible d’atteindre The Caller\'s Box pour ce titre.';
 
   @override
+  String get importTitleListReasonConnectionFailed =>
+      'Impossible d’atteindre The Caller\'s Box – vérifiez votre connexion.';
+
+  @override
+  String get importTitleListConnectionBanner =>
+      'La recherche des titres s’est arrêtée après une erreur de connexion. Les titres déjà dans votre collection sont listés ; essayez les autres une fois en ligne.';
+
+  @override
   String get importTitleListReasonLineTooLong =>
       'Trop long pour un titre de danse, la recherche n’a donc pas été lancée.';
 

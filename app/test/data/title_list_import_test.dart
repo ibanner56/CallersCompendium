@@ -1,3 +1,4 @@
+import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/online_search.dart';
 import 'package:compendium_app/src/data/program_ambiguous_review.dart';
 import 'package:compendium_app/src/data/title_list_import.dart';
@@ -15,7 +16,16 @@ class _CountingOnlineService implements OnlineSearchService {
     this.rowsByTitle = const {},
     this.throwOnSearchFor = const {},
     this.throwOnLoadFor = const {},
+    this.searchError,
+    this.loadError,
   });
+
+  /// Thrown by **every** `search` call (simulates an offline device or a
+  /// hanging connection), independent of [throwOnSearchFor].
+  final Object? searchError;
+
+  /// Thrown by every `loadPreview` call after a successful search.
+  final Object? loadError;
 
   /// Search rows keyed by the lower-cased query title.
   final Map<String, List<OnlineSearchResultRow>> rowsByTitle;
@@ -37,6 +47,7 @@ class _CountingOnlineService implements OnlineSearchService {
   Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async {
     searchedTitles.add(query.title);
     final key = query.title.trim().toLowerCase();
+    if (searchError != null) throw searchError!;
     if (throwOnSearchFor.contains(key)) throw Exception('offline');
     return rowsByTitle[key] ?? const [];
   }
@@ -49,6 +60,7 @@ class _CountingOnlineService implements OnlineSearchService {
     DedupeIndex? index,
   }) async {
     loadedIds.add(result.id);
+    if (loadError != null) throw loadError!;
     if (throwOnLoadFor.contains(result.id)) throw Exception('not published');
     final plan = _planFor(result.name);
     return OnlinePreview(
@@ -345,6 +357,160 @@ void main() {
       expect(row.localMatchCount, 2);
       expect(row.localAuthors, isEmpty);
       expect(service.searchedTitles, isEmpty);
+    });
+
+    group('connection failure stops the batch', () {
+      for (final error in const [
+        UrlFetchException(UrlFetchFailureReason.callersBoxUnreachable),
+        UrlFetchException(
+          UrlFetchFailureReason.searchTimeout,
+          timeoutSeconds: 30,
+        ),
+        UrlFetchException(
+          UrlFetchFailureReason.callersBoxHttpStatus,
+          statusCode: 503,
+        ),
+      ]) {
+        test('stops issuing lookups after the first connection failure and '
+            'marks the rest connectionFailed (${error.reason.name})', () async {
+          final repos = openTestRepositories();
+          final service = _CountingOnlineService(searchError: error);
+
+          final result = await resolveTitleList(
+            'One\nTwo\nThree\nFour\nFive',
+            service: service,
+            repos: repos,
+          );
+
+          expect(service.searchedTitles, ['One']);
+          expect(result.rows, hasLength(5));
+          expect(
+            result.rows.map((r) => r.reason),
+            everyElement(TitleListNotFoundReason.connectionFailed),
+          );
+          expect(result.stoppedAfterConnectionFailure, isTrue);
+          expect(result.batch.records, isEmpty);
+        });
+      }
+
+      test(
+        'a connection failure in the preview fetch stops the batch too, '
+        'and the titles already in the collection are still listed',
+        () async {
+          final repos = openTestRepositories();
+          await repos.dances.create(_localDance(id: 'd1', title: 'Owned Reel'));
+          final service = _CountingOnlineService(
+            rowsByTitle: {
+              'one': [_row('One', id: '1')],
+              'two': [_row('Two', id: '2')],
+            },
+            loadError: const UrlFetchException(
+              UrlFetchFailureReason.unreachable,
+            ),
+          );
+
+          final result = await resolveTitleList(
+            'One\nOwned Reel\nTwo',
+            service: service,
+            repos: repos,
+          );
+
+          expect(service.searchedTitles, ['One']);
+          expect(result.rows.map((r) => r.group), [
+            TitleListGroup.notFound,
+            TitleListGroup.alreadyInCollection,
+            TitleListGroup.notFound,
+          ]);
+          expect(
+            result.rows.first.reason,
+            TitleListNotFoundReason.connectionFailed,
+          );
+          expect(
+            result.rows.last.reason,
+            TitleListNotFoundReason.connectionFailed,
+          );
+          expect(result.stoppedAfterConnectionFailure, isTrue);
+        },
+      );
+
+      test('an ambiguous title whose candidate previews are unreachable stops '
+          'after one preview and stops the batch', () async {
+        final repos = openTestRepositories();
+        final service = _CountingOnlineService(
+          rowsByTitle: {
+            'twice over': [
+              _row('Twice Over', id: '1'),
+              _row('Twice Over', id: '2'),
+              _row('Twice Over', id: '3'),
+            ],
+            'later': [_row('Later', id: '9')],
+          },
+          loadError: const UrlFetchException(UrlFetchFailureReason.unreachable),
+        );
+
+        final result = await resolveTitleList(
+          'Twice Over\nLater',
+          service: service,
+          repos: repos,
+        );
+
+        expect(service.loadedIds, ['1']);
+        expect(service.searchedTitles, ['Twice Over']);
+        expect(
+          result.rows.map((r) => r.reason),
+          everyElement(TitleListNotFoundReason.connectionFailed),
+        );
+        expect(result.ambiguousReviewImport, isNull);
+        expect(result.batch.records, isEmpty);
+        expect(result.stoppedAfterConnectionFailure, isTrue);
+      });
+
+      test('a page-specific HTTP failure on the preview fetch stays per-title: '
+          'fetchError, and the batch continues', () async {
+        final repos = openTestRepositories();
+        final service = _CountingOnlineService(
+          rowsByTitle: {
+            'one': [_row('One', id: '1')],
+            'two': [_row('Two', id: '2')],
+          },
+          loadError: const UrlFetchException(
+            UrlFetchFailureReason.httpStatus,
+            statusCode: 404,
+          ),
+        );
+
+        final result = await resolveTitleList(
+          'One\nTwo',
+          service: service,
+          repos: repos,
+        );
+
+        expect(service.searchedTitles, ['One', 'Two']);
+        expect(
+          result.rows.map((r) => r.reason),
+          everyElement(TitleListNotFoundReason.fetchError),
+        );
+        expect(result.stoppedAfterConnectionFailure, isFalse);
+      });
+
+      test(
+        'a non-connection failure (plain Exception) never sets the flag',
+        () async {
+          final repos = openTestRepositories();
+          final service = _CountingOnlineService(
+            searchError: Exception('boom'),
+          );
+
+          final result = await resolveTitleList(
+            'One\nTwo',
+            service: service,
+            repos: repos,
+          );
+
+          expect(service.searchedTitles, ['One', 'Two']);
+          expect(result.stoppedAfterConnectionFailure, isFalse);
+        },
+      );
     });
 
     test('T2: every way an online lookup can miss becomes its own reported '

@@ -5505,6 +5505,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'The Caller\'s Box kon voor deze titel niet worden bereikt.';
 
   @override
+  String get importTitleListReasonConnectionFailed =>
+      'The Caller\'s Box kon niet worden bereikt – controleer je verbinding.';
+
+  @override
+  String get importTitleListConnectionBanner =>
+      'Het opzoeken van titels is gestopt na een verbindingsfout. De titels die al in je collectie staan, worden getoond; probeer de rest zodra je online bent.';
+
+  @override
   String get importTitleListReasonLineTooLong =>
       'Te lang voor een danstitel, dus er is niet naar gezocht.';
 

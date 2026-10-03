@@ -5463,6 +5463,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'Kunne ikke nå The Caller\'s Box for denne titel.';
 
   @override
+  String get importTitleListReasonConnectionFailed =>
+      'Kunne ikke nå The Caller\'s Box – tjek din forbindelse.';
+
+  @override
+  String get importTitleListConnectionBanner =>
+      'Opslaget af titler blev stoppet efter en forbindelsesfejl. De titler, der allerede er i din samling, vises; prøv resten, når du er online igen.';
+
+  @override
   String get importTitleListReasonLineTooLong =>
       'For lang til at være en danstitel, så der blev ikke søgt.';
 
