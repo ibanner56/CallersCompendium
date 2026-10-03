@@ -90,6 +90,38 @@ def test_flagged_shapes() -> None:
         lines("final f = (String s) => RegExp(s);\n") == [1],
     )
     check(
+        "block getter",
+        symbols("class A {\n  RegExp get re {\n    return RegExp('x');\n  }\n}\n") == ["re"],
+    )
+    check(
+        "static block getter",
+        symbols("class A {\n  static RegExp get re {\n    return RegExp('x');\n  }\n}\n") == ["re"],
+    )
+    check(
+        "arrow function returning a map literal",
+        symbols("Map<String, RegExp> make() => {'x': RegExp('x')};\n") == ["make"],
+    )
+    check(
+        "static arrow function returning a map literal",
+        symbols("class A {\n  static Map<String, RegExp> make() => {'x': RegExp('x')};\n}\n") == ["make"],
+    )
+    check(
+        "arrow closure returning a map literal",
+        lines("final f = () => {'x': RegExp('x')};\n") == [1],
+    )
+    check(
+        "arrow getter returning a list literal",
+        symbols("class A {\n  static List<RegExp> get all => [RegExp('x')];\n}\n") == ["all"],
+    )
+    check(
+        "inside an if block of a function",
+        symbols("void f(int k) {\n  if (k > 0) {\n    RegExp('x');\n  }\n}\n") == ["f"],
+    )
+    check(
+        "switch expression inside a function",
+        lines("void f(int k) {\n  final r = switch (k) { 1 => RegExp('x'), _ => null };\n}\n") == [2],
+    )
+    check(
         "async function body",
         lines("Future<void> f() async {\n  RegExp('x');\n}\n") == [2],
     )
@@ -133,6 +165,18 @@ def test_accepted_shapes() -> None:
     check(
         "static final list literal in a class, multi-line",
         lines("class A {\n  static final _l = [\n    RegExp('x'),\n    RegExp('y'),\n  ];\n}\n") == [],
+    )
+    check(
+        "top-level switch expression initialiser (runs once)",
+        lines("final r = switch (k) { 1 => RegExp('x'), _ => RegExp('y') };\n") == [],
+    )
+    check(
+        "static final switch expression initialiser",
+        lines("class A {\n  static final r = switch (k) { 1 => RegExp('x'), _ => RegExp('y') };\n}\n") == [],
+    )
+    check(
+        "static final map literal with a getter-named key",
+        lines("class A {\n  static final _m = {'get': RegExp('x')};\n}\n") == [],
     )
     check("in a line comment", lines("void f() {\n  // RegExp('x')\n}\n") == [])
     check("in a block comment", lines("/* RegExp('x') */\nvoid f() {}\n") == [])

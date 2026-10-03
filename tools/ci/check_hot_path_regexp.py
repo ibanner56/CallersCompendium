@@ -14,10 +14,12 @@ A ``RegExp(`` is **per-call** when, in the comment/string-masked source, any of
 these holds:
 
 * it sits inside a function body (a ``{`` block whose header ends in a
-  parameter list, optionally followed by ``async``/``sync*``/``async*``, which
-  covers methods, constructors' bodies, local functions and closures);
+  parameter list, optionally followed by ``async``/``sync*``/``async*``, or in a
+  getter name: methods, constructors' bodies, local functions, closures and
+  block getters);
 * its statement has an arrow body before it (``f() => RegExp(...)``,
-  ``get re => RegExp(...)``, ``() => RegExp(...)``);
+  ``get re => RegExp(...)``, ``() => RegExp(...)``), including one that
+  returns a collection literal (``f() => {'x': RegExp('x')}``);
 * it initialises an *instance* field of a class (no ``static``): that compiles
   once per object, and these objects are created per call.
 
@@ -163,10 +165,35 @@ def _header(masked: str, pos: int) -> tuple[int, str]:
     return start, masked[start:pos]
 
 
+_CONTROL_KEYWORDS = frozenset({"if", "for", "while", "switch", "catch"})
+_GETTER_RE = re.compile(r"\bget\s+(\w+)\s*$")
+# What can precede a function's `=>`: a parameter list (optionally `async`) or a
+# getter name. A switch-expression case (`1 => RegExp(...)`) is neither.
+_ARROW_FN_RE = re.compile(r"(?:\)\s*(?:async\s*)?|\bget\s+\w+\s*)=>")
+
+
+def _has_arrow_fn(header: str) -> bool:
+    """Whether [header] contains a function's `=>` (an expression-bodied
+    function, getter or closure), as opposed to a switch-case arrow."""
+    return _ARROW_FN_RE.search(header) is not None
+
+
 def _block_kind(header: str) -> str:
     if _CLASS_HEADER_RE.search(header):
         return "class"
-    if _FUNC_TAIL_RE.search(header):
+    # A block getter (`get re {`) has no parameter list; an arrow-bodied
+    # function returning a collection literal (`=> {'x': RegExp('x')}`) opens a
+    # `{` that is a literal but still runs on every call.
+    if _name_before_params(header) in _CONTROL_KEYWORDS:
+        # `switch (x) {` / `if (c) {`: a block, not a callable. Inside a real
+        # function the enclosing function still marks it per-call; a top-level
+        # switch expression runs once.
+        return "block"
+    if (
+        _FUNC_TAIL_RE.search(header)
+        or _GETTER_RE.search(header)
+        or _has_arrow_fn(header)
+    ):
         return "function"
     return "literal"
 
@@ -187,6 +214,16 @@ def _name_before_params(header: str) -> str | None:
                 m = re.search(r"([A-Za-z_]\w*)\s*(?:<[^()]*>)?\s*$", stripped[:k])
                 return m.group(1) if m else None
     return None
+
+
+def _callable_name(header: str) -> str | None:
+    """Name of the function whose body block [header] opens, if it has one."""
+    getter = _GETTER_RE.search(header.strip())
+    if getter:
+        return getter.group(1)
+    if _has_arrow_fn(header):
+        return _arrow_name(header)
+    return _name_before_params(header)
 
 
 def _arrow_name(header: str) -> str | None:
@@ -217,7 +254,7 @@ def find_per_call(masked: str) -> list[tuple[int, str]]:
         if c == "{":
             _, header = _header(masked, pos)
             kind = _block_kind(header)
-            name = _name_before_params(header) if kind == "function" else None
+            name = _callable_name(header) if kind == "function" else None
             stack.append((kind, name))
         elif c == "}":
             if stack:
@@ -236,7 +273,7 @@ def _classify(
         if kind == "function" and name:
             symbol = name
             break
-    if "=>" in header:
+    if _has_arrow_fn(header):
         return pos, _arrow_name(header) or symbol
     if any(kind == "function" for kind, _ in stack):
         return pos, symbol
@@ -250,7 +287,10 @@ def _classify(
         if not re.search(r"\bstatic\b", masked[member_start:pos]):
             # Walk back to the start of the member through any enclosing
             # literals, so `static final m = {'a': RegExp(...)}` stays static.
-            if any(kind == "literal" for kind, _ in stack[innermost_class + 1 :]):
+            if any(
+                kind in ("literal", "block")
+                for kind, _ in stack[innermost_class + 1 :]
+            ):
                 depth = 0
                 k = pos
                 while k > 0:
@@ -263,7 +303,7 @@ def _classify(
                             _, h = _header(masked, k)
                             if re.search(r"\bstatic\b", h):
                                 return None
-                            if _block_kind(h) != "literal":
+                            if _block_kind(h) not in ("literal", "block"):
                                 break
                         else:
                             depth -= 1
