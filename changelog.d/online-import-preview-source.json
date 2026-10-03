@@ -1,0 +1,9 @@
+{
+  "id": "online-import-preview-source",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Importing a previewed online dance now always goes through the source the preview came from, even if you switched between The Caller's Box and ContraDB while the preview was open."
+    ]
+  }
+}

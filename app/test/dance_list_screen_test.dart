@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/data/callersbox_online.dart';
 import 'package:compendium_app/src/data/contradb_online.dart';
 import 'package:compendium_app/src/data/import_io.dart';
+import 'package:compendium_app/src/data/online_search.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
@@ -1014,6 +1015,77 @@ void main() {
     expect(contraDbRequest?.query, 'box circulate');
     expect(contraDbRequest?.filter, 'figure');
   });
+
+  testWidgets(
+    "Import from a preview uses the preview's source even after the source "
+    'toggle changes',
+    (tester) async {
+      final repos = openTestRepositories();
+      final callers = CallersBoxOnline(
+        searchFetcher: (_) async => '''
+          <html><body>
+          <p>Of 1 dances in the database, your query matches 1.</p>
+          <table><tr>
+            <td>&#x24bb;</td><td></td><td></td>
+            <td><a href='dance.php?id=10600' target='_blank'>Money Musk</a></td>
+            <td>Traditional</td><td>Triple Minor - Proper</td>
+          </tr></table>
+          </body></html>
+        ''',
+        jsonFetcher: (_) async => '''
+          {
+            "ID":"10600","Name":"Money Musk","Authors":["Traditional"],
+            "InterpretedBy":[],"Permission":"full",
+            "FormationBase":"Triple Minor - Proper","FormationDetail":"",
+            "Progression":"Single","PhraseStructure":"","CallingNotes":[],
+            "OtherNames":[],"Music":[],"Tunes":[],"Appearances":[],
+            "phrases":[{"name":"A1","figures":["Actives balance and swing"]}]
+          }
+        ''',
+      );
+      final contraDb = _RecordingContraDbOnline();
+
+      await _pumpScreen(
+        tester,
+        repos,
+        callersBoxOnline: callers,
+        contraDbOnline: contraDb,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('advanced-panel')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('online-search-enable')));
+      await tester.pumpAndSettle();
+      await _search(tester, 'Money Musk');
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('online-result-10600')),
+      );
+      expect(find.byKey(const ValueKey('import-dance')), findsOneWidget);
+
+      // The preview route covers the list, so flip the source selector's
+      // handler directly: the retained list state is what `_importOnline` reads.
+      tester
+          .widget<SegmentedButton<OnlineSource>>(
+            find.byKey(
+              const ValueKey('online-source-selector'),
+              skipOffstage: false,
+            ),
+          )
+          .onSelectionChanged!({OnlineSource.contraDb});
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('import-dance')));
+      await tester.pumpAndSettle();
+
+      expect(contraDb.importCalls, 0);
+      expect(find.byKey(const ValueKey('online-import-snackbar')), findsOne);
+      expect(
+        (await repos.dances.listAll()).map((d) => d.title),
+        contains('Money Musk'),
+      );
+    },
+  );
 
   testWidgets('a facet chip filters the list', (tester) async {
     final repos = openTestRepositories();
@@ -2129,5 +2201,26 @@ class _CountingDances extends DanceRepository {
   Future<List<Dance>> listAll({bool includeDeleted = false}) {
     loads++;
     return super.listAll(includeDeleted: includeDeleted);
+  }
+}
+
+/// A [ContraDbOnline] whose commit is observable and always fails, so a
+/// ContraDB commit of a Caller's Box preview is a visible error.
+class _RecordingContraDbOnline extends ContraDbOnline {
+  _RecordingContraDbOnline()
+    : super(searchFetcher: (_) async => '{"numberMatching":0,"dances":[]}');
+
+  int importCalls = 0;
+
+  @override
+  Future<OnlineImportResult> import(
+    CompendiumRepositories repos,
+    ImportRecordPlan plan, {
+    DateTime? now,
+    DedupeResolution? ambiguousResolution,
+    List<String> defaultTagIds = const [],
+  }) async {
+    importCalls++;
+    throw const UrlFetchException(UrlFetchFailureReason.contraDbEmptyTitle);
   }
 }
