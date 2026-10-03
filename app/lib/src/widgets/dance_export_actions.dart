@@ -30,9 +30,11 @@ typedef PdfLayouter =
 ///
 /// The two surfaces used to carry their own copies of this wiring, which drifted
 /// apart (#1395). Each method runs inside [guardExport] and takes the
-/// [ScaffoldMessengerState] and [AppLocalizations] the caller resolved **before**
-/// the menu route popped, so nothing here reads an inherited widget after an
-/// `await`. [exportJson] is the one method that also takes a [BuildContext]: the
+/// [ScaffoldMessengerState] and [AppLocalizations] the caller resolved before
+/// calling, so nothing here reads an inherited widget after an `await`. (Where
+/// that happens differs by surface: the wide menu resolves them in
+/// `onSelected`, once the popup has closed; the overflow menu resolves them
+/// when it builds, before its `onTap`s fire.) [exportJson] is the one method that also takes a [BuildContext]: the
 /// JSON choice dialog needs a live one, and it is only used for that dialog and
 /// for `context.mounted` after it closes.
 ///

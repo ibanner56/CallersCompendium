@@ -864,12 +864,12 @@ void main() {
       final pdfNames = <String>[];
       final saved = <String>[];
       var jsonCopies = 0;
-      String? clipboardText;
+      final clipboardWrites = <String?>[];
       tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
         SystemChannels.platform,
         (call) async {
           if (call.method == 'Clipboard.setData') {
-            clipboardText = (call.arguments as Map)['text'] as String?;
+            clipboardWrites.add((call.arguments as Map)['text'] as String?);
           }
           return null;
         },
@@ -917,7 +917,8 @@ void main() {
       expect(shares, hasLength(1), reason: 'file shares are Save As here');
 
       await tapItem('overflow-copy-dance');
-      expect(clipboardText, contains('Narrow Dance'));
+      expect(clipboardWrites, hasLength(1));
+      expect(clipboardWrites.single, contains('Narrow Dance'));
 
       await tapItem('overflow-share-dance-json');
       expect(jsonCopies, 1);
