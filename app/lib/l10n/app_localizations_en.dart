@@ -387,7 +387,8 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           'Another device is using a newer version of the app. Update the app on this device to receive $count items.',
-      one: 'Another device is using a newer version of the app. Update the app on this device to receive 1 item.',
+      one:
+          'Another device is using a newer version of the app. Update the app on this device to receive 1 item.',
     );
     return '$_temp0';
   }
@@ -4859,7 +4860,8 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           '$count free-text slots (breaks, notes) omitted — the matrix shows dances only.',
-      one: '1 free-text slot (breaks, notes) omitted — the matrix shows dances only.',
+      one:
+          '1 free-text slot (breaks, notes) omitted — the matrix shows dances only.',
     );
     return '$_temp0';
   }
@@ -6019,7 +6021,8 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           'This import contains $count items — more than expected for a normal share.',
-      one: 'This import contains 1 item — more than expected for a normal share.',
+      one:
+          'This import contains 1 item — more than expected for a normal share.',
     );
     return '$_temp0';
   }
@@ -7482,7 +7485,8 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           '$count contrast pairs below WCAG AA. You can still save, but some text may be hard to read.',
-      one: '1 contrast pair below WCAG AA. You can still save, but some text may be hard to read.',
+      one:
+          '1 contrast pair below WCAG AA. You can still save, but some text may be hard to read.',
     );
     return '$_temp0';
   }

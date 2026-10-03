@@ -214,9 +214,8 @@ class ImportReviewScreen extends StatefulWidget {
 }
 
 /// Decodes an already-parsed archive object; [archiveFromJson]'s shape.
-typedef ArchiveMapDecoder = ArchiveReadResult Function(
-  Map<String, Object?> root,
-);
+typedef ArchiveMapDecoder =
+    ArchiveReadResult Function(Map<String, Object?> root);
 
 enum _Phase { input, planning, review, committing }
 
@@ -2751,8 +2750,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               Expanded(
                 child: Text(
                   message,
-                  style: Theme.of(context).textTheme.bodyMedium
-                      ?.copyWith(color: scheme.onTertiaryContainer),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: scheme.onTertiaryContainer,
+                  ),
                 ),
               ),
             ],
@@ -3153,8 +3153,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       padding: const EdgeInsets.only(top: 4),
       child: Text(
         details.join(' · '),
-        style: Theme.of(context).textTheme.bodySmall
-            ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
       ),
     );
   }

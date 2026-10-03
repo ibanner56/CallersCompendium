@@ -261,38 +261,43 @@ void main() {
       // The cap bounds requests, and an over-long line is never searched — so
       // it must not push a legitimate list over the limit.
       final long = 'y' * (kMaxTitleLength + 1);
-      final titles = [for (var i = 0; i < kMaxTitleListTitles; i++) 'Dance $i']
-          .join('\n');
+      final titles = [
+        for (var i = 0; i < kMaxTitleListTitles; i++) 'Dance $i',
+      ].join('\n');
       final pre = preflightTitleList('$long\n$titles');
 
       expect(pre.rejection, isNull);
       expect(pre.searchableTitles, hasLength(kMaxTitleListTitles));
     });
 
-    test('refuses a paste over the distinct-title cap, counted after dedupe', () {
-      final overCap = [
-        for (var i = 0; i <= kMaxTitleListTitles; i++) 'Dance $i',
-      ].join('\n');
-      final refused = preflightTitleList(overCap);
-      expect(refused.rejection, TitleListRejection.tooManyTitles);
-      expect(refused.rejectionCount, kMaxTitleListTitles + 1);
-      expect(refused.lines, isEmpty);
+    test(
+      'refuses a paste over the distinct-title cap, counted after dedupe',
+      () {
+        final overCap = [
+          for (var i = 0; i <= kMaxTitleListTitles; i++) 'Dance $i',
+        ].join('\n');
+        final refused = preflightTitleList(overCap);
+        expect(refused.rejection, TitleListRejection.tooManyTitles);
+        expect(refused.rejectionCount, kMaxTitleListTitles + 1);
+        expect(refused.lines, isEmpty);
 
-      // Exactly at the cap is accepted (the boundary is inclusive)…
-      final atCap = [for (var i = 0; i < kMaxTitleListTitles; i++) 'Dance $i']
-          .join('\n');
-      expect(preflightTitleList(atCap).rejection, isNull);
+        // Exactly at the cap is accepted (the boundary is inclusive)…
+        final atCap = [
+          for (var i = 0; i < kMaxTitleListTitles; i++) 'Dance $i',
+        ].join('\n');
+        expect(preflightTitleList(atCap).rejection, isNull);
 
-      // …and repeating ONE title far past the cap is one title, not a refusal,
-      // because the cap counts distinct titles after de-duplication.
-      final repeated = List.filled(
-        kMaxTitleListTitles * 5,
-        'Money Musk',
-      ).join('\n');
-      final deduped = preflightTitleList(repeated);
-      expect(deduped.rejection, isNull);
-      expect(deduped.searchableTitles, ['Money Musk']);
-    });
+        // …and repeating ONE title far past the cap is one title, not a refusal,
+        // because the cap counts distinct titles after de-duplication.
+        final repeated = List.filled(
+          kMaxTitleListTitles * 5,
+          'Money Musk',
+        ).join('\n');
+        final deduped = preflightTitleList(repeated);
+        expect(deduped.rejection, isNull);
+        expect(deduped.searchableTitles, ['Money Musk']);
+      },
+    );
 
     test('refuses a paste over the raw character cap', () {
       final huge = 'a\n' * kMaxTitleListChars;
@@ -858,8 +863,9 @@ void main() {
 
       await expectLater(
         resolveTitleList(
-          [for (var i = 0; i <= kMaxTitleListTitles; i++) 'Dance $i']
-              .join('\n'),
+          [
+            for (var i = 0; i <= kMaxTitleListTitles; i++) 'Dance $i',
+          ].join('\n'),
           service: service,
           repos: repos,
         ),
