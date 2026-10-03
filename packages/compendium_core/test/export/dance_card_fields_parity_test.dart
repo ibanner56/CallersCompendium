@@ -2,8 +2,9 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
 /// `danceToPlainText` and the PDF builders gate the dance-card fields through
-/// the same `dance_card_fields.dart` helpers. This pins that: for every subset
-/// of the share-fields picker the text card carries exactly the lines the
+/// `DanceCardContent`, which uses the `dance_card_fields.dart` helpers. This
+/// pins that: for every subset of the share-fields picker the text card carries
+/// exactly the lines the
 /// helpers return — no more, no fewer.
 void main() {
   final now = DateTime.utc(2026, 7, 10);

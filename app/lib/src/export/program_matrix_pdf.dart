@@ -72,7 +72,7 @@ Future<Uint8List> buildProgramMatrixPdf(
   String Function(Formation formation)? formatFormation,
   MatrixColumnConfig config = MatrixColumnConfig.empty,
 }) async {
-  final fmtDate = formatDate ?? _isoDate;
+  final fmtDate = formatDate ?? isoDate;
   final fmtFormation = formatFormation ?? _englishFormationLabel;
   final resolvedTheme = theme ?? await loadProgramPdfTheme();
   final title = programTitle.trim().isEmpty
@@ -250,13 +250,6 @@ String _dateVenue(
     if (venue != null && venue.trim().isNotEmpty) venue.trim(),
   ];
   return parts.join(' · ');
-}
-
-String _isoDate(DateTime date) {
-  final y = date.year.toString().padLeft(4, '0');
-  final m = date.month.toString().padLeft(2, '0');
-  final d = date.day.toString().padLeft(2, '0');
-  return '$y-$m-$d';
 }
 
 /// English fallback for [Formation] (used when [buildProgramMatrixPdf]'s

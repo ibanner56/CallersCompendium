@@ -78,6 +78,15 @@ typedef DanceCardLabels = ({
   String statusLabel,
 });
 
+/// One figure-appendix entry: the dance, whether it is an alternate, and its
+/// laid-out-ready [DanceCardContent] (`null` when the caller supplied no
+/// `cardLabelsFor`, i.e. title + figures only).
+typedef ProgramAppendixCard = ({
+  Dance dance,
+  bool isAlternate,
+  DanceCardContent? content,
+});
+
 /// Loads the bundled marker-glyph fallback font used by the program-matrix
 /// PDF (see `program_matrix_pdf.dart`, #633).
 ///
@@ -139,9 +148,11 @@ Future<pw.Font> loadProgramMatrixMarkerFont() async {
 /// - [cardLabelsFor] resolves an appendix dance to the labels its card needs
 ///   (issue #1434). `null` (the default) preserves the pre-#1434 appendix
 ///   content exactly (title + figures only); when supplied, each appendix
-///   card is enriched to the same field set as [buildDancePdf] — gated by
-///   [fields] (defaults to [DanceShareField.allExceptTunes]) via the shared
-///   core `dance_card_fields.dart` helpers, so the two builders can't drift.
+///   card is enriched to the same field set as [buildDancePdf] — a core
+///   [DanceCardContent] built with [fields] (defaults to
+///   [DanceShareField.allExceptTunes]) and laid out here, so the two builders
+///   can't drift.
+/// - [pageFormat] is the page size; defaults to A4.
 Future<Uint8List> buildProgramPdf(
   Program program, {
   required String? Function(String danceId) titleFor,
@@ -157,8 +168,8 @@ Future<Uint8List> buildProgramPdf(
   List<String> Function(String danceId)? authorNamesFor,
   DanceCardLabels Function(Dance dance)? cardLabelsFor,
   Set<DanceShareField> fields = DanceShareField.allExceptTunes,
+  PdfPageFormat pageFormat = PdfPageFormat.a4,
 }) async {
-  final fmtDate = formatDate ?? _isoDate;
   final resolvedTheme = theme ?? await loadProgramPdfTheme();
   final doc = pw.Document(title: program.title, theme: resolvedTheme);
   final fig = renderer ?? FigureRenderer(contraTaxonomy);
@@ -168,19 +179,47 @@ Future<Uint8List> buildProgramPdf(
       ? venuesById[program.venueId!]
       : null;
 
-  final metaLines = <String>[
-    _dateVenue(program, fmtDate, venuesById),
-    if (_has(program.band)) '${labels.band}: ${program.band!.trim()}',
-    if (_has(program.caller)) '${labels.caller}: ${program.caller!.trim()}',
-    if (_has(program.dancerLevel))
-      '${labels.level}: ${canonicalizeDiscouragedTerms ? fig.renderFreeTextWithCanonicalDiscouragedTerms(program.dancerLevel!.trim(), resolvedDialect) : program.dancerLevel!.trim()}',
-  ].where((l) => l.isNotEmpty).toList();
+  final metaLines = programHeaderLines(
+    program,
+    venueNameFor: (_) => resolveVenueLabel(program, venuesById),
+    formatDate: formatDate,
+    labels: labels,
+    renderer: fig,
+    dialect: resolvedDialect,
+    canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+  );
 
   final resolvedDanceLabels = danceLabels ?? const DanceExportLabels();
 
+  // `cardLabelsFor == null` keeps the pre-#1434 appendix (title + figures
+  // only): no content is built, so no gated block can be laid out.
+  final appendCards = <ProgramAppendixCard>[
+    for (final entry
+        in appendDances ?? const <({Dance dance, bool isAlternate})>[])
+      (
+        dance: entry.dance,
+        isAlternate: entry.isAlternate,
+        content: switch (cardLabelsFor?.call(entry.dance)) {
+          final card? => DanceCardContent.build(
+            entry.dance,
+            dialect: resolvedDialect,
+            authorNames: card.authorNames,
+            formationLabel: card.formationLabel,
+            levelLabel: card.levelLabel,
+            statusLabel: card.statusLabel,
+            renderer: fig,
+            labels: resolvedDanceLabels,
+            canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+            fields: fields,
+          ),
+          null => null,
+        },
+      ),
+  ];
+
   doc.addPage(
     pw.MultiPage(
-      pageFormat: PdfPageFormat.a4,
+      pageFormat: pageFormat,
       build: (context) => [
         pw.Header(
           level: 0,
@@ -220,21 +259,19 @@ Future<Uint8List> buildProgramPdf(
             overflow: pw.TextOverflow.span,
           ),
         ],
-        if (appendDances != null && appendDances.isNotEmpty) ...[
+        if (appendCards.isNotEmpty) ...[
           pw.SizedBox(height: 16),
           pw.Text(
             labels.figures,
             style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
           ),
-          ..._figureAppendixWidgets(
-            appendDances,
+          ...programAppendixWidgets(
+            appendCards,
             fig,
             resolvedDialect,
             resolvedDanceLabels,
             labels,
             canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
-            cardLabelsFor: cardLabelsFor,
-            fields: fields,
           ),
         ],
       ],
@@ -244,29 +281,29 @@ Future<Uint8List> buildProgramPdf(
   return doc.save();
 }
 
-/// Renders one compact dance-card block per entry in [dances] for the figure
+/// Renders one compact dance-card block per entry in the list for the figure
 /// appendix. Dance title is a bold sub-header; alternates are prefixed with
 /// [labels.alternate]. No forced page breaks — [pw.MultiPage] handles
 /// pagination naturally.
 ///
-/// [cardLabelsFor] gates the full field-gated card content added by issue
-/// #1434 (author line, formation/level/mixer/status/phrase, calling notes,
-/// walkthrough, tunes — [fields]-gated via the shared core `dance_card_fields.dart`
-/// helpers, same as [buildDancePdf]). `null` (the default) preserves the
-/// pre-#1434 content exactly: title + figures only, regardless of [fields].
-List<pw.Widget> _figureAppendixWidgets(
-  List<({Dance dance, bool isAlternate})> dances,
+/// Each entry's `content` is the field-gated card added by issue #1434 (author
+/// line, formation/level/mixer/status/phrase, calling notes, walkthrough,
+/// tunes), the same core [DanceCardContent] [buildDancePdf] lays out. A `null`
+/// `content` (no `cardLabelsFor`) preserves the pre-#1434 appendix exactly:
+/// title + figures only, regardless of the selected fields.
+@visibleForTesting
+List<pw.Widget> programAppendixWidgets(
+  List<ProgramAppendixCard> cards,
   FigureRenderer renderer,
   Dialect dialect,
   DanceExportLabels danceLabels,
   ProgramExportLabels labels, {
   bool canonicalizeDiscouragedTerms = false,
-  DanceCardLabels Function(Dance dance)? cardLabelsFor,
-  Set<DanceShareField> fields = DanceShareField.allExceptTunes,
 }) {
   final widgets = <pw.Widget>[];
-  for (final entry in dances) {
+  for (final entry in cards) {
     final dance = entry.dance;
+    final content = entry.content;
     final danceFigures = switch (dance.figuresSource) {
       DecodedFigures(:final figures) => figures,
       UnreadableFigures() => const <Figure>[],
@@ -280,23 +317,16 @@ List<pw.Widget> _figureAppendixWidgets(
         style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold),
       ),
     );
-    final cardLabels = cardLabelsFor?.call(dance);
-    if (cardLabels != null) {
-      final names = danceCardAuthorNames(cardLabels.authorNames, fields);
-      if (names.isNotEmpty) {
+    if (content != null) {
+      if (content.authorNames.isNotEmpty) {
         widgets.add(
-          pw.Text(names.join(', '), style: const pw.TextStyle(fontSize: 12)),
+          pw.Text(
+            content.authorNames.join(', '),
+            style: const pw.TextStyle(fontSize: 12),
+          ),
         );
       }
-      final metaLines = danceCardMetaLines(
-        dance,
-        formationLabel: cardLabels.formationLabel,
-        levelLabel: cardLabels.levelLabel,
-        statusLabel: cardLabels.statusLabel,
-        labels: danceLabels,
-        fields: fields,
-      );
-      for (final line in metaLines) {
+      for (final line in content.metaLines) {
         widgets.add(pw.Text(line, style: const pw.TextStyle(fontSize: 11)));
       }
     }
@@ -309,68 +339,48 @@ List<pw.Widget> _figureAppendixWidgets(
         canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
       ),
     );
-    if (cardLabels != null) {
-      if (fields.contains(DanceShareField.callingNotes) &&
-          _has(dance.callingNotes)) {
+    if (content != null) {
+      if (content.callingNotes case final notes?) {
         widgets.add(pw.SizedBox(height: 4));
+        widgets.add(_appendixHeading(danceLabels.callingNotes));
         widgets.add(
           pw.Text(
-            danceLabels.callingNotes,
-            style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
-          ),
-        );
-        widgets.add(
-          pw.Text(
-            canonicalizeDiscouragedTerms
-                ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
-                    dance.callingNotes.trim(),
-                    dialect,
-                  )
-                : renderer.renderFreeText(dance.callingNotes.trim(), dialect),
+            notes,
             style: const pw.TextStyle(fontSize: 11),
             overflow: pw.TextOverflow.span,
           ),
         );
       }
-      if (fields.contains(DanceShareField.walkthrough) &&
-          _has(dance.walkthrough)) {
+      if (content.walkthrough case final walkthrough?) {
         widgets.add(pw.SizedBox(height: 4));
+        widgets.add(_appendixHeading(danceLabels.walkthrough));
         widgets.add(
           pw.Text(
-            danceLabels.walkthrough,
-            style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
-          ),
-        );
-        widgets.add(
-          pw.Text(
-            canonicalizeDiscouragedTerms
-                ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
-                    dance.walkthrough.trim(),
-                    dialect,
-                  )
-                : renderer.renderFreeText(dance.walkthrough.trim(), dialect),
+            walkthrough,
             style: const pw.TextStyle(fontSize: 11),
             overflow: pw.TextOverflow.span,
           ),
         );
       }
-      final tunes = danceCardTuneNames(dance, fields);
-      if (tunes.isNotEmpty) {
+      if (content.tuneNames.isNotEmpty) {
         widgets.add(pw.SizedBox(height: 4));
+        widgets.add(_appendixHeading(danceLabels.tunes));
         widgets.add(
           pw.Text(
-            danceLabels.tunes,
-            style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
+            content.tuneNames.join(', '),
+            style: const pw.TextStyle(fontSize: 11),
           ),
-        );
-        widgets.add(
-          pw.Text(tunes.join(', '), style: const pw.TextStyle(fontSize: 11)),
         );
       }
     }
   }
   return widgets;
 }
+
+pw.Widget _appendixHeading(String text) => pw.Text(
+  text,
+  style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
+);
 
 List<pw.Widget> _slotWidgets(
   Program program,
@@ -384,7 +394,7 @@ List<pw.Widget> _slotWidgets(
   final widgets = <pw.Widget>[];
   var n = 1;
   for (final group in program.outputGrouped) {
-    final primary = _slotLine(
+    final primary = programSlotLine(
       group.primary,
       titleFor,
       labels,
@@ -406,7 +416,7 @@ List<pw.Widget> _slotWidgets(
     );
     widgets.add(pw.SizedBox(height: 2));
     for (final alt in group.alternates) {
-      final alternate = _slotLine(
+      final alternate = programSlotLine(
         alt,
         titleFor,
         labels,
@@ -428,18 +438,6 @@ List<pw.Widget> _slotWidgets(
     n++;
   }
   return widgets;
-}
-
-String _dateVenue(
-  Program program,
-  String Function(DateTime) fmtDate,
-  Map<String, Venue> venuesById,
-) {
-  final parts = <String>[
-    if (program.eventDate != null) fmtDate(program.eventDate!),
-    ?resolveVenueLabel(program, venuesById),
-  ];
-  return parts.join(' · ');
 }
 
 /// Renders the richer venue detail block shown when a program links a
@@ -521,67 +519,4 @@ String _contactLine(String? name, String? phone, String? email) => [
   if (_has(email)) email!.trim(),
 ].join(' · ');
 
-/// Mirrors the plain-text slot-line format so the PDF and the emailable text
-/// stay in lockstep.
-String _slotLine(
-  ProgramSlot slot,
-  String? Function(String danceId) titleFor,
-  ProgramExportLabels labels, {
-  required FigureRenderer renderer,
-  required Dialect dialect,
-  bool canonicalizeDiscouragedTerms = false,
-  List<String> Function(String danceId)? authorNamesFor,
-}) {
-  final buffer = StringBuffer();
-
-  if (slot.danceId != null) {
-    final title = titleFor(slot.danceId!);
-    buffer.write(_has(title) ? title!.trim() : labels.unknownDance);
-    // Author suffix (issue #1434): resolved independently of whether this
-    // dance has any figures — mirrors programToPlainText's _slotLine.
-    final authorNames = authorNamesFor
-        ?.call(slot.danceId!)
-        .map((n) => n.trim())
-        .where((n) => n.isNotEmpty)
-        .toList();
-    if (authorNames != null && authorNames.isNotEmpty) {
-      buffer.write(' — ${labels.by(authorNames.join(', '))}');
-    }
-    if (_has(slot.text)) {
-      final note = canonicalizeDiscouragedTerms
-          ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
-              slot.text!.trim(),
-              dialect,
-            )
-          : slot.text!.trim();
-      buffer.write(' — $note');
-    }
-  } else {
-    final text = slot.text!.trim();
-    buffer.write(
-      slot.isPurgedDance != false || !canonicalizeDiscouragedTerms
-          ? text
-          : renderer.renderFreeTextWithCanonicalDiscouragedTerms(text, dialect),
-    );
-  }
-
-  final meta = <String>[
-    if (_has(slot.guestCaller)) '${labels.guest}: ${slot.guestCaller!.trim()}',
-    if (slot.plannedTotalMinutes != null)
-      labels.minutes(slot.plannedTotalMinutes!),
-  ];
-  if (meta.isNotEmpty) buffer.write(' (${meta.join('; ')})');
-
-  if (slot.performedAt != null) buffer.write(' [${labels.performed}]');
-
-  return buffer.toString();
-}
-
 bool _has(String? value) => value != null && value.trim().isNotEmpty;
-
-String _isoDate(DateTime date) {
-  final y = date.year.toString().padLeft(4, '0');
-  final m = date.month.toString().padLeft(2, '0');
-  final d = date.day.toString().padLeft(2, '0');
-  return '$y-$m-$d';
-}

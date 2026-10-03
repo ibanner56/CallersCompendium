@@ -527,4 +527,68 @@ void main() {
       expect(seenIds, ['d1']);
     });
   });
+  group('shared header and slot-line helpers', () {
+    test('isoDate zero-pads to yyyy-MM-dd', () {
+      expect(isoDate(DateTime(2026, 3, 4)), '2026-03-04');
+    });
+
+    test('programHeaderLines is the block programToPlainText puts under the '
+        'title', () {
+      final p = program(
+        eventDate: DateTime(2026, 7, 10),
+        venue: 'Town Hall',
+        band: 'The Band',
+        caller: 'Pat',
+        dancerLevel: 'Mixed',
+      );
+      final header = programHeaderLines(p);
+      expect(header, [
+        '2026-07-10 · Town Hall',
+        'Band: The Band',
+        'Caller: Pat',
+        'Level: Mixed',
+      ]);
+      expect(programToPlainText(p, titleFor: titles).split('\n'), [
+        'Friday Contra',
+        ...header,
+      ]);
+    });
+
+    test('programHeaderLines prefers the resolved linked venue and is empty '
+        'for a bare program', () {
+      expect(
+        programHeaderLines(
+          program(venueId: 'v1', venue: 'Free text'),
+          venueNameFor: (id) => id == 'v1' ? ' Linked Hall ' : null,
+        ),
+        ['Linked Hall'],
+      );
+      expect(programHeaderLines(program()), isEmpty);
+    });
+
+    test('programSlotLine builds the line programToPlainText numbers', () {
+      final slot = ProgramSlot(
+        id: 's1',
+        position: 0,
+        danceId: 'd1',
+        text: 'slow',
+        guestCaller: 'Guest',
+        danceMinutes: 10,
+      );
+      final line = programSlotLine(
+        slot,
+        titles,
+        const ProgramExportLabels(),
+        authorNamesFor: (_) => const ['Jane'],
+      );
+      expect(
+        programToPlainText(
+          program(slots: [slot]),
+          titleFor: titles,
+          authorNamesFor: (_) => const ['Jane'],
+        ),
+        contains('1. $line'),
+      );
+    });
+  });
 }
