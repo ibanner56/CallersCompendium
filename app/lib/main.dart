@@ -220,15 +220,15 @@ Future<void> main() async {
 /// window frame (no-op off desktop; forces the DB open), runs any pending schema
 /// migration / derived-index back-fill via
 /// [CompendiumRepositories.ensureMigrated] (schema-v2 `dance_figures.section`),
-/// runs a fast `PRAGMA quick_check` integrity probe once per launch
-/// ([CompendiumDatabase.quickCheck]; a failure warns the user but still opens
-/// the app), then performs a startup purge sweep that hard-deletes soft-deleted
+/// then performs a startup purge sweep that hard-deletes soft-deleted
 /// dances AND programs past the configured retention window
 /// ([DanceRepository.purgeDeleted] / [ProgramRepository.purgeDeleted]); the
 /// window is user-configurable (30 / 90 days / never — ROADMAP G.4), defaulting
 /// to 30 days, and the sweep is skipped entirely when set to never. The app
 /// then hands the repositories facade down to the Collection screen via
-/// [RepositoriesScope].
+/// [RepositoriesScope]. The once-per-launch `PRAGMA quick_check` integrity probe
+/// ([CompendiumDatabase.quickCheck]) is not part of that gated sequence: it runs
+/// after the first ready frame, and a failure only raises a warning banner.
 ///
 /// Startup is gated by [AppBootstrap]: the app shows a loading screen until the
 /// bootstrap future completes so no screen reads stale data, and an error

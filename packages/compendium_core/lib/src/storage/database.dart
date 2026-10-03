@@ -1216,10 +1216,10 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   }
 
   /// Runs SQLite's `PRAGMA quick_check`, returning `true` when the database
-  /// reports `ok`. Wired into app startup (`_CompendiumAppState._startupSequence`
-  /// in `app/lib/main.dart`) so it runs once per app launch per
-  /// `docs/design/storage.md` ("Durability"); a failure is surfaced to the user
-  /// as a non-fatal corruption warning.
+  /// reports `ok`. The app runs it once per launch, after the first frame
+  /// (`_CompendiumAppState._runDeferredIntegrityProbe` in `app/lib/main.dart`),
+  /// per `docs/design/storage.md` ("Durability"); a failure is surfaced to the
+  /// user as a non-fatal corruption warning.
   Future<bool> quickCheck() async {
     final rows = await customSelect('PRAGMA quick_check').get();
     return rows.length == 1 && rows.first.data.values.first == 'ok';
