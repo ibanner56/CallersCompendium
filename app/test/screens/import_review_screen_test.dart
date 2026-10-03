@@ -2529,6 +2529,114 @@ void main() {
       expect(titles.where((t) => t == 'First Reel'), hasLength(1));
     });
 
+    group('Import and edit on a matched row', () {
+      Future<CompendiumRepositories> pumpMatched(WidgetTester tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(
+          _dance(
+            'existing',
+            'Old Title',
+            provenance: Provenance(
+              source: ProvenanceSource.json,
+              externalId: 'ext1',
+              importedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ),
+        );
+        await _pumpForEdit(
+          tester,
+          repos,
+          payload: _archivePayload([
+            _dance(
+              'incoming',
+              'Refreshed Title',
+              provenance: Provenance(
+                source: ProvenanceSource.json,
+                externalId: 'ext1',
+                importedAt: DateTime.utc(2026, 6, 1),
+              ),
+            ),
+          ]),
+        );
+        await _toReview(tester);
+        await tester.tap(find.byKey(const ValueKey('import-row-0-reimport')));
+        await tester.pumpAndSettle();
+        return repos;
+      }
+
+      testWidgets('asks first, names the matched dance, and Cancel writes '
+          'nothing', (tester) async {
+        final l10n = lookupAppLocalizations(const Locale('en'));
+        final repos = await pumpMatched(tester);
+
+        await tester.tap(find.byKey(const ValueKey('import-row-0-edit')));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('import-edit-overwrite-confirm')),
+          findsOneWidget,
+        );
+        expect(find.text(l10n.importReviewEditOverwriteTitle), findsOneWidget);
+        expect(
+          find.text(l10n.importReviewEditOverwriteBody('Old Title')),
+          findsOneWidget,
+        );
+
+        await tester.tap(find.text(l10n.commonCancel));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('import-edit-overwrite-confirm')),
+          findsNothing,
+        );
+        expect(find.byType(DanceEditorScreen), findsNothing);
+        expect(
+          find.byKey(const ValueKey('import-row-0-imported')),
+          findsNothing,
+        );
+        final existing = await repos.dances.getById('existing');
+        expect(existing!.title, 'Old Title');
+      });
+
+      testWidgets('Continue replaces the matched dance and opens the editor', (
+        tester,
+      ) async {
+        final repos = await pumpMatched(tester);
+
+        await tester.tap(find.byKey(const ValueKey('import-row-0-edit')));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('import-edit-overwrite-continue')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(DanceEditorScreen), findsOneWidget);
+        final existing = await repos.dances.getById('existing');
+        expect(existing!.title, 'Refreshed Title');
+
+        await tester.pageBack();
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('import-row-0-imported')),
+          findsOneWidget,
+        );
+      });
+    });
+
+    testWidgets('the row button reads "Import and edit"', (tester) async {
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      final repos = openTestRepositories();
+      await _pumpForEdit(
+        tester,
+        repos,
+        payload: _archivePayload([_dance('d1', 'Parsed Reel')]),
+      );
+      await _toReview(tester);
+
+      expect(find.text(l10n.importReviewImportAndEdit), findsOneWidget);
+      expect(find.text(l10n.commonEdit), findsNothing);
+    });
+
     testWidgets('Edit is disabled when the row is set to Skip', (tester) async {
       final repos = openTestRepositories();
       await _pumpForEdit(

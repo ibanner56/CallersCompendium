@@ -1,0 +1,9 @@
+{
+  "id": "1535-import-and-edit",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Import review: the row button is now 'Import and edit', and it asks before replacing a matched dance; the guide explains that it imports immediately and is not covered by the batch Undo."
+    ]
+  }
+}

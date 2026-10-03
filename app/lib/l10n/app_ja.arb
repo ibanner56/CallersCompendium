@@ -5952,6 +5952,10 @@
   "@importReviewImported": {
     "x-sourceSha256": "321f179c80ba93ea58db0c591591c517d2e86d83420855aeb271dcef81614616"
   },
+  "importReviewImportAndEdit": "インポートして編集",
+  "@importReviewImportAndEdit": {
+    "x-sourceSha256": "1e272da8a0700b181ce164467a7ecdc97d0ed31f5ca5eb9c776d6afc2dbcc396"
+  },
   "importReviewStructured": "{total}件中{structured}件が構造化",
   "@importReviewStructured": {
     "x-sourceSha256": "06028336a07bcfcb3f584ae2cd7df8354e4c8c198d6daa981cdbfc6f996e4be6"
@@ -6067,6 +6071,14 @@
   "importReviewEditError": "編集用にそのダンスをインポートできませんでした。",
   "@importReviewEditError": {
     "x-sourceSha256": "efa938acdf31d4dcd903bb981c6319d8b7a56f59d2922faf6078d2826413c32f"
+  },
+  "importReviewEditOverwriteTitle": "既存のダンスを今すぐ置き換えますか？",
+  "@importReviewEditOverwriteTitle": {
+    "x-sourceSha256": "e385088f8dff9057c9f8e095e3ba24809af85c95e5b9e72e91bd1cdbeb51b765"
+  },
+  "importReviewEditOverwriteBody": "編集のためにインポートすると、コレクション内の「{title}」がすぐに置き換えられます。一括インポートの「元に戻す」では復元されません。",
+  "@importReviewEditOverwriteBody": {
+    "x-sourceSha256": "87c2b58d9ba05743231066492919a0091c15c3aabceb593e3d6a6f78624b81b4"
   },
   "importReviewImportError": "インポートを完了できませんでした。",
   "@importReviewImportError": {

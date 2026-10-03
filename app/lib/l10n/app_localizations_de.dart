@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -393,8 +394,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um $count Elemente zu erhalten.',
-      one:
-          'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um 1 Element zu erhalten.',
+      one: 'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um 1 Element zu erhalten.',
     );
     return '$_temp0';
   }
@@ -651,8 +651,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Einträge wurden auf zwei Geräten geändert und warten auf deine Wahl.',
-      one:
-          '1 Eintrag wurde auf zwei Geräten geändert und wartet auf deine Wahl.',
+      one: '1 Eintrag wurde auf zwei Geräten geändert und wartet auf deine Wahl.',
     );
     return '$_temp0';
   }
@@ -6016,6 +6015,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get importReviewImported => 'Importiert';
 
   @override
+  String get importReviewImportAndEdit => 'Importieren und bearbeiten';
+
+  @override
   String importReviewStructured(int structured, int total) {
     return '$structured/$total strukturiert';
   }
@@ -6073,8 +6075,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           'Dieser Import enthält $count Elemente — mehr als für eine normale Freigabe erwartet.',
-      one:
-          'Dieser Import enthält 1 Element — mehr als für eine normale Freigabe erwartet.',
+      one: 'Dieser Import enthält 1 Element — mehr als für eine normale Freigabe erwartet.',
     );
     return '$_temp0';
   }
@@ -6190,6 +6191,15 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get importReviewEditError =>
       'Dieser Tanz konnte nicht zum Bearbeiten importiert werden.';
+
+  @override
+  String get importReviewEditOverwriteTitle =>
+      'Vorhandenen Tanz jetzt ersetzen?';
+
+  @override
+  String importReviewEditOverwriteBody(String title) {
+    return 'Beim Importieren zum Bearbeiten wird „$title“ in deiner Sammlung sofort ersetzt. „Rückgängig“ für den gesamten Import stellt ihn nicht wieder her.';
+  }
 
   @override
   String get importReviewImportError =>
@@ -6820,8 +6830,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Figuren hinzugefügt. Geben Sie eine weitere ein oder drücken Sie Escape, um zu beenden.',
-      one:
-          '1 Figur hinzugefügt. Geben Sie eine weitere ein oder drücken Sie Escape, um zu beenden.',
+      one: '1 Figur hinzugefügt. Geben Sie eine weitere ein oder drücken Sie Escape, um zu beenden.',
     );
     return '$_temp0';
   }
@@ -7550,8 +7559,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Kontrastpaare unterhalb von WCAG AA. Sie können trotzdem speichern, aber einiger Text könnte schwer lesbar sein.',
-      one:
-          '1 Kontrastpaar unterhalb von WCAG AA. Sie können trotzdem speichern, aber einiger Text könnte schwer lesbar sein.',
+      one: '1 Kontrastpaar unterhalb von WCAG AA. Sie können trotzdem speichern, aber einiger Text könnte schwer lesbar sein.',
     );
     return '$_temp0';
   }

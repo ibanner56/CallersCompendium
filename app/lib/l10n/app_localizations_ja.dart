@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -5726,6 +5727,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importReviewImported => 'インポート済み';
 
   @override
+  String get importReviewImportAndEdit => 'インポートして編集';
+
+  @override
   String importReviewStructured(int structured, int total) {
     return '$total件中$structured件が構造化';
   }
@@ -5885,6 +5889,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importReviewEditError => '編集用にそのダンスをインポートできませんでした。';
+
+  @override
+  String get importReviewEditOverwriteTitle => '既存のダンスを今すぐ置き換えますか？';
+
+  @override
+  String importReviewEditOverwriteBody(String title) {
+    return '編集のためにインポートすると、コレクション内の「$title」がすぐに置き換えられます。一括インポートの「元に戻す」では復元されません。';
+  }
 
   @override
   String get importReviewImportError => 'インポートを完了できませんでした。';

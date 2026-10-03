@@ -1267,6 +1267,29 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
   }
 
+  Future<bool?> _confirmEditOverwrite(String matchedTitle) {
+    final l10n = AppLocalizations.of(context);
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: const ValueKey('import-edit-overwrite-confirm'),
+        title: Text(l10n.importReviewEditOverwriteTitle),
+        content: Text(l10n.importReviewEditOverwriteBody(matchedTitle)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('import-edit-overwrite-continue'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.commonContinue),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// Commits just row [i] on its own (honouring its chosen resolution) and then
   /// opens the freshly committed dance in the [DanceEditorScreen] — the
   /// one-click "import + edit" affordance (issue #266). The row is marked
@@ -1278,6 +1301,19 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // Edit is disabled for skipped rows, so there is nothing to commit.
     if (planned == null) return;
     final (plan, resolution) = planned;
+
+    // Re-import and Link replace the matched dance the moment this row is
+    // written, and that write is outside the batch Undo, so ask first. Asked
+    // before the phase changes so Cancel leaves the screen untouched.
+    final choice = _choices[i];
+    if (choice.kind == _ActionKind.reimport ||
+        choice.kind == _ActionKind.link) {
+      final targetId = choice.linkTargetId;
+      final confirmed = await _confirmEditOverwrite(
+        '${_titlesById[targetId] ?? targetId}',
+      );
+      if (confirmed != true || !mounted) return;
+    }
 
     widget.onCommitStateChanged?.call(true);
     setState(() => _phase = _Phase.committing);
@@ -3024,7 +3060,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                         ? null
                         : () => _editRow(i),
                     icon: const Icon(Icons.edit_outlined, size: 18),
-                    label: Text(l10n.commonEdit),
+                    label: Text(l10n.importReviewImportAndEdit),
                   ),
                 ),
               ],

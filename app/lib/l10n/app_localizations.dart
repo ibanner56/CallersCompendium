@@ -9081,6 +9081,12 @@ abstract class AppLocalizations {
   /// **'Imported'**
   String get importReviewImported;
 
+  /// Per-row button on the import review screen. It imports that one dance into the collection immediately (outside the batch Undo) and opens it in the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Import and edit'**
+  String get importReviewImportAndEdit;
+
   /// Quality chip showing how many of a dance's figures parsed as structured.
   ///
   /// In en, this message translates to:
@@ -9254,6 +9260,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t import that dance to edit.'**
   String get importReviewEditError;
+
+  /// Title of the confirmation shown when Import and edit is pressed on a row set to Re-import or Link, because the matched dance is replaced immediately.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace the existing dance now?'**
+  String get importReviewEditOverwriteTitle;
+
+  /// Body of the Import and edit overwrite confirmation. The title is an untrusted local value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Importing to edit replaces \"{title}\" in your collection immediately. The batch Undo will not restore it.'**
+  String importReviewEditOverwriteBody(String title);
 
   /// Snackbar shown when an import commit (or commit-for-edit) throws. The raw exception is logged (debugPrint), never shown, so storage internals/paths can't leak to the UI (CWE-209).
   ///
