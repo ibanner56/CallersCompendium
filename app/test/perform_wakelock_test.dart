@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
@@ -207,5 +209,115 @@ void main() {
       reason: 'resuming the app must re-assert the wake-lock',
     );
     expect(wakelock.toggles, contains(true));
+  });
+
+  Program programFor(String danceId) => Program(
+    id: 'p1',
+    title: 'Spring Dance',
+    slots: [ProgramSlot(id: 's1', position: 0, danceId: danceId)],
+    createdAt: _now,
+    updatedAt: _now,
+  );
+
+  Future<void> exitProgramPerform(WidgetTester tester) async {
+    await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets(
+    'program Perform leaves zero inhibits outstanding after N resume cycles '
+    'and exit',
+    (tester) async {
+      final counting = installCountingWakelock();
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Program Dance'));
+      final data = await CollectionData.load(repos);
+
+      await _pushPerform(
+        tester,
+        PerformProgramScreen(
+          program: programFor('d1'),
+          data: data,
+          renderer: _renderer,
+        ),
+      );
+      expect(counting.outstanding, 1);
+
+      for (var i = 0; i < 3; i++) {
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+        await tester.pump();
+      }
+      expect(
+        counting.outstanding,
+        1,
+        reason: 'a resume while the lock is held must not stack another',
+      );
+      expect(counting.toggles, [true], reason: 'no second enable while held');
+
+      await exitProgramPerform(tester);
+
+      expect(counting.outstanding, 0);
+    },
+  );
+
+  testWidgets(
+    'program Perform releases the inhibit after repeated background/resume '
+    'cycles',
+    (tester) async {
+      final counting = installCountingWakelock();
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Program Dance'));
+      final data = await CollectionData.load(repos);
+
+      await _pushPerform(
+        tester,
+        PerformProgramScreen(
+          program: programFor('d1'),
+          data: data,
+          renderer: _renderer,
+        ),
+      );
+      for (var i = 0; i < 3; i++) {
+        await _backgroundThenResume(tester);
+      }
+      expect(counting.outstanding, 1);
+
+      await exitProgramPerform(tester);
+
+      expect(counting.outstanding, 0);
+    },
+  );
+
+  testWidgets('an enable still in flight when Perform is disposed is released', (
+    tester,
+  ) async {
+    final counting = installCountingWakelock();
+    final gate = Completer<void>();
+    counting.enableGate = gate;
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Program Dance'));
+    final data = await CollectionData.load(repos);
+
+    await _pushPerform(
+      tester,
+      PerformProgramScreen(
+        program: programFor('d1'),
+        data: data,
+        renderer: _renderer,
+      ),
+    );
+    expect(counting.outstanding, 0, reason: 'enable is still in flight');
+
+    await exitProgramPerform(tester);
+    expect(find.byType(PerformProgramScreen), findsNothing);
+
+    gate.complete();
+    await tester.pumpAndSettle();
+
+    expect(counting.outstanding, 0);
   });
 }
