@@ -332,7 +332,8 @@ class CompendiumApp extends StatefulWidget {
   final Future<void> Function(SnapshotFailureDecision onSnapshotFailure)?
   migrationPreflight;
 
-  /// Fast, once-per-launch data-integrity probe run during bootstrap. Returns
+  /// Once-per-launch data-integrity probe (`PRAGMA quick_check`), run after the
+  /// first frame so a large database does not delay the first screen. Returns
   /// `true` when the database is healthy; `false` triggers a (non-fatal)
   /// corruption warning. Defaults to [CompendiumDatabase.quickCheck]; injected
   /// in tests to exercise the warning path.
@@ -796,6 +797,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
 
   void _startBootstrap() {
     _corruptionBannerShown = false;
+    // The deferred probe re-runs after this bootstrap succeeds; clear any
+    // verdict from a previous database so it cannot raise a stale banner.
+    _dataIntegrityOk = true;
+    _integrityProbeThrew = false;
     // Let AppBootstrap subscribe before running a replacement bootstrap, so a
     // synchronously failing preflight is still delivered to its recovery UI.
     final bootstrap = Completer<void>();
@@ -1292,33 +1297,6 @@ class _CompendiumAppState extends State<CompendiumApp> {
         logCaughtError(error, stackTrace, source: 'main.first-run-seed');
       }
     }
-    // Fast, once-per-launch integrity probe (SQLite `PRAGMA quick_check`, per
-    // `docs/design/storage.md` "Durability"). A failure is advisory — the app
-    // still opens, but [build] surfaces a corruption warning so the user can
-    // restore from a backup (Stage 1.7). A thrown probe (not just a `false`
-    // result) is treated as a failed check too, so startup continues and warns
-    // rather than blocking the whole app on the error/retry screen. (This is
-    // deliberately distinct from a DB-open failure during the window restore
-    // above, which stays fatal and routes to the error/retry screen.)
-    try {
-      _integrityProbeThrew = false;
-      _dataIntegrityOk = await _runIntegrityCheck();
-    } catch (error, stackTrace) {
-      // The probe *threw* — an I/O error, a locked DB, a corruption-adjacent
-      // fault — which is distinct from a probe that merely *returned* false.
-      // This catch previously swallowed the error with zero diagnostic (issue
-      // #458, main.dart callout): log it (mirroring the first-run-seed path
-      // above) and route it into the local crash-log sink so a real underlying
-      // fault is capturable in the field rather than silently collapsing into
-      // the generic advisory banner. The `_integrityProbeThrew` flag preserves
-      // the "threw" vs "returned false" distinction for that banner.
-      _dataIntegrityOk = false;
-      _integrityProbeThrew = true;
-      if (kDebugMode) {
-        debugPrint('Integrity probe threw: $error\n$stackTrace');
-      }
-      logCaughtError(error, stackTrace, source: 'integrity-probe');
-    }
     // Resolve the configured soft-delete retention window (ROADMAP G.4),
     // defaulting to 30 days when unset. A `null` window means "never
     // auto-purge", so the startup sweep is skipped entirely.
@@ -1346,6 +1324,49 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // no-op unless the user opted in (default off) and never blocks startup or
     // surfaces an error — fire-and-forget per the ADR-002 §5 privacy contract.
     unawaited(_updateController.maybeAutoCheck());
+    // Scheduled only here, at the success tail, so a failed attempt that Retry
+    // re-runs never queues a probe and each successful bootstrap probes once.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(_runDeferredIntegrityProbe());
+    });
+  }
+
+  /// Once-per-launch integrity probe (SQLite `PRAGMA quick_check`, per
+  /// `docs/design/storage.md` "Durability"), run after the first frame so a
+  /// large database does not delay the first screen. A failure is advisory —
+  /// the app is already open, and [_buildReadyApp] surfaces a corruption
+  /// warning so the user can restore from a backup (Stage 1.7). A thrown probe
+  /// (not just a `false` result) is treated as a failed check too, so it warns
+  /// rather than routing to the error/retry screen. (This is deliberately
+  /// distinct from a DB-open failure during the window restore in
+  /// [_startupSequence], which stays fatal.)
+  Future<void> _runDeferredIntegrityProbe() async {
+    var ok = true;
+    var threw = false;
+    try {
+      ok = await _runIntegrityCheck();
+    } catch (error, stackTrace) {
+      // The probe *threw* — an I/O error, a locked DB, a corruption-adjacent
+      // fault — which is distinct from a probe that merely *returned* false.
+      // Log it (mirroring the first-run-seed path) and route it into the local
+      // crash-log sink so a real underlying fault is capturable in the field
+      // rather than silently collapsing into the generic advisory banner. The
+      // `_integrityProbeThrew` flag preserves the "threw" vs "returned false"
+      // distinction for that banner.
+      ok = false;
+      threw = true;
+      if (kDebugMode) {
+        debugPrint('Integrity probe threw: $error\n$stackTrace');
+      }
+      logCaughtError(error, stackTrace, source: 'integrity-probe');
+    }
+    if (!mounted || ok) return;
+    // setState so [_buildReadyApp] raises the banner on the next build.
+    setState(() {
+      _integrityProbeThrew = threw;
+      _dataIntegrityOk = false;
+    });
   }
 
   /// Reconfigurations run one at a time, in request order. An enable that is
