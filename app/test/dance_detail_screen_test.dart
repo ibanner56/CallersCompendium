@@ -848,6 +848,88 @@ void main() {
       expect(find.text('Export JSON'), findsNothing);
     });
 
+    testWidgets('each overflow export item reaches its seam exactly once', (
+      tester,
+    ) async {
+      // Characterisation test for the DanceExportActions extraction (CS-10b):
+      // passes before and after the move, pinning that all five compact items
+      // keep reaching the same seams. The bundle item runs the Linux Save-As
+      // branch so it is observable through `saveInvoker` without a temp dir.
+      isBundleShareUnsupported = () => true;
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Narrow Dance'));
+      final library = await buildLibrary(repos);
+
+      final shares = <ShareParams>[];
+      final pdfNames = <String>[];
+      final saved = <String>[];
+      var jsonCopies = 0;
+      String? clipboardText;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            clipboardText = (call.arguments as Map)['text'] as String?;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+
+      await _pumpDetail(
+        tester,
+        repos,
+        'd1',
+        surfaceSize: const Size(360, 800),
+        dialectLibrary: library,
+        shareInvoker: (params) async => shares.add(params),
+        pdfLayouter: ({required name, required onLayout}) async =>
+            pdfNames.add(name),
+        jsonExportDelivery: JsonExportDelivery(
+          choicePicker: (_) async => JsonExportChoice.copy,
+          clipboardWriter: (_) async => jsonCopies++,
+          saveInvoker: (json, fileName) async {
+            saved.add(fileName);
+            return JsonSaveResult(path: '', fileName: fileName);
+          },
+        ),
+      );
+
+      Future<void> tapItem(String key) async {
+        await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(ValueKey(key)));
+        await tester.pumpAndSettle();
+      }
+
+      await tapItem('overflow-share-dance');
+      expect(shares, hasLength(1));
+      expect(shares.single.text, contains('Narrow Dance'));
+      expect(shares.single.subject, 'Narrow Dance');
+
+      await tapItem('overflow-share-dance-bundle');
+      expect(saved, ['Narrow_Dance.ccshare']);
+      expect(shares, hasLength(1), reason: 'file shares are Save As here');
+
+      await tapItem('overflow-copy-dance');
+      expect(clipboardText, contains('Narrow Dance'));
+
+      await tapItem('overflow-share-dance-json');
+      expect(jsonCopies, 1);
+      expect(saved, hasLength(1), reason: 'JSON Copy must not save');
+
+      await tapItem('overflow-export-pdf');
+      expect(pdfNames, ['Narrow_Dance']);
+
+      expect(shares, hasLength(1));
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('overflow dialect switch still changes the active dialect', (
       tester,
     ) async {
