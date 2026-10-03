@@ -508,6 +508,7 @@ void main() {
       () async {
         final repos = openRepos();
         await repos.dances.create(dance('d1', 'Petronella'));
+        // ignore: unused_result
         await repos.customFieldDefs.upsert(
           CustomFieldDef(
             id: 'f1',

@@ -369,9 +369,14 @@ class CollectionData {
           );
     };
     out.onCancel = () async {
-      await updatesSub?.cancel();
-      await loadSub?.cancel();
-      await signal?.close();
+      // All three cancels start synchronously: a subscriber that disposes
+      // without awaiting must not leave the coalescing timer pending.
+      final cancels = [
+        loadSub?.cancel(),
+        updatesSub?.cancel(),
+        signal?.close(),
+      ];
+      await Future.wait([for (final c in cancels) ?c]);
     };
     return out.stream;
   }
