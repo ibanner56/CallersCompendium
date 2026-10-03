@@ -7,6 +7,7 @@ import '../model/formation.dart';
 import '../taxonomy/param_types.dart';
 import '../util/text_sanitizer.dart';
 import 'author_tokenizer.dart';
+import 'contradb_dancer_vocab.dart';
 import 'figure_text_scrub.dart';
 import 'import_error.dart';
 import 'raw_record.dart';
@@ -720,47 +721,10 @@ num? _asNum(Object? v) {
   return null;
 }
 
-/// ContraDB dancer-set vocabulary → our canonical tokens. Roles migrate from
-/// ContraDB gentlespoons/ladles to our role1/role2 (`docs/research/contradb.md`).
-const Map<String, String> _dancerVocab = {
-  'everyone': 'everyone',
-  'all': 'everyone',
-  'gentlespoons': 'role1s',
-  'gentlespoon': 'role1s',
-  'gents': 'role1s',
-  'larks': 'role1s',
-  'ladles': 'role2s',
-  'ladle': 'role2s',
-  'ravens': 'role2s',
-  'robins': 'role2s',
-  'role1s': 'role1s',
-  'role2s': 'role2s',
-  'ones': 'ones',
-  'twos': 'twos',
-  'partners': 'partners',
-  'partner': 'partners',
-  'neighbors': 'neighbors',
-  'neighbor': 'neighbors',
-  'same roles': 'sameRoles',
-  'first corners': 'firstCorners',
-  'second corners': 'secondCorners',
-  'shadows': 'shadows',
-  'second shadows': 'secondShadows',
-  'previous neighbors': 'prevNeighbors',
-  'next neighbors': 'nextNeighbors',
-  'third neighbors': 'thirdNeighbors',
-  'fourth neighbors': 'fourthNeighbors',
-  'centers': 'centers',
-  'first gentlespoon': 'onesRole1',
-  'first ladle': 'onesRole2',
-  'second gentlespoon': 'twosRole1',
-  'second ladle': 'twosRole2',
-};
-
 Object? _dancers(Object? raw) {
   final s = _asString(raw);
   if (s == null) return null;
-  return _dancerVocab[s.trim().toLowerCase()];
+  return contradbDancerVocab[s.trim().toLowerCase()];
 }
 
 Object? _hand(Object? raw) {
