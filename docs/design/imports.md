@@ -822,7 +822,8 @@ rather than an aborted batch — except a *connection-class* failure
 search-endpoint `callersBoxHttpStatus`/`contraDbHttpStatus`; the per-dance
 preview's `httpStatus` is not, since a 404 there is about that dance). The first
 such failure stops the batch (IMP-07): the title and every title not yet looked
-up become `connectionFailed` rows without a request, and
+up become `connectionFailed` rows — the failing title itself was requested; only
+the later titles are skipped without a request — and
 `TitleListResolution.stoppedAfterConnectionFailure` drives one batch-level
 banner on the review screen. Titles already in the collection are still listed.
 No new fetch path is introduced: the existing

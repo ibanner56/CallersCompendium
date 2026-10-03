@@ -8349,7 +8349,7 @@ abstract class AppLocalizations {
   /// **'Couldn\'t reach The Caller\'s Box for this title.'**
   String get importTitleListReasonFetchError;
 
-  /// Reason under a not-found row: the online lookup could not reach The Caller's Box (offline, timed out, or the search page answered with an error status). This title and every title after it were not looked up; shown together with the batch banner. The raw error is logged, never shown (CWE-209).
+  /// Reason under a not-found row: the online lookup could not reach The Caller's Box (offline, timed out, or the search page answered with an error status). Shown for the title whose lookup failed and for every later title that was then skipped without a request; accompanied by the batch banner. The raw error is never shown (CWE-209).
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t reach The Caller\'s Box — check your connection.'**
