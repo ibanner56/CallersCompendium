@@ -1220,7 +1220,18 @@ _Match? _starThrough(List<String> w) {
 
 _Match? _circle(List<String> w) {
   if (!_consumePhrase(w, ['circle'])) return null;
-  final turn = _takeSide(w); // circle `direction` is left/right
+  // Circle `direction` is stored as left/right. A spin word maps onto it: a
+  // circle left travels clockwise, a circle right counterclockwise. A line
+  // stating both a side and a spin word must agree, else it stays custom.
+  final side = _takeSide(w);
+  final spin = _takeSpinDirection(w);
+  final spinSide = switch (spin) {
+    'clockwise' => 'left',
+    'counterclockwise' => 'right',
+    _ => null,
+  };
+  if (side != null && spinSide != null && side != spinSide) return null;
+  final turn = side ?? spinSide;
   final places = _takePlaces(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
