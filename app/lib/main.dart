@@ -1301,9 +1301,23 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // Resolve the configured soft-delete retention window (ROADMAP G.4),
     // defaulting to 30 days when unset. A `null` window means "never
     // auto-purge", so the startup sweep is skipped entirely.
-    final retention = softDeleteRetentionFromStored(
-      await _appData.repositories.settings.get(kSoftDeleteRetentionKey),
-    );
+    //
+    // An unreadable setting must not block startup, but it must not fall back to
+    // the 30-day default either: a user who chose "never" would then have
+    // deleted items purged that they meant to keep. So a failed read skips the
+    // sweep for this launch (the same as "never") and is logged.
+    Duration? retention;
+    try {
+      retention = softDeleteRetentionFromStored(
+        await _appData.repositories.settings.get(kSoftDeleteRetentionKey),
+      );
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'startup.soft_delete_retention_read',
+      );
+    }
     if (retention != null) {
       // Share one `now` so dances and programs are swept against the same
       // cutoff. Both honor the retention promise shown in their Recently-Deleted
@@ -1728,10 +1742,13 @@ class _CompendiumAppState extends State<CompendiumApp> {
     );
   }
 
-  /// Runs a controller's `load()` so a failure leaves that controller at its
-  /// default state instead of failing startup (or a backup restore). Logged,
-  /// not silent: some loads also write (the dialect library's first-run
-  /// migration), and a swallowed write failure should still be diagnosable.
+  /// Runs a controller's `load()` so a failure does not fail startup (or a
+  /// backup restore). Each controller's `load()` is transactional — it reads
+  /// everything before it changes state — so a failure leaves the controller
+  /// exactly as it was (its defaults at startup, its pre-restore state on a
+  /// restore), never a mix. Logged, not silent: some loads also write (the
+  /// dialect library's first-run migration), and a swallowed write failure
+  /// should still be diagnosable.
   Future<void> _guardedControllerLoad(
     String source,
     Future<void> Function() load,
