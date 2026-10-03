@@ -1085,8 +1085,8 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
               ),
             ),
             bottomNavigationBar: BottomAppBar(
-              // Grow with the system text size (A11Y-01): the default 80 px
-              // bar cannot hold the position + timing lines at >= 130%.
+              // Grow with the system text size (A11Y-01): the fixed 80 px bar
+              // cannot hold the position + timing lines at large scales.
               height: MediaQuery.textScalerOf(
                 context,
               ).scale(80).clamp(80.0, 200.0),
