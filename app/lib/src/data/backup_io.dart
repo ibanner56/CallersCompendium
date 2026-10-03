@@ -44,14 +44,40 @@ const _jsonTypeGroup = XTypeGroup(
 );
 
 /// Maximum size, in bytes, of a backup file the restore path will read into
-/// memory (~50 MiB).
+/// memory (50 MiB).
 ///
-/// Backups are JSON text and even a very large collection serializes to a few
-/// megabytes, so this is generous headroom for legitimate files while refusing
-/// one large enough to exhaust memory. The restore reads the whole file into a
-/// `String`, so an unbounded read of an untrusted/corrupt file is an
-/// uncontrolled resource-consumption risk (OWASP A04/A05); this ceiling caps it.
+/// What it protects: the restore reads the whole file into a `String`, so an
+/// unbounded read of an untrusted or corrupt file is an uncontrolled
+/// resource-consumption risk (OWASP A04/A05).
+///
+/// It is not "a few megabytes of headroom": a lean 20,000-dance library encodes
+/// to roughly 30 MiB, and the cap is reached somewhere around 30,000-40,000
+/// dances (audit figures; v7 tombstoned tags make the real number lower).
+/// Export therefore refuses to write past it ([BackupExportTooLargeException]),
+/// so the app never produces a backup its own restore would reject.
 const int kMaxBackupFileBytes = 50 * 1024 * 1024;
+
+/// Thrown by `BackupService.exportToJson` when the encoded backup would exceed
+/// the restore cap, so the app never writes a file its own restore refuses.
+/// Nothing is handed to the saver. No user-facing [message]: the UI string
+/// belongs to the export flow's localisation, and [toString] is for logs only.
+class BackupExportTooLargeException implements Exception {
+  const BackupExportTooLargeException({
+    required this.sizeBytes,
+    required this.maxBytes,
+  });
+
+  /// The encoded backup's size in bytes.
+  final int sizeBytes;
+
+  /// The enforced ceiling ([kMaxBackupFileBytes] by default) in bytes.
+  final int maxBytes;
+
+  @override
+  String toString() =>
+      'BackupExportTooLargeException: backup is $sizeBytes bytes; '
+      'limit $maxBytes bytes';
+}
 
 /// Thrown by [pickBackupFile] when the chosen file exceeds
 /// [kMaxBackupFileBytes]. Carries a friendly, user-facing [message] so the UI

@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:isolate';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
+import 'package:flutter/foundation.dart' show visibleForTesting;
 
 import 'custom_theme.dart';
 
@@ -188,11 +190,59 @@ class BackupReadResult {
 /// and refuses a payload that has been corrupted or altered.
 ///
 /// The nested core archive is emitted via the core codec's canonical
-/// [archiveToJson] in [ArchiveSerializationMode.backup] (structured JSON, not a
-/// double-encoded string), so the document retains every custom field and
-/// round-trips deterministically.
+/// [archiveToJson] in [ArchiveSerializationMode.backup] (structured JSON inside
+/// the payload, so the document retains every custom field and round-trips
+/// deterministically). The payload itself, however, is a **string inside** the
+/// container JSON: the container is double-encoded by design (#536) so the
+/// checksum covers exact bytes.
+///
+/// Synchronous: a library-sized document takes seconds. App code should call
+/// [encodeBackupOnIsolate]; this form stays for tests and callers that already
+/// hold the result.
 String encodeBackup(BackupDocument doc) =>
     jsonEncode(_wrapWithChecksum(encodeBackupPayload(doc)));
+
+/// Runs [work] and returns its result, possibly on another isolate. The seam
+/// that lets `testWidgets` (whose fake async never delivers an isolate's reply)
+/// run the codec inline; production uses [runBackupCodecOnIsolate].
+typedef BackupCodecRunner = Future<T> Function<T>(T Function() work);
+
+/// The production [BackupCodecRunner]: a short-lived worker via [Isolate.run].
+Future<T> runBackupCodecOnIsolate<T>(T Function() work) => Isolate.run(work);
+
+/// The runner a [BackupService] uses when none is injected. Widget tests that
+/// reach the service through the UI swap this for [runBackupCodecInline] (and
+/// restore it in a tear-down); production never touches it.
+@visibleForTesting
+BackupCodecRunner defaultBackupCodecRunner = runBackupCodecOnIsolate;
+
+/// Runs [work] on the calling isolate. For tests that cannot pump a real
+/// isolate.
+Future<T> runBackupCodecInline<T>(T Function() work) async => work();
+
+/// [encodeBackup] on a worker isolate, so exporting a large library does not
+/// freeze the UI. Also returns the UTF-8 byte length of the encoded string,
+/// measured on the worker, for the export size guard.
+Future<({String json, int byteLength})> encodeBackupSizedOnIsolate(
+  BackupDocument doc, {
+  BackupCodecRunner runner = runBackupCodecOnIsolate,
+}) => runner(() {
+  final json = encodeBackup(doc);
+  return (json: json, byteLength: utf8.encode(json).length);
+});
+
+/// [encodeBackup] on a worker isolate. See [encodeBackupSizedOnIsolate].
+Future<String> encodeBackupOnIsolate(
+  BackupDocument doc, {
+  BackupCodecRunner runner = runBackupCodecOnIsolate,
+}) async => (await encodeBackupSizedOnIsolate(doc, runner: runner)).json;
+
+/// [decodeBackup] on a worker isolate, so restoring a large backup does not
+/// freeze the UI. The result (document and findings) is returned by exit.
+Future<BackupReadResult> decodeBackupOnIsolate(
+  String json, {
+  BackupCodecRunner runner = runBackupCodecOnIsolate,
+}) => runner(() => decodeBackup(json));
 
 /// Serializes just the [doc] payload (no container/checksum) to a JSON string.
 ///

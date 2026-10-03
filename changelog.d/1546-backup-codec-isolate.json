@@ -1,0 +1,10 @@
+{
+  "id": "1546-backup-codec-isolate",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Exporting or restoring a backup no longer freezes the app while the file is encoded or read.",
+      "The app no longer writes a backup larger than it can restore; export stops with a message instead."
+    ]
+  }
+}
