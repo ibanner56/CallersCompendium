@@ -1474,9 +1474,11 @@ void main() {
     );
   }
 
-  testWidgets('restoring a backup without the key resets danceShareFields', (
-    tester,
-  ) async {
+  testWidgets('restoring a backup without the key returns danceShareFields to '
+      'its default', (tester) async {
+    // Pins the behaviour, not the reset-list line: the loader's decode of an
+    // absent key also yields the default, so deleting the reset entry alone
+    // would not turn this red.
     await tester.binding.setSurfaceSize(const Size(1200, 2600));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 

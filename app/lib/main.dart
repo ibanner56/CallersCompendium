@@ -1446,8 +1446,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// unreadable key leaves that preference at its default instead of failing
   /// startup), then a single synchronous block resets the notifiers and applies
   /// every decoded value. There is no `await` between the reset and the last
-  /// assignment, so a restore never exposes the default theme or language to
-  /// listeners while the reads are in flight.
+  /// assignment, so no frame is built between them: a restore never renders the
+  /// default theme or language while the reads are in flight. (Synchronous
+  /// notifier listeners still see the reset values for the instant before the
+  /// restored ones are assigned.)
   Future<void> _loadPreferences() async {
     // Phase 1: read everything.
     // Load the persisted dialect library (custom dialects + active-name ref),

@@ -4,7 +4,7 @@
   "app": {
     "fixed": [
       "Restoring a backup no longer briefly switches the app to the default theme and language before applying yours.",
-      "A preference that can't be read at startup now falls back to its default instead of blocking the app on the error screen."
+      "A display or behaviour setting that can't be read when the app loads its settings now falls back to its default instead of blocking the app on the error screen."
     ]
   }
 }
