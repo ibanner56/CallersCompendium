@@ -229,12 +229,14 @@ Future<void> main() async {
     }
 
     // 2. Backup export — the ArchiveExporter snapshot (where the N+1 lived)
-    // plus encodeArchive, the core of the serialization the app's
-    // BackupService.exportToJson (app/lib/src/data/backup_service.dart) runs:
-    // that method calls encodeBackup, which wraps the payload JSON in a
-    // checksummed container, so the container step is not measured here. (The
-    // app layer also adds tiny settings/dialect/theme reads on top, which live
-    // in the app package and issue no dance queries.)
+    // plus encodeArchive (`jsonEncode(archiveToJson(...))`). This is a core-only
+    // proxy for the app's BackupService.exportToJson
+    // (app/lib/src/data/backup_service.dart), which is not a stage of that
+    // path: it calls encodeBackup, which embeds archiveToJson in the full
+    // backup document, JSON-encodes that, checksums it and wraps it in the
+    // container. So the figure covers the snapshot reads and the archive
+    // encoding work, but not the document/checksum/container encoding or the
+    // app's small settings/dialect/theme reads.
     if (wants('export')) {
       results.add(
         await _measure(dbPath, 'Backup export (snapshot + encodeArchive)', (

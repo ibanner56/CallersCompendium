@@ -4,8 +4,13 @@
 // and authors from the same generators `scalability_benchmark.dart` seeds, so
 // the two harnesses describe the same kind of library), then times
 // `verdictFor` for K incoming records: half re-matches of an existing entry
-// (same title and author, one with a trailing edition marker), half novel
-// records that match nothing. No database is needed. Records carry no
+// (same title and author, every other one upper-cased), half novel records
+// that match nothing. The run fails if a re-match probe comes back new or a
+// novel probe comes back matched, so the advertised mix is guaranteed.
+//
+// Each size gets one untimed warm-up pass, then $_samples timed passes; the
+// reported figure is the median pass (as `search_benchmark.dart` does), so
+// first-use JIT cost does not land on whichever size runs first. No database is needed. Records carry no
 // external id, so every call takes the fuzzy scan over all M entries, which
 // is the cost the large-library work measures.
 //
@@ -16,6 +21,7 @@
 // Tunable via environment variables:
 //   DEDUPE_SIZES=500,2000,5000,20000   index sizes M to measure
 //   DEDUPE_INCOMING=200                incoming records K per size
+//   DEDUPE_SAMPLES=5                   timed passes per size (median reported)
 //
 // Deterministic (fixed seed). Reports ms per incoming record; nothing is
 // asserted.
@@ -40,6 +46,9 @@ List<int> _sizes() {
 final int _incoming =
     int.tryParse(Platform.environment['DEDUPE_INCOMING'] ?? '') ?? 200;
 
+final int _samples =
+    int.tryParse(Platform.environment['DEDUPE_SAMPLES'] ?? '') ?? 5;
+
 const _words = ['Reel', 'Jig', 'Waltz', 'Hey', 'Star', 'Ring', 'Chain'];
 
 String _titleWord(Random rng) => _words[rng.nextInt(_words.length)];
@@ -48,7 +57,7 @@ void main() {
   final sizes = _sizes();
   stdout.writeln(
     'DedupeIndex.verdictFor — $_incoming incoming records per size '
-    '(half re-matches, half novel)\n',
+    '(half re-matches, half novel; median of $_samples passes)\n',
   );
   stdout.writeln(
     '${'M (index size)'.padRight(16)}${'build (ms)'.padLeft(12)}'
@@ -79,10 +88,10 @@ void main() {
     for (var k = 0; k < _incoming; k++) {
       if (k.isEven) {
         // Re-match: an existing entry's title and author, spread across the
-        // index; every other one carries an edition marker.
+        // index; every other one upper-cased (normalizeTitle folds case).
         final e = entries[(k * 7919) % m];
         probes.add((
-          title: k % 4 == 0 ? e.title : '${e.title} (2nd ed.)',
+          title: k % 4 == 0 ? e.title : e.title.toUpperCase(),
           authors: e.authorNames,
           existing: true,
         ));
@@ -95,23 +104,46 @@ void main() {
       }
     }
 
-    var reimports = 0;
-    var novel = 0;
-    final watch = Stopwatch()..start();
-    for (final probe in probes) {
-      final verdict = index.verdictFor(
-        source: ProvenanceSource.json,
-        title: probe.title,
-        authorNames: probe.authors,
-      );
-      if (verdict.kind == DedupeKind.isNew) {
-        novel++;
-      } else {
-        reimports++;
+    // One pass over every probe; also checks the advertised mix.
+    ({int matched, int novel}) runPass() {
+      var matched = 0;
+      var novel = 0;
+      for (final probe in probes) {
+        final verdict = index.verdictFor(
+          source: ProvenanceSource.json,
+          title: probe.title,
+          authorNames: probe.authors,
+        );
+        final isNew = verdict.kind == DedupeKind.isNew;
+        if (isNew == probe.existing) {
+          throw StateError(
+            'probe "${probe.title}" (existing: ${probe.existing}) got '
+            '${verdict.kind}',
+          );
+        }
+        if (isNew) {
+          novel++;
+        } else {
+          matched++;
+        }
       }
+      return (matched: matched, novel: novel);
     }
-    watch.stop();
-    final perRecord = watch.elapsedMicroseconds / 1000.0 / probes.length;
+
+    runPass(); // untimed warm-up
+    final passMs = <double>[];
+    var counts = (matched: 0, novel: 0);
+    for (var s = 0; s < max(1, _samples); s++) {
+      final watch = Stopwatch()..start();
+      counts = runPass();
+      watch.stop();
+      passMs.add(watch.elapsedMicroseconds / 1000.0);
+    }
+    passMs.sort();
+    final medianMs = passMs[passMs.length ~/ 2];
+    final reimports = counts.matched;
+    final novel = counts.novel;
+    final perRecord = medianMs / probes.length;
     stdout.writeln(
       '${m.toString().padRight(16)}'
       '${(buildWatch.elapsedMicroseconds / 1000.0).toStringAsFixed(1).padLeft(12)}'
