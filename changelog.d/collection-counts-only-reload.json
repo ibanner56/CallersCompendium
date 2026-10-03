@@ -1,0 +1,9 @@
+{
+  "id": "collection-counts-only-reload",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Saving a program or marking a dance performed no longer reloads your whole collection on large libraries, so the Collection and Perform screens stay responsive."
+    ]
+  }
+}

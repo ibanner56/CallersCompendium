@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart'
+    show ResultSetImplementation, TableUpdateQuery;
 
 import '../models/dance_list_entry.dart';
 import 'coalesce_trailing.dart';
@@ -44,6 +46,53 @@ class CollectionData {
     required this.taxonomy,
     required this.sectionLabels,
   });
+
+  /// A copy with the calling tallies replaced and **every other field carried
+  /// over by reference**.
+  ///
+  /// This is the whole of the counts-only reload in [watch]: a write that only
+  /// touched `programs`/`program_slots` cannot have changed the dances, the
+  /// reference data or any facet vocabulary, so those are reused rather than
+  /// re-read. The invariant is "a counts-only emit never changes [dancesById],
+  /// the field definitions, [tags] or [citedSources]" — `identical`, not merely
+  /// equal, which is also what makes `DanceListScreen`'s `mapEquals` over
+  /// [dancesById] cheap for such an emit.
+  ///
+  /// Deliberately a constructor call listing every field rather than a patch:
+  /// a field added to the constructor is a compile error here instead of a
+  /// value silently reset to its default. The lazy `…ById` maps are rebuilt on
+  /// demand by the new instance.
+  CollectionData copyWithProgramCounts(ProgramDerivedCounts counts) =>
+      CollectionData(
+        dancesById: dancesById,
+        choreographersById: choreographersById,
+        choreographerNames: choreographerNames,
+        tagNames: tagNames,
+        tagColors: tagColors,
+        customFieldDefs: customFieldDefs,
+        listFieldDefs: listFieldDefs,
+        choiceFields: choiceFields,
+        booleanFields: booleanFields,
+        textFields: textFields,
+        numberFields: numberFields,
+        lastCalled: counts.lastCalled,
+        callCounts: counts.callCounts,
+        callerFilter: callerFilter,
+        authors: authors,
+        tags: tags,
+        citedSources: citedSources,
+        tunes: tunes,
+        forms: forms,
+        formations: formations,
+        progressions: progressions,
+        statuses: statuses,
+        levels: levels,
+        hasMixedLevel: hasMixedLevel,
+        hasMixer: hasMixer,
+        hasRating: hasRating,
+        taxonomy: taxonomy,
+        sectionLabels: sectionLabels,
+      );
 
   final Map<String, Dance> dancesById;
 
@@ -168,9 +217,32 @@ class CollectionData {
   /// is fixed in code and safe to state; the statement count is a property of
   /// the data. Streaming each part and
   /// recombining would emit once per part per write and could render a
-  /// half-updated snapshot; re-running the load on a single change signal keeps the
-  /// existing value atomic and leaves [load] the only place the composition is
-  /// expressed.
+  /// half-updated snapshot; so a content write re-runs [load] on a single
+  /// change signal, which keeps the value atomic and leaves [load] the only
+  /// place the composition is expressed.
+  ///
+  /// ## Program-only bursts refresh just the tallies
+  ///
+  /// The one part of the snapshot that program writes can change is the
+  /// per-dance calling tallies ([lastCalled], [callCounts]) — about 1% of a
+  /// full load on a large library — yet saving a program or marking a dance
+  /// performed used to pay for the whole thing, up to three times (the
+  /// Collection list, the program editor and the program summary each hold a
+  /// watch). So the change signal is the set of tables written, unioned across
+  /// the coalescing window. When that set is within `programs`/`program_slots`
+  /// (plus `venues` when [watchVenues]) the stream re-reads only
+  /// `programDerivedCounts` and emits [copyWithProgramCounts]; any other table
+  /// in the set, or the first emission, runs the full [load]. The invariant:
+  /// **a counts-only emit never changes [dancesById], the field definitions,
+  /// [tags] or [citedSources]** — they are the previous snapshot's own
+  /// objects. A `venues`-only write under [watchVenues] is counts-only too
+  /// (it still emits, so a subscriber that renders a venue label next to this
+  /// data is woken exactly as before; the re-read is the cheap one).
+  ///
+  /// This no longer subscribes to `watchCollectionSources`: it watches the same
+  /// table set through `tableUpdates` because it needs to know *which* tables
+  /// changed, which the sentinel's payload cannot say. That method stays, with
+  /// its read set, for the consumers that only need "something changed".
   ///
   /// ## Why the coalescing window is load-bearing, not a nicety
   ///
@@ -206,10 +278,103 @@ class CollectionData {
     String? callerFilter,
     Duration coalesce = coalesceWindow,
     bool watchVenues = false,
-  }) => repos
-      .watchCollectionSources(includeVenues: watchVenues)
-      .transform(CoalesceTrailing<void>(coalesce))
-      .asyncMap((_) => load(repos, callerFilter: callerFilter));
+  }) {
+    final db = repos.db;
+    final normalizedCallerFilter = normalizeCallingHistoryCaller(callerFilter);
+    // The same set `watchCollectionSources` declares, as table names.
+    final watched = <ResultSetImplementation<dynamic, dynamic>>{
+      db.dances,
+      db.choreographers,
+      db.tags,
+      db.difficultyLevels,
+      db.customFieldDefs,
+      db.publishedSources,
+      db.programSlots,
+      db.programs,
+      if (watchVenues) db.venues,
+    };
+    final countsOnlyTables = {
+      db.programSlots.actualTableName,
+      db.programs.actualTableName,
+      if (watchVenues) db.venues.actualTableName,
+    };
+
+    final out = StreamController<CollectionData>();
+    StreamSubscription<void>? updatesSub;
+    StreamSubscription<CollectionData>? loadSub;
+    StreamController<void>? signal;
+
+    out.onListen = () {
+      // Tables written since the last reload began. Taken (and cleared) when
+      // the window closes, so a write during a reload is seen by the next one.
+      final changed = <String>{};
+      // The first emission is always the full load.
+      var needsFull = true;
+      CollectionData? current;
+      final signals = signal = StreamController<void>();
+
+      // Subscribed before the first load starts, so a write during it is not
+      // lost.
+      updatesSub = db
+          .tableUpdates(TableUpdateQuery.onAllTables(watched))
+          .listen(
+            (updates) {
+              for (final u in updates) {
+                changed.add(u.table);
+              }
+              signals.add(null);
+            },
+            onError: signals.addError,
+            onDone: () {
+              // The source ended (database closed): end now rather than after
+              // an in-flight load, which may never return.
+              if (!out.isClosed) unawaited(out.close());
+            },
+          );
+      signals.add(null);
+
+      loadSub = signals.stream
+          .transform(CoalesceTrailing<void>(coalesce))
+          .asyncMap((_) async {
+            final tables = {...changed};
+            changed.clear();
+            final previous = current;
+            if (!needsFull && tables.isEmpty) return null;
+            final full =
+                needsFull ||
+                previous == null ||
+                !countsOnlyTables.containsAll(tables);
+            final next = full
+                ? await load(repos, callerFilter: normalizedCallerFilter)
+                : previous.copyWithProgramCounts(
+                    await repos.programs.programDerivedCounts(
+                      callerFilter: normalizedCallerFilter,
+                    ),
+                  );
+            // Only now: a failed full load must be retried in full, not papered
+            // over by a counts-only copy of a stale snapshot.
+            needsFull = false;
+            current = next;
+            return next;
+          })
+          .where((snapshot) => snapshot != null)
+          .cast<CollectionData>()
+          .listen(
+            (snapshot) {
+              if (!out.isClosed) out.add(snapshot);
+            },
+            onError: (Object e, StackTrace st) {
+              if (!out.isClosed) out.addError(e, st);
+            },
+          );
+    };
+    out.onCancel = () async {
+      await updatesSub?.cancel();
+      await loadSub?.cancel();
+      await signal?.close();
+    };
+    return out.stream;
+  }
 
   static Future<CollectionData> load(
     CompendiumRepositories repos, {
