@@ -1576,10 +1576,17 @@ void main() {
       String deviceId,
       Map<String, String> settings, {
       String epoch = 'epoch-1',
+      DateTime? writtenAt,
     }) => SyncManifest(
       deviceId: deviceId,
       epoch: epoch,
-      writtenAt: DateTime.utc(2026, 9, 20, 12),
+      // Peers publish after this device by default, as live devices that
+      // synced since would; a test that is about the timing says so.
+      writtenAt:
+          writtenAt ??
+          (deviceId == 'device_1'
+              ? DateTime.utc(2026, 9, 20, 12)
+              : DateTime.utc(2026, 9, 20, 12, 5)),
       records: {SyncRecordKind.setting: settings},
     );
 
@@ -1645,6 +1652,81 @@ void main() {
       ]);
       expect(admin.requestTimeouts, [kSyncDetachCleanupRequestTimeout]);
       expect(admin.closes, 1, reason: 'the clean-up owns its client');
+    });
+
+    test('keeps it when the only carrier wrote before this device did — an '
+        'older leftover of its own', () async {
+      // `leftover` is this device's manifest from an earlier attachment:
+      // identical hashes, written earlier by the same clock. Counting it would
+      // remove the only live copy of this attachment's entries, leaving them
+      // on a manifest the user may remove next.
+      admin = _Admin(
+        devices: const ['device_1', 'leftover'],
+        manifests: {
+          'device_1': manifest('device_1', {'a': hash('1')}),
+          'leftover': manifest('leftover', {
+            'a': hash('1'),
+          }, writtenAt: DateTime.utc(2026, 9, 1, 12)),
+        },
+      );
+      final controller = await paired();
+
+      await controller.detach();
+
+      expect(
+        await controller.detachCleanup,
+        SyncDetachCleanupOutcome.skippedNotReflected,
+      );
+      expect(admin.removed, isEmpty);
+    });
+
+    test('keeps it when the only carrier wrote in the same second — a '
+        'leftover from an attachment left and replaced within it', () async {
+      // `writtenAt` is stored to the whole second, so a leftover from an
+      // attachment that was detached, re-paired and published within one
+      // second reads the same as this one. Equal is not later.
+      admin = _Admin(
+        devices: const ['device_1', 'leftover'],
+        manifests: {
+          'device_1': manifest('device_1', {
+            'a': hash('1'),
+          }, writtenAt: DateTime.utc(2026, 9, 20, 12)),
+          'leftover': manifest('leftover', {
+            'a': hash('1'),
+          }, writtenAt: DateTime.utc(2026, 9, 20, 12)),
+        },
+      );
+      final controller = await paired();
+
+      await controller.detach();
+
+      expect(
+        await controller.detachCleanup,
+        SyncDetachCleanupOutcome.skippedNotReflected,
+      );
+      expect(admin.removed, isEmpty);
+    });
+
+    test('a carrier written one second later counts', () async {
+      admin = _Admin(
+        devices: const ['device_1', 'peer_a'],
+        manifests: {
+          'device_1': manifest('device_1', {
+            'a': hash('1'),
+          }, writtenAt: DateTime.utc(2026, 9, 20, 12)),
+          'peer_a': manifest('peer_a', {
+            'a': hash('1'),
+          }, writtenAt: DateTime.utc(2026, 9, 20, 12, 0, 1)),
+        },
+      );
+      final controller = await paired();
+
+      await controller.detach();
+
+      expect(
+        await controller.detachCleanup,
+        SyncDetachCleanupOutcome.deleteSent,
+      );
     });
 
     test('keeps it when its last edit is on no peer', () async {

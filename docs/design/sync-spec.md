@@ -298,8 +298,8 @@ still hold it live, and that liveness is exactly what forfeiture guards against.
 because a store-scoped reading is the intuitive one. Detach forgets the sync ID
 *locally* (§6.2 step 3). The detach clean-up (§3.3) may then
 `DELETE /v1/manifests/{self}`, but only when every entry of that manifest is
-carried, with the identical hash, by a peer manifest — so every publication it
-named stays reachable through the store's other manifests, and a successful
+carried, with the identical hash, by a peer manifest written strictly later
+than it — so every publication it named stays reachable through the store's other manifests, and a successful
 publication remains reachable while any manifest references it. The marker is
 retained because a failed attempt cannot later be distinguished from a
 publication that peers may have fetched. Clearing on detach would convert "the
@@ -414,10 +414,21 @@ every one of these holds:
 4. every other listed device's manifest is fetched, well formed, and in the
    store's current epoch; and
 5. **every entry** of this device's server-side manifest — kind, id and hash —
-   is carried with the identical hash by at least one of those manifests.
+   is carried with the identical hash by at least one of those manifests
+   **whose `writtenAt` is strictly later than this device's own manifest's**.
    Hashes are compared raw, with no alias resolution: that can only make a
    carried entry look uncarried, so it may skip a safe removal but never permit
-   an unsafe one.
+   an unsafe one. The `writtenAt` floor (amended 2026-10-02, @ibanner56's
+   ruling) keeps this device's own leftover manifest from an earlier attachment
+   — the same hashes, written earlier by the same clock — from counting as the
+   carrier: removing the current manifest on its strength would leave those
+   entries only on a manifest the user may remove next, and then only in this
+   detached device's library. Strictly later, not equal: `writtenAt` is stored
+   to the whole second, so a leftover from an attachment detached and replaced
+   within one second reads as equal to the current manifest. Comparing two
+   devices' clocks can also exclude a live peer whose clock runs slow, or one
+   that published in the same second; that only makes the clean-up skip,
+   which condition 5 is allowed to do.
 
 There is no condition on unsynced local edits, and none is needed: an edit this
 device never published is not in its server manifest, so removing that manifest
@@ -4726,7 +4737,10 @@ is not refusing it (mutation: judge on hash inequality alone). Zero observed
 peers judges nothing.
 
 **Detach clean-up (§3.3).** Removes this device's manifest when every entry is
-carried with the identical hash by some peer; keeps it when one entry is carried
+carried with the identical hash by some peer written later; keeps it when the
+only carrier was written earlier, such as this device's own leftover manifest
+(mutation: drop the `writtenAt` floor), and when it was written in the same
+second (mutation: accept an equal `writtenAt`); keeps it when one entry is carried
 only at another hash (mutation: drop the per-entry check), when a peer manifest
 cannot be read (mutation: skip it), when a peer manifest is in another epoch
 (mutation: drop the epoch check), and when no other device is listed (mutation:

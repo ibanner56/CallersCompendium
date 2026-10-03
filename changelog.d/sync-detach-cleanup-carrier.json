@@ -1,0 +1,9 @@
+{
+  "id": "sync-detach-cleanup-carrier",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "When you disconnect a device from Device Sync, it only removes itself from the store if another connected device has shared everything it had since it last shared. An old entry from this device's own earlier connection no longer counts, so its changes can't end up held only by an entry you might remove next."
+    ]
+  }
+}
