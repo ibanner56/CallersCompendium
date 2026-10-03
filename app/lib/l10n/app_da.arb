@@ -5464,6 +5464,14 @@
   "@importTitleListReasonFetchError": {
     "x-sourceSha256": "ecae5ed3ce32059d5c7945d151090682262a6333f9d6b37db20b09d683223f23"
   },
+  "importTitleListReasonConnectionFailed": "Kunne ikke nå The Caller's Box – tjek din forbindelse.",
+  "@importTitleListReasonConnectionFailed": {
+    "x-sourceSha256": "b2f14ee793acdd3ebc63858fbbced0521fd7b93e2ef88468e55c83b72f16c82c"
+  },
+  "importTitleListConnectionBanner": "Opslaget af titler blev stoppet efter en forbindelsesfejl. De titler, der allerede er i din samling, vises; prøv resten, når du er online igen.",
+  "@importTitleListConnectionBanner": {
+    "x-sourceSha256": "8d7abfdefdb0a4afe928e30565457f26e95c48bdcc55b5a77dc1a6efe93a2524"
+  },
   "importTitleListReasonLineTooLong": "For lang til at være en danstitel, så der blev ikke søgt.",
   "@importTitleListReasonLineTooLong": {
     "x-sourceSha256": "2e83f669234c65baeae1145f525ec623f4537bdc02ee680f78f20594d4e3c52d"

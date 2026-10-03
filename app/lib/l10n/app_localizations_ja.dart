@@ -5262,6 +5262,14 @@ class AppLocalizationsJa extends AppLocalizations {
       'このタイトルについてThe Caller\'s Boxに到達できませんでした。';
 
   @override
+  String get importTitleListReasonConnectionFailed =>
+      'The Caller\'s Boxに到達できませんでした。接続を確認してください。';
+
+  @override
+  String get importTitleListConnectionBanner =>
+      '接続エラーのため、タイトルの検索を中止しました。すでにコレクションにあるタイトルは一覧に表示されています。残りはオンラインになってから試してください。';
+
+  @override
   String get importTitleListReasonLineTooLong =>
       'ダンスのタイトルとしては長すぎるため、検索しませんでした。';
 

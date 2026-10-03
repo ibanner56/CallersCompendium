@@ -5464,6 +5464,14 @@
   "@importTitleListReasonFetchError": {
     "x-sourceSha256": "ecae5ed3ce32059d5c7945d151090682262a6333f9d6b37db20b09d683223f23"
   },
+  "importTitleListReasonConnectionFailed": "The Caller's Boxに到達できませんでした。接続を確認してください。",
+  "@importTitleListReasonConnectionFailed": {
+    "x-sourceSha256": "b2f14ee793acdd3ebc63858fbbced0521fd7b93e2ef88468e55c83b72f16c82c"
+  },
+  "importTitleListConnectionBanner": "接続エラーのため、タイトルの検索を中止しました。すでにコレクションにあるタイトルは一覧に表示されています。残りはオンラインになってから試してください。",
+  "@importTitleListConnectionBanner": {
+    "x-sourceSha256": "8d7abfdefdb0a4afe928e30565457f26e95c48bdcc55b5a77dc1a6efe93a2524"
+  },
   "importTitleListReasonLineTooLong": "ダンスのタイトルとしては長すぎるため、検索しませんでした。",
   "@importTitleListReasonLineTooLong": {
     "x-sourceSha256": "2e83f669234c65baeae1145f525ec623f4537bdc02ee680f78f20594d4e3c52d"
