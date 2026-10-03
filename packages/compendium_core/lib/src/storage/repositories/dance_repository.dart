@@ -72,9 +72,8 @@ class DerivedRebuildProgress {
 
 /// Callback invoked with monotonically non-decreasing [DerivedRebuildProgress]
 /// while [DanceRepository.rebuildAllDerived] runs.
-typedef DerivedRebuildProgressCallback = void Function(
-  DerivedRebuildProgress progress,
-);
+typedef DerivedRebuildProgressCallback =
+    void Function(DerivedRebuildProgress progress);
 
 const Set<String> _legacyCallersBoxRollAwayRelationships = {
   'neighbors',
@@ -2649,9 +2648,9 @@ class DanceRepository {
         ids.add(row.readTable(_db.dances).id);
         continue;
       }
-      final params = jsonDecode(
-        row.readTable(_db.danceFigures).paramsJson,
-      ) as Map<String, Object?>;
+      final params =
+          jsonDecode(row.readTable(_db.danceFigures).paramsJson)
+              as Map<String, Object?>;
       final actual = params[paramKey];
       final expected = paramJsonValue == null
           ? null
