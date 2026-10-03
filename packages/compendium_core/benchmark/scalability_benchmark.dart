@@ -19,8 +19,13 @@
 // re-running the full 20k corpus each time):
 //   SCALE_DANCES=20000    number of dances to seed
 //   SCALE_PROGRAMS=500     number of programs to seed
-//   SCALE_ONLY=load,export,author,lastcalled,narrow,search,rebuild
+//   SCALE_ONLY=load,collection,export,snapshot,snapshotparts,batch,author,
+//              lastcalled,narrow,search,rebuild
 //                          comma-separated scenario keys to run (default: all)
+//
+// `collection`, `snapshot`, `snapshotparts` and `batch` are the baselines the
+// large-library work quotes (collection reload, sync snapshot, batch edits).
+// An unknown key is silently skipped, so check the spelling.
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -70,6 +75,10 @@ class _CountingInterceptor extends QueryInterceptor {
   int deletes = 0;
   int customs = 0;
   int batches = 0;
+
+  String get kinds =>
+      'selects=$selects inserts=$inserts updates=$updates deletes=$deletes '
+      'customs=$customs batches=$batches';
 
   int get total => selects + inserts + updates + deletes + customs + batches;
 
@@ -171,7 +180,7 @@ Future<void> main() async {
         ) async {
           final dances = await repos.dances.listAll();
           await repos.choreographers.listAll();
-          await repos.tags.listAll();
+          await repos.tags.listReferencedByLiveDances();
           await repos.customFieldDefs.listAll();
           await repos.publishedSources.listAll();
           await repos.difficultyLevels.listAll();
@@ -181,10 +190,50 @@ Future<void> main() async {
       );
     }
 
+    // 1b. Warm Collection reload — the same seven reads as `load`, repeated on
+    // a connection that has already served them once (the app's reload after
+    // every write), then `programDerivedCounts()` alone for the ratio.
+    if (wants('collection')) {
+      Future<int> readAll(CompendiumRepositories repos) async {
+        final dances = await repos.dances.listAll();
+        await repos.choreographers.listAll();
+        await repos.tags.listReferencedByLiveDances();
+        await repos.customFieldDefs.listAll();
+        await repos.publishedSources.listAll();
+        await repos.programs.programDerivedCounts();
+        await repos.difficultyLevels.listAll();
+        return dances.length;
+      }
+
+      results.addAll(
+        await _measureSeries(
+          dbPath,
+          [
+            (
+              'Collection reload — full read set (warm)',
+              (repos, _) => readAll(repos),
+            ),
+            (
+              'Collection reload — programDerivedCounts only',
+              (repos, _) async {
+                final counts = await repos.programs.programDerivedCounts();
+                return counts.callCounts.length;
+              },
+            ),
+          ],
+          setup: (repos) async {
+            await readAll(repos);
+          },
+        ),
+      );
+    }
+
     // 2. Backup export — the ArchiveExporter snapshot (where the N+1 lived)
-    // plus encodeArchive, the deterministic JSON serialization the app's
-    // BackupService.exportToJson runs over that same 20k-dance snapshot. (The
-    // app layer only adds tiny settings/dialect/theme reads on top, which live
+    // plus encodeArchive, the core of the serialization the app's
+    // BackupService.exportToJson (app/lib/src/data/backup_service.dart) runs:
+    // that method calls encodeBackup, which wraps the payload JSON in a
+    // checksummed container, so the container step is not measured here. (The
+    // app layer also adds tiny settings/dialect/theme reads on top, which live
     // in the app package and issue no dance queries.)
     if (wants('export')) {
       results.add(
@@ -200,6 +249,119 @@ Future<void> main() async {
           if (json.isEmpty) throw StateError('empty backup payload');
           return archive.dances.length;
         }),
+      );
+    }
+
+    // 2b. Sync snapshot — CompendiumSyncStorage.snapshot() with a null syncId
+    // (so `_previouslyUsed` loads the stored marker but derives no verifier).
+    // Cold on a fresh connection, then warm on the same connection.
+    if (wants('snapshot')) {
+      Future<int> snap(CompendiumRepositories repos) async {
+        final snapshot = await CompendiumSyncStorage(repos).snapshot();
+        return snapshot.local.length;
+      }
+
+      results.addAll(
+        await _measureSeries(dbPath, [
+          ('Sync snapshot (cold)', (repos, _) => snap(repos)),
+          ('Sync snapshot (warm)', (repos, _) => snap(repos)),
+        ]),
+      );
+    }
+
+    // 2c. Per-record snapshot steps over every dance: build the blob, encode it
+    // to UTF-8 canonical JSON, hash it — the three steps snapshot() repeats per
+    // dance. All three are public, so they are timed separately (the dance
+    // reads are excluded). Statement counts cover only the reads.
+    if (wants('snapshotparts')) {
+      results.add(
+        await _measure(dbPath, 'Snapshot per-record steps (reads only)', (
+          repos,
+          _,
+        ) async {
+          final db = repos.db;
+          final customFields = await repos.customFieldDefs.listAllWithDeleted();
+          final allowed = {
+            for (final entry in customFields)
+              if (entry.field.shareable && !entry.deleted) entry.field.id,
+          };
+          final dances = await repos.dances.listAll(includeDeleted: true);
+          final rows = {
+            for (final row in await db.select(db.dances).get()) row.id: row,
+          };
+          final blobWatch = Stopwatch();
+          final encodeWatch = Stopwatch();
+          final hashWatch = Stopwatch();
+          var built = 0;
+          for (final dance in dances) {
+            final row = rows[dance.id];
+            if (row == null) continue;
+            blobWatch.start();
+            final blob = syncRecordBlobForEntity(
+              SyncRecordKind.dance,
+              dance,
+              updatedAt: row.updatedAt,
+              deletedAt: row.deletedAt,
+              existenceAt: row.existenceAt ?? row.updatedAt,
+              allowedCustomFieldIds: allowed,
+            );
+            blobWatch.stop();
+            if (blob == null) continue;
+            encodeWatch.start();
+            final bytes = encodeSyncRecordBlobUtf8(blob);
+            encodeWatch.stop();
+            hashWatch.start();
+            sha256Hex(bytes);
+            hashWatch.stop();
+            built++;
+          }
+          stdout.writeln(
+            '    syncRecordBlobForEntity ×$built: '
+            '${_ms(blobWatch)} ms | encodeSyncRecordBlobUtf8: '
+            '${_ms(encodeWatch)} ms | sha256Hex: ${_ms(hashWatch)} ms',
+          );
+          return built;
+        }),
+      );
+    }
+
+    // 2d. Batch edit — setLevelForMany over 100 then 1,000 seeded ids. Two
+    // levels, so every id in each run really changes (a dance already at the
+    // target is skipped, which would understate the second run).
+    if (wants('batch')) {
+      final batchNow = DateTime.utc(2026, 1, 1);
+      final levels = <String>[];
+      results.addAll(
+        await _measureSeries(
+          dbPath,
+          [
+            for (final (run, n) in [
+              100,
+              1000,
+            ].map((n) => min(n, danceCount)).indexed)
+              (
+                'Batch setLevelForMany ($n ids)',
+                (repos, counter) async {
+                  final level = levels[run];
+                  final changed = await repos.dances.setLevelForMany(
+                    [for (var i = 0; i < n; i++) 'dance-$i'],
+                    difficultyLevelId: level,
+                    now: batchNow,
+                  );
+                  return changed;
+                },
+              ),
+          ],
+          setup: (repos) async {
+            for (var l = 0; l < 2; l++) {
+              final level = await repos.difficultyLevels.createCustom(
+                label: 'Bench level $l',
+                position: 100 + l,
+              );
+              levels.add(level.id);
+            }
+          },
+        ),
       );
     }
 
@@ -312,7 +474,7 @@ Future<_Result> _measure(
     rows,
   );
   stdout.writeln(
-    '  ${label.padRight(40)}  '
+    '  ${label.padRight(48)}  '
     '${result.ms.toStringAsFixed(1).padLeft(9)} ms  '
     '${result.queries.toString().padLeft(8)} queries  '
     '(${result.rows} rows)',
@@ -321,15 +483,65 @@ Future<_Result> _measure(
   return result;
 }
 
+String _ms(Stopwatch w) => (w.elapsedMicroseconds / 1000.0).toStringAsFixed(1);
+
+/// Runs several scenarios back to back on ONE connection, so every entry after
+/// the first sees warm caches. [setup], when given, runs once untimed before
+/// the first entry (warm-up reads, or fixture rows); the counter is reset before each entry.
+Future<List<_Result>> _measureSeries(
+  String dbPath,
+  List<
+    (
+      String,
+      Future<int> Function(
+        CompendiumRepositories repos,
+        _CountingInterceptor c,
+      ),
+    )
+  >
+  entries, {
+  Future<void> Function(CompendiumRepositories repos)? setup,
+}) async {
+  final counter = _CountingInterceptor();
+  final db = CompendiumDatabase(
+    NativeDatabase(File(dbPath)).interceptWith(counter),
+  );
+  final repos = CompendiumRepositories(db, contraTaxonomy);
+  await db.customSelect('SELECT 1').get();
+  if (setup != null) await setup(repos);
+  final out = <_Result>[];
+  for (final (label, body) in entries) {
+    counter.reset();
+    final watch = Stopwatch()..start();
+    final rows = await body(repos, counter);
+    watch.stop();
+    final result = _Result(
+      label,
+      watch.elapsedMicroseconds / 1000.0,
+      counter.total,
+      rows,
+    );
+    stdout.writeln(
+      '  ${label.padRight(48)}  '
+      '${result.ms.toStringAsFixed(1).padLeft(9)} ms  '
+      '${result.queries.toString().padLeft(8)} queries  '
+      '(${result.rows} rows)  [${counter.kinds}]',
+    );
+    out.add(result);
+  }
+  await db.close();
+  return out;
+}
+
 void _report(List<_Result> results) {
   stdout.writeln('\n=== Summary (N = $danceCount dances) ===');
   stdout.writeln(
-    '${'Scenario'.padRight(40)}  ${'wall (ms)'.padLeft(9)}  '
+    '${'Scenario'.padRight(48)}  ${'wall (ms)'.padLeft(9)}  '
     '${'queries'.padLeft(8)}',
   );
   for (final r in results) {
     stdout.writeln(
-      '${r.label.padRight(40)}  ${r.ms.toStringAsFixed(1).padLeft(9)}  '
+      '${r.label.padRight(48)}  ${r.ms.toStringAsFixed(1).padLeft(9)}  '
       '${r.queries.toString().padLeft(8)}',
     );
   }
