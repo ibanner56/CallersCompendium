@@ -135,7 +135,10 @@ void main() {
         Dialect.larksRobins,
         e,
       ).compile(const FullTextFilter('follows'));
-      expect(c.binds, ['"role2s"', '"follows"']);
+      expect(c.binds, [
+        '"role2s"',
+        '{title authors sources custom_values hook notes} : ("follows")',
+      ]);
     });
 
     test('figure move name resolves via enriched move synonyms', () {

@@ -30,6 +30,17 @@ class CompiledFilter {
 String escapeLikePattern(String term) =>
     term.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_');
 
+/// The `dance_fts` / `dance_substring_fts` columns that hold text exactly as
+/// the caller typed it, so a raw (non-canonicalised) query can match them.
+/// `figures_text` is deliberately absent: it is stored canonicalised, so a raw
+/// role word would never match it (the canonical branch covers it).
+const _rawTextColumns = 'title authors sources custom_values hook notes';
+
+/// FTS5 `MATCH` expression restricting [query] to [_rawTextColumns]. The query
+/// is parenthesised so the column filter covers every term of a multi-term
+/// query, not only the first.
+String _rawColumnsMatch(String query) => '{$_rawTextColumns} : ($query)';
+
 /// Compiles a [DanceFilter] tree into a single parameterized `SELECT id FROM
 /// dances …` (`docs/design/search.md` "SQL compilation").
 ///
@@ -112,8 +123,8 @@ class FilterCompiler {
         extraRoleSynonyms: enrichment.roleSynonyms,
       ),
     );
-    final rawTitleQuery = toFtsPrefixMatchQuery(filter.query);
-    final query = '($canonicalQuery OR title : $rawTitleQuery)';
+    final rawTextQuery = toFtsPrefixMatchQuery(filter.query);
+    final query = '($canonicalQuery OR ${_rawColumnsMatch(rawTextQuery)})';
     // bm25 returns lower (more negative) for better matches, so ascending
     // (the default) is best-match-first; descending flips to worst-match-first.
     final order = dir == SortDirection.descending
@@ -342,16 +353,18 @@ class FilterCompiler {
       case FullTextScope.figure:
         return columnMatch('figures_text', canonicalQuery);
       case FullTextScope.omni:
-        // Preserve canonical cross-field matching, but add a raw title-only
-        // branch so a title such as "Hey Man" cannot be rewritten away by the
-        // role synonym map. Both branches use the active prefix/substr index,
-        // so long queries remain literal substrings rather than falling back
-        // to unicode61 token semantics.
+        // Preserve canonical cross-field matching, but add a raw branch over
+        // the verbatim-stored columns so a title such as "Hey Man", an author
+        // such as "Robin Hayden" or a note containing "ladies" cannot be
+        // rewritten away by the role synonym map. `figures_text` stays
+        // canonical-only (it is stored canonicalised). Both branches use the
+        // active prefix/substr index, so long queries remain literal
+        // substrings rather than falling back to unicode61 token semantics.
         binds.add(canonicalQuery);
-        binds.add(rawTextQuery);
+        binds.add(_rawColumnsMatch(rawTextQuery));
         final canonical =
             'id IN (SELECT dance_id FROM $table WHERE $table MATCH ?)';
-        final raw = 'id IN (SELECT dance_id FROM $table WHERE title MATCH ?)';
+        final raw = 'id IN (SELECT dance_id FROM $table WHERE $table MATCH ?)';
         return '($canonical OR $raw)';
     }
   }

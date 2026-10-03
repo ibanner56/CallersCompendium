@@ -12,6 +12,7 @@ Dance _dance({
   List<String> authorIds = const [],
   List<String> tagIds = const [],
   List<String> tunes = const [],
+  String callingNotes = '',
   List<CustomFieldValue> customFields = const [],
   List<Figure>? figures,
   DanceForm form = DanceForm.contra,
@@ -33,6 +34,7 @@ Dance _dance({
     authorIds: authorIds,
     tagIds: tagIds,
     tunes: tunes,
+    callingNotes: callingNotes,
     customFields: customFields,
     form: form,
     formation: Formation(formation),
@@ -1495,6 +1497,118 @@ void main() {
         );
       },
     );
+
+    group('omni raw branch (role words in verbatim columns)', () {
+      Future<void> seedAuthored() async {
+        // ignore: unused_result
+        await choreographers.upsert(
+          Choreographer(id: 'c1', name: 'Robin Hayden'),
+        );
+        await dances.create(_dance(id: 'a', title: 'Plain', authorIds: ['c1']));
+      }
+
+      test(
+        'omni "Robin Hayden" finds the dance by author under the default sort',
+        () async {
+          await seedAuthored();
+          expect(await dances.search(const FullTextFilter('Robin Hayden')), [
+            'a',
+          ]);
+          // A partial trailing term still matches (substring table).
+          expect(await dances.search(const FullTextFilter('Robin Hay')), ['a']);
+        },
+      );
+
+      test(
+        'omni "Robin Hayden" finds the dance by author under relevance sort',
+        () async {
+          await seedAuthored();
+          expect(
+            await dances.search(
+              const FullTextFilter('Robin Hayden'),
+              sort: SearchSort.relevance,
+            ),
+            ['a'],
+          );
+        },
+      );
+
+      test(
+        'omni "ladies" finds a calling note containing the word verbatim',
+        () async {
+          await dances.create(
+            _dance(
+              id: 'n',
+              title: 'Noted',
+              callingNotes: 'Ladies chain across, then ladies roll away',
+            ),
+          );
+          await dances.create(_dance(id: 'x', title: 'Other'));
+          expect(await dances.search(const FullTextFilter('ladies')), ['n']);
+          expect(
+            await dances.search(
+              const FullTextFilter('ladies'),
+              sort: SearchSort.relevance,
+            ),
+            ['n'],
+          );
+        },
+      );
+
+      test('omni finds a source name and a custom value verbatim', () async {
+        final def = CustomFieldDef(
+          id: 'f',
+          key: 'origin',
+          label: 'Origin',
+          type: CustomFieldType.text,
+        );
+        // ignore: unused_result
+        await customFieldDefs.upsert(def);
+        final sources = PublishedSourceRepository(db);
+        await sources.upsert(PublishedSource(id: 's1', title: 'Robin Book'));
+        await dances.create(
+          _dance(
+            id: 'src',
+            title: 'Sourced',
+          ).copyWith(sourceCitations: [SourceCitation(sourceId: 's1')]),
+        );
+        await dances.create(
+          _dance(
+            id: 'cv',
+            title: 'Valued',
+            customFields: [
+              CustomFieldValue(fieldId: 'f', value: 'Robin Hayden camp'),
+            ],
+          ),
+        );
+        expect(await dances.search(const FullTextFilter('Robin Book')), [
+          'src',
+        ]);
+        expect(await dances.search(const FullTextFilter('Robin Hayden')), [
+          'cv',
+        ]);
+      });
+
+      test('figures_text stays canonical-only', () async {
+        await dances.create(
+          _dance(
+            id: 'fig',
+            title: 'Roles',
+            figures: [
+              Figure(
+                move: 'swing',
+                params: const {'who': 'role2s', 'beats': 8},
+              ),
+            ],
+          ),
+        );
+        // The raw branch must not look at figures_text: the stored token is
+        // the canonical role2s, matched only through the canonical branch.
+        expect(await dances.search(const FullTextFilter('role2s')), ['fig']);
+        final compiled = FilterCompiler().compile(const FullTextFilter('abc'));
+        expect(compiled.sql, isNot(contains('figures_text')));
+      });
+    });
 
     test('a gents move-param term matches canonical role in params', () async {
       await dances.create(
