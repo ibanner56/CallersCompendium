@@ -1,12 +1,11 @@
 import '../dialect/dialect.dart';
 import '../dialect/renderer.dart';
 import '../model/dance.dart';
-import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/figure_source.dart';
 import '../model/phrase_structure.dart';
-import '../model/tunes_source.dart';
 import '../taxonomy/contra_taxonomy.dart';
+import 'dance_card_fields.dart';
 import 'dance_share_fields.dart';
 import 'export_labels.dart';
 
@@ -95,33 +94,19 @@ String danceToPlainText(
 
   lines.add(dance.title.trim());
 
-  if (fields.contains(DanceShareField.authors)) {
-    final names = authorNames.map((n) => n.trim()).where((n) => n.isNotEmpty);
-    if (names.isNotEmpty) lines.add(names.join(', '));
-  }
+  final names = danceCardAuthorNames(authorNames, fields);
+  if (names.isNotEmpty) lines.add(names.join(', '));
 
-  if (fields.contains(DanceShareField.formation) && _has(formationLabel)) {
-    lines.add('${labels.formation}: ${formationLabel.trim()}');
-  }
-  if (fields.contains(DanceShareField.level) && _has(levelLabel)) {
-    lines.add('${labels.level}: ${levelLabel!.trim()}');
-  }
-  if (fields.contains(DanceShareField.mixer) &&
-      dance.mixer &&
-      _has(labels.mixer)) {
-    lines.add(labels.mixer.trim());
-  }
-  // Mirror the on-screen card, which only surfaces a status banner for a
-  // non-active dance; an active dance omits the Status line entirely.
-  if (fields.contains(DanceShareField.status) &&
-      dance.status != DanceStatus.active &&
-      _has(statusLabel)) {
-    lines.add('${labels.status}: ${statusLabel.trim()}');
-  }
-  if (fields.contains(DanceShareField.phraseStructure) &&
-      _has(dance.phraseStructure.raw)) {
-    lines.add('${labels.phrase}: ${dance.phraseStructure.raw.trim()}');
-  }
+  lines.addAll(
+    danceCardMetaLines(
+      dance,
+      formationLabel: formationLabel,
+      levelLabel: levelLabel,
+      statusLabel: statusLabel,
+      labels: labels,
+      fields: fields,
+    ),
+  );
 
   final danceFigures = switch (dance.figuresSource) {
     DecodedFigures(:final figures) => figures,
@@ -160,19 +145,11 @@ String danceToPlainText(
     lines.add(renderText(dance.walkthrough.trim()));
   }
 
-  if (fields.contains(DanceShareField.tunes)) {
-    final tuneList = switch (dance.tunesSource) {
-      DecodedTunes(:final tunes) => tunes,
-      // Unreadable stored tunes render as absent, matching every other
-      // unreadable-sealed-type contract in this file (figures).
-      UnreadableTunes() => const <String>[],
-    };
-    final tuneNames = tuneList.map((t) => t.trim()).where((t) => t.isNotEmpty);
-    if (tuneNames.isNotEmpty) {
-      lines.add('');
-      lines.add('${labels.tunes}:');
-      lines.add(tuneNames.join(', '));
-    }
+  final tuneNames = danceCardTuneNames(dance, fields);
+  if (tuneNames.isNotEmpty) {
+    lines.add('');
+    lines.add('${labels.tunes}:');
+    lines.add(tuneNames.join(', '));
   }
 
   return lines.join('\n');

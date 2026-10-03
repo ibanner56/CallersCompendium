@@ -55,8 +55,8 @@ List<String> danceCardAuthorNames(
 }
 
 /// Resolved, non-blank tune names for the dance card, gated on
-/// [DanceShareField.tunes]. Mirrors `danceToPlainText`'s tunes block —
-/// unreadable stored tunes render as absent, same as an unreadable figures
+/// [DanceShareField.tunes]. Unreadable stored tunes
+/// render as absent, same as an unreadable figures
 /// list.
 List<String> danceCardTuneNames(Dance dance, Set<DanceShareField> fields) {
   if (!fields.contains(DanceShareField.tunes)) return const [];
