@@ -259,7 +259,7 @@ void main() {
       dancers: Map.of(larks.dancers),
       moveWordings: Map.of(larks.moveWordings),
       moveWordingBranches: Map.of(larks.moveWordingBranches),
-      discouragedTerms: Map.of(larks.discouragedTerms),
+      discouragedTerms: List.of(larks.discouragedTerms),
     );
 
     test('a second render with the same dialect constructs no Substitutor', () {
@@ -268,7 +268,10 @@ void main() {
       expect(identical(copy, larks), isFalse);
       renderer.renderFreeText('role1s lead', larks); // warm
       final before = Substitutor.debugConstructed;
-      expect(renderer.renderFreeText('the role1s lead', copy), 'the larks lead');
+      expect(
+        renderer.renderFreeText('the role1s lead', copy),
+        'the larks lead',
+      );
       expect(Substitutor.debugConstructed, before);
     });
 
