@@ -291,13 +291,16 @@ class ImportPipeline {
   /// [index] should be a fresh [buildDedupeIndex] snapshot; if omitted, one is
   /// built automatically.
   ///
-  /// Parsing is CPU-bound and its awaits complete without waiting on anything,
-  /// so on a large batch (a ~20,000-dance `.USR` is ~40 s of it) the loop would
-  /// otherwise hold the isolate from start to finish and freeze any UI running
-  /// on it. Every [yieldInterval] of work it therefore hands the event loop a
-  /// turn; pass [Duration.zero] to yield after every record. [onProgress] is
-  /// told `(processed, total)` as records are handled, and once more with
-  /// `(total, total)` when the loop ends.
+  /// Parsing and deduping are CPU-bound and their awaits complete without
+  /// waiting on anything, so on a large batch (a ~20,000-dance `.USR` is ~40 s
+  /// of parsing, then a scan of every record against the whole collection) the
+  /// loops would otherwise hold the isolate from start to finish and freeze any
+  /// UI running on it. Both the parse loop and the dedupe loop therefore hand
+  /// the event loop a turn every [yieldInterval] of work, sharing one slice
+  /// clock; pass [Duration.zero] to yield after every record. [onProgress] is
+  /// told `(processed, total)` as records are parsed, and once more with
+  /// `(total, total)` when the parse loop ends; the dedupe loop reports
+  /// nothing.
   Future<ImportBatchResult> plan(
     SourceAdapter adapter,
     ImportRequest request, {
@@ -483,6 +486,12 @@ class ImportPipeline {
 
     final records = <ImportRecordPlan>[];
     for (var i = 0; i < pending.length; i++) {
+      if (i > 0 && slice.elapsed >= yieldInterval) {
+        // As in the parse loop: `_dedupeAuthorNames` completes as a microtask
+        // when the draft carries names, so only a real turn lets a frame paint.
+        await Future<void>.delayed(Duration.zero);
+        slice.reset();
+      }
       final p = pending[i];
       final legacyTarget = legacyTargetByIndex[i];
       final legacyCollision =

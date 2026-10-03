@@ -90,6 +90,68 @@ void main() {
       expect(ticksSeenAtParse.toSet().length, greaterThan(5));
     });
 
+    test('hands the event loop a turn while deduping a long batch', () async {
+      // The dedupe loop's only await (`_dedupeAuthorNames`) completes as a
+      // microtask when a draft carries author names, so without a real yield it
+      // runs start to finish. Each `verdictFor` records the ticks seen so far.
+      var ticks = 0;
+      final ticksSeenAtDedupe = <int>[];
+      final index = _TickRecordingIndex(
+        [
+          for (var i = 0; i < 2000; i++)
+            DedupeEntry(
+              danceId: 'existing-$i',
+              title: 'Existing Title $i',
+              authorNames: ['Author $i'],
+            ),
+        ],
+        () => ticks,
+        ticksSeenAtDedupe,
+      );
+      final timer = Timer.periodic(Duration.zero, (_) => ticks++);
+      addTearDown(timer.cancel);
+
+      final batch = await pipeline.plan(
+        FakeSourceAdapter([
+          for (var i = 0; i < 200; i++)
+            record(
+              'r$i',
+              'Incoming Dance $i',
+              authorNames: ['Incoming Author $i'],
+            ),
+        ]),
+        const ImportRequest(),
+        index: index,
+        yieldInterval: Duration.zero,
+      );
+
+      expect(batch.records, hasLength(200));
+      expect(ticksSeenAtDedupe, hasLength(200));
+      expect(ticksSeenAtDedupe.last, greaterThan(ticksSeenAtDedupe.first));
+      expect(ticksSeenAtDedupe.toSet().length, greaterThan(5));
+    });
+
+    test('dedupe does not yield with a long interval', () async {
+      var ticks = 0;
+      final seen = <int>[];
+      final index = _TickRecordingIndex(const [], () => ticks, seen);
+      final timer = Timer.periodic(Duration.zero, (_) => ticks++);
+      addTearDown(timer.cancel);
+
+      await pipeline.plan(
+        FakeSourceAdapter([
+          for (var i = 0; i < 40; i++)
+            record('r$i', 'Dance $i', authorNames: ['A $i']),
+        ]),
+        const ImportRequest(),
+        index: index,
+        yieldInterval: const Duration(hours: 1),
+      );
+
+      expect(seen, hasLength(40));
+      expect(seen.toSet(), {0});
+    });
+
     test('with a long interval it does not pay for yielding', () async {
       var ticks = 0;
       final seen = <int>[];
@@ -1642,6 +1704,35 @@ class _TickRecordingAdapter extends FakeSourceAdapter {
   StructuredDraft parse(RawRecord raw) {
     _seen.add(_ticks());
     return super.parse(raw);
+  }
+}
+
+/// A [DedupeIndex] that records how many event-loop ticks had happened at each
+/// `verdictFor` call — the dedupe-side twin of [_TickRecordingAdapter].
+class _TickRecordingIndex extends DedupeIndex {
+  _TickRecordingIndex(super.entries, this._ticks, this._seen);
+
+  final int Function() _ticks;
+  final List<int> _seen;
+
+  @override
+  DedupeVerdict verdictFor({
+    required ProvenanceSource source,
+    String? externalId,
+    Iterable<String> priorExternalIds = const [],
+    required String title,
+    Iterable<String> authorNames = const [],
+    double threshold = DedupeIndex.defaultThreshold,
+  }) {
+    _seen.add(_ticks());
+    return super.verdictFor(
+      source: source,
+      externalId: externalId,
+      priorExternalIds: priorExternalIds,
+      title: title,
+      authorNames: authorNames,
+      threshold: threshold,
+    );
   }
 }
 
