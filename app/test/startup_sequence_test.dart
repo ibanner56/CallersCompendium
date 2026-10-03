@@ -328,6 +328,52 @@ void main() {
   );
 
   testWidgets(
+    'an unreadable soft-delete retention setting starts the app and skips '
+    'the sweep rather than assuming the 30-day default',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final sink = _RecordingCrashLogSink();
+      installCaughtErrorLog(sink);
+      addTearDown(resetCaughtErrorLogForTesting);
+
+      final appData = _openFlakySettingsAppData({kSoftDeleteRetentionKey});
+      final fixedNow = DateTime.utc(2026, 6, 1);
+      // Past the 30-day default: a default-on-failure would purge it, which is
+      // wrong for a user whose stored choice was "never auto-purge".
+      await appData.repositories.programs.create(
+        Program(
+          id: 'old',
+          title: 'Ancient Program',
+          createdAt: fixedNow.subtract(const Duration(days: 60)),
+          updatedAt: fixedNow.subtract(const Duration(days: 31)),
+          deletedAt: fixedNow.subtract(const Duration(days: 31)),
+        ),
+      );
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          nowOverride: () => fixedNow,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AppShell), findsOneWidget);
+      expect(
+        await appData.repositories.programs.getById(
+          'old',
+          includeDeleted: true,
+        ),
+        isNotNull,
+      );
+      expect(sink.sources, contains('startup.soft_delete_retention_read'));
+    },
+  );
+
+  testWidgets(
     'a DB-open failure during window restore reaches the error/retry screen '
     '(Stage 1.6)',
     (tester) async {
