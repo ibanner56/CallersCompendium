@@ -292,32 +292,33 @@ void main() {
     },
   );
 
-  testWidgets('an enable still in flight when Perform is disposed is released', (
-    tester,
-  ) async {
-    final counting = installCountingWakelock();
-    final gate = Completer<void>();
-    counting.enableGate = gate;
-    final repos = openTestRepositories();
-    await repos.dances.create(_dance(id: 'd1', title: 'Program Dance'));
-    final data = await CollectionData.load(repos);
+  testWidgets(
+    'an enable still in flight when Perform is disposed is released',
+    (tester) async {
+      final counting = installCountingWakelock();
+      final gate = Completer<void>();
+      counting.enableGate = gate;
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Program Dance'));
+      final data = await CollectionData.load(repos);
 
-    await _pushPerform(
-      tester,
-      PerformProgramScreen(
-        program: programFor('d1'),
-        data: data,
-        renderer: _renderer,
-      ),
-    );
-    expect(counting.outstanding, 0, reason: 'enable is still in flight');
+      await _pushPerform(
+        tester,
+        PerformProgramScreen(
+          program: programFor('d1'),
+          data: data,
+          renderer: _renderer,
+        ),
+      );
+      expect(counting.outstanding, 0, reason: 'enable is still in flight');
 
-    await exitProgramPerform(tester);
-    expect(find.byType(PerformProgramScreen), findsNothing);
+      await exitProgramPerform(tester);
+      expect(find.byType(PerformProgramScreen), findsNothing);
 
-    gate.complete();
-    await tester.pumpAndSettle();
+      gate.complete();
+      await tester.pumpAndSettle();
 
-    expect(counting.outstanding, 0);
-  });
+      expect(counting.outstanding, 0);
+    },
+  );
 }
