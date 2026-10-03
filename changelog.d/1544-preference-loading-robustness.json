@@ -1,0 +1,10 @@
+{
+  "id": "1544-preference-loading-robustness",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Restoring a backup no longer briefly switches the app to the default theme and language before applying yours.",
+      "A preference that can't be read at startup now falls back to its default instead of blocking the app on the error screen."
+    ]
+  }
+}

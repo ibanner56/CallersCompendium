@@ -772,8 +772,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
   void _resetAppPreferenceNotifiers() {
     _dialectNotifier.value = Dialect.larksRobins;
     _themeNotifier.value = AppThemeSelection.system;
-    _requirePerformedForHistoryNotifier.value =
-        widget.initialRequirePerformedForHistory;
+    _requirePerformedForHistoryNotifier.value = false;
     _collectionTileFieldsNotifier.value = CollectionTileField.all;
     _danceShareFieldsNotifier.value = DanceShareField.allExceptTunes;
     _collectionHiddenFacetsNotifier.value = const <String>{};

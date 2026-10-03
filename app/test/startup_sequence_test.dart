@@ -208,7 +208,8 @@ AppData _openFlakySettingsAppData(Set<String> failingKeys) {
 /// Drives Settings › General › Restore with [backupJson], which ends in
 /// `reloadFromSettings`.
 Future<void> _restoreFromPaste(WidgetTester tester, String backupJson) async {
-  await tester.tap(find.text('Settings').last);
+  // By icon, not label: the language under test may not be English.
+  await tester.tap(find.byIcon(Icons.settings_outlined).last);
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('settings-nav-general')));
   await tester.pumpAndSettle();
@@ -1424,8 +1425,15 @@ void main() {
 
       final themes = <AppThemeSelection>[];
       final locales = <Locale?>[];
-      void onTheme() => themes.add(themeNotifier.value);
-      void onLocale() => locales.add(localeNotifier.value);
+      // Sampled after the frame, not in the listener: a notifier notifies
+      // synchronously, and reset-then-assign inside one synchronous block is
+      // invisible to the user. What matters is what a frame can show.
+      void onTheme() => WidgetsBinding.instance.addPostFrameCallback(
+        (_) => themes.add(themeNotifier.value),
+      );
+      void onLocale() => WidgetsBinding.instance.addPostFrameCallback(
+        (_) => locales.add(localeNotifier.value),
+      );
       themeNotifier.addListener(onTheme);
       localeNotifier.addListener(onLocale);
       addTearDown(() => themeNotifier.removeListener(onTheme));
@@ -1433,6 +1441,7 @@ void main() {
 
       await _restoreFromPaste(tester, backupJson);
 
+      expect(themes, isNotEmpty, reason: 'the restore must reach a frame');
       expect(themes, isNot(contains(AppThemeSelection.system)));
       expect(locales, isNot(contains(null)));
       expect(themeNotifier.value, AppThemeSelection.dark);
