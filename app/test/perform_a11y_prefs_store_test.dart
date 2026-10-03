@@ -1,5 +1,5 @@
 import 'package:compendium_app/src/screens/perform_a11y_prefs.dart';
-import 'package:compendium_app/src/screens/perform_card.dart'
+import 'package:compendium_app/src/data/perform_text_scale.dart'
     show kPerformDefaultScale, kPerformMinScale;
 import 'package:compendium_app/src/screens/settings_screen.dart'
     show kPerformCanonicalViewKey, kPerformStageModeKey, kPerformTextScaleKey;

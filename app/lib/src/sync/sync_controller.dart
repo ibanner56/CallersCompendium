@@ -5,7 +5,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 
 import '../diagnostics/error_log.dart';
-import '../screens/settings/settings_keys.dart';
+import '../data/settings_keys.dart';
 import 'sync_coordinator.dart';
 import 'sync_http_client.dart';
 import 'sync_network.dart';

@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/dialect_library_scope.dart';
+import '../data/perform_text_scale.dart';
 import '../data/repositories_scope.dart';
 import '../../l10n/app_localizations.dart';
 import '../search/collection_data.dart';
