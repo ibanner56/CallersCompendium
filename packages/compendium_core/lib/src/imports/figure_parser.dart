@@ -682,8 +682,9 @@ String? _takeRelationship(List<String> w) {
 
 /// Removes a rotation-direction word from anywhere in [w] and returns the
 /// canonical `clockwise`/`counterclockwise` token, or null when the line states
-/// none. Shared by every move whose TCB line states a spin direction (`orbit`,
-/// `mad_robin`, `butterfly_whirl`).
+/// none. The one spin-direction reader: every recognizer that reads a spin word
+/// goes through it (directly or via [_takeGateDirection]) so they all accept the
+/// same spellings.
 ///
 /// The counter-forms are tested FIRST: `_consumePhrase(['clockwise'])` would
 /// otherwise match the second half of a two-token "counter clockwise" and leave
