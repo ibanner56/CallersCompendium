@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
@@ -469,4 +471,184 @@ void main() {
       expect(v.isAmbiguous, isTrue);
     });
   });
+
+  group('normalisation is precomputed', () {
+    test('the index normalises each entry at construction', () {
+      final index = DedupeIndex([
+        DedupeEntry(
+          danceId: 'd1',
+          title: 'The Café  Réel!',
+          authorNames: ['Zoë  O\'Brien', 'GENE Hubert', '★'],
+        ),
+        DedupeEntry(danceId: 'd2', title: 'An Ünïcode Reel'),
+        DedupeEntry(danceId: 'd3', title: '花', authorNames: ['Alice']),
+      ]);
+      final byId = {
+        for (final e in index.normalizedEntriesForTesting) e.danceId: e,
+      };
+      expect(byId['d1']!.normalizedTitle, 'cafe reel');
+      expect(byId['d1']!.normalizedAuthors, {'zoe o brien', 'gene hubert'});
+      expect(byId['d2']!.normalizedTitle, 'unicode reel');
+      expect(byId['d2']!.normalizedAuthors, isEmpty);
+      // Never scored: the empty title is kept (parallel to the entries) so the
+      // loop can skip it without re-normalising.
+      expect(byId['d3']!.normalizedTitle, isEmpty);
+    });
+
+    test('fuzzyMatches equals the per-entry re-normalising algorithm', () {
+      const seed = 25;
+      final rng = Random(seed);
+      const words = [
+        'the',
+        'a',
+        'an',
+        'nice',
+        'combination',
+        'trip',
+        'nowhere',
+        'café',
+        'reel',
+        'jig',
+        'ünï',
+        'Ørsted',
+        'swing',
+        'star',
+        "o'brien",
+        'x-y',
+        'hex',
+        'ladies',
+        'chain',
+        'Zoë',
+        'ñandú',
+        '1,2,3',
+        'sue',
+        'sew',
+      ];
+      const odd = ['花', 'Танец', '★', '!!!', '', '   ', 'THE', 'A'];
+      String title() {
+        if (rng.nextInt(12) == 0) return odd[rng.nextInt(odd.length)];
+        final n = 1 + rng.nextInt(4);
+        return List.generate(
+          n,
+          (_) => words[rng.nextInt(words.length)],
+        ).join(rng.nextBool() ? ' ' : '  ');
+      }
+
+      List<String> authors() => List.generate(
+        rng.nextInt(4),
+        (_) =>
+            '${words[rng.nextInt(words.length)]} '
+            '${words[rng.nextInt(words.length)]}',
+      );
+
+      final entries = [
+        for (var i = 0; i < 200; i++)
+          DedupeEntry(danceId: 'e$i', title: title(), authorNames: authors()),
+      ];
+      final index = DedupeIndex(entries);
+      final queries = [
+        for (var i = 0; i < 100; i++)
+          // Half the queries are near-copies of an existing entry.
+          if (i.isEven)
+            (title(), authors())
+          else
+            (
+              entries[rng.nextInt(entries.length)].title,
+              entries[rng.nextInt(entries.length)].authorNames,
+            ),
+      ];
+      for (final threshold in [0.0, 0.72, 1.0]) {
+        for (final (t, a) in queries) {
+          final expected = _referenceFuzzyMatches(entries, t, a, threshold);
+          final actual = index.fuzzyMatches(t, a, threshold: threshold);
+          final reason = 'seed=$seed threshold=$threshold query="$t" $a';
+          expect(
+            [for (final c in actual) c.danceId],
+            [for (final c in expected) c.danceId],
+            reason: reason,
+          );
+          expect(
+            [for (final c in actual) c.score],
+            [for (final c in expected) c.score],
+            reason: reason,
+          );
+          expect(
+            [for (final c in actual) c.confident],
+            [for (final c in expected) c.confident],
+            reason: reason,
+          );
+        }
+      }
+    });
+  });
+}
+
+/// The pre-precompute algorithm: re-normalises every entry on every query.
+/// Oracle for the equivalence test; scoring helpers are verbatim copies.
+List<DedupeCandidate> _referenceFuzzyMatches(
+  List<DedupeEntry> entries,
+  String title,
+  Iterable<String> authorNames,
+  double threshold,
+) {
+  final nTitle = normalizeTitle(title);
+  final nAuthors = authorNames.map(normalizeAuthor).toSet()..remove('');
+  if (nTitle.isEmpty) return const [];
+  final out = <DedupeCandidate>[];
+  for (final e in entries) {
+    final eTitle = normalizeTitle(e.title);
+    if (eTitle.isEmpty) continue;
+    final eAuthors = e.authorNames.map(normalizeAuthor).toSet()..remove('');
+    final titleSim = _refSimilarity(nTitle, eTitle);
+    final score = nAuthors.isEmpty || eAuthors.isEmpty
+        ? titleSim
+        : titleSim * 0.8 + _refJaccard(nAuthors, eAuthors) * 0.2;
+    final confident =
+        nTitle.isNotEmpty &&
+        nTitle == eTitle &&
+        nAuthors.isNotEmpty &&
+        eAuthors.isNotEmpty &&
+        nAuthors.intersection(eAuthors).isNotEmpty;
+    if (score >= threshold || confident) {
+      out.add(
+        DedupeCandidate(danceId: e.danceId, score: score, confident: confident),
+      );
+    }
+  }
+  out.sort((a, b) => b.score.compareTo(a.score));
+  return out;
+}
+
+double _refJaccard(Set<String> a, Set<String> b) {
+  if (a.isEmpty && b.isEmpty) return 1.0;
+  final inter = a.intersection(b).length;
+  final union = a.union(b).length;
+  return union == 0 ? 0.0 : inter / union;
+}
+
+double _refSimilarity(String a, String b) {
+  if (a.isEmpty || b.isEmpty) return 0.0;
+  if (a == b) return 1.0;
+  final dist = _refLevenshtein(a, b);
+  final maxLen = a.length > b.length ? a.length : b.length;
+  return 1.0 - dist / maxLen;
+}
+
+int _refLevenshtein(String a, String b) {
+  final prev = List<int>.generate(b.length + 1, (i) => i);
+  final curr = List<int>.filled(b.length + 1, 0);
+  for (var i = 0; i < a.length; i++) {
+    curr[0] = i + 1;
+    for (var j = 0; j < b.length; j++) {
+      final cost = a.codeUnitAt(i) == b.codeUnitAt(j) ? 0 : 1;
+      var m = prev[j + 1] + 1;
+      if (curr[j] + 1 < m) m = curr[j] + 1;
+      if (prev[j] + cost < m) m = prev[j] + cost;
+      curr[j + 1] = m;
+    }
+    for (var k = 0; k <= b.length; k++) {
+      prev[k] = curr[k];
+    }
+  }
+  return prev[b.length];
 }
