@@ -4681,6 +4681,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get exportShareDanceBundle => 'Dansbestand delen';
 
   @override
+  String get exportSaveDanceBundle => 'Dansbestand opslaan…';
+
+  @override
   String get exportCopyDance => 'Dans kopiëren';
 
   @override
@@ -4703,6 +4706,9 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get exportShareProgramBundle => 'Delen (programma + dansen)';
+
+  @override
+  String get exportSaveProgramBundle => 'Programmabestand opslaan…';
 
   @override
   String get exportCopySetList => 'Setlijst kopiëren';

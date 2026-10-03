@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 
 import 'package:compendium_app/src/export/dance_pdf.dart';
 import 'package:compendium_app/src/export/json_export.dart';
+import 'package:compendium_app/src/export/share_file.dart';
 import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
 import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/widgets/dance_export_menu.dart';
@@ -145,6 +146,76 @@ Future<String?> _copyAndReadClipboard(
 }
 
 void main() {
+  // Pin the platform seam: `Platform.isLinux` is true on a Linux runner.
+  final realBundleShareUnsupported = isBundleShareUnsupported;
+  setUp(() => isBundleShareUnsupported = () => false);
+  tearDown(() => isBundleShareUnsupported = realBundleShareUnsupported);
+
+  group('DanceExportMenu on Linux', () {
+    setUp(() => isBundleShareUnsupported = () => true);
+
+    Future<List<String>> pumpAndPick(
+      WidgetTester tester,
+      String item, {
+      JsonExportChoice choice = JsonExportChoice.share,
+    }) async {
+      final saved = <String>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            appBar: AppBar(
+              actions: [
+                DanceExportMenu(
+                  dance: _dance(title: 'Linux dance'),
+                  dialect: Dialect.canonical,
+                  authorNames: const [],
+                  formationLabel: 'Duple improper',
+                  statusLabel: 'Active',
+                  shareInvoker: (_) async =>
+                      fail('share_plus cannot carry files on Linux'),
+                  jsonExportDelivery: JsonExportDelivery(
+                    choicePicker: (_) async => choice,
+                    saveInvoker: (json, fileName) async {
+                      saved.add(fileName);
+                      return JsonSaveResult(
+                        path: '/Documents/$fileName',
+                        fileName: fileName,
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(item));
+      await tester.pumpAndSettle();
+      return saved;
+    }
+
+    testWidgets('the dance file action saves a file instead of sharing', (
+      tester,
+    ) async {
+      final saved = await pumpAndPick(tester, 'Save dance file…');
+
+      expect(saved, ['Linux_dance.ccshare']);
+      expect(find.byType(SnackBar), findsOneWidget);
+    });
+
+    testWidgets('JSON › Share saves a file instead of sharing', (tester) async {
+      final saved = await pumpAndPick(tester, 'Export dance as JSON');
+
+      expect(saved, ['Linux_dance.json']);
+      expect(find.byType(SnackBar), findsOneWidget);
+    });
+  });
+
   group('DanceExportMenu', () {
     testWidgets('is present and labeled in an app bar', (tester) async {
       await _pumpMenu(tester, _dance());

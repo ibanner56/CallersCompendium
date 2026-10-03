@@ -377,18 +377,19 @@ class ProgramExportMenu extends StatelessWidget {
     final bundle = await _buildBundle(context, extension: extension);
     if (bundle == null) return;
 
-    final writeFile = bundleFileWriter ?? writeBundleTempFile;
-    final xfile = await writeFile(bundle.json, bundle.fileName);
-
-    final share = shareInvoker ?? SharePlus.instance.share;
-    await share(
-      ShareParams(
-        files: [xfile],
-        fileNameOverrides: [bundle.fileName],
-        subject: program.title,
-        sharePositionOrigin: origin,
-      ),
+    if (!context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    final result = await shareOrSaveBundleFile(
+      json: bundle.json,
+      fileName: bundle.fileName,
+      subject: program.title,
+      origin: origin,
+      shareInvoker: shareInvoker,
+      bundleFileWriter: bundleFileWriter,
+      saveInvoker: jsonExportDelivery?.saveInvoker,
     );
+    announceBundleSaved(messenger, l10n, result);
   }
 
   Future<({String json, String fileName})?> _buildBundle(
@@ -476,12 +477,14 @@ class ProgramExportMenu extends StatelessWidget {
         }, source: 'program_export_menu._guard');
       case JsonExportChoice.share:
         await guardExport(messenger, l10n.exportJsonShareError, () {
-          return delivery.share(
-            json: bundle.json,
-            fileName: bundle.fileName,
-            subject: program.title,
-            sharePositionOrigin: origin,
-          );
+          return delivery
+              .share(
+                json: bundle.json,
+                fileName: bundle.fileName,
+                subject: program.title,
+                sharePositionOrigin: origin,
+              )
+              .then((result) => announceBundleSaved(messenger, l10n, result));
         }, source: 'program_export_menu._guard');
     }
   }
@@ -649,8 +652,16 @@ class ProgramExportMenu extends StatelessWidget {
           PopupMenuItem<_ExportAction>(
             value: _ExportAction.shareBundle,
             child: ListTile(
-              leading: const Icon(Icons.share_outlined),
-              title: Text(l10n.exportShareProgramBundle),
+              leading: Icon(
+                isBundleShareUnsupported()
+                    ? Icons.save_alt_outlined
+                    : Icons.share_outlined,
+              ),
+              title: Text(
+                isBundleShareUnsupported()
+                    ? l10n.exportSaveProgramBundle
+                    : l10n.exportShareProgramBundle,
+              ),
               contentPadding: EdgeInsets.zero,
             ),
           ),

@@ -20,6 +20,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/export/dance_share_bundle.dart';
 import 'package:compendium_app/src/export/json_export.dart';
+import 'package:compendium_app/src/export/share_file.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
@@ -138,6 +139,11 @@ Future<ValueNotifier<bool>> _pumpDetail(
 }
 
 void main() {
+  // Pin the platform seam so these tests do not depend on the host OS.
+  final realBundleShareUnsupported = isBundleShareUnsupported;
+  setUp(() => isBundleShareUnsupported = () => false);
+  tearDown(() => isBundleShareUnsupported = realBundleShareUnsupported);
+
   TestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('renders header: title, authors, hook, tags', (tester) async {
@@ -493,6 +499,51 @@ void main() {
         expect(find.text("Couldn't share this dance"), findsOneWidget);
       },
     );
+
+    testWidgets('on Linux the overflow dance file action saves, not shares', (
+      tester,
+    ) async {
+      isBundleShareUnsupported = () => true;
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Narrow Dance'));
+      final library = await buildLibrary(repos);
+      final saved = <String>[];
+
+      await _pumpDetail(
+        tester,
+        repos,
+        'd1',
+        surfaceSize: const Size(360, 800),
+        dialectLibrary: library,
+        shareInvoker: (_) async => fail('share_plus cannot carry files here'),
+        jsonExportDelivery: JsonExportDelivery(
+          saveInvoker: (json, fileName) async {
+            saved.add(fileName);
+            return JsonSaveResult(
+              path: '/Documents/$fileName',
+              fileName: fileName,
+            );
+          },
+        ),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+      await tester.pumpAndSettle();
+      expect(find.text('Share dance file'), findsNothing);
+      expect(find.text('Save dance file…'), findsOneWidget);
+      await tester.tap(
+        find.byKey(const ValueKey('overflow-share-dance-bundle')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(saved, ['Narrow_Dance.ccshare']);
+      expect(
+        find.text(
+          '"Narrow_Dance.ccshare" saved to /Documents/Narrow_Dance.ccshare.',
+        ),
+        findsOneWidget,
+      );
+    });
 
     testWidgets('overflow Export actions are reachable and Copy works', (
       tester,

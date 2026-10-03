@@ -4700,6 +4700,10 @@
   "@exportShareDanceBundle": {
     "x-sourceSha256": "29c9786e0737eac3cd1c9154fb88a22b635b7d0f7af5d9bd9c5ea50842fde6f0"
   },
+  "exportSaveDanceBundle": "Dansbestand opslaan…",
+  "@exportSaveDanceBundle": {
+    "x-sourceSha256": "09e808c7c50eb5ca371424b818a64ba45450b29a5ae7b5522c6deb4994b3eed1"
+  },
   "exportCopyDance": "Dans kopiëren",
   "@exportCopyDance": {
     "x-sourceSha256": "2ffac8a5b092603538cd48f6dc8841ab41879f471ad6fea998797ecdc824c1d5"
@@ -4731,6 +4735,10 @@
   "exportShareProgramBundle": "Delen (programma + dansen)",
   "@exportShareProgramBundle": {
     "x-sourceSha256": "aa291fc9f8e91d5ec3a4403f0ad10989880d96eca5c8d274776ec8ef6e699516"
+  },
+  "exportSaveProgramBundle": "Programmabestand opslaan…",
+  "@exportSaveProgramBundle": {
+    "x-sourceSha256": "7d34d57e448e90bdf0518ea47d313bd2f6bc109053d33b64bfa2eca1b08a003e"
   },
   "exportCopySetList": "Setlijst kopiëren",
   "@exportCopySetList": {

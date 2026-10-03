@@ -4623,6 +4623,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportShareDanceBundle => 'Share dance file';
 
   @override
+  String get exportSaveDanceBundle => 'Save dance file…';
+
+  @override
   String get exportCopyDance => 'Copy dance';
 
   @override
@@ -4645,6 +4648,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exportShareProgramBundle => 'Share (program + dances)';
+
+  @override
+  String get exportSaveProgramBundle => 'Save program file…';
 
   @override
   String get exportCopySetList => 'Copy set list';
