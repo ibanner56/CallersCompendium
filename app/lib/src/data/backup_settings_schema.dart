@@ -1,8 +1,6 @@
 import 'package:compendium_core/compendium_core.dart'
     show MatrixColumnConfig, shareableTextNormalisationScopeKey;
 
-import '../screens/perform_card.dart' show kPerformMinScale;
-import '../screens/settings/settings_keys.dart';
 import '../update/update_config.dart'
     show kUpdateAutoCheckKey, kUpdateBetaChannelKey, kUpdateDismissedVersionKey;
 import 'aggressive_beats_update_scope.dart' show kAggressiveBeatsUpdateKey;
@@ -37,9 +35,11 @@ import 'display_defaults.dart'
 import 'formation_colors_controller.dart' show kFormationColorOverridesKey;
 import 'locale_scope.dart' show kLocaleKey;
 import 'reduce_motion_scope.dart' show kReduceMotionKey;
+import 'perform_text_scale.dart' show kPerformMinScale;
 import 'regional_formats.dart'
     show kDateFormatCustomPatternKey, kDateFormatKey, kFirstDayOfWeekKey;
 import 'seed_service.dart' show kInitialSeedCompletedKey;
+import 'settings_keys.dart';
 import 'set_list_color_coding_scope.dart' show kSetListColorCodingKey;
 import 'shorthand_mappings_controller.dart' show kShorthandMappingsKey;
 import 'soft_delete_retention.dart' show kSoftDeleteRetentionKey;

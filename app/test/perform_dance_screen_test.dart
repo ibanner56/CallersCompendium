@@ -10,6 +10,7 @@ import 'package:compendium_app/src/data/dialect_library_controller.dart';
 import 'package:compendium_app/src/data/dialect_library_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
+import 'package:compendium_app/src/data/perform_text_scale.dart';
 import 'package:compendium_app/src/screens/perform_card.dart';
 import 'package:compendium_app/src/screens/perform_dance_screen.dart';
 import 'package:compendium_app/src/screens/perform_walkthrough_overlay.dart';

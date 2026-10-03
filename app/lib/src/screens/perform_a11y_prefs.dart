@@ -1,7 +1,8 @@
 import 'package:compendium_core/compendium_core.dart';
 
-import 'perform_card.dart' show kPerformDefaultScale, kPerformMinScale;
-import 'settings/settings_keys.dart';
+import '../data/perform_text_scale.dart'
+    show kPerformDefaultScale, kPerformMinScale;
+import '../data/settings_keys.dart';
 
 /// The in-Perform accessibility preferences persisted across sessions
 /// (issue #449): the manual text scale, the dark-stage high-contrast theme,

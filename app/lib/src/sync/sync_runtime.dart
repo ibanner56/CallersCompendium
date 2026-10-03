@@ -5,7 +5,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 
 import '../data/app_database.dart' show resolveDatabaseFile;
-import '../screens/settings/settings_keys.dart'
+import '../data/settings_keys.dart'
     show kSyncDeviceIdKey, kSyncEnabledKey, kSyncEndpointKey, kSyncIdKey;
 import 'sync_coordinator.dart';
 import 'sync_http_client.dart';

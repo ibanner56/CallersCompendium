@@ -10,7 +10,7 @@ import 'backup_settings_schema.dart';
 import 'custom_theme.dart';
 import 'custom_themes_controller.dart';
 import 'dialect_library_controller.dart';
-import '../screens/settings/settings_keys.dart'
+import 'settings_keys.dart'
     show
         kSyncDeviceIdKey,
         kSyncEnabledKey,
