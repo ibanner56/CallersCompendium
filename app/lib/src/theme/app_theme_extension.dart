@@ -102,7 +102,10 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
       final fill = Color.alphaBlend(c.withValues(alpha: 0.10), scheme.surface);
       if (Wcag.meetsAA(scheme.onSurface, fill)) return c;
     }
-    return scheme.surface;
+    // No candidate can pass (e.g. a custom theme whose onSurface already
+    // fails against its surface): keep the original token rather than fading
+    // the icon into the surface.
+    return token;
   }
 
   @override
