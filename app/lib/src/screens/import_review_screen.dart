@@ -2457,6 +2457,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               ?batchWarnings,
               if (unreadable.isNotEmpty) _buildBatchErrors(context, unreadable),
               if (titleList != null) _buildTitleListSummary(context, titleList),
+              if (titleList != null && titleList.stoppedAfterConnectionFailure)
+                _buildTitleListConnectionBanner(context),
               for (var i = 0; i < batch.records.length; i++) ...[
                 if (_isFirstRowOfAmbiguousGroup(i))
                   _buildAmbiguousGroupHeading(context, i),
@@ -2539,6 +2541,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       padding: const EdgeInsets.all(12),
       children: [
         _buildTitleListSummary(context, titleList),
+        if (titleList.stoppedAfterConnectionFailure)
+          _buildTitleListConnectionBanner(context),
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Text(
@@ -2718,6 +2722,46 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// still proceed. Distinct from the overwrite warning (which uses the error
   /// palette) — this uses the tertiary palette so "unusually large" reads as
   /// caution, not error.
+  /// The single batch-level notice shown when a connection failure ended the
+  /// title lookups early ([TitleListResolution.stoppedAfterConnectionFailure]);
+  /// the per-row reasons then read "check your connection" instead of
+  /// repeating the explanation under every unsearched title.
+  Widget _buildTitleListConnectionBanner(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final message = l10n.importTitleListConnectionBanner;
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      label: l10n.importReviewWarningPrefix(message),
+      child: Container(
+        key: const ValueKey('import-titles-connection-banner'),
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: scheme.tertiaryContainer,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: ExcludeSemantics(
+          child: Row(
+            children: [
+              Icon(Icons.wifi_off, color: scheme.onTertiaryContainer),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  message,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: scheme.onTertiaryContainer,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildSoftCapWarning(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
