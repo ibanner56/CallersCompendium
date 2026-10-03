@@ -3,7 +3,6 @@ import 'dart:isolate';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
-import 'package:flutter/foundation.dart' show visibleForTesting;
 
 import 'custom_theme.dart';
 
@@ -212,8 +211,7 @@ Future<T> runBackupCodecOnIsolate<T>(T Function() work) => Isolate.run(work);
 
 /// The runner a [BackupService] uses when none is injected. Widget tests that
 /// reach the service through the UI swap this for [runBackupCodecInline] (and
-/// restore it in a tear-down); production never touches it.
-@visibleForTesting
+/// restore it in a tear-down); production never reassigns it.
 BackupCodecRunner defaultBackupCodecRunner = runBackupCodecOnIsolate;
 
 /// Runs [work] on the calling isolate. For tests that cannot pump a real
