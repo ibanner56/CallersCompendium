@@ -44,6 +44,7 @@ import 'src/data/migration_error_labels.dart';
 import 'src/data/migration_guard.dart';
 import 'src/data/online_search.dart';
 import 'src/data/online_search_labels.dart';
+import 'src/data/persisted_preference.dart';
 import 'src/data/colour_dance_theme_scope.dart';
 import 'src/data/reduce_motion_scope.dart';
 import 'src/data/regional_formats.dart';
@@ -431,44 +432,104 @@ class _CompendiumAppState extends State<CompendiumApp> {
   final ValueNotifier<AppThemeSelection> _themeNotifier = ValueNotifier(
     AppThemeSelection.system,
   );
-  late final ValueNotifier<bool> _requirePerformedForHistoryNotifier =
-      ValueNotifier(widget.initialRequirePerformedForHistory);
+  // The constructor seam only seeds the first frame; reset and load go through
+  // the literal `false` default, so this is `late final` to read the widget.
+  late final _requirePerformedForHistoryNotifier = PreferenceNotifier<bool>(
+    key: kRequirePerformedForHistoryKey,
+    defaultValue: false,
+    initialValue: widget.initialRequirePerformedForHistory,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
   final ValueNotifier<Set<CollectionTileField>> _collectionTileFieldsNotifier =
       ValueNotifier(CollectionTileField.all);
   final ValueNotifier<Set<DanceShareField>> _danceShareFieldsNotifier =
       ValueNotifier(DanceShareField.allExceptTunes);
   final ValueNotifier<Set<String>> _collectionHiddenFacetsNotifier =
       ValueNotifier(const <String>{});
-  final ValueNotifier<bool> _trackHistoryForAllCallersNotifier = ValueNotifier(
-    false,
+  final _trackHistoryForAllCallersNotifier = PreferenceNotifier<bool>(
+    key: kTrackHistoryForAllCallersKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
   );
   final ValueNotifier<int> _venueCallCountNotifier = ValueNotifier(
     kVenueCallCountDefault,
   );
-  final ValueNotifier<bool> _sortIgnoreArticlesNotifier = ValueNotifier(true);
+  final _sortIgnoreArticlesNotifier = PreferenceNotifier<bool>(
+    key: kSortIgnoreArticlesKey,
+    defaultValue: true,
+    decode: (Object? v) => v is bool ? v : true,
+    encode: (v) => v,
+  );
   // Tri-state (issue #447): null = unset → follow the OS-level Reduce Motion
   // preference (MediaQuery.disableAnimations); true/false = explicit in-app
   // override. Resolved to an effective bool by ReduceMotionScope.of.
-  final ValueNotifier<bool?> _reduceMotionNotifier = ValueNotifier<bool?>(null);
-  final ValueNotifier<bool> _verboseFigureRenderingNotifier = ValueNotifier(
-    false,
+  final _reduceMotionNotifier = PreferenceNotifier<bool?>(
+    key: kReduceMotionKey,
+    defaultValue: null,
+    decode: (Object? v) => v is bool ? v : null,
+    encode: (v) => v,
   );
-  final ValueNotifier<bool> _canonicalDiscouragedTermsNotifier = ValueNotifier(
-    true,
+  final _verboseFigureRenderingNotifier = PreferenceNotifier<bool>(
+    key: kVerboseFigureRenderingKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
   );
-  final ValueNotifier<bool> _decimalTurnsNotifier = ValueNotifier(false);
-  final ValueNotifier<bool> _aggressiveBeatsUpdateNotifier = ValueNotifier(
-    false,
+  final _canonicalDiscouragedTermsNotifier = PreferenceNotifier<bool>(
+    key: kCanonicalDiscouragedTermsKey,
+    defaultValue: true,
+    decode: (Object? v) => v is bool ? v : true,
+    encode: (v) => v,
   );
-  final ValueNotifier<bool> _confirmBeforeDeleteNotifier = ValueNotifier(false);
-  final ValueNotifier<bool> _venueEntityModeNotifier = ValueNotifier(false);
-  final ValueNotifier<bool> _autoCommitProgramChangesNotifier = ValueNotifier(
-    false,
+  final _decimalTurnsNotifier = PreferenceNotifier<bool>(
+    key: kDecimalTurnsKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
   );
-  final ValueNotifier<bool> _colourDanceThemeNotifier = ValueNotifier(false);
-  final ValueNotifier<bool> _setListColorCodingNotifier = ValueNotifier(true);
-  final ValueNotifier<bool> _matrixExactBeatCollisionNotifier = ValueNotifier(
-    true,
+  final _aggressiveBeatsUpdateNotifier = PreferenceNotifier<bool>(
+    key: kAggressiveBeatsUpdateKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
+  final _confirmBeforeDeleteNotifier = PreferenceNotifier<bool>(
+    key: kConfirmBeforeDeleteKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
+  final _venueEntityModeNotifier = PreferenceNotifier<bool>(
+    key: kVenueEntityModeKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
+  final _autoCommitProgramChangesNotifier = PreferenceNotifier<bool>(
+    key: kAutoCommitProgramChangesKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
+  final _colourDanceThemeNotifier = PreferenceNotifier<bool>(
+    key: kColourDanceThemeKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
+  final _setListColorCodingNotifier = PreferenceNotifier<bool>(
+    key: kSetListColorCodingKey,
+    defaultValue: true,
+    decode: (Object? v) => v is bool ? v : true,
+    encode: (v) => v,
+  );
+  final _matrixExactBeatCollisionNotifier = PreferenceNotifier<bool>(
+    key: kMatrixExactBeatCollisionKey,
+    defaultValue: true,
+    decode: (Object? v) => v is bool ? v : true,
+    encode: (v) => v,
   );
   final ValueNotifier<MatrixColumnConfig> _programMatrixColumnsNotifier =
       ValueNotifier(MatrixColumnConfig.empty);
@@ -769,27 +830,35 @@ class _CompendiumAppState extends State<CompendiumApp> {
     );
   }
 
+  /// The boolean preferences, in one place: the reset and the load iterate this
+  /// list, so a preference listed here cannot be left out of either.
+  late final List<PreferenceNotifier<Object?>> _boolPreferences = [
+    _requirePerformedForHistoryNotifier,
+    _trackHistoryForAllCallersNotifier,
+    _sortIgnoreArticlesNotifier,
+    _reduceMotionNotifier,
+    _verboseFigureRenderingNotifier,
+    _canonicalDiscouragedTermsNotifier,
+    _decimalTurnsNotifier,
+    _aggressiveBeatsUpdateNotifier,
+    _confirmBeforeDeleteNotifier,
+    _venueEntityModeNotifier,
+    _autoCommitProgramChangesNotifier,
+    _colourDanceThemeNotifier,
+    _setListColorCodingNotifier,
+    _matrixExactBeatCollisionNotifier,
+  ];
+
   void _resetAppPreferenceNotifiers() {
     _dialectNotifier.value = Dialect.larksRobins;
     _themeNotifier.value = AppThemeSelection.system;
-    _requirePerformedForHistoryNotifier.value = false;
+    for (final p in _boolPreferences) {
+      p.reset();
+    }
     _collectionTileFieldsNotifier.value = CollectionTileField.all;
     _danceShareFieldsNotifier.value = DanceShareField.allExceptTunes;
     _collectionHiddenFacetsNotifier.value = const <String>{};
-    _trackHistoryForAllCallersNotifier.value = false;
     _venueCallCountNotifier.value = kVenueCallCountDefault;
-    _sortIgnoreArticlesNotifier.value = true;
-    _reduceMotionNotifier.value = null;
-    _verboseFigureRenderingNotifier.value = false;
-    _canonicalDiscouragedTermsNotifier.value = true;
-    _decimalTurnsNotifier.value = false;
-    _aggressiveBeatsUpdateNotifier.value = false;
-    _confirmBeforeDeleteNotifier.value = false;
-    _venueEntityModeNotifier.value = false;
-    _autoCommitProgramChangesNotifier.value = false;
-    _colourDanceThemeNotifier.value = false;
-    _setListColorCodingNotifier.value = true;
-    _matrixExactBeatCollisionNotifier.value = true;
     _programMatrixColumnsNotifier.value = MatrixColumnConfig.empty;
     _dateFormatNotifier.value = DateFormatSetting.system;
     _firstDayOfWeekNotifier.value = FirstDayOfWeekPref.system;
@@ -1483,101 +1552,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
         .catchError(
           (_) => null,
         ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    // The "require mark-performed for calling history" setting (ROADMAP G.2).
-    final requirePerformed = await _appData.repositories.settings
-        .get(kRequirePerformedForHistoryKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    // The "track calling history for all callers" setting (issue #583).
-    final trackAllCallers = await _appData.repositories.settings
-        .get(kTrackHistoryForAllCallersKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     final venueCallCount = await _appData.repositories.settings
         .get(kVenueCallCountKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    // The "ignore leading articles when sorting" setting.
-    final sortIgnoreArticles = await _appData.repositories.settings
-        .get(kSortIgnoreArticlesKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    // The accessibility toggles (ROADMAP G.7). Reduce-motion is tri-state
-    // (issue #447, WCAG 2.3.3): a stored `bool` is an explicit in-app override,
-    // while an absent key leaves the notifier `null` so the scope follows the
-    // OS-level Reduce Motion preference. A read failure is coerced to `null`
-    // so startup never blocks on a settings hiccup.
-    final reduceMotion = await _appData.repositories.settings
-        .get(kReduceMotionKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    final verboseFigures = await _appData.repositories.settings
-        .get(kVerboseFigureRenderingKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    final canonicalDiscouragedTerms = await _appData.repositories.settings
-        .get(kCanonicalDiscouragedTermsKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    // The "show turns as decimals" display toggle (#368). Opt-in, so a read
-    // failure or missing key stays off; coerced through `is bool` so a garbage
-    // stored value can never flip the toggle on.
-    final decimalTurns = await _appData.repositories.settings
-        .get(kDecimalTurnsKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    // The "aggressively recompute figure beats" toggle (#689). Opt-in, so a
-    // read failure or missing/corrupt stored value keeps today's behavior.
-    final aggressiveBeatsUpdate = await _appData.repositories.settings
-        .get(kAggressiveBeatsUpdateKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    final confirmBeforeDelete = await _appData.repositories.settings
-        .get(kConfirmBeforeDeleteKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    // The "venue entity mode" setting. Opt-in, so a read failure or missing key
-    // keeps the simple free-text venue field.
-    final venueEntityMode = await _appData.repositories.settings
-        .get(kVenueEntityModeKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    // The opt-in program-editor auto-commit setting, off by default so
-    // existing editors continue to require explicit Save.
-    final autoCommitProgramChanges = await _appData.repositories.settings
-        .get(kAutoCommitProgramChangesKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — preference read failed; preserves
-    // explicit-save behavior.
-    // The colour-tint easter egg (#307). Opt-in, so a read failure or missing
-    // key stays off.
-    final colourDanceTheme = await _appData.repositories.settings
-        .get(kColourDanceThemeKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    // The "colour-code set-list rows" Appearance setting (issue #270).
-    final setListColorCoding = await _appData.repositories.settings
-        .get(kSetListColorCodingKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    // The Programs "flag exact beat overlap only" matrix-collision setting
-    // (issue #962).
-    final matrixExactBeatCollision = await _appData.repositories.settings
-        .get(kMatrixExactBeatCollisionKey)
         .catchError(
           (_) => null,
         ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
@@ -1622,6 +1598,15 @@ class _CompendiumAppState extends State<CompendiumApp> {
         .catchError(
           (_) => null,
         ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
+    // The boolean preferences (key, default and decoder live on each
+    // [PreferenceNotifier]). Every read is guarded, so one unreadable key leaves
+    // that preference at its default. Reduce-motion is tri-state (issue #447,
+    // WCAG 2.3.3): a stored `bool` is an explicit in-app override, an absent key
+    // leaves it `null` so the scope follows the OS-level Reduce Motion setting.
+    final storedBools = <Object?>[
+      for (final p in _boolPreferences)
+        await p.read(_appData.repositories.settings),
+    ];
     // Locally-saved custom themes (and the active one), the per-formation label
     // colour overrides (issue #367), the shorthand → figure(s) mappings (issue
     // #420), the personal walkthrough snippet library (#411), the update-check
@@ -1676,48 +1661,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
     final themeName = storedTheme is String ? storedTheme : null;
     final selection = AppThemeSelection.forName(themeName);
     if (selection != null) _themeNotifier.value = selection;
-    if (requirePerformed is bool) {
-      _requirePerformedForHistoryNotifier.value = requirePerformed;
-    }
-    if (trackAllCallers is bool) {
-      _trackHistoryForAllCallersNotifier.value = trackAllCallers;
+    for (var i = 0; i < _boolPreferences.length; i++) {
+      _boolPreferences[i].applyStored(storedBools[i]);
     }
     _venueCallCountNotifier.value = venueCallCountFromStored(venueCallCount);
-    if (sortIgnoreArticles is bool) {
-      _sortIgnoreArticlesNotifier.value = sortIgnoreArticles;
-    }
-    if (reduceMotion is bool) _reduceMotionNotifier.value = reduceMotion;
-    if (verboseFigures is bool) {
-      _verboseFigureRenderingNotifier.value = verboseFigures;
-    }
-    _canonicalDiscouragedTermsNotifier.value =
-        canonicalDiscouragedTerms is! bool || canonicalDiscouragedTerms;
-    if (decimalTurns is bool) {
-      _decimalTurnsNotifier.value = decimalTurns;
-    }
-    if (aggressiveBeatsUpdate is bool) {
-      _aggressiveBeatsUpdateNotifier.value = aggressiveBeatsUpdate;
-    }
-    if (confirmBeforeDelete is bool) {
-      _confirmBeforeDeleteNotifier.value = confirmBeforeDelete;
-    }
-    if (venueEntityMode is bool) {
-      _venueEntityModeNotifier.value = venueEntityMode;
-    }
-    if (autoCommitProgramChanges is bool) {
-      _autoCommitProgramChangesNotifier.value = autoCommitProgramChanges;
-    }
-    if (colourDanceTheme is bool) {
-      _colourDanceThemeNotifier.value = colourDanceTheme;
-    } else {
-      _colourDanceThemeNotifier.value = false;
-    }
-    if (setListColorCoding is bool) {
-      _setListColorCodingNotifier.value = setListColorCoding;
-    }
-    if (matrixExactBeatCollision is bool) {
-      _matrixExactBeatCollisionNotifier.value = matrixExactBeatCollision;
-    }
     _programMatrixColumnsNotifier.value =
         MatrixColumnConfig.tryDecode(programMatrixColumns) ??
         MatrixColumnConfig.empty;
