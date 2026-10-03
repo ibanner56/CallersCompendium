@@ -792,7 +792,7 @@ and those need different follow-up:
   choreographer(s), since the local match is by title alone and two dances can
   share a title;
 - **not found** — carrying *which* way it missed (`noResults`, `noExactMatch`,
-  `fetchError`, `lineTooLong`). Multiple exact matches are no longer classified
+  `fetchError`, `connectionFailed`, `lineTooLong`). Multiple exact matches are no longer classified
   as not found when at least one candidate preview succeeds.
 
 A paste with nothing importable deliberately does **not** fall through to the
@@ -816,7 +816,18 @@ at most `kMaxAmbiguousCandidatesPerLine` (6) previews, so the worst-case bound
 is `kMaxTitleListTitles × (1 + kMaxAmbiguousCandidatesPerLine)` requests.
 Candidates beyond the six-item per-title cap are not fetched. A per-title
 `on Exception` boundary means one unreachable dance becomes one `fetchError` row
-rather than an aborted batch. No new fetch path is introduced: the existing
+rather than an aborted batch — except a *connection-class* failure
+(`isConnectionFailure` in `online_title_lookup.dart`: `callersBoxUnreachable`,
+`contraDbUnreachable`, `unreachable`, `searchTimeout`, `timeout`, plus the
+search-endpoint `callersBoxHttpStatus`/`contraDbHttpStatus`; the per-dance
+preview's `httpStatus` is not, since a 404 there is about that dance). The first
+such failure stops the batch (IMP-07): the title and every title not yet looked
+up become `connectionFailed` rows — the failing title itself was requested; only
+the later titles are skipped without a request (an ambiguous title's candidate
+previews stop at the first connection failure too) — and
+`TitleListResolution.stoppedAfterConnectionFailure` drives one batch-level
+banner on the review screen. Titles already in the collection are still listed.
+No new fetch path is introduced: the existing
 `buildCallersBoxSearchUrl` / `buildCallersBoxJsonUrl` host allowlist (#621, #766)
 still governs what is reachable.
 

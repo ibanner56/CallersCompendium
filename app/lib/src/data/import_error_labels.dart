@@ -242,5 +242,7 @@ String titleListNotFoundReasonMessage(
   TitleListNotFoundReason.multipleExactMatches =>
     l10n.importTitleListReasonMultipleExactMatches,
   TitleListNotFoundReason.fetchError => l10n.importTitleListReasonFetchError,
+  TitleListNotFoundReason.connectionFailed =>
+    l10n.importTitleListReasonConnectionFailed,
   TitleListNotFoundReason.lineTooLong => l10n.importTitleListReasonLineTooLong,
 };
