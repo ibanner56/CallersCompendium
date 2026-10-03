@@ -13,7 +13,6 @@ import '../../model/figure_source.dart';
 import '../../model/tunes_source.dart';
 import '../../model/figure.dart';
 import '../../model/formation.dart';
-import '../../imports/reparse_custom_figures.dart';
 import '../../model/partial_date.dart';
 import '../../model/phrase_structure.dart';
 import '../../model/provenance.dart' as model;
@@ -25,6 +24,7 @@ import '../../search/filter_compiler.dart';
 import '../../search/search_enrichment.dart';
 import '../../search/fts_query.dart';
 import '../../serialization/figure_codec.dart';
+import '../figure_reparse.dart';
 import '../../sync/sync_record_kind.dart';
 import '../../taxonomy/param_types.dart';
 import '../../taxonomy/taxonomy.dart';
@@ -2283,7 +2283,13 @@ class DanceRepository {
   /// row, so the dry-run and the apply agree — and the row is absent from the
   /// list rather than shown with a zero count, which would read as "nothing to
   /// upgrade here" about a transcription that was never read at all.
-  Future<List<CustomReparsePreview>> previewImportGapReparse() async {
+  ///
+  /// [reparse] is the same caller-supplied re-parse
+  /// [reparseImportGapFiguresForMany] applies, so the dry-run cannot disagree
+  /// with the apply about what upgrades.
+  Future<List<CustomReparsePreview>> previewImportGapReparse({
+    required FigureReparser reparse,
+  }) async {
     final rows =
         await (_db.selectOnly(_db.dances)
               ..addColumns([
@@ -2309,7 +2315,7 @@ class DanceRepository {
         UnreadableFigures() => null,
       };
       if (figures == null) continue;
-      final outcome = reparseImportGapFigures(figures, taxonomy: _taxonomy);
+      final outcome = reparse(figures, taxonomy: _taxonomy);
       if (outcome.upgradedCount > 0) {
         previews.add(
           CustomReparsePreview(
@@ -2340,37 +2346,39 @@ class DanceRepository {
   /// number of dances changed. An empty [ids] is a no-op returning `0`. The
   /// whole batch runs in one transaction, so an error leaves the collection
   /// untouched rather than half-updated.
+  ///
+  /// [reparse] is the re-parse to apply (`reparseImportGapFigures`); the caller
+  /// supplies it so this layer does not import `imports/`.
   Future<int> reparseImportGapFiguresForMany(
     Iterable<String> ids, {
+    required FigureReparser reparse,
     required DateTime now,
   }) {
     assertUtc(now, 'now');
-    final list = ids.toList();
-    if (list.isEmpty) return Future.value(0);
-    return _db.transaction(() async {
-      var changed = 0;
-      for (final id in list) {
-        final dance = await getById(id);
-        if (dance == null) continue;
+    return _updateMany(
+      ids,
+      (dance) {
         final figures = switch (dance.figuresSource) {
           DecodedFigures(:final figures) => figures,
           // Nothing to reparse, and nothing may be written for this dance:
           // skipping leaves the stored bytes untouched.
           UnreadableFigures() => null,
         };
-        if (figures == null) continue;
-        final outcome = reparseImportGapFigures(figures, taxonomy: _taxonomy);
-        if (outcome.upgradedCount == 0) continue;
-        // Deliberately no `localUserEdit`, unlike every sibling batch method
-        // here. The user asks for the reparse, but what it writes is a pure
-        // re-derivation of existing stored content — the same class as the
-        // normalisation passes §6.8 excludes from cancelling a pending
-        // tombstone. Nothing here is content the user authored.
-        await _upsert(dance.copyWith(figures: outcome.figures, updatedAt: now));
-        changed++;
-      }
-      return changed;
-    });
+        if (figures == null) return null;
+        final outcome = reparse(figures, taxonomy: _taxonomy);
+        if (outcome.upgradedCount == 0) return null;
+        return dance.copyWith(figures: outcome.figures, updatedAt: now);
+      },
+      // Figures text is an input to the derived FTS rows, so they are rebuilt
+      // (and the figures normalised, as before).
+      rebuildDerived: true,
+      // Deliberately not a local user edit, unlike every sibling batch method
+      // here. The user asks for the reparse, but what it writes is a pure
+      // re-derivation of existing stored content — the same class as the
+      // normalisation passes §6.8 excludes from cancelling a pending
+      // tombstone. Nothing here is content the user authored.
+      localUserEdit: false,
+    );
   }
 
   /// [Dance.duplicate] (fresh identity, no provenance) and persists it.
