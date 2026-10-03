@@ -71,12 +71,7 @@ String programToPlainText(
   bool canonicalizeDiscouragedTerms = false,
   List<String> Function(String danceId)? authorNamesFor,
 }) {
-  if (canonicalizeDiscouragedTerms && (renderer == null || dialect == null)) {
-    throw ArgumentError(
-      'renderer and dialect are required when canonicalizeDiscouragedTerms '
-      'is enabled',
-    );
-  }
+  _requireCanonicalizationDeps(canonicalizeDiscouragedTerms, renderer, dialect);
   final lines = <String>[
     program.title.trim(),
     ...programHeaderLines(
@@ -137,8 +132,23 @@ String programToPlainText(
   return lines.join('\n');
 }
 
+void _requireCanonicalizationDeps(
+  bool canonicalizeDiscouragedTerms,
+  FigureRenderer? renderer,
+  Dialect? dialect,
+) {
+  if (canonicalizeDiscouragedTerms && (renderer == null || dialect == null)) {
+    throw ArgumentError(
+      'renderer and dialect are required when canonicalizeDiscouragedTerms '
+      'is enabled',
+    );
+  }
+}
+
 /// The program header lines under the title: `date · venue`, band, caller and
 /// level, each only when present (so an empty program yields an empty list).
+/// Throws [ArgumentError] when [canonicalizeDiscouragedTerms] is set without
+/// both [renderer] and [dialect], like [programToPlainText].
 ///
 /// Shared by [programToPlainText] and the program PDF. [venueNameFor],
 /// [formatDate], [labels] and the discouraged-term parameters have the same
@@ -154,6 +164,7 @@ List<String> programHeaderLines(
   Dialect? dialect,
   bool canonicalizeDiscouragedTerms = false,
 }) {
+  _requireCanonicalizationDeps(canonicalizeDiscouragedTerms, renderer, dialect);
   final fmtDate = formatDate ?? isoDate;
   final lines = <String>[];
 
@@ -192,7 +203,8 @@ List<String> programHeaderLines(
 /// Builds the content of a single slot line (without the number or `ALT:`
 /// prefix): the dance title or free text, an optional author suffix, an
 /// optional per-slot note, an optional `(guest: …; N min)` suffix, and a
-/// trailing `[performed]` marker.
+/// trailing `[performed]` marker. Throws [ArgumentError] when
+/// [canonicalizeDiscouragedTerms] is set without both [renderer] and [dialect].
 String programSlotLine(
   ProgramSlot slot,
   String? Function(String danceId) titleFor,
@@ -202,6 +214,7 @@ String programSlotLine(
   bool canonicalizeDiscouragedTerms = false,
   List<String> Function(String danceId)? authorNamesFor,
 }) {
+  _requireCanonicalizationDeps(canonicalizeDiscouragedTerms, renderer, dialect);
   final buffer = StringBuffer();
 
   if (slot.danceId != null) {

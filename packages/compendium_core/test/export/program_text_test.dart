@@ -590,5 +590,27 @@ void main() {
         contains('1. $line'),
       );
     });
+
+    test(
+      'public helpers reject canonicalization without renderer and dialect',
+      () {
+        expect(
+          () => programHeaderLines(
+            program(dancerLevel: 'Mixed'),
+            canonicalizeDiscouragedTerms: true,
+          ),
+          throwsArgumentError,
+        );
+        expect(
+          () => programSlotLine(
+            ProgramSlot(id: 's1', position: 0, text: 'Waltz'),
+            titles,
+            const ProgramExportLabels(),
+            canonicalizeDiscouragedTerms: true,
+          ),
+          throwsArgumentError,
+        );
+      },
+    );
   });
 }
