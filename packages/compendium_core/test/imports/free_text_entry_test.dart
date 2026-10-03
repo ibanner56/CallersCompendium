@@ -287,4 +287,43 @@ void main() {
       expect(fs.single.params['text'], 'qwx zzz nonsense');
     });
   });
+
+  group('parseFreeTextFigureEntry — active dialect', () {
+    test('a role word from the active dialect parses (Follows chain)', () {
+      final fs = parseFreeTextFigureEntry(
+        'Follows chain',
+        dialect: Dialect.leadsFollows,
+      );
+      expect(fs, hasLength(1));
+      expect(fs.single.isCustom, isFalse);
+      expect(fs.single.move, 'chain');
+      expect(fs.single.params['who'], 'role2s');
+    });
+
+    test('the raw line is tried first: `lead` stays a move word', () {
+      final fs = parseFreeTextFigureEntry(
+        'ones lead down the hall',
+        dialect: Dialect.leadsFollows,
+      );
+      expect(fs, hasLength(1));
+      expect(fs.single.isCustom, isFalse);
+      expect(fs.single.move, 'down_the_hall');
+    });
+
+    test('a miss under the dialect keeps the typed text in the custom', () {
+      final fs = parseFreeTextFigureEntry(
+        'qwx follows nonsense',
+        dialect: Dialect.leadsFollows,
+      );
+      expect(fs, hasLength(1));
+      expect(fs.single.isCustom, isTrue);
+      expect(fs.single.params['text'], 'qwx follows nonsense');
+    });
+
+    test('without a dialect, Follows chain still degrades to a custom', () {
+      final fs = parseFreeTextFigureEntry('Follows chain');
+      expect(fs, hasLength(1));
+      expect(fs.single.isCustom, isTrue);
+    });
+  });
 }
