@@ -590,13 +590,26 @@ Future<TitleListRow> _resolveOne(
   final lookup = await lookupUniqueExactTitle(title, service: service);
   if (lookup is OnlineTitleMiss) {
     if (lookup.failure == OnlineTitleLookupFailure.multipleExactMatches) {
+      // `previewAmbiguousCandidates` drops a failed candidate and carries on, so
+      // an offline device would otherwise issue every candidate preview and
+      // report an ordinary miss. The watcher records the first connection-class
+      // failure and refuses the remaining previews without a request.
+      final watched = _ConnectionWatchingService(service);
       final candidates = await previewAmbiguousCandidates(
         lookup.candidates,
-        servicesBySource: {service.source: service},
+        servicesBySource: {service.source: watched},
         repos: repos,
         index: index,
         now: now,
       );
+      if (watched.connectionFailure != null) {
+        // Any candidates that did preview are discarded (never added to
+        // [plans]): a partial group would hide that others are missing.
+        return TitleListRow.notFound(
+          title: title,
+          reason: TitleListNotFoundReason.connectionFailed,
+        );
+      }
       if (candidates.isNotEmpty) {
         plans.addAll(candidates);
         ambiguousGroups.add(
@@ -644,6 +657,59 @@ Future<TitleListRow> _resolveOne(
           : TitleListNotFoundReason.fetchError,
     );
   }
+}
+
+/// Wraps [_inner] for the ambiguous-candidate previews of one title: remembers
+/// the first connection-class failure ([isConnectionFailure]) from
+/// `loadPreview`, and from then on rethrows it without calling [_inner], so a
+/// helper that swallows per-candidate failures cannot keep requesting.
+class _ConnectionWatchingService implements OnlineSearchService {
+  _ConnectionWatchingService(this._inner);
+
+  final OnlineSearchService _inner;
+
+  /// The first connection-class failure seen, or null.
+  Object? connectionFailure;
+
+  @override
+  OnlineSource get source => _inner.source;
+
+  @override
+  Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) =>
+      _inner.search(query);
+
+  @override
+  Future<OnlinePreview> loadPreview(
+    CompendiumRepositories repos,
+    OnlineSearchResultRow result, {
+    DateTime? now,
+    DedupeIndex? index,
+  }) async {
+    final failure = connectionFailure;
+    if (failure != null) throw failure;
+    try {
+      return await _inner.loadPreview(repos, result, now: now, index: index);
+    } on Exception catch (e) {
+      // diagnostics: silent — recorded and rethrown; the caller turns it into a connectionFailed row
+      if (isConnectionFailure(e)) connectionFailure = e;
+      rethrow;
+    }
+  }
+
+  @override
+  Future<OnlineImportResult> import(
+    CompendiumRepositories repos,
+    ImportRecordPlan plan, {
+    DateTime? now,
+    DedupeResolution? ambiguousResolution,
+    List<String> defaultTagIds = const [],
+  }) => _inner.import(
+    repos,
+    plan,
+    now: now,
+    ambiguousResolution: ambiguousResolution,
+    defaultTagIds: defaultTagIds,
+  );
 }
 
 /// Choreographer names for the locally-matched dance [danceId], loading the

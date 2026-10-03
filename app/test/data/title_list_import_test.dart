@@ -433,6 +433,38 @@ void main() {
         },
       );
 
+      test('an ambiguous title whose candidate previews are unreachable stops '
+          'after one preview and stops the batch', () async {
+        final repos = openTestRepositories();
+        final service = _CountingOnlineService(
+          rowsByTitle: {
+            'twice over': [
+              _row('Twice Over', id: '1'),
+              _row('Twice Over', id: '2'),
+              _row('Twice Over', id: '3'),
+            ],
+            'later': [_row('Later', id: '9')],
+          },
+          loadError: const UrlFetchException(UrlFetchFailureReason.unreachable),
+        );
+
+        final result = await resolveTitleList(
+          'Twice Over\nLater',
+          service: service,
+          repos: repos,
+        );
+
+        expect(service.loadedIds, ['1']);
+        expect(service.searchedTitles, ['Twice Over']);
+        expect(
+          result.rows.map((r) => r.reason),
+          everyElement(TitleListNotFoundReason.connectionFailed),
+        );
+        expect(result.ambiguousReviewImport, isNull);
+        expect(result.batch.records, isEmpty);
+        expect(result.stoppedAfterConnectionFailure, isTrue);
+      });
+
       test('a page-specific HTTP failure on the preview fetch stays per-title: '
           'fetchError, and the batch continues', () async {
         final repos = openTestRepositories();
