@@ -6,7 +6,7 @@ import '../widgets/json_export_dialog.dart';
 import 'share_file.dart';
 
 export '../widgets/json_export_dialog.dart';
-export 'share_file.dart' show JsonSaveResult;
+export 'share_file.dart' show BundleDeliveryResult, JsonSaveResult;
 
 /// Opens the JSON delivery choice dialog.
 typedef JsonChoicePicker =
@@ -29,6 +29,9 @@ class JsonExportDelivery {
   });
 
   final JsonChoicePicker? choicePicker;
+
+  /// Overrides the Save As path. Also used by [share] (and by the menus'
+  /// `.ccshare` bundle action) where [isBundleShareUnsupported] is true.
   final Future<JsonSaveResult?> Function(String json, String fileName)?
   saveInvoker;
   final JsonClipboardWriter? clipboardWriter;
@@ -43,24 +46,23 @@ class JsonExportDelivery {
 
   Future<void> copy(String json) => (clipboardWriter ?? _writeClipboard)(json);
 
-  Future<void> share({
+  /// Hands the JSON to the share sheet, or to Save As where the platform's
+  /// share sheet cannot carry files ([isBundleShareUnsupported]). Returns
+  /// `null` when the user cancelled that Save As dialog.
+  Future<BundleDeliveryResult?> share({
     required String json,
     required String fileName,
     required String subject,
     required Rect? sharePositionOrigin,
-  }) async {
-    final writer = bundleFileWriter ?? writeBundleTempFile;
-    final xfile = await writer(json, fileName);
-    final share = shareInvoker ?? SharePlus.instance.share;
-    await share(
-      ShareParams(
-        files: [xfile],
-        fileNameOverrides: [fileName],
-        subject: subject,
-        sharePositionOrigin: sharePositionOrigin,
-      ),
-    );
-  }
+  }) => shareOrSaveBundleFile(
+    json: json,
+    fileName: fileName,
+    subject: subject,
+    origin: sharePositionOrigin,
+    shareInvoker: shareInvoker,
+    bundleFileWriter: bundleFileWriter,
+    saveInvoker: saveInvoker ?? saveJsonBundle,
+  );
 }
 
 Future<void> _writeClipboard(String json) async {

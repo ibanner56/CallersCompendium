@@ -163,10 +163,14 @@ class DanceDetailScreen extends StatefulWidget {
   /// owns routed navigation; the collection shell owns its split-pane preview.
   final Future<void> Function(DanceDetailData detail)? onReimport;
 
-  /// Shared JSON delivery seam for the compact overflow export.
+  /// Shared JSON delivery seam for the compact overflow export. Its
+  /// `saveInvoker` also receives the `.ccshare` bundle where
+  /// [isBundleShareUnsupported] (Linux) turns "Share dance file" into Save As.
   final JsonExportDelivery? jsonExportDelivery;
 
-  /// Overrides the OS share sheet for the compact overflow's text share.
+  /// Overrides the OS share sheet for the compact overflow's text share and
+  /// `.ccshare` file share (the latter is Save As where
+  /// [isBundleShareUnsupported] is true).
   /// Defaults to [SharePlus.instance.share]; tests use it to force a failure.
   final ShareInvoker? shareInvoker;
 
@@ -785,8 +789,16 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           key: const ValueKey('overflow-share-dance-bundle'),
           onTap: () => _shareDanceBundle(detail),
           child: ListTile(
-            leading: const Icon(Icons.share_outlined),
-            title: Text(l10n.exportShareDanceBundle),
+            leading: Icon(
+              isBundleShareUnsupported()
+                  ? Icons.save_alt_outlined
+                  : Icons.share_outlined,
+            ),
+            title: Text(
+              isBundleShareUnsupported()
+                  ? l10n.exportSaveDanceBundle
+                  : l10n.exportShareDanceBundle,
+            ),
             contentPadding: EdgeInsets.zero,
           ),
         ),
@@ -916,15 +928,15 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         detail.dance.title,
         extension: extension,
       );
-      final xfile = await writeBundleTempFile(json, fileName);
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [xfile],
-          fileNameOverrides: [fileName],
-          subject: detail.dance.title,
-          sharePositionOrigin: origin,
-        ),
+      final result = await shareOrSaveBundleFile(
+        json: json,
+        fileName: fileName,
+        subject: detail.dance.title,
+        origin: origin,
+        shareInvoker: widget.shareInvoker,
+        saveInvoker: widget.jsonExportDelivery?.saveInvoker,
       );
+      announceBundleSaved(messenger, l10n, result);
     } on Object catch (e, stackTrace) {
       logCaughtError(
         e,
@@ -998,12 +1010,14 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         });
       case JsonExportChoice.share:
         await _guardJsonDelivery(messenger, l10n.exportJsonShareError, () {
-          return _jsonDelivery.share(
-            json: json,
-            fileName: fileName,
-            subject: detail.dance.title,
-            sharePositionOrigin: origin,
-          );
+          return _jsonDelivery
+              .share(
+                json: json,
+                fileName: fileName,
+                subject: detail.dance.title,
+                sharePositionOrigin: origin,
+              )
+              .then((result) => announceBundleSaved(messenger, l10n, result));
         });
     }
   }

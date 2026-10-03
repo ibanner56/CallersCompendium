@@ -65,6 +65,10 @@ difference is the name — `.ccshare` or `.json`. Choreographers' private detail
 are removed (see [What stays private](#what-stays-private)), and custom fields
 with **Include in sharing** turned off are left out.
 
+On Linux the system has no file share sheet, so **Share dance file** is
+labelled **Save dance file…** and saves the file through the system dialog
+instead; choosing **Share** in the JSON dialog does the same.
+
 Opening either file in Caller's Compendium goes through import review before
 anything is added. Tags, sources, and custom fields the recipient already has are
 reused, and their own edits are never overwritten. If the file has a custom field
@@ -137,6 +141,9 @@ evening to another caller. It builds a single self-contained file — a
   those dances use, so the recipient can import them completely; and
 - the program's linked [venue](./glossary.md#venue), if it has one.
 
+On Linux the system has no file share sheet, so this action is labelled **Save
+program file…** and saves the file through the system dialog instead.
+
 Custom fields with **Include in sharing** turned off are left out, values
 included, exactly as they are for a single dance. If a definition one of the
 dances depends on cannot be found, the share stops with an error instead of
@@ -170,7 +177,9 @@ itself is the name: `.json` instead of `.ccshare`. A
 [JSON file](./glossary.md#json-file) is a plain-text format that almost any
 device can open.
 
-On desktop, **Save** opens a native file-save dialog. On Android and iOS it
+On Linux, **Share** also saves the file through the system dialog, because
+there is no file share sheet to open. On desktop, **Save** opens a native
+file-save dialog. On Android and iOS it
 opens the platform's document-save flow so you can choose a user-accessible
 location. If the platform reports the destination, the confirmation names it.
 The native save flow handles an existing filename rather than silently

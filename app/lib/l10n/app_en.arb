@@ -5974,6 +5974,10 @@
   "@exportShareDanceBundle": {
     "description": "Export-menu item: share the dance and its referenced metadata as a .ccshare file."
   },
+  "exportSaveDanceBundle": "Save dance file…",
+  "@exportSaveDanceBundle": {
+    "description": "Export-menu item shown instead of 'Share dance file' on Linux, where the OS share sheet cannot carry files: save the dance and its referenced metadata as a .ccshare file through the system Save As dialog."
+  },
   "exportCopyDance": "Copy dance",
   "@exportCopyDance": {
     "description": "Export-menu item: copy the dance's plain-text card to the clipboard."
@@ -6005,6 +6009,10 @@
   "exportShareProgramBundle": "Share (program + dances)",
   "@exportShareProgramBundle": {
     "description": "Program export-menu item: share a bundle file containing the program and its dances."
+  },
+  "exportSaveProgramBundle": "Save program file…",
+  "@exportSaveProgramBundle": {
+    "description": "Program export-menu item shown instead of 'Share (program + dances)' on Linux, where the OS share sheet cannot carry files: save a bundle file containing the program and its dances through the system Save As dialog."
   },
   "exportCopySetList": "Copy set list",
   "@exportCopySetList": {

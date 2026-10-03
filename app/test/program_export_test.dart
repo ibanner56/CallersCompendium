@@ -188,6 +188,112 @@ Widget _pdfMenu(
 );
 
 void main() {
+  // Pin the platform seam: `Platform.isLinux` is true on a Linux runner, which
+  // would route every share below to Save As.
+  final realBundleShareUnsupported = isBundleShareUnsupported;
+  setUp(() => isBundleShareUnsupported = () => false);
+  tearDown(() => isBundleShareUnsupported = realBundleShareUnsupported);
+
+  group('ProgramExportMenu on Linux', () {
+    setUp(() => isBundleShareUnsupported = () => true);
+
+    Future<void> openMenu(WidgetTester tester, Widget menu) async {
+      await tester.pumpWidget(menu);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the program bundle action saves a file instead of sharing', (
+      tester,
+    ) async {
+      final dir = Directory.systemTemp.createTempSync('linux_save_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final saved = <String>[];
+      await openMenu(
+        tester,
+        _shareBundleMenu(
+          _program(),
+          const {},
+          dir,
+          (_) => fail('share_plus cannot carry files on Linux'),
+          saveInvoker: (json, fileName) async {
+            saved.add(fileName);
+            return JsonSaveResult(
+              path: '${dir.path}/$fileName',
+              fileName: fileName,
+            );
+          },
+        ),
+      );
+      expect(find.text('Share (program + dances)'), findsNothing);
+      await tester.tap(find.text('Save program file…'));
+      await tester.pumpAndSettle();
+
+      expect(saved, ['Friday_Contra.ccshare']);
+      expect(
+        find.text(
+          '"Friday_Contra.ccshare" saved to ${dir.path}/Friday_Contra.ccshare.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a cancelled Save As shows no snackbar or error', (
+      tester,
+    ) async {
+      final dir = Directory.systemTemp.createTempSync('linux_cancel_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      var saves = 0;
+      await openMenu(
+        tester,
+        _shareBundleMenu(
+          _program(),
+          const {},
+          dir,
+          (_) => fail('share_plus cannot carry files on Linux'),
+          saveInvoker: (json, fileName) async {
+            saves++;
+            return null;
+          },
+        ),
+      );
+      await tester.tap(find.text('Save program file…'));
+      await tester.pumpAndSettle();
+
+      expect(saves, 1);
+      expect(find.byType(SnackBar), findsNothing);
+    });
+
+    testWidgets('JSON › Share saves a file instead of sharing', (tester) async {
+      final dir = Directory.systemTemp.createTempSync('linux_json_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final saved = <String>[];
+      await openMenu(
+        tester,
+        _shareBundleMenu(
+          _program(),
+          const {},
+          dir,
+          (_) => fail('share_plus cannot carry files on Linux'),
+          choice: JsonExportChoice.share,
+          saveInvoker: (json, fileName) async {
+            saved.add(fileName);
+            return JsonSaveResult(
+              path: '${dir.path}/$fileName',
+              fileName: fileName,
+            );
+          },
+        ),
+      );
+      await tester.tap(find.text('Export as JSON file'));
+      await tester.pumpAndSettle();
+
+      expect(saved, ['Friday_Contra.json']);
+      expect(find.byType(SnackBar), findsOneWidget);
+    });
+  });
+
   group('ProgramExportMenu', () {
     testWidgets('is present and labeled in an app bar', (tester) async {
       await _pumpMenu(tester, _program());

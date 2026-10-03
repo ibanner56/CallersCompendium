@@ -4710,6 +4710,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get exportShareDanceBundle => 'Partager le fichier de danse';
 
   @override
+  String get exportSaveDanceBundle => 'Enregistrer le fichier de danse…';
+
+  @override
   String get exportCopyDance => 'Copier la danse';
 
   @override
@@ -4732,6 +4735,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get exportShareProgramBundle => 'Partager (programme + danses)';
+
+  @override
+  String get exportSaveProgramBundle => 'Enregistrer le fichier de programme…';
 
   @override
   String get exportCopySetList => 'Copier la liste de sets';

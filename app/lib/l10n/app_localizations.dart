@@ -7203,6 +7203,12 @@ abstract class AppLocalizations {
   /// **'Share dance file'**
   String get exportShareDanceBundle;
 
+  /// Export-menu item shown instead of 'Share dance file' on Linux, where the OS share sheet cannot carry files: save the dance and its referenced metadata as a .ccshare file through the system Save As dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Save dance file…'**
+  String get exportSaveDanceBundle;
+
   /// Export-menu item: copy the dance's plain-text card to the clipboard.
   ///
   /// In en, this message translates to:
@@ -7250,6 +7256,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Share (program + dances)'**
   String get exportShareProgramBundle;
+
+  /// Program export-menu item shown instead of 'Share (program + dances)' on Linux, where the OS share sheet cannot carry files: save a bundle file containing the program and its dances through the system Save As dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Save program file…'**
+  String get exportSaveProgramBundle;
 
   /// Program export-menu item: copy the set list text to the clipboard.
   ///

@@ -85,6 +85,8 @@ class DanceExportMenu extends StatelessWidget {
   final DifficultyLevel? Function(String id)? difficultyLevelFor;
 
   /// Test seam for the share call; defaults to [SharePlus.instance.share].
+  /// Not used on platforms where [isBundleShareUnsupported] (Linux) routes the
+  /// file actions to Save As.
   final ShareInvoker? shareInvoker;
 
   /// Test seam for staging a share file.
@@ -95,6 +97,8 @@ class DanceExportMenu extends StatelessWidget {
 
   /// Shared JSON delivery seam. When absent, the legacy share/file seams above
   /// are used for Share while Save, Copy, and the choice dialog use defaults.
+  /// Its `saveInvoker` also receives the `.ccshare` bundle on platforms where
+  /// [isBundleShareUnsupported] (Linux) turns the bundle action into Save As.
   final JsonExportDelivery? jsonExportDelivery;
 
   String _plainText(
@@ -149,21 +153,23 @@ class DanceExportMenu extends StatelessWidget {
   }
 
   Future<void> _shareBundle(
+    BuildContext context,
     Rect? origin, {
     String extension = danceShareBundleExtension,
   }) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     final bundle = _buildBundle(extension: extension);
-    final writeFile = bundleFileWriter ?? writeBundleTempFile;
-    final xfile = await writeFile(bundle.json, bundle.fileName);
-    final share = shareInvoker ?? SharePlus.instance.share;
-    await share(
-      ShareParams(
-        files: [xfile],
-        fileNameOverrides: [bundle.fileName],
-        subject: dance.title,
-        sharePositionOrigin: origin,
-      ),
+    final result = await shareOrSaveBundleFile(
+      json: bundle.json,
+      fileName: bundle.fileName,
+      subject: dance.title,
+      origin: origin,
+      shareInvoker: shareInvoker,
+      bundleFileWriter: bundleFileWriter,
+      saveInvoker: jsonExportDelivery?.saveInvoker,
     );
+    announceBundleSaved(messenger, l10n, result);
   }
 
   ({String json, String fileName}) _buildBundle({required String extension}) {
@@ -230,12 +236,14 @@ class DanceExportMenu extends StatelessWidget {
         }, source: 'dance_export_menu._guard');
       case JsonExportChoice.share:
         await guardExport(messenger, l10n.exportJsonShareError, () {
-          return delivery.share(
-            json: bundle.json,
-            fileName: bundle.fileName,
-            subject: dance.title,
-            sharePositionOrigin: origin,
-          );
+          return delivery
+              .share(
+                json: bundle.json,
+                fileName: bundle.fileName,
+                subject: dance.title,
+                sharePositionOrigin: origin,
+              )
+              .then((result) => announceBundleSaved(messenger, l10n, result));
         }, source: 'dance_export_menu._guard');
     }
   }
@@ -293,7 +301,7 @@ class DanceExportMenu extends StatelessWidget {
         await guardExport(
           messenger,
           l10n.exportShareDanceError,
-          () => _shareBundle(origin),
+          () => _shareBundle(context, origin),
           source: 'dance_export_menu._guard',
         );
       case _ExportAction.copyText:
@@ -341,8 +349,16 @@ class DanceExportMenu extends StatelessWidget {
         PopupMenuItem<_ExportAction>(
           value: _ExportAction.shareBundle,
           child: ListTile(
-            leading: const Icon(Icons.share_outlined),
-            title: Text(l10n.exportShareDanceBundle),
+            leading: Icon(
+              isBundleShareUnsupported()
+                  ? Icons.save_alt_outlined
+                  : Icons.share_outlined,
+            ),
+            title: Text(
+              isBundleShareUnsupported()
+                  ? l10n.exportSaveDanceBundle
+                  : l10n.exportShareDanceBundle,
+            ),
             contentPadding: EdgeInsets.zero,
           ),
         ),
