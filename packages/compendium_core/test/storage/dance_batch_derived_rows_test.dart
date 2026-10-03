@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
+import '../figures_support.dart';
 import 'fixtures.dart';
 import 'test_database.dart';
 
@@ -230,5 +231,36 @@ void main() {
     expect(changed, 1);
     expect((await dances.getById('a'))!.rating, 2);
     expect((await dances.getById('b', includeDeleted: true))!.rating, isNull);
+  });
+
+  test('a no-rebuild batch does not normalise figures the derived rows '
+      'were built from', () async {
+    // Sync writes keep a legacy move id verbatim (`normalizeTaxonomy: false`).
+    // `_upsert` would normalise it on the batch write, but with no derived
+    // rebuild `dance_figures` would keep the old id, so a move filter and the
+    // stored figures would disagree.
+    await dances.writeFromSync(
+      sampleDance(
+        id: 'legacy',
+        title: 'Legacy',
+        figures: [
+          Figure(
+            move: 'box_the_gnat',
+            params: const {'who': 'partners', 'hand': 'left'},
+          ),
+        ],
+      ),
+    );
+    final before = await derivedRows();
+
+    expect(await dances.setRatingForMany(['legacy'], rating: 4, now: now), 1);
+
+    expect(await derivedRows(), before);
+    final stored = (await dances.getById('legacy'))!;
+    final storedMoves = figuresOf(stored).map((f) => f.move).toSet();
+    final derivedMoves = {
+      for (final row in before['dance_figures']!) row['move'],
+    };
+    expect(storedMoves, derivedMoves);
   });
 }

@@ -1953,6 +1953,8 @@ class DanceRepository {
   /// tables, which dominates a large batch. A custom-field edit changes
   /// `custom_values`, so those pass `true`. **Adding a column to the FTS insert
   /// in [_insertDerivedRows] means re-checking every caller passing `false`.**
+  /// A write that skips the rebuild also skips taxonomy normalisation, so the
+  /// stored figures stay exactly what the derived rows were built from.
   Future<int> _updateMany(
     Iterable<String> ids,
     Dance? Function(Dance dance) edit, {
@@ -1977,6 +1979,10 @@ class DanceRepository {
           if (updated == null) continue;
           await _upsert(
             updated,
+            // Normalising rewrites `figures_json`; without the rebuild the
+            // derived rows would keep the pre-normalisation moves (a sync-
+            // written dance keeps legacy ids), so the two would disagree.
+            normalizeTaxonomy: rebuildDerived,
             rebuildDerived: rebuildDerived,
             localUserEdit: localUserEdit,
           );
