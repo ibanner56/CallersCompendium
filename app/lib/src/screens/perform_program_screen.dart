@@ -257,7 +257,8 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// diffing wall-clock time so the readouts advance deterministically under
   /// `tester.pump(Duration(...))`. The timer is independent of
   /// [PerformWakelockMixin] (which only toggles the wake-lock in initState/
-  /// dispose and re-asserts it on resume), so the two do not interfere.
+  /// dispose, releases it on `paused` and re-asserts it on resume), so the two
+  /// do not interfere.
   ///
   /// Elapsed lives in a [ValueNotifier] rather than plain state so the per-second
   /// tick rebuilds only the timing line (via a [ValueListenableBuilder] in
