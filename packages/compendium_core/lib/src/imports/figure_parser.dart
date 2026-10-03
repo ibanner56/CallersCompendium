@@ -690,12 +690,17 @@ String? _takeRelationship(List<String> w) {
 /// a stray "counter" behind, inverting the direction (the recognizer would then
 /// reject the line for leftover text — safe, but needlessly lossy).
 ///
-/// Distinct from [_takeGateDirection], which additionally admits TCB's
-/// gate-only `mirror` value and therefore cannot be shared.
+/// Accepted counter-forms: `counterclockwise`, `counter clockwise`,
+/// `counter-clockwise`, `anticlockwise`, `anti-clockwise`, `anti clockwise`,
+/// `ccw`; clockwise forms: `clockwise`, `cw`. [_takeGateDirection] wraps this
+/// reader and additionally admits TCB's gate-only `mirror` value.
 String? _takeSpinDirection(List<String> w) {
   if (_consumePhrase(w, ['counterclockwise']) ||
       _consumePhrase(w, ['counter', 'clockwise']) ||
+      _consumePhrase(w, ['counter-clockwise']) ||
       _consumePhrase(w, ['anticlockwise']) ||
+      _consumePhrase(w, ['anti-clockwise']) ||
+      _consumePhrase(w, ['anti', 'clockwise']) ||
       _consumePhrase(w, ['ccw'])) {
     return 'counterclockwise';
   }
@@ -1143,27 +1148,12 @@ _Match? _boxCirculate(List<String> w) {
   return _Match('box_circulate', {'who': ?who2}, null, who2 == null);
 }
 
-// Takes a TCB rotation-gate direction token (clockwise/cw, counterclockwise/ccw
-// /anticlockwise, or mirror) from anywhere in [w], returning the canonical
-// `direction` choice token, or null if none is present.
+// Takes a TCB rotation-gate direction from anywhere in [w]: `mirror`, or any
+// spelling [_takeSpinDirection] accepts. Returns the canonical `direction`
+// choice token, or null if none is present.
 String? _takeGateDirection(List<String> w) {
-  for (var i = 0; i < w.length; i++) {
-    switch (w[i]) {
-      case 'clockwise':
-      case 'cw':
-        w.removeAt(i);
-        return 'clockwise';
-      case 'counterclockwise':
-      case 'anticlockwise':
-      case 'ccw':
-        w.removeAt(i);
-        return 'counterclockwise';
-      case 'mirror':
-        w.removeAt(i);
-        return 'mirror';
-    }
-  }
-  return null;
+  if (_consumePhrase(w, ['mirror'])) return 'mirror';
+  return _takeSpinDirection(w);
 }
 
 // The unified gate (taxonomy v22; was the TCB-only `rotation_gate`, issue
@@ -1260,12 +1250,7 @@ _Match? _facingStar(List<String> w) {
   if (i + 2 > w.length || w[i] != 'facing' || w[i + 1] != 'star') return null;
   w.removeRange(0, i + 2);
   // Direction MUST be stated (never defaulted).
-  String? spin;
-  if (_consumePhrase(w, ['clockwise'])) {
-    spin = 'clockwise';
-  } else if (_consumePhrase(w, ['counterclockwise'])) {
-    spin = 'counterclockwise';
-  }
+  final spin = _takeSpinDirection(w);
   if (spin == null) return null;
   // Turn-amount MUST be stated ("3/4" -> 3, "1"/full -> 4). Never defaulted.
   final places = _takePlaces(w);
@@ -1814,12 +1799,7 @@ _Match? _poussette(List<String> w) {
   final who = _takeDancer(w);
   if (!_consumePhrase(w, ['poussette'])) return null;
   final who2 = who ?? _takeDancer(w);
-  String? spin;
-  if (_consumePhrase(w, ['clockwise'])) {
-    spin = 'clockwise';
-  } else if (_consumePhrase(w, ['counterclockwise'])) {
-    spin = 'counterclockwise';
-  }
+  final spin = _takeSpinDirection(w);
   String? frac;
   if (_consumePhrase(w, ['1/2'])) {
     frac = 'half';

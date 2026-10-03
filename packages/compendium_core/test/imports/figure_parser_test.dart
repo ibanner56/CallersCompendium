@@ -918,6 +918,26 @@ void main() {
         move: 'promenade',
         params: {'who': 'partners', 'direction': 'counterclockwise'},
       ),
+      'Ones gate counter clockwise 3/4': (
+        move: 'gate',
+        params: {
+          'pair': 'ones',
+          'direction': 'counterclockwise',
+          'travel': 0.75,
+        },
+      ),
+      'Facing star counter clockwise 3/4': (
+        move: 'facing_star',
+        params: {
+          'who': 'everyone',
+          'direction': 'counterclockwise',
+          'places': 3,
+        },
+      ),
+      'Poussette anti-clockwise 1/2': (
+        move: 'poussette',
+        params: {'direction': 'counterclockwise', 'fraction': 'half'},
+      ),
       'Partners promenade across clockwise': (
         move: 'promenade',
         params: {
