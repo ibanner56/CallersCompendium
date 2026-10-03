@@ -925,11 +925,39 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
     });
   }
 
-  void _report(Object error) {
+  void _say(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text(error.toString())));
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// Shows [error] as a localized sentence. A caught exception is logged by its
+  /// caller (`logCaughtError`); either way the raw text is never rendered: it
+  /// is English and names internal ids (CWE-209). [_delete]'s pre-check passes
+  /// a synthesized [DifficultyLevelInUse], which has nothing further to log.
+  void _report(Object error) {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    String? inUseLabel(DifficultyLevelInUse error) {
+      if (error.label != null) return error.label;
+      for (final level in _levels) {
+        if (level.id == error.id) return level.label;
+      }
+      return null;
+    }
+
+    _say(switch (error) {
+      DifficultyLevelLabelEmpty() => l10n.settingsDefaultsDifficultyLevelEmpty,
+      DifficultyLevelLabelDuplicate(:final label) =>
+        l10n.settingsDefaultsDifficultyLevelDuplicate(label),
+      DifficultyLevelInUse() when inUseLabel(error) != null =>
+        l10n.settingsDefaultsDifficultyLevelInUse(
+          inUseLabel(error)!,
+          error.count,
+        ),
+      _ => l10n.settingsDefaultsDifficultyLevelActionFailed,
+    });
   }
 
   Future<void> _add() async {
@@ -986,7 +1014,7 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
     final label = value.trim();
     if (label.isEmpty) {
       _labelControllers[level.id]?.text = level.label;
-      _report(ArgumentError('difficulty level label must not be empty'));
+      _say(AppLocalizations.of(context).settingsDefaultsDifficultyLevelEmpty);
       return;
     }
     if (label == level.label) return;
@@ -1013,7 +1041,19 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
 
   Future<void> _delete(DifficultyLevel level) async {
     try {
-      await RepositoriesScope.of(context).difficultyLevels.delete(level.id);
+      final levels = RepositoriesScope.of(context).difficultyLevels;
+      final references = await levels.referenceCount(level.id);
+      if (references > 0) {
+        _report(
+          DifficultyLevelInUse(
+            id: level.id,
+            count: references,
+            label: level.label,
+          ),
+        );
+        return;
+      }
+      await levels.delete(level.id);
       await _reload();
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'defaults_section._delete');

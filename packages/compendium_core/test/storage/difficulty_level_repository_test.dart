@@ -2,6 +2,7 @@ import 'package:compendium_core/src/model/difficulty_level.dart';
 import 'package:compendium_core/src/model/enums.dart';
 import 'package:compendium_core/src/model/formation.dart';
 import 'package:compendium_core/src/storage/database.dart';
+import 'package:compendium_core/src/storage/repositories/difficulty_level_errors.dart';
 import 'package:compendium_core/src/storage/repositories/difficulty_level_repository.dart';
 import 'package:compendium_core/src/sync/sync_codec.dart';
 import 'package:compendium_core/src/sync/sync_record_kind.dart';
@@ -118,11 +119,10 @@ void main() {
     await expectLater(
       levels.delete(custom.id),
       throwsA(
-        isA<StateError>().having(
-          (error) => error.message,
-          'message',
-          contains('still referenced by 1 dance(s)'),
-        ),
+        isA<DifficultyLevelInUse>()
+            .having((error) => error.id, 'id', custom.id)
+            .having((error) => error.count, 'count', 1)
+            .having((error) => error, 'is a StateError', isA<StateError>()),
       ),
     );
     expect(await levels.getById(custom.id), custom);
@@ -131,6 +131,55 @@ void main() {
     )..where((t) => t.id.equals('uses-level'))).getSingle();
     expect(dance.levelId, custom.id);
   });
+
+  test(
+    'createCustom with a duplicate label throws DifficultyLevelLabelDuplicate',
+    () async {
+      await expectLater(
+        levels.createCustom(label: 'beginner', position: 3),
+        throwsA(
+          isA<DifficultyLevelLabelDuplicate>()
+              .having((error) => error.label, 'label', 'beginner')
+              .having((error) => error, 'is a StateError', isA<StateError>()),
+        ),
+      );
+    },
+  );
+
+  test(
+    'upsert onto an existing label throws DifficultyLevelLabelDuplicate',
+    () async {
+      await expectLater(
+        levels.upsert(
+          DifficultyLevel.intermediate.copyWith(label: 'Beginner'),
+          localUserEdit: true,
+        ),
+        throwsA(
+          isA<DifficultyLevelLabelDuplicate>().having(
+            (error) => error,
+            'is a StateError',
+            isA<StateError>(),
+          ),
+        ),
+      );
+    },
+  );
+
+  test(
+    'createCustom with an empty label throws DifficultyLevelLabelEmpty',
+    () async {
+      await expectLater(
+        levels.createCustom(label: '  ', position: 3),
+        throwsA(
+          isA<DifficultyLevelLabelEmpty>().having(
+            (error) => error,
+            'is an ArgumentError',
+            isA<ArgumentError>(),
+          ),
+        ),
+      );
+    },
+  );
 
   test('deleting an unused level creates a sync tombstone', () async {
     final custom = await levels.createCustom(label: 'Challenge', position: 3);

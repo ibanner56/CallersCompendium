@@ -172,6 +172,7 @@ export 'src/storage/repositories/custom_field_repository.dart'
         decodeCustomFieldValue,
         encodeCustomFieldValue;
 export 'src/storage/repositories/dance_repository.dart';
+export 'src/storage/repositories/difficulty_level_errors.dart';
 export 'src/storage/repositories/difficulty_level_repository.dart';
 export 'src/storage/repositories/program_repository.dart';
 export 'src/storage/repositories/published_source_repository.dart';

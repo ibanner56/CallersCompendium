@@ -2379,6 +2379,30 @@ abstract class AppLocalizations {
   /// **'Unavailable dance ({id})'**
   String settingsDefaultsStartingProgramUnavailableDance(String id);
 
+  /// Snackbar in Settings > Defaults > Difficulty levels when a level's name is cleared or left blank. The raw exception is logged, never shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'A difficulty level needs a name.'**
+  String get settingsDefaultsDifficultyLevelEmpty;
+
+  /// Snackbar when a difficulty level is added or renamed to a name another level already has (compared ignoring case). {label} is the name the person typed, plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'A level named \"{label}\" already exists.'**
+  String settingsDefaultsDifficultyLevelDuplicate(String label);
+
+  /// Snackbar when deleting a difficulty level that dances (including deleted ones that can be restored) still use. {label} is the level's display name, never its id; {count} is the number of dances.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 dance uses {label}. Change it first.} other{{count} dances use {label}. Change them first.}}'**
+  String settingsDefaultsDifficultyLevelInUse(String label, int count);
+
+  /// Generic fallback snackbar when adding, renaming, deleting or reordering a difficulty level fails for a reason with no specific message. The raw exception is logged, never shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the difficulty levels. Try again.'**
+  String get settingsDefaultsDifficultyLevelActionFailed;
+
   /// Text-field label for the default band prefilled into new programs.
   ///
   /// In en, this message translates to:

@@ -1476,6 +1476,30 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get settingsDefaultsDifficultyLevelEmpty =>
+      'A difficulty level needs a name.';
+
+  @override
+  String settingsDefaultsDifficultyLevelDuplicate(String label) {
+    return 'A level named \"$label\" already exists.';
+  }
+
+  @override
+  String settingsDefaultsDifficultyLevelInUse(String label, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dances use $label. Change them first.',
+      one: '1 dance uses $label. Change it first.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsDefaultsDifficultyLevelActionFailed =>
+      'Couldn\'t save the difficulty levels. Try again.';
+
+  @override
   String get settingsDefaultsBandLabel => 'Default band';
 
   @override

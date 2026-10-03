@@ -1430,6 +1430,28 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get settingsDefaultsDifficultyLevelEmpty => '難易度には名前が必要です。';
+
+  @override
+  String settingsDefaultsDifficultyLevelDuplicate(String label) {
+    return '「$label」という名前のレベルはすでにあります。';
+  }
+
+  @override
+  String settingsDefaultsDifficultyLevelInUse(String label, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンスが$labelを使用しています。先にそれらを変更してください。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsDefaultsDifficultyLevelActionFailed =>
+      '難易度を保存できませんでした。もう一度お試しください。';
+
+  @override
   String get settingsDefaultsBandLabel => 'デフォルトバンド';
 
   @override

@@ -1510,6 +1510,30 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get settingsDefaultsDifficultyLevelEmpty =>
+      'Un niveau de difficulté doit avoir un nom.';
+
+  @override
+  String settingsDefaultsDifficultyLevelDuplicate(String label) {
+    return 'Un niveau nommé « $label » existe déjà.';
+  }
+
+  @override
+  String settingsDefaultsDifficultyLevelInUse(String label, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count danses utilisent $label. Modifiez-les d’abord.',
+      one: '1 danse utilise $label. Modifiez-la d’abord.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsDefaultsDifficultyLevelActionFailed =>
+      'Impossible d’enregistrer les niveaux de difficulté. Réessayez.';
+
+  @override
   String get settingsDefaultsBandLabel => 'Orchestre par défaut';
 
   @override

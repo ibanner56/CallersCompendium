@@ -1512,6 +1512,22 @@
   "@settingsDefaultsStartingProgramUnavailableDance": {
     "x-sourceSha256": "122b8b4b37adce5ff3e76dd2a1ae9e43e0654d93954e1b9d698af939d849fcd7"
   },
+  "settingsDefaultsDifficultyLevelEmpty": "Et sværhedsniveau skal have et navn.",
+  "@settingsDefaultsDifficultyLevelEmpty": {
+    "x-sourceSha256": "73b344eaf69d212da60fbfcbd492b38de4422eab6082d304d2db3b5f3878055e"
+  },
+  "settingsDefaultsDifficultyLevelDuplicate": "Et niveau med navnet \"{label}\" findes allerede.",
+  "@settingsDefaultsDifficultyLevelDuplicate": {
+    "x-sourceSha256": "299b0ac11fd2f4ec4a83777cb99396136360e43ecea80e3a74a20d7321b3458d"
+  },
+  "settingsDefaultsDifficultyLevelInUse": "{count, plural, =1{1 dans bruger {label}. Ændr den først.} other{{count} danse bruger {label}. Ændr dem først.}}",
+  "@settingsDefaultsDifficultyLevelInUse": {
+    "x-sourceSha256": "2bce31580a02cfe0023e6f49e9b4bf9ec1419fcc46343bb9a762dc3e6d4eeff7"
+  },
+  "settingsDefaultsDifficultyLevelActionFailed": "Sværhedsniveauerne kunne ikke gemmes. Prøv igen.",
+  "@settingsDefaultsDifficultyLevelActionFailed": {
+    "x-sourceSha256": "2f406423b231a20a613444e2a66a85fa3f5d95c6776a82203ad64d4d4e2b0282"
+  },
   "settingsDefaultsBandLabel": "Standardband",
   "@settingsDefaultsBandLabel": {
     "x-sourceSha256": "c7318a8e4e71c43fe5a7cc0c176c889334d9caeeecd2bb34e1c8aaf3bc31a25e"
