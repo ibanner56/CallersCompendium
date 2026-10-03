@@ -17,6 +17,28 @@ void main() {
 
   tearDown(() => db.close());
 
+  test(
+    'restoreRetainedJoins re-attaches live and tombstoned dances only',
+    () async {
+      // ignore: unused_result
+      await repo.upsert(Tag(id: 't1', name: 'workshop'));
+      for (final id in ['live', 'gone']) {
+        await dances.create(
+          Dance(
+            id: id,
+            title: 'Dance $id',
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+      }
+      await dances.softDelete('gone', at: DateTime.utc(2026, 2));
+      await repo.restoreRetainedJoins('t1', ['live', 'gone', 'never-existed']);
+      final rows = await db.select(db.danceTags).get();
+      expect(rows.map((r) => r.danceId).toSet(), {'live', 'gone'});
+    },
+  );
+
   test('round-trips a tag with a color', () async {
     final tag = Tag(id: 't1', name: 'chestnut', color: 0xFF00FF00);
     // ignore: unused_result

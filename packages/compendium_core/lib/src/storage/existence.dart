@@ -1,4 +1,13 @@
-import 'package:drift/drift.dart' show Table, TableInfo, UpdateKind, Variable;
+import 'package:drift/drift.dart'
+    show
+        BooleanExpressionOperators,
+        GeneratedColumn,
+        Table,
+        TableInfo,
+        UpdateKind,
+        Variable,
+        countAll,
+        innerJoin;
 
 import '../model/stored_timestamp.dart';
 import 'database.dart';
@@ -462,3 +471,72 @@ Future<void> seedExistenceIfMissing(
   updates: {table},
   updateKind: UpdateKind.update,
 );
+
+// ---------------------------------------------------------------------------
+// Citation counts for delete guards
+// ---------------------------------------------------------------------------
+//
+// Not existence-stamp machinery: these answer "how many dances still hold this
+// row back?" for the repositories' delete guards, and live here only because
+// the guards and the stamps are both about whether a row may stop existing.
+
+/// How many **live** dances cite the parent row [id] through [joinTable].
+///
+/// A soft-deleted dance keeps its join rows (the tombstone fires no FK
+/// cascade), so counting those would block a delete on the strength of a
+/// record that is itself deleted; hence the `dances.deleted_at IS NULL` filter
+/// on the join. See `ChoreographerRepository.delete` for the full reasoning.
+///
+/// Reads one scalar `COUNT(*)` rather than materialising every joined `dances`
+/// row (all columns, `figures_json` included) just to take `.length`, which is
+/// what the four guards did before. The join is `useColumns: false` because
+/// nothing from `dances` is read back; without it drift would add the whole
+/// `dances` row to the select list.
+///
+/// [keyColumn] is the join table's parent-key column (e.g.
+/// `danceAuthors.choreographerId`) and [danceIdColumn] its `dance_id`.
+Future<int> liveDanceCitationCount(
+  CompendiumDatabase db, {
+  required TableInfo<Table, dynamic> joinTable,
+  required GeneratedColumn<String> keyColumn,
+  required GeneratedColumn<String> danceIdColumn,
+  required String id,
+}) async {
+  final citations = countAll();
+  return (db.selectOnly(joinTable)
+        ..addColumns([citations])
+        ..join([
+          innerJoin(
+            db.dances,
+            db.dances.id.equalsExp(danceIdColumn) &
+                db.dances.deletedAt.isNull(),
+            useColumns: false,
+          ),
+        ])
+        ..where(keyColumn.equals(id)))
+      .map((row) => row.read(citations) ?? 0)
+      .getSingle();
+}
+
+/// Whether a dance with [id] exists, for callers that only need to know that.
+///
+/// Reads the id alone (`LIMIT 1`) rather than a whole `dances` row. Tombstoned
+/// dances do not count unless [includeDeleted] is set; a restore that must
+/// re-attach rows to a dance the user can still bring back passes it.
+Future<bool> danceExists(
+  CompendiumDatabase db,
+  String id, {
+  bool includeDeleted = false,
+}) async {
+  final row =
+      await (db.selectOnly(db.dances)
+            ..addColumns([db.dances.id])
+            ..where(
+              includeDeleted
+                  ? db.dances.id.equals(id)
+                  : db.dances.id.equals(id) & db.dances.deletedAt.isNull(),
+            )
+            ..limit(1))
+          .getSingleOrNull();
+  return row != null;
+}
