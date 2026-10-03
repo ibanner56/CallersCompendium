@@ -56,6 +56,8 @@ Dance _dance({
   );
 }
 
+String _pad6(int n) => n.toString().padLeft(6, '0');
+
 void main() {
   late CompendiumDatabase db;
   late DanceRepository dances;
@@ -1792,6 +1794,34 @@ void main() {
         );
       },
     );
+
+    test("ignoreLeadingArticles sort does not throw above SQLite's "
+        'bind-variable limit', () async {
+      // 32,767 is the default SQLITE_MAX_VARIABLE_NUMBER (3.32+); go past it.
+      const count = 33000;
+      // Minimal rows via one recursive-CTE insert. Odd rows carry a leading
+      // "The " so the article-ignoring key (the zero-padded number) differs
+      // from the literal title order.
+      await db.customStatement('''
+WITH RECURSIVE seq(n) AS (
+  SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < $count
+)
+INSERT INTO dances (id, title, form, formation_shape, progression, status,
+                    created_at, updated_at)
+SELECT printf('d%06d', n),
+       CASE WHEN n % 2 = 1 THEN 'The ' ELSE '' END || printf('Dance %06d', n),
+       'contra', 'dupleImproper', 'single', 'active', 0, 0
+FROM seq
+''');
+
+      final result = await dances.search(
+        const AndFilter([]),
+        sort: SearchSort.title,
+        ignoreLeadingArticles: true,
+      );
+
+      expect(result, [for (var n = 1; n <= count; n++) 'd${_pad6(n)}']);
+    });
   });
 
   group('sort direction (ascending/descending toggle)', () {

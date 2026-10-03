@@ -41,6 +41,31 @@ void main() {
     expect(await dances.searchText('Bravo'), contains('b'));
   });
 
+  test('hardDelete removes more dances than the bind-variable limit in one '
+      'call', () async {
+    // 32,767 is the default SQLITE_MAX_VARIABLE_NUMBER (3.32+); go past it.
+    const count = 33000;
+    await db.customStatement('''
+WITH RECURSIVE seq(n) AS (
+  SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < $count
+)
+INSERT INTO dances (id, title, form, formation_shape, progression, status,
+                    created_at, updated_at)
+SELECT printf('d%06d', n), printf('Dance %06d', n),
+       'contra', 'dupleImproper', 'single', 'active', 0, 0
+FROM seq
+''');
+    await dances.create(sampleDance(id: 'keep', title: 'Keeper'));
+    final ids = [
+      for (var n = 1; n <= count; n++) 'd${n.toString().padLeft(6, '0')}',
+    ];
+
+    await dances.hardDelete(ids);
+
+    final left = await db.customSelect('SELECT id FROM dances').get();
+    expect([for (final r in left) r.read<String>('id')], ['keep']);
+  });
+
   test('hardDelete ignores unknown ids and an empty list', () async {
     await dances.create(sampleDance(id: 'a', title: 'Alpha'));
     await dances.hardDelete(const []);

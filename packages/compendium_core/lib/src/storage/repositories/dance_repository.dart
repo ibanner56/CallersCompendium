@@ -1866,9 +1866,14 @@ class DanceRepository {
     final list = ids.toList();
     if (list.isEmpty) return Future.value();
     return _db.transaction(() async {
-      final rows = await (_db.select(
-        _db.dances,
-      )..where((t) => t.id.isIn(list))).get();
+      // Chunked (see [_chunkIds]): an import undo can exceed SQLite's
+      // bound-variable limit.
+      final rows = <DanceRow>[];
+      for (final chunk in _chunkIds(list)) {
+        rows.addAll(
+          await (_db.select(_db.dances)..where((t) => t.id.isIn(chunk))).get(),
+        );
+      }
       final publishedIds = await publishedSyncRecordIds(
         _db,
         kind: SyncRecordKind.dance,
@@ -1899,7 +1904,10 @@ class DanceRepository {
       for (final id in erasableIds) {
         await _deleteFtsRows(id);
       }
-      await (_db.delete(_db.dances)..where((t) => t.id.isIn(erasableIds))).go();
+      // Chunked (see [_chunkIds]), inside the enclosing transaction.
+      for (final chunk in _chunkIds(erasableIds)) {
+        await (_db.delete(_db.dances)..where((t) => t.id.isIn(chunk))).go();
+      }
       if (orphanCandidates != null) {
         await _garbageCollectOrphanedRefs(orphanCandidates);
       }
@@ -2477,15 +2485,21 @@ class DanceRepository {
     bool descending = false,
   }) async {
     if (ids.isEmpty) return ids;
-    final rows =
-        await (_db.selectOnly(_db.dances)
-              ..addColumns([_db.dances.id, _db.dances.title])
-              ..where(_db.dances.id.isIn(ids)))
-            .get();
-    final keys = {
-      for (final row in rows)
-        row.read(_db.dances.id)!: titleSortKey(row.read(_db.dances.title)!),
-    };
+    // Chunked (see [_chunkIds]) so a result past SQLite's bound-variable limit
+    // still sorts.
+    final keys = <String, String>{};
+    for (final chunk in _chunkIds(ids)) {
+      final rows =
+          await (_db.selectOnly(_db.dances)
+                ..addColumns([_db.dances.id, _db.dances.title])
+                ..where(_db.dances.id.isIn(chunk)))
+              .get();
+      for (final row in rows) {
+        keys[row.read(_db.dances.id)!] = titleSortKey(
+          row.read(_db.dances.title)!,
+        );
+      }
+    }
     final baseOrder = {for (var i = 0; i < ids.length; i++) ids[i]: i};
     final sorted = [...ids]
       ..sort((a, b) {

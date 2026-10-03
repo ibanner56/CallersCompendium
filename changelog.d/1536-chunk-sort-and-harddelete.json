@@ -1,0 +1,14 @@
+{
+  "id": "1536-chunk-sort-and-harddelete",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Search with the default title sort, and undoing a very large import, no longer fail on libraries with more than ~32,000 dances."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "Chunk the id lists in DanceRepository's article-ignoring title sort and hardDelete so they stay under SQLite's bound-variable limit."
+    ]
+  }
+}
