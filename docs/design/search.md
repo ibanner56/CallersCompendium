@@ -22,7 +22,10 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    query matches stored `role2s`/`allemande` (see [dialect.md](dialect.md)).
    Collection text search may explicitly scope to raw title text, derived
    author names, or canonical figure text; Omni is the OR of the canonical
-   cross-field query and a raw-title fallback. Long queries keep the complete
+   cross-field query and a raw branch matching the query as typed over title,
+   authors, sources, custom values, hook and notes (never `figures_text`, which
+   is stored canonicalised), so a name or note containing a role word such as
+   "Robin" or "ladies" is found verbatim. Long queries keep the complete
    input as one literal substring. Online collection search exposes the title,
    author, and figure criteria to Caller's Box and ContraDB, while by-phrase
    criteria remain available only to sources that support them. Caller's Box

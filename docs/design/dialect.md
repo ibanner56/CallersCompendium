@@ -151,12 +151,13 @@ Where the chokepoint IS wired:
   It is not canonicalized on save and not rewritten on load. Display sites
   still route it through `renderFreeText`, which is a no-op for text holding no
   canonical role tokens.
-- **Search** canonicalizes the query at the compiler boundary. Because prose is
-  stored verbatim, a role term typed into prose is **not** full-text matchable
-  (a Larks/Robins reader searching "Robins" has the query canonicalized to
-  `role2s`, which the verbatim index does not contain). Ordinary prose is
-  matched normally. This is a known gap, tracked separately; the fix is to
-  match the query against both forms, not to rewrite the caller's prose.
+- **Search** canonicalizes the query at the compiler boundary, and Omni also
+  matches the query as typed against the verbatim columns (title, authors,
+  sources, custom values, hook, notes). Because prose is stored verbatim, a
+  role term typed into prose ("ladies chain") is found by its own spelling,
+  while a Larks/Robins reader searching "Robins" still reaches canonical
+  `role2s` figures through the canonical branch. The caller's prose is never
+  rewritten. The scoped Title/Author/Figure searches are unchanged.
 
 > Intentionally not wired: **program-level prose** (`Program.notes`, free-text
 > `ProgramSlot.text`) is stored and displayed verbatim — it is not

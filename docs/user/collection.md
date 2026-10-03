@@ -108,7 +108,9 @@ written down.
 Clear the search bar to return to your whole collection.
 
 Use **Search in** to choose where your words are looked for: **All fields**,
-**Title**, **Author**, or **Figure**.
+**Title**, **Author**, or **Figure**. **All fields** looks at titles, authors,
+sources, custom field values, hooks, notes and figures, and finds your words
+exactly as they were typed.
 
 The same search bar can also search The Caller's Box or ContraDB directly: turn
 on **Online search** in the **Advanced** panel, and **Search in** offers

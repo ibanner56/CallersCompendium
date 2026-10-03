@@ -1,0 +1,9 @@
+{
+  "id": "1553-omni-search-raw-columns",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Search: a person's full name (for example 'Robin Hayden'), a source, a custom field value or a note is now found even when it contains a word the app treats as a dancer role."
+    ]
+  }
+}
