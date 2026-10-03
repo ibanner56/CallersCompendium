@@ -1,0 +1,14 @@
+{
+  "id": "dedupe-bound-and-yield",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Large imports no longer freeze the app while matching incoming dances against your collection."
+    ]
+  },
+  "core": {
+    "changed": [
+      "`DedupeIndex.fuzzyMatches` looks up exact normalized titles through a map and skips pairs whose title lengths make the threshold unreachable, with identical results; `ImportPipeline.plan` now yields to the event loop between records while deduping, as it already did while parsing."
+    ]
+  }
+}
