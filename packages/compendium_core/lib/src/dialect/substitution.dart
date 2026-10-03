@@ -2,6 +2,8 @@
 // pipelines. Single-pass (no chained re-replacement), longest-match-first,
 // with optional case-insensitive matching and case-preserving output.
 
+import 'package:meta/meta.dart';
+
 /// How the case of a matched span is carried onto its replacement.
 enum _Case { lower, title, upper, mixed }
 
@@ -32,6 +34,12 @@ String _applyCase(String matched, String replacement) {
 
 /// Compiled set of `term → replacement` rules.
 class Substitutor {
+  /// Number of [Substitutor]s constructed in this isolate. Test-only: lets a
+  /// test assert that a render path reuses a compiled substitutor instead of
+  /// compiling a new pattern per call. Nothing in `lib/` reads it.
+  @visibleForTesting
+  static int debugConstructed = 0;
+
   Substitutor(
     Map<String, String> replacements, {
     this.caseInsensitive = false,
@@ -40,6 +48,7 @@ class Substitutor {
          for (final e in replacements.entries)
            (caseInsensitive ? e.key.toLowerCase() : e.key): e.value,
        } {
+    debugConstructed++;
     final keys = _map.keys.where((k) => k.isNotEmpty).toList()
       // Longest first so "Larks" wins over "Lark" at the same position.
       ..sort((a, b) => b.length.compareTo(a.length));

@@ -250,6 +250,38 @@ void main() {
   });
 
   group('free-text rendering', () {
+    // An equal-but-not-identical copy of [larks]: callers build a fresh
+    // FigureRenderer/Dialect per call, so the cache must key on value.
+    Dialect larksCopy() => Dialect(
+      name: larks.name,
+      roles: Map.of(larks.roles),
+      moves: Map.of(larks.moves),
+      dancers: Map.of(larks.dancers),
+      moveWordings: Map.of(larks.moveWordings),
+      moveWordingBranches: Map.of(larks.moveWordingBranches),
+      discouragedTerms: Map.of(larks.discouragedTerms),
+    );
+
+    test('a second render with the same dialect constructs no Substitutor', () {
+      final copy = larksCopy();
+      expect(copy, larks);
+      expect(identical(copy, larks), isFalse);
+      renderer.renderFreeText('role1s lead', larks); // warm
+      final before = Substitutor.debugConstructed;
+      expect(renderer.renderFreeText('the role1s lead', copy), 'the larks lead');
+      expect(Substitutor.debugConstructed, before);
+    });
+
+    test('discouraged-term renders construct nothing on a second call', () {
+      final copy = larksCopy();
+      renderer.renderDiscouragedTerms('gents allemande', larks);
+      renderer.renderFreeTextWithCanonicalDiscouragedTerms('gents', larks);
+      final before = Substitutor.debugConstructed;
+      renderer.renderDiscouragedTerms('gents allemande', copy);
+      renderer.renderFreeTextWithCanonicalDiscouragedTerms('gents', copy);
+      expect(Substitutor.debugConstructed, before);
+    });
+
     test('substitutes role terms with case preservation', () {
       // Mid-sentence lowercase source token stays lowercase (the shipped
       // default term is lowercase, and case is carried from the source token).
