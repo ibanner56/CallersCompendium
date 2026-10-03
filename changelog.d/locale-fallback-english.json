@@ -1,9 +1,0 @@
-{
-  "id": "locale-fallback-english",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "If your device language isn't one the app is translated into, it now opens in English instead of Danish."
-    ]
-  }
-}

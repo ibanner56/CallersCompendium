@@ -52,7 +52,7 @@ body:
     attributes:
       label: App version
       description: Find it in Settings ▸ About.
-      value: "0.5.3"
+      value: "0.5.4"
     validations:
       required: true
   - type: textarea

@@ -1,9 +1,0 @@
-{
-  "id": "new-dance-title-focus",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "Typing straight after New dance now goes into the title."
-    ]
-  }
-}

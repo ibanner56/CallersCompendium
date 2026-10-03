@@ -1,9 +1,0 @@
-{
-  "id": "translation-fixes-nl-de-ja",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "Dutch, German and Japanese wording: Dutch now says \"notitie\" for notes (not the musical \"noot\") and \"Hook\" for the Hook field, German calls the Perform settings section \"Perform-Modus\", and Japanese editor and Settings text no longer mixes in English \"Modifier\", \"Figure\" and \"Perform\"."
-    ]
-  }
-}

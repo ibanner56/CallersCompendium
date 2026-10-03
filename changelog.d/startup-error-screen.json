@@ -1,9 +1,0 @@
-{
-  "id": "startup-error-screen",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "When the app can't prepare your collection at startup, the error screen now shows the kind of error, offers Copy details, and points to the diagnostics log. The failure is recorded in the log, and Retry now reopens the database so it recovers once the cause is fixed, without relaunching the app."
-    ]
-  }
-}

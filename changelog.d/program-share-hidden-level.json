@@ -1,9 +1,0 @@
-{
-  "id": "program-share-hidden-level",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "Sharing or exporting a program as JSON no longer fails when \"Hide alternates\" hides the only dance with a custom difficulty level."
-    ]
-  }
-}
