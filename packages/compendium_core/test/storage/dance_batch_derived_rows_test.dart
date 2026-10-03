@@ -126,12 +126,12 @@ void main() {
   });
 
   test('a batch over a dance with every relation keeps them all', () async {
-    await ChoreographerRepository(
-      db,
-    ).upsert(Choreographer(id: 'c1', name: 'Alice'));
-    await ChoreographerRepository(
-      db,
-    ).upsert(Choreographer(id: 'c2', name: 'Bob'));
+    final choreographers = ChoreographerRepository(db);
+    // ignore: unused_result
+    await choreographers.upsert(Choreographer(id: 'c1', name: 'Alice'));
+    // ignore: unused_result
+    await choreographers.upsert(Choreographer(id: 'c2', name: 'Bob'));
+    // ignore: unused_result
     await TagRepository(db).upsert(Tag(id: 't1', name: 'chestnut'));
     await PublishedSourceRepository(
       db,
