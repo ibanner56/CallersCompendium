@@ -163,10 +163,16 @@ class _FlakySettings extends SettingsRepository {
 
   final Set<String> failingKeys;
 
+  /// While non-null, `get(gateKey)` waits on it: lets a test hold one startup
+  /// read open and look at the live notifiers while it is in flight.
+  Completer<void>? gate;
+  String? gateKey;
+
   @override
-  Future<Object?> get(String key) {
+  Future<Object?> get(String key) async {
+    if (gate != null && key == gateKey) await gate!.future;
     if (failingKeys.contains(key)) {
-      return Future<Object?>.error(StateError('injected read failure: $key'));
+      throw StateError('injected read failure: $key');
     }
     return super.get(key);
   }
@@ -192,11 +198,13 @@ class _FlakySettingsAppData extends AppData {
 
   final CompendiumRepositories _repositories;
 
+  _FlakySettings get flakySettings => _repositories.settings as _FlakySettings;
+
   @override
   CompendiumRepositories get repositories => _repositories;
 }
 
-AppData _openFlakySettingsAppData(Set<String> failingKeys) {
+_FlakySettingsAppData _openFlakySettingsAppData(Set<String> failingKeys) {
   final appData = _FlakySettingsAppData(
     openWidgetTestDatabase(closeOnTearDown: false),
     failingKeys,
@@ -207,7 +215,11 @@ AppData _openFlakySettingsAppData(Set<String> failingKeys) {
 
 /// Drives Settings › General › Restore with [backupJson], which ends in
 /// `reloadFromSettings`.
-Future<void> _restoreFromPaste(WidgetTester tester, String backupJson) async {
+Future<void> _restoreFromPaste(
+  WidgetTester tester,
+  String backupJson, {
+  Future<void> Function()? whileReloading,
+}) async {
   // By icon, not label: the language under test may not be English.
   await tester.tap(find.byIcon(Icons.settings_outlined).last);
   await tester.pumpAndSettle();
@@ -221,6 +233,11 @@ Future<void> _restoreFromPaste(WidgetTester tester, String backupJson) async {
   );
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('restore-confirm')));
+  if (whileReloading != null) {
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await whileReloading();
+  }
   await tester.pumpAndSettle();
 }
 
@@ -1394,60 +1411,67 @@ void main() {
     },
   );
 
-  testWidgets(
-    'a same-value restore never exposes the default theme or language to '
-    'listeners',
-    (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1200, 2600));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
+  for (final heldKey in [kAppThemeKey, kLocaleKey])
+    testWidgets(
+      'a same-value restore never shows the default theme or language while '
+      'the $heldKey read is in flight',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(1200, 2600));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final source = openTestRepositories();
-      await source.settings.set(kAppThemeKey, 'dark');
-      await source.settings.set(kLocaleKey, 'de');
-      final backupJson = await BackupService(source).exportToJson();
+        final source = openTestRepositories();
+        await source.settings.set(kAppThemeKey, 'dark');
+        await source.settings.set(kLocaleKey, 'de');
+        final backupJson = await BackupService(source).exportToJson();
 
-      final appData = _openAppData();
-      await appData.repositories.settings.set(kAppThemeKey, 'dark');
-      await appData.repositories.settings.set(kLocaleKey, 'de');
-      await tester.pumpWidget(
-        CompendiumApp(
-          appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
-        ),
-      );
-      await tester.pumpAndSettle();
+        final appData = _openFlakySettingsAppData({});
+        await appData.repositories.settings.set(kAppThemeKey, 'dark');
+        await appData.repositories.settings.set(kLocaleKey, 'de');
+        await tester.pumpWidget(
+          CompendiumApp(
+            appData: appData,
+            windowService: _NoopWindowService(appData.repositories.settings),
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      final context = tester.element(find.byType(AppShell));
-      final themeNotifier = AppThemeScope.notifierOf(context);
-      final localeNotifier = LocaleScope.notifierOf(context);
-      expect(themeNotifier.value, AppThemeSelection.dark);
-      expect(localeNotifier.value, const Locale('de'));
+        final context = tester.element(find.byType(AppShell));
+        final themeNotifier = AppThemeScope.notifierOf(context);
+        final localeNotifier = LocaleScope.notifierOf(context);
+        expect(themeNotifier.value, AppThemeSelection.dark);
+        expect(localeNotifier.value, const Locale('de'));
 
-      final themes = <AppThemeSelection>[];
-      final locales = <Locale?>[];
-      // Sampled after the frame, not in the listener: a notifier notifies
-      // synchronously, and reset-then-assign inside one synchronous block is
-      // invisible to the user. What matters is what a frame can show.
-      void onTheme() => WidgetsBinding.instance.addPostFrameCallback(
-        (_) => themes.add(themeNotifier.value),
-      );
-      void onLocale() => WidgetsBinding.instance.addPostFrameCallback(
-        (_) => locales.add(localeNotifier.value),
-      );
-      themeNotifier.addListener(onTheme);
-      localeNotifier.addListener(onLocale);
-      addTearDown(() => themeNotifier.removeListener(onTheme));
-      addTearDown(() => localeNotifier.removeListener(onLocale));
+        // Hold one read open (the theme read is the first to reassign a value,
+        // the language read among the last) so frames can run mid-reload.
+        final gate = Completer<void>();
+        appData.flakySettings
+          ..gateKey = heldKey
+          ..gate = gate;
+        var sampled = false;
+        await _restoreFromPaste(
+          tester,
+          backupJson,
+          whileReloading: () async {
+            sampled = true;
+            expect(
+              themeNotifier.value,
+              AppThemeSelection.dark,
+              reason: 'theme flashed to the default mid-reload',
+            );
+            expect(
+              localeNotifier.value,
+              const Locale('de'),
+              reason: 'language flashed to the default mid-reload',
+            );
+            gate.complete();
+          },
+        );
 
-      await _restoreFromPaste(tester, backupJson);
-
-      expect(themes, isNotEmpty, reason: 'the restore must reach a frame');
-      expect(themes, isNot(contains(AppThemeSelection.system)));
-      expect(locales, isNot(contains(null)));
-      expect(themeNotifier.value, AppThemeSelection.dark);
-      expect(localeNotifier.value, const Locale('de'));
-    },
-  );
+        expect(sampled, isTrue);
+        expect(themeNotifier.value, AppThemeSelection.dark);
+        expect(localeNotifier.value, const Locale('de'));
+      },
+    );
 
   testWidgets('restoring a backup without the key resets danceShareFields', (
     tester,
