@@ -1,9 +1,0 @@
-{
-  "id": "import-link-overwrite-warning",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "Import review now warns that choosing \"Same dance\" on a possible match overwrites the existing dance, and the option is labelled \"Same dance — replace\" instead of \"Link to\"."
-    ]
-  }
-}

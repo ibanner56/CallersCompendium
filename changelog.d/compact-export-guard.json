@@ -1,9 +1,0 @@
-{
-  "id": "compact-export-guard",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "On phones, a failed Share, Copy or PDF export of a dance now shows a message instead of doing nothing."
-    ]
-  }
-}

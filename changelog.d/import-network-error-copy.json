@@ -1,9 +1,0 @@
-{
-  "id": "import-network-error-copy",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "Import network errors now say what to do. A Caller's Box or ContraDB id that doesn't exist says there is no dance with that id, a busy or rate-limited server says to try again in a minute, going offline names the source instead of \"that URL\", and raw \"HTTP 404\" codes are gone. A file that is too large now names the size limit."
-    ]
-  }
-}

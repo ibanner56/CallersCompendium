@@ -1,9 +1,0 @@
-{
-  "id": "linux-support-dir-fallback",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "On Linux systems without xdg-user-dirs, the app now starts instead of stopping at \"Could not prepare the collection.\" It keeps your library in its own data folder."
-    ]
-  }
-}

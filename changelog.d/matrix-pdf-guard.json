@@ -1,9 +1,0 @@
-{
-  "id": "matrix-pdf-guard",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "A failed matrix PDF export now shows a message instead of doing nothing."
-    ]
-  }
-}

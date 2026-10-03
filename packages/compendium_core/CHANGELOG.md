@@ -23,6 +23,21 @@ core version. They are left that way deliberately — do not renumber them.
 
 _Nothing yet._
 
+## [0.6.3] - 2026-10-02
+
+### Added
+
+- `ImportPipeline.commit`, `CallersCompanionUsrImporter.commit` and `PublishedCollectionImporter.commit` accept `defaultTagIds`, added to the dances the commit creates.
+- ImportBatchResult.warnings carries file-level ImportIssues, raised by adapters implementing BatchWarningSource: CallersCompanionUsrAdapter (from the new CcUsrArchive.warningCodes and FmpDatabase.truncated) and GenericJsonAdapter (archive_newer_schema).
+- CompendiumSyncStorage.refreshConflictReviews and resolveConflicts queue and apply the user's conflict choices; SyncConflictDecision, syncConflictChoiceReason, syncWholeCollectionSettingKeys and SyncReviewFailureCode.clockOutOfRange.
+- Add SyncNewerWireVersionException and SyncReportCode.newerWireVersion; the record-blob and manifest decoders check the envelope version before the key set.
+
+### Changed
+
+- Import errors now carry a typed ImportErrorCode, and ImportPipeline.plan returns an adapter's own ImportError unchanged instead of wrapping it in a 'Discovery failed' message.
+- SyncMergeEngine returns a review decision (SyncMergeAction.review) for differing live bodies at an equal updatedAt and for a changed/changed conflict on a whole-collection setting, instead of an equalUpdatedAt report.
+- SyncReviewQueueResolver.list() no longer returns conflict-choice rows; listConflicts() and resolveConflicts() handle them.
+
 ## [0.6.2] - 2026-10-01
 
 ### Changed

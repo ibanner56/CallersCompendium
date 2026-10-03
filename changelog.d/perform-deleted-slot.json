@@ -1,9 +1,0 @@
-{
-  "id": "perform-deleted-slot",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "Perform now shows the figures for a program slot whose dance was deleted (it is still in Recently deleted) and marks it \"(deleted dance)\" in Jump to slot, instead of showing only your teaching note. A dance that no longer exists at all now says \"Dance unavailable\" rather than showing the note or \"Untitled slot\"."
-    ]
-  }
-}

@@ -38,6 +38,53 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 _Nothing yet._
 
+## [0.5.4] - 2026-10-02
+
+### Added
+
+- Settings ▸ Defaults ▸ Import defaults lets you choose tags that are added automatically to each new dance you import on its own, such as a "no card" tag. Dances created while importing a program, restored from a Compendium archive, or updated by a re-import are not tagged.
+- When the same item was changed differently on two of your devices and the app can't tell which change to keep, Device Sync now asks you: choose This device or Another device for each item, then Keep selected. Settings are shown by name with their values. The Sync now button shows how many items are waiting and opens the choice after a sync that finds new ones.
+- Device Sync tries again by itself after a dropped connection, a timeout or a server hiccup, waiting a little longer each time, and syncs when you come back to the app.
+- Device Sync warns you when your sync store is almost full, and offers to stop syncing imported dances.
+- When another device is using a newer version of the app, Device Sync says so and asks you to update this device, instead of reporting skipped records.
+- Every Device Sync warning has a Copy details button that copies a short code you can paste into a request for help. Nothing is sent anywhere.
+- The diagnostics export includes a short Device Sync section, without your sync phrase, titles or anything identifying a device or record.
+- Other devices now shows each device by a short tag, this device's own tag so you can match them up, when each one last shared changes (to the day), and how many of your changes are waiting for it.
+
+### Changed
+
+- If both devices changed your dialects, custom themes, figure shorthands or walkthrough snippets, you now choose which device's set to keep instead of the most recent edit silently replacing the other.
+- Sync decisions has moved from General to Device Sync settings.
+- When you disconnect a device from Device Sync, it only removes itself from the store if another connected device has shared everything it had since it last shared. An old entry from this device's own earlier connection no longer counts, so its changes can't end up held only by an entry you might remove next.
+- Each time a device connects to Device Sync, it makes up a new identifier for itself instead of reusing the one from its last connection, so moving to a new sync phrase no longer carries the same device identifier into your new store. The server can still see the content you sync, so this removes one link between your stores, not every link. If you disconnect and reconnect to the same store, the earlier connection can stay under Other devices until you remove it there.
+- A sync that can't finish for a reason that sorts itself out now reads "Waiting to sync. Your changes are saved here." instead of an error.
+- When the sync server refuses what this device sent, the advice now says whether you need to do anything: on the Caller's Compendium server your changes wait safely until the server is updated, and on your own server you're asked to update it.
+- Disconnecting a device now also removes it from the sync store, when your other devices already have everything from it, so it no longer stays behind under Other devices.
+- The notice about changes not reaching your other devices now appears only for a device that is syncing but not taking them, names that device by its tag, and is marked as needing you. A device that simply hasn't been opened no longer raises it.
+- Status icons use the outlined weight, and the English country dance form and dancer level have their own icons.
+
+### Fixed
+
+- Choosing a backup file that can't be read in Settings → Restore now shows a message instead of doing nothing.
+- Export no longer runs twice when tapped twice, and a failed export or restore always shows a message.
+- On phones, a failed Share, Copy or PDF export of a dance now shows a message instead of doing nothing.
+- Importing a Caller's Companion .USR file that was only partly copied now warns that the file looks incomplete, instead of reporting a successful import of whatever was readable. Files from a newer version of the app also show a single "update first" warning.
+- Importing the wrong kind of file, an empty file, text that isn't JSON, a file that is too large, or a Caller's Box id with no dance now says what was wrong and what to choose instead of "This record couldn't be found.". Online and pasted imports offer "Try again", and an unexpected import failure no longer shows raw error text.
+- Import review now warns that choosing "Same dance" on a possible match overwrites the existing dance, and the option is labelled "Same dance — replace" instead of "Link to".
+- Import network errors now say what to do. A Caller's Box or ContraDB id that doesn't exist says there is no dance with that id, a busy or rate-limited server says to try again in a minute, going offline names the source instead of "that URL", and raw "HTTP 404" codes are gone. A file that is too large now names the size limit.
+- On Linux systems without xdg-user-dirs, the app now starts instead of stopping at "Could not prepare the collection." It keeps your library in its own data folder.
+- If your device language isn't one the app is translated into, it now opens in English instead of Danish.
+- A failed matrix PDF export now shows a message instead of doing nothing.
+- Typing straight after New dance now goes into the title.
+- PDF export now draws Japanese text (set-list headings and labels in Japanese, and Japanese program or dance titles) instead of empty boxes.
+- PDF export no longer fails on very long program notes, dance calling notes, walkthroughs or slot notes; they continue onto the next page.
+- Perform now shows the figures for a program slot whose dance was deleted (it is still in Recently deleted) and marks it "(deleted dance)" in Jump to slot, instead of showing only your teaching note. A dance that no longer exists at all now says "Dance unavailable" rather than showing the note or "Untitled slot".
+- Sharing or exporting a program as JSON no longer fails when "Hide alternates" hides the only dance with a custom difficulty level.
+- When the app can't prepare your collection at startup, the error screen now shows the kind of error, offers Copy details, and points to the diagnostics log. The failure is recorded in the log, and Retry now reopens the database so it recovers once the cause is fixed, without relaunching the app.
+- When the first sync with a store stopped near the end, Device Sync now says why it stopped, instead of only that it failed.
+- Dutch, German and Japanese wording: Dutch now says "notitie" for notes (not the musical "noot") and "Hook" for the Hook field, German calls the Perform settings section "Perform-Modus", and Japanese editor and Settings text no longer mixes in English "Modifier", "Figure" and "Perform".
+- The hint on the Programs tab when no program is selected is now readable (contrast).
+
 ## [0.5.3] - 2026-10-02
 
 ### Changed
