@@ -5440,6 +5440,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t reach The Caller\'s Box for this title.';
 
   @override
+  String get importTitleListReasonConnectionFailed =>
+      'Couldn\'t reach The Caller\'s Box — check your connection.';
+
+  @override
+  String get importTitleListConnectionBanner =>
+      'Stopped looking up titles after a connection failure. The titles already in your collection are listed; try the rest once you\'re online.';
+
+  @override
   String get importTitleListReasonLineTooLong =>
       'Too long to be a dance title, so it wasn\'t searched.';
 

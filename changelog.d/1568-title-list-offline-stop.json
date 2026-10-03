@@ -1,0 +1,9 @@
+{
+  "id": "1568-title-list-offline-stop",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Importing a pasted title list while offline now stops after the first connection failure and says so once, instead of trying every title."
+    ]
+  }
+}

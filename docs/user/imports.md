@@ -209,6 +209,10 @@ A few honest notes:
 - It works through the list one title at a time, showing its progress, and you
   can **Cancel** at any point — nothing has been added yet, so cancelling costs
   you nothing.
+- If the app can't reach The Caller's Box (you're offline, or the connection
+  hangs), it **stops after the first failure** instead of trying every title, and
+  says so once at the top of the review. The titles already in your collection
+  are still listed; paste the rest again once you're online.
 - There is a limit of **100 titles** per import. A longer list is refused
   outright rather than partly imported, so you are never left thinking a list
   came in whole when it didn't.
