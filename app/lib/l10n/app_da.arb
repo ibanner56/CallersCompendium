@@ -2476,6 +2476,38 @@
   "@backupReplaceAllDataAction": {
     "x-sourceSha256": "b8667a4cafecbe0b101c651e98c27c2c2a8d7bf668b95aa6038f07629029bb39"
   },
+  "backupFileSummary": "Sikkerhedskopi fra {date}: {dances, plural, one {{dances} dans} other {{dances} danse}}, {programs, plural, one {{programs} program} other {{programs} programmer}}, {size} MB",
+  "@backupFileSummary": {
+    "x-sourceSha256": "d3ca7f78a56484717b1cbd4241cfaccd2f4218c5a2fa31aef25f4a04498a15f6"
+  },
+  "backupFileUnreadable": "Denne fil ligner ikke en læsbar sikkerhedskopi ({size} MB). Hvis den ikke kan gendannes, får du at vide hvorfor, når du erstatter.",
+  "@backupFileUnreadable": {
+    "x-sourceSha256": "04a82a832fe8002275a7c27c5f3547dc0a009e0ed8c5f4d66eedd819dcee2dbc"
+  },
+  "backupFileClearAction": "Ryd",
+  "@backupFileClearAction": {
+    "x-sourceSha256": "83b12c2216efb4fdc924e1deb5182e905e4926ed0c1c324d467107f46d5a26a9"
+  },
+  "backupFileTooLarge": "Filen er for stor til at være en Caller’s Compendium-sikkerhedskopi ({sizeMb} MB; grænse {limitMb} MB). Dine data er uændrede.",
+  "@backupFileTooLarge": {
+    "x-sourceSha256": "3e9ac5f6ca85f6efe2676e53a0d0460c736dc1cb76c50731257083782748d37c"
+  },
+  "backupExportTooLarge": "Din samling er for stor til at eksportere som én sikkerhedskopi ({sizeMb} MB; grænse {limitMb} MB), så intet blev gemt. Dine data er uændrede.",
+  "@backupExportTooLarge": {
+    "x-sourceSha256": "1416959a2f449b0558cc843bfa3dbd39209ae1069307cb905582625594368e3e"
+  },
+  "backupExportInProgress": "Forbereder din sikkerhedskopi…",
+  "@backupExportInProgress": {
+    "x-sourceSha256": "9174795f8bf8199c1a9f40bd555b24c33361d0c752e5f0d07215277151a36101"
+  },
+  "backupRestorePreparing": "Læser sikkerhedskopien…",
+  "@backupRestorePreparing": {
+    "x-sourceSha256": "19ca1b5b4e8e8354382be47c93d1485d89d0282e12155b8392ad84b1c76390ef"
+  },
+  "backupRestoreProgress": "Gendanner {done} af {total}…",
+  "@backupRestoreProgress": {
+    "x-sourceSha256": "399de1a943b7134dfed9179444eed01ab33c2e94a72a792f1833075a8d5ae880"
+  },
   "diagnosticsNoDiagnosticsToExport": "Ingen diagnostik at eksportere.",
   "@diagnosticsNoDiagnosticsToExport": {
     "x-sourceSha256": "4b2ec04b33c101f9ffc8f0247367de28a965422b6994d570658ca550707892bb"

@@ -82,6 +82,49 @@ void main() {
     },
   );
 
+  test(
+    'restore reports progress ending at the total and counts deleted tags',
+    () async {
+      await seedDeletedTag();
+      final archive = await ArchiveExporter(
+        repos,
+      ).export(exportedAt: exportedAt);
+      // 2 dances, 1 live tag, 1 tombstoned tag carrying a retained join.
+      expect(archive.dances, hasLength(2));
+      expect(archive.tags, hasLength(1));
+      expect(archive.deletedTags.single.danceIds, isNotEmpty);
+
+      final targetDb = openTestDatabase();
+      addTearDown(targetDb.close);
+      final target = CompendiumRepositories(targetDb, contraTaxonomy);
+      final calls = <(int, int)>[];
+      final result = await ArchiveRestorer(
+        target,
+      ).restore(archive, onProgress: (done, total) => calls.add((done, total)));
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+
+      // Every written entity counts once; each tombstoned tag counts twice
+      // (its row, then its retained-join pass).
+      final expectedTotal =
+          archive.difficultyLevels.length +
+          archive.publishedSources.length +
+          archive.choreographers.length +
+          archive.tags.length +
+          archive.deletedTags.length * 2 +
+          archive.customFields.length +
+          archive.dances.length +
+          archive.venues.length +
+          archive.programs.length;
+      expect(calls.first, (0, expectedTotal));
+      expect(calls.last, (expectedTotal, expectedTotal));
+      expect(calls.length, expectedTotal + 1);
+      for (var i = 1; i < calls.length; i++) {
+        expect(calls[i].$1, calls[i - 1].$1 + 1, reason: 'monotonic by one');
+        expect(calls[i].$2, expectedTotal, reason: 'total never changes');
+      }
+    },
+  );
+
   test('the restored tombstone is stamped causally, not left live', () async {
     await seedDeletedTag();
     final target = await roundTrip(repos);

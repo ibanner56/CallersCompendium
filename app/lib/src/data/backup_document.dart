@@ -242,6 +242,49 @@ Future<BackupReadResult> decodeBackupOnIsolate(
   BackupCodecRunner runner = runBackupCodecOnIsolate,
 }) => runner(() => decodeBackup(json));
 
+/// What the restore dialog shows for a chosen backup file, computed on a worker
+/// so a multi-megabyte file never reaches the UI isolate as a decoded tree.
+class BackupFileSummary {
+  const BackupFileSummary({
+    required this.sizeBytes,
+    required this.createdAt,
+    required this.danceCount,
+    required this.programCount,
+    required this.readable,
+  });
+
+  /// UTF-8 length of the file's text.
+  final int sizeBytes;
+
+  /// The backup's `createdAt` (UTC); meaningless unless [readable].
+  final DateTime createdAt;
+
+  /// Live (not deleted) dances and programs in the core archive.
+  final int danceCount;
+  final int programCount;
+
+  /// `false` when the envelope is fatal (invalid JSON, missing core, failed
+  /// checksum). The restore service owns the refusal message for those.
+  final bool readable;
+}
+
+/// Decodes [json] on a worker and reduces it to a [BackupFileSummary]. Does not
+/// throw for a malformed file: that is a summary with `readable: false`.
+Future<BackupFileSummary> summarizeBackupOnIsolate(
+  String json, {
+  BackupCodecRunner runner = runBackupCodecOnIsolate,
+}) => runner(() {
+  final read = decodeBackup(json);
+  final doc = read.document;
+  return BackupFileSummary(
+    sizeBytes: utf8.encode(json).length,
+    createdAt: doc.createdAt,
+    danceCount: doc.core.dances.where((d) => d.deletedAt == null).length,
+    programCount: doc.core.programs.where((p) => p.deletedAt == null).length,
+    readable: !read.fatal,
+  );
+});
+
 /// Serializes just the [doc] payload (no container/checksum) to a JSON string.
 ///
 /// This is the exact byte sequence the container checksums and that

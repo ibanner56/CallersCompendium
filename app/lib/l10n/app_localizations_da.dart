@@ -2358,6 +2358,52 @@ class AppLocalizationsDa extends AppLocalizations {
   String get backupReplaceAllDataAction => 'Erstat alle data';
 
   @override
+  String backupFileSummary(String date, int dances, int programs, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      dances,
+      locale: localeName,
+      other: '$dances danse',
+      one: '$dances dans',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      programs,
+      locale: localeName,
+      other: '$programs programmer',
+      one: '$programs program',
+    );
+    return 'Sikkerhedskopi fra $date: $_temp0, $_temp1, $size MB';
+  }
+
+  @override
+  String backupFileUnreadable(String size) {
+    return 'Denne fil ligner ikke en læsbar sikkerhedskopi ($size MB). Hvis den ikke kan gendannes, får du at vide hvorfor, når du erstatter.';
+  }
+
+  @override
+  String get backupFileClearAction => 'Ryd';
+
+  @override
+  String backupFileTooLarge(String sizeMb, String limitMb) {
+    return 'Filen er for stor til at være en Caller’s Compendium-sikkerhedskopi ($sizeMb MB; grænse $limitMb MB). Dine data er uændrede.';
+  }
+
+  @override
+  String backupExportTooLarge(String sizeMb, String limitMb) {
+    return 'Din samling er for stor til at eksportere som én sikkerhedskopi ($sizeMb MB; grænse $limitMb MB), så intet blev gemt. Dine data er uændrede.';
+  }
+
+  @override
+  String get backupExportInProgress => 'Forbereder din sikkerhedskopi…';
+
+  @override
+  String get backupRestorePreparing => 'Læser sikkerhedskopien…';
+
+  @override
+  String backupRestoreProgress(int done, int total) {
+    return 'Gendanner $done af $total…';
+  }
+
+  @override
   String get diagnosticsNoDiagnosticsToExport =>
       'Ingen diagnostik at eksportere.';
 

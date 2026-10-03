@@ -2,12 +2,14 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart' show ValueListenable, kDebugMode;
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import 'settings_keys.dart';
 import '../../data/sync_writer_lifecycle_scope.dart';
+import '../../data/backup_document.dart'
+    show BackupFileSummary, defaultBackupCodecRunner, summarizeBackupOnIsolate;
 import '../../data/backup_io.dart';
 import '../../data/backup_reminder.dart';
 import '../../data/backup_service.dart';
@@ -211,12 +213,19 @@ class _GeneralSectionState extends State<GeneralSection> {
     final repos = RepositoriesScope.of(context);
     final saver = widget.backupSaver ?? saveBackupToFile;
 
+    // No done/total exists for an export (the encode is a single worker call),
+    // so the bar is indeterminate until the saver returns.
+    final closeProgress = _showBackupProgress(
+      key: const ValueKey('export-progress'),
+      idleLabel: l10n.backupExportInProgress,
+    );
     try {
       final service = BackupService(repos);
       final now = DateTime.now();
       final json = await service.exportToJson(createdAt: now);
 
       final delivered = await saver(json, _backupFileName(now));
+      closeProgress();
       if (!delivered) return;
       await service.recordBackup(now);
       if (!mounted) return;
@@ -225,15 +234,64 @@ class _GeneralSectionState extends State<GeneralSection> {
         _lastBackupAt = now.toUtc();
       });
       messenger.showSnackBar(SnackBar(content: Text(l10n.backupExported)));
+    } on BackupExportTooLargeException catch (e, st) {
+      closeProgress();
+      logCaughtError(e, st, source: 'general_section._onExportBackup');
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.backupExportTooLarge(
+              backupMegabytes(e.sizeBytes),
+              backupMegabytes(e.maxBytes),
+            ),
+          ),
+        ),
+      );
     } on Object catch (e, st) {
+      closeProgress();
       logCaughtError(e, st, source: 'general_section._onExportBackup');
       if (kDebugMode) {
         debugPrint('Backup export failed: $e\n$st');
       }
       messenger.showSnackBar(SnackBar(content: Text(l10n.backupExportFailed)));
     } finally {
+      closeProgress();
       _exportInFlight = false;
     }
+  }
+
+  /// Opens a non-dismissable progress dialog and returns the (idempotent)
+  /// callback that closes it. The dialog is a modal route, so the caller must
+  /// close it before showing a snackbar or returning.
+  ///
+  /// [progress] drives a determinate bar and [progressLabel] its text once it
+  /// holds a `(done, total)`; until then (and always when [progress] is null)
+  /// the bar is indeterminate and shows [idleLabel].
+  VoidCallback _showBackupProgress({
+    required Key key,
+    required String idleLabel,
+    ValueListenable<(int, int)?>? progress,
+    String Function(int done, int total)? progressLabel,
+  }) {
+    final navigator = Navigator.of(context, rootNavigator: true);
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => _BackupProgressDialog(
+          key: key,
+          progress: progress,
+          idleLabel: idleLabel,
+          progressLabel: progressLabel,
+        ),
+      ),
+    );
+    var closed = false;
+    return () {
+      if (closed) return;
+      closed = true;
+      navigator.pop();
+    };
   }
 
   /// Prompts for a backup (file or pasted JSON) behind a destructive-replace
@@ -254,19 +312,36 @@ class _GeneralSectionState extends State<GeneralSection> {
     final writerLifecycle = SyncWriterLifecycleScope.maybeOf(context);
     final onRestored = writerLifecycle?.onRestored;
     final runWrite = writerLifecycle?.runWrite;
+    VoidCallback? closeProgress;
 
     try {
       final raw = await showDialog<String>(
         context: context,
         builder: (_) => _RestoreBackupDialog(picker: picker),
       );
-      if (raw == null || raw.trim().isEmpty) return;
+      if (raw == null || raw.trim().isEmpty || !mounted) return;
+
+      // Shown before the lifecycle wrapper, which may wait for an active sync
+      // pass, so the screen never sits unchanged while the restore is pending.
+      // Indeterminate while the file is read; determinate from the first
+      // `(0, total)` the core restore reports.
+      final progress = ValueNotifier<(int, int)?>(null);
+      closeProgress = _showBackupProgress(
+        key: const ValueKey('restore-progress'),
+        idleLabel: l10n.backupRestorePreparing,
+        progress: progress,
+        progressLabel: l10n.backupRestoreProgress,
+      );
 
       final outcome = await _runRestoreLifecycle(
         runWrite: runWrite,
-        operation: () => BackupService(repos).restoreFromJson(raw),
+        operation: () => BackupService(repos).restoreFromJson(
+          raw,
+          onProgress: (done, total) => progress.value = (done, total),
+        ),
       );
       if (!outcome.applied) {
+        closeProgress();
         if (!mounted) return;
         // Distinguish the refusal reasons so the user gets an accurate message:
         // a failed integrity checksum (corrupt/altered file, #536), a
@@ -288,6 +363,7 @@ class _GeneralSectionState extends State<GeneralSection> {
         return;
       }
       if (onRestored != null) await onRestored();
+      closeProgress();
       if (!mounted) return;
       _refreshSoftDeleteRetention();
       // The core content committed and refreshed, but the separate settings
@@ -311,12 +387,14 @@ class _GeneralSectionState extends State<GeneralSection> {
         ),
       );
     } on Object catch (e, st) {
+      closeProgress?.call();
       logCaughtError(e, st, source: 'general_section._onRestoreBackup');
       if (kDebugMode) {
         debugPrint('Backup restore failed: $e\n$st');
       }
       messenger.showSnackBar(SnackBar(content: Text(l10n.backupRestoreFailed)));
     } finally {
+      closeProgress?.call();
       _restoreOperationInFlight = false;
     }
   }
@@ -779,6 +857,11 @@ class _GeneralView extends StatelessWidget {
 /// the injected [picker]) or by pasting JSON — behind an explicit,
 /// destructive-replace warning. Returns the chosen JSON string when the user
 /// confirms, or `null` if they cancel.
+///
+/// A chosen file is held in state and shown as a summary (date, counts, size)
+/// rather than poured into the paste box: laying out megabytes of text froze
+/// the dialog for seconds. The paste box is for pasted text only and is
+/// disabled while a file is held.
 class _RestoreBackupDialog extends StatefulWidget {
   const _RestoreBackupDialog({required this.picker});
 
@@ -792,10 +875,33 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
   final TextEditingController _controller = TextEditingController();
   bool _picking = false;
 
+  /// The chosen file's text, set the moment the picker returns so Replace is
+  /// enabled before the summary finishes decoding.
+  String? _pickedJson;
+
+  /// The decoded summary of [_pickedJson]; `null` while it is being read.
+  BackupFileSummary? _summary;
+
+  /// Set when the summary decode itself threw: shown as unreadable, with the
+  /// restore service left to own the refusal.
+  bool _summaryFailed = false;
+
+  /// Guards a slow summary decode against a newer pick or a Clear.
+  int _pickGeneration = 0;
+
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  void _clearFile() {
+    setState(() {
+      _pickGeneration++;
+      _pickedJson = null;
+      _summary = null;
+      _summaryFailed = false;
+    });
   }
 
   Future<void> _chooseFile() async {
@@ -804,13 +910,40 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
     try {
       final json = await widget.picker();
       if (!mounted || json == null) return;
-      _controller.text = json;
+      final generation = ++_pickGeneration;
+      setState(() {
+        _controller.clear();
+        _pickedJson = json;
+        _summary = null;
+        _summaryFailed = false;
+      });
+      try {
+        final summary = await summarizeBackupOnIsolate(
+          json,
+          runner: defaultBackupCodecRunner,
+        );
+        if (!mounted || generation != _pickGeneration) return;
+        setState(() => _summary = summary);
+      } on Object catch (e, stackTrace) {
+        logCaughtError(e, stackTrace, source: 'general_section._chooseFile');
+        if (!mounted || generation != _pickGeneration) return;
+        setState(() => _summaryFailed = true);
+      }
     } on BackupFileTooLargeException catch (e, stackTrace) {
       logCaughtError(e, stackTrace, source: 'general_section._chooseFile');
       // Surface the size-cap refusal as a friendly message instead of letting
       // it crash the picker: the file was never read, so live data is safe.
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).backupFileTooLarge(
+              backupMegabytes(e.sizeBytes),
+              backupMegabytes(e.maxBytes),
+            ),
+          ),
+        ),
+      );
     } on FormatException catch (e, stackTrace) {
       logCaughtError(e, stackTrace, source: 'general_section._chooseFile');
       if (!mounted) return;
@@ -832,10 +965,45 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
     }
   }
 
+  Widget _fileSummary(AppLocalizations l10n) {
+    final summary = _summary;
+    final String text;
+    if (summary == null && !_summaryFailed) {
+      text = l10n.backupRestorePreparing;
+    } else if (summary == null || !summary.readable) {
+      text = l10n.backupFileUnreadable(
+        backupMegabytes(summary?.sizeBytes ?? _pickedJson!.length),
+      );
+    } else {
+      text = l10n.backupFileSummary(
+        MaterialLocalizations.of(
+          context,
+        ).formatMediumDate(summary.createdAt.toLocal()),
+        summary.danceCount,
+        summary.programCount,
+        backupMegabytes(summary.sizeBytes),
+      );
+    }
+    return Card(
+      key: const ValueKey('restore-file-summary'),
+      margin: EdgeInsets.zero,
+      child: ListTile(
+        leading: const Icon(Icons.description_outlined),
+        title: Text(text),
+        trailing: TextButton(
+          key: const ValueKey('restore-file-clear'),
+          onPressed: _clearFile,
+          child: Text(l10n.backupFileClearAction),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final hasContent = _controller.text.trim().isNotEmpty;
+    final holdsFile = _pickedJson != null;
+    final hasContent = holdsFile || _controller.text.trim().isNotEmpty;
     return AlertDialog(
       key: const ValueKey('restore-backup-dialog'),
       title: Text(l10n.backupRestoreTitle),
@@ -854,9 +1022,14 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
               label: Text(l10n.backupChooseFileAction),
             ),
             const SizedBox(height: AppSpacing.sm),
+            if (holdsFile) ...[
+              _fileSummary(l10n),
+              const SizedBox(height: AppSpacing.sm),
+            ],
             TextField(
               key: const ValueKey('restore-paste-field'),
               controller: _controller,
+              enabled: !holdsFile,
               minLines: 3,
               maxLines: 6,
               onChanged: (_) => setState(() {}),
@@ -877,11 +1050,65 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
         FilledButton(
           key: const ValueKey('restore-confirm'),
           onPressed: hasContent
-              ? () => Navigator.of(context).pop(_controller.text)
+              ? () => Navigator.of(context).pop(_pickedJson ?? _controller.text)
               : null,
           child: Text(l10n.backupReplaceAllDataAction),
         ),
       ],
+    );
+  }
+}
+
+/// The modal shown while a backup is exported or restored. Not dismissable by
+/// the barrier or the back button; its owner closes it. See
+/// [_GeneralSectionState._showBackupProgress].
+class _BackupProgressDialog extends StatelessWidget {
+  const _BackupProgressDialog({
+    super.key,
+    required this.progress,
+    required this.idleLabel,
+    required this.progressLabel,
+  });
+
+  /// `(done, total)` once known; `null` (or a null notifier) = indeterminate.
+  final ValueListenable<(int, int)?>? progress;
+  final String idleLabel;
+  final String Function(int done, int total)? progressLabel;
+
+  Widget _body((int, int)? value) {
+    final total = value?.$2 ?? 0;
+    final label = progressLabel;
+    final determinate = value != null && total > 0 && label != null;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        LinearProgressIndicator(value: determinate ? value.$1 / total : null),
+        const SizedBox(height: AppSpacing.md),
+        Semantics(
+          liveRegion: true,
+          child: Text(determinate ? label(value.$1, total) : idleLabel),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final source = progress;
+    return PopScope(
+      canPop: false,
+      child: AlertDialog(
+        content: SizedBox(
+          width: 320,
+          child: source == null
+              ? _body(null)
+              : ValueListenableBuilder<(int, int)?>(
+                  valueListenable: source,
+                  builder: (_, value, _) => _body(value),
+                ),
+        ),
+      ),
     );
   }
 }
