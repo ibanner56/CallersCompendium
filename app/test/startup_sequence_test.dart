@@ -9,6 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/main.dart';
 import 'package:compendium_app/src/data/app_database.dart';
+import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/application_shutdown_controller.dart';
 import 'package:compendium_app/src/data/backup_document.dart'
     show
@@ -17,10 +19,17 @@ import 'package:compendium_app/src/data/backup_document.dart'
         runBackupCodecOnIsolate;
 import 'package:compendium_app/src/data/backup_service.dart';
 import 'package:compendium_app/src/data/collection_facets_scope.dart';
+import 'package:compendium_app/src/data/dance_share_fields_scope.dart';
+import 'package:compendium_app/src/data/dialect_library_controller.dart'
+    show kCustomDialectsKey;
 import 'package:compendium_app/src/data/editor_draft_shutdown_scope.dart';
+import 'package:compendium_app/src/data/soft_delete_retention.dart'
+    show kSoftDeleteRetentionKey;
 import 'package:compendium_app/src/data/sync_writer_lifecycle_scope.dart';
+import 'package:compendium_app/src/data/locale_scope.dart';
 import 'package:compendium_app/src/data/migration_guard.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
+import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/screens/settings/settings_keys.dart';
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_scope.dart';
@@ -149,6 +158,91 @@ class _RecordingAppData extends AppData {
   }
 }
 
+/// A [SettingsRepository] whose `get`/`contains` throw for chosen keys, as if
+/// that one row were corrupt or the database were locked during the read.
+class _FlakySettings extends SettingsRepository {
+  _FlakySettings(super.db, this.failingKeys);
+
+  final Set<String> failingKeys;
+
+  /// While non-null, `get(gateKey)` waits on it: lets a test hold one startup
+  /// read open and look at the live notifiers while it is in flight.
+  Completer<void>? gate;
+  String? gateKey;
+
+  @override
+  Future<Object?> get(String key) async {
+    if (gate != null && key == gateKey) await gate!.future;
+    if (failingKeys.contains(key)) {
+      throw StateError('injected read failure: $key');
+    }
+    return super.get(key);
+  }
+
+  @override
+  Future<bool> contains(String key) {
+    if (failingKeys.contains(key)) {
+      return Future<bool>.error(StateError('injected read failure: $key'));
+    }
+    return super.contains(key);
+  }
+}
+
+/// An [AppData] whose settings reads fail for [failingKeys]. Same shape as
+/// [_FailOnceMigrationAppData]: the getter shadows the base facade.
+class _FlakySettingsAppData extends AppData {
+  _FlakySettingsAppData(super.db, Set<String> failingKeys)
+    : _repositories = CompendiumRepositories(
+        db,
+        contraTaxonomy,
+        settings: _FlakySettings(db, failingKeys),
+      );
+
+  final CompendiumRepositories _repositories;
+
+  _FlakySettings get flakySettings => _repositories.settings as _FlakySettings;
+
+  @override
+  CompendiumRepositories get repositories => _repositories;
+}
+
+_FlakySettingsAppData _openFlakySettingsAppData(Set<String> failingKeys) {
+  final appData = _FlakySettingsAppData(
+    openWidgetTestDatabase(closeOnTearDown: false),
+    failingKeys,
+  );
+  addTearDown(appData.close);
+  return appData;
+}
+
+/// Drives Settings › General › Restore with [backupJson], which ends in
+/// `reloadFromSettings`.
+Future<void> _restoreFromPaste(
+  WidgetTester tester,
+  String backupJson, {
+  Future<void> Function()? whileReloading,
+}) async {
+  // By icon, not label: the language under test may not be English.
+  await tester.tap(find.byIcon(Icons.settings_outlined).last);
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('settings-nav-general')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
+  await tester.pumpAndSettle();
+  await tester.enterText(
+    find.byKey(const ValueKey('restore-paste-field')),
+    backupJson,
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('restore-confirm')));
+  if (whileReloading != null) {
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await whileReloading();
+  }
+  await tester.pumpAndSettle();
+}
+
 AppData _openAppData() {
   final appData = AppData(openWidgetTestDatabase(closeOnTearDown: false));
   // The database is also closed by CompendiumApp.dispose(); sqlite3's close is
@@ -232,6 +326,52 @@ void main() {
         ),
         isNotNull,
       );
+    },
+  );
+
+  testWidgets(
+    'an unreadable soft-delete retention setting starts the app and skips '
+    'the sweep rather than assuming the 30-day default',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final sink = _RecordingCrashLogSink();
+      installCaughtErrorLog(sink);
+      addTearDown(resetCaughtErrorLogForTesting);
+
+      final appData = _openFlakySettingsAppData({kSoftDeleteRetentionKey});
+      final fixedNow = DateTime.utc(2026, 6, 1);
+      // Past the 30-day default: a default-on-failure would purge it, which is
+      // wrong for a user whose stored choice was "never auto-purge".
+      await appData.repositories.programs.create(
+        Program(
+          id: 'old',
+          title: 'Ancient Program',
+          createdAt: fixedNow.subtract(const Duration(days: 60)),
+          updatedAt: fixedNow.subtract(const Duration(days: 31)),
+          deletedAt: fixedNow.subtract(const Duration(days: 31)),
+        ),
+      );
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          nowOverride: () => fixedNow,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AppShell), findsOneWidget);
+      expect(
+        await appData.repositories.programs.getById(
+          'old',
+          includeDeleted: true,
+        ),
+        isNotNull,
+      );
+      expect(sink.sources, contains('startup.soft_delete_retention_read'));
     },
   );
 
@@ -1269,6 +1409,154 @@ void main() {
       expect(RequirePerformedForHistoryScope.of(context), isFalse);
     },
   );
+
+  testWidgets(
+    'a settings read that throws for one key starts the app with that key at '
+    'its default',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openFlakySettingsAppData({kSortIgnoreArticlesKey});
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AppShell), findsOneWidget);
+      final context = tester.element(find.byType(AppShell));
+      expect(SortIgnoreArticlesScope.of(context), isTrue);
+    },
+  );
+
+  testWidgets(
+    'a custom-dialect library read that throws starts the app on Larks/Robins',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final sink = _RecordingCrashLogSink();
+      installCaughtErrorLog(sink);
+      addTearDown(resetCaughtErrorLogForTesting);
+
+      final appData = _openFlakySettingsAppData({kCustomDialectsKey});
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AppShell), findsOneWidget);
+      final context = tester.element(find.byType(AppShell));
+      expect(ActiveDialectScope.of(context), Dialect.larksRobins);
+      // Not silent: the dialect load can also write, so the failure is logged.
+      expect(sink.sources, contains('startup.dialect_library_load'));
+    },
+  );
+
+  for (final heldKey in [kAppThemeKey, kLocaleKey]) {
+    testWidgets(
+      'a same-value restore never shows the default theme or language while '
+      'the $heldKey read is in flight',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(1200, 2600));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        final source = openTestRepositories();
+        await source.settings.set(kAppThemeKey, 'dark');
+        await source.settings.set(kLocaleKey, 'de');
+        final backupJson = await BackupService(source).exportToJson();
+
+        final appData = _openFlakySettingsAppData({});
+        await appData.repositories.settings.set(kAppThemeKey, 'dark');
+        await appData.repositories.settings.set(kLocaleKey, 'de');
+        await tester.pumpWidget(
+          CompendiumApp(
+            appData: appData,
+            windowService: _NoopWindowService(appData.repositories.settings),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final context = tester.element(find.byType(AppShell));
+        final themeNotifier = AppThemeScope.notifierOf(context);
+        final localeNotifier = LocaleScope.notifierOf(context);
+        expect(themeNotifier.value, AppThemeSelection.dark);
+        expect(localeNotifier.value, const Locale('de'));
+
+        // Hold one read open (the theme read is the first to reassign a value,
+        // the language read among the last) so frames can run mid-reload.
+        final gate = Completer<void>();
+        appData.flakySettings
+          ..gateKey = heldKey
+          ..gate = gate;
+        var sampled = false;
+        await _restoreFromPaste(
+          tester,
+          backupJson,
+          whileReloading: () async {
+            sampled = true;
+            expect(
+              themeNotifier.value,
+              AppThemeSelection.dark,
+              reason: 'theme flashed to the default mid-reload',
+            );
+            expect(
+              localeNotifier.value,
+              const Locale('de'),
+              reason: 'language flashed to the default mid-reload',
+            );
+            gate.complete();
+          },
+        );
+
+        expect(sampled, isTrue);
+        expect(themeNotifier.value, AppThemeSelection.dark);
+        expect(localeNotifier.value, const Locale('de'));
+      },
+    );
+  }
+
+  testWidgets('restoring a backup without the key returns danceShareFields to '
+      'its default', (tester) async {
+    // Pins the behaviour, not the reset-list line: the loader's decode of an
+    // absent key also yields the default, so deleting the reset entry alone
+    // would not turn this red.
+    await tester.binding.setSurfaceSize(const Size(1200, 2600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final source = openTestRepositories();
+    final backupJson = await BackupService(source).exportToJson();
+
+    final appData = _openAppData();
+    await appData.repositories.settings.set(kProgramDanceShareFieldsKey, [
+      DanceShareField.authors.name,
+    ]);
+    await tester.pumpWidget(
+      CompendiumApp(
+        appData: appData,
+        windowService: _NoopWindowService(appData.repositories.settings),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    var context = tester.element(find.byType(AppShell));
+    expect(DanceShareFieldsScope.of(context), {DanceShareField.authors});
+
+    await _restoreFromPaste(tester, backupJson);
+
+    expect(
+      await appData.repositories.settings.get(kProgramDanceShareFieldsKey),
+      isNull,
+    );
+    context = tester.element(find.byType(AppShell));
+    expect(DanceShareFieldsScope.of(context), DanceShareField.allExceptTunes);
+  });
 
   testWidgets('a failed below-floor reset restores the recovery screen', (
     tester,
