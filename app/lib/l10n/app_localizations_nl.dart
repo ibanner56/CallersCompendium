@@ -1496,6 +1496,30 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get settingsDefaultsDifficultyLevelEmpty =>
+      'Een moeilijkheidsniveau heeft een naam nodig.';
+
+  @override
+  String settingsDefaultsDifficultyLevelDuplicate(String label) {
+    return 'Er bestaat al een niveau met de naam \"$label\".';
+  }
+
+  @override
+  String settingsDefaultsDifficultyLevelInUse(String label, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen gebruiken $label. Wijzig ze eerst.',
+      one: '1 dans gebruikt $label. Wijzig die eerst.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsDefaultsDifficultyLevelActionFailed =>
+      'De moeilijkheidsniveaus konden niet worden opgeslagen. Probeer het opnieuw.';
+
+  @override
   String get settingsDefaultsBandLabel => 'Standaard band';
 
   @override

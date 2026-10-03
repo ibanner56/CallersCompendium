@@ -4,6 +4,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/aggressive_beats_update_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
@@ -39,6 +40,17 @@ Dance _dance({required String id, required String title}) => Dance(
   createdAt: _now,
   updatedAt: _now,
 );
+
+AppLocalizations _l10n(WidgetTester tester) =>
+    AppLocalizations.of(tester.element(find.byType(Scaffold).first));
+
+Future<void> _openDifficultySection(WidgetTester tester) async {
+  await _scrollTo(tester, const ValueKey('defaults-difficulty-levels-section'));
+  await tester.tap(
+    find.byKey(const ValueKey('defaults-difficulty-levels-section')),
+  );
+  await tester.pumpAndSettle();
+}
 
 /// Pumps the settings screen on a wide surface backed by [repos] and opens the
 /// Defaults section.
@@ -418,8 +430,73 @@ void main() {
       await repos.difficultyLevels.getById(DifficultyLevel.beginnerId),
       DifficultyLevel.beginner,
     );
-    expect(find.textContaining('must not be empty'), findsOneWidget);
+    final l10n = _l10n(tester);
+    expect(
+      find.text(l10n.settingsDefaultsDifficultyLevelEmpty),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Invalid argument'), findsNothing);
   });
+
+  testWidgets('deleting an in-use difficulty level shows a localised message', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        title: 'Uses it',
+      ).copyWith(difficultyLevelId: DifficultyLevel.beginnerId),
+    );
+    await _pumpDefaults(tester, repos);
+    await _openDifficultySection(tester);
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('difficulty-level-delete-${DifficultyLevel.beginnerId}'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final l10n = _l10n(tester);
+    expect(
+      find.text(l10n.settingsDefaultsDifficultyLevelInUse('Beginner', 1)),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Bad state'), findsNothing);
+    expect(find.textContaining('difficulty-beginner'), findsNothing);
+    expect(
+      await repos.difficultyLevels.getById(DifficultyLevel.beginnerId),
+      DifficultyLevel.beginner,
+    );
+  });
+
+  testWidgets(
+    'renaming a difficulty level to an existing label shows a localised message',
+    (tester) async {
+      final repos = openTestRepositories();
+      await _pumpDefaults(tester, repos);
+      await _openDifficultySection(tester);
+
+      await tester.enterText(
+        find.byKey(
+          const ValueKey(
+            'difficulty-level-label-${DifficultyLevel.intermediateId}',
+          ),
+        ),
+        'Beginner',
+      );
+      tester.binding.focusManager.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
+
+      final l10n = _l10n(tester);
+      expect(
+        find.text(l10n.settingsDefaultsDifficultyLevelDuplicate('Beginner')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Bad state'), findsNothing);
+    },
+  );
 
   testWidgets('failed difficulty rename resets the field', (tester) async {
     final repos = openTestRepositories();

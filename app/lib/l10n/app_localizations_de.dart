@@ -1503,6 +1503,30 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get settingsDefaultsDifficultyLevelEmpty =>
+      'Ein Schwierigkeitsgrad braucht einen Namen.';
+
+  @override
+  String settingsDefaultsDifficultyLevelDuplicate(String label) {
+    return 'Ein Grad mit dem Namen „$label“ gibt es bereits.';
+  }
+
+  @override
+  String settingsDefaultsDifficultyLevelInUse(String label, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Tänze verwenden $label. Ändere sie zuerst.',
+      one: '1 Tanz verwendet $label. Ändere ihn zuerst.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsDefaultsDifficultyLevelActionFailed =>
+      'Die Schwierigkeitsgrade konnten nicht gespeichert werden. Versuche es erneut.';
+
+  @override
   String get settingsDefaultsBandLabel => 'Standard-Band';
 
   @override

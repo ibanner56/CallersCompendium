@@ -7,6 +7,7 @@ import '../../util/uuid.dart';
 import '../database.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
+import 'difficulty_level_errors.dart';
 import 'sync_local_repository.dart';
 
 /// CRUD for the collection's user-configurable difficulty vocabulary.
@@ -30,9 +31,7 @@ class DifficultyLevelRepository {
       for (final row in existingRows) {
         if (row.label.toLowerCase() == normalizedLabel.toLowerCase()) {
           if (row.deletedAt == null) {
-            throw StateError(
-              'difficulty level labels must be unique: "$normalizedLabel"',
-            );
+            throw DifficultyLevelLabelDuplicate(normalizedLabel);
           }
           tombstone = row;
           break;
@@ -50,8 +49,9 @@ class DifficultyLevelRepository {
 
   /// Inserts or updates a vocabulary entry without changing its stable ID.
   ///
-  /// Throws [StateError] when the write would rename this level onto a label
-  /// another row already holds, case-insensitively — the visible refusal
+  /// Throws [DifficultyLevelLabelDuplicate] (a [StateError]) when the write
+  /// would rename this level onto a label another row already holds,
+  /// case-insensitively — the visible refusal
   /// `defaults_section` already surfaces. It no longer throws when the label is
   /// **unchanged** and merely derives a target another row occupies: that is
   /// §4.1's carve-out, and the write stores the label un-normalised and records
@@ -169,6 +169,17 @@ class DifficultyLevelRepository {
     return row != null;
   }
 
+  /// How many dances, including tombstoned ones, refer to [id]; the number
+  /// behind [isInUse], for a message that has to say how many.
+  Future<int> referenceCount(String id) async {
+    final references = _db.dances.id.count();
+    return (_db.selectOnly(_db.dances)
+          ..addColumns([references])
+          ..where(_db.dances.levelId.equals(id)))
+        .map((row) => row.read(references) ?? 0)
+        .getSingle();
+  }
+
   Future<List<({DifficultyLevel level, bool deleted})>>
   listAllWithDeleted() async {
     final rows =
@@ -194,18 +205,9 @@ class DifficultyLevelRepository {
       // Deliberately counts tombstoned dances too, unlike the other
       // referential guards: [isInUse] states the policy for this kind — a
       // deleted dance can be restored, so it still protects its level.
-      final references = _db.dances.id.count();
-      final count =
-          await (_db.selectOnly(_db.dances)
-                ..addColumns([references])
-                ..where(_db.dances.levelId.equals(id)))
-              .map((row) => row.read(references) ?? 0)
-              .getSingle();
+      final count = await referenceCount(id);
       if (count > 0) {
-        throw StateError(
-          'cannot delete difficulty level "$id": still referenced by '
-          '$count dance(s)',
-        );
+        throw DifficultyLevelInUse(id: id, count: count);
       }
       await stampExistenceTransition(
         _db,
@@ -319,9 +321,7 @@ class DifficultyLevelRepository {
         if (!refuse) deferredLabel = deferred;
       }
       if (refuse) {
-        throw StateError(
-          'difficulty level labels must be unique: "${normalized.label}"',
-        );
+        throw DifficultyLevelLabelDuplicate(normalized.label);
       }
     }
     await _db
@@ -376,7 +376,7 @@ class DifficultyLevelRepository {
   String _sanitizeLabel(String raw) {
     final label = sanitizeShareableText(raw).trim();
     if (label.isEmpty) {
-      throw ArgumentError.value(raw, 'label', 'must not be empty');
+      throw DifficultyLevelLabelEmpty(raw);
     }
     return label;
   }

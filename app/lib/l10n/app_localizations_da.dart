@@ -1490,6 +1490,30 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get settingsDefaultsDifficultyLevelEmpty =>
+      'Et sværhedsniveau skal have et navn.';
+
+  @override
+  String settingsDefaultsDifficultyLevelDuplicate(String label) {
+    return 'Et niveau med navnet \"$label\" findes allerede.';
+  }
+
+  @override
+  String settingsDefaultsDifficultyLevelInUse(String label, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count danse bruger $label. Ændr dem først.',
+      one: '1 dans bruger $label. Ændr den først.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsDefaultsDifficultyLevelActionFailed =>
+      'Sværhedsniveauerne kunne ikke gemmes. Prøv igen.';
+
+  @override
   String get settingsDefaultsBandLabel => 'Standardband';
 
   @override
