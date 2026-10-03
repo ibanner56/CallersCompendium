@@ -5353,6 +5353,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String importReviewCommitProgress(int done, int total) {
+    return '$done / $total';
+  }
+
+  @override
   String importReviewTitleListPasted(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -5995,6 +6000,18 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importReviewOptionNewDance => 'Ny dans';
+
+  @override
+  String get importReviewBulkSetAllLabel => 'Sæt alle matchede danse til:';
+
+  @override
+  String get importReviewBulkReimport => 'Reimportér';
+
+  @override
+  String get importReviewBulkSkip => 'Spring over';
+
+  @override
+  String get importReviewBulkSkipAmbiguous => 'Spring alle mulige match over';
 
   @override
   String get importReviewOptionSkip => 'Spring over';

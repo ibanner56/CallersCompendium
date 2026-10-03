@@ -439,6 +439,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// `null` when no title-list resolution is running.
   (int, int)? _titleListProgress;
 
+  /// How many records the running commit has handled, as `(done, total)`, or
+  /// `null` when none is running or the commit reports no progress (the Edit
+  /// single-dance commit, the shared-bundle commit).
+  (int, int)? _commitProgress;
+
   /// How far through parsing the file/paste [_plan] is, 0–1, or `null` before
   /// the first report (an indeterminate spinner). A large `.USR` takes tens of
   /// seconds to parse; a spinner that never moves reads as a hang.
@@ -1149,6 +1154,79 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     }
   }
 
+  bool _hasBulkTargets(ImportBatchResult batch) => batch.records.any(
+    (r) => r.verdict.kind == DedupeKind.reimport || r.verdict.isAmbiguous,
+  );
+
+  /// Sets every not-yet-committed row whose verdict is [kind] in one pass.
+  /// Rows already committed through Edit are left alone. A re-import row keeps
+  /// its target id whichever way it is set, as [_defaultChoice] does.
+  void _setAllMatched(ImportBatchResult batch, _ActionKind action) {
+    setState(() {
+      _choices = [
+        for (var i = 0; i < _choices.length; i++)
+          if (_committed.contains(i))
+            _choices[i]
+          else if (batch.records[i].verdict.kind == DedupeKind.reimport)
+            _RowChoice(action, batch.records[i].verdict.targetDanceId)
+          else
+            _choices[i],
+      ];
+    });
+  }
+
+  void _skipAllAmbiguous(ImportBatchResult batch) {
+    setState(() {
+      _choices = [
+        for (var i = 0; i < _choices.length; i++)
+          if (!_committed.contains(i) && batch.records[i].verdict.isAmbiguous)
+            _RowChoice(_ActionKind.skip)
+          else
+            _choices[i],
+      ];
+    });
+  }
+
+  /// Bulk controls above the rows, so a large re-import is not one tap per row.
+  /// Shown only when the batch has a re-import match or a possible match. The
+  /// per-row defaults are unchanged (#446); these only rewrite the choices.
+  Widget _buildBulkControls(BuildContext context, ImportBatchResult batch) {
+    final l10n = AppLocalizations.of(context);
+    final hasReimport = batch.records.any(
+      (r) => r.verdict.kind == DedupeKind.reimport,
+    );
+    final hasAmbiguous = batch.records.any((r) => r.verdict.isAmbiguous);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          if (hasReimport) ...[
+            Text(l10n.importReviewBulkSetAllLabel),
+            OutlinedButton(
+              key: const ValueKey('import-bulk-reimport'),
+              onPressed: () => _setAllMatched(batch, _ActionKind.reimport),
+              child: Text(l10n.importReviewBulkReimport),
+            ),
+            OutlinedButton(
+              key: const ValueKey('import-bulk-skip'),
+              onPressed: () => _setAllMatched(batch, _ActionKind.skip),
+              child: Text(l10n.importReviewBulkSkip),
+            ),
+          ],
+          if (hasAmbiguous)
+            OutlinedButton(
+              key: const ValueKey('import-bulk-skip-ambiguous'),
+              onPressed: () => _skipAllAmbiguous(batch),
+              child: Text(l10n.importReviewBulkSkipAmbiguous),
+            ),
+        ],
+      ),
+    );
+  }
+
   /// Builds the committed [ImportRecordPlan] for row [i] from its chosen
   /// resolution, together with the [DedupeResolution] the core pipeline needs
   /// (only for the ambiguous link/duplicate choices; `null` otherwise). Returns
@@ -1316,7 +1394,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     }
 
     widget.onCommitStateChanged?.call(true);
-    setState(() => _phase = _Phase.committing);
+    setState(() {
+      _commitProgress = null;
+      _phase = _Phase.committing;
+    });
     // Edit is a single-dance affordance, so it always uses the adapter-agnostic
     // dance commit path — even for the Caller's Companion `.USR` byte source,
     // whose programs remain the batch Import button's responsibility.
@@ -1378,11 +1459,28 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     }
   }
 
+  /// Records the commit's progress for the committing view. Ignored once the
+  /// screen has gone, or has left the committing phase.
+  void _onCommitProgress(int done, int total) {
+    if (!mounted || _phase != _Phase.committing) return;
+    setState(() => _commitProgress = (done, total));
+  }
+
   Future<void> _commit() async {
     final (commitBatch, resolutions, skipped, actedRowIndices) =
         _buildCommitBatch();
+    // Read before the phase changes: a shared bundle commits through the
+    // archive importer, which reports no progress, so it keeps the spinner.
+    final sharedBundle = _effectiveSharedBundle;
     widget.onCommitStateChanged?.call(true);
-    setState(() => _phase = _Phase.committing);
+    setState(() {
+      // Determinate from the first frame: `0 / total` until the first record
+      // lands, instead of a spinner that only turns into a count later.
+      _commitProgress = sharedBundle == null
+          ? (0, commitBatch.records.length)
+          : null;
+      _phase = _Phase.committing;
+    });
     final pipeline = ImportPipeline(
       _repos.dances,
       _repos.choreographers,
@@ -1392,7 +1490,6 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // `_isByteSource` — so only Caller's Companion `.USR` persists/undoes
     // programs. A hypothetical future dance-only byte source would fall through
     // to the shared dance path and never touch programs.
-    final sharedBundle = _effectiveSharedBundle;
     try {
       final publishedEntry = _publishedEntry;
       final publishedBytes = _publishedArchiveBytes;
@@ -1439,6 +1536,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           newSlotId: uuidV4,
           resolutions: resolutions,
           defaultTagIds: await resolveDefaultImportTagIds(_repos),
+          onProgress: _onCommitProgress,
         );
         if (!mounted) return;
         setState(() => _phase = _Phase.review);
@@ -1463,6 +1561,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           newId: uuidV4,
           resolutions: resolutions,
           defaultTagIds: await resolveDefaultImportTagIds(_repos),
+          onProgress: _onCommitProgress,
         );
         try {
           await _repos.collectionImports.record(result.event);
@@ -1494,6 +1593,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           // The shared-bundle branch restores the sender's own tags, and no
           // program path reaches here.
           defaultTagIds: await resolveDefaultImportTagIds(_repos),
+          onProgress: _onCommitProgress,
         );
         if (!mounted) return;
         // Leave the progress phase before showing the (awaited) result dialog so
@@ -1946,10 +2046,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         body: switch (_phase) {
           _Phase.input => _buildInput(context),
           _Phase.planning => _buildPlanning(context),
-          _Phase.committing => const Center(
-            key: ValueKey('import-committing'),
-            child: CircularProgressIndicator(),
-          ),
+          _Phase.committing => _buildCommitting(context),
           _Phase.review => _buildReview(context),
         },
       ),
@@ -1997,6 +2094,39 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                 ? null
                 : () => setState(() => _titleListCancelled = true),
             child: Text(l10n.commonCancel),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The committing view. Determinate (`n / total` beside the spinner) once the
+  /// commit reports progress; an indeterminate spinner until then, and for the
+  /// commits that report none (Edit's single dance, the shared-bundle commit).
+  Widget _buildCommitting(BuildContext context) {
+    final progress = _commitProgress;
+    if (progress == null) {
+      return const Center(
+        key: ValueKey('import-committing'),
+        child: CircularProgressIndicator(),
+      );
+    }
+    final (done, total) = progress;
+    return Center(
+      key: const ValueKey('import-committing'),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(value: total == 0 ? null : done / total),
+          const SizedBox(height: 16),
+          Semantics(
+            liveRegion: true,
+            child: Text(
+              AppLocalizations.of(
+                context,
+              ).importReviewCommitProgress(done, total),
+              key: const ValueKey('import-commit-progress'),
+            ),
           ),
         ],
       ),
@@ -2456,6 +2586,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               if (_showSoftCapWarning) _buildSoftCapWarning(context),
               ?batchWarnings,
               if (unreadable.isNotEmpty) _buildBatchErrors(context, unreadable),
+              if (_hasBulkTargets(batch)) _buildBulkControls(context, batch),
               if (titleList != null) _buildTitleListSummary(context, titleList),
               if (titleList != null && titleList.stoppedAfterConnectionFailure)
                 _buildTitleListConnectionBanner(context),

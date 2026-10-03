@@ -5396,6 +5396,10 @@
   "@importReviewTitleListProgress": {
     "x-sourceSha256": "4d697b38f938dc5c3c2fd2924fd76c5db907d130fb751ece19dd992ab8dde896"
   },
+  "importReviewCommitProgress": "{done} / {total}",
+  "@importReviewCommitProgress": {
+    "x-sourceSha256": "638a82e1af18343b000eb7a1690db38a44a87a31536ccb6b4496c6ae9265759d"
+  },
   "importReviewTitleListPasted": "{count, plural, =1{1 indsat titel} other{{count} indsatte titler}}",
   "@importReviewTitleListPasted": {
     "x-sourceSha256": "e524b5247662541304b96807c83d4083646529514f126b7c2fca33e917ac08b9"
@@ -5999,6 +6003,22 @@
   "importReviewOptionNewDance": "Ny dans",
   "@importReviewOptionNewDance": {
     "x-sourceSha256": "c1e50f8630ba63be7971930aab740a917fb1fb614e5cfb1ca8e06fe390cb15d2"
+  },
+  "importReviewBulkSetAllLabel": "Sæt alle matchede danse til:",
+  "@importReviewBulkSetAllLabel": {
+    "x-sourceSha256": "0fa7851ee4630625fca02bf8cf2e2962d44f16016254b24cceecce384eed5297"
+  },
+  "importReviewBulkReimport": "Reimportér",
+  "@importReviewBulkReimport": {
+    "x-sourceSha256": "7106b896e2e83c3467dd1c9f8f1b473cd23997f40cabc0cce3a04163340cc129"
+  },
+  "importReviewBulkSkip": "Spring over",
+  "@importReviewBulkSkip": {
+    "x-sourceSha256": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06"
+  },
+  "importReviewBulkSkipAmbiguous": "Spring alle mulige match over",
+  "@importReviewBulkSkipAmbiguous": {
+    "x-sourceSha256": "4bc24b8ce49795beab0f18435118138036e4ef73e1ff9dce45bc98a06c064909"
   },
   "importReviewOptionSkip": "Spring over",
   "@importReviewOptionSkip": {

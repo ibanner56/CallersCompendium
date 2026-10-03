@@ -609,6 +609,10 @@ class ImportPipeline {
   /// only ids of live tags: a tombstoned id would attach a join row that
   /// `DanceRepository` hides, and an erased one fails that record's write.
   ///
+  /// [onProgress] is told `(done, total)` after each record has been handled
+  /// (written, skipped or failed), and once more with `(total, total)` when the
+  /// loop ends.
+  ///
   /// Returns an [ImportSession] recording what was written so the batch can be
   /// [undo]ne.
   Future<ImportSession> commit(
@@ -617,6 +621,7 @@ class ImportPipeline {
     required String Function() newId,
     Map<int, DedupeResolution> resolutions = const {},
     List<String> defaultTagIds = const [],
+    void Function(int done, int total)? onProgress,
   }) async {
     final committed = <CommittedRecord>[];
     final insertedIds = <String>[];
@@ -649,7 +654,8 @@ class ImportPipeline {
     final createdChoreographerIds = <String>[];
     final revivedChoreographerIds = <String>[];
 
-    for (var i = 0; i < batch.records.length; i++) {
+    final total = batch.records.length;
+    for (var i = 0; i < total; i++) {
       final plan = batch.records[i];
       final resolution = resolutions[i];
       final (action, targetId) = _resolveAction(plan.verdict, resolution);
@@ -661,6 +667,7 @@ class ImportPipeline {
             externalId: plan.draft.raw.externalId,
           ),
         );
+        onProgress?.call(i + 1, total);
         continue;
       }
 
@@ -698,6 +705,7 @@ class ImportPipeline {
                 ),
               ),
             );
+            onProgress?.call(i + 1, total);
             continue;
           }
         }
@@ -863,7 +871,9 @@ class ImportPipeline {
           ),
         );
       }
+      onProgress?.call(i + 1, total);
     }
+    onProgress?.call(total, total);
 
     return ImportSession(
       records: committed,

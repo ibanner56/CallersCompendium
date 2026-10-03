@@ -8247,6 +8247,12 @@ abstract class AppLocalizations {
   /// **'Searching {done} of {total}…'**
   String importReviewTitleListProgress(int done, int total);
 
+  /// Progress line beside the spinner while an import is being written, as dances written so far over the total to write.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} / {total}'**
+  String importReviewCommitProgress(int done, int total);
+
   /// Heading of the review summary banner, naming how many titles were pasted.
   ///
   /// In en, this message translates to:
@@ -9152,6 +9158,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'New dance'**
   String get importReviewOptionNewDance;
+
+  /// Label above the bulk controls in the import review that set every dance already in the collection (a re-import match) to the same choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Set all matched dances to:'**
+  String get importReviewBulkSetAllLabel;
+
+  /// Bulk control: set every matched dance to re-import onto its existing local dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-import'**
+  String get importReviewBulkReimport;
+
+  /// Bulk control: set every matched dance to skip, keeping the local dances as they are.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get importReviewBulkSkip;
+
+  /// Bulk button: set every row marked as a possible match to skip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip all possible matches'**
+  String get importReviewBulkSkipAmbiguous;
 
   /// Per-record option: skip this record (do not import it).
   ///
