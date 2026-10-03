@@ -23,6 +23,8 @@ import 'package:compendium_app/src/data/dance_share_fields_scope.dart';
 import 'package:compendium_app/src/data/dialect_library_controller.dart'
     show kCustomDialectsKey;
 import 'package:compendium_app/src/data/editor_draft_shutdown_scope.dart';
+import 'package:compendium_app/src/data/soft_delete_retention.dart'
+    show kSoftDeleteRetentionKey;
 import 'package:compendium_app/src/data/sync_writer_lifecycle_scope.dart';
 import 'package:compendium_app/src/data/locale_scope.dart';
 import 'package:compendium_app/src/data/migration_guard.dart';
