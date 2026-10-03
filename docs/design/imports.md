@@ -147,6 +147,21 @@ shared-author pair can never resolve to `isNew` (and therefore never silently
 duplicate), regardless of how differently the two sides' author strings were
 formatted or tokenized upstream.
 
+**How the scan finds it, and what it skips.** `DedupeIndex` keeps an exact map
+from normalized (never empty) title to the entries carrying it, built once at
+construction. Confident matches can only come from that map, because
+confidence requires `nTitle == eTitle`; those entries are always scored. Every
+other entry is scored only if it can still reach the threshold: Levenshtein
+distance is at least the length difference, so
+`titleSim <= 1 - |la - lb| / max(la, lb)`, and the combined score is at most
+`0.8 * that + 0.2` when both author sets are non-empty (at most `that`
+otherwise). A pair whose bound is under the threshold is skipped without
+scoring. The skip is pure: it never re-scores or reorders, so candidates,
+scores and order are identical to scanning every entry (pinned by the
+randomised equivalence tests in `dedupe_test.dart`), and the guarantee above is
+unchanged. `ImportPipeline.plan` yields to the event loop between records in
+this loop as in the parse loop, so a large batch does not freeze the UI.
+
 - **Interactive path unchanged.** `verdictFor`'s `isNew`/`ambiguous` branching
   and `ImportPipeline.commit`'s "no resolution supplied → skip" default are
   untouched — a confident candidate is, by construction, always present in

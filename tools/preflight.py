@@ -244,6 +244,14 @@ STEPS: tuple[Step, ...] = (
         ),
     ),
     Step(
+        "hot-path-regexp",
+        "no per-call RegExp( in the import dedupe and figure-parsing hot paths",
+        (
+            py("tools/ci/test_check_hot_path_regexp.py"),
+            py("tools/ci/check_hot_path_regexp.py"),
+        ),
+    ),
+    Step(
         "export-guard-catches",
         "export/share/backup files catch Object, not Exception",
         (

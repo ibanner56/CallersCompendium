@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:compendium_app/src/data/backup_document.dart';
+import 'package:compendium_app/src/data/backup_io.dart'
+    show BackupExportTooLargeException, kMaxBackupFileBytes;
 import 'package:compendium_app/src/data/backup_service.dart';
 import 'package:compendium_app/src/data/custom_theme.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
@@ -625,6 +627,56 @@ void main() {
     // Core was never touched by the retry — the restored dance remains.
     final dances = await target.repos.dances.listAll();
     expect(dances.map((d) => d.id), ['d1']);
+  });
+
+  test('export refuses a backup larger than the restore cap', () async {
+    final source = openTestRepositories();
+    await _seed(source);
+    final service = BackupService(source);
+    final full = await service.exportToJson();
+
+    await expectLater(
+      service.exportToJson(maxBytes: 64),
+      throwsA(
+        isA<BackupExportTooLargeException>()
+            .having((e) => e.maxBytes, 'maxBytes', 64)
+            .having((e) => e.sizeBytes, 'sizeBytes', utf8.encode(full).length),
+      ),
+    );
+    // Exactly at the cap is allowed (the restore refuses only above it).
+    expect(
+      await service.exportToJson(maxBytes: utf8.encode(full).length),
+      isNotEmpty,
+    );
+  });
+
+  test('export defaults its cap to the restore cap', () async {
+    final source = openTestRepositories();
+    await _seed(source);
+    expect(
+      utf8.encode(await BackupService(source).exportToJson()).length,
+      lessThan(kMaxBackupFileBytes),
+    );
+  });
+
+  test('retryApplySettings reuses the decoded document', () async {
+    final source = openTestRepositories();
+    await _seed(source);
+    final json = await BackupService(source).exportToJson();
+
+    final target = openTestRepositoriesWithFailingSettings();
+    await BackupService(target.repos).restoreFromJson(json);
+    target.settings.failWrites = false;
+
+    // No JSON is handed in: the retry works from the already-decoded result.
+    final read = await decodeBackupOnIsolate(json);
+    final retried = await BackupService(
+      target.repos,
+    ).retryApplySettingsFrom(read);
+
+    expect(retried.applied, isTrue);
+    expect(retried.settingsFailed, isFalse);
+    expect(await target.repos.settings.get(kSortIgnoreArticlesKey), false);
   });
 
   test('retryApplySettings is idempotent — running it twice converges to the '

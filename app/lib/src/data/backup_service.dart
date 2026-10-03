@@ -5,6 +5,7 @@ import '../editor/editor_draft_codec.dart' show kDanceEditorDraftKeyPrefix;
 import '../editor/program_editor_draft_codec.dart'
     show kProgramEditorDraftKeyPrefix;
 import 'backup_document.dart';
+import 'backup_io.dart' show BackupExportTooLargeException, kMaxBackupFileBytes;
 import 'backup_reminder.dart';
 import 'backup_settings_schema.dart';
 import 'custom_theme.dart';
@@ -246,9 +247,14 @@ class BackupRestoreOutcome {
 /// controllers and re-reading the preference notifiers) is the caller's job —
 /// see the `onRestored` callback wired in `main.dart`.
 class BackupService {
-  BackupService(this._repos);
+  BackupService(this._repos, {BackupCodecRunner? codecRunner})
+    : _codecRunner = codecRunner ?? defaultBackupCodecRunner;
 
   final CompendiumRepositories _repos;
+
+  /// Where the encode/decode runs: a worker isolate in production, inline in
+  /// widget tests (fake async cannot pump an isolate).
+  final BackupCodecRunner _codecRunner;
 
   /// Builds a [BackupDocument] snapshot of the current app state.
   Future<BackupDocument> buildDocument({DateTime? createdAt}) async {
@@ -276,9 +282,29 @@ class BackupService {
     );
   }
 
-  /// Builds a backup and returns it as a JSON string.
-  Future<String> exportToJson({DateTime? createdAt}) async =>
-      encodeBackup(await buildDocument(createdAt: createdAt));
+  /// Builds a backup and returns it as a JSON string, encoded on a worker
+  /// isolate.
+  ///
+  /// Throws [BackupExportTooLargeException] when the encoded UTF-8 length
+  /// exceeds [maxBytes] (default [kMaxBackupFileBytes], the cap
+  /// `readBackupFile` enforces on restore), so the app never writes a backup it
+  /// would then refuse to read.
+  Future<String> exportToJson({
+    DateTime? createdAt,
+    int maxBytes = kMaxBackupFileBytes,
+  }) async {
+    final encoded = await encodeBackupSizedOnIsolate(
+      await buildDocument(createdAt: createdAt),
+      runner: _codecRunner,
+    );
+    if (encoded.byteLength > maxBytes) {
+      throw BackupExportTooLargeException(
+        sizeBytes: encoded.byteLength,
+        maxBytes: maxBytes,
+      );
+    }
+    return encoded.json;
+  }
 
   /// Records a successful backup by stamping [kLastBackupAtKey] with [at] (UTC).
   Future<void> recordBackup(DateTime at) =>
@@ -333,7 +359,7 @@ class BackupService {
     String json, {
     RestoreMode mode = RestoreMode.replace,
   }) async {
-    final read = decodeBackup(json);
+    final read = await decodeBackupOnIsolate(json, runner: _codecRunner);
     final errors = <ArchiveError>[...read.errors];
     final warnings = <String>[...read.warnings];
 
@@ -463,8 +489,16 @@ class BackupService {
   /// `true` with [BackupRestoreOutcome.settingsFailed] `true` rather than thrown
   /// (an [Error], i.e. a programming bug, is deliberately NOT caught so it
   /// surfaces; the caught [Exception] is logged in debug builds).
-  Future<BackupRestoreOutcome> retryApplySettings(String json) async {
-    final read = decodeBackup(json);
+  Future<BackupRestoreOutcome> retryApplySettings(String json) async =>
+      retryApplySettingsFrom(
+        await decodeBackupOnIsolate(json, runner: _codecRunner),
+      );
+
+  /// [retryApplySettings] over an already-decoded [read] (e.g. the one the
+  /// restore just produced), so the retry does not decode the whole file again.
+  Future<BackupRestoreOutcome> retryApplySettingsFrom(
+    BackupReadResult read,
+  ) async {
     final errors = <ArchiveError>[...read.errors];
     final warnings = <String>[...read.warnings];
 

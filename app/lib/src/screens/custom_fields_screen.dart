@@ -259,23 +259,16 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
     try {
       await _repos.customFieldDefs.delete(def.id);
       // No reload: the delete tombstones the row and the stream re-emits.
-    } on StateError catch (e, st) {
+    } on CustomFieldInUseException catch (e, st) {
       logCaughtError(e, st, source: 'custom_fields_screen._delete');
       if (!mounted) return;
-      // The repo throws StateError when values still exist on dances. Log the
-      // raw error for diagnostics only (CWE-209: never surface it in the UI);
-      // extract the dance count from the message to pluralize the clean message.
+      // The repo throws CustomFieldInUseException when values still exist on
+      // dances. Log the raw error for diagnostics only (CWE-209: never surface
+      // it in the UI); the typed count pluralizes the clean message.
       if (kDebugMode) {
         debugPrint('custom field delete blocked: $e\n$st');
       }
-      final countMatch = RegExp(r'(\d+) dance').firstMatch(e.message);
-      final String message;
-      if (countMatch != null) {
-        final n = int.tryParse(countMatch.group(1)!) ?? 0;
-        message = l10n.customFieldsDeleteInUse(def.label, n);
-      } else {
-        message = l10n.customFieldsDeleteInUseUnknown(def.label);
-      }
+      final message = l10n.customFieldsDeleteInUse(def.label, e.danceCount);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           key: const ValueKey('delete-in-use-snackbar'),

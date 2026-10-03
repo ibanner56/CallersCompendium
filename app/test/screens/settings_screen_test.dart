@@ -7,6 +7,11 @@ import 'package:flutter/services.dart' show SystemChannels;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/backup_document.dart'
+    show
+        defaultBackupCodecRunner,
+        runBackupCodecInline,
+        runBackupCodecOnIsolate;
 import 'package:compendium_app/src/data/backup_io.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/custom_theme.dart';
@@ -242,6 +247,11 @@ Future<void> _expandSyncSection(WidgetTester tester) async {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  // testWidgets' fake async never delivers a worker isolate's reply, so the
+  // backup codec runs inline here (production runs it on an isolate).
+  setUp(() => defaultBackupCodecRunner = runBackupCodecInline);
+  tearDown(() => defaultBackupCodecRunner = runBackupCodecOnIsolate);
 
   group('SettingsScreen — General & Program settings (G.2)', () {
     // Section content only shows once its sidebar entry is picked (side-by-side

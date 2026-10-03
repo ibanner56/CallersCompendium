@@ -169,6 +169,7 @@ export 'src/storage/repositories/collection_import_event_repository.dart';
 export 'src/storage/repositories/custom_field_repository.dart'
     show
         CustomFieldDefRepository,
+        CustomFieldInUseException,
         decodeCustomFieldValue,
         encodeCustomFieldValue;
 export 'src/storage/repositories/dance_repository.dart';

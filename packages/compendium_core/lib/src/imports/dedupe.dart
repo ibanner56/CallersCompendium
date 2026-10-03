@@ -272,9 +272,15 @@ class DedupeIndex {
       if (e.source != null && ext != null) {
         _byExternalKey['${e.source!.name}\u0000$ext'] = e.danceId;
       }
+      final nTitle = normalizeTitle(e.title);
+      // Never `''`: an empty normalized title is never scored, so it must not
+      // be reachable through the exact-title map either.
+      if (nTitle.isNotEmpty) {
+        (_byNormalizedTitle[nTitle] ??= []).add(_normalized.length);
+      }
       _normalized.add((
         danceId: e.danceId,
-        normalizedTitle: normalizeTitle(e.title),
+        normalizedTitle: nTitle,
         normalizedAuthors: e.authorNames.map(normalizeAuthor).toSet()
           ..remove(''),
       ));
@@ -287,6 +293,11 @@ class DedupeIndex {
   /// empty `normalizedTitle` marks an entry that is never scored.
   final List<_NormalizedEntry> _normalized = [];
   final Map<String, String> _byExternalKey = {};
+
+  /// Normalized (non-empty) title → ascending indices into [_normalized] of
+  /// the entries carrying it. Every [DedupeCandidate.confident] match comes
+  /// from here, since confidence requires an exact normalized-title match.
+  final Map<String, List<int>> _byNormalizedTitle = {};
 
   /// Snapshot of every choreographer at the time this index was built
   /// (normalized name → id), incidentally captured from the same collection
@@ -336,10 +347,40 @@ class DedupeIndex {
     final nAuthors = authorNames.map(normalizeAuthor).toSet()..remove('');
     if (nTitle.isEmpty) return const [];
     final out = <DedupeCandidate>[];
-    for (final e in _normalized) {
+    // Entries sharing the query's normalized title are always scored: they are
+    // the only possible confident matches. They are visited in entry order,
+    // merged into the scan below, so the candidate order (and thus the order of
+    // equal scores after the sort) is exactly that of a plain scan.
+    final exact = _byNormalizedTitle[nTitle] ?? const <int>[];
+    var nextExact = 0;
+    // Length bound for every other entry. Levenshtein distance is at least the
+    // length difference, so with la = |nTitle|, lb = |eTitle| and
+    // d = |la - lb|, `titleSim = 1 - dist / max(la, lb) <= 1 - d / max(la, lb)`
+    // (floating-point division and subtraction are monotone, so this holds for
+    // the computed values too). The combined score is then at most
+    // `titleSim * 0.8 + 0.2` when both author sets are non-empty (Jaccard is at
+    // most 1) and exactly `titleSim` otherwise. A pair whose bound is under
+    // [threshold] could never have reached it, and is not confident (its
+    // titles differ), so skipping it cannot change the result.
+    final queryHasAuthors = nAuthors.isNotEmpty;
+    for (var i = 0; i < _normalized.length; i++) {
+      final e = _normalized[i];
       final eTitle = e.normalizedTitle;
       if (eTitle.isEmpty) continue;
       final eAuthors = e.normalizedAuthors;
+      if (nextExact < exact.length && exact[nextExact] == i) {
+        nextExact++;
+      } else {
+        final la = nTitle.length;
+        final lb = eTitle.length;
+        final diff = la > lb ? la - lb : lb - la;
+        final maxLen = la > lb ? la : lb;
+        final titleBound = 1.0 - diff / maxLen;
+        final bound = queryHasAuthors && eAuthors.isNotEmpty
+            ? titleBound * 0.8 + 1.0 * 0.2
+            : titleBound;
+        if (bound < threshold) continue;
+      }
       final score = _combinedScore(nTitle, nAuthors, eTitle, eAuthors);
       final confident =
           nTitle.isNotEmpty &&

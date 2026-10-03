@@ -276,22 +276,17 @@ class ChoreographerRepository {
       // instead of erasing them: the surviving rows made this guard throw, the
       // caller swallowed it, and the import-created choreographer stayed live.
       // `CompendiumSyncStorage._hasCitation` counts liveness the same way.
-      final stillUsed =
-          await (_db.select(_db.danceAuthors).join([
-                // join-columns: needed — replaced by liveDanceCitationCount in CS-14b
-                innerJoin(
-                  _db.dances,
-                  _db.dances.id.equalsExp(_db.danceAuthors.danceId),
-                ),
-              ])..where(
-                _db.danceAuthors.choreographerId.equals(id) &
-                    _db.dances.deletedAt.isNull(),
-              ))
-              .get();
-      if (stillUsed.isNotEmpty) {
+      final stillUsed = await liveDanceCitationCount(
+        _db,
+        joinTable: _db.danceAuthors,
+        keyColumn: _db.danceAuthors.choreographerId,
+        danceIdColumn: _db.danceAuthors.danceId,
+        id: id,
+      );
+      if (stillUsed > 0) {
         throw StateError(
           'cannot delete choreographer "$id": still credited on '
-          '${stillUsed.length} dance(s)',
+          '$stillUsed dance(s)',
         );
       }
       if (permanent) {

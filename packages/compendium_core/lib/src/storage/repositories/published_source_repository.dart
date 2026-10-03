@@ -146,22 +146,17 @@ class PublishedSourceRepository {
       // Live dances only; a soft-deleted dance keeps its `dance_sources` rows
       // because the tombstone fires no FK cascade. See the note in
       // `ChoreographerRepository.delete`.
-      final stillUsed =
-          await (_db.select(_db.danceSources).join([
-                // join-columns: needed — replaced by liveDanceCitationCount in CS-14b
-                innerJoin(
-                  _db.dances,
-                  _db.dances.id.equalsExp(_db.danceSources.danceId),
-                ),
-              ])..where(
-                _db.danceSources.sourceId.equals(id) &
-                    _db.dances.deletedAt.isNull(),
-              ))
-              .get();
-      if (stillUsed.isNotEmpty) {
+      final stillUsed = await liveDanceCitationCount(
+        _db,
+        joinTable: _db.danceSources,
+        keyColumn: _db.danceSources.sourceId,
+        danceIdColumn: _db.danceSources.danceId,
+        id: id,
+      );
+      if (stillUsed > 0) {
         throw StateError(
           'cannot delete published source "$id": still cited by '
-          '${stillUsed.length} dance(s)',
+          '$stillUsed dance(s)',
         );
       }
 

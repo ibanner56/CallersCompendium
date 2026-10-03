@@ -581,6 +581,57 @@ void main() {
       }
     });
   });
+
+  group('length bound', () {
+    test('never drops a pair the unbounded oracle keeps', () {
+      final rng = Random(255);
+      const alphabet = 'abcdef gh';
+      // Lengths 1..60, skewed so many pairs differ a lot in length.
+      String title() {
+        final len = 1 + rng.nextInt(rng.nextBool() ? 8 : 60);
+        return List.generate(
+          len,
+          (_) => alphabet[rng.nextInt(alphabet.length)],
+        ).join();
+      }
+
+      List<String> authors() =>
+          List.generate(rng.nextInt(3), (_) => 'au${rng.nextInt(4)}');
+
+      final entries = [
+        for (var i = 0; i < 300; i++)
+          DedupeEntry(danceId: 'e$i', title: title(), authorNames: authors()),
+      ];
+      final index = DedupeIndex(entries);
+      for (var q = 0; q < 150; q++) {
+        final threshold = 0.5 + rng.nextDouble() * 0.5;
+        final qTitle = q.isEven ? title() : entries[q].title;
+        final qAuthors = authors();
+        final got = index.fuzzyMatches(qTitle, qAuthors, threshold: threshold);
+        final want = _referenceFuzzyMatches(
+          entries,
+          qTitle,
+          qAuthors,
+          threshold,
+        );
+        expect(
+          [for (final c in got) (c.danceId, c.score, c.confident)],
+          [for (final c in want) (c.danceId, c.score, c.confident)],
+          reason: 'title "$qTitle" at $threshold',
+        );
+      }
+    });
+
+    test('an exact-title entry far below the threshold stays confident', () {
+      final index = DedupeIndex([
+        DedupeEntry(danceId: 'x', title: 'Same', authorNames: ['Ann']),
+        DedupeEntry(danceId: 'y', title: 'Something Entirely Longer Than It'),
+      ]);
+      final hits = index.fuzzyMatches('same', ['ann'], threshold: 1.0);
+      expect(hits.map((c) => c.danceId), ['x']);
+      expect(hits.single.confident, isTrue);
+    });
+  });
 }
 
 /// The pre-precompute algorithm: re-normalises every entry on every query.
