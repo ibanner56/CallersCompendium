@@ -582,6 +582,7 @@ def _write_violations(source: str, path: str) -> list[Violation]:
 
 
 SYNC_WRITE_PATH = "packages/compendium_core/lib/src/sync/sync_storage.dart"
+SYNC_WRITE_DIR = "packages/compendium_core/lib/src/sync/"
 INTERACTIVE_UPSERT_RE = re.compile(
     r"\brepositories\s*\.\s*[A-Za-z_][A-Za-z0-9_]*\s*\.\s*upsert\s*\("
 )
@@ -600,9 +601,14 @@ def _interactive_upsert_violations(source: str, path: str) -> list[Violation]:
 
     Auditing today's behaviour would not hold: the point is that a future edit
     to the editor's path must not silently change what an inbound apply does.
+
+    The rule covers every Dart file under the core `sync/` directory (including
+    `server/`), not only `SYNC_WRITE_PATH`, so moving write-path code out of
+    `sync_storage.dart` cannot exempt it. The app-side `app/lib/src/sync/` is
+    not the inbound write path and is not scanned.
     """
 
-    if path != SYNC_WRITE_PATH:
+    if not path.startswith(SYNC_WRITE_DIR):
         return []
     masked = "\n".join(mask_source(source))
     return [

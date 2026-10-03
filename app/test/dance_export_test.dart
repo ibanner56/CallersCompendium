@@ -662,7 +662,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text("Couldn't share this dance"), findsOneWidget);
-        expect(sink.sources, ['dance_export_menu._guard']);
+        expect(sink.sources, ['dance_export_actions.shareText']);
       },
     );
 
@@ -702,7 +702,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text("Couldn't export this dance"), findsOneWidget);
-        expect(sink.sources, ['dance_export_menu._guard']);
+        expect(sink.sources, ['dance_export_actions.exportPdf']);
       },
     );
 

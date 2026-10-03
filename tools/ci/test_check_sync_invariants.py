@@ -348,6 +348,22 @@ def test_sync_write_path_rejects_the_interactive_upsert() -> None:
             "// await repositories.tags.upsert(tag);", SYNC_WRITE_PATH
         )
     )
+    # Every Dart file under the core sync/ directory is covered, so moving
+    # write-path code out of sync_storage.dart cannot exempt it.
+    for moved in (
+        "packages/compendium_core/lib/src/sync/sync_apply.dart",
+        "packages/compendium_core/lib/src/sync/server/sync_server.dart",
+    ):
+        assert any(
+            v.kind == "sync-interactive-upsert"
+            for v in _interactive_upsert_violations(offending, moved)
+        )
+    # The app-side sync directory is not the inbound write path.
+    assert_no(
+        _interactive_upsert_violations(
+            offending, "app/lib/src/sync/sync_runtime.dart"
+        )
+    )
 
 
 def test_certificate_scan_catches_each_concrete_escape_hatch() -> None:

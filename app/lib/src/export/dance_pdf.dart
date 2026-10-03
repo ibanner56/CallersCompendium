@@ -4,7 +4,6 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-import 'dance_card_fields.dart';
 import 'program_figure_widgets.dart';
 import 'program_pdf.dart';
 
@@ -31,7 +30,7 @@ import 'program_pdf.dart';
 /// the bundled asset.
 ///
 /// [fields] selects which non-figures fields appear (issue #1434), gated via
-/// the shared `dance_card_fields.dart` helpers so this stays in lockstep with
+/// the shared core `dance_card_fields.dart` helpers so this stays in lockstep with
 /// [buildProgramPdf]'s figure-appendix cards. Defaults to
 /// [DanceShareField.allExceptTunes], matching every block this builder
 /// rendered before the picker existed.

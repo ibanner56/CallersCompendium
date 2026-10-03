@@ -328,9 +328,14 @@ class _DanceListScreenState extends State<DanceListScreen> {
   String? _onlineError;
   int _onlineSeq = 0;
 
-  /// The online service for the currently selected [_onlineSource].
-  OnlineSearchService get _online =>
-      _onlineSource == OnlineSource.contraDb ? _contraDb : _callersBox;
+  /// The online *search* service for the currently selected [_onlineSource].
+  /// Importing a previewed result resolves its service with [_serviceFor].
+  OnlineSearchService get _online => _serviceFor(_onlineSource);
+
+  /// Resolves the online service for a given [source], so a tapped result / its
+  /// preview is loaded and imported through the source it came from.
+  OnlineSearchService _serviceFor(OnlineSource source) =>
+      source == OnlineSource.contraDb ? _contraDb : _callersBox;
 
   /// Guards the narrow-mode direct-import commit so a rapid double-tap of the
   /// preview Import button cannot commit the same plan twice.
@@ -1133,8 +1138,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     final l10n = AppLocalizations.of(context);
+    final service = _serviceFor(preview.result.source);
     try {
-      var result = await _online.import(
+      var result = await service.import(
         _repos,
         preview.plan,
         defaultTagIds: await resolveDefaultImportTagIds(_repos),
@@ -1159,7 +1165,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
           existingId: existingId,
         );
         if (resolution == null || !mounted) return; // user cancelled
-        result = await _online.import(
+        result = await service.import(
           _repos,
           preview.plan,
           ambiguousResolution: resolution,
@@ -1185,7 +1191,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
           existingId: existingId,
         );
         if (resolution == null || !mounted) return; // user cancelled
-        result = await _online.import(
+        result = await service.import(
           _repos,
           preview.plan,
           ambiguousResolution: resolution,
