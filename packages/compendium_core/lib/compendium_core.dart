@@ -14,6 +14,7 @@ export 'src/dialect/canonicalize.dart';
 export 'src/dialect/dialect.dart';
 export 'src/dialect/renderer.dart';
 export 'src/dialect/substitution.dart' show Substitutor;
+export 'src/export/dance_card_fields.dart';
 export 'src/export/dance_share_fields.dart';
 export 'src/export/dance_text.dart';
 export 'src/export/export_labels.dart';
