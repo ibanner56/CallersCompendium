@@ -72,8 +72,9 @@ class DerivedRebuildProgress {
 
 /// Callback invoked with monotonically non-decreasing [DerivedRebuildProgress]
 /// while [DanceRepository.rebuildAllDerived] runs.
-typedef DerivedRebuildProgressCallback =
-    void Function(DerivedRebuildProgress progress);
+typedef DerivedRebuildProgressCallback = void Function(
+  DerivedRebuildProgress progress,
+);
 
 const Set<String> _legacyCallersBoxRollAwayRelationships = {
   'neighbors',
@@ -1331,15 +1332,19 @@ class DanceRepository {
     if (!includeDeleted) {
       query.where((t) => t.deletedAt.isNull());
     }
-    final rows = await query.get();
+    return _hydrateRows(await query.get());
+  }
+
+  /// Assembles [Dance]s from fetched [rows]: batch-loads every child relation
+  /// in a bounded number of `dance_id IN (…)` queries, then hydrates in memory
+  /// — instead of the per-row [_toModel] fan-out (six child queries each) that
+  /// made a full load O(1 + 6N) queries (~120k at 20k dances). Mirrors the
+  /// batched `_slotsForMany` / `_provenanceForMany` approach ProgramRepository
+  /// already uses. The `IN` lists are chunked (see [_chunkIds]) so the
+  /// collection can grow past the SQLite bound-variable limit. Shared by
+  /// [listAll] and [_updateMany] so the two cannot assemble a dance differently.
+  Future<List<Dance>> _hydrateRows(List<DanceRow> rows) async {
     final ids = [for (final row in rows) row.id];
-    // Batch-load every child relation in a bounded number of `dance_id IN (…)`
-    // queries, then hydrate in memory — instead of the per-row [_toModel]
-    // fan-out (six child queries each) that made a full load O(1 + 6N) queries
-    // (~120k at 20k dances). Mirrors the batched `_slotsForMany` /
-    // `_provenanceForMany` approach ProgramRepository already uses. The `IN`
-    // lists are chunked (see [_chunkIds]) so the collection can grow past the
-    // SQLite bound-variable limit.
     final authors = await _authorsForMany(ids);
     final tags = await _tagsForMany(ids);
     final links = await _linksForMany(ids);
@@ -1927,6 +1932,62 @@ class DanceRepository {
     });
   }
 
+  /// Applies [edit] to each live dance in [ids] inside one transaction and
+  /// returns how many it changed. [edit] returns the replacement dance, or
+  /// `null` to leave that dance alone (unchanged, or one the caller refuses to
+  /// touch); only a non-null result is written, through [_upsert] with the
+  /// defaults a single-dance [update] uses plus [localUserEdit].
+  ///
+  /// Dances are read [_idChunkSize] at a time with the same batched assembly
+  /// [listAll] uses ([_hydrateRows]), not one `getById` per id, so the read cost
+  /// is a fixed number of statements per chunk instead of ~7 per dance. Unknown
+  /// and soft-deleted ids are skipped, as `getById` skipped them; a repeated id
+  /// is edited once, as it was when each pass re-read the row the last one wrote.
+  ///
+  /// [rebuildDerived] is whether each write rewrites the dance's derived
+  /// `dance_figures`/`dance_fts`/`dance_substring_fts` rows. It is safe to pass
+  /// `false` only for an edit that changes none of the inputs to
+  /// [_insertDerivedRows]: id, title, resolved authors, hook, calling notes, the
+  /// figures (their rows and canonical text), custom-field values and source
+  /// texts. Difficulty level, rating and tunes are none of those, so the three
+  /// batch methods over them skip the rebuild — it deletes by scanning both FTS
+  /// tables, which dominates a large batch. A custom-field edit changes
+  /// `custom_values`, so those pass `true`. **Adding a column to the FTS insert
+  /// in [_insertDerivedRows] means re-checking every caller passing `false`.**
+  Future<int> _updateMany(
+    Iterable<String> ids,
+    Dance? Function(Dance dance) edit, {
+    required bool rebuildDerived,
+    bool localUserEdit = true,
+  }) {
+    final list = ids.toSet().toList();
+    if (list.isEmpty) return Future.value(0);
+    return _db.transaction(() async {
+      var changed = 0;
+      for (final chunk in _chunkIds(list)) {
+        final rows = await (_db.select(
+          _db.dances,
+        )..where((t) => t.id.isIn(chunk) & t.deletedAt.isNull())).get();
+        final byId = {
+          for (final dance in await _hydrateRows(rows)) dance.id: dance,
+        };
+        for (final id in chunk) {
+          final dance = byId[id];
+          if (dance == null) continue;
+          final updated = edit(dance);
+          if (updated == null) continue;
+          await _upsert(
+            updated,
+            rebuildDerived: rebuildDerived,
+            localUserEdit: localUserEdit,
+          );
+          changed++;
+        }
+      }
+      return changed;
+    });
+  }
+
   /// Sets the difficulty-level ID [difficultyLevelId] on many dances at once, in
   /// a single
   /// transaction, for the Collection multi-select "batch set level" flow.
@@ -1974,24 +2035,14 @@ class DanceRepository {
     final target = clearDifficultyLevel ? null : difficultyLevelId;
     final list = ids.toList();
     if (list.isEmpty) return Future.value(0);
-    return _db.transaction(() async {
-      var changed = 0;
-      for (final id in list) {
-        final dance = await getById(id);
-        if (dance == null) continue;
-        if (dance.difficultyLevelId == target) continue;
-        await _upsert(
-          dance.copyWith(
-            difficultyLevelId: target,
-            clearDifficultyLevel: target == null,
-            updatedAt: now,
-          ),
-          localUserEdit: true,
-        );
-        changed++;
-      }
-      return changed;
-    });
+    return _updateMany(list, (dance) {
+      if (dance.difficultyLevelId == target) return null;
+      return dance.copyWith(
+        difficultyLevelId: target,
+        clearDifficultyLevel: target == null,
+        updatedAt: now,
+      );
+    }, rebuildDerived: false);
   }
 
   /// Sets the curatorial star [rating] on many dances at once, in a single
@@ -2043,24 +2094,14 @@ class DanceRepository {
     final target = clearRating ? null : rating;
     final list = ids.toList();
     if (list.isEmpty) return Future.value(0);
-    return _db.transaction(() async {
-      var changed = 0;
-      for (final id in list) {
-        final dance = await getById(id);
-        if (dance == null) continue;
-        if (dance.rating == target) continue;
-        await _upsert(
-          dance.copyWith(
-            rating: target,
-            clearRating: target == null,
-            updatedAt: now,
-          ),
-          localUserEdit: true,
-        );
-        changed++;
-      }
-      return changed;
-    });
+    return _updateMany(list, (dance) {
+      if (dance.rating == target) return null;
+      return dance.copyWith(
+        rating: target,
+        clearRating: target == null,
+        updatedAt: now,
+      );
+    }, rebuildDerived: false);
   }
 
   /// Merges [tunes] into the tune set of many dances at once (additive union),
@@ -2091,35 +2132,25 @@ class DanceRepository {
     }
     final list = ids.toList();
     if (list.isEmpty || additions.isEmpty) return Future.value(0);
-    return _db.transaction(() async {
-      var changed = 0;
-      for (final id in list) {
-        final dance = await getById(id);
-        if (dance == null) continue;
-        // Skipped rather than appended to: `current` would be an empty list,
-        // so writing back would replace the stored text with just the
-        // additions — destroying a tune list this device merely cannot read.
-        final current = switch (dance.tunesSource) {
-          DecodedTunes(:final tunes) => tunes,
-          UnreadableTunes() => null,
-        };
-        if (current == null) continue;
-        final next = [
-          ...current,
-          for (final tune in additions)
-            if (!current.contains(tune)) tune,
-        ];
-        // Append-only: an unchanged length means every addition was already
-        // present, so there is nothing to write.
-        if (next.length == current.length) continue;
-        await _upsert(
-          dance.copyWith(tunes: next, updatedAt: now),
-          localUserEdit: true,
-        );
-        changed++;
-      }
-      return changed;
-    });
+    return _updateMany(list, (dance) {
+      // Skipped rather than appended to: `current` would be an empty list,
+      // so writing back would replace the stored text with just the
+      // additions — destroying a tune list this device merely cannot read.
+      final current = switch (dance.tunesSource) {
+        DecodedTunes(:final tunes) => tunes,
+        UnreadableTunes() => null,
+      };
+      if (current == null) return null;
+      final next = [
+        ...current,
+        for (final tune in additions)
+          if (!current.contains(tune)) tune,
+      ];
+      // Append-only: an unchanged length means every addition was already
+      // present, so there is nothing to write.
+      if (next.length == current.length) return null;
+      return dance.copyWith(tunes: next, updatedAt: now);
+    }, rebuildDerived: false);
   }
 
   /// Removes *all* tunes from many dances at once, in a single transaction, for
@@ -2133,31 +2164,21 @@ class DanceRepository {
     assertUtc(now, 'now');
     final list = ids.toList();
     if (list.isEmpty) return Future.value(0);
-    return _db.transaction(() async {
-      var changed = 0;
-      for (final id in list) {
-        final dance = await getById(id);
-        if (dance == null) continue;
-        // Skipped, like the append path. Clearing is the user's intent, but a
-        // BATCH clear would destroy stored text this device cannot read, and
-        // the undo that should put it back cannot: the caller's snapshot is a
-        // `List<String>`, so it captures an empty list and restores an empty
-        // list. Refusing to act on a row it cannot read is the same call made
-        // for the unattended import resolver. Clearing one dance deliberately
-        // is a per-dance action, and belongs with surfacing the state.
-        final hasTunes = switch (dance.tunesSource) {
-          DecodedTunes(:final tunes) => tunes.isNotEmpty,
-          UnreadableTunes() => null,
-        };
-        if (hasTunes == null || !hasTunes) continue;
-        await _upsert(
-          dance.copyWith(tunes: const [], updatedAt: now),
-          localUserEdit: true,
-        );
-        changed++;
-      }
-      return changed;
-    });
+    return _updateMany(list, (dance) {
+      // Skipped, like the append path. Clearing is the user's intent, but a
+      // BATCH clear would destroy stored text this device cannot read, and
+      // the undo that should put it back cannot: the caller's snapshot is a
+      // `List<String>`, so it captures an empty list and restores an empty
+      // list. Refusing to act on a row it cannot read is the same call made
+      // for the unattended import resolver. Clearing one dance deliberately
+      // is a per-dance action, and belongs with surfacing the state.
+      final hasTunes = switch (dance.tunesSource) {
+        DecodedTunes(:final tunes) => tunes.isNotEmpty,
+        UnreadableTunes() => null,
+      };
+      if (hasTunes == null || !hasTunes) return null;
+      return dance.copyWith(tunes: const [], updatedAt: now);
+    }, rebuildDerived: false);
   }
 
   /// Upserts a single custom-field key→[value] across many dances at once, in a
@@ -2191,29 +2212,19 @@ class DanceRepository {
     }
     final list = ids.toList();
     if (list.isEmpty) return Future.value(0);
-    return _db.transaction(() async {
-      var changed = 0;
-      for (final id in list) {
-        final dance = await getById(id);
-        if (dance == null) continue;
-        final current = dance.customFields;
-        final alreadySet = current.any(
-          (f) => f.fieldId == def.id && f.value == value,
-        );
-        if (alreadySet) continue;
-        final next = [
-          for (final f in current)
-            if (f.fieldId != def.id) f,
-          incoming,
-        ];
-        await _upsert(
-          dance.copyWith(customFields: next, updatedAt: now),
-          localUserEdit: true,
-        );
-        changed++;
-      }
-      return changed;
-    });
+    return _updateMany(list, (dance) {
+      final current = dance.customFields;
+      final alreadySet = current.any(
+        (f) => f.fieldId == def.id && f.value == value,
+      );
+      if (alreadySet) return null;
+      final next = [
+        for (final f in current)
+          if (f.fieldId != def.id) f,
+        incoming,
+      ];
+      return dance.copyWith(customFields: next, updatedAt: now);
+    }, rebuildDerived: true);
   }
 
   /// Clears a single custom-field key (identified by [fieldId]) across many
@@ -2233,25 +2244,15 @@ class DanceRepository {
     assertUtc(now, 'now');
     final list = ids.toList();
     if (list.isEmpty) return Future.value(0);
-    return _db.transaction(() async {
-      var changed = 0;
-      for (final id in list) {
-        final dance = await getById(id);
-        if (dance == null) continue;
-        final current = dance.customFields;
-        if (!current.any((f) => f.fieldId == fieldId)) continue;
-        final next = [
-          for (final f in current)
-            if (f.fieldId != fieldId) f,
-        ];
-        await _upsert(
-          dance.copyWith(customFields: next, updatedAt: now),
-          localUserEdit: true,
-        );
-        changed++;
-      }
-      return changed;
-    });
+    return _updateMany(list, (dance) {
+      final current = dance.customFields;
+      if (!current.any((f) => f.fieldId == fieldId)) return null;
+      final next = [
+        for (final f in current)
+          if (f.fieldId != fieldId) f,
+      ];
+      return dance.copyWith(customFields: next, updatedAt: now);
+    }, rebuildDerived: true);
   }
 
   /// Read-only dry-run for the #417 "re-check custom figures" flow: scans every
@@ -2648,9 +2649,9 @@ class DanceRepository {
         ids.add(row.readTable(_db.dances).id);
         continue;
       }
-      final params =
-          jsonDecode(row.readTable(_db.danceFigures).paramsJson)
-              as Map<String, Object?>;
+      final params = jsonDecode(
+        row.readTable(_db.danceFigures).paramsJson,
+      ) as Map<String, Object?>;
       final actual = params[paramKey];
       final expected = paramJsonValue == null
           ? null
