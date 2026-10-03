@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
@@ -24,6 +26,15 @@ import '../diagnostics/error_log.dart';
 /// [AppLifecycleState.resumed] — otherwise a caller who briefly backgrounds the
 /// app mid-gig would find the screen able to sleep again.
 ///
+/// Enable and disable are **idempotent and serialised**: the mixin tracks
+/// whether it holds the lock and chains every operation behind the previous
+/// one. `WakelockPlus.toggle(enable: true)` is not idempotent on every platform
+/// (the Linux portal opens a fresh inhibit each time and a single disable closes
+/// only the last), so a resume while the lock is held issues nothing, and a
+/// dispose while an enable is still in flight disables only after that enable
+/// finishes. Backgrounding releases the lock explicitly, so the resume that
+/// follows re-acquires it exactly once.
+///
 /// The wake-lock is a best-effort enhancement. [WakelockPlus] calls are guarded
 /// so a `MissingPluginException` or an unsupported platform does not crash the
 /// reading view — but, unlike the previous implementation, failures are **not
@@ -37,6 +48,9 @@ import '../diagnostics/error_log.dart';
 /// `State<StatefulWidget>`, which the concrete states do not implement.
 mixin PerformWakelockMixin<T extends StatefulWidget>
     on State<T>, WidgetsBindingObserver {
+  bool _wakelockHeld = false;
+  Future<void> _wakelockOp = Future<void>.value();
+
   @override
   void initState() {
     super.initState();
@@ -55,16 +69,30 @@ mixin PerformWakelockMixin<T extends StatefulWidget>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     // The platform releases the wake-lock while the app is backgrounded, so
-    // re-assert it whenever we come back to the foreground and this Perform
-    // view is still on screen (initState/dispose alone never re-fires here).
-    if (state == AppLifecycleState.resumed && mounted) {
+    // release it explicitly on `paused` (keeping the held flag in step with
+    // the platform) and re-assert it whenever we come back to the foreground
+    // and this Perform view is still on screen (initState/dispose alone never
+    // re-fires here). A `resumed` while the lock is still held is a no-op.
+    if (state == AppLifecycleState.paused) {
+      _setWakelock(false);
+    } else if (state == AppLifecycleState.resumed && mounted) {
       _setWakelock(true);
     }
   }
 
-  Future<void> _setWakelock(bool enable) async {
+  /// Queues [enable] behind any operation in flight. The held check runs when
+  /// the operation's turn comes, so two rapid resumes, or a resume racing
+  /// [dispose], cannot interleave. Never throws; the returned future is
+  /// deliberately not awaited by callers ([dispose] cannot await).
+  void _setWakelock(bool enable) {
+    _wakelockOp = _wakelockOp.then((_) => _applyWakelock(enable));
+  }
+
+  Future<void> _applyWakelock(bool enable) async {
+    if (enable == _wakelockHeld) return;
     try {
       await WakelockPlus.toggle(enable: enable);
+      _wakelockHeld = enable;
     } on Exception catch (error, stackTrace) {
       // Best-effort only: never let a plugin/platform *exception* crash the
       // Perform view. Log (don't swallow) so a wake-lock that never engages is
