@@ -9,7 +9,6 @@ import 'package:share_plus/share_plus.dart';
 
 import 'package:compendium_app/src/export/program_pdf.dart';
 import 'package:compendium_app/src/export/json_export.dart';
-import 'package:compendium_app/src/export/share_file.dart';
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 import 'package:compendium_app/src/data/dance_share_fields_scope.dart';
