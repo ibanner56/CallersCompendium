@@ -1,0 +1,12 @@
+{
+  "id": "import-bulk-and-progress",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Import review: set every matched dance to Re-import or Skip in one tap, and skip all possible matches at once."
+    ],
+    "changed": [
+      "Importing a large batch now shows how many dances have been written so far instead of a spinner."
+    ]
+  }
+}
