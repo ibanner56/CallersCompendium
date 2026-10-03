@@ -621,7 +621,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text(l10n.exportShareDanceError), findsOneWidget);
-        expect(sink.sources, ['dance_detail_screen._shareDanceText']);
+        expect(sink.sources, ['dance_export_actions.shareText']);
       },
     );
 
@@ -655,7 +655,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text(l10n.exportDanceError), findsOneWidget);
-        expect(sink.sources, ['dance_detail_screen._exportDancePdf']);
+        expect(sink.sources, ['dance_export_actions.exportPdf']);
       },
     );
 
