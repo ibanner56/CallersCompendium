@@ -344,6 +344,10 @@ class CollectionData {
                 needsFull ||
                 previous == null ||
                 !countsOnlyTables.containsAll(tables);
+            // Held until the load succeeds: `changed` is already cleared, so a
+            // failed full load must still leave the next reload full rather
+            // than letting a program-only write copy a stale snapshot.
+            if (full) needsFull = true;
             final next = full
                 ? await load(repos, callerFilter: normalizedCallerFilter)
                 : previous.copyWithProgramCounts(
@@ -351,8 +355,6 @@ class CollectionData {
                       callerFilter: normalizedCallerFilter,
                     ),
                   );
-            // Only now: a failed full load must be retried in full, not papered
-            // over by a counts-only copy of a stale snapshot.
             needsFull = false;
             current = next;
             return next;

@@ -72,6 +72,30 @@ class _RecordSelects extends drift.QueryInterceptor {
   }
 }
 
+/// Fails the next `dances` select once armed, then delegates normally.
+class _FailNextDancesSelect extends drift.QueryInterceptor {
+  bool _armed = false;
+
+  void arm() => _armed = true;
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    drift.QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) async {
+    // `dances.listAll`, the first read of `load()`; not the dance write's own
+    // lookups.
+    if (_armed &&
+        statement.contains('FROM "dances"') &&
+        statement.contains('ORDER BY "title"')) {
+      _armed = false;
+      throw StateError('injected dances read failure');
+    }
+    return executor.runSelect(statement, args);
+  }
+}
+
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
@@ -640,6 +664,43 @@ void main() {
         expect(reads(log, 'dances'), c.full, reason: '${log.statements}');
       });
     }
+
+    test('a failed content reload is retried in full by the next '
+        'program-only write', () async {
+      final failer = _FailNextDancesSelect();
+      final repos = CompendiumRepositories(
+        openWidgetTestDatabase(
+          executor: NativeDatabase.memory().interceptWith(failer),
+        ),
+        contraTaxonomy,
+      );
+      await repos.dances.create(dance('d1', 'Petronella'));
+      final snapshots = <CollectionData>[];
+      var errors = 0;
+      final sub = CollectionData.watch(
+        repos,
+      ).listen(snapshots.add, onError: (Object _) => errors++);
+      addTearDown(sub.cancel);
+      await pumpEventQueue();
+      expect(snapshots, hasLength(1));
+
+      failer.arm();
+      await repos.dances.create(dance('d2', 'Chase the Squirrel'));
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+      expect(errors, 1, reason: 'the content reload failed');
+      expect(snapshots, hasLength(1));
+
+      await repos.programs.create(program('p1'));
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+
+      expect(snapshots, hasLength(2));
+      expect(
+        snapshots.last.dancesById.keys,
+        containsAll(['d1', 'd2']),
+        reason: 'the program-only write must retry the full load',
+      );
+      expect(snapshots.last.callCounts['d1']?.all, 1);
+    });
 
     test('a program_slots-only write is counts-only', () async {
       final (:repos, :log) = openRecording();
