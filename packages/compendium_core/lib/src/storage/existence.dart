@@ -503,19 +503,23 @@ Future<int> liveDanceCitationCount(
   required String id,
 }) async {
   final citations = countAll();
-  return (db.selectOnly(joinTable)
-        ..addColumns([citations])
-        ..join([
-          innerJoin(
-            db.dances,
-            db.dances.id.equalsExp(danceIdColumn) &
-                db.dances.deletedAt.isNull(),
-            useColumns: false,
-          ),
-        ])
-        ..where(keyColumn.equals(id)))
-      .map((row) => row.read(citations) ?? 0)
-      .getSingle();
+  // `.get()` rather than `.map(...).getSingle()`: an aggregate select always
+  // yields exactly one row, and `check_sync_invariants.py` locates the end of a
+  // joined query by its `.get(` call.
+  final rows =
+      await (db.selectOnly(joinTable)
+            ..addColumns([citations])
+            ..join([
+              innerJoin(
+                db.dances,
+                db.dances.id.equalsExp(danceIdColumn) &
+                    db.dances.deletedAt.isNull(),
+                useColumns: false,
+              ),
+            ])
+            ..where(keyColumn.equals(id)))
+          .get();
+  return rows.single.read(citations) ?? 0;
 }
 
 /// Whether a dance with [id] exists, for callers that only need to know that.
