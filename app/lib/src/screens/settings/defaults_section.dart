@@ -932,9 +932,10 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  /// Shows [error] as a localized sentence. The raw exception is logged by the
-  /// callers and never rendered: its text is English and names internal ids
-  /// (CWE-209).
+  /// Shows [error] as a localized sentence. A caught exception is logged by its
+  /// caller (`logCaughtError`); either way the raw text is never rendered: it
+  /// is English and names internal ids (CWE-209). [_delete]'s pre-check passes
+  /// a synthesized [DifficultyLevelInUse], which has nothing further to log.
   void _report(Object error) {
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
