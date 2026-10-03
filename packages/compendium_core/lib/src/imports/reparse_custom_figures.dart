@@ -1,6 +1,5 @@
-import 'package:meta/meta.dart';
-
 import '../model/figure.dart';
+import '../storage/figure_reparse.dart';
 import '../taxonomy/taxonomy.dart';
 import 'figure_front_end_fan_out.dart';
 
@@ -11,26 +10,6 @@ import 'figure_front_end_fan_out.dart';
 /// stored text may have originated from an online import, so per OWASP we treat
 /// it as untrusted even though it now lives locally.
 const int maxReparseTextLength = 2000;
-
-/// The result of re-parsing a figure list: the (possibly rewritten) [figures]
-/// and how many import-gap customs were [upgradedCount] to structured moves.
-@immutable
-class FigureReparseOutcome {
-  const FigureReparseOutcome({
-    required this.figures,
-    required this.upgradedCount,
-  });
-
-  /// The figure list after re-parsing. When [upgradedCount] is 0 this is the
-  /// input list, unchanged (identity preserved so callers can skip writes).
-  final List<Figure> figures;
-
-  /// Number of figures that were import-gap customs at input and now parse to
-  /// a structured taxonomy move.
-  final int upgradedCount;
-
-  bool get changed => upgradedCount > 0;
-}
 
 /// Re-runs the fan-out parser ([parseFigureLineFanOut]) over the stored text of
 /// every [CustomOrigin.importGap] custom figure in [figures], upgrading in place
