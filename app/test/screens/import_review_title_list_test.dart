@@ -21,6 +21,15 @@ class _ThrowingOnline extends _FakeOnline {
       throw RangeError.index(7, const <int>[], 'rows');
 }
 
+/// A source that cannot be reached at all (offline / captive portal).
+class _UnreachableOnline extends _FakeOnline {
+  @override
+  Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async {
+    searchedTitles.add(query.title);
+    throw const UrlFetchException(UrlFetchFailureReason.callersBoxUnreachable);
+  }
+}
+
 /// A canned online source: no network, and `import` throws so an accidental
 /// commit during resolution is a loud failure rather than a silent write.
 class _FakeOnline implements OnlineSearchService {
@@ -762,6 +771,49 @@ void main() {
           matching: find.text(l10n.commonTryAgain),
         ),
         findsOneWidget,
+      );
+    });
+  });
+
+  group('a title list pasted while offline (IMP-07)', () {
+    testWidgets('shows one connection banner, not a per-title explanation, '
+        'and looks nothing else up', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_localDance(id: 'd1', title: 'Fiddleheads'));
+      final service = _UnreachableOnline();
+      await _pump(tester, repos, service: service);
+
+      await _paste(tester, 'Fiddleheads\nOne\nTwo\nThree');
+
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      expect(service.searchedTitles, ['One']);
+      expect(find.text(l10n.importTitleListConnectionBanner), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('import-titles-connection-banner')),
+        findsOneWidget,
+      );
+      expect(
+        find.text(l10n.importTitleListReasonConnectionFailed),
+        findsNWidgets(3),
+      );
+      expect(find.text(l10n.importTitleListReasonFetchError), findsNothing);
+      // The owned title is still listed.
+      expect(
+        find.byKey(const ValueKey('import-titles-group-owned')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('an ordinary miss shows no connection banner', (tester) async {
+      final repos = openTestRepositories();
+      final service = _FakeOnline(rowsByTitle: const {'ghost dance': []});
+      await _pump(tester, repos, service: service);
+
+      await _paste(tester, 'Ghost Dance');
+
+      expect(
+        find.byKey(const ValueKey('import-titles-connection-banner')),
+        findsNothing,
       );
     });
   });

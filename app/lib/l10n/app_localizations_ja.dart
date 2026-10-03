@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -5260,6 +5261,14 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get importTitleListReasonFetchError =>
       'このタイトルについてThe Caller\'s Boxに到達できませんでした。';
+
+  @override
+  String get importTitleListReasonConnectionFailed =>
+      'The Caller\'s Boxに到達できませんでした。接続を確認してください。';
+
+  @override
+  String get importTitleListConnectionBanner =>
+      '接続エラーのため、タイトルの検索を中止しました。すでにコレクションにあるタイトルは一覧に表示されています。残りはオンラインになってから試してください。';
 
   @override
   String get importTitleListReasonLineTooLong =>
