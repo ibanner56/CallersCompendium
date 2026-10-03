@@ -1605,8 +1605,18 @@ void main() {
         // The raw branch must not look at figures_text: the stored token is
         // the canonical role2s, matched only through the canonical branch.
         expect(await dances.search(const FullTextFilter('role2s')), ['fig']);
-        final compiled = FilterCompiler().compile(const FullTextFilter('abc'));
-        expect(compiled.sql, isNot(contains('figures_text')));
+        // The column allowlist lives in the bound MATCH expression (not the
+        // SQL text), so assert on the raw bind for both compile paths.
+        final omni = FilterCompiler().compile(const FullTextFilter('abc'));
+        expect(omni.binds[1], contains('{title authors'));
+        expect(omni.binds[1], isNot(contains('figures_text')));
+        // Relevance is only bm25-ranked for short (prefix) queries.
+        final relevance = FilterCompiler().compile(
+          const FullTextFilter('ab'),
+          sort: SearchSort.relevance,
+        );
+        expect(relevance.binds.single, contains('{title authors'));
+        expect(relevance.binds.single, isNot(contains('figures_text')));
       });
     });
 

@@ -5,5 +5,10 @@
     "fixed": [
       "Search: a person's full name (for example 'Robin Hayden'), a source, a custom field value or a note is now found even when it contains a word the app treats as a dancer role."
     ]
+  },
+  "core": {
+    "fixed": [
+      "Omni full-text search (and the relevance query) now also matches the query as typed over title, authors, sources, custom values, hook and notes, so a role word such as 'Robin' or 'ladies' in a name or prose is found verbatim; `figures_text` stays canonical-only."
+    ]
   }
 }
