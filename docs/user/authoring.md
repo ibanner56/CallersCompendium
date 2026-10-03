@@ -24,9 +24,10 @@ There are three ways in:
   dance. The screen is titled **New dance**.
 - **Edit**, from a dance's detail view — opens that dance. The screen is titled
   **Edit dance**.
-- **Edit**, on a row in the [import review](./imports.md) list — brings that one
-  dance in straight away and opens it, so you can fix a stubborn figure while the
-  rest of the import waits for you.
+- **Import and edit**, on a row in the [import review](./imports.md) list — brings
+  that one dance in straight away and opens it, so you can fix a stubborn figure
+  while the rest of the import waits for you. It is not covered by the import's
+  **Undo**.
 
 The editor is a full screen with **Save** in the corner. The **title** is the only
 required field; everything else can stay empty until you know it.

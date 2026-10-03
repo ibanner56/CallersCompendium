@@ -5990,6 +5990,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get importReviewImported => 'Geïmporteerd';
 
   @override
+  String get importReviewImportAndEdit => 'Importeren en bewerken';
+
+  @override
   String importReviewStructured(int structured, int total) {
     return '$structured/$total gestructureerd';
   }
@@ -6164,6 +6167,14 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get importReviewEditError =>
       'Die dans kon niet worden geïmporteerd om te bewerken.';
+
+  @override
+  String get importReviewEditOverwriteTitle => 'Bestaande dans nu vervangen?';
+
+  @override
+  String importReviewEditOverwriteBody(String title) {
+    return 'Importeren om te bewerken vervangt “$title” in je verzameling meteen. Ongedaan maken van de hele import herstelt hem niet.';
+  }
 
   @override
   String get importReviewImportError => 'De import kon niet worden voltooid.';

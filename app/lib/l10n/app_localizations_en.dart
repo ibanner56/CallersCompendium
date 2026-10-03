@@ -5923,6 +5923,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importReviewImported => 'Imported';
 
   @override
+  String get importReviewImportAndEdit => 'Import and edit';
+
+  @override
   String importReviewStructured(int structured, int total) {
     return '$structured/$total structured';
   }
@@ -6095,6 +6098,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importReviewEditError => 'Couldn\'t import that dance to edit.';
+
+  @override
+  String get importReviewEditOverwriteTitle =>
+      'Replace the existing dance now?';
+
+  @override
+  String importReviewEditOverwriteBody(String title) {
+    return 'Importing to edit replaces \"$title\" in your collection immediately. The batch Undo will not restore it.';
+  }
 
   @override
   String get importReviewImportError => 'Couldn\'t complete the import.';

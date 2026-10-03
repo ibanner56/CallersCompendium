@@ -355,7 +355,9 @@ For step-by-step backup and restore, see
 ## Review before anything changes
 
 Importing from a file or a URL opens the **import review** screen, and nothing
-touches your collection until you commit there. It works the same whichever
+touches your collection until you commit there — except **Import and edit**,
+which imports that one dance right away (and replaces the matched dance if the
+row is a Re-import or Link; you are asked first). It works the same whichever
 source you pick:
 
 1. **Choose a source and give it something to read** — pick the source, then add
@@ -375,7 +377,8 @@ source you pick:
    so, and what to do about it.
 4. **Commit** — only now are the dances you accepted written to your collection.
 5. **Undo** — right after committing, the summary offers **Undo**, which removes
-   everything that import added. This is the review-and-undo queue for
+   everything the **Import** button added; dances brought in with **Import and
+   edit** are not undone by it. This is the review-and-undo queue for
    bringing in more than one dance at a time.
 
 *The import review screen lists each dance and the action available for its
@@ -439,12 +442,13 @@ Dances already in your collection show **Re-import** and **Skip** choices in the
 review list, and **Skip** is the default, so choose **Re-import** on the ones you
 want updated. The commit summary counts re-imports separately — **Re-imported: 4**
 — so you can see at a glance how much of an import was new material and how much
-was an update. The **Imported** badge appears only on a row you saved with **Edit**
-during review.
+was an update. The **Imported** badge appears only on a row you brought in with **Import and
+edit** during review.
 
 Re-importing overwrites that dance with the incoming version, so if you have
 edited your copy, look before you commit. The **Undo** on the summary reverses the
-whole import if it was not what you wanted.
+whole batch import if it was not what you wanted (but not a dance you brought in
+with **Import and edit**).
 
 ### Refresh choreography on one saved dance
 

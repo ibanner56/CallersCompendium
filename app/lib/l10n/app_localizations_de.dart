@@ -6016,6 +6016,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get importReviewImported => 'Importiert';
 
   @override
+  String get importReviewImportAndEdit => 'Importieren und bearbeiten';
+
+  @override
   String importReviewStructured(int structured, int total) {
     return '$structured/$total strukturiert';
   }
@@ -6190,6 +6193,15 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get importReviewEditError =>
       'Dieser Tanz konnte nicht zum Bearbeiten importiert werden.';
+
+  @override
+  String get importReviewEditOverwriteTitle =>
+      'Vorhandenen Tanz jetzt ersetzen?';
+
+  @override
+  String importReviewEditOverwriteBody(String title) {
+    return 'Beim Importieren zum Bearbeiten wird „$title“ in deiner Sammlung sofort ersetzt. „Rückgängig“ für den gesamten Import stellt ihn nicht wieder her.';
+  }
 
   @override
   String get importReviewImportError =>

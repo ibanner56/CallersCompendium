@@ -5945,6 +5945,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get importReviewImported => 'Importeret';
 
   @override
+  String get importReviewImportAndEdit => 'Importér og rediger';
+
+  @override
   String importReviewStructured(int structured, int total) {
     return '$structured/$total struktureret';
   }
@@ -6116,6 +6119,15 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get importReviewEditError =>
       'Kunne ikke importere den dans til redigering.';
+
+  @override
+  String get importReviewEditOverwriteTitle =>
+      'Erstat den eksisterende dans nu?';
+
+  @override
+  String importReviewEditOverwriteBody(String title) {
+    return 'Import til redigering erstatter „$title“ i din samling med det samme. Fortryd for hele importen gendanner den ikke.';
+  }
 
   @override
   String get importReviewImportError => 'Kunne ikke fuldføre importen.';
