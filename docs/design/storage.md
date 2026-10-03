@@ -55,6 +55,10 @@ CREATE VIRTUAL TABLE dance_fts USING fts5(     -- derived; canonical text only
 -- rebuild clears the table once instead of deleting per dance. Deleting per new
 -- dance made an N-dance import O(N²) (1,000 → 8,000 dances: 0.57 → 1.66 ms per
 -- dance).
+-- The one exception is the batch edits of level, rating and tunes
+-- (`DanceRepository._updateMany`, `rebuildDerived: false`): none of them is an
+-- input to a derived row, so they leave the rows as they are. A custom-field
+-- batch edit changes `custom_values` and does rebuild.
 
 programs(id PK, title, event_date, venue, venue_id NULL, notes, status,
          created_at, updated_at, deleted_at,
