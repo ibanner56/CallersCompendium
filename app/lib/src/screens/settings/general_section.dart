@@ -9,7 +9,11 @@ import '../../../l10n/app_localizations.dart';
 import 'settings_keys.dart';
 import '../../data/sync_writer_lifecycle_scope.dart';
 import '../../data/backup_document.dart'
-    show BackupFileSummary, defaultBackupCodecRunner, summarizeBackupOnIsolate;
+    show
+        BackupReadResult,
+        decodeBackupOnIsolate,
+        decodeBackupSizedOnIsolate,
+        defaultBackupCodecRunner;
 import '../../data/backup_io.dart';
 import '../../data/backup_reminder.dart';
 import '../../data/backup_service.dart';
@@ -315,11 +319,11 @@ class _GeneralSectionState extends State<GeneralSection> {
     VoidCallback? closeProgress;
 
     try {
-      final raw = await showDialog<String>(
+      final choice = await showDialog<_RestoreChoice>(
         context: context,
         builder: (_) => _RestoreBackupDialog(picker: picker),
       );
-      if (raw == null || raw.trim().isEmpty || !mounted) return;
+      if (choice == null || choice.json.trim().isEmpty || !mounted) return;
 
       // Shown before the lifecycle wrapper, which may wait for an active sync
       // pass, so the screen never sits unchanged while the restore is pending.
@@ -333,10 +337,20 @@ class _GeneralSectionState extends State<GeneralSection> {
         progressLabel: l10n.backupRestoreProgress,
       );
 
+      // A file the dialog already decoded is not decoded again; pasted text (or
+      // a file Replace was pressed on mid-decode) is decoded here, under the
+      // progress dialog. The result is kept for the settings retry below.
+      final read =
+          choice.read ??
+          await decodeBackupOnIsolate(
+            choice.json,
+            runner: defaultBackupCodecRunner,
+          );
       final outcome = await _runRestoreLifecycle(
         runWrite: runWrite,
         operation: () => BackupService(repos).restoreFromJson(
-          raw,
+          choice.json,
+          decoded: read,
           onProgress: (done, total) => progress.value = (done, total),
         ),
       );
@@ -374,7 +388,7 @@ class _GeneralSectionState extends State<GeneralSection> {
       // localized — the raw exception is logged (debug-guarded) inside the
       // service, never shown here (CWE-209).
       if (outcome.settingsFailed) {
-        _showSettingsRestoreFailed(messenger, l10n, repos, raw, onRestored);
+        _showSettingsRestoreFailed(messenger, l10n, repos, read, onRestored);
         return;
       }
       messenger.showSnackBar(
@@ -418,7 +432,7 @@ class _GeneralSectionState extends State<GeneralSection> {
     ScaffoldMessengerState messenger,
     AppLocalizations l10n,
     CompendiumRepositories repos,
-    String raw,
+    BackupReadResult read,
     Future<void> Function()? onRestored,
   ) {
     messenger.clearSnackBars();
@@ -430,7 +444,7 @@ class _GeneralSectionState extends State<GeneralSection> {
           label: l10n.backupRestoreSettingsRetryAction,
           onPressed: () {
             unawaited(
-              _retrySettingsRestore(messenger, l10n, repos, raw, onRestored),
+              _retrySettingsRestore(messenger, l10n, repos, read, onRestored),
             );
           },
         ),
@@ -449,17 +463,17 @@ class _GeneralSectionState extends State<GeneralSection> {
     ScaffoldMessengerState messenger,
     AppLocalizations l10n,
     CompendiumRepositories repos,
-    String raw,
+    BackupReadResult read,
     Future<void> Function()? onRestored,
   ) async {
     try {
-      final outcome = await BackupService(repos).retryApplySettings(raw);
+      final outcome = await BackupService(repos).retryApplySettingsFrom(read);
       // Only refresh when something was actually applied.
       if (outcome.applied && onRestored != null) await onRestored();
       if (!mounted) return;
       if (outcome.applied) _refreshSoftDeleteRetention();
       if (outcome.settingsFailed) {
-        _showSettingsRestoreFailed(messenger, l10n, repos, raw, onRestored);
+        _showSettingsRestoreFailed(messenger, l10n, repos, read, onRestored);
         return;
       }
       if (!outcome.applied) {
@@ -485,7 +499,7 @@ class _GeneralSectionState extends State<GeneralSection> {
       logCaughtError(e, st, source: 'general_section._retrySettingsRestore');
       if (kDebugMode) debugPrint('Backup settings retry failed: $e\n$st');
       if (!mounted) return;
-      _showSettingsRestoreFailed(messenger, l10n, repos, raw, onRestored);
+      _showSettingsRestoreFailed(messenger, l10n, repos, read, onRestored);
     }
   }
 
@@ -853,9 +867,18 @@ class _GeneralView extends StatelessWidget {
   }
 }
 
+/// What the restore dialog hands back: the backup text, plus its decoded form
+/// when the dialog already produced it for a chosen file.
+class _RestoreChoice {
+  const _RestoreChoice(this.json, [this.read]);
+
+  final String json;
+  final BackupReadResult? read;
+}
+
 /// A modal that collects a backup to restore — either by choosing a file (via
 /// the injected [picker]) or by pasting JSON — behind an explicit,
-/// destructive-replace warning. Returns the chosen JSON string when the user
+/// destructive-replace warning. Returns a [_RestoreChoice] when the user
 /// confirms, or `null` if they cancel.
 ///
 /// A chosen file is held in state and shown as a summary (date, counts, size)
@@ -876,15 +899,17 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
   bool _picking = false;
 
   /// The chosen file's text, set the moment the picker returns so Replace is
-  /// enabled before the summary finishes decoding.
+  /// enabled before the decode finishes.
   String? _pickedJson;
 
-  /// The decoded summary of [_pickedJson]; `null` while it is being read.
-  BackupFileSummary? _summary;
+  /// The decoded [_pickedJson] and its UTF-8 size; `null` while being read.
+  /// Handed on to the restore so the file is decoded once, not twice.
+  BackupReadResult? _read;
+  int? _sizeBytes;
 
-  /// Set when the summary decode itself threw: shown as unreadable, with the
-  /// restore service left to own the refusal.
-  bool _summaryFailed = false;
+  /// Set when the decode itself threw: shown as unreadable, with the restore
+  /// left to own the refusal.
+  bool _decodeFailed = false;
 
   /// Guards a slow summary decode against a newer pick or a Clear.
   int _pickGeneration = 0;
@@ -899,8 +924,9 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
     setState(() {
       _pickGeneration++;
       _pickedJson = null;
-      _summary = null;
-      _summaryFailed = false;
+      _read = null;
+      _sizeBytes = null;
+      _decodeFailed = false;
     });
   }
 
@@ -914,20 +940,24 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
       setState(() {
         _controller.clear();
         _pickedJson = json;
-        _summary = null;
-        _summaryFailed = false;
+        _read = null;
+        _sizeBytes = null;
+        _decodeFailed = false;
       });
       try {
-        final summary = await summarizeBackupOnIsolate(
+        final decoded = await decodeBackupSizedOnIsolate(
           json,
           runner: defaultBackupCodecRunner,
         );
         if (!mounted || generation != _pickGeneration) return;
-        setState(() => _summary = summary);
+        setState(() {
+          _read = decoded.read;
+          _sizeBytes = decoded.sizeBytes;
+        });
       } on Object catch (e, stackTrace) {
         logCaughtError(e, stackTrace, source: 'general_section._chooseFile');
         if (!mounted || generation != _pickGeneration) return;
-        setState(() => _summaryFailed = true);
+        setState(() => _decodeFailed = true);
       }
     } on BackupFileTooLargeException catch (e, stackTrace) {
       logCaughtError(e, stackTrace, source: 'general_section._chooseFile');
@@ -966,22 +996,23 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
   }
 
   Widget _fileSummary(AppLocalizations l10n) {
-    final summary = _summary;
+    final read = _read;
     final String text;
-    if (summary == null && !_summaryFailed) {
+    if (read == null && !_decodeFailed) {
       text = l10n.backupRestorePreparing;
-    } else if (summary == null || !summary.readable) {
+    } else if (read == null || read.fatal) {
       text = l10n.backupFileUnreadable(
-        backupMegabytes(summary?.sizeBytes ?? _pickedJson!.length),
+        backupMegabytes(_sizeBytes ?? _pickedJson!.length),
       );
     } else {
+      final core = read.document.core;
       text = l10n.backupFileSummary(
         MaterialLocalizations.of(
           context,
-        ).formatMediumDate(summary.createdAt.toLocal()),
-        summary.danceCount,
-        summary.programCount,
-        backupMegabytes(summary.sizeBytes),
+        ).formatMediumDate(read.document.createdAt.toLocal()),
+        core.dances.where((d) => d.deletedAt == null).length,
+        core.programs.where((p) => p.deletedAt == null).length,
+        backupMegabytes(_sizeBytes!),
       );
     }
     return Card(
@@ -1050,7 +1081,11 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
         FilledButton(
           key: const ValueKey('restore-confirm'),
           onPressed: hasContent
-              ? () => Navigator.of(context).pop(_pickedJson ?? _controller.text)
+              ? () => Navigator.of(context).pop(
+                  holdsFile
+                      ? _RestoreChoice(_pickedJson!, _read)
+                      : _RestoreChoice(_controller.text),
+                )
               : null,
           child: Text(l10n.backupReplaceAllDataAction),
         ),

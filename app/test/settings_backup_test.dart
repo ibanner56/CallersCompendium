@@ -389,7 +389,10 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('restore-choose-file')));
       await tester.pump();
       await tester.tap(find.byKey(const ValueKey('restore-confirm')));
-      await tester.pumpAndSettle();
+      // pump, not pumpAndSettle: the restore progress dialog is already up
+      // while the pre-hook waits, and its indeterminate bar never settles.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
 
       expect(beforeCalls, 1);
 

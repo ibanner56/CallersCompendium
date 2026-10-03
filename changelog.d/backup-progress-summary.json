@@ -1,0 +1,15 @@
+{
+  "id": "backup-progress-summary",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A progress bar while a backup is exported or restored."
+    ],
+    "changed": [
+      "Choosing a backup file shows a summary (date, dances, programs, size) instead of pasting the whole file into the text box."
+    ],
+    "fixed": [
+      "The 'too large' backup messages are now translated."
+    ]
+  }
+}

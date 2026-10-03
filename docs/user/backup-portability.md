@@ -34,6 +34,9 @@ A few good moments to export a backup:
 2. Find the **Backup & restore** section.
 3. Choose **Export** beside **Export a backup**.
 
+While the backup is prepared, a progress bar shows that the app is
+working. It disappears when the share or save sheet is ready.
+
 The app creates a single dated file — something like
 `callers-compendium-backup-2026-07-15.json` — and hands it to your
 device's normal share or save sheet. From there you decide where it
@@ -94,8 +97,12 @@ setting up a new device or recovering after a problem.
 2. Find the **Backup & restore** section.
 3. Choose **Restore** beside **Restore from a backup**.
 4. Either choose **Choose file…** (a picker that shows `.json` backups)
-   or paste the backup text into **Or paste backup JSON**.
-5. Confirm with **Replace all data**.
+   or paste the backup text into **Or paste backup JSON**. A chosen file is
+   shown as a short summary (its date, how many dances and programs it
+   holds, and its size) rather than as text in the box; the box is for
+   pasted text only. Choose **Clear** to forget the file.
+5. Confirm with **Replace all data**. A progress bar counts the restore
+   from start to finish; it can't be dismissed, so wait for it to close.
 
 On success, you'll see a **Backup restored.** confirmation. If any
 dance, program or other core item in the file can't be read, the restore

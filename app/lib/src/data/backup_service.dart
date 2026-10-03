@@ -356,15 +356,21 @@ class BackupService {
   /// `true`. The caller surfaces a retryable error and can re-run only the
   /// settings apply via [retryApplySettings]; the exception is never rethrown.
   ///
+  /// [decoded], when given, is the already-decoded result of [json] (e.g. the
+  /// one the restore dialog produced to summarise the file); the file is then
+  /// not decoded again. It must come from decoding the same [json].
+  ///
   /// [onProgress] receives `(done, total)` from the core restore once the
   /// backup has decoded (see [ArchiveRestorer.restore]); nothing is reported
   /// for the decode itself or for a refusal before the core is touched.
   Future<BackupRestoreOutcome> restoreFromJson(
     String json, {
     RestoreMode mode = RestoreMode.replace,
+    BackupReadResult? decoded,
     void Function(int done, int total)? onProgress,
   }) async {
-    final read = await decodeBackupOnIsolate(json, runner: _codecRunner);
+    final read =
+        decoded ?? await decodeBackupOnIsolate(json, runner: _codecRunner);
     final errors = <ArchiveError>[...read.errors];
     final warnings = <String>[...read.warnings];
 
